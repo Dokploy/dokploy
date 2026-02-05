@@ -13,9 +13,9 @@ type MockCreateServiceOptions = {
 
 const { inspectMock, getServiceMock, createServiceMock, getRemoteDockerMock } =
 	vi.hoisted(() => {
-		const inspect = vi.fn<[], Promise<never>>();
+		const inspect = vi.fn<() => Promise<never>>();
 		const getService = vi.fn(() => ({ inspect }));
-		const createService = vi.fn<[MockCreateServiceOptions], Promise<void>>(
+		const createService = vi.fn<(opts: MockCreateServiceOptions) => Promise<void>>(
 			async () => undefined,
 		);
 		const getRemoteDocker = vi.fn(async () => ({
@@ -80,7 +80,9 @@ describe("mechanizeDockerContainer", () => {
 		await mechanizeDockerContainer(application);
 
 		expect(createServiceMock).toHaveBeenCalledTimes(1);
-		const call = createServiceMock.mock.calls[0];
+		const call = createServiceMock.mock.calls[0] as
+			| [MockCreateServiceOptions]
+			| undefined;
 		if (!call) {
 			throw new Error("createServiceMock should have been called once");
 		}
@@ -97,7 +99,9 @@ describe("mechanizeDockerContainer", () => {
 		await mechanizeDockerContainer(application);
 
 		expect(createServiceMock).toHaveBeenCalledTimes(1);
-		const call = createServiceMock.mock.calls[0];
+		const call = createServiceMock.mock.calls[0] as
+			| [MockCreateServiceOptions]
+			| undefined;
 		if (!call) {
 			throw new Error("createServiceMock should have been called once");
 		}
