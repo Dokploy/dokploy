@@ -7,11 +7,16 @@ export default defineConfig({
 		include: ["__test__/**/*.test.ts"], // Incluir solo los archivos de test en el directorio __test__
 		exclude: ["**/node_modules/**", "**/dist/**", "**/.docker/**"],
 		pool: "forks",
-		setupFiles: ["./__test__/setup/mock-db.ts"],
+		// Se ejecuta antes de todos los tests y aplica mocks globales (db, postgres, etc.)
+		setupFiles: ["./setup/mock-db.ts"],
 	},
 	define: {
 		"process.env": {
 			NODE: "test",
+			GITHUB_CLIENT_ID: "test",
+			GITHUB_CLIENT_SECRET: "test",
+			GOOGLE_CLIENT_ID: "test",
+			GOOGLE_CLIENT_SECRET: "test",
 		},
 	},
 	plugins: [
