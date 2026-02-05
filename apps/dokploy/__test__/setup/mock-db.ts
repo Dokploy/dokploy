@@ -49,6 +49,11 @@ vi.mock("@dokploy/server/db", () => {
 					findFirst: vi.fn(),
 					findMany: vi.fn(),
 				},
+				// Necesario para getWebServerSettings (lib/auth -> trustedOrigins)
+				webServerSettings: {
+					findFirst: vi.fn().mockResolvedValue(null),
+					findMany: vi.fn().mockResolvedValue([]),
+				},
 			},
 		},
 		dbUrl: "postgres://mock:mock@localhost:5432/mock",
