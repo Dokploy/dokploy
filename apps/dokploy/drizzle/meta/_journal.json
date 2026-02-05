@@ -960,13 +960,6 @@
       "when": 1769580434296,
       "tag": "0136_tidy_puff_adder",
       "breakpoints": true
-    },
-    {
-      "idx": 137,
-      "version": "7",
-      "when": 1769595469101,
-      "tag": "0137_worried_shriek",
-      "breakpoints": true
     }
   ]
 }
