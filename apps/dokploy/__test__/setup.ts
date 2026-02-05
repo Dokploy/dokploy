@@ -26,7 +26,9 @@ vi.mock("@dokploy/server/db", () => {
 	return {
 		db: {
 			select: vi.fn(() => chain),
-			insert: vi.fn(() => ({ values: () => ({ returning: () => Promise.resolve([{}]) }) })),
+			insert: vi.fn(() => ({
+				values: () => ({ returning: () => Promise.resolve([{}]) }),
+			})),
 			update: vi.fn(() => chain),
 			delete: vi.fn(() => chain),
 			query: new Proxy({} as Record<string, typeof tableMock>, {
