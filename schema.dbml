@@ -881,7 +881,7 @@ table server {
   port integer [not null]
   username text [not null, default: 'root']
   appName text [not null]
-  enableDockerCleanup boolean [not null, default: false]
+  enableDockerCleanup boolean [not null, default: true]
   createdAt text [not null]
   organizationId text [not null]
   serverStatus serverStatus [not null, default: 'active']
@@ -955,7 +955,7 @@ table user_temp {
   host text
   letsEncryptEmail text
   sshPrivateKey text
-  enableDockerCleanup boolean [not null, default: false]
+  enableDockerCleanup boolean [not null, default: true]
   logCleanupCron text [default: '0 0 * * *']
   role text [not null, default: 'user']
   enablePaidFeatures boolean [not null, default: false]
