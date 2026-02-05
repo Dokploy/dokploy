@@ -165,7 +165,7 @@
 		"@types/js-cookie": "^3.0.6",
 		"@types/lodash": "4.17.4",
 		"@types/micromatch": "4.0.9",
-		"@types/node": "^18.19.104",
+		"@types/node": "^20.16.0",
 		"@types/node-schedule": "2.1.6",
 		"@types/nodemailer": "^6.4.17",
 		"@types/qrcode": "^1.5.5",

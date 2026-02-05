@@ -7,7 +7,7 @@ export default defineConfig({
 		include: ["__test__/**/*.test.ts"], // Incluir solo los archivos de test en el directorio __test__
 		exclude: ["**/node_modules/**", "**/dist/**", "**/.docker/**"],
 		pool: "forks",
-		// Se ejecuta antes de todos los tests y aplica mocks globales (db, postgres, etc.)
+		setupFiles: [path.resolve(__dirname, "setup.ts")],
 	},
 	define: {
 		"process.env": {
