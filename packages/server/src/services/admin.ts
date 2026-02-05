@@ -125,6 +125,10 @@ export const getTrustedOrigins = async () => {
 		},
 	});
 
+	if (members.length === 0) {
+		return [];
+	}
+
 	const trustedOrigins = members.flatMap(
 		(member) => member.user.trustedOrigins || [],
 	);
