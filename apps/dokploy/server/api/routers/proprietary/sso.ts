@@ -1,6 +1,8 @@
+import { normalizeTrustedOrigin } from "@dokploy/server";
 import { IS_CLOUD } from "@dokploy/server/constants";
-import { member, ssoProvider } from "@dokploy/server/db/schema";
+import { member, ssoProvider, user } from "@dokploy/server/db/schema";
 import { ssoProviderBodySchema } from "@dokploy/server/db/schema/sso";
+import { requestToHeaders } from "@dokploy/server/index";
 import { auth } from "@dokploy/server/lib/auth";
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
@@ -11,20 +13,6 @@ import {
 	publicProcedure,
 } from "@/server/api/trpc";
 import { db } from "@/server/db";
-
-function requestToHeaders(req: {
-	headers?: Record<string, string | string[] | undefined>;
-}): Headers {
-	const headers = new Headers();
-	if (req?.headers) {
-		for (const [key, value] of Object.entries(req.headers)) {
-			if (value !== undefined && key.toLowerCase() !== "host") {
-				headers.set(key, Array.isArray(value) ? value.join(", ") : value);
-			}
-		}
-	}
-	return headers;
-}
 
 export const ssoRouter = createTRPCRouter({
 	showSignInWithSSO: publicProcedure.query(async () => {
@@ -73,6 +61,28 @@ export const ssoRouter = createTRPCRouter({
 	deleteProvider: enterpriseProcedure
 		.input(z.object({ providerId: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
+			// Obtener el provider antes de eliminarlo para obtener sus dominios
+			const providerToDelete = await db.query.ssoProvider.findFirst({
+				where: and(
+					eq(ssoProvider.providerId, input.providerId),
+					eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
+					eq(ssoProvider.userId, ctx.session.userId),
+				),
+				columns: {
+					id: true,
+					domain: true,
+					issuer: true,
+				},
+			});
+
+			if (!providerToDelete) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message:
+						"SSO provider not found or you do not have permission to delete it",
+				});
+			}
+
 			const [deleted] = await db
 				.delete(ssoProvider)
 				.where(
@@ -92,6 +102,24 @@ export const ssoRouter = createTRPCRouter({
 				});
 			}
 
+			const currentUser = await db.query.user.findFirst({
+				where: eq(user.id, ctx.session.userId),
+				columns: {
+					trustedOrigins: true,
+				},
+			});
+
+			if (currentUser?.trustedOrigins) {
+				const issuerOrigin = normalizeTrustedOrigin(providerToDelete.issuer);
+				const updatedOrigins = currentUser.trustedOrigins.filter(
+					(origin) => origin.toLowerCase() !== issuerOrigin.toLowerCase(),
+				);
+
+				await db
+					.update(user)
+					.set({ trustedOrigins: updatedOrigins })
+					.where(eq(user.id, ctx.session.userId));
+			}
 			return { success: true };
 		}),
 	register: enterpriseProcedure
@@ -119,6 +147,26 @@ export const ssoRouter = createTRPCRouter({
 				}
 			}
 			const domain = input.domains.join(",");
+			const currentUser = await db.query.user.findFirst({
+				where: eq(user.id, ctx.session.userId),
+				columns: {
+					trustedOrigins: true,
+				},
+			});
+
+			const existingOrigins = currentUser?.trustedOrigins || [];
+
+			const issuerOrigin = normalizeTrustedOrigin(input.issuer);
+
+			const newOrigins = Array.from(
+				new Set([...existingOrigins, issuerOrigin]),
+			);
+
+			await db
+				.update(user)
+				.set({ trustedOrigins: newOrigins })
+				.where(eq(user.id, ctx.session.userId));
+
 			await auth.registerSSOProvider({
 				body: {
 					...input,

@@ -65,6 +65,7 @@ export const user = pgTable("user", {
 	stripeCustomerId: text("stripeCustomerId"),
 	stripeSubscriptionId: text("stripeSubscriptionId"),
 	serversQuantity: integer("serversQuantity").notNull().default(0),
+	trustedOrigins: text("trustedOrigins").array(),
 });
 
 export const usersRelations = relations(user, ({ one, many }) => ({
@@ -85,6 +86,8 @@ const createSchema = createInsertSchema(user, {
 	isRegistered: z.boolean().optional(),
 }).omit({
 	role: true,
+	trustedOrigins: true,
+	isValidEnterpriseLicense: true,
 });
 
 export const apiCreateUserInvitation = createSchema.pick({}).extend({

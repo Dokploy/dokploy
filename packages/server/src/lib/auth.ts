@@ -9,7 +9,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
-import { getUserByToken } from "../services/admin";
+import { getTrustedOrigins, getUserByToken } from "../services/admin";
 import {
 	getWebServerSettings,
 	updateWebServerSettings,
@@ -43,28 +43,24 @@ const { handler, api } = betterAuth({
 	logger: {
 		disabled: process.env.NODE_ENV === "production",
 	},
-	...(!IS_CLOUD && {
-		async trustedOrigins() {
-			const settings = await getWebServerSettings();
-			if (!settings) {
-				return [];
-			}
-			return [
-				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
-				...(settings?.host ? [`https://${settings?.host}`] : []),
-				...(process.env.NODE_ENV === "development"
-					? [
-							"http://localhost:3000",
-							"https://absolutely-handy-falcon.ngrok-free.app",
-							"https://dev-pee8hhc3qbjlqedb.us.auth0.com",
-							"https://trial-2804699.okta.com",
-							"https://login.microsoftonline.com",
-							"https://graph.microsoft.com",
-						]
-					: []),
-			];
-		},
-	}),
+	async trustedOrigins() {
+		const trustedOrigins = await getTrustedOrigins();
+		if (IS_CLOUD) {
+			return trustedOrigins;
+		}
+		const settings = await getWebServerSettings();
+		if (!settings) {
+			return [];
+		}
+		return [
+			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
+			...(settings?.host ? [`https://${settings?.host}`] : []),
+			...(process.env.NODE_ENV === "development"
+				? ["http://localhost:3000"]
+				: []),
+			...trustedOrigins,
+		];
+	},
 	emailVerification: {
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
