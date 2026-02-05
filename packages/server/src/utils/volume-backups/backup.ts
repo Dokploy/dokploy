@@ -50,10 +50,10 @@ export const backupVolume = async (
 		echo "Stopping application to 0 replicas"
 		ACTUAL_REPLICAS=$(docker service inspect ${volumeBackup.application?.appName} --format "{{.Spec.Mode.Replicated.Replicas}}")
 		echo "Actual replicas: $ACTUAL_REPLICAS"
-		docker service scale ${volumeBackup.application?.appName}=0
+		docker service update --replicas=0 ${volumeBackup.application?.appName}
         ${baseCommand}
 		echo "Starting application to $ACTUAL_REPLICAS replicas"
-        docker service scale ${volumeBackup.application?.appName}=$ACTUAL_REPLICAS
+        docker service update --replicas=$ACTUAL_REPLICAS --with-registry-auth ${volumeBackup.application?.appName}
   `;
 	}
 	if (serviceType === "compose") {
@@ -69,10 +69,10 @@ export const backupVolume = async (
 			echo "Service name: ${compose.appName}_${volumeBackup.serviceName}"
             ACTUAL_REPLICAS=$(docker service inspect ${compose.appName}_${volumeBackup.serviceName} --format "{{.Spec.Mode.Replicated.Replicas}}")
             echo "Actual replicas: $ACTUAL_REPLICAS"
-            docker service scale ${compose.appName}_${volumeBackup.serviceName}=0`;
+            docker service update --replicas=0 ${compose.appName}_${volumeBackup.serviceName}`;
 			startCommand = `
 			echo "Starting compose to $ACTUAL_REPLICAS replicas"
-			docker service scale ${compose.appName}_${volumeBackup.serviceName}=$ACTUAL_REPLICAS`;
+			docker service update --replicas=$ACTUAL_REPLICAS --with-registry-auth ${compose.appName}_${volumeBackup.serviceName}`;
 		} else {
 			stopCommand = `
 			echo "Stopping compose container"
