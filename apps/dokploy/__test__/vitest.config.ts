@@ -8,7 +8,6 @@ export default defineConfig({
 		exclude: ["**/node_modules/**", "**/dist/**", "**/.docker/**"],
 		pool: "forks",
 		// Se ejecuta antes de todos los tests y aplica mocks globales (db, postgres, etc.)
-		setupFiles: ["./__test__/setup/mock-db.ts"],
 	},
 	define: {
 		"process.env": {
