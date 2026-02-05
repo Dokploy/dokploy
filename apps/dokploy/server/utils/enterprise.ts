@@ -1,6 +1,4 @@
-import { getPublicIpWithFallback } from "@dokploy/server";
-
-const LICENSE_KEY_URL = process.env.LICENSE_KEY_URL || "http://localhost:4002";
+import { getPublicIpWithFallback, LICENSE_KEY_URL } from "@dokploy/server";
 
 export const validateLicenseKey = async (licenseKey: string) => {
 	try {

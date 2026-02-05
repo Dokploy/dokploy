@@ -4,6 +4,11 @@ import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
 import { user as userSchema } from "../../db/schema/user";
 
+export const LICENSE_KEY_URL =
+	process.env.NODE_ENV === "development"
+		? "http://localhost:4002"
+		: "https://api-license-key.dokploy.com";
+
 export const initEnterpriseBackupCronJobs = async () => {
 	scheduleJob("enterprise-check", "0 0 */3 * *", async () => {
 		const users = await db.query.user.findMany({
@@ -39,16 +44,13 @@ export const initEnterpriseBackupCronJobs = async () => {
 export const validateLicenseKey = async (licenseKey: string) => {
 	try {
 		const ip = await getPublicIpWithFallback();
-		const result = await fetch(
-			`${process.env.LICENSE_KEY_URL || "http://localhost:4002"}/licenses/validate`,
-			{
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({ licenseKey, ip }),
+		const result = await fetch(`${LICENSE_KEY_URL}/licenses/validate`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
 			},
-		);
+			body: JSON.stringify({ licenseKey, ip }),
+		});
 
 		if (!result.ok) {
 			const errorData = await result.json().catch(() => ({}));
