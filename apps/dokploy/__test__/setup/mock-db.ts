@@ -16,6 +16,7 @@ vi.mock("@dokploy/server/db", () => {
 		const chain: any = {
 			set: vi.fn(() => chain),
 			where: vi.fn(() => chain),
+			values: vi.fn(() => chain),
 			returning: vi.fn().mockResolvedValue([{}]),
 			execute: vi.fn().mockResolvedValue([{}]),
 		};
