@@ -10,6 +10,7 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
 	sendSlackNotification,
@@ -28,6 +29,7 @@ export const sendDokployRestartNotifications = async () => {
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 			custom: true,
 			lark: true,
 			pushover: true,
@@ -42,6 +44,7 @@ export const sendDokployRestartNotifications = async () => {
 			slack,
 			gotify,
 			ntfy,
+			mattermost,
 			custom,
 			lark,
 			pushover,
@@ -141,19 +144,23 @@ export const sendDokployRestartNotifications = async () => {
 				});
 			}
 
+			if (mattermost) {
+				await sendMattermostNotification(mattermost, {
+					text: `**✅ Dokploy Server Restarted**\n\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}`,
+					channel: mattermost.channel,
+					username: mattermost.username || "Dokploy",
+				});
+			}
+
 			if (custom) {
-				try {
-					await sendCustomNotification(custom, {
-						title: "Dokploy Server Restarted",
-						message: "Dokploy server has been restarted successfully",
-						timestamp: date.toISOString(),
-						date: date.toLocaleString(),
-						status: "success",
-						type: "dokploy-restart",
-					});
-				} catch (error) {
-					console.log(error);
-				}
+				await sendCustomNotification(custom, {
+					title: "Dokploy Server Restarted",
+					message: "Dokploy server has been restarted successfully",
+					timestamp: date.toISOString(),
+					date: date.toLocaleString(),
+					status: "success",
+					type: "dokploy-restart",
+				});
 			}
 
 			if (lark) {

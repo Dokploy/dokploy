@@ -19,6 +19,7 @@ export const notificationType = pgEnum("notificationType", [
 	"email",
 	"gotify",
 	"ntfy",
+	"mattermost",
 	"pushover",
 	"custom",
 	"lark",
@@ -57,6 +58,9 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	ntfyId: text("ntfyId").references(() => ntfy.ntfyId, {
+		onDelete: "cascade",
+	}),
+	mattermostId: text("mattermostId").references(() => mattermost.mattermostId, {
 		onDelete: "cascade",
 	}),
 	customId: text("customId").references(() => custom.customId, {
@@ -136,6 +140,16 @@ export const ntfy = pgTable("ntfy", {
 	priority: integer("priority").notNull().default(3),
 });
 
+export const mattermost = pgTable("mattermost", {
+	mattermostId: text("mattermostId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
+	channel: text("channel"),
+	username: text("username"),
+});
+
 export const custom = pgTable("custom", {
 	customId: text("customId")
 		.notNull()
@@ -189,6 +203,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	ntfy: one(ntfy, {
 		fields: [notifications.ntfyId],
 		references: [ntfy.ntfyId],
+	}),
+	mattermost: one(mattermost, {
+		fields: [notifications.mattermostId],
+		references: [mattermost.mattermostId],
 	}),
 	custom: one(custom, {
 		fields: [notifications.customId],
@@ -399,6 +417,49 @@ export const apiTestNtfyConnection = apiCreateNtfy.pick({
 	accessToken: true,
 	priority: true,
 });
+
+export const apiCreateMattermost = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		webhookUrl: z.string().min(1),
+		channel: z.string().optional(),
+		username: z.string().optional(),
+	})
+	.required({
+		name: true,
+		webhookUrl: true,
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	});
+
+export const apiUpdateMattermost = apiCreateMattermost.partial().extend({
+	notificationId: z.string().min(1),
+	mattermostId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestMattermostConnection = apiCreateMattermost
+	.pick({
+		webhookUrl: true,
+		channel: true,
+		username: true,
+	})
+	.extend({
+		channel: z.string().optional(),
+		username: z.string().optional(),
+	});
 
 export const apiFindOneNotification = notificationsSchema
 	.pick({

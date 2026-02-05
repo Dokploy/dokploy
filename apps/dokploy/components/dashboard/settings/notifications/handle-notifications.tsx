@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import {
 	DiscordIcon,
+	MattermostIcon,
 	GotifyIcon,
 	LarkIcon,
 	NtfyIcon,
@@ -117,6 +118,14 @@ export const notificationSchema = z.discriminatedUnion("type", [
 		.merge(notificationBaseSchema),
 	z
 		.object({
+			type: z.literal("mattermost"),
+			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			channel: z.string().optional(),
+			username: z.string().optional(),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
 			type: z.literal("pushover"),
 			userKey: z.string().min(1, { message: "User Key is required" }),
 			apiToken: z.string().min(1, { message: "API Token is required" }),
@@ -177,6 +186,10 @@ export const notificationsMap = {
 		icon: <NtfyIcon />,
 		label: "ntfy",
 	},
+	mattermost: {
+		icon: <MattermostIcon />,
+		label: "Mattermost",
+	},
 	pushover: {
 		icon: <PushoverIcon />,
 		label: "Pushover",
@@ -218,12 +231,12 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		api.notification.testGotifyConnection.useMutation();
 	const { mutateAsync: testNtfyConnection, isLoading: isLoadingNtfy } =
 		api.notification.testNtfyConnection.useMutation();
+	const { mutateAsync: testMattermostConnection, isLoading: isLoadingMattermost } =
+		api.notification.testMattermostConnection.useMutation();
 	const { mutateAsync: testLarkConnection, isLoading: isLoadingLark } =
 		api.notification.testLarkConnection.useMutation();
-
 	const { mutateAsync: testCustomConnection, isLoading: isLoadingCustom } =
 		api.notification.testCustomConnection.useMutation();
-
 	const { mutateAsync: testPushoverConnection, isLoading: isLoadingPushover } =
 		api.notification.testPushoverConnection.useMutation();
 
@@ -248,6 +261,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const ntfyMutation = notificationId
 		? api.notification.updateNtfy.useMutation()
 		: api.notification.createNtfy.useMutation();
+	const mattermostMutation = notificationId
+		? api.notification.updateMattermost.useMutation()
+		: api.notification.createMattermost.useMutation();
 	const larkMutation = notificationId
 		? api.notification.updateLark.useMutation()
 		: api.notification.createLark.useMutation();
@@ -380,6 +396,21 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
 				});
+			} else if (notification.notificationType === "mattermost") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					volumeBackup: notification.volumeBackup,
+					type: notification.notificationType,
+					webhookUrl: notification.mattermost?.webhookUrl,
+					channel: notification.mattermost?.channel || "",
+					username: notification.mattermost?.username || "",
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
 			} else if (notification.notificationType === "lark") {
 				form.reset({
 					appBuildError: notification.appBuildError,
@@ -444,6 +475,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		email: emailMutation,
 		gotify: gotifyMutation,
 		ntfy: ntfyMutation,
+		mattermost: mattermostMutation,
 		lark: larkMutation,
 		custom: customMutation,
 		pushover: pushoverMutation,
@@ -556,6 +588,22 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
+			});
+		} else if (data.type === "mattermost") {
+			promise = mattermostMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
+				webhookUrl: data.webhookUrl,
+				channel: data.channel || undefined,
+				username: data.username || undefined,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				notificationId: notificationId || "",
+				mattermostId: notification?.mattermostId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "lark") {
 			promise = larkMutation.mutateAsync({
@@ -1210,6 +1258,62 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										/>
 									</>
 								)}
+
+								{type === "mattermost" && (
+									<>
+										<FormField
+											control={form.control}
+											name="webhookUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Webhook URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://your-mattermost.com/hooks/xxx-generatedkey-xxx"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="channel"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Channel</FormLabel>
+													<FormControl>
+														<Input placeholder="deployments" {...field} />
+													</FormControl>
+													<FormDescription>
+														Optional. Channel to post to (without #).
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="username"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Username</FormLabel>
+													<FormControl>
+														<Input placeholder="Dokploy" {...field} />
+													</FormControl>
+													<FormDescription>
+														Optional. Display name for the webhook.
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
+
 								{type === "custom" && (
 									<div className="space-y-4">
 										<FormField
@@ -1296,6 +1400,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										</div>
 									</div>
 								)}
+
 								{type === "lark" && (
 									<>
 										<FormField
@@ -1316,6 +1421,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										/>
 									</>
 								)}
+
 								{type === "pushover" && (
 									<>
 										<FormField
@@ -1629,6 +1735,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingEmail ||
 								isLoadingGotify ||
 								isLoadingNtfy ||
+								isLoadingMattermost ||
 								isLoadingLark ||
 								isLoadingCustom ||
 								isLoadingPushover
@@ -1680,6 +1787,12 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											topic: data.topic,
 											accessToken: data.accessToken || "",
 											priority: data.priority,
+										});
+									} else if (data.type === "mattermost") {
+										await testMattermostConnection({
+											webhookUrl: data.webhookUrl,
+											channel: data.channel || undefined,
+											username: data.username || undefined,
 										});
 									} else if (data.type === "lark") {
 										await testLarkConnection({
