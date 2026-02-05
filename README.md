@@ -12,23 +12,7 @@
 <br />
 
 
-
-<div align="center" markdown="1">
-   <sup>Special thanks to:</sup>
-   <br>
-   <br>
-   <a href="https://tuple.app/dokploy">
-     <img src=".github/sponsors/tuple.png" alt="Tuple's sponsorship image" width="400"/>
-   </a>
-
-### [Tuple, the premier screen sharing app for developers](https://tuple.app/dokploy)
-[Available for MacOS & Windows](https://tuple.app/dokploy)<br>
-
-</div>
-
-
 Dokploy is a free, self-hostable Platform as a Service (PaaS) that simplifies the deployment and management of applications and databases.
-
 
 ## ✨ Features
 
@@ -60,39 +44,8 @@ curl -sSL https://dokploy.com/install.sh | sh
 
 For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
-## ♥️ Sponsors
-
-🙏 We're deeply grateful to all our sponsors who make Dokploy possible! Your support helps cover the costs of hosting, testing, and developing new features.
-
-[Dokploy Open Collective](https://opencollective.com/dokploy)
 
 [Github Sponsors](https://github.com/sponsors/Siumauricio)
-
-## Sponsors
-
-| Sponsor | Logo | Supporter Level |
-|---------|:----:|----------------|
-| [Hostinger](https://www.hostinger.com/vps-hosting?ref=dokploy) | <img src=".github/sponsors/hostinger.jpg" alt="Hostinger" width="200"/> | 🎖 Hero Sponsor |
-| [LX Aer](https://www.lxaer.com/?ref=dokploy) | <img src=".github/sponsors/lxaer.png" alt="LX Aer" width="100"/> | 🎖 Hero Sponsor |
-| [LinkDR](https://linkdr.com/?ref=dokploy) | <img src="https://dokploy.com/linkdr-logo.svg" alt="LinkDR" width="100"/> | 🎖 Hero Sponsor |
-| [LambdaTest](https://www.lambdatest.com/?utm_source=dokploy&utm_medium=sponsor) | <img src="https://www.lambdatest.com/blue-logo.png" alt="LambdaTest" width="200"/> | 🎖 Hero Sponsor |
-| [Awesome Tools](https://awesome.tools/) | <img src=".github/sponsors/awesome.png" alt="Awesome Tools" width="100"/> | 🎖 Hero Sponsor |
-| [Supafort](https://supafort.com/?ref=dokploy) | <img src="https://supafort.com/build/q-4Ht4rBZR.webp" alt="Supafort.com" width="200"/> | 🥇 Premium Supporter |
-| [Agentdock](https://agentdock.ai/?ref=dokploy) | <img src=".github/sponsors/agentdock.png" alt="agentdock.ai" width="100"/> | 🥇 Premium Supporter |
-| [AmericanCloud](https://americancloud.com/?ref=dokploy) | <img src=".github/sponsors/american-cloud.png" alt="AmericanCloud" width="200"/> | 🥈 Elite Contributor |
-| [Tolgee](https://tolgee.io/?utm_source=github_dokploy&utm_medium=banner&utm_campaign=dokploy) | <img src="https://dokploy.com/tolgee-logo.png" alt="Tolgee" width="100"/> | 🥈 Elite Contributor |
-| [Cloudblast](https://cloudblast.io/?ref=dokploy) | <img src="https://cloudblast.io/img/logo-icon.193cf13e.svg" alt="Cloudblast.io" width="150"/> | 🥉 Supporting Member |
-| [Synexa](https://synexa.ai/?ref=dokploy) | <img src=".github/sponsors/synexa.png" alt="Synexa" width="100"/> | 🥉 Supporting Member |
-
-### Community Backers 🤝
-
-#### Organizations:
-
-[Sponsors on Open Collective](https://opencollective.com/dokploy)
-
-#### Individuals:
-
-[![Individual Contributors on Open Collective](https://opencollective.com/dokploy/individuals.svg?width=890)](https://opencollective.com/dokploy)
 
 ### Contributors 🤝
 

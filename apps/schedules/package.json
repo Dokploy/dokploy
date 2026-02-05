@@ -13,7 +13,7 @@
 		"@hono/zod-validator": "0.3.0",
 		"bullmq": "5.4.2",
 		"dotenv": "^16.4.5",
-		"drizzle-orm": "^0.39.3",
+		"drizzle-orm": "^0.41.0",
 		"hono": "^4.7.10",
 		"ioredis": "5.4.1",
 		"pino": "9.4.0",
@@ -23,7 +23,7 @@
 		"zod": "^3.25.32"
 	},
 	"devDependencies": {
-		"@types/node": "^20.17.51",
+		"@types/node": "^20.16.0",
 		"@types/react": "^18.3.5",
 		"@types/react-dom": "^18.3.0",
 		"tsx": "^4.16.2",
