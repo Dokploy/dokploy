@@ -163,9 +163,9 @@ export const mariadbRouter = createTRPCRouter({
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMariaDB)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findMariadbById(input.mariadbId);
+			const mariadb = await findMariadbById(input.mariadbId);
 			if (
-				mongo.environment.project.organizationId !==
+				mariadb.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -177,7 +177,7 @@ export const mariadbRouter = createTRPCRouter({
 			if (input.externalPort) {
 				const portCheck = await checkPortInUse(
 					input.externalPort,
-					mongo.serverId || undefined,
+					mariadb.serverId || undefined,
 				);
 				if (portCheck.isInUse) {
 					throw new TRPCError({
@@ -191,7 +191,7 @@ export const mariadbRouter = createTRPCRouter({
 				externalPort: input.externalPort,
 			});
 			await deployMariadb(input.mariadbId);
-			return mongo;
+			return mariadb;
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployMariaDB)

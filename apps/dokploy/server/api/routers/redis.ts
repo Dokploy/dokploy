@@ -202,9 +202,9 @@ export const redisRouter = createTRPCRouter({
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortRedis)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findRedisById(input.redisId);
+			const redis = await findRedisById(input.redisId);
 			if (
-				mongo.environment.project.organizationId !==
+				redis.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -216,7 +216,7 @@ export const redisRouter = createTRPCRouter({
 			if (input.externalPort) {
 				const portCheck = await checkPortInUse(
 					input.externalPort,
-					mongo.serverId || undefined,
+					redis.serverId || undefined,
 				);
 				if (portCheck.isInUse) {
 					throw new TRPCError({
@@ -230,7 +230,7 @@ export const redisRouter = createTRPCRouter({
 				externalPort: input.externalPort,
 			});
 			await deployRedis(input.redisId);
-			return mongo;
+			return redis;
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployRedis)

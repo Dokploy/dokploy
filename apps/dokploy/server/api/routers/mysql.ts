@@ -178,9 +178,9 @@ export const mysqlRouter = createTRPCRouter({
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMySql)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findMySqlById(input.mysqlId);
+			const mysql = await findMySqlById(input.mysqlId);
 			if (
-				mongo.environment.project.organizationId !==
+				mysql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -192,7 +192,7 @@ export const mysqlRouter = createTRPCRouter({
 			if (input.externalPort) {
 				const portCheck = await checkPortInUse(
 					input.externalPort,
-					mongo.serverId || undefined,
+					mysql.serverId || undefined,
 				);
 				if (portCheck.isInUse) {
 					throw new TRPCError({
@@ -206,7 +206,7 @@ export const mysqlRouter = createTRPCRouter({
 				externalPort: input.externalPort,
 			});
 			await deployMySql(input.mysqlId);
-			return mongo;
+			return mysql;
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployMySql)
