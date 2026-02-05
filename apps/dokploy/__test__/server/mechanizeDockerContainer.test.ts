@@ -15,9 +15,9 @@ const { inspectMock, getServiceMock, createServiceMock, getRemoteDockerMock } =
 	vi.hoisted(() => {
 		const inspect = vi.fn<() => Promise<never>>();
 		const getService = vi.fn(() => ({ inspect }));
-		const createService = vi.fn<(opts: MockCreateServiceOptions) => Promise<void>>(
-			async () => undefined,
-		);
+		const createService = vi.fn<
+			(opts: MockCreateServiceOptions) => Promise<void>
+		>(async () => undefined);
 		const getRemoteDocker = vi.fn(async () => ({
 			getService,
 			createService,
