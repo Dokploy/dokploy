@@ -55,6 +55,10 @@ vi.mock("@dokploy/server/db", () => {
 					findFirst: vi.fn().mockResolvedValue(null),
 					findMany: vi.fn().mockResolvedValue([]),
 				},
+				member: {
+					findFirst: vi.fn(),
+					findMany: vi.fn(),
+				},
 			},
 		},
 		dbUrl: "postgres://mock:mock@localhost:5432/mock",
