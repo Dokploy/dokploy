@@ -18,8 +18,10 @@ import {
 	Forward,
 	GalleryVerticalEnd,
 	GitBranch,
+	Key,
 	KeyRound,
 	Loader2,
+	LogIn,
 	type LucideIcon,
 	Package,
 	PieChart,
@@ -395,6 +397,24 @@ const MENU: Menu = {
 			icon: CreditCard,
 			// Only enabled for admins in cloud environments
 			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && isCloud),
+		},
+		{
+			isSingle: true,
+			title: "License",
+			url: "/dashboard/settings/license",
+			icon: Key,
+			// Only enabled for admins in non-cloud environments
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.role === "admin"),
+		},
+		{
+			isSingle: true,
+			title: "SSO",
+			url: "/dashboard/settings/sso",
+			icon: LogIn,
+			// Enabled for admins in both cloud and self-hosted (enterprise)
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.role === "admin"),
 		},
 	],
 
