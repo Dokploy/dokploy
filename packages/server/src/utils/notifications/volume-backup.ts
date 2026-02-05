@@ -10,6 +10,7 @@ import {
 	sendGotifyNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
+	sendResendNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -52,6 +53,7 @@ export const sendVolumeBackupNotifications = async ({
 			discord: true,
 			telegram: true,
 			slack: true,
+			resend: true,
 			gotify: true,
 			ntfy: true,
 			pushover: true,
@@ -59,10 +61,10 @@ export const sendVolumeBackupNotifications = async ({
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, pushover } =
+		const { email, resend, discord, telegram, slack, gotify, ntfy, pushover } =
 			notification;
 
-		if (email) {
+		if (email || resend) {
 			const subject = `Volume Backup ${type === "success" ? "Successful" : "Failed"} - ${applicationName}`;
 			const htmlContent = await renderAsync(
 				VolumeBackupEmail({
@@ -76,7 +78,12 @@ export const sendVolumeBackupNotifications = async ({
 					date: date.toISOString(),
 				}),
 			);
-			await sendEmailNotification(email, subject, htmlContent);
+			if (email) {
+				await sendEmailNotification(email, subject, htmlContent);
+			}
+			if (resend) {
+				await sendResendNotification(resend, subject, htmlContent);
+			}
 		}
 
 		if (discord) {

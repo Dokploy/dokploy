@@ -6,10 +6,12 @@ import type {
 	lark,
 	ntfy,
 	pushover,
+	resend,
 	slack,
 	telegram,
 } from "@dokploy/server/db/schema";
 import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 export const sendEmailNotification = async (
 	connection: typeof email.$inferInsert,
@@ -42,6 +44,32 @@ export const sendEmailNotification = async (
 		console.log(err);
 		throw new Error(
 			`Failed to send email notification ${err instanceof Error ? err.message : "Unknown error"}`,
+		);
+	}
+};
+
+export const sendResendNotification = async (
+	connection: typeof resend.$inferInsert,
+	subject: string,
+	htmlContent: string,
+) => {
+	try {
+		const client = new Resend(connection.apiKey);
+
+		const result = await client.emails.send({
+			from: connection.fromAddress,
+			to: connection.toAddresses,
+			subject,
+			html: htmlContent,
+		});
+
+		if (result.error) {
+			throw new Error(result.error.message);
+		}
+	} catch (err) {
+		console.log(err);
+		throw new Error(
+			`Failed to send Resend notification ${err instanceof Error ? err.message : "Unknown error"}`,
 		);
 	}
 };
