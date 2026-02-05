@@ -63,7 +63,7 @@ export default function Home() {
 
 	const onSubmit = async (values: Login) => {
 		setIsLoading(true);
-		const { error } = await authClient.forgetPassword({
+		const { error } = await authClient.requestPasswordReset({
 			email: values.email,
 			redirectTo: "/reset-password",
 		});

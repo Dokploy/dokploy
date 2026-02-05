@@ -26,7 +26,8 @@ if (DATABASE_URL) {
 		password,
 	)}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}`;
 } else {
-	console.warn(`
+	if (process.env.NODE_ENV !== "test") {
+		console.warn(`
 		⚠️  [DEPRECATED DATABASE CONFIG]
 		You are using the legacy hardcoded database credentials.
 		This mode WILL BE REMOVED in a future release.
@@ -34,6 +35,13 @@ if (DATABASE_URL) {
 		Please migrate to Docker Secrets using POSTGRES_PASSWORD_FILE.
 		Please execute this command in your server: curl -sSL https://dokploy.com/security/0.26.6.sh | bash
 		`);
-	dbUrl =
-		"postgres://dokploy:amukds4wi9001583845717ad2@dokploy-postgres:5432/dokploy";
+	}
+
+	if (process.env.NODE_ENV === "production") {
+		dbUrl =
+			"postgres://dokploy:amukds4wi9001583845717ad2@dokploy-postgres:5432/dokploy";
+	} else {
+		dbUrl =
+			"postgres://dokploy:amukds4wi9001583845717ad2@localhost:5432/dokploy";
+	}
 }
