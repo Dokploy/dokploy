@@ -73,8 +73,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				...(StopGracePeriod !== null &&
-					StopGracePeriod !== undefined && { StopGracePeriod }),
+				StopGracePeriod: StopGracePeriod ?? 30_000_000_000,
 				...(command && {
 					Command: command.split(" "),
 				}),
