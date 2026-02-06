@@ -16,12 +16,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
+const driverOptEntrySchema = z.object({
+	key: z.string(),
+	value: z.string(),
+});
+
 export const networkFormSchema = z.object({
 	networks: z
 		.array(
 			z.object({
 				Target: z.string().optional(),
 				Aliases: z.string().optional(),
+				DriverOptsEntries: z.array(driverOptEntrySchema).optional(),
 			}),
 		)
 		.optional(),
@@ -80,6 +86,12 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 			const networkEntries = data.networkSwarm.map((network) => ({
 				Target: network.Target || "",
 				Aliases: network.Aliases?.join(", ") || "",
+				DriverOptsEntries: network.DriverOpts
+					? Object.entries(network.DriverOpts).map(([key, value]) => ({
+							key,
+							value: value ?? "",
+						}))
+					: [],
 			}));
 			form.reset({ networks: networkEntries });
 		}
@@ -91,12 +103,25 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 			const networksArray =
 				formData.networks
 					?.filter((network) => network.Target)
-					.map((network) => ({
-						Target: network.Target,
-						Aliases: network.Aliases
-							? network.Aliases.split(",").map((alias) => alias.trim())
-							: undefined,
-					})) || [];
+					.map((network) => {
+						const entries =
+							(network.DriverOptsEntries ?? []).filter(
+								(e) => e.key.trim() !== "",
+							);
+						const driverOpts =
+							entries.length > 0
+								? Object.fromEntries(
+										entries.map((e) => [e.key.trim(), e.value]),
+									)
+								: undefined;
+						return {
+							Target: network.Target,
+							Aliases: network.Aliases
+								? network.Aliases.split(",").map((alias) => alias.trim())
+								: undefined,
+							DriverOpts: driverOpts,
+						};
+					}) || [];
 
 			// If no networks, send null to clear the database
 			const networksToSend = networksArray.length > 0 ? networksArray : null;
@@ -166,6 +191,82 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 										</FormItem>
 									)}
 								/>
+								<div className="space-y-2">
+									<FormLabel>Driver options (optional)</FormLabel>
+									<FormDescription>
+										e.g. com.docker.network.driver.mtu, com.docker.network.driver.host_binding
+									</FormDescription>
+									{(form.watch(`networks.${index}.DriverOptsEntries`) ?? []).map(
+										(_, optIndex) => (
+											<div
+												key={optIndex}
+												className="flex gap-2 items-end flex-wrap"
+											>
+												<FormField
+													control={form.control}
+													name={`networks.${index}.DriverOptsEntries.${optIndex}.key`}
+													render={({ field }) => (
+														<FormItem className="flex-1 min-w-[140px]">
+															<FormControl>
+																<Input
+																	{...field}
+																	placeholder="com.docker.network.driver.mtu"
+																/>
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+												<FormField
+													control={form.control}
+													name={`networks.${index}.DriverOptsEntries.${optIndex}.value`}
+													render={({ field }) => (
+														<FormItem className="flex-1 min-w-[100px]">
+															<FormControl>
+																<Input {...field} placeholder="1500" />
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+												<Button
+													type="button"
+													variant="ghost"
+													size="sm"
+													onClick={() => {
+														const entries =
+															form.getValues(
+																`networks.${index}.DriverOptsEntries`,
+															) ?? [];
+														form.setValue(
+															`networks.${index}.DriverOptsEntries`,
+															entries.filter((_, i) => i !== optIndex),
+														);
+													}}
+												>
+													Remove
+												</Button>
+											</div>
+										),
+									)}
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										onClick={() => {
+											const entries =
+												form.getValues(
+													`networks.${index}.DriverOptsEntries`,
+												) ?? [];
+											form.setValue(
+												`networks.${index}.DriverOptsEntries`,
+												[...entries, { key: "", value: "" }],
+											);
+										}}
+									>
+										Add driver option
+									</Button>
+								</div>
 								<Button
 									type="button"
 									variant="destructive"
@@ -180,7 +281,13 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 							type="button"
 							variant="outline"
 							size="sm"
-							onClick={() => append({ Target: "", Aliases: "" })}
+							onClick={() =>
+							append({
+								Target: "",
+								Aliases: "",
+								DriverOptsEntries: [],
+							})
+						}
 						>
 							Add Network
 						</Button>
