@@ -12,7 +12,6 @@ import {
 	DEFAULT_UPDATE_DATA,
 	execAsync,
 	findServerById,
-	getDokployImage,
 	getDokployImageTag,
 	getLogCleanupStatus,
 	getUpdateData,
@@ -22,7 +21,6 @@ import {
 	paths,
 	prepareEnvironmentVariables,
 	processLogs,
-	pullLatestRelease,
 	readConfig,
 	readConfigInPath,
 	readDirectory,
@@ -406,18 +404,17 @@ export const settingsRouter = createTRPCRouter({
 			return true;
 		}
 
-		await pullLatestRelease();
-
-		// This causes restart of dokploy, thus it will not finish executing properly, so don't await it
-		// Status after restart is checked via frontend /api/health endpoint
-		void spawnAsync("docker", [
-			"service",
-			"update",
-			"--force",
-			"--image",
-			getDokployImage(),
-			"dokploy",
-		]);
+		const data = await getUpdateData(packageInfo.version);
+		if (data.updateAvailable) {
+			void spawnAsync("docker", [
+				"service",
+				"update",
+				"--force",
+				"--image",
+				`dokploy/dokploy:${data.latestVersion}`,
+				"dokploy",
+			]);
+		}
 
 		return true;
 	}),
