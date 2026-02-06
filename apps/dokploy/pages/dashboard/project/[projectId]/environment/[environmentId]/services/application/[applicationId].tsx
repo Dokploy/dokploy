@@ -445,14 +445,6 @@ const Service = (
 									</TabsContent>
 									<TabsContent value="icon">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border">
-												<Badge variant="outline">Under Development</Badge>
-												<span className="text-sm text-muted-foreground">
-													Upload or select an icon that will be displayed in
-													service cards
-												</span>
-											</div>
-
 											{uploadedIcon && (
 												<div className="flex items-center gap-4 p-4 rounded-lg bg-background border">
 													{/* biome-ignore lint/performance/noImgElement: uploaded icon is data URL; Next/Image not used for preview */}
