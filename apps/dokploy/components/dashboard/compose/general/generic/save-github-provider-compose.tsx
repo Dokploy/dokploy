@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { TagPatternsField } from "@/components/dashboard/shared/tag-patterns-field";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ const GithubProviderSchema = z.object({
 	githubId: z.string().min(1, "Github Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
 	triggerType: z.enum(["push", "tag"]).default("push"),
+	tagPatterns: z.array(z.string()).optional().default([]),
 	enableSubmodules: z.boolean().default(false),
 });
 
@@ -86,6 +88,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			branch: "",
 			watchPaths: [],
 			triggerType: "push",
+			tagPatterns: [],
 			enableSubmodules: false,
 		},
 		resolver: zodResolver(GithubProviderSchema),
@@ -119,6 +122,22 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 		},
 	);
 
+	const { data: tags, isLoading: isLoadingTags } =
+		api.github.getGithubTags.useQuery(
+			{
+				owner: repository?.owner || "",
+				repo: repository?.repo || "",
+				githubId: githubId || "",
+			},
+			{
+				enabled:
+					!!repository?.owner &&
+					!!repository?.repo &&
+					!!githubId &&
+					triggerType === "tag",
+			},
+		);
+
 	useEffect(() => {
 		if (data) {
 			form.reset({
@@ -131,6 +150,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 				githubId: data.githubId || "",
 				watchPaths: data.watchPaths || [],
 				triggerType: data.triggerType || "push",
+				tagPatterns: data.tagPatterns || [],
 				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
@@ -149,6 +169,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			watchPaths: data.watchPaths,
 			enableSubmodules: data.enableSubmodules,
 			triggerType: data.triggerType,
+			tagPatterns: data.tagPatterns,
 		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
@@ -431,6 +452,20 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 								</FormItem>
 							)}
 						/>
+						{triggerType === "tag" && (
+							<FormField
+								control={form.control}
+								name="tagPatterns"
+								render={({ field }) => (
+									<TagPatternsField
+										value={field.value}
+										onChange={field.onChange}
+										tags={tags}
+										isLoadingTags={isLoadingTags}
+									/>
+								)}
+							/>
+						)}
 						{triggerType === "push" && (
 							<FormField
 								control={form.control}

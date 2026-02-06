@@ -1,6 +1,6 @@
 {
-  "id": "add2185b-9680-4cd2-91cc-047261f046f4",
-  "prevId": "b5cddb89-e0bc-42fd-8994-6609f672ee0c",
+  "id": "8da51a75-3d7c-41fe-b26a-f2992722d17e",
+  "prevId": "45344442-d8aa-48cf-b45f-0c869acbd620",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1149,6 +1149,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "bitbucketRepositorySlug": {
+          "name": "bitbucketRepositorySlug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "bitbucketOwner": {
           "name": "bitbucketOwner",
           "type": "text",
@@ -1335,7 +1341,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "default": "'0.2.2'"
+          "default": "'0.15.4'"
         },
         "herokuVersion": {
           "name": "herokuVersion",
@@ -2098,6 +2104,12 @@
         },
         "bitbucketRepository": {
           "name": "bitbucketRepository",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bitbucketRepositorySlug": {
+          "name": "bitbucketRepositorySlug",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4494,6 +4506,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "resendId": {
+          "name": "resendId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "gotifyId": {
           "name": "gotifyId",
           "type": "text",
@@ -4514,6 +4532,12 @@
         },
         "larkId": {
           "name": "larkId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pushoverId": {
+          "name": "pushoverId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4579,6 +4603,19 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
+        "notification_resendId_resend_resendId_fk": {
+          "name": "notification_resendId_resend_resendId_fk",
+          "tableFrom": "notification",
+          "tableTo": "resend",
+          "columnsFrom": [
+            "resendId"
+          ],
+          "columnsTo": [
+            "resendId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "notification_gotifyId_gotify_gotifyId_fk": {
           "name": "notification_gotifyId_gotify_gotifyId_fk",
           "tableFrom": "notification",
@@ -4627,6 +4664,19 @@
           ],
           "columnsTo": [
             "larkId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notification_pushoverId_pushover_pushoverId_fk": {
+          "name": "notification_pushoverId_pushover_pushoverId_fk",
+          "tableFrom": "notification",
+          "tableTo": "pushover",
+          "columnsFrom": [
+            "pushoverId"
+          ],
+          "columnsTo": [
+            "pushoverId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -4685,6 +4735,93 @@
           "primaryKey": false,
           "notNull": true,
           "default": 3
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.pushover": {
+      "name": "pushover",
+      "schema": "",
+      "columns": {
+        "pushoverId": {
+          "name": "pushoverId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "userKey": {
+          "name": "userKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "apiToken": {
+          "name": "apiToken",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "priority": {
+          "name": "priority",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "retry": {
+          "name": "retry",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expire": {
+          "name": "expire",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.resend": {
+      "name": "resend",
+      "schema": "",
+      "columns": {
+        "resendId": {
+          "name": "resendId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "apiKey": {
+          "name": "apiKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fromAddress": {
+          "name": "fromAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "toAddress": {
+          "name": "toAddress",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
@@ -6242,6 +6379,102 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.sso_provider": {
+      "name": "sso_provider",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "issuer": {
+          "name": "issuer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "oidc_config": {
+          "name": "oidc_config",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "saml_config": {
+          "name": "saml_config",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "domain": {
+          "name": "domain",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sso_provider_user_id_user_id_fk": {
+          "name": "sso_provider_user_id_user_id_fk",
+          "tableFrom": "sso_provider",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "sso_provider_organization_id_organization_id_fk": {
+          "name": "sso_provider_organization_id_organization_id_fk",
+          "tableFrom": "sso_provider",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "sso_provider_provider_id_unique": {
+          "name": "sso_provider_provider_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "provider_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.user": {
       "name": "user",
       "schema": "",
@@ -6361,6 +6594,26 @@
           "notNull": true,
           "default": false
         },
+        "enableEnterpriseFeatures": {
+          "name": "enableEnterpriseFeatures",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "licenseKey": {
+          "name": "licenseKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isValidEnterpriseLicense": {
+          "name": "isValidEnterpriseLicense",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "stripeCustomerId": {
           "name": "stripeCustomerId",
           "type": "text",
@@ -6379,6 +6632,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "trustedOrigins": {
+          "name": "trustedOrigins",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -6877,8 +7136,10 @@
         "telegram",
         "discord",
         "email",
+        "resend",
         "gotify",
         "ntfy",
+        "pushover",
         "custom",
         "lark"
       ]

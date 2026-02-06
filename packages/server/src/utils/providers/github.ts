@@ -1,6 +1,9 @@
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
-import type { apiFindGithubBranches } from "@dokploy/server/db/schema";
+import type {
+	apiFindGithubBranches,
+	apiFindGithubTags,
+} from "@dokploy/server/db/schema";
 import { findGithubById, type Github } from "@dokploy/server/services/github";
 import type { InferResultType } from "@dokploy/server/types/with";
 import { createAppAuth } from "@octokit/auth-app";
@@ -219,4 +222,29 @@ export const getGithubBranches = async (
 	>["data"];
 
 	return branches;
+};
+
+export const getGithubTags = async (input: typeof apiFindGithubTags._type) => {
+	if (!input.githubId) {
+		return [];
+	}
+	const githubProvider = await findGithubById(input.githubId);
+
+	const octokit = new Octokit({
+		authStrategy: createAppAuth,
+		auth: {
+			appId: githubProvider.githubAppId,
+			privateKey: githubProvider.githubPrivateKey,
+			installationId: githubProvider.githubInstallationId,
+		},
+	});
+
+	const tags = (await octokit.paginate(octokit.rest.repos.listTags, {
+		owner: input.owner,
+		repo: input.repo,
+	})) as unknown as Awaited<
+		ReturnType<typeof octokit.rest.repos.listTags>
+	>["data"];
+
+	return tags;
 };

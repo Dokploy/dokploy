@@ -84,6 +84,7 @@ export const compose = pgTable("compose", {
 		.notNull()
 		.default(false),
 	triggerType: triggerType("triggerType").default("push"),
+	tagPatterns: text("tagPatterns").array().default([]),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	environmentId: text("environmentId")
 		.notNull()

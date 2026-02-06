@@ -11,6 +11,7 @@ import {
 } from "@dokploy/server";
 import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
+import micromatch from "micromatch";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/server/db";
 import { applications, compose, github } from "@/server/db/schema";
@@ -117,6 +118,31 @@ export default async function handler(
 			});
 
 			for (const app of apps) {
+				// Pattern matching with backwards compatibility
+				if (app.tagPatterns && app.tagPatterns.length > 0) {
+					try {
+						const matchesPattern = micromatch.isMatch(tagName, app.tagPatterns);
+						if (!matchesPattern) {
+							console.log(
+								`[GitHub Webhook] Tag "${tagName}" does not match patterns [${app.tagPatterns.join(", ")}] for application "${app.name}", skipping deployment`,
+							);
+							continue;
+						}
+						console.log(
+							`[GitHub Webhook] Tag "${tagName}" matches patterns for application "${app.name}", proceeding with deployment`,
+						);
+					} catch (error) {
+						console.error(
+							`[GitHub Webhook] Invalid tag pattern for application "${app.name}": ${error}. Skipping deployment.`,
+						);
+						continue;
+					}
+				} else {
+					console.log(
+						`[GitHub Webhook] No tag patterns configured for application "${app.name}", deploying on any tag`,
+					);
+				}
+
 				const jobData: DeploymentJob = {
 					applicationId: app.applicationId as string,
 					titleLog: deploymentTitle,
@@ -156,6 +182,34 @@ export default async function handler(
 			});
 
 			for (const composeApp of composeApps) {
+				// Pattern matching with backwards compatibility
+				if (composeApp.tagPatterns && composeApp.tagPatterns.length > 0) {
+					try {
+						const matchesPattern = micromatch.isMatch(
+							tagName,
+							composeApp.tagPatterns,
+						);
+						if (!matchesPattern) {
+							console.log(
+								`[GitHub Webhook] Tag "${tagName}" does not match patterns [${composeApp.tagPatterns.join(", ")}] for compose "${composeApp.name}", skipping deployment`,
+							);
+							continue;
+						}
+						console.log(
+							`[GitHub Webhook] Tag "${tagName}" matches patterns for compose "${composeApp.name}", proceeding with deployment`,
+						);
+					} catch (error) {
+						console.error(
+							`[GitHub Webhook] Invalid tag pattern for compose "${composeApp.name}": ${error}. Skipping deployment.`,
+						);
+						continue;
+					}
+				} else {
+					console.log(
+						`[GitHub Webhook] No tag patterns configured for compose "${composeApp.name}", deploying on any tag`,
+					);
+				}
+
 				const jobData: DeploymentJob = {
 					composeId: composeApp.composeId as string,
 					titleLog: deploymentTitle,
