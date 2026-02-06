@@ -975,4 +975,32 @@ export const applicationRouter = createTRPCRouter({
 				message: "Deployment cancellation only available in cloud version",
 			});
 		}),
+	fetchIcon: protectedProcedure
+		.input(z.object({ iconName: z.string() }))
+		.mutation(async ({ input }) => {
+			try {
+				const iconUrl = `https://cdn.svgporn.com/logos/${input.iconName}.svg`;
+				const response = await fetch(iconUrl);
+
+				if (!response.ok) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Icon "${input.iconName}" not found`,
+					});
+				}
+
+				const svgText = await response.text();
+				const base64Icon = `data:image/svg+xml;base64,${Buffer.from(svgText).toString("base64")}`;
+
+				return { icon: base64Icon };
+			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to fetch icon: ${error instanceof Error ? error.message : "Unknown error"}`,
+				});
+			}
+		}),
 });

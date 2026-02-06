@@ -116,6 +116,7 @@ const baseApp: ApplicationNested = {
 	environmentId: "",
 	enabled: null,
 	env: null,
+	icon: null,
 	healthCheckSwarm: null,
 	labelsSwarm: null,
 	memoryLimit: null,

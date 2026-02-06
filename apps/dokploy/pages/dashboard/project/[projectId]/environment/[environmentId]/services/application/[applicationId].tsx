@@ -1,7 +1,7 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import copy from "copy-to-clipboard";
-import { GlobeIcon, HelpCircle, ServerOff } from "lucide-react";
+import { GlobeIcon, HelpCircle, Search, ServerOff, X } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -37,6 +37,7 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -44,6 +45,8 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Dropzone } from "@/components/ui/dropzone";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -53,6 +56,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { UseKeyboardNav } from "@/hooks/use-keyboard-nav";
+import iconNames from "@/lib/icons.json";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 
@@ -64,7 +68,8 @@ type TabState =
 	| "domains"
 	| "monitoring"
 	| "preview-deployments"
-	| "volume-backups";
+	| "volume-backups"
+	| "icon";
 
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -74,6 +79,41 @@ const Service = (
 	const router = useRouter();
 	const { projectId, environmentId } = router.query;
 	const [tab, setTab] = useState<TabState>(activeTab);
+	const [uploadedIcon, setUploadedIcon] = useState<string | null>(null);
+	const [iconSearchQuery, setIconSearchQuery] = useState("");
+	const [iconsToShow, setIconsToShow] = useState(24);
+
+	const popularIcons = (iconNames as string[]).sort();
+
+	const filteredIcons = popularIcons.filter((icon) =>
+		icon.toLowerCase().includes(iconSearchQuery.toLowerCase()),
+	);
+
+	const displayedIcons = filteredIcons.slice(0, iconsToShow);
+	const hasMoreIcons = filteredIcons.length > iconsToShow;
+
+	useEffect(() => {
+		setIconsToShow(24);
+	}, [iconSearchQuery]);
+
+	const { mutateAsync: fetchIcon } = api.application.fetchIcon.useMutation();
+
+	const handleIconSelect = async (iconName: string) => {
+		try {
+			// Fetch like this so no CORS issues appear
+			const result = await fetchIcon({ iconName });
+
+			setUploadedIcon(result.icon);
+			await updateApplication({
+				applicationId,
+				icon: result.icon,
+			});
+			toast.success("Icon saved successfully");
+			await utils.application.one.invalidate({ applicationId });
+		} catch (error) {
+			toast.error("Error loading icon");
+		}
+	};
 
 	useEffect(() => {
 		if (router.query.tab) {
@@ -87,6 +127,24 @@ const Service = (
 			refetchInterval: 5000,
 		},
 	);
+
+	const utils = api.useUtils();
+	const { mutateAsync: updateApplication } =
+		api.application.update.useMutation();
+
+	useEffect(() => {
+		if (data) {
+			console.log("Application data loaded:", {
+				icon: data.icon,
+				hasIcon: !!data.icon,
+			});
+			if (data.icon) {
+				setUploadedIcon(data.icon);
+			} else {
+				setUploadedIcon(null);
+			}
+		}
+	}, [data]);
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: auth } = api.user.get.useQuery();
@@ -129,13 +187,22 @@ const Service = (
 					<div className="rounded-xl bg-background shadow-md ">
 						<CardHeader className="flex flex-row justify-between items-center">
 							<div className="flex flex-col">
-								<CardTitle className="text-xl flex flex-row gap-2">
-									<div className="relative flex flex-row gap-4">
+								<CardTitle className="text-xl flex flex-row gap-2 items-center">
+									<div className="relative flex flex-row gap-4 items-center">
 										<div className="absolute -right-1 -top-2">
 											<StatusTooltip status={data?.applicationStatus} />
 										</div>
 
-										<GlobeIcon className="h-6 w-6 text-muted-foreground" />
+										{data?.icon ? (
+											// biome-ignore lint/performance/noImgElement: icon is data URL or base64; Next/Image not suited for dynamic inline icons
+											<img
+												src={data.icon}
+												alt={data.name}
+												className="h-8 w-8 object-contain"
+											/>
+										) : (
+											<GlobeIcon className="h-6 w-6 text-muted-foreground" />
+										)}
 									</div>
 									{data?.name}
 								</CardTitle>
@@ -252,6 +319,7 @@ const Service = (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
 											<TabsTrigger value="advanced">Advanced</TabsTrigger>
+											<TabsTrigger value="icon">Icon</TabsTrigger>
 										</TabsList>
 									</div>
 
@@ -373,6 +441,223 @@ const Service = (
 											<ShowSecurity applicationId={applicationId} />
 											<ShowPorts applicationId={applicationId} />
 											<ShowTraefikConfig applicationId={applicationId} />
+										</div>
+									</TabsContent>
+									<TabsContent value="icon">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border">
+												<Badge variant="outline">Under Development</Badge>
+												<span className="text-sm text-muted-foreground">
+													Upload or select an icon that will be displayed in
+													service cards
+												</span>
+											</div>
+
+											{uploadedIcon && (
+												<div className="flex items-center gap-4 p-4 rounded-lg bg-background border">
+													{/* biome-ignore lint/performance/noImgElement: uploaded icon is data URL; Next/Image not used for preview */}
+													<img
+														src={uploadedIcon}
+														alt="Uploaded icon"
+														className="size-20 object-contain rounded-lg border border-border bg-muted/50 p-2"
+													/>
+													<div className="flex-1">
+														<p className="text-sm font-medium">Icon uploaded</p>
+														<p className="text-xs text-muted-foreground mt-1">
+															This icon will appear in service cards
+														</p>
+													</div>
+													<Button
+														variant="ghost"
+														size="icon"
+														onClick={async () => {
+															try {
+																await updateApplication({
+																	applicationId,
+																	icon: null,
+																});
+																setUploadedIcon(null);
+																toast.success("Icon removed");
+																await utils.application.one.invalidate({
+																	applicationId,
+																});
+															} catch (error) {
+																toast.error("Error removing icon");
+															}
+														}}
+													>
+														<X className="size-4" />
+													</Button>
+												</div>
+											)}
+
+											<div className="space-y-4">
+												<div className="relative">
+													<Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+													<Input
+														placeholder="Search icons (e.g. react, vue, docker)..."
+														value={iconSearchQuery}
+														onChange={(e) => setIconSearchQuery(e.target.value)}
+														className="pl-9"
+													/>
+												</div>
+
+												<div className="max-h-[400px] overflow-y-auto border rounded-lg p-4">
+													{displayedIcons.length === 0 ? (
+														<div className="text-center py-8 text-sm text-muted-foreground">
+															No icons found
+														</div>
+													) : (
+														<>
+															<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+																{displayedIcons.map((iconName) => (
+																	<button
+																		type="button"
+																		key={iconName}
+																		onClick={() => handleIconSelect(iconName)}
+																		className="flex flex-col items-center gap-2 p-3 rounded-lg border hover:border-primary hover:bg-muted transition-colors group"
+																	>
+																		{/* biome-ignore lint/performance/noImgElement: external CDN URL and data URLs for icons; Next/Image not used for dynamic icon grid */}
+																		<img
+																			src={`https://cdn.svgporn.com/logos/${iconName}.svg`}
+																			alt={iconName}
+																			className="size-8 object-contain group-hover:scale-110 transition-transform"
+																			onError={(e) => {
+																				(
+																					e.target as HTMLImageElement
+																				).style.display = "none";
+																			}}
+																		/>
+																		<span className="text-xs text-muted-foreground capitalize truncate w-full text-center">
+																			{iconName}
+																		</span>
+																	</button>
+																))}
+															</div>
+															{hasMoreIcons && (
+																<div className="flex justify-center mt-4">
+																	<Button
+																		variant="outline"
+																		onClick={() =>
+																			setIconsToShow((prev) => prev + 24)
+																		}
+																	>
+																		Load More (
+																		{filteredIcons.length - iconsToShow}{" "}
+																		remaining)
+																	</Button>
+																</div>
+															)}
+														</>
+													)}
+												</div>
+
+												<div className="relative pt-4 border-t">
+													<p className="text-sm text-muted-foreground text-center mb-4">
+														or upload a custom icon
+													</p>
+													<div className="[&>div>div]:!h-32 [&>div>div]:!py-4 [&>div>div]:!px-6 [&>div>div>div]:!flex [&>div>div>div]:!flex-col [&>div>div>div]:!items-center [&>div>div>div]:!gap-2 [&>div>div>div>span]:!text-sm [&>div>div>div>span>svg]:!size-8">
+														<Dropzone
+															dropMessage="Drag & drop an icon or click to upload"
+															accept=".jpg,.jpeg,.png,.svg,image/jpeg,image/png,image/svg+xml"
+															onChange={async (files) => {
+																if (!files || files.length === 0) return;
+																const file = files[0];
+																if (!file) return;
+
+																const fileToProcess: File = file;
+
+																const allowedTypes = [
+																	"image/jpeg",
+																	"image/jpg",
+																	"image/png",
+																	"image/svg+xml",
+																];
+																const fileExtension = fileToProcess.name
+																	.split(".")
+																	.pop()
+																	?.toLowerCase();
+																const allowedExtensions = [
+																	"jpg",
+																	"jpeg",
+																	"png",
+																	"svg",
+																];
+
+																if (
+																	!allowedTypes.includes(fileToProcess.type) &&
+																	!allowedExtensions.includes(
+																		fileExtension || "",
+																	)
+																) {
+																	toast.error(
+																		"Only JPG, JPEG, PNG, and SVG files are allowed",
+																	);
+																	return;
+																}
+
+																if (fileToProcess.size > 2 * 1024 * 1024) {
+																	toast.error(
+																		"Image size must be less than 2MB",
+																	);
+																	return;
+																}
+
+																const reader = new FileReader();
+																reader.onload = async (event) => {
+																	const result = event.target?.result as string;
+																	setUploadedIcon(result);
+																	try {
+																		await updateApplication({
+																			applicationId,
+																			icon: result,
+																		});
+																		toast.success("Icon saved!");
+																		await utils.application.one.invalidate({
+																			applicationId,
+																		});
+																	} catch (error) {
+																		toast.error("Error saving icon");
+																		setUploadedIcon(null);
+																	}
+																};
+																reader.readAsDataURL(fileToProcess);
+															}}
+															classNameWrapper="border-2 border-dashed border-border hover:border-primary bg-muted/30 hover:bg-muted/50 transition-all rounded-lg"
+														/>
+													</div>
+													<div className="mt-3 text-center text-xs text-muted-foreground">
+														Supported formats: JPG, JPEG, PNG, SVG (max 2MB)
+													</div>
+												</div>
+
+												<div className="pt-4 mt-6 border-t">
+													<div className="flex flex-col items-center gap-2 text-xs text-muted-foreground">
+														<div className="flex items-center gap-1">
+															<span>Icons by</span>
+															<a
+																href="https://github.com/gilbarbara/logos"
+																target="_blank"
+																rel="noopener noreferrer"
+																className="hover:text-foreground transition-colors underline"
+															>
+																gilbarbara/logos
+															</a>
+														</div>
+														<div className="flex items-center gap-1">
+															<span>Developer:</span>
+															<a
+																href="https://statsly.org/"
+																target="_blank"
+																rel="noopener noreferrer"
+																className="hover:text-foreground transition-colors underline"
+															>
+																Statsly
+															</a>
+														</div>
+													</div>
+												</div>
+											</div>
 										</div>
 									</TabsContent>
 								</Tabs>
