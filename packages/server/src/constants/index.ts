@@ -4,6 +4,10 @@ import Docker from "dockerode";
 export const IS_CLOUD = process.env.IS_CLOUD === "true";
 export const docker = new Docker();
 
+export const BETTER_AUTH_SECRET =
+	process.env.BETTER_AUTH_SECRET ||
+	"RXu/xoLHaA1Xgs+R8a0LjVjCVOEnWISQWxw7nXxlvKo=";
+
 export const paths = (isServer = false) => {
 	const BASE_PATH =
 		isServer || process.env.NODE_ENV === "production"

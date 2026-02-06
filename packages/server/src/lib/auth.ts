@@ -6,7 +6,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
 import { admin, apiKey, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
-import { IS_CLOUD } from "../constants";
+import { BETTER_AUTH_SECRET, IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { getTrustedOrigins, getUserByToken } from "../services/admin";
@@ -29,6 +29,7 @@ const { handler, api } = betterAuth({
 		"/organization/update",
 		"/organization/delete",
 	],
+	secret: BETTER_AUTH_SECRET,
 	appName: "Dokploy",
 	socialProviders: {
 		github: {
