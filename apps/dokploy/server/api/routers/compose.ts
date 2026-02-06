@@ -20,6 +20,9 @@ import {
 	getComposeContainer,
 	getWebServerSettings,
 	IS_CLOUD,
+	loadDefinedVolumesInComposeFile,
+	loadDockerCompose,
+	loadDockerComposeRemote,
 	loadServices,
 	randomizeComposeFile,
 	randomizeIsolatedDeploymentComposeFile,
@@ -58,6 +61,7 @@ import {
 	apiUpdateCompose,
 	compose as composeTable,
 } from "@/server/db/schema";
+import type { Compose } from "@/server/api/models/compose.models";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByCompose,
@@ -116,9 +120,12 @@ export const composeRouter = createTRPCRouter({
 			}
 		}),
 
+	/**
+	 * Get a compose by ID
+	 */
 	one: protectedProcedure
 		.input(apiFindCompose)
-		.query(async ({ input, ctx }) => {
+		.query(async ({ input, ctx }): Promise<Compose> => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
@@ -172,10 +179,16 @@ export const composeRouter = createTRPCRouter({
 				}
 			}
 
+			// Load volumes defined in docker-compose.yml if exists
+			const definedVolumesInComposeFile = await loadDefinedVolumesInComposeFile(
+				input.composeId,
+			);
+
 			return {
 				...compose,
 				hasGitProviderAccess,
 				unauthorizedProvider,
+				definedVolumesInComposeFile,
 			};
 		}),
 
