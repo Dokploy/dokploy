@@ -167,7 +167,7 @@ export const NetworkSwarmSchema = z.array(
 		.object({
 			Target: z.string().optional(),
 			Aliases: z.array(z.string()).optional(),
-			DriverOpts: z.object({}).optional(),
+			DriverOpts: z.record(z.string()).optional(),
 		})
 		.strict(),
 );
