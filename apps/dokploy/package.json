@@ -37,6 +37,7 @@
 		"generate:openapi": "tsx -r dotenv/config scripts/generate-openapi.ts"
 	},
 	"dependencies": {
+		"resend": "^6.0.2",
 		"@better-auth/sso": "1.4.18",
 		"@ai-sdk/anthropic": "^2.0.5",
 		"@ai-sdk/azure": "^2.0.16",

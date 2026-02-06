@@ -391,6 +391,9 @@ importers:
       recharts:
         specifier: ^2.15.3
         version: 2.15.3(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      resend:
+        specifier: ^6.0.2
+        version: 6.8.0(@react-email/render@0.0.16(react-dom@18.2.0(react@18.2.0))(react@18.2.0))
       semver:
         specifier: 7.7.3
         version: 7.7.3
