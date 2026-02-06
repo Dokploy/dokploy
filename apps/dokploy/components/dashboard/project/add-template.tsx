@@ -6,7 +6,6 @@ import {
 	HelpCircle,
 	LayoutGrid,
 	List,
-	Loader2,
 	PuzzleIcon,
 	SearchIcon,
 } from "lucide-react";
@@ -15,6 +14,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -52,6 +52,14 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Select,
 	SelectContent,
@@ -190,11 +198,13 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 												"w-full sm:w-[200px] justify-between !bg-input",
 											)}
 										>
-											{isLoadingTags
-												? "Loading...."
-												: selectedTags.length > 0
-													? `Selected ${selectedTags.length} tags`
-													: "Select tag"}
+											{isLoadingTags ? (
+												<Skeleton className="h-4 w-24" />
+											) : selectedTags.length > 0 ? (
+												`Selected ${selectedTags.length} tags`
+											) : (
+												"Select tag"
+											)}
 
 											<ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
 										</Button>
@@ -206,9 +216,13 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 												className="h-9"
 											/>
 											{isLoadingTags && (
-												<span className="py-6 text-center text-sm">
-													Loading Tags....
-												</span>
+												<div className="p-4">
+													<ListSkeleton
+														items={4}
+														gridClassName="grid grid-cols-1 gap-2"
+														itemClassName="border-none bg-transparent p-0"
+													/>
+												</div>
 											)}
 											<CommandEmpty>No tags found.</CommandEmpty>
 											<ScrollArea className="h-96">
@@ -292,19 +306,28 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 						)}
 
 						{isLoadingTemplates ? (
-							<div className="flex justify-center items-center w-full h-full flex-row gap-4">
-								<Loader2 className="size-8 text-muted-foreground animate-spin min-h-[60vh]" />
-								<div className="text-lg font-medium text-muted-foreground">
-									Loading templates...
-								</div>
-							</div>
+							<ListSkeleton
+								items={8}
+								gridClassName={cn(
+									"grid gap-6",
+									viewMode === "detailed"
+										? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+										: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
+								)}
+								className="min-h-[50vh]"
+							/>
 						) : templates.length === 0 ? (
-							<div className="flex justify-center items-center w-full gap-2 min-h-[50vh]">
-								<SearchIcon className="text-muted-foreground size-6" />
-								<div className="text-xl font-medium text-muted-foreground">
-									No templates found
-								</div>
-							</div>
+							<Empty className="min-h-[50vh]">
+								<EmptyHeader>
+									<EmptyMedia variant="icon">
+										<SearchIcon className="text-muted-foreground size-5" />
+									</EmptyMedia>
+									<EmptyTitle>No templates found</EmptyTitle>
+									<EmptyDescription>
+										Try adjusting filters or check back later.
+									</EmptyDescription>
+								</EmptyHeader>
+							</Empty>
 						) : (
 							<div
 								className={cn(

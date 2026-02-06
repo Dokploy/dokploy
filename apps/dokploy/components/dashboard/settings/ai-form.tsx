@@ -1,8 +1,9 @@
 "use client";
 
-import { BotIcon, Loader2, Trash2 } from "lucide-react";
+import { BotIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -11,6 +12,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { api } from "@/utils/api";
 import { HandleAi } from "./handle-ai";
 
@@ -34,20 +43,24 @@ export const AiForm = () => {
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
-							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
-								<Loader2 className="animate-spin size-4" />
-							</div>
+							<ListSkeleton items={3} gridClassName="grid grid-cols-1 gap-3" />
 						) : (
 							<>
 								{aiConfigs?.length === 0 ? (
-									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
-										<BotIcon className="size-8 self-center text-muted-foreground" />
-										<span className="text-base text-muted-foreground text-center">
-											You don't have any AI configurations
-										</span>
-										<HandleAi />
-									</div>
+									<Empty className="min-h-[25vh]">
+										<EmptyHeader>
+											<EmptyMedia variant="icon">
+												<BotIcon className="size-5 text-muted-foreground" />
+											</EmptyMedia>
+											<EmptyTitle>No AI configs yet</EmptyTitle>
+											<EmptyDescription>
+												Add an AI provider to unlock automation features.
+											</EmptyDescription>
+										</EmptyHeader>
+										<EmptyContent>
+											<HandleAi />
+										</EmptyContent>
+									</Empty>
 								) : (
 									<div className="flex flex-col gap-4 rounded-lg min-h-[25vh]">
 										{aiConfigs?.map((config) => (

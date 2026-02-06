@@ -7,8 +7,10 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { GiteaIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Command,
 	CommandEmpty,
@@ -258,14 +260,16 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{isLoadingRepositories
-														? "Loading...."
-														: field.value.owner
-															? repositories?.find(
-																	(repo: GiteaRepository) =>
-																		repo.name === field.value.repo,
-																)?.name
-															: "Select repository"}
+													{isLoadingRepositories ? (
+														<Skeleton className="h-4 w-28" />
+													) : field.value.owner ? (
+														repositories?.find(
+															(repo: GiteaRepository) =>
+																repo.name === field.value.repo,
+														)?.name
+													) : (
+														"Select repository"
+													)}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -278,9 +282,13 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 													className="h-9"
 												/>
 												{isLoadingRepositories && (
-													<span className="py-6 text-center text-sm">
-														Loading Repositories....
-													</span>
+													<div className="p-4">
+														<ListSkeleton
+															items={4}
+															gridClassName="grid grid-cols-1 gap-2"
+															itemClassName="border-none bg-transparent p-0"
+														/>
+													</div>
 												)}
 												<CommandEmpty>No repositories found.</CommandEmpty>
 												<ScrollArea className="h-96">
@@ -349,14 +357,17 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{status === "loading" && fetchStatus === "fetching"
-														? "Loading...."
-														: field.value
-															? branches?.find(
-																	(branch: GiteaBranch) =>
-																		branch.name === field.value,
-																)?.name
-															: "Select branch"}
+													{status === "loading" &&
+													fetchStatus === "fetching" ? (
+														<Skeleton className="h-4 w-24" />
+													) : field.value ? (
+														branches?.find(
+															(branch: GiteaBranch) =>
+																branch.name === field.value,
+														)?.name
+													) : (
+														"Select branch"
+													)}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
@@ -368,9 +379,13 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 													className="h-9"
 												/>
 												{status === "loading" && fetchStatus === "fetching" && (
-													<span className="py-6 text-center text-sm text-muted-foreground">
-														Loading Branches....
-													</span>
+													<div className="p-4">
+														<ListSkeleton
+															items={4}
+															gridClassName="grid grid-cols-1 gap-2"
+															itemClassName="border-none bg-transparent p-0"
+														/>
+													</div>
 												)}
 												{!repository?.owner && (
 													<span className="py-6 text-center text-sm text-muted-foreground">

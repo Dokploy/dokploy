@@ -1,4 +1,4 @@
-import { Layers, Loader2 } from "lucide-react";
+import { Layers, ServerOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -8,6 +8,13 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+	Empty,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/utils/api";
 import { type ApplicationList, columns } from "./columns";
 import { DataTable } from "./data-table";
@@ -33,8 +40,8 @@ export const ShowNodeApplications = ({ serverId }: Props) => {
 		return (
 			<Dialog>
 				<DialogTrigger asChild>
-					<Button variant="outline" size="sm" className="w-full">
-						<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+					<Button variant="outline" size="sm" className="w-full" disabled>
+						<Skeleton className="h-4 w-20" />
 					</Button>
 				</DialogTrigger>
 			</Dialog>
@@ -43,9 +50,14 @@ export const ShowNodeApplications = ({ serverId }: Props) => {
 
 	if (!NodeApps || !NodeAppDetails) {
 		return (
-			<span className="text-sm w-full flex text-center justify-center items-center">
-				No data found
-			</span>
+			<Empty className="min-h-[6rem] border-none p-4">
+				<EmptyHeader>
+					<EmptyMedia variant="icon">
+						<ServerOff className="size-4 text-muted-foreground" />
+					</EmptyMedia>
+					<EmptyTitle>No data found</EmptyTitle>
+				</EmptyHeader>
+			</Empty>
 		);
 	}
 

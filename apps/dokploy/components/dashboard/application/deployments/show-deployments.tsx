@@ -2,7 +2,6 @@ import {
 	ChevronDown,
 	ChevronUp,
 	Clock,
-	Loader2,
 	RefreshCcw,
 	RocketIcon,
 	Settings,
@@ -22,6 +21,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { api, type RouterOutputs } from "@/utils/api";
 import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
 import { CancelQueues } from "./cancel-queues";
@@ -231,19 +238,23 @@ export const ShowDeployments = ({
 				)}
 
 				{isLoadingDeployments ? (
-					<div className="flex w-full flex-row items-center justify-center gap-3 pt-10 min-h-[25vh]">
-						<Loader2 className="size-6 text-muted-foreground animate-spin" />
-						<span className="text-base text-muted-foreground">
-							Loading deployments...
-						</span>
-					</div>
+					<ListSkeleton
+						items={3}
+						gridClassName="grid grid-cols-1 gap-3"
+						className="pt-6"
+					/>
 				) : deployments?.length === 0 ? (
-					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10 min-h-[25vh]">
-						<RocketIcon className="size-8 text-muted-foreground" />
-						<span className="text-base text-muted-foreground">
-							No deployments found
-						</span>
-					</div>
+					<Empty className="min-h-[25vh] pt-6">
+						<EmptyHeader>
+							<EmptyMedia variant="icon">
+								<RocketIcon className="size-5 text-muted-foreground" />
+							</EmptyMedia>
+							<EmptyTitle>No deployments yet</EmptyTitle>
+							<EmptyDescription>
+								Your deployment history will show up here once you deploy.
+							</EmptyDescription>
+						</EmptyHeader>
+					</Empty>
 				) : (
 					<div className="flex flex-col gap-4">
 						{deployments?.map((deployment, index) => {

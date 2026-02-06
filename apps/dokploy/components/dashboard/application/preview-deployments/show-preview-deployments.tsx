@@ -4,7 +4,6 @@ import {
 	FileText,
 	GitPullRequest,
 	Hammer,
-	Loader2,
 	PenSquare,
 	RocketIcon,
 	Trash2,
@@ -23,7 +22,16 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import {
 	Tooltip,
 	TooltipContent,
@@ -97,19 +105,20 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 							</span>
 						</div>
 						{isLoadingPreviewDeployments ? (
-							<div className="flex w-full flex-row items-center justify-center gap-3 min-h-[35vh]">
-								<Loader2 className="size-5 text-muted-foreground animate-spin" />
-								<span className="text-base text-muted-foreground">
-									Loading preview deployments...
-								</span>
-							</div>
+							<ListSkeleton items={3} gridClassName="grid grid-cols-1 gap-3" />
 						) : !previewDeployments?.length ? (
-							<div className="flex w-full flex-col items-center justify-center gap-3 min-h-[35vh]">
-								<RocketIcon className="size-8 text-muted-foreground" />
-								<span className="text-base text-muted-foreground">
-									No preview deployments found
-								</span>
-							</div>
+							<Empty className="min-h-[35vh]">
+								<EmptyHeader>
+									<EmptyMedia variant="icon">
+										<RocketIcon className="size-5 text-muted-foreground" />
+									</EmptyMedia>
+									<EmptyTitle>No preview deployments yet</EmptyTitle>
+									<EmptyDescription>
+										Preview deployments will appear when you open a pull
+										request.
+									</EmptyDescription>
+								</EmptyHeader>
+							</Empty>
 						) : (
 							<div className="flex flex-col gap-4">
 								{previewDeployments?.map((deployment) => {
@@ -298,14 +307,21 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 						)}
 					</>
 				) : (
-					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
-						<RocketIcon className="size-8 text-muted-foreground" />
-						<span className="text-base text-muted-foreground">
-							Preview deployments are disabled for this application, please
-							enable it
-						</span>
-						<ShowPreviewSettings applicationId={applicationId} />
-					</div>
+					<Empty className="min-h-[35vh]">
+						<EmptyHeader>
+							<EmptyMedia variant="icon">
+								<RocketIcon className="size-5 text-muted-foreground" />
+							</EmptyMedia>
+							<EmptyTitle>Preview deployments are disabled</EmptyTitle>
+							<EmptyDescription>
+								Enable preview deployments to create a deployment per pull
+								request.
+							</EmptyDescription>
+						</EmptyHeader>
+						<EmptyContent>
+							<ShowPreviewSettings applicationId={applicationId} />
+						</EmptyContent>
+					</Empty>
 				)}
 			</CardContent>
 		</Card>

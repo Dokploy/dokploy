@@ -1,4 +1,4 @@
-import { FileIcon, Folder, Loader2, Workflow } from "lucide-react";
+import { FileIcon, Folder, Workflow } from "lucide-react";
 import React from "react";
 import { AlertBlock } from "@/components/shared/alert-block";
 import {
@@ -8,7 +8,16 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { Tree } from "@/components/ui/file-tree";
+import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/utils/api";
 import { ShowTraefikFile } from "./show-traefik-file";
 
@@ -60,21 +69,31 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 									</AlertBlock>
 								)}
 								{isLoading && (
-									<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-										<span className="text-muted-foreground text-lg font-medium">
-											Loading...
-										</span>
-										<Loader2 className="animate-spin size-8 text-muted-foreground" />
+									<div className="w-full flex flex-col gap-4">
+										<div className="flex flex-col gap-3">
+											<Skeleton className="h-4 w-40" />
+											<Skeleton className="h-4 w-64" />
+										</div>
+										<div className="flex flex-col lg:flex-row gap-4 md:gap-10 w-full">
+											<Skeleton className="h-[55vh] w-full lg:max-w-[19rem]" />
+											<Skeleton className="h-[55vh] w-full" />
+										</div>
 									</div>
 								)}
 								{directories?.length === 0 && (
-									<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-										<span className="text-muted-foreground text-lg font-medium">
-											No directories or files detected in{" "}
-											{"'/etc/dokploy/traefik'"}
-										</span>
-										<Folder className="size-8 text-muted-foreground" />
-									</div>
+									<Empty className="min-h-[55vh] w-full">
+										<EmptyHeader>
+											<EmptyMedia variant="icon">
+												<Folder className="size-5 text-muted-foreground" />
+											</EmptyMedia>
+											<EmptyTitle>No files found</EmptyTitle>
+											<EmptyDescription>
+												No directories or files detected in{" "}
+												{"'/etc/dokploy/traefik'"}.
+											</EmptyDescription>
+										</EmptyHeader>
+										<EmptyContent />
+									</Empty>
 								)}
 								{directories && directories?.length > 0 && (
 									<>
@@ -89,12 +108,18 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 											{file ? (
 												<ShowTraefikFile path={file} serverId={serverId} />
 											) : (
-												<div className="h-full w-full flex-col gap-2 flex items-center justify-center">
-													<span className="text-muted-foreground text-lg font-medium">
-														No file selected
-													</span>
-													<FileIcon className="size-8 text-muted-foreground" />
-												</div>
+												<Empty className="min-h-[55vh] w-full">
+													<EmptyHeader>
+														<EmptyMedia variant="icon">
+															<FileIcon className="size-5 text-muted-foreground" />
+														</EmptyMedia>
+														<EmptyTitle>No file selected</EmptyTitle>
+														<EmptyDescription>
+															Choose a file from the tree to view and edit its
+															content.
+														</EmptyDescription>
+													</EmptyHeader>
+												</Empty>
 											)}
 										</div>
 									</>

@@ -1,4 +1,4 @@
-import { File, Loader2 } from "lucide-react";
+import { File } from "lucide-react";
 import { CodeEditor } from "@/components/shared/code-editor";
 import {
 	Card,
@@ -7,6 +7,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/utils/api";
 import { UpdateTraefikConfig } from "./update-traefik-config";
 
@@ -36,17 +44,22 @@ export const ShowTraefikConfig = ({ applicationId }: Props) => {
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				{isLoading ? (
-					<span className="text-base text-muted-foreground flex flex-row gap-3 items-center justify-center min-h-[10vh]">
-						Loading...
-						<Loader2 className="animate-spin" />
-					</span>
-				) : !data ? (
-					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
-						<File className="size-8 text-muted-foreground" />
-						<span className="text-base text-muted-foreground">
-							No traefik config detected
-						</span>
+					<div className="flex flex-col gap-3 min-h-[10vh]">
+						<Skeleton className="h-4 w-32" />
+						<Skeleton className="h-32 w-full" />
 					</div>
+				) : !data ? (
+					<Empty className="min-h-[10vh]">
+						<EmptyHeader>
+							<EmptyMedia variant="icon">
+								<File className="size-5 text-muted-foreground" />
+							</EmptyMedia>
+							<EmptyTitle>No Traefik config detected</EmptyTitle>
+							<EmptyDescription>
+								Add a configuration file to manage custom rules.
+							</EmptyDescription>
+						</EmptyHeader>
+					</Empty>
 				) : (
 					<div className="flex flex-col pt-2 relative">
 						<div className="flex flex-col gap-6 max-h-[35rem] min-h-[10rem] overflow-y-auto">

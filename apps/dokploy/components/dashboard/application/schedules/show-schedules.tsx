@@ -9,6 +9,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import {
 	Tooltip,
 	TooltipContent,
@@ -91,12 +100,11 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 			</CardHeader>
 			<CardContent className="px-0">
 				{isLoadingSchedules ? (
-					<div className="flex gap-4 w-full items-center justify-center text-center mx-auto min-h-[45vh]">
-						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />
-						<span className="text-sm text-muted-foreground/70">
-							Loading scheduled tasks...
-						</span>
-					</div>
+					<ListSkeleton
+						items={4}
+						gridClassName="grid grid-cols-1 xl:grid-cols-2 gap-4"
+						className="min-h-[45vh]"
+					/>
 				) : schedules && schedules.length > 0 ? (
 					<div className="grid xl:grid-cols-2 gap-4 grid-cols-1 h-full">
 						{schedules.map((schedule) => {
@@ -229,16 +237,20 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 						})}
 					</div>
 				) : (
-					<div className="flex flex-col gap-2 items-center justify-center py-12 rounded-lg">
-						<Clock className="size-8 mb-4 text-muted-foreground" />
-						<p className="text-lg font-medium text-muted-foreground">
-							No scheduled tasks
-						</p>
-						<p className="text-sm text-muted-foreground mt-1">
-							Create your first scheduled task to automate your workflows
-						</p>
-						<HandleSchedules id={id} scheduleType={scheduleType} />
-					</div>
+					<Empty className="min-h-[45vh]">
+						<EmptyHeader>
+							<EmptyMedia variant="icon">
+								<Clock className="size-5 text-muted-foreground" />
+							</EmptyMedia>
+							<EmptyTitle>No scheduled tasks yet</EmptyTitle>
+							<EmptyDescription>
+								Create your first scheduled task to automate your workflows.
+							</EmptyDescription>
+						</EmptyHeader>
+						<EmptyContent>
+							<HandleSchedules id={id} scheduleType={scheduleType} />
+						</EmptyContent>
+					</Empty>
 				)}
 			</CardContent>
 		</Card>

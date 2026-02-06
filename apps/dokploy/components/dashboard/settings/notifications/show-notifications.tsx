@@ -1,4 +1,4 @@
-import { Bell, Loader2, Mail, PenBoxIcon, Trash2 } from "lucide-react";
+import { Bell, Mail, PenBoxIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
 	DiscordIcon,
@@ -10,6 +10,7 @@ import {
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -18,6 +19,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { api } from "@/utils/api";
 import { HandleNotifications } from "./handle-notifications";
 
@@ -42,21 +51,24 @@ export const ShowNotifications = () => {
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
-							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
-								<Loader2 className="animate-spin size-4" />
-							</div>
+							<ListSkeleton items={3} gridClassName="grid grid-cols-1 gap-3" />
 						) : (
 							<>
 								{data?.length === 0 ? (
-									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
-										<Bell />
-										<span className="text-base text-muted-foreground text-center">
-											To send notifications it is required to set at least 1
-											provider.
-										</span>
-										<HandleNotifications />
-									</div>
+									<Empty className="min-h-[25vh]">
+										<EmptyHeader>
+											<EmptyMedia variant="icon">
+												<Bell className="size-5 text-muted-foreground" />
+											</EmptyMedia>
+											<EmptyTitle>No notification providers yet</EmptyTitle>
+											<EmptyDescription>
+												Add at least one provider to start receiving alerts.
+											</EmptyDescription>
+										</EmptyHeader>
+										<EmptyContent>
+											<HandleNotifications />
+										</EmptyContent>
+									</Empty>
 								) : (
 									<div className="flex flex-col gap-4 min-h-[25vh]">
 										<div className="flex flex-col gap-4 rounded-lg ">
