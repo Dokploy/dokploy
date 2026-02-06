@@ -14,7 +14,7 @@
 		"bullmq": "5.4.2",
 		"dotenv": "^16.4.5",
 		"drizzle-orm": "^0.41.0",
-		"hono": "^4.7.10",
+		"hono": "^4.11.7",
 		"ioredis": "5.4.1",
 		"pino": "9.4.0",
 		"pino-pretty": "11.2.2",
