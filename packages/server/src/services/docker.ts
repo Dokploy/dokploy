@@ -472,3 +472,77 @@ export const getApplicationInfo = async (
 		return appArray;
 	} catch {}
 };
+
+export const getSwarmServiceTasks = async (serverId?: string) => {
+	try {
+		let stdout = "";
+		let stderr = "";
+		const command =
+			'docker service ps $(docker service ls -q) --filter "desired-state=running" --format \'{{json .}}\' --no-trunc';
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return [];
+		}
+
+		if (!stdout.trim()) {
+			return [];
+		}
+
+		const tasks = stdout
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line));
+
+		return tasks;
+	} catch {
+		return [];
+	}
+};
+
+export const getAllContainerStats = async (serverId?: string) => {
+	try {
+		let stdout = "";
+		let stderr = "";
+		const command =
+			"docker stats --no-stream --format '{\"BlockIO\":\"{{.BlockIO}}\",\"CPUPerc\":\"{{.CPUPerc}}\",\"Container\":\"{{.Container}}\",\"ID\":\"{{.ID}}\",\"MemPerc\":\"{{.MemPerc}}\",\"MemUsage\":\"{{.MemUsage}}\",\"Name\":\"{{.Name}}\",\"NetIO\":\"{{.NetIO}}\"}'";
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return [];
+		}
+
+		if (!stdout.trim()) {
+			return [];
+		}
+
+		const stats = stdout
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line));
+
+		return stats;
+	} catch {
+		return [];
+	}
+};

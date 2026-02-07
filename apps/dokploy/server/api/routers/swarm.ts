@@ -1,9 +1,11 @@
 import {
 	findServerById,
+	getAllContainerStats,
 	getApplicationInfo,
 	getNodeApplications,
 	getNodeInfo,
 	getSwarmNodes,
+	getSwarmServiceTasks,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -79,5 +81,35 @@ export const swarmRouter = createTRPCRouter({
 				}
 			}
 			return await getApplicationInfo(input.appName, input.serverId);
+		}),
+	getServiceTasks: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			return await getSwarmServiceTasks(input.serverId);
+		}),
+	getContainerStats: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			return await getAllContainerStats(input.serverId);
 		}),
 });
