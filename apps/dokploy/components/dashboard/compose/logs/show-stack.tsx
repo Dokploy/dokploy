@@ -128,6 +128,7 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 											<Badge variant={badgeStateColor(container.state)}>
 												{container.state}
 											</Badge>
+											{container.status ? ` ${container.status}` : ""}
 										</SelectItem>
 									))}
 								</div>
@@ -143,6 +144,9 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 											<Badge variant={badgeStateColor(container.state)}>
 												{container.state}
 											</Badge>
+											{container.currentState
+												? ` ${container.currentState}`
+												: ""}
 										</SelectItem>
 									))}
 								</>
