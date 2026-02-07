@@ -24,6 +24,8 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
 
 const UpdateTraefikConfigSchema = z.object({
@@ -59,6 +61,7 @@ export const validateAndFormatYAML = (yamlText: string) => {
 
 export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 	const [open, setOpen] = useState(false);
+	const [skipYamlValidation, setSkipYamlValidation] = useState(false);
 	const { data, refetch } = api.application.readTraefikConfig.useQuery(
 		{
 			applicationId,
@@ -85,13 +88,15 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 	}, [data]);
 
 	const onSubmit = async (data: UpdateTraefikConfig) => {
-		const { valid, error } = validateAndFormatYAML(data.traefikConfig);
-		if (!valid) {
-			form.setError("traefikConfig", {
-				type: "manual",
-				message: (error as string) || "Invalid YAML",
-			});
-			return;
+		if (!skipYamlValidation) {
+			const { valid, error } = validateAndFormatYAML(data.traefikConfig);
+			if (!valid) {
+				form.setError("traefikConfig", {
+					type: "manual",
+					message: (error as string) || "Invalid YAML",
+				});
+				return;
+			}
 		}
 		form.clearErrors("traefikConfig");
 		await mutateAsync({
@@ -116,6 +121,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 				setOpen(open);
 				if (!open) {
 					form.reset();
+					setSkipYamlValidation(false);
 				}
 			}}
 		>
@@ -169,7 +175,28 @@ routers:
 						</div>
 					</form>
 
-					<DialogFooter>
+					<DialogFooter className="flex-col sm:flex-row gap-4">
+						<div className="flex flex-col gap-1 w-full sm:w-auto sm:mr-auto">
+							<div className="flex items-center space-x-2">
+								<Checkbox
+									id="skip-yaml-validation-app"
+									checked={skipYamlValidation}
+									onCheckedChange={(checked) =>
+										setSkipYamlValidation(checked === true)
+									}
+								/>
+								<Label
+									htmlFor="skip-yaml-validation-app"
+									className="text-sm font-normal cursor-pointer"
+								>
+									Skip YAML validation (for Go templating)
+								</Label>
+							</div>
+							<p className="text-sm text-muted-foreground">
+								Check to save configs with Go templating (e.g.{" "}
+								<code className="text-xs">{"{{range}}"}</code>).
+							</p>
+						</div>
 						<Button
 							isLoading={isLoading}
 							form="hook-form-update-traefik-config"
