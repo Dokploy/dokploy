@@ -475,24 +475,41 @@ export const getApplicationInfo = async (
 
 export const getSwarmServiceTasks = async (serverId?: string) => {
 	try {
-		let stdout = "";
-		let stderr = "";
-		const command =
-			'docker service ps $(docker service ls -q) --filter "desired-state=running" --format \'{{json .}}\' --no-trunc';
+		// Step 1: Get all service names (filtering out internal dokploy- services)
+		const listCommand = "docker service ls --format '{{.Name}}'";
+		let listStdout = "";
 
 		if (serverId) {
-			const result = await execAsyncRemote(serverId, command);
-			stdout = result.stdout;
-			stderr = result.stderr;
+			const result = await execAsyncRemote(serverId, listCommand);
+			listStdout = result.stdout.trim();
 		} else {
-			const result = await execAsync(command);
-			stdout = result.stdout;
-			stderr = result.stderr;
+			const result = await execAsync(listCommand);
+			listStdout = result.stdout.trim();
 		}
 
-		if (stderr) {
-			console.error(`Error: ${stderr}`);
+		if (!listStdout) {
 			return [];
+		}
+
+		const serviceNames = listStdout
+			.split("\n")
+			.filter((name) => !name.startsWith("dokploy-"));
+
+		if (serviceNames.length === 0) {
+			return [];
+		}
+
+		// Step 2: Get running tasks for all user services
+		const names = serviceNames.join(" ");
+		const psCommand = `docker service ps ${names} --filter "desired-state=running" --format '{{json .}}' --no-trunc`;
+		let stdout = "";
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, psCommand);
+			stdout = result.stdout;
+		} else {
+			const result = await execAsync(psCommand);
+			stdout = result.stdout;
 		}
 
 		if (!stdout.trim()) {
@@ -513,23 +530,15 @@ export const getSwarmServiceTasks = async (serverId?: string) => {
 export const getAllContainerStats = async (serverId?: string) => {
 	try {
 		let stdout = "";
-		let stderr = "";
 		const command =
 			"docker stats --no-stream --format '{\"BlockIO\":\"{{.BlockIO}}\",\"CPUPerc\":\"{{.CPUPerc}}\",\"Container\":\"{{.Container}}\",\"ID\":\"{{.ID}}\",\"MemPerc\":\"{{.MemPerc}}\",\"MemUsage\":\"{{.MemUsage}}\",\"Name\":\"{{.Name}}\",\"NetIO\":\"{{.NetIO}}\"}'";
 
 		if (serverId) {
 			const result = await execAsyncRemote(serverId, command);
 			stdout = result.stdout;
-			stderr = result.stderr;
 		} else {
 			const result = await execAsync(command);
 			stdout = result.stdout;
-			stderr = result.stderr;
-		}
-
-		if (stderr) {
-			console.error(`Error: ${stderr}`);
-			return [];
 		}
 
 		if (!stdout.trim()) {
