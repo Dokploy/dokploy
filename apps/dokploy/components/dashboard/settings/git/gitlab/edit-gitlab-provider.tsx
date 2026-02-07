@@ -164,9 +164,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 									name="gitlabInternalUrl"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>
-												Internal URL (Optional)
-											</FormLabel>
+											<FormLabel>Internal URL (Optional)</FormLabel>
 											<FormControl>
 												<Input
 													placeholder="http://gitlab:80"
