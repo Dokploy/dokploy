@@ -497,6 +497,7 @@ table github {
 table gitlab {
   gitlabId text [pk, not null]
   gitlabUrl text [not null, default: 'https://gitlab.com']
+  gitlabInternalUrl text
   application_id text
   redirect_uri text
   secret text
