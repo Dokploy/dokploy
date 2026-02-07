@@ -66,13 +66,7 @@ export const useHealthCheckAfterMutation = ({
 
 		await new Promise((resolve) => setTimeout(resolve, pollInterval));
 		await pollUntilHealthy();
-	}, [
-		checkHealth,
-		successMessage,
-		reloadOnSuccess,
-		onSuccess,
-		pollInterval,
-	]);
+	}, [checkHealth, successMessage, reloadOnSuccess, onSuccess, pollInterval]);
 
 	const execute = useCallback(
 		async <T>(mutationFn: () => Promise<T>): Promise<T> => {

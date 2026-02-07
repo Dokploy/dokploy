@@ -47,11 +47,13 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 	const { mutateAsync, isLoading, error, isError } =
 		api.settings.writeTraefikEnv.useMutation();
 
-	const { execute: executeWithHealthCheck, isExecuting: isHealthCheckExecuting } =
-		useHealthCheckAfterMutation({
-			initialDelay: 5000,
-			successMessage: "Traefik Env Updated",
-		});
+	const {
+		execute: executeWithHealthCheck,
+		isExecuting: isHealthCheckExecuting,
+	} = useHealthCheckAfterMutation({
+		initialDelay: 5000,
+		successMessage: "Traefik Env Updated",
+	});
 
 	const form = useForm<Schema>({
 		defaultValues: {

@@ -79,15 +79,17 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 	const { mutateAsync: updatePorts, isLoading } =
 		api.settings.updateTraefikPorts.useMutation();
 
-	const { execute: executeWithHealthCheck, isExecuting: isHealthCheckExecuting } =
-		useHealthCheckAfterMutation({
-			initialDelay: 5000,
-			successMessage: t("settings.server.webServer.traefik.portsUpdated"),
-			onSuccess: () => {
-				refetchPorts();
-				setOpen(false);
-			},
-		});
+	const {
+		execute: executeWithHealthCheck,
+		isExecuting: isHealthCheckExecuting,
+	} = useHealthCheckAfterMutation({
+		initialDelay: 5000,
+		successMessage: t("settings.server.webServer.traefik.portsUpdated"),
+		onSuccess: () => {
+			refetchPorts();
+			setOpen(false);
+		},
+	});
 
 	useEffect(() => {
 		if (currentPorts) {
