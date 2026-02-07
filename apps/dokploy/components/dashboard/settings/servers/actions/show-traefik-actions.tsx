@@ -39,10 +39,20 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 		isExecuting: isHealthCheckExecuting,
 	} = useHealthCheckAfterMutation({
 		initialDelay: 5000,
+		pollInterval: 4000,
 		successMessage: "Traefik dashboard updated successfully",
 		onSuccess: () => {
 			refetchDashboard();
 		},
+	});
+
+	const {
+		execute: executeReloadWithHealthCheck,
+		isExecuting: isReloadHealthCheckExecuting,
+	} = useHealthCheckAfterMutation({
+		initialDelay: 5000,
+		pollInterval: 4000,
+		successMessage: "Traefik Reloaded",
 	});
 
 	return (
@@ -52,14 +62,16 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 				disabled={
 					reloadTraefikIsLoading ||
 					toggleDashboardIsLoading ||
-					isHealthCheckExecuting
+					isHealthCheckExecuting ||
+					isReloadHealthCheckExecuting
 				}
 			>
 				<Button
 					isLoading={
 						reloadTraefikIsLoading ||
 						toggleDashboardIsLoading ||
-						isHealthCheckExecuting
+						isHealthCheckExecuting ||
+						isReloadHealthCheckExecuting
 					}
 					variant="outline"
 				>
@@ -74,15 +86,19 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 				<DropdownMenuGroup>
 					<DropdownMenuItem
 						onClick={async () => {
-							await reloadTraefik({
-								serverId: serverId,
-							})
-								.then(async () => {
-									toast.success("Traefik Reloaded");
-								})
-								.catch(() => {});
+							try {
+								await executeReloadWithHealthCheck(() =>
+									reloadTraefik({ serverId }),
+								);
+							} catch (error) {
+								const errorMessage =
+									(error as Error)?.message ||
+									"Failed to reload Traefik. Please try again.";
+								toast.error(errorMessage);
+							}
 						}}
 						className="cursor-pointer"
+						disabled={isReloadHealthCheckExecuting}
 					>
 						<span>{t("settings.server.webServer.reload")}</span>
 					</DropdownMenuItem>

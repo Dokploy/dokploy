@@ -118,12 +118,12 @@ export const settingsRouter = createTRPCRouter({
 	reloadTraefik: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			try {
-				await reloadDockerResource("dokploy-traefik", input?.serverId);
-			} catch (err) {
-				console.error(err);
-			}
-
+			// Run in background so the request returns immediately; avoids proxy timeouts.
+			void reloadDockerResource("dokploy-traefik", input?.serverId).catch(
+				(err) => {
+					console.error("reloadTraefik background:", err);
+				},
+			);
 			return true;
 		}),
 	toggleDashboard: adminProcedure
