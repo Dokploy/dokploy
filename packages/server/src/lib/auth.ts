@@ -11,8 +11,8 @@ import { db } from "../db";
 import * as schema from "../db/schema";
 import { getTrustedOrigins, getUserByToken } from "../services/admin";
 import {
-  getWebServerSettings,
-  updateWebServerSettings,
+	getWebServerSettings,
+	updateWebServerSettings,
 } from "../services/web-server-settings";
 import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { sendEmail } from "../verification/send-verification-email";
@@ -20,321 +20,318 @@ import { getPublicIpWithFallback } from "../wss/utils";
 
 // Define the configuration separately so it can be used for type inference
 const authConfig = {
-  database: drizzleAdapter(db, {
-    provider: "pg" as const,
-    schema: schema,
-  }),
-  disabledPaths: [
-    "/sso/register",
-    "/organization/create",
-    "/organization/update",
-    "/organization/delete",
-  ],
-  secret: BETTER_AUTH_SECRET,
-  appName: "Dokploy",
-  socialProviders: {
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID as string,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
-    },
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    },
-  },
-  logger: {
-    disabled: process.env.NODE_ENV === "production",
-  },
-  async trustedOrigins() {
-    const trustedOrigins = await getTrustedOrigins();
-    if (IS_CLOUD) {
-      return trustedOrigins;
-    }
-    const settings = await getWebServerSettings();
-    if (!settings) {
-      return [];
-    }
-    return [
-      ...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
-      ...(settings?.host ? [`https://${settings?.host}`] : []),
-      ...(process.env.NODE_ENV === "development"
-        ? ["http://localhost:3000"]
-        : []),
-      ...trustedOrigins,
-    ];
-  },
-  emailVerification: {
-    sendOnSignUp: true,
-    autoSignInAfterVerification: true,
-    sendVerificationEmail: async ({
-      user,
-      url,
-    }: {
-      user: any;
-      url: string;
-    }) => {
-      if (IS_CLOUD) {
-        await sendEmail({
-          email: user.email,
-          subject: "Verify your email",
-          text: `
+	database: drizzleAdapter(db, {
+		provider: "pg" as const,
+		schema: schema,
+	}),
+	disabledPaths: [
+		"/sso/register",
+		"/organization/create",
+		"/organization/update",
+		"/organization/delete",
+	],
+	secret: BETTER_AUTH_SECRET,
+	appName: "Dokploy",
+	socialProviders: {
+		github: {
+			clientId: process.env.GITHUB_CLIENT_ID as string,
+			clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+		},
+		google: {
+			clientId: process.env.GOOGLE_CLIENT_ID as string,
+			clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+		},
+	},
+	logger: {
+		disabled: process.env.NODE_ENV === "production",
+	},
+	async trustedOrigins() {
+		const trustedOrigins = await getTrustedOrigins();
+		if (IS_CLOUD) {
+			return trustedOrigins;
+		}
+		const settings = await getWebServerSettings();
+		if (!settings) {
+			return [];
+		}
+		return [
+			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
+			...(settings?.host ? [`https://${settings?.host}`] : []),
+			...(process.env.NODE_ENV === "development"
+				? ["http://localhost:3000"]
+				: []),
+			...trustedOrigins,
+		];
+	},
+	emailVerification: {
+		sendOnSignUp: true,
+		autoSignInAfterVerification: true,
+		sendVerificationEmail: async ({
+			user,
+			url,
+		}: {
+			user: any;
+			url: string;
+		}) => {
+			if (IS_CLOUD) {
+				await sendEmail({
+					email: user.email,
+					subject: "Verify your email",
+					text: `
 				<p>Click the link to verify your email: <a href="${url}">Verify Email</a></p>
 				`,
-        });
-      }
-    },
-  },
-  emailAndPassword: {
-    enabled: true,
-    autoSignIn: !IS_CLOUD,
-    requireEmailVerification: IS_CLOUD,
-    password: {
-      async hash(password: string) {
-        return await bcrypt.hash(password, 10);
-      },
-      async verify({ hash, password }: { hash: string; password: string }) {
-        return await bcrypt.compare(password, hash);
-      },
-    },
-    sendResetPassword: async ({ user, url }: { user: any; url: string }) => {
-      await sendEmail({
-        email: user.email,
-        subject: "Reset your password",
-        text: `
+				});
+			}
+		},
+	},
+	emailAndPassword: {
+		enabled: true,
+		autoSignIn: !IS_CLOUD,
+		requireEmailVerification: IS_CLOUD,
+		password: {
+			async hash(password: string) {
+				return await bcrypt.hash(password, 10);
+			},
+			async verify({ hash, password }: { hash: string; password: string }) {
+				return await bcrypt.compare(password, hash);
+			},
+		},
+		sendResetPassword: async ({ user, url }: { user: any; url: string }) => {
+			await sendEmail({
+				email: user.email,
+				subject: "Reset your password",
+				text: `
 				<p>Click the link to reset your password: <a href="${url}">Reset Password</a></p>
 				`,
-      });
-    },
-  },
-  databaseHooks: {
-    user: {
-      create: {
-        before: async (_user: any, context: any) => {
-          if (!IS_CLOUD) {
-            const xDokployToken =
-              context?.request?.headers?.get("x-dokploy-token");
-            if (xDokployToken) {
-              const user = await getUserByToken(xDokployToken);
-              if (!user) {
-                throw new APIError("BAD_REQUEST", {
-                  message: "User not found",
-                });
-              }
-            } else {
-              const isSSORequest = context?.path?.includes("/sso");
-              if (isSSORequest) {
-                return;
-              }
-              const isAdminPresent = await db.query.member.findFirst({
-                where: eq(schema.member.role, "owner"),
-              });
-              if (isAdminPresent) {
-                throw new APIError("BAD_REQUEST", {
-                  message: "Admin is already created",
-                });
-              }
-            }
-          }
-        },
-        after: async (user: any, context: any) => {
-          const isSSORequest = context?.path?.includes("/sso");
-          const isAdminPresent = await db.query.member.findFirst({
-            where: eq(schema.member.role, "owner"),
-          });
+			});
+		},
+	},
+	databaseHooks: {
+		user: {
+			create: {
+				before: async (_user: any, context: any) => {
+					if (!IS_CLOUD) {
+						const xDokployToken =
+							context?.request?.headers?.get("x-dokploy-token");
+						if (xDokployToken) {
+							const user = await getUserByToken(xDokployToken);
+							if (!user) {
+								throw new APIError("BAD_REQUEST", {
+									message: "User not found",
+								});
+							}
+						} else {
+							const isSSORequest = context?.path?.includes("/sso");
+							if (isSSORequest) {
+								return;
+							}
+							const isAdminPresent = await db.query.member.findFirst({
+								where: eq(schema.member.role, "owner"),
+							});
+							if (isAdminPresent) {
+								throw new APIError("BAD_REQUEST", {
+									message: "Admin is already created",
+								});
+							}
+						}
+					}
+				},
+				after: async (user: any, context: any) => {
+					const isSSORequest = context?.path?.includes("/sso");
+					const isAdminPresent = await db.query.member.findFirst({
+						where: eq(schema.member.role, "owner"),
+					});
 
-          if (!IS_CLOUD) {
-            await updateWebServerSettings({
-              serverIp: await getPublicIpWithFallback(),
-            });
-          }
+					if (!IS_CLOUD) {
+						await updateWebServerSettings({
+							serverIp: await getPublicIpWithFallback(),
+						});
+					}
 
-          if (IS_CLOUD) {
-            try {
-              const hutk = getHubSpotUTK(
-                context?.request?.headers?.get("cookie") || undefined,
-              );
-              // Cast to include additional fields
-              const userWithFields = user as typeof user & {
-                lastName?: string;
-              };
-              const hubspotSuccess = await submitToHubSpot(
-                {
-                  email: user.email,
-                  firstName: user.name || "", // name is mapped to firstName column
-                  lastName: userWithFields.lastName || "",
-                },
-                hutk,
-              );
-              if (!hubspotSuccess) {
-                console.error("Failed to submit to HubSpot");
-              }
-            } catch (error) {
-              console.error("Error submitting to HubSpot", error);
-            }
-          }
+					if (IS_CLOUD) {
+						try {
+							const hutk = getHubSpotUTK(
+								context?.request?.headers?.get("cookie") || undefined,
+							);
+							// Cast to include additional fields
+							const userWithFields = user as typeof user & {
+								lastName?: string;
+							};
+							const hubspotSuccess = await submitToHubSpot(
+								{
+									email: user.email,
+									firstName: user.name || "", // name is mapped to firstName column
+									lastName: userWithFields.lastName || "",
+								},
+								hutk,
+							);
+							if (!hubspotSuccess) {
+								console.error("Failed to submit to HubSpot");
+							}
+						} catch (error) {
+							console.error("Error submitting to HubSpot", error);
+						}
+					}
 
-          if (IS_CLOUD || !isAdminPresent) {
-            try {
-              await db.transaction(async (tx) => {
-                const organization = await tx
-                  .insert(schema.organization)
-                  .values({
-                    name: "My Organization",
-                    ownerId: user.id,
-                    createdAt: new Date(),
-                  })
-                  .returning()
-                  .then((res) => res[0]);
-                await tx.insert(schema.member).values({
-                  userId: user.id,
-                  organizationId: organization?.id || "",
-                  role: "owner",
-                  createdAt: new Date(),
-                  isDefault: true, // Mark first organization as default
-                });
-              });
-            } catch (error) {
-              console.error(
-                "Error creating organization/member:",
-                error,
-              );
-              throw error;
-            }
-          } else if (isSSORequest) {
-            const providerId = context?.params?.providerId;
-            if (!providerId) {
-              throw new APIError("BAD_REQUEST", {
-                message: "Provider ID is required",
-              });
-            }
-            const provider = await db.query.ssoProvider.findFirst({
-              where: eq(schema.ssoProvider.providerId, providerId),
-            });
+					if (IS_CLOUD || !isAdminPresent) {
+						try {
+							await db.transaction(async (tx) => {
+								const organization = await tx
+									.insert(schema.organization)
+									.values({
+										name: "My Organization",
+										ownerId: user.id,
+										createdAt: new Date(),
+									})
+									.returning()
+									.then((res) => res[0]);
+								await tx.insert(schema.member).values({
+									userId: user.id,
+									organizationId: organization?.id || "",
+									role: "owner",
+									createdAt: new Date(),
+									isDefault: true, // Mark first organization as default
+								});
+							});
+						} catch (error) {
+							console.error("Error creating organization/member:", error);
+							throw error;
+						}
+					} else if (isSSORequest) {
+						const providerId = context?.params?.providerId;
+						if (!providerId) {
+							throw new APIError("BAD_REQUEST", {
+								message: "Provider ID is required",
+							});
+						}
+						const provider = await db.query.ssoProvider.findFirst({
+							where: eq(schema.ssoProvider.providerId, providerId),
+						});
 
-            if (!provider) {
-              throw new APIError("BAD_REQUEST", {
-                message: "Provider not found",
-              });
-            }
-            await db.insert(schema.member).values({
-              userId: user.id,
-              organizationId: provider?.organizationId || "",
-              role: "member",
-              createdAt: new Date(),
-              isDefault: true,
-            });
-          }
-        },
-      },
-    },
-    session: {
-      create: {
-        before: async (session) => {
-          // Find the default organization for this user
-          // Priority: 1) isDefault=true, 2) most recently created
-          const member = await db.query.member.findFirst({
-            where: eq(schema.member.userId, session.userId),
-            orderBy: [
-              desc(schema.member.isDefault),
-              desc(schema.member.createdAt),
-            ],
-            with: {
-              organization: true,
-            },
-          });
+						if (!provider) {
+							throw new APIError("BAD_REQUEST", {
+								message: "Provider not found",
+							});
+						}
+						await db.insert(schema.member).values({
+							userId: user.id,
+							organizationId: provider?.organizationId || "",
+							role: "member",
+							createdAt: new Date(),
+							isDefault: true,
+						});
+					}
+				},
+			},
+		},
+		session: {
+			create: {
+				before: async (session) => {
+					// Find the default organization for this user
+					// Priority: 1) isDefault=true, 2) most recently created
+					const member = await db.query.member.findFirst({
+						where: eq(schema.member.userId, session.userId),
+						orderBy: [
+							desc(schema.member.isDefault),
+							desc(schema.member.createdAt),
+						],
+						with: {
+							organization: true,
+						},
+					});
 
-          return {
-            data: {
-              ...session,
-              activeOrganizationId: member?.organization?.id,
-            },
-          };
-        },
-      },
-    },
-  },
-  session: {
-    expiresIn: 60 * 60 * 24 * 3,
-    updateAge: 60 * 60 * 24,
-    additionalFields: {
-      activeOrganizationId: {
-        type: "string" as const,
-        required: false,
-      },
-    },
-  },
-  user: {
-    modelName: "user",
-    fields: {
-      name: "firstName", // Map better-auth's default 'name' field to 'firstName' column
-    },
-    additionalFields: {
-      role: {
-        type: "string",
-        // required: true,
-        input: false,
-      },
-      ownerId: {
-        type: "string",
-        // required: true,
-        input: false,
-      },
-      allowImpersonation: {
-        fieldName: "allowImpersonation",
-        type: "boolean" as const,
-        defaultValue: false,
-      },
-      lastName: {
-        type: "string" as const,
-        required: false,
-        input: true,
-        defaultValue: "",
-      },
-      enableEnterpriseFeatures: {
-        type: "boolean" as const,
-        required: false,
-        input: false,
-      },
-      isValidEnterpriseLicense: {
-        type: "boolean" as const,
-        required: false,
-        input: false,
-      },
-    },
-  },
-  plugins: [
-    apiKey({
-      enableMetadata: true,
-    }),
-    sso(),
-    twoFactor(),
-    organization({
-      async sendInvitationEmail(data: any, _request: any) {
-        if (IS_CLOUD) {
-          const host =
-            process.env.NODE_ENV === "development"
-              ? "http://localhost:3000"
-              : "https://app.dokploy.com";
-          const inviteLink = `${host}/invitation?token=${data.id}`;
+					return {
+						data: {
+							...session,
+							activeOrganizationId: member?.organization?.id,
+						},
+					};
+				},
+			},
+		},
+	},
+	session: {
+		expiresIn: 60 * 60 * 24 * 3,
+		updateAge: 60 * 60 * 24,
+		additionalFields: {
+			activeOrganizationId: {
+				type: "string" as const,
+				required: false,
+			},
+		},
+	},
+	user: {
+		modelName: "user",
+		fields: {
+			name: "firstName", // Map better-auth's default 'name' field to 'firstName' column
+		},
+		additionalFields: {
+			role: {
+				type: "string",
+				// required: true,
+				input: false,
+			},
+			ownerId: {
+				type: "string",
+				// required: true,
+				input: false,
+			},
+			allowImpersonation: {
+				fieldName: "allowImpersonation",
+				type: "boolean" as const,
+				defaultValue: false,
+			},
+			lastName: {
+				type: "string" as const,
+				required: false,
+				input: true,
+				defaultValue: "",
+			},
+			enableEnterpriseFeatures: {
+				type: "boolean" as const,
+				required: false,
+				input: false,
+			},
+			isValidEnterpriseLicense: {
+				type: "boolean" as const,
+				required: false,
+				input: false,
+			},
+		},
+	},
+	plugins: [
+		apiKey({
+			enableMetadata: true,
+		}),
+		sso(),
+		twoFactor(),
+		organization({
+			async sendInvitationEmail(data: any, _request: any) {
+				if (IS_CLOUD) {
+					const host =
+						process.env.NODE_ENV === "development"
+							? "http://localhost:3000"
+							: "https://app.dokploy.com";
+					const inviteLink = `${host}/invitation?token=${data.id}`;
 
-          await sendEmail({
-            email: data.email,
-            subject: "Invitation to join organization",
-            text: `
+					await sendEmail({
+						email: data.email,
+						subject: "Invitation to join organization",
+						text: `
 					<p>You are invited to join ${data.organization.name} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
 					`,
-          });
-        }
-      },
-    }),
-    ...(IS_CLOUD
-      ? [
-          admin({
-            adminUserIds: [process.env.USER_ADMIN_ID as string].filter(Boolean),
-          }),
-        ]
-      : []),
-  ],
+					});
+				}
+			},
+		}),
+		...(IS_CLOUD
+			? [
+					admin({
+						adminUserIds: [process.env.USER_ADMIN_ID as string].filter(Boolean),
+					}),
+				]
+			: []),
+	],
 } satisfies BetterAuthOptions;
 
 // Type for the auth instance
@@ -343,183 +340,183 @@ type AuthInstance = ReturnType<typeof betterAuth<typeof authConfig>>;
 let _authInstance: AuthInstance | undefined;
 
 function getAuthInstance(): AuthInstance {
-  if (_authInstance) return _authInstance;
+	if (_authInstance) return _authInstance;
 
-  try {
-    _authInstance = betterAuth(authConfig);
-    return _authInstance;
-  } catch (error) {
-    console.error("Failed to initialize auth instance:", error);
-    throw error;
-  }
+	try {
+		_authInstance = betterAuth(authConfig);
+		return _authInstance;
+	} catch (error) {
+		console.error("Failed to initialize auth instance:", error);
+		throw error;
+	}
 }
 
 // Export properly typed lazy-loaded auth
 export const auth = {
-  get handler() {
-    return getAuthInstance().handler;
-  },
-  get createApiKey() {
-    return getAuthInstance().api.createApiKey;
-  },
-  get registerSSOProvider() {
-    return getAuthInstance().api.registerSSOProvider;
-  },
+	get handler() {
+		return getAuthInstance().handler;
+	},
+	get createApiKey() {
+		return getAuthInstance().api.createApiKey;
+	},
+	get registerSSOProvider() {
+		return getAuthInstance().api.registerSSOProvider;
+	},
 } as const;
 
 // Export the api for use in validateRequest
 function getApi() {
-  return getAuthInstance().api;
+	return getAuthInstance().api;
 }
 
 export const validateRequest = async (request: IncomingMessage) => {
-  try {
-    const api = getApi();
-    const apiKey = request.headers["x-api-key"] as string;
+	try {
+		const api = getApi();
+		const apiKey = request.headers["x-api-key"] as string;
 
-    if (apiKey) {
-      try {
-        const { valid, key, error } = await api.verifyApiKey({
-          body: {
-            key: apiKey,
-          },
-        });
+		if (apiKey) {
+			try {
+				const { valid, key, error } = await api.verifyApiKey({
+					body: {
+						key: apiKey,
+					},
+				});
 
-        if (error) {
-          throw new Error(error.message || "Error verifying API key");
-        }
-        if (!valid || !key) {
-          return {
-            session: null,
-            user: null,
-          };
-        }
+				if (error) {
+					throw new Error(error.message || "Error verifying API key");
+				}
+				if (!valid || !key) {
+					return {
+						session: null,
+						user: null,
+					};
+				}
 
-        const apiKeyRecord = await db.query.apikey.findFirst({
-          where: eq(schema.apikey.id, key.id),
-          with: {
-            user: true,
-          },
-        });
+				const apiKeyRecord = await db.query.apikey.findFirst({
+					where: eq(schema.apikey.id, key.id),
+					with: {
+						user: true,
+					},
+				});
 
-        if (!apiKeyRecord) {
-          return {
-            session: null,
-            user: null,
-          };
-        }
+				if (!apiKeyRecord) {
+					return {
+						session: null,
+						user: null,
+					};
+				}
 
-        const organizationId = JSON.parse(
-          apiKeyRecord.metadata || "{}",
-        ).organizationId;
+				const organizationId = JSON.parse(
+					apiKeyRecord.metadata || "{}",
+				).organizationId;
 
-        if (!organizationId) {
-          return {
-            session: null,
-            user: null,
-          };
-        }
+				if (!organizationId) {
+					return {
+						session: null,
+						user: null,
+					};
+				}
 
-        const member = await db.query.member.findFirst({
-          where: and(
-            eq(schema.member.userId, apiKeyRecord.user.id),
-            eq(schema.member.organizationId, organizationId),
-          ),
-          with: {
-            organization: true,
-          },
-        });
+				const member = await db.query.member.findFirst({
+					where: and(
+						eq(schema.member.userId, apiKeyRecord.user.id),
+						eq(schema.member.organizationId, organizationId),
+					),
+					with: {
+						organization: true,
+					},
+				});
 
-        // When accessing from DB, use actual column names
-        const userFromDb = apiKeyRecord.user as typeof apiKeyRecord.user & {
-          firstName: string;
-          lastName: string;
-        };
+				// When accessing from DB, use actual column names
+				const userFromDb = apiKeyRecord.user as typeof apiKeyRecord.user & {
+					firstName: string;
+					lastName: string;
+				};
 
-        const mockSession = {
-          session: {
-            userId: apiKeyRecord.user.id,
-            activeOrganizationId: organizationId || "",
-          },
-          user: {
-            id: userFromDb.id,
-            name: userFromDb.firstName, // Map firstName back to name for better-auth
-            email: userFromDb.email,
-            emailVerified: userFromDb.emailVerified,
-            image: userFromDb.image,
-            createdAt: userFromDb.createdAt,
-            updatedAt: userFromDb.updatedAt,
-            twoFactorEnabled: userFromDb.twoFactorEnabled,
-            role: member?.role || "member",
-            ownerId: member?.organization?.ownerId || apiKeyRecord.user.id,
-            enableEnterpriseFeatures:
-              userFromDb.enableEnterpriseFeatures || false,
-            isValidEnterpriseLicense:
-              userFromDb.isValidEnterpriseLicense || false,
-            allowImpersonation: userFromDb.allowImpersonation || false,
-            lastName: userFromDb.lastName || "",
-          },
-        };
+				const mockSession = {
+					session: {
+						userId: apiKeyRecord.user.id,
+						activeOrganizationId: organizationId || "",
+					},
+					user: {
+						id: userFromDb.id,
+						name: userFromDb.firstName, // Map firstName back to name for better-auth
+						email: userFromDb.email,
+						emailVerified: userFromDb.emailVerified,
+						image: userFromDb.image,
+						createdAt: userFromDb.createdAt,
+						updatedAt: userFromDb.updatedAt,
+						twoFactorEnabled: userFromDb.twoFactorEnabled,
+						role: member?.role || "member",
+						ownerId: member?.organization?.ownerId || apiKeyRecord.user.id,
+						enableEnterpriseFeatures:
+							userFromDb.enableEnterpriseFeatures || false,
+						isValidEnterpriseLicense:
+							userFromDb.isValidEnterpriseLicense || false,
+						allowImpersonation: userFromDb.allowImpersonation || false,
+						lastName: userFromDb.lastName || "",
+					},
+				};
 
-        return mockSession;
-      } catch (error) {
-        console.error("Error verifying API key", error);
-        return {
-          session: null,
-          user: null,
-        };
-      }
-    }
+				return mockSession;
+			} catch (error) {
+				console.error("Error verifying API key", error);
+				return {
+					session: null,
+					user: null,
+				};
+			}
+		}
 
-    // If no API key, proceed with normal session validation
-    const session = await api.getSession({
-      headers: new Headers({
-        cookie: request.headers.cookie || "",
-      }),
-    });
+		// If no API key, proceed with normal session validation
+		const session = await api.getSession({
+			headers: new Headers({
+				cookie: request.headers.cookie || "",
+			}),
+		});
 
-    if (!session?.session || !session.user) {
-      return {
-        session: null,
-        user: null,
-      };
-    }
+		if (!session?.session || !session.user) {
+			return {
+				session: null,
+				user: null,
+			};
+		}
 
-    if (session?.user) {
-      const member = await db.query.member.findFirst({
-        where: and(
-          eq(schema.member.userId, session.user.id),
-          eq(
-            schema.member.organizationId,
-            (session.session as any).activeOrganizationId || "",
-          ),
-        ),
-        with: {
-          organization: true,
-          user: true,
-        },
-      });
+		if (session?.user) {
+			const member = await db.query.member.findFirst({
+				where: and(
+					eq(schema.member.userId, session.user.id),
+					eq(
+						schema.member.organizationId,
+						(session.session as any).activeOrganizationId || "",
+					),
+				),
+				with: {
+					organization: true,
+					user: true,
+				},
+			});
 
-      (session.user as any).role = member?.role || "member";
-      (session.user as any).enableEnterpriseFeatures =
-        member?.user?.enableEnterpriseFeatures || false;
-      (session.user as any).isValidEnterpriseLicense =
-        member?.user?.isValidEnterpriseLicense || false;
-      (session.user as any).allowImpersonation =
-        member?.user?.allowImpersonation || false;
-      if (member?.organization?.ownerId) {
-        (session.user as any).ownerId = member.organization.ownerId;
-      } else {
-        (session.user as any).ownerId = session.user.id;
-      }
-    }
+			(session.user as any).role = member?.role || "member";
+			(session.user as any).enableEnterpriseFeatures =
+				member?.user?.enableEnterpriseFeatures || false;
+			(session.user as any).isValidEnterpriseLicense =
+				member?.user?.isValidEnterpriseLicense || false;
+			(session.user as any).allowImpersonation =
+				member?.user?.allowImpersonation || false;
+			if (member?.organization?.ownerId) {
+				(session.user as any).ownerId = member.organization.ownerId;
+			} else {
+				(session.user as any).ownerId = session.user.id;
+			}
+		}
 
-    return session;
-  } catch (error) {
-    console.error("Error in validateRequest:", error);
-    return {
-      session: null,
-      user: null,
-    };
-  }
+		return session;
+	} catch (error) {
+		console.error("Error in validateRequest:", error);
+		return {
+			session: null,
+			user: null,
+		};
+	}
 };
