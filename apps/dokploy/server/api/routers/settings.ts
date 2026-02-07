@@ -158,10 +158,14 @@ export const settingsRouter = createTRPCRouter({
 				newPorts = ports.filter((port) => port.targetPort !== 8080);
 			}
 
-			await writeTraefikSetup({
+			// Run in background so the request returns immediately; client polls /api/health.
+			// Avoids proxy timeouts (520) while Traefik is recreated.
+			void writeTraefikSetup({
 				env: preparedEnv,
 				additionalPorts: newPorts,
 				serverId: input.serverId,
+			}).catch((err) => {
+				console.error("toggleDashboard background writeTraefikSetup:", err);
 			});
 			return true;
 		}),
