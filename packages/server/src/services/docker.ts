@@ -172,7 +172,9 @@ export const getStackContainersByAppName = async (
 	try {
 		let result: string[] = [];
 
-		const command = `docker stack ps ${appName} --format 'CONTAINER ID : {{.ID}} | Name: {{.Name}} | State: {{.DesiredState}} | Node: {{.Node}} | CurrentState: {{.CurrentState}}'`;
+		const command = `docker stack ps ${appName} --no-trunc --format 'CONTAINER ID : {{.ID}} | Name: {{.Name}} | State: {{.DesiredState}} | Node: {{.Node}} | CurrentState: {{.CurrentState}} | Error: {{.Error}}'`;
+
+		console.log("command	", command);
 		if (serverId) {
 			const { stdout, stderr } = await execAsyncRemote(serverId, command);
 
@@ -212,12 +214,14 @@ export const getStackContainersByAppName = async (
 			const currentState = parts[4]
 				? parts[4].replace("CurrentState: ", "").trim()
 				: "";
+			const error = parts[5] ? parts[5].replace("Error: ", "").trim() : "";
 			return {
 				containerId,
 				name,
 				state,
 				node,
 				currentState,
+				error,
 			};
 		});
 
@@ -234,7 +238,7 @@ export const getServiceContainersByAppName = async (
 	try {
 		let result: string[] = [];
 
-		const command = `docker service ps ${appName} --format 'CONTAINER ID : {{.ID}} | Name: {{.Name}} | State: {{.DesiredState}} | Node: {{.Node}} | CurrentState: {{.CurrentState}}'`;
+		const command = `docker service ps ${appName} --no-trunc --format 'CONTAINER ID : {{.ID}} | Name: {{.Name}} | State: {{.DesiredState}} | Node: {{.Node}} | CurrentState: {{.CurrentState}} | Error: {{.Error}}'`;
 		if (serverId) {
 			const { stdout, stderr } = await execAsyncRemote(serverId, command);
 
@@ -276,12 +280,14 @@ export const getServiceContainersByAppName = async (
 			const currentState = parts[4]
 				? parts[4].replace("CurrentState: ", "").trim()
 				: "";
+			const error = parts[5] ? parts[5].replace("Error: ", "").trim() : "";
 			return {
 				containerId,
 				name,
 				state,
 				currentState,
 				node,
+				error,
 			};
 		});
 
