@@ -10,6 +10,16 @@ const myQueue = new Queue("deployments", {
 	connection: redisConfig,
 });
 
+export const getJobsByApplicationId = async (applicationId: string) => {
+	const jobs = await myQueue.getJobs();
+	return jobs.filter((job) => job?.data?.applicationId === applicationId);
+};
+
+export const getJobsByComposeId = async (composeId: string) => {
+	const jobs = await myQueue.getJobs();
+	return jobs.filter((job) => job?.data?.composeId === composeId);
+};
+
 process.on("SIGTERM", () => {
 	myQueue.close();
 	process.exit(0);
