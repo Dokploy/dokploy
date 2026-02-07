@@ -12,6 +12,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useHealthCheckAfterMutation } from "@/hooks/use-health-check-after-mutation";
 import { api } from "@/utils/api";
 import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
 import { ManageTraefikPorts } from "../../web-server/manage-traefik-ports";
@@ -33,14 +34,33 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 			serverId,
 		});
 
+	const {
+		execute: executeWithHealthCheck,
+		isExecuting: isHealthCheckExecuting,
+	} = useHealthCheckAfterMutation({
+		initialDelay: 5000,
+		successMessage: "Traefik dashboard updated successfully",
+		onSuccess: () => {
+			refetchDashboard();
+		},
+	});
+
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger
 				asChild
-				disabled={reloadTraefikIsLoading || toggleDashboardIsLoading}
+				disabled={
+					reloadTraefikIsLoading ||
+					toggleDashboardIsLoading ||
+					isHealthCheckExecuting
+				}
 			>
 				<Button
-					isLoading={reloadTraefikIsLoading || toggleDashboardIsLoading}
+					isLoading={
+						reloadTraefikIsLoading ||
+						toggleDashboardIsLoading ||
+						isHealthCheckExecuting
+					}
 					variant="outline"
 				>
 					{t("settings.server.webServer.traefik.label")}
@@ -108,24 +128,21 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							</div>
 						}
 						onClick={async () => {
-							await toggleDashboard({
-								enableDashboard: !haveTraefikDashboardPortEnabled,
-								serverId: serverId,
-							})
-								.then(async () => {
-									toast.success(
-										`${haveTraefikDashboardPortEnabled ? "Disabled" : "Enabled"} Dashboard`,
-									);
-									refetchDashboard();
-								})
-								.catch((error) => {
-									const errorMessage =
-										error?.message ||
-										"Failed to toggle dashboard. Please check if port 8080 is available.";
-									toast.error(errorMessage);
-								});
+							try {
+								await executeWithHealthCheck(() =>
+									toggleDashboard({
+										enableDashboard: !haveTraefikDashboardPortEnabled,
+										serverId: serverId,
+									}),
+								);
+							} catch (error) {
+								const errorMessage =
+									(error as Error)?.message ||
+									"Failed to toggle dashboard. Please check if port 8080 is available.";
+								toast.error(errorMessage);
+							}
 						}}
-						disabled={toggleDashboardIsLoading}
+						disabled={toggleDashboardIsLoading || isHealthCheckExecuting}
 						type="default"
 					>
 						<DropdownMenuItem
