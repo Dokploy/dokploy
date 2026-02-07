@@ -247,8 +247,8 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 									</FormControl>
 									<FormDescription>
 										Use when Gitea runs on the same instance as Dokploy. Used
-										for OAuth token exchange to reach Gitea via internal
-										network (e.g. Docker service name).
+										for OAuth token exchange to reach Gitea via internal network
+										(e.g. Docker service name).
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
