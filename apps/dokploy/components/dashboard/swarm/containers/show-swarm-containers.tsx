@@ -65,6 +65,8 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 	const {
 		data: tasks,
 		isLoading: tasksLoading,
+		isError: tasksError,
+		error: tasksErrorDetail,
 		refetch: refetchTasks,
 	} = api.swarm.getServiceTasks.useQuery(
 		{ serverId },
@@ -95,6 +97,28 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 			<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[40vh]">
 				<span>Loading service tasks...</span>
 				<Loader2 className="animate-spin size-4" />
+			</div>
+		);
+	}
+
+	if (tasksError) {
+		return (
+			<div className="flex flex-col items-center justify-center min-h-[40vh] gap-2">
+				<span className="text-destructive">
+					Failed to load service tasks
+				</span>
+				<span className="text-sm text-muted-foreground max-w-md text-center">
+					{tasksErrorDetail?.message}
+				</span>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => refetchTasks()}
+					className="mt-2"
+				>
+					<RefreshCw className="h-4 w-4 mr-2" />
+					Retry
+				</Button>
 			</div>
 		);
 	}

@@ -475,7 +475,7 @@ export const getApplicationInfo = async (
 
 export const getSwarmServiceTasks = async (serverId?: string) => {
 	try {
-		// Step 1: Get all service names (filtering out internal dokploy- services)
+		// Step 1: Get all service names
 		const listCommand = "docker service ls --format '{{.Name}}'";
 		let listStdout = "";
 
@@ -491,15 +491,13 @@ export const getSwarmServiceTasks = async (serverId?: string) => {
 			return [];
 		}
 
-		const serviceNames = listStdout
-			.split("\n")
-			.filter((name) => !name.startsWith("dokploy-"));
+		const serviceNames = listStdout.split("\n").filter(Boolean);
 
 		if (serviceNames.length === 0) {
 			return [];
 		}
 
-		// Step 2: Get running tasks for all user services
+		// Step 2: Get running tasks for all services
 		const names = serviceNames.join(" ");
 		const psCommand = `docker service ps ${names} --filter "desired-state=running" --format '{{json .}}' --no-trunc`;
 		let stdout = "";
@@ -522,7 +520,8 @@ export const getSwarmServiceTasks = async (serverId?: string) => {
 			.map((line) => JSON.parse(line));
 
 		return tasks;
-	} catch {
+	} catch (error) {
+		console.error("getSwarmServiceTasks error:", error);
 		return [];
 	}
 };
@@ -551,7 +550,8 @@ export const getAllContainerStats = async (serverId?: string) => {
 			.map((line) => JSON.parse(line));
 
 		return stats;
-	} catch {
+	} catch (error) {
+		console.error("getAllContainerStats error:", error);
 		return [];
 	}
 };
