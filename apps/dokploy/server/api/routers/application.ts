@@ -57,9 +57,11 @@ import {
 	apiUpdateApplication,
 	applications,
 } from "@/server/db/schema";
+import { deploymentWorker } from "@/server/queues/deployments-queue";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByApplication,
+	getJobsByApplicationId,
 	killDockerBuild,
 	myQueue,
 } from "@/server/queues/queueSetup";
@@ -239,6 +241,15 @@ export const applicationRouter = createTRPCRouter({
 				.delete(applications)
 				.where(eq(applications.applicationId, input.applicationId))
 				.returning();
+
+			if (!IS_CLOUD) {
+				const queueJobs = await getJobsByApplicationId(input.applicationId);
+				for (const job of queueJobs) {
+					if (job.id) {
+						deploymentWorker.cancelJob(job.id, "User requested cancellation");
+					}
+				}
+			}
 
 			const cleanupOperations = [
 				async () => await deleteAllMiddlewares(application),
