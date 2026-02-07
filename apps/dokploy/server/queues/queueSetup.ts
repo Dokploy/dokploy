@@ -3,6 +3,7 @@ import {
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { Queue } from "bullmq";
+import { deploymentWorker } from "./deployments-queue";
 import { redisConfig } from "./redis-connection";
 
 const myQueue = new Queue("deployments", {
@@ -42,6 +43,11 @@ export const cleanQueuesByApplication = async (applicationId: string) => {
 			console.log(`Removed job ${job.id} for application ${applicationId}`);
 		}
 	}
+};
+
+export const cleanAllDeploymentQueue = async () => {
+	deploymentWorker.cancelAllJobs("User requested cancellation");
+	return true;
 };
 
 export const cleanQueuesByCompose = async (composeId: string) => {

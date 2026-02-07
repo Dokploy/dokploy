@@ -64,6 +64,7 @@ import {
 	projects,
 	server,
 } from "@/server/db/schema";
+import { cleanAllDeploymentQueue } from "@/server/queues/queueSetup";
 import { removeJob, schedule } from "@/server/utils/backup";
 import packageInfo from "../../../package.json";
 import { appRouter } from "../root";
@@ -114,6 +115,12 @@ export const settingsRouter = createTRPCRouter({
 		await reloadDockerResource("dokploy-redis");
 
 		return true;
+	}),
+	cleanAllDeploymentQueue: adminProcedure.mutation(async () => {
+		if (IS_CLOUD) {
+			return true;
+		}
+		return cleanAllDeploymentQueue();
 	}),
 	reloadTraefik: adminProcedure
 		.input(apiServerSchema)
