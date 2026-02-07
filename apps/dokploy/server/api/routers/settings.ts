@@ -605,12 +605,14 @@ export const settingsRouter = createTRPCRouter({
 			const envs = prepareEnvironmentVariables(input.env);
 			const ports = await readPorts("dokploy-traefik", input?.serverId);
 
-			await writeTraefikSetup({
+			// Run in background so the request returns immediately; client polls /api/health.
+			void writeTraefikSetup({
 				env: envs,
 				additionalPorts: ports,
 				serverId: input.serverId,
+			}).catch((err) => {
+				console.error("writeTraefikEnv background writeTraefikSetup:", err);
 			});
-
 			return true;
 		}),
 	haveTraefikDashboardPortEnabled: adminProcedure
@@ -858,10 +860,16 @@ export const settingsRouter = createTRPCRouter({
 				}
 				const preparedEnv = prepareEnvironmentVariables(env);
 
-				await writeTraefikSetup({
+				// Run in background so the request returns immediately; client polls /api/health.
+				void writeTraefikSetup({
 					env: preparedEnv,
 					additionalPorts: input.additionalPorts,
 					serverId: input.serverId,
+				}).catch((err) => {
+					console.error(
+						"updateTraefikPorts background writeTraefikSetup:",
+						err,
+					);
 				});
 				return true;
 			} catch (error) {
