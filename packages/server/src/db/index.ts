@@ -12,7 +12,7 @@ function getDbInstance(): PostgresJsDatabase<typeof schema> {
   if (process.env.NODE_ENV === "production") {
     // Log database connection for debugging in non-production or when DEBUG is set
     if (process.env.DEBUG) {
-    console.log(`[RUNTIME] Connecting to database: ${sanitizeDbUrl(dbUrl)}`);
+    console.log(`[DB] Connecting to database: ${sanitizeDbUrl(dbUrl)}`);
     }
     return drizzle(postgres(dbUrl), { schema });
   }
