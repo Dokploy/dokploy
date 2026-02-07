@@ -1,6 +1,5 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
-import { docker } from "@dokploy/server/constants";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -24,19 +23,6 @@ export const DEFAULT_UPDATE_DATA: IUpdateData = {
 /** Returns current Dokploy docker image tag or `latest` by default. */
 export const getDokployImageTag = () => {
 	return process.env.RELEASE_TAG || "latest";
-};
-
-export const getDokployImage = () => {
-	return `dokploy/dokploy:${getDokployImageTag()}`;
-};
-
-export const pullLatestRelease = async () => {
-	const stream = await docker.pull(getDokployImage());
-	await new Promise((resolve, reject) => {
-		docker.modem.followProgress(stream, (err, res) =>
-			err ? reject(err) : resolve(res),
-		);
-	});
 };
 
 /** Returns Dokploy docker service image digest */
