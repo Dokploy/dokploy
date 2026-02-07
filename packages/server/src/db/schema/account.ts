@@ -155,6 +155,7 @@ export const invitation = pgTable("invitation", {
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
 	teamId: text("team_id"),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const invitationRelations = relations(invitation, ({ one }) => ({
