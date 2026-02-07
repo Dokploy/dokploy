@@ -34,6 +34,7 @@ export const DockerLogs = dynamic(
 export const badgeStateColor = (state: string) => {
 	switch (state) {
 		case "running":
+		case "ready":
 			return "green";
 		case "exited":
 		case "shutdown":
@@ -142,6 +143,7 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 											<Badge variant={badgeStateColor(container.state)}>
 												{container.state}
 											</Badge>
+											{container.status ? ` ${container.status}` : ""}
 										</SelectItem>
 									))}
 								</div>
@@ -157,6 +159,9 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 											<Badge variant={badgeStateColor(container.state)}>
 												{container.state}
 											</Badge>
+											{container.currentState
+												? ` ${container.currentState}`
+												: ""}
 										</SelectItem>
 									))}
 								</>

@@ -109,7 +109,7 @@ export const getContainersByAppNameMatch = async (
 	try {
 		let result: string[] = [];
 		const cmd =
-			"docker ps -a --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}}'";
+			"docker ps -a --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}} | Status: {{.Status}}'";
 
 		const command =
 			appType === "docker-compose"
@@ -148,10 +148,14 @@ export const getContainersByAppNameMatch = async (
 			const state = parts[2]
 				? parts[2].replace("State: ", "").trim()
 				: "No state";
+
+			const status = parts[3] ? parts[3].replace("Status: ", "").trim() : "";
+
 			return {
 				containerId,
 				name,
 				state,
+				status,
 			};
 		});
 
@@ -168,7 +172,7 @@ export const getStackContainersByAppName = async (
 	try {
 		let result: string[] = [];
 
-		const command = `docker stack ps ${appName} --format 'CONTAINER ID : {{.ID}} | Name: {{.Name}} | State: {{.DesiredState}} | Node: {{.Node}}'`;
+		const command = `docker stack ps ${appName} --format 'CONTAINER ID : {{.ID}} | Name: {{.Name}} | State: {{.DesiredState}} | Node: {{.Node}} | CurrentState: {{.CurrentState}}'`;
 		if (serverId) {
 			const { stdout, stderr } = await execAsyncRemote(serverId, command);
 
@@ -205,11 +209,15 @@ export const getStackContainersByAppName = async (
 			const node = parts[3]
 				? parts[3].replace("Node: ", "").trim()
 				: "No specific node";
+			const currentState = parts[4]
+				? parts[4].replace("CurrentState: ", "").trim()
+				: "";
 			return {
 				containerId,
 				name,
 				state,
 				node,
+				currentState,
 			};
 		});
 
@@ -226,8 +234,7 @@ export const getServiceContainersByAppName = async (
 	try {
 		let result: string[] = [];
 
-		const command = `docker service ps ${appName} --format 'CONTAINER ID : {{.ID}} | Name: {{.Name}} | State: {{.DesiredState}} | Node: {{.Node}}'`;
-
+		const command = `docker service ps ${appName} --format 'CONTAINER ID : {{.ID}} | Name: {{.Name}} | State: {{.DesiredState}} | Node: {{.Node}} | CurrentState: {{.CurrentState}}'`;
 		if (serverId) {
 			const { stdout, stderr } = await execAsyncRemote(serverId, command);
 
@@ -265,10 +272,15 @@ export const getServiceContainersByAppName = async (
 			const node = parts[3]
 				? parts[3].replace("Node: ", "").trim()
 				: "No specific node";
+
+			const currentState = parts[4]
+				? parts[4].replace("CurrentState: ", "").trim()
+				: "";
 			return {
 				containerId,
 				name,
 				state,
+				currentState,
 				node,
 			};
 		});
