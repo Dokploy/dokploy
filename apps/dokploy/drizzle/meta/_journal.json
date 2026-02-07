@@ -988,6 +988,13 @@
       "when": 1770489900075,
       "tag": "0140_lame_mattie_franklin",
       "breakpoints": true
+    },
+    {
+      "idx": 141,
+      "version": "7",
+      "when": 1770490719123,
+      "tag": "0141_plain_earthquake",
+      "breakpoints": true
     }
   ]
 }
