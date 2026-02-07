@@ -39,20 +39,20 @@ interface ContainerStat {
 	NetIO: string;
 }
 
-interface ServiceTask {
-	ID: string;
+interface ContainerInfo {
 	Name: string;
 	Image: string;
 	Node: string;
-	DesiredState: string;
 	CurrentState: string;
-	Error: string;
+	DesiredState: string;
 	Ports: string;
+	Error: string;
+	ID: string;
 }
 
 interface NodeGroup {
 	nodeName: string;
-	tasks: ServiceTask[];
+	containers: ContainerInfo[];
 }
 
 interface Props {
@@ -62,15 +62,27 @@ interface Props {
 export const ShowSwarmContainers = ({ serverId }: Props) => {
 	const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
+	// Use the same endpoints the Overview tab's "Services" dialog uses
 	const {
-		data: tasks,
-		isLoading: tasksLoading,
-		isError: tasksError,
-		error: tasksErrorDetail,
-		refetch: refetchTasks,
-	} = api.swarm.getServiceTasks.useQuery(
-		{ serverId },
-		{ refetchInterval: 15000 },
+		data: nodeApps,
+		isLoading: appsLoading,
+		isError: appsError,
+		error: appsErrorDetail,
+		refetch: refetchApps,
+	} = api.swarm.getNodeApps.useQuery({ serverId });
+
+	const applicationList =
+		nodeApps && nodeApps.length > 0
+			? nodeApps.map((app: { Name: string }) => app.Name)
+			: [];
+
+	const {
+		data: appDetails,
+		isLoading: detailsLoading,
+		refetch: refetchDetails,
+	} = api.swarm.getAppInfos.useQuery(
+		{ appName: applicationList, serverId },
+		{ enabled: applicationList.length > 0 },
 	);
 
 	const { data: stats, isLoading: statsLoading } =
@@ -79,41 +91,87 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 			{ refetchInterval: 5000 },
 		);
 
+	const isLoading = appsLoading || (applicationList.length > 0 && detailsLoading);
+
+	// Build container list by combining service info with task details
+	const containers: ContainerInfo[] = [];
+	if (nodeApps && appDetails) {
+		for (const app of nodeApps) {
+			const details =
+				appDetails?.filter(
+					(detail: { Name: string }) =>
+						detail.Name.startsWith(`${app.Name}.`),
+				) || [];
+
+			if (details.length === 0) {
+				containers.push({
+					...app,
+					CurrentState: "N/A",
+					DesiredState: "N/A",
+					Error: "",
+					Node: "N/A",
+					ID: app.ID,
+				});
+			} else {
+				for (const detail of details) {
+					containers.push({
+						Name: detail.Name,
+						Image: detail.Image || app.Image,
+						CurrentState: detail.CurrentState,
+						DesiredState: detail.DesiredState,
+						Error: detail.Error,
+						Node: detail.Node,
+						Ports: detail.Ports || app.Ports,
+						ID: detail.ID,
+					});
+				}
+			}
+		}
+	}
+
+	// Filter to only running tasks
+	const runningContainers = containers.filter(
+		(c) =>
+			c.DesiredState === "Running" ||
+			c.CurrentState.startsWith("Running") ||
+			c.CurrentState === "N/A",
+	);
+
 	// Auto-expand all nodes on first data load
 	useEffect(() => {
-		if (tasks && tasks.length > 0 && expandedNodes.size === 0) {
+		if (runningContainers.length > 0 && expandedNodes.size === 0) {
 			const nodeNames = new Set<string>();
-			for (const task of tasks) {
-				if (task.Node) {
-					nodeNames.add(task.Node);
+			for (const c of runningContainers) {
+				if (c.Node) {
+					nodeNames.add(c.Node);
 				}
 			}
 			setExpandedNodes(nodeNames);
 		}
-	}, [tasks]);
+	}, [runningContainers.length]);
 
-	if (tasksLoading) {
+	if (isLoading) {
 		return (
 			<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[40vh]">
-				<span>Loading service tasks...</span>
+				<span>Loading containers...</span>
 				<Loader2 className="animate-spin size-4" />
 			</div>
 		);
 	}
 
-	if (tasksError) {
+	if (appsError) {
 		return (
 			<div className="flex flex-col items-center justify-center min-h-[40vh] gap-2">
 				<span className="text-destructive">
-					Failed to load service tasks
+					Failed to load container data
 				</span>
 				<span className="text-sm text-muted-foreground max-w-md text-center">
-					{tasksErrorDetail?.message}
+					{appsErrorDetail?.message}
 				</span>
 				<Button
 					variant="outline"
 					size="sm"
-					onClick={() => refetchTasks()}
+					onClick={() => refetchApps()}
 					className="mt-2"
 				>
 					<RefreshCw className="h-4 w-4 mr-2" />
@@ -123,33 +181,31 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 		);
 	}
 
-	if (!tasks || tasks.length === 0) {
+	if (runningContainers.length === 0) {
 		return (
 			<div className="flex items-center justify-center min-h-[40vh] text-muted-foreground">
-				<span>No running service tasks found</span>
+				<span>No running containers found</span>
 			</div>
 		);
 	}
 
-	// Group tasks by node
-	const nodeGroups: NodeGroup[] = [];
-	const nodeMap = new Map<string, ServiceTask[]>();
-
-	for (const task of tasks) {
-		const nodeName = task.Node || "Unknown";
+	// Group by node
+	const nodeMap = new Map<string, ContainerInfo[]>();
+	for (const c of runningContainers) {
+		const nodeName = c.Node || "Unknown";
 		if (!nodeMap.has(nodeName)) {
 			nodeMap.set(nodeName, []);
 		}
-		nodeMap.get(nodeName)!.push(task);
+		nodeMap.get(nodeName)!.push(c);
 	}
 
-	for (const [nodeName, nodeTasks] of nodeMap) {
-		nodeGroups.push({ nodeName, tasks: nodeTasks });
+	const nodeGroups: NodeGroup[] = [];
+	for (const [nodeName, nodeContainers] of nodeMap) {
+		nodeGroups.push({ nodeName, containers: nodeContainers });
 	}
-
 	nodeGroups.sort((a, b) => a.nodeName.localeCompare(b.nodeName));
 
-	// Build a map of container stats by name prefix for matching
+	// Build stats lookup
 	const statsMap = new Map<string, ContainerStat>();
 	if (stats) {
 		for (const stat of stats) {
@@ -157,9 +213,11 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 		}
 	}
 
-	const findStatsForTask = (taskName: string): ContainerStat | undefined => {
-		// docker service ps gives Name like "myservice.1"
-		// docker stats gives Name like "myservice.1.taskid"
+	const findStatsForContainer = (
+		taskName: string,
+	): ContainerStat | undefined => {
+		// docker service ps Name: "myservice.1"
+		// docker stats Name: "myservice.1.taskid"
 		for (const [containerName, stat] of statsMap) {
 			if (containerName.startsWith(`${taskName}.`)) {
 				return stat;
@@ -180,8 +238,10 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 		});
 	};
 
-	const totalTasks = tasks.length;
-	const totalNodes = nodeGroups.length;
+	const handleRefresh = () => {
+		refetchApps();
+		refetchDetails();
+	};
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -192,15 +252,11 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 						Container Breakdown by Node
 					</CardTitle>
 					<p className="text-sm text-muted-foreground">
-						View where service containers are running across your swarm nodes
+						View where containers are running across your swarm nodes
 						{statsLoading ? "" : " (metrics refresh every 5s)"}
 					</p>
 				</div>
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => refetchTasks()}
-				>
+				<Button variant="outline" size="sm" onClick={handleRefresh}>
 					<RefreshCw className="h-4 w-4 mr-2" />
 					Refresh
 				</Button>
@@ -210,28 +266,30 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 				<Card className="bg-background">
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 						<CardTitle className="text-sm font-medium">
-							Total Running Tasks
+							Running Containers
 						</CardTitle>
 						<div className="p-2 bg-emerald-600/20 text-emerald-600 rounded-md">
 							<Cpu className="h-4 w-4 text-muted-foreground dark:text-emerald-600" />
 						</div>
 					</CardHeader>
 					<CardContent>
-						<div className="text-2xl font-bold">{totalTasks}</div>
+						<div className="text-2xl font-bold">
+							{runningContainers.length}
+						</div>
 					</CardContent>
 				</Card>
 
 				<Card className="bg-background">
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 						<CardTitle className="text-sm font-medium">
-							Nodes with Tasks
+							Nodes with Containers
 						</CardTitle>
 						<div className="p-2 bg-emerald-600/20 text-emerald-600 rounded-md">
 							<Server className="h-4 w-4 text-muted-foreground dark:text-emerald-600" />
 						</div>
 					</CardHeader>
 					<CardContent>
-						<div className="text-2xl font-bold">{totalNodes}</div>
+						<div className="text-2xl font-bold">{nodeGroups.length}</div>
 					</CardContent>
 				</Card>
 			</div>
@@ -243,7 +301,7 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 						group={group}
 						isExpanded={expandedNodes.has(group.nodeName)}
 						onToggleNode={toggleNode}
-						findStatsForTask={findStatsForTask}
+						findStatsForContainer={findStatsForContainer}
 					/>
 				))}
 			</div>
@@ -255,17 +313,17 @@ interface NodeSectionProps {
 	group: NodeGroup;
 	isExpanded: boolean;
 	onToggleNode: (nodeName: string) => void;
-	findStatsForTask: (taskName: string) => ContainerStat | undefined;
+	findStatsForContainer: (taskName: string) => ContainerStat | undefined;
 }
 
 const NodeSection = ({
 	group,
 	isExpanded,
 	onToggleNode,
-	findStatsForTask,
+	findStatsForContainer,
 }: NodeSectionProps) => {
-	const runningCount = group.tasks.filter((t) =>
-		t.CurrentState.startsWith("Running"),
+	const runningCount = group.containers.filter((c) =>
+		c.CurrentState.startsWith("Running"),
 	).length;
 
 	return (
@@ -284,15 +342,18 @@ const NodeSection = ({
 									<ChevronRight className="h-4 w-4 text-muted-foreground" />
 								)}
 								<Server className="h-5 w-5 text-muted-foreground" />
-								<CardTitle className="text-base">{group.nodeName}</CardTitle>
+								<CardTitle className="text-base">
+									{group.nodeName}
+								</CardTitle>
 								<Badge variant="secondary">
-									{group.tasks.length} task{group.tasks.length !== 1 ? "s" : ""}
+									{group.containers.length} container
+									{group.containers.length !== 1 ? "s" : ""}
 								</Badge>
-								{runningCount === group.tasks.length ? (
+								{runningCount === group.containers.length ? (
 									<Badge variant="default">All Running</Badge>
 								) : (
 									<Badge variant="orange">
-										{runningCount}/{group.tasks.length} Running
+										{runningCount}/{group.containers.length} Running
 									</Badge>
 								)}
 							</div>
@@ -304,21 +365,31 @@ const NodeSection = ({
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead className="w-[250px]">Service</TableHead>
+									<TableHead className="w-[250px]">
+										Container
+									</TableHead>
 									<TableHead>State</TableHead>
 									<TableHead className="text-right">CPU</TableHead>
-									<TableHead className="text-right">Memory</TableHead>
-									<TableHead className="text-right">Block I/O</TableHead>
-									<TableHead className="text-right">Network I/O</TableHead>
+									<TableHead className="text-right">
+										Memory
+									</TableHead>
+									<TableHead className="text-right">
+										Block I/O
+									</TableHead>
+									<TableHead className="text-right">
+										Network I/O
+									</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
-								{group.tasks.map((task) => {
-									const stat = findStatsForTask(task.Name);
+								{group.containers.map((container) => {
+									const stat = findStatsForContainer(
+										container.Name,
+									);
 									return (
 										<ContainerRow
-											key={task.ID}
-											task={task}
+											key={container.ID}
+											container={container}
 											stat={stat}
 										/>
 									);
@@ -333,28 +404,32 @@ const NodeSection = ({
 };
 
 interface ContainerRowProps {
-	task: ServiceTask;
+	container: ContainerInfo;
 	stat: ContainerStat | undefined;
 }
 
-const ContainerRow = ({ task, stat }: ContainerRowProps) => {
-	const isRunning = task.CurrentState.startsWith("Running");
-	const cpuValue = stat ? Number.parseFloat(stat.CPUPerc.replace("%", "")) : 0;
-	const memValue = stat ? Number.parseFloat(stat.MemPerc.replace("%", "")) : 0;
+const ContainerRow = ({ container, stat }: ContainerRowProps) => {
+	const isRunning = container.CurrentState.startsWith("Running");
+	const cpuValue = stat
+		? Number.parseFloat(stat.CPUPerc.replace("%", ""))
+		: 0;
+	const memValue = stat
+		? Number.parseFloat(stat.MemPerc.replace("%", ""))
+		: 0;
 
 	return (
 		<TableRow>
 			<TableCell>
 				<div className="flex flex-col gap-1">
-					<span className="font-medium text-sm">{task.Name}</span>
+					<span className="font-medium text-sm">{container.Name}</span>
 					<span className="text-xs text-muted-foreground truncate max-w-[230px]">
-						{task.Image}
+						{container.Image}
 					</span>
 				</div>
 			</TableCell>
 			<TableCell>
 				<Badge variant={isRunning ? "default" : "destructive"}>
-					{task.CurrentState}
+					{container.CurrentState}
 				</Badge>
 			</TableCell>
 			<TableCell className="text-right">
@@ -370,7 +445,9 @@ const ContainerRow = ({ task, stat }: ContainerRowProps) => {
 			<TableCell className="text-right">
 				{stat ? (
 					<div className="flex flex-col items-end gap-1">
-						<span className="text-sm font-medium">{stat.MemUsage}</span>
+						<span className="text-sm font-medium">
+							{stat.MemUsage}
+						</span>
 						<Progress value={memValue} className="w-[80px] h-1.5" />
 					</div>
 				) : (
