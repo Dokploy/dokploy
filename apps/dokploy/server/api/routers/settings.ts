@@ -764,16 +764,13 @@ export const settingsRouter = createTRPCRouter({
 		return haveServers.length > 0 || haveProjects.length > 0;
 	}),
 	health: publicProcedure.query(async () => {
-		if (IS_CLOUD) {
-			try {
-				await db.execute(sql`SELECT 1`);
-				return { status: "ok" };
-			} catch (error) {
-				console.error("Database connection error:", error);
-				throw error;
-			}
+		try {
+			await db.execute(sql`SELECT 1`);
+			return { status: "ok" };
+		} catch (error) {
+			console.error("Database connection error:", error);
+			throw error;
 		}
-		return { status: "not_cloud" };
 	}),
 	setupGPU: adminProcedure
 		.input(
