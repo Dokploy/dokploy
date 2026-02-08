@@ -175,7 +175,7 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 					services?.find((c) => c.containerId === containerId)?.error && (
 						<div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive">
 							<span className="font-medium">Error: </span>
-							{services.find((c) => c.containerId === containerId)?.error}
+							{services?.find((c) => c.containerId === containerId)?.error}
 						</div>
 					)}
 				<DockerLogs
