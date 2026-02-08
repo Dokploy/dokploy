@@ -1,3 +1,4 @@
+import type { IncomingMessage } from "node:http";
 import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
@@ -5,7 +6,6 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
 import { admin, apiKey, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
-import type { IncomingMessage } from "node:http";
 import { BETTER_AUTH_SECRET, IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
@@ -66,13 +66,7 @@ const authConfig = {
 	emailVerification: {
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
-		sendVerificationEmail: async ({
-			user,
-			url,
-		}: {
-			user: any;
-			url: string;
-		}) => {
+		sendVerificationEmail: async ({ user, url }) => {
 			if (IS_CLOUD) {
 				await sendEmail({
 					email: user.email,
@@ -92,11 +86,11 @@ const authConfig = {
 			async hash(password: string) {
 				return await bcrypt.hash(password, 10);
 			},
-			async verify({ hash, password }: { hash: string; password: string }) {
+			async verify({ hash, password }) {
 				return await bcrypt.compare(password, hash);
 			},
 		},
-		sendResetPassword: async ({ user, url }: { user: any; url: string }) => {
+		sendResetPassword: async ({ user, url }) => {
 			await sendEmail({
 				email: user.email,
 				subject: "Reset your password",
@@ -109,7 +103,7 @@ const authConfig = {
 	databaseHooks: {
 		user: {
 			create: {
-				before: async (_user: any, context: any) => {
+				before: async (_user, context) => {
 					if (!IS_CLOUD) {
 						const xDokployToken =
 							context?.request?.headers?.get("x-dokploy-token");
@@ -136,7 +130,7 @@ const authConfig = {
 						}
 					}
 				},
-				after: async (user: any, context: any) => {
+				after: async (user, context) => {
 					const isSSORequest = context?.path?.includes("/sso");
 					const isAdminPresent = await db.query.member.findFirst({
 						where: eq(schema.member.role, "owner"),
@@ -174,29 +168,24 @@ const authConfig = {
 					}
 
 					if (IS_CLOUD || !isAdminPresent) {
-						try {
-							await db.transaction(async (tx) => {
-								const organization = await tx
-									.insert(schema.organization)
-									.values({
-										name: "My Organization",
-										ownerId: user.id,
-										createdAt: new Date(),
-									})
-									.returning()
-									.then((res) => res[0]);
-								await tx.insert(schema.member).values({
-									userId: user.id,
-									organizationId: organization?.id || "",
-									role: "owner",
+						await db.transaction(async (tx) => {
+							const organization = await tx
+								.insert(schema.organization)
+								.values({
+									name: "My Organization",
+									ownerId: user.id,
 									createdAt: new Date(),
-									isDefault: true, // Mark first organization as default
-								});
+								})
+								.returning()
+								.then((res) => res[0]);
+							await tx.insert(schema.member).values({
+								userId: user.id,
+								organizationId: organization?.id || "",
+								role: "owner",
+								createdAt: new Date(),
+								isDefault: true, // Mark first organization as default
 							});
-						} catch (error) {
-							console.error("Error creating organization/member:", error);
-							throw error;
-						}
+						});
 					} else if (isSSORequest) {
 						const providerId = context?.params?.providerId;
 						if (!providerId) {
@@ -253,12 +242,6 @@ const authConfig = {
 	session: {
 		expiresIn: 60 * 60 * 24 * 3,
 		updateAge: 60 * 60 * 24,
-		additionalFields: {
-			activeOrganizationId: {
-				type: "string" as const,
-				required: false,
-			},
-		},
 	},
 	user: {
 		modelName: "user",
@@ -306,7 +289,7 @@ const authConfig = {
 		sso(),
 		twoFactor(),
 		organization({
-			async sendInvitationEmail(data: any, _request: any) {
+			async sendInvitationEmail(data) {
 				if (IS_CLOUD) {
 					const host =
 						process.env.NODE_ENV === "development"
@@ -370,153 +353,138 @@ function getApi() {
 }
 
 export const validateRequest = async (request: IncomingMessage) => {
-	try {
-		const api = getApi();
-		const apiKey = request.headers["x-api-key"] as string;
+	const api = getApi();
+	const apiKey = request.headers["x-api-key"] as string;
+	if (apiKey) {
+		try {
+			const { valid, key, error } = await api.verifyApiKey({
+				body: {
+					key: apiKey,
+				},
+			});
 
-		if (apiKey) {
-			try {
-				const { valid, key, error } = await api.verifyApiKey({
-					body: {
-						key: apiKey,
-					},
-				});
-
-				if (error) {
-					throw new Error(error.message || "Error verifying API key");
-				}
-				if (!valid || !key) {
-					return {
-						session: null,
-						user: null,
-					};
-				}
-
-				const apiKeyRecord = await db.query.apikey.findFirst({
-					where: eq(schema.apikey.id, key.id),
-					with: {
-						user: true,
-					},
-				});
-
-				if (!apiKeyRecord) {
-					return {
-						session: null,
-						user: null,
-					};
-				}
-
-				const organizationId = JSON.parse(
-					apiKeyRecord.metadata || "{}",
-				).organizationId;
-
-				if (!organizationId) {
-					return {
-						session: null,
-						user: null,
-					};
-				}
-
-				const member = await db.query.member.findFirst({
-					where: and(
-						eq(schema.member.userId, apiKeyRecord.user.id),
-						eq(schema.member.organizationId, organizationId),
-					),
-					with: {
-						organization: true,
-					},
-				});
-
-				// When accessing from DB, use actual column names
-				const userFromDb = apiKeyRecord.user as typeof apiKeyRecord.user & {
-					firstName: string;
-					lastName: string;
-				};
-
-				const mockSession = {
-					session: {
-						userId: apiKeyRecord.user.id,
-						activeOrganizationId: organizationId || "",
-					},
-					user: {
-						id: userFromDb.id,
-						name: userFromDb.firstName, // Map firstName back to name for better-auth
-						email: userFromDb.email,
-						emailVerified: userFromDb.emailVerified,
-						image: userFromDb.image,
-						createdAt: userFromDb.createdAt,
-						updatedAt: userFromDb.updatedAt,
-						twoFactorEnabled: userFromDb.twoFactorEnabled,
-						role: member?.role || "member",
-						ownerId: member?.organization?.ownerId || apiKeyRecord.user.id,
-						enableEnterpriseFeatures:
-							userFromDb.enableEnterpriseFeatures || false,
-						isValidEnterpriseLicense:
-							userFromDb.isValidEnterpriseLicense || false,
-						allowImpersonation: userFromDb.allowImpersonation || false,
-						lastName: userFromDb.lastName || "",
-					},
-				};
-
-				return mockSession;
-			} catch (error) {
-				console.error("Error verifying API key", error);
+			if (error) {
+				throw new Error(error.message || "Error verifying API key");
+			}
+			if (!valid || !key) {
 				return {
 					session: null,
 					user: null,
 				};
 			}
-		}
 
-		// If no API key, proceed with normal session validation
-		const session = await api.getSession({
-			headers: new Headers({
-				cookie: request.headers.cookie || "",
-			}),
-		});
+			const apiKeyRecord = await db.query.apikey.findFirst({
+				where: eq(schema.apikey.id, key.id),
+				with: {
+					user: true,
+				},
+			});
 
-		if (!session?.session || !session.user) {
+			if (!apiKeyRecord) {
+				return {
+					session: null,
+					user: null,
+				};
+			}
+
+			const organizationId = JSON.parse(
+				apiKeyRecord.metadata || "{}",
+			).organizationId;
+
+			if (!organizationId) {
+				return {
+					session: null,
+					user: null,
+				};
+			}
+
+			const member = await db.query.member.findFirst({
+				where: and(
+					eq(schema.member.userId, apiKeyRecord.user.id),
+					eq(schema.member.organizationId, organizationId),
+				),
+				with: {
+					organization: true,
+				},
+			});
+
+			// When accessing from DB, use actual column names
+			const userFromDb = apiKeyRecord.user as typeof apiKeyRecord.user & {
+				firstName: string;
+				lastName: string;
+			};
+
+			const mockSession = {
+				session: {
+					userId: apiKeyRecord.user.id,
+					activeOrganizationId: organizationId || "",
+				},
+				user: {
+					id: userFromDb.id,
+					name: userFromDb.firstName, // Map firstName back to name for better-auth
+					email: userFromDb.email,
+					emailVerified: userFromDb.emailVerified,
+					image: userFromDb.image,
+					createdAt: userFromDb.createdAt,
+					updatedAt: userFromDb.updatedAt,
+					twoFactorEnabled: userFromDb.twoFactorEnabled,
+					role: member?.role || "member",
+					ownerId: member?.organization.ownerId || apiKeyRecord.user.id,
+					enableEnterpriseFeatures: userFromDb.enableEnterpriseFeatures,
+					isValidEnterpriseLicense: userFromDb.isValidEnterpriseLicense,
+				},
+			};
+
+			return mockSession;
+		} catch (error) {
+			console.error("Error verifying API key", error);
 			return {
 				session: null,
 				user: null,
 			};
 		}
+	}
 
-		if (session?.user) {
-			const member = await db.query.member.findFirst({
-				where: and(
-					eq(schema.member.userId, session.user.id),
-					eq(
-						schema.member.organizationId,
-						(session.session as any).activeOrganizationId || "",
-					),
-				),
-				with: {
-					organization: true,
-					user: true,
-				},
-			});
+	// If no API key, proceed with normal session validation
+	const session = await api.getSession({
+		headers: new Headers({
+			cookie: request.headers.cookie || "",
+		}),
+	});
 
-			(session.user as any).role = member?.role || "member";
-			(session.user as any).enableEnterpriseFeatures =
-				member?.user?.enableEnterpriseFeatures || false;
-			(session.user as any).isValidEnterpriseLicense =
-				member?.user?.isValidEnterpriseLicense || false;
-			(session.user as any).allowImpersonation =
-				member?.user?.allowImpersonation || false;
-			if (member?.organization?.ownerId) {
-				(session.user as any).ownerId = member.organization.ownerId;
-			} else {
-				(session.user as any).ownerId = session.user.id;
-			}
-		}
-
-		return session;
-	} catch (error) {
-		console.error("Error in validateRequest:", error);
+	if (!session?.session || !session.user) {
 		return {
 			session: null,
 			user: null,
 		};
 	}
+
+	if (session?.user) {
+		const member = await db.query.member.findFirst({
+			where: and(
+				eq(schema.member.userId, session.user.id),
+				eq(
+					schema.member.organizationId,
+					session.session.activeOrganizationId || "",
+				),
+			),
+			with: {
+				organization: true,
+				user: true,
+			},
+		});
+
+		session.user.role = member?.role || "member";
+		session.user.enableEnterpriseFeatures =
+			member?.user.enableEnterpriseFeatures || false;
+		session.user.isValidEnterpriseLicense =
+			member?.user.isValidEnterpriseLicense || false;
+		if (member) {
+			session.user.ownerId = member.organization.ownerId;
+		} else {
+			session.user.ownerId = session.user.id;
+		}
+	}
+
+	return session;
 };
