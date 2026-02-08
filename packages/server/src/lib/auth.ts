@@ -30,6 +30,15 @@ const { handler, api } = betterAuth({
 		"/organization/delete",
 	],
 	secret: BETTER_AUTH_SECRET,
+	advanced: {
+		useSecureCookies: false,
+		defaultCookieAttributes: {
+			sameSite: "lax",
+			secure: false,
+			httpOnly: true,
+			path: "/",
+		},
+	},
 	appName: "Dokploy",
 	socialProviders: {
 		github: {
