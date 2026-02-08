@@ -5,9 +5,10 @@ export const IS_CLOUD = process.env.IS_CLOUD === "true";
 export const CLEANUP_CRON_JOB = "50 23 * * *";
 export const docker = new Docker();
 
+// When not set, use the legacy default so 2FA remains working for users who
+// enabled it before BETTER_AUTH_SECRET was introduced .
 export const BETTER_AUTH_SECRET =
-	process.env.BETTER_AUTH_SECRET ||
-	"RXu/xoLHaA1Xgs+R8a0LjVjCVOEnWISQWxw7nXxlvKo=";
+	process.env.BETTER_AUTH_SECRET || "better-auth-secret-123456789";
 
 export const paths = (isServer = false) => {
 	const BASE_PATH =
