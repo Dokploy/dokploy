@@ -201,6 +201,30 @@
 .animate-heartbeat {
 	animation: heartbeat 2.5s infinite;
 }
+
+@keyframes whale-draw {
+	0% {
+		stroke-dashoffset: 1;
+		fill-opacity: 0;
+	}
+	45% {
+		stroke-dashoffset: 0;
+		fill-opacity: 1;
+	}
+	55% {
+		stroke-dashoffset: 0;
+		fill-opacity: 1;
+	}
+	100% {
+		stroke-dashoffset: 1;
+		fill-opacity: 0;
+	}
+}
+
+.animate-whale-draw {
+	animation: whale-draw 2.8s ease-in-out infinite;
+}
+
 @media (prefers-color-scheme: dark) {
 	.swagger-ui {
 		background-color: white;

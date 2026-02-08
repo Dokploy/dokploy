@@ -110,17 +110,12 @@ const config = {
 					"0%, 100%": { transform: "translateY(0)" },
 					"50%": { transform: "translateY(-8px)" },
 				},
-				"whale-draw": {
-					from: { strokeDashoffset: "1" },
-					to: { strokeDashoffset: "0" },
-				},
 			},
 			animation: {
 				"caret-blink": "caret-blink 1.25s ease-out infinite",
 				"accordion-down": "accordion-down 0.2s ease-out",
 				"accordion-up": "accordion-up 0.2s ease-out",
 				"whale-tide": "whale-tide 2.2s ease-in-out infinite",
-				"whale-draw": "whale-draw 1.8s ease-out forwards",
 			},
 		},
 	},

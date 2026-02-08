@@ -14,24 +14,34 @@ interface WhaleLoaderProps {
 export const WhaleLoader = ({ className }: WhaleLoaderProps) => {
 	return (
 		<div
-			className={cn("flex flex-col items-center justify-center gap-3", className)}
+			className={cn(
+				"flex flex-col items-center justify-center gap-3",
+				className,
+			)}
 			aria-label="Loading"
 		>
-			<div className="animate-whale-tide">
+			{/* animate-whale-tide */}
+			<div className="">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					viewBox="0 0 559 446"
 					className="size-20 text-primary"
 					aria-hidden
 				>
-					<g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+					<g
+						fill="currentColor"
+						stroke="currentColor"
+						strokeWidth="2"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					>
 						{WHALE_PATHS.map((d, i) => (
 							<path
 								key={i}
 								pathLength={1}
 								strokeDasharray={1}
 								strokeDashoffset={1}
-								className="animate-whale-draw [stroke-dashoffset:1]"
+								className="animate-whale-draw"
 								style={{
 									animationDelay: `${i * 0.25}s`,
 								}}
