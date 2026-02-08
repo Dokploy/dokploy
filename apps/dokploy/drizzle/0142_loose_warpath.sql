@@ -1,0 +1,1 @@
+ALTER TABLE "preview_deployments" ADD CONSTRAINT "preview_deployments_applicationId_pullRequestId_unique" UNIQUE("applicationId","pullRequestId");
