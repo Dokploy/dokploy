@@ -32,7 +32,7 @@ export const ShowRegistry = () => {
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
-						{!isLoading ? (
+						{isLoading ? (
 							<div className="flex flex-row items-center justify-center min-h-[25vh]">
 								<WhaleLoader />
 							</div>
