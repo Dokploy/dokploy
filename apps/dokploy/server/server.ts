@@ -15,7 +15,6 @@ import {
 } from "@dokploy/server";
 import { config } from "dotenv";
 import next from "next";
-import { migration } from "@/server/db/migration";
 import packageInfo from "../package.json";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
@@ -60,16 +59,11 @@ void app.prepare().then(async () => {
 		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 			createDefaultMiddlewares();
 			await initializeNetwork();
-			await migration();
 			await initCronJobs();
 			await initSchedules();
 			await initCancelDeployments();
 			await initVolumeBackupsCronJobs();
 			await sendDokployRestartNotifications();
-		}
-
-		if (IS_CLOUD && process.env.NODE_ENV === "production") {
-			await migration();
 		}
 
 		server.listen(PORT, HOST);

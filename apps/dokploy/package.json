@@ -6,7 +6,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "npm run build-server && npm run build-next",
-		"start": "node -r dotenv/config dist/server.mjs",
+		"start": "node -r dotenv/config dist/migration.mjs && node -r dotenv/config dist/server.mjs",
 		"build-server": "tsx esbuild.config.ts",
 		"build-next": "next build --webpack",
 		"setup": "tsx -r dotenv/config setup.ts && sleep 5 && pnpm run migration:run",
