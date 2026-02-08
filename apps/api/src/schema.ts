@@ -22,6 +22,9 @@ export const deployJobSchema = z.discriminatedUnion("applicationType", [
 	z.object({
 		applicationId: z.string(),
 		previewDeploymentId: z.string(),
+		previewNotificationEvent: z
+			.enum(["previewDeploy", "previewRebuild"])
+			.optional(),
 		titleLog: z.string().optional(),
 		descriptionLog: z.string().optional(),
 		server: z.boolean().optional(),

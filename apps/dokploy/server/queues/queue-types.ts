@@ -25,6 +25,7 @@ type DeployJob =
 			type: "deploy" | "redeploy";
 			applicationType: "application-preview";
 			previewDeploymentId: string;
+			previewNotificationEvent?: "previewDeploy" | "previewRebuild";
 			serverId?: string;
 	  };
 

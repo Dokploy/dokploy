@@ -50,6 +50,8 @@ const notificationBaseSchema = z.object({
 		message: "Name is required",
 	}),
 	appDeploy: z.boolean().default(false),
+	previewDeploy: z.boolean().default(false),
+	previewRebuild: z.boolean().default(false),
 	appBuildError: z.boolean().default(false),
 	databaseBackup: z.boolean().default(false),
 	volumeBackup: z.boolean().default(false),
@@ -319,6 +321,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				form.reset({
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
+					previewDeploy: notification.previewDeploy,
+					previewRebuild: notification.previewRebuild,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					volumeBackup: notification.volumeBackup,
@@ -333,6 +337,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				form.reset({
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
+					previewDeploy: notification.previewDeploy,
+					previewRebuild: notification.previewRebuild,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					volumeBackup: notification.volumeBackup,
@@ -348,6 +354,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				form.reset({
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
+					previewDeploy: notification.previewDeploy,
+					previewRebuild: notification.previewRebuild,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					volumeBackup: notification.volumeBackup,
@@ -362,6 +370,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				form.reset({
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
+					previewDeploy: notification.previewDeploy,
+					previewRebuild: notification.previewRebuild,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					volumeBackup: notification.volumeBackup,
@@ -380,6 +390,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				form.reset({
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
+					previewDeploy: notification.previewDeploy,
+					previewRebuild: notification.previewRebuild,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					volumeBackup: notification.volumeBackup,
@@ -395,6 +407,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				form.reset({
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
+					previewDeploy: notification.previewDeploy,
+					previewRebuild: notification.previewRebuild,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					volumeBackup: notification.volumeBackup,
@@ -410,6 +424,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				form.reset({
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
+					previewDeploy: notification.previewDeploy,
+					previewRebuild: notification.previewRebuild,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					volumeBackup: notification.volumeBackup,
@@ -426,6 +442,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				form.reset({
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
+					previewDeploy: notification.previewDeploy,
+					previewRebuild: notification.previewRebuild,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					type: notification.notificationType,
@@ -439,6 +457,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				form.reset({
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
+					previewDeploy: notification.previewDeploy,
+					previewRebuild: notification.previewRebuild,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					type: notification.notificationType,
@@ -460,6 +480,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				form.reset({
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
+					previewDeploy: notification.previewDeploy,
+					previewRebuild: notification.previewRebuild,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					volumeBackup: notification.volumeBackup,
@@ -496,6 +518,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		const {
 			appBuildError,
 			appDeploy,
+			previewDeploy,
+			previewRebuild,
 			dokployRestart,
 			databaseBackup,
 			volumeBackup,
@@ -507,6 +531,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			promise = slackMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
+				previewDeploy: previewDeploy,
+				previewRebuild: previewRebuild,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				volumeBackup: volumeBackup,
@@ -522,6 +548,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			promise = telegramMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
+				previewDeploy: previewDeploy,
+				previewRebuild: previewRebuild,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				volumeBackup: volumeBackup,
@@ -538,6 +566,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			promise = discordMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
+				previewDeploy: previewDeploy,
+				previewRebuild: previewRebuild,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				volumeBackup: volumeBackup,
@@ -553,6 +583,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			promise = emailMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
+				previewDeploy: previewDeploy,
+				previewRebuild: previewRebuild,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				volumeBackup: volumeBackup,
@@ -572,6 +604,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			promise = resendMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
+				previewDeploy: previewDeploy,
+				previewRebuild: previewRebuild,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				volumeBackup: volumeBackup,
@@ -588,6 +622,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			promise = gotifyMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
+				previewDeploy: previewDeploy,
+				previewRebuild: previewRebuild,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				volumeBackup: volumeBackup,
@@ -604,6 +640,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			promise = ntfyMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
+				previewDeploy: previewDeploy,
+				previewRebuild: previewRebuild,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				volumeBackup: volumeBackup,
@@ -620,6 +658,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			promise = larkMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
+				previewDeploy: previewDeploy,
+				previewRebuild: previewRebuild,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				volumeBackup: volumeBackup,
@@ -646,6 +686,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			promise = customMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
+				previewDeploy: previewDeploy,
+				previewRebuild: previewRebuild,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				volumeBackup: volumeBackup,
@@ -665,6 +707,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			promise = pushoverMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
+				previewDeploy: previewDeploy,
+				previewRebuild: previewRebuild,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				volumeBackup: volumeBackup,
@@ -1622,7 +1666,48 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											<div className="">
 												<FormLabel>App Deploy</FormLabel>
 												<FormDescription>
-													Trigger the action when a app is deployed.
+													Trigger when a regular app deployment finishes.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="previewDeploy"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<div className="">
+												<FormLabel>Preview Deploy</FormLabel>
+												<FormDescription>
+													Trigger when a preview deployment is created for a PR.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="previewRebuild"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<div className="">
+												<FormLabel>Preview Rebuild</FormLabel>
+												<FormDescription>
+													Trigger when an existing preview is rebuilt from a new
+													commit.
 												</FormDescription>
 											</div>
 											<FormControl>

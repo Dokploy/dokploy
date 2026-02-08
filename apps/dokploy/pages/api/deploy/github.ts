@@ -474,6 +474,8 @@ export default async function handler(
 
 				let previewDeploymentId =
 					previewDeploymentResult?.previewDeploymentId || "";
+				let previewNotificationEvent: "previewDeploy" | "previewRebuild" =
+					"previewDeploy";
 
 				if (!previewDeploymentResult) {
 					const previewDeployment = await createPreviewDeployment({
@@ -485,16 +487,22 @@ export default async function handler(
 						pullRequestURL: prURL,
 					});
 					previewDeploymentId = previewDeployment.previewDeploymentId;
+				} else {
+					previewNotificationEvent = "previewRebuild";
 				}
 
 				const jobData: DeploymentJob = {
 					applicationId: app.applicationId as string,
-					titleLog: "Preview Deployment",
+					titleLog:
+						previewNotificationEvent === "previewRebuild"
+							? "Preview Rebuild (New Commit)"
+							: "Preview Deployment",
 					descriptionLog: `Hash: ${deploymentHash}`,
 					type: "deploy",
 					applicationType: "application-preview",
 					server: !!app.serverId,
 					previewDeploymentId,
+					previewNotificationEvent,
 				};
 
 				if (IS_CLOUD && app.serverId) {

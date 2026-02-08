@@ -50,6 +50,7 @@ import {
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
 export type Application = typeof applications.$inferSelect;
+type PreviewNotificationEvent = "previewDeploy" | "previewRebuild";
 
 export const createApplication = async (
 	input: typeof apiCreateApplication._type,
@@ -344,13 +345,16 @@ export const deployPreviewApplication = async ({
 	titleLog = "Preview Deployment",
 	descriptionLog = "",
 	previewDeploymentId,
+	notificationEvent = "previewDeploy",
 }: {
 	applicationId: string;
 	titleLog: string;
 	descriptionLog: string;
 	previewDeploymentId: string;
+	notificationEvent?: PreviewNotificationEvent;
 }) => {
 	const application = await findApplicationById(applicationId);
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=preview-deployments`;
 
 	const deployment = await createDeploymentPreview({
 		title: titleLog,
@@ -443,6 +447,16 @@ export const deployPreviewApplication = async ({
 		await updatePreviewDeployment(previewDeploymentId, {
 			previewStatus: "done",
 		});
+		await sendBuildSuccessNotifications({
+			projectName: application.environment.project.name,
+			applicationName: application.name,
+			applicationType: "preview",
+			buildLink,
+			organizationId: application.environment.project.organizationId,
+			domains: [previewDeployment.domain as Domain],
+			environmentName: application.environment.name,
+			notificationEvent,
+		});
 	} catch (error) {
 		const comment = getIssueComment(application.name, "error", previewDomain);
 		await updateIssueComment({
@@ -452,6 +466,14 @@ export const deployPreviewApplication = async ({
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updatePreviewDeployment(previewDeploymentId, {
 			previewStatus: "error",
+		});
+		await sendBuildErrorNotifications({
+			projectName: application.environment.project.name,
+			applicationName: application.name,
+			applicationType: "preview",
+			errorMessage: error instanceof Error ? error.message : "Error building",
+			buildLink,
+			organizationId: application.environment.project.organizationId,
 		});
 		throw error;
 	}
@@ -471,6 +493,7 @@ export const rebuildPreviewApplication = async ({
 	previewDeploymentId: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=preview-deployments`;
 	const previewDeployment =
 		await findPreviewDeploymentById(previewDeploymentId);
 
@@ -557,6 +580,16 @@ export const rebuildPreviewApplication = async ({
 		await updatePreviewDeployment(previewDeploymentId, {
 			previewStatus: "done",
 		});
+		await sendBuildSuccessNotifications({
+			projectName: application.environment.project.name,
+			applicationName: application.name,
+			applicationType: "preview",
+			buildLink,
+			organizationId: application.environment.project.organizationId,
+			domains: [previewDeployment.domain as Domain],
+			environmentName: application.environment.name,
+			notificationEvent: "previewRebuild",
+		});
 	} catch (error) {
 		let command = "";
 
@@ -583,6 +616,14 @@ export const rebuildPreviewApplication = async ({
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updatePreviewDeployment(previewDeploymentId, {
 			previewStatus: "error",
+		});
+		await sendBuildErrorNotifications({
+			projectName: application.environment.project.name,
+			applicationName: application.name,
+			applicationType: "preview",
+			errorMessage: error instanceof Error ? error.message : "Error building",
+			buildLink,
+			organizationId: application.environment.project.organizationId,
 		});
 		throw error;
 	}
