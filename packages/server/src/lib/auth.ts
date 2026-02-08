@@ -83,11 +83,11 @@ const authConfig = {
 		autoSignIn: !IS_CLOUD,
 		requireEmailVerification: IS_CLOUD,
 		password: {
-			async hash(password: string) {
-				return await bcrypt.hash(password, 10);
+			async hash(password) {
+				return bcrypt.hashSync(password, 10);
 			},
 			async verify({ hash, password }) {
-				return await bcrypt.compare(password, hash);
+				return bcrypt.compareSync(password, hash);
 			},
 		},
 		sendResetPassword: async ({ user, url }) => {
