@@ -1,6 +1,7 @@
-import { Loader2, Package, Trash2 } from "lucide-react";
+import { Package, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { WhaleLoader } from "@/components/shared/whale-loader";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -31,10 +32,9 @@ export const ShowRegistry = () => {
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
-						{isLoading ? (
-							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
-								<Loader2 className="animate-spin size-4" />
+						{!isLoading ? (
+							<div className="flex flex-row items-center justify-center min-h-[25vh]">
+								<WhaleLoader />
 							</div>
 						) : (
 							<>
