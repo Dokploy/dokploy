@@ -4,7 +4,9 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { and, eq } from "drizzle-orm";
 import semver from "semver";
+import { compose } from "../db/schema";
 import {
 	initializeStandaloneTraefik,
 	initializeTraefikService,
@@ -438,13 +440,40 @@ export const writeTraefikSetup = async (input: TraefikOptions) => {
 			additionalPorts: input.additionalPorts,
 			serverId: input.serverId,
 		});
+		await reconnectServicesToTraefik(input.serverId);
 	} else if (resourceType === "standalone") {
 		await initializeStandaloneTraefik({
 			env: input.env,
 			additionalPorts: input.additionalPorts,
 			serverId: input.serverId,
 		});
+
+		await reconnectServicesToTraefik(input.serverId);
 	} else {
 		throw new Error("Traefik resource type not found");
+	}
+};
+
+export const reconnectServicesToTraefik = async (serverId?: string) => {
+	const composeResult = await db?.query.compose.findMany({
+		where: and(
+			...(serverId ? [eq(compose.serverId, serverId)] : []),
+			eq(compose.isolatedDeployment, true),
+		),
+	});
+
+	if (!composeResult) {
+		return;
+	}
+	let commands = "";
+
+	for (const compose of composeResult) {
+		commands += `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1\n`;
+	}
+
+	if (serverId) {
+		await execAsyncRemote(serverId, commands);
+	} else {
+		await execAsync(commands);
 	}
 };
