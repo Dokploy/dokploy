@@ -1,5 +1,10 @@
 import type { ApplicationNested, Domain, Redirect } from "@dokploy/server";
-import { createRouterConfig } from "@dokploy/server";
+import {
+	createRouterConfig,
+	createTraefikConfig,
+	removeTraefikConfig,
+	writeTraefikConfig,
+} from "@dokploy/server";
 import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
@@ -273,4 +278,62 @@ test("CertificateType on websecure entrypoint", async () => {
 	);
 
 	expect(router.tls?.certResolver).toBe("letsencrypt");
+});
+
+test("Preview websecure router inherits @file middlewares and TLS options", async () => {
+	const sourceAppName = "test-preview-source";
+	const sourceRouterName = `${sourceAppName}-router-websecure-1`;
+	const sourceServiceName = `${sourceAppName}-service-1`;
+
+	createTraefikConfig(sourceAppName);
+	writeTraefikConfig(
+		{
+			http: {
+				routers: {
+					[sourceRouterName]: {
+						entryPoints: ["websecure"],
+						rule: "Host(`source.example.com`)",
+						service: sourceServiceName,
+						middlewares: ["cloudflare-only@file", "custom-auth@file"],
+						tls: {
+							certResolver: "letsencrypt",
+							options: "no-client-auth@file",
+						},
+					},
+				},
+				services: {
+					[sourceServiceName]: {
+						loadBalancer: {
+							servers: [{ url: `http://${sourceAppName}:3000` }],
+							passHostHeader: true,
+						},
+					},
+				},
+			},
+		},
+		sourceAppName,
+	);
+	try {
+		const previewAppName = `preview-${sourceAppName}-abc123`;
+		const router = await createRouterConfig(
+			{
+				...baseApp,
+				appName: previewAppName,
+			},
+			{
+				...baseDomain,
+				domainType: "preview",
+				host: "preview.example.com",
+				https: true,
+				certificateType: "letsencrypt",
+			},
+			"websecure",
+		);
+
+		expect(router.middlewares).toContain("cloudflare-only@file");
+		expect(router.middlewares).toContain("custom-auth@file");
+		expect(router.tls?.options).toBe("no-client-auth@file");
+	} finally {
+		await removeTraefikConfig(sourceAppName);
+	}
 });
