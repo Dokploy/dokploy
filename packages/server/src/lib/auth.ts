@@ -21,7 +21,7 @@ import { getPublicIpWithFallback } from "../wss/utils";
 // Define the configuration separately so it can be used for type inference
 const authConfig = {
 	database: drizzleAdapter(db, {
-		provider: "pg" as const,
+		provider: "pg",
 		schema: schema,
 	}),
 	disabledPaths: [
@@ -261,22 +261,22 @@ const authConfig = {
 			},
 			allowImpersonation: {
 				fieldName: "allowImpersonation",
-				type: "boolean" as const,
+				type: "boolean",
 				defaultValue: false,
 			},
 			lastName: {
-				type: "string" as const,
+				type: "string",
 				required: false,
 				input: true,
 				defaultValue: "",
 			},
 			enableEnterpriseFeatures: {
-				type: "boolean" as const,
+				type: "boolean",
 				required: false,
 				input: false,
 			},
 			isValidEnterpriseLicense: {
-				type: "boolean" as const,
+				type: "boolean",
 				required: false,
 				input: false,
 			},
