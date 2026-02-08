@@ -995,13 +995,6 @@
       "when": 1770490719123,
       "tag": "0141_plain_earthquake",
       "breakpoints": true
-    },
-    {
-      "idx": 142,
-      "version": "7",
-      "when": 1770535594423,
-      "tag": "0142_loose_warpath",
-      "breakpoints": true
     }
   ]
 }
