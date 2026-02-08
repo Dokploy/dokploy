@@ -5,7 +5,9 @@ import {
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { and, eq } from "drizzle-orm";
+
 import semver from "semver";
+import { db } from "../db";
 import { compose } from "../db/schema";
 import {
 	initializeStandaloneTraefik,
@@ -455,7 +457,7 @@ export const writeTraefikSetup = async (input: TraefikOptions) => {
 };
 
 export const reconnectServicesToTraefik = async (serverId?: string) => {
-	const composeResult = await db?.query.compose.findMany({
+	const composeResult = await db.query.compose.findMany({
 		where: and(
 			...(serverId ? [eq(compose.serverId, serverId)] : []),
 			eq(compose.isolatedDeployment, true),
