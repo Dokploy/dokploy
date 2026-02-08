@@ -57,7 +57,10 @@ const { handler, api } = betterAuth({
 			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
 			...(settings?.host ? [`https://${settings?.host}`] : []),
 			...(process.env.NODE_ENV === "development"
-				? ["http://localhost:3000"]
+				? [
+						"http://localhost:3000",
+						"https://absolutely-handy-falcon.ngrok-free.app",
+					]
 				: []),
 			...trustedOrigins,
 		];
