@@ -110,7 +110,6 @@ export const mechanizeDockerContainer = async (
 		Networks,
 		StopGracePeriod,
 		EndpointSpec,
-		Ulimits,
 	} = generateConfigContainer(application);
 
 	const bindsMount = generateBindMounts(mounts);
@@ -143,7 +142,7 @@ export const mechanizeDockerContainer = async (
 					args.length > 0 && {
 						Args: args,
 					}),
-				...(Ulimits && { Ulimits }),
+
 				Labels,
 			},
 			Networks,

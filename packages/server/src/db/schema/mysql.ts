@@ -23,8 +23,6 @@ import {
 	RestartPolicySwarmSchema,
 	type ServiceModeSwarm,
 	ServiceModeSwarmSchema,
-	type UlimitsSwarm,
-	UlimitsSwarmSchema,
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
@@ -67,7 +65,6 @@ export const mysql = pgTable("mysql", {
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
-	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
 	replicas: integer("replicas").default(1).notNull(),
 	createdAt: text("createdAt")
 		.notNull()
@@ -136,7 +133,6 @@ const createSchema = createInsertSchema(mysql, {
 	networkSwarm: NetworkSwarmSchema.nullable(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
-	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 });
 
 export const apiCreateMySql = createSchema

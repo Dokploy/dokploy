@@ -45,7 +45,6 @@ export const buildRedis = async (redis: RedisNested) => {
 		Networks,
 		StopGracePeriod,
 		EndpointSpec,
-		Ulimits,
 	} = generateConfigContainer(redis);
 	const resources = calculateResources({
 		memoryLimit,
@@ -88,7 +87,6 @@ export const buildRedis = async (redis: RedisNested) => {
 							Command: ["/bin/sh"],
 							Args: ["-c", `redis-server --requirepass ${databasePassword}`],
 						}),
-				...(Ulimits && { Ulimits }),
 				Labels,
 			},
 			Networks,

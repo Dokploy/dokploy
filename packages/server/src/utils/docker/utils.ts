@@ -508,7 +508,6 @@ export const generateConfigContainer = (
 		networkSwarm,
 		stopGracePeriodSwarm,
 		endpointSpecSwarm,
-		ulimitsSwarm,
 	} = application;
 
 	const sanitizedStopGracePeriodSwarm =
@@ -585,10 +584,6 @@ export const generateConfigContainer = (
 					})) || [],
 			},
 		}),
-		...(ulimitsSwarm &&
-			ulimitsSwarm.length > 0 && {
-				Ulimits: ulimitsSwarm,
-			}),
 	};
 };
 

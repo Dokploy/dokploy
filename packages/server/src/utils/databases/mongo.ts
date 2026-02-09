@@ -94,7 +94,6 @@ ${command ?? "wait $MONGOD_PID"}`;
 		Networks,
 		StopGracePeriod,
 		EndpointSpec,
-		Ulimits,
 	} = generateConfigContainer(mongo);
 
 	const resources = calculateResources({
@@ -140,7 +139,7 @@ ${command ?? "wait $MONGOD_PID"}`;
 					!replicaSets && {
 						Args: args,
 					}),
-				...(Ulimits && { Ulimits }),
+
 				Labels,
 			},
 			Networks,
