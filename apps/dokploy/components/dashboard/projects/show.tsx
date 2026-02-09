@@ -439,7 +439,7 @@ export const ShowProjects = () => {
 																			</span>
 																		</div>
 
-																		<span className="text-sm font-medium text-muted-foreground break-all">
+																		<span className="text-sm font-medium text-muted-foreground break-word">
 																			{project.description}
 																		</span>
 
