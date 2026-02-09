@@ -47,6 +47,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		Networks,
 		StopGracePeriod,
 		EndpointSpec,
+		Ulimits,
 	} = generateConfigContainer(postgres);
 	const resources = calculateResources({
 		memoryLimit,
@@ -82,7 +83,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 					args.length > 0 && {
 						Args: args,
 					}),
-
+				...(Ulimits && { Ulimits }),
 				Labels,
 			},
 			Networks,
