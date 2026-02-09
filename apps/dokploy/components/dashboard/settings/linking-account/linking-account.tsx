@@ -41,13 +41,11 @@ export function LinkingAccount() {
 		setAccountsLoading(true);
 		try {
 			const { data } = await authClient.listAccounts();
-			console.log(data);
 			const list = Array.isArray(data)
 				? data
 				: ((data && typeof data === "object" && "accounts" in data
 						? (data as { accounts?: AccountItem[] }).accounts
 						: null) ?? []);
-			console.log(list);
 			setAccounts(Array.isArray(list) ? list : []);
 		} catch {
 			setAccounts([]);
