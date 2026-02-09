@@ -28,7 +28,7 @@ import {
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
-import { generateAppName } from "./utils";
+import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
 
 export const postgres = pgTable("postgres", {
 	postgresId: text("postgresId")
@@ -97,6 +97,12 @@ export const postgresRelations = relations(postgres, ({ one, many }) => ({
 const createSchema = createInsertSchema(postgres, {
 	postgresId: z.string(),
 	name: z.string().min(1),
+	appName: z
+		.string()
+		.min(1)
+		.max(63)
+		.regex(APP_NAME_REGEX, APP_NAME_MESSAGE)
+		.optional(),
 	databasePassword: z
 		.string()
 		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
@@ -105,7 +111,7 @@ const createSchema = createInsertSchema(postgres, {
 		}),
 	databaseName: z.string().min(1),
 	databaseUser: z.string().min(1),
-	dockerImage: z.string().default("postgres:15"),
+	dockerImage: z.string().default("postgres:18"),
 	command: z.string().optional(),
 	args: z.array(z.string()).optional(),
 	env: z.string().optional(),
@@ -132,19 +138,17 @@ const createSchema = createInsertSchema(postgres, {
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 });
 
-export const apiCreatePostgres = createSchema
-	.pick({
-		name: true,
-		appName: true,
-		databaseName: true,
-		databaseUser: true,
-		databasePassword: true,
-		dockerImage: true,
-		environmentId: true,
-		description: true,
-		serverId: true,
-	})
-	.required();
+export const apiCreatePostgres = createSchema.pick({
+	name: true,
+	appName: true,
+	databaseName: true,
+	databaseUser: true,
+	databasePassword: true,
+	dockerImage: true,
+	environmentId: true,
+	description: true,
+	serverId: true,
+});
 
 export const apiFindOnePostgres = createSchema
 	.pick({

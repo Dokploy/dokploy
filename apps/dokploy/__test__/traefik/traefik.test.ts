@@ -3,11 +3,12 @@ import { createRouterConfig } from "@dokploy/server";
 import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
-	railpackVersion: "0.2.2",
+	railpackVersion: "0.15.4",
 	rollbackActive: false,
 	applicationId: "",
 	previewLabels: [],
 	createEnvFile: true,
+	bitbucketRepositorySlug: "",
 	herokuVersion: "",
 	giteaRepository: "",
 	giteaOwner: "",

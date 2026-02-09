@@ -28,7 +28,7 @@ import {
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
-import { generateAppName } from "./utils";
+import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
 
 export const mysql = pgTable("mysql", {
 	mysqlId: text("mysqlId")
@@ -96,7 +96,12 @@ export const mysqlRelations = relations(mysql, ({ one, many }) => ({
 
 const createSchema = createInsertSchema(mysql, {
 	mysqlId: z.string(),
-	appName: z.string().min(1),
+	appName: z
+		.string()
+		.min(1)
+		.max(63)
+		.regex(APP_NAME_REGEX, APP_NAME_MESSAGE)
+		.optional(),
 	createdAt: z.string(),
 	name: z.string().min(1),
 	databaseName: z.string().min(1),
@@ -139,20 +144,18 @@ const createSchema = createInsertSchema(mysql, {
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 });
 
-export const apiCreateMySql = createSchema
-	.pick({
-		name: true,
-		appName: true,
-		dockerImage: true,
-		environmentId: true,
-		description: true,
-		databaseName: true,
-		databaseUser: true,
-		databasePassword: true,
-		databaseRootPassword: true,
-		serverId: true,
-	})
-	.required();
+export const apiCreateMySql = createSchema.pick({
+	name: true,
+	appName: true,
+	dockerImage: true,
+	environmentId: true,
+	description: true,
+	databaseName: true,
+	databaseUser: true,
+	databasePassword: true,
+	databaseRootPassword: true,
+	serverId: true,
+});
 
 export const apiFindOneMySql = createSchema
 	.pick({

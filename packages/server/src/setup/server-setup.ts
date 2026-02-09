@@ -1,10 +1,14 @@
 import path from "node:path";
-import { paths } from "@dokploy/server/constants";
+import { IS_CLOUD, paths } from "@dokploy/server/constants";
+import { getDokployUrl } from "@dokploy/server/services/admin";
 import {
 	createServerDeployment,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
-import { findServerById } from "@dokploy/server/services/server";
+import {
+	findServerById,
+	updateServerById,
+} from "@dokploy/server/services/server";
 import {
 	getDefaultMiddlewares,
 	getDefaultServerTraefikConfig,
@@ -16,6 +20,15 @@ import {
 import slug from "slugify";
 import { Client } from "ssh2";
 import { recreateDirectory } from "../utils/filesystem/directory";
+import { setupMonitoring } from "./monitoring-setup";
+
+const generateToken = () => {
+	const array = new Uint8Array(64);
+	crypto.getRandomValues(array);
+	return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+		"",
+	);
+};
 
 export const slugify = (text: string | undefined) => {
 	if (!text) {
@@ -58,6 +71,29 @@ export const serverSetup = async (
 				: "\nInstalling Server Dependencies: ✅\n",
 		);
 		await installRequirements(serverId, onData);
+
+		if (IS_CLOUD) {
+			onData?.("\nConfiguring Monitoring: 🔄\n");
+
+			const baseUrl = await getDokployUrl();
+			const token = generateToken();
+			const urlCallback = `${baseUrl}/api/trpc/notification.receiveNotification`;
+
+			// Update server with monitoring configuration
+			await updateServerById(serverId, {
+				metricsConfig: {
+					server: {
+						...server.metricsConfig.server,
+						token: token,
+						urlCallback: urlCallback,
+					},
+					containers: server.metricsConfig.containers,
+				},
+			});
+
+			await setupMonitoring(serverId);
+			onData?.("\nMonitoring Configured: ✅\n");
+		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 
@@ -629,7 +665,7 @@ const installNixpacks = () => `
 	if command_exists nixpacks; then
 		echo "Nixpacks already installed ✅"
 	else
-	    export NIXPACKS_VERSION=1.39.0
+	    export NIXPACKS_VERSION=1.41.0
         bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
 		echo "Nixpacks version $NIXPACKS_VERSION installed ✅"
 	fi
@@ -639,7 +675,7 @@ const installRailpack = () => `
 	if command_exists railpack; then
 		echo "Railpack already installed ✅"
 	else
-	    export RAILPACK_VERSION=0.2.2
+	    export RAILPACK_VERSION=0.15.4
 		bash -c "$(curl -fsSL https://railpack.com/install.sh)"
 		echo "Railpack version $RAILPACK_VERSION installed ✅"
 	fi
@@ -653,8 +689,8 @@ const installBuildpacks = () => `
 	if command_exists pack; then
 		echo "Buildpacks already installed ✅"
 	else
-		BUILDPACKS_VERSION=0.35.0
-		curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v$BUILDPACKS_VERSION-linux$SUFFIX.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
+		BUILDPACKS_VERSION=0.39.1
+		curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.39.1/pack-v$BUILDPACKS_VERSION-linux$SUFFIX.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
 		echo "Buildpacks version $BUILDPACKS_VERSION installed ✅"
 	fi
 `;

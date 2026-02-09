@@ -15,6 +15,8 @@ import {
 	GotifyIcon,
 	LarkIcon,
 	NtfyIcon,
+	PushoverIcon,
+	ResendIcon,
 	SlackIcon,
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
@@ -98,6 +100,23 @@ export const notificationSchema = z.discriminatedUnion("type", [
 		.merge(notificationBaseSchema),
 	z
 		.object({
+			type: z.literal("resend"),
+			apiKey: z.string().min(1, { message: "API Key is required" }),
+			fromAddress: z
+				.string()
+				.min(1, { message: "From Address is required" })
+				.email({ message: "Email is invalid" }),
+			toAddresses: z
+				.array(
+					z.string().min(1, { message: "Email is required" }).email({
+						message: "Email is invalid",
+					}),
+				)
+				.min(1, { message: "At least one email is required" }),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
 			type: z.literal("gotify"),
 			serverUrl: z.string().min(1, { message: "Server URL is required" }),
 			appToken: z.string().min(1, { message: "App Token is required" }),
@@ -112,6 +131,16 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			topic: z.string().min(1, { message: "Topic is required" }),
 			accessToken: z.string().optional(),
 			priority: z.number().min(1).max(5).default(3),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("pushover"),
+			userKey: z.string().min(1, { message: "User Key is required" }),
+			apiToken: z.string().min(1, { message: "API Token is required" }),
+			priority: z.number().min(-2).max(2).default(0),
+			retry: z.number().min(30).nullish(),
+			expire: z.number().min(1).max(10800).nullish(),
 		})
 		.merge(notificationBaseSchema),
 	z
@@ -158,6 +187,10 @@ export const notificationsMap = {
 		icon: <Mail size={29} className="text-muted-foreground" />,
 		label: "Email",
 	},
+	resend: {
+		icon: <ResendIcon className="text-muted-foreground" />,
+		label: "Resend",
+	},
 	gotify: {
 		icon: <GotifyIcon />,
 		label: "Gotify",
@@ -165,6 +198,10 @@ export const notificationsMap = {
 	ntfy: {
 		icon: <NtfyIcon />,
 		label: "ntfy",
+	},
+	pushover: {
+		icon: <PushoverIcon />,
+		label: "Pushover",
 	},
 	custom: {
 		icon: <PenBoxIcon size={29} className="text-muted-foreground" />,
@@ -199,6 +236,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		api.notification.testDiscordConnection.useMutation();
 	const { mutateAsync: testEmailConnection, isLoading: isLoadingEmail } =
 		api.notification.testEmailConnection.useMutation();
+	const { mutateAsync: testResendConnection, isLoading: isLoadingResend } =
+		api.notification.testResendConnection.useMutation();
 	const { mutateAsync: testGotifyConnection, isLoading: isLoadingGotify } =
 		api.notification.testGotifyConnection.useMutation();
 	const { mutateAsync: testNtfyConnection, isLoading: isLoadingNtfy } =
@@ -208,6 +247,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 
 	const { mutateAsync: testCustomConnection, isLoading: isLoadingCustom } =
 		api.notification.testCustomConnection.useMutation();
+
+	const { mutateAsync: testPushoverConnection, isLoading: isLoadingPushover } =
+		api.notification.testPushoverConnection.useMutation();
 
 	const customMutation = notificationId
 		? api.notification.updateCustom.useMutation()
@@ -224,6 +266,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const emailMutation = notificationId
 		? api.notification.updateEmail.useMutation()
 		: api.notification.createEmail.useMutation();
+	const resendMutation = notificationId
+		? api.notification.updateResend.useMutation()
+		: api.notification.createResend.useMutation();
 	const gotifyMutation = notificationId
 		? api.notification.updateGotify.useMutation()
 		: api.notification.createGotify.useMutation();
@@ -233,6 +278,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const larkMutation = notificationId
 		? api.notification.updateLark.useMutation()
 		: api.notification.createLark.useMutation();
+	const pushoverMutation = notificationId
+		? api.notification.updatePushover.useMutation()
+		: api.notification.createPushover.useMutation();
 
 	const form = useForm<NotificationSchema>({
 		defaultValues: {
@@ -260,7 +308,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	});
 
 	useEffect(() => {
-		if (type === "email" && fields.length === 0) {
+		if ((type === "email" || type === "resend") && fields.length === 0) {
 			append("");
 		}
 	}, [type, append, fields.length]);
@@ -324,6 +372,21 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					password: notification.email?.password,
 					toAddresses: notification.email?.toAddresses,
 					fromAddress: notification.email?.fromAddress,
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
+			} else if (notification.notificationType === "resend") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					volumeBackup: notification.volumeBackup,
+					type: notification.notificationType,
+					apiKey: notification.resend?.apiKey,
+					toAddresses: notification.resend?.toAddresses,
+					fromAddress: notification.resend?.fromAddress,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
@@ -393,6 +456,23 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
 				});
+			} else if (notification.notificationType === "pushover") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					volumeBackup: notification.volumeBackup,
+					type: notification.notificationType,
+					userKey: notification.pushover?.userKey,
+					apiToken: notification.pushover?.apiToken,
+					priority: notification.pushover?.priority,
+					retry: notification.pushover?.retry ?? undefined,
+					expire: notification.pushover?.expire ?? undefined,
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
 			}
 		} else {
 			form.reset();
@@ -404,10 +484,12 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		telegram: telegramMutation,
 		discord: discordMutation,
 		email: emailMutation,
+		resend: resendMutation,
 		gotify: gotifyMutation,
 		ntfy: ntfyMutation,
 		lark: larkMutation,
 		custom: customMutation,
+		pushover: pushoverMutation,
 	};
 
 	const onSubmit = async (data: NotificationSchema) => {
@@ -486,6 +568,22 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				emailId: notification?.emailId || "",
 				serverThreshold: serverThreshold,
 			});
+		} else if (data.type === "resend") {
+			promise = resendMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
+				apiKey: data.apiKey,
+				fromAddress: data.fromAddress,
+				toAddresses: data.toAddresses,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				notificationId: notificationId || "",
+				resendId: notification?.resendId || "",
+				serverThreshold: serverThreshold,
+			});
 		} else if (data.type === "gotify") {
 			promise = gotifyMutation.mutateAsync({
 				appBuildError: appBuildError,
@@ -558,6 +656,28 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				customId: notification?.customId || "",
+			});
+		} else if (data.type === "pushover") {
+			if (data.priority === 2 && (data.retry == null || data.expire == null)) {
+				toast.error("Retry and expire are required for emergency priority (2)");
+				return;
+			}
+			promise = pushoverMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
+				userKey: data.userKey,
+				apiToken: data.apiToken,
+				priority: data.priority,
+				retry: data.priority === 2 ? data.retry : undefined,
+				expire: data.priority === 2 ? data.expire : undefined,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
+				notificationId: notificationId || "",
+				pushoverId: notification?.pushoverId || "",
 			});
 		}
 
@@ -981,6 +1101,96 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									</>
 								)}
 
+								{type === "resend" && (
+									<>
+										<FormField
+											control={form.control}
+											name="apiKey"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>API Key</FormLabel>
+													<FormControl>
+														<Input
+															type="password"
+															placeholder="re_********"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="fromAddress"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>From Address</FormLabel>
+													<FormControl>
+														<Input placeholder="from@example.com" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<div className="flex flex-col gap-2 pt-2">
+											<FormLabel>To Addresses</FormLabel>
+
+											{fields.map((field, index) => (
+												<div
+													key={field.id}
+													className="flex flex-row gap-2 w-full"
+												>
+													<FormField
+														control={form.control}
+														name={`toAddresses.${index}`}
+														render={({ field }) => (
+															<FormItem className="w-full">
+																<FormControl>
+																	<Input
+																		placeholder="email@example.com"
+																		className="w-full"
+																		{...field}
+																	/>
+																</FormControl>
+
+																<FormMessage />
+															</FormItem>
+														)}
+													/>
+													<Button
+														variant="outline"
+														type="button"
+														onClick={() => {
+															remove(index);
+														}}
+													>
+														Remove
+													</Button>
+												</div>
+											))}
+											{type === "resend" &&
+												"toAddresses" in form.formState.errors && (
+													<div className="text-sm font-medium text-destructive">
+														{form.formState?.errors?.toAddresses?.root?.message}
+													</div>
+												)}
+										</div>
+
+										<Button
+											variant="outline"
+											type="button"
+											onClick={() => {
+												append("");
+											}}
+										>
+											Add
+										</Button>
+									</>
+								)}
+
 								{type === "gotify" && (
 									<>
 										<FormField
@@ -1255,6 +1465,147 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										/>
 									</>
 								)}
+								{type === "pushover" && (
+									<>
+										<FormField
+											control={form.control}
+											name="userKey"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>User Key</FormLabel>
+													<FormControl>
+														<Input placeholder="ub3de9kl2q..." {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="apiToken"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>API Token</FormLabel>
+													<FormControl>
+														<Input placeholder="a3d9k2q7m4..." {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="priority"
+											defaultValue={0}
+											render={({ field }) => (
+												<FormItem className="w-full">
+													<FormLabel>Priority</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="0"
+															value={field.value ?? 0}
+															onChange={(e) => {
+																const value = e.target.value;
+																if (value === "" || value === "-") {
+																	field.onChange(0);
+																} else {
+																	const priority = Number.parseInt(value);
+																	if (
+																		!Number.isNaN(priority) &&
+																		priority >= -2 &&
+																		priority <= 2
+																	) {
+																		field.onChange(priority);
+																	}
+																}
+															}}
+															type="number"
+															min={-2}
+															max={2}
+														/>
+													</FormControl>
+													<FormDescription>
+														Message priority (-2 to 2, default: 0, emergency: 2)
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										{form.watch("priority") === 2 && (
+											<>
+												<FormField
+													control={form.control}
+													name="retry"
+													render={({ field }) => (
+														<FormItem className="w-full">
+															<FormLabel>Retry (seconds)</FormLabel>
+															<FormControl>
+																<Input
+																	placeholder="30"
+																	{...field}
+																	value={field.value ?? ""}
+																	onChange={(e) => {
+																		const value = e.target.value;
+																		if (value === "") {
+																			field.onChange(undefined);
+																		} else {
+																			const retry = Number.parseInt(value);
+																			if (!Number.isNaN(retry)) {
+																				field.onChange(retry);
+																			}
+																		}
+																	}}
+																	type="number"
+																	min={30}
+																/>
+															</FormControl>
+															<FormDescription>
+																How often (in seconds) to retry. Minimum 30
+																seconds.
+															</FormDescription>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+												<FormField
+													control={form.control}
+													name="expire"
+													render={({ field }) => (
+														<FormItem className="w-full">
+															<FormLabel>Expire (seconds)</FormLabel>
+															<FormControl>
+																<Input
+																	placeholder="3600"
+																	{...field}
+																	value={field.value ?? ""}
+																	onChange={(e) => {
+																		const value = e.target.value;
+																		if (value === "") {
+																			field.onChange(undefined);
+																		} else {
+																			const expire = Number.parseInt(value);
+																			if (!Number.isNaN(expire)) {
+																				field.onChange(expire);
+																			}
+																		}
+																	}}
+																	type="number"
+																	min={1}
+																	max={10800}
+																/>
+															</FormControl>
+															<FormDescription>
+																How long to keep retrying (max 10800 seconds / 3
+																hours).
+															</FormDescription>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+											</>
+										)}
+									</>
+								)}
 							</div>
 						</div>
 						<div className="flex flex-col gap-4">
@@ -1425,10 +1776,12 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingTelegram ||
 								isLoadingDiscord ||
 								isLoadingEmail ||
+								isLoadingResend ||
 								isLoadingGotify ||
 								isLoadingNtfy ||
 								isLoadingLark ||
-								isLoadingCustom
+								isLoadingCustom ||
+								isLoadingPushover
 							}
 							variant="secondary"
 							type="button"
@@ -1464,6 +1817,12 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											fromAddress: data.fromAddress,
 											toAddresses: data.toAddresses,
 										});
+									} else if (data.type === "resend") {
+										await testResendConnection({
+											apiKey: data.apiKey,
+											fromAddress: data.fromAddress,
+											toAddresses: data.toAddresses,
+										});
 									} else if (data.type === "gotify") {
 										await testGotifyConnection({
 											serverUrl: data.serverUrl,
@@ -1496,6 +1855,22 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										await testCustomConnection({
 											endpoint: data.endpoint,
 											headers: headersRecord,
+										});
+									} else if (data.type === "pushover") {
+										if (
+											data.priority === 2 &&
+											(data.retry == null || data.expire == null)
+										) {
+											throw new Error(
+												"Retry and expire are required for emergency priority (2)",
+											);
+										}
+										await testPushoverConnection({
+											userKey: data.userKey,
+											apiToken: data.apiToken,
+											priority: data.priority,
+											retry: data.priority === 2 ? data.retry : undefined,
+											expire: data.priority === 2 ? data.expire : undefined,
 										});
 									}
 									toast.success("Connection Success");

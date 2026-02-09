@@ -471,6 +471,7 @@ table git_provider {
 table gitea {
   giteaId text [pk, not null]
   giteaUrl text [not null, default: 'https://gitea.com']
+  giteaInternalUrl text
   redirect_uri text
   client_id text
   client_secret text
@@ -497,6 +498,7 @@ table github {
 table gitlab {
   gitlabId text [pk, not null]
   gitlabUrl text [not null, default: 'https://gitlab.com']
+  gitlabInternalUrl text
   application_id text
   redirect_uri text
   secret text

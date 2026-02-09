@@ -174,6 +174,10 @@ export const deployApplication = async ({
 }) => {
 	const application = await findApplicationById(applicationId);
 	const serverId = application.buildServerId || application.serverId;
+	const applicationEntity = {
+		...application,
+		serverId: serverId,
+	};
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
 	const deployment = await createDeployment({
@@ -185,15 +189,15 @@ export const deployApplication = async ({
 	try {
 		let command = "set -e;";
 		if (application.sourceType === "github") {
-			command += await cloneGithubRepository(application);
+			command += await cloneGithubRepository(applicationEntity);
 		} else if (application.sourceType === "gitlab") {
-			command += await cloneGitlabRepository(application);
+			command += await cloneGitlabRepository(applicationEntity);
 		} else if (application.sourceType === "gitea") {
-			command += await cloneGiteaRepository(application);
+			command += await cloneGiteaRepository(applicationEntity);
 		} else if (application.sourceType === "bitbucket") {
-			command += await cloneBitbucketRepository(application);
+			command += await cloneBitbucketRepository(applicationEntity);
 		} else if (application.sourceType === "git") {
-			command += await cloneGitRepository(application);
+			command += await cloneGitRepository(applicationEntity);
 		} else if (application.sourceType === "docker") {
 			command += await buildRemoteDocker(application);
 		}
@@ -253,8 +257,11 @@ export const deployApplication = async ({
 	} finally {
 		// Only extract commit info for non-docker sources
 		if (application.sourceType !== "docker") {
-			const commitInfo = await getGitCommitInfo(application);
-
+			const commitInfo = await getGitCommitInfo({
+				appName: application.appName,
+				type: "application",
+				serverId: serverId,
+			});
 			if (commitInfo) {
 				await updateDeployment(deployment.deploymentId, {
 					title: commitInfo.message,
@@ -437,6 +444,137 @@ export const deployPreviewApplication = async ({
 			previewStatus: "done",
 		});
 	} catch (error) {
+		const comment = getIssueComment(application.name, "error", previewDomain);
+		await updateIssueComment({
+			...issueParams,
+			body: `### Dokploy Preview Deployment\n\n${comment}`,
+		});
+		await updateDeploymentStatus(deployment.deploymentId, "error");
+		await updatePreviewDeployment(previewDeploymentId, {
+			previewStatus: "error",
+		});
+		throw error;
+	}
+
+	return true;
+};
+
+export const rebuildPreviewApplication = async ({
+	applicationId,
+	titleLog = "Rebuild Preview Deployment",
+	descriptionLog = "",
+	previewDeploymentId,
+}: {
+	applicationId: string;
+	titleLog: string;
+	descriptionLog: string;
+	previewDeploymentId: string;
+}) => {
+	const application = await findApplicationById(applicationId);
+	const previewDeployment =
+		await findPreviewDeploymentById(previewDeploymentId);
+
+	const deployment = await createDeploymentPreview({
+		title: titleLog,
+		description: descriptionLog,
+		previewDeploymentId: previewDeploymentId,
+	});
+
+	const previewDomain = getDomainHost(previewDeployment?.domain as Domain);
+	const issueParams = {
+		owner: application?.owner || "",
+		repository: application?.repository || "",
+		issue_number: previewDeployment.pullRequestNumber,
+		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId),
+		githubId: application?.githubId || "",
+	};
+
+	try {
+		const commentExists = await issueCommentExists({
+			...issueParams,
+		});
+		if (!commentExists) {
+			const result = await createPreviewDeploymentComment({
+				...issueParams,
+				previewDomain,
+				appName: previewDeployment.appName,
+				githubId: application?.githubId || "",
+				previewDeploymentId,
+			});
+
+			if (!result) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Pull request comment not found",
+				});
+			}
+
+			issueParams.comment_id = Number.parseInt(result?.pullRequestCommentId);
+		}
+
+		const buildingComment = getIssueComment(
+			application.name,
+			"running",
+			previewDomain,
+		);
+		await updateIssueComment({
+			...issueParams,
+			body: `### Dokploy Preview Deployment\n\n${buildingComment}`,
+		});
+
+		// Set application properties for preview deployment
+		application.appName = previewDeployment.appName;
+		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		application.rollbackActive = false;
+		application.buildRegistry = null;
+		application.rollbackRegistry = null;
+		application.registry = null;
+
+		const serverId = application.serverId;
+		let command = "set -e;";
+		// Only rebuild, don't clone repository
+		command += await getBuildCommand(application);
+		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+		if (serverId) {
+			await execAsyncRemote(serverId, commandWithLog);
+		} else {
+			await execAsync(commandWithLog);
+		}
+		await mechanizeDockerContainer(application);
+
+		const successComment = getIssueComment(
+			application.name,
+			"success",
+			previewDomain,
+		);
+		await updateIssueComment({
+			...issueParams,
+			body: `### Dokploy Preview Deployment\n\n${successComment}`,
+		});
+		await updateDeploymentStatus(deployment.deploymentId, "done");
+		await updatePreviewDeployment(previewDeploymentId, {
+			previewStatus: "done",
+		});
+	} catch (error) {
+		let command = "";
+
+		// Only log details for non-ExecError errors
+		if (!(error instanceof ExecError)) {
+			const message = error instanceof Error ? error.message : String(error);
+			const encodedMessage = encodeBase64(message);
+			command += `echo "${encodedMessage}" | base64 -d >> "${deployment.logPath}";`;
+		}
+
+		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
+		const serverId = application.buildServerId || application.serverId;
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
+
 		const comment = getIssueComment(application.name, "error", previewDomain);
 		await updateIssueComment({
 			...issueParams,

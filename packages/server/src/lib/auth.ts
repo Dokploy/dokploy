@@ -1,14 +1,15 @@
 import type { IncomingMessage } from "node:http";
+import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
 import { admin, apiKey, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
-import { IS_CLOUD } from "../constants";
+import { BETTER_AUTH_SECRET, IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
-import { getUserByToken } from "../services/admin";
+import { getTrustedOrigins, getUserByToken } from "../services/admin";
 import {
 	getWebServerSettings,
 	updateWebServerSettings,
@@ -22,6 +23,26 @@ const { handler, api } = betterAuth({
 		provider: "pg",
 		schema: schema,
 	}),
+	disabledPaths: [
+		"/sso/register",
+		"/organization/create",
+		"/organization/update",
+		"/organization/delete",
+	],
+	secret: BETTER_AUTH_SECRET,
+	...(!IS_CLOUD
+		? {
+				advanced: {
+					useSecureCookies: false,
+					defaultCookieAttributes: {
+						sameSite: "lax",
+						secure: false,
+						httpOnly: true,
+						path: "/",
+					},
+				},
+			}
+		: {}),
 	appName: "Dokploy",
 	socialProviders: {
 		github: {
@@ -36,18 +57,27 @@ const { handler, api } = betterAuth({
 	logger: {
 		disabled: process.env.NODE_ENV === "production",
 	},
-	...(!IS_CLOUD && {
-		async trustedOrigins() {
-			const settings = await getWebServerSettings();
-			if (!settings) {
-				return [];
-			}
-			return [
-				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
-				...(settings?.host ? [`https://${settings?.host}`] : []),
-			];
-		},
-	}),
+	async trustedOrigins() {
+		const trustedOrigins = await getTrustedOrigins();
+		if (IS_CLOUD) {
+			return trustedOrigins;
+		}
+		const settings = await getWebServerSettings();
+		if (!settings) {
+			return [];
+		}
+		return [
+			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
+			...(settings?.host ? [`https://${settings?.host}`] : []),
+			...(process.env.NODE_ENV === "development"
+				? [
+						"http://localhost:3000",
+						"https://absolutely-handy-falcon.ngrok-free.app",
+					]
+				: []),
+			...trustedOrigins,
+		];
+	},
 	emailVerification: {
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
@@ -100,6 +130,10 @@ const { handler, api } = betterAuth({
 								});
 							}
 						} else {
+							const isSSORequest = context?.path.includes("/sso");
+							if (isSSORequest) {
+								return;
+							}
 							const isAdminPresent = await db.query.member.findFirst({
 								where: eq(schema.member.role, "owner"),
 							});
@@ -112,6 +146,7 @@ const { handler, api } = betterAuth({
 					}
 				},
 				after: async (user, context) => {
+					const isSSORequest = context?.path.includes("/sso");
 					const isAdminPresent = await db.query.member.findFirst({
 						where: eq(schema.member.role, "owner"),
 					});
@@ -166,6 +201,29 @@ const { handler, api } = betterAuth({
 								createdAt: new Date(),
 								isDefault: true, // Mark first organization as default
 							});
+						});
+					} else if (isSSORequest) {
+						const providerId = context?.params?.providerId;
+						if (!providerId) {
+							throw new APIError("BAD_REQUEST", {
+								message: "Provider ID is required",
+							});
+						}
+						const provider = await db.query.ssoProvider.findFirst({
+							where: eq(schema.ssoProvider.providerId, providerId),
+						});
+
+						if (!provider) {
+							throw new APIError("BAD_REQUEST", {
+								message: "Provider not found",
+							});
+						}
+						await db.insert(schema.member).values({
+							userId: user.id,
+							organizationId: provider?.organizationId || "",
+							role: "member",
+							createdAt: new Date(),
+							isDefault: true,
 						});
 					}
 				},
@@ -228,12 +286,23 @@ const { handler, api } = betterAuth({
 				input: true,
 				defaultValue: "",
 			},
+			enableEnterpriseFeatures: {
+				type: "boolean",
+				required: false,
+				input: false,
+			},
+			isValidEnterpriseLicense: {
+				type: "boolean",
+				required: false,
+				input: false,
+			},
 		},
 	},
 	plugins: [
 		apiKey({
 			enableMetadata: true,
 		}),
+		sso(),
 		twoFactor(),
 		organization({
 			async sendInvitationEmail(data, _request) {
@@ -267,6 +336,7 @@ const { handler, api } = betterAuth({
 export const auth = {
 	handler,
 	createApiKey: api.createApiKey,
+	registerSSOProvider: api.registerSSOProvider,
 };
 
 export const validateRequest = async (request: IncomingMessage) => {
@@ -346,6 +416,8 @@ export const validateRequest = async (request: IncomingMessage) => {
 					twoFactorEnabled: userFromDb.twoFactorEnabled,
 					role: member?.role || "member",
 					ownerId: member?.organization.ownerId || apiKeyRecord.user.id,
+					enableEnterpriseFeatures: userFromDb.enableEnterpriseFeatures,
+					isValidEnterpriseLicense: userFromDb.isValidEnterpriseLicense,
 				},
 			};
 
@@ -384,10 +456,15 @@ export const validateRequest = async (request: IncomingMessage) => {
 			),
 			with: {
 				organization: true,
+				user: true,
 			},
 		});
 
 		session.user.role = member?.role || "member";
+		session.user.enableEnterpriseFeatures =
+			member?.user.enableEnterpriseFeatures || false;
+		session.user.isValidEnterpriseLicense =
+			member?.user.isValidEnterpriseLicense || false;
 		if (member) {
 			session.user.ownerId = member.organization.ownerId;
 		} else {

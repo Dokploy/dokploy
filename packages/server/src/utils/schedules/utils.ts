@@ -1,6 +1,6 @@
 import { createWriteStream } from "node:fs";
 import path from "node:path";
-import { paths } from "@dokploy/server/constants";
+import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Schedule } from "@dokploy/server/db/schema/schedule";
 import {
 	createDeploymentSchedule,
@@ -93,6 +93,13 @@ export const runCommand = async (scheduleId: string) => {
 			const writeStream = createWriteStream(deployment.logPath, { flags: "a" });
 
 			try {
+				if (IS_CLOUD) {
+					writeStream.write(
+						"This feature is not available in the cloud version.",
+					);
+					writeStream.end();
+					return;
+				}
 				writeStream.write(
 					`docker exec ${containerId} ${shellType} -c ${command}\n`,
 				);
