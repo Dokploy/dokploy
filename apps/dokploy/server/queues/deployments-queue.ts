@@ -68,6 +68,7 @@ export const deploymentWorker = new Worker(
 						titleLog: job.data.titleLog,
 						descriptionLog: job.data.descriptionLog,
 						previewDeploymentId: job.data.previewDeploymentId,
+						notificationEvent: job.data.previewNotificationEvent,
 					});
 				}
 			}

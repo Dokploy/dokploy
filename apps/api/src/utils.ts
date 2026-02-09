@@ -68,6 +68,7 @@ export const deploy = async (job: DeployJob) => {
 						titleLog: job.titleLog || "Preview Deployment",
 						descriptionLog: job.descriptionLog || "",
 						previewDeploymentId: job.previewDeploymentId,
+						notificationEvent: job.previewNotificationEvent,
 					});
 				}
 			}

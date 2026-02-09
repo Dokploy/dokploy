@@ -32,6 +32,8 @@ export const notifications = pgTable("notification", {
 		.$defaultFn(() => nanoid()),
 	name: text("name").notNull(),
 	appDeploy: boolean("appDeploy").notNull().default(false),
+	previewDeploy: boolean("previewDeploy").notNull().default(false),
+	previewRebuild: boolean("previewRebuild").notNull().default(false),
 	appBuildError: boolean("appBuildError").notNull().default(false),
 	databaseBackup: boolean("databaseBackup").notNull().default(false),
 	volumeBackup: boolean("volumeBackup").notNull().default(false),
@@ -236,6 +238,8 @@ export const apiCreateSlack = notificationsSchema
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
+		previewDeploy: true,
+		previewRebuild: true,
 		dockerCleanup: true,
 		serverThreshold: true,
 	})
@@ -264,6 +268,8 @@ export const apiCreateTelegram = notificationsSchema
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
+		previewDeploy: true,
+		previewRebuild: true,
 		dockerCleanup: true,
 		serverThreshold: true,
 	})
@@ -294,6 +300,8 @@ export const apiCreateDiscord = notificationsSchema
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
+		previewDeploy: true,
+		previewRebuild: true,
 		dockerCleanup: true,
 		serverThreshold: true,
 	})
@@ -325,6 +333,8 @@ export const apiCreateEmail = notificationsSchema
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
+		previewDeploy: true,
+		previewRebuild: true,
 		dockerCleanup: true,
 		serverThreshold: true,
 	})
@@ -361,6 +371,8 @@ export const apiCreateResend = notificationsSchema
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
+		previewDeploy: true,
+		previewRebuild: true,
 		dockerCleanup: true,
 		serverThreshold: true,
 	})
@@ -391,6 +403,8 @@ export const apiCreateGotify = notificationsSchema
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
+		previewDeploy: true,
+		previewRebuild: true,
 		dockerCleanup: true,
 	})
 	.extend({
@@ -425,6 +439,8 @@ export const apiCreateNtfy = notificationsSchema
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
+		previewDeploy: true,
+		previewRebuild: true,
 		dockerCleanup: true,
 	})
 	.extend({
@@ -462,6 +478,8 @@ export const apiCreateCustom = notificationsSchema
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
+		previewDeploy: true,
+		previewRebuild: true,
 		dockerCleanup: true,
 		serverThreshold: true,
 	})
@@ -489,6 +507,8 @@ export const apiCreateLark = notificationsSchema
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
+		previewDeploy: true,
+		previewRebuild: true,
 		dockerCleanup: true,
 		serverThreshold: true,
 	})
@@ -515,6 +535,8 @@ export const apiCreatePushover = notificationsSchema
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
+		previewDeploy: true,
+		previewRebuild: true,
 		dockerCleanup: true,
 		serverThreshold: true,
 	})
@@ -549,6 +571,8 @@ export const apiUpdatePushover = z.object({
 	dokployRestart: z.boolean().optional(),
 	name: z.string().optional(),
 	appDeploy: z.boolean().optional(),
+	previewDeploy: z.boolean().optional(),
+	previewRebuild: z.boolean().optional(),
 	dockerCleanup: z.boolean().optional(),
 	serverThreshold: z.boolean().optional(),
 });

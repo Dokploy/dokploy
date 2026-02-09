@@ -18,6 +18,15 @@ import {
 	sendTelegramNotification,
 } from "./utils";
 
+const deploymentNotificationEventColumns = {
+	appDeploy: notifications.appDeploy,
+	previewDeploy: notifications.previewDeploy,
+	previewRebuild: notifications.previewRebuild,
+} as const;
+
+type DeploymentNotificationEvent =
+	keyof typeof deploymentNotificationEventColumns;
+
 interface Props {
 	projectName: string;
 	applicationName: string;
@@ -26,6 +35,7 @@ interface Props {
 	organizationId: string;
 	domains: Domain[];
 	environmentName: string;
+	notificationEvent?: DeploymentNotificationEvent;
 }
 
 export const sendBuildSuccessNotifications = async ({
@@ -36,12 +46,15 @@ export const sendBuildSuccessNotifications = async ({
 	organizationId,
 	domains,
 	environmentName,
+	notificationEvent = "appDeploy",
 }: Props) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
+	const notificationEventColumn =
+		deploymentNotificationEventColumns[notificationEvent];
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
-			eq(notifications.appDeploy, true),
+			eq(notificationEventColumn, true),
 			eq(notifications.organizationId, organizationId),
 		),
 		with: {
@@ -276,6 +289,7 @@ export const sendBuildSuccessNotifications = async ({
 					domains: domains.map((domain) => domain.host).join(", "),
 					status: "success",
 					type: "build",
+					event: notificationEvent,
 				});
 			}
 
