@@ -1,13 +1,6 @@
-import {
-	AlertCircle,
-	HardDrive,
-	Network,
-} from "lucide-react";
+import { AlertCircle, HardDrive, Network } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-	TableCell,
-	TableRow,
-} from "@/components/ui/table";
+import { TableCell, TableRow } from "@/components/ui/table";
 import {
 	Tooltip,
 	TooltipContent,
@@ -27,7 +20,9 @@ export const ContainerRow = ({ container, stat }: ContainerRowProps) => {
 	const hasError = container.Error && container.Error.trim() !== "";
 
 	const stateBadge = (
-		<Badge variant={hasError ? "destructive" : isRunning ? "default" : "destructive"}>
+		<Badge
+			variant={hasError ? "destructive" : isRunning ? "default" : "destructive"}
+		>
 			{container.CurrentState}
 		</Badge>
 	);
@@ -36,9 +31,7 @@ export const ContainerRow = ({ container, stat }: ContainerRowProps) => {
 		<TableRow>
 			<TableCell>
 				<div className="flex flex-col gap-1">
-					<span className="font-medium text-sm">
-						{container.Name}
-					</span>
+					<span className="font-medium text-sm">{container.Name}</span>
 					<span className="text-xs text-muted-foreground truncate max-w-[230px]">
 						{container.Image}
 					</span>
@@ -66,9 +59,7 @@ export const ContainerRow = ({ container, stat }: ContainerRowProps) => {
 			</TableCell>
 			<TableCell className="text-right">
 				{stat ? (
-					<span className="text-sm font-medium">
-						{formatCpu(stat.CPUPerc)}
-					</span>
+					<span className="text-sm font-medium">{formatCpu(stat.CPUPerc)}</span>
 				) : (
 					<span className="text-xs text-muted-foreground">--</span>
 				)}

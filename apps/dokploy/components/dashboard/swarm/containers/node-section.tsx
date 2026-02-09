@@ -1,8 +1,4 @@
-import {
-	ChevronDown,
-	ChevronRight,
-	Server,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Server } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -63,9 +59,7 @@ export const NodeSection = ({
 										<span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-destructive" />
 									)}
 								</div>
-								<CardTitle className="text-base">
-									{group.nodeName}
-								</CardTitle>
+								<CardTitle className="text-base">{group.nodeName}</CardTitle>
 								{group.nodeStatus && (
 									<Badge
 										variant={
@@ -86,14 +80,14 @@ export const NodeSection = ({
 								</Badge>
 								{nodeDown ? (
 									<Badge variant="destructive">
-										{group.nodeStatus?.Status} / {group.nodeStatus?.Availability}
+										{group.nodeStatus?.Status} /{" "}
+										{group.nodeStatus?.Availability}
 									</Badge>
 								) : runningCount === group.containers.length ? (
 									<Badge variant="default">All Running</Badge>
 								) : (
 									<Badge variant="orange">
-										{runningCount}/{group.containers.length}{" "}
-										Running
+										{runningCount}/{group.containers.length} Running
 									</Badge>
 								)}
 							</div>
@@ -105,29 +99,17 @@ export const NodeSection = ({
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead className="w-[250px]">
-										Container
-									</TableHead>
+									<TableHead className="w-[250px]">Container</TableHead>
 									<TableHead>State</TableHead>
-									<TableHead className="text-right">
-										CPU
-									</TableHead>
-									<TableHead className="text-right">
-										Memory
-									</TableHead>
-									<TableHead className="text-right">
-										Block I/O
-									</TableHead>
-									<TableHead className="text-right">
-										Network I/O
-									</TableHead>
+									<TableHead className="text-right">CPU</TableHead>
+									<TableHead className="text-right">Memory</TableHead>
+									<TableHead className="text-right">Block I/O</TableHead>
+									<TableHead className="text-right">Network I/O</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
 								{group.containers.map((container) => {
-									const stat = findStatsForContainer(
-										container.Name,
-									);
+									const stat = findStatsForContainer(container.Name);
 									return (
 										<ContainerRow
 											key={container.ID}

@@ -81,9 +81,8 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 	if (nodeApps && appDetails) {
 		for (const app of nodeApps) {
 			const details =
-				appDetails?.filter(
-					(detail: { Name: string }) =>
-						detail.Name.startsWith(`${app.Name}.`),
+				appDetails?.filter((detail: { Name: string }) =>
+					detail.Name.startsWith(`${app.Name}.`),
 				) || [];
 
 			if (details.length === 0) {
@@ -236,22 +235,24 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 					<AlertTitle>No Swarm Services Found</AlertTitle>
 					<AlertDescription>
 						Docker Swarm is active with{" "}
-						<strong>{nodes?.length ?? 0} node(s)</strong>, but there
-						are no application services running in the swarm.
+						<strong>{nodes?.length ?? 0} node(s)</strong>, but there are no
+						application services running in the swarm.
 					</AlertDescription>
 				</Alert>
 				<div className="space-y-3 text-sm text-muted-foreground">
 					<p>
 						This view shows containers deployed as{" "}
-						<strong>Swarm services</strong>. Standalone or
-						Docker Compose containers won&apos;t appear here.
+						<strong>Swarm services</strong>. Standalone or Docker Compose
+						containers won&apos;t appear here.
 					</p>
-					<p>To see containers in this view, make sure your applications are:</p>
+					<p>
+						To see containers in this view, make sure your applications are:
+					</p>
 					<ol className="list-decimal list-inside space-y-2 ml-1">
 						<li>
-							<strong>Deployed as Swarm services</strong> &mdash;
-							Applications in Dokploy deploy to Swarm by default.
-							Docker Compose projects need to use{" "}
+							<strong>Deployed as Swarm services</strong> &mdash; Applications
+							in Dokploy deploy to Swarm by default. Docker Compose projects
+							need to use{" "}
 							<code className="bg-muted px-1.5 py-0.5 rounded text-xs">
 								Stack
 							</code>{" "}
@@ -262,9 +263,9 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 							) to run as Swarm services.
 						</li>
 						<li>
-							<strong>Using a registry</strong> (for multi-node
-							setups) &mdash; Worker nodes need to pull images
-							from a shared registry. Configure one in{" "}
+							<strong>Using a registry</strong> (for multi-node setups) &mdash;
+							Worker nodes need to pull images from a shared registry. Configure
+							one in{" "}
 							<Link
 								href="/dashboard/settings/cluster"
 								className="text-primary underline underline-offset-4"
@@ -274,9 +275,8 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 							.
 						</li>
 						<li>
-							<strong>Successfully built and deployed</strong>{" "}
-							&mdash; Check your project&apos;s deployment logs for
-							errors.
+							<strong>Successfully built and deployed</strong> &mdash; Check
+							your project&apos;s deployment logs for errors.
 						</li>
 					</ol>
 					<DocLinks />
@@ -303,8 +303,8 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 					<AlertTriangle className="h-4 w-4" />
 					<AlertTitle>No Running Containers</AlertTitle>
 					<AlertDescription>
-						Found <strong>{nodeApps.length} service(s)</strong> in
-						the swarm, but none have running containers.
+						Found <strong>{nodeApps.length} service(s)</strong> in the swarm,
+						but none have running containers.
 					</AlertDescription>
 				</Alert>
 				{hasErrors && (
@@ -328,16 +328,13 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 				<div className="space-y-3 text-sm text-muted-foreground">
 					<p>This can happen when:</p>
 					<ul className="list-disc list-inside space-y-2 ml-1">
+						<li>Services are scaled to 0 replicas</li>
 						<li>
-							Services are scaled to 0 replicas
+							Containers are failing to start &mdash; check deployment logs for
+							errors
 						</li>
 						<li>
-							Containers are failing to start &mdash; check
-							deployment logs for errors
-						</li>
-						<li>
-							Images can&apos;t be pulled on worker nodes &mdash;
-							verify your{" "}
+							Images can&apos;t be pulled on worker nodes &mdash; verify your{" "}
 							<Link
 								href="/dashboard/settings/cluster"
 								className="text-primary underline underline-offset-4"
@@ -346,8 +343,8 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 							</Link>
 						</li>
 						<li>
-							Node constraints prevent scheduling &mdash; check
-							placement rules in your app&apos;s Cluster settings
+							Node constraints prevent scheduling &mdash; check placement rules
+							in your app&apos;s Cluster settings
 						</li>
 					</ul>
 					<DocLinks />
@@ -432,8 +429,7 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 						Container Breakdown by Node
 					</CardTitle>
 					<p className="text-sm text-muted-foreground">
-						Showing containers across{" "}
-						{nodes?.length ?? 0} swarm node(s)
+						Showing containers across {nodes?.length ?? 0} swarm node(s)
 						{statsLoading ? "" : " (metrics refresh every 5s)"}
 					</p>
 				</div>
@@ -446,17 +442,13 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 			<div className="grid gap-4 md:grid-cols-3">
 				<Card className="bg-background">
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">
-							Swarm Nodes
-						</CardTitle>
+						<CardTitle className="text-sm font-medium">Swarm Nodes</CardTitle>
 						<div className="p-2 bg-emerald-600/20 text-emerald-600 rounded-md">
 							<Server className="h-4 w-4 text-muted-foreground dark:text-emerald-600" />
 						</div>
 					</CardHeader>
 					<CardContent>
-						<div className="text-2xl font-bold">
-							{nodes?.length ?? 0}
-						</div>
+						<div className="text-2xl font-bold">{nodes?.length ?? 0}</div>
 						{downNodes.length > 0 && (
 							<p className="text-xs text-destructive mt-1">
 								{downNodes.length} node(s) down or drained
@@ -467,17 +459,13 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 
 				<Card className="bg-background">
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">
-							Services
-						</CardTitle>
+						<CardTitle className="text-sm font-medium">Services</CardTitle>
 						<div className="p-2 bg-emerald-600/20 text-emerald-600 rounded-md">
 							<Cpu className="h-4 w-4 text-muted-foreground dark:text-emerald-600" />
 						</div>
 					</CardHeader>
 					<CardContent>
-						<div className="text-2xl font-bold">
-							{nodeApps?.length ?? 0}
-						</div>
+						<div className="text-2xl font-bold">{nodeApps?.length ?? 0}</div>
 						{unscheduledServices.length > 0 && (
 							<p className="text-xs text-muted-foreground mt-1">
 								{unscheduledServices.length} with no running tasks
@@ -496,9 +484,7 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 						</div>
 					</CardHeader>
 					<CardContent>
-						<div className="text-2xl font-bold">
-							{runningContainers.length}
-						</div>
+						<div className="text-2xl font-bold">{runningContainers.length}</div>
 					</CardContent>
 				</Card>
 			</div>
@@ -507,19 +493,17 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 			{downNodes.length > 0 && (
 				<Alert variant="destructive">
 					<AlertTriangle className="h-4 w-4" />
-					<AlertTitle>
-						{downNodes.length} Node(s) Unavailable
-					</AlertTitle>
+					<AlertTitle>{downNodes.length} Node(s) Unavailable</AlertTitle>
 					<AlertDescription>
 						<p className="mb-2">
-							The following nodes are not ready or have been drained.
-							Containers scheduled on these nodes may not be running.
+							The following nodes are not ready or have been drained. Containers
+							scheduled on these nodes may not be running.
 						</p>
 						<ul className="list-disc list-inside space-y-1 text-xs">
 							{downNodes.map((node: SwarmNode) => (
 								<li key={node.ID}>
-									<strong>{node.Hostname}</strong> &mdash;{" "}
-									Status: {node.Status}, Availability: {node.Availability}
+									<strong>{node.Hostname}</strong> &mdash; Status: {node.Status}
+									, Availability: {node.Availability}
 									{node.ManagerStatus && ` (${node.ManagerStatus})`}
 								</li>
 							))}
@@ -543,9 +527,12 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 					<Info className="h-4 w-4" />
 					<AlertTitle>Multi-Node Metrics Note</AlertTitle>
 					<AlertDescription>
-						CPU, memory, and I/O metrics are collected from the manager
-						node via <code className="bg-muted px-1 py-0.5 rounded text-xs">docker stats</code>.
-						Containers running on worker nodes will show &ldquo;--&rdquo; for metrics.
+						CPU, memory, and I/O metrics are collected from the manager node via{" "}
+						<code className="bg-muted px-1 py-0.5 rounded text-xs">
+							docker stats
+						</code>
+						. Containers running on worker nodes will show &ldquo;--&rdquo; for
+						metrics.
 					</AlertDescription>
 				</Alert>
 			)}
@@ -571,8 +558,8 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 					</AlertTitle>
 					<AlertDescription>
 						<p className="mb-2">
-							These services exist in the swarm but have no running
-							containers. They may be scaled to 0 replicas or failing to start.
+							These services exist in the swarm but have no running containers.
+							They may be scaled to 0 replicas or failing to start.
 						</p>
 						<ul className="list-disc list-inside space-y-1 text-xs">
 							{unscheduledServices.map((svc) => (
@@ -634,7 +621,10 @@ interface SwarmNotAvailableProps {
 	onRetry: () => void;
 }
 
-const SwarmNotAvailable = ({ errorMessage, onRetry }: SwarmNotAvailableProps) => (
+const SwarmNotAvailable = ({
+	errorMessage,
+	onRetry,
+}: SwarmNotAvailableProps) => (
 	<div className="flex flex-col gap-4 py-6 max-w-2xl mx-auto">
 		<Alert variant="destructive">
 			<AlertTriangle className="h-4 w-4" />
@@ -642,16 +632,14 @@ const SwarmNotAvailable = ({ errorMessage, onRetry }: SwarmNotAvailableProps) =>
 			<AlertDescription>
 				Could not reach Docker Swarm.{" "}
 				{errorMessage && (
-					<span className="block mt-1 text-xs opacity-80">
-						{errorMessage}
-					</span>
+					<span className="block mt-1 text-xs opacity-80">{errorMessage}</span>
 				)}
 			</AlertDescription>
 		</Alert>
 		<div className="space-y-3 text-sm text-muted-foreground">
 			<p>
-				This feature requires Docker Swarm to be initialized and active.
-				To get started:
+				This feature requires Docker Swarm to be initialized and active. To get
+				started:
 			</p>
 			<ol className="list-decimal list-inside space-y-2 ml-1">
 				<li>
@@ -679,12 +667,7 @@ const SwarmNotAvailable = ({ errorMessage, onRetry }: SwarmNotAvailableProps) =>
 			</ol>
 			<DocLinks />
 		</div>
-		<Button
-			variant="outline"
-			size="sm"
-			className="w-fit"
-			onClick={onRetry}
-		>
+		<Button variant="outline" size="sm" className="w-fit" onClick={onRetry}>
 			<RefreshCw className="h-4 w-4 mr-2" />
 			Retry
 		</Button>

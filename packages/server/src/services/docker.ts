@@ -498,7 +498,7 @@ export const getAllContainerStats = async (serverId?: string) => {
 	try {
 		let stdout = "";
 		const command =
-			"docker stats --no-stream --format '{\"BlockIO\":\"{{.BlockIO}}\",\"CPUPerc\":\"{{.CPUPerc}}\",\"Container\":\"{{.Container}}\",\"ID\":\"{{.ID}}\",\"MemPerc\":\"{{.MemPerc}}\",\"MemUsage\":\"{{.MemUsage}}\",\"Name\":\"{{.Name}}\",\"NetIO\":\"{{.NetIO}}\"}'";
+			'docker stats --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'';
 
 		if (serverId) {
 			const result = await execAsyncRemote(serverId, command);
