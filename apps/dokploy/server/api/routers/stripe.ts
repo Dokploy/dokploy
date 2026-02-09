@@ -7,7 +7,12 @@ import {
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
-import { getStripeItems, WEBSITE_URL } from "@/server/utils/stripe";
+import {
+	getStripeItems,
+	PRODUCT_ANNUAL_ID,
+	PRODUCT_MONTHLY_ID,
+	WEBSITE_URL,
+} from "@/server/utils/stripe";
 import { adminProcedure, createTRPCRouter } from "../trpc";
 
 export const stripeRouter = createTRPCRouter({
@@ -22,6 +27,7 @@ export const stripeRouter = createTRPCRouter({
 		const products = await stripe.products.list({
 			expand: ["data.default_price"],
 			active: true,
+			ids: [PRODUCT_MONTHLY_ID, PRODUCT_ANNUAL_ID],
 		});
 
 		if (!stripeCustomerId) {
