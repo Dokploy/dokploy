@@ -453,6 +453,9 @@ export const getApplicationInfo = async (
 	appNames: string[],
 	serverId?: string,
 ) => {
+	if (appNames.length === 0) {
+		return [];
+	}
 	try {
 		let stdout = "";
 		let stderr = "";
