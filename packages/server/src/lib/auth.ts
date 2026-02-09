@@ -43,6 +43,17 @@ const { handler, api } = betterAuth({
 				},
 			}
 		: {}),
+	...(IS_CLOUD
+		? {
+				account: {
+					accountLinking: {
+						enabled: true,
+						trustedProviders: ["github", "google"],
+						allowDifferentEmails: true,
+					},
+				},
+			}
+		: {}),
 	appName: "Dokploy",
 	socialProviders: {
 		github: {
