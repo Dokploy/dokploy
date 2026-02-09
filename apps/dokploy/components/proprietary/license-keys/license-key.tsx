@@ -166,7 +166,12 @@ export function LicenseKeySettings() {
 									{!haveValidLicenseKey && (
 										<Button
 											variant="secondary"
-											disabled={isSaving || isValidating || isDeactivating}
+											disabled={
+												isSaving ||
+												isValidating ||
+												isDeactivating ||
+												!licenseKey.trim()
+											}
 											isLoading={isActivating}
 											onClick={async () => {
 												try {

@@ -1,4 +1,4 @@
-import { IS_CLOUD, validateRequest } from "@dokploy/server";
+import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
@@ -45,7 +45,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	if (user.role === "member") {
+	if (user.role !== "owner") {
 		return {
 			redirect: {
 				permanent: true,

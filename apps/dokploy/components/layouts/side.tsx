@@ -404,8 +404,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/license",
 			icon: Key,
 			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,

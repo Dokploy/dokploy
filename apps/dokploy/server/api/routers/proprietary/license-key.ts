@@ -12,7 +12,7 @@ import {
 
 export const licenseKeyRouter = createTRPCRouter({
 	activate: adminProcedure
-		.input(z.object({ licenseKey: z.string() }))
+		.input(z.object({ licenseKey: z.string().min(1) }))
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const currentUserId = ctx.user.id;
@@ -71,6 +71,13 @@ export const licenseKeyRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "User not found",
+				});
+			}
+
+			if (ctx.user.role !== "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not authorized to validate a license key",
 				});
 			}
 
@@ -164,6 +171,13 @@ export const licenseKeyRouter = createTRPCRouter({
 			});
 		}
 
+		if (ctx.user.role !== "owner") {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "You are not authorized to get enterprise settings",
+			});
+		}
+
 		return {
 			enableEnterpriseFeatures: !!currentUser.enableEnterpriseFeatures,
 			licenseKey: currentUser.licenseKey ?? "",
@@ -197,6 +211,13 @@ export const licenseKeyRouter = createTRPCRouter({
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "enableEnterpriseFeatures must be provided",
+					});
+				}
+
+				if (ctx.user.role !== "owner") {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You are not authorized to update enterprise settings",
 					});
 				}
 
