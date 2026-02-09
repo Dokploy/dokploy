@@ -371,11 +371,7 @@ export const getSwarmNodes = async (serverId?: string) => {
 
 		if (stderr) {
 			console.error(`Error: ${stderr}`);
-			return [];
-		}
-
-		if (!stdout.trim()) {
-			return [];
+			return;
 		}
 
 		const nodesArray = stdout
@@ -385,7 +381,6 @@ export const getSwarmNodes = async (serverId?: string) => {
 		return nodesArray;
 	} catch (error) {
 		console.error("getSwarmNodes error:", error);
-		return [];
 	}
 };
 
