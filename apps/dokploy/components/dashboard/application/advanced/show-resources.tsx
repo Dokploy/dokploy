@@ -21,17 +21,11 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
 	createConverter,
 	NumberInputWithSteps,
 } from "@/components/ui/number-input";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
@@ -39,6 +33,12 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 
 const CPU_STEP = 0.25;
@@ -155,7 +155,7 @@ export const ShowResources = ({ id, type }: Props) => {
 				cpuReservation: data?.cpuReservation || undefined,
 				memoryLimit: data?.memoryLimit || undefined,
 				memoryReservation: data?.memoryReservation || undefined,
-				ulimitsSwarm: (data as any)?.ulimitsSwarm || [],
+				ulimitsSwarm: data?.ulimitsSwarm || [],
 			});
 		}
 	}, [data, form, form.reset]);
