@@ -12,6 +12,61 @@ import {
 import type { FileConfig, HttpRouter } from "./file-types";
 import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
 
+const PREVIEW_APP_NAME_REGEX = /^preview-(.+)-[^-]+$/;
+
+const getPreviewBaseAppName = (appName: string) => {
+	const match = appName.match(PREVIEW_APP_NAME_REGEX);
+	return match?.[1];
+};
+
+const getInheritedPreviewRouterSecurity = async (
+	app: ApplicationNested,
+	baseAppName?: string,
+) => {
+	const sourceAppName = baseAppName || getPreviewBaseAppName(app.appName);
+	const fileMiddlewares = new Set<string>();
+	let tlsOption: string | undefined;
+
+	if (!sourceAppName) {
+		return { fileMiddlewares: [] as string[], tlsOption };
+	}
+
+	const sourceConfig = app.serverId
+		? await loadOrCreateConfigRemote(app.serverId, sourceAppName)
+		: loadOrCreateConfig(sourceAppName);
+
+	const routers = Object.values(sourceConfig.http?.routers || {});
+
+	for (const router of routers) {
+		const hasWebSecureEntryPoint =
+			!router?.entryPoints || router.entryPoints.includes("websecure");
+
+		if (!hasWebSecureEntryPoint) {
+			continue;
+		}
+
+		for (const middleware of router.middlewares || []) {
+			if (
+				typeof middleware === "string" &&
+				middleware.trim().length > 0 &&
+				middleware.endsWith("@file")
+			) {
+				fileMiddlewares.add(middleware);
+			}
+		}
+
+		if (
+			!tlsOption &&
+			typeof router.tls?.options === "string" &&
+			router.tls.options.trim().length > 0
+		) {
+			tlsOption = router.tls.options;
+		}
+	}
+
+	return { fileMiddlewares: [...fileMiddlewares], tlsOption };
+};
+
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
 	let config: FileConfig;
@@ -121,6 +176,11 @@ export const createRouterConfig = async (
 		entryPoints: [entryPoint],
 	};
 
+	const previewBaseAppName =
+		domain.domainType === "preview"
+			? getPreviewBaseAppName(appName)
+			: undefined;
+
 	// Add path rewriting middleware if needed
 	if (internalPath && internalPath !== "/" && internalPath !== path) {
 		const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
@@ -140,11 +200,8 @@ export const createRouterConfig = async (
 		// redirects
 		for (const redirect of redirects) {
 			let middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
-			if (domain.domainType === "preview") {
-				middlewareName = `redirect-${appName.replace(
-					/^preview-(.+)-[^-]+$/,
-					"$1",
-				)}-${redirect.uniqueConfigKey}`;
+			if (previewBaseAppName) {
+				middlewareName = `redirect-${previewBaseAppName}-${redirect.uniqueConfigKey}`;
 			}
 			routerConfig.middlewares?.push(middlewareName);
 		}
@@ -152,11 +209,8 @@ export const createRouterConfig = async (
 		// security
 		if (security.length > 0) {
 			let middlewareName = `auth-${appName}`;
-			if (domain.domainType === "preview") {
-				middlewareName = `auth-${appName.replace(
-					/^preview-(.+)-[^-]+$/,
-					"$1",
-				)}`;
+			if (previewBaseAppName) {
+				middlewareName = `auth-${previewBaseAppName}`;
 			}
 			routerConfig.middlewares?.push(middlewareName);
 		}
@@ -169,6 +223,25 @@ export const createRouterConfig = async (
 			routerConfig.tls = { certResolver: domain.customCertResolver };
 		} else if (certificateType === "none") {
 			routerConfig.tls = undefined;
+		}
+	}
+
+	// Preview routers are generated in a separate dynamic file. Inherit global
+	// @file middlewares and TLS options from the source app's websecure router.
+	if (entryPoint === "websecure" && previewBaseAppName) {
+		const inherited = await getInheritedPreviewRouterSecurity(
+			app,
+			previewBaseAppName,
+		);
+
+		for (const middleware of inherited.fileMiddlewares) {
+			if (!routerConfig.middlewares?.includes(middleware)) {
+				routerConfig.middlewares?.push(middleware);
+			}
+		}
+
+		if (routerConfig.tls && !routerConfig.tls.options && inherited.tlsOption) {
+			routerConfig.tls.options = inherited.tlsOption;
 		}
 	}
 
