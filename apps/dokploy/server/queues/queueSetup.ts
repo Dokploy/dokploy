@@ -3,11 +3,22 @@ import {
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { Queue } from "bullmq";
+import { deploymentWorker } from "./deployments-queue";
 import { redisConfig } from "./redis-connection";
 
 const myQueue = new Queue("deployments", {
 	connection: redisConfig,
 });
+
+export const getJobsByApplicationId = async (applicationId: string) => {
+	const jobs = await myQueue.getJobs();
+	return jobs.filter((job) => job?.data?.applicationId === applicationId);
+};
+
+export const getJobsByComposeId = async (composeId: string) => {
+	const jobs = await myQueue.getJobs();
+	return jobs.filter((job) => job?.data?.composeId === composeId);
+};
 
 process.on("SIGTERM", () => {
 	myQueue.close();
@@ -32,6 +43,11 @@ export const cleanQueuesByApplication = async (applicationId: string) => {
 			console.log(`Removed job ${job.id} for application ${applicationId}`);
 		}
 	}
+};
+
+export const cleanAllDeploymentQueue = async () => {
+	deploymentWorker.cancelAllJobs("User requested cancellation");
+	return true;
 };
 
 export const cleanQueuesByCompose = async (composeId: string) => {

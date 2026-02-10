@@ -43,6 +43,8 @@ import {
 	type ServiceModeSwarm,
 	ServiceModeSwarmSchema,
 	triggerType,
+	type UlimitsSwarm,
+	UlimitsSwarmSchema,
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
@@ -172,6 +174,7 @@ export const applications = pgTable("application", {
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
+	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
 	//
 	replicas: integer("replicas").default(1).notNull(),
 	applicationStatus: applicationStatus("applicationStatus")
@@ -364,6 +367,7 @@ const createSchema = createInsertSchema(applications, {
 	cleanCache: z.boolean().optional(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
+	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 });
 
 export const apiCreateApplication = createSchema.pick({

@@ -6,6 +6,7 @@ import {
 	createLarkNotification,
 	createNtfyNotification,
 	createPushoverNotification,
+	createResendNotification,
 	createSlackNotification,
 	createTelegramNotification,
 	findNotificationById,
@@ -19,6 +20,7 @@ import {
 	sendLarkNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
+	sendResendNotification,
 	sendServerThresholdNotifications,
 	sendSlackNotification,
 	sendTelegramNotification,
@@ -29,6 +31,7 @@ import {
 	updateLarkNotification,
 	updateNtfyNotification,
 	updatePushoverNotification,
+	updateResendNotification,
 	updateSlackNotification,
 	updateTelegramNotification,
 } from "@dokploy/server";
@@ -50,6 +53,7 @@ import {
 	apiCreateLark,
 	apiCreateNtfy,
 	apiCreatePushover,
+	apiCreateResend,
 	apiCreateSlack,
 	apiCreateTelegram,
 	apiFindOneNotification,
@@ -60,6 +64,7 @@ import {
 	apiTestLarkConnection,
 	apiTestNtfyConnection,
 	apiTestPushoverConnection,
+	apiTestResendConnection,
 	apiTestSlackConnection,
 	apiTestTelegramConnection,
 	apiUpdateCustom,
@@ -69,6 +74,7 @@ import {
 	apiUpdateLark,
 	apiUpdateNtfy,
 	apiUpdatePushover,
+	apiUpdateResend,
 	apiUpdateSlack,
 	apiUpdateTelegram,
 	notifications,
@@ -302,6 +308,63 @@ export const notificationRouter = createTRPCRouter({
 				});
 			}
 		}),
+	createResend: adminProcedure
+		.input(apiCreateResend)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				return await createResendNotification(
+					input,
+					ctx.session.activeOrganizationId,
+				);
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error creating the notification",
+					cause: error,
+				});
+			}
+		}),
+	updateResend: adminProcedure
+		.input(apiUpdateResend)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const notification = await findNotificationById(input.notificationId);
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this notification",
+					});
+				}
+				return await updateResendNotification({
+					...input,
+					organizationId: ctx.session.activeOrganizationId,
+				});
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error updating the notification",
+					cause: error,
+				});
+			}
+		}),
+	testResendConnection: adminProcedure
+		.input(apiTestResendConnection)
+		.mutation(async ({ input }) => {
+			try {
+				await sendResendNotification(
+					input,
+					"Test Email",
+					"<p>Hi, From Dokploy 👋</p>",
+				);
+				return true;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `${error instanceof Error ? error.message : "Unknown error"}`,
+					cause: error,
+				});
+			}
+		}),
 	remove: adminProcedure
 		.input(apiFindOneNotification)
 		.mutation(async ({ input, ctx }) => {
@@ -344,6 +407,7 @@ export const notificationRouter = createTRPCRouter({
 				telegram: true,
 				discord: true,
 				email: true,
+				resend: true,
 				gotify: true,
 				ntfy: true,
 				custom: true,
@@ -702,6 +766,7 @@ export const notificationRouter = createTRPCRouter({
 			where: eq(notifications.organizationId, ctx.session.activeOrganizationId),
 			with: {
 				email: true,
+				resend: true,
 			},
 		});
 	}),

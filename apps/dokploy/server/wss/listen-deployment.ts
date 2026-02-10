@@ -34,14 +34,13 @@ export const setupDeploymentLogsWebSocketServer = (
 
 		// Generate unique connection ID for tracking
 		const connectionId = `deployment-logs-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-
 		if (!logPath) {
 			console.log(`[${connectionId}] logPath no provided`);
 			ws.close(4000, "logPath no provided");
 			return;
 		}
 
-		if (!readValidDirectory(logPath)) {
+		if (!readValidDirectory(logPath, serverId)) {
 			ws.close(4000, "Invalid log path");
 			return;
 		}

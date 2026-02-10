@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRightLeft, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "next-i18next";
+import { useHealthCheckAfterMutation } from "@/hooks/use-health-check-after-mutation";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -76,11 +77,19 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 		});
 
 	const { mutateAsync: updatePorts, isLoading } =
-		api.settings.updateTraefikPorts.useMutation({
-			onSuccess: () => {
-				refetchPorts();
-			},
-		});
+		api.settings.updateTraefikPorts.useMutation();
+
+	const {
+		execute: executeWithHealthCheck,
+		isExecuting: isHealthCheckExecuting,
+	} = useHealthCheckAfterMutation({
+		initialDelay: 5000,
+		successMessage: t("settings.server.webServer.traefik.portsUpdated"),
+		onSuccess: () => {
+			refetchPorts();
+			setOpen(false);
+		},
+	});
 
 	useEffect(() => {
 		if (currentPorts) {
@@ -99,11 +108,12 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 
 	const onSubmit = async (data: TraefikPortsForm) => {
 		try {
-			await updatePorts({
-				serverId,
-				additionalPorts: data.ports,
-			});
-			toast.success(t("settings.server.webServer.traefik.portsUpdated"));
+			await executeWithHealthCheck(() =>
+				updatePorts({
+					serverId,
+					additionalPorts: data.ports,
+				}),
+			);
 			setOpen(false);
 		} catch (error) {
 			toast.error((error as Error).message || "Error updating Traefik ports");
@@ -317,7 +327,7 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 									type="submit"
 									variant="default"
 									className="text-sm"
-									isLoading={isLoading}
+									isLoading={isLoading || isHealthCheckExecuting}
 								>
 									Save
 								</Button>

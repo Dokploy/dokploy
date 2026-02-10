@@ -24,7 +24,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.1.1",
-		"@types/node": "^18.19.104",
+		"@types/node": "^20.16.0",
 		"dotenv": "16.4.5",
 		"esbuild": "0.20.2",
 		"lint-staged": "^15.5.2",

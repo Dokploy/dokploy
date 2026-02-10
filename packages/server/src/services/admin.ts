@@ -116,3 +116,22 @@ export const getDokployUrl = async () => {
 	}
 	return `http://${settings?.serverIp}:${process.env.PORT}`;
 };
+
+export const getTrustedOrigins = async () => {
+	const members = await db.query.member.findMany({
+		where: eq(member.role, "owner"),
+		with: {
+			user: true,
+		},
+	});
+
+	if (members.length === 0) {
+		return [];
+	}
+
+	const trustedOrigins = members.flatMap(
+		(member) => member.user.trustedOrigins || [],
+	);
+
+	return Array.from(new Set(trustedOrigins));
+};

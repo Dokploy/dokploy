@@ -257,3 +257,23 @@ export const PushoverIcon = ({ className }: Props) => {
 		</svg>
 	);
 };
+
+export const ResendIcon = ({ className }: Props) => {
+	return (
+		<svg
+			viewBox="0 0 24 24"
+			className={cn("size-8", className)}
+			xmlns="http://www.w3.org/2000/svg"
+		>
+			<circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.12" />
+			<path
+				d="M8 17V7h6a3 3 0 0 1 0 6H8m6 0 2 4"
+				stroke="currentColor"
+				strokeWidth="1.6"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				fill="none"
+			/>
+		</svg>
+	);
+};

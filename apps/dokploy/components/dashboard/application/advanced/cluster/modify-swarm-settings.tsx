@@ -22,6 +22,7 @@ import {
 	HealthCheckForm,
 	LabelsForm,
 	ModeForm,
+	NetworkForm,
 	PlacementForm,
 	RestartPolicyForm,
 	RollbackConfigForm,
@@ -78,6 +79,13 @@ const menuItems: MenuItem[] = [
 		description: "Configure service mode",
 		docDescription:
 			"Set service mode to either 'Replicated' with a specified number of tasks (Replicas), or 'Global' (one task per node).",
+	},
+	{
+		id: "network",
+		label: "Network",
+		description: "Configure network attachments",
+		docDescription:
+			"Attach the service to one or more networks. Specify the network name (Target) and optional network aliases for service discovery.",
 	},
 	{
 		id: "labels",
@@ -190,6 +198,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							<RollbackConfigForm id={id} type={type} />
 						)}
 						{activeMenu === "mode" && <ModeForm id={id} type={type} />}
+						{activeMenu === "network" && <NetworkForm id={id} type={type} />}
 						{activeMenu === "labels" && <LabelsForm id={id} type={type} />}
 						{activeMenu === "stop-grace-period" && (
 							<StopGracePeriodForm id={id} type={type} />

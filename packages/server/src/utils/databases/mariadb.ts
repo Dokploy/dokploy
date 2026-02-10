@@ -48,6 +48,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		Networks,
 		StopGracePeriod,
 		EndpointSpec,
+		Ulimits,
 	} = generateConfigContainer(mariadb);
 	const resources = calculateResources({
 		memoryLimit,
@@ -83,7 +84,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 					args.length > 0 && {
 						Args: args,
 					}),
-
+				...(Ulimits && { Ulimits }),
 				Labels,
 			},
 			Networks,
