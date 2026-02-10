@@ -31,6 +31,7 @@ import {
 	stopCompose,
 	updateCompose,
 	updateDeploymentStatus,
+	recordActivity,
 } from "@dokploy/server";
 import {
 	type CompleteTemplate,
@@ -111,6 +112,17 @@ export const composeRouter = createTRPCRouter({
 						project.organizationId,
 					);
 				}
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "compose.create",
+					resourceType: "compose",
+					resourceId: newService.composeId,
+					metadata: {
+						name: newService.name,
+					},
+				});
 
 				return newService;
 			} catch (error) {
@@ -193,8 +205,17 @@ export const composeRouter = createTRPCRouter({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to update this compose",
 				});
-			}
-			return updateCompose(input.composeId, input);
+			const result = await updateCompose(input.composeId, input);
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "compose.update",
+				resourceType: "compose",
+				resourceId: compose.composeId,
+				metadata: { name: compose.name },
+			});
+			return result;
 		}),
 	delete: protectedProcedure
 		.input(apiDeleteCompose)
@@ -245,7 +266,18 @@ export const composeRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
-			return composeResult;
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "compose.delete",
+					resourceType: "compose",
+					resourceId: composeResult.composeId,
+					metadata: {
+						name: composeResult.name,
+					},
+				});
+
+				return composeResult;
 		}),
 	cleanQueues: protectedProcedure
 		.input(apiFindCompose)
@@ -441,11 +473,22 @@ export const composeRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
-			return {
-				success: true,
-				message: "Deployment queued",
-				composeId: compose.composeId,
-			};
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "compose.deploy",
+					resourceType: "compose",
+					resourceId: compose.composeId,
+					metadata: {
+						name: compose.name,
+					},
+				});
+
+				return {
+					success: true,
+					message: "Deployment queued",
+					composeId: compose.composeId,
+				};
 		}),
 	redeploy: protectedProcedure
 		.input(apiRedeployCompose)
@@ -483,6 +526,16 @@ export const composeRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "compose.redeploy",
+				resourceType: "compose",
+				resourceId: compose.composeId,
+				metadata: { name: compose.name, title: input.title },
+			});
+
 			return {
 				success: true,
 				message: "Redeployment queued",
@@ -504,6 +557,15 @@ export const composeRouter = createTRPCRouter({
 			}
 			await stopCompose(input.composeId);
 
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "compose.stop",
+				resourceType: "compose",
+				resourceId: compose.composeId,
+				metadata: { name: compose.name },
+			});
+
 			return true;
 		}),
 	start: protectedProcedure
@@ -520,6 +582,15 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 			await startCompose(input.composeId);
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "compose.start",
+				resourceType: "compose",
+				resourceId: compose.composeId,
+				metadata: { name: compose.name },
+			});
 
 			return true;
 		}),
@@ -660,7 +731,19 @@ export const composeRouter = createTRPCRouter({
 				}
 			}
 
-			return compose;
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "compose.deploy_template",
+					resourceType: "compose",
+					resourceId: compose.composeId,
+					metadata: {
+						name: compose.name,
+						templateId: input.id,
+					},
+				});
+
+				return compose;
 		}),
 
 	templates: publicProcedure

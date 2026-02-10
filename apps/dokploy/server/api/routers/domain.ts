@@ -14,6 +14,7 @@ import {
 	removeDomainById,
 	updateDomainById,
 	validateDomain,
+	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -54,7 +55,16 @@ export const domainRouter = createTRPCRouter({
 						});
 					}
 				}
-				return await createDomain(input);
+				const domain = await createDomain(input);
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "domain.create",
+					resourceType: "domain",
+					resourceId: domain.domainId,
+					metadata: { host: domain.host, path: domain.path },
+				});
+				return domain;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -172,6 +182,14 @@ export const domainRouter = createTRPCRouter({
 				application.appName = previewDeployment.appName;
 				await manageDomain(application, domain);
 			}
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "domain.update",
+				resourceType: "domain",
+				resourceId: input.domainId,
+				metadata: { host: domain.host, path: domain.path },
+			});
 			return result;
 		}),
 	one: protectedProcedure.input(apiFindDomain).query(async ({ input, ctx }) => {
@@ -234,6 +252,15 @@ export const domainRouter = createTRPCRouter({
 				const application = await findApplicationById(domain.applicationId);
 				await removeDomain(application, domain.uniqueConfigKey);
 			}
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "domain.delete",
+				resourceType: "domain",
+				resourceId: domain.domainId,
+				metadata: { host: domain.host, path: domain.path },
+			});
 
 			return result;
 		}),

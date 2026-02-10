@@ -1,4 +1,4 @@
-import { findGitProviderById, removeGitProvider } from "@dokploy/server";
+import { findGitProviderById, recordActivity, removeGitProvider } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
@@ -33,7 +33,16 @@ export const gitProviderRouter = createTRPCRouter({
 						message: "You are not allowed to delete this Git provider",
 					});
 				}
-				return await removeGitProvider(input.gitProviderId);
+				const result = await removeGitProvider(input.gitProviderId);
+				await recordActivity({
+					userId: ctx.session.userId,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "git_provider.delete",
+					resourceType: "system",
+					resourceId: gitProvider.gitProviderId,
+					metadata: { name: gitProvider.name },
+				});
+				return result;
 			} catch (error) {
 				const message =
 					error instanceof Error

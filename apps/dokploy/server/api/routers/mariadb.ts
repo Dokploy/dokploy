@@ -18,6 +18,7 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateMariadbById,
+	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
@@ -88,6 +89,18 @@ export const mariadbRouter = createTRPCRouter({
 					type: "volume",
 				});
 
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "mariadb.create",
+					resourceType: "database",
+					resourceId: newMariadb.mariadbId,
+					metadata: {
+						name: newMariadb.name,
+						appName: newMariadb.appName,
+					},
+				});
+
 				return newMariadb;
 			} catch (error) {
 				if (error instanceof TRPCError) {
@@ -146,7 +159,7 @@ export const mariadbRouter = createTRPCRouter({
 		}),
 	stop: protectedProcedure
 		.input(apiFindOneMariaDB)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const mariadb = await findMariadbById(input.mariadbId);
 
 			if (mariadb.serverId) {
@@ -290,6 +303,18 @@ export const mariadbRouter = createTRPCRouter({
 					await operation();
 				} catch (_) {}
 			}
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "mariadb.delete",
+				resourceType: "database",
+				resourceId: mongo.mariadbId,
+				metadata: {
+					name: mongo.name,
+					appName: mongo.appName,
+				},
+			});
 
 			return mongo;
 		}),
