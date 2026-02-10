@@ -27,12 +27,17 @@ export const stripeRouter = createTRPCRouter({
 		const products = await stripe.products.list({
 			expand: ["data.default_price"],
 			active: true,
-			ids: [PRODUCT_MONTHLY_ID, PRODUCT_ANNUAL_ID],
+		});
+
+		const filteredProducts = products.data.filter((product) => {
+			return (
+				product.id === PRODUCT_MONTHLY_ID || product.id === PRODUCT_ANNUAL_ID
+			);
 		});
 
 		if (!stripeCustomerId) {
 			return {
-				products: products.data,
+				products: filteredProducts,
 				subscriptions: [],
 			};
 		}
@@ -44,7 +49,7 @@ export const stripeRouter = createTRPCRouter({
 		});
 
 		return {
-			products: products.data,
+			products: filteredProducts,
 			subscriptions: subscriptions.data,
 		};
 	}),
