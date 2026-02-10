@@ -31,6 +31,7 @@ import {
 	findUserById,
 	IS_CLOUD,
 	updateProjectById,
+	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
@@ -93,6 +94,17 @@ export const projectRouter = createTRPCRouter({
 						ctx.session.activeOrganizationId,
 					);
 				}
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "project.create",
+					resourceType: "project",
+					resourceId: project.project.projectId,
+					metadata: {
+						name: project.project.name,
+					},
+				});
 
 				return project;
 			} catch (error) {
@@ -299,6 +311,17 @@ export const projectRouter = createTRPCRouter({
 				}
 				const deletedProject = await deleteProject(input.projectId);
 
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "project.delete",
+					resourceType: "project",
+					resourceId: currentProject.projectId,
+					metadata: {
+						name: currentProject.name,
+					},
+				});
+
 				return deletedProject;
 			} catch (error) {
 				throw error;
@@ -319,6 +342,15 @@ export const projectRouter = createTRPCRouter({
 				}
 				const project = await updateProjectById(input.projectId, {
 					...input,
+				});
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "project.update",
+					resourceType: "project",
+					resourceId: project.projectId,
+					metadata: { name: project.name },
 				});
 
 				return project;
@@ -711,6 +743,18 @@ export const projectRouter = createTRPCRouter({
 						ctx.session.activeOrganizationId,
 					);
 				}
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "project.duplicate",
+					resourceType: "project",
+					resourceId: targetProject?.projectId || "N/A",
+					metadata: {
+						sourceEnvironmentId: input.sourceEnvironmentId,
+						newName: input.name,
+					},
+				});
 
 				return targetProject;
 			} catch (error) {

@@ -6,6 +6,7 @@ import {
 	findMountOrganizationId,
 	getServiceContainer,
 	updateMount,
+	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -20,8 +21,16 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 export const mountRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMount)
-		.mutation(async ({ input }) => {
-			await createMount(input);
+		.mutation(async ({ input, ctx }) => {
+			const mount = await createMount(input);
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "mount.create",
+				resourceType: "mount",
+				resourceId: mount.mountId,
+				metadata: { mountPath: mount.mountPath, type: mount.type },
+			});
 			return true;
 		}),
 	remove: protectedProcedure
@@ -34,7 +43,17 @@ export const mountRouter = createTRPCRouter({
 					message: "You are not authorized to delete this mount",
 				});
 			}
-			return await deleteMount(input.mountId);
+			const mount = await findMountById(input.mountId);
+			const result = await deleteMount(input.mountId);
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "mount.delete",
+				resourceType: "mount",
+				resourceId: mount.mountId,
+				metadata: { mountPath: mount.mountPath, type: mount.type },
+			});
+			return result;
 		}),
 
 	one: protectedProcedure
@@ -59,7 +78,17 @@ export const mountRouter = createTRPCRouter({
 					message: "You are not authorized to update this mount",
 				});
 			}
-			return await updateMount(input.mountId, input);
+			const result = await updateMount(input.mountId, input);
+			const mount = await findMountById(input.mountId);
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "mount.update",
+				resourceType: "mount",
+				resourceId: mount.mountId,
+				metadata: { mountPath: mount.mountPath, type: mount.type },
+			});
+			return result;
 		}),
 	allNamedByApplicationId: protectedProcedure
 		.input(z.object({ applicationId: z.string().min(1) }))

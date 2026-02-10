@@ -312,6 +312,15 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			title: "Activity",
+			icon: Clock,
+			url: "/dashboard/settings/activity",
+			// Only enabled for admins
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.role === "admin"),
+		},
+		{
+			isSingle: true,
 			title: "SSH Keys",
 			icon: KeyRound,
 			url: "/dashboard/settings/ssh-keys",

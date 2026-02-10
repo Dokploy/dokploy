@@ -6,6 +6,7 @@ import {
 	IS_CLOUD,
 	removeDestinationById,
 	updateDestinationById,
+	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
@@ -28,10 +29,19 @@ export const destinationRouter = createTRPCRouter({
 		.input(apiCreateDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createDestintation(
+				const destination = await createDestintation(
 					input,
 					ctx.session.activeOrganizationId,
 				);
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "destination.create",
+					resourceType: "system",
+					resourceId: destination.destinationId,
+					metadata: { name: destination.name, bucket: destination.bucket },
+				});
+				return destination;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -117,10 +127,19 @@ export const destinationRouter = createTRPCRouter({
 						message: "You are not allowed to delete this destination",
 					});
 				}
-				return await removeDestinationById(
+				const result = await removeDestinationById(
 					input.destinationId,
 					ctx.session.activeOrganizationId,
 				);
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "destination.delete",
+					resourceType: "system",
+					resourceId: destination.destinationId,
+					metadata: { name: destination.name },
+				});
+				return result;
 			} catch (error) {
 				throw error;
 			}
@@ -136,10 +155,20 @@ export const destinationRouter = createTRPCRouter({
 						message: "You are not allowed to update this destination",
 					});
 				}
-				return await updateDestinationById(input.destinationId, {
+				const result = await updateDestinationById(input.destinationId, {
 					...input,
 					organizationId: ctx.session.activeOrganizationId,
 				});
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "destination.update",
+					resourceType: "system",
+					resourceId: destination.destinationId,
+					metadata: { name: destination.name },
+				});
+				return result;
 			} catch (error) {
 				throw error;
 			}

@@ -1,4 +1,4 @@
-import { IS_CLOUD } from "@dokploy/server/index";
+import { IS_CLOUD, recordActivity } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -50,6 +50,16 @@ export const organizationRouter = createTRPCRouter({
 				createdAt: new Date(),
 				userId: ctx.user.id,
 			});
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: result.id,
+				action: "organization.create",
+				resourceType: "organization",
+				resourceId: result.id,
+				metadata: { name: result.name },
+			});
+
 			return result;
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
@@ -156,6 +166,14 @@ export const organizationRouter = createTRPCRouter({
 				})
 				.where(eq(organization.id, input.organizationId))
 				.returning();
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: input.organizationId,
+				action: "organization.update",
+				resourceType: "organization",
+				resourceId: input.organizationId,
+				metadata: { name: input.name },
+			});
 			return result[0];
 		}),
 	delete: protectedProcedure
@@ -251,6 +269,14 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "organization.remove_invitation",
+				resourceType: "organization",
+				metadata: { email: invitationResult.email },
+			});
+
 			return await db
 				.delete(invitation)
 				.where(eq(invitation.id, input.invitationId));
@@ -311,6 +337,14 @@ export const organizationRouter = createTRPCRouter({
 				.update(member)
 				.set({ role: input.role })
 				.where(eq(member.id, input.memberId));
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "organization.update_member_role",
+				resourceType: "organization",
+				metadata: { memberEmail: target.user.email, role: input.role },
+			});
 
 			return true;
 		}),

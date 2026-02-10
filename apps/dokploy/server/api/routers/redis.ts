@@ -17,6 +17,7 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateRedisById,
+	recordActivity,
 } from "@dokploy/server";
 
 import { TRPCError } from "@trpc/server";
@@ -85,6 +86,18 @@ export const redisRouter = createTRPCRouter({
 					volumeName: `${newRedis.appName}-data`,
 					mountPath: "/data",
 					type: "volume",
+				});
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "redis.create",
+					resourceType: "database",
+					resourceId: newRedis.redisId,
+					metadata: {
+						name: newRedis.name,
+						appName: newRedis.appName,
+					},
 				});
 
 				return newRedis;
@@ -325,6 +338,18 @@ export const redisRouter = createTRPCRouter({
 					await operation();
 				} catch (_) {}
 			}
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "redis.delete",
+				resourceType: "database",
+				resourceId: redis.redisId,
+				metadata: {
+					name: redis.name,
+					appName: redis.appName,
+				},
+			});
 
 			return redis;
 		}),

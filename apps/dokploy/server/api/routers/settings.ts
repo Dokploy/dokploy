@@ -44,6 +44,7 @@ import {
 	writeMainConfig,
 	writeTraefikConfigInPath,
 	writeTraefikSetup,
+	recordActivity,
 } from "@dokploy/server";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";
@@ -125,18 +126,27 @@ export const settingsRouter = createTRPCRouter({
 	}),
 	reloadTraefik: adminProcedure
 		.input(apiServerSchema)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			// Run in background so the request returns immediately; avoids proxy timeouts.
 			void reloadDockerResource("dokploy-traefik", input?.serverId).catch(
 				(err) => {
 					console.error("reloadTraefik background:", err);
 				},
 			);
+			await recordActivity({
+				userId: ctx.session.userId,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "traefik.reload",
+				resourceType: "system",
+				metadata: {
+					serverId: input?.serverId,
+				},
+			});
 			return true;
 		}),
 	toggleDashboard: adminProcedure
 		.input(apiEnableDashboard)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const ports = await readPorts("dokploy-traefik", input.serverId);
 			const env = await readEnvironmentVariables(
 				"dokploy-traefik",
@@ -175,24 +185,55 @@ export const settingsRouter = createTRPCRouter({
 			}).catch((err) => {
 				console.error("toggleDashboard background writeTraefikSetup:", err);
 			});
+			await recordActivity({
+				userId: ctx.session.userId,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "traefik.toggle_dashboard",
+				resourceType: "system",
+				metadata: {
+					enable: input.enableDashboard,
+					serverId: input.serverId,
+				},
+			});
 			return true;
 		}),
 	cleanUnusedImages: adminProcedure
 		.input(apiServerSchema)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			await cleanupImages(input?.serverId);
+			await recordActivity({
+				userId: ctx.session.userId,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "docker.cleanup_images",
+				resourceType: "system",
+				metadata: { serverId: input?.serverId },
+			});
 			return true;
 		}),
 	cleanUnusedVolumes: adminProcedure
 		.input(apiServerSchema)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			await cleanupVolumes(input?.serverId);
+			await recordActivity({
+				userId: ctx.session.userId,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "docker.cleanup_volumes",
+				resourceType: "system",
+				metadata: { serverId: input?.serverId },
+			});
 			return true;
 		}),
 	cleanStoppedContainers: adminProcedure
 		.input(apiServerSchema)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			await cleanupContainers(input?.serverId);
+			await recordActivity({
+				userId: ctx.session.userId,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "docker.cleanup_containers",
+				resourceType: "system",
+				metadata: { serverId: input?.serverId },
+			});
 			return true;
 		}),
 	cleanDockerBuilder: adminProcedure
@@ -202,9 +243,17 @@ export const settingsRouter = createTRPCRouter({
 		}),
 	cleanDockerPrune: adminProcedure
 		.input(apiServerSchema)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			await cleanupSystem(input?.serverId);
 			await cleanupBuilders(input?.serverId);
+
+			await recordActivity({
+				userId: ctx.session.userId,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "docker.cleanup_system",
+				resourceType: "system",
+				metadata: { serverId: input?.serverId },
+			});
 
 			return true;
 		}),
@@ -213,6 +262,16 @@ export const settingsRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			// Execute cleanup in background and return immediately to avoid gateway timeouts
 			const result = await cleanupAllBackground(input?.serverId);
+
+			await recordActivity({
+				userId: ctx.session.userId,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "docker.cleanup_all",
+				resourceType: "system",
+				metadata: {
+					serverId: input?.serverId,
+				},
+			});
 
 			return result;
 		}),
@@ -234,11 +293,18 @@ export const settingsRouter = createTRPCRouter({
 				sshPrivateKey: input.sshPrivateKey,
 			});
 
+			await recordActivity({
+				userId: ctx.session.userId,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "settings.update_ssh_key",
+				resourceType: "system",
+			});
+
 			return true;
 		}),
 	assignDomainServer: adminProcedure
 		.input(apiAssignDomain)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
 				return true;
 			}
@@ -260,6 +326,14 @@ export const settingsRouter = createTRPCRouter({
 			if (input.letsEncryptEmail) {
 				updateLetsEncryptEmail(input.letsEncryptEmail);
 			}
+
+			await recordActivity({
+				userId: ctx.session.userId,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "settings.assign_domain",
+				resourceType: "system",
+				metadata: { host: input.host },
+			});
 
 			return settings;
 		}),

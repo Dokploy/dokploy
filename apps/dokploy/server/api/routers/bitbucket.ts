@@ -5,6 +5,7 @@ import {
 	getBitbucketRepositories,
 	testBitbucketConnection,
 	updateBitbucket,
+	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
@@ -22,11 +23,21 @@ export const bitbucketRouter = createTRPCRouter({
 		.input(apiCreateBitbucket)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createBitbucket(
+				const bitbucket = await createBitbucket(
 					input,
 					ctx.session.activeOrganizationId,
 					ctx.session.userId,
 				);
+
+				await recordActivity({
+					userId: ctx.session.userId,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "git_provider.create_bitbucket",
+					resourceType: "system",
+					resourceId: bitbucket.bitbucketId,
+					metadata: { name: bitbucket.gitProvider.name },
+				});
+				return bitbucket;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -144,9 +155,19 @@ export const bitbucketRouter = createTRPCRouter({
 					message: "You are not allowed to access this bitbucket provider",
 				});
 			}
-			return await updateBitbucket(input.bitbucketId, {
+			const result = await updateBitbucket(input.bitbucketId, {
 				...input,
 				organizationId: ctx.session.activeOrganizationId,
 			});
+
+			await recordActivity({
+				userId: ctx.session.userId,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "git_provider.update_bitbucket",
+				resourceType: "system",
+				resourceId: input.bitbucketId,
+				metadata: { name: result.gitProvider.name },
+			});
+			return result;
 		}),
 });

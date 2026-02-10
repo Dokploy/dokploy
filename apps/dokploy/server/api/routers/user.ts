@@ -11,6 +11,7 @@ import {
 	sendEmailNotification,
 	sendResendNotification,
 	updateUser,
+	recordActivity,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -200,7 +201,16 @@ export const userRouter = createTRPCRouter({
 			}
 
 			try {
-				return await updateUser(ctx.user.id, input);
+				const result = await updateUser(ctx.user.id, input);
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "user.update",
+					resourceType: "system",
+					resourceId: ctx.user.id,
+					metadata: { email: ctx.user.email },
+				});
+				return result;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -284,7 +294,16 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			return await removeUserById(input.userId);
+			const result = await removeUserById(input.userId);
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "user.delete",
+				resourceType: "system",
+				resourceId: input.userId,
+				metadata: { targetUserId: input.userId },
+			});
+			return result;
 		}),
 	assignPermissions: adminProcedure
 		.input(apiAssignPermissions)
@@ -317,6 +336,15 @@ export const userRouter = createTRPCRouter({
 							),
 						),
 					);
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "user.assign_permissions",
+					resourceType: "organization",
+					resourceId: input.id,
+					metadata: { targetUserId: input.id, ...rest },
+				});
 			} catch (error) {
 				throw error;
 			}
@@ -424,6 +452,16 @@ export const userRouter = createTRPCRouter({
 				}
 
 				await db.delete(apikey).where(eq(apikey.id, input.apiKeyId));
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "api_key.delete",
+					resourceType: "system",
+					resourceId: input.apiKeyId,
+					metadata: { name: apiKeyToDelete.name },
+				});
+
 				return true;
 			} catch (error) {
 				throw error;
@@ -451,6 +489,16 @@ export const userRouter = createTRPCRouter({
 			}
 
 			const apiKey = await createApiKey(ctx.user.id, input);
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "api_key.create",
+				resourceType: "system",
+				resourceId: apiKey.id,
+				metadata: { name: apiKey.name },
+			});
+
 			return apiKey;
 		}),
 

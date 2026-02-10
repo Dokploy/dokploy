@@ -14,6 +14,7 @@ import {
 	serverValidate,
 	setupMonitoring,
 	updateServerById,
+	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
@@ -52,11 +53,19 @@ export const serverRouter = createTRPCRouter({
 						message: "You cannot create more servers",
 					});
 				}
-				const project = await createServer(
+				const server = await createServer(
 					input,
 					ctx.session.activeOrganizationId,
 				);
-				return project;
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "server.create",
+					resourceType: "system",
+					resourceId: server.serverId,
+					metadata: { name: server.name, ip: server.ipAddress },
+				});
+				return server;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -166,6 +175,14 @@ export const serverRouter = createTRPCRouter({
 					});
 				}
 				const currentServer = await serverSetup(input.serverId);
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "server.setup",
+					resourceType: "system",
+					resourceId: server.serverId,
+					metadata: { name: server.name },
+				});
 				return currentServer;
 			} catch (error) {
 				throw error;
@@ -332,6 +349,14 @@ export const serverRouter = createTRPCRouter({
 					},
 				});
 				const currentServer = await setupMonitoring(input.serverId);
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "server.setup_monitoring",
+					resourceType: "system",
+					resourceId: server.serverId,
+					metadata: { name: server.name },
+				});
 				return currentServer;
 			} catch (error) {
 				throw error;
@@ -358,7 +383,16 @@ export const serverRouter = createTRPCRouter({
 				}
 				const currentServer = await findServerById(input.serverId);
 				await removeDeploymentsByServerId(currentServer);
-				await deleteServer(input.serverId);
+				const result = await deleteServer(input.serverId);
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "server.delete",
+					resourceType: "system",
+					resourceId: currentServer.serverId,
+					metadata: { name: currentServer.name },
+				});
 
 				if (IS_CLOUD) {
 					const admin = await findUserById(ctx.user.ownerId);
@@ -391,6 +425,15 @@ export const serverRouter = createTRPCRouter({
 				}
 				const currentServer = await updateServerById(input.serverId, {
 					...input,
+				});
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "server.update",
+					resourceType: "system",
+					resourceId: currentServer.serverId,
+					metadata: { name: currentServer.name },
 				});
 
 				return currentServer;

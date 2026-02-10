@@ -7,6 +7,7 @@ import {
 	testGitlabConnection,
 	updateGitlab,
 	updateGitProvider,
+	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
@@ -24,11 +25,20 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiCreateGitlab)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createGitlab(
+				const gitlab = await createGitlab(
 					input,
 					ctx.session.activeOrganizationId,
 					ctx.session.userId,
 				);
+				await recordActivity({
+					userId: ctx.session.userId,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "git_provider.create_gitlab",
+					resourceType: "system",
+					resourceId: gitlab.gitlabId,
+					metadata: { name: input.name },
+				});
+				return gitlab;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -167,5 +177,14 @@ export const gitlabRouter = createTRPCRouter({
 					...input,
 				});
 			}
+
+			await recordActivity({
+				userId: ctx.session.userId,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "git_provider.update_gitlab",
+				resourceType: "system",
+				resourceId: input.gitlabId,
+				metadata: { name: input.name },
+			});
 		}),
 });

@@ -5,6 +5,7 @@ import {
 	haveGithubRequirements,
 	updateGithub,
 	updateGitProvider,
+	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
@@ -138,6 +139,15 @@ export const githubRouter = createTRPCRouter({
 
 			await updateGithub(input.githubId, {
 				...input,
+			});
+
+			await recordActivity({
+				userId: ctx.session.userId,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "git_provider.update_github",
+				resourceType: "system",
+				resourceId: input.githubId,
+				metadata: { name: input.name },
 			});
 		}),
 });

@@ -1,4 +1,5 @@
 import { createTRPCRouter } from "../api/trpc";
+import { activityLogRouter } from "./routers/activity-log";
 import { adminRouter } from "./routers/admin";
 import { aiRouter } from "./routers/ai";
 import { applicationRouter } from "./routers/application";
@@ -48,6 +49,7 @@ import { volumeBackupsRouter } from "./routers/volume-backups";
  */
 
 export const appRouter = createTRPCRouter({
+	activityLog: activityLogRouter,
 	admin: adminRouter,
 	docker: dockerRouter,
 	project: projectRouter,
