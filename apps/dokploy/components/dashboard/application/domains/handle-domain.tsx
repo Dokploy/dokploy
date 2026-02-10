@@ -514,7 +514,10 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 											<FormLabel>Host</FormLabel>
 											<div className="flex gap-2">
 												<FormControl>
-													<Input placeholder="api.dokploy.com" {...field} />
+													<Input
+														placeholder="example.com, *.example.com, or *.sub.example.com"
+														{...field}
+													/>
 												</FormControl>
 												<TooltipProvider delayDuration={0}>
 													<Tooltip>
@@ -551,6 +554,19 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 											</div>
 
 											<FormMessage />
+											{field.value && field.value.includes("*") && (
+												<div className="text-sm text-muted-foreground mt-1">
+													<p>
+														Wildcard subdomains will match any subdomain at the
+														specified level
+													</p>
+													<div>
+														<code>*.example.com</code> will match{" "}
+														<code>api.example.com</code>,{" "}
+														<code>app.example.com</code>, etc.
+													</div>
+												</div>
+											)}
 										</FormItem>
 									)}
 								/>

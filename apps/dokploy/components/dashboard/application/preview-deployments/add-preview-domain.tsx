@@ -170,7 +170,10 @@ export const AddPreviewDomain = ({
 											<FormLabel>Host</FormLabel>
 											<div className="flex gap-2">
 												<FormControl>
-													<Input placeholder="api.dokploy.com" {...field} />
+													<Input
+														placeholder="example.com, *.example.com, or *.sub.example.com"
+														{...field}
+													/>
 												</FormControl>
 												<TooltipProvider delayDuration={0}>
 													<Tooltip>
@@ -209,6 +212,15 @@ export const AddPreviewDomain = ({
 											</div>
 
 											<FormMessage />
+											{field.value && field.value.includes("*") && (
+												<div className="text-sm text-muted-foreground mt-1">
+													<p>💡 Wildcard domain detected.</p>
+													<p>
+														This will match any subdomain at this level (e.g.,
+														api.example.com, app.example.com for *.example.com)
+													</p>
+												</div>
+											)}
 										</FormItem>
 									)}
 								/>
