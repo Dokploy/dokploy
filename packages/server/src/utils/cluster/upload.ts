@@ -15,10 +15,21 @@ export const uploadImageRemoteCommand = async (
 	}
 
 	const { appName } = application;
-	const imageName =
+	let imageName =
 		application.sourceType === "docker"
 			? application.dockerImage || ""
 			: `${appName}:latest`;
+
+	if (
+		application.sourceType === "docker" &&
+		registry?.registryUrl &&
+		!imageName.startsWith(registry.registryUrl)
+	) {
+		const prefix = registry.username
+			? `${registry.registryUrl}/${registry.username}`
+			: registry.registryUrl;
+		imageName = `${prefix}/${imageName}`.toLowerCase();
+	}
 
 	const commands: string[] = [];
 	if (registry) {
@@ -105,9 +116,10 @@ export const getRegistryTag = (registry: Registry, imageName: string) => {
 	const targetPrefix = imagePrefix || username;
 	const finalRegistry = registryUrl || "";
 
-	return finalRegistry
+	const tag = finalRegistry
 		? `${finalRegistry}/${targetPrefix}/${repositoryName}`
 		: `${targetPrefix}/${repositoryName}`;
+	return tag.toLowerCase();
 };
 
 const getRegistryCommands = (
@@ -122,7 +134,7 @@ echo "${registry.password}" | docker login ${registry.registryUrl} -u '${registr
 	exit 1;
 }
 echo "✅ Registry Login Success" ;
-docker tag ${imageName} ${registryTag} || { 
+docker tag ${imageName.toLowerCase()} ${registryTag} || {
 	echo "❌ Error tagging image" ;
 	exit 1;
 }

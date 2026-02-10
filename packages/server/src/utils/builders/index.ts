@@ -195,7 +195,17 @@ const getImageName = (application: ApplicationNested) => {
 		application;
 	const imageName = `${appName}:latest`;
 	if (sourceType === "docker") {
-		return dockerImage || "ERROR-NO-IMAGE-PROVIDED";
+		const image = dockerImage || "ERROR-NO-IMAGE-PROVIDED";
+		if (
+			registry?.registryUrl &&
+			!image.startsWith(registry.registryUrl)
+		) {
+			const prefix = registry.username
+				? `${registry.registryUrl}/${registry.username}`
+				: registry.registryUrl;
+			return `${prefix}/${image}`.toLowerCase();
+		}
+		return image;
 	}
 
 	if (registry) {
@@ -221,6 +231,13 @@ export const getAuthConfig = (application: ApplicationNested) => {
 	} = application;
 
 	if (sourceType === "docker") {
+		if (registry) {
+			return {
+				password: registry.password,
+				username: registry.username,
+				serveraddress: registry.registryUrl,
+			};
+		}
 		if (username && password) {
 			return {
 				password,

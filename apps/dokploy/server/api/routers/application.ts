@@ -527,11 +527,21 @@ export const applicationRouter = createTRPCRouter({
 			});
 			await updateApplication(input.applicationId, {
 				dockerImage: input.dockerImage,
-				username: input.username,
-				password: input.password,
 				sourceType: "docker",
 				applicationStatus: "idle",
-				registryUrl: input.registryUrl,
+				...(input.registryId
+					? {
+							registryId: input.registryId,
+							username: null,
+							password: null,
+							registryUrl: null,
+						}
+					: {
+							registryId: null,
+							username: input.username,
+							password: input.password,
+							registryUrl: input.registryUrl,
+						}),
 			});
 			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
