@@ -1,6 +1,14 @@
 "use client";
 
-import { Eye, Loader2, LogIn, Pencil, Plus, Shield, Trash2 } from "lucide-react";
+import {
+	Eye,
+	Loader2,
+	LogIn,
+	Pencil,
+	Plus,
+	Shield,
+	Trash2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -491,9 +499,7 @@ export const SSOSettings = () => {
 													<Button
 														size="sm"
 														onClick={handleSaveEdit}
-														disabled={
-															!editingValue.trim() || isUpdatingOrigin
-														}
+														disabled={!editingValue.trim() || isUpdatingOrigin}
 													>
 														Save
 													</Button>
@@ -522,9 +528,7 @@ export const SSOSettings = () => {
 														title="Remove trusted origin"
 														description={`Remove "${origin}" from trusted origins?`}
 														type="destructive"
-														onClick={async () =>
-															handleRemoveOrigin(origin)
-														}
+														onClick={async () => handleRemoveOrigin(origin)}
 													>
 														<Button
 															variant="ghost"

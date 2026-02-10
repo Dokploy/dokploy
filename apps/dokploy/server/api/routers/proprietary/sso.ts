@@ -205,7 +205,9 @@ export const ssoRouter = createTRPCRouter({
 				columns: { trustedOrigins: true },
 			});
 			const existing = currentUser?.trustedOrigins || [];
-			const next = existing.filter((o) => o.toLowerCase() !== normalized.toLowerCase());
+			const next = existing.filter(
+				(o) => o.toLowerCase() !== normalized.toLowerCase(),
+			);
 			await db
 				.update(user)
 				.set({ trustedOrigins: next })
