@@ -251,9 +251,9 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 														? "Select repository"
 														: isLoadingRepositories
 															? "Loading...."
-															: repositories?.find(
+															: (repositories?.find(
 																	(repo) => repo.name === field.value.repo,
-																)?.name ?? "Select repository"}
+																)?.name ?? "Select repository")}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
