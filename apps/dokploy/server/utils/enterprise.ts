@@ -8,7 +8,9 @@ function isNetworkError(error: unknown): boolean {
 		if (error.message === "fetch failed") return true;
 		const cause = (error as Error & { cause?: { code?: string } }).cause;
 		const code = cause?.code;
-		return code === "ECONNREFUSED" || code === "ENOTFOUND" || code === "ETIMEDOUT";
+		return (
+			code === "ECONNREFUSED" || code === "ENOTFOUND" || code === "ETIMEDOUT"
+		);
 	}
 	return false;
 }
