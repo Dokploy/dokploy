@@ -55,7 +55,7 @@ import { api } from "@/utils/api";
 type DbType = typeof mySchema._type.type;
 
 const dockerImageDefaultPlaceholder: Record<DbType, string> = {
-	mongo: "mongo:7",
+	mongo: "mongo:8",
 	mariadb: "mariadb:11",
 	mysql: "mysql:8",
 	postgres: "postgres:18",
