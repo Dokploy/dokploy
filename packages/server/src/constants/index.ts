@@ -32,5 +32,6 @@ export const paths = (isServer = false) => {
 		SCHEDULES_PATH: `${BASE_PATH}/schedules`,
 		VOLUME_BACKUPS_PATH: `${BASE_PATH}/volume-backups`,
 		VOLUME_BACKUP_LOCK_PATH: `${BASE_PATH}/volume-backup-lock`,
+		PATCH_REPOS_PATH: `${BASE_PATH}/patch-repos`,
 	};
 };

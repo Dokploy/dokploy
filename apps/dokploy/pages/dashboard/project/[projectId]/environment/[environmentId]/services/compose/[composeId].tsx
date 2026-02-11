@@ -19,6 +19,7 @@ import { ShowDomains } from "@/components/dashboard/application/domains/show-dom
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
+import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
@@ -237,6 +238,9 @@ const Service = (
 												Volume Backups
 											</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
+											{data?.sourceType !== "raw" && (
+												<TabsTrigger value="patches">Patches</TabsTrigger>
+											)}
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
@@ -358,6 +362,12 @@ const Service = (
 									<TabsContent value="domains">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowDomains id={composeId} type="compose" />
+										</div>
+									</TabsContent>
+
+									<TabsContent value="patches" className="w-full">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowPatches composeId={composeId} />
 										</div>
 									</TabsContent>
 

@@ -12,6 +12,7 @@ import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
+import { patch } from "./patch";
 import { schedules } from "./schedule";
 import { server } from "./server";
 import { applicationStatus, triggerType } from "./shared";
@@ -143,6 +144,7 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 	}),
 	backups: many(backups),
 	schedules: many(schedules),
+	patches: many(patch),
 }));
 
 const createSchema = createInsertSchema(compose, {
