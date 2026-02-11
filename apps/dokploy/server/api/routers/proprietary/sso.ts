@@ -177,4 +177,65 @@ export const ssoRouter = createTRPCRouter({
 			});
 			return { success: true };
 		}),
+	addTrustedOrigin: enterpriseProcedure
+		.input(z.object({ origin: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const normalized = normalizeTrustedOrigin(input.origin);
+			const currentUser = await db.query.user.findFirst({
+				where: eq(user.id, ctx.session.userId),
+				columns: { trustedOrigins: true },
+			});
+			const existing = currentUser?.trustedOrigins || [];
+			if (existing.some((o) => o.toLowerCase() === normalized.toLowerCase())) {
+				return { success: true };
+			}
+			const next = Array.from(new Set([...existing, normalized]));
+			await db
+				.update(user)
+				.set({ trustedOrigins: next })
+				.where(eq(user.id, ctx.session.userId));
+			return { success: true };
+		}),
+	removeTrustedOrigin: enterpriseProcedure
+		.input(z.object({ origin: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const normalized = normalizeTrustedOrigin(input.origin);
+			const currentUser = await db.query.user.findFirst({
+				where: eq(user.id, ctx.session.userId),
+				columns: { trustedOrigins: true },
+			});
+			const existing = currentUser?.trustedOrigins || [];
+			const next = existing.filter(
+				(o) => o.toLowerCase() !== normalized.toLowerCase(),
+			);
+			await db
+				.update(user)
+				.set({ trustedOrigins: next })
+				.where(eq(user.id, ctx.session.userId));
+			return { success: true };
+		}),
+	updateTrustedOrigin: enterpriseProcedure
+		.input(
+			z.object({
+				oldOrigin: z.string().min(1),
+				newOrigin: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const oldNorm = normalizeTrustedOrigin(input.oldOrigin);
+			const newNorm = normalizeTrustedOrigin(input.newOrigin);
+			const currentUser = await db.query.user.findFirst({
+				where: eq(user.id, ctx.session.userId),
+				columns: { trustedOrigins: true },
+			});
+			const existing = currentUser?.trustedOrigins || [];
+			const next = existing.map((o) =>
+				o.toLowerCase() === oldNorm.toLowerCase() ? newNorm : o,
+			);
+			await db
+				.update(user)
+				.set({ trustedOrigins: next })
+				.where(eq(user.id, ctx.session.userId));
+			return { success: true };
+		}),
 });
