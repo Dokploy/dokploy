@@ -275,3 +275,27 @@ test("CertificateType on websecure entrypoint", async () => {
 
 	expect(router.tls?.certResolver).toBe("letsencrypt");
 });
+
+/** IDN/Punycode */
+
+test("Internationalized domain name is converted to punycode", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, host: "тест.рф" },
+		"web",
+	);
+
+	// тест.рф in punycode is xn--e1aybc.xn--p1ai
+	expect(router.rule).toContain("Host(`xn--e1aybc.xn--p1ai`)");
+	expect(router.rule).not.toContain("тест.рф");
+});
+
+test("ASCII domain remains unchanged", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, host: "example.com" },
+		"web",
+	);
+
+	expect(router.rule).toContain("Host(`example.com`)");
+});
