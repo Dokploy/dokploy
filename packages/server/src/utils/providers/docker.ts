@@ -13,15 +13,8 @@ export const buildRemoteDocker = async (application: ApplicationNested) => {
 			throw new Error("Docker image not found");
 		}
 
-		let pullImage = dockerImage;
-		if (loginRegistryUrl && !dockerImage.startsWith(loginRegistryUrl)) {
-			pullImage = loginUsername
-				? `${loginRegistryUrl}/${loginUsername}/${dockerImage}`.toLowerCase()
-				: `${loginRegistryUrl}/${dockerImage}`.toLowerCase();
-		}
-
 		let command = `
-echo "Pulling ${pullImage}";
+echo "Pulling ${dockerImage}";
 		`;
 
 		if (loginUsername && loginPassword) {
@@ -34,7 +27,7 @@ fi
 		}
 
 		command += `
-docker pull ${pullImage} 2>&1 || {
+docker pull ${dockerImage} 2>&1 || {
   echo "❌ Pulling image failed";
   exit 1;
 }

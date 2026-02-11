@@ -15,21 +15,10 @@ export const uploadImageRemoteCommand = async (
 	}
 
 	const { appName } = application;
-	let imageName =
+	const imageName =
 		application.sourceType === "docker"
 			? application.dockerImage || ""
 			: `${appName}:latest`;
-
-	if (
-		application.sourceType === "docker" &&
-		registry?.registryUrl &&
-		!imageName.startsWith(registry.registryUrl)
-	) {
-		const prefix = registry.username
-			? `${registry.registryUrl}/${registry.username}`
-			: registry.registryUrl;
-		imageName = `${prefix}/${imageName}`.toLowerCase();
-	}
 
 	const commands: string[] = [];
 	if (registry) {
