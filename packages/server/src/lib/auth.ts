@@ -18,6 +18,10 @@ import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 
+const query = await db.query.ssoProvider.findMany();
+
+const trustedProviders = query.map((provider) => provider.providerId);
+
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
@@ -43,17 +47,14 @@ const { handler, api } = betterAuth({
 				},
 			}
 		: {}),
-	...(IS_CLOUD
-		? {
-				account: {
-					accountLinking: {
-						enabled: true,
-						trustedProviders: ["github", "google"],
-						allowDifferentEmails: true,
-					},
-				},
-			}
-		: {}),
+
+	account: {
+		accountLinking: {
+			enabled: true,
+			trustedProviders: ["github", "google", ...(trustedProviders || [])],
+			allowDifferentEmails: true,
+		},
+	},
 	appName: "Dokploy",
 	socialProviders: {
 		github: {
