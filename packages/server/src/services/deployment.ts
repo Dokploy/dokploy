@@ -14,6 +14,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import { logger } from "../lib/logger";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
 import { desc, eq } from "drizzle-orm";
@@ -75,7 +76,7 @@ export const createDeployment = async (
 ) => {
 	const application = await findApplicationById(deployment.applicationId);
 	try {
-		await removeLastTenDeployments(
+		await removeLastOneHundredDeployments(
 			deployment.applicationId,
 			"application",
 			application.serverId,
@@ -158,7 +159,7 @@ export const createDeploymentPreview = async (
 		deployment.previewDeploymentId,
 	);
 	try {
-		await removeLastTenDeployments(
+		await removeLastOneHundredDeployments(
 			deployment.previewDeploymentId,
 			"previewDeployment",
 			previewDeployment?.application?.serverId,
@@ -239,7 +240,7 @@ export const createDeploymentCompose = async (
 ) => {
 	const compose = await findComposeById(deployment.composeId);
 	try {
-		await removeLastTenDeployments(
+		await removeLastOneHundredDeployments(
 			deployment.composeId,
 			"compose",
 			compose.serverId,
@@ -327,7 +328,11 @@ export const createDeploymentBackup = async (
 		serverId = backup.compose?.serverId;
 	}
 	try {
-		await removeLastTenDeployments(deployment.backupId, "backup", serverId);
+		await removeLastOneHundredDeployments(
+			deployment.backupId,
+			"backup",
+			serverId,
+		);
 		const { LOGS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${backup.appName}-${formattedDateTime}.log`;
@@ -401,7 +406,11 @@ export const createDeploymentSchedule = async (
 			schedule.application?.serverId ||
 			schedule.compose?.serverId ||
 			schedule.server?.serverId;
-		await removeLastTenDeployments(deployment.scheduleId, "schedule", serverId);
+		await removeLastOneHundredDeployments(
+			deployment.scheduleId,
+			"schedule",
+			serverId,
+		);
 		const { SCHEDULES_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${schedule.appName}-${formattedDateTime}.log`;
@@ -475,7 +484,7 @@ export const createDeploymentVolumeBackup = async (
 	try {
 		const serverId =
 			volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
-		await removeLastTenDeployments(
+		await removeLastOneHundredDeployments(
 			deployment.volumeBackupId,
 			"volumeBackup",
 			serverId,
@@ -608,7 +617,7 @@ export const removeDeployments = async (application: Application) => {
 	await removeDeploymentsByApplicationId(applicationId);
 };
 
-const removeLastTenDeployments = async (
+const removeLastOneHundredDeployments = async (
 	id: string,
 	type:
 		| "application"
@@ -621,8 +630,8 @@ const removeLastTenDeployments = async (
 	serverId?: string | null,
 ) => {
 	const deploymentList = await getDeploymentsByType(id, type);
-	if (deploymentList.length > 10) {
-		const deploymentsToDelete = deploymentList.slice(10);
+	if (deploymentList.length > 100) {
+		const deploymentsToDelete = deploymentList.slice(100);
 		if (serverId) {
 			let command = "";
 			for (const oldDeployment of deploymentsToDelete) {
@@ -701,18 +710,24 @@ export const removeDeploymentsByComposeId = async (compose: Compose) => {
 
 export const findAllDeploymentsByApplicationId = async (
 	applicationId: string,
+	limit?: number,
 ) => {
 	const deploymentsList = await db.query.deployments.findMany({
 		where: eq(deployments.applicationId, applicationId),
 		orderBy: desc(deployments.createdAt),
+		...(limit ? { limit } : {}),
 	});
 	return deploymentsList;
 };
 
-export const findAllDeploymentsByComposeId = async (composeId: string) => {
+export const findAllDeploymentsByComposeId = async (
+	composeId: string,
+	limit?: number,
+) => {
 	const deploymentsList = await db.query.deployments.findMany({
 		where: eq(deployments.composeId, composeId),
 		orderBy: desc(deployments.createdAt),
+		...(limit ? { limit } : {}),
 	});
 	return deploymentsList;
 };
@@ -824,10 +839,14 @@ export const removeDeploymentsByServerId = async (server: Server) => {
 		.returning();
 };
 
-export const findAllDeploymentsByServerId = async (serverId: string) => {
+export const findAllDeploymentsByServerId = async (
+	serverId: string,
+	limit?: number,
+) => {
 	const deploymentsList = await db.query.deployments.findMany({
 		where: eq(deployments.serverId, serverId),
 		orderBy: desc(deployments.createdAt),
+		...(limit ? { limit } : {}),
 	});
 	return deploymentsList;
 };
