@@ -10,6 +10,7 @@ import {
 	writeTraefikConfigRemote,
 } from "./application";
 import type { FileConfig, HttpRouter } from "./file-types";
+import { generateTraefikHostRule } from "./host-rule";
 import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
@@ -114,8 +115,9 @@ export const createRouterConfig = async (
 
 	const { host, path, https, uniqueConfigKey, internalPath, stripPath } =
 		domain;
+	const hostRule = generateTraefikHostRule(host);
 	const routerConfig: HttpRouter = {
-		rule: `Host(\`${host}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
+		rule: `${hostRule}${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
 		service: `${appName}-service-${uniqueConfigKey}`,
 		middlewares: [],
 		entryPoints: [entryPoint],

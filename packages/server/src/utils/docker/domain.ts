@@ -11,6 +11,7 @@ import { cloneGiteaRepository } from "../providers/gitea";
 import { cloneGithubRepository } from "../providers/github";
 import { cloneGitlabRepository } from "../providers/gitlab";
 import { getCreateComposeFileCommand } from "../providers/raw";
+import { generateTraefikHostRule } from "../traefik/host-rule";
 import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
 import type {
@@ -265,8 +266,9 @@ export const createDomainLabels = (
 		internalPath,
 	} = domain;
 	const routerName = `${appName}-${uniqueConfigKey}-${entrypoint}`;
+	const hostRule = generateTraefikHostRule(host);
 	const labels = [
-		`traefik.http.routers.${routerName}.rule=Host(\`${host}\`)${path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
+		`traefik.http.routers.${routerName}.rule=${hostRule}${path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
 		`traefik.http.routers.${routerName}.entrypoints=${entrypoint}`,
 		`traefik.http.services.${routerName}.loadbalancer.server.port=${port}`,
 		`traefik.http.routers.${routerName}.service=${routerName}`,

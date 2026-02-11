@@ -120,6 +120,7 @@ export * from "./utils/tracking/hubspot";
 export * from "./utils/traefik/application";
 export * from "./utils/traefik/domain";
 export * from "./utils/traefik/file-types";
+export * from "./utils/traefik/host-rule";
 export * from "./utils/traefik/middleware";
 export * from "./utils/traefik/redirect";
 export * from "./utils/traefik/security";
