@@ -191,17 +191,7 @@ const getImageName = (application: ApplicationNested) => {
 		application;
 	const imageName = `${appName}:latest`;
 	if (sourceType === "docker") {
-		const image = dockerImage || "ERROR-NO-IMAGE-PROVIDED";
-		if (
-			registry?.registryUrl &&
-			!image.startsWith(registry.registryUrl)
-		) {
-			const prefix = registry.username
-				? `${registry.registryUrl}/${registry.username}`
-				: registry.registryUrl;
-			return `${prefix}/${image}`.toLowerCase();
-		}
-		return image;
+		return dockerImage || "ERROR-NO-IMAGE-PROVIDED";
 	}
 
 	if (registry) {
