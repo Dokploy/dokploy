@@ -13,7 +13,6 @@ import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
-import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { ShowExternalRedisCredentials } from "@/components/dashboard/redis/general/show-external-redis-credentials";
 import { ShowGeneralRedis } from "@/components/dashboard/redis/general/show-general-redis";
@@ -211,9 +210,7 @@ const Redis = (
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
-											{((data?.serverId && isCloud) || !data?.server) && (
-												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-											)}
+										<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											<TabsTrigger value="advanced">Advanced</TabsTrigger>
 										</TabsList>
 									</div>
@@ -233,45 +230,13 @@ const Redis = (
 									<TabsContent value="monitoring">
 										<div className="pt-2.5">
 											<div className="flex flex-col gap-4 border rounded-lg p-6">
-												{data?.serverId && isCloud ? (
-													<ContainerPaidMonitoring
-														appName={data?.appName || ""}
-														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
-														token={
-															data?.server?.metricsConfig?.server?.token || ""
-														}
-													/>
-												) : (
-													<>
-														{/* {monitoring?.enabledFeatures && (
-															<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
-																<Label className="text-muted-foreground">
-																	Change Monitoring
-																</Label>
-																<Switch
-																	checked={toggleMonitoring}
-																	onCheckedChange={setToggleMonitoring}
-																/>
-															</div>
-														)}
-
-														{toggleMonitoring ? (
-															<ContainerPaidMonitoring
-																appName={data?.appName || ""}
-																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
-																token={
-																	monitoring?.metricsConfig?.server?.token || ""
-																}
-															/>
-														) : (
-															<div> */}
-														<ContainerFreeMonitoring
-															appName={data?.appName || ""}
-														/>
-														{/* </div> */}
-														{/* )} */}
-													</>
-												)}
+												<ContainerPaidMonitoring
+													appName={data?.appName || ""}
+													baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+													token={
+														data?.server?.metricsConfig?.server?.token || ""
+													}
+												/>
 											</div>
 										</div>
 									</TabsContent>

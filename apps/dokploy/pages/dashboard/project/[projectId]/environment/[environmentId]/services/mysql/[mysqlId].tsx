@@ -14,7 +14,6 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
-import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { ShowExternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-external-mysql-credentials";
 import { ShowGeneralMysql } from "@/components/dashboard/mysql/general/show-general-mysql";
@@ -215,11 +214,9 @@ const MySql = (
 													Environment
 												</TabsTrigger>
 												<TabsTrigger value="logs">Logs</TabsTrigger>
-												{((data?.serverId && isCloud) || !data?.server) && (
-													<TabsTrigger value="monitoring">
-														Monitoring
-													</TabsTrigger>
-												)}
+												<TabsTrigger value="monitoring">
+													Monitoring
+												</TabsTrigger>
 												<TabsTrigger value="backups">Backups</TabsTrigger>
 												<TabsTrigger value="advanced">Advanced</TabsTrigger>
 											</TabsList>
@@ -240,21 +237,13 @@ const MySql = (
 										<TabsContent value="monitoring">
 											<div className="pt-2.5">
 												<div className="flex flex-col gap-4 border rounded-lg p-6">
-													{data?.serverId && isCloud ? (
-														<ContainerPaidMonitoring
-															appName={data?.appName || ""}
-															baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
-															token={
-																data?.server?.metricsConfig?.server?.token || ""
-															}
-														/>
-													) : (
-														<>
-															<ContainerFreeMonitoring
-																appName={data?.appName || ""}
-															/>
-														</>
-													)}
+													<ContainerPaidMonitoring
+														appName={data?.appName || ""}
+														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+														token={
+															data?.server?.metricsConfig?.server?.token || ""
+														}
+													/>
 												</div>
 											</div>
 										</TabsContent>

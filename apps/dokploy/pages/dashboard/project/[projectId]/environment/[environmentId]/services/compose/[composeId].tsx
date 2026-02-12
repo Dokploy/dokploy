@@ -27,7 +27,6 @@ import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show"
 import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
-import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
 import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
@@ -237,9 +236,7 @@ const Service = (
 												Volume Backups
 											</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
-											{((data?.serverId && isCloud) || !data?.server) && (
-												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-											)}
+										<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											<TabsTrigger value="advanced">Advanced</TabsTrigger>
 										</TabsList>
 									</div>
@@ -277,55 +274,19 @@ const Service = (
 									<TabsContent value="monitoring">
 										<div className="pt-2.5">
 											<div className="flex flex-col border rounded-lg ">
-												{data?.serverId && isCloud ? (
-													<ComposePaidMonitoring
-														serverId={data?.serverId || ""}
-														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
-														appName={data?.appName || ""}
-														token={
-															data?.server?.metricsConfig?.server?.token || ""
-														}
-														appType={data?.composeType || "docker-compose"}
-													/>
-												) : (
-													<>
-														{/* {monitoring?.enabledFeatures &&
-															isCloud &&
-															data?.serverId && (
-																<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2 m-4">
-																	<Label className="text-muted-foreground">
-																		Change Monitoring
-																	</Label>
-																	<Switch
-																		checked={toggleMonitoring}
-																		onCheckedChange={setToggleMonitoring}
-																	/>
-																</div>
-															)}
-
-														{toggleMonitoring ? (
-															<ComposePaidMonitoring
-																appName={data?.appName || ""}
-																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
-																token={
-																	monitoring?.metricsConfig?.server?.token || ""
-																}
-																appType={data?.composeType || "docker-compose"}
-															/>
-														) : ( */}
-														{/* <div> */}
-														<ComposeFreeMonitoring
-															serverId={data?.serverId || ""}
-															appName={data?.appName || ""}
-															appType={data?.composeType || "docker-compose"}
-														/>
-														{/* </div> */}
-														{/* )} */}
-													</>
-												)}
+												<ComposePaidMonitoring
+													serverId={data?.serverId || ""}
+													baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+													appName={data?.appName || ""}
+													token={
+														data?.server?.metricsConfig?.server?.token || ""
+													}
+													appType={data?.composeType || "docker-compose"}
+												/>
 											</div>
 										</div>
 									</TabsContent>
+
 
 									<TabsContent value="logs">
 										<div className="flex flex-col gap-4 pt-2.5">
