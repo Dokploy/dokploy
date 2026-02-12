@@ -1,8 +1,10 @@
 import {
 	addDomainToCompose,
 	addNewService,
+	addVolumeToService,
 	checkServiceAccess,
 	cloneCompose,
+	type ComposeSpecification,
 	createCommand,
 	createCompose,
 	createComposeByTemplate,
@@ -11,7 +13,9 @@ import {
 	deleteMount,
 	execAsync,
 	execAsyncRemote,
+	extractServiceVolumes,
 	findComposeById,
+	removeVolumeFromService,
 	findDomainsByComposeId,
 	findEnvironmentById,
 	findGitProviderById,
@@ -20,6 +24,8 @@ import {
 	getComposeContainer,
 	getWebServerSettings,
 	IS_CLOUD,
+	loadDockerCompose,
+	loadDockerComposeRemote,
 	loadServices,
 	randomizeComposeFile,
 	randomizeIsolatedDeploymentComposeFile,
@@ -43,7 +49,7 @@ import { eq } from "drizzle-orm";
 import _ from "lodash";
 import { nanoid } from "nanoid";
 import { parse } from "toml";
-import { stringify } from "yaml";
+import { parse as parseYaml, stringify } from "yaml";
 import { z } from "zod";
 import { slugify } from "@/lib/slug";
 import { db } from "@/server/db";
@@ -69,6 +75,17 @@ import {
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+
+const validateComposeAccess = async (composeId: string, activeOrgId: string) => {
+	const compose = await findComposeById(composeId);
+	if (compose.environment.project.organizationId !== activeOrgId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this compose",
+		});
+	}
+	return compose;
+};
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -184,16 +201,7 @@ export const composeRouter = createTRPCRouter({
 	update: protectedProcedure
 		.input(apiUpdateCompose)
 		.mutation(async ({ input, ctx }) => {
-			const compose = await findComposeById(input.composeId);
-			if (
-				compose.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to update this compose",
-				});
-			}
+			await validateComposeAccess(input.composeId, ctx.session.activeOrganizationId);
 			return updateCompose(input.composeId, input);
 		}),
 	delete: protectedProcedure
@@ -250,73 +258,93 @@ export const composeRouter = createTRPCRouter({
 	cleanQueues: protectedProcedure
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
-			const compose = await findComposeById(input.composeId);
-			if (
-				compose.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to clean this compose",
-				});
-			}
+			await validateComposeAccess(input.composeId, ctx.session.activeOrganizationId);
 			await cleanQueuesByCompose(input.composeId);
 			return { success: true, message: "Queues cleaned successfully" };
 		}),
 	killBuild: protectedProcedure
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
-			const compose = await findComposeById(input.composeId);
-			if (
-				compose.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to kill this build",
-				});
-			}
+			const compose = await validateComposeAccess(input.composeId, ctx.session.activeOrganizationId);
 			await killDockerBuild("compose", compose.serverId);
 		}),
 
 	loadServices: protectedProcedure
 		.input(apiFetchServices)
 		.query(async ({ input, ctx }) => {
-			const compose = await findComposeById(input.composeId);
-			if (
-				compose.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to load this compose",
-				});
+			const compose = await validateComposeAccess(input.composeId, ctx.session.activeOrganizationId);
+			if (compose.sourceType === "raw" && compose.composeFile) {
+				const composeData = parseYaml(compose.composeFile) as ComposeSpecification;
+				if (!composeData?.services) {
+					throw new TRPCError({ code: "NOT_FOUND", message: "Services not found" });
+				}
+				return Object.keys(composeData.services);
 			}
 			return await loadServices(input.composeId, input.type);
 		}),
 	loadMountsByService: protectedProcedure
+		.input(z.object({ composeId: z.string().min(1), serviceName: z.string().min(1) }))
+		.query(async ({ input, ctx }) => {
+			const compose = await validateComposeAccess(input.composeId, ctx.session.activeOrganizationId);
+			const container = await getComposeContainer(compose, input.serviceName);
+			return container?.Mounts.filter((mount) => mount.Type === "volume" && mount.Source !== "");
+		}),
+	getComposeVolumes: protectedProcedure
+		.input(apiFindCompose)
+		.query(async ({ input, ctx }) => {
+			const compose = await validateComposeAccess(input.composeId, ctx.session.activeOrganizationId);
+			let composeData: ComposeSpecification | null;
+
+			if (compose.sourceType === "raw") {
+				composeData = compose.composeFile
+					? (parseYaml(compose.composeFile) as ComposeSpecification)
+					: null;
+			} else {
+				composeData = compose.serverId
+					? await loadDockerComposeRemote(compose)
+					: await loadDockerCompose(compose);
+			}
+
+			return composeData ? extractServiceVolumes(composeData) : [];
+		}),
+	addComposeVolume: protectedProcedure
 		.input(
-			z.object({
-				composeId: z.string().min(1),
+			apiFindCompose.extend({
 				serviceName: z.string().min(1),
+				source: z.string().min(1),
+				target: z.string().min(1),
 			}),
 		)
-		.query(async ({ input, ctx }) => {
-			const compose = await findComposeById(input.composeId);
-			if (
-				compose.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
+		.mutation(async ({ input, ctx }) => {
+			const compose = await validateComposeAccess(input.composeId, ctx.session.activeOrganizationId);
+			if (compose.sourceType !== "raw" || !compose.composeFile) {
 				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to load this compose",
+					code: "BAD_REQUEST",
+					message: "Cannot edit this compose",
 				});
 			}
-			const container = await getComposeContainer(compose, input.serviceName);
-			const mounts = container?.Mounts.filter(
-				(mount) => mount.Type === "volume" && mount.Source !== "",
-			);
-			return mounts;
+			const composeData = parseYaml(compose.composeFile) as ComposeSpecification;
+			const updated = addVolumeToService(composeData, input.serviceName, `${input.source}:${input.target}`);
+			await updateCompose(input.composeId, { composeFile: stringify(updated) });
+		}),
+	removeComposeVolume: protectedProcedure
+		.input(
+			apiFindCompose.extend({
+				serviceName: z.string().min(1),
+				target: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await validateComposeAccess(input.composeId, ctx.session.activeOrganizationId);
+			if (compose.sourceType !== "raw" || !compose.composeFile) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Cannot edit this compose",
+				});
+			}
+			const composeData = parseYaml(compose.composeFile) as ComposeSpecification;
+			const updated = removeVolumeFromService(composeData, input.serviceName, input.target);
+			await updateCompose(input.composeId, { composeFile: stringify(updated) });
 		}),
 	fetchSourceType: protectedProcedure
 		.input(apiFindCompose)
@@ -492,70 +520,28 @@ export const composeRouter = createTRPCRouter({
 	stop: protectedProcedure
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
-			const compose = await findComposeById(input.composeId);
-			if (
-				compose.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to stop this compose",
-				});
-			}
+			await validateComposeAccess(input.composeId, ctx.session.activeOrganizationId);
 			await stopCompose(input.composeId);
-
 			return true;
 		}),
 	start: protectedProcedure
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
-			const compose = await findComposeById(input.composeId);
-			if (
-				compose.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to stop this compose",
-				});
-			}
+			await validateComposeAccess(input.composeId, ctx.session.activeOrganizationId);
 			await startCompose(input.composeId);
-
 			return true;
 		}),
 	getDefaultCommand: protectedProcedure
 		.input(apiFindCompose)
 		.query(async ({ input, ctx }) => {
-			const compose = await findComposeById(input.composeId);
-
-			if (
-				compose.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to get this compose",
-				});
-			}
-			const command = createCommand(compose);
-			return `docker ${command}`;
+			const compose = await validateComposeAccess(input.composeId, ctx.session.activeOrganizationId);
+			return `docker ${createCommand(compose)}`;
 		}),
 	refreshToken: protectedProcedure
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
-			const compose = await findComposeById(input.composeId);
-			if (
-				compose.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to refresh this compose",
-				});
-			}
-			await updateCompose(input.composeId, {
-				refreshToken: nanoid(),
-			});
+			await validateComposeAccess(input.composeId, ctx.session.activeOrganizationId);
+			await updateCompose(input.composeId, { refreshToken: nanoid() });
 			return true;
 		}),
 	deployTemplate: protectedProcedure

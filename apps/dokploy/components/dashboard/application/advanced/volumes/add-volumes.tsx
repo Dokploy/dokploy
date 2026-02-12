@@ -27,6 +27,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
@@ -41,6 +48,7 @@ interface Props {
 		| "mysql"
 		| "mariadb"
 		| "compose";
+	sourceType?: string;
 	refetch: () => void;
 	children?: React.ReactNode;
 }
@@ -82,16 +90,25 @@ type AddMount = z.infer<typeof mySchema>;
 export const AddVolumes = ({
 	serviceId,
 	serviceType,
+	sourceType,
 	refetch,
 	children = <PlusIcon className="h-4 w-4" />,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
+	const [serviceName, setServiceName] = useState("");
 	const { mutateAsync } = api.mounts.create.useMutation();
+	const { mutateAsync: addComposeVolume } =
+		api.compose.addComposeVolume.useMutation();
+	const { data: services } = api.compose.loadServices.useQuery(
+		{ composeId: serviceId, type: "cache" },
+		{ enabled: serviceType === "compose" && sourceType === "raw" },
+	);
+	const isRawCompose = serviceType === "compose" && sourceType === "raw";
 	const form = useForm<AddMount>({
 		defaultValues: {
-			type: serviceType === "compose" ? "file" : "bind",
+			type: serviceType === "compose" && !isRawCompose ? "file" : "bind",
 			hostPath: "",
-			mountPath: serviceType === "compose" ? "/" : "",
+			mountPath: serviceType === "compose" && !isRawCompose ? "/" : "",
 		},
 		resolver: zodResolver(mySchema),
 	});
@@ -102,7 +119,21 @@ export const AddVolumes = ({
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
 	const onSubmit = async (data: AddMount) => {
-		if (data.type === "bind") {
+		if (isRawCompose && data.type !== "file") {
+			if (!serviceName) {
+				toast.error("Please select a service");
+				return;
+			}
+			const source = data.type === "bind" ? data.hostPath : data.volumeName;
+			await addComposeVolume({ composeId: serviceId, serviceName, source, target: data.mountPath })
+				.then(() => {
+					toast.success("Volume created successfully");
+					setIsOpen(false);
+				})
+				.catch(() => {
+					toast.error("Error creating volume");
+				});
+		} else if (data.type === "bind") {
 			await mutateAsync({
 				serviceId,
 				hostPath: data.hostPath,
@@ -111,11 +142,11 @@ export const AddVolumes = ({
 				serviceType,
 			})
 				.then(() => {
-					toast.success("Mount Created");
+					toast.success("Mount created successfully");
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error creating the Bind mount");
+					toast.error("Error creating mount");
 				});
 		} else if (data.type === "volume") {
 			await mutateAsync({
@@ -126,11 +157,11 @@ export const AddVolumes = ({
 				serviceType,
 			})
 				.then(() => {
-					toast.success("Mount Created");
+					toast.success("Mount created successfully");
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error creating the Volume mount");
+					toast.error("Error creating mount");
 				});
 		} else if (data.type === "file") {
 			await mutateAsync({
@@ -142,11 +173,11 @@ export const AddVolumes = ({
 				serviceType,
 			})
 				.then(() => {
-					toast.success("Mount Created");
+					toast.success("Mount created successfully");
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error creating the File mount");
+					toast.error("Error creating mount");
 				});
 		}
 
@@ -209,7 +240,7 @@ export const AddVolumes = ({
 											defaultValue={field.value}
 											className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
 										>
-											{serviceType !== "compose" && (
+											{(serviceType !== "compose" || isRawCompose) && (
 												<FormItem className="flex items-center space-x-3 space-y-0">
 													<FormControl className="w-full">
 														<div>
@@ -229,7 +260,7 @@ export const AddVolumes = ({
 												</FormItem>
 											)}
 
-											{serviceType !== "compose" && (
+											{(serviceType !== "compose" || isRawCompose) && (
 												<FormItem className="flex items-center space-x-3 space-y-0">
 													<FormControl className="w-full">
 														<div>
@@ -251,7 +282,9 @@ export const AddVolumes = ({
 
 											<FormItem
 												className={cn(
-													serviceType === "compose" && "col-span-3",
+													serviceType === "compose" &&
+														!isRawCompose &&
+														"col-span-3",
 													"flex items-center space-x-3 space-y-0",
 												)}
 											>
@@ -362,7 +395,7 @@ PORT=3000
 										/>
 									</>
 								)}
-								{serviceType !== "compose" && (
+								{(serviceType !== "compose" || isRawCompose) && (
 									<FormField
 										control={form.control}
 										name="mountPath"
@@ -377,6 +410,23 @@ PORT=3000
 											</FormItem>
 										)}
 									/>
+								)}
+								{isRawCompose && type !== "file" && (
+									<FormItem>
+										<FormLabel>Service</FormLabel>
+										<Select value={serviceName} onValueChange={setServiceName}>
+											<SelectTrigger>
+												<SelectValue placeholder="Select service" />
+											</SelectTrigger>
+											<SelectContent>
+												{services?.map((s) => (
+													<SelectItem key={s} value={s}>
+														{s}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</FormItem>
 								)}
 							</div>
 						</div>
