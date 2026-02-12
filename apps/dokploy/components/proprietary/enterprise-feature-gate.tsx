@@ -83,32 +83,14 @@ interface EnterpriseFeatureGateProps {
 }
 
 /**
- * Renders children only when the instance has a valid enterprise license.
- * Otherwise shows EnterpriseFeatureLocked.
+ * Renders children with enterprise features always enabled (license check bypassed).
+ * All enterprise features are now freely available.
  */
 export function EnterpriseFeatureGate({
 	children,
 	lockedProps,
 	fallback,
 }: EnterpriseFeatureGateProps) {
-	const { data: haveValidLicense, isLoading } =
-		api.licenseKey.haveValidLicenseKey.useQuery();
-
-	if (isLoading) {
-		if (fallback) return <>{fallback}</>;
-		return (
-			<div className="flex items-center gap-2 justify-center min-h-[25vh]">
-				<Loader2 className="size-6 text-muted-foreground animate-spin" />
-				<span className="text-sm text-muted-foreground">
-					Checking license...
-				</span>
-			</div>
-		);
-	}
-
-	if (!haveValidLicense) {
-		return <EnterpriseFeatureLocked {...lockedProps} />;
-	}
-
+	// Enterprise features are now freely available - no license check required
 	return <>{children}</>;
 }

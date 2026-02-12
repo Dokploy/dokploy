@@ -10,59 +10,13 @@ export const LICENSE_KEY_URL =
 		: "https://licenses-api.dokploy.com";
 
 export const initEnterpriseBackupCronJobs = async () => {
-	scheduleJob("enterprise-check", "0 0 */3 * *", async () => {
-		const users = await db.query.user.findMany({
-			where: and(
-				isNotNull(userSchema.licenseKey),
-				isNotNull(userSchema.enableEnterpriseFeatures),
-				eq(userSchema.isValidEnterpriseLicense, true),
-			),
-		});
-		for (const user of users) {
-			if (user.isValidEnterpriseLicense) {
-				console.log(
-					"Validating license key....",
-					user.firstName,
-					user.lastName,
-				);
-				try {
-					const isValid = await validateLicenseKey(user.licenseKey || "");
-					if (!isValid) {
-						throw new Error("License key is invalid");
-					}
-				} catch (error) {
-					await db
-						.update(userSchema)
-						.set({ isValidEnterpriseLicense: false })
-						.where(eq(userSchema.id, user.id));
-				}
-			}
-		}
-	});
+	// Enterprise license validation cron disabled - all enterprise features are free
+	console.log("Enterprise license validation cron disabled - all features are freely available");
+	// No cron job scheduled
 };
 
 export const validateLicenseKey = async (licenseKey: string) => {
-	try {
-		const ip = await getPublicIpWithFallback();
-		const result = await fetch(`${LICENSE_KEY_URL}/licenses/validate`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({ licenseKey, ip }),
-		});
-
-		if (!result.ok) {
-			const errorData = await result.json().catch(() => ({}));
-			throw new Error(errorData.message || "Failed to validate license key");
-		}
-
-		const data = await result.json();
-		return data.valid;
-	} catch (error) {
-		console.error(
-			error instanceof Error ? error.message : "Failed to validate license key",
-		);
-		throw error;
-	}
+	// Enterprise features are freely available - always return valid
+	console.log("License validation bypassed - all enterprise features are free");
+	return true;
 };

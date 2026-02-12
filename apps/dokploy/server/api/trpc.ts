@@ -226,9 +226,8 @@ export const adminProcedure = t.procedure.use(({ ctx, next }) => {
 });
 
 /**
- * Requires admin/owner role AND enterprise enabled with a license key in DB.
- * Does NOT call the license server on every request; full validation (haveValidLicenseKey)
- * is used in the UI gate and when activating/validating keys.
+ * Requires admin/owner role. Enterprise features are now freely available.
+ * License checking has been removed to enable all enterprise features.
  */
 export const enterpriseProcedure = t.procedure.use(async ({ ctx, next }) => {
 	if (
@@ -239,15 +238,7 @@ export const enterpriseProcedure = t.procedure.use(async ({ ctx, next }) => {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 
-	if (
-		!ctx.user?.enableEnterpriseFeatures ||
-		!ctx.user.isValidEnterpriseLicense
-	) {
-		throw new TRPCError({
-			code: "FORBIDDEN",
-			message: "Valid enterprise license required",
-		});
-	}
+	// Enterprise license check removed - all enterprise features are now free
 
 	return next({
 		ctx: {
