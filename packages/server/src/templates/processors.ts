@@ -42,6 +42,8 @@ export interface CompleteTemplate {
 			website?: string;
 			docs?: string;
 		};
+		createdAt?: string;
+		updatedAt?: string;
 	};
 	variables: Record<string, string>;
 	config: {

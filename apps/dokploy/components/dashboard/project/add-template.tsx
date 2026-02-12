@@ -11,7 +11,7 @@ import {
 	SearchIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -82,6 +82,9 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 	const [open, setOpen] = useState(false);
 	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
+	const [sortBy, setSortBy] = useState<"name" | "newest" | "oldest" | "recent">(
+		"name",
+	);
 	const [customBaseUrl, setCustomBaseUrl] = useState<string | undefined>(() => {
 		// Try to get from props first, then localStorage
 		if (baseUrl) return baseUrl;
@@ -128,8 +131,33 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 	const { mutateAsync, isLoading, error, isError } =
 		api.compose.deployTemplate.useMutation();
 
-	const templates =
-		data?.filter((template) => {
+	const templates = useMemo(() => {
+		if (!data) return [];
+
+		// Debug: Log template data to see what we're working with
+		console.log(
+			"Template data:",
+			data.slice(0, 3).map((t) => ({
+				id: t.id,
+				name: t.name,
+				createdAt: t.createdAt,
+				hasDate: !!t.createdAt,
+			})),
+		);
+
+		// Helper function to determine if a template is "new" based on creation date
+		const isNewTemplate = (template: any) => {
+			if (!template.createdAt) return false;
+
+			const createdAt = new Date(template.createdAt);
+			const threeMonthsAgo = new Date();
+			threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+			return createdAt > threeMonthsAgo;
+		};
+
+		// Filter templates
+		let filtered = data.filter((template) => {
 			const matchesTags =
 				selectedTags.length === 0 ||
 				template.tags.some((tag) => selectedTags.includes(tag));
@@ -138,7 +166,77 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 				template.name.toLowerCase().includes(query.toLowerCase()) ||
 				template.description.toLowerCase().includes(query.toLowerCase());
 			return matchesTags && matchesQuery;
-		}) || [];
+		});
+
+		// For "recent" filter, show templates created within last 3 months
+		// If no recent templates found, show the most recent templates available
+		if (sortBy === "recent") {
+			const recentTemplates = filtered.filter((template) =>
+				isNewTemplate(template),
+			);
+			console.log(
+				"Recent filter - Total filtered:",
+				filtered.length,
+				"Recent templates:",
+				recentTemplates.length,
+			);
+
+			// If we have recent templates, use them; otherwise, show the most recent available
+			if (recentTemplates.length > 0) {
+				filtered = recentTemplates;
+				console.log("Using recent templates:", recentTemplates.length);
+			} else {
+				// Show the most recent templates available (top 10 by creation date)
+				filtered = [...filtered]
+					.sort((a, b) => {
+						const dateA = new Date(a.createdAt || 0);
+						const dateB = new Date(b.createdAt || 0);
+						return dateB.getTime() - dateA.getTime();
+					})
+					.slice(0, 10); // Show top 10 most recent
+				console.log("Using fallback - most recent templates:", filtered.length);
+			}
+		}
+
+		// Helper function to get template date for sorting
+		const getTemplateDate = (template: any, useUpdated = false) => {
+			const dateString = useUpdated ? template.updatedAt : template.createdAt;
+			if (!dateString) return new Date(0); // Fallback to epoch for templates without dates
+			return new Date(dateString);
+		};
+
+		// Sort templates based on sortBy
+		return [...filtered].sort((a, b) => {
+			switch (sortBy) {
+				case "newest":
+					// Sort by creation date (newest first) - all templates
+					const dateA = getTemplateDate(a);
+					const dateB = getTemplateDate(b);
+					const dateCompare = dateB.getTime() - dateA.getTime();
+					if (dateCompare !== 0) return dateCompare;
+					return a.name.localeCompare(b.name);
+				case "oldest":
+					// Sort by creation date (oldest first) - all templates
+					const dateAOld = getTemplateDate(a);
+					const dateBOld = getTemplateDate(b);
+					const dateCompareOld = dateAOld.getTime() - dateBOld.getTime();
+					if (dateCompareOld !== 0) return dateCompareOld;
+					return a.name.localeCompare(b.name);
+				case "recent":
+					// Sort recent templates by creation date (newest first)
+					// Note: we already filtered for recent templates above
+					const dateARecent = getTemplateDate(a);
+					const dateBRecent = getTemplateDate(b);
+					const dateCompareRecent =
+						dateBRecent.getTime() - dateARecent.getTime();
+					if (dateCompareRecent !== 0) return dateCompareRecent;
+					return a.name.localeCompare(b.name);
+				case "name":
+				default:
+					return a.name.localeCompare(b.name);
+			}
+		});
+	}, [data, selectedTags, query, sortBy]);
 
 	const hasServers = servers && servers.length > 0;
 	// Show dropdown logic based on cloud environment
@@ -243,6 +341,24 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 										</Command>
 									</PopoverContent>
 								</Popover>
+								<Select
+									value={sortBy}
+									onValueChange={(
+										value: "name" | "newest" | "oldest" | "recent",
+									) => setSortBy(value)}
+								>
+									<SelectTrigger className="w-full sm:w-[150px]">
+										<SelectValue placeholder="Sort by" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="name">Name A-Z</SelectItem>
+										<SelectItem value="recent">
+											Recent (Last 3 Months)
+										</SelectItem>
+										<SelectItem value="newest">Newest First</SelectItem>
+										<SelectItem value="oldest">Oldest First</SelectItem>
+									</SelectContent>
+								</Select>
 								<Button
 									size="icon"
 									onClick={() =>
@@ -323,9 +439,27 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 											viewMode === "detailed" && "h-[400px]",
 										)}
 									>
-										<Badge className="absolute top-2 right-2" variant="blue">
-											{template?.version}
-										</Badge>
+										<div className="absolute top-2 right-2 flex flex-col gap-1">
+											<Badge variant="blue">{template?.version}</Badge>
+											{/* Show "New" badge for templates created within the last 3 months */}
+											{(() => {
+												const isNew =
+													template.createdAt &&
+													(() => {
+														const createdAt = new Date(template.createdAt);
+														const threeMonthsAgo = new Date();
+														threeMonthsAgo.setMonth(
+															threeMonthsAgo.getMonth() - 3,
+														);
+														return createdAt > threeMonthsAgo;
+													})();
+												return isNew ? (
+													<Badge variant="green" className="text-xs">
+														New
+													</Badge>
+												) : null;
+											})()}
+										</div>
 										<div
 											className={cn(
 												"flex-none p-6 pb-3 flex flex-col items-center gap-4 bg-muted/30",
