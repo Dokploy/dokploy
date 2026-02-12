@@ -72,74 +72,255 @@ export function parseLogs(logString: string): LogLine[] {
 		.filter((log) => log !== null);
 }
 
-// Detect log type based on message content
+interface LogPattern {
+	pattern: RegExp;
+	score: number;
+	type: LogType;
+}
+
+// Priority for tie-breaking: higher priority wins when scores are equal
+const LOG_TYPE_PRIORITY: Record<LogType, number> = {
+	error: 5,
+	warning: 4,
+	success: 3,
+	info: 2,
+	debug: 1,
+};
+
+const isNegativeContext = (message: string, keyword: string): boolean => {
+	const lowerMessage = message.toLowerCase();
+	const lowerKeyword = keyword.toLowerCase();
+
+	// Allow up to 3 words between negation and keyword
+	const negativePatterns = [
+		`(?:not|no|without|won't|didn't|doesn't|never)\\s+(?:\\w+\\s+){0,3}${lowerKeyword}`,
+		`${lowerKeyword}\\s+(?:is|was)\\s+(?:not|never|avoided|prevented)`,
+		`prevent(?:s|ed|ing)?\\s+(?:\\w+\\s+){0,2}${lowerKeyword}`,
+		`avoid(?:s|ed|ing)?\\s+(?:\\w+\\s+){0,2}${lowerKeyword}`,
+		`if\\s+.*${lowerKeyword}`,
+		`when\\s+.*${lowerKeyword}`,
+	];
+
+	return negativePatterns.some((pattern) =>
+		new RegExp(pattern, "i").test(lowerMessage),
+	);
+};
+
 export const getLogType = (message: string): LogStyle => {
 	const lowerMessage = message.toLowerCase();
 
-	if (
-		/(?:^|\s)(?:info|inf|information):?\s/i.test(lowerMessage) ||
-		/\[(?:info|information)\]/i.test(lowerMessage) ||
-		/\b(?:status|state|current|progress)\b:?\s/i.test(lowerMessage) ||
-		/\b(?:processing|executing|performing)\b/i.test(lowerMessage)
-	) {
-		return LOG_STYLES.info;
+	const scores: Record<LogType, number> = {
+		error: 0,
+		warning: 0,
+		success: 0,
+		info: 0,
+		debug: 0,
+	};
+
+	const structuredPatterns: LogPattern[] = [
+		{
+			pattern: /\[(?:error|err|fatal|crit(?:ical)?)\]/i,
+			score: 100,
+			type: "error",
+		},
+		{
+			pattern: /^(?:error|err|fatal|crit(?:ical)?):?\s/i,
+			score: 100,
+			type: "error",
+		},
+		{
+			pattern: /level=(?:error|fatal|crit(?:ical)?)/i,
+			score: 100,
+			type: "error",
+		},
+		{
+			pattern: /severity=(?:error|fatal|crit(?:ical)?)/i,
+			score: 100,
+			type: "error",
+		},
+		{ pattern: /❌|🔴|🚨/, score: 100, type: "error" },
+
+		{
+			pattern: /\[(?:warn(?:ing)?|attention|notice)\]/i,
+			score: 100,
+			type: "warning",
+		},
+		{ pattern: /^(?:warn(?:ing)?):?\s/i, score: 100, type: "warning" },
+		{ pattern: /level=(?:warn(?:ing)?)/i, score: 100, type: "warning" },
+		{ pattern: /severity=(?:warn(?:ing)?)/i, score: 100, type: "warning" },
+		{ pattern: /⚠️|⚠|⛔/, score: 100, type: "warning" },
+
+		{ pattern: /\[(?:info|information)\]/i, score: 100, type: "info" },
+		{ pattern: /^(?:info|information):?\s/i, score: 100, type: "info" },
+		{ pattern: /level=(?:info|information)/i, score: 100, type: "info" },
+
+		{ pattern: /\[(?:debug|trace|verbose)\]/i, score: 100, type: "debug" },
+		{ pattern: /^(?:debug|trace):?\s/i, score: 100, type: "debug" },
+		{ pattern: /level=(?:debug|trace)/i, score: 100, type: "debug" },
+
+		{ pattern: /\[(?:success|ok|done)\]/i, score: 100, type: "success" },
+		{ pattern: /✓|√|✅/, score: 100, type: "success" },
+		{ pattern: /\[ok\]/i, score: 100, type: "success" },
+	];
+
+	const contextualPatterns: LogPattern[] = [
+		{
+			pattern: /(?:uncaught|unhandled)\s+(?:exception|error|rejection)/i,
+			score: 70,
+			type: "error",
+		},
+		{
+			pattern: /(?:stack\s?trace|call\s+stack)(?::|$)/i,
+			score: 70,
+			type: "error",
+		},
+		{
+			pattern: /^\s*at\s+[\w.<>$]+\s*\([^)]*:\d+:\d+\)/i,
+			score: 70,
+			type: "error",
+		},
+		{ pattern: /Error:\s+.*(?:at|in)\s+.*:\d+/i, score: 70, type: "error" },
+
+		{
+			pattern: /\b(?:status|code)[:\s]+(?:4\d{2}|5\d{2})\b/i,
+			score: 70,
+			type: "error",
+		},
+		{
+			pattern:
+				/\b(?:4\d{2}|5\d{2})\s+(?:error|bad\s+request|unauthorized|forbidden|not\s+found|internal\s+server\s+error)/i,
+			score: 70,
+			type: "error",
+		},
+
+		{
+			pattern: /\b\w+\s+(?:failed|failure)\s+(?:with|at|in|on|for|to)/i,
+			score: 65,
+			type: "error",
+		},
+		{ pattern: /(?:failed|unable)\s+to\s+\w+/i, score: 60, type: "error" },
+		{
+			pattern: /(?:error|exception)\s+(?:occurred|thrown|raised|caught)/i,
+			score: 60,
+			type: "error",
+		},
+		{
+			pattern: /(?:connection|request|operation)\s+(?:failed|error)/i,
+			score: 60,
+			type: "error",
+		},
+		{
+			pattern: /\b(?:errno|exitcode):\s*(?:\d+|[A-Z_]+)/i,
+			score: 60,
+			type: "error",
+		},
+		{
+			pattern: /\b(?:crash(?:ed)?|fatal\s+error)\b/i,
+			score: 60,
+			type: "error",
+		},
+
+		{
+			pattern: /(?:deprecated|obsolete)(?:\s+since|\s+in|\s+as\s+of)/i,
+			score: 60,
+			type: "warning",
+		},
+		{ pattern: /(?:caution|attention|notice):/i, score: 60, type: "warning" },
+		{
+			pattern: /!+\s*(?:warning|caution|attention)\s*!+/i,
+			score: 60,
+			type: "warning",
+		},
+		{
+			pattern:
+				/(?:might|may|could)\s+(?:cause|lead\s+to)\s+(?:error|issue|problem)/i,
+			score: 50,
+			type: "warning",
+		},
+
+		{
+			pattern:
+				/(?:successfully|complete[d]?)\s+(?:initialized|started|completed|created|deployed|connected)/i,
+			score: 60,
+			type: "success",
+		},
+		{
+			pattern: /(?:listening|running)\s+(?:on|at)\s+(?:port\s+)?\d+/i,
+			score: 60,
+			type: "success",
+		},
+		{
+			pattern: /(?:connected|established|ready)\s+(?:to|for|on)/i,
+			score: 50,
+			type: "success",
+		},
+		{
+			pattern: /\b(?:loaded|mounted|initialized)\s+successfully/i,
+			score: 60,
+			type: "success",
+		},
+
+		{
+			pattern: /^(?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\s+/i,
+			score: 50,
+			type: "debug",
+		},
+		{ pattern: /\b(?:request|response|query):/i, score: 50, type: "debug" },
+	];
+
+	const keywordPatterns: LogPattern[] = [
+		{
+			pattern: /\b(?:exception|crash|critical|fatal)\b/i,
+			score: 30,
+			type: "error",
+		},
+		{
+			pattern: /\b(?:deprecated|obsolete|unstable|experimental)\b/i,
+			score: 25,
+			type: "warning",
+		},
+		{
+			pattern: /\b(?:success(?:ful)?|completed|ready)\b/i,
+			score: 20,
+			type: "success",
+		},
+	];
+
+	for (const { pattern, score, type } of structuredPatterns) {
+		if (pattern.test(lowerMessage)) {
+			scores[type] += score;
+		}
 	}
 
-	if (
-		/(?:^|\s)(?:error|err):?\s/i.test(lowerMessage) ||
-		/\b(?:exception|failed|failure)\b/i.test(lowerMessage) ||
-		/(?:stack\s?trace):\s*$/i.test(lowerMessage) ||
-		/^\s*at\s+[\w.]+\s*\(?.+:\d+:\d+\)?/.test(lowerMessage) ||
-		/\b(?:uncaught|unhandled)\s+(?:exception|error)\b/i.test(lowerMessage) ||
-		/Error:\s.*(?:in|at)\s+.*:\d+(?::\d+)?/.test(lowerMessage) ||
-		/\b(?:errno|code):\s*(?:\d+|[A-Z_]+)\b/i.test(lowerMessage) ||
-		/\[(?:error|err|fatal)\]/i.test(lowerMessage) ||
-		/\b(?:crash|critical|fatal)\b/i.test(lowerMessage) ||
-		/\b(?:fail(?:ed|ure)?|broken|dead)\b/i.test(lowerMessage)
-	) {
-		return LOG_STYLES.error;
+	for (const { pattern, score, type } of contextualPatterns) {
+		if (pattern.test(lowerMessage)) {
+			scores[type] += score;
+		}
 	}
 
-	if (
-		/(?:^|\s)(?:warning|warn):?\s/i.test(lowerMessage) ||
-		/\[(?:warn(?:ing)?|attention)\]/i.test(lowerMessage) ||
-		/(?:deprecated|obsolete)\s+(?:since|in|as\s+of)/i.test(lowerMessage) ||
-		/\b(?:caution|attention|notice):\s/i.test(lowerMessage) ||
-		/(?:might|may|could)\s+(?:not|cause|lead\s+to)/i.test(lowerMessage) ||
-		/(?:!+\s*(?:warning|caution|attention)\s*!+)/i.test(lowerMessage) ||
-		/\b(?:deprecated|obsolete)\b/i.test(lowerMessage) ||
-		/\b(?:unstable|experimental)\b/i.test(lowerMessage) ||
-		/⚠|⚠️/i.test(lowerMessage)
-	) {
-		return LOG_STYLES.warning;
+	for (const { pattern, score, type } of keywordPatterns) {
+		const match = pattern.exec(lowerMessage);
+		if (match && !isNegativeContext(message, match[0])) {
+			scores[type] += score;
+		}
 	}
 
-	if (
-		/(?:successfully|complete[d]?)\s+(?:initialized|started|completed|created|done|deployed)/i.test(
-			lowerMessage,
-		) ||
-		/\[(?:success|ok|done)\]/i.test(lowerMessage) ||
-		/(?:listening|running)\s+(?:on|at)\s+(?:port\s+)?\d+/i.test(lowerMessage) ||
-		/(?:connected|established|ready)\s+(?:to|for|on)/i.test(lowerMessage) ||
-		/\b(?:loaded|mounted|initialized)\s+successfully\b/i.test(lowerMessage) ||
-		/✓|√|✅|\[ok\]|done!/i.test(lowerMessage) ||
-		/\b(?:success(?:ful)?|completed|ready)\b/i.test(lowerMessage) ||
-		/\b(?:started|starting|active)\b/i.test(lowerMessage)
-	) {
-		return LOG_STYLES.success;
+	let maxScore = 0;
+	let detectedType: LogType = "info";
+
+	for (const [type, score] of Object.entries(scores)) {
+		const logType = type as LogType;
+		// Use explicit priority for tie-breaking when scores are equal
+		if (
+			score > maxScore ||
+			(score === maxScore &&
+				score > 0 &&
+				LOG_TYPE_PRIORITY[logType] > LOG_TYPE_PRIORITY[detectedType])
+		) {
+			maxScore = score;
+			detectedType = logType;
+		}
 	}
 
-	if (
-		/(?:^|\s)(?:info|inf):?\s/i.test(lowerMessage) ||
-		/\[(info|log|debug|trace|server|db|api|http|request|response)\]/i.test(
-			lowerMessage,
-		) ||
-		/\b(?:version|config|import|load|get|HTTP|PATCH|POST|debug)\b:?/i.test(
-			lowerMessage,
-		)
-	) {
-		return LOG_STYLES.debug;
-	}
-
-	return LOG_STYLES.info;
+	return LOG_STYLES[detectedType];
 };
