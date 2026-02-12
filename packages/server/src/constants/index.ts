@@ -1,7 +1,8 @@
 import path from "node:path";
 import Docker from "dockerode";
 
-export const IS_CLOUD = process.env.IS_CLOUD === "true";
+// All cloud features are now freely available
+export const IS_CLOUD = false;
 export const CLEANUP_CRON_JOB = "50 23 * * *";
 export const docker = new Docker();
 

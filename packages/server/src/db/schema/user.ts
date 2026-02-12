@@ -52,8 +52,8 @@ export const user = pgTable("user", {
 	// Admin
 	role: text("role").notNull().default("user"),
 	// Metrics
-	enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(false),
-	allowImpersonation: boolean("allowImpersonation").notNull().default(false),
+	enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(true),
+	allowImpersonation: boolean("allowImpersonation").notNull().default(true),
 	// Enterprise / proprietary features (now freely available by default)
 	enableEnterpriseFeatures: boolean("enableEnterpriseFeatures")
 		.notNull()
@@ -64,7 +64,7 @@ export const user = pgTable("user", {
 		.default(true),
 	stripeCustomerId: text("stripeCustomerId"),
 	stripeSubscriptionId: text("stripeSubscriptionId"),
-	serversQuantity: integer("serversQuantity").notNull().default(0),
+	serversQuantity: integer("serversQuantity").notNull().default(999999),
 	trustedOrigins: text("trustedOrigins").array(),
 });
 

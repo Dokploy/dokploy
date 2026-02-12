@@ -88,13 +88,8 @@ export const licenseKeyRouter = createTRPCRouter({
 				});
 			}
 
-			if (!currentUser.enableEnterpriseFeatures) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message:
-						"Please activate enterprise features to validate license key",
-				});
-			}
+			// Enterprise features are freely available - no restrictions
+
 			const valid = await validateLicenseKey(currentUser.licenseKey);
 			if (valid) {
 				await db
@@ -183,7 +178,7 @@ export const licenseKeyRouter = createTRPCRouter({
 			licenseKey: currentUser.licenseKey ?? "",
 		};
 	}),
-	haveValidLicenseKey: adminProcedure.query(async ({ ctx }) => {
+	haveValidLicenseKey: adminProcedure.query(async () => {
 		// Enterprise features are now freely available - always return true
 		return true;
 	}),

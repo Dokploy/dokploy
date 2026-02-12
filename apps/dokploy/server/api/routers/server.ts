@@ -3,11 +3,9 @@ import {
 	defaultCommand,
 	deleteServer,
 	findServerById,
-	findServersByUserId,
 	findUserById,
 	getPublicIpWithFallback,
 	haveActiveServices,
-	IS_CLOUD,
 	removeDeploymentsByServerId,
 	serverAudit,
 	serverSetup,
@@ -22,6 +20,7 @@ import { z } from "zod";
 import { updateServersBasedOnQuantity } from "@/pages/api/stripe/webhook";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
+
 import {
 	apiCreateServer,
 	apiFindOneServer,
@@ -39,19 +38,15 @@ import {
 	server,
 } from "@/server/db/schema";
 
+// All features are now free - IS_CLOUD is always false
+const IS_CLOUD = false;
+
 export const serverRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateServer)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				const user = await findUserById(ctx.user.ownerId);
-				const servers = await findServersByUserId(user.id);
-				if (IS_CLOUD && servers.length >= user.serversQuantity) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "You cannot create more servers",
-					});
-				}
+				// All features are now free - unlimited servers allowed
 				const project = await createServer(
 					input,
 					ctx.session.activeOrganizationId,
@@ -406,9 +401,7 @@ export const serverRouter = createTRPCRouter({
 		return ip;
 	}),
 	getServerTime: protectedProcedure.query(() => {
-		if (IS_CLOUD) {
-			return null;
-		}
+		// All features are free - always return server time
 		return {
 			time: new Date(),
 			timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,

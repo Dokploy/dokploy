@@ -1,7 +1,5 @@
 import {
-	findServersByUserId,
 	findUserById,
-	IS_CLOUD,
 	updateUser,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -124,15 +122,9 @@ export const stripeRouter = createTRPCRouter({
 		}
 	}),
 
-	canCreateMoreServers: adminProcedure.query(async ({ ctx }) => {
-		const user = await findUserById(ctx.user.ownerId);
-		const servers = await findServersByUserId(user.id);
-
-		if (!IS_CLOUD) {
-			return true;
-		}
-
-		return servers.length < user.serversQuantity;
+	canCreateMoreServers: adminProcedure.query(async () => {
+		// All features are now free - unlimited servers
+		return true;
 	}),
 
 	getInvoices: adminProcedure.query(async ({ ctx }) => {

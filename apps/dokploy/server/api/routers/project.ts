@@ -28,8 +28,6 @@ import {
 	findPostgresById,
 	findProjectById,
 	findRedisById,
-	findUserById,
-	IS_CLOUD,
 	updateProjectById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -67,14 +65,7 @@ export const projectRouter = createTRPCRouter({
 					);
 				}
 
-				const admin = await findUserById(ctx.user.ownerId);
-
-				if (admin.serversQuantity === 0 && IS_CLOUD) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "No servers available, Please subscribe to a plan",
-					});
-				}
+				// All features are now free - no server quantity restrictions
 
 				const project = await createProject(
 					input,
