@@ -4,6 +4,7 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreateMount,
 	mounts,
+	mountCredentials,
 	type ServiceType,
 } from "@dokploy/server/db/schema";
 import {
@@ -16,6 +17,26 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { encryptMountCredentials } from "@dokploy/server/utils/encryption/mount-credentials";
+import {
+	distributeCredentialsToNodes,
+	syncMountToAllNodes,
+} from "@dokploy/server/utils/mounts/swarm-replication";
+import {
+	createNFSVolume,
+	removeNFSVolume,
+	syncDockerVolumesToNodes,
+} from "@dokploy/server/utils/mounts/docker-volumes";
+import {
+	validateMountPath,
+	validateNFSServer,
+	validateSMBServer,
+	validateNFSPath,
+	validateSMBShare,
+	validateSMBPath,
+	sanitizeUsername,
+	validateMountOptions,
+} from "@dokploy/server/utils/security/validation";
 import { TRPCError } from "@trpc/server";
 import { eq, type SQL, sql } from "drizzle-orm";
 
@@ -23,11 +44,90 @@ export type Mount = typeof mounts.$inferSelect;
 
 export const createMount = async (input: typeof apiCreateMount._type) => {
 	try {
-		const { serviceId, ...rest } = input;
+		const { serviceId, username, password, domain, ...rest } = input;
+
+		// Validate mount path
+		validateMountPath(input.mountPath);
+
+		// Validate NFS/SMB specific fields
+		if (input.type === "nfs") {
+			if (input.nfsServer) {
+				validateNFSServer(input.nfsServer);
+			}
+			if (input.nfsPath) {
+				validateNFSPath(input.nfsPath);
+			}
+		}
+
+		if (input.type === "smb") {
+			if (input.smbServer) {
+				validateSMBServer(input.smbServer);
+			}
+			if (input.smbShare) {
+				validateSMBShare(input.smbShare);
+			}
+			if (input.smbPath) {
+				validateSMBPath(input.smbPath);
+			}
+		}
+
+		// Validate and sanitize credentials
+		let sanitizedUsername: string | undefined;
+		if (username) {
+			sanitizedUsername = sanitizeUsername(username);
+		}
+
+		// Validate mount options
+		if (input.mountOptions) {
+			validateMountOptions(input.mountOptions);
+		}
+
+		// Handle credentials for NFS/SMB mounts
+		let credentialsId: string | undefined;
+		if (
+			(input.type === "nfs" || input.type === "smb") &&
+			sanitizedUsername &&
+			password
+		) {
+			// Encrypt credentials
+			const encrypted = await encryptMountCredentials({
+				username: sanitizedUsername,
+				password,
+				domain: domain ? sanitizeUsername(domain) : undefined,
+			});
+
+			// Create credentials record (will be linked after mount is created)
+			const credentials = await db
+				.insert(mountCredentials)
+				.values({
+					username: encrypted.username,
+					password: encrypted.password,
+					domain: encrypted.domain,
+					mountId: "", // Will be updated after mount is created
+				})
+				.returning()
+				.then((value) => value[0]);
+
+			if (!credentials) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error creating credentials",
+				});
+			}
+
+			credentialsId = credentials.credentialsId;
+		}
+
+		// mountPathOnHost will be set after mount creation using the mountId
+
 		const value = await db
 			.insert(mounts)
 			.values({
 				...rest,
+				credentialsId,
+				...(input.mountPathOnHost && {
+					mountPathOnHost: input.mountPathOnHost,
+				}),
 				...(input.serviceType === "application" && {
 					applicationId: serviceId,
 				}),
@@ -60,9 +160,103 @@ export const createMount = async (input: typeof apiCreateMount._type) => {
 			});
 		}
 
-		if (value.type === "file") {
-			await createFileMount(value.mountId);
+		// Update credentials with mountId if credentials were created
+		if (credentialsId) {
+			await db
+				.update(mountCredentials)
+				.set({ mountId: value.mountId })
+				.where(eq(mountCredentials.credentialsId, credentialsId));
 		}
+
+		// Determine mount method (default to host-mount for backward compatibility)
+		const mountMethod = value.mountMethod || "host-mount";
+
+		// Handle Docker volume creation for NFS
+		if (
+			value.type === "nfs" &&
+			mountMethod === "docker-volume" &&
+			value.nfsServer &&
+			value.nfsPath
+		) {
+			// Generate Docker volume name
+			const dockerVolumeName = `dokploy-nfs-${value.mountId}`;
+
+			// Get serverId for the service
+			const serverId = await getServerId(await findMountById(value.mountId));
+
+			// Create Docker volume
+			await createNFSVolume({
+				volumeName: dockerVolumeName,
+				nfsServer: value.nfsServer,
+				nfsPath: value.nfsPath,
+				mountOptions: value.mountOptions || undefined,
+				serverId,
+			});
+
+			// Update mount with Docker volume name
+			await db
+				.update(mounts)
+				.set({ dockerVolumeName })
+				.where(eq(mounts.mountId, value.mountId));
+			value.dockerVolumeName = dockerVolumeName;
+
+			// Sync Docker volumes to selected nodes if swarm replication is enabled
+			if (
+				value.replicateToSwarm &&
+				value.targetNodes &&
+				value.targetNodes.length > 0
+			) {
+				await syncDockerVolumesToNodes(
+					dockerVolumeName,
+					value.nfsServer,
+					value.nfsPath,
+					value.mountOptions || undefined,
+					value.targetNodes,
+					serverId,
+				);
+			}
+		} else {
+			// Set mountPathOnHost if not provided and this is a host-level network mount
+			if (
+				!value.mountPathOnHost &&
+				(value.type === "nfs" || value.type === "smb") &&
+				mountMethod === "host-mount"
+			) {
+				const defaultMountPath = `/mnt/dokploy-${value.type}-${value.mountId}`;
+				await db
+					.update(mounts)
+					.set({ mountPathOnHost: defaultMountPath })
+					.where(eq(mounts.mountId, value.mountId));
+				value.mountPathOnHost = defaultMountPath;
+			}
+
+			// Handle different mount types
+			if (value.type === "file") {
+				await createFileMount(value.mountId);
+			} else if (
+				(value.type === "nfs" || value.type === "smb") &&
+				mountMethod === "host-mount" &&
+				value.replicateToSwarm &&
+				value.targetNodes &&
+				value.targetNodes.length > 0
+			) {
+				// Get serverId for the service
+				const serverId = await getServerId(await findMountById(value.mountId));
+
+				// Distribute credentials to nodes
+				if (credentialsId) {
+					await distributeCredentialsToNodes(
+						value,
+						value.targetNodes,
+						serverId,
+					);
+				}
+
+				// Sync mounts to all target nodes
+				await syncMountToAllNodes(value, value.targetNodes, serverId);
+			}
+		}
+
 		return value;
 	} catch (error) {
 		console.log(error);
@@ -273,10 +467,30 @@ export const findMountsByApplicationId = async (
 };
 
 export const deleteMount = async (mountId: string) => {
-	const { type } = await findMountById(mountId);
+	const mount = await findMountById(mountId);
+	const { type } = mount;
+	const mountMethod = mount.mountMethod || "host-mount";
 
 	if (type === "file") {
 		await deleteFileMount(mountId);
+	} else if (type === "nfs" || type === "smb") {
+		if (mountMethod === "docker-volume" && mount.dockerVolumeName) {
+			// Remove Docker volume
+			const serverId = await getServerId(mount);
+			await removeNFSVolume(mount.dockerVolumeName, serverId);
+		} else if (
+			mountMethod === "host-mount" &&
+			mount.replicateToSwarm &&
+			mount.targetNodes &&
+			mount.targetNodes.length > 0
+		) {
+			// Cleanup network mounts from swarm nodes
+			const { cleanupMountFromNodes } = await import(
+				"../utils/mounts/swarm-replication"
+			);
+			const serverId = await getServerId(mount);
+			await cleanupMountFromNodes(mount, mount.targetNodes, serverId);
+		}
 	}
 
 	const deletedMount = await db

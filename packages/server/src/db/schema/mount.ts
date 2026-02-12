@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, jsonb, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -10,6 +10,8 @@ import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
+import { mountCredentials } from "./mount-credentials";
+import { mountNodeStatus } from "./mount-node-status";
 
 export const serviceType = pgEnum("serviceType", [
 	"application",
@@ -21,7 +23,18 @@ export const serviceType = pgEnum("serviceType", [
 	"compose",
 ]);
 
-export const mountType = pgEnum("mountType", ["bind", "volume", "file"]);
+export const mountType = pgEnum("mountType", [
+	"bind",
+	"volume",
+	"file",
+	"nfs",
+	"smb",
+]);
+
+export const mountMethod = pgEnum("mountMethod", [
+	"docker-volume",
+	"host-mount",
+]);
 
 export const mounts = pgTable("mount", {
 	mountId: text("mountId")
@@ -35,6 +48,28 @@ export const mounts = pgTable("mount", {
 	content: text("content"),
 	serviceType: serviceType("serviceType").notNull().default("application"),
 	mountPath: text("mountPath").notNull(),
+	// NFS fields
+	nfsServer: text("nfsServer"),
+	nfsPath: text("nfsPath"),
+	// SMB fields
+	smbServer: text("smbServer"),
+	smbShare: text("smbShare"),
+	smbPath: text("smbPath"),
+	// Common network mount fields
+	mountOptions: text("mountOptions"),
+	credentialsId: text("credentialsId"),
+	replicateToSwarm: boolean("replicateToSwarm").notNull().default(false),
+	targetNodes: text("targetNodes").array(),
+	mountPathOnHost: text("mountPathOnHost"),
+	mountMethod: mountMethod("mountMethod").notNull().default("host-mount"),
+	dockerVolumeName: text("dockerVolumeName"), // For tracking Docker volumes
+	nodeSpecificConfig: jsonb("nodeSpecificConfig").$type<Record<
+		string,
+		{
+			mountPath?: string;
+			mountOptions?: string;
+		}
+	>>(),
 	applicationId: text("applicationId").references(
 		() => applications.applicationId,
 		{ onDelete: "cascade" },
@@ -59,7 +94,7 @@ export const mounts = pgTable("mount", {
 	}),
 });
 
-export const MountssRelations = relations(mounts, ({ one }) => ({
+export const MountssRelations = relations(mounts, ({ one, many }) => ({
 	application: one(applications, {
 		fields: [mounts.applicationId],
 		references: [applications.applicationId],
@@ -88,17 +123,43 @@ export const MountssRelations = relations(mounts, ({ one }) => ({
 		fields: [mounts.composeId],
 		references: [compose.composeId],
 	}),
+	credentials: one(mountCredentials, {
+		fields: [mounts.credentialsId],
+		references: [mountCredentials.credentialsId],
+		relationName: "mountCredentials",
+	}),
+	nodeStatuses: many(mountNodeStatus),
 }));
 
 const createSchema = createInsertSchema(mounts, {
 	applicationId: z.string(),
-	type: z.enum(["bind", "volume", "file"]),
+	type: z.enum(["bind", "volume", "file", "nfs", "smb"]),
 	hostPath: z.string().optional(),
 	volumeName: z.string().optional(),
 	content: z.string().optional(),
 	mountPath: z.string().min(1),
 	mountId: z.string().optional(),
 	filePath: z.string().optional(),
+	nfsServer: z.string().optional(),
+	nfsPath: z.string().optional(),
+	smbServer: z.string().optional(),
+	smbShare: z.string().optional(),
+	smbPath: z.string().optional(),
+	mountOptions: z.string().optional(),
+	credentialsId: z.string().optional(),
+	replicateToSwarm: z.boolean().default(false),
+	targetNodes: z.array(z.string()).optional(),
+	mountPathOnHost: z.string().optional(),
+	mountMethod: z.enum(["docker-volume", "host-mount"]).default("host-mount"),
+	dockerVolumeName: z.string().optional(),
+	nodeSpecificConfig: z
+		.record(
+			z.object({
+				mountPath: z.string().optional(),
+				mountOptions: z.string().optional(),
+			}),
+		)
+		.optional(),
 	serviceType: z
 		.enum([
 			"application",
@@ -125,10 +186,67 @@ export const apiCreateMount = createSchema
 		mountPath: true,
 		serviceType: true,
 		filePath: true,
+		nfsServer: true,
+		nfsPath: true,
+		smbServer: true,
+		smbShare: true,
+		smbPath: true,
+		mountOptions: true,
+		replicateToSwarm: true,
+		targetNodes: true,
+		mountPathOnHost: true,
+		mountMethod: true,
+		nodeSpecificConfig: true,
 	})
 	.extend({
 		serviceId: z.string().min(1),
-	});
+		// Credentials for NFS/SMB (optional, plaintext - will be encrypted)
+		username: z.string().optional(),
+		password: z.string().optional(),
+		domain: z.string().optional(), // For SMB
+	})
+	.refine(
+		(data) => {
+			if (data.type === "nfs") {
+				return !!data.nfsServer && !!data.nfsPath;
+			}
+			if (data.type === "smb") {
+				return !!data.smbServer && !!data.smbShare;
+			}
+			return true;
+		},
+		{
+			message:
+				"NFS mounts require nfsServer and nfsPath. SMB mounts require smbServer and smbShare.",
+		},
+	)
+	.refine(
+		(data) => {
+			if (data.replicateToSwarm) {
+				return (
+					Array.isArray(data.targetNodes) && data.targetNodes.length > 0
+				);
+			}
+			return true;
+		},
+		{
+			message:
+				"targetNodes must be specified when replicateToSwarm is true",
+		},
+	)
+	.refine(
+		(data) => {
+			// SMB can only use host-mount method (no native Docker support)
+			if (data.type === "smb" && data.mountMethod === "docker-volume") {
+				return false;
+			}
+			return true;
+		},
+		{
+			message:
+				"SMB mounts can only use host-mount method. Docker native volumes are not supported for SMB.",
+		},
+	);
 
 export const apiFindOneMount = createSchema
 	.pick({

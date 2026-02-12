@@ -6,6 +6,7 @@ import {
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
+	generateNetworkMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
@@ -114,6 +115,7 @@ export const mechanizeDockerContainer = async (
 	} = generateConfigContainer(application);
 
 	const bindsMount = generateBindMounts(mounts);
+	const networkMounts = generateNetworkMounts(mounts);
 	const filesMount = generateFileMounts(appName, application);
 	const envVariables = prepareEnvironmentVariables(
 		env,
@@ -133,7 +135,12 @@ export const mechanizeDockerContainer = async (
 				HealthCheck,
 				Image: image,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...networkMounts,
+					...filesMount,
+				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(command && {
