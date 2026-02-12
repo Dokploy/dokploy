@@ -2,6 +2,7 @@ import {
 	addDomainToCompose,
 	addNewService,
 	checkServiceAccess,
+	clearOldDeploymentsByComposeId,
 	cloneCompose,
 	createCommand,
 	createCompose,
@@ -262,6 +263,27 @@ export const composeRouter = createTRPCRouter({
 			}
 			await cleanQueuesByCompose(input.composeId);
 			return { success: true, message: "Queues cleaned successfully" };
+		}),
+	clearDeployments: protectedProcedure
+		.input(apiFindCompose)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message:
+						"You are not authorized to clear deployments for this compose",
+				});
+			}
+			const result = await clearOldDeploymentsByComposeId(input.composeId);
+			return {
+				success: true,
+				message: `${result.deletedCount} old deployments cleared successfully`,
+				deletedCount: result.deletedCount,
+			};
 		}),
 	killBuild: protectedProcedure
 		.input(apiFindCompose)

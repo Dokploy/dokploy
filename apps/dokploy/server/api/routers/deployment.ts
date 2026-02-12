@@ -8,6 +8,7 @@ import {
 	findComposeById,
 	findDeploymentById,
 	findServerById,
+	removeDeployment,
 	updateDeploymentStatus,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -106,5 +107,15 @@ export const deploymentRouter = createTRPCRouter({
 			}
 
 			await updateDeploymentStatus(deployment.deploymentId, "error");
+		}),
+
+	removeDeployment: protectedProcedure
+		.input(
+			z.object({
+				deploymentId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			return await removeDeployment(input.deploymentId);
 		}),
 });

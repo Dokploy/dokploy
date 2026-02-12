@@ -1,4 +1,4 @@
-import { Ban } from "lucide-react";
+import { Paintbrush } from "lucide-react";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -19,11 +19,12 @@ interface Props {
 	type: "application" | "compose";
 }
 
-export const CancelQueues = ({ id, type }: Props) => {
+export const ClearDeployments = ({ id, type }: Props) => {
+	const utils = api.useUtils();
 	const { mutateAsync, isLoading } =
 		type === "application"
-			? api.application.cleanQueues.useMutation()
-			: api.compose.cleanQueues.useMutation();
+			? api.application.clearDeployments.useMutation()
+			: api.compose.clearDeployments.useMutation();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	if (isCloud) {
@@ -33,18 +34,19 @@ export const CancelQueues = ({ id, type }: Props) => {
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button variant="destructive" className="w-fit" isLoading={isLoading}>
-					Cancel Queues
-					<Ban className="size-4" />
+				<Button variant="outline" className="w-fit" isLoading={isLoading}>
+					Clear deployments
+					<Paintbrush className="size-4" />
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						Are you sure to cancel the incoming deployments?
+						Are you sure you want to clear old deployments?
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						This will cancel all the incoming deployments
+						This will delete all old deployment records and logs, keeping only
+						the active deployment (the most recent successful one).
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
@@ -55,8 +57,15 @@ export const CancelQueues = ({ id, type }: Props) => {
 								applicationId: id || "",
 								composeId: id || "",
 							})
-								.then(() => {
-									toast.success("Queues are being cleaned");
+								.then(async (result) => {
+									toast.success(
+										`${result.deletedCount} old deployments cleared successfully`,
+									);
+									// Invalidate deployment queries to refresh the list
+									await utils.deployment.allByType.invalidate({
+										id,
+										type,
+									});
 								})
 								.catch((err) => {
 									toast.error(err.message);

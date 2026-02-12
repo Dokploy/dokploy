@@ -831,3 +831,111 @@ export const findAllDeploymentsByServerId = async (serverId: string) => {
 	});
 	return deploymentsList;
 };
+
+export const clearOldDeploymentsByApplicationId = async (
+	applicationId: string,
+) => {
+	// Get all deployments ordered by creation date (newest first)
+	const deploymentsList = await db.query.deployments.findMany({
+		where: eq(deployments.applicationId, applicationId),
+		orderBy: desc(deployments.createdAt),
+	});
+
+	// Find the most recent successful deployment (status "done")
+	const activeDeployment = deploymentsList.find(
+		(deployment) => deployment.status === "done",
+	);
+
+	// If there's an active deployment, keep it and remove all others
+	// If there's no active deployment, keep the most recent one and remove the rest
+	let deploymentsToKeep: string[] = [];
+
+	if (activeDeployment) {
+		deploymentsToKeep.push(activeDeployment.deploymentId);
+	} else if (deploymentsList.length > 0) {
+		// Keep the most recent deployment even if it's not "done"
+		deploymentsToKeep.push(deploymentsList[0]!.deploymentId);
+	}
+
+	const deploymentsToDelete = deploymentsList.filter(
+		(deployment) => !deploymentsToKeep.includes(deployment.deploymentId),
+	);
+
+	// Delete old deployments and their log files
+	for (const deployment of deploymentsToDelete) {
+		if (deployment.rollbackId) {
+			await removeRollbackById(deployment.rollbackId);
+		}
+
+		// Remove log file if it exists
+		const logPath = deployment.logPath;
+		if (logPath && logPath !== "." && existsSync(logPath)) {
+			try {
+				await fsPromises.unlink(logPath);
+			} catch (error) {
+				console.error(`Error removing log file ${logPath}:`, error);
+			}
+		}
+
+		// Delete deployment from database
+		await removeDeployment(deployment.deploymentId);
+	}
+
+	return {
+		deletedCount: deploymentsToDelete.length,
+		keptDeployment: deploymentsToKeep[0] || null,
+	};
+};
+
+export const clearOldDeploymentsByComposeId = async (composeId: string) => {
+	// Get all deployments ordered by creation date (newest first)
+	const deploymentsList = await db.query.deployments.findMany({
+		where: eq(deployments.composeId, composeId),
+		orderBy: desc(deployments.createdAt),
+	});
+
+	// Find the most recent successful deployment (status "done")
+	const activeDeployment = deploymentsList.find(
+		(deployment) => deployment.status === "done",
+	);
+
+	// If there's an active deployment, keep it and remove all others
+	// If there's no active deployment, keep the most recent one and remove the rest
+	let deploymentsToKeep: string[] = [];
+
+	if (activeDeployment) {
+		deploymentsToKeep.push(activeDeployment.deploymentId);
+	} else if (deploymentsList.length > 0) {
+		// Keep the most recent deployment even if it's not "done"
+		deploymentsToKeep.push(deploymentsList[0]!.deploymentId);
+	}
+
+	const deploymentsToDelete = deploymentsList.filter(
+		(deployment) => !deploymentsToKeep.includes(deployment.deploymentId),
+	);
+
+	// Delete old deployments and their log files
+	for (const deployment of deploymentsToDelete) {
+		if (deployment.rollbackId) {
+			await removeRollbackById(deployment.rollbackId);
+		}
+
+		// Remove log file if it exists
+		const logPath = deployment.logPath;
+		if (logPath && logPath !== "." && existsSync(logPath)) {
+			try {
+				await fsPromises.unlink(logPath);
+			} catch (error) {
+				console.error(`Error removing log file ${logPath}:`, error);
+			}
+		}
+
+		// Delete deployment from database
+		await removeDeployment(deployment.deploymentId);
+	}
+
+	return {
+		deletedCount: deploymentsToDelete.length,
+		keptDeployment: deploymentsToKeep[0] || null,
+	};
+};
