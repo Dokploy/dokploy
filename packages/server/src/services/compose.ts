@@ -395,16 +395,14 @@ export const removeCompose = async (
 		if (compose.composeType === "stack") {
 			const command = `
 			docker network disconnect ${compose.appName} dokploy-traefik;
-			cd ${projectPath} && docker stack rm ${compose.appName} && rm -rf ${projectPath}`;
+			docker stack rm ${compose.appName};
+			rm -rf ${projectPath}`;
 
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);
 			} else {
 				await execAsync(command);
 			}
-			await execAsync(command, {
-				cwd: projectPath,
-			});
 		} else {
 			const command = `
 			 docker network disconnect ${compose.appName} dokploy-traefik;
