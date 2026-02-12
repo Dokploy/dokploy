@@ -122,7 +122,7 @@ export const getComposeContainerCommand = (
 	return `docker ps -q --filter "status=running" --filter "label=com.docker.compose.project=${appName}" --filter "label=com.docker.compose.service=${serviceName}" | head -n 1`;
 };
 
-const getContainerSearchCommand = (backup: BackupSchedule) => {
+export const getContainerSearchCommand = (backup: BackupSchedule) => {
 	const { backupType, postgres, mysql, mariadb, mongo, compose, serviceName } =
 		backup;
 
@@ -267,4 +267,58 @@ export const getBackupCommand = (
 	echo "[$(date)] ✅ Upload to S3 completed successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
+};
+
+export const getServiceNodeCommand = (appName: string) => {
+	return `docker service ps ${appName} --format "{{.Node}}" --filter "desired-state=running"`;
+};
+
+export const getRemoveServiceCommand = (appName: string) => {
+	return `docker service rm backup-service-${appName}`;
+};
+
+export const getServiceExistsCommand = (appName: string) => {
+	return `
+    if docker service ls \
+      --filter name=backup-service-${appName} \
+      --format '{{.Name}}' | \
+      grep -q "^backup-service-${appName}$"; then
+      echo true
+    else
+      echo false
+    fi
+  `.trim();
+};
+
+export const getCreateDatabaseBackupTempService = (
+	backup: BackupSchedule,
+	appName: string,
+	databaseUser: string,
+	node: string,
+	rcloneCommand: string,
+) => {
+	const containerSearch = getContainerSearchCommand(backup);
+	const backupCommand = generateBackupCommand(backup);
+
+	return [
+		"docker service create",
+		`--name backup-service-${appName}`,
+		"--restart-condition none",
+		`--constraint 'node.hostname == ${node.trim()}'`,
+		"--mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock",
+		"alpine sh -c '",
+		"apk add --no-cache rclone docker-cli &&",
+		"set -eo pipefail;",
+		`CONTAINER_ID=$(${containerSearch});`,
+		'if [ -z "$CONTAINER_ID" ]; then echo "❌ Error: Container not found"; exit 1; fi;',
+		'echo "Container Up: $CONTAINER_ID";',
+		'echo "Executing backup test...";',
+		`${backupCommand} > /dev/null || { echo "❌ Error: Backup process failed"; exit 1; };`,
+		'echo "Starting upload to S3...";',
+		`docker exec -i $CONTAINER_ID bash -c "set -o pipefail; pg_dump -Fc --no-acl --no-owner -h localhost -U ${databaseUser} --no-password ${backup.database} | gzip" |`,
+		`${rcloneCommand} || { echo "❌ Error: Upload to S3 failed"; exit 1; };`,
+		"sleep 6;",
+		'echo "Backup done ✅"',
+		"'",
+	].join(" ");
 };
