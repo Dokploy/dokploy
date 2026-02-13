@@ -272,9 +272,7 @@ export const SSOSettings = () => {
 													View details
 												</Button>
 												{isOidc && (
-													<RegisterOidcDialog
-														providerId={provider.providerId}
-													>
+													<RegisterOidcDialog providerId={provider.providerId}>
 														<Button variant="ghost" size="sm">
 															<Pencil className="mr-1 size-3" />
 															Edit
@@ -282,9 +280,7 @@ export const SSOSettings = () => {
 													</RegisterOidcDialog>
 												)}
 												{isSaml && (
-													<RegisterSamlDialog
-														providerId={provider.providerId}
-													>
+													<RegisterSamlDialog providerId={provider.providerId}>
 														<Button variant="ghost" size="sm">
 															<Pencil className="mr-1 size-3" />
 															Edit

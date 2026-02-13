@@ -108,8 +108,12 @@ export function RegisterSamlDialog({
 	const updateMutation = api.sso.update.useMutation();
 
 	const isEdit = !!providerId;
-	const mutateAsync = isEdit ? updateMutation.mutateAsync : registerMutation.mutateAsync;
-	const isLoading = isEdit ? updateMutation.isLoading : registerMutation.isLoading;
+	const mutateAsync = isEdit
+		? updateMutation.mutateAsync
+		: registerMutation.mutateAsync;
+	const isLoading = isEdit
+		? updateMutation.isLoading
+		: registerMutation.isLoading;
 
 	const [baseURL, setBaseURL] = useState("");
 
@@ -127,7 +131,10 @@ export function RegisterSamlDialog({
 	useEffect(() => {
 		if (!data || !open) return;
 		const domains = data.domain
-			? data.domain.split(",").map((d) => d.trim()).filter(Boolean)
+			? data.domain
+					.split(",")
+					.map((d) => d.trim())
+					.filter(Boolean)
 			: [""];
 		if (domains.length === 0) domains.push("");
 		const saml = parseSamlConfig(data.samlConfig);

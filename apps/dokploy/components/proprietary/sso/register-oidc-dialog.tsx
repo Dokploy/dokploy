@@ -93,7 +93,10 @@ function parseOidcConfig(oidcConfig: string | null): {
 	}
 }
 
-export function RegisterOidcDialog({ providerId, children }: RegisterOidcDialogProps) {
+export function RegisterOidcDialog({
+	providerId,
+	children,
+}: RegisterOidcDialogProps) {
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
 
@@ -105,8 +108,12 @@ export function RegisterOidcDialog({ providerId, children }: RegisterOidcDialogP
 	const updateMutation = api.sso.update.useMutation();
 
 	const isEdit = !!providerId;
-	const mutateAsync = isEdit ? updateMutation.mutateAsync : registerMutation.mutateAsync;
-	const isLoading = isEdit ? updateMutation.isLoading : registerMutation.isLoading;
+	const mutateAsync = isEdit
+		? updateMutation.mutateAsync
+		: registerMutation.mutateAsync;
+	const isLoading = isEdit
+		? updateMutation.isLoading
+		: registerMutation.isLoading;
 
 	const form = useForm<OidcProviderForm>({
 		resolver: zodResolver(oidcProviderSchema),
@@ -116,7 +123,10 @@ export function RegisterOidcDialog({ providerId, children }: RegisterOidcDialogP
 	useEffect(() => {
 		if (!data || !open) return;
 		const domains = data.domain
-			? data.domain.split(",").map((d) => d.trim()).filter(Boolean)
+			? data.domain
+					.split(",")
+					.map((d) => d.trim())
+					.filter(Boolean)
 			: [""];
 		if (domains.length === 0) domains.push("");
 		const oidc = parseOidcConfig(data.oidcConfig);
@@ -127,7 +137,9 @@ export function RegisterOidcDialog({ providerId, children }: RegisterOidcDialogP
 			clientId: oidc?.clientId ?? "",
 			clientSecret: oidc?.clientSecret ?? "",
 			scopes:
-				oidc?.scopes && oidc.scopes.length > 0 ? oidc.scopes : [...DEFAULT_SCOPES],
+				oidc?.scopes && oidc.scopes.length > 0
+					? oidc.scopes
+					: [...DEFAULT_SCOPES],
 		});
 	}, [data, open, form]);
 
