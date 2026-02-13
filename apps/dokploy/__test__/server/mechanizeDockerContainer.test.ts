@@ -12,27 +12,42 @@ type MockCreateServiceOptions = {
 	[key: string]: unknown;
 };
 
-const { inspectMock, getServiceMock, createServiceMock, getRemoteDockerMock } =
-	vi.hoisted(() => {
-		const inspect = vi.fn<() => Promise<never>>();
-		const getService = vi.fn(() => ({ inspect }));
-		const createService = vi.fn<
-			(opts: MockCreateServiceOptions) => Promise<void>
-		>(async () => undefined);
-		const getRemoteDocker = vi.fn(async () => ({
-			getService,
-			createService,
-		}));
-		return {
-			inspectMock: inspect,
-			getServiceMock: getService,
-			createServiceMock: createService,
-			getRemoteDockerMock: getRemoteDocker,
-		};
-	});
+const {
+	inspectMock,
+	getServiceMock,
+	createServiceMock,
+	getRemoteDockerMock,
+	execAsyncMock,
+	execAsyncRemoteMock,
+} = vi.hoisted(() => {
+	const inspect = vi.fn<() => Promise<never>>();
+	const getService = vi.fn(() => ({ inspect }));
+	const createService = vi.fn<
+		(opts: MockCreateServiceOptions) => Promise<void>
+	>(async () => undefined);
+	const getRemoteDocker = vi.fn(async () => ({
+		getService,
+		createService,
+	}));
+	const execAsync = vi.fn(async () => ({ stdout: "", stderr: "" }));
+	const execAsyncRemote = vi.fn(async () => ({ stdout: "", stderr: "" }));
+	return {
+		inspectMock: inspect,
+		getServiceMock: getService,
+		createServiceMock: createService,
+		getRemoteDockerMock: getRemoteDocker,
+		execAsyncMock: execAsync,
+		execAsyncRemoteMock: execAsyncRemote,
+	};
+});
 
 vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
 	getRemoteDocker: getRemoteDockerMock,
+}));
+
+vi.mock("@dokploy/server/utils/process/execAsync", () => ({
+	execAsync: execAsyncMock,
+	execAsyncRemote: execAsyncRemoteMock,
 }));
 
 const createApplication = (
@@ -74,6 +89,8 @@ describe("mechanizeDockerContainer", () => {
 			getService: getServiceMock,
 			createService: createServiceMock,
 		});
+		execAsyncMock.mockClear();
+		execAsyncRemoteMock.mockClear();
 	});
 
 	it("converts bigint stopGracePeriodSwarm to a number and keeps zero values", async () => {
@@ -157,5 +174,52 @@ describe("mechanizeDockerContainer", () => {
 		}
 		const [settings] = call;
 		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty("Ulimits");
+	});
+
+	it("distributes registry auth to workers via execAsyncRemote when serverId exists and credentials are provided", async () => {
+		const application = createApplication({
+			serverId: "server-id",
+			username: "testuser",
+			password: "testpass",
+			registryUrl: "https://index.docker.io/v1/",
+		});
+
+		await mechanizeDockerContainer(application);
+
+		expect(execAsyncRemoteMock).toHaveBeenCalledTimes(1);
+		expect(execAsyncRemoteMock).toHaveBeenCalledWith(
+			"server-id",
+			"docker service update --with-registry-auth test-app",
+		);
+		expect(execAsyncMock).not.toHaveBeenCalled();
+	});
+
+	it("distributes registry auth to workers via execAsync when serverId is null and credentials are provided", async () => {
+		const application = createApplication({
+			serverId: null,
+			username: "testuser",
+			password: "testpass",
+			registryUrl: "https://index.docker.io/v1/",
+		});
+
+		await mechanizeDockerContainer(application);
+
+		expect(execAsyncMock).toHaveBeenCalledTimes(1);
+		expect(execAsyncMock).toHaveBeenCalledWith(
+			"docker service update --with-registry-auth test-app",
+		);
+		expect(execAsyncRemoteMock).not.toHaveBeenCalled();
+	});
+
+	it("does not distribute registry auth when no credentials are provided", async () => {
+		const application = createApplication({
+			username: null,
+			password: null,
+		});
+
+		await mechanizeDockerContainer(application);
+
+		expect(execAsyncMock).not.toHaveBeenCalled();
+		expect(execAsyncRemoteMock).not.toHaveBeenCalled();
 	});
 });

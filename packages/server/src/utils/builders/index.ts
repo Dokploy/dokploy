@@ -9,6 +9,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { getDockerCommand } from "./docker-file";
 import { getHerokuCommand } from "./heroku";
@@ -183,6 +184,17 @@ export const mechanizeDockerContainer = async (
 	} catch (error) {
 		console.log(error);
 		await docker.createService(settings);
+	}
+
+	// Distribute registry credentials to worker nodes in Docker Swarm
+	// This ensures workers can pull images from private registries
+	if (authConfig) {
+		const updateAuthCommand = `docker service update --with-registry-auth ${appName}`;
+		if (application.serverId) {
+			await execAsyncRemote(application.serverId, updateAuthCommand);
+		} else {
+			await execAsync(updateAuthCommand);
+		}
 	}
 };
 
