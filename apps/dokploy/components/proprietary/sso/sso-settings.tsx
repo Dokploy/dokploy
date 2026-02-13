@@ -9,7 +9,7 @@ import {
 	Shield,
 	Trash2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { useUrl } from "@/utils/hooks/use-url";
 import { RegisterOidcDialog } from "./register-oidc-dialog";
 import { RegisterSamlDialog } from "./register-saml-dialog";
 
@@ -76,17 +77,11 @@ export const SSOSettings = () => {
 	const utils = api.useUtils();
 	const [detailsProvider, setDetailsProvider] =
 		useState<ProviderForDetails | null>(null);
-	const [baseURL, setBaseURL] = useState("");
+	const baseURL = useUrl();
 	const [manageOriginsOpen, setManageOriginsOpen] = useState(false);
 	const [editingOrigin, setEditingOrigin] = useState<string | null>(null);
 	const [editingValue, setEditingValue] = useState("");
 	const [newOriginInput, setNewOriginInput] = useState("");
-
-	useEffect(() => {
-		if (typeof window !== "undefined") {
-			setBaseURL(window.location.origin);
-		}
-	}, []);
 
 	const { data: providers, isLoading } = api.sso.listProviders.useQuery();
 	const { data: userData } = api.user.get.useQuery(undefined, {
@@ -271,6 +266,22 @@ export const SSOSettings = () => {
 													<Eye className="mr-1 size-3" />
 													View details
 												</Button>
+												{isOidc && (
+													<RegisterOidcDialog providerId={provider.providerId}>
+														<Button variant="ghost" size="sm">
+															<Pencil className="mr-1 size-3" />
+															Edit
+														</Button>
+													</RegisterOidcDialog>
+												)}
+												{isSaml && (
+													<RegisterSamlDialog providerId={provider.providerId}>
+														<Button variant="ghost" size="sm">
+															<Pencil className="mr-1 size-3" />
+															Edit
+														</Button>
+													</RegisterSamlDialog>
+												)}
 												<DialogAction
 													title="Remove SSO provider"
 													description={`Remove provider "${provider.providerId}"? Users will no longer be able to sign in with this IdP.`}
@@ -350,8 +361,7 @@ export const SSOSettings = () => {
 							<DialogHeader>
 								<DialogTitle>SSO provider details</DialogTitle>
 								<DialogDescription>
-									View-only. To change settings, remove this provider and add it
-									again with the new values.
+									Use Edit to change provider settings (OIDC or SAML).
 								</DialogDescription>
 							</DialogHeader>
 							<div className="grid gap-3 py-2">

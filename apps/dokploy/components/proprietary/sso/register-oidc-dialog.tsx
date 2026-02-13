@@ -2,9 +2,9 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FieldArrayPath } from "react-hook-form";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { useUrl } from "@/utils/hooks/use-url";
 
 const DEFAULT_SCOPES = ["openid", "email", "profile"];
 
@@ -58,6 +59,7 @@ const oidcProviderSchema = z.object({
 type OidcProviderForm = z.infer<typeof oidcProviderSchema>;
 
 interface RegisterOidcDialogProps {
+	providerId?: string;
 	children: React.ReactNode;
 }
 
@@ -70,15 +72,85 @@ const formDefaultValues = {
 	scopes: [...DEFAULT_SCOPES],
 };
 
-export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
+function parseOidcConfig(oidcConfig: string | null): {
+	clientId?: string;
+	clientSecret?: string;
+	scopes?: string[];
+} | null {
+	if (!oidcConfig) return null;
+	try {
+		const parsed = JSON.parse(oidcConfig) as {
+			clientId?: string;
+			clientSecret?: string;
+			scopes?: string[];
+		};
+		return {
+			clientId: parsed.clientId,
+			clientSecret: parsed.clientSecret,
+			scopes: Array.isArray(parsed.scopes) ? parsed.scopes : undefined,
+		};
+	} catch {
+		return null;
+	}
+}
+
+export function RegisterOidcDialog({
+	providerId,
+	children,
+}: RegisterOidcDialogProps) {
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
-	const { mutateAsync, isLoading } = api.sso.register.useMutation();
+
+	const { data } = api.sso.one.useQuery(
+		{ providerId: providerId ?? "" },
+		{ enabled: !!providerId && open },
+	);
+	const registerMutation = api.sso.register.useMutation();
+	const updateMutation = api.sso.update.useMutation();
+
+	const isEdit = !!providerId;
+	const mutateAsync = isEdit
+		? updateMutation.mutateAsync
+		: registerMutation.mutateAsync;
+	const isLoading = isEdit
+		? updateMutation.isLoading
+		: registerMutation.isLoading;
 
 	const form = useForm<OidcProviderForm>({
 		resolver: zodResolver(oidcProviderSchema),
 		defaultValues: formDefaultValues,
 	});
+
+	const watchedProviderId = useWatch({
+		control: form.control,
+		name: "providerId",
+		defaultValue: "",
+	});
+
+	const baseURL = useUrl();
+
+	useEffect(() => {
+		if (!data || !open) return;
+		const domains = data.domain
+			? data.domain
+					.split(",")
+					.map((d) => d.trim())
+					.filter(Boolean)
+			: [""];
+		if (domains.length === 0) domains.push("");
+		const oidc = parseOidcConfig(data.oidcConfig);
+		form.reset({
+			providerId: data.providerId,
+			issuer: data.issuer,
+			domains,
+			clientId: oidc?.clientId ?? "",
+			clientSecret: oidc?.clientSecret ?? "",
+			scopes:
+				oidc?.scopes && oidc.scopes.length > 0
+					? oidc.scopes
+					: [...DEFAULT_SCOPES],
+		});
+	}, [data, open, form]);
 
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
@@ -130,7 +202,11 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 				},
 			});
 
-			toast.success("OIDC provider registered successfully");
+			toast.success(
+				isEdit
+					? "OIDC provider updated successfully"
+					: "OIDC provider registered successfully",
+			);
 			form.reset(formDefaultValues);
 			setOpen(false);
 			await utils.sso.listProviders.invalidate();
@@ -146,11 +222,13 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent className="sm:max-w-[500px]">
 				<DialogHeader>
-					<DialogTitle>Register OIDC provider</DialogTitle>
+					<DialogTitle>
+						{isEdit ? "Update OIDC provider" : "Register OIDC provider"}
+					</DialogTitle>
 					<DialogDescription>
-						Add any OIDC-compliant identity provider (e.g. Okta, Azure AD,
-						Google Workspace, Auth0, Keycloak). Discovery will fill endpoints
-						from the issuer URL when possible.
+						{isEdit
+							? "Change issuer, domains, client settings or scopes. Provider ID cannot be changed."
+							: "Add any OIDC-compliant identity provider (e.g. Okta, Azure AD, Google Workspace, Auth0, Keycloak). Discovery will fill endpoints from the issuer URL when possible."}
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
@@ -162,11 +240,28 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 								<FormItem>
 									<FormLabel>Provider ID</FormLabel>
 									<FormControl>
-										<Input placeholder="e.g. okta or my-idp" {...field} />
+										<Input
+											placeholder="e.g. okta or my-idp"
+											{...field}
+											readOnly={isEdit}
+											className={isEdit ? "bg-muted" : undefined}
+										/>
 									</FormControl>
 									<FormDescription>
 										Unique identifier; used in callback URL path.
+										{isEdit && " Cannot be changed when editing."}
 									</FormDescription>
+									{baseURL && (
+										<div className="rounded-md bg-muted px-3 py-2 text-xs">
+											<p className="font-medium text-muted-foreground">
+												Callback URL (configure in your IdP)
+											</p>
+											<p className="mt-0.5 break-all font-mono">
+												{baseURL}/api/auth/sso/callback/
+												{watchedProviderId?.trim() || "..."}
+											</p>
+										</div>
+									)}
 									<FormMessage />
 								</FormItem>
 							)}
@@ -341,7 +436,7 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 								Cancel
 							</Button>
 							<Button type="submit" isLoading={isLoading}>
-								Register provider
+								{isEdit ? "Update provider" : "Register provider"}
 							</Button>
 						</DialogFooter>
 					</form>
