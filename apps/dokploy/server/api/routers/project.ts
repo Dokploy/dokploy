@@ -163,6 +163,11 @@ export const projectRouter = createTRPCRouter({
 								},
 							},
 						},
+						projectTags: {
+							with: {
+								tag: true,
+							},
+						},
 					},
 				});
 
@@ -245,6 +250,11 @@ export const projectRouter = createTRPCRouter({
 							},
 						},
 					},
+					projectTags: {
+						with: {
+							tag: true,
+						},
+					},
 				},
 				orderBy: desc(projects.createdAt),
 			});
@@ -269,6 +279,11 @@ export const projectRouter = createTRPCRouter({
 								domains: true,
 							},
 						},
+					},
+				},
+				projectTags: {
+					with: {
+						tag: true,
 					},
 				},
 			},

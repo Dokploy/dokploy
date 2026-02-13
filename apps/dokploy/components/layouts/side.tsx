@@ -28,6 +28,7 @@ import {
 	Server,
 	ShieldCheck,
 	Star,
+	Tags,
 	Trash2,
 	User,
 	Users,
@@ -328,6 +329,14 @@ const MENU: Menu = {
 			icon: BotIcon,
 			url: "/dashboard/settings/ai",
 			isSingle: true,
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.role === "admin"),
+		},
+		{
+			isSingle: true,
+			title: "Tags",
+			url: "/dashboard/settings/tags",
+			icon: Tags,
 			isEnabled: ({ auth }) =>
 				!!(auth?.role === "owner" || auth?.role === "admin"),
 		},

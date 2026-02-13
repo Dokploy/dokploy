@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { TagSelector } from "@/components/shared/tag-selector";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -61,6 +62,7 @@ interface Props {
 export const HandleProject = ({ projectId }: Props) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
+	const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
 	const { mutateAsync, error, isError } = projectId
 		? api.project.update.useMutation()
@@ -74,6 +76,10 @@ export const HandleProject = ({ projectId }: Props) => {
 			enabled: !!projectId,
 		},
 	);
+
+	const { data: availableTags = [] } = api.tag.all.useQuery();
+	const bulkAssignMutation = api.tag.bulkAssign.useMutation();
+
 	const router = useRouter();
 	const form = useForm<AddProject>({
 		defaultValues: {
@@ -88,6 +94,13 @@ export const HandleProject = ({ projectId }: Props) => {
 			description: data?.description ?? "",
 			name: data?.name ?? "",
 		});
+		// Load existing tags when editing a project
+		if (data?.projectTags) {
+			const tagIds = data.projectTags.map((pt) => pt.tagId);
+			setSelectedTagIds(tagIds);
+		} else {
+			setSelectedTagIds([]);
+		}
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
 	const onSubmit = async (data: AddProject) => {
@@ -97,12 +110,26 @@ export const HandleProject = ({ projectId }: Props) => {
 			projectId: projectId || "",
 		})
 			.then(async (data) => {
+				// Assign tags to the project (both create and update)
+				const projectIdToUse =
+					projectId ||
+					(data && "project" in data ? data.project.projectId : undefined);
+
+				if (projectIdToUse) {
+					try {
+						await bulkAssignMutation.mutateAsync({
+							projectId: projectIdToUse,
+							tagIds: selectedTagIds,
+						});
+					} catch (error) {
+						toast.error("Failed to assign tags to project");
+					}
+				}
+
 				await utils.project.all.invalidate();
 				toast.success(projectId ? "Project Updated" : "Project Created");
 				setIsOpen(false);
 				if (!projectId) {
-					const projectIdToUse =
-						data && "project" in data ? data.project.projectId : undefined;
 					const environmentIdToUse =
 						data && "environment" in data
 							? data.environment.environmentId
@@ -189,6 +216,20 @@ export const HandleProject = ({ projectId }: Props) => {
 								</FormItem>
 							)}
 						/>
+
+						<div className="space-y-2">
+							<FormLabel>Tags</FormLabel>
+							<TagSelector
+								tags={availableTags.map((tag) => ({
+									id: tag.tagId,
+									name: tag.name,
+									color: tag.color ?? undefined,
+								}))}
+								selectedTags={selectedTagIds}
+								onTagsChange={setSelectedTagIds}
+								placeholder="Select tags..."
+							/>
+						</div>
 					</form>
 
 					<DialogFooter>

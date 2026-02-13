@@ -17,6 +17,7 @@ import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { TagFilter } from "@/components/shared/tag-filter";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -28,6 +29,7 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -66,6 +68,7 @@ export const ShowProjects = () => {
 	const { data, isLoading } = api.project.all.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
+	const { data: availableTags } = api.tag.all.useQuery();
 
 	const [searchQuery, setSearchQuery] = useState(
 		router.isReady && typeof router.query.q === "string" ? router.query.q : "",
@@ -79,9 +82,21 @@ export const ShowProjects = () => {
 		return "createdAt-desc";
 	});
 
+	const [selectedTagIds, setSelectedTagIds] = useState<string[]>(() => {
+		if (typeof window !== "undefined") {
+			const saved = localStorage.getItem("projectsTagFilter");
+			return saved ? JSON.parse(saved) : [];
+		}
+		return [];
+	});
+
 	useEffect(() => {
 		localStorage.setItem("projectsSort", sortBy);
 	}, [sortBy]);
+
+	useEffect(() => {
+		localStorage.setItem("projectsTagFilter", JSON.stringify(selectedTagIds));
+	}, [selectedTagIds]);
 
 	useEffect(() => {
 		if (!router.isReady) return;
@@ -110,7 +125,7 @@ export const ShowProjects = () => {
 	const filteredProjects = useMemo(() => {
 		if (!data) return [];
 
-		const filtered = data.filter(
+		let filtered = data.filter(
 			(project) =>
 				project.name
 					.toLowerCase()
@@ -119,6 +134,15 @@ export const ShowProjects = () => {
 					?.toLowerCase()
 					.includes(debouncedSearchQuery.toLowerCase()),
 		);
+
+		// Filter by selected tags (OR logic: show projects with ANY selected tag)
+		if (selectedTagIds.length > 0) {
+			filtered = filtered.filter((project) =>
+				project.projectTags?.some((pt) =>
+					selectedTagIds.includes(pt.tag.tagId),
+				),
+			);
+		}
 
 		// Then sort the filtered results
 		const [field, direction] = sortBy.split("-");
@@ -165,7 +189,7 @@ export const ShowProjects = () => {
 			}
 			return direction === "asc" ? comparison : -comparison;
 		});
-	}, [data, debouncedSearchQuery, sortBy]);
+	}, [data, debouncedSearchQuery, sortBy, selectedTagIds]);
 
 	return (
 		<>
@@ -218,29 +242,44 @@ export const ShowProjects = () => {
 
 											<Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
 										</div>
-										<div className="flex items-center gap-2 min-w-48 max-sm:w-full">
-											<ArrowUpDown className="size-4 text-muted-foreground" />
-											<Select value={sortBy} onValueChange={setSortBy}>
-												<SelectTrigger className="w-full">
-													<SelectValue placeholder="Sort by..." />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value="name-asc">Name (A-Z)</SelectItem>
-													<SelectItem value="name-desc">Name (Z-A)</SelectItem>
-													<SelectItem value="createdAt-desc">
-														Newest first
-													</SelectItem>
-													<SelectItem value="createdAt-asc">
-														Oldest first
-													</SelectItem>
-													<SelectItem value="services-desc">
-														Most services
-													</SelectItem>
-													<SelectItem value="services-asc">
-														Least services
-													</SelectItem>
-												</SelectContent>
-											</Select>
+										<div className="flex items-center gap-2">
+											<TagFilter
+												tags={
+													availableTags?.map((tag) => ({
+														id: tag.tagId,
+														name: tag.name,
+														color: tag.color || undefined,
+													})) || []
+												}
+												selectedTags={selectedTagIds}
+												onTagsChange={setSelectedTagIds}
+											/>
+											<div className="flex items-center gap-2 min-w-48 max-sm:w-full">
+												<ArrowUpDown className="size-4 text-muted-foreground" />
+												<Select value={sortBy} onValueChange={setSortBy}>
+													<SelectTrigger className="w-full">
+														<SelectValue placeholder="Sort by..." />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="name-asc">Name (A-Z)</SelectItem>
+														<SelectItem value="name-desc">
+															Name (Z-A)
+														</SelectItem>
+														<SelectItem value="createdAt-desc">
+															Newest first
+														</SelectItem>
+														<SelectItem value="createdAt-asc">
+															Oldest first
+														</SelectItem>
+														<SelectItem value="services-desc">
+															Most services
+														</SelectItem>
+														<SelectItem value="services-asc">
+															Least services
+														</SelectItem>
+													</SelectContent>
+												</Select>
+											</div>
 										</div>
 									</div>
 									{filteredProjects?.length === 0 && (
@@ -442,6 +481,31 @@ export const ShowProjects = () => {
 																		<span className="text-sm font-medium text-muted-foreground break-normal">
 																			{project.description}
 																		</span>
+
+																		{project.projectTags &&
+																			project.projectTags.length > 0 && (
+																				<div className="flex flex-wrap gap-1.5 mt-2">
+																					{project.projectTags.map((pt) => (
+																						<Badge
+																							key={pt.tag.tagId}
+																							variant="blank"
+																							style={{
+																								backgroundColor: pt.tag.color
+																									? `${pt.tag.color}33`
+																									: undefined,
+																								color:
+																									pt.tag.color || undefined,
+																								borderColor: pt.tag.color
+																									? `${pt.tag.color}66`
+																									: undefined,
+																							}}
+																							className="border"
+																						>
+																							{pt.tag.name}
+																						</Badge>
+																					))}
+																				</div>
+																			)}
 
 																		{hasNoEnvironments && (
 																			<div className="flex flex-row gap-2 items-center rounded-lg bg-yellow-50 p-2 mt-2 dark:bg-yellow-950">
