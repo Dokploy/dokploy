@@ -9,6 +9,7 @@ import {
 	IS_CLOUD,
 	removeUserById,
 	sendEmailNotification,
+	sendResendNotification,
 	updateUser,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
@@ -509,15 +510,16 @@ export const userRouter = createTRPCRouter({
 			const notification = await findNotificationById(input.notificationId);
 
 			const email = notification.email;
+			const resend = notification.resend;
 
 			const currentInvitation = await db.query.invitation.findFirst({
 				where: eq(invitation.id, input.invitationId),
 			});
 
-			if (!email) {
+			if (!email && !resend) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
-					message: "Email notification not found",
+					message: "Email provider not found",
 				});
 			}
 
@@ -532,16 +534,29 @@ export const userRouter = createTRPCRouter({
 			);
 
 			try {
-				await sendEmailNotification(
-					{
-						...email,
-						toAddresses: [currentInvitation?.email || ""],
-					},
-					"Invitation to join organization",
-					`
-				<p>You are invited to join ${organization?.name || "organization"} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
-					`,
-				);
+				const htmlContent = `
+\t\t\t\t<p>You are invited to join ${organization?.name || "organization"} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
+\t\t\t\t`;
+
+				if (email) {
+					await sendEmailNotification(
+						{
+							...email,
+							toAddresses: [currentInvitation?.email || ""],
+						},
+						"Invitation to join organization",
+						htmlContent,
+					);
+				} else if (resend) {
+					await sendResendNotification(
+						{
+							...resend,
+							toAddresses: [currentInvitation?.email || ""],
+						},
+						"Invitation to join organization",
+						htmlContent,
+					);
+				}
 			} catch (error) {
 				console.log(error);
 				throw error;

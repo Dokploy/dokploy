@@ -88,7 +88,7 @@ export const createCommand = (compose: ComposeNested) => {
 	let command = "";
 
 	if (composeType === "docker-compose") {
-		command = `compose -p ${appName} -f ${path} up -d --build --remove-orphans`;
+		command = `compose -p ${appName} -f ${path} up -d --build --pull always --remove-orphans`;
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${path} ${appName} --prune --with-registry-auth`;
 	}
@@ -134,6 +134,7 @@ const getExportEnvCommand = (compose: ComposeNested) => {
 	const envVars = getEnviromentVariablesObject(
 		compose.env,
 		compose.environment.project.env,
+		compose.environment.env,
 	);
 	const exports = Object.entries(envVars)
 		.map(([key, value]) => `${key}=${quote([value])}`)

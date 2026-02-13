@@ -1,11 +1,14 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
-import { docker } from "@dokploy/server/constants";
 import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { and, eq } from "drizzle-orm";
+
 import semver from "semver";
+import { db } from "../db";
+import { compose } from "../db/schema";
 import {
 	initializeStandaloneTraefik,
 	initializeTraefikService,
@@ -24,19 +27,6 @@ export const DEFAULT_UPDATE_DATA: IUpdateData = {
 /** Returns current Dokploy docker image tag or `latest` by default. */
 export const getDokployImageTag = () => {
 	return process.env.RELEASE_TAG || "latest";
-};
-
-export const getDokployImage = () => {
-	return `dokploy/dokploy:${getDokployImageTag()}`;
-};
-
-export const pullLatestRelease = async () => {
-	const stream = await docker.pull(getDokployImage());
-	await new Promise((resolve, reject) => {
-		docker.modem.followProgress(stream, (err, res) =>
-			err ? reject(err) : resolve(res),
-		);
-	});
 };
 
 /** Returns Dokploy docker service image digest */
@@ -452,13 +442,40 @@ export const writeTraefikSetup = async (input: TraefikOptions) => {
 			additionalPorts: input.additionalPorts,
 			serverId: input.serverId,
 		});
+		await reconnectServicesToTraefik(input.serverId);
 	} else if (resourceType === "standalone") {
 		await initializeStandaloneTraefik({
 			env: input.env,
 			additionalPorts: input.additionalPorts,
 			serverId: input.serverId,
 		});
+
+		await reconnectServicesToTraefik(input.serverId);
 	} else {
 		throw new Error("Traefik resource type not found");
+	}
+};
+
+export const reconnectServicesToTraefik = async (serverId?: string) => {
+	const composeResult = await db.query.compose.findMany({
+		where: and(
+			...(serverId ? [eq(compose.serverId, serverId)] : []),
+			eq(compose.isolatedDeployment, true),
+		),
+	});
+
+	if (!composeResult) {
+		return;
+	}
+	let commands = "";
+
+	for (const compose of composeResult) {
+		commands += `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1\n`;
+	}
+
+	if (serverId) {
+		await execAsyncRemote(serverId, commands);
+	} else {
+		await execAsync(commands);
 	}
 };

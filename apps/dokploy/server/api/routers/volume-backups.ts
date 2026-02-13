@@ -21,7 +21,7 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -54,6 +54,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 					redis: true,
 					compose: true,
 				},
+				orderBy: [desc(volumeBackups.createdAt)],
 			});
 		}),
 	create: protectedProcedure

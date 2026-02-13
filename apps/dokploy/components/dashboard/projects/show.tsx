@@ -288,9 +288,12 @@ export const ShowProjects = () => {
 												)
 												.some(Boolean);
 
-											const productionEnvironment = project?.environments.find(
-												(env) => env.isDefault,
-											);
+											// Find default environment from accessible environments, or fall back to first accessible environment
+											const accessibleEnvironment =
+												project?.environments.find((env) => env.isDefault) ||
+												project?.environments?.[0];
+
+											const hasNoEnvironments = !accessibleEnvironment;
 
 											return (
 												<div
@@ -298,7 +301,16 @@ export const ShowProjects = () => {
 													className="w-full lg:max-w-md"
 												>
 													<Link
-														href={`/dashboard/project/${project.projectId}/environment/${productionEnvironment?.environmentId}`}
+														href={
+															hasNoEnvironments
+																? "#"
+																: `/dashboard/project/${project.projectId}/environment/${accessibleEnvironment?.environmentId}`
+														}
+														onClick={(e) => {
+															if (hasNoEnvironments) {
+																e.preventDefault();
+															}
+														}}
 													>
 														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border">
 															{haveServicesWithDomains ? (
@@ -418,8 +430,8 @@ export const ShowProjects = () => {
 																</DropdownMenu>
 															) : null}
 															<CardHeader>
-																<CardTitle className="flex items-center justify-between gap-2">
-																	<span className="flex flex-col gap-1.5">
+																<CardTitle className="flex items-center justify-between gap-2 overflow-clip">
+																	<span className="flex flex-col gap-1.5 ">
 																		<div className="flex items-center gap-2">
 																			<BookIcon className="size-4 text-muted-foreground" />
 																			<span className="text-base font-medium leading-none">
@@ -427,9 +439,19 @@ export const ShowProjects = () => {
 																			</span>
 																		</div>
 
-																		<span className="text-sm font-medium text-muted-foreground">
+																		<span className="text-sm font-medium text-muted-foreground break-normal">
 																			{project.description}
 																		</span>
+
+																		{hasNoEnvironments && (
+																			<div className="flex flex-row gap-2 items-center rounded-lg bg-yellow-50 p-2 mt-2 dark:bg-yellow-950">
+																				<AlertTriangle className="size-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
+																				<span className="text-xs text-yellow-600 dark:text-yellow-400">
+																					You have access to this project but no
+																					environments are available
+																				</span>
+																			</div>
+																		)}
 																	</span>
 																	<div className="flex self-start space-x-1">
 																		<DropdownMenu>

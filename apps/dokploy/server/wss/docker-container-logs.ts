@@ -1,9 +1,9 @@
 import type http from "node:http";
-import { findServerById, validateRequest } from "@dokploy/server";
+import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { getShell } from "./utils";
+import { getShell, isValidContainerId } from "./utils";
 
 export const setupDockerContainerLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -39,6 +39,12 @@ export const setupDockerContainerLogsWebSocketServer = (
 
 		if (!containerId) {
 			ws.close(4000, "containerId no provided");
+			return;
+		}
+
+		// Security: Validate containerId to prevent command injection
+		if (!isValidContainerId(containerId)) {
+			ws.close(4000, "Invalid container ID format");
 			return;
 		}
 
@@ -111,6 +117,11 @@ export const setupDockerContainerLogsWebSocketServer = (
 					client.end();
 				});
 			} else {
+				if (IS_CLOUD) {
+					ws.send("This feature is not available in the cloud version.");
+					ws.close();
+					return;
+				}
 				const shell = getShell();
 				const baseCommand = `docker ${runType === "swarm" ? "service" : "container"} logs --timestamps ${
 					runType === "swarm" ? "--raw" : ""

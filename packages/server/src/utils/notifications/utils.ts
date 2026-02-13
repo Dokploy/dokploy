@@ -5,10 +5,13 @@ import type {
 	gotify,
 	lark,
 	ntfy,
+	pushover,
+	resend,
 	slack,
 	telegram,
 } from "@dokploy/server/db/schema";
 import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 export const sendEmailNotification = async (
 	connection: typeof email.$inferInsert,
@@ -41,6 +44,32 @@ export const sendEmailNotification = async (
 		console.log(err);
 		throw new Error(
 			`Failed to send email notification ${err instanceof Error ? err.message : "Unknown error"}`,
+		);
+	}
+};
+
+export const sendResendNotification = async (
+	connection: typeof resend.$inferInsert,
+	subject: string,
+	htmlContent: string,
+) => {
+	try {
+		const client = new Resend(connection.apiKey);
+
+		const result = await client.emails.send({
+			from: connection.fromAddress,
+			to: connection.toAddresses,
+			subject,
+			html: htmlContent,
+		});
+
+		if (result.error) {
+			throw new Error(result.error.message);
+		}
+	} catch (err) {
+		console.log(err);
+		throw new Error(
+			`Failed to send Resend notification ${err instanceof Error ? err.message : "Unknown error"}`,
 		);
 	}
 };
@@ -221,5 +250,35 @@ export const sendLarkNotification = async (
 		});
 	} catch (err) {
 		console.log(err);
+	}
+};
+
+export const sendPushoverNotification = async (
+	connection: typeof pushover.$inferInsert,
+	title: string,
+	message: string,
+) => {
+	const formData = new URLSearchParams();
+	formData.append("token", connection.apiToken);
+	formData.append("user", connection.userKey);
+	formData.append("title", title);
+	formData.append("message", message);
+	formData.append("priority", connection.priority?.toString() || "0");
+
+	// For emergency priority (2), retry and expire are required
+	if (connection.priority === 2) {
+		formData.append("retry", connection.retry?.toString() || "30");
+		formData.append("expire", connection.expire?.toString() || "3600");
+	}
+
+	const response = await fetch("https://api.pushover.net/1/messages.json", {
+		method: "POST",
+		body: formData,
+	});
+
+	if (!response.ok) {
+		throw new Error(
+			`Failed to send Pushover notification: ${response.statusText}`,
+		);
 	}
 };

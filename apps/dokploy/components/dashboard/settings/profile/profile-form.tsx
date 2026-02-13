@@ -41,7 +41,7 @@ const profileSchema = z.object({
 	password: z.string().nullable(),
 	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
-	name: z.string().optional(),
+	firstName: z.string().optional(),
 	lastName: z.string().optional(),
 	allowImpersonation: z.boolean().optional().default(false),
 });
@@ -91,7 +91,7 @@ export const ProfileForm = () => {
 			image: data?.user?.image || "",
 			currentPassword: "",
 			allowImpersonation: data?.user?.allowImpersonation || false,
-			name: data?.user?.firstName || "",
+			firstName: data?.user?.firstName || "",
 			lastName: data?.user?.lastName || "",
 		},
 		resolver: zodResolver(profileSchema),
@@ -106,7 +106,7 @@ export const ProfileForm = () => {
 					image: data?.user?.image || "",
 					currentPassword: form.getValues("currentPassword") || "",
 					allowImpersonation: data?.user?.allowImpersonation,
-					name: data?.user?.firstName || "",
+					firstName: data?.user?.firstName || "",
 					lastName: data?.user?.lastName || "",
 				},
 				{
@@ -131,7 +131,7 @@ export const ProfileForm = () => {
 				image: values.image,
 				currentPassword: values.currentPassword || undefined,
 				allowImpersonation: values.allowImpersonation,
-				name: values.name || undefined,
+				firstName: values.firstName || undefined,
 				lastName: values.lastName || undefined,
 			});
 			await refetch();
@@ -141,7 +141,7 @@ export const ProfileForm = () => {
 				password: "",
 				image: values.image,
 				currentPassword: "",
-				name: values.name || "",
+				firstName: values.firstName || "",
 				lastName: values.lastName || "",
 			});
 		} catch (error) {
@@ -184,7 +184,7 @@ export const ProfileForm = () => {
 										<div className="space-y-4">
 											<FormField
 												control={form.control}
-												name="name"
+												name="firstName"
 												render={({ field }) => (
 													<FormItem>
 														<FormLabel>First Name</FormLabel>

@@ -7,7 +7,12 @@ import {
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
-import { getStripeItems, WEBSITE_URL } from "@/server/utils/stripe";
+import {
+	getStripeItems,
+	PRODUCT_ANNUAL_ID,
+	PRODUCT_MONTHLY_ID,
+	WEBSITE_URL,
+} from "@/server/utils/stripe";
 import { adminProcedure, createTRPCRouter } from "../trpc";
 
 export const stripeRouter = createTRPCRouter({
@@ -24,9 +29,15 @@ export const stripeRouter = createTRPCRouter({
 			active: true,
 		});
 
+		const filteredProducts = products.data.filter((product) => {
+			return (
+				product.id === PRODUCT_MONTHLY_ID || product.id === PRODUCT_ANNUAL_ID
+			);
+		});
+
 		if (!stripeCustomerId) {
 			return {
-				products: products.data,
+				products: filteredProducts,
 				subscriptions: [],
 			};
 		}
@@ -38,7 +49,7 @@ export const stripeRouter = createTRPCRouter({
 		});
 
 		return {
-			products: products.data,
+			products: filteredProducts,
 			subscriptions: subscriptions.data,
 		};
 	}),
@@ -75,13 +86,12 @@ export const stripeRouter = createTRPCRouter({
 			const session = await stripe.checkout.sessions.create({
 				mode: "subscription",
 				line_items: items,
-				...(stripeCustomerId && {
-					customer: stripeCustomerId,
-				}),
+				...(stripeCustomerId
+					? { customer: stripeCustomerId }
+					: { customer_email: owner.email }),
 				metadata: {
 					adminId: owner.id,
 				},
-				customer_email: owner.email,
 				allow_promotion_codes: true,
 				success_url: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
 				cancel_url: `${WEBSITE_URL}/dashboard/settings/billing`,

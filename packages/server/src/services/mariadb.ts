@@ -18,7 +18,7 @@ export type Mariadb = typeof mariadb.$inferSelect;
 export const createMariadb = async (input: typeof apiCreateMariaDB._type) => {
 	const appName = buildAppName("mariadb", input.appName);
 
-	const valid = await validUniqueServerAppName(input.appName);
+	const valid = await validUniqueServerAppName(appName);
 	if (!valid) {
 		throw new TRPCError({
 			code: "CONFLICT",

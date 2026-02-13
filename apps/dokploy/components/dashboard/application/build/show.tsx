@@ -207,6 +207,11 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 		}
 	}, [data, form]);
 
+	// Hide builder section when Docker provider is selected
+	if (data?.sourceType === "docker") {
+		return null;
+	}
+
 	const onSubmit = async (data: AddTemplate) => {
 		await mutateAsync({
 			applicationId,
