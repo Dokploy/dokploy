@@ -17,6 +17,7 @@ import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { TagBadge } from "@/components/shared/tag-badge";
 import { TagFilter } from "@/components/shared/tag-filter";
 import {
 	AlertDialog,
@@ -29,7 +30,6 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -486,23 +486,11 @@ export const ShowProjects = () => {
 																			project.projectTags.length > 0 && (
 																				<div className="flex flex-wrap gap-1.5 mt-2">
 																					{project.projectTags.map((pt) => (
-																						<Badge
+																						<TagBadge
 																							key={pt.tag.tagId}
-																							variant="blank"
-																							style={{
-																								backgroundColor: pt.tag.color
-																									? `${pt.tag.color}33`
-																									: undefined,
-																								color:
-																									pt.tag.color || undefined,
-																								borderColor: pt.tag.color
-																									? `${pt.tag.color}66`
-																									: undefined,
-																							}}
-																							className="border"
-																						>
-																							{pt.tag.name}
-																						</Badge>
+																							name={pt.tag.name}
+																							color={pt.tag.color}
+																						/>
 																					))}
 																				</div>
 																			)}

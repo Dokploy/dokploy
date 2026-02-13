@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { TagBadge } from "@/components/shared/tag-badge";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -15,7 +16,6 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -232,16 +232,10 @@ export const HandleTag = ({ tagId }: HandleTagProps) => {
 						{colorValue && (
 							<div className="flex items-center gap-2">
 								<span className="text-sm text-muted-foreground">Preview:</span>
-								<Badge
-									style={{
-										backgroundColor: `${colorValue}33`,
-										color: colorValue,
-										borderColor: `${colorValue}66`,
-									}}
-									className="border"
-								>
-									{form.watch("name") || "Tag Name"}
-								</Badge>
+								<TagBadge
+									name={form.watch("name") || "Tag Name"}
+									color={colorValue}
+								/>
 							</div>
 						)}
 					</form>
@@ -355,18 +349,7 @@ export const TagManager = () => {
 									className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent/50 transition-colors"
 								>
 									<div className="flex items-center gap-3">
-										<Badge
-											style={{
-												backgroundColor: tag.color
-													? `${tag.color}33`
-													: undefined,
-												color: tag.color || undefined,
-												borderColor: tag.color ? `${tag.color}66` : undefined,
-											}}
-											className="border"
-										>
-											{tag.name}
-										</Badge>
+										<TagBadge name={tag.name} color={tag.color} />
 										{tag.color && (
 											<span className="text-xs text-muted-foreground font-mono">
 												{tag.color}

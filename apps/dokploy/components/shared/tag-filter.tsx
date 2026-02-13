@@ -1,6 +1,7 @@
 import { Filter } from "lucide-react";
 import * as React from "react";
 import { HandleTag } from "@/components/dashboard/settings/tags/tag-manager";
+import { TagBadge } from "@/components/shared/tag-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -109,18 +110,7 @@ export function TagFilter({
 												className="mr-2"
 												onCheckedChange={() => handleTagToggle(tag.id)}
 											/>
-											<Badge
-												style={{
-													backgroundColor: tag.color
-														? `${tag.color}33`
-														: undefined,
-													color: tag.color || undefined,
-													borderColor: tag.color ? `${tag.color}66` : undefined,
-												}}
-												className="border"
-											>
-												{tag.name}
-											</Badge>
+											<TagBadge name={tag.name} color={tag.color} />
 										</CommandItem>
 									);
 								})}

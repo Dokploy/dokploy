@@ -1,7 +1,7 @@
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import * as React from "react";
 import { HandleTag } from "@/components/dashboard/settings/tags/tag-manager";
-import { Badge } from "@/components/ui/badge";
+import { TagBadge } from "@/components/shared/tag-badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -77,17 +77,12 @@ export function TagSelector({
 						<div className="flex flex-wrap gap-1 flex-1">
 							{selectedTagObjects.length > 0 ? (
 								selectedTagObjects.map((tag) => (
-									<Badge
+									<TagBadge
 										key={tag.id}
-										variant="blank"
-										style={{
-											backgroundColor: tag.color ? `${tag.color}33` : undefined,
-											color: tag.color || undefined,
-											borderColor: tag.color ? `${tag.color}66` : undefined,
-										}}
-										className="flex items-center gap-1 pr-1 border"
+										name={tag.name}
+										color={tag.color}
+										className="flex items-center gap-1 pr-1"
 									>
-										<span>{tag.name}</span>
 										<button
 											type="button"
 											onClick={(e) => handleTagRemove(tag.id, e)}
@@ -97,7 +92,7 @@ export function TagSelector({
 											<X className="h-3 w-3 hover:opacity-70" />
 											<span className="sr-only">Remove {tag.name}</span>
 										</button>
-									</Badge>
+									</TagBadge>
 								))
 							) : (
 								<span className="text-muted-foreground">{placeholder}</span>
@@ -132,19 +127,11 @@ export function TagSelector({
 												className="mr-2"
 												onCheckedChange={() => handleTagToggle(tag.id)}
 											/>
-											<Badge
-												variant="blank"
-												style={{
-													backgroundColor: tag.color
-														? `${tag.color}33`
-														: undefined,
-													color: tag.color || undefined,
-													borderColor: tag.color ? `${tag.color}66` : undefined,
-												}}
-												className="mr-2 border"
-											>
-												{tag.name}
-											</Badge>
+											<TagBadge
+												name={tag.name}
+												color={tag.color}
+												className="mr-2"
+											/>
 											<Check
 												className={cn(
 													"ml-auto h-4 w-4",
