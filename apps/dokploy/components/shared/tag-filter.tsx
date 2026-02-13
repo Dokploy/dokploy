@@ -1,4 +1,4 @@
-import { Filter } from "lucide-react";
+import { Tags } from "lucide-react";
 import * as React from "react";
 import { HandleTag } from "@/components/dashboard/settings/tags/tag-manager";
 import { TagBadge } from "@/components/shared/tag-badge";
@@ -63,8 +63,8 @@ export function TagFilter({
 						size="sm"
 						className={cn("gap-2", selectedTags.length > 0 && "border-primary")}
 					>
-						<Filter className="h-4 w-4" />
-						<span>Filter by Tag</span>
+						<Tags className="h-4 w-4" />
+						<span>Tags</span>
 						{selectedTags.length > 0 && (
 							<Badge variant="secondary" className="ml-1 px-1 py-0">
 								{selectedTags.length}
