@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { organization } from "./account";
 import { user } from "./user";
@@ -15,6 +15,7 @@ export const ssoProvider = pgTable("sso_provider", {
 		onDelete: "cascade",
 	}),
 	domain: text("domain").notNull(),
+	createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const ssoProviderRelations = relations(ssoProvider, ({ one }) => ({

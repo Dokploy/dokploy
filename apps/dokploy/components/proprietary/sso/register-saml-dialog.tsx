@@ -58,6 +58,7 @@ const samlProviderSchema = z.object({
 type SamlProviderForm = z.infer<typeof samlProviderSchema>;
 
 interface RegisterSamlDialogProps {
+	providerId?: string;
 	children: React.ReactNode;
 }
 
@@ -70,10 +71,45 @@ const formDefaultValues: SamlProviderForm = {
 	idpMetadataXml: "",
 };
 
-export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
+function parseSamlConfig(samlConfig: string | null): {
+	entryPoint?: string;
+	cert?: string;
+	idpMetadataXml?: string;
+} | null {
+	if (!samlConfig) return null;
+	try {
+		const parsed = JSON.parse(samlConfig) as {
+			entryPoint?: string;
+			cert?: string;
+			idpMetadata?: { metadata?: string };
+		};
+		return {
+			entryPoint: parsed.entryPoint,
+			cert: parsed.cert,
+			idpMetadataXml: parsed.idpMetadata?.metadata,
+		};
+	} catch {
+		return null;
+	}
+}
+
+export function RegisterSamlDialog({
+	providerId,
+	children,
+}: RegisterSamlDialogProps) {
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
-	const { mutateAsync, isLoading } = api.sso.register.useMutation();
+
+	const { data } = api.sso.one.useQuery(
+		{ providerId: providerId ?? "" },
+		{ enabled: !!providerId && open },
+	);
+	const registerMutation = api.sso.register.useMutation();
+	const updateMutation = api.sso.update.useMutation();
+
+	const isEdit = !!providerId;
+	const mutateAsync = isEdit ? updateMutation.mutateAsync : registerMutation.mutateAsync;
+	const isLoading = isEdit ? updateMutation.isLoading : registerMutation.isLoading;
 
 	const [baseURL, setBaseURL] = useState("");
 
@@ -87,6 +123,23 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 		resolver: zodResolver(samlProviderSchema),
 		defaultValues: formDefaultValues,
 	});
+
+	useEffect(() => {
+		if (!data || !open) return;
+		const domains = data.domain
+			? data.domain.split(",").map((d) => d.trim()).filter(Boolean)
+			: [""];
+		if (domains.length === 0) domains.push("");
+		const saml = parseSamlConfig(data.samlConfig);
+		form.reset({
+			providerId: data.providerId,
+			issuer: data.issuer,
+			domains,
+			entryPoint: saml?.entryPoint ?? "",
+			cert: saml?.cert ?? "",
+			idpMetadataXml: saml?.idpMetadataXml ?? "",
+		});
+	}, [data, open, form]);
 
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
@@ -133,7 +186,11 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 				},
 			});
 
-			toast.success("SAML provider registered successfully");
+			toast.success(
+				isEdit
+					? "SAML provider updated successfully"
+					: "SAML provider registered successfully",
+			);
 			form.reset(formDefaultValues);
 			setOpen(false);
 			await utils.sso.listProviders.invalidate();
@@ -149,10 +206,13 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Register SAML provider</DialogTitle>
+					<DialogTitle>
+						{isEdit ? "Update SAML provider" : "Register SAML provider"}
+					</DialogTitle>
 					<DialogDescription>
-						Add a SAML 2.0 identity provider (e.g. Okta SAML, Azure AD SAML,
-						OneLogin). You need the IdP&apos;s SSO URL and signing certificate.
+						{isEdit
+							? "Change issuer, domains, entry point or certificate. Provider ID cannot be changed."
+							: "Add a SAML 2.0 identity provider (e.g. Okta SAML, Azure AD SAML, OneLogin). You need the IdP's SSO URL and signing certificate."}
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
@@ -167,8 +227,15 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 										<Input
 											placeholder="e.g. okta-saml or azure-saml"
 											{...field}
+											readOnly={isEdit}
+											className={isEdit ? "bg-muted" : undefined}
 										/>
 									</FormControl>
+									{isEdit && (
+										<FormDescription>
+											Cannot be changed when editing.
+										</FormDescription>
+									)}
 									<FormMessage />
 								</FormItem>
 							)}
@@ -317,7 +384,7 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 								Cancel
 							</Button>
 							<Button type="submit" isLoading={isLoading}>
-								Register provider
+								{isEdit ? "Update provider" : "Register provider"}
 							</Button>
 						</DialogFooter>
 					</form>

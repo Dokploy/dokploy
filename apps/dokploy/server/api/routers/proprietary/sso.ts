@@ -55,6 +55,7 @@ export const ssoRouter = createTRPCRouter({
 				samlConfig: true,
 				organizationId: true,
 			},
+			orderBy: [asc(ssoProvider.createdAt)],
 		});
 		return providers;
 	}),
