@@ -110,7 +110,6 @@ export function TagFilter({
 												onCheckedChange={() => handleTagToggle(tag.id)}
 											/>
 											<Badge
-												variant="blank"
 												style={{
 													backgroundColor: tag.color
 														? `${tag.color}33`
@@ -118,7 +117,7 @@ export function TagFilter({
 													color: tag.color || undefined,
 													borderColor: tag.color ? `${tag.color}66` : undefined,
 												}}
-												className="flex-1 border"
+												className="border"
 											>
 												{tag.name}
 											</Badge>
