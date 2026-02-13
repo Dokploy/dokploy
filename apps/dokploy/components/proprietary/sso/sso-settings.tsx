@@ -1,7 +1,15 @@
 "use client";
 
-import { Eye, Loader2, LogIn, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+	Eye,
+	Loader2,
+	LogIn,
+	Pencil,
+	Plus,
+	Shield,
+	Trash2,
+} from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +29,9 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { useUrl } from "@/utils/hooks/use-url";
 import { RegisterOidcDialog } from "./register-oidc-dialog";
 import { RegisterSamlDialog } from "./register-saml-dialog";
 
@@ -67,29 +77,108 @@ export const SSOSettings = () => {
 	const utils = api.useUtils();
 	const [detailsProvider, setDetailsProvider] =
 		useState<ProviderForDetails | null>(null);
-	const [baseURL, setBaseURL] = useState("");
-
-	useEffect(() => {
-		if (typeof window !== "undefined") {
-			setBaseURL(window.location.origin);
-		}
-	}, []);
+	const baseURL = useUrl();
+	const [manageOriginsOpen, setManageOriginsOpen] = useState(false);
+	const [editingOrigin, setEditingOrigin] = useState<string | null>(null);
+	const [editingValue, setEditingValue] = useState("");
+	const [newOriginInput, setNewOriginInput] = useState("");
 
 	const { data: providers, isLoading } = api.sso.listProviders.useQuery();
+	const { data: userData } = api.user.get.useQuery(undefined, {
+		enabled: manageOriginsOpen,
+	});
 	const { mutateAsync: deleteProvider, isLoading: isDeleting } =
 		api.sso.deleteProvider.useMutation();
+	const { mutateAsync: addTrustedOrigin, isLoading: isAddingOrigin } =
+		api.sso.addTrustedOrigin.useMutation();
+	const { mutateAsync: removeTrustedOrigin, isLoading: isRemovingOrigin } =
+		api.sso.removeTrustedOrigin.useMutation();
+	const { mutateAsync: updateTrustedOrigin, isLoading: isUpdatingOrigin } =
+		api.sso.updateTrustedOrigin.useMutation();
+
+	const trustedOrigins = userData?.user?.trustedOrigins ?? [];
+
+	const handleAddOrigin = async () => {
+		const value = newOriginInput.trim();
+		if (!value) return;
+		try {
+			await addTrustedOrigin({ origin: value });
+			toast.success("Trusted origin added");
+			setNewOriginInput("");
+			await utils.user.get.invalidate();
+		} catch (err) {
+			toast.error(
+				err instanceof Error ? err.message : "Failed to add trusted origin",
+			);
+		}
+	};
+
+	const handleRemoveOrigin = async (origin: string) => {
+		try {
+			await removeTrustedOrigin({ origin });
+			toast.success("Trusted origin removed");
+			if (editingOrigin === origin) setEditingOrigin(null);
+			await utils.user.get.invalidate();
+		} catch (err) {
+			toast.error(
+				err instanceof Error ? err.message : "Failed to remove trusted origin",
+			);
+		}
+	};
+
+	const handleStartEdit = (origin: string) => {
+		setEditingOrigin(origin);
+		setEditingValue(origin);
+	};
+
+	const handleSaveEdit = async () => {
+		if (editingOrigin == null || !editingValue.trim()) {
+			setEditingOrigin(null);
+			return;
+		}
+		try {
+			await updateTrustedOrigin({
+				oldOrigin: editingOrigin,
+				newOrigin: editingValue.trim(),
+			});
+			toast.success("Trusted origin updated");
+			setEditingOrigin(null);
+			setEditingValue("");
+			await utils.user.get.invalidate();
+		} catch (err) {
+			toast.error(
+				err instanceof Error ? err.message : "Failed to update trusted origin",
+			);
+		}
+	};
+
+	const handleCancelEdit = () => {
+		setEditingOrigin(null);
+		setEditingValue("");
+	};
 
 	return (
 		<div className="flex flex-col gap-4 rounded-lg border p-4">
-			<div className="flex flex-col gap-2">
-				<div className="flex items-center gap-2">
-					<LogIn className="size-6 text-muted-foreground" />
-					<CardTitle className="text-xl">Single Sign-On (SSO)</CardTitle>
+			<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+				<div className="flex flex-col gap-2">
+					<div className="flex items-center gap-2">
+						<LogIn className="size-6 text-muted-foreground" />
+						<CardTitle className="text-xl">Single Sign-On (SSO)</CardTitle>
+					</div>
+					<CardDescription>
+						Configure OIDC or SAML identity providers for enterprise sign-in.
+						Users can sign in with their organization&apos;s IdP.
+					</CardDescription>
 				</div>
-				<CardDescription>
-					Configure OIDC or SAML identity providers for enterprise sign-in.
-					Users can sign in with their organization&apos;s IdP.
-				</CardDescription>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setManageOriginsOpen(true)}
+					className="shrink-0"
+				>
+					<Shield className="mr-2 size-4" />
+					Manage origins
+				</Button>
 			</div>
 
 			{isLoading ? (
@@ -177,6 +266,22 @@ export const SSOSettings = () => {
 													<Eye className="mr-1 size-3" />
 													View details
 												</Button>
+												{isOidc && (
+													<RegisterOidcDialog providerId={provider.providerId}>
+														<Button variant="ghost" size="sm">
+															<Pencil className="mr-1 size-3" />
+															Edit
+														</Button>
+													</RegisterOidcDialog>
+												)}
+												{isSaml && (
+													<RegisterSamlDialog providerId={provider.providerId}>
+														<Button variant="ghost" size="sm">
+															<Pencil className="mr-1 size-3" />
+															Edit
+														</Button>
+													</RegisterSamlDialog>
+												)}
 												<DialogAction
 													title="Remove SSO provider"
 													description={`Remove provider "${provider.providerId}"? Users will no longer be able to sign in with this IdP.`}
@@ -256,8 +361,7 @@ export const SSOSettings = () => {
 							<DialogHeader>
 								<DialogTitle>SSO provider details</DialogTitle>
 								<DialogDescription>
-									View-only. To change settings, remove this provider and add it
-									again with the new values.
+									Use Edit to change provider settings (OIDC or SAML).
 								</DialogDescription>
 							</DialogHeader>
 							<div className="grid gap-3 py-2">
@@ -364,6 +468,128 @@ export const SSOSettings = () => {
 							</DialogFooter>
 						</>
 					)}
+				</DialogContent>
+			</Dialog>
+
+			<Dialog open={manageOriginsOpen} onOpenChange={setManageOriginsOpen}>
+				<DialogContent className="sm:max-w-[480px]">
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2">
+							<Shield className="size-5" />
+							Trusted origins
+						</DialogTitle>
+						<DialogDescription>
+							Manage allowed origins for SSO callbacks. Add, edit, or remove
+							origins for your account.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4 py-2">
+						<div className="space-y-2">
+							<span className="text-sm font-medium">Current origins</span>
+							{trustedOrigins.length === 0 ? (
+								<p className="rounded-md border border-dashed bg-muted/30 px-3 py-4 text-center text-sm text-muted-foreground">
+									No trusted origins yet. Add one below.
+								</p>
+							) : (
+								<ul className="flex flex-col gap-2">
+									{trustedOrigins.map((origin) => (
+										<li
+											key={origin}
+											className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2"
+										>
+											{editingOrigin === origin ? (
+												<>
+													<Input
+														value={editingValue}
+														onChange={(e) => setEditingValue(e.target.value)}
+														placeholder="https://..."
+														className="flex-1 font-mono text-sm"
+														autoFocus
+													/>
+													<Button
+														size="sm"
+														onClick={handleSaveEdit}
+														disabled={!editingValue.trim() || isUpdatingOrigin}
+													>
+														Save
+													</Button>
+													<Button
+														size="sm"
+														variant="ghost"
+														onClick={handleCancelEdit}
+													>
+														Cancel
+													</Button>
+												</>
+											) : (
+												<>
+													<span className="flex-1 break-all font-mono text-sm">
+														{origin}
+													</span>
+													<Button
+														variant="ghost"
+														size="icon"
+														className="size-8 shrink-0"
+														onClick={() => handleStartEdit(origin)}
+													>
+														<Pencil className="size-3.5" />
+													</Button>
+													<DialogAction
+														title="Remove trusted origin"
+														description={`Remove "${origin}" from trusted origins?`}
+														type="destructive"
+														onClick={async () => handleRemoveOrigin(origin)}
+													>
+														<Button
+															variant="ghost"
+															size="icon"
+															className="size-8 shrink-0 text-destructive hover:text-destructive"
+															disabled={isRemovingOrigin}
+														>
+															<Trash2 className="size-3.5" />
+														</Button>
+													</DialogAction>
+												</>
+											)}
+										</li>
+									))}
+								</ul>
+							)}
+						</div>
+						<div className="space-y-2">
+							<span className="text-sm font-medium">Add trusted origin</span>
+							<div className="flex gap-2">
+								<Input
+									value={newOriginInput}
+									onChange={(e) => setNewOriginInput(e.target.value)}
+									placeholder="https://example.com"
+									className="font-mono text-sm"
+									onKeyDown={(e) => {
+										if (e.key === "Enter") {
+											e.preventDefault();
+											void handleAddOrigin();
+										}
+									}}
+								/>
+								<Button
+									size="sm"
+									onClick={handleAddOrigin}
+									disabled={!newOriginInput.trim() || isAddingOrigin}
+								>
+									<Plus className="mr-1 size-4" />
+									Add
+								</Button>
+							</div>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setManageOriginsOpen(false)}
+						>
+							Close
+						</Button>
+					</DialogFooter>
 				</DialogContent>
 			</Dialog>
 		</div>
