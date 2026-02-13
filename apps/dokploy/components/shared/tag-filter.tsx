@@ -1,4 +1,4 @@
-import { Filter, X } from "lucide-react";
+import { Filter } from "lucide-react";
 import * as React from "react";
 import { HandleTag } from "@/components/dashboard/settings/tags/tag-manager";
 import { Badge } from "@/components/ui/badge";
@@ -52,10 +52,6 @@ export function TagFilter({
 		e.stopPropagation();
 		onTagsChange([]);
 	};
-
-	const selectedTagObjects = tags.filter((tag) =>
-		selectedTags.includes(tag.id),
-	);
 
 	return (
 		<div className={cn("flex items-center gap-2", className)}>
@@ -134,35 +130,6 @@ export function TagFilter({
 					</Command>
 				</PopoverContent>
 			</Popover>
-
-			{selectedTagObjects.length > 0 && (
-				<div className="flex flex-wrap gap-1 items-center">
-					{selectedTagObjects.map((tag) => (
-						<Badge
-							key={tag.id}
-							variant="blank"
-							style={{
-								backgroundColor: tag.color ? `${tag.color}33` : undefined,
-								color: tag.color || undefined,
-								borderColor: tag.color ? `${tag.color}66` : undefined,
-							}}
-							className="flex items-center gap-1 pr-1 border"
-						>
-							<span>{tag.name}</span>
-							<button
-								type="button"
-								onClick={() =>
-									onTagsChange(selectedTags.filter((id) => id !== tag.id))
-								}
-								className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-							>
-								<X className="h-3 w-3 hover:opacity-70" />
-								<span className="sr-only">Remove {tag.name} filter</span>
-							</button>
-						</Badge>
-					))}
-				</div>
-			)}
 		</div>
 	);
 }
