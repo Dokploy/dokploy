@@ -51,7 +51,7 @@ export const BuildSuccessEmail = ({
 						<Section className="mt-[32px]">
 							<Img
 								src={
-									"https://raw.githubusercontent.com/Dokploy/dokploy/refs/heads/canary/apps/dokploy/logo.png"
+									"https://raw.githubusercontent.com/shuvoooo/dokploy/refs/heads/shuvos_modify/apps/dokploy/logo.png"
 								}
 								width="100"
 								height="50"
