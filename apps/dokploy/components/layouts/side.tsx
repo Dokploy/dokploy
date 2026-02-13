@@ -398,14 +398,14 @@ const MENU: Menu = {
 			// Only enabled for admins in cloud environments
 			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && isCloud),
 		},
-		{
-			isSingle: true,
-			title: "License",
-			url: "/dashboard/settings/license",
-			icon: Key,
-			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
-		},
+		// {
+		// 	isSingle: true,
+		// 	title: "License",
+		// 	url: "/dashboard/settings/license",
+		// 	icon: Key,
+		// 	// Only enabled for admins in non-cloud environments
+		// 	isEnabled: ({ auth }) => !!(auth?.role === "owner"),
+		// },
 		{
 			isSingle: true,
 			title: "SSO",
@@ -418,16 +418,16 @@ const MENU: Menu = {
 	],
 
 	help: [
-		{
-			name: "Documentation",
-			url: "https://docs.dokploy.com/docs/core",
-			icon: BookIcon,
-		},
-		{
-			name: "Support",
-			url: "https://discord.gg/2tBnJ3jDJc",
-			icon: CircleHelp,
-		},
+		// {
+		// 	name: "Documentation",
+		// 	url: "https://docs.dokploy.com/docs/core",
+		// 	icon: BookIcon,
+		// },
+		// {
+		// 	name: "Support",
+		// 	url: "https://discord.gg/2tBnJ3jDJc",
+		// 	icon: CircleHelp,
+		// },
 	],
 } as const;
 
