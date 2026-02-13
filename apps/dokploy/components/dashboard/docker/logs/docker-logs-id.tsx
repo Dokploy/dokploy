@@ -6,10 +6,12 @@ import {
 	Loader2,
 	Pause,
 	Play,
+	SendIcon,
 } from "lucide-react";
 import React, { useEffect, useRef } from "react";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { LineCountFilter } from "./line-count-filter";
@@ -76,6 +78,7 @@ export const DockerLogsId: React.FC<Props> = ({
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [isLoading, setIsLoading] = React.useState(false);
 	const [copied, setCopied] = React.useState(false);
+	const [ws, setWs] = React.useState<WebSocket | null>(null);
 
 	const scrollToBottom = () => {
 		if (autoScroll && scrollRef.current) {
@@ -160,6 +163,7 @@ export const DockerLogsId: React.FC<Props> = ({
 			window.location.host
 		}/docker-container-logs?${params.toString()}`;
 		const ws = new WebSocket(wsUrl);
+		setWs(ws);
 
 		const resetNoDataTimeout = () => {
 			if (noDataTimeout) clearTimeout(noDataTimeout);
@@ -394,29 +398,64 @@ export const DockerLogsId: React.FC<Props> = ({
 							</div>
 						</AlertBlock>
 					)}
-					<div
-						ref={scrollRef}
-						onScroll={handleScroll}
-						className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
-					>
-						{filteredLogs.length > 0 ? (
-							filteredLogs.map((filteredLog: LogLine, index: number) => (
-								<TerminalLine
-									key={index}
-									log={filteredLog}
-									searchTerm={search}
-									noTimestamp={!showTimestamp}
+					<div>
+						<div
+							ref={scrollRef}
+							onScroll={handleScroll}
+							className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded-t custom-logs-scrollbar"
+						>
+							{filteredLogs.length > 0 ? (
+								filteredLogs.map((filteredLog: LogLine, index: number) => (
+									<TerminalLine
+										key={index}
+										log={filteredLog}
+										searchTerm={search}
+										noTimestamp={!showTimestamp}
+									/>
+								))
+							) : isLoading ? (
+								<div className="flex justify-center items-center h-full text-muted-foreground">
+									<Loader2 className="h-6 w-6 animate-spin" />
+								</div>
+							) : (
+								<div className="flex justify-center items-center h-full text-muted-foreground">
+									No logs found
+								</div>
+							)}
+						</div>
+						<form
+							onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
+								e.preventDefault();
+								const input = e.currentTarget.command as HTMLInputElement;
+
+								const command = input.value;
+
+								if (!ws || ws.readyState !== WebSocket.OPEN) return;
+								if (isPaused) return;
+								if (!command.trim()) return;
+
+								ws.send(command);
+								input.value = "";
+							}}
+						>
+							<ButtonGroup className="w-full">
+								<Input
+									className="rounded-t-none rounded-r-none bg-background border border-t-0"
+									placeholder="Send a command"
+									name="command"
+									disabled={!ws || ws.readyState !== WebSocket.OPEN || isPaused}
 								/>
-							))
-						) : isLoading ? (
-							<div className="flex justify-center items-center h-full text-muted-foreground">
-								<Loader2 className="h-6 w-6 animate-spin" />
-							</div>
-						) : (
-							<div className="flex justify-center items-center h-full text-muted-foreground">
-								No logs found
-							</div>
-						)}
+								<Button
+									variant="outline"
+									size="icon"
+									type="submit"
+									className="rounded-t-none border-border border-t-0"
+									disabled={!ws || ws.readyState !== WebSocket.OPEN || isPaused}
+								>
+									<SendIcon className="size-4" />
+								</Button>
+							</ButtonGroup>
+						</form>
 					</div>
 				</div>
 			</div>
