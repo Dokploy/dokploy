@@ -630,15 +630,16 @@ function SidebarLogo() {
 								</SidebarMenuButton>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent
-								className="rounded-lg"
+								className="rounded-lg max-h-[min(70vh,28rem)] flex flex-col"
 								align="start"
 								side={isMobile ? "bottom" : "right"}
 								sideOffset={4}
 							>
-								<DropdownMenuLabel className="text-xs text-muted-foreground">
+								<DropdownMenuLabel className="text-xs text-muted-foreground shrink-0">
 									Organizations
 								</DropdownMenuLabel>
-								{organizations?.map((org) => {
+								<div className="overflow-y-auto overflow-x-hidden min-h-0 -mx-1 px-1">
+									{organizations?.map((org) => {
 									const isDefault = org.members?.[0]?.isDefault ?? false;
 									return (
 										<div
@@ -759,6 +760,7 @@ function SidebarLogo() {
 										</div>
 									);
 								})}
+								</div>
 								{(user?.role === "owner" ||
 									user?.role === "admin" ||
 									isCloud) && (
