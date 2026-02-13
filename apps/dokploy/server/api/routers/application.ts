@@ -874,15 +874,8 @@ export const applicationRouter = createTRPCRouter({
 	readAppMonitoring: protectedProcedure
 		.input(apiFindMonitoringStats)
 		.query(async ({ input }) => {
-			if (IS_CLOUD) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "Functionality not available in cloud version",
-				});
-			}
-			const stats = await getApplicationStats(input.appName);
-
-			return stats;
+			// All monitoring features are now free
+			return await getApplicationStats(input.appName);
 		}),
 	move: protectedProcedure
 		.input(

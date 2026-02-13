@@ -1,10 +1,8 @@
 import {
 	getWebServerSettings,
-	IS_CLOUD,
 	setupWebMonitoring,
 	updateWebServerSettings,
 } from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
 import { apiUpdateWebServerMonitoring } from "@/server/db/schema";
 import { adminProcedure, createTRPCRouter } from "../trpc";
 
@@ -13,13 +11,7 @@ export const adminRouter = createTRPCRouter({
 		.input(apiUpdateWebServerMonitoring)
 		.mutation(async ({ input }) => {
 			try {
-				if (IS_CLOUD) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "Feature disabled on cloud",
-					});
-				}
-
+				// All features are now free - no cloud restrictions
 				await updateWebServerSettings({
 					metricsConfig: {
 						server: {
@@ -46,8 +38,7 @@ export const adminRouter = createTRPCRouter({
 				});
 
 				await setupWebMonitoring();
-				const settings = await getWebServerSettings();
-				return settings;
+				return await getWebServerSettings();
 			} catch (error) {
 				throw error;
 			}

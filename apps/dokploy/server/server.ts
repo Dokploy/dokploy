@@ -3,6 +3,7 @@ import {
 	createDefaultMiddlewares,
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
+	initializeMonitoring,
 	IS_CLOUD,
 	initCancelDeployments,
 	initCronJobs,
@@ -59,6 +60,7 @@ void app.prepare().then(async () => {
 		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 			createDefaultMiddlewares();
 			await initializeNetwork();
+			await initializeMonitoring();
 			await initCronJobs();
 			await initSchedules();
 			await initCancelDeployments();
