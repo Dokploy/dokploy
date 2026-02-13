@@ -349,6 +349,7 @@ export const auth = {
 	handler,
 	createApiKey: api.createApiKey,
 	registerSSOProvider: api.registerSSOProvider,
+	updateSSOProvider: api.updateSSOProvider,
 };
 
 export const validateRequest = async (request: IncomingMessage) => {

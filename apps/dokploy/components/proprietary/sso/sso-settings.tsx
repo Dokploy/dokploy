@@ -9,7 +9,7 @@ import {
 	Shield,
 	Trash2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { useUrl } from "@/utils/hooks/use-url";
 import { RegisterOidcDialog } from "./register-oidc-dialog";
 import { RegisterSamlDialog } from "./register-saml-dialog";
 
@@ -76,17 +77,11 @@ export const SSOSettings = () => {
 	const utils = api.useUtils();
 	const [detailsProvider, setDetailsProvider] =
 		useState<ProviderForDetails | null>(null);
-	const [baseURL, setBaseURL] = useState("");
+	const baseURL = useUrl();
 	const [manageOriginsOpen, setManageOriginsOpen] = useState(false);
 	const [editingOrigin, setEditingOrigin] = useState<string | null>(null);
 	const [editingValue, setEditingValue] = useState("");
 	const [newOriginInput, setNewOriginInput] = useState("");
-
-	useEffect(() => {
-		if (typeof window !== "undefined") {
-			setBaseURL(window.location.origin);
-		}
-	}, []);
 
 	const { data: providers, isLoading } = api.sso.listProviders.useQuery();
 	const { data: userData } = api.user.get.useQuery(undefined, {

@@ -154,33 +154,27 @@ export const ssoRouter = createTRPCRouter({
 			}
 
 			const domain = input.domains.join(",");
-
-			const updatePayload: {
+			const updateBody: {
 				issuer: string;
 				domain: string;
-				oidcConfig?: string;
-				samlConfig?: string;
+				oidcConfig?: (typeof input)["oidcConfig"];
+				samlConfig?: (typeof input)["samlConfig"];
 			} = {
 				issuer: input.issuer,
 				domain,
 			};
 			if (input.oidcConfig != null) {
-				updatePayload.oidcConfig = JSON.stringify(input.oidcConfig);
+				updateBody.oidcConfig = input.oidcConfig;
 			}
 			if (input.samlConfig != null) {
-				updatePayload.samlConfig = JSON.stringify(input.samlConfig);
+				updateBody.samlConfig = input.samlConfig;
 			}
 
-			await db
-				.update(ssoProvider)
-				.set(updatePayload)
-				.where(
-					and(
-						eq(ssoProvider.providerId, input.providerId),
-						eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
-						eq(ssoProvider.userId, ctx.session.userId),
-					),
-				);
+			await auth.updateSSOProvider({
+				params: { providerId: input.providerId },
+				body: updateBody,
+				headers: requestToHeaders(ctx.req),
+			});
 			return { success: true };
 		}),
 	deleteProvider: enterpriseProcedure

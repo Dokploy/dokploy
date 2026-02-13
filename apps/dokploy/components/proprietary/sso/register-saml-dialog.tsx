@@ -3,7 +3,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { type FieldArrayPath, useFieldArray, useForm } from "react-hook-form";
+import {
+	type FieldArrayPath,
+	useFieldArray,
+	useForm,
+	useWatch,
+} from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -28,6 +33,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
+import { useUrl } from "@/utils/hooks/use-url";
 
 const domainsArraySchema = z
 	.array(z.string().trim())
@@ -115,13 +121,7 @@ export function RegisterSamlDialog({
 		? updateMutation.isLoading
 		: registerMutation.isLoading;
 
-	const [baseURL, setBaseURL] = useState("");
-
-	useEffect(() => {
-		if (typeof window !== "undefined") {
-			setBaseURL(window.location.origin);
-		}
-	}, []);
+	const baseURL = useUrl();
 
 	const form = useForm<SamlProviderForm>({
 		resolver: zodResolver(samlProviderSchema),
@@ -147,6 +147,12 @@ export function RegisterSamlDialog({
 			idpMetadataXml: saml?.idpMetadataXml ?? "",
 		});
 	}, [data, open, form]);
+
+	const watchedProviderId = useWatch({
+		control: form.control,
+		name: "providerId",
+		defaultValue: "",
+	});
 
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
@@ -242,6 +248,17 @@ export function RegisterSamlDialog({
 										<FormDescription>
 											Cannot be changed when editing.
 										</FormDescription>
+									)}
+									{baseURL && (
+										<div className="rounded-md bg-muted px-3 py-2 text-xs">
+											<p className="font-medium text-muted-foreground">
+												Callback URL (configure in your IdP)
+											</p>
+											<p className="mt-0.5 break-all font-mono">
+												{baseURL}/api/auth/sso/saml2/callback/
+												{watchedProviderId?.trim() || "..."}
+											</p>
+										</div>
 									)}
 									<FormMessage />
 								</FormItem>
