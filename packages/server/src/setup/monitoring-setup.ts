@@ -123,7 +123,7 @@ export const setupWebMonitoring = async () => {
 				"/proc:/host/proc:ro",
 				"/etc/dokploy/monitoring/monitoring.db:/app/monitoring.db",
 			],
-			// NetworkMode: "host",
+			NetworkMode: "host",
 		},
 		ExposedPorts: {
 			[`${webServerSettings?.metricsConfig?.server?.port}/tcp`]: {},

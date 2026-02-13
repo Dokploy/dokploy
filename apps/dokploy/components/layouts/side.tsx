@@ -423,11 +423,11 @@ const MENU: Menu = {
 		// 	url: "https://docs.dokploy.com/docs/core",
 		// 	icon: BookIcon,
 		// },
-		// {
-		// 	name: "Support",
-		// 	url: "https://discord.gg/2tBnJ3jDJc",
-		// 	icon: CircleHelp,
-		// },
+		{
+			name: "Contacts",
+			url: "https://shuvoo.com",
+			icon: CircleHelp,
+		},
 	],
 } as const;
 

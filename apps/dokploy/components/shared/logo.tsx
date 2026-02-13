@@ -17,7 +17,7 @@ export const Logo = ({className = "size-14", logoUrl}: Props) => {
     }
 
     return (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="PC circuit logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="PC circuit logo" className={className}>
             <defs>
                 <linearGradient id="g" x1="80" y1="80" x2="432" y2="432" gradientUnits="userSpaceOnUse">
                     <stop offset="0" stop-color="#0EA5E9"/>
