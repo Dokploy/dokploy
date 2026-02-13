@@ -1,11 +1,12 @@
 import dns from "node:dns";
 import { promisify } from "node:util";
+import { IS_CLOUD } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { generateRandomDomain } from "@dokploy/server/templates";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { type apiCreateDomain, domains } from "../db/schema";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
@@ -13,7 +14,44 @@ import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
 
+const validateDomainConflict = async (
+	data: { host?: string; path?: string | null },
+	currentDomainId?: string,
+) => {
+	if (IS_CLOUD || !data.host) return;
+
+	const isRootPath = !data.path || data.path === "/";
+	
+	const conditions = [
+		eq(domains.host, data.host),
+		isRootPath
+			? or(isNull(domains.path), eq(domains.path, "/"))
+			: eq(domains.path, data.path!)
+	];
+
+	const existingDomain = await db.query.domains.findFirst({
+		where: and(...conditions),
+	});
+
+	if (existingDomain) {
+		const isNotCurrentDomain = !currentDomainId || existingDomain.domainId !== currentDomainId;
+		
+		if (isNotCurrentDomain) {
+			const pathMsg = data.path ? ` with path '${data.path}'` : "";
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: `Host '${data.host}'${pathMsg} is already in use`,
+			});
+		}
+	}
+};
+
 export const createDomain = async (input: typeof apiCreateDomain._type) => {
+	await validateDomainConflict({
+		...input,
+		host: input.host?.trim(),
+	});
+
 	const result = await db.transaction(async (tx) => {
 		const domain = await tx
 			.insert(domains)
@@ -117,6 +155,14 @@ export const updateDomainById = async (
 	domainId: string,
 	domainData: Partial<Domain>,
 ) => {
+	await validateDomainConflict(
+		{
+			...domainData,
+			...(domainData.host && { host: domainData.host.trim() }),
+		},
+		domainId,
+	);
+
 	const domain = await db
 		.update(domains)
 		.set({
