@@ -83,6 +83,14 @@ describe("GitHub Webhook Skip CI", () => {
 				{ commits: [{ message: "[skip ci] test" }] },
 			),
 		).toBe("[skip ci] test");
+
+		// Soft Serve
+		expect(
+			extractCommitMessage(
+				{ "x-softserve-event": "push" },
+				{ commits: [{ message: "[skip ci] test" }] },
+			),
+		).toBe("[skip ci] test");
 	});
 
 	it("should handle missing commit message", () => {
@@ -97,6 +105,9 @@ describe("GitHub Webhook Skip CI", () => {
 			),
 		).toBe("NEW COMMIT");
 		expect(extractCommitMessage({ "x-gitea-event": "push" }, {})).toBe(
+			"NEW COMMIT",
+		);
+		expect(extractCommitMessage({ "x-softserve-event": "push" }, {})).toBe(
 			"NEW COMMIT",
 		);
 	});
