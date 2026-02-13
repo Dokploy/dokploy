@@ -99,6 +99,15 @@ export const ShowProjects = () => {
 	}, [selectedTagIds]);
 
 	useEffect(() => {
+		if (!availableTags) return;
+		const validIds = new Set(availableTags.map((t) => t.tagId));
+		setSelectedTagIds((prev) => {
+			const filtered = prev.filter((id) => validIds.has(id));
+			return filtered.length === prev.length ? prev : filtered;
+		});
+	}, [availableTags]);
+
+	useEffect(() => {
 		if (!router.isReady) return;
 		const urlQuery = typeof router.query.q === "string" ? router.query.q : "";
 		if (urlQuery !== searchQuery) {
