@@ -69,6 +69,7 @@ export const restoreComposeBackup = async (
 			},
 			restoreType: composeType,
 			rcloneCommand,
+			additionalOptions: backupInput.additionalOptions,
 		});
 
 		emit("Starting restore...");
@@ -86,8 +87,7 @@ export const restoreComposeBackup = async (
 	} catch (error) {
 		console.error(error);
 		emit(
-			`Error: ${
-				error instanceof Error ? error.message : "Error restoring mongo backup"
+			`Error: ${error instanceof Error ? error.message : "Error restoring mongo backup"
 			}`,
 		);
 		throw new Error(

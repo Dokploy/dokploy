@@ -31,6 +31,7 @@ export const restoreMariadbBackup = async (
 			type: "mariadb",
 			rcloneCommand,
 			restoreType: "database",
+			additionalOptions: backupInput.additionalOptions,
 		});
 
 		emit("Starting restore...");
@@ -47,10 +48,9 @@ export const restoreMariadbBackup = async (
 	} catch (error) {
 		console.error(error);
 		emit(
-			`Error: ${
-				error instanceof Error
-					? error.message
-					: "Error restoring mariadb backup"
+			`Error: ${error instanceof Error
+				? error.message
+				: "Error restoring mariadb backup"
 			}`,
 		);
 		throw new Error(

@@ -34,6 +34,7 @@ export const restorePostgresBackup = async (
 			type: "postgres",
 			rcloneCommand,
 			restoreType: "database",
+			additionalOptions: backupInput.additionalOptions,
 		});
 
 		emit(`Executing command: ${command}`);
@@ -47,10 +48,9 @@ export const restorePostgresBackup = async (
 		emit("Restore completed successfully!");
 	} catch (error) {
 		emit(
-			`Error: ${
-				error instanceof Error
-					? error.message
-					: "Error restoring postgres backup"
+			`Error: ${error instanceof Error
+				? error.message
+				: "Error restoring postgres backup"
 			}`,
 		);
 		throw error;
