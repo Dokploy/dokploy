@@ -271,6 +271,16 @@ export const SSOSettings = () => {
 													<Eye className="mr-1 size-3" />
 													View details
 												</Button>
+												{isOidc && (
+													<RegisterOidcDialog
+														providerId={provider.providerId}
+													>
+														<Button variant="ghost" size="sm">
+															<Pencil className="mr-1 size-3" />
+															Edit
+														</Button>
+													</RegisterOidcDialog>
+												)}
 												<DialogAction
 													title="Remove SSO provider"
 													description={`Remove provider "${provider.providerId}"? Users will no longer be able to sign in with this IdP.`}
@@ -350,8 +360,8 @@ export const SSOSettings = () => {
 							<DialogHeader>
 								<DialogTitle>SSO provider details</DialogTitle>
 								<DialogDescription>
-									View-only. To change settings, remove this provider and add it
-									again with the new values.
+									OIDC providers can be updated via Edit. SAML providers must be
+									removed and re-added to change settings.
 								</DialogDescription>
 							</DialogHeader>
 							<div className="grid gap-3 py-2">
