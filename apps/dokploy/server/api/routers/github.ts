@@ -22,8 +22,7 @@ export const githubRouter = createTRPCRouter({
 			const githubProvider = await findGithubById(input.githubId);
 			if (
 				githubProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				githubProvider.gitProvider.userId === ctx.session.userId
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -38,8 +37,7 @@ export const githubRouter = createTRPCRouter({
 			const githubProvider = await findGithubById(input.githubId);
 			if (
 				githubProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				githubProvider.gitProvider.userId === ctx.session.userId
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -54,10 +52,8 @@ export const githubRouter = createTRPCRouter({
 			const githubProvider = await findGithubById(input.githubId || "");
 			if (
 				githubProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				githubProvider.gitProvider.userId === ctx.session.userId
+				ctx.session.activeOrganizationId
 			) {
-				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this github provider",
@@ -75,8 +71,7 @@ export const githubRouter = createTRPCRouter({
 		result = result.filter(
 			(provider) =>
 				provider.gitProvider.organizationId ===
-					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId,
+				ctx.session.activeOrganizationId,
 		);
 
 		const filtered = result
@@ -100,8 +95,7 @@ export const githubRouter = createTRPCRouter({
 				const githubProvider = await findGithubById(input.githubId);
 				if (
 					githubProvider.gitProvider.organizationId !==
-						ctx.session.activeOrganizationId &&
-					githubProvider.gitProvider.userId === ctx.session.userId
+					ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -123,8 +117,7 @@ export const githubRouter = createTRPCRouter({
 			const githubProvider = await findGithubById(input.githubId);
 			if (
 				githubProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				githubProvider.gitProvider.userId === ctx.session.userId
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
