@@ -20,6 +20,36 @@ import type {
 } from "./types";
 import { encodeBase64 } from "./utils";
 
+export const assertDomainsMatchComposeServices = (
+	composeSpec: ComposeSpecification,
+	domains: Domain[],
+) => {
+	const availableServices = Object.keys(composeSpec.services ?? {});
+
+	const missing: Array<{ host: string; serviceName: string }> = [];
+	for (const domain of domains) {
+		const host = domain.host ?? "";
+		const serviceName = domain.serviceName ?? "";
+		if (!host || !serviceName) continue;
+		if (!composeSpec.services?.[serviceName]) {
+			missing.push({ host, serviceName });
+		}
+	}
+
+	if (missing.length === 0) return;
+
+	const missingSummary = missing
+		.map(({ host, serviceName }) => `"${host}" -> "${serviceName}"`)
+		.join(", ");
+
+	const availableSummary =
+		availableServices.length > 0 ? availableServices.join(", ") : "(none)";
+
+	throw new Error(
+		`Domain configuration references a service that no longer exists in the compose. Missing: ${missingSummary}. Available services: ${availableSummary}. Update/remove the affected domain(s) in Dokploy.`,
+	);
+};
+
 export const cloneCompose = async (compose: Compose) => {
 	let command = "set -e;";
 	const entity = {
@@ -125,8 +155,11 @@ exit 1;
 		const encodedContent = encodeBase64(composeString);
 		return `echo "${encodedContent}" | base64 -d > "${path}";`;
 	} catch (error) {
+		// Print error safely (no shell interpolation) and exit with failure.
 		// @ts-ignore
-		return `echo "❌ Has occurred an error: ${error?.message || error}";
+		const message = `❌ Has occurred an error: ${error?.message || error}`;
+		const encodedMessage = encodeBase64(message);
+		return `echo "${encodedMessage}" | base64 -d;
 exit 1;
 		`;
 	}
@@ -161,11 +194,14 @@ export const addDomainToCompose = async (
 		result = randomized;
 	}
 
+	assertDomainsMatchComposeServices(result, domains);
+
 	for (const domain of domains) {
 		const { serviceName, https } = domain;
 		if (!serviceName) {
 			throw new Error(`Domain "${domain.host}" is missing a service name`);
 		}
+		// Defensive check (should be covered by assertDomainsMatchComposeServices).
 		if (!result?.services?.[serviceName]) {
 			throw new Error(
 				`Domain "${domain.host}" is attached to service "${serviceName}" which does not exist in the compose`,
