@@ -3,12 +3,14 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
+import { getPostgresCredentials, isExternalDatabase } from "@dokploy/server/db/constants";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import {
 	createDeploymentBackup,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
 import { findDestinationById } from "@dokploy/server/services/destination";
+import { quote } from "shell-quote";
 import { execAsync } from "../process/execAsync";
 import { getS3Credentials, normalizeS3Path } from "./utils";
 
@@ -36,35 +38,45 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 		try {
 			await execAsync(`mkdir -p ${tempDir}/filesystem`);
 
-			// First get the container ID
-			const { stdout: containerId } = await execAsync(
-				`docker ps --filter "name=dokploy-postgres" --filter "status=running" -q | head -n 1`,
-			);
+			const creds = getPostgresCredentials();
 
-			if (!containerId) {
-				writeStream.write("Dokploy postgres container not found❌\n");
-				writeStream.end();
-				throw new Error("Dokploy postgres container not found");
+			if (isExternalDatabase()) {
+				// External database: use pg_dump directly against the remote host
+				writeStream.write(`Running external database dump\n`);
+				await execAsync(
+					`pg_dump -v -Fc -h ${quote([creds.host])} -p ${quote([creds.port])} -U ${quote([creds.user])} -d ${quote([creds.database])} -f ${quote([`${tempDir}/database.sql`])}`,
+					{ env: { ...process.env, PGPASSWORD: creds.password } },
+				);
+			} else {
+				// Built-in Docker Swarm postgres: exec into the container
+				const { stdout: containerId } = await execAsync(
+					`docker ps --filter "name=dokploy-postgres" --filter "status=running" -q | head -n 1`,
+				);
+
+				if (!containerId) {
+					writeStream.write("Dokploy postgres container not found❌\n");
+					writeStream.end();
+					throw new Error("Dokploy postgres container not found");
+				}
+
+				writeStream.write(`Dokploy postgres container ID: ${containerId}\n`);
+
+				const postgresContainerId = containerId.trim();
+
+				const dumpCommand = `docker exec ${quote([postgresContainerId])} pg_dump -v -Fc -U ${quote([creds.user])} -d ${quote([creds.database])} -f /tmp/database.sql`;
+				writeStream.write(`Running dump command: ${dumpCommand}\n`);
+				await execAsync(dumpCommand);
+
+				const copyCommand = `docker cp ${quote([postgresContainerId])}:/tmp/database.sql ${quote([`${tempDir}/database.sql`])}`;
+				writeStream.write(`Copying database dump: ${copyCommand}\n`);
+				await execAsync(copyCommand);
+
+				const cleanupCommand = `docker exec ${quote([postgresContainerId])} rm -f /tmp/database.sql`;
+				writeStream.write(`Cleaning up temp file: ${cleanupCommand}\n`);
+				await execAsync(cleanupCommand);
 			}
 
-			writeStream.write(`Dokploy postgres container ID: ${containerId}\n`);
-
-			const postgresContainerId = containerId.trim();
-
-			// First dump the database inside the container
-			const dumpCommand = `docker exec ${postgresContainerId} pg_dump -v -Fc -U dokploy -d dokploy -f /tmp/database.sql`;
-			writeStream.write(`Running dump command: ${dumpCommand}\n`);
-			await execAsync(dumpCommand);
-
-			// Then copy the file from the container to host
-			const copyCommand = `docker cp ${postgresContainerId}:/tmp/database.sql ${tempDir}/database.sql`;
-			writeStream.write(`Copying database dump: ${copyCommand}\n`);
-			await execAsync(copyCommand);
-
-			// Clean up the temp file in the container
-			const cleanupCommand = `docker exec ${postgresContainerId} rm -f /tmp/database.sql`;
-			writeStream.write(`Cleaning up temp file: ${cleanupCommand}\n`);
-			await execAsync(cleanupCommand);
+			writeStream.write("Database dump complete\n");
 
 			await execAsync(
 				`rsync -a --ignore-errors ${BASE_PATH}/ ${tempDir}/filesystem/`,
