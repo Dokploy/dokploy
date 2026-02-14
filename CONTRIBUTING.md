@@ -99,7 +99,14 @@ pnpm run dokploy:build
 
 ## Docker
 
-To build the docker image
+To build the docker image first run commands to copy .env files
+
+```bash
+cp apps/dokploy/.env.production.example .env.production
+cp apps/dokploy/.env.production.example apps/dokploy/.env.production
+```
+
+then run build command
 
 ```bash
 pnpm run docker:build
