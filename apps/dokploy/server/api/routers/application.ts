@@ -27,6 +27,7 @@ import {
 	updateDeploymentStatus,
 	writeConfig,
 	writeConfigRemote,
+	recordActivity,
 	// uploadFileSchema
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -101,6 +102,18 @@ export const applicationRouter = createTRPCRouter({
 				}
 
 				const newApplication = await createApplication(input);
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: project.organizationId,
+					action: "application.create",
+					resourceType: "application",
+					resourceId: newApplication.applicationId,
+					metadata: {
+						name: newApplication.name,
+						appName: newApplication.appName,
+					},
+				});
 
 				if (ctx.user.role === "member") {
 					await addNewService(
@@ -203,6 +216,15 @@ export const applicationRouter = createTRPCRouter({
 				await updateApplicationStatus(input.applicationId, "idle");
 				await mechanizeDockerContainer(application);
 				await updateApplicationStatus(input.applicationId, "done");
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "application.reload",
+					resourceType: "application",
+					resourceId: application.applicationId,
+					metadata: { name: application.name },
+				});
 				return true;
 			} catch (error) {
 				await updateApplicationStatus(input.applicationId, "error");
@@ -273,6 +295,18 @@ export const applicationRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "application.delete",
+				resourceType: "application",
+				resourceId: application.applicationId,
+				metadata: {
+					name: application.name,
+					appName: application.appName,
+				},
+			});
+
 			return application;
 		}),
 
@@ -295,6 +329,15 @@ export const applicationRouter = createTRPCRouter({
 				await stopService(service.appName);
 			}
 			await updateApplicationStatus(input.applicationId, "idle");
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "application.stop",
+				resourceType: "application",
+				resourceId: service.applicationId,
+				metadata: { name: service.name },
+			});
 
 			return service;
 		}),
@@ -319,6 +362,15 @@ export const applicationRouter = createTRPCRouter({
 				await startService(service.appName);
 			}
 			await updateApplicationStatus(input.applicationId, "done");
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "application.start",
+				resourceType: "application",
+				resourceId: service.applicationId,
+				metadata: { name: service.name },
+			});
 
 			return service;
 		}),
@@ -671,6 +723,15 @@ export const applicationRouter = createTRPCRouter({
 					message: "Error updating application",
 				});
 			}
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "application.update",
+				resourceType: "application",
+				resourceId: application.applicationId,
+				metadata: { name: application.name },
+			});
 
 			return true;
 		}),

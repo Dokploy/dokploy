@@ -18,6 +18,7 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateMongoById,
+	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
@@ -86,6 +87,18 @@ export const mongoRouter = createTRPCRouter({
 					volumeName: `${newMongo.appName}-data`,
 					mountPath: "/data/db",
 					type: "volume",
+				});
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "mongo.create",
+					resourceType: "database",
+					resourceId: newMongo.mongoId,
+					metadata: {
+						name: newMongo.name,
+						appName: newMongo.appName,
+					},
 				});
 
 				return newMongo;
@@ -339,6 +352,18 @@ export const mongoRouter = createTRPCRouter({
 					await operation();
 				} catch (_) {}
 			}
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "mongo.delete",
+				resourceType: "database",
+				resourceId: mongo.mongoId,
+				metadata: {
+					name: mongo.name,
+					appName: mongo.appName,
+				},
+			});
 
 			return mongo;
 		}),

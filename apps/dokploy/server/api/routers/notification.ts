@@ -34,6 +34,7 @@ import {
 	updateResendNotification,
 	updateSlackNotification,
 	updateTelegramNotification,
+	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { desc, eq, sql } from "drizzle-orm";
@@ -86,10 +87,19 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateSlack)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createSlackNotification(
+				const notification = await createSlackNotification(
 					input,
 					ctx.session.activeOrganizationId,
 				);
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "notification.create",
+					resourceType: "system",
+					resourceId: notification.notificationId,
+					metadata: { type: "slack" },
+				});
+				return notification;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -109,10 +119,19 @@ export const notificationRouter = createTRPCRouter({
 						message: "You are not authorized to update this notification",
 					});
 				}
-				return await updateSlackNotification({
+				const result = await updateSlackNotification({
 					...input,
 					organizationId: ctx.session.activeOrganizationId,
 				});
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "notification.update",
+					resourceType: "system",
+					resourceId: notification.notificationId,
+					metadata: { type: "slack" },
+				});
+				return result;
 			} catch (error) {
 				throw error;
 			}
@@ -138,10 +157,19 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateTelegram)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createTelegramNotification(
+				const notification = await createTelegramNotification(
 					input,
 					ctx.session.activeOrganizationId,
 				);
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "notification.create",
+					resourceType: "system",
+					resourceId: notification.notificationId,
+					metadata: { type: "telegram" },
+				});
+				return notification;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -162,10 +190,19 @@ export const notificationRouter = createTRPCRouter({
 						message: "You are not authorized to update this notification",
 					});
 				}
-				return await updateTelegramNotification({
+				const result = await updateTelegramNotification({
 					...input,
 					organizationId: ctx.session.activeOrganizationId,
 				});
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "notification.update",
+					resourceType: "system",
+					resourceId: notification.notificationId,
+					metadata: { type: "telegram" },
+				});
+				return result;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -192,10 +229,19 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateDiscord)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createDiscordNotification(
+				const notification = await createDiscordNotification(
 					input,
 					ctx.session.activeOrganizationId,
 				);
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "notification.create",
+					resourceType: "system",
+					resourceId: notification.notificationId,
+					metadata: { type: "discord" },
+				});
+				return notification;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -216,10 +262,19 @@ export const notificationRouter = createTRPCRouter({
 						message: "You are not authorized to update this notification",
 					});
 				}
-				return await updateDiscordNotification({
+				const result = await updateDiscordNotification({
 					...input,
 					organizationId: ctx.session.activeOrganizationId,
 				});
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "notification.update",
+					resourceType: "system",
+					resourceId: notification.notificationId,
+					metadata: { type: "discord" },
+				});
+				return result;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -255,10 +310,19 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateEmail)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createEmailNotification(
+				const notification = await createEmailNotification(
 					input,
 					ctx.session.activeOrganizationId,
 				);
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "notification.create",
+					resourceType: "system",
+					resourceId: notification.notificationId,
+					metadata: { type: "email" },
+				});
+				return notification;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -278,10 +342,19 @@ export const notificationRouter = createTRPCRouter({
 						message: "You are not authorized to update this notification",
 					});
 				}
-				return await updateEmailNotification({
+				const result = await updateEmailNotification({
 					...input,
 					organizationId: ctx.session.activeOrganizationId,
 				});
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "notification.update",
+					resourceType: "system",
+					resourceId: notification.notificationId,
+					metadata: { type: "email" },
+				});
+				return result;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -312,10 +385,19 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateResend)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createResendNotification(
+				const notification = await createResendNotification(
 					input,
 					ctx.session.activeOrganizationId,
 				);
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "notification.create",
+					resourceType: "system",
+					resourceId: notification.notificationId,
+					metadata: { type: "resend" },
+				});
+				return notification;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -335,10 +417,19 @@ export const notificationRouter = createTRPCRouter({
 						message: "You are not authorized to update this notification",
 					});
 				}
-				return await updateResendNotification({
+				const result = await updateResendNotification({
 					...input,
 					organizationId: ctx.session.activeOrganizationId,
 				});
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "notification.update",
+					resourceType: "system",
+					resourceId: notification.notificationId,
+					metadata: { type: "resend" },
+				});
+				return result;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -376,7 +467,15 @@ export const notificationRouter = createTRPCRouter({
 						message: "You are not authorized to delete this notification",
 					});
 				}
-				return await removeNotificationById(input.notificationId);
+				const result = await removeNotificationById(input.notificationId);
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "notification.delete",
+					resourceType: "system",
+					resourceId: notification.notificationId,
+				});
+				return result;
 			} catch (error) {
 				const message =
 					error instanceof Error
