@@ -95,6 +95,9 @@ export const backups = pgTable("backup", {
 		  }
 		| undefined
 	>(),
+	// Path filtering for web-server backups
+	includePaths: jsonb("includePaths").$type<string[] | undefined>(),
+	excludePaths: jsonb("excludePaths").$type<string[] | undefined>(),
 });
 
 export const backupsRelations = relations(backups, ({ one, many }) => ({
@@ -144,6 +147,8 @@ const createSchema = createInsertSchema(backups, {
 	mongoId: z.string().optional(),
 	userId: z.string().optional(),
 	metadata: z.any().optional(),
+	includePaths: z.array(z.string()).optional(),
+	excludePaths: z.array(z.string()).optional(),
 });
 
 export const apiCreateBackup = createSchema.pick({
@@ -163,6 +168,8 @@ export const apiCreateBackup = createSchema.pick({
 	composeId: true,
 	serviceName: true,
 	metadata: true,
+	includePaths: true,
+	excludePaths: true,
 });
 
 export const apiFindOneBackup = createSchema
@@ -189,6 +196,8 @@ export const apiUpdateBackup = createSchema
 		serviceName: true,
 		metadata: true,
 		databaseType: true,
+		includePaths: true,
+		excludePaths: true,
 	})
 	.required();
 
