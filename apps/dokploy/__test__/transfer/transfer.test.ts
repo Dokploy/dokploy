@@ -220,7 +220,10 @@ import {
 	syncBindFile,
 	syncVolumeFile,
 } from "@dokploy/server/utils/transfer";
-import type { FileCompareResult, MergeStrategy } from "@dokploy/server/utils/transfer";
+import type {
+	FileCompareResult,
+	MergeStrategy,
+} from "@dokploy/server/utils/transfer";
 
 describe("shouldSyncFile", () => {
 	const createCompareResult = (
@@ -239,27 +242,39 @@ describe("shouldSyncFile", () => {
 		const strategy: MergeStrategy = "skip";
 
 		test("should not sync matching files", () => {
-			expect(shouldSyncFile(createCompareResult("match"), strategy)).toBe(false);
+			expect(shouldSyncFile(createCompareResult("match"), strategy)).toBe(
+				false,
+			);
 		});
 
 		test("should sync missing_target files", () => {
-			expect(shouldSyncFile(createCompareResult("missing_target"), strategy)).toBe(true);
+			expect(
+				shouldSyncFile(createCompareResult("missing_target"), strategy),
+			).toBe(true);
 		});
 
 		test("should not sync missing_source files", () => {
-			expect(shouldSyncFile(createCompareResult("missing_source"), strategy)).toBe(false);
+			expect(
+				shouldSyncFile(createCompareResult("missing_source"), strategy),
+			).toBe(false);
 		});
 
 		test("should not sync newer_source files with skip", () => {
-			expect(shouldSyncFile(createCompareResult("newer_source"), strategy)).toBe(false);
+			expect(
+				shouldSyncFile(createCompareResult("newer_source"), strategy),
+			).toBe(false);
 		});
 
 		test("should not sync newer_target files", () => {
-			expect(shouldSyncFile(createCompareResult("newer_target"), strategy)).toBe(false);
+			expect(
+				shouldSyncFile(createCompareResult("newer_target"), strategy),
+			).toBe(false);
 		});
 
 		test("should not sync conflicts with skip", () => {
-			expect(shouldSyncFile(createCompareResult("conflict"), strategy)).toBe(false);
+			expect(shouldSyncFile(createCompareResult("conflict"), strategy)).toBe(
+				false,
+			);
 		});
 	});
 
@@ -267,15 +282,21 @@ describe("shouldSyncFile", () => {
 		const strategy: MergeStrategy = "overwrite";
 
 		test("should sync newer_source files", () => {
-			expect(shouldSyncFile(createCompareResult("newer_source"), strategy)).toBe(true);
+			expect(
+				shouldSyncFile(createCompareResult("newer_source"), strategy),
+			).toBe(true);
 		});
 
 		test("should sync newer_target files (source wins)", () => {
-			expect(shouldSyncFile(createCompareResult("newer_target"), strategy)).toBe(true);
+			expect(
+				shouldSyncFile(createCompareResult("newer_target"), strategy),
+			).toBe(true);
 		});
 
 		test("should sync conflicts", () => {
-			expect(shouldSyncFile(createCompareResult("conflict"), strategy)).toBe(true);
+			expect(shouldSyncFile(createCompareResult("conflict"), strategy)).toBe(
+				true,
+			);
 		});
 	});
 
@@ -283,15 +304,21 @@ describe("shouldSyncFile", () => {
 		const strategy: MergeStrategy = "newer";
 
 		test("should sync newer_source files", () => {
-			expect(shouldSyncFile(createCompareResult("newer_source"), strategy)).toBe(true);
+			expect(
+				shouldSyncFile(createCompareResult("newer_source"), strategy),
+			).toBe(true);
 		});
 
 		test("should not sync newer_target files", () => {
-			expect(shouldSyncFile(createCompareResult("newer_target"), strategy)).toBe(false);
+			expect(
+				shouldSyncFile(createCompareResult("newer_target"), strategy),
+			).toBe(false);
 		});
 
 		test("should sync conflicts (compare as conflict resolution)", () => {
-			expect(shouldSyncFile(createCompareResult("conflict"), strategy)).toBe(true);
+			expect(shouldSyncFile(createCompareResult("conflict"), strategy)).toBe(
+				true,
+			);
 		});
 	});
 
@@ -303,7 +330,9 @@ describe("shouldSyncFile", () => {
 				"mount-b:/shared.txt": "skip" as const,
 			};
 			expect(shouldSyncFile(file, "skip", decisions, "mount-a")).toBe(true);
-			expect(shouldSyncFile(file, "overwrite", decisions, "mount-b")).toBe(false);
+			expect(shouldSyncFile(file, "overwrite", decisions, "mount-b")).toBe(
+				false,
+			);
 		});
 
 		test("should respect manual skip decision", () => {
@@ -334,7 +363,8 @@ describe("scanVolume (mocked)", () => {
 
 	test("should parse file list output correctly", async () => {
 		mockExecAsync.mockResolvedValue({
-			stdout: "f|/volume_data/file1.txt|100|1609459200|644\nf|/volume_data/file2.txt|200|1609459300|644\n",
+			stdout:
+				"f|/volume_data/file1.txt|100|1609459200|644\nf|/volume_data/file2.txt|200|1609459300|644\n",
 		});
 
 		const files = await scanVolume(null, "test-volume");
@@ -384,15 +414,20 @@ describe("scanVolume (mocked)", () => {
 
 	test("should call emit callback for each file", async () => {
 		mockExecAsync.mockResolvedValue({
-			stdout: "f|/volume_data/a.txt|10|1000|644\nf|/volume_data/b.txt|20|2000|644\n",
+			stdout:
+				"f|/volume_data/a.txt|10|1000|644\nf|/volume_data/b.txt|20|2000|644\n",
 		});
 		const emit = vi.fn();
 
 		await scanVolume(null, "test-volume", emit);
 
 		expect(emit).toHaveBeenCalledTimes(2);
-		expect(emit).toHaveBeenCalledWith(expect.objectContaining({ path: "/a.txt" }));
-		expect(emit).toHaveBeenCalledWith(expect.objectContaining({ path: "/b.txt" }));
+		expect(emit).toHaveBeenCalledWith(
+			expect.objectContaining({ path: "/a.txt" }),
+		);
+		expect(emit).toHaveBeenCalledWith(
+			expect.objectContaining({ path: "/b.txt" }),
+		);
 	});
 });
 
@@ -404,7 +439,8 @@ describe("scanBindMount (mocked)", () => {
 
 	test("should parse bind mount file list", async () => {
 		mockExecAsync.mockResolvedValue({
-			stdout: "f|/data/config.json|512|1609459200|644\nd|/data/logs|0|1609459100|755\n",
+			stdout:
+				"f|/data/config.json|512|1609459200|644\nd|/data/logs|0|1609459100|755\n",
 		});
 
 		const files = await scanBindMount(null, "/data");

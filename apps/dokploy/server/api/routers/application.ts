@@ -1063,7 +1063,10 @@ export const applicationRouter = createTRPCRouter({
 
 			const result = await runTransferWithDowntime({
 				stopSource: async () => {
-					await stopSourceDockerService(application.serverId, application.appName);
+					await stopSourceDockerService(
+						application.serverId,
+						application.appName,
+					);
 				},
 				startSource: async () => {
 					await startSourceDockerService(
@@ -1140,7 +1143,10 @@ export const applicationRouter = createTRPCRouter({
 			return observable<string>((emit) => {
 				runTransferWithDowntime({
 					stopSource: async () => {
-						await stopSourceDockerService(application.serverId, application.appName);
+						await stopSourceDockerService(
+							application.serverId,
+							application.appName,
+						);
 					},
 					startSource: async () => {
 						await startSourceDockerService(

@@ -157,7 +157,10 @@ async function buildAuthorizedTransferConfig(
 	authContext: WebSocketAuthContext,
 	config: z.infer<typeof scanConfigSchema>,
 ): Promise<TransferConfig> {
-	const serviceScope = await getServiceScope(config.serviceType, config.serviceId);
+	const serviceScope = await getServiceScope(
+		config.serviceType,
+		config.serviceId,
+	);
 
 	if (serviceScope.organizationId !== authContext.organizationId) {
 		throw new Error("You are not authorized to transfer this service");
@@ -266,11 +269,7 @@ export const setupDataTransferWebSocketServer = (
 							authContext,
 							command.config,
 						);
-						await handleScan(
-							ws,
-							transferSession,
-							secureConfig,
-						);
+						await handleScan(ws, transferSession, secureConfig);
 						break;
 					}
 					case "compare":
@@ -278,11 +277,7 @@ export const setupDataTransferWebSocketServer = (
 						break;
 
 					case "sync":
-						await handleSync(
-							ws,
-							transferSession,
-							command.manualDecisions,
-						);
+						await handleSync(ws, transferSession, command.manualDecisions);
 						break;
 
 					case "pause":

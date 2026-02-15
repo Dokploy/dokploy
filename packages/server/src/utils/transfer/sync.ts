@@ -204,9 +204,10 @@ export async function syncVolumeFilesBatch(
 	if (filePaths.length === 0) return;
 
 	const relativePaths = filePaths.map((filePath) => `.${filePath}`);
-	const encodedFileList = Buffer.from(relativePaths.join("\n"), "utf8").toString(
-		"base64",
-	);
+	const encodedFileList = Buffer.from(
+		relativePaths.join("\n"),
+		"utf8",
+	).toString("base64");
 
 	const sourceCommand = `docker run --rm -v ${shellEscape(
 		`${sourceVolume}:/volume_data:ro`,
@@ -400,7 +401,9 @@ export async function syncMount(
 	});
 
 	if (mount.mountType === "volume") {
-		const directoryCount = filesToSync.filter((file) => file.isDirectory).length;
+		const directoryCount = filesToSync.filter(
+			(file) => file.isDirectory,
+		).length;
 		if (directoryCount > 0) {
 			processedFiles += directoryCount;
 			emit({ processedFiles });

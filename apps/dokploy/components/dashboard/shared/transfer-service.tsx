@@ -1,9 +1,4 @@
-import {
-	AlertTriangle,
-	CheckCircle2,
-	Loader2,
-	Server,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, Server } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -191,8 +186,7 @@ const TransferInner = ({
 	const showDokployOption = !isCloud && currentServerId !== null;
 	const hasAvailableTargets =
 		(availableServers?.length ?? 0) > 0 || showDokployOption;
-	const hasDomainCertificateFlow =
-		type === "application" || type === "compose";
+	const hasDomainCertificateFlow = type === "application" || type === "compose";
 
 	const buildInput = (extra?: Record<string, unknown>) => {
 		const targetServerId =
@@ -442,9 +436,7 @@ const TransferInner = ({
 										{formatBytes(scanResult.totalSizeBytes)}
 									</div>
 									<div className="text-muted-foreground">Volumes:</div>
-									<div className="font-medium">
-										{scanResult.volumes.length}
-									</div>
+									<div className="font-medium">{scanResult.volumes.length}</div>
 									{scanResult.serviceDir && (
 										<>
 											<div className="text-muted-foreground">Service dir:</div>
@@ -466,18 +458,18 @@ const TransferInner = ({
 								{totalConflicts > 0 && (
 									<div className="border rounded-lg overflow-auto max-h-64">
 										<Table>
-												<TableHeader>
-													<TableRow>
-														<TableHead>File</TableHead>
-														<TableHead>Size</TableHead>
-														<TableHead>Status</TableHead>
-														<TableHead>Source mtime</TableHead>
-														<TableHead>Target mtime</TableHead>
-														<TableHead>Source hash</TableHead>
-														<TableHead>Target hash</TableHead>
-														<TableHead>Action</TableHead>
-													</TableRow>
-												</TableHeader>
+											<TableHeader>
+												<TableRow>
+													<TableHead>File</TableHead>
+													<TableHead>Size</TableHead>
+													<TableHead>Status</TableHead>
+													<TableHead>Source mtime</TableHead>
+													<TableHead>Target mtime</TableHead>
+													<TableHead>Source hash</TableHead>
+													<TableHead>Target hash</TableHead>
+													<TableHead>Action</TableHead>
+												</TableRow>
+											</TableHeader>
 											<TableBody>
 												{scanResult.conflicts.map((conflict) => (
 													<TableRow key={getConflictDecisionKey(conflict)}>
@@ -506,13 +498,16 @@ const TransferInner = ({
 															<Button
 																size="sm"
 																variant={
-																	decisions[getConflictDecisionKey(conflict)] ===
-																	"overwrite"
+																	decisions[
+																		getConflictDecisionKey(conflict)
+																	] === "overwrite"
 																		? "default"
 																		: "outline"
 																}
 																onClick={() =>
-																	toggleDecision(getConflictDecisionKey(conflict))
+																	toggleDecision(
+																		getConflictDecisionKey(conflict),
+																	)
 																}
 															>
 																{decisions[getConflictDecisionKey(conflict)] ===
@@ -576,13 +571,14 @@ const TransferInner = ({
 														)}
 														<p className="text-sm text-orange-500">
 															The service will be unavailable during transfer.
-															Please deploy on the target server after completion.
+															Please deploy on the target server after
+															completion.
 														</p>
 														{hasDomainCertificateFlow && (
 															<p className="text-sm text-orange-500">
 																If this service has domains, update DNS A/AAAA
-																records to the target server after transfer.
-																TLS certificates are not migrated and will be
+																records to the target server after transfer. TLS
+																certificates are not migrated and will be
 																re-issued on the target after DNS propagation.
 															</p>
 														)}
@@ -611,10 +607,7 @@ const TransferInner = ({
 									</span>
 								</div>
 
-								<Progress
-									value={progress?.percentage ?? 0}
-									className="h-2"
-								/>
+								<Progress value={progress?.percentage ?? 0} className="h-2" />
 
 								{progress && (
 									<div className="flex justify-between text-xs text-muted-foreground">
@@ -639,7 +632,10 @@ const TransferInner = ({
 									<ScrollArea className="h-32 rounded-md border p-2">
 										<div className="flex flex-col gap-0.5">
 											{logs.map((log, i) => (
-												<p key={i} className="text-xs font-mono text-muted-foreground">
+												<p
+													key={i}
+													className="text-xs font-mono text-muted-foreground"
+												>
 													{log}
 												</p>
 											))}
@@ -668,8 +664,8 @@ const TransferInner = ({
 								</p>
 								{hasDomainCertificateFlow && (
 									<p className="text-xs text-muted-foreground">
-										For domain services: update DNS A/AAAA to the target,
-										wait for propagation, then open the HTTPS URL to trigger
+										For domain services: update DNS A/AAAA to the target, wait
+										for propagation, then open the HTTPS URL to trigger
 										certificate issuance on target Traefik. If it still fails,
 										redeploy the service or restart Traefik and retry.
 									</p>
@@ -695,7 +691,10 @@ const TransferInner = ({
 function ApplicationTransfer({
 	id,
 	currentServerId,
-}: { id: string; currentServerId?: string | null }) {
+}: {
+	id: string;
+	currentServerId?: string | null;
+}) {
 	const scan = api.application.transferScan.useMutation();
 	const inner = TransferInner({
 		id,
@@ -705,14 +704,11 @@ function ApplicationTransfer({
 		isScanning: scan.isLoading,
 	});
 
-	api.application.transferWithLogs.useSubscription(
-		inner.subscriptionInput,
-		{
-			enabled: inner.isTransferring,
-			onData: inner.handleSubscriptionData,
-			onError: inner.handleSubscriptionError,
-		},
-	);
+	api.application.transferWithLogs.useSubscription(inner.subscriptionInput, {
+		enabled: inner.isTransferring,
+		onData: inner.handleSubscriptionData,
+		onError: inner.handleSubscriptionError,
+	});
 
 	return inner.render;
 }
@@ -720,8 +716,13 @@ function ApplicationTransfer({
 function ComposeTransfer({
 	id,
 	currentServerId,
-}: { id: string; currentServerId?: string | null }) {
-	const [scanInput, setScanInput] = useState<Record<string, unknown> | null>(null);
+}: {
+	id: string;
+	currentServerId?: string | null;
+}) {
+	const [scanInput, setScanInput] = useState<Record<string, unknown> | null>(
+		null,
+	);
 	const [isScanStreaming, setIsScanStreaming] = useState(false);
 	const [scanStatusText, setScanStatusText] = useState<string>();
 	const scanPromiseRef = useRef<{
@@ -765,7 +766,9 @@ function ComposeTransfer({
 								? ` ${payload.processedMounts}/${payload.totalMounts}`
 								: "";
 						const fileLabel =
-							payload.scannedFiles > 0 ? ` • ${payload.scannedFiles} files` : "";
+							payload.scannedFiles > 0
+								? ` • ${payload.scannedFiles} files`
+								: "";
 						setScanStatusText(
 							`${payload.phase || "Scanning"}${mountLabel}${countsLabel}${fileLabel}`,
 						);
@@ -813,14 +816,11 @@ function ComposeTransfer({
 		},
 	);
 
-	api.compose.transferWithLogs.useSubscription(
-		inner.subscriptionInput,
-		{
-			enabled: inner.isTransferring,
-			onData: inner.handleSubscriptionData,
-			onError: inner.handleSubscriptionError,
-		},
-	);
+	api.compose.transferWithLogs.useSubscription(inner.subscriptionInput, {
+		enabled: inner.isTransferring,
+		onData: inner.handleSubscriptionData,
+		onError: inner.handleSubscriptionError,
+	});
 
 	return inner.render;
 }
@@ -828,7 +828,10 @@ function ComposeTransfer({
 function PostgresTransfer({
 	id,
 	currentServerId,
-}: { id: string; currentServerId?: string | null }) {
+}: {
+	id: string;
+	currentServerId?: string | null;
+}) {
 	const scan = api.postgres.transferScan.useMutation();
 	const inner = TransferInner({
 		id,
@@ -838,14 +841,11 @@ function PostgresTransfer({
 		isScanning: scan.isLoading,
 	});
 
-	api.postgres.transferWithLogs.useSubscription(
-		inner.subscriptionInput,
-		{
-			enabled: inner.isTransferring,
-			onData: inner.handleSubscriptionData,
-			onError: inner.handleSubscriptionError,
-		},
-	);
+	api.postgres.transferWithLogs.useSubscription(inner.subscriptionInput, {
+		enabled: inner.isTransferring,
+		onData: inner.handleSubscriptionData,
+		onError: inner.handleSubscriptionError,
+	});
 
 	return inner.render;
 }
@@ -853,7 +853,10 @@ function PostgresTransfer({
 function MysqlTransfer({
 	id,
 	currentServerId,
-}: { id: string; currentServerId?: string | null }) {
+}: {
+	id: string;
+	currentServerId?: string | null;
+}) {
 	const scan = api.mysql.transferScan.useMutation();
 	const inner = TransferInner({
 		id,
@@ -863,14 +866,11 @@ function MysqlTransfer({
 		isScanning: scan.isLoading,
 	});
 
-	api.mysql.transferWithLogs.useSubscription(
-		inner.subscriptionInput,
-		{
-			enabled: inner.isTransferring,
-			onData: inner.handleSubscriptionData,
-			onError: inner.handleSubscriptionError,
-		},
-	);
+	api.mysql.transferWithLogs.useSubscription(inner.subscriptionInput, {
+		enabled: inner.isTransferring,
+		onData: inner.handleSubscriptionData,
+		onError: inner.handleSubscriptionError,
+	});
 
 	return inner.render;
 }
@@ -878,7 +878,10 @@ function MysqlTransfer({
 function MariadbTransfer({
 	id,
 	currentServerId,
-}: { id: string; currentServerId?: string | null }) {
+}: {
+	id: string;
+	currentServerId?: string | null;
+}) {
 	const scan = api.mariadb.transferScan.useMutation();
 	const inner = TransferInner({
 		id,
@@ -888,14 +891,11 @@ function MariadbTransfer({
 		isScanning: scan.isLoading,
 	});
 
-	api.mariadb.transferWithLogs.useSubscription(
-		inner.subscriptionInput,
-		{
-			enabled: inner.isTransferring,
-			onData: inner.handleSubscriptionData,
-			onError: inner.handleSubscriptionError,
-		},
-	);
+	api.mariadb.transferWithLogs.useSubscription(inner.subscriptionInput, {
+		enabled: inner.isTransferring,
+		onData: inner.handleSubscriptionData,
+		onError: inner.handleSubscriptionError,
+	});
 
 	return inner.render;
 }
@@ -903,7 +903,10 @@ function MariadbTransfer({
 function MongoTransfer({
 	id,
 	currentServerId,
-}: { id: string; currentServerId?: string | null }) {
+}: {
+	id: string;
+	currentServerId?: string | null;
+}) {
 	const scan = api.mongo.transferScan.useMutation();
 	const inner = TransferInner({
 		id,
@@ -913,14 +916,11 @@ function MongoTransfer({
 		isScanning: scan.isLoading,
 	});
 
-	api.mongo.transferWithLogs.useSubscription(
-		inner.subscriptionInput,
-		{
-			enabled: inner.isTransferring,
-			onData: inner.handleSubscriptionData,
-			onError: inner.handleSubscriptionError,
-		},
-	);
+	api.mongo.transferWithLogs.useSubscription(inner.subscriptionInput, {
+		enabled: inner.isTransferring,
+		onData: inner.handleSubscriptionData,
+		onError: inner.handleSubscriptionError,
+	});
 
 	return inner.render;
 }
@@ -928,7 +928,10 @@ function MongoTransfer({
 function RedisTransfer({
 	id,
 	currentServerId,
-}: { id: string; currentServerId?: string | null }) {
+}: {
+	id: string;
+	currentServerId?: string | null;
+}) {
 	const scan = api.redis.transferScan.useMutation();
 	const inner = TransferInner({
 		id,
@@ -938,14 +941,11 @@ function RedisTransfer({
 		isScanning: scan.isLoading,
 	});
 
-	api.redis.transferWithLogs.useSubscription(
-		inner.subscriptionInput,
-		{
-			enabled: inner.isTransferring,
-			onData: inner.handleSubscriptionData,
-			onError: inner.handleSubscriptionError,
-		},
-	);
+	api.redis.transferWithLogs.useSubscription(inner.subscriptionInput, {
+		enabled: inner.isTransferring,
+		onData: inner.handleSubscriptionData,
+		onError: inner.handleSubscriptionError,
+	});
 
 	return inner.render;
 }
