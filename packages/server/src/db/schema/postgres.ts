@@ -202,3 +202,9 @@ export const apiRebuildPostgres = createSchema
 		postgresId: true,
 	})
 	.required();
+
+// Schema for transferring postgres to another server
+export const apiTransferPostgres = z.object({
+	postgresId: z.string().min(1),
+	targetServerId: z.string().trim().nullable(),
+});

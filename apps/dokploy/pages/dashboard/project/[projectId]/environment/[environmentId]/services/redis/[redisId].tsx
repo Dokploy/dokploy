@@ -285,7 +285,11 @@ const Redis = (
 									</TabsContent>
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDatabaseAdvancedSettings id={redisId} type="redis" />
+											<ShowDatabaseAdvancedSettings
+												id={redisId}
+												type="redis"
+												serverId={data?.serverId}
+											/>
 										</div>
 									</TabsContent>
 								</Tabs>

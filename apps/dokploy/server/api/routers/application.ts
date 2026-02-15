@@ -3,6 +3,7 @@ import {
 	checkServiceAccess,
 	createApplication,
 	deleteAllMiddlewares,
+	executeTransfer,
 	findApplicationById,
 	findEnvironmentById,
 	findGitProviderById,
@@ -17,6 +18,7 @@ import {
 	removeMonitoringDirectory,
 	removeService,
 	removeTraefikConfig,
+	scanServiceForTransfer,
 	startService,
 	startServiceRemote,
 	stopService,
@@ -30,6 +32,7 @@ import {
 	// uploadFileSchema
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -54,6 +57,7 @@ import {
 	apiSaveGithubProvider,
 	apiSaveGitlabProvider,
 	apiSaveGitProvider,
+	apiTransferApplication,
 	apiUpdateApplication,
 	applications,
 } from "@/server/db/schema";
@@ -66,6 +70,12 @@ import {
 	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
+import {
+	runTransferWithDowntime,
+	startSourceDockerService,
+	stopSourceDockerService,
+	validateTransferTargetServer,
+} from "@/server/utils/transfer";
 import { uploadFileSchema } from "@/utils/schema";
 
 export const applicationRouter = createTRPCRouter({
@@ -984,6 +994,213 @@ export const applicationRouter = createTRPCRouter({
 			throw new TRPCError({
 				code: "BAD_REQUEST",
 				message: "Deployment cancellation only available in cloud version",
+			});
+		}),
+
+	// Scan application for transfer — pre-flight check
+	transferScan: protectedProcedure
+		.input(apiTransferApplication)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to transfer this application",
+				});
+			}
+
+			if (ctx.user.role === "member") {
+				await checkServiceAccess(
+					ctx.user.id,
+					input.applicationId,
+					ctx.session.activeOrganizationId,
+					"delete",
+				);
+			}
+
+			const targetServerId = await validateTransferTargetServer({
+				targetServerId: input.targetServerId,
+				sourceServerId: application.serverId,
+				organizationId: ctx.session.activeOrganizationId,
+			});
+
+			return scanServiceForTransfer({
+				serviceId: input.applicationId,
+				serviceType: "application",
+				appName: application.appName,
+				sourceServerId: application.serverId,
+				targetServerId,
+			});
+		}),
+
+	// Transfer application to a different server (node)
+	transfer: protectedProcedure
+		.input(
+			apiTransferApplication.extend({
+				decisions: z.record(z.enum(["skip", "overwrite"])).optional(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to transfer this application",
+				});
+			}
+
+			if (ctx.user.role === "member") {
+				await checkServiceAccess(
+					ctx.user.id,
+					input.applicationId,
+					ctx.session.activeOrganizationId,
+					"delete", // Transfer requires delete-level permission
+				);
+			}
+
+			const targetServerId = await validateTransferTargetServer({
+				targetServerId: input.targetServerId,
+				sourceServerId: application.serverId,
+				organizationId: ctx.session.activeOrganizationId,
+			});
+
+			const result = await runTransferWithDowntime({
+				stopSource: async () => {
+					await stopSourceDockerService(
+						application.serverId,
+						application.appName,
+					);
+				},
+				startSource: async () => {
+					await startSourceDockerService(
+						application.serverId,
+						application.appName,
+					);
+				},
+				executeTransfer: async () =>
+					executeTransfer(
+						{
+							serviceId: input.applicationId,
+							serviceType: "application",
+							appName: application.appName,
+							sourceServerId: application.serverId,
+							targetServerId,
+						},
+						input.decisions || {},
+						(_progress) => {
+							// TODO: stream progress via subscription in future
+						},
+					),
+				commitTransfer: async () => {
+					await db
+						.update(applications)
+						.set({ serverId: targetServerId })
+						.where(eq(applications.applicationId, input.applicationId));
+				},
+			});
+
+			if (!result.success) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Transfer failed: ${result.errors.join(", ")}`,
+				});
+			}
+
+			return { success: true };
+		}),
+
+	transferWithLogs: protectedProcedure
+		.input(
+			apiTransferApplication.extend({
+				decisions: z.record(z.enum(["skip", "overwrite"])).optional(),
+			}),
+		)
+		.subscription(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to transfer this application",
+				});
+			}
+
+			if (ctx.user.role === "member") {
+				await checkServiceAccess(
+					ctx.user.id,
+					input.applicationId,
+					ctx.session.activeOrganizationId,
+					"delete",
+				);
+			}
+
+			const targetServerId = await validateTransferTargetServer({
+				targetServerId: input.targetServerId,
+				sourceServerId: application.serverId,
+				organizationId: ctx.session.activeOrganizationId,
+			});
+
+			return observable<string>((emit) => {
+				runTransferWithDowntime({
+					stopSource: async () => {
+						await stopSourceDockerService(
+							application.serverId,
+							application.appName,
+						);
+					},
+					startSource: async () => {
+						await startSourceDockerService(
+							application.serverId,
+							application.appName,
+						);
+					},
+					executeTransfer: async () =>
+						executeTransfer(
+							{
+								serviceId: input.applicationId,
+								serviceType: "application",
+								appName: application.appName,
+								sourceServerId: application.serverId,
+								targetServerId,
+							},
+							input.decisions || {},
+							(progress) => {
+								emit.next(JSON.stringify(progress));
+							},
+						),
+					commitTransfer: async () => {
+						await db
+							.update(applications)
+							.set({ serverId: targetServerId })
+							.where(eq(applications.applicationId, input.applicationId));
+					},
+				})
+					.then((result) => {
+						if (result.success) {
+							emit.next("Transfer completed successfully!");
+						} else {
+							const errorMessage = result.errors.join(", ") || "Unknown error";
+							emit.next(`Transfer failed: ${errorMessage}`);
+						}
+						emit.complete();
+					})
+					.catch((error) => {
+						const message =
+							error instanceof Error ? error.message : "Unknown transfer error";
+						emit.next(`Transfer failed: ${message}`);
+						emit.complete();
+					});
 			});
 		}),
 });

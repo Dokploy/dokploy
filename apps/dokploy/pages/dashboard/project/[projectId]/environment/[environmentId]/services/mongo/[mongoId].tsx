@@ -296,7 +296,11 @@ const Mongo = (
 									</TabsContent>
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDatabaseAdvancedSettings id={mongoId} type="mongo" />
+											<ShowDatabaseAdvancedSettings
+												id={mongoId}
+												type="mongo"
+												serverId={data?.serverId}
+											/>
 										</div>
 									</TabsContent>
 								</Tabs>

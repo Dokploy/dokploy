@@ -296,6 +296,7 @@ const Mariadb = (
 											<ShowDatabaseAdvancedSettings
 												id={mariadbId}
 												type="mariadb"
+												serverId={data?.serverId}
 											/>
 										</div>
 									</TabsContent>
