@@ -12,6 +12,7 @@ import {
 	extractCommitMessage,
 	extractHash,
 	getProviderByHeader,
+	validateTriggerType,
 } from "../[refreshToken]";
 
 export default async function handler(
@@ -43,6 +44,14 @@ export default async function handler(
 		if (!composeResult?.autoDeploy) {
 			res.status(400).json({
 				message: "Automatic deployments are disabled for this compose",
+			});
+			return;
+		}
+
+		// Validate trigger type matches the webhook event
+		if (!validateTriggerType(req.headers, req.body, composeResult.triggerType)) {
+			res.status(200).json({
+				message: `Event type does not match configured trigger type (${composeResult.triggerType})`,
 			});
 			return;
 		}

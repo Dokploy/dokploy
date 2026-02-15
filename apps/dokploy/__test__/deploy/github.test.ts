@@ -4,6 +4,7 @@ import {
 	extractImageName,
 	extractImageTag,
 	extractImageTagFromRequest,
+	validateTriggerType,
 } from "@/pages/api/deploy/[refreshToken]";
 
 describe("GitHub Webhook Skip CI", () => {
@@ -403,6 +404,153 @@ describe("Docker Image Name and Tag Extraction", () => {
 		it("should handle numeric tags", () => {
 			expect(extractImageTag("my-image:123")).toBe("123");
 			expect(extractImageTag("my-image:1")).toBe("1");
+		});
+	});
+});
+
+describe("Webhook Trigger Type Validation", () => {
+	describe("GitHub", () => {
+		it("should allow push events when triggerType is push", () => {
+			const headers = { "x-github-event": "push" };
+			const body = { ref: "refs/heads/main" };
+			expect(validateTriggerType(headers, body, "push")).toBe(true);
+		});
+
+		it("should allow registry_package events when triggerType is push", () => {
+			const headers = { "x-github-event": "registry_package" };
+			const body = { registry_package: {} };
+			expect(validateTriggerType(headers, body, "push")).toBe(true);
+		});
+
+		it("should reject push events when triggerType is tag", () => {
+			const headers = { "x-github-event": "push" };
+			const body = { ref: "refs/heads/main" };
+			expect(validateTriggerType(headers, body, "tag")).toBe(false);
+		});
+
+		it("should allow create events with tag ref_type when triggerType is tag", () => {
+			const headers = { "x-github-event": "create" };
+			const body = { ref_type: "tag", ref: "v1.0.0" };
+			expect(validateTriggerType(headers, body, "tag")).toBe(true);
+		});
+
+		it("should reject create events with branch ref_type when triggerType is tag", () => {
+			const headers = { "x-github-event": "create" };
+			const body = { ref_type: "branch", ref: "feature-branch" };
+			expect(validateTriggerType(headers, body, "tag")).toBe(false);
+		});
+	});
+
+	describe("GitLab", () => {
+		it("should allow Push Hook events when triggerType is push", () => {
+			const headers = { "x-gitlab-event": "Push Hook" };
+			const body = { ref: "refs/heads/main" };
+			expect(validateTriggerType(headers, body, "push")).toBe(true);
+		});
+
+		it("should reject Push Hook events when triggerType is tag", () => {
+			const headers = { "x-gitlab-event": "Push Hook" };
+			const body = { ref: "refs/heads/main" };
+			expect(validateTriggerType(headers, body, "tag")).toBe(false);
+		});
+
+		it("should allow Tag Push Hook events when triggerType is tag", () => {
+			const headers = { "x-gitlab-event": "Tag Push Hook" };
+			const body = { ref: "refs/tags/v1.0.0" };
+			expect(validateTriggerType(headers, body, "tag")).toBe(true);
+		});
+
+		it("should reject Tag Push Hook events when triggerType is push", () => {
+			const headers = { "x-gitlab-event": "Tag Push Hook" };
+			const body = { ref: "refs/tags/v1.0.0" };
+			expect(validateTriggerType(headers, body, "push")).toBe(false);
+		});
+	});
+
+	describe("Gitea", () => {
+		it("should allow push events when triggerType is push", () => {
+			const headers = { "x-gitea-event": "push" };
+			const body = { ref: "refs/heads/main" };
+			expect(validateTriggerType(headers, body, "push")).toBe(true);
+		});
+
+		it("should reject push events when triggerType is tag", () => {
+			const headers = { "x-gitea-event": "push" };
+			const body = { ref: "refs/heads/main" };
+			expect(validateTriggerType(headers, body, "tag")).toBe(false);
+		});
+
+		it("should allow create events with tag ref_type when triggerType is tag", () => {
+			const headers = { "x-gitea-event": "create" };
+			const body = { ref_type: "tag", ref: "v1.0.0" };
+			expect(validateTriggerType(headers, body, "tag")).toBe(true);
+		});
+
+		it("should reject create events with branch ref_type when triggerType is tag", () => {
+			const headers = { "x-gitea-event": "create" };
+			const body = { ref_type: "branch", ref: "feature-branch" };
+			expect(validateTriggerType(headers, body, "tag")).toBe(false);
+		});
+	});
+
+	describe("Bitbucket", () => {
+		it("should allow push events when triggerType is push", () => {
+			const headers = { "x-event-key": "repo:push" };
+			const body = {
+				push: {
+					changes: [{ new: { type: "branch", name: "main" } }],
+				},
+			};
+			expect(validateTriggerType(headers, body, "push")).toBe(true);
+		});
+
+		it("should reject tag push events when triggerType is push", () => {
+			const headers = { "x-event-key": "repo:push" };
+			const body = {
+				push: {
+					changes: [{ new: { type: "tag", name: "v1.0.0" } }],
+				},
+			};
+			expect(validateTriggerType(headers, body, "push")).toBe(false);
+		});
+
+		it("should allow tag push events when triggerType is tag", () => {
+			const headers = { "x-event-key": "repo:push" };
+			const body = {
+				push: {
+					changes: [{ new: { type: "tag", name: "v1.0.0" } }],
+				},
+			};
+			expect(validateTriggerType(headers, body, "tag")).toBe(true);
+		});
+
+		it("should allow annotated tag push events when triggerType is tag", () => {
+			const headers = { "x-event-key": "repo:push" };
+			const body = {
+				push: {
+					changes: [{ new: { type: "annotated_tag", name: "v1.0.0" } }],
+				},
+			};
+			expect(validateTriggerType(headers, body, "tag")).toBe(true);
+		});
+
+		it("should reject branch push events when triggerType is tag", () => {
+			const headers = { "x-event-key": "repo:push" };
+			const body = {
+				push: {
+					changes: [{ new: { type: "branch", name: "main" } }],
+				},
+			};
+			expect(validateTriggerType(headers, body, "tag")).toBe(false);
+		});
+	});
+
+	describe("Backward Compatibility", () => {
+		it("should default to allowing events for unknown providers", () => {
+			const headers = { "x-unknown-event": "something" };
+			const body = {};
+			expect(validateTriggerType(headers, body, "push")).toBe(true);
+			expect(validateTriggerType(headers, body, "tag")).toBe(true);
 		});
 	});
 });
