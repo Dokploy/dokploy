@@ -280,6 +280,7 @@ const MySql = (
 												<ShowDatabaseAdvancedSettings
 													id={mysqlId}
 													type="mysql"
+													serverId={data?.serverId}
 												/>
 											</div>
 										</TabsContent>

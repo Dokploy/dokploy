@@ -17,6 +17,7 @@ import { config } from "dotenv";
 import next from "next";
 import { migration } from "@/server/db/migration";
 import packageInfo from "../package.json";
+import { setupDataTransferWebSocketServer } from "./wss/data-transfer";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
@@ -53,6 +54,7 @@ void app.prepare().then(async () => {
 		setupDockerContainerLogsWebSocketServer(server);
 		setupDockerContainerTerminalWebSocketServer(server);
 		setupTerminalWebSocketServer(server);
+		setupDataTransferWebSocketServer(server);
 		if (!IS_CLOUD) {
 			setupDockerStatsMonitoringSocketServer(server);
 		}

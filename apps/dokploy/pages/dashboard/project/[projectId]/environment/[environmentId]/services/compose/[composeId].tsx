@@ -29,6 +29,7 @@ import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
 import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
+import { TransferService } from "@/components/dashboard/shared/transfer-service";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -367,6 +368,11 @@ const Service = (
 											<ShowVolumes id={composeId} type="compose" />
 											<ShowImport composeId={composeId} />
 											<IsolatedDeploymentTab composeId={composeId} />
+											<TransferService
+												id={composeId}
+												type="compose"
+												currentServerId={data?.serverId}
+											/>
 										</div>
 									</TabsContent>
 								</Tabs>

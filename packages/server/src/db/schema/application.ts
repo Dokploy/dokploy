@@ -526,3 +526,9 @@ export const apiUpdateApplication = createSchema
 		applicationId: z.string().min(1),
 	})
 	.omit({ serverId: true });
+
+// Schema for transferring application to another server
+export const apiTransferApplication = z.object({
+	applicationId: z.string().min(1),
+	targetServerId: z.string().trim().nullable(),
+});

@@ -204,3 +204,9 @@ export const apiRebuildMongo = createSchema
 		mongoId: true,
 	})
 	.required();
+
+// Schema for transferring mongo to another server
+export const apiTransferMongo = z.object({
+	mongoId: z.string().min(1),
+	targetServerId: z.string().trim().nullable(),
+});
