@@ -504,6 +504,16 @@ describe("Webhook Trigger Type Validation", () => {
 			expect(validateTriggerType(headers, body, "push")).toBe(true);
 		});
 
+		it("should reject tag push events when triggerType is push", () => {
+			const headers = { "x-event-key": "repo:push" };
+			const body = {
+				push: {
+					changes: [{ new: { type: "tag", name: "v1.0.0" } }],
+				},
+			};
+			expect(validateTriggerType(headers, body, "push")).toBe(false);
+		});
+
 		it("should allow tag push events when triggerType is tag", () => {
 			const headers = { "x-event-key": "repo:push" };
 			const body = {

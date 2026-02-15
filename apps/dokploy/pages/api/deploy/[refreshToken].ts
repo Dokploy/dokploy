@@ -71,15 +71,17 @@ export const validateTriggerType = (
 	// Bitbucket
 	const bitbucketEvent = headers["x-event-key"];
 	if (bitbucketEvent?.includes("repo:push")) {
+		const changes = body.push?.changes || [];
 		if (triggerType === "tag") {
 			// For Bitbucket, check if the push is for a tag
-			const changes = body.push?.changes || [];
 			return changes.some(
 				(change: any) => change.new?.type === "tag" || change.new?.type === "annotated_tag",
 			);
 		}
 		// For push trigger type, accept push events that are not tags
-		return true;
+		return !changes.some(
+			(change: any) => change.new?.type === "tag" || change.new?.type === "annotated_tag",
+		);
 	}
 
 	// Default: if we can't determine the provider, allow the event (backward compatibility)
