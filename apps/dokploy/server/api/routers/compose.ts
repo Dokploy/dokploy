@@ -205,6 +205,7 @@ export const composeRouter = createTRPCRouter({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to update this compose",
 				});
+			}
 			const result = await updateCompose(input.composeId, input);
 
 			await recordActivity({
@@ -213,7 +214,7 @@ export const composeRouter = createTRPCRouter({
 				action: "compose.update",
 				resourceType: "compose",
 				resourceId: compose.composeId,
-				metadata: { name: compose.name },
+				metadata: { name: compose.name, ...input },
 			});
 			return result;
 		}),
