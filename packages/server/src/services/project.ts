@@ -60,6 +60,11 @@ export const findProjectById = async (projectId: string) => {
 					compose: true,
 				},
 			},
+			projectTags: {
+				with: {
+					tag: true,
+				},
+			},
 		},
 	});
 	if (!project) {
