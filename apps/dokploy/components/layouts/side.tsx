@@ -1141,7 +1141,7 @@ export default function Page({ children }: Props) {
 								<div className="px-3 text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
 									Version {dokployVersion}
 								</div>
-								<div className="hidden text-xs text-muted-foreground text-center group-data-[collapsible=icon]:block">
+								<div className="hidden text-[10px] text-muted-foreground text-center group-data-[collapsible=icon]:block w-full">
 									{dokployVersion}
 								</div>
 							</>
