@@ -59,6 +59,7 @@ const Mariadb = (
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.mariadb.one.useQuery({ mariadbId });
 	const { data: auth } = api.user.get.useQuery();
+	const { data: whitelabel } = api.whitelabel.get.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -93,8 +94,8 @@ const Mariadb = (
 			<div className="flex flex-col gap-4">
 				<Head>
 					<title>
-						Database: {data?.name} - {data?.environment?.project?.name} |
-						Dokploy
+						Database: {data?.name} - {data?.environment?.project?.name} |{" "}
+						{whitelabel?.appName ?? "Dokploy"}
 					</title>
 				</Head>
 				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">

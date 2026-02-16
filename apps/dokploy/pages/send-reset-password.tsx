@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { api } from "@/utils/api";
 
 const loginSchema = z.object({
 	email: z
@@ -48,6 +49,7 @@ export default function Home() {
 	});
 
 	const [error, setError] = useState<string | null>(null);
+	const { data: whitelabel } = api.whitelabel.get.useQuery();
 	const [isLoading, setIsLoading] = useState(false);
 	const _router = useRouter();
 	const form = useForm<Login>({
@@ -82,7 +84,9 @@ export default function Home() {
 			<div className="flex flex-col items-center gap-4 w-full">
 				<Link href="/" className="flex flex-row items-center gap-2">
 					<Logo />
-					<span className="font-medium text-sm">Dokploy</span>
+					<span className="font-medium text-sm">
+						{whitelabel?.appName ?? "Dokploy"}
+					</span>
 				</Link>
 				<CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
 				<CardDescription>

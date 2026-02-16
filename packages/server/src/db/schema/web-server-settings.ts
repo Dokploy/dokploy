@@ -76,6 +76,12 @@ export const webServerSettings = pgTable("webServerSettings", {
 	cleanupCacheOnCompose: boolean("cleanupCacheOnCompose")
 		.notNull()
 		.default(false),
+	// Whitelabelling (non-cloud only)
+	whitelabelAppName: text("whitelabelAppName"),
+	whitelabelLogoUrl: text("whitelabelLogoUrl"),
+	whitelabelFaviconUrl: text("whitelabelFaviconUrl"),
+	whitelabelTagline: text("whitelabelTagline"),
+	whitelabelCustomCss: text("whitelabelCustomCss"),
 	createdAt: timestamp("created_at").defaultNow(),
 	updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -125,6 +131,59 @@ export const apiUpdateWebServerSettings = createSchema.partial().extend({
 	cleanupCacheApplications: z.boolean().optional(),
 	cleanupCacheOnPreviews: z.boolean().optional(),
 	cleanupCacheOnCompose: z.boolean().optional(),
+	whitelabelAppName: z.string().max(256).optional().nullable(),
+	whitelabelLogoUrl: z
+		.union([
+			z.string().url(),
+			z
+				.string()
+				.startsWith("data:"), // uploaded image as data URL
+			z.literal(""),
+		])
+		.optional()
+		.nullable()
+		.transform((v) => (v === "" ? null : v)),
+	whitelabelFaviconUrl: z
+		.union([
+			z.string().url(),
+			z
+				.string()
+				.startsWith("data:"), // uploaded image as data URL
+			z.literal(""),
+		])
+		.optional()
+		.nullable()
+		.transform((v) => (v === "" ? null : v)),
+	whitelabelTagline: z.string().max(512).optional().nullable(),
+	whitelabelCustomCss: z.string().max(8192).optional().nullable(),
+});
+
+export const apiUpdateWhitelabelSettings = z.object({
+	appName: z.string().max(256).optional().nullable(),
+	tagline: z.string().max(512).optional().nullable(),
+	logoUrl: z
+		.union([
+			z.string().url(),
+			z
+				.string()
+				.startsWith("data:"), // uploaded image as data URL
+			z.literal(""),
+		])
+		.optional()
+		.nullable()
+		.transform((v) => (v === "" ? null : v)),
+	faviconUrl: z
+		.union([
+			z.string().url(),
+			z
+				.string()
+				.startsWith("data:"), // uploaded image as data URL
+			z.literal(""),
+		])
+		.optional()
+		.nullable()
+		.transform((v) => (v === "" ? null : v)),
+	customCss: z.string().max(8192).optional().nullable(),
 });
 
 export const apiAssignDomain = z

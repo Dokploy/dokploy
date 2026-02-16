@@ -49,6 +49,7 @@
 		"@ai-sdk/openai": "^2.0.16",
 		"@ai-sdk/openai-compatible": "^1.0.10",
 		"@codemirror/autocomplete": "^6.18.6",
+		"@codemirror/lang-css": "^6.2.1",
 		"@codemirror/lang-json": "^6.0.1",
 		"@codemirror/lang-yaml": "^6.1.2",
 		"@codemirror/language": "^6.11.0",

@@ -1,6 +1,7 @@
 import { IS_CLOUD, isAdminPresent } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { createServerSideHelpers } from "@trpc/react-query/server";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
@@ -8,6 +9,7 @@ import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import superjson from "superjson";
 import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { SignInWithGithub } from "@/components/proprietary/auth/sign-in-with-github";
@@ -40,6 +42,7 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 
 const LoginSchema = z.object({
@@ -59,6 +62,7 @@ interface Props {
 export default function Home({ IS_CLOUD }: Props) {
 	const router = useRouter();
 	const { data: showSignInWithSSO } = api.sso.showSignInWithSSO.useQuery();
+	const { data: whitelabel } = api.whitelabel.get.useQuery();
 	const [isLoginLoading, setIsLoginLoading] = useState(false);
 	const [isTwoFactorLoading, setIsTwoFactorLoading] = useState(false);
 	const [isBackupCodeLoading, setIsBackupCodeLoading] = useState(false);
@@ -435,9 +439,25 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		};
 	}
 
+	const helpers = createServerSideHelpers({
+		router: appRouter,
+		ctx: {
+			req: context.req as any,
+			res: context.res as any,
+			db: null as any,
+			session: null,
+			user: null,
+		},
+		transformer: superjson,
+	});
+	await helpers.whitelabel.get.prefetch();
+	const whitelabel = await helpers.whitelabel.get.fetch();
+
 	return {
 		props: {
 			hasAdmin,
+			trpcState: helpers.dehydrate(),
+			whitelabelFaviconUrl: whitelabel?.faviconUrl ?? null,
 		},
 	};
 }

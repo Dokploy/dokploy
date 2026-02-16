@@ -1,14 +1,23 @@
 import Link from "next/link";
 import type React from "react";
 import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
 import { GithubIcon } from "../icons/data-tools-icons";
 import { Logo } from "../shared/logo";
 import { Button } from "../ui/button";
+
+const DEFAULT_TAGLINE =
+	"The Open Source alternative to Netlify, Vercel, Heroku.";
 
 interface Props {
 	children: React.ReactNode;
 }
 export const OnboardingLayout = ({ children }: Props) => {
+	const { data: whitelabel } = api.whitelabel.get.useQuery();
+	const appName = whitelabel?.appName ?? "Dokploy";
+	const logoUrl = whitelabel?.logoUrl ?? undefined;
+	const tagline = whitelabel?.tagline ?? DEFAULT_TAGLINE;
+
 	return (
 		<div className="container relative min-h-svh flex-col items-center justify-center flex lg:max-w-none lg:grid lg:grid-cols-2 lg:px-0 w-full">
 			<div className="relative hidden h-full flex-col  p-10 text-primary dark:border-r lg:flex">
@@ -17,15 +26,12 @@ export const OnboardingLayout = ({ children }: Props) => {
 					href="https://dokploy.com"
 					className="relative z-20 flex items-center text-lg font-medium gap-4  text-primary"
 				>
-					<Logo className="size-10" />
-					Dokploy
+					<Logo className="size-10" logoUrl={logoUrl} />
+					{appName}
 				</Link>
 				<div className="relative z-20 mt-auto">
 					<blockquote className="space-y-2">
-						<p className="text-lg text-primary">
-							&ldquo;The Open Source alternative to Netlify, Vercel,
-							Heroku.&rdquo;
-						</p>
+						<p className="text-lg text-primary">&ldquo;{tagline}&rdquo;</p>
 					</blockquote>
 				</div>
 			</div>

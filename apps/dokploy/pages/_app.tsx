@@ -9,6 +9,7 @@ import { ThemeProvider } from "next-themes";
 import NextTopLoader from "nextjs-toploader";
 import type { ReactElement, ReactNode } from "react";
 import { SearchCommand } from "@/components/dashboard/search-command";
+import { WhitelabelHead } from "@/components/proprietary/whitelabel-head";
 import { Toaster } from "@/components/ui/sonner";
 import { Languages } from "@/lib/languages";
 import { api } from "@/utils/api";
@@ -26,9 +27,10 @@ type AppPropsWithLayout = AppProps & {
 
 const MyApp = ({
 	Component,
-	pageProps: { ...pageProps },
+	pageProps: { whitelabelFaviconUrl, ...pageProps },
 }: AppPropsWithLayout) => {
 	const getLayout = Component.getLayout ?? ((page) => page);
+	const faviconHref = whitelabelFaviconUrl ?? "/icon.svg";
 
 	return (
 		<>
@@ -41,7 +43,9 @@ const MyApp = ({
 			</style>
 			<Head>
 				<title>Dokploy</title>
+				<link rel="icon" href={faviconHref} key="favicon" />
 			</Head>
+			<WhitelabelHead />
 			<ThemeProvider
 				attribute="class"
 				defaultTheme="system"

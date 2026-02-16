@@ -24,6 +24,7 @@ import {
 	LogIn,
 	type LucideIcon,
 	Package,
+	Palette,
 	PieChart,
 	Server,
 	ShieldCheck,
@@ -408,6 +409,15 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			title: "Whitelabelling",
+			url: "/dashboard/settings/whitelabelling",
+			icon: Palette,
+			// Proprietary: only in non-cloud, admins only
+			isEnabled: ({ auth, isCloud }) =>
+				!!((auth?.role === "owner" || auth?.role === "admin") && !isCloud),
+		},
+		{
+			isSingle: true,
 			title: "SSO",
 			url: "/dashboard/settings/sso",
 			icon: LogIn,
@@ -538,6 +548,9 @@ function LogoWrapper() {
 function SidebarLogo() {
 	const { state } = useSidebar();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: whitelabel } = api.whitelabel.get.useQuery(undefined, {
+		enabled: !isCloud,
+	});
 	const { data: user } = api.user.get.useQuery();
 	const { data: session } = authClient.useSession();
 	const {
@@ -610,7 +623,11 @@ function SidebarLogo() {
 													"transition-all",
 													state === "collapsed" ? "size-4" : "size-5",
 												)}
-												logoUrl={activeOrganization?.logo || undefined}
+												logoUrl={
+													activeOrganization?.logo ||
+													whitelabel?.logoUrl ||
+													undefined
+												}
 											/>
 										</div>
 										<div
@@ -620,7 +637,9 @@ function SidebarLogo() {
 											)}
 										>
 											<p className="text-sm font-medium leading-none">
-												{activeOrganization?.name ?? "Select Organization"}
+												{activeOrganization?.name ??
+													whitelabel?.appName ??
+													"Select Organization"}
 											</p>
 										</div>
 									</div>

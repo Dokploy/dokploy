@@ -90,6 +90,7 @@ const Service = (
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: auth } = api.user.get.useQuery();
+	const { data: whitelabel } = api.whitelabel.get.useQuery();
 
 	const { data: environments } = api.environment.byProjectId.useQuery({
 		projectId: data?.environment?.project?.projectId || "",
@@ -121,7 +122,8 @@ const Service = (
 			/>
 			<Head>
 				<title>
-					Application: {data?.name} - {data?.environment.project.name} | Dokploy
+					Application: {data?.name} - {data?.environment.project.name} |{" "}
+					{whitelabel?.appName ?? "Dokploy"}
 				</title>
 			</Head>
 			<div className="w-full">
@@ -165,7 +167,7 @@ const Service = (
 													: "destructive"
 										}
 									>
-										{data?.server?.name || "Dokploy Server"}
+										{data?.server?.name || `${whitelabel?.appName ?? "Dokploy"} Server`}
 									</Badge>
 									{data?.server?.serverStatus === "inactive" && (
 										<TooltipProvider delayDuration={0}>

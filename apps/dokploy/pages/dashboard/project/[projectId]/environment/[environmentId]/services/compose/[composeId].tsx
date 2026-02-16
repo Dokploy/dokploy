@@ -79,6 +79,7 @@ const Service = (
 	const { data } = api.compose.one.useQuery({ composeId });
 
 	const { data: auth } = api.user.get.useQuery();
+	const { data: whitelabel } = api.whitelabel.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: environments } = api.environment.byProjectId.useQuery({
 		projectId: data?.environment?.projectId || "",
@@ -110,7 +111,8 @@ const Service = (
 			/>
 			<Head>
 				<title>
-					Compose: {data?.name} - {data?.environment?.project?.name} | Dokploy
+					Compose: {data?.name} - {data?.environment?.project?.name} |{" "}
+					{whitelabel?.appName ?? "Dokploy"}
 				</title>
 			</Head>
 			<div className="w-full">

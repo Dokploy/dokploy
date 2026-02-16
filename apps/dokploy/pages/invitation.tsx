@@ -1,11 +1,13 @@
 import { getUserByToken, IS_CLOUD } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import superjson from "superjson";
 import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -22,6 +24,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 
 const registerSchema = z
@@ -91,6 +94,7 @@ const Invitation = ({
 			initialData: invitation,
 		},
 	);
+	const { data: whitelabel } = api.whitelabel.get.useQuery();
 
 	const form = useForm<Register>({
 		defaultValues: {
@@ -346,6 +350,21 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	try {
 		const invitation = await getUserByToken(token);
 
+		const helpers = createServerSideHelpers({
+			router: appRouter,
+			ctx: {
+				req: ctx.req as any,
+				res: ctx.res as any,
+				db: null as any,
+				session: null,
+				user: null,
+			},
+			transformer: superjson,
+		});
+		if (!IS_CLOUD) {
+			await helpers.whitelabel.get.prefetch();
+		}
+
 		if (invitation.userAlreadyExists) {
 			return {
 				props: {
@@ -353,6 +372,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 					token: token,
 					invitation: invitation,
 					userAlreadyExists: true,
+					trpcState: helpers.dehydrate(),
 				},
 			};
 		}
@@ -371,6 +391,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 				isCloud: IS_CLOUD,
 				token: token,
 				invitation: invitation,
+				trpcState: helpers.dehydrate(),
 			},
 		};
 	} catch (error) {

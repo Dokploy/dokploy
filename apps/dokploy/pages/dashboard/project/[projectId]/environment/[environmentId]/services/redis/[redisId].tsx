@@ -58,6 +58,7 @@ const Redis = (
 	const { data } = api.redis.one.useQuery({ redisId });
 
 	const { data: auth } = api.user.get.useQuery();
+	const { data: whitelabel } = api.whitelabel.get.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: environments } = api.environment.byProjectId.useQuery({
@@ -90,7 +91,8 @@ const Redis = (
 			/>
 			<Head>
 				<title>
-					Database: {data?.name} - {data?.environment?.project?.name} | Dokploy
+					Database: {data?.name} - {data?.environment?.project?.name} |{" "}
+					{whitelabel?.appName ?? "Dokploy"}
 				</title>
 			</Head>
 			<div className="w-full">

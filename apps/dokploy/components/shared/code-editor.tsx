@@ -4,6 +4,7 @@ import {
 	type CompletionContext,
 	type CompletionResult,
 } from "@codemirror/autocomplete";
+import { css } from "@codemirror/lang-css";
 import { json } from "@codemirror/lang-json";
 import { yaml } from "@codemirror/lang-yaml";
 import { StreamLanguage } from "@codemirror/language";
@@ -130,7 +131,7 @@ function dockerComposeComplete(
 interface Props extends ReactCodeMirrorProps {
 	wrapperClassName?: string;
 	disabled?: boolean;
-	language?: "yaml" | "json" | "properties" | "shell";
+	language?: "yaml" | "json" | "properties" | "shell" | "css";
 	lineWrapping?: boolean;
 	lineNumbers?: boolean;
 }

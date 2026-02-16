@@ -58,6 +58,7 @@ const MySql = (
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.mysql.one.useQuery({ mysqlId });
 	const { data: auth } = api.user.get.useQuery();
+	const { data: whitelabel } = api.whitelabel.get.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: environments } = api.environment.byProjectId.useQuery({
@@ -91,8 +92,8 @@ const MySql = (
 			<div className="flex flex-col gap-4">
 				<Head>
 					<title>
-						Database: {data?.name} - {data?.environment?.project?.name} |
-						Dokploy
+						Database: {data?.name} - {data?.environment?.project?.name} |{" "}
+						{whitelabel?.appName ?? "Dokploy"}
 					</title>
 				</Head>
 				<div className="w-full">

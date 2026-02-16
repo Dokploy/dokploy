@@ -1,0 +1,1 @@
+ALTER TABLE "webServerSettings" ADD COLUMN "whitelabelTagline" text;

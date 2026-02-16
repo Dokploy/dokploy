@@ -1,15 +1,17 @@
 import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
 
 interface Props {
 	className?: string;
 	logoUrl?: string;
 }
 
-export const Logo = ({ className = "size-14", logoUrl }: Props) => {
-	if (logoUrl) {
+export const Logo = ({ className = "size-14" }: Props) => {
+	const { data: whitelabel } = api.whitelabel.get.useQuery();
+	if (whitelabel?.logoUrl) {
 		return (
 			<img
-				src={logoUrl}
+				src={whitelabel?.logoUrl}
 				alt="Organization Logo"
 				className={cn(className, "object-contain rounded-sm")}
 			/>
