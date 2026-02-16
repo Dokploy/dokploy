@@ -12,6 +12,7 @@ import {
 	mechanizeDockerContainer,
 	readConfig,
 	readRemoteConfig,
+	recordActivity,
 	removeDeployments,
 	removeDirectoryCode,
 	removeMonitoringDirectory,
@@ -101,6 +102,18 @@ export const applicationRouter = createTRPCRouter({
 				}
 
 				const newApplication = await createApplication(input);
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: project.organizationId,
+					action: "application.create",
+					resourceType: "application",
+					resourceId: newApplication.applicationId,
+					metadata: {
+						name: newApplication.name,
+						appName: newApplication.appName,
+					},
+				});
 
 				if (ctx.user.role === "member") {
 					await addNewService(
@@ -203,6 +216,15 @@ export const applicationRouter = createTRPCRouter({
 				await updateApplicationStatus(input.applicationId, "idle");
 				await mechanizeDockerContainer(application);
 				await updateApplicationStatus(input.applicationId, "done");
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "application.reload",
+					resourceType: "application",
+					resourceId: application.applicationId,
+					metadata: { name: application.name },
+				});
 				return true;
 			} catch (error) {
 				await updateApplicationStatus(input.applicationId, "error");
@@ -237,43 +259,66 @@ export const applicationRouter = createTRPCRouter({
 				});
 			}
 
-			const result = await db
-				.delete(applications)
-				.where(eq(applications.applicationId, input.applicationId))
-				.returning();
+			try {
+				const result = await db
+					.delete(applications)
+					.where(eq(applications.applicationId, input.applicationId))
+					.returning();
 
-			if (!IS_CLOUD) {
-				const queueJobs = await getJobsByApplicationId(input.applicationId);
-				for (const job of queueJobs) {
-					if (job.id) {
-						deploymentWorker.cancelJob(job.id, "User requested cancellation");
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "application.delete",
+					resourceType: "application",
+					resourceId: application.applicationId,
+					metadata: { name: application.name },
+				});
+
+				if (!IS_CLOUD) {
+					const queueJobs = await getJobsByApplicationId(input.applicationId);
+					for (const job of queueJobs) {
+						if (job.id) {
+							deploymentWorker.cancelJob(job.id, "User requested cancellation");
+						}
 					}
 				}
+
+				const cleanupOperations = [
+					async () => await deleteAllMiddlewares(application),
+					async () => await removeDeployments(application),
+					async () =>
+						await removeDirectoryCode(
+							application.appName,
+							application.serverId,
+						),
+					async () =>
+						await removeMonitoringDirectory(
+							application.appName,
+							application.serverId,
+						),
+					async () =>
+						await removeTraefikConfig(
+							application.appName,
+							application.serverId,
+						),
+					async () =>
+						await removeService(application?.appName, application.serverId),
+				];
+
+				for (const operation of cleanupOperations) {
+					try {
+						await operation();
+					} catch (_) {}
+				}
+
+				return result[0];
+			} catch (error) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Error deleting application",
+					cause: error,
+				});
 			}
-
-			const cleanupOperations = [
-				async () => await deleteAllMiddlewares(application),
-				async () => await removeDeployments(application),
-				async () =>
-					await removeDirectoryCode(application.appName, application.serverId),
-				async () =>
-					await removeMonitoringDirectory(
-						application.appName,
-						application.serverId,
-					),
-				async () =>
-					await removeTraefikConfig(application.appName, application.serverId),
-				async () =>
-					await removeService(application?.appName, application.serverId),
-			];
-
-			for (const operation of cleanupOperations) {
-				try {
-					await operation();
-				} catch (_) {}
-			}
-
-			return application;
 		}),
 
 	stop: protectedProcedure
@@ -295,6 +340,15 @@ export const applicationRouter = createTRPCRouter({
 				await stopService(service.appName);
 			}
 			await updateApplicationStatus(input.applicationId, "idle");
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "application.stop",
+				resourceType: "application",
+				resourceId: service.applicationId,
+				metadata: { name: service.name },
+			});
 
 			return service;
 		}),
@@ -319,6 +373,15 @@ export const applicationRouter = createTRPCRouter({
 				await startService(service.appName);
 			}
 			await updateApplicationStatus(input.applicationId, "done");
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "application.start",
+				resourceType: "application",
+				resourceId: service.applicationId,
+				metadata: { name: service.name },
+			});
 
 			return service;
 		}),
@@ -660,19 +723,36 @@ export const applicationRouter = createTRPCRouter({
 					message: "You are not authorized to update this application",
 				});
 			}
-			const { applicationId, ...rest } = input;
-			const updateApp = await updateApplication(applicationId, {
-				...rest,
-			});
+			try {
+				const { applicationId, ...rest } = input;
+				const updateApp = await updateApplication(applicationId, {
+					...rest,
+				});
 
-			if (!updateApp) {
+				if (!updateApp) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Error updating application",
+					});
+				}
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "application.update",
+					resourceType: "application",
+					resourceId: application.applicationId,
+					metadata: { name: application.name, ...rest },
+				});
+
+				return true;
+			} catch (error) {
 				throw new TRPCError({
-					code: "BAD_REQUEST",
+					code: "INTERNAL_SERVER_ERROR",
 					message: "Error updating application",
+					cause: error,
 				});
 			}
-
-			return true;
 		}),
 	refreshToken: protectedProcedure
 		.input(apiFindOneApplication)

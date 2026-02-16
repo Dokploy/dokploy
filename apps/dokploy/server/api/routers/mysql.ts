@@ -11,6 +11,7 @@ import {
 	findProjectById,
 	IS_CLOUD,
 	rebuildDatabase,
+	recordActivity,
 	removeMySqlById,
 	removeService,
 	startService,
@@ -88,6 +89,18 @@ export const mysqlRouter = createTRPCRouter({
 					volumeName: `${newMysql.appName}-data`,
 					mountPath: "/var/lib/mysql",
 					type: "volume",
+				});
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "mysql.create",
+					resourceType: "database",
+					resourceId: newMysql.mysqlId,
+					metadata: {
+						name: newMysql.name,
+						appName: newMysql.appName,
+					},
 				});
 
 				return newMysql;
@@ -334,6 +347,18 @@ export const mysqlRouter = createTRPCRouter({
 					await operation();
 				} catch (_) {}
 			}
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "mysql.delete",
+				resourceType: "database",
+				resourceId: mongo.mysqlId,
+				metadata: {
+					name: mongo.name,
+					appName: mongo.appName,
+				},
+			});
 
 			return mongo;
 		}),

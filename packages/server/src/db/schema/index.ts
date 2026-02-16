@@ -1,4 +1,5 @@
 export * from "./account";
+export * from "./activity-log";
 export * from "./ai";
 export * from "./application";
 export * from "./backups";

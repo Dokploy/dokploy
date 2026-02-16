@@ -14,6 +14,7 @@ import {
 	findServerById,
 	IS_CLOUD,
 	keepLatestNBackups,
+	recordActivity,
 	removeBackupById,
 	removeScheduleBackup,
 	runMariadbBackup,
@@ -111,6 +112,18 @@ export const backupRouter = createTRPCRouter({
 						scheduleBackup(backup);
 					}
 				}
+
+				await recordActivity({
+					userId: ctx.session.userId,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "backup.create",
+					resourceType: "system",
+					resourceId: backup.backupId,
+					metadata: {
+						databaseType: backup.databaseType,
+						schedule: backup.schedule,
+					},
+				});
 			} catch (error) {
 				console.error(error);
 				throw new TRPCError({
@@ -157,6 +170,19 @@ export const backupRouter = createTRPCRouter({
 						removeScheduleBackup(input.backupId);
 					}
 				}
+
+				await recordActivity({
+					userId: ctx.session.userId,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "backup.update",
+					resourceType: "system",
+					resourceId: backup.backupId,
+					metadata: {
+						databaseType: backup.databaseType,
+						schedule: backup.schedule,
+						enabled: backup.enabled,
+					},
+				});
 			} catch (error) {
 				const message =
 					error instanceof Error ? error.message : "Error updating this Backup";
@@ -180,6 +206,14 @@ export const backupRouter = createTRPCRouter({
 				} else if (!IS_CLOUD) {
 					removeScheduleBackup(input.backupId);
 				}
+				await recordActivity({
+					userId: ctx.session.userId,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "backup.delete",
+					resourceType: "system",
+					resourceId: input.backupId,
+				});
+
 				return value;
 			} catch (error) {
 				const message =
@@ -199,6 +233,14 @@ export const backupRouter = createTRPCRouter({
 				await runPostgresBackup(postgres, backup);
 
 				await keepLatestNBackups(backup, postgres?.serverId);
+				await recordActivity({
+					userId: ctx.session.userId,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "backup.run_manual",
+					resourceType: "system",
+					resourceId: backup.backupId,
+					metadata: { type: "postgres" },
+				});
 				return true;
 			} catch (error) {
 				const message =
@@ -220,6 +262,14 @@ export const backupRouter = createTRPCRouter({
 				const mysql = await findMySqlByBackupId(backup.backupId);
 				await runMySqlBackup(mysql, backup);
 				await keepLatestNBackups(backup, mysql?.serverId);
+				await recordActivity({
+					userId: ctx.session.userId,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "backup.run_manual",
+					resourceType: "system",
+					resourceId: backup.backupId,
+					metadata: { type: "mysql" },
+				});
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -237,6 +287,14 @@ export const backupRouter = createTRPCRouter({
 				const mariadb = await findMariadbByBackupId(backup.backupId);
 				await runMariadbBackup(mariadb, backup);
 				await keepLatestNBackups(backup, mariadb?.serverId);
+				await recordActivity({
+					userId: ctx.session.userId,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "backup.run_manual",
+					resourceType: "system",
+					resourceId: backup.backupId,
+					metadata: { type: "mariadb" },
+				});
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -254,6 +312,14 @@ export const backupRouter = createTRPCRouter({
 				const compose = await findComposeByBackupId(backup.backupId);
 				await runComposeBackup(compose, backup);
 				await keepLatestNBackups(backup, compose?.serverId);
+				await recordActivity({
+					userId: ctx.session.userId,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "backup.run_manual",
+					resourceType: "system",
+					resourceId: backup.backupId,
+					metadata: { type: "compose" },
+				});
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -271,6 +337,14 @@ export const backupRouter = createTRPCRouter({
 				const mongo = await findMongoByBackupId(backup.backupId);
 				await runMongoBackup(mongo, backup);
 				await keepLatestNBackups(backup, mongo?.serverId);
+				await recordActivity({
+					userId: ctx.session.userId,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "backup.run_manual",
+					resourceType: "system",
+					resourceId: backup.backupId,
+					metadata: { type: "mongo" },
+				});
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -286,6 +360,15 @@ export const backupRouter = createTRPCRouter({
 			const backup = await findBackupById(input.backupId);
 			await runWebServerBackup(backup);
 			await keepLatestNBackups(backup);
+
+			await recordActivity({
+				userId: ctx.session.userId,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "backup.run_manual",
+				resourceType: "system",
+				resourceId: backup.backupId,
+				metadata: { type: "web-server" },
+			});
 			return true;
 		}),
 	listBackupFiles: protectedProcedure

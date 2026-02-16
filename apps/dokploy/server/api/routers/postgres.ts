@@ -12,6 +12,7 @@ import {
 	getMountPath,
 	IS_CLOUD,
 	rebuildDatabase,
+	recordActivity,
 	removePostgresById,
 	removeService,
 	startService,
@@ -90,6 +91,18 @@ export const postgresRouter = createTRPCRouter({
 					volumeName: `${newPostgres.appName}-data`,
 					mountPath: mountPath,
 					type: "volume",
+				});
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "postgres.create",
+					resourceType: "database",
+					resourceId: newPostgres.postgresId,
+					metadata: {
+						name: newPostgres.name,
+						appName: newPostgres.appName,
+					},
 				});
 
 				return newPostgres;
@@ -311,6 +324,18 @@ export const postgresRouter = createTRPCRouter({
 					await operation();
 				} catch (_) {}
 			}
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "postgres.delete",
+				resourceType: "database",
+				resourceId: postgres.postgresId,
+				metadata: {
+					name: postgres.name,
+					appName: postgres.appName,
+				},
+			});
 
 			return postgres;
 		}),

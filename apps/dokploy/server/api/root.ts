@@ -1,4 +1,5 @@
 import { createTRPCRouter } from "../api/trpc";
+import { activityLogRouter } from "./routers/activity-log";
 import { adminRouter } from "./routers/admin";
 import { aiRouter } from "./routers/ai";
 import { applicationRouter } from "./routers/application";
@@ -22,12 +23,12 @@ import { mountRouter } from "./routers/mount";
 import { mysqlRouter } from "./routers/mysql";
 import { notificationRouter } from "./routers/notification";
 import { organizationRouter } from "./routers/organization";
-import { licenseKeyRouter } from "./routers/proprietary/license-key";
-import { ssoRouter } from "./routers/proprietary/sso";
 import { portRouter } from "./routers/port";
 import { postgresRouter } from "./routers/postgres";
 import { previewDeploymentRouter } from "./routers/preview-deployment";
 import { projectRouter } from "./routers/project";
+import { licenseKeyRouter } from "./routers/proprietary/license-key";
+import { ssoRouter } from "./routers/proprietary/sso";
 import { redirectsRouter } from "./routers/redirects";
 import { redisRouter } from "./routers/redis";
 import { registryRouter } from "./routers/registry";
@@ -48,6 +49,7 @@ import { volumeBackupsRouter } from "./routers/volume-backups";
  */
 
 export const appRouter = createTRPCRouter({
+	activityLog: activityLogRouter,
 	admin: adminRouter,
 	docker: dockerRouter,
 	project: projectRouter,
