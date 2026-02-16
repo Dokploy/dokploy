@@ -1,30 +1,41 @@
 import { relations } from "drizzle-orm";
-import { json, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, json, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
 import { user } from "./user";
 
-export const activityLogs = pgTable("activity_log", {
-	activityLogId: text("activityLogId")
-		.notNull()
-		.primaryKey()
-		.$defaultFn(() => nanoid()),
-	userId: text("userId").references(() => user.id, {
-		onDelete: "set null",
-	}),
-	organizationId: text("organizationId")
-		.notNull()
-		.references(() => organization.id, {
-			onDelete: "cascade",
+export const activityLogs = pgTable(
+	"activity_log",
+	{
+		activityLogId: text("activityLogId")
+			.notNull()
+			.primaryKey()
+			.$defaultFn(() => nanoid()),
+		userId: text("userId").references(() => user.id, {
+			onDelete: "set null",
 		}),
-	action: text("action").notNull(), // e.g., "application.create", "deployment.trigger"
-	resourceType: text("resourceType").notNull(), // e.g., "application", "database", "server"
-	resourceId: text("resourceId"),
-	metadata: json("metadata").$type<Record<string, any>>(),
-	createdAt: timestamp("createdAt").notNull().defaultNow(),
-});
+		organizationId: text("organizationId")
+			.notNull()
+			.references(() => organization.id, {
+				onDelete: "cascade",
+			}),
+		action: text("action").notNull(), // e.g., "application.create", "deployment.trigger"
+		resourceType: text("resourceType").notNull(), // e.g., "application", "database", "server"
+		resourceId: text("resourceId"),
+		metadata: json("metadata").$type<Record<string, any>>(),
+		createdAt: timestamp("createdAt").notNull().defaultNow(),
+	},
+	(table) => {
+		return {
+			orgCreatedAtIndex: index("org_created_at_idx").on(
+				table.organizationId,
+				table.createdAt.desc(),
+			),
+		};
+	},
+);
 
 export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
 	user: one(user, {
