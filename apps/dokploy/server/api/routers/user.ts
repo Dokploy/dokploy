@@ -507,6 +507,9 @@ export const userRouter = createTRPCRouter({
 
 				return apiKey;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Error creating API key",

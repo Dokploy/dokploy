@@ -38,6 +38,9 @@ export const sshRouter = createTRPCRouter({
 				});
 				return sshKey;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the SSH key",
@@ -68,6 +71,9 @@ export const sshRouter = createTRPCRouter({
 				});
 				return result;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error deleting the SSH key",
@@ -121,6 +127,9 @@ export const sshRouter = createTRPCRouter({
 				});
 				return result;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error updating the SSH key",

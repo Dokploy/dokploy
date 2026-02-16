@@ -177,6 +177,9 @@ export const organizationRouter = createTRPCRouter({
 				});
 				return result[0];
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Error updating organization",

@@ -313,6 +313,9 @@ export const applicationRouter = createTRPCRouter({
 
 				return result[0];
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Error deleting application",
@@ -747,6 +750,9 @@ export const applicationRouter = createTRPCRouter({
 
 				return true;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Error updating application",

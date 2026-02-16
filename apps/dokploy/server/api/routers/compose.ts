@@ -208,6 +208,9 @@ export const composeRouter = createTRPCRouter({
 				});
 				return result;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Error updating compose",
@@ -275,6 +278,9 @@ export const composeRouter = createTRPCRouter({
 				}
 				return result[0];
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Error deleting compose",
@@ -495,6 +501,9 @@ export const composeRouter = createTRPCRouter({
 					composeId: compose.composeId,
 				};
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Error deploying compose",
@@ -555,6 +564,9 @@ export const composeRouter = createTRPCRouter({
 					composeId: compose.composeId,
 				};
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Error redeploying compose",
