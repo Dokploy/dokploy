@@ -44,7 +44,7 @@
     "@oslojs/crypto": "1.0.1",
     "@oslojs/encoding": "1.1.0",
     "@react-email/components": "^0.0.21",
-    "@better-auth/sso":"1.4.18",
+    "@better-auth/sso": "1.4.18",
     "@trpc/server": "^10.45.2",
     "adm-zip": "^0.5.16",
     "ai": "^5.0.17",
@@ -85,7 +85,7 @@
     "semver": "7.7.3"
   },
   "devDependencies": {
-		"@better-auth/cli": "1.4.18",
+    "@better-auth/cli": "1.4.18",
     "@types/semver": "7.7.1",
     "@types/adm-zip": "^0.5.7",
     "@types/bcrypt": "5.0.2",

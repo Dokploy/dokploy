@@ -64,6 +64,105 @@ interface ServiceItem {
 	appName?: string;
 }
 
+interface EnvironmentData {
+	applications?: Array<{
+		applicationId: string;
+		name: string;
+		appName: string;
+	}>;
+	compose?: Array<{ composeId: string; name: string; appName: string }>;
+	postgres?: Array<{ postgresId: string; name: string; appName: string }>;
+	mysql?: Array<{ mysqlId: string; name: string; appName: string }>;
+	mariadb?: Array<{ mariadbId: string; name: string; appName: string }>;
+	redis?: Array<{ redisId: string; name: string; appName: string }>;
+	mongo?: Array<{ mongoId: string; name: string; appName: string }>;
+}
+
+// Helper function to count total services in an environment
+const countEnvironmentServices = (env: EnvironmentData): number => {
+	return (
+		(env.applications?.length || 0) +
+		(env.compose?.length || 0) +
+		(env.postgres?.length || 0) +
+		(env.mysql?.length || 0) +
+		(env.mariadb?.length || 0) +
+		(env.redis?.length || 0) +
+		(env.mongo?.length || 0)
+	);
+};
+
+// Helper function to extract services from an environment into a flat array
+const extractServicesFromEnvironment = (
+	env: EnvironmentData,
+): ServiceItem[] => {
+	const services: ServiceItem[] = [];
+
+	env.applications?.forEach((app) => {
+		services.push({
+			id: app.applicationId,
+			name: app.name,
+			type: "application",
+			appName: app.appName,
+		});
+	});
+
+	env.compose?.forEach((comp) => {
+		services.push({
+			id: comp.composeId,
+			name: comp.name,
+			type: "compose",
+			appName: comp.appName,
+		});
+	});
+
+	env.postgres?.forEach((pg) => {
+		services.push({
+			id: pg.postgresId,
+			name: pg.name,
+			type: "postgres",
+			appName: pg.appName,
+		});
+	});
+
+	env.mysql?.forEach((my) => {
+		services.push({
+			id: my.mysqlId,
+			name: my.name,
+			type: "mysql",
+			appName: my.appName,
+		});
+	});
+
+	env.mariadb?.forEach((maria) => {
+		services.push({
+			id: maria.mariadbId,
+			name: maria.name,
+			type: "mariadb",
+			appName: maria.appName,
+		});
+	});
+
+	env.redis?.forEach((red) => {
+		services.push({
+			id: red.redisId,
+			name: red.name,
+			type: "redis",
+			appName: red.appName,
+		});
+	});
+
+	env.mongo?.forEach((mon) => {
+		services.push({
+			id: mon.mongoId,
+			name: mon.name,
+			type: "mongo",
+			appName: mon.appName,
+		});
+	});
+
+	return services;
+};
+
 export const AdvanceBreadcrumb = ({
 	projectId,
 	environmentId,
@@ -114,79 +213,9 @@ export const AdvanceBreadcrumb = ({
 	}, []);
 
 	// Extract services from current environment
-	const services: ServiceItem[] = [];
-	if (currentEnvironment) {
-		currentEnvironment.applications?.forEach(
-			(app: { applicationId: string; name: string; appName: string }) => {
-				services.push({
-					id: app.applicationId,
-					name: app.name,
-					type: "application",
-					appName: app.appName,
-				});
-			},
-		);
-		currentEnvironment.compose?.forEach(
-			(comp: { composeId: string; name: string; appName: string }) => {
-				services.push({
-					id: comp.composeId,
-					name: comp.name,
-					type: "compose",
-					appName: comp.appName,
-				});
-			},
-		);
-		currentEnvironment.postgres?.forEach(
-			(pg: { postgresId: string; name: string; appName: string }) => {
-				services.push({
-					id: pg.postgresId,
-					name: pg.name,
-					type: "postgres",
-					appName: pg.appName,
-				});
-			},
-		);
-		currentEnvironment.mysql?.forEach(
-			(my: { mysqlId: string; name: string; appName: string }) => {
-				services.push({
-					id: my.mysqlId,
-					name: my.name,
-					type: "mysql",
-					appName: my.appName,
-				});
-			},
-		);
-		currentEnvironment.mariadb?.forEach(
-			(maria: { mariadbId: string; name: string; appName: string }) => {
-				services.push({
-					id: maria.mariadbId,
-					name: maria.name,
-					type: "mariadb",
-					appName: maria.appName,
-				});
-			},
-		);
-		currentEnvironment.redis?.forEach(
-			(red: { redisId: string; name: string; appName: string }) => {
-				services.push({
-					id: red.redisId,
-					name: red.name,
-					type: "redis",
-					appName: red.appName,
-				});
-			},
-		);
-		currentEnvironment.mongo?.forEach(
-			(mon: { mongoId: string; name: string; appName: string }) => {
-				services.push({
-					id: mon.mongoId,
-					name: mon.name,
-					type: "mongo",
-					appName: mon.appName,
-				});
-			},
-		);
-	}
+	const services: ServiceItem[] = currentEnvironment
+		? extractServicesFromEnvironment(currentEnvironment)
+		: [];
 
 	// Get current service
 	const currentService = services.find((s) => s.id === serviceId);
@@ -199,15 +228,18 @@ export const AdvanceBreadcrumb = ({
 		const project = allProjects?.find((p) => p.projectId === selectedProjectId);
 		if (project && project.environments.length > 0) {
 			// Use provided environment or find production environment or use the first one
+			const firstEnvironment = project.environments[0];
 			const targetEnvId =
 				selectedEnvironmentId ||
 				project.environments.find((e) => e.name === "production")
 					?.environmentId ||
-				project.environments[0]?.environmentId;
+				firstEnvironment?.environmentId;
 
-			router.push(
-				`/dashboard/project/${selectedProjectId}/environment/${targetEnvId}`,
-			);
+			if (targetEnvId) {
+				router.push(
+					`/dashboard/project/${selectedProjectId}/environment/${targetEnvId}`,
+				);
+			}
 		}
 		setProjectOpen(false);
 		setExpandedProjectId(null);
@@ -305,15 +337,7 @@ export const AdvanceBreadcrumb = ({
 										<ScrollArea className="h-[300px]">
 											{filteredProjects.map((project) => {
 												const totalServices = project.environments.reduce(
-													(total, env) =>
-														total +
-														(env.applications?.length || 0) +
-														(env.compose?.length || 0) +
-														(env.postgres?.length || 0) +
-														(env.mysql?.length || 0) +
-														(env.mariadb?.length || 0) +
-														(env.redis?.length || 0) +
-														(env.mongo?.length || 0),
+													(total, env) => total + countEnvironmentServices(env),
 													0,
 												);
 												const isSelected = project.projectId === projectId;
@@ -370,13 +394,7 @@ export const AdvanceBreadcrumb = ({
 															<div className="ml-11 border-l pl-3 py-1 space-y-1">
 																{project.environments.map((env) => {
 																	const envServices =
-																		(env.applications?.length || 0) +
-																		(env.compose?.length || 0) +
-																		(env.postgres?.length || 0) +
-																		(env.mysql?.length || 0) +
-																		(env.mariadb?.length || 0) +
-																		(env.redis?.length || 0) +
-																		(env.mongo?.length || 0);
+																		countEnvironmentServices(env);
 																	const isEnvSelected =
 																		env.environmentId === environmentId;
 
