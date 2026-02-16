@@ -7,11 +7,11 @@ import {
 	getUserByToken,
 	getWebServerSettings,
 	IS_CLOUD,
+	recordActivity,
 	removeUserById,
 	sendEmailNotification,
 	sendResendNotification,
 	updateUser,
-	recordActivity,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -210,7 +210,9 @@ export const userRouter = createTRPCRouter({
 					resourceId: ctx.user.id,
 					metadata: {
 						email: ctx.user.email,
-						updatedFields: Object.keys(input).filter(k => !['password', 'currentPassword'].includes(k))
+						updatedFields: Object.keys(input).filter(
+							(k) => !["password", "currentPassword"].includes(k),
+						),
 					},
 				});
 				return result;
@@ -491,18 +493,26 @@ export const userRouter = createTRPCRouter({
 				}
 			}
 
-			const apiKey = await createApiKey(ctx.user.id, input);
+			try {
+				const apiKey = await createApiKey(ctx.user.id, input);
 
-			await recordActivity({
-				userId: ctx.user.id,
-				organizationId: ctx.session.activeOrganizationId,
-				action: "api_key.create",
-				resourceType: "system",
-				resourceId: apiKey.id,
-				metadata: { name: apiKey.name, ...input },
-			});
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "api_key.create",
+					resourceType: "system",
+					resourceId: apiKey.id,
+					metadata: { ...input },
+				});
 
-			return apiKey;
+				return apiKey;
+			} catch (error) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Error creating API key",
+					cause: error,
+				});
+			}
 		}),
 
 	checkUserOrganizations: protectedProcedure

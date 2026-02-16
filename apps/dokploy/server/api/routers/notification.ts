@@ -12,6 +12,7 @@ import {
 	findNotificationById,
 	getWebServerSettings,
 	IS_CLOUD,
+	recordActivity,
 	removeNotificationById,
 	sendCustomNotification,
 	sendDiscordNotification,
@@ -34,7 +35,6 @@ import {
 	updateResendNotification,
 	updateSlackNotification,
 	updateTelegramNotification,
-	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { desc, eq, sql } from "drizzle-orm";

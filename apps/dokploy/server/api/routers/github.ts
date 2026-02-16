@@ -3,9 +3,9 @@ import {
 	getGithubBranches,
 	getGithubRepositories,
 	haveGithubRequirements,
+	recordActivity,
 	updateGithub,
 	updateGitProvider,
-	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";

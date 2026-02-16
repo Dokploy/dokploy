@@ -1,6 +1,14 @@
 import { format } from "date-fns";
-import { History, Loader2, Info, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import {
+	ChevronLeft,
+	ChevronRight,
+	History,
+	Info,
+	Loader2,
+	Trash2,
+} from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +18,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 import {
 	Select,
 	SelectContent,
@@ -31,16 +47,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
 import { api } from "@/utils/api";
-import { toast } from "sonner";
 
 const PAGE_SIZE = 20;
 
@@ -66,18 +73,22 @@ export const ShowActivityLogs = () => {
 		resourceType: resourceType === "all" ? undefined : resourceType,
 	});
 
-	const { mutateAsync: purgeLogs, isLoading: isPurging } = api.activityLog.purge.useMutation({
-		onSuccess: (res) => {
-			toast.success(`Successfully purged ${res.deletedCount} logs.`);
-			utils.activityLog.all.invalidate();
-		},
-		onError: (error) => {
-			toast.error(error.message || "Failed to purge logs.");
-		},
-	});
+	const { mutateAsync: purgeLogs, isLoading: isPurging } =
+		api.activityLog.purge.useMutation({
+			onSuccess: (res) => {
+				toast.success(`Successfully purged ${res.deletedCount} logs.`);
+				utils.activityLog.all.invalidate();
+			},
+			onError: (error) => {
+				toast.error(error.message || "Failed to purge logs.");
+			},
+		});
 
 	const handlePurge = async (days: number) => {
-		const message = days === 0 ? "ALL activity logs?" : `activity logs older than ${days} days?`;
+		const message =
+			days === 0
+				? "ALL activity logs?"
+				: `activity logs older than ${days} days?`;
 		if (confirm(`Are you sure you want to clear ${message}`)) {
 			await purgeLogs({
 				days,
@@ -122,7 +133,9 @@ export const ShowActivityLogs = () => {
 									))}
 								</SelectContent>
 							</Select>
-							<Select onValueChange={(val) => handlePurge(parseInt(val))}>
+							<Select
+								onValueChange={(val) => handlePurge(Number.parseInt(val))}
+							>
 								<SelectTrigger className="w-[140px] text-destructive border-destructive/20 hover:bg-destructive/10">
 									<Trash2 className="size-4 mr-2" />
 									<SelectValue placeholder="Clear Logs" />
@@ -161,7 +174,9 @@ export const ShowActivityLogs = () => {
 														<TableHead>Action</TableHead>
 														<TableHead>Resource</TableHead>
 														<TableHead className="text-center">Date</TableHead>
-														<TableHead className="text-right">Details</TableHead>
+														<TableHead className="text-right">
+															Details
+														</TableHead>
 													</TableRow>
 												</TableHeader>
 												<TableBody>
@@ -173,7 +188,10 @@ export const ShowActivityLogs = () => {
 																</span>
 															</TableCell>
 															<TableCell>
-																<Badge variant="outline" className="capitalize text-[10px] px-1.5 py-0">
+																<Badge
+																	variant="outline"
+																	className="capitalize text-[10px] px-1.5 py-0"
+																>
 																	{log.action.replace(".", " ")}
 																</Badge>
 															</TableCell>
@@ -183,50 +201,100 @@ export const ShowActivityLogs = () => {
 																		{log.resourceType}
 																	</span>
 																	<span className="text-sm font-medium">
-																		{(log.metadata as any)?.name || log.resourceId?.substring(0, 8) || "N/A"}
+																		{(log.metadata as any)?.name ||
+																			log.resourceId?.substring(0, 8) ||
+																			"N/A"}
 																	</span>
 																</div>
 															</TableCell>
 															<TableCell className="text-center whitespace-nowrap">
 																<span className="text-xs text-muted-foreground">
-																	{format(new Date(log.createdAt), "MMM d, HH:mm")}
+																	{format(
+																		new Date(log.createdAt),
+																		"MMM d, HH:mm",
+																	)}
 																</span>
 															</TableCell>
 															<TableCell className="text-right">
 																{log.metadata && (
 																	<Dialog>
 																		<DialogTrigger asChild>
-																			<Button variant="ghost" size="icon" className="size-8">
+																			<Button
+																				variant="ghost"
+																				size="icon"
+																				className="size-8"
+																			>
 																				<Info className="size-4 text-muted-foreground" />
 																			</Button>
 																		</DialogTrigger>
 																		<DialogContent className="max-w-md">
 																			<DialogHeader>
-																				<DialogTitle>Activity Details</DialogTitle>
+																				<DialogTitle>
+																					Activity Details
+																				</DialogTitle>
 																				<DialogDescription>
-																					Detailed information for the logged action.
+																					Detailed information for the logged
+																					action.
 																				</DialogDescription>
 																			</DialogHeader>
 																			<div className="mt-4 space-y-4">
 																				<div className="grid grid-cols-2 gap-2 text-sm">
-																					<div className="text-muted-foreground font-medium">User</div>
-																					<div>{log.user?.email || "System"}</div>
-																					<div className="text-muted-foreground font-medium">Action</div>
-																					<div className="capitalize">{log.action.replace(".", " ")}</div>
-																					<div className="text-muted-foreground font-medium">Resource</div>
-																					<div>{log.resourceType} ({log.resourceId?.substring(0, 8)})</div>
-																					<div className="text-muted-foreground font-medium">Date</div>
-																					<div>{format(new Date(log.createdAt), "PPP p")}</div>
+																					<div className="text-muted-foreground font-medium">
+																						User
+																					</div>
+																					<div>
+																						{log.user?.email || "System"}
+																					</div>
+																					<div className="text-muted-foreground font-medium">
+																						Action
+																					</div>
+																					<div className="capitalize">
+																						{log.action.replace(".", " ")}
+																					</div>
+																					<div className="text-muted-foreground font-medium">
+																						Resource
+																					</div>
+																					<div>
+																						{log.resourceType} (
+																						{log.resourceId?.substring(0, 8)})
+																					</div>
+																					<div className="text-muted-foreground font-medium">
+																						Date
+																					</div>
+																					<div>
+																						{format(
+																							new Date(log.createdAt),
+																							"PPP p",
+																						)}
+																					</div>
 																				</div>
-																				
+
 																				<div className="space-y-2">
-																					<p className="text-xs font-bold uppercase text-muted-foreground border-b pb-1">Metadata</p>
+																					<p className="text-xs font-bold uppercase text-muted-foreground border-b pb-1">
+																						Metadata
+																					</p>
 																					<div className="bg-muted/50 p-3 rounded-md text-xs font-mono overflow-auto max-h-[300px]">
-																						{Object.entries(log.metadata as Record<string, any>).map(([key, value]) => (
-																							<div key={key} className="flex flex-col mb-2 last:mb-0">
-																								<span className="text-blue-500 font-bold">{key}:</span>
+																						{Object.entries(
+																							log.metadata as Record<
+																								string,
+																								any
+																							>,
+																						).map(([key, value]) => (
+																							<div
+																								key={key}
+																								className="flex flex-col mb-2 last:mb-0"
+																							>
+																								<span className="text-blue-500 font-bold">
+																									{key}:
+																								</span>
 																								<span className="pl-2 break-all whitespace-pre-wrap">
-																									{typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+																									{typeof value === "object"
+																										? JSON.stringify(
+																												value,
+																												null,
+																												2,
+																											)
+																										: String(value)}
 																								</span>
 																							</div>
 																						))}
@@ -245,11 +313,16 @@ export const ShowActivityLogs = () => {
 
 										<div className="flex items-center justify-between px-2">
 											<p className="text-xs text-muted-foreground">
-												Showing <span className="font-medium">{(page - 1) * PAGE_SIZE + 1}</span> to{" "}
+												Showing{" "}
+												<span className="font-medium">
+													{(page - 1) * PAGE_SIZE + 1}
+												</span>{" "}
+												to{" "}
 												<span className="font-medium">
 													{Math.min(page * PAGE_SIZE, totalCount)}
 												</span>{" "}
-												of <span className="font-medium">{totalCount}</span> logs
+												of <span className="font-medium">{totalCount}</span>{" "}
+												logs
 											</p>
 											<div className="flex items-center gap-2">
 												<Button

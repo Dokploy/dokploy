@@ -30,8 +30,8 @@ import {
 	findRedisById,
 	findUserById,
 	IS_CLOUD,
-	updateProjectById,
 	recordActivity,
+	updateProjectById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";

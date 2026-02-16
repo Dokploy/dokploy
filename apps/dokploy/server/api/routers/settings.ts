@@ -29,6 +29,7 @@ import {
 	readMainConfig,
 	readMonitoringConfig,
 	readPorts,
+	recordActivity,
 	recreateDirectory,
 	reloadDockerResource,
 	sendDockerCleanupNotifications,
@@ -44,7 +45,6 @@ import {
 	writeMainConfig,
 	writeTraefikConfigInPath,
 	writeTraefikSetup,
-	recordActivity,
 } from "@dokploy/server";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";

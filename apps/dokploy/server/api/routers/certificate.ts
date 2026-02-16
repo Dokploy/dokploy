@@ -2,8 +2,8 @@ import {
 	createCertificate,
 	findCertificateById,
 	IS_CLOUD,
-	removeCertificateById,
 	recordActivity,
+	removeCertificateById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -25,7 +25,10 @@ export const certificateRouter = createTRPCRouter({
 					message: "Please set a server to create a certificate",
 				});
 			}
-			const certificate = await createCertificate(input, ctx.session.activeOrganizationId);
+			const certificate = await createCertificate(
+				input,
+				ctx.session.activeOrganizationId,
+			);
 			await recordActivity({
 				userId: ctx.user.id,
 				organizationId: ctx.session.activeOrganizationId,

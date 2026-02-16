@@ -14,6 +14,7 @@ import {
 	findServerById,
 	IS_CLOUD,
 	keepLatestNBackups,
+	recordActivity,
 	removeBackupById,
 	removeScheduleBackup,
 	runMariadbBackup,
@@ -23,7 +24,6 @@ import {
 	runWebServerBackup,
 	scheduleBackup,
 	updateBackupById,
-	recordActivity,
 } from "@dokploy/server";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
@@ -119,7 +119,10 @@ export const backupRouter = createTRPCRouter({
 					action: "backup.create",
 					resourceType: "system",
 					resourceId: backup.backupId,
-					metadata: { databaseType: backup.databaseType, schedule: backup.schedule },
+					metadata: {
+						databaseType: backup.databaseType,
+						schedule: backup.schedule,
+					},
 				});
 			} catch (error) {
 				console.error(error);
@@ -174,7 +177,11 @@ export const backupRouter = createTRPCRouter({
 					action: "backup.update",
 					resourceType: "system",
 					resourceId: backup.backupId,
-					metadata: { databaseType: backup.databaseType, schedule: backup.schedule, enabled: backup.enabled },
+					metadata: {
+						databaseType: backup.databaseType,
+						schedule: backup.schedule,
+						enabled: backup.enabled,
+					},
 				});
 			} catch (error) {
 				const message =

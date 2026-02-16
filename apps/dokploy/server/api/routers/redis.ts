@@ -10,6 +10,7 @@ import {
 	findRedisById,
 	IS_CLOUD,
 	rebuildDatabase,
+	recordActivity,
 	removeRedisById,
 	removeService,
 	startService,
@@ -17,7 +18,6 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateRedisById,
-	recordActivity,
 } from "@dokploy/server";
 
 import { TRPCError } from "@trpc/server";

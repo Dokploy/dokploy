@@ -4,9 +4,9 @@ import {
 	execFileAsync,
 	findRegistryById,
 	IS_CLOUD,
+	recordActivity,
 	removeRegistry,
 	updateRegistry,
-	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -25,14 +25,20 @@ export const registryRouter = createTRPCRouter({
 	create: adminProcedure
 		.input(apiCreateRegistry)
 		.mutation(async ({ ctx, input }) => {
-			const result = await createRegistry(input, ctx.session.activeOrganizationId);
+			const result = await createRegistry(
+				input,
+				ctx.session.activeOrganizationId,
+			);
 			await recordActivity({
 				userId: ctx.user.id,
 				organizationId: ctx.session.activeOrganizationId,
 				action: "registry.create",
 				resourceType: "system",
 				resourceId: result.registryId,
-				metadata: { registryUrl: result.registryUrl, username: result.username },
+				metadata: {
+					registryUrl: result.registryUrl,
+					username: result.username,
+				},
 			});
 			return result;
 		}),
@@ -53,7 +59,10 @@ export const registryRouter = createTRPCRouter({
 				action: "registry.delete",
 				resourceType: "system",
 				resourceId: registry.registryId,
-				metadata: { registryUrl: registry.registryUrl, username: registry.username },
+				metadata: {
+					registryUrl: registry.registryUrl,
+					username: registry.username,
+				},
 			});
 			return result;
 		}),
@@ -85,7 +94,10 @@ export const registryRouter = createTRPCRouter({
 				action: "registry.update",
 				resourceType: "system",
 				resourceId: registry.registryId,
-				metadata: { registryUrl: registry.registryUrl, username: registry.username },
+				metadata: {
+					registryUrl: registry.registryUrl,
+					username: registry.username,
+				},
 			});
 
 			return true;

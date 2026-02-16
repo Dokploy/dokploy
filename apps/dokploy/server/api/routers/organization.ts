@@ -158,23 +158,31 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			const result = await db
-				.update(organization)
-				.set({
-					name: input.name,
-					logo: input.logo,
-				})
-				.where(eq(organization.id, input.organizationId))
-				.returning();
-			await recordActivity({
-				userId: ctx.user.id,
-				organizationId: input.organizationId,
-				action: "organization.update",
-				resourceType: "organization",
-				resourceId: input.organizationId,
-				metadata: { name: input.name, logo: input.logo },
-			});
-			return result[0];
+			try {
+				const result = await db
+					.update(organization)
+					.set({
+						name: input.name,
+						logo: input.logo,
+					})
+					.where(eq(organization.id, input.organizationId))
+					.returning();
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: input.organizationId,
+					action: "organization.update",
+					resourceType: "organization",
+					resourceId: input.organizationId,
+					metadata: { name: input.name, logo: input.logo },
+				});
+				return result[0];
+			} catch (error) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Error updating organization",
+					cause: error,
+				});
+			}
 		}),
 	delete: protectedProcedure
 		.input(

@@ -23,6 +23,7 @@ import {
 	loadServices,
 	randomizeComposeFile,
 	randomizeIsolatedDeploymentComposeFile,
+	recordActivity,
 	removeCompose,
 	removeComposeDirectory,
 	removeDeploymentsByComposeId,
@@ -31,7 +32,6 @@ import {
 	stopCompose,
 	updateCompose,
 	updateDeploymentStatus,
-	recordActivity,
 } from "@dokploy/server";
 import {
 	type CompleteTemplate,
@@ -112,17 +112,6 @@ export const composeRouter = createTRPCRouter({
 						project.organizationId,
 					);
 				}
-
-				await recordActivity({
-					userId: ctx.user.id,
-					organizationId: ctx.session.activeOrganizationId,
-					action: "compose.create",
-					resourceType: "compose",
-					resourceId: newService.composeId,
-					metadata: {
-						name: newService.name,
-					},
-				});
 
 				return newService;
 			} catch (error) {
@@ -206,17 +195,25 @@ export const composeRouter = createTRPCRouter({
 					message: "You are not authorized to update this compose",
 				});
 			}
-			const result = await updateCompose(input.composeId, input);
+			try {
+				const result = await updateCompose(input.composeId, input);
 
-			await recordActivity({
-				userId: ctx.user.id,
-				organizationId: ctx.session.activeOrganizationId,
-				action: "compose.update",
-				resourceType: "compose",
-				resourceId: compose.composeId,
-				metadata: { name: compose.name, ...input },
-			});
-			return result;
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "compose.update",
+					resourceType: "compose",
+					resourceId: compose.composeId,
+					metadata: { name: compose.name, ...input },
+				});
+				return result;
+			} catch (error) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Error updating compose",
+					cause: error,
+				});
+			}
 		}),
 	delete: protectedProcedure
 		.input(apiDeleteCompose)
@@ -241,31 +238,11 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 
-			const result = await db
-				.delete(composeTable)
-				.where(eq(composeTable.composeId, input.composeId))
-				.returning();
-
-			if (!IS_CLOUD) {
-				const queueJobs = await getJobsByComposeId(input.composeId);
-				for (const job of queueJobs) {
-					if (job.id) {
-						deploymentWorker.cancelJob(job.id, "User requested cancellation");
-					}
-				}
-			}
-
-			const cleanupOperations = [
-				async () => await removeCompose(composeResult, input.deleteVolumes),
-				async () => await removeDeploymentsByComposeId(composeResult),
-				async () => await removeComposeDirectory(composeResult.appName),
-			];
-
-			for (const operation of cleanupOperations) {
-				try {
-					await operation();
-				} catch (_) {}
-			}
+			try {
+				const result = await db
+					.delete(composeTable)
+					.where(eq(composeTable.composeId, input.composeId))
+					.returning();
 
 				await recordActivity({
 					userId: ctx.user.id,
@@ -273,12 +250,37 @@ export const composeRouter = createTRPCRouter({
 					action: "compose.delete",
 					resourceType: "compose",
 					resourceId: composeResult.composeId,
-					metadata: {
-						name: composeResult.name,
-					},
+					metadata: { name: composeResult.name },
 				});
 
-				return composeResult;
+				if (!IS_CLOUD) {
+					const queueJobs = await getJobsByComposeId(input.composeId);
+					for (const job of queueJobs) {
+						if (job.id) {
+							deploymentWorker.cancelJob(job.id, "User requested cancellation");
+						}
+					}
+				}
+
+				const cleanupOperations = [
+					async () => await removeCompose(composeResult, input.deleteVolumes),
+					async () => await removeDeploymentsByComposeId(composeResult),
+					async () => await removeComposeDirectory(composeResult.appName),
+				];
+
+				for (const operation of cleanupOperations) {
+					try {
+						await operation();
+					} catch (_) {}
+				}
+				return result[0];
+			} catch (error) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Error deleting compose",
+					cause: error,
+				});
+			}
 		}),
 	cleanQueues: protectedProcedure
 		.input(apiFindCompose)
@@ -459,21 +461,23 @@ export const composeRouter = createTRPCRouter({
 				server: !!compose.serverId,
 			};
 
-			if (IS_CLOUD && compose.serverId) {
-				jobData.serverId = compose.serverId;
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
-				});
-				return true;
-			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			try {
+				if (IS_CLOUD && compose.serverId) {
+					jobData.serverId = compose.serverId;
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
+					return true;
+				}
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
+
 				await recordActivity({
 					userId: ctx.user.id,
 					organizationId: ctx.session.activeOrganizationId,
@@ -490,6 +494,13 @@ export const composeRouter = createTRPCRouter({
 					message: "Deployment queued",
 					composeId: compose.composeId,
 				};
+			} catch (error) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Error deploying compose",
+					cause: error,
+				});
+			}
 		}),
 	redeploy: protectedProcedure
 		.input(apiRedeployCompose)
@@ -512,36 +523,44 @@ export const composeRouter = createTRPCRouter({
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
 			};
-			if (IS_CLOUD && compose.serverId) {
-				jobData.serverId = compose.serverId;
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
+			try {
+				if (IS_CLOUD && compose.serverId) {
+					jobData.serverId = compose.serverId;
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
+					return true;
+				}
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "compose.redeploy",
+					resourceType: "compose",
+					resourceId: compose.composeId,
+					metadata: { name: compose.name, title: input.title },
 				});
-				return true;
+
+				return {
+					success: true,
+					message: "Redeployment queued",
+					composeId: compose.composeId,
+				};
+			} catch (error) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Error redeploying compose",
+					cause: error,
+				});
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
-
-			await recordActivity({
-				userId: ctx.user.id,
-				organizationId: ctx.session.activeOrganizationId,
-				action: "compose.redeploy",
-				resourceType: "compose",
-				resourceId: compose.composeId,
-				metadata: { name: compose.name, title: input.title },
-			});
-
-			return {
-				success: true,
-				message: "Redeployment queued",
-				composeId: compose.composeId,
-			};
 		}),
 	stop: protectedProcedure
 		.input(apiFindCompose)
@@ -557,15 +576,6 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 			await stopCompose(input.composeId);
-
-			await recordActivity({
-				userId: ctx.user.id,
-				organizationId: ctx.session.activeOrganizationId,
-				action: "compose.stop",
-				resourceType: "compose",
-				resourceId: compose.composeId,
-				metadata: { name: compose.name },
-			});
 
 			return true;
 		}),
@@ -583,15 +593,6 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 			await startCompose(input.composeId);
-
-			await recordActivity({
-				userId: ctx.user.id,
-				organizationId: ctx.session.activeOrganizationId,
-				action: "compose.start",
-				resourceType: "compose",
-				resourceId: compose.composeId,
-				metadata: { name: compose.name },
-			});
 
 			return true;
 		}),
@@ -732,19 +733,7 @@ export const composeRouter = createTRPCRouter({
 				}
 			}
 
-				await recordActivity({
-					userId: ctx.user.id,
-					organizationId: ctx.session.activeOrganizationId,
-					action: "compose.deploy_template",
-					resourceType: "compose",
-					resourceId: compose.composeId,
-					metadata: {
-						name: compose.name,
-						templateId: input.id,
-					},
-				});
-
-				return compose;
+			return compose;
 		}),
 
 	templates: publicProcedure

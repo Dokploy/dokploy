@@ -6,13 +6,43 @@ import { z } from "zod";
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type CreateActivityLog = typeof activityLogs.$inferInsert;
 
+const SENSITIVE_FIELDS = [
+	"password",
+	"currentPassword",
+	"token",
+	"secret",
+	"key",
+	"env",
+	"buildArgs",
+	"secrets",
+	"apiKey",
+];
+
+const redactSensitive = (obj: any): any => {
+	if (!obj || typeof obj !== "object") return obj;
+	if (Array.isArray(obj)) return obj.map(redactSensitive);
+
+	const newObj = { ...obj };
+	for (const key in newObj) {
+		if (SENSITIVE_FIELDS.some((field) => key.toLowerCase().includes(field))) {
+			newObj[key] = "[REDACTED]";
+		} else if (typeof newObj[key] === "object") {
+			newObj[key] = redactSensitive(newObj[key]);
+		}
+	}
+	return newObj;
+};
+
 export const recordActivity = async (data: CreateActivityLog) => {
 	try {
-		console.log("Recording activity:", data.action, data.resourceType);
-		const [newLog] = await db.insert(activityLogs).values(data).returning();
-		if (newLog) {
-			console.log("Activity log recorded successfully:", newLog.activityLogId);
-		}
+		const redactedData = {
+			...data,
+			metadata: redactSensitive(data.metadata),
+		};
+		const [newLog] = await db
+			.insert(activityLogs)
+			.values(redactedData)
+			.returning();
 		return newLog;
 	} catch (error) {
 		console.error("Failed to record activity log:", error);
@@ -75,7 +105,7 @@ export const apiFindAllActivityLogsSchema = z.object({
 	resourceType: z.string().optional(),
 	resourceId: z.string().optional(),
 	page: z.number().default(1),
-	pageSize: z.number().default(50),
+	pageSize: z.number().default(50).pipe(z.number().max(100)),
 });
 
 export const apiPurgeActivityLogsSchema = z.object({

@@ -11,6 +11,7 @@ import {
 	findProjectById,
 	IS_CLOUD,
 	rebuildDatabase,
+	recordActivity,
 	removeMariadbById,
 	removeService,
 	startService,
@@ -18,7 +19,6 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateMariadbById,
-	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";

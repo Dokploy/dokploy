@@ -1,21 +1,22 @@
 import {
-	getActivityLogs,
 	apiFindAllActivityLogsSchema,
-	purgeActivityLogs,
 	apiPurgeActivityLogsSchema,
+	getActivityLogs,
+	purgeActivityLogs,
 } from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
 import {
+	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
-	adminProcedure,
 } from "@/server/api/trpc";
-import { TRPCError } from "@trpc/server";
 
 export const activityLogRouter = createTRPCRouter({
 	all: protectedProcedure
 		.input(apiFindAllActivityLogsSchema)
 		.query(async ({ input, ctx }) => {
-			const organizationId = input.organizationId || ctx.session.activeOrganizationId;
+			const organizationId =
+				input.organizationId || ctx.session.activeOrganizationId;
 
 			// Security check: ensure user is part of the organization
 			if (organizationId !== ctx.session.activeOrganizationId) {
@@ -42,7 +43,8 @@ export const activityLogRouter = createTRPCRouter({
 	purge: adminProcedure
 		.input(apiPurgeActivityLogsSchema)
 		.mutation(async ({ input, ctx }) => {
-			const organizationId = input.organizationId || ctx.session.activeOrganizationId;
+			const organizationId =
+				input.organizationId || ctx.session.activeOrganizationId;
 
 			try {
 				const deletedCount = await purgeActivityLogs({

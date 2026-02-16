@@ -4,10 +4,10 @@ import {
 	getGitlabBranches,
 	getGitlabRepositories,
 	haveGitlabRequirements,
+	recordActivity,
 	testGitlabConnection,
 	updateGitlab,
 	updateGitProvider,
-	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";

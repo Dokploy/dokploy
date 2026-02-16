@@ -10,11 +10,11 @@ import {
 	generateTraefikMeDomain,
 	getWebServerSettings,
 	manageDomain,
+	recordActivity,
 	removeDomain,
 	removeDomainById,
 	updateDomainById,
 	validateDomain,
-	recordActivity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
