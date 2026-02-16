@@ -2,6 +2,7 @@
  * WebSocket server for data transfer progress
  */
 import type http from "node:http";
+import type { Duplex } from "node:stream";
 import {
 	checkServiceAccess,
 	findApplicationById,
@@ -19,7 +20,6 @@ import type {
 	MountTransferConfig,
 	TransferConfig,
 	TransferMessage,
-	TransferStatus,
 } from "@dokploy/server/utils/transfer";
 import {
 	compareFileLists,
@@ -27,9 +27,9 @@ import {
 	scanMount,
 	syncMount,
 } from "@dokploy/server/utils/transfer";
-import { z } from "zod";
 import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";
+import { z } from "zod";
 import { validateTransferTargetServer } from "@/server/utils/transfer";
 
 interface TransferSession {
@@ -45,6 +45,23 @@ interface WebSocketAuthContext {
 	userId: string;
 	isMember: boolean;
 	organizationId: string;
+}
+
+interface TransferUpgradeRequest extends http.IncomingMessage {
+	transferAuthContext?: WebSocketAuthContext;
+}
+
+function rejectUpgrade(
+	socket: Duplex,
+	statusCode: number,
+	statusMessage: string,
+) {
+	if (!socket.destroyed) {
+		socket.write(
+			`HTTP/1.1 ${statusCode} ${statusMessage}\r\nConnection: close\r\n\r\n`,
+		);
+		socket.destroy();
+	}
 }
 
 const scanConfigSchema = z
@@ -227,29 +244,48 @@ export const setupDataTransferWebSocketServer = (
 		path: "/data-transfer",
 	});
 
-	server.on("upgrade", (req, socket, head) => {
-		const { pathname } = new URL(req.url || "", `http://${req.headers.host}`);
-
-		if (pathname === "/data-transfer") {
-			wss.handleUpgrade(req, socket, head, (ws) => {
-				wss.emit("connection", ws, req);
-			});
-		}
-	});
-
-	wss.on("connection", async (ws, req) => {
-		const { user, session } = await validateRequest(req);
-
-		if (!user || !session) {
-			ws.close(4001, "Unauthorized");
+	server.on("upgrade", (req: TransferUpgradeRequest, socket, head) => {
+		let pathname = "";
+		try {
+			pathname = new URL(
+				req.url || "",
+				`http://${req.headers.host || "localhost"}`,
+			).pathname;
+		} catch {
 			return;
 		}
 
-		const authContext: WebSocketAuthContext = {
-			userId: user.id,
-			isMember: user.role === "member",
-			organizationId: session.activeOrganizationId || "",
-		};
+		if (pathname === "/data-transfer") {
+			void (async () => {
+				try {
+					const { user, session } = await validateRequest(req);
+					if (!user || !session) {
+						rejectUpgrade(socket, 401, "Unauthorized");
+						return;
+					}
+
+					req.transferAuthContext = {
+						userId: user.id,
+						isMember: user.role === "member",
+						organizationId: session.activeOrganizationId || "",
+					};
+
+					wss.handleUpgrade(req, socket, head, (ws) => {
+						wss.emit("connection", ws, req);
+					});
+				} catch {
+					rejectUpgrade(socket, 500, "Internal Server Error");
+				}
+			})();
+		}
+	});
+
+	wss.on("connection", (ws, req: TransferUpgradeRequest) => {
+		const authContext = req.transferAuthContext;
+		if (!authContext) {
+			ws.close(4001, "Unauthorized");
+			return;
+		}
 
 		const transferSession: TransferSession = {
 			sourceFiles: new Map(),

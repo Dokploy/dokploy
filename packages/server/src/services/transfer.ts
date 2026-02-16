@@ -496,15 +496,23 @@ async function getMountConfigsForTransfer(
 async function getVolumeSize(
 	serverId: string | null,
 	volumeName: string,
-): Promise<number> {
+): Promise<number | null> {
 	const command = `docker run --rm -v ${shellEscape(`${volumeName}:/volume_data:ro`)} alpine sh -c 'du -sb /volume_data 2>/dev/null | cut -f1'`;
 	try {
 		const { stdout } = serverId
 			? await execAsyncRemote(serverId, command)
 			: await execAsync(command);
-		return Number.parseInt(stdout.trim(), 10) || 0;
+		const trimmed = stdout.trim();
+		if (!trimmed) {
+			return null;
+		}
+		const parsed = Number.parseInt(trimmed, 10);
+		if (Number.isNaN(parsed)) {
+			return null;
+		}
+		return parsed;
 	} catch {
-		return 0;
+		return null;
 	}
 }
 
@@ -688,10 +696,10 @@ export async function scanServiceForTransfer(
 			result.volumes.push({
 				volumeName: mount.sourcePath,
 				mountPath: mount.mountPath || "",
-				sizeBytes,
+				sizeBytes: sizeBytes ?? 0,
 				files: compared,
 			});
-			result.totalSizeBytes += sizeBytes;
+			result.totalSizeBytes += sizeBytes ?? 0;
 		} else {
 			const sourceFiles = await scanBindMount(
 				opts.sourceServerId,
@@ -995,11 +1003,12 @@ export async function executeTransfer(
 					opts.sourceServerId,
 					mount.sourcePath,
 				);
+				const shouldSyncArchive = sizeBytes === null || sizeBytes > 0;
 				const archivePlan: ArchivePlannedSync = {
 					mode: "archive",
 					mount,
-					filesToSyncCount: sizeBytes > 0 ? 1 : 0,
-					totalBytes: sizeBytes,
+					filesToSyncCount: shouldSyncArchive ? 1 : 0,
+					totalBytes: sizeBytes ?? 0,
 					phaseLabel: `Syncing ${mount.mountType}: ${mount.sourcePath}`,
 				};
 				mountPlans.push(archivePlan);
