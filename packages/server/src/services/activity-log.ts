@@ -1,6 +1,6 @@
 import { db } from "@dokploy/server/db";
 import { activityLogs } from "@dokploy/server/db/schema";
-import { count, desc, eq, and, lt, sql } from "drizzle-orm";
+import { count, desc, eq, and, lt, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 
 export type ActivityLog = typeof activityLogs.$inferSelect;
@@ -123,10 +123,16 @@ export const purgeActivityLogs = async (
 ) => {
 	const { organizationId, days } = input;
 
-	const date = new Date();
-	date.setDate(date.getDate() - days);
+	const where = [];
 
-	const where = [lt(activityLogs.createdAt, date)];
+	if (days > 0) {
+		const date = new Date();
+		date.setDate(date.getDate() - days);
+		where.push(lt(activityLogs.createdAt, date));
+	} else {
+		// If days is 0, we want to clear everything up to now
+		where.push(lte(activityLogs.createdAt, new Date()));
+	}
 
 	if (organizationId) {
 		where.push(eq(activityLogs.organizationId, organizationId));
