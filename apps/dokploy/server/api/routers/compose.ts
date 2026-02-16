@@ -276,7 +276,7 @@ export const composeRouter = createTRPCRouter({
 						await operation();
 					} catch (_) {}
 				}
-				return result[0];
+				return composeResult;
 			} catch (error) {
 				if (error instanceof TRPCError) {
 					throw error;

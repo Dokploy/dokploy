@@ -311,7 +311,7 @@ export const applicationRouter = createTRPCRouter({
 					} catch (_) {}
 				}
 
-				return result[0];
+				return application;
 			} catch (error) {
 				if (error instanceof TRPCError) {
 					throw error;
