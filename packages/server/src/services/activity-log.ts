@@ -10,7 +10,9 @@ export const recordActivity = async (data: CreateActivityLog) => {
 	try {
 		console.log("Recording activity:", data.action, data.resourceType);
 		const [newLog] = await db.insert(activityLogs).values(data).returning();
-		console.log("Activity log recorded successfully:", newLog.activityLogId);
+		if (newLog) {
+			console.log("Activity log recorded successfully:", newLog.activityLogId);
+		}
 		return newLog;
 	} catch (error) {
 		console.error("Failed to record activity log:", error);
@@ -89,14 +91,15 @@ export const purgeActivityLogs = async (
 	const date = new Date();
 	date.setDate(date.getDate() - days);
 
+	const where = [lt(activityLogs.createdAt, date)];
+
+	if (organizationId) {
+		where.push(eq(activityLogs.organizationId, organizationId));
+	}
+
 	const result = await db
 		.delete(activityLogs)
-		.where(
-			and(
-				eq(activityLogs.organizationId, organizationId),
-				lt(activityLogs.createdAt, date.toISOString()),
-			),
-		)
+		.where(and(...where))
 		.returning();
 
 	return result.length;

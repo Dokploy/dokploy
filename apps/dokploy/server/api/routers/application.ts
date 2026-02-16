@@ -730,7 +730,7 @@ export const applicationRouter = createTRPCRouter({
 				action: "application.update",
 				resourceType: "application",
 				resourceId: application.applicationId,
-				metadata: { name: application.name },
+				metadata: { name: application.name, ...rest },
 			});
 
 			return true;

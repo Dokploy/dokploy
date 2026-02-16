@@ -31,6 +31,14 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 import { api } from "@/utils/api";
 import { toast } from "sonner";
 
@@ -174,8 +182,8 @@ export const ShowActivityLogs = () => {
 																	<span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
 																		{log.resourceType}
 																	</span>
-																	<span className="text-xs font-mono text-muted-foreground">
-																		{log.resourceId?.substring(0, 8) || "N/A"}
+																	<span className="text-sm font-medium">
+																		{(log.metadata as any)?.name || log.resourceId?.substring(0, 8) || "N/A"}
 																	</span>
 																</div>
 															</TableCell>
@@ -186,23 +194,47 @@ export const ShowActivityLogs = () => {
 															</TableCell>
 															<TableCell className="text-right">
 																{log.metadata && (
-																	<TooltipProvider>
-																		<Tooltip>
-																			<TooltipTrigger asChild>
-																				<Button variant="ghost" size="icon" className="size-6">
-																					<Info className="size-3.5 text-muted-foreground" />
-																				</Button>
-																			</TooltipTrigger>
-																			<TooltipContent side="left" className="max-w-xs p-3">
-																				<div className="space-y-1.5">
-																					<p className="text-[10px] font-bold uppercase text-muted-foreground">Metadata</p>
-																					<pre className="text-[10px] overflow-auto max-h-40 font-mono bg-muted p-2 rounded">
-																						{JSON.stringify(log.metadata, null, 2)}
-																					</pre>
+																	<Dialog>
+																		<DialogTrigger asChild>
+																			<Button variant="ghost" size="icon" className="size-8">
+																				<Info className="size-4 text-muted-foreground" />
+																			</Button>
+																		</DialogTrigger>
+																		<DialogContent className="max-w-md">
+																			<DialogHeader>
+																				<DialogTitle>Activity Details</DialogTitle>
+																				<DialogDescription>
+																					Detailed information for the logged action.
+																				</DialogDescription>
+																			</DialogHeader>
+																			<div className="mt-4 space-y-4">
+																				<div className="grid grid-cols-2 gap-2 text-sm">
+																					<div className="text-muted-foreground font-medium">User</div>
+																					<div>{log.user?.email || "System"}</div>
+																					<div className="text-muted-foreground font-medium">Action</div>
+																					<div className="capitalize">{log.action.replace(".", " ")}</div>
+																					<div className="text-muted-foreground font-medium">Resource</div>
+																					<div>{log.resourceType} ({log.resourceId?.substring(0, 8)})</div>
+																					<div className="text-muted-foreground font-medium">Date</div>
+																					<div>{format(new Date(log.createdAt), "PPP p")}</div>
 																				</div>
-																			</TooltipContent>
-																		</Tooltip>
-																	</TooltipProvider>
+																				
+																				<div className="space-y-2">
+																					<p className="text-xs font-bold uppercase text-muted-foreground border-b pb-1">Metadata</p>
+																					<div className="bg-muted/50 p-3 rounded-md text-xs font-mono overflow-auto max-h-[300px]">
+																						{Object.entries(log.metadata as Record<string, any>).map(([key, value]) => (
+																							<div key={key} className="flex flex-col mb-2 last:mb-0">
+																								<span className="text-blue-500 font-bold">{key}:</span>
+																								<span className="pl-2 break-all whitespace-pre-wrap">
+																									{typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+																								</span>
+																							</div>
+																						))}
+																					</div>
+																				</div>
+																			</div>
+																		</DialogContent>
+																	</Dialog>
 																)}
 															</TableCell>
 														</TableRow>

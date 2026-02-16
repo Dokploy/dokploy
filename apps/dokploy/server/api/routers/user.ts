@@ -208,7 +208,10 @@ export const userRouter = createTRPCRouter({
 					action: "user.update",
 					resourceType: "system",
 					resourceId: ctx.user.id,
-					metadata: { email: ctx.user.email },
+					metadata: {
+						email: ctx.user.email,
+						updatedFields: Object.keys(input).filter(k => !['password', 'currentPassword'].includes(k))
+					},
 				});
 				return result;
 			} catch (error) {
@@ -496,7 +499,7 @@ export const userRouter = createTRPCRouter({
 				action: "api_key.create",
 				resourceType: "system",
 				resourceId: apiKey.id,
-				metadata: { name: apiKey.name },
+				metadata: { name: apiKey.name, ...input },
 			});
 
 			return apiKey;

@@ -172,7 +172,7 @@ export const organizationRouter = createTRPCRouter({
 				action: "organization.update",
 				resourceType: "organization",
 				resourceId: input.organizationId,
-				metadata: { name: input.name },
+				metadata: { name: input.name, logo: input.logo },
 			});
 			return result[0];
 		}),
