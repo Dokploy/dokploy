@@ -44,7 +44,7 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 
 export const generateTraefikMeDomain = async (
 	appName: string,
-	userId: string,
+	_userId: string,
 	serverId?: string,
 ) => {
 	if (serverId) {

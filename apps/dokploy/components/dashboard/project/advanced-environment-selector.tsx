@@ -98,6 +98,8 @@ export const AdvancedEnvironmentSelector = ({
 
 			toast.success("Environment created successfully");
 			utils.environment.byProjectId.invalidate({ projectId });
+			// Invalidate the project query to refresh the project data for the advance-breadcrumb
+			utils.project.all.invalidate();
 			setIsCreateDialogOpen(false);
 			setName("");
 			setDescription("");

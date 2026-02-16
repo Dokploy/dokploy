@@ -105,21 +105,21 @@ export const suggestVariants = async ({
 			}),
 			prompt: `
         Act as advanced DevOps engineer and analyze the user's request to determine the appropriate suggestions (up to 3 items).
-        
+
         CRITICAL - Read the user's request carefully and follow the appropriate strategy:
-        
+
         Strategy A - If the user specifies a PARTICULAR APPLICATION/SERVICE (e.g., "deploy Chatwoot", "install sendingtk/chatwoot:develop", "setup Bitwarden"):
         - Generate different deployment VARIANTS of that SAME application
         - Each variant should be a different configuration (minimal, full stack, with different databases, development vs production, etc.)
         - Example: For "Chatwoot" → "Chatwoot with PostgreSQL", "Chatwoot Development", "Chatwoot Full Stack"
         - The name MUST include the specific application name the user mentioned
-        
+
         Strategy B - If the user describes a GENERAL NEED or USE CASE (e.g., "personal blog", "project management tool", "chat application"):
         - Suggest different open source projects that fulfill that need
         - Each suggestion should be a different tool/platform that solves the same problem
         - Example: For "personal blog" → "WordPress", "Ghost", "Hugo with Nginx"
         - The name should be the actual project name
-        
+
         Return your response as a JSON object with the following structure:
         {
           "suggestions": [
@@ -131,7 +131,7 @@ export const suggestVariants = async ({
             }
           ]
         }
-        
+
         Important rules for the response:
         1. Use slug format for the id field (lowercase, hyphenated)
         2. Determine which strategy to use based on whether the user specified a particular application or described a general need
@@ -142,9 +142,9 @@ export const suggestVariants = async ({
         7. The shortDescription should be a single-line summary focusing on key technologies or differentiators
         8. All suggestions should be installable in docker and have docker compose support
         9. Provide variety in your suggestions - different complexity levels, tech stacks, or approaches
-        
+
         User wants to create a new project with the following details:
-        
+
         ${input}
       `,
 		});
@@ -182,7 +182,7 @@ export const suggestVariants = async ({
 						}),
 						prompt: `
               Act as advanced DevOps engineer and generate docker compose with environment variables and domain configurations needed to install the following project.
-              
+
               Return your response as a JSON object with this structure:
               {
                 "dockerCompose": "yaml string here",
@@ -190,9 +190,9 @@ export const suggestVariants = async ({
                 "domains": [{"host": "domain.com", "port": 3000, "serviceName": "service"}],
                 "configFiles": [{"content": "file content", "filePath": "path/to/file"}]
               }
-              
+
               Note: configFiles is optional - only include it if configuration files are absolutely required.
-              
+
               Follow these rules:
 
               Docker Compose Rules:
@@ -242,16 +242,16 @@ export const suggestVariants = async ({
               4. ONLY include environment variables that are actually used in the docker-compose
               5. Every environment variable referenced in the docker-compose MUST have a corresponding entry in envVariables
               6. Do not include environment variables for services that don't exist in the docker-compose
-                     
+
               For each service that needs to be exposed to the internet:
               1. Define a domain configuration with:
                 - host: the domain name for the service in format: {service-name}-{random-3-chars-hex}-${ip ? ip.replaceAll(".", "-") : ""}.traefik.me
                 - port: the internal port the service runs on
                 - serviceName: the name of the service in the docker-compose
               2. Make sure the service is properly configured to work with the specified port
-              
+
               User's original request: ${input}
-              
+
               Project details:
               ${suggestion?.description}
             `,

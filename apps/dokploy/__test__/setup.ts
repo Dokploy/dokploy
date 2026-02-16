@@ -12,6 +12,7 @@ vi.mock("@dokploy/server/db", () => {
 	chain.where = () => chain;
 	chain.values = () => chain;
 	chain.returning = () => Promise.resolve([{}]);
+	// biome-ignore lint/suspicious/noThenProperty: this is for testing
 	chain.then = undefined;
 
 	const tableMock = {
