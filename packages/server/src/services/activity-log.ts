@@ -6,16 +6,15 @@ import { z } from "zod";
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type CreateActivityLog = typeof activityLogs.$inferInsert;
 
-const SENSITIVE_FIELDS = [
+const EXACT_SENSITIVE_FIELDS = ["key", "env"];
+const SUBSTRING_SENSITIVE_FIELDS = [
 	"password",
-	"currentPassword",
 	"token",
 	"secret",
-	"key",
-	"env",
-	"buildArgs",
-	"secrets",
-	"apiKey",
+	"privatekey",
+	"sshkey",
+	"apikey",
+	"buildargs",
 ];
 
 const redactSensitive = (obj: any): any => {
@@ -24,7 +23,13 @@ const redactSensitive = (obj: any): any => {
 
 	const newObj = { ...obj };
 	for (const key in newObj) {
-		if (SENSITIVE_FIELDS.some((field) => key.toLowerCase().includes(field))) {
+		const lowerKey = key.toLowerCase();
+		const isExactMatch = EXACT_SENSITIVE_FIELDS.includes(lowerKey);
+		const isSubstringMatch = SUBSTRING_SENSITIVE_FIELDS.some((field) =>
+			lowerKey.includes(field),
+		);
+
+		if (isExactMatch || isSubstringMatch) {
 			newObj[key] = "[REDACTED]";
 		} else if (typeof newObj[key] === "object") {
 			newObj[key] = redactSensitive(newObj[key]);
