@@ -158,14 +158,14 @@ echo "Preparing for execution..."
 while true; do
   docker_processes=$(ps aux | grep -E "^.*(docker|podman) [a-zA-Z]" | grep -v grep)
 
-  if [ -z "${docker_processes}" ]; then
+  if [ -z "$\{docker_processes\}" ]; then
     echo "Docker is idle. Starting execution..."
 
     break
   else
-    echo "Docker is busy. Will check again in ${check_interval} seconds..."
+    echo "Docker is busy. Will check again in $\{check_interval\} seconds..."
 
-    sleep "${check_interval}"
+    sleep "$\{check_interval\}"
   fi
 done
 
