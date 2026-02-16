@@ -23,7 +23,7 @@ import { UpdatePostgres } from "@/components/dashboard/postgres/update-postgres"
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { PostgresqlIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
+import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -72,21 +72,11 @@ const Postgresql = (
 	return (
 		<div className="pb-10">
 			<UseKeyboardNav forPage="postgres" />
-			<BreadcrumbSidebar
-				list={[
-					{ name: "Projects", href: "/dashboard/projects" },
-					{
-						name: data?.environment?.project?.name || "",
-						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
-					},
-					{
-						name: data?.environment?.name || "",
-						dropdownItems: environmentDropdownItems,
-					},
-					{
-						name: data?.name || "",
-					},
-				]}
+			<AdvanceBreadcrumb
+				projectId={projectId as string}
+				environmentId={environmentId as string}
+				serviceId={postgresId}
+				serviceType="postgres"
 			/>
 			<Head>
 				<title>
