@@ -162,6 +162,16 @@ export const mariadbRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const mariadb = await findMariadbById(input.mariadbId);
 
+			if (
+				mariadb.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to stop this Mariadb",
+				});
+			}
+
 			if (mariadb.serverId) {
 				await stopServiceRemote(mariadb.serverId, mariadb.appName);
 			} else {
@@ -253,9 +263,9 @@ export const mariadbRouter = createTRPCRouter({
 	changeStatus: protectedProcedure
 		.input(apiChangeMariaDBStatus)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findMariadbById(input.mariadbId);
+			const mariadb = await findMariadbById(input.mariadbId);
 			if (
-				mongo.environment.project.organizationId !==
+				mariadb.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -266,7 +276,7 @@ export const mariadbRouter = createTRPCRouter({
 			await updateMariadbById(input.mariadbId, {
 				applicationStatus: input.applicationStatus,
 			});
-			return mongo;
+			return mariadb;
 		}),
 	remove: protectedProcedure
 		.input(apiFindOneMariaDB)
@@ -280,9 +290,9 @@ export const mariadbRouter = createTRPCRouter({
 				);
 			}
 
-			const mongo = await findMariadbById(input.mariadbId);
+			const mariadb = await findMariadbById(input.mariadbId);
 			if (
-				mongo.environment.project.organizationId !==
+				mariadb.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -293,7 +303,7 @@ export const mariadbRouter = createTRPCRouter({
 
 			const backups = await findBackupsByDbId(input.mariadbId, "mariadb");
 			const cleanupOperations = [
-				async () => await removeService(mongo?.appName, mongo.serverId),
+				async () => await removeService(mariadb?.appName, mariadb.serverId),
 				async () => await cancelJobs(backups),
 				async () => await removeMariadbById(input.mariadbId),
 			];
@@ -309,14 +319,14 @@ export const mariadbRouter = createTRPCRouter({
 				organizationId: ctx.session.activeOrganizationId,
 				action: "mariadb.delete",
 				resourceType: "database",
-				resourceId: mongo.mariadbId,
+				resourceId: mariadb.mariadbId,
 				metadata: {
-					name: mongo.name,
-					appName: mongo.appName,
+					name: mariadb.name,
+					appName: mariadb.appName,
 				},
 			});
 
-			return mongo;
+			return mariadb;
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesMariaDB)

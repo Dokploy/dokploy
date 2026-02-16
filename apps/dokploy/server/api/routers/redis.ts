@@ -290,9 +290,9 @@ export const redisRouter = createTRPCRouter({
 	changeStatus: protectedProcedure
 		.input(apiChangeRedisStatus)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findRedisById(input.redisId);
+			const redis = await findRedisById(input.redisId);
 			if (
-				mongo.environment.project.organizationId !==
+				redis.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -303,7 +303,7 @@ export const redisRouter = createTRPCRouter({
 			await updateRedisById(input.redisId, {
 				applicationStatus: input.applicationStatus,
 			});
-			return mongo;
+			return redis;
 		}),
 	remove: protectedProcedure
 		.input(apiFindOneRedis)
