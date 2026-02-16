@@ -332,6 +332,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 												viewMode === "detailed" && "border-b",
 											)}
 										>
+											{/** biome-ignore lint/performance/noImgElement: this is a valid use for img tag */}
 											<img
 												src={`${customBaseUrl || "https://templates.dokploy.com/"}/blueprints/${template?.id}/${template?.logo}`}
 												className={cn(
