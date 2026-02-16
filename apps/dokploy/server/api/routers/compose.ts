@@ -468,6 +468,17 @@ export const composeRouter = createTRPCRouter({
 			};
 
 			try {
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "compose.deploy",
+					resourceType: "compose",
+					resourceId: compose.composeId,
+					metadata: {
+						name: compose.name,
+					},
+				});
+
 				if (IS_CLOUD && compose.serverId) {
 					jobData.serverId = compose.serverId;
 					deploy(jobData).catch((error) => {
@@ -483,17 +494,6 @@ export const composeRouter = createTRPCRouter({
 						removeOnFail: true,
 					},
 				);
-
-				await recordActivity({
-					userId: ctx.user.id,
-					organizationId: ctx.session.activeOrganizationId,
-					action: "compose.deploy",
-					resourceType: "compose",
-					resourceId: compose.composeId,
-					metadata: {
-						name: compose.name,
-					},
-				});
 
 				return {
 					success: true,
@@ -533,6 +533,15 @@ export const composeRouter = createTRPCRouter({
 				server: !!compose.serverId,
 			};
 			try {
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "compose.redeploy",
+					resourceType: "compose",
+					resourceId: compose.composeId,
+					metadata: { name: compose.name, title: input.title },
+				});
+
 				if (IS_CLOUD && compose.serverId) {
 					jobData.serverId = compose.serverId;
 					deploy(jobData).catch((error) => {
@@ -548,15 +557,6 @@ export const composeRouter = createTRPCRouter({
 						removeOnFail: true,
 					},
 				);
-
-				await recordActivity({
-					userId: ctx.user.id,
-					organizationId: ctx.session.activeOrganizationId,
-					action: "compose.redeploy",
-					resourceType: "compose",
-					resourceId: compose.composeId,
-					metadata: { name: compose.name, title: input.title },
-				});
 
 				return {
 					success: true,

@@ -411,21 +411,42 @@ export const applicationRouter = createTRPCRouter({
 				server: !!application.serverId,
 			};
 
-			if (IS_CLOUD && application.serverId) {
-				jobData.serverId = application.serverId;
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
+			try {
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "application.redeploy",
+					resourceType: "application",
+					resourceId: application.applicationId,
+					metadata: { name: application.name, title: input.title },
 				});
+
+				if (IS_CLOUD && application.serverId) {
+					jobData.serverId = application.serverId;
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
+					return true;
+				}
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
 				return true;
+			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Error redeploying application",
+					cause: error,
+				});
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariables)
@@ -799,22 +820,43 @@ export const applicationRouter = createTRPCRouter({
 				applicationType: "application",
 				server: !!application.serverId,
 			};
-			if (IS_CLOUD && application.serverId) {
-				jobData.serverId = application.serverId;
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
+			try {
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "application.deploy",
+					resourceType: "application",
+					resourceId: application.applicationId,
+					metadata: { name: application.name, title: input.title },
 				});
 
+				if (IS_CLOUD && application.serverId) {
+					jobData.serverId = application.serverId;
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
+
+					return true;
+				}
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
 				return true;
+			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Error deploying application",
+					cause: error,
+				});
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
 		}),
 
 	cleanQueues: protectedProcedure
