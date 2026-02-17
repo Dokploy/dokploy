@@ -104,6 +104,8 @@ export default async function handler(
 			const owner = githubBody?.repository?.owner?.name;
 			const deploymentTitle = `Tag created: ${tagName}`;
 			const deploymentHash = extractHash(req.headers, githubBody);
+			let deployedAppsCount = 0;
+			let deployedComposeCount = 0;
 
 			// Find applications configured to deploy on tag
 			const apps = await db.query.applications.findMany({
@@ -157,6 +159,7 @@ export default async function handler(
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
+					deployedAppsCount += 1;
 					continue;
 				}
 				await myQueue.add(
@@ -167,6 +170,7 @@ export default async function handler(
 						removeOnFail: true,
 					},
 				);
+				deployedAppsCount += 1;
 			}
 
 			// Find compose apps configured to deploy on tag
@@ -224,6 +228,7 @@ export default async function handler(
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
+					deployedComposeCount += 1;
 					continue;
 				}
 
@@ -235,14 +240,16 @@ export default async function handler(
 						removeOnFail: true,
 					},
 				);
+				deployedComposeCount += 1;
 			}
 
-			const totalApps = apps.length + composeApps.length;
+			const totalApps = deployedAppsCount + deployedComposeCount;
 
 			if (totalApps === 0) {
-				res
-					.status(200)
-					.json({ message: "No apps configured to deploy on tag" });
+				res.status(200).json({
+					message:
+						"No apps configured to deploy on tag or matching tag patterns",
+				});
 				return;
 			}
 

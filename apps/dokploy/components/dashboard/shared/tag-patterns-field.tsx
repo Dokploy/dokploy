@@ -127,7 +127,12 @@ export const TagPatternsField = ({
 								<button
 									type="button"
 									className="w-full px-2 py-1.5 text-left text-sm hover:bg-accent"
-									onClick={() => handleSelect(inputValue)}
+									onClick={() => {
+										const trimmedInputValue = inputValue.trim();
+										if (trimmedInputValue) {
+											handleSelect(trimmedInputValue);
+										}
+									}}
 								>
 									Add pattern: "{inputValue}"
 								</button>
