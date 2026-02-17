@@ -131,3 +131,27 @@ export const S3_PROVIDERS: Array<{
 		name: "Any other S3 compatible provider",
 	},
 ];
+
+export const DESTINATION_TYPES: Array<{
+	key: "s3" | "sftp" | "rclone";
+	name: string;
+	description: string;
+}> = [
+	{
+		key: "s3",
+		name: "S3 Compatible",
+		description:
+			"Amazon S3, Cloudflare R2, DigitalOcean Spaces, MinIO, and other S3-compatible storage",
+	},
+	{
+		key: "sftp",
+		name: "SFTP / SSH",
+		description: "Upload backups via SFTP to any remote server",
+	},
+	{
+		key: "rclone",
+		name: "Rclone (Custom)",
+		description:
+			"Use a custom rclone configuration to support Google Drive, OneDrive, Azure Blob, FTP, and many more providers",
+	},
+];

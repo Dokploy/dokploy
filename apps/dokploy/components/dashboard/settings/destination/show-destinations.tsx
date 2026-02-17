@@ -1,4 +1,4 @@
-import { Database, FolderUp, Loader2, Trash2 } from "lucide-react";
+import { Database, FolderUp, HardDrive, Loader2, Server, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,30 @@ import {
 import { api } from "@/utils/api";
 import { HandleDestinations } from "./handle-destinations";
 
+const getDestinationTypeLabel = (type: string | null) => {
+	switch (type) {
+		case "sftp":
+			return "SFTP";
+		case "rclone":
+			return "Rclone";
+		case "s3":
+		default:
+			return "S3";
+	}
+};
+
+const getDestinationIcon = (type: string | null) => {
+	switch (type) {
+		case "sftp":
+			return <Server className="size-3.5 text-muted-foreground" />;
+		case "rclone":
+			return <HardDrive className="size-3.5 text-muted-foreground" />;
+		case "s3":
+		default:
+			return <Database className="size-3.5 text-muted-foreground" />;
+	}
+};
+
 export const ShowDestinations = () => {
 	const { data, isLoading, refetch } = api.destination.all.useQuery();
 	const { mutateAsync, isLoading: isRemoving } =
@@ -23,11 +47,11 @@ export const ShowDestinations = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Database className="size-6 text-muted-foreground self-center" />
-							S3 Destinations
+							Backup Destinations
 						</CardTitle>
 						<CardDescription>
-							Add your providers like AWS S3, Cloudflare R2, Wasabi,
-							DigitalOcean Spaces etc.
+							Add your providers like AWS S3, Cloudflare R2, SFTP servers,
+							Google Drive, OneDrive, and more via rclone.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -57,9 +81,19 @@ export const ShowDestinations = () => {
 												>
 													<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border  w-full">
 														<div className="flex flex-col gap-1">
-															<span className="text-sm">
-																{index + 1}. {destination.name}
-															</span>
+															<div className="flex items-center gap-2">
+																{getDestinationIcon(
+																	destination.destinationType,
+																)}
+																<span className="text-sm">
+																	{index + 1}. {destination.name}
+																</span>
+																<span className="text-xs px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">
+																	{getDestinationTypeLabel(
+																		destination.destinationType,
+																	)}
+																</span>
+															</div>
 															<span className="text-xs text-muted-foreground">
 																Created at:{" "}
 																{new Date(

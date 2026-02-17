@@ -33,18 +33,32 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { S3_PROVIDERS } from "./constants";
+import { DESTINATION_TYPES, S3_PROVIDERS } from "./constants";
 
 const addDestination = z.object({
 	name: z.string().min(1, "Name is required"),
-	provider: z.string().min(1, "Provider is required"),
-	accessKeyId: z.string().min(1, "Access Key Id is required"),
-	secretAccessKey: z.string().min(1, "Secret Access Key is required"),
-	bucket: z.string().min(1, "Bucket is required"),
-	region: z.string(),
-	endpoint: z.string().min(1, "Endpoint is required"),
+	destinationType: z.enum(["s3", "sftp", "rclone"]).default("s3"),
+	// S3 fields
+	provider: z.string().optional(),
+	accessKeyId: z.string().optional(),
+	secretAccessKey: z.string().optional(),
+	bucket: z.string().optional(),
+	region: z.string().optional(),
+	endpoint: z.string().optional(),
+	// SFTP fields
+	sftpHost: z.string().optional(),
+	sftpPort: z.number().optional(),
+	sftpUsername: z.string().optional(),
+	sftpPassword: z.string().optional(),
+	sftpKeyPath: z.string().optional(),
+	sftpRemotePath: z.string().optional(),
+	// Rclone fields
+	rcloneConfig: z.string().optional(),
+	rcloneRemoteName: z.string().optional(),
+	rcloneRemotePath: z.string().optional(),
 	serverId: z.string().optional(),
 });
 
@@ -82,6 +96,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 
 	const form = useForm<AddDestination>({
 		defaultValues: {
+			destinationType: "s3",
 			provider: "",
 			accessKeyId: "",
 			bucket: "",
@@ -89,19 +104,41 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			region: "",
 			secretAccessKey: "",
 			endpoint: "",
+			sftpHost: "",
+			sftpPort: 22,
+			sftpUsername: "",
+			sftpPassword: "",
+			sftpKeyPath: "",
+			sftpRemotePath: "/backups",
+			rcloneConfig: "",
+			rcloneRemoteName: "",
+			rcloneRemotePath: "",
 		},
 		resolver: zodResolver(addDestination),
 	});
+
+	const destinationType = form.watch("destinationType");
+
 	useEffect(() => {
 		if (destination) {
 			form.reset({
 				name: destination.name,
+				destinationType: destination.destinationType || "s3",
 				provider: destination.provider || "",
 				accessKeyId: destination.accessKey,
 				secretAccessKey: destination.secretAccessKey,
 				bucket: destination.bucket,
 				region: destination.region,
 				endpoint: destination.endpoint,
+				sftpHost: destination.sftpHost || "",
+				sftpPort: destination.sftpPort || 22,
+				sftpUsername: destination.sftpUsername || "",
+				sftpPassword: destination.sftpPassword || "",
+				sftpKeyPath: destination.sftpKeyPath || "",
+				sftpRemotePath: destination.sftpRemotePath || "/backups",
+				rcloneConfig: destination.rcloneConfig || "",
+				rcloneRemoteName: destination.rcloneRemoteName || "",
+				rcloneRemotePath: destination.rcloneRemotePath || "",
 			});
 		} else {
 			form.reset();
@@ -110,14 +147,24 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 
 	const onSubmit = async (data: AddDestination) => {
 		await mutateAsync({
+			destinationType: data.destinationType || "s3",
 			provider: data.provider || "",
-			accessKey: data.accessKeyId,
-			bucket: data.bucket,
-			endpoint: data.endpoint,
+			accessKey: data.accessKeyId || "",
+			bucket: data.bucket || "",
+			endpoint: data.endpoint || "",
 			name: data.name,
-			region: data.region,
-			secretAccessKey: data.secretAccessKey,
+			region: data.region || "",
+			secretAccessKey: data.secretAccessKey || "",
 			destinationId: destinationId || "",
+			sftpHost: data.sftpHost || undefined,
+			sftpPort: data.sftpPort || undefined,
+			sftpUsername: data.sftpUsername || undefined,
+			sftpPassword: data.sftpPassword || undefined,
+			sftpKeyPath: data.sftpKeyPath || undefined,
+			sftpRemotePath: data.sftpRemotePath || undefined,
+			rcloneConfig: data.rcloneConfig || undefined,
+			rcloneRemoteName: data.rcloneRemoteName || undefined,
+			rcloneRemotePath: data.rcloneRemotePath || undefined,
 		})
 			.then(async () => {
 				toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
@@ -135,25 +182,39 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 	};
 
 	const handleTestConnection = async (serverId?: string) => {
-		const result = await form.trigger([
-			"provider",
-			"accessKeyId",
-			"secretAccessKey",
-			"bucket",
-			"endpoint",
-		]);
+		const destType = form.getValues("destinationType") || "s3";
 
-		if (!result) {
-			const errors = form.formState.errors;
-			const errorFields = Object.entries(errors)
-				.map(([field, error]) => `${field}: ${error?.message}`)
-				.filter(Boolean)
-				.join("\n");
-
-			toast.error("Please fill all required fields", {
-				description: errorFields,
-			});
-			return;
+		if (destType === "s3") {
+			const result = await form.trigger([
+				"provider",
+				"accessKeyId",
+				"secretAccessKey",
+				"bucket",
+				"endpoint",
+			]);
+			if (!result) {
+				const errors = form.formState.errors;
+				const errorFields = Object.entries(errors)
+					.map(([field, error]) => `${field}: ${error?.message}`)
+					.filter(Boolean)
+					.join("\n");
+				toast.error("Please fill all required fields", {
+					description: errorFields,
+				});
+				return;
+			}
+		} else if (destType === "sftp") {
+			const result = await form.trigger(["sftpHost", "sftpUsername"]);
+			if (!result) {
+				toast.error("Please fill host and username");
+				return;
+			}
+		} else if (destType === "rclone") {
+			const result = await form.trigger(["rcloneConfig", "rcloneRemoteName"]);
+			if (!result) {
+				toast.error("Please fill rclone config and remote name");
+				return;
+			}
 		}
 
 		if (isCloud && !serverId) {
@@ -161,31 +222,32 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			return;
 		}
 
-		const provider = form.getValues("provider");
-		const accessKey = form.getValues("accessKeyId");
-		const secretKey = form.getValues("secretAccessKey");
-		const bucket = form.getValues("bucket");
-		const endpoint = form.getValues("endpoint");
-		const region = form.getValues("region");
-
-		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
-
 		await testConnection({
-			provider,
-			accessKey,
-			bucket,
-			endpoint,
+			destinationType: destType,
+			provider: form.getValues("provider") || "",
+			accessKey: form.getValues("accessKeyId") || "",
+			bucket: form.getValues("bucket") || "",
+			endpoint: form.getValues("endpoint") || "",
 			name: "Test",
-			region,
-			secretAccessKey: secretKey,
+			region: form.getValues("region") || "",
+			secretAccessKey: form.getValues("secretAccessKey") || "",
+			sftpHost: form.getValues("sftpHost") || undefined,
+			sftpPort: form.getValues("sftpPort") || undefined,
+			sftpUsername: form.getValues("sftpUsername") || undefined,
+			sftpPassword: form.getValues("sftpPassword") || undefined,
+			sftpKeyPath: form.getValues("sftpKeyPath") || undefined,
+			sftpRemotePath: form.getValues("sftpRemotePath") || undefined,
+			rcloneConfig: form.getValues("rcloneConfig") || undefined,
+			rcloneRemoteName: form.getValues("rcloneRemoteName") || undefined,
+			rcloneRemotePath: form.getValues("rcloneRemotePath") || undefined,
 			serverId,
 		})
 			.then(() => {
 				toast.success("Connection Success");
 			})
 			.catch((e) => {
-				toast.error("Error connecting to provider", {
-					description: `${e.message}\n\nTry manually: rclone ls ${connectionString}`,
+				toast.error("Error connecting to destination", {
+					description: e.message,
 				});
 			});
 	};
@@ -208,15 +270,15 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>
 						{destinationId ? "Update" : "Add"} Destination
 					</DialogTitle>
 					<DialogDescription>
-						In this section, you can configure and add new destinations for your
-						backups. Please ensure that you provide the correct information to
-						guarantee secure and efficient storage.
+						Configure a backup destination. Choose from S3-compatible storage,
+						SFTP servers, or use a custom rclone configuration for providers
+						like Google Drive, OneDrive, Azure Blob, FTP, and more.
 					</DialogDescription>
 				</DialogHeader>
 				{(isError || isErrorConnection) && (
@@ -239,20 +301,21 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									<FormItem>
 										<FormLabel>Name</FormLabel>
 										<FormControl>
-											<Input placeholder={"S3 Bucket"} {...field} />
+											<Input placeholder={"My Backup Destination"} {...field} />
 										</FormControl>
 										<FormMessage />
 									</FormItem>
 								);
 							}}
 						/>
+
 						<FormField
 							control={form.control}
-							name="provider"
+							name="destinationType"
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Provider</FormLabel>
+										<FormLabel>Destination Type</FormLabel>
 										<FormControl>
 											<Select
 												onValueChange={field.onChange}
@@ -261,16 +324,13 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a S3 Provider" />
+														<SelectValue placeholder="Select a destination type" />
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
-													{S3_PROVIDERS.map((s3Provider) => (
-														<SelectItem
-															key={s3Provider.key}
-															value={s3Provider.key}
-														>
-															{s3Provider.name}
+													{DESTINATION_TYPES.map((dt) => (
+														<SelectItem key={dt.key} value={dt.key}>
+															{dt.name}
 														</SelectItem>
 													))}
 												</SelectContent>
@@ -282,82 +342,302 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							}}
 						/>
 
-						<FormField
-							control={form.control}
-							name="accessKeyId"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
-										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
-						<FormField
-							control={form.control}
-							name="secretAccessKey"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"asd123asdasw"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="bucket"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="region"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="endpoint"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
-									<FormControl>
-										<Input
-											placeholder={"https://us.bucket.aws/s3"}
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{/* S3 Fields */}
+						{destinationType === "s3" && (
+							<>
+								<FormField
+									control={form.control}
+									name="provider"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Provider</FormLabel>
+												<FormControl>
+													<Select
+														onValueChange={field.onChange}
+														defaultValue={field.value}
+														value={field.value}
+													>
+														<FormControl>
+															<SelectTrigger>
+																<SelectValue placeholder="Select a S3 Provider" />
+															</SelectTrigger>
+														</FormControl>
+														<SelectContent>
+															{S3_PROVIDERS.map((s3Provider) => (
+																<SelectItem
+																	key={s3Provider.key}
+																	value={s3Provider.key}
+																>
+																	{s3Provider.name}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="accessKeyId"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Access Key Id</FormLabel>
+												<FormControl>
+													<Input placeholder={"xcas41dasde"} {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+								<FormField
+									control={form.control}
+									name="secretAccessKey"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Secret Access Key</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"asd123asdasw"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="bucket"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Bucket</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"dokploy-bucket"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="region"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Region</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"us-east-1"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="endpoint"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Endpoint</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={"https://us.bucket.aws/s3"}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
+
+						{/* SFTP Fields */}
+						{destinationType === "sftp" && (
+							<>
+								<FormField
+									control={form.control}
+									name="sftpHost"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Host</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={"backup.example.com"}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="sftpPort"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Port</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder={"22"}
+													{...field}
+													onChange={(e) =>
+														field.onChange(
+															e.target.value
+																? Number.parseInt(e.target.value)
+																: undefined,
+														)
+													}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="sftpUsername"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Username</FormLabel>
+											<FormControl>
+												<Input placeholder={"backupuser"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="sftpPassword"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Password (optional if using key)</FormLabel>
+											<FormControl>
+												<Input
+													type="password"
+													placeholder={"Leave empty for key-based auth"}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="sftpKeyPath"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												SSH Key Path (optional if using password)
+											</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={"/root/.ssh/id_rsa"}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="sftpRemotePath"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Remote Path</FormLabel>
+											<FormControl>
+												<Input placeholder={"/backups"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
+
+						{/* Rclone Custom Fields */}
+						{destinationType === "rclone" && (
+							<>
+								<FormField
+									control={form.control}
+									name="rcloneConfig"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Rclone Configuration</FormLabel>
+											<FormControl>
+												<Textarea
+													rows={8}
+													className="font-mono text-xs"
+													placeholder={`[myremote]\ntype = drive\nclient_id = xxx\nclient_secret = xxx\ntoken = {"access_token":"xxx"}`}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+											<p className="text-xs text-muted-foreground">
+												Paste your rclone config here. You can generate one
+												with <code>rclone config</code> on your machine, then
+												copy the content from <code>~/.config/rclone/rclone.conf</code>.
+												This supports Google Drive, OneDrive, Azure Blob, FTP,
+												and 50+ other providers.
+											</p>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="rcloneRemoteName"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Remote Name</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={"myremote"}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+											<p className="text-xs text-muted-foreground">
+												The name inside the square brackets of your rclone
+												config (e.g., <code>[myremote]</code> means the name is{" "}
+												<code>myremote</code>).
+											</p>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="rcloneRemotePath"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Remote Path</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={"dokploy-backups"}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+											<p className="text-xs text-muted-foreground">
+												The folder/path on the remote where backups will be
+												stored.
+											</p>
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
 					</form>
 
 					<DialogFooter
