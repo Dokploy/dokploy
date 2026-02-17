@@ -3,17 +3,22 @@ import { mechanizeDockerContainer } from "@dokploy/server/utils/builders";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type MockCreateServiceOptions = {
-	StopGracePeriod?: number;
+	TaskTemplate?: {
+		ContainerSpec?: {
+			StopGracePeriod?: number;
+			Ulimits?: Array<{ Name: string; Soft: number; Hard: number }>;
+		};
+	};
 	[key: string]: unknown;
 };
 
 const { inspectMock, getServiceMock, createServiceMock, getRemoteDockerMock } =
 	vi.hoisted(() => {
-		const inspect = vi.fn<[], Promise<never>>();
+		const inspect = vi.fn<() => Promise<never>>();
 		const getService = vi.fn(() => ({ inspect }));
-		const createService = vi.fn<[MockCreateServiceOptions], Promise<void>>(
-			async () => undefined,
-		);
+		const createService = vi.fn<
+			(opts: MockCreateServiceOptions) => Promise<void>
+		>(async () => undefined);
 		const getRemoteDocker = vi.fn(async () => ({
 			getService,
 			createService,
@@ -53,6 +58,7 @@ const createApplication = (
 		},
 		replicas: 1,
 		stopGracePeriodSwarm: 0n,
+		ulimitsSwarm: null,
 		serverId: "server-id",
 		...overrides,
 	}) as unknown as ApplicationNested;
@@ -76,17 +82,43 @@ describe("mechanizeDockerContainer", () => {
 		await mechanizeDockerContainer(application);
 
 		expect(createServiceMock).toHaveBeenCalledTimes(1);
-		const call = createServiceMock.mock.calls[0];
+		const call = createServiceMock.mock.calls[0] as
+			| [MockCreateServiceOptions]
+			| undefined;
 		if (!call) {
 			throw new Error("createServiceMock should have been called once");
 		}
 		const [settings] = call;
-		expect(settings.StopGracePeriod).toBe(0);
-		expect(typeof settings.StopGracePeriod).toBe("number");
+		expect(settings.TaskTemplate?.ContainerSpec?.StopGracePeriod).toBe(0);
+		expect(typeof settings.TaskTemplate?.ContainerSpec?.StopGracePeriod).toBe(
+			"number",
+		);
 	});
 
 	it("omits StopGracePeriod when stopGracePeriodSwarm is null", async () => {
 		const application = createApplication({ stopGracePeriodSwarm: null });
+
+		await mechanizeDockerContainer(application);
+
+		expect(createServiceMock).toHaveBeenCalledTimes(1);
+		const call = createServiceMock.mock.calls[0] as
+			| [MockCreateServiceOptions]
+			| undefined;
+		if (!call) {
+			throw new Error("createServiceMock should have been called once");
+		}
+		const [settings] = call;
+		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty(
+			"StopGracePeriod",
+		);
+	});
+
+	it("passes ulimits to ContainerSpec when ulimitsSwarm is defined", async () => {
+		const ulimits = [
+			{ Name: "nofile", Soft: 10000, Hard: 20000 },
+			{ Name: "nproc", Soft: 4096, Hard: 8192 },
+		];
+		const application = createApplication({ ulimitsSwarm: ulimits });
 
 		await mechanizeDockerContainer(application);
 
@@ -96,6 +128,34 @@ describe("mechanizeDockerContainer", () => {
 			throw new Error("createServiceMock should have been called once");
 		}
 		const [settings] = call;
-		expect(settings).not.toHaveProperty("StopGracePeriod");
+		expect(settings.TaskTemplate?.ContainerSpec?.Ulimits).toEqual(ulimits);
+	});
+
+	it("omits Ulimits when ulimitsSwarm is null", async () => {
+		const application = createApplication({ ulimitsSwarm: null });
+
+		await mechanizeDockerContainer(application);
+
+		expect(createServiceMock).toHaveBeenCalledTimes(1);
+		const call = createServiceMock.mock.calls[0];
+		if (!call) {
+			throw new Error("createServiceMock should have been called once");
+		}
+		const [settings] = call;
+		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty("Ulimits");
+	});
+
+	it("omits Ulimits when ulimitsSwarm is an empty array", async () => {
+		const application = createApplication({ ulimitsSwarm: [] });
+
+		await mechanizeDockerContainer(application);
+
+		expect(createServiceMock).toHaveBeenCalledTimes(1);
+		const call = createServiceMock.mock.calls[0];
+		if (!call) {
+			throw new Error("createServiceMock should have been called once");
+		}
+		const [settings] = call;
+		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty("Ulimits");
 	});
 });

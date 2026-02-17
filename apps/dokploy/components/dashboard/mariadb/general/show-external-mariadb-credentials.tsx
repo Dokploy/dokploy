@@ -73,8 +73,8 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 				toast.success("External Port updated");
 				await refetch();
 			})
-			.catch(() => {
-				toast.error("Error saving the external port");
+			.catch((error: Error) => {
+				toast.error(error?.message || "Error saving the external port");
 			});
 	};
 

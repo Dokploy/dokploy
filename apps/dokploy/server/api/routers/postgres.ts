@@ -1,5 +1,6 @@
 import {
 	addNewService,
+	checkPortInUse,
 	checkServiceAccess,
 	createMount,
 	createPostgres,
@@ -8,6 +9,7 @@ import {
 	findEnvironmentById,
 	findPostgresById,
 	findProjectById,
+	getMountPath,
 	IS_CLOUD,
 	rebuildDatabase,
 	removePostgresById,
@@ -37,6 +39,7 @@ import {
 	postgres as postgresTable,
 } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
+
 export const postgresRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreatePostgres)
@@ -79,15 +82,17 @@ export const postgresRouter = createTRPCRouter({
 					);
 				}
 
+				const mountPath = getMountPath(input.dockerImage);
+
 				await createMount({
 					serviceId: newPostgres.postgresId,
 					serviceType: "postgres",
 					volumeName: `${newPostgres.appName}-data`,
-					mountPath: "/var/lib/postgresql/data",
+					mountPath: mountPath,
 					type: "volume",
 				});
 
-				return true;
+				return newPostgres;
 			} catch (error) {
 				if (error instanceof TRPCError) {
 					throw error;
@@ -188,6 +193,20 @@ export const postgresRouter = createTRPCRouter({
 					message: "You are not authorized to save this external port",
 				});
 			}
+
+			if (input.externalPort) {
+				const portCheck = await checkPortInUse(
+					input.externalPort,
+					postgres.serverId || undefined,
+				);
+				if (portCheck.isInUse) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `Port ${input.externalPort} is already in use by ${portCheck.conflictingContainer}`,
+					});
+				}
+			}
+
 			await updatePostgresById(input.postgresId, {
 				externalPort: input.externalPort,
 			});
@@ -282,12 +301,16 @@ export const postgresRouter = createTRPCRouter({
 			const backups = await findBackupsByDbId(input.postgresId, "postgres");
 
 			const cleanupOperations = [
-				removeService(postgres.appName, postgres.serverId),
-				cancelJobs(backups),
-				removePostgresById(input.postgresId),
+				async () => await removeService(postgres?.appName, postgres.serverId),
+				async () => await cancelJobs(backups),
+				async () => await removePostgresById(input.postgresId),
 			];
 
-			await Promise.allSettled(cleanupOperations);
+			for (const operation of cleanupOperations) {
+				try {
+					await operation();
+				} catch (_) {}
+			}
 
 			return postgres;
 		}),
@@ -363,6 +386,7 @@ export const postgresRouter = createTRPCRouter({
 					message: "You are not authorized to update this Postgres",
 				});
 			}
+
 			const service = await updatePostgresById(postgresId, {
 				...rest,
 			});

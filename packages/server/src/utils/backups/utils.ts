@@ -62,16 +62,16 @@ export const getS3Credentials = (destination: Destination) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [
-		`--s3-access-key-id=${accessKey}`,
-		`--s3-secret-access-key=${secretAccessKey}`,
-		`--s3-region=${region}`,
-		`--s3-endpoint=${endpoint}`,
+		`--s3-access-key-id="${accessKey}"`,
+		`--s3-secret-access-key="${secretAccessKey}"`,
+		`--s3-region="${region}"`,
+		`--s3-endpoint="${endpoint}"`,
 		"--s3-no-check-bucket",
 		"--s3-force-path-style",
 	];
 
 	if (provider) {
-		rcloneFlags.unshift(`--s3-provider=${provider}`);
+		rcloneFlags.unshift(`--s3-provider="${provider}"`);
 	}
 
 	return rcloneFlags;

@@ -74,6 +74,26 @@ export interface LabelsSwarm {
 	[name: string]: string;
 }
 
+export interface EndpointPortConfigSwarm {
+	Protocol?: string | undefined;
+	TargetPort?: number | undefined;
+	PublishedPort?: number | undefined;
+	PublishMode?: string | undefined;
+}
+
+export interface EndpointSpecSwarm {
+	Mode?: string | undefined;
+	Ports?: EndpointPortConfigSwarm[] | undefined;
+}
+
+export interface UlimitSwarm {
+	Name: string;
+	Soft: number;
+	Hard: number;
+}
+
+export type UlimitsSwarm = UlimitSwarm[];
+
 export const HealthCheckSwarmSchema = z
 	.object({
 		Test: z.array(z.string()).optional(),
@@ -155,9 +175,35 @@ export const NetworkSwarmSchema = z.array(
 		.object({
 			Target: z.string().optional(),
 			Aliases: z.array(z.string()).optional(),
-			DriverOpts: z.object({}).optional(),
+			DriverOpts: z.record(z.string()).optional(),
 		})
 		.strict(),
 );
 
 export const LabelsSwarmSchema = z.record(z.string());
+
+export const EndpointPortConfigSwarmSchema = z
+	.object({
+		Protocol: z.string().optional(),
+		TargetPort: z.number().optional(),
+		PublishedPort: z.number().optional(),
+		PublishMode: z.string().optional(),
+	})
+	.strict();
+
+export const EndpointSpecSwarmSchema = z
+	.object({
+		Mode: z.string().optional(),
+		Ports: z.array(EndpointPortConfigSwarmSchema).optional(),
+	})
+	.strict();
+
+export const UlimitSwarmSchema = z
+	.object({
+		Name: z.string().min(1),
+		Soft: z.number().int().min(-1),
+		Hard: z.number().int().min(-1),
+	})
+	.strict();
+
+export const UlimitsSwarmSchema = z.array(UlimitSwarmSchema);

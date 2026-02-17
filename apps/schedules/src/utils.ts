@@ -1,7 +1,6 @@
 import {
-	cleanUpDockerBuilder,
-	cleanUpSystemPrune,
-	cleanUpUnusedImages,
+	CLEANUP_CRON_JOB,
+	cleanupAll,
 	findBackupById,
 	findScheduleById,
 	findServerById,
@@ -91,9 +90,7 @@ export const runJobs = async (job: QueueJob) => {
 				logger.info("Server is inactive");
 				return;
 			}
-			await cleanUpUnusedImages(serverId);
-			await cleanUpDockerBuilder(serverId);
-			await cleanUpSystemPrune(serverId);
+			await cleanupAll(serverId);
 		} else if (job.type === "schedule") {
 			const { scheduleId } = job;
 			const schedule = await findScheduleById(scheduleId);
@@ -129,7 +126,7 @@ export const initializeJobs = async () => {
 		scheduleJob({
 			serverId,
 			type: "server",
-			cronSchedule: "0 0 * * *",
+			cronSchedule: CLEANUP_CRON_JOB,
 		});
 	}
 

@@ -1,5 +1,6 @@
 import {
 	addNewService,
+	checkPortInUse,
 	checkServiceAccess,
 	createMount,
 	createMysql,
@@ -89,7 +90,7 @@ export const mysqlRouter = createTRPCRouter({
 					type: "volume",
 				});
 
-				return true;
+				return newMysql;
 			} catch (error) {
 				if (error instanceof TRPCError) {
 					throw error;
@@ -177,9 +178,9 @@ export const mysqlRouter = createTRPCRouter({
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMySql)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findMySqlById(input.mysqlId);
+			const mysql = await findMySqlById(input.mysqlId);
 			if (
-				mongo.environment.project.organizationId !==
+				mysql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -187,11 +188,25 @@ export const mysqlRouter = createTRPCRouter({
 					message: "You are not authorized to save this external port",
 				});
 			}
+
+			if (input.externalPort) {
+				const portCheck = await checkPortInUse(
+					input.externalPort,
+					mysql.serverId || undefined,
+				);
+				if (portCheck.isInUse) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `Port ${input.externalPort} is already in use by ${portCheck.conflictingContainer}`,
+					});
+				}
+			}
+
 			await updateMySqlById(input.mysqlId, {
 				externalPort: input.externalPort,
 			});
 			await deployMySql(input.mysqlId);
-			return mongo;
+			return mysql;
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployMySql)

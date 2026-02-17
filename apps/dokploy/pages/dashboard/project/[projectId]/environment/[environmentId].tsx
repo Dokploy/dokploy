@@ -1,4 +1,4 @@
-import type { findProjectById } from "@dokploy/server";
+import type { findEnvironmentById } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import {
@@ -102,6 +102,7 @@ import { api } from "@/utils/api";
 export type Services = {
 	appName: string;
 	serverId?: string | null;
+	serverName?: string | null;
 	name: string;
 	type:
 		| "mariadb"
@@ -115,10 +116,10 @@ export type Services = {
 	id: string;
 	createdAt: string;
 	status?: "idle" | "running" | "done" | "error";
+	lastDeployDate?: Date | null;
 };
 
-type Project = Awaited<ReturnType<typeof findProjectById>>;
-type Environment = Project["environments"][0];
+type Environment = Awaited<ReturnType<typeof findEnvironmentById>>;
 
 export const extractServicesFromEnvironment = (
 	environment: Environment | undefined,
@@ -128,16 +129,35 @@ export const extractServicesFromEnvironment = (
 	const allServices: Services[] = [];
 
 	const applications: Services[] =
-		environment.applications?.map((item) => ({
-			appName: item.appName,
-			name: item.name,
-			type: "application",
-			id: item.applicationId,
-			createdAt: item.createdAt,
-			status: item.applicationStatus,
-			description: item.description,
-			serverId: item.serverId,
-		})) || [];
+		environment.applications?.map((item) => {
+			// Get the most recent deployment date
+			let lastDeployDate: Date | null = null;
+			const deployments = (item as any).deployments;
+			if (deployments && deployments.length > 0) {
+				for (const deployment of deployments) {
+					const deployDate = new Date(
+						deployment.finishedAt ||
+							deployment.startedAt ||
+							deployment.createdAt,
+					);
+					if (!lastDeployDate || deployDate > lastDeployDate) {
+						lastDeployDate = deployDate;
+					}
+				}
+			}
+			return {
+				appName: item.appName,
+				name: item.name,
+				type: "application",
+				id: item.applicationId,
+				createdAt: item.createdAt,
+				status: item.applicationStatus,
+				description: item.description,
+				serverId: item.serverId,
+				serverName: item?.server?.name || null,
+				lastDeployDate,
+			};
+		}) || [];
 
 	const mariadb: Services[] =
 		environment.mariadb?.map((item) => ({
@@ -149,6 +169,7 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			serverName: item?.server?.name || null,
 		})) || [];
 
 	const postgres: Services[] =
@@ -161,6 +182,7 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			serverName: item?.server?.name || null,
 		})) || [];
 
 	const mongo: Services[] =
@@ -173,6 +195,7 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			serverName: item?.server?.name || null,
 		})) || [];
 
 	const redis: Services[] =
@@ -185,6 +208,7 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			serverName: item?.server?.name || null,
 		})) || [];
 
 	const mysql: Services[] =
@@ -197,19 +221,39 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			serverName: item?.server?.name || null,
 		})) || [];
 
 	const compose: Services[] =
-		environment.compose?.map((item) => ({
-			appName: item.appName,
-			name: item.name,
-			type: "compose",
-			id: item.composeId,
-			createdAt: item.createdAt,
-			status: item.composeStatus,
-			description: item.description,
-			serverId: item.serverId,
-		})) || [];
+		environment.compose?.map((item) => {
+			// Get the most recent deployment date
+			let lastDeployDate: Date | null = null;
+			const deployments = (item as any).deployments;
+			if (deployments && deployments.length > 0) {
+				for (const deployment of deployments) {
+					const deployDate = new Date(
+						deployment.finishedAt ||
+							deployment.startedAt ||
+							deployment.createdAt,
+					);
+					if (!lastDeployDate || deployDate > lastDeployDate) {
+						lastDeployDate = deployDate;
+					}
+				}
+			}
+			return {
+				appName: item.appName,
+				name: item.name,
+				type: "compose",
+				id: item.composeId,
+				createdAt: item.createdAt,
+				status: item.composeStatus,
+				description: item.description,
+				serverId: item.serverId,
+				serverName: item?.server?.name || null,
+				lastDeployDate,
+			};
+		}) || [];
 
 	allServices.push(
 		...applications,
@@ -235,11 +279,21 @@ const EnvironmentPage = (
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId, environmentId } = props;
 	const { data: auth } = api.user.get.useQuery();
+
+	const { data: environments } = api.environment.byProjectId.useQuery({
+		projectId: projectId,
+	});
+	const environmentDropdownItems =
+		environments?.map((env) => ({
+			name: env.name,
+			href: `/dashboard/project/${projectId}/environment/${env.environmentId}`,
+		})) || [];
+
 	const [sortBy, setSortBy] = useState<string>(() => {
 		if (typeof window !== "undefined") {
-			return localStorage.getItem("servicesSort") || "createdAt-desc";
+			return localStorage.getItem("servicesSort") || "lastDeploy-desc";
 		}
-		return "createdAt-desc";
+		return "lastDeploy-desc";
 	});
 
 	useEffect(() => {
@@ -261,10 +315,45 @@ const EnvironmentPage = (
 					comparison =
 						new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 					break;
+				case "lastDeploy": {
+					const aLastDeploy = a.lastDeployDate;
+					const bLastDeploy = b.lastDeployDate;
+
+					if (direction === "desc") {
+						// For "desc" (newest first): services with deployments first, then those without
+						if (!aLastDeploy && !bLastDeploy) {
+							comparison = 0;
+						} else if (!aLastDeploy) {
+							comparison = 1; // a (no deploy) goes after b (has deploy)
+						} else if (!bLastDeploy) {
+							comparison = -1; // a (has deploy) goes before b (no deploy)
+						} else {
+							// Both have deployments: newest first (negative if a is newer)
+							comparison = bLastDeploy.getTime() - aLastDeploy.getTime();
+						}
+					} else {
+						// For "asc" (oldest first): services with deployments first, then those without
+						if (!aLastDeploy && !bLastDeploy) {
+							comparison = 0;
+						} else if (!aLastDeploy) {
+							comparison = 1; // a (no deploy) goes after b (has deploy)
+						} else if (!bLastDeploy) {
+							comparison = -1; // a (has deploy) goes before b (no deploy)
+						} else {
+							// Both have deployments: oldest first
+							comparison = aLastDeploy.getTime() - bLastDeploy.getTime();
+						}
+					}
+					break;
+				}
 				default:
 					comparison = 0;
 			}
-			return direction === "asc" ? comparison : -comparison;
+			// For other fields, apply direction normally
+			if (field !== "lastDeploy") {
+				return direction === "asc" ? comparison : -comparison;
+			}
+			return comparison;
 		});
 	};
 
@@ -320,6 +409,7 @@ const EnvironmentPage = (
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 	const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
 	const [deleteVolumes, setDeleteVolumes] = useState(false);
+	const [selectedServerId, setSelectedServerId] = useState<string>("all");
 
 	const handleSelectAll = () => {
 		if (selectedServices.length === filteredServices.length) {
@@ -709,6 +799,27 @@ const EnvironmentPage = (
 		setIsBulkActionLoading(false);
 	};
 
+	// Get unique servers from services
+	const availableServers = useMemo(() => {
+		if (!applications) return [];
+		const servers = new Map<string, { serverId: string; serverName: string }>();
+		applications.forEach((service) => {
+			if (service.serverId && service.serverName) {
+				servers.set(service.serverId, {
+					serverId: service.serverId,
+					serverName: service.serverName,
+				});
+			}
+		});
+		return Array.from(servers.values());
+	}, [applications]);
+
+	// Check if there are services without a server (Dokploy server)
+	const hasServicesWithoutServer = useMemo(() => {
+		if (!applications) return false;
+		return applications.some((service) => !service.serverId);
+	}, [applications]);
+
 	const filteredServices = useMemo(() => {
 		if (!applications) return [];
 		const filtered = applications.filter(
@@ -717,10 +828,14 @@ const EnvironmentPage = (
 					service.description
 						?.toLowerCase()
 						.includes(searchQuery.toLowerCase())) &&
-				(selectedTypes.length === 0 || selectedTypes.includes(service.type)),
+				(selectedTypes.length === 0 || selectedTypes.includes(service.type)) &&
+				(selectedServerId === "" ||
+					selectedServerId === "all" ||
+					(selectedServerId === "dokploy-server" && !service.serverId) ||
+					service.serverId === selectedServerId),
 		);
 		return sortServices(filtered);
-	}, [applications, searchQuery, selectedTypes, sortBy]);
+	}, [applications, searchQuery, selectedTypes, selectedServerId, sortBy]);
 
 	const selectedServicesWithRunningStatus = useMemo(() => {
 		return filteredServices.filter(
@@ -758,6 +873,7 @@ const EnvironmentPage = (
 					},
 					{
 						name: currentEnvironment.name,
+						dropdownItems: environmentDropdownItems,
 					},
 				]}
 			/>
@@ -793,7 +909,9 @@ const EnvironmentPage = (
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>
-									{(auth?.role === "owner" || auth?.canCreateServices) && (
+									{(auth?.role === "owner" ||
+										auth?.role === "admin" ||
+										auth?.canCreateServices) && (
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
 												<Button>
@@ -916,6 +1034,7 @@ const EnvironmentPage = (
 													</Button>
 												</DialogAction>
 												{(auth?.role === "owner" ||
+													auth?.role === "admin" ||
 													auth?.canDeleteServices) && (
 													<>
 														<DialogAction
@@ -1217,6 +1336,9 @@ const EnvironmentPage = (
 												<SelectValue placeholder="Sort by..." />
 											</SelectTrigger>
 											<SelectContent>
+												<SelectItem value="lastDeploy-desc">
+													Recently deployed
+												</SelectItem>
 												<SelectItem value="createdAt-desc">
 													Newest first
 												</SelectItem>
@@ -1291,6 +1413,39 @@ const EnvironmentPage = (
 												</Command>
 											</PopoverContent>
 										</Popover>
+										{(availableServers.length > 0 ||
+											hasServicesWithoutServer) && (
+											<Select
+												value={selectedServerId || "all"}
+												onValueChange={setSelectedServerId}
+											>
+												<SelectTrigger className="lg:w-[200px]">
+													<SelectValue placeholder="Filter by server..." />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="all">All servers</SelectItem>
+													{hasServicesWithoutServer && (
+														<SelectItem value="dokploy-server">
+															<div className="flex items-center gap-2">
+																<ServerIcon className="size-4" />
+																<span>Dokploy server</span>
+															</div>
+														</SelectItem>
+													)}
+													{availableServers.map((server) => (
+														<SelectItem
+															key={server.serverId}
+															value={server.serverId}
+														>
+															<div className="flex items-center gap-2">
+																<ServerIcon className="size-4" />
+																<span>{server.serverName}</span>
+															</div>
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										)}
 									</div>
 								</div>
 
@@ -1396,7 +1551,15 @@ const EnvironmentPage = (
 															</CardTitle>
 														</CardHeader>
 														<CardFooter className="mt-auto">
-															<div className="space-y-1 text-sm">
+															<div className="space-y-1 text-sm w-full">
+																{service.serverName && (
+																	<div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+																		<ServerIcon className="size-3" />
+																		<span className="truncate">
+																			{service.serverName}
+																		</span>
+																	</div>
+																)}
 																<DateTooltip date={service.createdAt}>
 																	Created
 																</DateTooltip>
@@ -1461,9 +1624,39 @@ export async function getServerSideProps(
 				projectId: params.projectId,
 			});
 
-			await helpers.environment.one.fetch({
-				environmentId: params.environmentId,
-			});
+			// Try to fetch the requested environment
+			try {
+				await helpers.environment.one.fetch({
+					environmentId: params.environmentId,
+				});
+			} catch (error) {
+				// If user doesn't have access to requested environment, redirect to accessible one
+				const accessibleEnvironments =
+					await helpers.environment.byProjectId.fetch({
+						projectId: params.projectId,
+					});
+
+				if (accessibleEnvironments.length > 0) {
+					// Try to find default, otherwise use first accessible
+					const targetEnv =
+						accessibleEnvironments.find((env) => env.isDefault) ||
+						accessibleEnvironments[0];
+
+					return {
+						redirect: {
+							permanent: false,
+							destination: `/dashboard/project/${params.projectId}/environment/${targetEnv.environmentId}`,
+						},
+					};
+				}
+				// No accessible environments, redirect to home
+				return {
+					redirect: {
+						permanent: false,
+						destination: "/",
+					},
+				};
+			}
 
 			await helpers.environment.byProjectId.fetch({
 				projectId: params.projectId,

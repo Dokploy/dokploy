@@ -102,7 +102,8 @@ export const removeMonitoringDirectory = async (
 };
 
 export const getBuildAppDirectory = (application: Application) => {
-	const { APPLICATIONS_PATH } = paths(!!application.serverId);
+	const serverId = application.buildServerId || application.serverId;
+	const { APPLICATIONS_PATH } = paths(!!serverId);
 	const { appName, buildType, sourceType, customGitBuildPath, dockerfile } =
 		application;
 	let buildPath = "";

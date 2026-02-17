@@ -25,11 +25,17 @@ if (typeof window === "undefined") {
 }
 
 const baseApp: ApplicationNested = {
-	railpackVersion: "0.2.2",
+	railpackVersion: "0.15.4",
 	applicationId: "",
 	previewLabels: [],
+	createEnvFile: true,
+	bitbucketRepositorySlug: "",
 	herokuVersion: "",
 	giteaBranch: "",
+	buildServerId: "",
+	buildRegistryId: "",
+	buildRegistry: null,
+	args: [],
 	giteaBuildPath: "",
 	previewRequireCollaboratorPermissions: false,
 	giteaId: "",
@@ -37,11 +43,15 @@ const baseApp: ApplicationNested = {
 	giteaRepository: "",
 	cleanCache: false,
 	watchPaths: [],
+	rollbackRegistryId: "",
+	rollbackRegistry: null,
+	deployments: [],
 	enableSubmodules: false,
 	applicationStatus: "done",
 	triggerType: "push",
 	appName: "",
 	autoDeploy: true,
+	endpointSpecSwarm: null,
 	serverId: "",
 	registryUrl: "",
 	branch: null,
@@ -60,6 +70,7 @@ const baseApp: ApplicationNested = {
 	previewNetworkIds: null,
 	environment: {
 		env: "",
+		isDefault: false,
 		environmentId: "",
 		name: "",
 		createdAt: "",
@@ -138,6 +149,7 @@ const baseApp: ApplicationNested = {
 	rollbackActive: false,
 	stopGracePeriodSwarm: null,
 	customNetworkIds: null,
+	ulimitsSwarm: null,
 };
 
 describe("unzipDrop using real zip files", () => {

@@ -35,4 +35,5 @@ COPY --from=build /prod/api/dist ./dist
 COPY --from=build /prod/api/package.json ./package.json
 COPY --from=build /prod/api/node_modules ./node_modules
 
-CMD HOSTNAME=0.0.0.0 && pnpm start
+ENV HOSTNAME=0.0.0.0
+CMD ["pnpm", "start"]

@@ -16,6 +16,8 @@ import { mounts } from "./mount";
 import { server } from "./server";
 import {
 	applicationStatus,
+	type EndpointSpecSwarm,
+	EndpointSpecSwarmSchema,
 	type HealthCheckSwarm,
 	HealthCheckSwarmSchema,
 	type LabelsSwarm,
@@ -28,10 +30,12 @@ import {
 	RestartPolicySwarmSchema,
 	type ServiceModeSwarm,
 	ServiceModeSwarmSchema,
+	type UlimitsSwarm,
+	UlimitsSwarmSchema,
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
-import { generateAppName } from "./utils";
+import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
 
 export const mongo = pgTable("mongo", {
 	mongoId: text("mongoId")
@@ -48,6 +52,7 @@ export const mongo = pgTable("mongo", {
 	databasePassword: text("databasePassword").notNull(),
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
+	args: text("args").array(),
 	env: text("env"),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
@@ -67,6 +72,8 @@ export const mongo = pgTable("mongo", {
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
 	customNetworkIds: text("customNetworkIds").array(),
+	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
+	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
 	replicas: integer("replicas").default(1).notNull(),
 	createdAt: text("createdAt")
 		.notNull()
@@ -95,7 +102,12 @@ export const mongoRelations = relations(mongo, ({ one, many }) => ({
 }));
 
 const createSchema = createInsertSchema(mongo, {
-	appName: z.string().min(1),
+	appName: z
+		.string()
+		.min(1)
+		.max(63)
+		.regex(APP_NAME_REGEX, APP_NAME_MESSAGE)
+		.optional(),
 	createdAt: z.string(),
 	mongoId: z.string(),
 	name: z.string().min(1),
@@ -108,6 +120,7 @@ const createSchema = createInsertSchema(mongo, {
 	databaseUser: z.string().min(1),
 	dockerImage: z.string().default("mongo:15"),
 	command: z.string().optional(),
+	args: z.array(z.string()).optional(),
 	env: z.string().optional(),
 	memoryReservation: z.string().optional(),
 	memoryLimit: z.string().optional(),
@@ -129,21 +142,21 @@ const createSchema = createInsertSchema(mongo, {
 	networkSwarm: NetworkSwarmSchema.nullable(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
 	customNetworkIds: z.array(z.string()).nullable(),
+	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
+	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 });
 
-export const apiCreateMongo = createSchema
-	.pick({
-		name: true,
-		appName: true,
-		dockerImage: true,
-		environmentId: true,
-		description: true,
-		databaseUser: true,
-		databasePassword: true,
-		serverId: true,
-		replicaSets: true,
-	})
-	.required();
+export const apiCreateMongo = createSchema.pick({
+	name: true,
+	appName: true,
+	dockerImage: true,
+	environmentId: true,
+	description: true,
+	databaseUser: true,
+	databasePassword: true,
+	serverId: true,
+	replicaSets: true,
+});
 
 export const apiFindOneMongo = createSchema
 	.pick({

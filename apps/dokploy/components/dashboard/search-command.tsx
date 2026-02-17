@@ -89,24 +89,26 @@ export const SearchCommand = () => {
 					<CommandGroup heading={"Projects"}>
 						<CommandList>
 							{data?.map((project) => {
-								const productionEnvironment = project.environments.find(
-									(environment) => environment.name === "production",
-								);
+								// Find default environment from accessible environments, or fall back to first accessible environment
+								const defaultEnvironment =
+									project.environments.find(
+										(environment) => environment.isDefault,
+									) || project?.environments?.[0];
 
-								if (!productionEnvironment) return null;
+								if (!defaultEnvironment) return null;
 
 								return (
 									<CommandItem
 										key={project.projectId}
 										onSelect={() => {
 											router.push(
-												`/dashboard/project/${project.projectId}/environment/${productionEnvironment!.environmentId}`,
+												`/dashboard/project/${project.projectId}/environment/${defaultEnvironment.environmentId}`,
 											);
 											setOpen(false);
 										}}
 									>
 										<BookIcon className="size-4 text-muted-foreground mr-2" />
-										{project.name} / {productionEnvironment!.name}
+										{project.name} / {defaultEnvironment.name}
 									</CommandItem>
 								);
 							})}

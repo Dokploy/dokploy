@@ -122,6 +122,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			.then(async () => {
 				toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
 				await utils.destination.all.invalidate();
+				if (destinationId) {
+					await utils.destination.one.invalidate({ destinationId });
+				}
 				setOpen(false);
 			})
 			.catch(() => {

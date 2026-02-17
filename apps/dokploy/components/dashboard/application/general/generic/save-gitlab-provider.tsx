@@ -232,9 +232,9 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 								<FormItem className="md:col-span-2 flex flex-col">
 									<div className="flex items-center justify-between">
 										<FormLabel>Repository</FormLabel>
-										{field.value.owner && field.value.repo && (
+										{field.value.gitlabPathNamespace && (
 											<Link
-												href={`${gitlabUrl}/${field.value.owner}/${field.value.repo}`}
+												href={`${gitlabUrl}/${field.value.gitlabPathNamespace}`}
 												target="_blank"
 												rel="noopener noreferrer"
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
@@ -254,13 +254,13 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{isLoadingRepositories
-														? "Loading...."
-														: field.value.owner
-															? repositories?.find(
+													{!field.value.owner
+														? "Select repository"
+														: isLoadingRepositories
+															? "Loading...."
+															: (repositories?.find(
 																	(repo) => repo.name === field.value.repo,
-																)?.name
-															: "Select repository"}
+																)?.name ?? "Select repository")}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -272,11 +272,15 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 													placeholder="Search repository..."
 													className="h-9"
 												/>
-												{isLoadingRepositories && (
+												{!gitlabId ? (
+													<span className="py-6 text-center text-sm text-muted-foreground">
+														Select a GitLab account first
+													</span>
+												) : isLoadingRepositories ? (
 													<span className="py-6 text-center text-sm">
 														Loading Repositories....
 													</span>
-												)}
+												) : null}
 												<CommandEmpty>No repositories found.</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>

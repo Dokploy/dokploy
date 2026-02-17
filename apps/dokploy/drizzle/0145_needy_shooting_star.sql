@@ -30,8 +30,6 @@ ALTER TABLE "network" ADD CONSTRAINT "network_projectId_project_projectId_fk" FO
 ALTER TABLE "network" ADD CONSTRAINT "network_organizationId_organization_id_fk" FOREIGN KEY ("organizationId") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "network" ADD CONSTRAINT "network_serverId_server_serverId_fk" FOREIGN KEY ("serverId") REFERENCES "public"."server"("serverId") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "domain" ADD CONSTRAINT "domain_networkId_network_networkId_fk" FOREIGN KEY ("networkId") REFERENCES "public"."network"("networkId") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-
-
 DO $$
 DECLARE
     compose_record RECORD;
@@ -39,7 +37,7 @@ DECLARE
     org_id TEXT;
     proj_id TEXT;
 BEGIN
-    RAISE NOTICE 'Starting migration 0120: Convert isolatedDeployment to customNetworkIds';
+    RAISE NOTICE 'Starting migration 0145: Convert isolatedDeployment to customNetworkIds';
 
     -- Loop through all composes with isolatedDeployment=true
     FOR compose_record IN
@@ -123,11 +121,9 @@ BEGIN
         SET "isolatedDeployment" = false
         WHERE "composeId" = compose_record."composeId";
 
-        RAISE NOTICE '  ✓ Compose migrated successfully';
+        RAISE NOTICE '  Compose migrated successfully';
     END LOOP;
 
-    RAISE NOTICE 'Migration 0120 completed successfully';
-END $$;
-
-
+    RAISE NOTICE 'Migration 0145 completed successfully';
+END $$;--> statement-breakpoint
 ALTER TABLE "compose" DROP COLUMN "isolatedDeployment";

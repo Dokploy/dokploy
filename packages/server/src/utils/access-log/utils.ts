@@ -99,6 +99,11 @@ export function parseRawConfig(
 			.compact()
 			.value();
 
+		// Filter out Dokploy dashboard requests
+		parsedLogs = parsedLogs.filter(
+			(log) => log.ServiceName !== "dokploy-service-app@file",
+		);
+
 		// Apply date range filter if provided
 		if (dateRange?.start || dateRange?.end) {
 			parsedLogs = parsedLogs.filter((log) => {

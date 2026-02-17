@@ -10,18 +10,9 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import { authClient } from "@/lib/auth-client";
-import { Languages } from "@/lib/languages";
 import { getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
-import useLocale from "@/utils/hooks/use-locale";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
 
@@ -32,7 +23,6 @@ export const UserNav = () => {
 	const { data } = api.user.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
-	const { locale, setLocale } = useLocale();
 	// const { mutateAsync } = api.auth.logout.useMutation();
 
 	return (
@@ -49,7 +39,9 @@ export const UserNav = () => {
 							alt={data?.user?.image || ""}
 						/>
 						<AvatarFallback className="rounded-lg">
-							{getFallbackAvatarInitials(data?.user?.name)}
+							{getFallbackAvatarInitials(
+								`${data?.user?.firstName} ${data?.user?.lastName}`.trim(),
+							)}
 						</AvatarFallback>
 					</Avatar>
 					<div className="grid flex-1 text-left text-sm leading-tight">
@@ -102,7 +94,9 @@ export const UserNav = () => {
 							>
 								Monitoring
 							</DropdownMenuItem>
-							{(data?.role === "owner" || data?.canAccessToTraefikFiles) && (
+							{(data?.role === "owner" ||
+								data?.role === "admin" ||
+								data?.canAccessToTraefikFiles) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -112,7 +106,9 @@ export const UserNav = () => {
 									Traefik
 								</DropdownMenuItem>
 							)}
-							{(data?.role === "owner" || data?.canAccessToDocker) && (
+							{(data?.role === "owner" ||
+								data?.role === "admin" ||
+								data?.canAccessToDocker) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -126,7 +122,7 @@ export const UserNav = () => {
 							)}
 						</>
 					) : (
-						data?.role === "owner" && (
+						(data?.role === "owner" || data?.role === "admin") && (
 							<DropdownMenuItem
 								className="cursor-pointer"
 								onClick={() => {
@@ -149,39 +145,19 @@ export const UserNav = () => {
 					</DropdownMenuItem>
 				)}
 				<DropdownMenuSeparator />
-				<div className="flex items-center justify-between px-2 py-1.5">
-					<DropdownMenuItem
-						className="cursor-pointer"
-						onClick={async () => {
-							await authClient.signOut().then(() => {
-								router.push("/");
-							});
-							// await mutateAsync().then(() => {
-							// 	router.push("/");
-							// });
-						}}
-					>
-						Log out
-					</DropdownMenuItem>
-					<div className="w-32">
-						<Select
-							onValueChange={setLocale}
-							defaultValue={locale}
-							value={locale}
-						>
-							<SelectTrigger>
-								<SelectValue placeholder="Select Language" />
-							</SelectTrigger>
-							<SelectContent>
-								{Object.values(Languages).map((language) => (
-									<SelectItem key={language.code} value={language.code}>
-										{language.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				</div>
+				<DropdownMenuItem
+					className="cursor-pointer"
+					onClick={async () => {
+						await authClient.signOut().then(() => {
+							router.push("/");
+						});
+						// await mutateAsync().then(() => {
+						// 	router.push("/");
+						// });
+					}}
+				>
+					Log out
+				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

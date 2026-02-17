@@ -2,9 +2,12 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../../db";
 import { notifications } from "../../db/schema";
 import {
+	sendCustomNotification,
 	sendDiscordNotification,
 	sendLarkNotification,
+	sendPushoverNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -35,7 +38,10 @@ export const sendServerThresholdNotifications = async (
 			discord: true,
 			telegram: true,
 			slack: true,
+			custom: true,
 			lark: true,
+			pushover: true,
+			teams: true,
 		},
 	});
 
@@ -43,7 +49,8 @@ export const sendServerThresholdNotifications = async (
 	const typeColor = 0xff0000; // Rojo para indicar alerta
 
 	for (const notification of notificationList) {
-		const { discord, telegram, slack, lark } = notification;
+		const { discord, telegram, slack, custom, lark, pushover, teams } =
+			notification;
 
 		if (discord) {
 			const decorate = (decoration: string, text: string) =>
@@ -154,6 +161,21 @@ export const sendServerThresholdNotifications = async (
 			});
 		}
 
+		if (custom) {
+			await sendCustomNotification(custom, {
+				title: `Server ${payload.Type} Alert`,
+				message: payload.Message,
+				serverName: payload.ServerName,
+				type: payload.Type,
+				currentValue: payload.Value,
+				threshold: payload.Threshold,
+				timestamp: date.toISOString(),
+				date: date.toLocaleString(),
+				status: "alert",
+				alertType: "server-threshold",
+			});
+		}
+
 		if (lark) {
 			await sendLarkNotification(lark, {
 				msg_type: "interactive",
@@ -247,6 +269,28 @@ export const sendServerThresholdNotifications = async (
 						],
 					},
 				},
+			});
+		}
+
+		if (pushover) {
+			await sendPushoverNotification(
+				pushover,
+				`Server ${payload.Type} Alert`,
+				`Server: ${payload.ServerName}\nType: ${payload.Type}\nCurrent: ${payload.Value.toFixed(2)}%\nThreshold: ${payload.Threshold.toFixed(2)}%\nMessage: ${payload.Message}\nTime: ${date.toLocaleString()}`,
+			);
+		}
+
+		if (teams) {
+			await sendTeamsNotification(teams, {
+				title: `⚠️ Server ${payload.Type} Alert`,
+				facts: [
+					{ name: "Server Name", value: payload.ServerName },
+					{ name: "Type", value: payload.Type },
+					{ name: "Current Value", value: `${payload.Value.toFixed(2)}%` },
+					{ name: "Threshold", value: `${payload.Threshold.toFixed(2)}%` },
+					{ name: "Time", value: date.toLocaleString() },
+					{ name: "Message", value: payload.Message },
+				],
 			});
 		}
 	}

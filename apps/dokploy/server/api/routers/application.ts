@@ -1,6 +1,7 @@
 import {
 	addNewService,
 	checkServiceAccess,
+	clearOldDeployments,
 	createApplication,
 	deleteAllMiddlewares,
 	findApplicationById,
@@ -57,8 +58,14 @@ import {
 	apiUpdateApplication,
 	applications,
 } from "@/server/db/schema";
+import { deploymentWorker } from "@/server/queues/deployments-queue";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { cleanQueuesByApplication, myQueue } from "@/server/queues/queueSetup";
+import {
+	cleanQueuesByApplication,
+	getJobsByApplicationId,
+	killDockerBuild,
+	myQueue,
+} from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { uploadFileSchema } from "@/utils/schema";
 
@@ -236,6 +243,15 @@ export const applicationRouter = createTRPCRouter({
 				.where(eq(applications.applicationId, input.applicationId))
 				.returning();
 
+			if (!IS_CLOUD) {
+				const queueJobs = await getJobsByApplicationId(input.applicationId);
+				for (const job of queueJobs) {
+					if (job.id) {
+						deploymentWorker.cancelJob(job.id, "User requested cancellation");
+					}
+				}
+			}
+
 			const cleanupOperations = [
 				async () => await deleteAllMiddlewares(application),
 				async () => await removeDeployments(application),
@@ -332,7 +348,9 @@ export const applicationRouter = createTRPCRouter({
 
 			if (IS_CLOUD && application.serverId) {
 				jobData.serverId = application.serverId;
-				await deploy(jobData);
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
 				return true;
 			}
 			await myQueue.add(
@@ -361,6 +379,7 @@ export const applicationRouter = createTRPCRouter({
 				env: input.env,
 				buildArgs: input.buildArgs,
 				buildSecrets: input.buildSecrets,
+				createEnvFile: input.createEnvFile,
 			});
 			return true;
 		}),
@@ -462,6 +481,7 @@ export const applicationRouter = createTRPCRouter({
 			}
 			await updateApplication(input.applicationId, {
 				bitbucketRepository: input.bitbucketRepository,
+				bitbucketRepositorySlug: input.bitbucketRepositorySlug,
 				bitbucketOwner: input.bitbucketOwner,
 				bitbucketBranch: input.bitbucketBranch,
 				bitbucketBuildPath: input.bitbucketBuildPath,
@@ -696,7 +716,9 @@ export const applicationRouter = createTRPCRouter({
 			};
 			if (IS_CLOUD && application.serverId) {
 				jobData.serverId = application.serverId;
-				await deploy(jobData);
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
 
 				return true;
 			}
@@ -725,7 +747,38 @@ export const applicationRouter = createTRPCRouter({
 			}
 			await cleanQueuesByApplication(input.applicationId);
 		}),
-
+	clearDeployments: protectedProcedure
+		.input(apiFindOneApplication)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message:
+						"You are not authorized to clear deployments for this application",
+				});
+			}
+			await clearOldDeployments(application.appName, application.serverId);
+			return true;
+		}),
+	killBuild: protectedProcedure
+		.input(apiFindOneApplication)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to kill this build",
+				});
+			}
+			await killDockerBuild("application", application.serverId);
+		}),
 	readTraefikConfig: protectedProcedure
 		.input(apiFindOneApplication)
 		.query(async ({ input, ctx }) => {
@@ -794,7 +847,9 @@ export const applicationRouter = createTRPCRouter({
 			};
 			if (IS_CLOUD && app.serverId) {
 				jobData.serverId = app.serverId;
-				await deploy(jobData);
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
 				return true;
 			}
 

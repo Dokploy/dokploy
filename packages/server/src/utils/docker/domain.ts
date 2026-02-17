@@ -1,35 +1,16 @@
 import fs, { existsSync, readFileSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Domain } from "@dokploy/server/services/domain";
 import { parse, stringify } from "yaml";
 import { execAsyncRemote } from "../process/execAsync";
-import {
-	cloneRawBitbucketRepository,
-	cloneRawBitbucketRepositoryRemote,
-} from "../providers/bitbucket";
-import {
-	cloneGitRawRepository,
-	cloneRawGitRepositoryRemote,
-} from "../providers/git";
-import {
-	cloneRawGiteaRepository,
-	cloneRawGiteaRepositoryRemote,
-} from "../providers/gitea";
-import {
-	cloneRawGithubRepository,
-	cloneRawGithubRepositoryRemote,
-} from "../providers/github";
-import {
-	cloneRawGitlabRepository,
-	cloneRawGitlabRepositoryRemote,
-} from "../providers/gitlab";
-import {
-	createComposeFileRaw,
-	createComposeFileRawRemote,
-} from "../providers/raw";
+import { cloneBitbucketRepository } from "../providers/bitbucket";
+import { cloneGitRepository } from "../providers/git";
+import { cloneGiteaRepository } from "../providers/gitea";
+import { cloneGithubRepository } from "../providers/github";
+import { cloneGitlabRepository } from "../providers/gitlab";
+import { getCreateComposeFileCommand } from "../providers/raw";
 import {
 	addCustomNetworksToCompose,
 	randomizeDeployableSpecificationFile,
@@ -43,35 +24,25 @@ import type {
 import { encodeBase64 } from "./utils";
 
 export const cloneCompose = async (compose: Compose) => {
+	let command = "set -e;";
+	const entity = {
+		...compose,
+		type: "compose" as const,
+	};
 	if (compose.sourceType === "github") {
-		await cloneRawGithubRepository(compose);
+		command += await cloneGithubRepository(entity);
 	} else if (compose.sourceType === "gitlab") {
-		await cloneRawGitlabRepository(compose);
+		command += await cloneGitlabRepository(entity);
 	} else if (compose.sourceType === "bitbucket") {
-		await cloneRawBitbucketRepository(compose);
+		command += await cloneBitbucketRepository(entity);
 	} else if (compose.sourceType === "git") {
-		await cloneGitRawRepository(compose);
+		command += await cloneGitRepository(entity);
 	} else if (compose.sourceType === "gitea") {
-		await cloneRawGiteaRepository(compose);
+		command += await cloneGiteaRepository(entity);
 	} else if (compose.sourceType === "raw") {
-		await createComposeFileRaw(compose);
+		command += getCreateComposeFileCommand(compose);
 	}
-};
-
-export const cloneComposeRemote = async (compose: Compose) => {
-	if (compose.sourceType === "github") {
-		await cloneRawGithubRepositoryRemote(compose);
-	} else if (compose.sourceType === "gitlab") {
-		await cloneRawGitlabRepositoryRemote(compose);
-	} else if (compose.sourceType === "bitbucket") {
-		await cloneRawBitbucketRepositoryRemote(compose);
-	} else if (compose.sourceType === "git") {
-		await cloneRawGitRepositoryRemote(compose);
-	} else if (compose.sourceType === "gitea") {
-		await cloneRawGiteaRepositoryRemote(compose);
-	} else if (compose.sourceType === "raw") {
-		await createComposeFileRawRemote(compose);
-	}
+	return command;
 };
 
 export const getComposePath = (compose: Compose) => {
@@ -138,49 +109,32 @@ export const writeDomainsToCompose = async (
 	compose: Compose,
 	domains: Domain[],
 ) => {
-	const composeConverted = await addDomainToCompose(compose, domains);
-
-	if (!composeConverted) {
-		return;
+	if (!domains.length) {
+		return "";
 	}
 
-	const path = getComposePath(compose);
-	const composeString = stringify(composeConverted, { lineWidth: 1000 });
-	try {
-		await writeFile(path, composeString, "utf8");
-	} catch (error) {
-		throw error;
-	}
-};
 
-export const writeDomainsToComposeRemote = async (
-	compose: Compose,
-	domains: Domain[],
-	logPath: string,
-) => {
 	try {
 		const composeConverted = await addDomainToCompose(compose, domains);
 		const path = getComposePath(compose);
 
 		if (!composeConverted) {
 			return `
-echo "❌ Error: Compose file not found" >> ${logPath};
+echo "❌ Error: Compose file not found";
 exit 1;
 			`;
 		}
-		if (compose.serverId) {
-			const composeString = stringify(composeConverted, { lineWidth: 1000 });
-			const encodedContent = encodeBase64(composeString);
-			return `echo "${encodedContent}" | base64 -d > "${path}";`;
-		}
+
+		const composeString = stringify(composeConverted, { lineWidth: 1000 });
+		const encodedContent = encodeBase64(composeString);
+		return `echo "${encodedContent}" | base64 -d > "${path}";`;
 	} catch (error) {
 		// @ts-ignore
-		return `echo "❌ Has occured an error: ${error?.message || error}" >> ${logPath};
+		return `echo "❌ Has occurred an error: ${error?.message || error}";
 exit 1;
 		`;
 	}
 };
-// (node:59875) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 SIGTERM listeners added to [process]. Use emitter.setMaxListeners() to increase limit
 export const addDomainToCompose = async (
 	compose: Compose,
 	domains: Domain[],
@@ -190,7 +144,7 @@ export const addDomainToCompose = async (
 	let result: ComposeSpecification | null;
 
 	if (compose.serverId) {
-		result = await loadDockerComposeRemote(compose); // aca hay que ir al servidor e ir a traer el compose file al servidor
+		result = await loadDockerComposeRemote(compose);
 	} else {
 		result = await loadDockerCompose(compose);
 	}
@@ -227,10 +181,12 @@ export const addDomainToCompose = async (
 	for (const domain of domains) {
 		const { serviceName, https } = domain;
 		if (!serviceName) {
-			throw new Error("Service name not found");
+			throw new Error(`Domain "${domain.host}" is missing a service name`);
 		}
 		if (!result?.services?.[serviceName]) {
-			throw new Error(`The service ${serviceName} not found in the compose`);
+			throw new Error(
+				`Domain "${domain.host}" is attached to service "${serviceName}" which does not exist in the compose`,
+			);
 		}
 
 		const httpLabels = createDomainLabels(appName, domain, "web");
@@ -416,6 +372,7 @@ export const addDokployNetworkToService = (
 ) => {
 	let networks = networkService;
 	const network = "dokploy-network";
+	const defaultNetwork = "default";
 	if (!networks) {
 		networks = [];
 	}
@@ -424,9 +381,15 @@ export const addDokployNetworkToService = (
 		if (!networks.includes(network)) {
 			networks.push(network);
 		}
+		if (!networks.includes(defaultNetwork)) {
+			networks.push(defaultNetwork);
+		}
 	} else if (networks && typeof networks === "object") {
 		if (!(network in networks)) {
 			networks[network] = {};
+		}
+		if (!(defaultNetwork in networks)) {
+			networks[defaultNetwork] = {};
 		}
 	}
 

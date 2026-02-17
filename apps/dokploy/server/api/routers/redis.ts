@@ -1,5 +1,6 @@
 import {
 	addNewService,
+	checkPortInUse,
 	checkServiceAccess,
 	createMount,
 	createRedis,
@@ -201,9 +202,9 @@ export const redisRouter = createTRPCRouter({
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortRedis)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findRedisById(input.redisId);
+			const redis = await findRedisById(input.redisId);
 			if (
-				mongo.environment.project.organizationId !==
+				redis.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -211,11 +212,25 @@ export const redisRouter = createTRPCRouter({
 					message: "You are not authorized to save this external port",
 				});
 			}
+
+			if (input.externalPort) {
+				const portCheck = await checkPortInUse(
+					input.externalPort,
+					redis.serverId || undefined,
+				);
+				if (portCheck.isInUse) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `Port ${input.externalPort} is already in use by ${portCheck.conflictingContainer}`,
+					});
+				}
+			}
+
 			await updateRedisById(input.redisId, {
 				externalPort: input.externalPort,
 			});
 			await deployRedis(input.redisId);
-			return mongo;
+			return redis;
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployRedis)

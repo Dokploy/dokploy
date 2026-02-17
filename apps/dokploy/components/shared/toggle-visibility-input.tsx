@@ -10,7 +10,7 @@ export const ToggleVisibilityInput = ({ ...props }: InputProps) => {
 
 	return (
 		<div className="flex w-full items-center space-x-2">
-			<Input ref={inputRef} type={"password"} {...props} />
+			<Input ref={inputRef} {...props} type="password" />
 			<Button
 				variant={"secondary"}
 				onClick={() => {

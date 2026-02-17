@@ -95,6 +95,7 @@ export const CreateServer = ({ stepper }: Props) => {
 			port: data.port || 22,
 			username: data.username || "root",
 			sshKeyId: data.sshKeyId || "",
+			serverType: "deploy",
 		})
 			.then(async (_data) => {
 				toast.success("Server Created");
