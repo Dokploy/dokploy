@@ -113,7 +113,6 @@ export const writeDomainsToCompose = async (
 		return "";
 	}
 
-
 	try {
 		const composeConverted = await addDomainToCompose(compose, domains);
 		const path = getComposePath(compose);
