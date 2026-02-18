@@ -2,8 +2,8 @@ import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { Loader2 } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
-import { useEffect, useMemo, useState } from "react";
 import type { ReactElement } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ShowPaidMonitoring } from "@/components/dashboard/monitoring/paid/servers/show-paid-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -156,7 +156,9 @@ const Dashboard = () => {
 		() =>
 			selectedProjectId === "all"
 				? []
-				: resources.filter((resource) => resource.projectId === selectedProjectId),
+				: resources.filter(
+						(resource) => resource.projectId === selectedProjectId,
+					),
 		[resources, selectedProjectId],
 	);
 
@@ -255,7 +257,9 @@ const Dashboard = () => {
 													<SelectValue placeholder="Whole server (default)" />
 												</SelectTrigger>
 												<SelectContent>
-													<SelectItem value="all">Whole server (default)</SelectItem>
+													<SelectItem value="all">
+														Whole server (default)
+													</SelectItem>
 													{projectOptions.map((project) => (
 														<SelectItem
 															key={project.projectId}
@@ -275,7 +279,10 @@ const Dashboard = () => {
 											<Select
 												value={selectedResourceKey}
 												onValueChange={setSelectedResourceKey}
-												disabled={selectedProjectId === "all" || resourceOptions.length === 0}
+												disabled={
+													selectedProjectId === "all" ||
+													resourceOptions.length === 0
+												}
 											>
 												<SelectTrigger className="w-[320px]">
 													<SelectValue placeholder="Select an application or resource" />
