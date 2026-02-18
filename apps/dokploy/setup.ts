@@ -35,4 +35,6 @@ import {
 	} catch (e) {
 		console.error("Error in dokploy setup", e);
 	}
+
+	await new Promise<void>((res) => setTimeout(() => res(), 5000));
 })();
