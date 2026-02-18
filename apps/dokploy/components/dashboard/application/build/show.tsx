@@ -236,7 +236,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 				data.buildType === BuildType.static ? data.isStaticSpa : null,
 			railpackVersion:
 				data.buildType === BuildType.railpack
-					? data.railpackVersion || "0.15.4"
+					? data.railpackVersion || "0.17.2"
 					: null,
 		})
 			.then(async () => {
