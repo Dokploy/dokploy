@@ -6,9 +6,10 @@ import { ShowPaidMonitoring } from "../../monitoring/paid/servers/show-paid-moni
 interface Props {
 	url: string;
 	token: string;
+	serverId?: string;
 }
 
-export const ShowMonitoringModal = ({ url, token }: Props) => {
+export const ShowMonitoringModal = ({ url, token, serverId }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 
 	return (
@@ -23,7 +24,7 @@ export const ShowMonitoringModal = ({ url, token }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-7xl  ">
 				<div className="flex gap-4 py-4 w-full">
-					<ShowPaidMonitoring BASE_URL={url} token={token} />
+					<ShowPaidMonitoring BASE_URL={url} token={token} serverId={serverId} />
 				</div>
 			</DialogContent>
 		</Dialog>

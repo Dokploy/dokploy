@@ -169,6 +169,7 @@ export const ShowServers = () => {
 																									server?.metricsConfig?.server
 																										?.token
 																								}
+																								serverId={server.serverId}
 																							/>
 																						)}
 																						<ShowSwarmOverviewModal

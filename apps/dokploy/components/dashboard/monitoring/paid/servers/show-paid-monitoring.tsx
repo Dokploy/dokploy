@@ -1,5 +1,5 @@
 import { Clock, Cpu, HardDrive, Loader2, MemoryStick } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
 	Select,
 	SelectContent,
@@ -8,6 +8,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
+import { ContainerPaidMonitoring } from "../container/show-paid-container-monitoring";
 import { CPUChart } from "./cpu-chart";
 import { DiskChart } from "./disk-chart";
 import { MemoryChart } from "./memory-chart";
@@ -55,18 +56,39 @@ interface SystemMetrics {
 interface Props {
 	BASE_URL?: string;
 	token?: string;
+	serverId?: string;
 }
+
+interface MonitoringResource {
+	key: string;
+	projectId: string;
+	projectName: string;
+	appName: string;
+	label: string;
+	type: string;
+	serverId?: string | null;
+}
+
+const getContainerMetricsBaseUrl = (url: string) =>
+	url.replace(/\/?metrics\/?$/, "");
 
 export const ShowPaidMonitoring = ({
 	BASE_URL = process.env.NEXT_PUBLIC_METRICS_URL ||
 		"http://localhost:3001/metrics",
 	token = process.env.NEXT_PUBLIC_METRICS_TOKEN || "my-token",
+	serverId,
 }: Props) => {
 	const [historicalData, setHistoricalData] = useState<SystemMetrics[]>([]);
 	const [metrics, setMetrics] = useState<SystemMetrics>({} as SystemMetrics);
 	const [dataPoints, setDataPoints] =
 		useState<keyof typeof DATA_POINTS_OPTIONS>("50");
 	const [refreshInterval, setRefreshInterval] = useState<string>("5000");
+	const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
+	const [selectedResourceKey, setSelectedResourceKey] = useState<string>("");
+
+	const { data: projects } = api.project.all.useQuery(undefined, {
+		refetchOnWindowFocus: false,
+	});
 
 	const {
 		data,
@@ -114,6 +136,139 @@ export const ShowPaidMonitoring = ({
 		// @ts-ignore
 		setMetrics(formattedData[formattedData.length - 1] || {});
 	}, [data]);
+
+	const resources = useMemo<MonitoringResource[]>(() => {
+		if (!projects) {
+			return [];
+		}
+
+		const allResources = projects.flatMap((project) => {
+			const projectId = project.projectId;
+			const projectName = project.name;
+
+			return project.environments.flatMap((environment) => [
+				...environment.applications.map((app) => ({
+					key: `application-${app.applicationId}`,
+					projectId,
+					projectName,
+					appName: app.appName,
+					label: app.name,
+					type: "Application",
+					serverId: app.serverId,
+				})),
+				...environment.compose.map((service) => ({
+					key: `compose-${service.composeId}`,
+					projectId,
+					projectName,
+					appName: service.appName,
+					label: service.name,
+					type: "Compose",
+					serverId: service.serverId,
+				})),
+				...environment.postgres.map((service) => ({
+					key: `postgres-${service.postgresId}`,
+					projectId,
+					projectName,
+					appName: service.appName,
+					label: service.name,
+					type: "Postgres",
+					serverId: service.serverId,
+				})),
+				...environment.redis.map((service) => ({
+					key: `redis-${service.redisId}`,
+					projectId,
+					projectName,
+					appName: service.appName,
+					label: service.name,
+					type: "Redis",
+					serverId: service.serverId,
+				})),
+				...environment.mysql.map((service) => ({
+					key: `mysql-${service.mysqlId}`,
+					projectId,
+					projectName,
+					appName: service.appName,
+					label: service.name,
+					type: "MySQL",
+					serverId: service.serverId,
+				})),
+				...environment.mongo.map((service) => ({
+					key: `mongo-${service.mongoId}`,
+					projectId,
+					projectName,
+					appName: service.appName,
+					label: service.name,
+					type: "MongoDB",
+					serverId: service.serverId,
+				})),
+				...environment.mariadb.map((service) => ({
+					key: `mariadb-${service.mariadbId}`,
+					projectId,
+					projectName,
+					appName: service.appName,
+					label: service.name,
+					type: "MariaDB",
+					serverId: service.serverId,
+				})),
+			]);
+		});
+
+		return allResources.filter(
+			(resource) =>
+				Boolean(resource.appName) &&
+				(!serverId || resource.serverId === serverId),
+		);
+	}, [projects, serverId]);
+
+	const projectOptions = useMemo(
+		() =>
+			Array.from(
+				new Map(
+					resources.map((resource) => [
+						resource.projectId,
+						{
+							projectId: resource.projectId,
+							projectName: resource.projectName,
+						},
+					]),
+				).values(),
+			),
+		[resources],
+	);
+
+	const resourceOptions = useMemo(
+		() =>
+			selectedProjectId === "all"
+				? []
+				: resources.filter((resource) => resource.projectId === selectedProjectId),
+		[resources, selectedProjectId],
+	);
+
+	const selectedResource = useMemo(
+		() =>
+			resourceOptions.find((resource) => resource.key === selectedResourceKey),
+		[resourceOptions, selectedResourceKey],
+	);
+
+	useEffect(() => {
+		if (selectedProjectId === "all") {
+			setSelectedResourceKey("");
+			return;
+		}
+
+		if (resourceOptions.length === 0) {
+			setSelectedResourceKey("");
+			return;
+		}
+
+		const hasSelectedResource = resourceOptions.some(
+			(resource) => resource.key === selectedResourceKey,
+		);
+
+		if (!hasSelectedResource) {
+			setSelectedResourceKey("");
+		}
+	}, [resourceOptions, selectedProjectId, selectedResourceKey]);
 
 	const formatUptime = (seconds: number): string => {
 		const days = Math.floor(seconds / (24 * 60 * 60));
@@ -200,6 +355,53 @@ export const ShowPaidMonitoring = ({
 				</div>
 			</div>
 
+			<div className="flex items-center gap-4 flex-wrap">
+				<div>
+					<span className="text-sm text-muted-foreground">Project:</span>
+					<Select
+						value={selectedProjectId}
+						onValueChange={(value) => {
+							setSelectedProjectId(value);
+							setSelectedResourceKey("");
+						}}
+					>
+						<SelectTrigger className="w-[240px]">
+							<SelectValue placeholder="Whole server (default)" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">Whole server (default)</SelectItem>
+							{projectOptions.map((project) => (
+								<SelectItem key={project.projectId} value={project.projectId}>
+									{project.projectName}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+
+				<div>
+					<span className="text-sm text-muted-foreground">
+						Application or resource:
+					</span>
+					<Select
+						value={selectedResourceKey}
+						onValueChange={setSelectedResourceKey}
+						disabled={selectedProjectId === "all" || resourceOptions.length === 0}
+					>
+						<SelectTrigger className="w-[320px]">
+							<SelectValue placeholder="Select an application or resource" />
+						</SelectTrigger>
+						<SelectContent>
+							{resourceOptions.map((resource) => (
+								<SelectItem key={resource.key} value={resource.key}>
+									{resource.label} ({resource.type})
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+			</div>
+
 			{/* Stats Cards */}
 			<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
 				<div className="rounded-lg border text-card-foreground shadow-sm p-6">
@@ -269,6 +471,22 @@ export const ShowPaidMonitoring = ({
 				<MemoryChart data={historicalData} />
 				<DiskChart data={metrics} />
 				<NetworkChart data={historicalData} />
+			</div>
+
+			<div className="rounded-lg border p-6 space-y-4">
+				<h3 className="text-lg font-medium">Resource Monitoring</h3>
+				{selectedResource ? (
+					<ContainerPaidMonitoring
+						appName={selectedResource.appName}
+						baseUrl={getContainerMetricsBaseUrl(BASE_URL)}
+						token={token}
+					/>
+				) : (
+					<p className="text-sm text-muted-foreground">
+						Whole-server monitoring is active. Select a project and resource to
+						filter.
+					</p>
+				)}
 			</div>
 		</div>
 	);
