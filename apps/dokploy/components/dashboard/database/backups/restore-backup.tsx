@@ -35,6 +35,7 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -273,7 +274,7 @@ export const RestoreBackup = ({
 			destinationId: form.watch("destinationId"),
 			backupType: backupType,
 			metadata: metadata,
-			additionalOptions: additionalOptions,
+			additionalOptions: additionalOptions?.map(e => e?.trim()).filter(Boolean) || [],
 		},
 		{
 			enabled: isDeploying,
@@ -801,7 +802,7 @@ export const RestoreBackup = ({
 									<FormItem>
 										<FormLabel>Additional Options</FormLabel>
 										<FormControl>
-											<InputArray placeholder={"dokploy/"} {...field} />
+											<InputArray placeholder={"--flag=value"} {...field} />
 										</FormControl>
 										<FormDescription>
 											Use if you want to pass additional options to the backup command

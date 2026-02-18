@@ -304,7 +304,7 @@ export const HandleBackup = ({
 			backupId: backupId ?? "",
 			backupType,
 			metadata: data.metadata,
-			additionalOptions: data.additionalOptions,
+			additionalOptions: data.additionalOptions?.map(e => e?.trim()).filter(Boolean) || [],
 		})
 			.then(async () => {
 				toast.success(`Backup ${backupId ? "Updated" : "Created"}`);
@@ -766,7 +766,7 @@ export const HandleBackup = ({
 										<FormItem>
 											<FormLabel>Additional Options</FormLabel>
 											<FormControl>
-												<InputArray placeholder={"dokploy/"} {...field} />
+												<InputArray placeholder={"--flag=value"} {...field} />
 											</FormControl>
 											<FormDescription>
 												Use if you want to pass additional options to the backup command
