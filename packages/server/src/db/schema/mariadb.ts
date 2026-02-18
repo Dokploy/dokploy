@@ -212,3 +212,9 @@ export const apiRebuildMariadb = createSchema
 		mariadbId: true,
 	})
 	.required();
+
+// Schema for transferring mariadb to another server
+export const apiTransferMariaDB = z.object({
+	mariadbId: z.string().min(1),
+	targetServerId: z.string().trim().nullable(),
+});

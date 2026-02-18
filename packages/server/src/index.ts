@@ -42,6 +42,7 @@ export * from "./services/security";
 export * from "./services/server";
 export * from "./services/settings";
 export * from "./services/ssh-key";
+export * from "./services/transfer";
 export * from "./services/user";
 export * from "./services/volume-backups";
 export * from "./services/web-server-settings";
