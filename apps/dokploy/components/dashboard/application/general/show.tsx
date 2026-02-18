@@ -48,6 +48,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 		api.application.reload.useMutation();
 
 	const { mutateAsync: redeploy } = api.application.redeploy.useMutation();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	return (
 		<>
@@ -66,7 +67,11 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 									applicationId: applicationId,
 								})
 									.then(() => {
-										toast.success("Application deployed successfully");
+										toast.success(
+											isCloud
+												? "Application deployed successfully"
+												: "Deployment queued",
+										);
 										refetch();
 										router.push(
 											`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/application/${applicationId}?tab=deployments`,
@@ -146,7 +151,11 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 									applicationId: applicationId,
 								})
 									.then(() => {
-										toast.success("Application rebuilt successfully");
+										toast.success(
+											isCloud
+												? "Application rebuilt successfully"
+												: "Rebuild queued",
+										);
 										refetch();
 									})
 									.catch(() => {

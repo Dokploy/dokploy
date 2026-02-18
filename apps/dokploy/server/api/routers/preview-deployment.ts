@@ -9,7 +9,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { apiFindAllByApplication } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { myQueue } from "@/server/queues/queueSetup";
+import { enqueueDeploymentJob } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
@@ -105,8 +105,7 @@ export const previewDeploymentRouter = createTRPCRouter({
 				});
 				return true;
 			}
-			await myQueue.add(
-				"deployments",
+			await enqueueDeploymentJob(
 				{ ...jobData },
 				{
 					removeOnComplete: true,

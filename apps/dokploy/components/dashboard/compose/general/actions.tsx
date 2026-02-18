@@ -32,6 +32,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 		api.compose.start.useMutation();
 	const { mutateAsync: stop, isLoading: isStopping } =
 		api.compose.stop.useMutation();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	return (
 		<div className="flex flex-row gap-4 w-full flex-wrap ">
 			<TooltipProvider delayDuration={0} disableHoverableContent={false}>
@@ -44,7 +45,11 @@ export const ComposeActions = ({ composeId }: Props) => {
 							composeId: composeId,
 						})
 							.then(() => {
-								toast.success("Compose deployed successfully");
+								toast.success(
+									isCloud
+										? "Compose deployed successfully"
+										: "Deployment queued",
+								);
 								refetch();
 								router.push(
 									`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/compose/${composeId}?tab=deployments`,
@@ -84,7 +89,11 @@ export const ComposeActions = ({ composeId }: Props) => {
 							composeId: composeId,
 						})
 							.then(() => {
-								toast.success("Compose reloaded successfully");
+								toast.success(
+									isCloud
+										? "Compose reloaded successfully"
+										: "Redeployment queued",
+								);
 								refetch();
 							})
 							.catch(() => {

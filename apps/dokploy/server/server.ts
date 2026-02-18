@@ -71,9 +71,9 @@ void app.prepare().then(async () => {
 		await initEnterpriseBackupCronJobs();
 
 		if (!IS_CLOUD) {
-			console.log("Starting Deployment Worker");
-			const { deploymentWorker } = await import("./queues/deployments-queue");
-			await deploymentWorker.run();
+			console.log("Starting Deployment Workers");
+			const { startDeploymentWorkers } = await import("./queues/queueSetup");
+			await startDeploymentWorkers();
 		}
 	} catch (e) {
 		console.error("Main Server Error", e);

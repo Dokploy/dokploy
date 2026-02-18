@@ -74,6 +74,19 @@ export const ShowDeployments = ({
 		);
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: queueSummary } = api.deployment.queueSummaryByType.useQuery(
+		{
+			id,
+			type: type === "application" || type === "compose" ? type : "application",
+		},
+		{
+			enabled:
+				!!id &&
+				(type === "application" || type === "compose") &&
+				isCloud === false,
+			refetchInterval: 1000,
+		},
+	);
 
 	const { mutateAsync: rollback, isLoading: isRollingBack } =
 		api.rollback.rollback.useMutation();
@@ -236,6 +249,28 @@ export const ShowDeployments = ({
 						</div>
 					</div>
 				)}
+				{!isCloud &&
+					queueSummary &&
+					(type === "application" || type === "compose") &&
+					(queueSummary.queuedForService > 0 ||
+						queueSummary.runningOnTarget > 0) && (
+						<AlertBlock type="info" className="flex-col items-start w-full p-4">
+							<div className="flex flex-col gap-1 text-sm">
+								<span className="font-medium">Deployment Queue</span>
+								<span>
+									Target: {queueSummary.targetName} | Running:{" "}
+									{queueSummary.runningOnTarget}/{queueSummary.concurrencyLimit} |
+									Queued on target: {queueSummary.queuedOnTarget}
+								</span>
+								<span>
+									Queued for this service: {queueSummary.queuedForService}
+									{queueSummary.nextServiceJobPosition
+										? ` | Next position: ${queueSummary.nextServiceJobPosition}`
+										: ""}
+								</span>
+							</div>
+						</AlertBlock>
+					)}
 
 				{isLoadingDeployments ? (
 					<div className="flex w-full flex-row items-center justify-center gap-3 pt-10 min-h-[25vh]">

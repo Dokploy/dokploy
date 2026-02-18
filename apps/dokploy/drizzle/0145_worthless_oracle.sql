@@ -1,0 +1,2 @@
+ALTER TABLE "server" ADD COLUMN "deploymentConcurrency" integer DEFAULT 1 NOT NULL;--> statement-breakpoint
+ALTER TABLE "webServerSettings" ADD COLUMN "localDeploymentConcurrency" integer DEFAULT 1 NOT NULL;
