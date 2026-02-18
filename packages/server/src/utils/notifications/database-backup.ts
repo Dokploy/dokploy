@@ -14,6 +14,7 @@ import {
 	sendPushoverNotification,
 	sendResendNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -52,6 +53,7 @@ export const sendDatabaseBackupNotifications = async ({
 			custom: true,
 			lark: true,
 			pushover: true,
+			teams: true,
 		},
 	});
 
@@ -67,6 +69,7 @@ export const sendDatabaseBackupNotifications = async ({
 			custom,
 			lark,
 			pushover,
+			teams,
 		} = notification;
 		try {
 			if (email || resend) {
@@ -409,6 +412,30 @@ export const sendDatabaseBackupNotifications = async ({
 					`Database Backup ${type === "success" ? "Successful" : "Failed"}`,
 					`Project: ${projectName}\nApplication: ${applicationName}\nDatabase: ${databaseType}\nDatabase Name: ${databaseName}\nDate: ${date.toLocaleString()}${type === "error" && errorMessage ? `\nError: ${errorMessage}` : ""}`,
 				);
+			}
+
+			if (teams) {
+				const facts = [
+					{ name: "Project", value: projectName },
+					{ name: "Application", value: applicationName },
+					{ name: "Database Type", value: databaseType },
+					{ name: "Database Name", value: databaseName },
+					{ name: "Date", value: format(date, "PP pp") },
+					{
+						name: "Status",
+						value: type === "success" ? "Successful" : "Failed",
+					},
+				];
+				if (type === "error" && errorMessage) {
+					facts.push({ name: "Error", value: errorMessage.substring(0, 500) });
+				}
+				await sendTeamsNotification(teams, {
+					title:
+						type === "success"
+							? "✅ Database Backup Successful"
+							: "❌ Database Backup Failed",
+					facts,
+				});
 			}
 		} catch (error) {
 			console.log(error);

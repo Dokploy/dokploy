@@ -9,7 +9,6 @@ import { ProfileForm } from "@/components/dashboard/settings/profile/profile-for
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 const Page = () => {
 	const { data } = api.user.get.useQuery();
@@ -37,7 +36,6 @@ export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
 	const { req, res } = ctx;
-	const locale = getLocale(req.cookies);
 	const { user, session } = await validateRequest(req);
 
 	const helpers = createServerSideHelpers({
@@ -67,7 +65,6 @@ export async function getServerSideProps(
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
-			...(await serverSideTranslations(locale, ["settings"])),
 		},
 	};
 }

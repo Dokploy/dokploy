@@ -1,7 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil, PlusIcon } from "lucide-react";
 import Link from "next/link";
-import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -63,8 +62,6 @@ interface Props {
 }
 
 export const HandleServers = ({ serverId, asButton = false }: Props) => {
-	const { t } = useTranslation("settings");
-
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: canCreateMoreServers, refetch } =
@@ -365,7 +362,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 								name="ipAddress"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("settings.terminal.ipAddress")}</FormLabel>
+										<FormLabel>IP Address</FormLabel>
 										<FormControl>
 											<Input placeholder="192.168.1.100" {...field} />
 										</FormControl>
@@ -379,7 +376,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 								name="port"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("settings.terminal.port")}</FormLabel>
+										<FormLabel>Port</FormLabel>
 										<FormControl>
 											<Input
 												placeholder="22"
@@ -409,7 +406,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 							name="username"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>{t("settings.terminal.username")}</FormLabel>
+									<FormLabel>Username</FormLabel>
 									<FormControl>
 										<Input placeholder="root" {...field} />
 									</FormControl>

@@ -18,9 +18,7 @@ import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 
-const query = await db.query.ssoProvider.findMany();
-
-const trustedProviders = query.map((provider) => provider.providerId);
+const trustedProviders = process.env?.TRUSTED_PROVIDERS?.split(",") || [];
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -349,6 +347,7 @@ export const auth = {
 	handler,
 	createApiKey: api.createApiKey,
 	registerSSOProvider: api.registerSSOProvider,
+	updateSSOProvider: api.updateSSOProvider,
 };
 
 export const validateRequest = async (request: IncomingMessage) => {
