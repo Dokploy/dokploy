@@ -10,6 +10,29 @@ import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { runWebServerBackup } from "./web-server";
 
+
+/**
+ * Escape a string for safe use in shell commands.
+ * Wraps the value in single quotes and escapes any embedded single quotes.
+ */
+export const shellEscape = (str: string): string => {
+	return `'${str.replace(/'/g, "'\\''")}'`;
+};
+
+/**
+ * Escape a string for safe embedding inside double-quoted shell strings.
+ * Prevents interpretation of $, `, \, ", and ! characters.
+ */
+const escapeForDoubleQuotes = (str: string): string => {
+	return str
+		.replace(/\\/g, "\\\\")
+		.replace(/\$/g, "\\$")
+		.replace(/`/g, "\\`")
+		.replace(/"/g, '\\"')
+		.replace(/!/g, "\\!");
+};
+
+
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const {
 		schedule,
@@ -66,16 +89,16 @@ export const getS3Credentials = (destination: Destination) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [
-		`--s3-access-key-id="${accessKey}"`,
-		`--s3-secret-access-key="${secretAccessKey}"`,
-		`--s3-region="${region}"`,
-		`--s3-endpoint="${endpoint}"`,
+		`--s3-access-key-id=${shellEscape(accessKey)}`,
+		`--s3-secret-access-key=${shellEscape(secretAccessKey)}`,
+		`--s3-region=${shellEscape(region)}`,
+		`--s3-endpoint=${shellEscape(endpoint)}`,
 		"--s3-no-check-bucket",
 		"--s3-force-path-style",
 	];
 
 	if (provider) {
-		rcloneFlags.unshift(`--s3-provider="${provider}"`);
+		rcloneFlags.unshift(`--s3-provider=${shellEscape(provider)}`);
 	}
 
 	return rcloneFlags;
@@ -88,20 +111,21 @@ export const getSftpCredentials = (destination: Destination) => {
 	const { sftpHost, sftpPort, sftpUsername, sftpPassword, sftpKeyPath } =
 		destination;
 	const rcloneFlags = [
-		`--sftp-host="${sftpHost || ""}"`,
-		`--sftp-user="${sftpUsername || ""}"`,
+		`--sftp-host=${shellEscape(sftpHost || "")}`,
+		`--sftp-user=${shellEscape(sftpUsername || "")}`,
 	];
 
 	if (sftpPort) {
-		rcloneFlags.push(`--sftp-port="${sftpPort}"`);
+		rcloneFlags.push(`--sftp-port=${shellEscape(String(sftpPort))}`);
 	}
 
 	if (sftpPassword) {
-		rcloneFlags.push(`--sftp-pass="$(rclone obscure '${sftpPassword}')"`);
+		const obscuredPass = `$(rclone obscure ${shellEscape(sftpPassword)})`;
+		rcloneFlags.push(`--sftp-pass=${obscuredPass}`);
 	}
 
 	if (sftpKeyPath) {
-		rcloneFlags.push(`--sftp-key-file="${sftpKeyPath}"`);
+		rcloneFlags.push(`--sftp-key-file=${shellEscape(sftpKeyPath)}`);
 	}
 
 	return rcloneFlags;
@@ -139,16 +163,15 @@ export const getRcloneDestinationPath = (
 	subPath: string,
 ): string => {
 	const destType = destination.destinationType || "s3";
-
 	switch (destType) {
 		case "s3":
-			return `:s3:${destination.bucket}/${subPath}`;
+			return `:s3:${escapeForDoubleQuotes(destination.bucket)}/${escapeForDoubleQuotes(subPath)}`;
 		case "sftp": {
 			const remotePath = (destination.sftpRemotePath || "").replace(
 				/\/+$/,
 				"",
 			);
-			return `:sftp:${remotePath}/${subPath}`;
+			return `:sftp:${escapeForDoubleQuotes(remotePath)}/${escapeForDoubleQuotes(subPath)}`;
 		}
 		case "rclone": {
 			const remoteName = destination.rcloneRemoteName || "remote";
@@ -156,10 +179,10 @@ export const getRcloneDestinationPath = (
 				/\/+$/,
 				"",
 			);
-			return `${remoteName}:${remotePath}/${subPath}`;
+			return `${escapeForDoubleQuotes(remoteName)}:${escapeForDoubleQuotes(remotePath)}/${escapeForDoubleQuotes(subPath)}`;
 		}
 		default:
-			return `:s3:${destination.bucket}/${subPath}`;
+			return `:s3:${escapeForDoubleQuotes(destination.bucket)}/${escapeForDoubleQuotes(subPath)}`;
 	}
 };
 
@@ -174,13 +197,13 @@ export const getRcloneBasePath = (
 
 	switch (destType) {
 		case "s3":
-			return `:s3:${destination.bucket}/${prefix}`;
+			return `:s3:${escapeForDoubleQuotes(destination.bucket)}/${escapeForDoubleQuotes(prefix)}`;
 		case "sftp": {
 			const remotePath = (destination.sftpRemotePath || "").replace(
 				/\/+$/,
 				"",
 			);
-			return `:sftp:${remotePath}/${prefix}`;
+			return `:sftp:${escapeForDoubleQuotes(remotePath)}/${escapeForDoubleQuotes(prefix)}`;
 		}
 		case "rclone": {
 			const remoteName = destination.rcloneRemoteName || "remote";
@@ -188,10 +211,10 @@ export const getRcloneBasePath = (
 				/\/+$/,
 				"",
 			);
-			return `${remoteName}:${remotePath}/${prefix}`;
+			return `${escapeForDoubleQuotes(remoteName)}:${escapeForDoubleQuotes(remotePath)}/${escapeForDoubleQuotes(prefix)}`;
 		}
 		default:
-			return `:s3:${destination.bucket}/${prefix}`;
+			return `:s3:${escapeForDoubleQuotes(destination.bucket)}/${escapeForDoubleQuotes(prefix)}`;
 	}
 };
 
@@ -208,10 +231,11 @@ export const getRcloneConfigSetup = (destination: Destination): string => {
 	return `
 RCLONE_CONFIG_FILE=$(mktemp /tmp/rclone-config-XXXXXX.conf)
 cat > "$RCLONE_CONFIG_FILE" << 'RCLONE_EOF'
-${destination.rcloneConfig}
+${configContent}
 RCLONE_EOF
 export RCLONE_CONFIG="$RCLONE_CONFIG_FILE"
-trap 'rm -f "$RCLONE_CONFIG_FILE"' EXIT
+_cleanup_rclone_config() { rm -f "$RCLONE_CONFIG_FILE"; }
+trap _cleanup_rclone_config EXIT
 `;
 };
 

@@ -89,10 +89,10 @@ const cleanupOldVolumeBackups = async (
 		const normalizedPrefix = normalizeS3Path(prefix);
 		const configSetup = getRcloneConfigSetup(destination);
 		const backupFilesPath = getRcloneBasePath(destination, normalizedPrefix);
-		const listCommand = `${configSetup}rclone lsf ${rcloneFlags.join(" ")} --include "${volumeName}-*.tar" ${backupFilesPath}`;
+		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include "${volumeName}-*.tar" ${backupFilesPath}`;
 		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
 		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
-		const fullCommand = `${listCommand} | ${sortAndPick} ${deleteCommand}`;
+		const fullCommand = `${configSetup}${listCommand} | ${sortAndPick} ${deleteCommand}`;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, fullCommand);
