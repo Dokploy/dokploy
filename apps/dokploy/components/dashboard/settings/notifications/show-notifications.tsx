@@ -7,6 +7,7 @@ import {
 	NtfyIcon,
 	ResendIcon,
 	SlackIcon,
+	TeamsIcon,
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -37,7 +38,7 @@ export const ShowNotifications = () => {
 						</CardTitle>
 						<CardDescription>
 							Add your providers to receive notifications, like Discord, Slack,
-							Telegram, Email, Resend, Lark.
+							Telegram, Teams, Email, Resend, Lark.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -110,6 +111,11 @@ export const ShowNotifications = () => {
 															{notification.notificationType === "lark" && (
 																<div className="flex  items-center justify-center rounded-lg">
 																	<LarkIcon className="size-7 text-muted-foreground" />
+																</div>
+															)}
+															{notification.notificationType === "teams" && (
+																<div className="flex  items-center justify-center rounded-lg">
+																	<TeamsIcon className="size-7 text-muted-foreground" />
 																</div>
 															)}
 

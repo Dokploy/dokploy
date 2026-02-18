@@ -7,6 +7,7 @@
  * need to use are documented accordingly near the end.
  */
 
+import { hasValidLicense } from "@dokploy/server/index";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { initTRPC, TRPCError } from "@trpc/server";
@@ -239,10 +240,11 @@ export const enterpriseProcedure = t.procedure.use(async ({ ctx, next }) => {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 
-	if (
-		!ctx.user?.enableEnterpriseFeatures ||
-		!ctx.user.isValidEnterpriseLicense
-	) {
+	const hasValidLicenseResult = await hasValidLicense(
+		ctx.session.activeOrganizationId,
+	);
+
+	if (!hasValidLicenseResult) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
 			message: "Valid enterprise license required",

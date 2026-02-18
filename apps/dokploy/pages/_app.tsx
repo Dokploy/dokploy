@@ -4,13 +4,11 @@ import type { NextPage } from "next";
 import type { AppProps } from "next/app";
 import { Inter } from "next/font/google";
 import Head from "next/head";
-import { appWithTranslation } from "next-i18next";
 import { ThemeProvider } from "next-themes";
 import NextTopLoader from "nextjs-toploader";
 import type { ReactElement, ReactNode } from "react";
 import { SearchCommand } from "@/components/dashboard/search-command";
 import { Toaster } from "@/components/ui/sonner";
-import { Languages } from "@/lib/languages";
 import { api } from "@/utils/api";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -58,14 +56,4 @@ const MyApp = ({
 	);
 };
 
-export default api.withTRPC(
-	appWithTranslation(MyApp, {
-		i18n: {
-			defaultLocale: "en",
-			locales: Object.values(Languages).map((language) => language.code),
-			localeDetection: false,
-		},
-		fallbackLng: "en",
-		keySeparator: false,
-	}),
-);
+export default api.withTRPC(MyApp);

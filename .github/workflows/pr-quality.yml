@@ -1,0 +1,22 @@
+
+name: PR Quality
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: write
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+jobs:
+  anti-slop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: peakoss/anti-slop@v0
+        with:
+          max-failures: 4
+          blocked-commit-authors: "claude,copilot"
+          require-description: true
+          min-account-age: 5

@@ -1,6 +1,7 @@
 import {
 	addNewService,
 	checkServiceAccess,
+	clearOldDeployments,
 	createApplication,
 	deleteAllMiddlewares,
 	findApplicationById,
@@ -745,6 +746,23 @@ export const applicationRouter = createTRPCRouter({
 				});
 			}
 			await cleanQueuesByApplication(input.applicationId);
+		}),
+	clearDeployments: protectedProcedure
+		.input(apiFindOneApplication)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message:
+						"You are not authorized to clear deployments for this application",
+				});
+			}
+			await clearOldDeployments(application.appName, application.serverId);
+			return true;
 		}),
 	killBuild: protectedProcedure
 		.input(apiFindOneApplication)
