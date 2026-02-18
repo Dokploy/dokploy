@@ -40,6 +40,7 @@ export const server = pgTable("server", {
 		.notNull()
 		.$defaultFn(() => generateAppName("server")),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
+	deploymentConcurrency: integer("deploymentConcurrency").notNull().default(1),
 	createdAt: text("createdAt").notNull(),
 	organizationId: text("organizationId")
 		.notNull()
@@ -133,6 +134,7 @@ const createSchema = createInsertSchema(server, {
 	serverId: z.string().min(1),
 	name: z.string().min(1),
 	description: z.string().optional(),
+	deploymentConcurrency: z.number().int().min(1).max(5).optional(),
 });
 
 export const apiCreateServer = createSchema
@@ -145,7 +147,10 @@ export const apiCreateServer = createSchema
 		sshKeyId: true,
 		serverType: true,
 	})
-	.required();
+	.required()
+	.extend({
+		deploymentConcurrency: z.number().int().min(1).max(5).optional(),
+	});
 
 export const apiFindOneServer = createSchema
 	.pick({
@@ -173,6 +178,7 @@ export const apiUpdateServer = createSchema
 	.required()
 	.extend({
 		command: z.string().optional(),
+		deploymentConcurrency: z.number().int().min(1).max(5).optional(),
 	});
 
 export const apiUpdateServerMonitoring = createSchema

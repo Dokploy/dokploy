@@ -65,7 +65,10 @@ import {
 	projects,
 	server,
 } from "@/server/db/schema";
-import { cleanAllDeploymentQueue } from "@/server/queues/queueSetup";
+import {
+	cleanAllDeploymentQueue,
+	refreshLocalDeploymentWorker,
+} from "@/server/queues/queueSetup";
 import { removeJob, schedule } from "@/server/utils/backup";
 import packageInfo from "../../../package.json";
 import { appRouter } from "../root";
@@ -350,6 +353,23 @@ export const settingsRouter = createTRPCRouter({
 			}
 
 			return true;
+		}),
+	updateLocalDeploymentConcurrency: adminProcedure
+		.input(
+			z.object({
+				localDeploymentConcurrency: z.number().int().min(1).max(5),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			if (IS_CLOUD) {
+				return true;
+			}
+
+			const settings = await updateWebServerSettings({
+				localDeploymentConcurrency: input.localDeploymentConcurrency,
+			});
+			await refreshLocalDeploymentWorker();
+			return settings;
 		}),
 
 	readTraefikConfig: adminProcedure.query(() => {

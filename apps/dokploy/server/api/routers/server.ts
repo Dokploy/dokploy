@@ -38,6 +38,7 @@ import {
 	redis,
 	server,
 } from "@/server/db/schema";
+import { refreshServerDeploymentWorker } from "@/server/queues/queueSetup";
 
 export const serverRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -392,6 +393,10 @@ export const serverRouter = createTRPCRouter({
 				const currentServer = await updateServerById(input.serverId, {
 					...input,
 				});
+
+				if (!IS_CLOUD && input.deploymentConcurrency !== undefined) {
+					await refreshServerDeploymentWorker(input.serverId);
+				}
 
 				return currentServer;
 			} catch (error) {

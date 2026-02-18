@@ -52,6 +52,7 @@ const Schema = z.object({
 		message: "SSH Key is required",
 	}),
 	serverType: z.enum(["deploy", "build"]).default("deploy"),
+	deploymentConcurrency: z.number().int().min(1).max(5).optional(),
 });
 
 type Schema = z.infer<typeof Schema>;
@@ -89,6 +90,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			username: "root",
 			sshKeyId: "",
 			serverType: "deploy",
+			deploymentConcurrency: 1,
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -102,6 +104,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			username: data?.username || "root",
 			sshKeyId: data?.sshKeyId || "",
 			serverType: data?.serverType || "deploy",
+			deploymentConcurrency: data?.deploymentConcurrency || 1,
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
@@ -118,6 +121,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			username: data.username || "root",
 			sshKeyId: data.sshKeyId || "",
 			serverType: data.serverType || "deploy",
+			deploymentConcurrency: data.deploymentConcurrency || 1,
 			serverId: serverId || "",
 		})
 			.then(async (_data) => {
@@ -322,6 +326,41 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 									</FormItem>
 								);
 							}}
+						/>
+						<FormField
+							control={form.control}
+							name="deploymentConcurrency"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Concurrent Builds</FormLabel>
+									<FormControl>
+										<Input
+											type="number"
+											min={1}
+											max={5}
+											placeholder="1"
+											{...field}
+											value={field.value ?? 1}
+											onChange={(e) => {
+												const value = Number.parseInt(
+													e.target.value || "1",
+													10,
+												);
+												if (Number.isNaN(value)) {
+													field.onChange(1);
+													return;
+												}
+												field.onChange(Math.min(5, Math.max(1, value)));
+											}}
+										/>
+									</FormControl>
+									<FormMessage />
+									<AlertBlock type="info" className="mt-2">
+										Maximum simultaneous deployments executed on this server
+										(1-5).
+									</AlertBlock>
+								</FormItem>
+							)}
 						/>
 						<FormField
 							control={form.control}

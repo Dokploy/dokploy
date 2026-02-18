@@ -8,6 +8,7 @@ import {
 	findComposeById,
 	findDeploymentById,
 	findServerById,
+	IS_CLOUD,
 	removeDeployment,
 	updateDeploymentStatus,
 } from "@dokploy/server";
@@ -22,6 +23,7 @@ import {
 	apiFindAllByType,
 	deployments,
 } from "@/server/db/schema";
+import { getQueueSummaryByType } from "@/server/queues/queueSetup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const deploymentRouter = createTRPCRouter({
@@ -81,6 +83,44 @@ export const deploymentRouter = createTRPCRouter({
 			});
 
 			return deploymentsList;
+		}),
+	queueSummaryByType: protectedProcedure
+		.input(
+			z.object({
+				id: z.string().min(1),
+				type: z.enum(["application", "compose"]),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				return null;
+			}
+
+			if (input.type === "application") {
+				const application = await findApplicationById(input.id);
+				if (
+					application.environment.project.organizationId !==
+					ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this application",
+					});
+				}
+			} else {
+				const compose = await findComposeById(input.id);
+				if (
+					compose.environment.project.organizationId !==
+					ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this compose",
+					});
+				}
+			}
+
+			return getQueueSummaryByType(input.type, input.id);
 		}),
 
 	killProcess: protectedProcedure

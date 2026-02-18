@@ -58,13 +58,11 @@ import {
 	apiUpdateApplication,
 	applications,
 } from "@/server/db/schema";
-import { deploymentWorker } from "@/server/queues/deployments-queue";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByApplication,
-	getJobsByApplicationId,
+	enqueueDeploymentJob,
 	killDockerBuild,
-	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { uploadFileSchema } from "@/utils/schema";
@@ -244,12 +242,7 @@ export const applicationRouter = createTRPCRouter({
 				.returning();
 
 			if (!IS_CLOUD) {
-				const queueJobs = await getJobsByApplicationId(input.applicationId);
-				for (const job of queueJobs) {
-					if (job.id) {
-						deploymentWorker.cancelJob(job.id, "User requested cancellation");
-					}
-				}
+				await cleanQueuesByApplication(input.applicationId);
 			}
 
 			const cleanupOperations = [
@@ -353,8 +346,7 @@ export const applicationRouter = createTRPCRouter({
 				});
 				return true;
 			}
-			await myQueue.add(
-				"deployments",
+			await enqueueDeploymentJob(
 				{ ...jobData },
 				{
 					removeOnComplete: true,
@@ -722,8 +714,7 @@ export const applicationRouter = createTRPCRouter({
 
 				return true;
 			}
-			await myQueue.add(
-				"deployments",
+			await enqueueDeploymentJob(
 				{ ...jobData },
 				{
 					removeOnComplete: true,
@@ -853,8 +844,7 @@ export const applicationRouter = createTRPCRouter({
 				return true;
 			}
 
-			await myQueue.add(
-				"deployments",
+			await enqueueDeploymentJob(
 				{ ...jobData },
 				{
 					removeOnComplete: true,

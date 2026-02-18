@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { boolean, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	jsonb,
+	pgTable,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -18,6 +25,9 @@ export const webServerSettings = pgTable("webServerSettings", {
 	letsEncryptEmail: text("letsEncryptEmail"),
 	sshPrivateKey: text("sshPrivateKey"),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(true),
+	localDeploymentConcurrency: integer("localDeploymentConcurrency")
+		.notNull()
+		.default(1),
 	logCleanupCron: text("logCleanupCron").default("0 0 * * *"),
 	// Metrics Configuration
 	metricsConfig: jsonb("metricsConfig")
@@ -97,6 +107,7 @@ export const apiUpdateWebServerSettings = createSchema.partial().extend({
 	letsEncryptEmail: z.string().email().optional().nullable(),
 	sshPrivateKey: z.string().optional(),
 	enableDockerCleanup: z.boolean().optional(),
+	localDeploymentConcurrency: z.number().int().min(1).max(5).optional(),
 	logCleanupCron: z.string().optional().nullable(),
 	metricsConfig: z
 		.object({
