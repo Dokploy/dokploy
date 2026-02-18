@@ -23,9 +23,12 @@ export const WebServer = () => {
 
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 	const [localConcurrency, setLocalConcurrency] = useState(1);
-	const { mutateAsync: updateLocalConcurrency, isLoading: isUpdatingConcurrency } =
-		api.settings.updateLocalDeploymentConcurrency.useMutation();
-	const currentLocalConcurrency = webServerSettings?.localDeploymentConcurrency || 1;
+	const {
+		mutateAsync: updateLocalConcurrency,
+		isLoading: isUpdatingConcurrency,
+	} = api.settings.updateLocalDeploymentConcurrency.useMutation();
+	const currentLocalConcurrency =
+		webServerSettings?.localDeploymentConcurrency || 1;
 	const hasConcurrencyChanges = localConcurrency !== currentLocalConcurrency;
 	const clampConcurrency = (value: number) => Math.min(5, Math.max(1, value));
 
@@ -81,7 +84,10 @@ export const WebServer = () => {
 											max={5}
 											value={localConcurrency}
 											onChange={(e) => {
-												const value = Number.parseInt(e.target.value || "1", 10);
+												const value = Number.parseInt(
+													e.target.value || "1",
+													10,
+												);
 												if (Number.isNaN(value)) {
 													setLocalConcurrency(1);
 													return;
@@ -95,7 +101,9 @@ export const WebServer = () => {
 											size="sm"
 											variant="ghost"
 											disabled={!hasConcurrencyChanges || isUpdatingConcurrency}
-											onClick={() => setLocalConcurrency(currentLocalConcurrency)}
+											onClick={() =>
+												setLocalConcurrency(currentLocalConcurrency)
+											}
 										>
 											Reset
 										</Button>

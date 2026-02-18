@@ -43,14 +43,20 @@ export type QueueSummary = {
 };
 
 const queueRegistry = new Map<string, Queue<DeploymentJob>>();
-const workerRegistry = new Map<string, ReturnType<typeof createDeploymentWorker>>();
+const workerRegistry = new Map<
+	string,
+	ReturnType<typeof createDeploymentWorker>
+>();
 const refreshRegistry = new Map<string, Promise<void>>();
 
 let hasProcessListeners = false;
 
 const clampConcurrency = (value: number | null | undefined) => {
 	const candidate = Number.isFinite(value) ? Number(value) : 1;
-	return Math.min(MAX_DEPLOYMENT_CONCURRENCY, Math.max(1, Math.trunc(candidate)));
+	return Math.min(
+		MAX_DEPLOYMENT_CONCURRENCY,
+		Math.max(1, Math.trunc(candidate)),
+	);
 };
 
 const buildQueueName = (target: QueueTarget) =>
@@ -86,7 +92,9 @@ const getQueue = (queueName: string) => {
 		return cached;
 	}
 
-	const queue = new Queue<DeploymentJob>(queueName, { connection: redisConfig });
+	const queue = new Queue<DeploymentJob>(queueName, {
+		connection: redisConfig,
+	});
 	queue.on("error", (error) => {
 		if ((error as any).code === "ECONNREFUSED") {
 			console.error(
@@ -145,7 +153,10 @@ const closeWorkerByQueueName = async (queueName: string) => {
 	workerRegistry.delete(queueName);
 };
 
-const withRefreshLock = async (queueName: string, task: () => Promise<void>) => {
+const withRefreshLock = async (
+	queueName: string,
+	task: () => Promise<void>,
+) => {
 	const running = refreshRegistry.get(queueName);
 	if (running) {
 		await running;
@@ -170,7 +181,9 @@ const resolveTargetFromDeploymentJob = async (
 
 	if (jobData.applicationType === "compose") {
 		const compose = await findComposeById(jobData.composeId);
-		return compose.serverId ? buildServerTarget(compose.serverId) : buildLocalTarget();
+		return compose.serverId
+			? buildServerTarget(compose.serverId)
+			: buildLocalTarget();
 	}
 
 	const application = await findApplicationById(jobData.applicationId);
@@ -190,7 +203,9 @@ const resolveTargetFromService = async (
 	}
 
 	const compose = await findComposeById(id);
-	return compose.serverId ? buildServerTarget(compose.serverId) : buildLocalTarget();
+	return compose.serverId
+		? buildServerTarget(compose.serverId)
+		: buildLocalTarget();
 };
 
 const getKnownTargets = async (): Promise<QueueTarget[]> => {
@@ -227,7 +242,9 @@ const getJobsFromQueues = async (
 	return entries.flat();
 };
 
-const removeQueuedJobs = async (matcher: (job: Job<DeploymentJob>) => boolean) => {
+const removeQueuedJobs = async (
+	matcher: (job: Job<DeploymentJob>) => boolean,
+) => {
 	if (IS_CLOUD) {
 		return;
 	}
@@ -311,10 +328,8 @@ export const getJobsByApplicationId = async (applicationId: string) => {
 	const jobs = await getJobsFromQueues(targets, ["waiting", "delayed"]);
 	return jobs.filter((job) => {
 		const data = job?.data;
-		return (
-			data?.applicationType === "application" ||
+		return data?.applicationType === "application" ||
 			data?.applicationType === "application-preview"
-		)
 			? data.applicationId === applicationId
 			: false;
 	});
@@ -337,10 +352,8 @@ export const getJobsByComposeId = async (composeId: string) => {
 export const cleanQueuesByApplication = async (applicationId: string) => {
 	await removeQueuedJobs((job) => {
 		const data = job?.data;
-		return (
-			data?.applicationType === "application" ||
+		return data?.applicationType === "application" ||
 			data?.applicationType === "application-preview"
-		)
 			? data.applicationId === applicationId
 			: false;
 	});
@@ -396,7 +409,8 @@ export const getQueueSummaryByType = async (
 	const isServiceJob = (job: Job<DeploymentJob>) => {
 		if (type === "application") {
 			return (
-				job.data.applicationType === "application" && job.data.applicationId === id
+				job.data.applicationType === "application" &&
+				job.data.applicationId === id
 			);
 		}
 

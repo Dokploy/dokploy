@@ -74,16 +74,9 @@ export const processDeploymentJob = async (job: Job<DeploymentJob>) => {
 	}
 };
 
-export const createDeploymentWorker = (
-	queueName: string,
-	concurrency = 1,
-) =>
-	new Worker(
-		queueName,
-		processDeploymentJob,
-		{
-			autorun: false,
-			connection: redisConfig,
-			concurrency,
-		},
-	);
+export const createDeploymentWorker = (queueName: string, concurrency = 1) =>
+	new Worker(queueName, processDeploymentJob, {
+		autorun: false,
+		connection: redisConfig,
+		concurrency,
+	});
