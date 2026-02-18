@@ -31,10 +31,9 @@ import {
 		await initializeRedis();
 		await initializePostgres();
 		console.log("Dokploy setup completed");
+		await new Promise<void>((res) => setTimeout(() => res(), 5000));
 		exit(0);
 	} catch (e) {
 		console.error("Error in dokploy setup", e);
 	}
-
-	await new Promise<void>((res) => setTimeout(() => res(), 5000));
 })();
