@@ -2,7 +2,12 @@ import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { findComposeById } from "@dokploy/server/services/compose";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
-import { getS3Credentials, normalizeS3Path } from "../backups/utils";
+import {
+	getRcloneConfigSetup,
+	getRcloneDestinationPath,
+	getRcloneFlags,
+	normalizeS3Path,
+} from "../backups/utils";
 
 export const backupVolume = async (
 	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
@@ -14,31 +19,35 @@ export const backupVolume = async (
 	const destination = volumeBackup.destination;
 	const backupFileName = `${volumeName}-${new Date().toISOString()}.tar`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
-	const rcloneFlags = getS3Credentials(volumeBackup.destination);
-	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+	const rcloneFlags = getRcloneFlags(volumeBackup.destination);
+	const rcloneDestination = getRcloneDestinationPath(
+		destination,
+		bucketDestination,
+	);
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
 
-	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
+	const configSetup = getRcloneConfigSetup(destination);
+	const rcloneCommand = `${configSetup}rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
 
 	const baseCommand = `
 	set -e
 	echo "Volume name: ${volumeName}"
 	echo "Backup file name: ${backupFileName}"
 	echo "Turning off volume backup: ${turnOff ? "Yes" : "No"}"
-	echo "Starting volume backup" 
+	echo "Starting volume backup"
 	echo "Dir: ${volumeBackupPath}"
     docker run --rm \
   -v ${volumeName}:/volume_data \
   -v ${volumeBackupPath}:/backup \
   ubuntu \
   bash -c "cd /volume_data && tar cvf /backup/${backupFileName} ."
-  echo "Volume backup done ✅"
-  echo "Starting upload to S3..."
+  echo "Volume backup done"
+  echo "Starting upload to destination..."
   ${rcloneCommand}
-  echo "Upload to S3 done ✅"
+  echo "Upload to destination done"
   echo "Cleaning up local backup file..."
   rm "${volumeBackupPath}/${backupFileName}"
-  echo "Local backup file cleaned up ✅"
+  echo "Local backup file cleaned up"
   `;
 
 	if (!turnOff) {

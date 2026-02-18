@@ -10,6 +10,29 @@ import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { runWebServerBackup } from "./web-server";
 
+
+/**
+ * Escape a string for safe use in shell commands.
+ * Wraps the value in single quotes and escapes any embedded single quotes.
+ */
+export const shellEscape = (str: string): string => {
+	return `'${str.replace(/'/g, "'\\''")}'`;
+};
+
+/**
+ * Escape a string for safe embedding inside double-quoted shell strings.
+ * Prevents interpretation of $, `, \, ", and ! characters.
+ */
+const escapeForDoubleQuotes = (str: string): string => {
+	return str
+		.replace(/\\/g, "\\\\")
+		.replace(/\$/g, "\\$")
+		.replace(/`/g, "\\`")
+		.replace(/"/g, '\\"')
+		.replace(/!/g, "\\!");
+};
+
+
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const {
 		schedule,
@@ -58,23 +81,162 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
+/**
+ * Get rclone flags for S3-compatible destinations.
+ * Kept as getS3Credentials for backward compatibility.
+ */
 export const getS3Credentials = (destination: Destination) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [
-		`--s3-access-key-id="${accessKey}"`,
-		`--s3-secret-access-key="${secretAccessKey}"`,
-		`--s3-region="${region}"`,
-		`--s3-endpoint="${endpoint}"`,
+		`--s3-access-key-id=${shellEscape(accessKey)}`,
+		`--s3-secret-access-key=${shellEscape(secretAccessKey)}`,
+		`--s3-region=${shellEscape(region)}`,
+		`--s3-endpoint=${shellEscape(endpoint)}`,
 		"--s3-no-check-bucket",
 		"--s3-force-path-style",
 	];
 
 	if (provider) {
-		rcloneFlags.unshift(`--s3-provider="${provider}"`);
+		rcloneFlags.unshift(`--s3-provider=${shellEscape(provider)}`);
 	}
 
 	return rcloneFlags;
+};
+
+/**
+ * Get rclone flags for SFTP destinations.
+ */
+export const getSftpCredentials = (destination: Destination) => {
+	const { sftpHost, sftpPort, sftpUsername, sftpPassword, sftpKeyPath } =
+		destination;
+	const rcloneFlags = [
+		`--sftp-host=${shellEscape(sftpHost || "")}`,
+		`--sftp-user=${shellEscape(sftpUsername || "")}`,
+	];
+
+	if (sftpPort) {
+		rcloneFlags.push(`--sftp-port=${shellEscape(String(sftpPort))}`);
+	}
+
+	if (sftpPassword) {
+		const obscuredPass = `$(rclone obscure ${shellEscape(sftpPassword)})`;
+		rcloneFlags.push(`--sftp-pass=${obscuredPass}`);
+	}
+
+	if (sftpKeyPath) {
+		rcloneFlags.push(`--sftp-key-file=${shellEscape(sftpKeyPath)}`);
+	}
+
+	return rcloneFlags;
+};
+
+/**
+ * Get rclone flags based on destination type.
+ * Unified function that handles all destination types.
+ */
+export const getRcloneFlags = (destination: Destination): string[] => {
+	const destType = destination.destinationType || "s3";
+
+	switch (destType) {
+		case "s3":
+			return getS3Credentials(destination);
+		case "sftp":
+			return getSftpCredentials(destination);
+		case "rclone":
+			// For generic rclone config, no additional flags needed
+			// as the config file will be used
+			return [];
+		default:
+			return getS3Credentials(destination);
+	}
+};
+
+/**
+ * Get the rclone remote path prefix based on destination type.
+ * For S3: `:s3:bucket/path`
+ * For SFTP: `:sftp:remotePath/path`
+ * For rclone: `remoteName:remotePath/path`
+ */
+export const getRcloneDestinationPath = (
+	destination: Destination,
+	subPath: string,
+): string => {
+	const destType = destination.destinationType || "s3";
+	switch (destType) {
+		case "s3":
+			return `:s3:${escapeForDoubleQuotes(destination.bucket)}/${escapeForDoubleQuotes(subPath)}`;
+		case "sftp": {
+			const remotePath = (destination.sftpRemotePath || "").replace(
+				/\/+$/,
+				"",
+			);
+			return `:sftp:${escapeForDoubleQuotes(remotePath)}/${escapeForDoubleQuotes(subPath)}`;
+		}
+		case "rclone": {
+			const remoteName = destination.rcloneRemoteName || "remote";
+			const remotePath = (destination.rcloneRemotePath || "").replace(
+				/\/+$/,
+				"",
+			);
+			return `${escapeForDoubleQuotes(remoteName)}:${escapeForDoubleQuotes(remotePath)}/${escapeForDoubleQuotes(subPath)}`;
+		}
+		default:
+			return `:s3:${escapeForDoubleQuotes(destination.bucket)}/${escapeForDoubleQuotes(subPath)}`;
+	}
+};
+
+/**
+ * Get the rclone base path for listing/deleting files (bucket or remote path).
+ */
+export const getRcloneBasePath = (
+	destination: Destination,
+	prefix: string,
+): string => {
+	const destType = destination.destinationType || "s3";
+
+	switch (destType) {
+		case "s3":
+			return `:s3:${escapeForDoubleQuotes(destination.bucket)}/${escapeForDoubleQuotes(prefix)}`;
+		case "sftp": {
+			const remotePath = (destination.sftpRemotePath || "").replace(
+				/\/+$/,
+				"",
+			);
+			return `:sftp:${escapeForDoubleQuotes(remotePath)}/${escapeForDoubleQuotes(prefix)}`;
+		}
+		case "rclone": {
+			const remoteName = destination.rcloneRemoteName || "remote";
+			const remotePath = (destination.rcloneRemotePath || "").replace(
+				/\/+$/,
+				"",
+			);
+			return `${escapeForDoubleQuotes(remoteName)}:${escapeForDoubleQuotes(remotePath)}/${escapeForDoubleQuotes(prefix)}`;
+		}
+		default:
+			return `:s3:${escapeForDoubleQuotes(destination.bucket)}/${escapeForDoubleQuotes(prefix)}`;
+	}
+};
+
+/**
+ * Generate the rclone config file content and env setup for rclone destinations.
+ * Returns the shell commands to create the config file.
+ */
+export const getRcloneConfigSetup = (destination: Destination): string => {
+	if (destination.destinationType !== "rclone" || !destination.rcloneConfig) {
+		return "";
+	}
+
+	const configContent = destination.rcloneConfig.replace(/'/g, "'\\''");
+	return `
+RCLONE_CONFIG_FILE=$(mktemp /tmp/rclone-config-XXXXXX.conf)
+cat > "$RCLONE_CONFIG_FILE" << 'RCLONE_EOF'
+${configContent}
+RCLONE_EOF
+export RCLONE_CONFIG="$RCLONE_CONFIG_FILE"
+_cleanup_rclone_config() { rm -f "$RCLONE_CONFIG_FILE"; }
+trap _cleanup_rclone_config EXIT
+`;
 };
 
 export const getPostgresBackupCommand = (
@@ -223,6 +385,13 @@ export const getBackupCommand = (
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
+	const destinationType = backup.destination.destinationType || "s3";
+	const uploadLabel =
+		destinationType === "s3"
+			? "S3"
+			: destinationType === "sftp"
+				? "SFTP"
+				: "remote";
 
 	logger.info(
 		{
@@ -234,8 +403,11 @@ export const getBackupCommand = (
 		`Executing backup command: ${backup.databaseType} ${backup.backupType}`,
 	);
 
+	const configSetup = getRcloneConfigSetup(backup.destination);
+
 	return `
 	set -eo pipefail;
+	${configSetup}
 	echo "[$(date)] Starting backup process..." >> ${logPath};
 	echo "[$(date)] Executing backup command..." >> ${logPath};
 	CONTAINER_ID=$(${containerSearch})
@@ -255,16 +427,16 @@ export const getBackupCommand = (
 	}
 
 	echo "[$(date)] ✅ backup completed successfully" >> ${logPath};
-	echo "[$(date)] Starting upload to S3..." >> ${logPath};
+	echo "[$(date)] Starting upload to ${uploadLabel}..." >> ${logPath};
 
 	# Run the upload command and capture the exit status
 	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
+		echo "[$(date)] ❌ Error: Upload to ${uploadLabel} failed" >> ${logPath};
 		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
 		exit 1;
 	}
 
-	echo "[$(date)] ✅ Upload to S3 completed successfully" >> ${logPath};
+	echo "[$(date)] ✅ Upload to ${uploadLabel} completed successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };
