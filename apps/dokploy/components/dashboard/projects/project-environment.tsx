@@ -84,7 +84,12 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isLoading && isOpen) {
+			if (
+				(e.ctrlKey || e.metaKey) &&
+				e.code === "KeyS" &&
+				!isLoading &&
+				isOpen
+			) {
 				e.preventDefault();
 				form.handleSubmit(onSubmit)();
 			}
