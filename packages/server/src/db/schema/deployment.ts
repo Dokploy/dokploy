@@ -126,7 +126,6 @@ const schema = createInsertSchema(deployments, {
 	previewDeploymentId: z.string(),
 	buildServerId: z.string(),
 });
-
 export const apiCreateDeployment = schema
 	.pick({
 		title: true,

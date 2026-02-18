@@ -1,5 +1,5 @@
 {
-  "id": "4b0d17e2-908d-4be7-9e0c-7cf916ec6de0",
+  "id": "50c73964-11f8-41d6-a282-780e38bdddd9",
   "prevId": "c03ebeca-bf0f-4d72-8b4f-9a4dccb9f143",
   "version": "7",
   "dialect": "postgresql",
@@ -1716,13 +1716,6 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
-        },
-        "additionalOptions": {
-          "name": "additionalOptions",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'[]'::jsonb"
         }
       },
       "indexes": {},
@@ -4578,6 +4571,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "teamsId": {
+          "name": "teamsId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
@@ -4713,6 +4712,19 @@
           ],
           "columnsTo": [
             "pushoverId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notification_teamsId_teams_teamsId_fk": {
+          "name": "notification_teamsId_teams_teamsId_fk",
+          "tableFrom": "notification",
+          "tableTo": "teams",
+          "columnsFrom": [
+            "teamsId"
+          ],
+          "columnsTo": [
+            "teamsId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -4889,6 +4901,31 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.teams": {
+      "name": "teams",
+      "schema": "",
+      "columns": {
+        "teamsId": {
+          "name": "teamsId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "webhookUrl": {
+          "name": "webhookUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
@@ -7196,7 +7233,8 @@
         "ntfy",
         "pushover",
         "custom",
-        "lark"
+        "lark",
+        "teams"
       ]
     },
     "public.protocolType": {
