@@ -84,7 +84,7 @@ export const ShowDeployments = ({
 				!!id &&
 				(type === "application" || type === "compose") &&
 				isCloud === false,
-			refetchInterval: 1000,
+			refetchInterval: 3000,
 		},
 	);
 

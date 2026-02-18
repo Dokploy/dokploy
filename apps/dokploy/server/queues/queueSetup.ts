@@ -44,7 +44,11 @@ export type QueueSummary = {
 
 const queueRegistry = new Map<string, Queue<DeploymentJob>>();
 const workerRegistry = new Map<string, ReturnType<typeof createDeploymentWorker>>();
-const refreshRegistry = new Map<string, Promise<void>>();
+type RefreshState = {
+	running: Promise<void>;
+	rerunRequested: boolean;
+};
+const refreshRegistry = new Map<string, RefreshState>();
 
 let hasProcessListeners = false;
 
@@ -146,23 +150,41 @@ const closeWorkerByQueueName = async (queueName: string) => {
 };
 
 const withRefreshLock = async (queueName: string, task: () => Promise<void>) => {
-	const running = refreshRegistry.get(queueName);
-	if (running) {
-		await running;
+	const existing = refreshRegistry.get(queueName);
+	if (existing) {
+		existing.rerunRequested = true;
+		await existing.running;
 		return;
 	}
 
-	const refreshPromise = task().finally(() => {
-		refreshRegistry.delete(queueName);
-	});
-	refreshRegistry.set(queueName, refreshPromise);
-	await refreshPromise;
+	const state = {
+		running: Promise.resolve(),
+		rerunRequested: false,
+	} as RefreshState;
+	state.running = (async () => {
+		do {
+			state.rerunRequested = false;
+			await task();
+		} while (state.rerunRequested);
+	})();
+	refreshRegistry.set(queueName, state);
+
+	try {
+		await state.running;
+	} finally {
+		if (refreshRegistry.get(queueName) === state) {
+			refreshRegistry.delete(queueName);
+		}
+	}
 };
 
 const resolveTargetFromDeploymentJob = async (
 	jobData: DeploymentJob,
 ): Promise<QueueTarget> => {
-	if (jobData.applicationType === "application") {
+	if (
+		jobData.applicationType === "application" ||
+		jobData.applicationType === "application-preview"
+	) {
 		const application = await findApplicationById(jobData.applicationId);
 		const serverId = application.buildServerId || application.serverId;
 		return serverId ? buildServerTarget(serverId) : buildLocalTarget();
@@ -173,10 +195,7 @@ const resolveTargetFromDeploymentJob = async (
 		return compose.serverId ? buildServerTarget(compose.serverId) : buildLocalTarget();
 	}
 
-	const application = await findApplicationById(jobData.applicationId);
-	return application.serverId
-		? buildServerTarget(application.serverId)
-		: buildLocalTarget();
+	return buildLocalTarget();
 };
 
 const resolveTargetFromService = async (
@@ -355,6 +374,9 @@ export const cleanQueuesByCompose = async (composeId: string) => {
 };
 
 export const cleanAllDeploymentQueue = async () => {
+	for (const worker of workerRegistry.values()) {
+		worker.cancelAllJobs("User requested cancellation");
+	}
 	await removeQueuedJobs(() => true);
 	return true;
 };
@@ -396,7 +418,9 @@ export const getQueueSummaryByType = async (
 	const isServiceJob = (job: Job<DeploymentJob>) => {
 		if (type === "application") {
 			return (
-				job.data.applicationType === "application" && job.data.applicationId === id
+				(job.data.applicationType === "application" ||
+					job.data.applicationType === "application-preview") &&
+				job.data.applicationId === id
 			);
 		}
 
