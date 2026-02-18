@@ -2,6 +2,7 @@ import {
 	addDomainToCompose,
 	addNewService,
 	checkServiceAccess,
+	clearOldDeployments,
 	cloneCompose,
 	createCommand,
 	createCompose,
@@ -58,9 +59,11 @@ import {
 	apiUpdateCompose,
 	compose as composeTable,
 } from "@/server/db/schema";
+import { deploymentWorker } from "@/server/queues/deployments-queue";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByCompose,
+	getJobsByComposeId,
 	killDockerBuild,
 	myQueue,
 } from "@/server/queues/queueSetup";
@@ -222,6 +225,15 @@ export const composeRouter = createTRPCRouter({
 				.where(eq(composeTable.composeId, input.composeId))
 				.returning();
 
+			if (!IS_CLOUD) {
+				const queueJobs = await getJobsByComposeId(input.composeId);
+				for (const job of queueJobs) {
+					if (job.id) {
+						deploymentWorker.cancelJob(job.id, "User requested cancellation");
+					}
+				}
+			}
+
 			const cleanupOperations = [
 				async () => await removeCompose(composeResult, input.deleteVolumes),
 				async () => await removeDeploymentsByComposeId(composeResult),
@@ -251,6 +263,23 @@ export const composeRouter = createTRPCRouter({
 			}
 			await cleanQueuesByCompose(input.composeId);
 			return { success: true, message: "Queues cleaned successfully" };
+		}),
+	clearDeployments: protectedProcedure
+		.input(apiFindCompose)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message:
+						"You are not authorized to clear deployments for this compose",
+				});
+			}
+			await clearOldDeployments(compose.appName, compose.serverId);
+			return true;
 		}),
 	killBuild: protectedProcedure
 		.input(apiFindCompose)

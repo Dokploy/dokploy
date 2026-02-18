@@ -2,7 +2,7 @@
 
 Hey, thanks for your interest in contributing to Dokploy! We appreciate your help and taking your time to contribute.
 
-Before you start, please first discuss the feature/bug you want to add with the owners and comunity via github issues.
+Before you start, please first discuss the feature/bug you want to add with the owners and community via github issues.
 
 We have a few guidelines to follow when contributing to this project:
 
@@ -11,6 +11,7 @@ We have a few guidelines to follow when contributing to this project:
 - [Development](#development)
 - [Build](#build)
 - [Pull Request](#pull-request)
+- [Important Considerations](#important-considerations-for-pull-requests)
 
 ## Commit Convention
 
@@ -162,8 +163,9 @@ curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.39.1/pack-v0.
 - If your pull request fixes an open issue, please reference the issue in the pull request description.
 - Once your pull request is merged, you will be automatically added as a contributor to the project.
 
-**Important Considerations for Pull Requests:**
+### Important Considerations for Pull Requests
 
+- **Testing is Mandatory:** All Pull Requests **must be tested** before submission. You must verify that your changes work as expected in a local development environment (see [Setup](#setup)). **Pull Requests that have not been tested will be closed.** This policy ensures clean contributions and reduces the time maintainers spend reviewing untested or broken code.
 - **Focus and Scope:** Each Pull Request should ideally address a single, well-defined problem or introduce one new feature. This greatly facilitates review and reduces the chances of introducing unintended side effects.
 - **Avoid Unfocused Changes:** Please avoid submitting Pull Requests that contain only minor changes such as whitespace adjustments, IDE-generated formatting, or removal of unused variables, unless these are part of a larger, clearly defined refactor or a dedicated "cleanup" Pull Request that addresses a specific `good first issue` or maintenance task.
 - **Issue Association:** For any significant change, it's highly recommended to open an issue first to discuss the proposed solution with the community and maintainers. This ensures alignment and avoids duplicated effort. If your PR resolves an existing issue, please link it in the description (e.g., `Fixes #123`, `Closes #456`).

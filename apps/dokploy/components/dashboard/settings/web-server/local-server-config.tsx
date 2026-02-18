@@ -1,6 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Settings } from "lucide-react";
-import { useTranslation } from "next-i18next";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import {
@@ -52,8 +51,6 @@ interface Props {
 }
 
 const LocalServerConfig = ({ onSave }: Props) => {
-	const { t } = useTranslation("settings");
-
 	const form = useForm<Schema>({
 		defaultValues: getLocalServerData(),
 		resolver: zodResolver(Schema),
@@ -77,9 +74,7 @@ const LocalServerConfig = ({ onSave }: Props) => {
 					<div className="flex flex-row items-center gap-2 justify-between w-full">
 						<div className="flex flex-row gap-2 items-center">
 							<Settings className="h-4 w-4" />
-							<span className="dark:hover:text-white">
-								{t("settings.terminal.connectionSettings")}
-							</span>
+							<span className="dark:hover:text-white">Connection settings</span>
 						</div>
 					</div>
 				</AccordionTrigger>
@@ -96,7 +91,7 @@ const LocalServerConfig = ({ onSave }: Props) => {
 								name="port"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("settings.terminal.port")}</FormLabel>
+										<FormLabel>Port</FormLabel>
 										<FormControl>
 											<Input
 												{...field}
@@ -124,7 +119,7 @@ const LocalServerConfig = ({ onSave }: Props) => {
 								name="username"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("settings.terminal.username")}</FormLabel>
+										<FormLabel>Username</FormLabel>
 										<FormControl>
 											<Input placeholder="root" {...field} />
 										</FormControl>
@@ -142,7 +137,7 @@ const LocalServerConfig = ({ onSave }: Props) => {
 						className="ml-auto"
 						disabled={!form.formState.isDirty}
 					>
-						{t("settings.common.save")}
+						Save
 					</Button>
 				</AccordionContent>
 			</AccordionItem>

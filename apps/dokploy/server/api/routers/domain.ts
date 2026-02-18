@@ -5,7 +5,6 @@ import {
 	findDomainById,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
-	findOrganizationById,
 	findPreviewDeploymentById,
 	findServerById,
 	generateTraefikMeDomain,

@@ -1,6 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GlobeIcon } from "lucide-react";
-import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -66,7 +65,6 @@ const addServerDomain = z
 type AddServerDomain = z.infer<typeof addServerDomain>;
 
 export const WebDomain = () => {
-	const { t } = useTranslation("settings");
 	const { data, refetch } = api.settings.getWebServerSettings.useQuery();
 	const { mutateAsync, isLoading } =
 		api.settings.assignDomainServer.useMutation();
@@ -119,10 +117,10 @@ export const WebDomain = () => {
 						<div className="flex flex-col gap-1">
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<GlobeIcon className="size-6 text-muted-foreground self-center" />
-								{t("settings.server.domain.title")}
+								Server Domain
 							</CardTitle>
 							<CardDescription>
-								{t("settings.server.domain.description")}
+								Add a domain to your server application.
 							</CardDescription>
 						</div>
 					</CardHeader>
@@ -151,9 +149,7 @@ export const WebDomain = () => {
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>
-													{t("settings.server.domain.form.domain")}
-												</FormLabel>
+												<FormLabel>Domain</FormLabel>
 												<FormControl>
 													<Input
 														className="w-full"
@@ -173,9 +169,7 @@ export const WebDomain = () => {
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>
-													{t("settings.server.domain.form.letsEncryptEmail")}
-												</FormLabel>
+												<FormLabel>Let's Encrypt Email</FormLabel>
 												<FormControl>
 													<Input
 														className="w-full"
@@ -216,32 +210,20 @@ export const WebDomain = () => {
 										render={({ field }) => {
 											return (
 												<FormItem className="md:col-span-2">
-													<FormLabel>
-														{t("settings.server.domain.form.certificate.label")}
-													</FormLabel>
+													<FormLabel>Certificate Provider</FormLabel>
 													<Select
 														onValueChange={field.onChange}
 														value={field.value}
 													>
 														<FormControl>
 															<SelectTrigger>
-																<SelectValue
-																	placeholder={t(
-																		"settings.server.domain.form.certificate.placeholder",
-																	)}
-																/>
+																<SelectValue placeholder="Select a certificate" />
 															</SelectTrigger>
 														</FormControl>
 														<SelectContent>
-															<SelectItem value={"none"}>
-																{t(
-																	"settings.server.domain.form.certificateOptions.none",
-																)}
-															</SelectItem>
+															<SelectItem value={"none"}>None</SelectItem>
 															<SelectItem value={"letsencrypt"}>
-																{t(
-																	"settings.server.domain.form.certificateOptions.letsencrypt",
-																)}
+																Let's Encrypt
 															</SelectItem>
 														</SelectContent>
 													</Select>
@@ -254,7 +236,7 @@ export const WebDomain = () => {
 
 								<div className="flex w-full justify-end col-span-2">
 									<Button isLoading={isLoading} type="submit">
-										{t("settings.common.save")}
+										Save
 									</Button>
 								</div>
 							</form>

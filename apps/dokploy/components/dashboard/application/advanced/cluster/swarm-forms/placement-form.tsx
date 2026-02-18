@@ -17,9 +17,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
 const PreferenceSchema = z.object({
-	Spread: z.object({
-		SpreadDescriptor: z.string(),
-	}),
+	SpreadDescriptor: z.string(),
 });
 
 const PlatformSchema = z.object({
@@ -116,7 +114,14 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 				mysqlId: id || "",
 				mariadbId: id || "",
 				mongoId: id || "",
-				placementSwarm: hasAnyValue ? formData : null,
+				placementSwarm: hasAnyValue
+					? {
+							...formData,
+							Preferences: formData.Preferences?.map((p) => ({
+								Spread: { SpreadDescriptor: p.SpreadDescriptor },
+							})),
+						}
+					: null,
 			});
 
 			toast.success("Placement updated successfully");

@@ -1,5 +1,6 @@
 import {
 	addNewService,
+	checkPortInUse,
 	checkServiceAccess,
 	createMariadb,
 	createMount,
@@ -162,9 +163,9 @@ export const mariadbRouter = createTRPCRouter({
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMariaDB)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findMariadbById(input.mariadbId);
+			const mariadb = await findMariadbById(input.mariadbId);
 			if (
-				mongo.environment.project.organizationId !==
+				mariadb.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -172,11 +173,25 @@ export const mariadbRouter = createTRPCRouter({
 					message: "You are not authorized to save this external port",
 				});
 			}
+
+			if (input.externalPort) {
+				const portCheck = await checkPortInUse(
+					input.externalPort,
+					mariadb.serverId || undefined,
+				);
+				if (portCheck.isInUse) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `Port ${input.externalPort} is already in use by ${portCheck.conflictingContainer}`,
+					});
+				}
+			}
+
 			await updateMariadbById(input.mariadbId, {
 				externalPort: input.externalPort,
 			});
 			await deployMariadb(input.mariadbId);
-			return mongo;
+			return mariadb;
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployMariaDB)

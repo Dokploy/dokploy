@@ -236,15 +236,13 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{isLoadingRepositories ? (
-														<Skeleton className="h-4 w-28" />
-													) : field.value.owner ? (
-														repositories?.find(
-															(repo) => repo.name === field.value.repo,
-														)?.name
-													) : (
-														"Select repository"
-													)}
+													{!field.value.owner
+														? "Select repository"
+														: isLoadingRepositories
+															? "Loading...."
+															: (repositories?.find(
+																	(repo) => repo.name === field.value.repo,
+																)?.name ?? "Select repository")}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -256,15 +254,15 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 													placeholder="Search repository..."
 													className="h-9"
 												/>
-												{isLoadingRepositories && (
-													<div className="p-4">
-														<ListSkeleton
-															items={4}
-															gridClassName="grid grid-cols-1 gap-2"
-															itemClassName="border-none bg-transparent p-0"
-														/>
-													</div>
-												)}
+												{!githubId ? (
+													<span className="py-6 text-center text-sm text-muted-foreground">
+														Select a GitHub account first
+													</span>
+												) : isLoadingRepositories ? (
+													<span className="py-6 text-center text-sm">
+														Loading Repositories....
+													</span>
+												) : null}
 												<CommandEmpty>No repositories found.</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>

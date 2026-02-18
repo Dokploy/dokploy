@@ -1,6 +1,7 @@
 import {
 	addNewService,
 	checkServiceAccess,
+	clearOldDeployments,
 	createApplication,
 	deleteAllMiddlewares,
 	findApplicationById,
@@ -57,9 +58,11 @@ import {
 	apiUpdateApplication,
 	applications,
 } from "@/server/db/schema";
+import { deploymentWorker } from "@/server/queues/deployments-queue";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByApplication,
+	getJobsByApplicationId,
 	killDockerBuild,
 	myQueue,
 } from "@/server/queues/queueSetup";
@@ -239,6 +242,15 @@ export const applicationRouter = createTRPCRouter({
 				.delete(applications)
 				.where(eq(applications.applicationId, input.applicationId))
 				.returning();
+
+			if (!IS_CLOUD) {
+				const queueJobs = await getJobsByApplicationId(input.applicationId);
+				for (const job of queueJobs) {
+					if (job.id) {
+						deploymentWorker.cancelJob(job.id, "User requested cancellation");
+					}
+				}
+			}
 
 			const cleanupOperations = [
 				async () => await deleteAllMiddlewares(application),
@@ -469,6 +481,7 @@ export const applicationRouter = createTRPCRouter({
 			}
 			await updateApplication(input.applicationId, {
 				bitbucketRepository: input.bitbucketRepository,
+				bitbucketRepositorySlug: input.bitbucketRepositorySlug,
 				bitbucketOwner: input.bitbucketOwner,
 				bitbucketBranch: input.bitbucketBranch,
 				bitbucketBuildPath: input.bitbucketBuildPath,
@@ -733,6 +746,23 @@ export const applicationRouter = createTRPCRouter({
 				});
 			}
 			await cleanQueuesByApplication(input.applicationId);
+		}),
+	clearDeployments: protectedProcedure
+		.input(apiFindOneApplication)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message:
+						"You are not authorized to clear deployments for this application",
+				});
+			}
+			await clearOldDeployments(application.appName, application.serverId);
+			return true;
 		}),
 	killBuild: protectedProcedure
 		.input(apiFindOneApplication)

@@ -127,6 +127,7 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 											<Badge variant={badgeStateColor(container.state)}>
 												{container.state}
 											</Badge>
+											{container.status ? ` ${container.status}` : ""}
 										</SelectItem>
 									))}
 								</div>
@@ -142,6 +143,9 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 											<Badge variant={badgeStateColor(container.state)}>
 												{container.state}
 											</Badge>
+											{container.currentState
+												? ` ${container.currentState}`
+												: ""}
 										</SelectItem>
 									))}
 								</>
@@ -151,6 +155,13 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 						</SelectGroup>
 					</SelectContent>
 				</Select>
+				{option === "swarm" &&
+					services?.find((c) => c.containerId === containerId)?.error && (
+						<div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive">
+							<span className="font-medium">Error: </span>
+							{services.find((c) => c.containerId === containerId)?.error}
+						</div>
+					)}
 				<DockerLogs
 					serverId={serverId || ""}
 					containerId={containerId || "select-a-container"}

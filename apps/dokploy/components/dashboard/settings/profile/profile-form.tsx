@@ -1,6 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Palette, User } from "lucide-react";
-import { useTranslation } from "next-i18next";
+import { Loader2, Palette, User } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -42,7 +41,7 @@ const profileSchema = z.object({
 	password: z.string().nullable(),
 	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
-	name: z.string().optional(),
+	firstName: z.string().optional(),
 	lastName: z.string().optional(),
 	allowImpersonation: z.boolean().optional().default(false),
 });
@@ -74,7 +73,6 @@ export const ProfileForm = () => {
 		isError,
 		error,
 	} = api.user.update.useMutation();
-	const { t } = useTranslation("settings");
 	const [gravatarHash, setGravatarHash] = useState<string | null>(null);
 	const colorInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,7 +90,7 @@ export const ProfileForm = () => {
 			image: data?.user?.image || "",
 			currentPassword: "",
 			allowImpersonation: data?.user?.allowImpersonation || false,
-			name: data?.user?.firstName || "",
+			firstName: data?.user?.firstName || "",
 			lastName: data?.user?.lastName || "",
 		},
 		resolver: zodResolver(profileSchema),
@@ -107,7 +105,7 @@ export const ProfileForm = () => {
 					image: data?.user?.image || "",
 					currentPassword: form.getValues("currentPassword") || "",
 					allowImpersonation: data?.user?.allowImpersonation,
-					name: data?.user?.firstName || "",
+					firstName: data?.user?.firstName || "",
 					lastName: data?.user?.lastName || "",
 				},
 				{
@@ -132,7 +130,7 @@ export const ProfileForm = () => {
 				image: values.image,
 				currentPassword: values.currentPassword || undefined,
 				allowImpersonation: values.allowImpersonation,
-				name: values.name || undefined,
+				firstName: values.firstName || undefined,
 				lastName: values.lastName || undefined,
 			});
 			await refetch();
@@ -142,7 +140,7 @@ export const ProfileForm = () => {
 				password: "",
 				image: values.image,
 				currentPassword: "",
-				name: values.name || "",
+				firstName: values.firstName || "",
 				lastName: values.lastName || "",
 			});
 		} catch (error) {
@@ -158,10 +156,10 @@ export const ProfileForm = () => {
 						<div>
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<User className="size-6 text-muted-foreground self-center" />
-								{t("settings.profile.title")}
+								Account
 							</CardTitle>
 							<CardDescription>
-								{t("settings.profile.description")}
+								Change the details of your profile here.
 							</CardDescription>
 						</div>
 
@@ -189,7 +187,7 @@ export const ProfileForm = () => {
 										<div className="space-y-4">
 											<FormField
 												control={form.control}
-												name="name"
+												name="firstName"
 												render={({ field }) => (
 													<FormItem>
 														<FormLabel>First Name</FormLabel>
@@ -218,12 +216,9 @@ export const ProfileForm = () => {
 												name="email"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>{t("settings.profile.email")}</FormLabel>
+														<FormLabel>Email</FormLabel>
 														<FormControl>
-															<Input
-																placeholder={t("settings.profile.email")}
-																{...field}
-															/>
+															<Input placeholder="Email" {...field} />
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -238,7 +233,7 @@ export const ProfileForm = () => {
 														<FormControl>
 															<Input
 																type="password"
-																placeholder={t("settings.profile.password")}
+																placeholder="Current Password"
 																{...field}
 																value={field.value || ""}
 															/>
@@ -252,13 +247,11 @@ export const ProfileForm = () => {
 												name="password"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>
-															{t("settings.profile.password")}
-														</FormLabel>
+														<FormLabel>Password</FormLabel>
 														<FormControl>
 															<Input
 																type="password"
-																placeholder={t("settings.profile.password")}
+																placeholder="Password"
 																{...field}
 																value={field.value || ""}
 															/>
@@ -273,9 +266,7 @@ export const ProfileForm = () => {
 												name="image"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>
-															{t("settings.profile.avatar")}
-														</FormLabel>
+														<FormLabel>Avatar</FormLabel>
 														<FormControl>
 															<RadioGroup
 																onValueChange={(e) => {
@@ -459,7 +450,7 @@ export const ProfileForm = () => {
 
 										<div className="flex items-center justify-end gap-2">
 											<Button type="submit" isLoading={isUpdating}>
-												{t("settings.common.save")}
+												Save
 											</Button>
 										</div>
 									</form>

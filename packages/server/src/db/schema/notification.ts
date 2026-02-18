@@ -17,10 +17,13 @@ export const notificationType = pgEnum("notificationType", [
 	"telegram",
 	"discord",
 	"email",
+	"resend",
 	"gotify",
 	"ntfy",
+	"pushover",
 	"custom",
 	"lark",
+	"teams",
 ]);
 
 export const notifications = pgTable("notification", {
@@ -52,6 +55,9 @@ export const notifications = pgTable("notification", {
 	emailId: text("emailId").references(() => email.emailId, {
 		onDelete: "cascade",
 	}),
+	resendId: text("resendId").references(() => resend.resendId, {
+		onDelete: "cascade",
+	}),
 	gotifyId: text("gotifyId").references(() => gotify.gotifyId, {
 		onDelete: "cascade",
 	}),
@@ -62,6 +68,12 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	larkId: text("larkId").references(() => lark.larkId, {
+		onDelete: "cascade",
+	}),
+	pushoverId: text("pushoverId").references(() => pushover.pushoverId, {
+		onDelete: "cascade",
+	}),
+	teamsId: text("teamsId").references(() => teams.teamsId, {
 		onDelete: "cascade",
 	}),
 	organizationId: text("organizationId")
@@ -110,6 +122,16 @@ export const email = pgTable("email", {
 	toAddresses: text("toAddress").array().notNull(),
 });
 
+export const resend = pgTable("resend", {
+	resendId: text("resendId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	apiKey: text("apiKey").notNull(),
+	fromAddress: text("fromAddress").notNull(),
+	toAddresses: text("toAddress").array().notNull(),
+});
+
 export const gotify = pgTable("gotify", {
 	gotifyId: text("gotifyId")
 		.notNull()
@@ -149,6 +171,26 @@ export const lark = pgTable("lark", {
 	webhookUrl: text("webhookUrl").notNull(),
 });
 
+export const pushover = pgTable("pushover", {
+	pushoverId: text("pushoverId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	userKey: text("userKey").notNull(),
+	apiToken: text("apiToken").notNull(),
+	priority: integer("priority").notNull().default(0),
+	retry: integer("retry"),
+	expire: integer("expire"),
+});
+
+export const teams = pgTable("teams", {
+	teamsId: text("teamsId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
+});
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
 	slack: one(slack, {
 		fields: [notifications.slackId],
@@ -166,6 +208,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 		fields: [notifications.emailId],
 		references: [email.emailId],
 	}),
+	resend: one(resend, {
+		fields: [notifications.resendId],
+		references: [resend.resendId],
+	}),
 	gotify: one(gotify, {
 		fields: [notifications.gotifyId],
 		references: [gotify.gotifyId],
@@ -181,6 +227,14 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	lark: one(lark, {
 		fields: [notifications.larkId],
 		references: [lark.larkId],
+	}),
+	pushover: one(pushover, {
+		fields: [notifications.pushoverId],
+		references: [pushover.pushoverId],
+	}),
+	teams: one(teams, {
+		fields: [notifications.teamsId],
+		references: [teams.teamsId],
 	}),
 	organization: one(organization, {
 		fields: [notifications.organizationId],
@@ -315,6 +369,36 @@ export const apiTestEmailConnection = apiCreateEmail.pick({
 	fromAddress: true,
 });
 
+export const apiCreateResend = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		volumeBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		apiKey: z.string().min(1),
+		fromAddress: z.string().min(1),
+		toAddresses: z.array(z.string()).min(1),
+	})
+	.required();
+
+export const apiUpdateResend = apiCreateResend.partial().extend({
+	notificationId: z.string().min(1),
+	resendId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestResendConnection = apiCreateResend.pick({
+	apiKey: true,
+	fromAddress: true,
+	toAddresses: true,
+});
+
 export const apiCreateGotify = notificationsSchema
 	.pick({
 		appBuildError: true,
@@ -439,6 +523,95 @@ export const apiTestLarkConnection = apiCreateLark.pick({
 	webhookUrl: true,
 });
 
+export const apiCreateTeams = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		volumeBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		webhookUrl: z.string().min(1),
+	})
+	.required();
+
+export const apiUpdateTeams = apiCreateTeams.partial().extend({
+	notificationId: z.string().min(1),
+	teamsId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestTeamsConnection = apiCreateTeams.pick({
+	webhookUrl: true,
+});
+
+export const apiCreatePushover = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		volumeBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		userKey: z.string().min(1),
+		apiToken: z.string().min(1),
+		priority: z.number().min(-2).max(2).default(0),
+		retry: z.number().min(30).nullish(),
+		expire: z.number().min(1).max(10800).nullish(),
+	})
+	.refine(
+		(data) =>
+			data.priority !== 2 || (data.retry != null && data.expire != null),
+		{
+			message: "Retry and expire are required for emergency priority (2)",
+			path: ["retry"],
+		},
+	);
+
+export const apiUpdatePushover = z.object({
+	notificationId: z.string().min(1),
+	pushoverId: z.string().min(1),
+	organizationId: z.string().optional(),
+	userKey: z.string().min(1).optional(),
+	apiToken: z.string().min(1).optional(),
+	priority: z.number().min(-2).max(2).optional(),
+	retry: z.number().min(30).nullish(),
+	expire: z.number().min(1).max(10800).nullish(),
+	appBuildError: z.boolean().optional(),
+	databaseBackup: z.boolean().optional(),
+	volumeBackup: z.boolean().optional(),
+	dokployRestart: z.boolean().optional(),
+	name: z.string().optional(),
+	appDeploy: z.boolean().optional(),
+	dockerCleanup: z.boolean().optional(),
+	serverThreshold: z.boolean().optional(),
+});
+
+export const apiTestPushoverConnection = z
+	.object({
+		userKey: z.string().min(1),
+		apiToken: z.string().min(1),
+		priority: z.number().min(-2).max(2),
+		retry: z.number().min(30).nullish(),
+		expire: z.number().min(1).max(10800).nullish(),
+	})
+	.refine(
+		(data) =>
+			data.priority !== 2 || (data.retry != null && data.expire != null),
+		{
+			message: "Retry and expire are required for emergency priority (2)",
+			path: ["retry"],
+		},
+	);
+
 export const apiSendTest = notificationsSchema
 	.extend({
 		botToken: z.string(),
@@ -451,6 +624,7 @@ export const apiSendTest = notificationsSchema
 		username: z.string(),
 		password: z.string(),
 		toAddresses: z.array(z.string()),
+		apiKey: z.string(),
 		serverUrl: z.string(),
 		topic: z.string(),
 		appToken: z.string(),

@@ -79,6 +79,7 @@ export const getBitbucketHeaders = (bitbucketProvider: Bitbucket) => {
 interface CloneBitbucketRepository {
 	appName: string;
 	bitbucketRepository: string | null;
+	bitbucketRepositorySlug?: string | null;
 	bitbucketOwner: string | null;
 	bitbucketBranch: string | null;
 	bitbucketId: string | null;
@@ -117,7 +118,8 @@ export const cloneBitbucketRepository = async ({
 	const outputPath = join(basePath, appName, "code");
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
-	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
+	const repoToUse = entity.bitbucketRepositorySlug || bitbucketRepository;
+	const repoclone = `bitbucket.org/${bitbucketOwner}/${repoToUse}.git`;
 	const cloneUrl = getBitbucketCloneUrl(bitbucket, repoclone);
 	command += `echo "Cloning Repo ${repoclone} to ${outputPath}: ✅";`;
 	command += `git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
@@ -137,6 +139,7 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 	let repositories: {
 		name: string;
 		url: string;
+		slug: string;
 		owner: { username: string };
 	}[] = [];
 
@@ -159,6 +162,7 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 			const mappedData = data.values.map((repo: any) => ({
 				name: repo.name,
 				url: repo.links.html.href,
+				slug: repo.slug,
 				owner: {
 					username: repo.workspace.slug,
 				},

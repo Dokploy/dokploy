@@ -1,4 +1,5 @@
 import path from "node:path";
+import { CLEANUP_CRON_JOB } from "@dokploy/server/constants";
 import { member } from "@dokploy/server/db/schema";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { getAllServers } from "@dokploy/server/services/server";
@@ -29,7 +30,7 @@ export const initCronJobs = async () => {
 	const webServerSettings = await getWebServerSettings();
 
 	if (webServerSettings?.enableDockerCleanup) {
-		scheduleJob("docker-cleanup", "0 0 * * *", async () => {
+		scheduleJob("docker-cleanup", CLEANUP_CRON_JOB, async () => {
 			console.log(
 				`Docker Cleanup ${new Date().toLocaleString()}]  Running docker cleanup`,
 			);
@@ -45,7 +46,7 @@ export const initCronJobs = async () => {
 	for (const server of servers) {
 		const { serverId, enableDockerCleanup, name } = server;
 		if (enableDockerCleanup) {
-			scheduleJob(serverId, "0 0 * * *", async () => {
+			scheduleJob(serverId, CLEANUP_CRON_JOB, async () => {
 				console.log(
 					`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${name}`,
 				);
