@@ -34,13 +34,16 @@ export const OnboardingLayout = ({ children }: Props) => {
 					{children}
 				</div>
 				<div className="flex items-center gap-4 justify-center absolute bottom-4 right-4 text-muted-foreground">
-					<Button variant="ghost" size="icon">
-						<Link href="https://github.com/dokploy/dokploy">
+					<Button variant="ghost" size="icon" asChild>
+						<Link
+							href="https://github.com/dokploy/dokploy"
+							aria-label="Dokploy on GitHub"
+						>
 							<GithubIcon />
 						</Link>
 					</Button>
-					<Button variant="ghost" size="icon">
-						<Link href="https://x.com/getdokploy">
+					<Button variant="ghost" size="icon" asChild>
+						<Link href="https://x.com/getdokploy" aria-label="Dokploy on X">
 							<svg
 								stroke="currentColor"
 								fill="currentColor"
@@ -53,8 +56,11 @@ export const OnboardingLayout = ({ children }: Props) => {
 							</svg>
 						</Link>
 					</Button>
-					<Button variant="ghost" size="icon">
-						<Link href="https://discord.com/invite/2tBnJ3jDJc">
+					<Button variant="ghost" size="icon" asChild>
+						<Link
+							href="https://discord.com/invite/2tBnJ3jDJc"
+							aria-label="Join Dokploy on Discord"
+						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								viewBox="0 0 48 48"

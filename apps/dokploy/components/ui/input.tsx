@@ -89,20 +89,20 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 							{shouldShowGenerator && (
 								<button
 									type="button"
-									className="hover:text-foreground focus:outline-none"
+									className="rounded-sm p-0.5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 									onClick={handleGeneratePassword}
 									aria-label="Generate password"
 									title="Generate password"
-									tabIndex={-1}
 								>
 									<RefreshCcw className="h-4 w-4" />
 								</button>
 							)}
 							<button
 								type="button"
-								className="hover:text-foreground focus:outline-none"
+								className="rounded-sm p-0.5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 								onClick={() => setShowPassword(!showPassword)}
-								tabIndex={-1}
+								aria-label={showPassword ? "Hide password" : "Show password"}
+								aria-pressed={showPassword}
 							>
 								{showPassword ? (
 									<EyeOffIcon className="h-4 w-4" />

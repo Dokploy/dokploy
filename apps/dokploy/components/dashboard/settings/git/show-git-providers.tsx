@@ -1,11 +1,5 @@
 import { formatDate } from "date-fns";
-import {
-	ExternalLinkIcon,
-	GitBranch,
-	ImportIcon,
-	Loader2,
-	Trash2,
-} from "lucide-react";
+import { ExternalLinkIcon, GitBranch, ImportIcon, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -15,6 +9,7 @@ import {
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -24,6 +19,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { api } from "@/utils/api";
 import { useUrl } from "@/utils/hooks/use-url";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
@@ -67,19 +70,21 @@ export const ShowGitProviders = () => {
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
-							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
-								<Loader2 className="animate-spin size-4" />
-							</div>
+							<ListSkeleton items={3} gridClassName="grid grid-cols-1 gap-3" />
 						) : (
 							<>
 								{data?.length === 0 ? (
-									<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
-										<GitBranch className="size-8 self-center text-muted-foreground" />
-										<span className="text-base text-muted-foreground text-center">
-											Create your first Git Provider
-										</span>
-										<div>
+									<Empty className="min-h-[25vh]">
+										<EmptyHeader>
+											<EmptyMedia variant="icon">
+												<GitBranch className="size-5 text-muted-foreground" />
+											</EmptyMedia>
+											<EmptyTitle>No Git providers yet</EmptyTitle>
+											<EmptyDescription>
+												Connect a Git provider to enable repository access.
+											</EmptyDescription>
+										</EmptyHeader>
+										<EmptyContent className="max-w-2xl">
 											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
 												<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
 													<AddGithubProvider />
@@ -88,8 +93,8 @@ export const ShowGitProviders = () => {
 													<AddGiteaProvider />
 												</div>
 											</div>
-										</div>
-									</div>
+										</EmptyContent>
+									</Empty>
 								) : (
 									<div className="flex flex-col gap-4 min-h-[25vh]">
 										<div className="flex flex-col gap-2 rounded-lg ">

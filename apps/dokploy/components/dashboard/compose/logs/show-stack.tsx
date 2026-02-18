@@ -1,4 +1,3 @@
-import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { badgeStateColor } from "@/components/dashboard/application/logs/show";
@@ -21,6 +20,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/utils/api";
 export const DockerLogs = dynamic(
 	() =>
@@ -107,9 +107,8 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 				<Select onValueChange={setContainerId} value={containerId}>
 					<SelectTrigger>
 						{isLoading ? (
-							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
-								<span>Loading...</span>
-								<Loader2 className="animate-spin size-4" />
+							<div className="flex items-center gap-2">
+								<Skeleton className="h-4 w-24" />
 							</div>
 						) : (
 							<SelectValue placeholder="Select a container" />

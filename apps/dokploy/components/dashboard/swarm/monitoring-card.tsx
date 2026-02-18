@@ -1,14 +1,23 @@
 import {
 	Activity,
-	Loader2,
 	Monitor,
 	Server,
+	ServerOff,
 	Settings,
 	WorkflowIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Tooltip,
 	TooltipContent,
@@ -29,29 +38,93 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 
 	if (isLoading) {
 		return (
-			<div className="w-full max-w-7xl mx-auto">
-				<div className="mb-6 border min-h-[55vh] flex rounded-lg h-full items-center justify-center  text-muted-foreground">
-					{/* <div className="flex items-center justify-center h-full text-muted-foreground"> */}
-
-					<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[55vh]">
-						<span>Loading...</span>
-						<Loader2 className="animate-spin size-4" />
+			<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
+				<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-6">
+					<div className="flex items-center flex-wrap gap-4 justify-between">
+						<div className="space-y-2">
+							<Skeleton className="h-6 w-56" />
+							<Skeleton className="h-4 w-72" />
+						</div>
+						{!serverId && <Skeleton className="h-10 w-40" />}
 					</div>
-					{/* </div> */}
+					<div className="grid gap-6 lg:grid-cols-3">
+						{Array.from({ length: 3 }).map((_, index) => (
+							<Card
+								key={`swarm-stat-skeleton-${index}`}
+								className="bg-background"
+							>
+								<CardHeader className="space-y-2">
+									<Skeleton className="h-4 w-24" />
+									<Skeleton className="h-8 w-16" />
+								</CardHeader>
+							</Card>
+						))}
+					</div>
+					<div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
+						{Array.from({ length: 6 }).map((_, index) => (
+							<Skeleton
+								key={`swarm-node-skeleton-${index}`}
+								className="h-40 w-full rounded-xl"
+							/>
+						))}
+					</div>
 				</div>
-			</div>
+			</Card>
 		);
 	}
 
 	if (!nodes) {
 		return (
-			<div className="w-full max-w-7xl mx-auto">
-				<div className="mb-6 border min-h-[55vh] flex justify-center items-center rounded-lg h-full">
-					<div className="flex items-center justify-center h-full  text-destructive">
-						<span>Failed to load data</span>
-					</div>
+			<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
+				<div className="rounded-xl bg-background shadow-md p-6">
+					<Empty className="min-h-[55vh]">
+						<EmptyHeader>
+							<EmptyMedia variant="icon">
+								<ServerOff className="size-5 text-muted-foreground" />
+							</EmptyMedia>
+							<EmptyTitle>Unable to load swarm data</EmptyTitle>
+							<EmptyDescription>
+								We couldn't reach the swarm API. Check your server connection
+								and try again.
+							</EmptyDescription>
+						</EmptyHeader>
+						<EmptyContent>
+							<Button onClick={() => window.location.reload()}>Retry</Button>
+						</EmptyContent>
+					</Empty>
 				</div>
-			</div>
+			</Card>
+		);
+	}
+
+	if (nodes.length === 0) {
+		return (
+			<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
+				<div className="rounded-xl bg-background shadow-md p-6">
+					<Empty className="min-h-[55vh]">
+						<EmptyHeader>
+							<EmptyMedia variant="icon">
+								<Server className="size-5 text-muted-foreground" />
+							</EmptyMedia>
+							<EmptyTitle>No swarm nodes yet</EmptyTitle>
+							<EmptyDescription>
+								Add nodes to start monitoring your cluster health and activity.
+							</EmptyDescription>
+						</EmptyHeader>
+						{!serverId && (
+							<EmptyContent>
+								<Button
+									onClick={() =>
+										window.location.replace("/dashboard/settings/cluster")
+									}
+								>
+									Manage Cluster
+								</Button>
+							</EmptyContent>
+						)}
+					</Empty>
+				</div>
+			</Card>
 		);
 	}
 

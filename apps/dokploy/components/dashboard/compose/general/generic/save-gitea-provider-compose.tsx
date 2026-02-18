@@ -7,8 +7,10 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { GiteaIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Command,
 	CommandEmpty,
@@ -331,13 +333,16 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{status === "loading" && fetchStatus === "fetching"
-														? "Loading...."
-														: field.value
-															? branches?.find(
-																	(branch) => branch.name === field.value,
-																)?.name
-															: "Select branch"}
+													{status === "loading" &&
+													fetchStatus === "fetching" ? (
+														<Skeleton className="h-4 w-24" />
+													) : field.value ? (
+														branches?.find(
+															(branch) => branch.name === field.value,
+														)?.name
+													) : (
+														"Select branch"
+													)}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>

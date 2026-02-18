@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-table";
 import { ChevronDown, Container } from "lucide-react";
 import * as React from "react";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -19,6 +20,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
@@ -138,17 +146,25 @@ export const ShowContainers = ({ serverId }: Props) => {
 								</div>
 								<div className="rounded-md border">
 									{isLoading ? (
-										<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-											<span className="text-muted-foreground text-lg font-medium">
-												Loading...
-											</span>
+										<div className="p-4">
+											<ListSkeleton
+												items={6}
+												gridClassName="grid grid-cols-1 gap-3"
+												itemClassName="border-none bg-transparent p-0"
+											/>
 										</div>
 									) : data?.length === 0 ? (
-										<div className="flex-col gap-2 flex items-center justify-center h-[55vh]">
-											<span className="text-muted-foreground text-lg font-medium">
-												No results.
-											</span>
-										</div>
+										<Empty className="min-h-[55vh]">
+											<EmptyHeader>
+												<EmptyMedia variant="icon">
+													<Container className="size-5 text-muted-foreground" />
+												</EmptyMedia>
+												<EmptyTitle>No containers found</EmptyTitle>
+												<EmptyDescription>
+													Containers will appear here once they're running.
+												</EmptyDescription>
+											</EmptyHeader>
+										</Empty>
 									) : (
 										<Table>
 											<TableHeader>
@@ -192,15 +208,11 @@ export const ShowContainers = ({ serverId }: Props) => {
 															colSpan={columns.length}
 															className="h-24 text-center"
 														>
-															{isLoading ? (
-																<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-																	<span className="text-muted-foreground text-lg font-medium">
-																		Loading...
-																	</span>
-																</div>
-															) : (
-																<>No results.</>
-															)}
+															<Empty className="border-none p-4">
+																<EmptyHeader>
+																	<EmptyTitle>No results.</EmptyTitle>
+																</EmptyHeader>
+															</Empty>
 														</TableCell>
 													</TableRow>
 												)}

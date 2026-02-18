@@ -8,6 +8,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import {
 	Tooltip,
 	TooltipContent,
@@ -107,12 +116,11 @@ export const ShowVolumeBackups = ({
 			</CardHeader>
 			<CardContent className="px-0">
 				{isLoadingVolumeBackups ? (
-					<div className="flex gap-4 w-full items-center justify-center text-center mx-auto min-h-[45vh]">
-						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />
-						<span className="text-sm text-muted-foreground/70">
-							Loading volume backups...
-						</span>
-					</div>
+					<ListSkeleton
+						items={4}
+						gridClassName="grid grid-cols-1 xl:grid-cols-2 gap-4"
+						className="min-h-[45vh]"
+					/>
 				) : volumeBackups && volumeBackups.length > 0 ? (
 					<div className="grid xl:grid-cols-2 gap-4 grid-cols-1 h-full">
 						{volumeBackups.map((volumeBackup) => {
@@ -233,19 +241,23 @@ export const ShowVolumeBackups = ({
 						})}
 					</div>
 				) : (
-					<div className="flex flex-col gap-2 items-center justify-center py-12 rounded-lg">
-						<DatabaseBackup className="size-8 mb-4 text-muted-foreground" />
-						<p className="text-lg font-medium text-muted-foreground">
-							No volume backups
-						</p>
-						<p className="text-sm text-muted-foreground mt-1">
-							Create your first volume backup to automate your workflows
-						</p>
-						<div className="flex items-center gap-2">
-							<HandleVolumeBackups id={id} volumeBackupType={type} />
-							<RestoreVolumeBackups id={id} type={type} serverId={serverId} />
-						</div>
-					</div>
+					<Empty className="min-h-[45vh]">
+						<EmptyHeader>
+							<EmptyMedia variant="icon">
+								<DatabaseBackup className="size-5 text-muted-foreground" />
+							</EmptyMedia>
+							<EmptyTitle>No volume backups yet</EmptyTitle>
+							<EmptyDescription>
+								Create your first volume backup to automate your workflows.
+							</EmptyDescription>
+						</EmptyHeader>
+						<EmptyContent>
+							<div className="flex items-center gap-2">
+								<HandleVolumeBackups id={id} volumeBackupType={type} />
+								<RestoreVolumeBackups id={id} type={type} serverId={serverId} />
+							</div>
+						</EmptyContent>
+					</Empty>
 				)}
 			</CardContent>
 		</Card>

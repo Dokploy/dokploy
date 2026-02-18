@@ -1,4 +1,4 @@
-import { GitBranch, Loader2, UploadCloud } from "lucide-react";
+import { GitBranch, UploadCloud } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import {
 	GitIcon,
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
@@ -87,12 +88,11 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 					</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<div className="flex min-h-[25vh] items-center justify-center">
-						<div className="flex items-center gap-2 text-muted-foreground">
-							<Loader2 className="size-4 animate-spin" />
-							<span>Loading providers...</span>
-						</div>
-					</div>
+					<ListSkeleton
+						items={3}
+						gridClassName="grid grid-cols-1 gap-3"
+						className="min-h-[25vh]"
+					/>
 				</CardContent>
 			</Card>
 		);

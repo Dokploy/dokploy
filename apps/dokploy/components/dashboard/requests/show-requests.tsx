@@ -19,6 +19,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -248,19 +255,19 @@ export const ShowRequests = () => {
 									<RequestsTable dateRange={dateRange} />
 								</>
 							) : (
-								<div className="flex flex-col items-center justify-center py-12 gap-4 text-muted-foreground">
-									<AlertCircle className="size-12 text-muted-foreground/50" />
-									<div className="text-center space-y-2">
-										<h3 className="text-lg font-medium">
-											Requests are not activated
-										</h3>
-										<p className="text-sm max-w-md">
+								<Empty className="min-h-[30vh]">
+									<EmptyHeader>
+										<EmptyMedia variant="icon">
+											<AlertCircle className="size-5 text-muted-foreground" />
+										</EmptyMedia>
+										<EmptyTitle>Requests are not activated</EmptyTitle>
+										<EmptyDescription>
 											Activate requests to see incoming traffic statistics and
 											monitor your application's usage. After activation, you'll
 											need to reload Traefik for the changes to take effect.
-										</p>
-									</div>
-								</div>
+										</EmptyDescription>
+									</EmptyHeader>
+								</Empty>
 							)}
 						</CardContent>
 					</div>

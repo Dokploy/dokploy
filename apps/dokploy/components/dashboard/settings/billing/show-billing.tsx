@@ -5,7 +5,6 @@ import {
 	CheckIcon,
 	CreditCard,
 	FileText,
-	Loader2,
 	MinusIcon,
 	PlusIcon,
 } from "lucide-react";
@@ -23,6 +22,7 @@ import {
 } from "@/components/ui/card";
 import { NumberInput } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
@@ -187,10 +187,11 @@ export const ShowBilling = () => {
 								</Button>
 							</div>
 							{isLoading ? (
-								<span className="text-base text-muted-foreground flex flex-row gap-3 items-center justify-center min-h-[10vh]">
-									Loading...
-									<Loader2 className="animate-spin" />
-								</span>
+								<div className="flex flex-col gap-4 min-h-[10vh]">
+									<Skeleton className="h-6 w-40" />
+									<Skeleton className="h-4 w-64" />
+									<Skeleton className="h-24 w-full max-w-sm" />
+								</div>
 							) : (
 								<>
 									{products?.map((product) => {

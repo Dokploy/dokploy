@@ -1,7 +1,8 @@
 import copy from "copy-to-clipboard";
 import { format, isPast } from "date-fns";
-import { Loader2, Mail, MoreHorizontal, Users } from "lucide-react";
+import { Mail, MoreHorizontal, Users } from "lucide-react";
 import { toast } from "sonner";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +12,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -53,20 +62,24 @@ export const ShowInvitations = () => {
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
-							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
-								<Loader2 className="animate-spin size-4" />
-							</div>
+							<ListSkeleton items={4} gridClassName="grid grid-cols-1 gap-3" />
 						) : (
 							<>
 								{data?.length === 0 ? (
-									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
-										<Users className="size-8 self-center text-muted-foreground" />
-										<span className="text-base text-muted-foreground">
-											Invite users to your organization
-										</span>
-										<AddInvitation />
-									</div>
+									<Empty className="min-h-[25vh]">
+										<EmptyHeader>
+											<EmptyMedia variant="icon">
+												<Users className="size-5 text-muted-foreground" />
+											</EmptyMedia>
+											<EmptyTitle>No invitations yet</EmptyTitle>
+											<EmptyDescription>
+												Invite users to your organization.
+											</EmptyDescription>
+										</EmptyHeader>
+										<EmptyContent>
+											<AddInvitation />
+										</EmptyContent>
+									</Empty>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
 										<Table>

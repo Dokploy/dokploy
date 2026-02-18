@@ -12,6 +12,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { api } from "@/utils/api";
 import { AddApiKey } from "./add-api-key";
 
@@ -121,12 +128,17 @@ export const ShowApiKeys = () => {
 									</div>
 								))
 							) : (
-								<div className="flex flex-col items-center gap-3 py-6">
-									<KeyIcon className="size-8 text-muted-foreground" />
-									<span className="text-base text-muted-foreground">
-										No API keys found
-									</span>
-								</div>
+								<Empty className="min-h-[12vh] border-none p-4">
+									<EmptyHeader>
+										<EmptyMedia variant="icon">
+											<KeyIcon className="size-5 text-muted-foreground" />
+										</EmptyMedia>
+										<EmptyTitle>No API keys yet</EmptyTitle>
+										<EmptyDescription>
+											Create an API key to integrate with Dokploy.
+										</EmptyDescription>
+									</EmptyHeader>
+								</Empty>
 							)}
 						</div>
 
