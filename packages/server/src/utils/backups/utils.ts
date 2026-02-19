@@ -77,34 +77,101 @@ export const getS3Credentials = (destination: Destination) => {
 	return rcloneFlags;
 };
 
+export const normalizeBackUpInput = (value: string | null | undefined): string => {
+	if (!value?.trim()) return '';
+
+	// Allow only safe CLI characters: letters, numbers, dash, underscore, dot, colon, slash, equal, @
+	const SAFE_CHARS_REGEX = /[^\w\-./:=@ ]/g;
+
+	// Trim, remove unsafe characters, and normalize whitespace
+	return value
+		.trim()
+		.replace(SAFE_CHARS_REGEX, '')  // remove unsafe chars
+		.replace(/\s+/g, ' ');          // collapse multiple spaces into one
+}
+
 export const getPostgresBackupCommand = (
 	database: string,
 	databaseUser: string,
+	additionalOptions: string[] | null,
 ) => {
-	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; pg_dump -Fc --no-acl --no-owner -h localhost -U ${databaseUser} --no-password '${database}' | gzip"`;
+	const pgCmd = [
+		'set -o pipefail;',
+		'pg_dump',
+		'-Fc',
+		'--no-acl',
+		'--no-owner',
+		'-h localhost',
+		`-U ${normalizeBackUpInput(databaseUser)}`,
+		'--no-password',
+		...additionalOptions?.length ? additionalOptions.map(normalizeBackUpInput).filter(Boolean) : [],
+		database,
+		'| gzip',
+	].join(' ');
+
+	return `docker exec -i $CONTAINER_ID bash -c "${pgCmd}"`;
 };
 
 export const getMariadbBackupCommand = (
 	database: string,
 	databaseUser: string,
 	databasePassword: string,
+	additionalOptions: string[] | null,
 ) => {
-	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mariadb-dump --user='${databaseUser}' --password='${databasePassword}' --single-transaction --quick --databases ${database} | gzip"`;
+	const mariaCmd = [
+		'set -o pipefail; mariadb-dump',
+		`--user=${normalizeBackUpInput(databaseUser)}`,
+		`--password=${normalizeBackUpInput(databasePassword)}`,
+		'--single-transaction',
+		'--quick',
+		`--databases ${normalizeBackUpInput(database)}`,
+		...additionalOptions?.length ? additionalOptions.map(normalizeBackUpInput).filter(Boolean) : [],
+		'| gzip',
+	].filter(Boolean).join(' ');
+
+	return `docker exec -i $CONTAINER_ID bash -c "${mariaCmd}"`;
 };
 
 export const getMysqlBackupCommand = (
 	database: string,
 	databasePassword: string,
+	additionalOptions: string[] | null,
 ) => {
-	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mysqldump --default-character-set=utf8mb4 -u 'root' --password='${databasePassword}' --single-transaction --no-tablespaces --quick '${database}' | gzip"`;
+	const mysqlCmd = [
+		'set -o pipefail; mysqldump',
+		'--default-character-set=utf8mb4',
+		'-u', 'root',
+		`--password=${normalizeBackUpInput(databasePassword)}`,
+		'--single-transaction',
+		'--no-tablespaces',
+		'--quick',
+		...additionalOptions?.length ? additionalOptions.map(normalizeBackUpInput).filter(Boolean) : [],
+		database,
+		'| gzip',
+	].filter(Boolean).join(' ');
+
+	return `docker exec -i $CONTAINER_ID bash -c "${mysqlCmd}"`;
 };
 
 export const getMongoBackupCommand = (
 	database: string,
 	databaseUser: string,
 	databasePassword: string,
+	additionalOptions: string[] | null,
 ) => {
-	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}' --archive --authenticationDatabase admin --gzip"`;
+	const mongoCmd = [
+		'set -o pipefail;',
+		'mongodump',
+		`-d ${normalizeBackUpInput(database)}`,
+		`-u ${normalizeBackUpInput(databaseUser)}`,
+		`-p ${normalizeBackUpInput(databasePassword)}`,
+		'--archive',
+		'--authenticationDatabase admin',
+		'--gzip',
+		...additionalOptions?.length ? additionalOptions.map(normalizeBackUpInput).filter(Boolean) : [],
+	].filter(Boolean).join(' ');
+
+	return `docker exec -i $CONTAINER_ID bash -c "${mongoCmd}"`;
 };
 
 export const getServiceContainerCommand = (appName: string) => {
@@ -147,12 +214,17 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 		case "postgres": {
 			const postgres = backup.postgres;
 			if (backupType === "database" && postgres) {
-				return getPostgresBackupCommand(backup.database, postgres.databaseUser);
+				return getPostgresBackupCommand(
+					backup.database,
+					postgres.databaseUser,
+					backup.additionalOptions,
+				);
 			}
 			if (backupType === "compose" && backup.metadata?.postgres) {
 				return getPostgresBackupCommand(
 					backup.database,
 					backup.metadata.postgres.databaseUser,
+					backup.additionalOptions,
 				);
 			}
 			break;
@@ -163,12 +235,14 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 				return getMysqlBackupCommand(
 					backup.database,
 					mysql.databaseRootPassword,
+					backup.additionalOptions,
 				);
 			}
 			if (backupType === "compose" && backup.metadata?.mysql) {
 				return getMysqlBackupCommand(
 					backup.database,
 					backup.metadata?.mysql?.databaseRootPassword || "",
+					backup.additionalOptions,
 				);
 			}
 			break;
@@ -180,6 +254,7 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 					backup.database,
 					mariadb.databaseUser,
 					mariadb.databasePassword,
+					backup.additionalOptions,
 				);
 			}
 			if (backupType === "compose" && backup.metadata?.mariadb) {
@@ -187,6 +262,7 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 					backup.database,
 					backup.metadata.mariadb.databaseUser,
 					backup.metadata.mariadb.databasePassword,
+					backup.additionalOptions,
 				);
 			}
 			break;
@@ -198,6 +274,7 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 					backup.database,
 					mongo.databaseUser,
 					mongo.databasePassword,
+					backup.additionalOptions,
 				);
 			}
 			if (backupType === "compose" && backup.metadata?.mongo) {
@@ -205,6 +282,7 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 					backup.database,
 					backup.metadata.mongo.databaseUser,
 					backup.metadata.mongo.databasePassword,
+					backup.additionalOptions,
 				);
 			}
 			break;

@@ -78,23 +78,25 @@ export const backups = pgTable("backup", {
 	// Only for compose backups
 	metadata: jsonb("metadata").$type<
 		| {
-				postgres?: {
-					databaseUser: string;
-				};
-				mariadb?: {
-					databaseUser: string;
-					databasePassword: string;
-				};
-				mongo?: {
-					databaseUser: string;
-					databasePassword: string;
-				};
-				mysql?: {
-					databaseRootPassword: string;
-				};
-		  }
+			postgres?: {
+				databaseUser: string;
+			};
+			mariadb?: {
+				databaseUser: string;
+				databasePassword: string;
+			};
+			mongo?: {
+				databaseUser: string;
+				databasePassword: string;
+			};
+			mysql?: {
+				databaseRootPassword: string;
+			};
+		}
 		| undefined
 	>(),
+	// additional options to be passed to the backup command
+	additionalOptions: jsonb("additionalOptions").$type<string[]>().default([]),
 });
 
 export const backupsRelations = relations(backups, ({ one, many }) => ({
@@ -144,6 +146,7 @@ const createSchema = createInsertSchema(backups, {
 	mongoId: z.string().optional(),
 	userId: z.string().optional(),
 	metadata: z.any().optional(),
+	additionalOptions: z.array(z.string()).optional(),
 });
 
 export const apiCreateBackup = createSchema.pick({
@@ -163,6 +166,7 @@ export const apiCreateBackup = createSchema.pick({
 	composeId: true,
 	serviceName: true,
 	metadata: true,
+	additionalOptions: true,
 });
 
 export const apiFindOneBackup = createSchema
@@ -189,6 +193,7 @@ export const apiUpdateBackup = createSchema
 		serviceName: true,
 		metadata: true,
 		databaseType: true,
+		additionalOptions: true,
 	})
 	.required();
 
@@ -226,4 +231,5 @@ export const apiRestoreBackup = z.object({
 				.optional(),
 		})
 		.optional(),
+	additionalOptions: z.array(z.string()).optional(),
 });

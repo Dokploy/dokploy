@@ -3,34 +3,87 @@ import {
 	getServiceContainerCommand,
 } from "../backups/utils";
 
+export const normalizeRestoreInput = (value: string | null | undefined): string => {
+	if (!value?.trim()) return '';
+
+	// Allow only safe CLI characters: letters, numbers, dash, underscore, dot, colon, slash, equal, @
+	const SAFE_CHARS_REGEX = /[^\w\-./:=@ ]/g;
+
+	// Trim, remove unsafe characters, and normalize whitespace
+	return value
+		.trim()
+		.replace(SAFE_CHARS_REGEX, '')  // remove unsafe chars
+		.replace(/\s+/g, ' ');          // collapse multiple spaces into one
+}
+
 export const getPostgresRestoreCommand = (
 	database: string,
 	databaseUser: string,
+	additionalOptions?: string[],
 ) => {
-	return `docker exec -i $CONTAINER_ID sh -c "pg_restore -U '${databaseUser}' -d ${database} -O --clean --if-exists"`;
+	const pgCmd = [
+		'pg_restore',
+		`-U '${normalizeRestoreInput(databaseUser)}'`,
+		`-d '${normalizeRestoreInput(database)}'`,
+		'-O',
+		'--clean',
+		'--if-exists',
+		...additionalOptions?.length ? additionalOptions.map(normalizeRestoreInput).filter(Boolean) : [],
+	].join(' ');
+
+	return `docker exec -i $CONTAINER_ID sh -c "${pgCmd}"`;
 };
 
 export const getMariadbRestoreCommand = (
 	database: string,
 	databaseUser: string,
 	databasePassword: string,
+	additionalOptions?: string[],
 ) => {
-	return `docker exec -i $CONTAINER_ID sh -c "mariadb -u '${databaseUser}' -p'${databasePassword}' ${database}"`;
+	const mariaCmd = [
+		'mariadb',
+		`-u '${normalizeRestoreInput(databaseUser)}'`,
+		`-p '${normalizeRestoreInput(databasePassword)}'`,
+		...additionalOptions?.length ? additionalOptions.map(normalizeRestoreInput).filter(Boolean) : [],
+		normalizeRestoreInput(database),
+	].join(' ');
+
+	return `docker exec -i $CONTAINER_ID sh -c "${mariaCmd}"`;
 };
 
 export const getMysqlRestoreCommand = (
 	database: string,
 	databasePassword: string,
+	additionalOptions?: string[],
 ) => {
-	return `docker exec -i $CONTAINER_ID sh -c "mysql -u root -p'${databasePassword}' ${database}"`;
+	const mysqlCmd = [
+		'mysql',
+		'-u root',
+		`-p '${normalizeRestoreInput(databasePassword)}'`,
+		...additionalOptions?.length ? additionalOptions.map(normalizeRestoreInput).filter(Boolean) : [],
+		normalizeRestoreInput(database),
+	].join(' ');
+
+	return `docker exec -i $CONTAINER_ID sh -c "${mysqlCmd}"`;
 };
 
 export const getMongoRestoreCommand = (
 	database: string,
 	databaseUser: string,
 	databasePassword: string,
+	additionalOptions?: string[],
 ) => {
-	return `docker exec -i $CONTAINER_ID sh -c "mongorestore --username '${databaseUser}' --password '${databasePassword}' --authenticationDatabase admin --db ${database} --archive"`;
+	const mongoCmd = [
+		'mongorestore',
+		`--username '${normalizeRestoreInput(databaseUser)}'`,
+		`--password '${normalizeRestoreInput(databasePassword)}'`,
+		'--authenticationDatabase admin',
+		`--db ${normalizeRestoreInput(database)}`,
+		'--archive',
+		...additionalOptions?.length ? additionalOptions.map(normalizeRestoreInput).filter(Boolean) : [],
+	].join(' ');
+
+	return `docker exec -i $CONTAINER_ID sh -c "${mongoCmd}"`;
 };
 
 export const getComposeSearchCommand = (
@@ -53,24 +106,35 @@ interface DatabaseCredentials {
 const generateRestoreCommand = (
 	type: "postgres" | "mariadb" | "mysql" | "mongo",
 	credentials: DatabaseCredentials,
+	additionalOptions?: string[],
 ) => {
 	const { database, databaseUser, databasePassword } = credentials;
 	switch (type) {
 		case "postgres":
-			return getPostgresRestoreCommand(database, databaseUser || "");
+			return getPostgresRestoreCommand(
+				database,
+				databaseUser || "",
+				additionalOptions,
+			);
 		case "mariadb":
 			return getMariadbRestoreCommand(
 				database,
 				databaseUser || "",
 				databasePassword || "",
+				additionalOptions,
 			);
 		case "mysql":
-			return getMysqlRestoreCommand(database, databasePassword || "");
+			return getMysqlRestoreCommand(
+				database,
+				databasePassword || "",
+				additionalOptions,
+			);
 		case "mongo":
 			return getMongoRestoreCommand(
 				database,
 				databaseUser || "",
 				databasePassword || "",
+				additionalOptions,
 			);
 	}
 };
@@ -102,6 +166,7 @@ interface RestoreOptions {
 	serviceName?: string;
 	rcloneCommand: string;
 	backupFile?: string;
+	additionalOptions?: string[];
 }
 
 export const getRestoreCommand = ({
@@ -112,13 +177,14 @@ export const getRestoreCommand = ({
 	serviceName,
 	rcloneCommand,
 	backupFile,
+	additionalOptions,
 }: RestoreOptions) => {
 	const containerSearch = getComposeSearchCommand(
 		appName,
 		restoreType,
 		serviceName,
 	);
-	const restoreCommand = generateRestoreCommand(type, credentials);
+	const restoreCommand = generateRestoreCommand(type, credentials, additionalOptions);
 	let cmd = `CONTAINER_ID=$(${containerSearch})`;
 
 	if (type !== "mongo") {

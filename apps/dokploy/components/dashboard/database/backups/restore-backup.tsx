@@ -35,12 +35,14 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { InputArray } from "@/components/ui/input-array";
 import {
 	Popover,
 	PopoverContent,
@@ -130,6 +132,7 @@ const RestoreBackupSchema = z
 				serviceName: z.string().optional(),
 			})
 			.optional(),
+		additionalOptions: z.array(z.string()).nullable(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.backupType === "compose" && !data.databaseType) {
@@ -228,6 +231,7 @@ export const RestoreBackup = ({
 				backupType === "compose" ? ("postgres" as DatabaseType) : databaseType,
 			backupType: backupType,
 			metadata: {},
+			additionalOptions: [],
 		},
 		resolver: zodResolver(RestoreBackupSchema),
 	});
@@ -235,6 +239,7 @@ export const RestoreBackup = ({
 	const destionationId = form.watch("destinationId");
 	const currentDatabaseType = form.watch("databaseType");
 	const metadata = form.watch("metadata");
+	const additionalOptions = form.watch("additionalOptions");
 
 	const debouncedSetSearch = _.debounce((value: string) => {
 		setDebouncedSearchTerm(value);
@@ -269,6 +274,7 @@ export const RestoreBackup = ({
 			destinationId: form.watch("destinationId"),
 			backupType: backupType,
 			metadata: metadata,
+			additionalOptions: additionalOptions?.map(e => e?.trim()).filter(Boolean) || [],
 		},
 		{
 			enabled: isDeploying,
@@ -787,6 +793,26 @@ export const RestoreBackup = ({
 								)}
 							</>
 						)}
+
+						<FormField
+							control={form.control}
+							name="additionalOptions"
+							render={({ field }) => {
+								return (
+									<FormItem>
+										<FormLabel>Additional Options</FormLabel>
+										<FormControl>
+											<InputArray placeholder={"--flag=value"} {...field} />
+										</FormControl>
+										<FormDescription>
+											Use if you want to pass additional options to the backup command
+										</FormDescription>
+
+										<FormMessage />
+									</FormItem>
+								);
+							}}
+						/>
 
 						<DialogFooter>
 							<Button

@@ -30,6 +30,7 @@ export const restoreMySqlBackup = async (
 			},
 			restoreType: "database",
 			rcloneCommand,
+			additionalOptions: backupInput.additionalOptions,
 		});
 
 		emit("Starting restore...");
@@ -46,8 +47,7 @@ export const restoreMySqlBackup = async (
 	} catch (error) {
 		console.error(error);
 		emit(
-			`Error: ${
-				error instanceof Error ? error.message : "Error restoring mysql backup"
+			`Error: ${error instanceof Error ? error.message : "Error restoring mysql backup"
 			}`,
 		);
 		throw new Error(
