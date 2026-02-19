@@ -17,10 +17,13 @@ export const unzipDrop = async (zipFile: File, application: Application) => {
 
 	try {
 		const { appName } = application;
-		const { APPLICATIONS_PATH } = paths(!!application.serverId);
+		// Use buildServerId if set, otherwise fall back to serverId
+		// This ensures the code is extracted to the server where the build will run
+		const targetServerId = application.buildServerId || application.serverId;
+		const { APPLICATIONS_PATH } = paths(!!targetServerId);
 		const outputPath = join(APPLICATIONS_PATH, appName, "code");
-		if (application.serverId) {
-			await recreateDirectoryRemote(outputPath, application.serverId);
+		if (targetServerId) {
+			await recreateDirectoryRemote(outputPath, targetServerId);
 		} else {
 			await recreateDirectory(outputPath);
 		}
@@ -46,8 +49,8 @@ export const unzipDrop = async (zipFile: File, application: Application) => {
 			? rootEntries[0]?.entryName.split("/")[0]
 			: "";
 
-		if (application.serverId) {
-			sftp = await getSFTPConnection(application.serverId);
+		if (targetServerId) {
+			sftp = await getSFTPConnection(targetServerId);
 		}
 		for (const entry of zipEntries) {
 			let filePath = entry.entryName;
@@ -75,15 +78,12 @@ export const unzipDrop = async (zipFile: File, application: Application) => {
 				);
 			}
 
-			if (application.serverId) {
+			if (targetServerId) {
 				if (!entry.isDirectory) {
 					if (sftp === null) throw new Error("No SFTP connection available");
 					try {
 						const dirPath = path.dirname(fullPath);
-						await execAsyncRemote(
-							application.serverId,
-							`mkdir -p "${dirPath}"`,
-						);
+						await execAsyncRemote(targetServerId, `mkdir -p "${dirPath}"`);
 						await uploadFileToServer(sftp, entry.getData(), fullPath);
 					} catch (err) {
 						console.error(`Error uploading file ${fullPath}:`, err);

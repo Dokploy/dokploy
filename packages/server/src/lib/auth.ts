@@ -361,7 +361,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 			});
 
 			if (error) {
-				throw new Error(error.message || "Error verifying API key");
+				throw new Error(error.message?.toString() || "Error verifying API key");
 			}
 			if (!valid || !key) {
 				return {
