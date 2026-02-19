@@ -13,28 +13,28 @@ const InputArray = React.forwardRef<
 	HTMLInputElement,
 	InputArrayProps
 >(({ className, errorMessage, value, onChange, disabled, ...props }, ref) => {
-    if (!value) value = [];
+    const items = value ?? [];
 	const updateAt = (index: number, newValue: string) => {
-		const next = [...value];
+		const next = [...items];
 		next[index] = newValue;
 		onChange?.(next);
 	};
 
 	const addItem = () => {
-		onChange?.([...value, ""]);
+		onChange?.([...items, ""]);
 	};
 
 	const removeItem = (index: number) => {
-		onChange?.(value.filter((_, i) => i !== index));
+		onChange?.(items.filter((_, i) => i !== index));
 	};
 
 	return (
 		<>
 			<div className="flex w-full flex-col gap-2">
-				{value.map((item, index) => (
+				{items.map((item, index) => (
 					<div key={index} className="flex items-center gap-2">
 						<Input
-							ref={index === value.length - 1 ? ref : undefined}
+							ref={index === items.length - 1 ? ref : undefined}
 							value={item}
 							disabled={disabled}
 							className={cn("flex-1", className)}
