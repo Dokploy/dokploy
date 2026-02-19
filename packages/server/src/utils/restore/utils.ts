@@ -24,7 +24,7 @@ export const getPostgresRestoreCommand = (
 	const pgCmd = [
 		'pg_restore',
 		`-U '${normalizeRestoreInput(databaseUser)}'`,
-		`-d ${normalizeRestoreInput(database)}`,
+		`-d '${normalizeRestoreInput(database)}'`,
 		'-O',
 		'--clean',
 		'--if-exists',
@@ -43,7 +43,7 @@ export const getMariadbRestoreCommand = (
 	const mariaCmd = [
 		'mariadb',
 		`-u '${normalizeRestoreInput(databaseUser)}'`,
-		`-p'${normalizeRestoreInput(databasePassword)}'`,
+		`-p '${normalizeRestoreInput(databasePassword)}'`,
 		...additionalOptions?.length ? additionalOptions.map(normalizeRestoreInput).filter(Boolean) : [],
 		normalizeRestoreInput(database),
 	].join(' ');
@@ -59,7 +59,7 @@ export const getMysqlRestoreCommand = (
 	const mysqlCmd = [
 		'mysql',
 		'-u root',
-		`-p'${normalizeRestoreInput(databasePassword)}'`,
+		`-p '${normalizeRestoreInput(databasePassword)}'`,
 		...additionalOptions?.length ? additionalOptions.map(normalizeRestoreInput).filter(Boolean) : [],
 		normalizeRestoreInput(database),
 	].join(' ');
