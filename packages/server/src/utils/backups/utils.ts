@@ -77,23 +77,39 @@ export const getS3Credentials = (destination: Destination) => {
 	return rcloneFlags;
 };
 
+export const normalizeBackUpInput = (value: string | null | undefined): string => {
+	if (!value?.trim()) return '';
+
+	// Allow only safe CLI characters: letters, numbers, dash, underscore, dot, colon, slash, equal, @
+	const SAFE_CHARS_REGEX = /[^\w\-./:=@ ]/g;
+
+	// Trim, remove unsafe characters, and normalize whitespace
+	return value
+		.trim()
+		.replace(SAFE_CHARS_REGEX, '')  // remove unsafe chars
+		.replace(/\s+/g, ' ');          // collapse multiple spaces into one
+}
+
 export const getPostgresBackupCommand = (
 	database: string,
 	databaseUser: string,
 	additionalOptions: string[] | null,
 ) => {
-	return [
-		'docker exec -i $CONTAINER_ID bash -c "set -o pipefail; pg_dump',
+	const pgCmd = [
+		'set -o pipefail;',
+		'pg_dump',
 		'-Fc',
 		'--no-acl',
 		'--no-owner',
-		additionalOptions?.length ? additionalOptions.map(opt => `'${opt.trim().replace(/'/g, `'\\''`)}'`).join(' ') : '',
 		'-h localhost',
-		`-U ${databaseUser}`,
+		`-U ${normalizeBackUpInput(databaseUser)}`,
 		'--no-password',
+		...additionalOptions?.length ? additionalOptions.map(normalizeBackUpInput).filter(Boolean) : [],
 		database,
-		'| gzip"',
-	].filter(Boolean).join(' ');
+		'| gzip',
+	].join(' ');
+
+	return `docker exec -i $CONTAINER_ID bash -c "${pgCmd}"`;
 };
 
 export const getMariadbBackupCommand = (
@@ -102,16 +118,18 @@ export const getMariadbBackupCommand = (
 	databasePassword: string,
 	additionalOptions: string[] | null,
 ) => {
-	return [
-		'docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mariadb-dump',
-		`--user=${databaseUser}`,
-		`--password=${databasePassword}`,
+	const mariaCmd = [
+		'set -o pipefail; mariadb-dump',
+		`--user=${normalizeBackUpInput(databaseUser)}`,
+		`--password=${normalizeBackUpInput(databasePassword)}`,
 		'--single-transaction',
 		'--quick',
-		additionalOptions?.length ? additionalOptions.map(opt => `'${opt.trim().replace(/'/g, `'\\''`)}'`).join(' ') : '',
-		`--databases ${database}`,
-		'| gzip"',
+		`--databases ${normalizeBackUpInput(database)}`,
+		...additionalOptions?.length ? additionalOptions.map(normalizeBackUpInput).filter(Boolean) : [],
+		'| gzip',
 	].filter(Boolean).join(' ');
+
+	return `docker exec -i $CONTAINER_ID bash -c "${mariaCmd}"`;
 };
 
 export const getMysqlBackupCommand = (
@@ -119,18 +137,20 @@ export const getMysqlBackupCommand = (
 	databasePassword: string,
 	additionalOptions: string[] | null,
 ) => {
-	return [
-		'docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mysqldump',
+	const mysqlCmd = [
+		'set -o pipefail; mysqldump',
 		'--default-character-set=utf8mb4',
 		'-u', 'root',
-		`--password=${databasePassword}`,
+		`--password=${normalizeBackUpInput(databasePassword)}`,
 		'--single-transaction',
 		'--no-tablespaces',
 		'--quick',
-		additionalOptions?.length ? additionalOptions.map(opt => `'${opt.trim().replace(/'/g, `'\\''`)}'`).join(' ') : '',
+		...additionalOptions?.length ? additionalOptions.map(normalizeBackUpInput).filter(Boolean) : [],
 		database,
-		'| gzip"',
+		'| gzip',
 	].filter(Boolean).join(' ');
+
+	return `docker exec -i $CONTAINER_ID bash -c "${mysqlCmd}"`;
 };
 
 export const getMongoBackupCommand = (
@@ -139,17 +159,19 @@ export const getMongoBackupCommand = (
 	databasePassword: string,
 	additionalOptions: string[] | null,
 ) => {
-	return [
-		'docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mongodump',
-		`-d ${database}`,
-		`-u ${databaseUser}`,
-		`-p ${databasePassword}`,
+	const mongoCmd = [
+		'set -o pipefail;',
+		'mongodump',
+		`-d ${normalizeBackUpInput(database)}`,
+		`-u ${normalizeBackUpInput(databaseUser)}`,
+		`-p ${normalizeBackUpInput(databasePassword)}`,
 		'--archive',
 		'--authenticationDatabase admin',
 		'--gzip',
-		additionalOptions?.length ? additionalOptions.map(opt => `'${opt.trim().replace(/'/g, `'\\''`)}'`).join(' ') : '',
-		'"',
+		...additionalOptions?.length ? additionalOptions.map(normalizeBackUpInput).filter(Boolean) : [],
 	].filter(Boolean).join(' ');
+
+	return `docker exec -i $CONTAINER_ID bash -c "${mongoCmd}"`;
 };
 
 export const getServiceContainerCommand = (appName: string) => {
