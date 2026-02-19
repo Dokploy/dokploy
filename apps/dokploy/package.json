@@ -165,7 +165,7 @@
 		"@types/js-cookie": "^3.0.6",
 		"@types/lodash": "4.17.4",
 		"@types/micromatch": "4.0.9",
-		"@types/node": "^20.16.0",
+		"@types/node": "^24.4.0",
 		"@types/node-schedule": "2.1.6",
 		"@types/nodemailer": "^6.4.17",
 		"@types/qrcode": "^1.5.5",
@@ -188,10 +188,10 @@
 	"ct3aMetadata": {
 		"initVersion": "7.25.2"
 	},
-	"packageManager": "pnpm@9.12.0",
+	"packageManager": "pnpm@10.22.0",
 	"engines": {
-		"node": "^20.16.0",
-		"pnpm": ">=9.12.0"
+		"node": "^24.4.0",
+		"pnpm": ">=10.22.0"
 	},
 	"lint-staged": {
 		"*": [

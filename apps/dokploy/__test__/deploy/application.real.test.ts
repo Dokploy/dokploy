@@ -29,6 +29,9 @@ vi.mock("@dokploy/server/db", () => {
 				applications: {
 					findFirst: vi.fn(),
 				},
+				patch: {
+					findMany: vi.fn().mockResolvedValue([]),
+				},
 			},
 		},
 	};

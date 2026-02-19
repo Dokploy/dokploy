@@ -24,15 +24,15 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.1.1",
-		"@types/node": "^20.16.0",
+		"@types/node": "^24.4.0",
 		"dotenv": "16.4.5",
 		"esbuild": "0.20.2",
 		"lint-staged": "^15.5.2",
 		"tsx": "4.16.2"
 	},
-	"packageManager": "pnpm@9.12.0",
+	"packageManager": "pnpm@10.22.0",
 	"engines": {
-		"node": "^20.16.0",
+		"node": "^24.4.0",
 		"pnpm": ">=9.12.0"
 	},
 	"lint-staged": {
@@ -47,6 +47,25 @@
 	"pnpm": {
 		"overrides": {
 			"esbuild": "0.20.2"
-		}
+		},
+		"ignoredBuiltDependencies": [
+			"@prisma/client"
+		],
+		"onlyBuiltDependencies": [
+			"@scarf/scarf",
+			"@tree-sitter-grammars/tree-sitter-yaml",
+			"bcrypt",
+			"better-sqlite3",
+			"core-js-pure",
+			"cpu-features",
+			"esbuild",
+			"msgpackr-extract",
+			"node-pty",
+			"protobufjs",
+			"sharp",
+			"ssh2",
+			"tree-sitter",
+			"tree-sitter-json"
+		]
 	}
 }
