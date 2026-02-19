@@ -3,7 +3,13 @@ import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { getShell, isValidContainerId } from "./utils";
+import {
+	getShell,
+	isValidContainerId,
+	isValidSearch,
+	isValidSince,
+	isValidTail,
+} from "./utils";
 
 export const setupDockerContainerLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -30,9 +36,9 @@ export const setupDockerContainerLogsWebSocketServer = (
 	wssTerm.on("connection", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const containerId = url.searchParams.get("containerId");
-		const tail = url.searchParams.get("tail");
-		const search = url.searchParams.get("search");
-		const since = url.searchParams.get("since");
+		const tail = url.searchParams.get("tail") ?? "100";
+		const search = url.searchParams.get("search") ?? "";
+		const since = url.searchParams.get("since") ?? "all";
 		const serverId = url.searchParams.get("serverId");
 		const runType = url.searchParams.get("runType");
 		const { user, session } = await validateRequest(req);
@@ -45,6 +51,21 @@ export const setupDockerContainerLogsWebSocketServer = (
 		// Security: Validate containerId to prevent command injection
 		if (!isValidContainerId(containerId)) {
 			ws.close(4000, "Invalid container ID format");
+			return;
+		}
+
+		if (!isValidTail(tail)) {
+			ws.close(4000, "Invalid tail parameter");
+			return;
+		}
+
+		if (!isValidSince(since)) {
+			ws.close(4000, "Invalid since parameter");
+			return;
+		}
+
+		if (search !== "" && !isValidSearch(search)) {
+			ws.close(4000, "Invalid search parameter");
 			return;
 		}
 

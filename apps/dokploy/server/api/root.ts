@@ -23,6 +23,7 @@ import { mysqlRouter } from "./routers/mysql";
 import { networkRouter } from "./routers/network";
 import { notificationRouter } from "./routers/notification";
 import { organizationRouter } from "./routers/organization";
+import { patchRouter } from "./routers/patch";
 import { licenseKeyRouter } from "./routers/proprietary/license-key";
 import { ssoRouter } from "./routers/proprietary/sso";
 import { portRouter } from "./routers/port";
@@ -92,6 +93,7 @@ export const appRouter = createTRPCRouter({
 	rollback: rollbackRouter,
 	volumeBackups: volumeBackupsRouter,
 	environment: environmentRouter,
+	patch: patchRouter,
 });
 
 // export type definition of API

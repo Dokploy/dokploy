@@ -105,7 +105,6 @@ export default function Home({ IS_CLOUD }: Props) {
 			setIsLoginLoading(false);
 		}
 	};
-
 	const onTwoFactorSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (twoFactorCode.length !== 6) {
