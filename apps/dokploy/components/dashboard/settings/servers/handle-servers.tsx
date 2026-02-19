@@ -342,7 +342,10 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 											{...field}
 											value={field.value ?? 1}
 											onChange={(e) => {
-												const value = Number.parseInt(e.target.value || "1", 10);
+												const value = Number.parseInt(
+													e.target.value || "1",
+													10,
+												);
 												if (Number.isNaN(value)) {
 													field.onChange(1);
 													return;

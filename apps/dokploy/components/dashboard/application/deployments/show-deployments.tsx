@@ -259,8 +259,8 @@ export const ShowDeployments = ({
 								<span className="font-medium">Deployment Queue</span>
 								<span>
 									Target: {queueSummary.targetName} | Running:{" "}
-									{queueSummary.runningOnTarget}/{queueSummary.concurrencyLimit} |
-									Queued on target: {queueSummary.queuedOnTarget}
+									{queueSummary.runningOnTarget}/{queueSummary.concurrencyLimit}{" "}
+									| Queued on target: {queueSummary.queuedOnTarget}
 								</span>
 								<span>
 									Queued for this service: {queueSummary.queuedForService}
