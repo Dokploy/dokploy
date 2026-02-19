@@ -137,14 +137,15 @@ export const createRouterConfig = async (
 	};
 
 	// Add path rewriting middleware if needed
-	if (internalPath && internalPath !== "/" && internalPath !== path) {
-		const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
-		routerConfig.middlewares?.push(pathMiddleware);
-	}
-
+	// Strip path must come before add prefix so the prefix is applied to the stripped path
 	if (stripPath && path && path !== "/") {
 		const stripMiddleware = `stripprefix-${appName}-${uniqueConfigKey}`;
 		routerConfig.middlewares?.push(stripMiddleware);
+	}
+
+	if (internalPath && internalPath !== "/" && internalPath !== path) {
+		const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
+		routerConfig.middlewares?.push(pathMiddleware);
 	}
 
 	if (entryPoint === "web" && https) {
