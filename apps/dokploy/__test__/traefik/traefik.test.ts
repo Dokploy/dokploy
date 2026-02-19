@@ -48,6 +48,7 @@ const baseApp: ApplicationNested = {
 	previewLimit: 0,
 	previewCustomCertResolver: null,
 	previewWildcard: "",
+	previewNetworkIds: null,
 	environmentId: "",
 	environment: {
 		env: "",
@@ -125,6 +126,7 @@ const baseApp: ApplicationNested = {
 	username: null,
 	dockerContextPath: null,
 	stopGracePeriodSwarm: null,
+	customNetworkIds: null,
 	ulimitsSwarm: null,
 };
 
@@ -145,6 +147,7 @@ const baseDomain: Domain = {
 	previewDeploymentId: "",
 	internalPath: "/",
 	stripPath: false,
+	networkId: null,
 };
 
 const baseRedirect: Redirect = {

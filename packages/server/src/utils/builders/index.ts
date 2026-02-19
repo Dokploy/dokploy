@@ -111,7 +111,7 @@ export const mechanizeDockerContainer = async (
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
-	} = generateConfigContainer(application);
+	} = await generateConfigContainer(application);
 
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, application);

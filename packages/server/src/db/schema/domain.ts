@@ -14,6 +14,7 @@ import { z } from "zod";
 import { domain } from "../validations/domain";
 import { applications } from "./application";
 import { compose } from "./compose";
+import { networks } from "./network";
 import { previewDeployments } from "./preview-deployments";
 import { certificateType } from "./shared";
 
@@ -53,6 +54,9 @@ export const domains = pgTable("domain", {
 	certificateType: certificateType("certificateType").notNull().default("none"),
 	internalPath: text("internalPath").default("/"),
 	stripPath: boolean("stripPath").notNull().default(false),
+	networkId: text("networkId").references(() => networks.networkId, {
+		onDelete: "set null",
+	}),
 });
 
 export const domainsRelations = relations(domains, ({ one }) => ({
@@ -67,6 +71,10 @@ export const domainsRelations = relations(domains, ({ one }) => ({
 	previewDeployment: one(previewDeployments, {
 		fields: [domains.previewDeploymentId],
 		references: [previewDeployments.previewDeploymentId],
+	}),
+	network: one(networks, {
+		fields: [domains.networkId],
+		references: [networks.networkId],
 	}),
 }));
 
@@ -86,6 +94,7 @@ export const apiCreateDomain = createSchema.pick({
 	previewDeploymentId: true,
 	internalPath: true,
 	stripPath: true,
+	networkId: true,
 });
 
 export const apiFindDomain = createSchema
@@ -118,5 +127,6 @@ export const apiUpdateDomain = createSchema
 		domainType: true,
 		internalPath: true,
 		stripPath: true,
+		networkId: true,
 	})
 	.merge(createSchema.pick({ domainId: true }).required());

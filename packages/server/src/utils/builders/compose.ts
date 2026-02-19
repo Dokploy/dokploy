@@ -53,10 +53,8 @@ Compose Type: ${composeType} ✅`;
 	
 		cd "${projectPath}";
 
-		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create --attachable ${compose.appName}` : ""}
 		env -i PATH="$PATH" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
-		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
-	
+
 		echo "Docker Compose Deployed: ✅";
 	} || {
 		echo "Error: ❌ Script execution failed";

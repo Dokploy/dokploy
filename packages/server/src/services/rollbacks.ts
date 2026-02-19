@@ -221,7 +221,7 @@ const rollbackApplication = async (
 		UpdateConfig,
 		Networks,
 		Ulimits,
-	} = generateConfigContainer(fullContext as ApplicationNested);
+	} = await generateConfigContainer(fullContext as ApplicationNested);
 
 	const bindsMount = generateBindMounts(mounts);
 	const envVariables = prepareEnvironmentVariables(

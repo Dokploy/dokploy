@@ -35,37 +35,100 @@ export const findEnvironmentById = async (environmentId: string) => {
 		where: eq(environments.environmentId, environmentId),
 		with: {
 			applications: {
+				columns: {
+					applicationId: true,
+					appName: true,
+					name: true,
+					description: true,
+					createdAt: true,
+					applicationStatus: true,
+					serverId: true,
+				},
 				with: {
 					deployments: true,
 					server: true,
 				},
 			},
 			mariadb: {
+				columns: {
+					mariadbId: true,
+					appName: true,
+					name: true,
+					description: true,
+					createdAt: true,
+					applicationStatus: true,
+					serverId: true,
+				},
 				with: {
 					server: true,
 				},
 			},
 			mongo: {
+				columns: {
+					mongoId: true,
+					appName: true,
+					name: true,
+					description: true,
+					createdAt: true,
+					applicationStatus: true,
+					serverId: true,
+				},
 				with: {
 					server: true,
 				},
 			},
 			mysql: {
+				columns: {
+					mysqlId: true,
+					appName: true,
+					name: true,
+					description: true,
+					createdAt: true,
+					applicationStatus: true,
+					serverId: true,
+				},
 				with: {
 					server: true,
 				},
 			},
 			postgres: {
+				columns: {
+					postgresId: true,
+					appName: true,
+					name: true,
+					description: true,
+					createdAt: true,
+					applicationStatus: true,
+					serverId: true,
+				},
 				with: {
 					server: true,
 				},
 			},
 			redis: {
+				columns: {
+					redisId: true,
+					appName: true,
+					name: true,
+					description: true,
+					createdAt: true,
+					applicationStatus: true,
+					serverId: true,
+				},
 				with: {
 					server: true,
 				},
 			},
 			compose: {
+				columns: {
+					composeId: true,
+					appName: true,
+					name: true,
+					description: true,
+					createdAt: true,
+					composeStatus: true,
+					serverId: true,
+				},
 				with: {
 					deployments: true,
 					server: true,

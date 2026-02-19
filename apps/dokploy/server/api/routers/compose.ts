@@ -18,6 +18,8 @@ import {
 	findGitProviderById,
 	findProjectById,
 	findServerById,
+	findUserById,
+	generateFullComposePreview,
 	getComposeContainer,
 	getWebServerSettings,
 	IS_CLOUD,
@@ -383,24 +385,6 @@ export const composeRouter = createTRPCRouter({
 			}
 			return await randomizeComposeFile(input.composeId, input.suffix);
 		}),
-	isolatedDeployment: protectedProcedure
-		.input(apiRandomizeCompose)
-		.mutation(async ({ input, ctx }) => {
-			const compose = await findComposeById(input.composeId);
-			if (
-				compose.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to randomize this compose",
-				});
-			}
-			return await randomizeIsolatedDeploymentComposeFile(
-				input.composeId,
-				input.suffix,
-			);
-		}),
 	getConvertedCompose: protectedProcedure
 		.input(apiFindCompose)
 		.query(async ({ input, ctx }) => {
@@ -642,7 +626,6 @@ export const composeRouter = createTRPCRouter({
 				name: input.id,
 				sourceType: "raw",
 				appName: appName,
-				isolatedDeployment: true,
 			});
 
 			if (ctx.user.role === "member") {
@@ -962,7 +945,6 @@ export const composeRouter = createTRPCRouter({
 					composeFile: templateData.compose,
 					sourceType: "raw",
 					env: processedTemplate.envs?.join("\n"),
-					isolatedDeployment: true,
 				});
 
 				if (processedTemplate.mounts && processedTemplate.mounts.length > 0) {

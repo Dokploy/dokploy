@@ -49,7 +49,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
-	} = generateConfigContainer(mariadb);
+	} = await generateConfigContainer(mariadb);
 	const resources = calculateResources({
 		memoryLimit,
 		memoryReservation,

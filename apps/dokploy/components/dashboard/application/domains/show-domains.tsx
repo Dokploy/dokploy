@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -95,6 +96,16 @@ export const ShowDomains = ({ id, type }: Props) => {
 				},
 			);
 
+	const { data: assignedNetworks } = api.network.getResourceNetworks.useQuery({
+		resourceId: id,
+		resourceType: type,
+	});
+
+	const hasOnlyInternalNetworks =
+		assignedNetworks &&
+		assignedNetworks.length > 0 &&
+		assignedNetworks.every((n) => n.internal);
+
 	const { mutateAsync: validateDomain } =
 		api.domain.validateDomain.useMutation();
 	const { mutateAsync: deleteDomain, isLoading: isRemoving } =
@@ -158,7 +169,18 @@ export const ShowDomains = ({ id, type }: Props) => {
 						)}
 					</div>
 				</CardHeader>
-				<CardContent className="flex w-full flex-row gap-4">
+				<CardContent className="flex w-full flex-col gap-4">
+					{hasOnlyInternalNetworks && data && data.length > 0 && (
+						<Alert variant="destructive">
+							<InfoIcon className="h-4 w-4" />
+							<AlertDescription>
+								This {type} has custom networks assigned, but they are all
+								internal. Domains will not be accessible because Traefik cannot
+								connect to internal networks. Go to the Network tab and assign
+								at least one non-internal network.
+							</AlertDescription>
+						</Alert>
+					)}
 					{isLoadingDomains ? (
 						<div className="flex w-full flex-row gap-4 min-h-[40vh] justify-center items-center">
 							<Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -294,6 +316,25 @@ export const ShowDomains = ({ id, type }: Props) => {
 															</TooltipTrigger>
 															<TooltipContent>
 																<p>Container port exposed</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+
+													<TooltipProvider>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Badge variant="secondary">
+																	<InfoIcon className="size-3 mr-1" />
+																	Network:{" "}
+																	{item.network?.name ||
+																		"Default (dokploy-network)"}
+																</Badge>
+															</TooltipTrigger>
+															<TooltipContent>
+																<p>
+																	Network used by Traefik for routing to this
+																	domain
+																</p>
 															</TooltipContent>
 														</Tooltip>
 													</TooltipProvider>

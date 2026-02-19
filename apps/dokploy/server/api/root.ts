@@ -20,6 +20,7 @@ import { mariadbRouter } from "./routers/mariadb";
 import { mongoRouter } from "./routers/mongo";
 import { mountRouter } from "./routers/mount";
 import { mysqlRouter } from "./routers/mysql";
+import { networkRouter } from "./routers/network";
 import { notificationRouter } from "./routers/notification";
 import { organizationRouter } from "./routers/organization";
 import { patchRouter } from "./routers/patch";
@@ -66,6 +67,7 @@ export const appRouter = createTRPCRouter({
 	deployment: deploymentRouter,
 	previewDeployment: previewDeploymentRouter,
 	mounts: mountRouter,
+	network: networkRouter,
 	certificates: certificateRouter,
 	settings: settingsRouter,
 	security: securityRouter,

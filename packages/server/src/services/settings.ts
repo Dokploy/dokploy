@@ -4,11 +4,11 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 
 import semver from "semver";
 import { db } from "../db";
-import { compose } from "../db/schema";
+import { compose, networks } from "../db/schema";
 import {
 	initializeStandaloneTraefik,
 	initializeTraefikService,
@@ -457,20 +457,21 @@ export const writeTraefikSetup = async (input: TraefikOptions) => {
 };
 
 export const reconnectServicesToTraefik = async (serverId?: string) => {
-	const composeResult = await db.query.compose.findMany({
+	const networkResults = await db.query.networks.findMany({
 		where: and(
-			...(serverId ? [eq(compose.serverId, serverId)] : []),
-			eq(compose.isolatedDeployment, true),
+			...(serverId ? [eq(networks.serverId, serverId)] : []),
+			eq(networks.internal, false),
 		),
 	});
 
-	if (!composeResult) {
+	if (!networkResults || networkResults.length === 0) {
 		return;
 	}
+
 	let commands = "";
 
-	for (const compose of composeResult) {
-		commands += `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1\n`;
+	for (const network of networkResults) {
+		commands += `docker network connect ${network.networkName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1\n`;
 	}
 
 	if (serverId) {

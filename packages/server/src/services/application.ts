@@ -99,7 +99,11 @@ export const findApplicationById = async (applicationId: string) => {
 					project: true,
 				},
 			},
-			domains: true,
+			domains: {
+				with: {
+					network: true,
+				},
+			},
 			deployments: true,
 			mounts: true,
 			redirects: true,
@@ -417,6 +421,8 @@ export const deployPreviewApplication = async ({
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		application.customNetworkIds =
+			application.previewNetworkIds || application.customNetworkIds;
 		application.rollbackActive = false;
 		application.buildRegistry = null;
 		application.rollbackRegistry = null;
@@ -536,6 +542,8 @@ export const rebuildPreviewApplication = async ({
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		application.customNetworkIds =
+			application.previewNetworkIds || application.customNetworkIds;
 		application.rollbackActive = false;
 		application.buildRegistry = null;
 		application.rollbackRegistry = null;

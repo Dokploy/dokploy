@@ -48,7 +48,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
-	} = generateConfigContainer(postgres);
+	} = await generateConfigContainer(postgres);
 	const resources = calculateResources({
 		memoryLimit,
 		memoryReservation,
@@ -123,8 +123,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
 			},
 		});
-	} catch (error) {
-		console.log("error", error);
+	} catch {
 		await docker.createService(settings);
 	}
 };

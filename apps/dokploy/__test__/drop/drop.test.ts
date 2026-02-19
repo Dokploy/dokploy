@@ -71,6 +71,7 @@ const baseApp: ApplicationNested = {
 	previewPort: 3000,
 	previewLimit: 0,
 	previewWildcard: "",
+	previewNetworkIds: null,
 	environment: {
 		env: "",
 		isDefault: false,
@@ -151,6 +152,7 @@ const baseApp: ApplicationNested = {
 	dockerContextPath: null,
 	rollbackActive: false,
 	stopGracePeriodSwarm: null,
+	customNetworkIds: null,
 	ulimitsSwarm: null,
 };
 
