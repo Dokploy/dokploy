@@ -24,6 +24,7 @@ export const notificationType = pgEnum("notificationType", [
 	"custom",
 	"lark",
 	"teams",
+	"mattermost",
 ]);
 
 export const notifications = pgTable("notification", {
@@ -76,6 +77,12 @@ export const notifications = pgTable("notification", {
 	teamsId: text("teamsId").references(() => teams.teamsId, {
 		onDelete: "cascade",
 	}),
+	mattermostId: text("mattermostId").references(
+		() => mattermost.mattermostId,
+		{
+			onDelete: "cascade",
+		},
+	),
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
@@ -191,6 +198,15 @@ export const teams = pgTable("teams", {
 	webhookUrl: text("webhookUrl").notNull(),
 });
 
+export const mattermost = pgTable("mattermost", {
+	mattermostId: text("mattermostId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
+	channel: text("channel"),
+});
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
 	slack: one(slack, {
 		fields: [notifications.slackId],
@@ -235,6 +251,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	teams: one(teams, {
 		fields: [notifications.teamsId],
 		references: [teams.teamsId],
+	}),
+	mattermost: one(mattermost, {
+		fields: [notifications.mattermostId],
+		references: [mattermost.mattermostId],
 	}),
 	organization: one(organization, {
 		fields: [notifications.organizationId],
@@ -611,6 +631,34 @@ export const apiTestPushoverConnection = z
 			path: ["retry"],
 		},
 	);
+
+export const apiCreateMattermost = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		volumeBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		webhookUrl: z.string().min(1),
+		channel: z.string(),
+	})
+	.required();
+
+export const apiUpdateMattermost = apiCreateMattermost.partial().extend({
+	notificationId: z.string().min(1),
+	mattermostId: z.string(),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestMattermostConnection = apiCreateMattermost.pick({
+	webhookUrl: true,
+	channel: true,
+});
 
 export const apiSendTest = notificationsSchema
 	.extend({

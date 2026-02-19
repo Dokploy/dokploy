@@ -10,6 +10,7 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
 	sendResendNotification,
@@ -54,6 +55,7 @@ export const sendDatabaseBackupNotifications = async ({
 			lark: true,
 			pushover: true,
 			teams: true,
+			mattermost: true,
 		},
 	});
 
@@ -70,6 +72,7 @@ export const sendDatabaseBackupNotifications = async ({
 			lark,
 			pushover,
 			teams,
+			mattermost,
 		} = notification;
 		try {
 			if (email || resend) {
@@ -435,6 +438,33 @@ export const sendDatabaseBackupNotifications = async ({
 							? "✅ Database Backup Successful"
 							: "❌ Database Backup Failed",
 					facts,
+				});
+			}
+
+			if (mattermost) {
+				const { channel } = mattermost;
+				await sendMattermostNotification(mattermost, {
+					channel: channel,
+					attachments: [
+						{
+							color: type === "success" ? "#00FF00" : "#FF0000",
+							pretext:
+								type === "success"
+									? ":white_check_mark: **Database Backup Successful**"
+									: ":x: **Database Backup Failed**",
+							fields: [
+								...(type === "error" && errorMessage
+									? [{ title: "Error Message", value: errorMessage, short: false }]
+									: []),
+								{ title: "Project", value: projectName, short: true },
+								{ title: "Application", value: applicationName, short: true },
+								{ title: "Database Type", value: databaseType, short: true },
+								{ title: "Database Name", value: databaseName, short: true },
+								{ title: "Time", value: date.toLocaleString(), short: true },
+								{ title: "Status", value: type === "success" ? "Successful" : "Failed", short: true },
+							],
+						},
+					],
 				});
 			}
 		} catch (error) {

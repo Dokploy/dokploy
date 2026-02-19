@@ -4,6 +4,7 @@ import type {
 	email,
 	gotify,
 	lark,
+	mattermost,
 	ntfy,
 	pushover,
 	resend,
@@ -146,6 +147,33 @@ export const sendSlackNotification = async (
 		console.log("error", err);
 		throw new Error(
 			`Failed to send slack notification ${err instanceof Error ? err.message : "Unknown error"}`,
+		);
+	}
+};
+
+export const sendMattermostNotification = async (
+	connection: typeof mattermost.$inferInsert,
+	message: any,
+) => {
+	try {
+		const payload = { ...message };
+		if (connection.channel) {
+			payload.channel = connection.channel;
+		}
+		const response = await fetch(connection.webhookUrl, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(payload),
+		});
+		if (!response.ok) {
+			throw new Error(
+				`Failed to send mattermost notification ${response.statusText}`,
+			);
+		}
+	} catch (err) {
+		console.log("error", err);
+		throw new Error(
+			`Failed to send mattermost notification ${err instanceof Error ? err.message : "Unknown error"}`,
 		);
 	}
 };

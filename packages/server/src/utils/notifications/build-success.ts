@@ -11,6 +11,7 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
 	sendResendNotification,
@@ -57,6 +58,7 @@ export const sendBuildSuccessNotifications = async ({
 			lark: true,
 			pushover: true,
 			teams: true,
+			mattermost: true,
 		},
 	});
 
@@ -73,6 +75,7 @@ export const sendBuildSuccessNotifications = async ({
 			lark,
 			pushover,
 			teams,
+			mattermost,
 		} = notification;
 		try {
 			if (email || resend) {
@@ -415,6 +418,56 @@ export const sendBuildSuccessNotifications = async ({
 						title: "View Build Details",
 						url: buildLink,
 					},
+				});
+			}
+
+			if (mattermost) {
+				const { channel } = mattermost;
+				await sendMattermostNotification(mattermost, {
+					channel: channel,
+					attachments: [
+						{
+							color: "#00FF00",
+							pretext: ":white_check_mark: **Build Success**",
+							fields: [
+								{
+									title: "Project",
+									value: projectName,
+									short: true,
+								},
+								{
+									title: "Application",
+									value: applicationName,
+									short: true,
+								},
+								{
+									title: "Environment",
+									value: environmentName,
+									short: true,
+								},
+								{
+									title: "Type",
+									value: applicationType,
+									short: true,
+								},
+								{
+									title: "Time",
+									value: date.toLocaleString(),
+									short: true,
+								},
+							],
+							actions: [
+								{
+									type: "button",
+									name: "build_details",
+									text: "View Build Details",
+									integration: {
+										url: buildLink,
+									},
+								},
+							],
+						},
+					],
 				});
 			}
 		} catch (error) {

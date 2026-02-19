@@ -10,6 +10,7 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
 	sendResendNotification,
@@ -54,6 +55,7 @@ export const sendBuildErrorNotifications = async ({
 			lark: true,
 			pushover: true,
 			teams: true,
+			mattermost: true,
 		},
 	});
 
@@ -70,6 +72,7 @@ export const sendBuildErrorNotifications = async ({
 			lark,
 			pushover,
 			teams,
+			mattermost,
 		} = notification;
 		try {
 			if (email || resend) {
@@ -403,6 +406,28 @@ export const sendBuildErrorNotifications = async ({
 						title: "View Build Details",
 						url: buildLink,
 					},
+				});
+			}
+
+			if (mattermost) {
+				const limitCharacter = 800;
+				const truncatedErrorMessage = errorMessage.substring(0, limitCharacter);
+				const { channel } = mattermost;
+				await sendMattermostNotification(mattermost, {
+					channel: channel,
+					attachments: [
+						{
+							color: "#FF0000",
+							pretext: ":warning: **Build Failed**",
+							fields: [
+								{ title: "Project", value: projectName, short: true },
+								{ title: "Application", value: applicationName, short: true },
+								{ title: "Type", value: applicationType, short: true },
+								{ title: "Time", value: date.toLocaleString(), short: true },
+								{ title: "Error", value: `\`\`\`${truncatedErrorMessage}\`\`\``, short: false },
+							],
+						},
+					],
 				});
 			}
 		} catch (error) {

@@ -10,6 +10,7 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
 	sendResendNotification,
@@ -41,6 +42,7 @@ export const sendDockerCleanupNotifications = async (
 			lark: true,
 			pushover: true,
 			teams: true,
+			mattermost: true,
 		},
 	});
 
@@ -57,6 +59,7 @@ export const sendDockerCleanupNotifications = async (
 			lark,
 			pushover,
 			teams,
+			mattermost,
 		} = notification;
 		try {
 			if (email || resend) {
@@ -272,6 +275,23 @@ export const sendDockerCleanupNotifications = async (
 					facts: [
 						{ name: "Date", value: format(date, "PP pp") },
 						{ name: "Message", value: message },
+					],
+				});
+			}
+
+			if (mattermost) {
+				const { channel } = mattermost;
+				await sendMattermostNotification(mattermost, {
+					channel: channel,
+					attachments: [
+						{
+							color: "#00FF00",
+							pretext: ":white_check_mark: **Docker Cleanup**",
+							fields: [
+								{ title: "Message", value: message, short: false },
+								{ title: "Time", value: date.toLocaleString(), short: true },
+							],
+						},
 					],
 				});
 			}

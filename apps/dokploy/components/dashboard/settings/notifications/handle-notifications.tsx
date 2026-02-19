@@ -20,6 +20,7 @@ import {
 	SlackIcon,
 	TeamsIcon,
 	TelegramIcon,
+	MattermostIcon,
 } from "@/components/icons/notification-icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -171,12 +172,23 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
 		})
 		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("mattermost"),
+			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			channel: z.string(),
+		})
+		.merge(notificationBaseSchema),
 ]);
 
 export const notificationsMap = {
 	slack: {
 		icon: <SlackIcon />,
 		label: "Slack",
+	},
+	mattermost: {
+		icon: <MattermostIcon />,
+		label: "Mattermost",
 	},
 	telegram: {
 		icon: <TelegramIcon />,
@@ -258,6 +270,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const { mutateAsync: testTeamsConnection, isLoading: isLoadingTeams } =
 		api.notification.testTeamsConnection.useMutation();
 
+	const { mutateAsync: testMattermostConnection, isLoading: isLoadingMattermost } =
+		api.notification.testMattermostConnection.useMutation();
+
 	const { mutateAsync: testCustomConnection, isLoading: isLoadingCustom } =
 		api.notification.testCustomConnection.useMutation();
 
@@ -294,6 +309,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const teamsMutation = notificationId
 		? api.notification.updateTeams.useMutation()
 		: api.notification.createTeams.useMutation();
+	const mattermostMutation = notificationId
+		? api.notification.updateMattermost.useMutation()
+		: api.notification.createMattermost.useMutation();
 	const pushoverMutation = notificationId
 		? api.notification.updatePushover.useMutation()
 		: api.notification.createPushover.useMutation();
@@ -341,6 +359,20 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dockerCleanup: notification.dockerCleanup,
 					webhookUrl: notification.slack?.webhookUrl,
 					channel: notification.slack?.channel || "",
+					name: notification.name,
+					type: notification.notificationType,
+					serverThreshold: notification.serverThreshold,
+				});
+			} else if (notification.notificationType === "mattermost") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					volumeBackup: notification.volumeBackup,
+					dockerCleanup: notification.dockerCleanup,
+					webhookUrl: notification.mattermost?.webhookUrl,
+					channel: notification.mattermost?.channel || "",
 					name: notification.name,
 					type: notification.notificationType,
 					serverThreshold: notification.serverThreshold,
@@ -518,6 +550,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		ntfy: ntfyMutation,
 		lark: larkMutation,
 		teams: teamsMutation,
+		mattermost: mattermostMutation,
 		custom: customMutation,
 		pushover: pushoverMutation,
 	};
@@ -672,6 +705,21 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				teamsId: notification?.teamsId || "",
+				serverThreshold: serverThreshold,
+			});
+		} else if (data.type === "mattermost") {
+			promise = mattermostMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
+				webhookUrl: data.webhookUrl,
+				channel: data.channel,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				mattermostId: notification?.mattermostId || "",
+				notificationId: notificationId || "",
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "custom") {
@@ -1535,6 +1583,52 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										/>
 									</>
 								)}
+								{type === "mattermost" && (
+									<>
+										<FormField
+											control={form.control}
+											name="webhookUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Webhook URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://your-mattermost-server.com/hooks/xxxxxxxx"
+															{...field}
+														/>
+													</FormControl>
+													<FormDescription>
+														Incoming Webhook URL from Mattermost. Go to
+														Integrations &gt; Incoming Webhooks in your
+														Mattermost server to create one.
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="channel"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Channel (Optional)</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="town-square"
+															{...field}
+														/>
+													</FormControl>
+													<FormDescription>
+														Override the default channel for this webhook.
+														Leave empty to use the webhook&apos;s default
+														channel.
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
 								{type === "pushover" && (
 									<>
 										<FormField
@@ -1851,6 +1945,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingNtfy ||
 								isLoadingLark ||
 								isLoadingTeams ||
+								isLoadingMattermost ||
 								isLoadingCustom ||
 								isLoadingPushover
 							}
@@ -1915,6 +2010,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									} else if (data.type === "teams") {
 										await testTeamsConnection({
 											webhookUrl: data.webhookUrl,
+										});
+									} else if (data.type === "mattermost") {
+										await testMattermostConnection({
+											webhookUrl: data.webhookUrl,
+											channel: data.channel || "",
 										});
 									} else if (data.type === "custom") {
 										const headersRecord =

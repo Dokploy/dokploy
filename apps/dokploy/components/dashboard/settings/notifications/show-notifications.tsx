@@ -4,6 +4,7 @@ import {
 	DiscordIcon,
 	GotifyIcon,
 	LarkIcon,
+	MattermostIcon,
 	NtfyIcon,
 	ResendIcon,
 	SlackIcon,
@@ -38,7 +39,7 @@ export const ShowNotifications = () => {
 						</CardTitle>
 						<CardDescription>
 							Add your providers to receive notifications, like Discord, Slack,
-							Telegram, Teams, Email, Resend, Lark.
+							Telegram, Teams, Mattermost, Email, Resend, Lark.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -71,6 +72,11 @@ export const ShowNotifications = () => {
 															{notification.notificationType === "slack" && (
 																<div className="flex  items-center justify-center rounded-lg">
 																	<SlackIcon className="size-6" />
+																</div>
+															)}
+															{notification.notificationType === "mattermost" && (
+																<div className="flex  items-center justify-center rounded-lg">
+																	<MattermostIcon className="size-6" />
 																</div>
 															)}
 															{notification.notificationType === "telegram" && (

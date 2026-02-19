@@ -10,6 +10,7 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
 	sendResendNotification,
@@ -35,6 +36,7 @@ export const sendDokployRestartNotifications = async () => {
 			lark: true,
 			pushover: true,
 			teams: true,
+			mattermost: true,
 		},
 	});
 
@@ -51,6 +53,7 @@ export const sendDokployRestartNotifications = async () => {
 			lark,
 			pushover,
 			teams,
+			mattermost,
 		} = notification;
 
 		try {
@@ -261,6 +264,23 @@ export const sendDokployRestartNotifications = async () => {
 					facts: [
 						{ name: "Status", value: "Successful" },
 						{ name: "Restart Time", value: format(date, "PP pp") },
+					],
+				});
+			}
+
+			if (mattermost) {
+				const { channel } = mattermost;
+				await sendMattermostNotification(mattermost, {
+					channel: channel,
+					attachments: [
+						{
+							color: "#00FF00",
+							pretext: ":white_check_mark: **Dokploy Server Restarted**",
+							fields: [
+								{ title: "Status", value: "Successful", short: true },
+								{ title: "Time", value: date.toLocaleString(), short: true },
+							],
+						},
 					],
 				});
 			}

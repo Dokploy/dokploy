@@ -8,6 +8,7 @@ import {
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendGotifyNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
 	sendResendNotification,
@@ -59,6 +60,7 @@ export const sendVolumeBackupNotifications = async ({
 			ntfy: true,
 			pushover: true,
 			teams: true,
+			mattermost: true,
 		},
 	});
 
@@ -73,6 +75,7 @@ export const sendVolumeBackupNotifications = async ({
 			ntfy,
 			pushover,
 			teams,
+			mattermost,
 		} = notification;
 
 		if (email || resend) {
@@ -321,6 +324,34 @@ export const sendVolumeBackupNotifications = async ({
 						? "✅ Volume Backup Successful"
 						: "❌ Volume Backup Failed",
 				facts,
+			});
+		}
+
+		if (mattermost) {
+			const { channel } = mattermost;
+			await sendMattermostNotification(mattermost, {
+				channel: channel,
+				attachments: [
+					{
+						color: type === "success" ? "#00FF00" : "#FF0000",
+						pretext:
+							type === "success"
+								? ":white_check_mark: **Volume Backup Successful**"
+								: ":x: **Volume Backup Failed**",
+						fields: [
+							...(type === "error" && errorMessage
+								? [{ title: "Error Message", value: errorMessage, short: false }]
+								: []),
+							{ title: "Project", value: projectName, short: true },
+							{ title: "Application", value: applicationName, short: true },
+							{ title: "Volume Name", value: volumeName, short: true },
+							{ title: "Service Type", value: serviceType, short: true },
+							...(backupSize ? [{ title: "Backup Size", value: backupSize, short: true }] : []),
+							{ title: "Time", value: date.toLocaleString(), short: true },
+							{ title: "Status", value: type === "success" ? "Successful" : "Failed", short: true },
+						],
+					},
+				],
 			});
 		}
 	}

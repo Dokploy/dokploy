@@ -5,6 +5,7 @@ import {
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendPushoverNotification,
 	sendSlackNotification,
 	sendTeamsNotification,
@@ -42,6 +43,7 @@ export const sendServerThresholdNotifications = async (
 			lark: true,
 			pushover: true,
 			teams: true,
+			mattermost: true,
 		},
 	});
 
@@ -49,7 +51,7 @@ export const sendServerThresholdNotifications = async (
 	const typeColor = 0xff0000; // Rojo para indicar alerta
 
 	for (const notification of notificationList) {
-		const { discord, telegram, slack, custom, lark, pushover, teams } =
+		const { discord, telegram, slack, custom, lark, pushover, teams, mattermost } =
 			notification;
 
 		if (discord) {
@@ -290,6 +292,27 @@ export const sendServerThresholdNotifications = async (
 					{ name: "Threshold", value: `${payload.Threshold.toFixed(2)}%` },
 					{ name: "Time", value: date.toLocaleString() },
 					{ name: "Message", value: payload.Message },
+				],
+			});
+		}
+
+		if (mattermost) {
+			const { channel } = mattermost;
+			await sendMattermostNotification(mattermost, {
+				channel: channel,
+				attachments: [
+					{
+						color: "#FF0000",
+						pretext: `:warning: **Server ${payload.Type} Alert**`,
+						fields: [
+							{ title: "Server Name", value: payload.ServerName, short: true },
+							{ title: "Type", value: payload.Type, short: true },
+							{ title: "Current Value", value: `${payload.Value.toFixed(2)}%`, short: true },
+							{ title: "Threshold", value: `${payload.Threshold.toFixed(2)}%`, short: true },
+							{ title: "Message", value: payload.Message, short: false },
+							{ title: "Time", value: date.toLocaleString(), short: true },
+						],
+					},
 				],
 			});
 		}
