@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { api } from "@/utils/api";
+import buildMonitoringResources from "@/utils/monitoring-resources";
 
 const BASE_URL = "http://localhost:3001/metrics";
 
@@ -45,96 +46,10 @@ const Dashboard = () => {
 		refetchOnWindowFocus: false,
 	});
 
-	const resources = useMemo<MonitoringResource[]>(() => {
-		if (!projects) {
-			return [];
-		}
-
-		return projects.flatMap((project) => {
-			const projectId = project.projectId;
-			const projectName = project.name;
-
-			return project.environments.flatMap((environment) => [
-				...environment.applications
-					.filter((app) => Boolean(app.appName))
-					.map((app) => ({
-						key: `application-${app.applicationId}`,
-						projectId,
-						projectName,
-						appName: app.appName,
-						label: app.name,
-						type: "Application",
-						appType: "application" as const,
-					})),
-				...environment.compose
-					.filter((service) => Boolean(service.appName))
-					.map((service) => ({
-						key: `compose-${service.composeId}`,
-						projectId,
-						projectName,
-						appName: service.appName,
-						label: service.name,
-						type: "Compose",
-						appType: service.composeType || "docker-compose",
-					})),
-				...environment.postgres
-					.filter((service) => Boolean(service.appName))
-					.map((service) => ({
-						key: `postgres-${service.postgresId}`,
-						projectId,
-						projectName,
-						appName: service.appName,
-						label: service.name,
-						type: "Postgres",
-						appType: "application" as const,
-					})),
-				...environment.redis
-					.filter((service) => Boolean(service.appName))
-					.map((service) => ({
-						key: `redis-${service.redisId}`,
-						projectId,
-						projectName,
-						appName: service.appName,
-						label: service.name,
-						type: "Redis",
-						appType: "application" as const,
-					})),
-				...environment.mysql
-					.filter((service) => Boolean(service.appName))
-					.map((service) => ({
-						key: `mysql-${service.mysqlId}`,
-						projectId,
-						projectName,
-						appName: service.appName,
-						label: service.name,
-						type: "MySQL",
-						appType: "application" as const,
-					})),
-				...environment.mongo
-					.filter((service) => Boolean(service.appName))
-					.map((service) => ({
-						key: `mongo-${service.mongoId}`,
-						projectId,
-						projectName,
-						appName: service.appName,
-						label: service.name,
-						type: "MongoDB",
-						appType: "application" as const,
-					})),
-				...environment.mariadb
-					.filter((service) => Boolean(service.appName))
-					.map((service) => ({
-						key: `mariadb-${service.mariadbId}`,
-						projectId,
-						projectName,
-						appName: service.appName,
-						label: service.name,
-						type: "MariaDB",
-						appType: "application" as const,
-					})),
-			]);
-		});
-	}, [projects]);
+	const resources = useMemo(
+		() => buildMonitoringResources(projects),
+		[projects],
+	);
 
 	const projectOptions = useMemo(
 		() =>
@@ -297,14 +212,13 @@ const Dashboard = () => {
 											</Select>
 										</div>
 									</div>
-
 									{selectedResource ? (
 										<ContainerFreeMonitoring
-											appName={selectedResource.appName}
-											appType={selectedResource.appType}
+											appName={selectedResource.appName || "dokploy"}
+											appType={selectedResource.appType || "application"}
 										/>
 									) : (
-										<ContainerFreeMonitoring appName="dokploy" />
+										<ContainerFreeMonitoring appName="dokploy" appType="application" />
 									)}
 								</div>
 							</div>
