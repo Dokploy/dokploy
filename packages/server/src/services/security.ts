@@ -90,6 +90,9 @@ export const updateSecurityById = async (
 	data: Partial<Security>,
 ) => {
 	try {
+		// Get the original record before update
+		const originalRecord = await findSecurityById(securityId);
+
 		const response = await db
 			.update(security)
 			.set({
@@ -97,6 +100,24 @@ export const updateSecurityById = async (
 			})
 			.where(eq(security.securityId, securityId))
 			.returning();
+
+		const updatedRecord = response[0];
+
+		// If username or password changed, update the Traefik middleware
+		if (
+			originalRecord &&
+			updatedRecord &&
+			(data.username !== originalRecord.username ||
+				data.password !== originalRecord.password)
+		) {
+			const application = await findApplicationById(
+				updatedRecord.applicationId,
+			);
+			// Remove old middleware first
+			await removeSecurityMiddleware(application, originalRecord);
+			// Create new middleware with updated credentials
+			await createSecurityMiddleware(application, updatedRecord);
+		}
 
 		return response[0];
 	} catch (error) {
