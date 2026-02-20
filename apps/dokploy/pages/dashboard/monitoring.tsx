@@ -34,6 +34,7 @@ const Dashboard = () => {
 	const { data: monitoring, isLoading } = api.user.getMetricsToken.useQuery();
 	const { data: projects } = api.project.all.useQuery(undefined, {
 		refetchOnWindowFocus: false,
+		enabled: !toggleMonitoring,
 	});
 
 	const resources = useMemo(
