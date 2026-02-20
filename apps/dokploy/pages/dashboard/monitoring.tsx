@@ -3,12 +3,21 @@ import { validateRequest } from "@dokploy/server/lib/auth";
 import { Loader2 } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ShowPaidMonitoring } from "@/components/dashboard/monitoring/paid/servers/show-paid-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { Card } from "@/components/ui/card";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { api } from "@/utils/api";
+import buildMonitoringResources from "@/utils/monitoring-resources";
 
 const BASE_URL = "http://localhost:3001/metrics";
 
@@ -19,8 +28,71 @@ const Dashboard = () => {
 		"monitoring-enabled",
 		false,
 	);
+	const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
+	const [selectedResourceKey, setSelectedResourceKey] = useState<string>("");
 
 	const { data: monitoring, isLoading } = api.user.getMetricsToken.useQuery();
+	const { data: projects } = api.project.all.useQuery(undefined, {
+		refetchOnWindowFocus: false,
+	});
+
+	const resources = useMemo(
+		() => buildMonitoringResources(projects),
+		[projects],
+	);
+
+	const projectOptions = useMemo(
+		() =>
+			Array.from(
+				new Map(
+					resources.map((resource) => [
+						resource.projectId,
+						{
+							projectId: resource.projectId,
+							projectName: resource.projectName,
+						},
+					]),
+				).values(),
+			),
+		[resources],
+	);
+
+	const resourceOptions = useMemo(
+		() =>
+			selectedProjectId === "all"
+				? []
+				: resources.filter(
+						(resource) => resource.projectId === selectedProjectId,
+					),
+		[resources, selectedProjectId],
+	);
+
+	const selectedResource = useMemo(
+		() =>
+			resourceOptions.find((resource) => resource.key === selectedResourceKey),
+		[resourceOptions, selectedResourceKey],
+	);
+
+	useEffect(() => {
+		if (selectedProjectId === "all") {
+			setSelectedResourceKey("");
+			return;
+		}
+
+		if (resourceOptions.length === 0) {
+			setSelectedResourceKey("");
+			return;
+		}
+
+		const hasSelectedResource = resourceOptions.some(
+			(resource) => resource.key === selectedResourceKey,
+		);
+
+		if (!hasSelectedResource) {
+			setSelectedResourceKey("");
+		}
+	}, [resourceOptions, selectedProjectId, selectedResourceKey]);
+
 	return (
 		<div className="space-y-4 pb-10">
 			{/* <AlertBlock>
@@ -73,7 +145,72 @@ const Dashboard = () => {
 					) : (
 						<Card className="h-full bg-sidebar  p-2.5 rounded-xl">
 							<div className="rounded-xl bg-background shadow-md p-6">
-								<ContainerFreeMonitoring appName="dokploy" />
+								<div className="space-y-4">
+									<div className="flex items-center gap-4 flex-wrap">
+										<div>
+											<span className="text-sm text-muted-foreground">
+												Project:
+											</span>
+											<Select
+												value={selectedProjectId}
+												onValueChange={(value) => {
+													setSelectedProjectId(value);
+													setSelectedResourceKey("");
+												}}
+											>
+												<SelectTrigger className="w-[240px]">
+													<SelectValue placeholder="Whole server (default)" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="all">
+														Whole server (default)
+													</SelectItem>
+													{projectOptions.map((project) => (
+														<SelectItem
+															key={project.projectId}
+															value={project.projectId}
+														>
+															{project.projectName}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</div>
+
+										<div>
+											<span className="text-sm text-muted-foreground">
+												Application or resource:
+											</span>
+											<Select
+												value={selectedResourceKey}
+												onValueChange={setSelectedResourceKey}
+												disabled={
+													selectedProjectId === "all" ||
+													resourceOptions.length === 0
+												}
+											>
+												<SelectTrigger className="w-[320px]">
+													<SelectValue placeholder="Select an application or resource" />
+												</SelectTrigger>
+												<SelectContent>
+													{resourceOptions.map((resource) => (
+														<SelectItem key={resource.key} value={resource.key}>
+															{resource.label} ({resource.type})
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</div>
+									</div>
+									{selectedResource ? (
+										<ContainerFreeMonitoring
+											appName={selectedResource.appName || "dokploy"}
+											appType={selectedResource.appType || "application"}
+										/>
+									) : (
+										<ContainerFreeMonitoring appName="dokploy" appType="application" />
+									)}
+								</div>
 							</div>
 						</Card>
 					)}
