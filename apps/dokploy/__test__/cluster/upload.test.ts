@@ -10,6 +10,8 @@ describe("getRegistryTag", () => {
 			registryName: "Test Registry",
 			username: "myuser",
 			password: "test-password",
+			authType: "credentials",
+			credentialHelper: null,
 			registryUrl: "docker.io",
 			registryType: "cloud",
 			imagePrefix: null,
@@ -238,6 +240,64 @@ describe("getRegistryTag", () => {
 			});
 			const result = getRegistryTag(registry, "nginx:latest");
 			expect(result).toBe("docker.io/robot+test-user/nginx:latest");
+		});
+	});
+
+	describe("credential helper registries (no username)", () => {
+		it("should use registryUrl and imagePrefix when no username", () => {
+			const registry = createMockRegistry({
+				authType: "credential-helper",
+				credentialHelper: "ecr-login",
+				username: null,
+				password: null,
+				registryUrl: "123456789.dkr.ecr.us-west-2.amazonaws.com",
+				imagePrefix: "myproject",
+			});
+			const result = getRegistryTag(registry, "myapp:latest");
+			expect(result).toBe(
+				"123456789.dkr.ecr.us-west-2.amazonaws.com/myproject/myapp:latest",
+			);
+		});
+
+		it("should use registryUrl only when no username and no imagePrefix", () => {
+			const registry = createMockRegistry({
+				authType: "credential-helper",
+				credentialHelper: "ecr-login",
+				username: null,
+				password: null,
+				registryUrl: "123456789.dkr.ecr.us-west-2.amazonaws.com",
+				imagePrefix: null,
+			});
+			const result = getRegistryTag(registry, "myapp:latest");
+			expect(result).toBe(
+				"123456789.dkr.ecr.us-west-2.amazonaws.com/myapp:latest",
+			);
+		});
+
+		it("should handle credential helper with gcr registry", () => {
+			const registry = createMockRegistry({
+				authType: "credential-helper",
+				credentialHelper: "gcr",
+				username: null,
+				password: null,
+				registryUrl: "gcr.io",
+				imagePrefix: "my-gcp-project",
+			});
+			const result = getRegistryTag(registry, "nginx:latest");
+			expect(result).toBe("gcr.io/my-gcp-project/nginx:latest");
+		});
+
+		it("should handle credential helper with no registryUrl and imagePrefix only", () => {
+			const registry = createMockRegistry({
+				authType: "credential-helper",
+				credentialHelper: "ecr-login",
+				username: null,
+				password: null,
+				registryUrl: "",
+				imagePrefix: "myprefix",
+			});
+			const result = getRegistryTag(registry, "myapp:latest");
+			expect(result).toBe("myprefix/myapp:latest");
 		});
 	});
 });

@@ -10,20 +10,148 @@ import { IS_CLOUD } from "../constants";
 
 export type Registry = typeof registry.$inferSelect;
 
-function shEscape(s: string | undefined): string {
+const DOCKER_HUB_CONFIG_KEY = "https://index.docker.io/v1/";
+
+function shEscape(s: string | undefined | null): string {
 	if (!s) return "''";
 	return `'${s.replace(/'/g, `'\\''`)}'`;
 }
 
-function safeDockerLoginCommand(
-	registry: string | undefined,
-	user: string | undefined,
-	pass: string | undefined,
+function hasValue(value?: string | null): value is string {
+	return Boolean(value?.trim());
+}
+
+function getRegistryConfigKey(registryUrl?: string | null): string {
+	return hasValue(registryUrl) ? registryUrl.trim() : DOCKER_HUB_CONFIG_KEY;
+}
+
+function getAuthValue(
+	username?: string | null,
+	password?: string | null,
+): string {
+	if (!hasValue(username) || !hasValue(password)) {
+		return "";
+	}
+
+	return Buffer.from(`${username}:${password}`).toString("base64");
+}
+
+function buildDockerConfigUpdateCommand(
+	registryUrl: string | null | undefined,
+	username: string | null | undefined,
+	password: string | null | undefined,
+	credentialHelper: string | null | undefined,
+	removeEntry = false,
 ) {
-	const escapedRegistry = shEscape(registry);
-	const escapedUser = shEscape(user);
-	const escapedPassword = shEscape(pass);
-	return `printf %s ${escapedPassword} | docker login ${escapedRegistry} -u ${escapedUser} --password-stdin`;
+	const registryKey = getRegistryConfigKey(registryUrl);
+	const authValue = getAuthValue(username, password);
+
+	return `mkdir -p /root/.docker && PYTHON_BIN=$(command -v python3 || command -v python) && if [ -z "$PYTHON_BIN" ]; then echo "python3 or python is required to update /root/.docker/config.json" >&2; exit 1; fi && REGISTRY_KEY=${shEscape(registryKey)} AUTH_VALUE=${shEscape(authValue)} CREDENTIAL_HELPER=${shEscape(credentialHelper || "")} REMOVE_ENTRY='${removeEntry ? "1" : "0"}' "$PYTHON_BIN" - <<'PY'
+import json
+import os
+
+path = '/root/.docker/config.json'
+
+try:
+    with open(path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+except FileNotFoundError:
+    config = {}
+except Exception:
+    config = {}
+
+if not isinstance(config, dict):
+    config = {}
+
+auths = config.get('auths') if isinstance(config.get('auths'), dict) else {}
+cred_helpers = config.get('credHelpers') if isinstance(config.get('credHelpers'), dict) else {}
+
+registry_key = os.environ.get('REGISTRY_KEY', '').strip()
+auth_value = os.environ.get('AUTH_VALUE', '').strip()
+credential_helper = os.environ.get('CREDENTIAL_HELPER', '').strip()
+remove_entry = os.environ.get('REMOVE_ENTRY', '0') == '1'
+
+if registry_key:
+    if remove_entry:
+        auths.pop(registry_key, None)
+        cred_helpers.pop(registry_key, None)
+    else:
+        if auth_value:
+            auths[registry_key] = {'auth': auth_value}
+        else:
+            auths.pop(registry_key, None)
+
+        if credential_helper:
+            cred_helpers[registry_key] = credential_helper
+        else:
+            cred_helpers.pop(registry_key, None)
+
+if auths:
+    config['auths'] = auths
+else:
+    config.pop('auths', None)
+
+if cred_helpers:
+    config['credHelpers'] = cred_helpers
+else:
+    config.pop('credHelpers', None)
+
+with open(path, 'w', encoding='utf-8') as f:
+    json.dump(config, f, indent=2)
+    f.write('\\n')
+PY`;
+}
+
+async function syncDockerRegistryConfig(
+	serverId: string | null | undefined,
+	registryType: Registry["registryType"] | undefined,
+	registryUrl: string | null | undefined,
+	username: string | null | undefined,
+	password: string | null | undefined,
+	credentialHelper: string | null | undefined,
+	removeEntry = false,
+) {
+	const command = buildDockerConfigUpdateCommand(
+		registryUrl,
+		username,
+		password,
+		credentialHelper,
+		removeEntry,
+	);
+
+	if (serverId && serverId !== "none") {
+		await execAsyncRemote(serverId, command);
+		return;
+	}
+
+	if (registryType === "cloud") {
+		await execAsync(command);
+	}
+}
+
+function ensureRegistryAuthInput(
+	authType: string | null | undefined,
+	username?: string | null,
+	password?: string | null,
+	credentialHelper?: string | null,
+) {
+	if (authType === "credential-helper") {
+		if (!hasValue(credentialHelper)) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Credential helper name is required.",
+			});
+		}
+		return;
+	}
+
+	if (!hasValue(username) || !hasValue(password)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"Username and password are required for credential authentication.",
+		});
+	}
 }
 
 export const createRegistry = async (
@@ -53,16 +181,21 @@ export const createRegistry = async (
 				message: "Select a server to add the registry",
 			});
 		}
-		const loginCommand = safeDockerLoginCommand(
-			input.registryUrl,
+		ensureRegistryAuthInput(
+			input.authType,
 			input.username,
 			input.password,
+			input.credentialHelper,
 		);
-		if (input.serverId && input.serverId !== "none") {
-			await execAsyncRemote(input.serverId, loginCommand);
-		} else if (newRegistry.registryType === "cloud") {
-			await execAsync(loginCommand);
-		}
+
+		await syncDockerRegistryConfig(
+			input.serverId,
+			newRegistry.registryType,
+			input.registryUrl,
+			input.authType === "credential-helper" ? null : input.username,
+			input.authType === "credential-helper" ? null : input.password,
+			input.authType === "credential-helper" ? input.credentialHelper : null,
+		);
 
 		return newRegistry;
 	});
@@ -83,9 +216,15 @@ export const removeRegistry = async (registryId: string) => {
 			});
 		}
 
-		if (!IS_CLOUD) {
-			await execAsync(`docker logout ${response.registryUrl}`);
-		}
+		await syncDockerRegistryConfig(
+			null,
+			response.registryType,
+			response.registryUrl,
+			response.username,
+			response.password,
+			response.credentialHelper,
+			true,
+		);
 
 		return response;
 	} catch (error) {
@@ -111,12 +250,6 @@ export const updateRegistry = async (
 			.returning()
 			.then((res) => res[0]);
 
-		const loginCommand = safeDockerLoginCommand(
-			response?.registryUrl,
-			response?.username,
-			response?.password,
-		);
-
 		if (
 			IS_CLOUD &&
 			!registryData?.serverId &&
@@ -128,11 +261,16 @@ export const updateRegistry = async (
 			});
 		}
 
-		if (registryData?.serverId && registryData?.serverId !== "none") {
-			await execAsyncRemote(registryData.serverId, loginCommand);
-		} else if (response?.registryType === "cloud") {
-			await execAsync(loginCommand);
-		}
+		const authType = response?.authType ?? "credentials";
+
+		await syncDockerRegistryConfig(
+			registryData.serverId,
+			response?.registryType,
+			response?.registryUrl,
+			authType === "credential-helper" ? null : response?.username,
+			authType === "credential-helper" ? null : response?.password,
+			authType === "credential-helper" ? response?.credentialHelper : null,
+		);
 
 		return response;
 	} catch (error) {

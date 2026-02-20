@@ -35,46 +35,75 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 
-const AddRegistrySchema = z.object({
-	registryName: z.string().min(1, {
-		message: "Registry name is required",
-	}),
-	username: z.string().min(1, {
-		message: "Username is required",
-	}),
-	password: z.string(),
-	registryUrl: z
-		.string()
-		.optional()
-		.refine(
-			(val) => {
-				// If empty or undefined, skip validation (field is optional)
-				if (!val || val.trim().length === 0) {
-					return true;
-				}
-				// Validate that it's a valid hostname (no protocol, no path, optional port)
-				// Valid formats: example.com, registry.example.com, [::1], example.com:5000
-				// Invalid: https://example.com, example.com/path
-				const trimmed = val.trim();
-				// Check for protocol or path - these are not allowed
-				if (/^https?:\/\//i.test(trimmed) || trimmed.includes("/")) {
-					return false;
-				}
-				// Basic hostname validation: allow alphanumeric, dots, hyphens, underscores, and IPv6 in brackets
-				// Allow optional port at the end
-				const hostnameRegex =
-					/^(?:\[[^\]]+\]|[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,253}[a-zA-Z0-9])?)(?::\d+)?$/;
-				return hostnameRegex.test(trimmed);
-			},
-			{
-				message:
-					"Invalid registry URL. Please enter only the hostname (e.g., example.com or registry.example.com). Do not include protocol (https://) or paths.",
-			},
-		),
-	imagePrefix: z.string(),
-	serverId: z.string().optional(),
-	isEditing: z.boolean().optional(),
-});
+const registryUrlValidator = z
+	.string()
+	.optional()
+	.refine(
+		(val) => {
+			if (!val || val.trim().length === 0) {
+				return true;
+			}
+			const trimmed = val.trim();
+			if (/^https?:\/\//i.test(trimmed) || trimmed.includes("/")) {
+				return false;
+			}
+			const hostnameRegex =
+				/^(?:\[[^\]]+\]|[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,253}[a-zA-Z0-9])?)(?::\d+)?$/;
+			return hostnameRegex.test(trimmed);
+		},
+		{
+			message:
+				"Invalid registry URL. Please enter only the hostname (e.g., example.com or registry.example.com). Do not include protocol (https://) or paths.",
+		},
+	);
+
+const AddRegistrySchema = z
+	.object({
+		registryName: z.string().min(1, {
+			message: "Registry name is required",
+		}),
+		authType: z.enum(["credentials", "credential-helper"]),
+		username: z.string().optional(),
+		password: z.string().optional(),
+		credentialHelper: z.string().optional(),
+		registryUrl: registryUrlValidator,
+		imagePrefix: z.string(),
+		serverId: z.string().optional(),
+		isEditing: z.boolean().optional(),
+	})
+	.superRefine((data, ctx) => {
+		if (data.authType === "credentials") {
+			if (!data.username?.trim()) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Username is required",
+					path: ["username"],
+				});
+			}
+			if (!data.isEditing && !data.password?.trim()) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Password is required",
+					path: ["password"],
+				});
+			}
+		} else if (data.authType === "credential-helper") {
+			if (!data.credentialHelper?.trim()) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Credential helper name is required",
+					path: ["credentialHelper"],
+				});
+			}
+			if (!data.registryUrl?.trim()) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Registry URL is required for credential helpers",
+					path: ["registryUrl"],
+				});
+			}
+		}
+	});
 
 type AddRegistry = z.infer<typeof AddRegistrySchema>;
 
@@ -117,35 +146,22 @@ export const HandleRegistry = ({ registryId }: Props) => {
 	} = api.registry.testRegistryById.useMutation();
 	const form = useForm<AddRegistry>({
 		defaultValues: {
+			authType: "credentials",
 			username: "",
 			password: "",
+			credentialHelper: "",
 			registryUrl: "",
 			imagePrefix: "",
 			registryName: "",
 			serverId: "",
 			isEditing: !!registryId,
 		},
-		resolver: zodResolver(
-			AddRegistrySchema.refine(
-				(data) => {
-					// When creating a new registry, password is required
-					if (
-						!data.isEditing &&
-						(!data.password || data.password.length === 0)
-					) {
-						return false;
-					}
-					return true;
-				},
-				{
-					message: "Password is required",
-					path: ["password"],
-				},
-			),
-		),
+		resolver: zodResolver(AddRegistrySchema),
 	});
 
+	const authType = form.watch("authType");
 	const password = form.watch("password");
+	const credentialHelper = form.watch("credentialHelper");
 	const username = form.watch("username");
 	const registryUrl = form.watch("registryUrl");
 	const registryName = form.watch("registryName");
@@ -158,8 +174,10 @@ export const HandleRegistry = ({ registryId }: Props) => {
 	useEffect(() => {
 		if (registry) {
 			form.reset({
-				username: registry.username,
+				authType: registry.authType ?? "credentials",
+				username: registry.username || "",
 				password: "",
+				credentialHelper: registry.credentialHelper || "",
 				registryUrl: registry.registryUrl,
 				imagePrefix: registry.imagePrefix || "",
 				registryName: registry.registryName,
@@ -167,8 +185,10 @@ export const HandleRegistry = ({ registryId }: Props) => {
 			});
 		} else {
 			form.reset({
+				authType: "credentials",
 				username: "",
 				password: "",
+				credentialHelper: "",
 				registryUrl: "",
 				imagePrefix: "",
 				serverId: "",
@@ -180,7 +200,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 	const onSubmit = async (data: AddRegistry) => {
 		const payload: any = {
 			registryName: data.registryName,
-			username: data.username,
+			authType: data.authType,
 			registryUrl: data.registryUrl || "",
 			registryType: "cloud",
 			imagePrefix: data.imagePrefix,
@@ -188,10 +208,16 @@ export const HandleRegistry = ({ registryId }: Props) => {
 			registryId: registryId || "",
 		};
 
-		// Only include password if it's been provided (not empty)
-		// When editing, empty password means "keep the existing password"
-		if (data.password && data.password.length > 0) {
-			payload.password = data.password;
+		if (data.authType === "credentials") {
+			payload.username = data.username;
+			payload.credentialHelper = null;
+			if (data.password && data.password.length > 0) {
+				payload.password = data.password;
+			}
+		} else {
+			payload.credentialHelper = data.credentialHelper?.trim() || null;
+			payload.username = null;
+			payload.password = null;
 		}
 
 		await mutateAsync(payload)
@@ -248,6 +274,37 @@ export const HandleRegistry = ({ registryId }: Props) => {
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid grid-cols-1 sm:grid-cols-2 w-full gap-4"
 					>
+						<div className="flex flex-col gap-4 col-span-2">
+							<FormField
+								control={form.control}
+								name="authType"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Authentication Type</FormLabel>
+										<FormControl>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value}
+											>
+												<SelectTrigger className="w-full">
+													<SelectValue placeholder="Select auth type" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="credentials">
+														Username / Password
+													</SelectItem>
+													<SelectItem value="credential-helper">
+														Credential Helper
+													</SelectItem>
+												</SelectContent>
+											</Select>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</div>
+
 						<div className="flex flex-col gap-4">
 							<FormField
 								control={form.control}
@@ -257,57 +314,6 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										<FormLabel>Registry Name</FormLabel>
 										<FormControl>
 											<Input placeholder="Registry Name" {...field} />
-										</FormControl>
-
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
-						<div className="flex flex-col gap-4">
-							<FormField
-								control={form.control}
-								name="username"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Username</FormLabel>
-										<FormControl>
-											<Input
-												placeholder="Username"
-												autoComplete="username"
-												{...field}
-											/>
-										</FormControl>
-
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
-						<div className="flex flex-col gap-4">
-							<FormField
-								control={form.control}
-								name="password"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Password{registryId && " (Optional)"}</FormLabel>
-										{registryId && (
-											<FormDescription>
-												Leave blank to keep existing password. Enter new
-												password to test or update it.
-											</FormDescription>
-										)}
-										<FormControl>
-											<Input
-												placeholder={
-													registryId
-														? "Leave blank to keep existing"
-														: "Password"
-												}
-												autoComplete="one-time-code"
-												{...field}
-												type="password"
-											/>
 										</FormControl>
 
 										<FormMessage />
@@ -331,7 +337,90 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								)}
 							/>
 						</div>
-						<div className="flex flex-col gap-4  col-span-2">
+
+						{authType === "credentials" && (
+							<>
+								<div className="flex flex-col gap-4">
+									<FormField
+										control={form.control}
+										name="username"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Username</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Username"
+														autoComplete="username"
+														{...field}
+													/>
+												</FormControl>
+
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+								<div className="flex flex-col gap-4">
+									<FormField
+										control={form.control}
+										name="password"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>
+													Password{registryId && " (Optional)"}
+												</FormLabel>
+												{registryId && (
+													<FormDescription>
+														Leave blank to keep existing password. Enter new
+														password to test or update it.
+													</FormDescription>
+												)}
+												<FormControl>
+													<Input
+														placeholder={
+															registryId
+																? "Leave blank to keep existing"
+																: "Password"
+														}
+														autoComplete="one-time-code"
+														{...field}
+														type="password"
+													/>
+												</FormControl>
+
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							</>
+						)}
+
+						{authType === "credential-helper" && (
+							<div className="flex flex-col gap-4 col-span-2">
+								<FormField
+									control={form.control}
+									name="credentialHelper"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Credential Helper</FormLabel>
+											<FormDescription>
+												Name of the Docker credential helper binary (e.g.,
+												ecr-login, gcr, gcloud). The server must have
+												docker-credential-{"<name>"} installed.
+											</FormDescription>
+											<FormControl>
+												<Input {...field} placeholder="ecr-login" />
+											</FormControl>
+
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						)}
+
+						<div className="flex flex-col gap-4 col-span-2">
 							<FormField
 								control={form.control}
 								name="registryUrl"
@@ -341,6 +430,8 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										<FormDescription>
 											Enter only the hostname (e.g.,
 											aws_account_id.dkr.ecr.us-west-2.amazonaws.com).
+											{authType === "credential-helper" &&
+												" Required for credential helpers."}
 										</FormDescription>
 										<FormControl>
 											<Input
@@ -453,7 +544,55 @@ export const HandleRegistry = ({ registryId }: Props) => {
 									variant={"secondary"}
 									isLoading={isLoading || isLoadingById}
 									onClick={async () => {
-										// When editing with empty password, use the existing password from DB
+										if (authType === "credential-helper") {
+											if (registryId) {
+												await testRegistryById({
+													registryId: registryId || "",
+													...(serverId && { serverId }),
+												})
+													.then((data) => {
+														if (data) {
+															toast.success("Registry Tested Successfully");
+														} else {
+															toast.error("Registry Test Failed");
+														}
+													})
+													.catch(() => {
+														toast.error("Error testing the registry");
+													});
+												return;
+											}
+
+											if (!credentialHelper?.trim()) {
+												form.setError("credentialHelper", {
+													type: "manual",
+													message: "Credential helper name is required",
+												});
+												return;
+											}
+
+											await testRegistry({
+												authType: "credential-helper",
+												credentialHelper: credentialHelper || null,
+												registryUrl: registryUrl || "",
+												registryType: "cloud",
+												imagePrefix: imagePrefix,
+												serverId: serverId,
+											})
+												.then((data) => {
+													if (data) {
+														toast.success("Registry Tested Successfully");
+													} else {
+														toast.error("Registry Test Failed");
+													}
+												})
+												.catch(() => {
+													toast.error("Error testing the registry");
+												});
+											return;
+										}
+
+										// Credentials auth type
 										if (registryId && (!password || password.length === 0)) {
 											await testRegistryById({
 												registryId: registryId || "",
@@ -472,7 +611,6 @@ export const HandleRegistry = ({ registryId }: Props) => {
 											return;
 										}
 
-										// When creating, password is required
 										if (!registryId && (!password || password.length === 0)) {
 											form.setError("password", {
 												type: "manual",
@@ -481,28 +619,8 @@ export const HandleRegistry = ({ registryId }: Props) => {
 											return;
 										}
 
-										// When creating or editing with new password, validate and test with provided credentials
-										const validationResult = AddRegistrySchema.safeParse({
-											username,
-											password,
-											registryUrl,
-											registryName: "Dokploy Registry",
-											imagePrefix,
-											serverId,
-											isEditing: !!registryId,
-										});
-
-										if (!validationResult.success) {
-											for (const issue of validationResult.error.issues) {
-												form.setError(issue.path[0] as any, {
-													type: "manual",
-													message: issue.message,
-												});
-											}
-											return;
-										}
-
 										await testRegistry({
+											authType: "credentials",
 											username: username,
 											password: password,
 											registryUrl: registryUrl || "",

@@ -20,6 +20,9 @@ import {
 	registry,
 } from "@/server/db/schema";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
+
+const shEscape = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
+
 export const registryRouter = createTRPCRouter({
 	create: adminProcedure
 		.input(apiCreateRegistry)
@@ -84,6 +87,40 @@ export const registryRouter = createTRPCRouter({
 		.input(apiTestRegistry)
 		.mutation(async ({ input }) => {
 			try {
+				if (input.authType === "credential-helper") {
+					const helperName = input.credentialHelper?.trim();
+					if (!helperName) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Credential helper name is required",
+						});
+					}
+					const helperCommand = `command -v docker-credential-${shEscape(helperName)}`;
+
+					if (IS_CLOUD && !input.serverId) {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Select a server to test the registry",
+						});
+					}
+
+					if (input.serverId && input.serverId !== "none") {
+						await execAsyncRemote(input.serverId, helperCommand);
+					} else {
+						await execFileAsync("sh", ["-c", helperCommand]);
+					}
+
+					return true;
+				}
+
+				if (!input.username?.trim() || !input.password?.trim()) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Username and password are required for credential authentication.",
+					});
+				}
+
 				const args = [
 					"login",
 					input.registryUrl,
@@ -102,7 +139,7 @@ export const registryRouter = createTRPCRouter({
 				if (input.serverId && input.serverId !== "none") {
 					await execAsyncRemote(
 						input.serverId,
-						`echo ${input.password} | docker ${args.join(" ")}`,
+						`printf %s ${shEscape(input.password)} | docker ${args.join(" ")}`,
 					);
 				} else {
 					await execFileAsync("docker", args, {
@@ -145,6 +182,40 @@ export const registryRouter = createTRPCRouter({
 					});
 				}
 
+				if (registryData.authType === "credential-helper") {
+					const helperName = registryData.credentialHelper?.trim();
+					if (!helperName) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Credential helper name is not configured",
+						});
+					}
+					const helperCommand = `command -v docker-credential-${shEscape(helperName)}`;
+
+					if (IS_CLOUD && !input.serverId) {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Select a server to test the registry",
+						});
+					}
+
+					if (input.serverId && input.serverId !== "none") {
+						await execAsyncRemote(input.serverId, helperCommand);
+					} else {
+						await execFileAsync("sh", ["-c", helperCommand]);
+					}
+
+					return true;
+				}
+
+				if (!registryData.username?.trim() || !registryData.password?.trim()) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Username and password are required for credential authentication.",
+					});
+				}
+
 				const args = [
 					"login",
 					registryData.registryUrl,
@@ -163,7 +234,7 @@ export const registryRouter = createTRPCRouter({
 				if (input.serverId && input.serverId !== "none") {
 					await execAsyncRemote(
 						input.serverId,
-						`echo ${registryData.password} | docker ${args.join(" ")}`,
+						`printf %s ${shEscape(registryData.password)} | docker ${args.join(" ")}`,
 					);
 				} else {
 					await execFileAsync("docker", args, {

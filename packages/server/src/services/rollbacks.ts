@@ -236,12 +236,19 @@ const rollbackApplication = async (
 		rollbackImage = getRegistryTag(fullContext.rollbackRegistry, image);
 	}
 
+	const rollbackAuthType =
+		fullContext.rollbackRegistry?.authType ?? "credentials";
+	const authconfig =
+		rollbackAuthType === "credential-helper"
+			? undefined
+			: {
+					password: fullContext.rollbackRegistry?.password || "",
+					username: fullContext.rollbackRegistry?.username || "",
+					serveraddress: fullContext.rollbackRegistry?.registryUrl || "",
+				};
+
 	const settings: CreateServiceOptions = {
-		authconfig: {
-			password: fullContext.rollbackRegistry?.password || "",
-			username: fullContext.rollbackRegistry?.username || "",
-			serveraddress: fullContext.rollbackRegistry?.registryUrl || "",
-		},
+		authconfig,
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {

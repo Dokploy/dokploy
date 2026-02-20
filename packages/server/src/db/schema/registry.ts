@@ -12,6 +12,10 @@ import { applications } from "./application";
  * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
  */
 export const registryType = pgEnum("RegistryType", ["selfHosted", "cloud"]);
+export const registryAuthType = pgEnum("RegistryAuthType", [
+	"credentials",
+	"credential-helper",
+]);
 
 export const registry = pgTable("registry", {
 	registryId: text("registryId")
@@ -20,8 +24,10 @@ export const registry = pgTable("registry", {
 		.$defaultFn(() => nanoid()),
 	registryName: text("registryName").notNull(),
 	imagePrefix: text("imagePrefix"),
-	username: text("username").notNull(),
-	password: text("password").notNull(),
+	username: text("username"),
+	password: text("password"),
+	authType: registryAuthType("authType").notNull().default("credentials"),
+	credentialHelper: text("credentialHelper"),
 	registryUrl: text("registryUrl").notNull().default(""),
 	createdAt: text("createdAt")
 		.notNull()
@@ -46,8 +52,10 @@ export const registryRelations = relations(registry, ({ many }) => ({
 
 const createSchema = createInsertSchema(registry, {
 	registryName: z.string().min(1),
-	username: z.string().min(1),
-	password: z.string().min(1),
+	username: z.string().nullable().optional(),
+	password: z.string().nullable().optional(),
+	authType: z.enum(["credentials", "credential-helper"]),
+	credentialHelper: z.string().nullable().optional(),
 	registryUrl: z.string(),
 	organizationId: z.string().min(1),
 	registryId: z.string().min(1),
@@ -59,26 +67,99 @@ export const apiCreateRegistry = createSchema
 	.pick({})
 	.extend({
 		registryName: z.string().min(1),
-		username: z.string().min(1),
-		password: z.string().min(1),
+		username: z.string().nullable().optional(),
+		password: z.string().nullable().optional(),
+		authType: z
+			.enum(["credentials", "credential-helper"])
+			.default("credentials"),
+		credentialHelper: z.string().nullable().optional(),
 		registryUrl: z.string(),
 		registryType: z.enum(["cloud"]),
 		imagePrefix: z.string().nullable().optional(),
-	})
-	.required()
-	.extend({
 		serverId: z.string().optional(),
+	})
+	.superRefine((data, ctx) => {
+		if (data.authType === "credentials") {
+			if (!data.username?.trim()) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Username is required for credential authentication",
+					path: ["username"],
+				});
+			}
+			if (!data.password?.trim()) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Password is required for credential authentication",
+					path: ["password"],
+				});
+			}
+		} else if (data.authType === "credential-helper") {
+			if (!data.credentialHelper?.trim()) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Credential helper name is required",
+					path: ["credentialHelper"],
+				});
+			}
+			if (!data.registryUrl?.trim()) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Registry URL is required for credential helpers",
+					path: ["registryUrl"],
+				});
+			}
+		}
 	});
 
-export const apiTestRegistry = createSchema.pick({}).extend({
-	registryName: z.string().optional(),
-	username: z.string().min(1),
-	password: z.string().min(1),
-	registryUrl: z.string(),
-	registryType: z.enum(["cloud"]),
-	imagePrefix: z.string().nullable().optional(),
-	serverId: z.string().optional(),
-});
+export const apiTestRegistry = createSchema
+	.pick({})
+	.extend({
+		registryName: z.string().optional(),
+		username: z.string().nullable().optional(),
+		password: z.string().nullable().optional(),
+		authType: z
+			.enum(["credentials", "credential-helper"])
+			.default("credentials"),
+		credentialHelper: z.string().nullable().optional(),
+		registryUrl: z.string(),
+		registryType: z.enum(["cloud"]),
+		imagePrefix: z.string().nullable().optional(),
+		serverId: z.string().optional(),
+	})
+	.superRefine((data, ctx) => {
+		if (data.authType === "credentials") {
+			if (!data.username?.trim()) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Username is required for credential authentication",
+					path: ["username"],
+				});
+			}
+			if (!data.password?.trim()) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Password is required for credential authentication",
+					path: ["password"],
+				});
+			}
+		} else if (data.authType === "credential-helper") {
+			if (!data.credentialHelper?.trim()) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Credential helper name is required",
+					path: ["credentialHelper"],
+				});
+			}
+			if (!data.registryUrl?.trim()) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Registry URL is required for credential helpers",
+					path: ["registryUrl"],
+				});
+			}
+		}
+	});
 
 export const apiTestRegistryById = createSchema
 	.pick({
@@ -102,6 +183,8 @@ export const apiFindOneRegistry = createSchema
 
 export const apiUpdateRegistry = createSchema.partial().extend({
 	registryId: z.string().min(1),
+	authType: z.enum(["credentials", "credential-helper"]).optional(),
+	credentialHelper: z.string().nullable().optional(),
 	serverId: z.string().optional(),
 });
 

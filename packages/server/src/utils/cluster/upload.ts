@@ -101,13 +101,20 @@ export const getRegistryTag = (registry: Registry, imageName: string) => {
 	// Extract the repository name (last part after '/')
 	const repositoryName = extractRepositoryName(imageName);
 
-	// Build the final tag using registry's username/prefix
-	const targetPrefix = imagePrefix || username;
+	// Build the final tag using registry's imagePrefix, username, or just registry/repo
+	const targetPrefix = imagePrefix || username || "";
 	const finalRegistry = registryUrl || "";
 
-	return finalRegistry
-		? `${finalRegistry}/${targetPrefix}/${repositoryName}`
-		: `${targetPrefix}/${repositoryName}`;
+	if (finalRegistry && targetPrefix) {
+		return `${finalRegistry}/${targetPrefix}/${repositoryName}`;
+	}
+	if (finalRegistry) {
+		return `${finalRegistry}/${repositoryName}`;
+	}
+	if (targetPrefix) {
+		return `${targetPrefix}/${repositoryName}`;
+	}
+	return repositoryName;
 };
 
 const getRegistryCommands = (
@@ -115,19 +122,36 @@ const getRegistryCommands = (
 	imageName: string,
 	registryTag: string,
 ): string => {
-	return `
+	if (registry.authType === "credential-helper") {
+		return `
 echo "📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'" ;
-echo "${registry.password}" | docker login ${registry.registryUrl} -u '${registry.username}' --password-stdin || { 
-	echo "❌ DockerHub Failed" ;
-	exit 1;
-}
-echo "✅ Registry Login Success" ;
-docker tag ${imageName} ${registryTag} || { 
+echo "ℹ️ Using credential helper '${registry.credentialHelper || ""}' for authentication" ;
+docker tag ${imageName} ${registryTag} || {
 	echo "❌ Error tagging image" ;
 	exit 1;
 }
 echo "✅ Image Tagged" ;
-docker push ${registryTag} || { 
+docker push ${registryTag} || {
+	echo "❌ Error pushing image" ;
+	exit 1;
+}
+	echo "✅ Image Pushed" ;
+`;
+	}
+
+	return `
+echo "📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'" ;
+echo "${registry.password}" | docker login ${registry.registryUrl} -u '${registry.username}' --password-stdin || {
+	echo "❌ DockerHub Failed" ;
+	exit 1;
+}
+echo "✅ Registry Login Success" ;
+docker tag ${imageName} ${registryTag} || {
+	echo "❌ Error tagging image" ;
+	exit 1;
+}
+echo "✅ Image Tagged" ;
+docker push ${registryTag} || {
 	echo "❌ Error pushing image" ;
 	exit 1;
 }
