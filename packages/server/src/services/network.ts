@@ -6,6 +6,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { IS_CLOUD } from "../constants";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 
 export const findNetworkById = async (networkId: string) => {
@@ -29,6 +30,13 @@ export const createNetwork = async (
 	input: typeof apiCreateNetwork._type,
 	organizationId: string,
 ) => {
+	if (IS_CLOUD)
+		if (!input.serverId) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Server is required",
+			});
+		}
 	const created = await db.transaction(async (tx) => {
 		const [row] = await tx
 			.insert(network)
@@ -64,13 +72,10 @@ export const createNetwork = async (
 			Attachable: row.attachable,
 			Ingress: row.ingress,
 			EnableIPv6: row.enableIPv6,
-			IPAM:
-				ipamConfig.length > 0 || ipam.driver
-					? {
-							Driver: ipam.driver ?? "default",
-							Config: ipamConfig.length > 0 ? ipamConfig : undefined,
-						}
-					: undefined,
+			IPAM: {
+				Driver: ipam.driver ?? "default",
+				Config: ipamConfig.length > 0 ? ipamConfig : undefined,
+			},
 		});
 
 		return row;

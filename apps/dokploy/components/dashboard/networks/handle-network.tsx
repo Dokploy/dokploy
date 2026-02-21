@@ -48,9 +48,6 @@ const networkDriverEnum = [
 /** Sentinel for "no scope" */
 const SCOPE_EMPTY = "__scope_none__";
 
-/** Value for "Dokploy server" (local / no specific server). Not used in cloud. */
-const DOKPLOY_SERVER_VALUE = "__dokploy_server__";
-
 const ipamConfigEntrySchema = z.object({
 	subnet: z.string().optional(),
 	ipRange: z.string().optional(),
@@ -78,7 +75,7 @@ const defaultValues: NetworkFormValues = {
 	name: "",
 	driver: "bridge",
 	scope: SCOPE_EMPTY,
-	serverId: DOKPLOY_SERVER_VALUE,
+	serverId: undefined,
 	internal: false,
 	attachable: false,
 	ingress: false,
@@ -134,7 +131,7 @@ export const HandleNetwork = ({ networkId, children }: HandleNetworkProps) => {
 				name: network.name,
 				driver: network.driver,
 				scope: network.scope ?? SCOPE_EMPTY,
-				serverId: network.serverId ?? DOKPLOY_SERVER_VALUE,
+				serverId: network.serverId || undefined,
 				internal: network.internal,
 				attachable: network.attachable,
 				enableIPv4: network.enableIPv4,
@@ -157,7 +154,7 @@ export const HandleNetwork = ({ networkId, children }: HandleNetworkProps) => {
 				name: data.name,
 				driver: data.driver,
 				scope,
-				serverId: data.serverId ?? undefined,
+				serverId: data.serverId || undefined,
 				internal: data.internal,
 				attachable: data.attachable,
 				ingress: data.ingress,
@@ -268,7 +265,7 @@ export const HandleNetwork = ({ networkId, children }: HandleNetworkProps) => {
 										<FormLabel>Server</FormLabel>
 										<Select
 											onValueChange={field.onChange}
-											value={field.value ?? DOKPLOY_SERVER_VALUE}
+											value={field.value ?? undefined}
 										>
 											<FormControl>
 												<SelectTrigger>
@@ -277,7 +274,7 @@ export const HandleNetwork = ({ networkId, children }: HandleNetworkProps) => {
 											</FormControl>
 											<SelectContent>
 												{!isCloud && (
-													<SelectItem value={DOKPLOY_SERVER_VALUE}>
+													<SelectItem value={undefined}>
 														Dokploy server
 													</SelectItem>
 												)}
