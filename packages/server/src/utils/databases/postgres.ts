@@ -5,6 +5,7 @@ import {
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
+	generateNetworkMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
@@ -62,6 +63,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
+	const networkMounts = generateNetworkMounts(mounts);
 	const filesMount = generateFileMounts(appName, postgres);
 
 	const docker = await getRemoteDocker(postgres.serverId);
@@ -73,7 +75,12 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...networkMounts,
+					...filesMount,
+				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(command && {

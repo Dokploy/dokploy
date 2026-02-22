@@ -51,7 +51,12 @@ export const ShowVolumes = ({ id, type }: Props) => {
 				</div>
 
 				{data && data?.mounts.length > 0 && (
-					<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
+					<AddVolumes
+						serviceId={id}
+						refetch={refetch}
+						serviceType={type}
+						serverId={data.serverId || undefined}
+					>
 						Add Volume
 					</AddVolumes>
 				)}
@@ -63,7 +68,12 @@ export const ShowVolumes = ({ id, type }: Props) => {
 						<span className="text-base text-muted-foreground">
 							No volumes/mounts configured
 						</span>
-						<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
+						<AddVolumes
+							serviceId={id}
+							refetch={refetch}
+							serviceType={type}
+							serverId={data?.serverId || undefined}
+						>
 							Add Volume
 						</AddVolumes>
 					</div>
@@ -113,6 +123,55 @@ export const ShowVolumes = ({ id, type }: Props) => {
 													</span>
 												</div>
 											)}
+											{mount.type === "nfs" && (
+												<>
+													<div className="flex flex-col gap-1">
+														<span className="font-medium">NFS Server</span>
+														<span className="text-sm text-muted-foreground">
+															{mount.nfsServer}
+														</span>
+													</div>
+													<div className="flex flex-col gap-1">
+														<span className="font-medium">NFS Path</span>
+														<span className="text-sm text-muted-foreground">
+															{mount.nfsPath}
+														</span>
+													</div>
+												</>
+											)}
+											{mount.type === "smb" && (
+												<>
+													<div className="flex flex-col gap-1">
+														<span className="font-medium">SMB Server</span>
+														<span className="text-sm text-muted-foreground">
+															{mount.smbServer}
+														</span>
+													</div>
+													<div className="flex flex-col gap-1">
+														<span className="font-medium">SMB Share</span>
+														<span className="text-sm text-muted-foreground">
+															{mount.smbShare}
+														</span>
+													</div>
+													{mount.smbPath && (
+														<div className="flex flex-col gap-1">
+															<span className="font-medium">SMB Path</span>
+															<span className="text-sm text-muted-foreground">
+																{mount.smbPath}
+															</span>
+														</div>
+													)}
+												</>
+											)}
+											{(mount.type === "nfs" || mount.type === "smb") &&
+												mount.replicateToSwarm && (
+													<div className="flex flex-col gap-1">
+														<span className="font-medium">Swarm Replication</span>
+														<span className="text-sm text-muted-foreground">
+															{mount.targetNodes?.length || 0} node(s)
+														</span>
+													</div>
+												)}
 											{mount.type === "file" && (
 												<div className="flex flex-col gap-1">
 													<span className="font-medium">File Path</span>

@@ -13,6 +13,7 @@ import {
 	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
+	generateNetworkMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../utils/docker/utils";
@@ -210,6 +211,7 @@ const rollbackApplication = async (
 	});
 
 	const volumesMount = generateVolumeMounts(mounts);
+	const networkMounts = generateNetworkMounts(mounts);
 
 	const {
 		HealthCheck,
@@ -248,7 +250,11 @@ const rollbackApplication = async (
 				HealthCheck,
 				Image: rollbackImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...networkMounts,
+				],
 				...(command
 					? {
 							Command: ["/bin/sh"],
