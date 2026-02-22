@@ -63,7 +63,7 @@ export const ShowRequests = () => {
 	const [dateRange, setDateRange] = useState<{
 		from: Date | undefined;
 		to: Date | undefined;
-	}>(getDefaultDateRange());
+	}>(() => getDefaultDateRange());
 
 	// Check if logs exist to determine if traefik has been reloaded
 	// Only fetch when active to minimize network calls
