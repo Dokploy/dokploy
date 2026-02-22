@@ -6,6 +6,7 @@ import {
 	RefreshCcw,
 	RocketIcon,
 	Settings,
+	Trash2,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -25,6 +26,7 @@ import {
 import { api, type RouterOutputs } from "@/utils/api";
 import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
 import { CancelQueues } from "./cancel-queues";
+import { ClearDeployments } from "./clear-deployments";
 import { KillBuild } from "./kill-build";
 import { RefreshToken } from "./refresh-token";
 import { ShowDeployment } from "./show-deployment";
@@ -77,6 +79,8 @@ export const ShowDeployments = ({
 		api.rollback.rollback.useMutation();
 	const { mutateAsync: killProcess, isLoading: isKillingProcess } =
 		api.deployment.killProcess.useMutation();
+	const { mutateAsync: removeDeployment, isLoading: isRemovingDeployment } =
+		api.deployment.removeDeployment.useMutation();
 
 	// Cancel deployment mutations
 	const {
@@ -144,6 +148,9 @@ export const ShowDeployments = ({
 					</CardDescription>
 				</div>
 				<div className="flex flex-row items-center flex-wrap gap-2">
+					{(type === "application" || type === "compose") && (
+						<ClearDeployments id={id} type={type} />
+					)}
 					{(type === "application" || type === "compose") && (
 						<KillBuild id={id} type={type} />
 					)}
@@ -252,6 +259,8 @@ export const ShowDeployments = ({
 							const isExpanded = expandedDescriptions.has(
 								deployment.deploymentId,
 							);
+							const canDelete =
+								deployment.status === "done" || deployment.status === "error";
 
 							return (
 								<div
@@ -369,6 +378,33 @@ export const ShowDeployments = ({
 											>
 												View
 											</Button>
+
+											{canDelete && (
+												<DialogAction
+													title="Delete Deployment"
+													description="Are you sure you want to delete this deployment? This action cannot be undone."
+													type="default"
+													onClick={async () => {
+														try {
+															await removeDeployment({
+																deploymentId: deployment.deploymentId,
+															});
+															toast.success("Deployment deleted successfully");
+														} catch (error) {
+															toast.error("Error deleting deployment");
+														}
+													}}
+												>
+													<Button
+														variant="destructive"
+														size="sm"
+														isLoading={isRemovingDeployment}
+													>
+														Delete
+														<Trash2 className="size-4" />
+													</Button>
+												</DialogAction>
+											)}
 
 											{deployment?.rollback &&
 												deployment.status === "done" &&

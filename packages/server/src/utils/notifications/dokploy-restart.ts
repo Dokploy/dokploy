@@ -14,6 +14,7 @@ import {
 	sendPushoverNotification,
 	sendResendNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -33,6 +34,7 @@ export const sendDokployRestartNotifications = async () => {
 			custom: true,
 			lark: true,
 			pushover: true,
+			teams: true,
 		},
 	});
 
@@ -48,6 +50,7 @@ export const sendDokployRestartNotifications = async () => {
 			custom,
 			lark,
 			pushover,
+			teams,
 		} = notification;
 
 		try {
@@ -250,6 +253,16 @@ export const sendDokployRestartNotifications = async () => {
 					"Dokploy Server Restarted",
 					`Date: ${date.toLocaleString()}`,
 				);
+			}
+
+			if (teams) {
+				await sendTeamsNotification(teams, {
+					title: "✅ Dokploy Server Restarted",
+					facts: [
+						{ name: "Status", value: "Successful" },
+						{ name: "Restart Time", value: format(date, "PP pp") },
+					],
+				});
 			}
 		} catch (error) {
 			console.log(error);

@@ -2,7 +2,10 @@ import { normalizeTrustedOrigin } from "@dokploy/server";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { member, ssoProvider, user } from "@dokploy/server/db/schema";
 import { ssoProviderBodySchema } from "@dokploy/server/db/schema/sso";
-import { requestToHeaders } from "@dokploy/server/index";
+import {
+	getOrganizationOwnerId,
+	requestToHeaders,
+} from "@dokploy/server/index";
 import { auth } from "@dokploy/server/lib/auth";
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
@@ -58,6 +61,17 @@ export const ssoRouter = createTRPCRouter({
 			orderBy: [asc(ssoProvider.createdAt)],
 		});
 		return providers;
+	}),
+	getTrustedOrigins: enterpriseProcedure.query(async ({ ctx }) => {
+		const ownerId = await getOrganizationOwnerId(
+			ctx.session.activeOrganizationId,
+		);
+		if (!ownerId) return [];
+		const ownerUser = await db.query.user.findFirst({
+			where: eq(user.id, ownerId),
+			columns: { trustedOrigins: true },
+		});
+		return ownerUser?.trustedOrigins ?? [];
 	}),
 	one: enterpriseProcedure
 		.input(z.object({ providerId: z.string().min(1) }))
@@ -135,11 +149,20 @@ export const ssoRouter = createTRPCRouter({
 				normalizeTrustedOrigin(existing.issuer) !==
 				normalizeTrustedOrigin(input.issuer);
 			if (issuerChanged) {
-				const currentUser = await db.query.user.findFirst({
-					where: eq(user.id, ctx.session.userId),
+				const ownerId = await getOrganizationOwnerId(
+					ctx.session.activeOrganizationId,
+				);
+				if (!ownerId) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Organization owner not found",
+					});
+				}
+				const ownerUser = await db.query.user.findFirst({
+					where: eq(user.id, ownerId),
 					columns: { trustedOrigins: true },
 				});
-				const trustedOrigins = currentUser?.trustedOrigins ?? [];
+				const trustedOrigins = ownerUser?.trustedOrigins ?? [];
 				const newOrigin = normalizeTrustedOrigin(input.issuer);
 				const isInTrustedOrigins = trustedOrigins.some(
 					(o) => o.toLowerCase() === newOrigin.toLowerCase(),
@@ -148,7 +171,7 @@ export const ssoRouter = createTRPCRouter({
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message:
-							"The new Issuer URL is not in your trusted origins list. Please add it in Manage origins before saving.",
+							"The new Issuer URL is not in the organization's trusted origins list. Please add it in Manage origins before saving.",
 					});
 				}
 			}
@@ -262,12 +285,21 @@ export const ssoRouter = createTRPCRouter({
 	addTrustedOrigin: enterpriseProcedure
 		.input(z.object({ origin: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
+			const ownerId = await getOrganizationOwnerId(
+				ctx.session.activeOrganizationId,
+			);
+			if (!ownerId) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Organization owner not found",
+				});
+			}
 			const normalized = normalizeTrustedOrigin(input.origin);
-			const currentUser = await db.query.user.findFirst({
-				where: eq(user.id, ctx.session.userId),
+			const ownerUser = await db.query.user.findFirst({
+				where: eq(user.id, ownerId),
 				columns: { trustedOrigins: true },
 			});
-			const existing = currentUser?.trustedOrigins || [];
+			const existing = ownerUser?.trustedOrigins || [];
 			if (existing.some((o) => o.toLowerCase() === normalized.toLowerCase())) {
 				return { success: true };
 			}
@@ -275,25 +307,34 @@ export const ssoRouter = createTRPCRouter({
 			await db
 				.update(user)
 				.set({ trustedOrigins: next })
-				.where(eq(user.id, ctx.session.userId));
+				.where(eq(user.id, ownerId));
 			return { success: true };
 		}),
 	removeTrustedOrigin: enterpriseProcedure
 		.input(z.object({ origin: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
+			const ownerId = await getOrganizationOwnerId(
+				ctx.session.activeOrganizationId,
+			);
+			if (!ownerId) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Organization owner not found",
+				});
+			}
 			const normalized = normalizeTrustedOrigin(input.origin);
-			const currentUser = await db.query.user.findFirst({
-				where: eq(user.id, ctx.session.userId),
+			const ownerUser = await db.query.user.findFirst({
+				where: eq(user.id, ownerId),
 				columns: { trustedOrigins: true },
 			});
-			const existing = currentUser?.trustedOrigins || [];
+			const existing = ownerUser?.trustedOrigins || [];
 			const next = existing.filter(
 				(o) => o.toLowerCase() !== normalized.toLowerCase(),
 			);
 			await db
 				.update(user)
 				.set({ trustedOrigins: next })
-				.where(eq(user.id, ctx.session.userId));
+				.where(eq(user.id, ownerId));
 			return { success: true };
 		}),
 	updateTrustedOrigin: enterpriseProcedure
@@ -304,20 +345,29 @@ export const ssoRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const ownerId = await getOrganizationOwnerId(
+				ctx.session.activeOrganizationId,
+			);
+			if (!ownerId) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Organization owner not found",
+				});
+			}
 			const oldNorm = normalizeTrustedOrigin(input.oldOrigin);
 			const newNorm = normalizeTrustedOrigin(input.newOrigin);
-			const currentUser = await db.query.user.findFirst({
-				where: eq(user.id, ctx.session.userId),
+			const ownerUser = await db.query.user.findFirst({
+				where: eq(user.id, ownerId),
 				columns: { trustedOrigins: true },
 			});
-			const existing = currentUser?.trustedOrigins || [];
+			const existing = ownerUser?.trustedOrigins || [];
 			const next = existing.map((o) =>
 				o.toLowerCase() === oldNorm.toLowerCase() ? newNorm : o,
 			);
 			await db
 				.update(user)
 				.set({ trustedOrigins: next })
-				.where(eq(user.id, ctx.session.userId));
+				.where(eq(user.id, ownerId));
 			return { success: true };
 		}),
 });

@@ -86,6 +86,7 @@ interface CloneBitbucketRepository {
 	enableSubmodules: boolean;
 	serverId: string | null;
 	type?: "application" | "compose";
+	outputPathOverride?: string;
 }
 
 export const cloneBitbucketRepository = async ({
@@ -101,6 +102,7 @@ export const cloneBitbucketRepository = async ({
 		bitbucketId,
 		enableSubmodules,
 		serverId,
+		outputPathOverride,
 	} = entity;
 	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
 
@@ -115,7 +117,7 @@ export const cloneBitbucketRepository = async ({
 		return command;
 	}
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName, "code");
+	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
 	const repoToUse = entity.bitbucketRepositorySlug || bitbucketRepository;

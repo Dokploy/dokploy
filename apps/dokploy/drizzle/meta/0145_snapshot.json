@@ -1,6 +1,6 @@
 {
-  "id": "3b9f2f5d-eacd-45b5-bf34-2f680c9904cc",
-  "prevId": "dc9c66e1-14aa-4ca7-8734-83abd74071f2",
+  "id": "ec86a5ad-8776-483e-a003-346d32f65089",
+  "prevId": "50c73964-11f8-41d6-a282-780e38bdddd9",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -740,117 +740,6 @@
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.activity_log": {
-      "name": "activity_log",
-      "schema": "",
-      "columns": {
-        "activityLogId": {
-          "name": "activityLogId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "organizationId": {
-          "name": "organizationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "action": {
-          "name": "action",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "resourceType": {
-          "name": "resourceType",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "resourceId": {
-          "name": "resourceId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "metadata": {
-          "name": "metadata",
-          "type": "json",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "org_created_at_idx": {
-          "name": "org_created_at_idx",
-          "columns": [
-            {
-              "expression": "organizationId",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "createdAt",
-              "isExpression": false,
-              "asc": false,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "activity_log_userId_user_id_fk": {
-          "name": "activity_log_userId_user_id_fk",
-          "tableFrom": "activity_log",
-          "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "activity_log_organizationId_organization_id_fk": {
-          "name": "activity_log_organizationId_organization_id_fk",
-          "tableFrom": "activity_log",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "organizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -4682,6 +4571,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "teamsId": {
+          "name": "teamsId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
@@ -4817,6 +4712,19 @@
           ],
           "columnsTo": [
             "pushoverId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notification_teamsId_teams_teamsId_fk": {
+          "name": "notification_teamsId_teams_teamsId_fk",
+          "tableFrom": "notification",
+          "tableTo": "teams",
+          "columnsFrom": [
+            "teamsId"
+          ],
+          "columnsTo": [
+            "teamsId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -5003,6 +4911,31 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.teams": {
+      "name": "teams",
+      "schema": "",
+      "columns": {
+        "teamsId": {
+          "name": "teamsId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "webhookUrl": {
+          "name": "webhookUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.telegram": {
       "name": "telegram",
       "schema": "",
@@ -5036,6 +4969,120 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.patch": {
+      "name": "patch",
+      "schema": "",
+      "columns": {
+        "patchId": {
+          "name": "patchId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "patchType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'update'"
+        },
+        "filePath": {
+          "name": "filePath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "applicationId": {
+          "name": "applicationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "composeId": {
+          "name": "composeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "patch_applicationId_application_applicationId_fk": {
+          "name": "patch_applicationId_application_applicationId_fk",
+          "tableFrom": "patch",
+          "tableTo": "application",
+          "columnsFrom": [
+            "applicationId"
+          ],
+          "columnsTo": [
+            "applicationId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "patch_composeId_compose_composeId_fk": {
+          "name": "patch_composeId_compose_composeId_fk",
+          "tableFrom": "patch",
+          "tableTo": "compose",
+          "columnsFrom": [
+            "composeId"
+          ],
+          "columnsTo": [
+            "composeId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "patch_filepath_application_unique": {
+          "name": "patch_filepath_application_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "filePath",
+            "applicationId"
+          ]
+        },
+        "patch_filepath_compose_unique": {
+          "name": "patch_filepath_compose_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "filePath",
+            "composeId"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -7300,7 +7347,17 @@
         "ntfy",
         "pushover",
         "custom",
-        "lark"
+        "lark",
+        "teams"
+      ]
+    },
+    "public.patchType": {
+      "name": "patchType",
+      "schema": "public",
+      "values": [
+        "create",
+        "update",
+        "delete"
       ]
     },
     "public.protocolType": {

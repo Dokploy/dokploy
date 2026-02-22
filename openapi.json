@@ -1064,9 +1064,12 @@
 									"buildSecrets": {
 										"type": "string",
 										"nullable": true
+									},
+									"createEnvFile": {
+										"type": "boolean"
 									}
 								},
-								"required": ["applicationId"],
+								"required": ["applicationId", "createEnvFile"],
 								"additionalProperties": false
 							}
 						}
@@ -1370,6 +1373,10 @@
 										"type": "string",
 										"nullable": true
 									},
+									"bitbucketRepositorySlug": {
+										"type": "string",
+										"nullable": true
+									},
 									"bitbucketId": {
 										"type": "string",
 										"nullable": true
@@ -1393,6 +1400,7 @@
 									"bitbucketBuildPath",
 									"bitbucketOwner",
 									"bitbucketRepository",
+									"bitbucketRepositorySlug",
 									"bitbucketId",
 									"applicationId",
 									"enableSubmodules"
@@ -1836,6 +1844,13 @@
 										"type": "string",
 										"nullable": true
 									},
+									"args": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										},
+										"nullable": true
+									},
 									"refreshToken": {
 										"type": "string",
 										"nullable": true
@@ -1922,6 +1937,10 @@
 										"nullable": true
 									},
 									"bitbucketRepository": {
+										"type": "string",
+										"nullable": true
+									},
+									"bitbucketRepositorySlug": {
 										"type": "string",
 										"nullable": true
 									},
@@ -2274,10 +2293,17 @@
 										"type": "boolean",
 										"nullable": true
 									},
+									"createEnvFile": {
+										"type": "boolean"
+									},
 									"createdAt": {
 										"type": "string"
 									},
 									"registryId": {
+										"type": "string",
+										"nullable": true
+									},
+									"rollbackRegistryId": {
 										"type": "string",
 										"nullable": true
 									},
@@ -3194,6 +3220,13 @@
 										"type": "string",
 										"nullable": true
 									},
+									"args": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										},
+										"nullable": true
+									},
 									"env": {
 										"type": "string",
 										"nullable": true
@@ -3624,7 +3657,7 @@
 									},
 									"dockerImage": {
 										"type": "string",
-										"default": "postgres:15"
+										"default": "postgres:18"
 									},
 									"environmentId": {
 										"type": "string"
@@ -4077,10 +4110,17 @@
 									},
 									"dockerImage": {
 										"type": "string",
-										"default": "postgres:15"
+										"default": "postgres:18"
 									},
 									"command": {
 										"type": "string",
+										"nullable": true
+									},
+									"args": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										},
 										"nullable": true
 									},
 									"env": {
@@ -4953,6 +4993,13 @@
 									},
 									"command": {
 										"type": "string",
+										"nullable": true
+									},
+									"args": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										},
 										"nullable": true
 									},
 									"env": {
@@ -5841,6 +5888,13 @@
 									},
 									"command": {
 										"type": "string",
+										"nullable": true
+									},
+									"args": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										},
 										"nullable": true
 									},
 									"env": {
@@ -6749,6 +6803,13 @@
 										"type": "string",
 										"nullable": true
 									},
+									"args": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										},
+										"nullable": true
+									},
 									"env": {
 										"type": "string",
 										"nullable": true
@@ -7330,6 +7391,10 @@
 										"nullable": true
 									},
 									"bitbucketRepository": {
+										"type": "string",
+										"nullable": true
+									},
+									"bitbucketRepositorySlug": {
 										"type": "string",
 										"nullable": true
 									},
@@ -8569,7 +8634,10 @@
 										"type": "string",
 										"minLength": 1
 									},
-									"name": {
+									"firstName": {
+										"type": "string"
+									},
+									"lastName": {
 										"type": "string"
 									},
 									"isRegistered": {
@@ -8619,136 +8687,10 @@
 										"type": "string",
 										"format": "date-time"
 									},
-									"serverIp": {
-										"type": "string",
-										"nullable": true
-									},
-									"certificateType": {
-										"type": "string",
-										"enum": ["letsencrypt", "none", "custom"]
-									},
-									"https": {
-										"type": "boolean"
-									},
-									"host": {
-										"type": "string",
-										"nullable": true
-									},
-									"letsEncryptEmail": {
-										"type": "string",
-										"nullable": true
-									},
-									"sshPrivateKey": {
-										"type": "string",
-										"nullable": true
-									},
-									"enableDockerCleanup": {
-										"type": "boolean"
-									},
-									"logCleanupCron": {
-										"type": "string",
-										"nullable": true
-									},
 									"enablePaidFeatures": {
 										"type": "boolean"
 									},
 									"allowImpersonation": {
-										"type": "boolean"
-									},
-									"metricsConfig": {
-										"type": "object",
-										"properties": {
-											"server": {
-												"type": "object",
-												"properties": {
-													"type": {
-														"type": "string",
-														"enum": ["Dokploy", "Remote"]
-													},
-													"refreshRate": {
-														"type": "number"
-													},
-													"port": {
-														"type": "number"
-													},
-													"token": {
-														"type": "string"
-													},
-													"urlCallback": {
-														"type": "string"
-													},
-													"retentionDays": {
-														"type": "number"
-													},
-													"cronJob": {
-														"type": "string"
-													},
-													"thresholds": {
-														"type": "object",
-														"properties": {
-															"cpu": {
-																"type": "number"
-															},
-															"memory": {
-																"type": "number"
-															}
-														},
-														"required": ["cpu", "memory"],
-														"additionalProperties": false
-													}
-												},
-												"required": [
-													"type",
-													"refreshRate",
-													"port",
-													"token",
-													"urlCallback",
-													"retentionDays",
-													"cronJob",
-													"thresholds"
-												],
-												"additionalProperties": false
-											},
-											"containers": {
-												"type": "object",
-												"properties": {
-													"refreshRate": {
-														"type": "number"
-													},
-													"services": {
-														"type": "object",
-														"properties": {
-															"include": {
-																"type": "array",
-																"items": {
-																	"type": "string"
-																}
-															},
-															"exclude": {
-																"type": "array",
-																"items": {
-																	"type": "string"
-																}
-															}
-														},
-														"required": ["include", "exclude"],
-														"additionalProperties": false
-													}
-												},
-												"required": ["refreshRate", "services"],
-												"additionalProperties": false
-											}
-										},
-										"required": ["server", "containers"],
-										"additionalProperties": false
-									},
-									"cleanupCacheApplications": {
-										"type": "boolean"
-									},
-									"cleanupCacheOnPreviews": {
-										"type": "boolean"
-									},
-									"cleanupCacheOnCompose": {
 										"type": "boolean"
 									},
 									"stripeCustomerId": {
@@ -10878,6 +10820,52 @@
 				}
 			}
 		},
+		"/previewDeployment.redeploy": {
+			"post": {
+				"operationId": "previewDeployment-redeploy",
+				"tags": ["previewDeployment"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"previewDeploymentId": {
+										"type": "string"
+									},
+									"title": {
+										"type": "string"
+									},
+									"description": {
+										"type": "string"
+									}
+								},
+								"required": ["previewDeploymentId"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
 		"/mounts.create": {
 			"post": {
 				"operationId": "mounts-create",
@@ -11335,6 +11323,29 @@
 				}
 			}
 		},
+		"/settings.getWebServerSettings": {
+			"get": {
+				"operationId": "settings-getWebServerSettings",
+				"tags": ["settings"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
 		"/settings.reloadServer": {
 			"post": {
 				"operationId": "settings-reloadServer",
@@ -11759,8 +11770,7 @@
 								"type": "object",
 								"properties": {
 									"sshPrivateKey": {
-										"type": "string",
-										"nullable": true
+										"type": "string"
 									}
 								},
 								"required": ["sshPrivateKey"],
@@ -11800,15 +11810,23 @@
 								"type": "object",
 								"properties": {
 									"host": {
-										"type": "string",
-										"nullable": true
+										"type": "string"
 									},
 									"certificateType": {
 										"type": "string",
 										"enum": ["letsencrypt", "none", "custom"]
 									},
 									"letsEncryptEmail": {
-										"type": "string",
+										"anyOf": [
+											{
+												"type": "string",
+												"format": "email"
+											},
+											{
+												"type": "string",
+												"enum": [""]
+											}
+										],
 										"nullable": true
 									},
 									"https": {
@@ -12315,6 +12333,46 @@
 						"Authorization": []
 					}
 				],
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/settings.updateServerIp": {
+			"post": {
+				"operationId": "settings-updateServerIp",
+				"tags": ["settings"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"serverIp": {
+										"type": "string"
+									}
+								},
+								"required": ["serverIp"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
 				"parameters": [],
 				"responses": {
 					"200": {
@@ -13690,6 +13748,49 @@
 				}
 			}
 		},
+		"/registry.testRegistryById": {
+			"post": {
+				"operationId": "registry-testRegistryById",
+				"tags": ["registry"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"registryId": {
+										"type": "string",
+										"minLength": 1
+									},
+									"serverId": {
+										"type": "string"
+									}
+								},
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
 		"/cluster.getNodes": {
 			"get": {
 				"operationId": "cluster-getNodes",
@@ -13851,6 +13952,9 @@
 									"databaseBackup": {
 										"type": "boolean"
 									},
+									"volumeBackup": {
+										"type": "boolean"
+									},
 									"dokployRestart": {
 										"type": "boolean"
 									},
@@ -13877,6 +13981,7 @@
 								"required": [
 									"appBuildError",
 									"databaseBackup",
+									"volumeBackup",
 									"dokployRestart",
 									"name",
 									"appDeploy",
@@ -13924,6 +14029,9 @@
 										"type": "boolean"
 									},
 									"databaseBackup": {
+										"type": "boolean"
+									},
+									"volumeBackup": {
 										"type": "boolean"
 									},
 									"dokployRestart": {
@@ -14045,6 +14153,9 @@
 									"databaseBackup": {
 										"type": "boolean"
 									},
+									"volumeBackup": {
+										"type": "boolean"
+									},
 									"dokployRestart": {
 										"type": "boolean"
 									},
@@ -14075,6 +14186,7 @@
 								"required": [
 									"appBuildError",
 									"databaseBackup",
+									"volumeBackup",
 									"dokployRestart",
 									"name",
 									"appDeploy",
@@ -14123,6 +14235,9 @@
 										"type": "boolean"
 									},
 									"databaseBackup": {
+										"type": "boolean"
+									},
+									"volumeBackup": {
 										"type": "boolean"
 									},
 									"dokployRestart": {
@@ -14253,6 +14368,9 @@
 									"databaseBackup": {
 										"type": "boolean"
 									},
+									"volumeBackup": {
+										"type": "boolean"
+									},
 									"dokployRestart": {
 										"type": "boolean"
 									},
@@ -14279,6 +14397,7 @@
 								"required": [
 									"appBuildError",
 									"databaseBackup",
+									"volumeBackup",
 									"dokployRestart",
 									"name",
 									"appDeploy",
@@ -14326,6 +14445,9 @@
 										"type": "boolean"
 									},
 									"databaseBackup": {
+										"type": "boolean"
+									},
+									"volumeBackup": {
 										"type": "boolean"
 									},
 									"dokployRestart": {
@@ -14448,6 +14570,9 @@
 									"databaseBackup": {
 										"type": "boolean"
 									},
+									"volumeBackup": {
+										"type": "boolean"
+									},
 									"dokployRestart": {
 										"type": "boolean"
 									},
@@ -14494,6 +14619,7 @@
 								"required": [
 									"appBuildError",
 									"databaseBackup",
+									"volumeBackup",
 									"dokployRestart",
 									"name",
 									"appDeploy",
@@ -14545,6 +14671,9 @@
 										"type": "boolean"
 									},
 									"databaseBackup": {
+										"type": "boolean"
+									},
+									"volumeBackup": {
 										"type": "boolean"
 									},
 									"dokployRestart": {
@@ -14877,6 +15006,9 @@
 									"databaseBackup": {
 										"type": "boolean"
 									},
+									"volumeBackup": {
+										"type": "boolean"
+									},
 									"dokployRestart": {
 										"type": "boolean"
 									},
@@ -14908,6 +15040,7 @@
 								"required": [
 									"appBuildError",
 									"databaseBackup",
+									"volumeBackup",
 									"dokployRestart",
 									"name",
 									"appDeploy",
@@ -14956,6 +15089,9 @@
 										"type": "boolean"
 									},
 									"databaseBackup": {
+										"type": "boolean"
+									},
+									"volumeBackup": {
 										"type": "boolean"
 									},
 									"dokployRestart": {
@@ -15091,6 +15227,9 @@
 									"databaseBackup": {
 										"type": "boolean"
 									},
+									"volumeBackup": {
+										"type": "boolean"
+									},
 									"dokployRestart": {
 										"type": "boolean"
 									},
@@ -15112,8 +15251,7 @@
 										"minLength": 1
 									},
 									"accessToken": {
-										"type": "string",
-										"minLength": 1
+										"type": "string"
 									},
 									"priority": {
 										"type": "number",
@@ -15123,6 +15261,7 @@
 								"required": [
 									"appBuildError",
 									"databaseBackup",
+									"volumeBackup",
 									"dokployRestart",
 									"name",
 									"appDeploy",
@@ -15173,6 +15312,9 @@
 									"databaseBackup": {
 										"type": "boolean"
 									},
+									"volumeBackup": {
+										"type": "boolean"
+									},
 									"dokployRestart": {
 										"type": "boolean"
 									},
@@ -15194,8 +15336,7 @@
 										"minLength": 1
 									},
 									"accessToken": {
-										"type": "string",
-										"minLength": 1
+										"type": "string"
 									},
 									"priority": {
 										"type": "number",
@@ -15258,8 +15399,7 @@
 										"minLength": 1
 									},
 									"accessToken": {
-										"type": "string",
-										"minLength": 1
+										"type": "string"
 									},
 									"priority": {
 										"type": "number",
@@ -15267,6 +15407,206 @@
 									}
 								},
 								"required": ["serverUrl", "topic", "accessToken", "priority"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/notification.createCustom": {
+			"post": {
+				"operationId": "notification-createCustom",
+				"tags": ["notification"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"appBuildError": {
+										"type": "boolean"
+									},
+									"databaseBackup": {
+										"type": "boolean"
+									},
+									"volumeBackup": {
+										"type": "boolean"
+									},
+									"dokployRestart": {
+										"type": "boolean"
+									},
+									"name": {
+										"type": "string"
+									},
+									"appDeploy": {
+										"type": "boolean"
+									},
+									"dockerCleanup": {
+										"type": "boolean"
+									},
+									"serverThreshold": {
+										"type": "boolean"
+									},
+									"endpoint": {
+										"type": "string",
+										"minLength": 1
+									},
+									"headers": {
+										"type": "object",
+										"additionalProperties": {
+											"type": "string"
+										}
+									}
+								},
+								"required": ["name", "endpoint"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/notification.updateCustom": {
+			"post": {
+				"operationId": "notification-updateCustom",
+				"tags": ["notification"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"appBuildError": {
+										"type": "boolean"
+									},
+									"databaseBackup": {
+										"type": "boolean"
+									},
+									"volumeBackup": {
+										"type": "boolean"
+									},
+									"dokployRestart": {
+										"type": "boolean"
+									},
+									"name": {
+										"type": "string"
+									},
+									"appDeploy": {
+										"type": "boolean"
+									},
+									"dockerCleanup": {
+										"type": "boolean"
+									},
+									"serverThreshold": {
+										"type": "boolean"
+									},
+									"endpoint": {
+										"type": "string",
+										"minLength": 1
+									},
+									"headers": {
+										"type": "object",
+										"additionalProperties": {
+											"type": "string"
+										}
+									},
+									"notificationId": {
+										"type": "string",
+										"minLength": 1
+									},
+									"customId": {
+										"type": "string",
+										"minLength": 1
+									},
+									"organizationId": {
+										"type": "string"
+									}
+								},
+								"required": ["notificationId", "customId"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/notification.testCustomConnection": {
+			"post": {
+				"operationId": "notification-testCustomConnection",
+				"tags": ["notification"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"endpoint": {
+										"type": "string",
+										"minLength": 1
+									},
+									"headers": {
+										"type": "object",
+										"additionalProperties": {
+											"type": "string"
+										}
+									}
+								},
+								"required": ["endpoint"],
 								"additionalProperties": false
 							}
 						}
@@ -15308,6 +15648,9 @@
 									"databaseBackup": {
 										"type": "boolean"
 									},
+									"volumeBackup": {
+										"type": "boolean"
+									},
 									"dokployRestart": {
 										"type": "boolean"
 									},
@@ -15331,6 +15674,7 @@
 								"required": [
 									"appBuildError",
 									"databaseBackup",
+									"volumeBackup",
 									"dokployRestart",
 									"name",
 									"appDeploy",
@@ -15377,6 +15721,9 @@
 										"type": "boolean"
 									},
 									"databaseBackup": {
+										"type": "boolean"
+									},
+									"volumeBackup": {
 										"type": "boolean"
 									},
 									"dokployRestart": {
@@ -15452,6 +15799,249 @@
 									}
 								},
 								"required": ["webhookUrl"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/notification.createPushover": {
+			"post": {
+				"operationId": "notification-createPushover",
+				"tags": ["notification"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"appBuildError": {
+										"type": "boolean"
+									},
+									"databaseBackup": {
+										"type": "boolean"
+									},
+									"volumeBackup": {
+										"type": "boolean"
+									},
+									"dokployRestart": {
+										"type": "boolean"
+									},
+									"name": {
+										"type": "string"
+									},
+									"appDeploy": {
+										"type": "boolean"
+									},
+									"dockerCleanup": {
+										"type": "boolean"
+									},
+									"serverThreshold": {
+										"type": "boolean"
+									},
+									"userKey": {
+										"type": "string",
+										"minLength": 1
+									},
+									"apiToken": {
+										"type": "string",
+										"minLength": 1
+									},
+									"priority": {
+										"type": "number",
+										"minimum": -2,
+										"maximum": 2,
+										"default": 0
+									},
+									"retry": {
+										"type": "number",
+										"minimum": 30,
+										"nullable": true
+									},
+									"expire": {
+										"type": "number",
+										"minimum": 1,
+										"maximum": 10800,
+										"nullable": true
+									}
+								},
+								"required": ["name", "userKey", "apiToken"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/notification.updatePushover": {
+			"post": {
+				"operationId": "notification-updatePushover",
+				"tags": ["notification"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"notificationId": {
+										"type": "string",
+										"minLength": 1
+									},
+									"pushoverId": {
+										"type": "string",
+										"minLength": 1
+									},
+									"organizationId": {
+										"type": "string"
+									},
+									"userKey": {
+										"type": "string",
+										"minLength": 1
+									},
+									"apiToken": {
+										"type": "string",
+										"minLength": 1
+									},
+									"priority": {
+										"type": "number",
+										"minimum": -2,
+										"maximum": 2
+									},
+									"retry": {
+										"type": "number",
+										"minimum": 30,
+										"nullable": true
+									},
+									"expire": {
+										"type": "number",
+										"minimum": 1,
+										"maximum": 10800,
+										"nullable": true
+									},
+									"appBuildError": {
+										"type": "boolean"
+									},
+									"databaseBackup": {
+										"type": "boolean"
+									},
+									"volumeBackup": {
+										"type": "boolean"
+									},
+									"dokployRestart": {
+										"type": "boolean"
+									},
+									"name": {
+										"type": "string"
+									},
+									"appDeploy": {
+										"type": "boolean"
+									},
+									"dockerCleanup": {
+										"type": "boolean"
+									},
+									"serverThreshold": {
+										"type": "boolean"
+									}
+								},
+								"required": ["notificationId", "pushoverId"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/notification.testPushoverConnection": {
+			"post": {
+				"operationId": "notification-testPushoverConnection",
+				"tags": ["notification"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"userKey": {
+										"type": "string",
+										"minLength": 1
+									},
+									"apiToken": {
+										"type": "string",
+										"minLength": 1
+									},
+									"priority": {
+										"type": "number",
+										"minimum": -2,
+										"maximum": 2
+									},
+									"retry": {
+										"type": "number",
+										"minimum": 30,
+										"nullable": true
+									},
+									"expire": {
+										"type": "number",
+										"minimum": 1,
+										"maximum": 10800,
+										"nullable": true
+									}
+								},
+								"required": ["userKey", "apiToken", "priority"],
 								"additionalProperties": false
 							}
 						}
@@ -17905,6 +18495,29 @@
 				}
 			}
 		},
+		"/stripe.getInvoices": {
+			"get": {
+				"operationId": "stripe-getInvoices",
+				"tags": ["stripe"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
 		"/swarm.getNodes": {
 			"get": {
 				"operationId": "swarm-getNodes",
@@ -18696,6 +19309,50 @@
 				}
 			}
 		},
+		"/organization.updateMemberRole": {
+			"post": {
+				"operationId": "organization-updateMemberRole",
+				"tags": ["organization"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"memberId": {
+										"type": "string"
+									},
+									"role": {
+										"type": "string",
+										"enum": ["admin", "member"]
+									}
+								},
+								"required": ["memberId", "role"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
 		"/organization.setDefault": {
 			"post": {
 				"operationId": "organization-setDefault",
@@ -18808,6 +19465,10 @@
 									"enabled": {
 										"type": "boolean"
 									},
+									"timezone": {
+										"type": "string",
+										"nullable": true
+									},
 									"createdAt": {
 										"type": "string"
 									}
@@ -18903,6 +19564,10 @@
 									},
 									"enabled": {
 										"type": "boolean"
+									},
+									"timezone": {
+										"type": "string",
+										"nullable": true
 									},
 									"createdAt": {
 										"type": "string"
@@ -19814,6 +20479,540 @@
 									}
 								},
 								"required": ["environmentId", "name"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.create": {
+			"post": {
+				"operationId": "patch-create",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"filePath": {
+										"type": "string",
+										"minLength": 1
+									},
+									"content": {
+										"type": "string"
+									},
+									"enabled": {
+										"type": "boolean"
+									},
+									"applicationId": {
+										"type": "string",
+										"nullable": true
+									},
+									"composeId": {
+										"type": "string",
+										"nullable": true
+									}
+								},
+								"required": ["filePath", "content"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.one": {
+			"get": {
+				"operationId": "patch-one",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "patchId",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.byApplicationId": {
+			"get": {
+				"operationId": "patch-byApplicationId",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "applicationId",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.byComposeId": {
+			"get": {
+				"operationId": "patch-byComposeId",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "composeId",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.update": {
+			"post": {
+				"operationId": "patch-update",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"patchId": {
+										"type": "string",
+										"minLength": 1
+									},
+									"filePath": {
+										"type": "string",
+										"minLength": 1
+									},
+									"enabled": {
+										"type": "boolean"
+									},
+									"content": {
+										"type": "string"
+									},
+									"createdAt": {
+										"type": "string"
+									},
+									"updatedAt": {
+										"type": "string",
+										"nullable": true
+									}
+								},
+								"required": ["patchId"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.delete": {
+			"post": {
+				"operationId": "patch-delete",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"patchId": {
+										"type": "string",
+										"minLength": 1
+									}
+								},
+								"required": ["patchId"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.toggleEnabled": {
+			"post": {
+				"operationId": "patch-toggleEnabled",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"patchId": {
+										"type": "string",
+										"minLength": 1
+									},
+									"enabled": {
+										"type": "boolean"
+									}
+								},
+								"required": ["patchId", "enabled"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.ensureRepo": {
+			"post": {
+				"operationId": "patch-ensureRepo",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"applicationId": {
+										"type": "string"
+									},
+									"composeId": {
+										"type": "string"
+									}
+								},
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.readRepoDirectories": {
+			"get": {
+				"operationId": "patch-readRepoDirectories",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "applicationId",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "composeId",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "repoPath",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.readRepoFile": {
+			"get": {
+				"operationId": "patch-readRepoFile",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "applicationId",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "composeId",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "repoPath",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "filePath",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.saveFileAsPatch": {
+			"post": {
+				"operationId": "patch-saveFileAsPatch",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"applicationId": {
+										"type": "string"
+									},
+									"composeId": {
+										"type": "string"
+									},
+									"repoPath": {
+										"type": "string"
+									},
+									"filePath": {
+										"type": "string"
+									},
+									"content": {
+										"type": "string"
+									}
+								},
+								"required": ["repoPath", "filePath", "content"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.cleanPatchRepos": {
+			"post": {
+				"operationId": "patch-cleanPatchRepos",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"serverId": {
+										"type": "string"
+									}
+								},
 								"additionalProperties": false
 							}
 						}

@@ -20,18 +20,18 @@
 		"react": "18.2.0",
 		"react-dom": "18.2.0",
 		"redis": "4.7.0",
-		"zod": "^3.25.32"
+		"zod": "^3.25.76"
 	},
 	"devDependencies": {
-		"@types/node": "^20.16.0",
+		"@types/node": "^24.4.0",
 		"@types/react": "^18.2.37",
 		"@types/react-dom": "^18.2.15",
 		"tsx": "^4.16.2",
 		"typescript": "^5.8.3"
 	},
-	"packageManager": "pnpm@9.12.0",
+	"packageManager": "pnpm@10.22.0",
 	"engines": {
-		"node": "^20.16.0",
-		"pnpm": ">=9.12.0"
+		"node": "^24.4.0",
+		"pnpm": ">=10.22.0"
 	}
 }

@@ -121,6 +121,7 @@ interface CloneGithubRepository {
 	type?: "application" | "compose";
 	enableSubmodules: boolean;
 	serverId: string | null;
+	outputPathOverride?: string;
 }
 export const cloneGithubRepository = async ({
 	type = "application",
@@ -136,6 +137,7 @@ export const cloneGithubRepository = async ({
 		githubId,
 		enableSubmodules,
 		serverId,
+		outputPathOverride,
 	} = entity;
 	const { APPLICATIONS_PATH, COMPOSE_PATH } = paths(!!serverId);
 
@@ -155,7 +157,7 @@ export const cloneGithubRepository = async ({
 
 	const githubProvider = await findGithubById(githubId);
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName, "code");
+	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
 	const octokit = authGithub(githubProvider);
 	const token = await getGithubToken(octokit);
 	const repoclone = `github.com/${owner}/${repository}.git`;

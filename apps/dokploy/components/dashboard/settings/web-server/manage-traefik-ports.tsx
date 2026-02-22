@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRightLeft, Plus, Trash2 } from "lucide-react";
-import { useTranslation } from "next-i18next";
+
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -56,7 +56,6 @@ const TraefikPortsSchema = z.object({
 type TraefikPortsForm = z.infer<typeof TraefikPortsSchema>;
 
 export const ManageTraefikPorts = ({ children, serverId }: Props) => {
-	const { t } = useTranslation("settings");
 	const [open, setOpen] = useState(false);
 
 	const form = useForm<TraefikPortsForm>({
@@ -84,7 +83,7 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 		isExecuting: isHealthCheckExecuting,
 	} = useHealthCheckAfterMutation({
 		initialDelay: 5000,
-		successMessage: t("settings.server.webServer.traefik.portsUpdated"),
+		successMessage: "Ports updated successfully",
 		onSuccess: () => {
 			refetchPorts();
 			setOpen(false);
@@ -129,14 +128,12 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 				<DialogContent className="sm:max-w-3xl">
 					<DialogHeader>
 						<DialogTitle className="flex items-center gap-2 text-xl">
-							{t("settings.server.webServer.traefik.managePorts")}
+							Additional Port Mappings
 						</DialogTitle>
 						<DialogDescription className="text-base w-full">
 							<div className="flex items-center justify-between">
 								<div className="flex flex-col gap-1">
-									{t(
-										"settings.server.webServer.traefik.managePortsDescription",
-									)}
+									Add or remove additional ports for Traefik
 									<span className="text-sm text-muted-foreground">
 										{fields.length} port mapping{fields.length !== 1 ? "s" : ""}{" "}
 										configured
@@ -179,9 +176,7 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 															render={({ field }) => (
 																<FormItem>
 																	<FormLabel className="text-sm font-medium text-muted-foreground">
-																		{t(
-																			"settings.server.webServer.traefik.targetPort",
-																		)}
+																		Target Port
 																	</FormLabel>
 																	<FormControl>
 																		<Input
@@ -210,9 +205,7 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 															render={({ field }) => (
 																<FormItem>
 																	<FormLabel className="text-sm font-medium text-muted-foreground">
-																		{t(
-																			"settings.server.webServer.traefik.publishedPort",
-																		)}
+																		Published Port
 																	</FormLabel>
 																	<FormControl>
 																		<Input

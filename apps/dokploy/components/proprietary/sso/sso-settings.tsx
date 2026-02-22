@@ -84,9 +84,10 @@ export const SSOSettings = () => {
 	const [newOriginInput, setNewOriginInput] = useState("");
 
 	const { data: providers, isLoading } = api.sso.listProviders.useQuery();
-	const { data: userData } = api.user.get.useQuery(undefined, {
-		enabled: manageOriginsOpen,
-	});
+	const { data: trustedOrigins = [] } = api.sso.getTrustedOrigins.useQuery(
+		undefined,
+		{ enabled: manageOriginsOpen },
+	);
 	const { mutateAsync: deleteProvider, isLoading: isDeleting } =
 		api.sso.deleteProvider.useMutation();
 	const { mutateAsync: addTrustedOrigin, isLoading: isAddingOrigin } =
@@ -96,8 +97,6 @@ export const SSOSettings = () => {
 	const { mutateAsync: updateTrustedOrigin, isLoading: isUpdatingOrigin } =
 		api.sso.updateTrustedOrigin.useMutation();
 
-	const trustedOrigins = userData?.user?.trustedOrigins ?? [];
-
 	const handleAddOrigin = async () => {
 		const value = newOriginInput.trim();
 		if (!value) return;
@@ -105,7 +104,7 @@ export const SSOSettings = () => {
 			await addTrustedOrigin({ origin: value });
 			toast.success("Trusted origin added");
 			setNewOriginInput("");
-			await utils.user.get.invalidate();
+			await utils.sso.getTrustedOrigins.invalidate();
 		} catch (err) {
 			toast.error(
 				err instanceof Error ? err.message : "Failed to add trusted origin",
@@ -118,7 +117,7 @@ export const SSOSettings = () => {
 			await removeTrustedOrigin({ origin });
 			toast.success("Trusted origin removed");
 			if (editingOrigin === origin) setEditingOrigin(null);
-			await utils.user.get.invalidate();
+			await utils.sso.getTrustedOrigins.invalidate();
 		} catch (err) {
 			toast.error(
 				err instanceof Error ? err.message : "Failed to remove trusted origin",
@@ -144,7 +143,7 @@ export const SSOSettings = () => {
 			toast.success("Trusted origin updated");
 			setEditingOrigin(null);
 			setEditingValue("");
-			await utils.user.get.invalidate();
+			await utils.sso.getTrustedOrigins.invalidate();
 		} catch (err) {
 			toast.error(
 				err instanceof Error ? err.message : "Failed to update trusted origin",

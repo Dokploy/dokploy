@@ -7,7 +7,6 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { LicenseKeySettings } from "@/components/proprietary/license-keys/license-key";
 import { Card } from "@/components/ui/card";
 import { appRouter } from "@/server/api/root";
-import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 const Page = () => {
 	return (
@@ -35,7 +34,6 @@ export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
 	const { req, res } = ctx;
-	const locale = await getLocale(req.cookies);
 	const { user, session } = await validateRequest(ctx.req);
 	if (!user) {
 		return {
@@ -70,7 +68,6 @@ export async function getServerSideProps(
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
-			...(await serverSideTranslations(locale, ["settings"])),
 		},
 	};
 }

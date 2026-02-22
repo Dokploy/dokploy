@@ -44,6 +44,7 @@ import {
 	issueCommentExists,
 	updateIssueComment,
 } from "./github";
+import { generateApplyPatchesCommand } from "./patch";
 import {
 	findPreviewDeploymentById,
 	updatePreviewDeployment,
@@ -200,6 +201,14 @@ export const deployApplication = async ({
 			command += await cloneGitRepository(applicationEntity);
 		} else if (application.sourceType === "docker") {
 			command += await buildRemoteDocker(application);
+		}
+
+		if (application.sourceType !== "docker") {
+			command += await generateApplyPatchesCommand({
+				id: application.applicationId,
+				type: "application",
+				serverId,
+			});
 		}
 
 		command += await getBuildCommand(application);

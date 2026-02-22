@@ -1,4 +1,3 @@
-import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -22,7 +21,6 @@ interface Props {
 	serverId?: string;
 }
 export const ShowTraefikActions = ({ serverId }: Props) => {
-	const { t } = useTranslation("settings");
 	const { mutateAsync: reloadTraefik, isLoading: reloadTraefikIsLoading } =
 		api.settings.reloadTraefik.useMutation();
 
@@ -75,13 +73,11 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 					}
 					variant="outline"
 				>
-					{t("settings.server.webServer.traefik.label")}
+					Traefik
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="w-56" align="start">
-				<DropdownMenuLabel>
-					{t("settings.server.webServer.actions")}
-				</DropdownMenuLabel>
+				<DropdownMenuLabel>Actions</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
 					<DropdownMenuItem
@@ -100,7 +96,7 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 						className="cursor-pointer"
 						disabled={isReloadHealthCheckExecuting}
 					>
-						<span>{t("settings.server.webServer.reload")}</span>
+						<span>Reload</span>
 					</DropdownMenuItem>
 					<ShowModalLogs
 						appName="dokploy-traefik"
@@ -111,7 +107,7 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							onSelect={(e) => e.preventDefault()}
 							className="cursor-pointer"
 						>
-							{t("settings.server.webServer.watchLogs")}
+							View Logs
 						</DropdownMenuItem>
 					</ShowModalLogs>
 					<EditTraefikEnv serverId={serverId}>
@@ -119,7 +115,7 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							onSelect={(e) => e.preventDefault()}
 							className="cursor-pointer"
 						>
-							<span>{t("settings.server.webServer.traefik.modifyEnv")}</span>
+							<span>Modify Environment</span>
 						</DropdownMenuItem>
 					</EditTraefikEnv>
 
@@ -176,7 +172,7 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							onSelect={(e) => e.preventDefault()}
 							className="cursor-pointer"
 						>
-							<span>{t("settings.server.webServer.traefik.managePorts")}</span>
+							<span>Additional Port Mappings</span>
 						</DropdownMenuItem>
 					</ManageTraefikPorts>
 				</DropdownMenuGroup>

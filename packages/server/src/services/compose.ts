@@ -40,6 +40,7 @@ import {
 	updateDeployment,
 	updateDeploymentStatus,
 } from "./deployment";
+import { generateApplyPatchesCommand } from "./patch";
 import { validUniqueServerAppName } from "./project";
 
 export type Compose = typeof compose.$inferSelect;
@@ -247,8 +248,15 @@ export const deployCompose = async ({
 		} else {
 			await execAsync(commandWithLog);
 		}
-
 		command = "set -e;";
+		if (compose.sourceType !== "raw") {
+			command += await generateApplyPatchesCommand({
+				id: compose.composeId,
+				type: "compose",
+				serverId: compose.serverId,
+			});
+		}
+
 		command += await getBuildComposeCommand(entity);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {

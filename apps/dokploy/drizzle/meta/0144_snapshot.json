@@ -1,5 +1,5 @@
 {
-  "id": "dc9c66e1-14aa-4ca7-8734-83abd74071f2",
+  "id": "50c73964-11f8-41d6-a282-780e38bdddd9",
   "prevId": "c03ebeca-bf0f-4d72-8b4f-9a4dccb9f143",
   "version": "7",
   "dialect": "postgresql",
@@ -740,95 +740,6 @@
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.activity_log": {
-      "name": "activity_log",
-      "schema": "",
-      "columns": {
-        "activityLogId": {
-          "name": "activityLogId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "organizationId": {
-          "name": "organizationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "action": {
-          "name": "action",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "resourceType": {
-          "name": "resourceType",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "resourceId": {
-          "name": "resourceId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "metadata": {
-          "name": "metadata",
-          "type": "json",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "activity_log_userId_user_id_fk": {
-          "name": "activity_log_userId_user_id_fk",
-          "tableFrom": "activity_log",
-          "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "activity_log_organizationId_organization_id_fk": {
-          "name": "activity_log_organizationId_organization_id_fk",
-          "tableFrom": "activity_log",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "organizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -4660,6 +4571,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "teamsId": {
+          "name": "teamsId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
@@ -4795,6 +4712,19 @@
           ],
           "columnsTo": [
             "pushoverId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notification_teamsId_teams_teamsId_fk": {
+          "name": "notification_teamsId_teams_teamsId_fk",
+          "tableFrom": "notification",
+          "tableTo": "teams",
+          "columnsFrom": [
+            "teamsId"
+          ],
+          "columnsTo": [
+            "teamsId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -4971,6 +4901,31 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.teams": {
+      "name": "teams",
+      "schema": "",
+      "columns": {
+        "teamsId": {
+          "name": "teamsId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "webhookUrl": {
+          "name": "webhookUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
@@ -7278,7 +7233,8 @@
         "ntfy",
         "pushover",
         "custom",
-        "lark"
+        "lark",
+        "teams"
       ]
     },
     "public.protocolType": {
