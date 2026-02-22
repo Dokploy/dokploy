@@ -79,6 +79,7 @@ export const postgres = pgTable("postgres", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	networkIds: text("networkIds").array().default([]),
 });
 
 export const postgresRelations = relations(postgres, ({ one, many }) => ({

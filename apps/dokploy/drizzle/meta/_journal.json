@@ -1030,6 +1030,13 @@
       "when": 1771621786767,
       "tag": "0146_stormy_ender_wiggin",
       "breakpoints": true
+    },
+    {
+      "idx": 147,
+      "version": "7",
+      "when": 1771746731110,
+      "tag": "0147_nasty_scarecrow",
+      "breakpoints": true
     }
   ]
 }

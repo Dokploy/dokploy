@@ -81,6 +81,7 @@ export const mariadb = pgTable("mariadb", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	networkIds: text("networkIds").array().default([]),
 });
 
 export const mariadbRelations = relations(mariadb, ({ one, many }) => ({
