@@ -89,7 +89,9 @@ export const ShowNetworks = () => {
 														<TableCell>{n.scope ?? "—"}</TableCell>
 														<TableCell>{n.internal ? "Yes" : "No"}</TableCell>
 														<TableCell>{n.attachable ? "Yes" : "No"}</TableCell>
-														<TableCell>{n.serverId ?? "Dokploy server"}</TableCell>
+														<TableCell>
+															{n.serverId ?? "Dokploy server"}
+														</TableCell>
 														<TableCell className="text-muted-foreground">
 															{new Date(n.createdAt).toLocaleDateString()}
 														</TableCell>
