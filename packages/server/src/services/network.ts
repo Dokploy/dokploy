@@ -30,13 +30,15 @@ export const createNetwork = async (
 	input: typeof apiCreateNetwork._type,
 	organizationId: string,
 ) => {
-	if (IS_CLOUD)
+	if (IS_CLOUD) {
 		if (!input.serverId) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
 				message: "Server is required",
 			});
 		}
+	}
+
 	const created = await db.transaction(async (tx) => {
 		const [row] = await tx
 			.insert(network)
