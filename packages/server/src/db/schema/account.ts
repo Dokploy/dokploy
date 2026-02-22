@@ -7,6 +7,7 @@ import {
 	timestamp,
 } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
+import { network } from "./network";
 import { projects } from "./project";
 import { server } from "./server";
 import { ssoProvider } from "./sso";
@@ -77,6 +78,7 @@ export const organizationRelations = relations(
 			references: [user.id],
 		}),
 		servers: many(server),
+		networks: many(network),
 		projects: many(projects),
 		members: many(member),
 		ssoProviders: many(ssoProvider),

@@ -79,6 +79,7 @@ export const mysql = pgTable("mysql", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	networkIds: text("networkIds").array().default([]),
 });
 
 export const mysqlRelations = relations(mysql, ({ one, many }) => ({

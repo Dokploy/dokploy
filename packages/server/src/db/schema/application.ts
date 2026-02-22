@@ -226,6 +226,7 @@ export const applications = pgTable("application", {
 			onDelete: "set null",
 		},
 	),
+	networkIds: text("networkIds").array().default([]),
 });
 
 export const applicationsRelations = relations(
@@ -366,6 +367,7 @@ const createSchema = createInsertSchema(applications, {
 	previewRequireCollaboratorPermissions: z.boolean().optional(),
 	watchPaths: z.array(z.string()).optional(),
 	previewLabels: z.array(z.string()).optional(),
+	networkIds: z.array(z.string()).optional(),
 	cleanCache: z.boolean().optional(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
