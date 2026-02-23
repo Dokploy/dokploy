@@ -225,23 +225,21 @@ export const getAuthConfig = (application: ApplicationNested) => {
 			};
 		}
 	} else if (registry) {
-		if (registry.authType === "credential-helper") {
-			return undefined;
+		if (registry.username && registry.password) {
+			return {
+				password: registry.password,
+				username: registry.username,
+				serveraddress: registry.registryUrl,
+			};
 		}
-		return {
-			password: registry.password || "",
-			username: registry.username || "",
-			serveraddress: registry.registryUrl,
-		};
 	} else if (buildRegistry) {
-		if (buildRegistry.authType === "credential-helper") {
-			return undefined;
+		if (buildRegistry.username && buildRegistry.password) {
+			return {
+				password: buildRegistry.password,
+				username: buildRegistry.username,
+				serveraddress: buildRegistry.registryUrl,
+			};
 		}
-		return {
-			password: buildRegistry.password || "",
-			username: buildRegistry.username || "",
-			serveraddress: buildRegistry.registryUrl,
-		};
 	}
 
 	return undefined;

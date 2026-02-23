@@ -236,16 +236,15 @@ const rollbackApplication = async (
 		rollbackImage = getRegistryTag(fullContext.rollbackRegistry, image);
 	}
 
-	const rollbackAuthType =
-		fullContext.rollbackRegistry?.authType ?? "credentials";
+	const rollbackReg = fullContext.rollbackRegistry;
 	const authconfig =
-		rollbackAuthType === "credential-helper"
-			? undefined
-			: {
-					password: fullContext.rollbackRegistry?.password || "",
-					username: fullContext.rollbackRegistry?.username || "",
-					serveraddress: fullContext.rollbackRegistry?.registryUrl || "",
-				};
+		rollbackReg?.username && rollbackReg?.password
+			? {
+					password: rollbackReg.password,
+					username: rollbackReg.username,
+					serveraddress: rollbackReg.registryUrl || "",
+				}
+			: undefined;
 
 	const settings: CreateServiceOptions = {
 		authconfig,

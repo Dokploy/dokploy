@@ -122,7 +122,7 @@ const getRegistryCommands = (
 	imageName: string,
 	registryTag: string,
 ): string => {
-	if (registry.authType === "credential-helper") {
+	if (!registry.username || !registry.password) {
 		return `
 echo "📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'" ;
 echo "ℹ️ Using credential helper '${registry.credentialHelper || ""}' for authentication" ;

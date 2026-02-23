@@ -1,5 +1,5 @@
 {
-  "id": "c55155d1-d784-4cfc-89f9-8d315634d233",
+  "id": "6bfefca8-4c2d-4bff-a361-38e978e0ed73",
   "prevId": "f152cf50-c7de-44de-b4a7-57b0f0c02596",
   "version": "7",
   "dialect": "postgresql",
@@ -5934,6 +5934,12 @@
         },
         "credentialHelper": {
           "name": "credentialHelper",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "credentialHelperUrls": {
+          "name": "credentialHelperUrls",
           "type": "text",
           "primaryKey": false,
           "notNull": false

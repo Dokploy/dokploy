@@ -28,6 +28,7 @@ export const registry = pgTable("registry", {
 	password: text("password"),
 	authType: registryAuthType("authType").notNull().default("credentials"),
 	credentialHelper: text("credentialHelper"),
+	credentialHelperUrls: text("credentialHelperUrls"),
 	registryUrl: text("registryUrl").notNull().default(""),
 	createdAt: text("createdAt")
 		.notNull()
@@ -56,12 +57,66 @@ const createSchema = createInsertSchema(registry, {
 	password: z.string().nullable().optional(),
 	authType: z.enum(["credentials", "credential-helper"]),
 	credentialHelper: z.string().nullable().optional(),
+	credentialHelperUrls: z.string().nullable().optional(),
 	registryUrl: z.string(),
 	organizationId: z.string().min(1),
 	registryId: z.string().min(1),
 	registryType: z.enum(["cloud"]),
 	imagePrefix: z.string().nullable().optional(),
 });
+
+function validateRegistryFields(
+	data: {
+		username?: string | null;
+		password?: string | null;
+		credentialHelper?: string | null;
+		credentialHelperUrls?: string | null;
+		registryUrl?: string | null;
+	},
+	ctx: z.RefinementCtx,
+	opts?: { skipPasswordRequired?: boolean },
+) {
+	const hasCredentials = !!(data.username?.trim() || data.password?.trim());
+	const hasCredHelper = !!data.credentialHelper?.trim();
+
+	if (!hasCredentials && !hasCredHelper) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			message:
+				"At least one authentication method is required (username/password or credential helper)",
+			path: ["username"],
+		});
+		return;
+	}
+
+	if (hasCredentials) {
+		if (!data.username?.trim()) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Username is required",
+				path: ["username"],
+			});
+		}
+		if (!opts?.skipPasswordRequired && !data.password?.trim()) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Password is required",
+				path: ["password"],
+			});
+		}
+	}
+
+	if (hasCredHelper) {
+		const urls = data.credentialHelperUrls?.trim();
+		if (!urls) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "At least one registry URL is required for credential helpers",
+				path: ["credentialHelperUrls"],
+			});
+		}
+	}
+}
 
 export const apiCreateRegistry = createSchema
 	.pick({})
@@ -73,43 +128,14 @@ export const apiCreateRegistry = createSchema
 			.enum(["credentials", "credential-helper"])
 			.default("credentials"),
 		credentialHelper: z.string().nullable().optional(),
+		credentialHelperUrls: z.string().nullable().optional(),
 		registryUrl: z.string(),
 		registryType: z.enum(["cloud"]),
 		imagePrefix: z.string().nullable().optional(),
 		serverId: z.string().optional(),
 	})
 	.superRefine((data, ctx) => {
-		if (data.authType === "credentials") {
-			if (!data.username?.trim()) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "Username is required for credential authentication",
-					path: ["username"],
-				});
-			}
-			if (!data.password?.trim()) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "Password is required for credential authentication",
-					path: ["password"],
-				});
-			}
-		} else if (data.authType === "credential-helper") {
-			if (!data.credentialHelper?.trim()) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "Credential helper name is required",
-					path: ["credentialHelper"],
-				});
-			}
-			if (!data.registryUrl?.trim()) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "Registry URL is required for credential helpers",
-					path: ["registryUrl"],
-				});
-			}
-		}
+		validateRegistryFields(data, ctx);
 	});
 
 export const apiTestRegistry = createSchema
@@ -122,43 +148,14 @@ export const apiTestRegistry = createSchema
 			.enum(["credentials", "credential-helper"])
 			.default("credentials"),
 		credentialHelper: z.string().nullable().optional(),
+		credentialHelperUrls: z.string().nullable().optional(),
 		registryUrl: z.string(),
 		registryType: z.enum(["cloud"]),
 		imagePrefix: z.string().nullable().optional(),
 		serverId: z.string().optional(),
 	})
 	.superRefine((data, ctx) => {
-		if (data.authType === "credentials") {
-			if (!data.username?.trim()) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "Username is required for credential authentication",
-					path: ["username"],
-				});
-			}
-			if (!data.password?.trim()) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "Password is required for credential authentication",
-					path: ["password"],
-				});
-			}
-		} else if (data.authType === "credential-helper") {
-			if (!data.credentialHelper?.trim()) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "Credential helper name is required",
-					path: ["credentialHelper"],
-				});
-			}
-			if (!data.registryUrl?.trim()) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "Registry URL is required for credential helpers",
-					path: ["registryUrl"],
-				});
-			}
-		}
+		validateRegistryFields(data, ctx);
 	});
 
 export const apiTestRegistryById = createSchema
@@ -185,6 +182,7 @@ export const apiUpdateRegistry = createSchema.partial().extend({
 	registryId: z.string().min(1),
 	authType: z.enum(["credentials", "credential-helper"]).optional(),
 	credentialHelper: z.string().nullable().optional(),
+	credentialHelperUrls: z.string().nullable().optional(),
 	serverId: z.string().optional(),
 });
 

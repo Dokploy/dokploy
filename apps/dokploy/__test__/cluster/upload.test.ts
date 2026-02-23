@@ -12,6 +12,7 @@ describe("getRegistryTag", () => {
 			password: "test-password",
 			authType: "credentials",
 			credentialHelper: null,
+			credentialHelperUrls: null,
 			registryUrl: "docker.io",
 			registryType: "cloud",
 			imagePrefix: null,
