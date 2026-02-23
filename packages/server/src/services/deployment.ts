@@ -161,6 +161,10 @@ export const createDeploymentPreview = async (
 		deployment.previewDeploymentId,
 	);
 	try {
+		const buildServerId =
+			previewDeployment?.application?.buildServerId ||
+			previewDeployment?.application?.serverId;
+
 		await removeLastTenDeployments(
 			deployment.previewDeploymentId,
 			"previewDeployment",
@@ -168,15 +172,13 @@ export const createDeploymentPreview = async (
 		);
 
 		const appName = `${previewDeployment.appName}`;
-		const { LOGS_PATH } = paths(!!previewDeployment?.application?.serverId);
+		const { LOGS_PATH } = paths(!!buildServerId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, appName, fileName);
 
-		if (previewDeployment?.application?.serverId) {
-			const server = await findServerById(
-				previewDeployment?.application?.serverId,
-			);
+		if (buildServerId) {
+			const server = await findServerById(buildServerId);
 
 			const command = `
 				mkdir -p ${LOGS_PATH}/${appName};
@@ -200,6 +202,10 @@ export const createDeploymentPreview = async (
 				description: deployment.description || "",
 				previewDeploymentId: deployment.previewDeploymentId,
 				startedAt: new Date().toISOString(),
+				...(previewDeployment?.application?.buildServerId && {
+					buildServerId:
+						previewDeployment.application.buildServerId,
+				}),
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {

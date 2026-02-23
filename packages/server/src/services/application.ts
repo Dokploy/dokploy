@@ -431,9 +431,11 @@ export const deployPreviewApplication = async ({
 			});
 			command += await getBuildCommand(application);
 
+			const buildServerId =
+				application.buildServerId || application.serverId;
 			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-			if (application.serverId) {
-				await execAsyncRemote(application.serverId, commandWithLog);
+			if (buildServerId) {
+				await execAsyncRemote(buildServerId, commandWithLog);
 			} else {
 				await execAsync(commandWithLog);
 			}
@@ -541,7 +543,7 @@ export const rebuildPreviewApplication = async ({
 		application.rollbackRegistry = null;
 		application.registry = null;
 
-		const serverId = application.serverId;
+		const serverId = application.buildServerId || application.serverId;
 		let command = "set -e;";
 		// Only rebuild, don't clone repository
 		command += await getBuildCommand(application);
