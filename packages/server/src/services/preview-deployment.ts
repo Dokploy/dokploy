@@ -1,6 +1,7 @@
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreatePreviewDeployment,
+	type apiCreatePreviewDeploymentFromImage,
 	deployments,
 	organization,
 	previewDeployments,
@@ -97,7 +98,7 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 		});
 	}
 };
-// testing-tesoitnmg-ddq0ul-preview-ihl44o
+
 export const updatePreviewDeployment = async (
 	previewDeploymentId: string,
 	previewDeploymentData: Partial<PreviewDeployment>,
@@ -129,44 +130,39 @@ export const findPreviewDeploymentsByApplicationId = async (
 	return deploymentsList;
 };
 
-export const createPreviewDeployment = async (
-	schema: typeof apiCreatePreviewDeployment._type,
-) => {
-	const application = await findApplicationById(schema.applicationId);
+/**
+ * Generates appName, resolves organization and wildcard domain for a preview.
+ * Returns all data needed before DB insert (callers may need `host` for GitHub comments).
+ */
+const preparePreview = async (applicationId: string) => {
+	const application = await findApplicationById(applicationId);
 	const appName = `preview-${application.appName}-${generatePassword(6)}`;
 
 	const org = await db.query.organization.findFirst({
 		where: eq(organization.id, application.environment.project.organizationId),
 	});
-	const generateDomain = await generateWildcardDomain(
+	const host = await generateWildcardDomain(
 		application.previewWildcard || "*.traefik.me",
 		appName,
 		application.server?.ipAddress || "",
 		org?.ownerId || "",
 	);
 
-	const octokit = authGithub(application?.github as Github);
+	return { application, appName, host };
+};
 
-	const runningComment = getIssueComment(
-		application.name,
-		"initializing",
-		`${application.previewHttps ? "https" : "http"}://${generateDomain}`,
-	);
-
-	const issue = await octokit.rest.issues.createComment({
-		owner: application?.owner || "",
-		repo: application?.repository || "",
-		issue_number: Number.parseInt(schema.pullRequestNumber),
-		body: `### Dokploy Preview Deployment\n\n${runningComment}`,
-	});
-
+/**
+ * Inserts a preview deployment record and sets up domain + Traefik routing.
+ */
+const insertAndConfigurePreview = async (
+	application: Awaited<ReturnType<typeof findApplicationById>>,
+	appName: string,
+	host: string,
+	values: typeof previewDeployments.$inferInsert,
+) => {
 	const previewDeployment = await db
 		.insert(previewDeployments)
-		.values({
-			...schema,
-			appName: appName,
-			pullRequestCommentId: `${issue.data.id}`,
-		})
+		.values(values)
 		.returning()
 		.then((value) => value[0]);
 
@@ -178,7 +174,7 @@ export const createPreviewDeployment = async (
 	}
 
 	const newDomain = await createDomain({
-		host: generateDomain,
+		host,
 		path: application.previewPath,
 		port: application.previewPort,
 		https: application.previewHttps,
@@ -189,14 +185,11 @@ export const createPreviewDeployment = async (
 	});
 
 	application.appName = appName;
-
 	await manageDomain(application, newDomain);
 
 	await db
 		.update(previewDeployments)
-		.set({
-			domainId: newDomain.domainId,
-		})
+		.set({ domainId: newDomain.domainId })
 		.where(
 			eq(
 				previewDeployments.previewDeploymentId,
@@ -205,6 +198,56 @@ export const createPreviewDeployment = async (
 		);
 
 	return previewDeployment;
+};
+
+export const createPreviewDeployment = async (
+	schema: typeof apiCreatePreviewDeployment._type,
+) => {
+	const { application, appName, host } = await preparePreview(
+		schema.applicationId,
+	);
+
+	const octokit = authGithub(application?.github as Github);
+
+	const runningComment = getIssueComment(
+		application.name,
+		"initializing",
+		`${application.previewHttps ? "https" : "http"}://${host}`,
+	);
+
+	const issue = await octokit.rest.issues.createComment({
+		owner: application?.owner || "",
+		repo: application?.repository || "",
+		issue_number: Number.parseInt(schema.pullRequestNumber),
+		body: `### Dokploy Preview Deployment\n\n${runningComment}`,
+	});
+
+	return insertAndConfigurePreview(application, appName, host, {
+		...schema,
+		appName,
+		pullRequestCommentId: `${issue.data.id}`,
+	});
+};
+
+export const createPreviewDeploymentFromImage = async (
+	schema: typeof apiCreatePreviewDeploymentFromImage._type,
+) => {
+	const { application, appName, host } = await preparePreview(
+		schema.applicationId,
+	);
+
+	return insertAndConfigurePreview(application, appName, host, {
+		applicationId: schema.applicationId,
+		appName,
+		branch: "main",
+		pullRequestId: schema.pullRequestNumber || "",
+		pullRequestNumber: schema.pullRequestNumber || "",
+		pullRequestURL: schema.pullRequestURL || "",
+		pullRequestTitle:
+			schema.pullRequestTitle || `Docker image: ${schema.dockerImage}`,
+		pullRequestCommentId: "",
+		dockerImage: schema.dockerImage,
+	});
 };
 
 export const findPreviewDeploymentsByPullRequestId = async (
