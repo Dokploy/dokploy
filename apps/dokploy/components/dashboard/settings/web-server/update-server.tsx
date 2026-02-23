@@ -135,7 +135,9 @@ export const UpdateServer = ({
 						<div className="flex items-center gap-1.5 rounded-full px-3 py-1 mr-2 bg-muted">
 							<Server className="h-4 w-4 text-muted-foreground" />
 							<span className="text-sm text-muted-foreground">
-								{dokployVersion} | {releaseTag}
+								{dokployVersion}{" "}
+								{(releaseTag === "canary" || releaseTag === "feature") &&
+									`(${releaseTag})`}
 							</span>
 						</div>
 					)}

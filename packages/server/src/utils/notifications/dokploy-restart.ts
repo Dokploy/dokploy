@@ -12,31 +12,37 @@ import {
 	sendLarkNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
+	sendResendNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
 export const sendDokployRestartNotifications = async () => {
-	const date = new Date();
-	const unixDate = ~~(Number(date) / 1000);
-	const notificationList = await db.query.notifications.findMany({
-		where: eq(notifications.dokployRestart, true),
-		with: {
-			email: true,
-			discord: true,
-			telegram: true,
-			slack: true,
-			gotify: true,
-			ntfy: true,
-			custom: true,
-			lark: true,
-			pushover: true,
-		},
-	});
+	try {
+		const date = new Date();
+		const unixDate = ~~(Number(date) / 1000);
+		const notificationList = await db.query.notifications.findMany({
+			where: eq(notifications.dokployRestart, true),
+			with: {
+				email: true,
+				discord: true,
+				telegram: true,
+				slack: true,
+				resend: true,
+				gotify: true,
+				ntfy: true,
+				custom: true,
+				lark: true,
+				pushover: true,
+				teams: true,
+			},
+		});
 
-	for (const notification of notificationList) {
-		const {
+		for (const notification of notificationList) {
+			const {
 			email,
+			resend,
 			discord,
 			telegram,
 			slack,
@@ -45,19 +51,30 @@ export const sendDokployRestartNotifications = async () => {
 			custom,
 			lark,
 			pushover,
+			teams,
 		} = notification;
 
 		try {
-			if (email) {
+			if (email || resend) {
 				const template = await renderAsync(
 					DokployRestartEmail({ date: date.toLocaleString() }),
 				).catch();
 
-				await sendEmailNotification(
-					email,
-					"Dokploy Server Restarted",
-					template,
-				);
+				if (email) {
+					await sendEmailNotification(
+						email,
+						"Dokploy Server Restarted",
+						template,
+					);
+				}
+
+				if (resend) {
+					await sendResendNotification(
+						resend,
+						"Dokploy Server Restarted",
+						template,
+					);
+				}
 			}
 
 			if (discord) {
@@ -238,8 +255,21 @@ export const sendDokployRestartNotifications = async () => {
 					`Date: ${date.toLocaleString()}`,
 				);
 			}
+
+			if (teams) {
+				await sendTeamsNotification(teams, {
+					title: "✅ Dokploy Server Restarted",
+					facts: [
+						{ name: "Status", value: "Successful" },
+						{ name: "Restart Time", value: format(date, "PP pp") },
+					],
+				});
+			}
 		} catch (error) {
 			console.log(error);
 		}
+		}
+	} catch (error) {
+		console.error("[Dokploy] Restart notifications failed:", error);
 	}
 };

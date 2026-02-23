@@ -74,12 +74,7 @@ const buildTypeDisplayMap: Record<BuildType, string> = {
 const mySchema = z.discriminatedUnion("buildType", [
 	z.object({
 		buildType: z.literal(BuildType.dockerfile),
-		dockerfile: z
-			.string({
-				required_error: "Dockerfile path is required",
-				invalid_type_error: "Dockerfile path is required",
-			})
-			.min(1, "Dockerfile required"),
+		dockerfile: z.string().nullable().default(""),
 		dockerContextPath: z.string().nullable().default(""),
 		dockerBuildStage: z.string().nullable().default(""),
 	}),
@@ -347,7 +342,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 											<FormLabel>Docker File</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Path of your docker file"
+													placeholder="Path of your docker file (default: Dockerfile)"
 													{...field}
 													value={field.value ?? ""}
 												/>

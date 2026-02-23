@@ -40,6 +40,7 @@ import {
 	updateDeployment,
 	updateDeploymentStatus,
 } from "./deployment";
+import { generateApplyPatchesCommand } from "./patch";
 import { validUniqueServerAppName } from "./project";
 
 export type Compose = typeof compose.$inferSelect;
@@ -247,8 +248,15 @@ export const deployCompose = async ({
 		} else {
 			await execAsync(commandWithLog);
 		}
-
 		command = "set -e;";
+		if (compose.sourceType !== "raw") {
+			command += await generateApplyPatchesCommand({
+				id: compose.composeId,
+				type: "compose",
+				serverId: compose.serverId,
+			});
+		}
+
 		command += await getBuildComposeCommand(entity);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
@@ -395,16 +403,14 @@ export const removeCompose = async (
 		if (compose.composeType === "stack") {
 			const command = `
 			docker network disconnect ${compose.appName} dokploy-traefik;
-			cd ${projectPath} && docker stack rm ${compose.appName} && rm -rf ${projectPath}`;
+			docker stack rm ${compose.appName};
+			rm -rf ${projectPath}`;
 
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);
 			} else {
 				await execAsync(command);
 			}
-			await execAsync(command, {
-				cwd: projectPath,
-			});
 		} else {
 			const command = `
 			 docker network disconnect ${compose.appName} dokploy-traefik;

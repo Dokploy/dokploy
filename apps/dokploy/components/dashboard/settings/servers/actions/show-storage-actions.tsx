@@ -1,4 +1,3 @@
-import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +15,6 @@ interface Props {
 	serverId?: string;
 }
 export const ShowStorageActions = ({ serverId }: Props) => {
-	const { t } = useTranslation("settings");
 	const { mutateAsync: cleanAll, isLoading: cleanAllIsLoading } =
 		api.settings.cleanAll.useMutation();
 
@@ -42,6 +40,9 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 		isLoading: cleanStoppedContainersIsLoading,
 	} = api.settings.cleanStoppedContainers.useMutation();
 
+	const { mutateAsync: cleanPatchRepos, isLoading: cleanPatchReposIsLoading } =
+		api.patch.cleanPatchRepos.useMutation();
+
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger
@@ -51,7 +52,8 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 					cleanDockerBuilderIsLoading ||
 					cleanUnusedImagesIsLoading ||
 					cleanUnusedVolumesIsLoading ||
-					cleanStoppedContainersIsLoading
+					cleanStoppedContainersIsLoading ||
+					cleanPatchReposIsLoading
 				}
 			>
 				<Button
@@ -60,17 +62,16 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 						cleanDockerBuilderIsLoading ||
 						cleanUnusedImagesIsLoading ||
 						cleanUnusedVolumesIsLoading ||
-						cleanStoppedContainersIsLoading
+						cleanStoppedContainersIsLoading ||
+						cleanPatchReposIsLoading
 					}
 					variant="outline"
 				>
-					{t("settings.server.webServer.storage.label")}
+					Space
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="w-64" align="start">
-				<DropdownMenuLabel>
-					{t("settings.server.webServer.actions")}
-				</DropdownMenuLabel>
+				<DropdownMenuLabel>Actions</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
 					<DropdownMenuItem
@@ -87,9 +88,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>
-							{t("settings.server.webServer.storage.cleanUnusedImages")}
-						</span>
+						<span>Clean unused images</span>
 					</DropdownMenuItem>
 					<DropdownMenuItem
 						className="w-full cursor-pointer"
@@ -105,9 +104,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>
-							{t("settings.server.webServer.storage.cleanUnusedVolumes")}
-						</span>
+						<span>Clean unused volumes</span>
 					</DropdownMenuItem>
 
 					<DropdownMenuItem
@@ -124,9 +121,24 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>
-							{t("settings.server.webServer.storage.cleanStoppedContainers")}
-						</span>
+						<span>Clean stopped containers</span>
+					</DropdownMenuItem>
+
+					<DropdownMenuItem
+						className="w-full cursor-pointer"
+						onClick={async () => {
+							await cleanPatchRepos({
+								serverId: serverId,
+							})
+								.then(async () => {
+									toast.success("Cleaned Patch Caches");
+								})
+								.catch(() => {
+									toast.error("Error cleaning Patch Caches");
+								});
+						}}
+					>
+						<span>Clean Patch Caches</span>
 					</DropdownMenuItem>
 
 					<DropdownMenuItem
@@ -143,9 +155,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>
-							{t("settings.server.webServer.storage.cleanDockerBuilder")}
-						</span>
+						<span>Clean Docker Builder & System</span>
 					</DropdownMenuItem>
 					{!serverId && (
 						<DropdownMenuItem
@@ -160,9 +170,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 									});
 							}}
 						>
-							<span>
-								{t("settings.server.webServer.storage.cleanMonitoring")}
-							</span>
+							<span>Clean Monitoring</span>
 						</DropdownMenuItem>
 					)}
 
@@ -180,7 +188,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>{t("settings.server.webServer.storage.cleanAll")}</span>
+						<span>Clean all</span>
 					</DropdownMenuItem>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>

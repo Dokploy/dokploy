@@ -21,7 +21,9 @@ export const refreshGitlabToken = async (gitlabProviderId: string) => {
 		return;
 	}
 
-	const response = await fetch(`${gitlabProvider.gitlabUrl}/oauth/token`, {
+	// Use internal URL for token refresh when GitLab is on same instance as Dokploy
+	const baseUrl = gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl;
+	const response = await fetch(`${baseUrl}/oauth/token`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/x-www-form-urlencoded",
@@ -105,6 +107,7 @@ interface CloneGitlabRepository {
 	enableSubmodules: boolean;
 	serverId: string | null;
 	type?: "application" | "compose";
+	outputPathOverride?: string;
 }
 
 export const cloneGitlabRepository = async ({
@@ -119,6 +122,7 @@ export const cloneGitlabRepository = async ({
 		gitlabPathNamespace,
 		enableSubmodules,
 		serverId,
+		outputPathOverride,
 	} = entity;
 	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
 
@@ -139,7 +143,7 @@ export const cloneGitlabRepository = async ({
 	}
 
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName, "code");
+	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
 	const repoClone = getGitlabRepoClone(gitlab, gitlabPathNamespace);

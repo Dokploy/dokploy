@@ -430,7 +430,7 @@ export const ShowProjects = () => {
 																</DropdownMenu>
 															) : null}
 															<CardHeader>
-																<CardTitle className="flex items-center justify-between gap-2">
+																<CardTitle className="flex items-center justify-between gap-2 overflow-clip">
 																	<span className="flex flex-col gap-1.5 ">
 																		<div className="flex items-center gap-2">
 																			<BookIcon className="size-4 text-muted-foreground" />
@@ -439,7 +439,7 @@ export const ShowProjects = () => {
 																			</span>
 																		</div>
 
-																		<span className="text-sm font-medium text-muted-foreground break-all">
+																		<span className="text-sm font-medium text-muted-foreground break-normal">
 																			{project.description}
 																		</span>
 

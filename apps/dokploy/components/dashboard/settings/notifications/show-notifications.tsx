@@ -5,7 +5,9 @@ import {
 	GotifyIcon,
 	LarkIcon,
 	NtfyIcon,
+	ResendIcon,
 	SlackIcon,
+	TeamsIcon,
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -36,7 +38,7 @@ export const ShowNotifications = () => {
 						</CardTitle>
 						<CardDescription>
 							Add your providers to receive notifications, like Discord, Slack,
-							Telegram, Email, Lark.
+							Telegram, Teams, Email, Resend, Lark.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -86,6 +88,11 @@ export const ShowNotifications = () => {
 																	<Mail className="size-6 text-muted-foreground" />
 																</div>
 															)}
+															{notification.notificationType === "resend" && (
+																<div className="flex  items-center justify-center rounded-lg ">
+																	<ResendIcon className="size-6 text-muted-foreground" />
+																</div>
+															)}
 															{notification.notificationType === "gotify" && (
 																<div className="flex  items-center justify-center rounded-lg ">
 																	<GotifyIcon className="size-6" />
@@ -104,6 +111,11 @@ export const ShowNotifications = () => {
 															{notification.notificationType === "lark" && (
 																<div className="flex  items-center justify-center rounded-lg">
 																	<LarkIcon className="size-7 text-muted-foreground" />
+																</div>
+															)}
+															{notification.notificationType === "teams" && (
+																<div className="flex  items-center justify-center rounded-lg">
+																	<TeamsIcon className="size-7 text-muted-foreground" />
 																</div>
 															)}
 

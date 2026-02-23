@@ -105,7 +105,14 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 
 			const modeData =
 				formData.type === "Replicated"
-					? { Replicated: { Replicas: formData.Replicas } }
+					? {
+							Replicated: {
+								Replicas:
+									formData.Replicas !== undefined && formData.Replicas !== ""
+										? Number(formData.Replicas)
+										: undefined,
+							},
+						}
 					: { Global: {} };
 
 			await mutateAsync({

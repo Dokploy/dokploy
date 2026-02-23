@@ -12,7 +12,9 @@ export default async function handler(
 	}
 
 	const gitlab = await findGitlabById(gitlabId as string);
-	const gitlabUrl = new URL(gitlab.gitlabUrl);
+	// Use internal URL for token exchange when GitLab is on same instance as Dokploy
+	const baseUrl = gitlab.gitlabInternalUrl || gitlab.gitlabUrl;
+	const gitlabUrl = new URL(baseUrl);
 
 	const headers: HeadersInit = {
 		"Content-Type": "application/x-www-form-urlencoded",

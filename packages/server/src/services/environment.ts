@@ -101,12 +101,33 @@ export const findEnvironmentsByProjectId = async (projectId: string) => {
 	return projectEnvironments;
 };
 
+const environmentHasServices = (
+	env: Awaited<ReturnType<typeof findEnvironmentById>>,
+) => {
+	return (
+		(env.applications?.length ?? 0) > 0 ||
+		(env.compose?.length ?? 0) > 0 ||
+		(env.mariadb?.length ?? 0) > 0 ||
+		(env.mongo?.length ?? 0) > 0 ||
+		(env.mysql?.length ?? 0) > 0 ||
+		(env.postgres?.length ?? 0) > 0 ||
+		(env.redis?.length ?? 0) > 0
+	);
+};
+
 export const deleteEnvironment = async (environmentId: string) => {
 	const currentEnvironment = await findEnvironmentById(environmentId);
 	if (currentEnvironment.isDefault) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "You cannot delete the default environment",
+		});
+	}
+	if (environmentHasServices(currentEnvironment)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"Cannot delete environment: it has active services. Delete all services first.",
 		});
 	}
 	const deletedEnvironment = await db

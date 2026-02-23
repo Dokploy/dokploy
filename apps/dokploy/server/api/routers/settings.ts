@@ -1,4 +1,5 @@
 import {
+	CLEANUP_CRON_JOB,
 	canAccessToTraefikFiles,
 	checkGPUStatus,
 	checkPortInUse,
@@ -12,7 +13,6 @@ import {
 	DEFAULT_UPDATE_DATA,
 	execAsync,
 	findServerById,
-	getDokployImage,
 	getDokployImageTag,
 	getLogCleanupStatus,
 	getUpdateData,
@@ -22,7 +22,6 @@ import {
 	paths,
 	prepareEnvironmentVariables,
 	processLogs,
-	pullLatestRelease,
 	readConfig,
 	readConfigInPath,
 	readDirectory,
@@ -66,6 +65,7 @@ import {
 	projects,
 	server,
 } from "@/server/db/schema";
+import { cleanAllDeploymentQueue } from "@/server/queues/queueSetup";
 import { removeJob, schedule } from "@/server/utils/backup";
 import packageInfo from "../../../package.json";
 import { appRouter } from "../root";
@@ -117,15 +117,21 @@ export const settingsRouter = createTRPCRouter({
 
 		return true;
 	}),
+	cleanAllDeploymentQueue: adminProcedure.mutation(async () => {
+		if (IS_CLOUD) {
+			return true;
+		}
+		return cleanAllDeploymentQueue();
+	}),
 	reloadTraefik: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			try {
-				await reloadDockerResource("dokploy-traefik", input?.serverId);
-			} catch (err) {
-				console.error(err);
-			}
-
+			// Run in background so the request returns immediately; avoids proxy timeouts.
+			void reloadDockerResource("dokploy-traefik", input?.serverId).catch(
+				(err) => {
+					console.error("reloadTraefik background:", err);
+				},
+			);
 			return true;
 		}),
 	toggleDashboard: adminProcedure
@@ -160,10 +166,14 @@ export const settingsRouter = createTRPCRouter({
 				newPorts = ports.filter((port) => port.targetPort !== 8080);
 			}
 
-			await writeTraefikSetup({
+			// Run in background so the request returns immediately; client polls /api/health.
+			// Avoids proxy timeouts (520) while Traefik is recreated.
+			void writeTraefikSetup({
 				env: preparedEnv,
 				additionalPorts: newPorts,
 				serverId: input.serverId,
+			}).catch((err) => {
+				console.error("toggleDashboard background writeTraefikSetup:", err);
 			});
 			return true;
 		}),
@@ -289,12 +299,12 @@ export const settingsRouter = createTRPCRouter({
 					}
 					if (IS_CLOUD) {
 						await schedule({
-							cronSchedule: "0 0 * * *",
+							cronSchedule: CLEANUP_CRON_JOB,
 							serverId: input.serverId,
 							type: "server",
 						});
 					} else {
-						scheduleJob(server.serverId, "0 0 * * *", async () => {
+						scheduleJob(server.serverId, CLEANUP_CRON_JOB, async () => {
 							console.log(
 								`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
 							);
@@ -307,7 +317,7 @@ export const settingsRouter = createTRPCRouter({
 				} else {
 					if (IS_CLOUD) {
 						await removeJob({
-							cronSchedule: "0 0 * * *",
+							cronSchedule: CLEANUP_CRON_JOB,
 							serverId: input.serverId,
 							type: "server",
 						});
@@ -322,7 +332,7 @@ export const settingsRouter = createTRPCRouter({
 				});
 
 				if (settingsUpdated?.enableDockerCleanup) {
-					scheduleJob("docker-cleanup", "0 0 * * *", async () => {
+					scheduleJob("docker-cleanup", CLEANUP_CRON_JOB, async () => {
 						console.log(
 							`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
 						);
@@ -406,18 +416,17 @@ export const settingsRouter = createTRPCRouter({
 			return true;
 		}
 
-		await pullLatestRelease();
-
-		// This causes restart of dokploy, thus it will not finish executing properly, so don't await it
-		// Status after restart is checked via frontend /api/health endpoint
-		void spawnAsync("docker", [
-			"service",
-			"update",
-			"--force",
-			"--image",
-			getDokployImage(),
-			"dokploy",
-		]);
+		const data = await getUpdateData(packageInfo.version);
+		if (data.updateAvailable) {
+			void spawnAsync("docker", [
+				"service",
+				"update",
+				"--force",
+				"--image",
+				`dokploy/dokploy:${data.latestVersion}`,
+				"dokploy",
+			]);
+		}
 
 		return true;
 	}),
@@ -604,12 +613,14 @@ export const settingsRouter = createTRPCRouter({
 			const envs = prepareEnvironmentVariables(input.env);
 			const ports = await readPorts("dokploy-traefik", input?.serverId);
 
-			await writeTraefikSetup({
+			// Run in background so the request returns immediately; client polls /api/health.
+			void writeTraefikSetup({
 				env: envs,
 				additionalPorts: ports,
 				serverId: input.serverId,
+			}).catch((err) => {
+				console.error("writeTraefikEnv background writeTraefikSetup:", err);
 			});
-
 			return true;
 		}),
 	haveTraefikDashboardPortEnabled: adminProcedure
@@ -753,16 +764,13 @@ export const settingsRouter = createTRPCRouter({
 		return haveServers.length > 0 || haveProjects.length > 0;
 	}),
 	health: publicProcedure.query(async () => {
-		if (IS_CLOUD) {
-			try {
-				await db.execute(sql`SELECT 1`);
-				return { status: "ok" };
-			} catch (error) {
-				console.error("Database connection error:", error);
-				throw error;
-			}
+		try {
+			await db.execute(sql`SELECT 1`);
+			return { status: "ok" };
+		} catch (error) {
+			console.error("Database connection error:", error);
+			throw error;
 		}
-		return { status: "not_cloud" };
 	}),
 	setupGPU: adminProcedure
 		.input(
@@ -857,10 +865,16 @@ export const settingsRouter = createTRPCRouter({
 				}
 				const preparedEnv = prepareEnvironmentVariables(env);
 
-				await writeTraefikSetup({
+				// Run in background so the request returns immediately; client polls /api/health.
+				void writeTraefikSetup({
 					env: preparedEnv,
 					additionalPorts: input.additionalPorts,
 					serverId: input.serverId,
+				}).catch((err) => {
+					console.error(
+						"updateTraefikPorts background writeTraefikSetup:",
+						err,
+					);
 				});
 				return true;
 			} catch (error) {

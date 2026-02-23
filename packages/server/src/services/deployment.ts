@@ -13,7 +13,10 @@ import {
 	deployments,
 } from "@dokploy/server/db/schema";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
-import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
 import { desc, eq } from "drizzle-orm";
@@ -554,8 +557,25 @@ export const removeDeployment = async (deploymentId: string) => {
 		const deployment = await db
 			.delete(deployments)
 			.where(eq(deployments.deploymentId, deploymentId))
-			.returning();
-		return deployment[0];
+			.returning()
+			.then((result) => result[0]);
+
+		if (!deployment) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Deployment not found",
+			});
+		}
+		const command = `
+			rm -f ${deployment.logPath};
+		`;
+		if (deployment.serverId) {
+			await execAsyncRemote(deployment.serverId, command);
+		} else {
+			await execAsync(command);
+		}
+
+		return deployment;
 	} catch (error) {
 		const message =
 			error instanceof Error ? error.message : "Error creating the deployment";
@@ -830,4 +850,20 @@ export const findAllDeploymentsByServerId = async (serverId: string) => {
 		orderBy: desc(deployments.createdAt),
 	});
 	return deploymentsList;
+};
+
+export const clearOldDeployments = async (
+	appName: string,
+	serverId: string | null,
+) => {
+	const { LOGS_PATH } = paths(!!serverId);
+	const folder = path.join(LOGS_PATH, appName);
+	const command = `
+		rm -rf ${folder};
+	`;
+	if (serverId) {
+		await execAsyncRemote(serverId, command);
+	} else {
+		await execAsync(command);
+	}
 };

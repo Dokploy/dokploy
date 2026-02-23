@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useHealthCheckAfterMutation } from "@/hooks/use-health-check-after-mutation";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -46,6 +47,14 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 	const { mutateAsync, isLoading, error, isError } =
 		api.settings.writeTraefikEnv.useMutation();
 
+	const {
+		execute: executeWithHealthCheck,
+		isExecuting: isHealthCheckExecuting,
+	} = useHealthCheckAfterMutation({
+		initialDelay: 5000,
+		successMessage: "Traefik Env Updated",
+	});
+
 	const form = useForm<Schema>({
 		defaultValues: {
 			env: data || "",
@@ -63,16 +72,16 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 	}, [form, form.reset, data]);
 
 	const onSubmit = async (data: Schema) => {
-		await mutateAsync({
-			env: data.env,
-			serverId,
-		})
-			.then(async () => {
-				toast.success("Traefik Env Updated");
-			})
-			.catch(() => {
-				toast.error("Error updating the Traefik env");
-			});
+		try {
+			await executeWithHealthCheck(() =>
+				mutateAsync({
+					env: data.env,
+					serverId,
+				}),
+			);
+		} catch {
+			toast.error("Error updating the Traefik env");
+		}
 	};
 
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
@@ -154,8 +163,8 @@ TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_HTTP_CHALLENGE_DNS_PROVIDER=cloudflare
 
 					<DialogFooter>
 						<Button
-							isLoading={isLoading}
-							disabled={canEdit || isLoading}
+							isLoading={isLoading || isHealthCheckExecuting}
+							disabled={canEdit || isLoading || isHealthCheckExecuting}
 							form="hook-form-update-server-traefik-config"
 							type="submit"
 						>
