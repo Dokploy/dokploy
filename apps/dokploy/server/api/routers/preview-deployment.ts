@@ -1,4 +1,5 @@
 import {
+	createPreviewDeploymentFromImage,
 	findApplicationById,
 	findPreviewDeploymentById,
 	findPreviewDeploymentsByApplicationId,
@@ -7,7 +8,10 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { apiFindAllByApplication } from "@/server/db/schema";
+import {
+	apiFindAllByApplication,
+	apiCreatePreviewDeploymentFromImage,
+} from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
@@ -114,5 +118,62 @@ export const previewDeploymentRouter = createTRPCRouter({
 				},
 			);
 			return true;
+		}),
+	deployFromImage: protectedProcedure
+		.input(apiCreatePreviewDeploymentFromImage)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this application",
+				});
+			}
+
+			if (!application.isPreviewDeploymentsActive) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Preview deployments are not enabled for this application",
+				});
+			}
+
+			const { previewDeployment, previewDomain } =
+				await createPreviewDeploymentFromImage(input);
+
+			const jobData: DeploymentJob = {
+				applicationId: input.applicationId,
+				titleLog: `Deploy image: ${input.dockerImage}`,
+				descriptionLog: "",
+				type: "deploy",
+				applicationType: "application-preview",
+				previewDeploymentId: previewDeployment.previewDeploymentId,
+				server: !!application.serverId,
+			};
+
+			if (IS_CLOUD && application.serverId) {
+				jobData.serverId = application.serverId;
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
+				return {
+					previewDeploymentId: previewDeployment.previewDeploymentId,
+					previewDomain,
+				};
+			}
+			await myQueue.add(
+				"deployments",
+				{ ...jobData },
+				{
+					removeOnComplete: true,
+					removeOnFail: true,
+				},
+			);
+			return {
+				previewDeploymentId: previewDeployment.previewDeploymentId,
+				previewDomain,
+			};
 		}),
 });

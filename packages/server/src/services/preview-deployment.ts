@@ -1,6 +1,7 @@
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreatePreviewDeployment,
+	type apiCreatePreviewDeploymentFromImage,
 	deployments,
 	organization,
 	previewDeployments,
@@ -229,6 +230,96 @@ export const findPreviewDeploymentByApplicationId = async (
 	});
 
 	return previewDeploymentResult;
+};
+
+export const createPreviewDeploymentFromImage = async (
+	schema: typeof apiCreatePreviewDeploymentFromImage._type,
+) => {
+	const application = await findApplicationById(schema.applicationId);
+	const appName = `preview-${application.appName}-${generatePassword(6)}`;
+
+	const org = await db.query.organization.findFirst({
+		where: eq(organization.id, application.environment.project.organizationId),
+	});
+	const generateDomain = await generateWildcardDomain(
+		application.previewWildcard || "*.traefik.me",
+		appName,
+		application.server?.ipAddress || "",
+		org?.ownerId || "",
+	);
+
+	const previewDomain = `${application.previewHttps ? "https" : "http"}://${generateDomain}`;
+	let pullRequestCommentId = "";
+
+	// If a GitHub provider is configured and PR number is provided, post a comment
+	if (application.github && schema.pullRequestNumber) {
+		try {
+			const octokit = authGithub(application.github as Github);
+			const runningComment = getIssueComment(
+				application.name,
+				"initializing",
+				previewDomain,
+			);
+			const issue = await octokit.rest.issues.createComment({
+				owner: application.owner || "",
+				repo: application.repository || "",
+				issue_number: Number.parseInt(schema.pullRequestNumber),
+				body: `### Dokploy Preview Deployment\n\n${runningComment}`,
+			});
+			pullRequestCommentId = `${issue.data.id}`;
+		} catch (_error) {
+			// GitHub comment is optional for image-based previews
+		}
+	}
+
+	const previewDeployment = await db
+		.insert(previewDeployments)
+		.values({
+			applicationId: schema.applicationId,
+			appName: appName,
+			dockerImage: schema.dockerImage,
+			branch: "docker-image",
+			pullRequestId: schema.pullRequestNumber || "0",
+			pullRequestNumber: schema.pullRequestNumber || "0",
+			pullRequestURL: schema.pullRequestURL || "",
+			pullRequestTitle: schema.pullRequestTitle || `Preview: ${schema.dockerImage}`,
+			pullRequestCommentId: pullRequestCommentId || "0",
+		})
+		.returning()
+		.then((value) => value[0]);
+
+	if (!previewDeployment) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Error creating the preview deployment",
+		});
+	}
+
+	const newDomain = await createDomain({
+		host: generateDomain,
+		path: application.previewPath,
+		port: application.previewPort,
+		https: application.previewHttps,
+		certificateType: application.previewCertificateType,
+		customCertResolver: application.previewCustomCertResolver,
+		domainType: "preview",
+		previewDeploymentId: previewDeployment.previewDeploymentId,
+	});
+
+	application.appName = appName;
+	await manageDomain(application, newDomain);
+
+	await db
+		.update(previewDeployments)
+		.set({ domainId: newDomain.domainId })
+		.where(
+			eq(
+				previewDeployments.previewDeploymentId,
+				previewDeployment.previewDeploymentId,
+			),
+		);
+
+	return { previewDeployment, previewDomain };
 };
 
 const generateWildcardDomain = async (

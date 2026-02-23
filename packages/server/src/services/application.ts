@@ -430,10 +430,19 @@ export const deployPreviewApplication = async ({
 				branch: previewDeployment.branch,
 			});
 			command += await getBuildCommand(application);
+		} else if (application.sourceType === "docker") {
+			if (previewDeployment.dockerImage) {
+				application.dockerImage = previewDeployment.dockerImage;
+			}
+			command += await buildRemoteDocker(application);
+		}
 
+		if (command !== "set -e;") {
+			const buildServerId =
+				application.buildServerId || application.serverId;
 			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-			if (application.serverId) {
-				await execAsyncRemote(application.serverId, commandWithLog);
+			if (buildServerId) {
+				await execAsyncRemote(buildServerId, commandWithLog);
 			} else {
 				await execAsync(commandWithLog);
 			}
@@ -541,10 +550,17 @@ export const rebuildPreviewApplication = async ({
 		application.rollbackRegistry = null;
 		application.registry = null;
 
-		const serverId = application.serverId;
+		const serverId = application.buildServerId || application.serverId;
 		let command = "set -e;";
-		// Only rebuild, don't clone repository
-		command += await getBuildCommand(application);
+		if (application.sourceType === "docker") {
+			if (previewDeployment.dockerImage) {
+				application.dockerImage = previewDeployment.dockerImage;
+			}
+			command += await buildRemoteDocker(application);
+		} else {
+			// Only rebuild, don't clone repository
+			command += await getBuildCommand(application);
+		}
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
 			await execAsyncRemote(serverId, commandWithLog);
