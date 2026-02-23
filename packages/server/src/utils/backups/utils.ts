@@ -61,6 +61,28 @@ export const normalizeS3Path = (prefix: string) => {
 export const getS3Credentials = (destination: Destination) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
+
+	if (provider === "FTP") {
+		return [
+			`--ftp-host="${endpoint}"`,
+			`--ftp-user="${accessKey}"`,
+			`--ftp-pass="${secretAccessKey}"`,
+		];
+	}
+
+	if (provider === "SFTP") {
+		const [host, port] = endpoint.split(":");
+		const rcloneFlags = [
+			`--sftp-host="${host}"`,
+			`--sftp-user="${accessKey}"`,
+			`--sftp-pass="${secretAccessKey}"`,
+		];
+		if (port) {
+			rcloneFlags.push(`--sftp-port="${port}"`);
+		}
+		return rcloneFlags;
+	}
+
 	const rcloneFlags = [
 		`--s3-access-key-id="${accessKey}"`,
 		`--s3-secret-access-key="${secretAccessKey}"`,
@@ -75,6 +97,16 @@ export const getS3Credentials = (destination: Destination) => {
 	}
 
 	return rcloneFlags;
+};
+
+export const getRcloneDestinationBase = (destination: Destination) => {
+	if (destination.provider === "FTP") {
+		return `:ftp:${destination.bucket}`;
+	}
+	if (destination.provider === "SFTP") {
+		return `:sftp:${destination.bucket}`;
+	}
+	return `:s3:${destination.bucket}`;
 };
 
 export const getPostgresBackupCommand = (

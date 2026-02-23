@@ -27,6 +27,7 @@ import {
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
 import {
+	getRcloneDestinationBase,
 	getS3Credentials,
 	normalizeS3Path,
 } from "@dokploy/server/utils/backups/utils";
@@ -300,7 +301,7 @@ export const backupRouter = createTRPCRouter({
 			try {
 				const destination = await findDestinationById(input.destinationId);
 				const rcloneFlags = getS3Credentials(destination);
-				const bucketPath = `:s3:${destination.bucket}`;
+				const bucketPath = getRcloneDestinationBase(destination);
 
 				const lastSlashIndex = input.search.lastIndexOf("/");
 				const baseDir =

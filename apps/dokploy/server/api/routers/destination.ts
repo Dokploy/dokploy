@@ -46,22 +46,51 @@ export const destinationRouter = createTRPCRouter({
 			const { secretAccessKey, bucket, region, endpoint, accessKey, provider } =
 				input;
 			try {
-				const rcloneFlags = [
-					`--s3-access-key-id="${accessKey}"`,
-					`--s3-secret-access-key="${secretAccessKey}"`,
-					`--s3-region="${region}"`,
-					`--s3-endpoint="${endpoint}"`,
-					"--s3-no-check-bucket",
-					"--s3-force-path-style",
+				const timeoutFlags = [
 					"--retries 1",
 					"--low-level-retries 1",
 					"--timeout 10s",
 					"--contimeout 5s",
 				];
-				if (provider) {
-					rcloneFlags.unshift(`--s3-provider="${provider}"`);
+
+				let rcloneFlags: string[] = [];
+				let rcloneDestination = "";
+
+				if (provider === "FTP") {
+					rcloneFlags = [
+						`--ftp-host="${endpoint}"`,
+						`--ftp-user="${accessKey}"`,
+						`--ftp-pass="${secretAccessKey}"`,
+						...timeoutFlags,
+					];
+					rcloneDestination = `:ftp:${bucket}`;
+				} else if (provider === "SFTP") {
+					const [host, port] = endpoint.split(":");
+					rcloneFlags = [
+						`--sftp-host="${host}"`,
+						`--sftp-user="${accessKey}"`,
+						`--sftp-pass="${secretAccessKey}"`,
+						...timeoutFlags,
+					];
+					if (port) {
+						rcloneFlags.push(`--sftp-port="${port}"`);
+					}
+					rcloneDestination = `:sftp:${bucket}`;
+				} else {
+					rcloneFlags = [
+						`--s3-access-key-id="${accessKey}"`,
+						`--s3-secret-access-key="${secretAccessKey}"`,
+						`--s3-region="${region}"`,
+						`--s3-endpoint="${endpoint}"`,
+						"--s3-no-check-bucket",
+						"--s3-force-path-style",
+						...timeoutFlags,
+					];
+					if (provider) {
+						rcloneFlags.unshift(`--s3-provider="${provider}"`);
+					}
+					rcloneDestination = `:s3:${bucket}`;
 				}
-				const rcloneDestination = `:s3:${bucket}`;
 				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 
 				if (IS_CLOUD && !input.serverId) {
