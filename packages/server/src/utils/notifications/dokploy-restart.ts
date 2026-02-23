@@ -19,27 +19,28 @@ import {
 } from "./utils";
 
 export const sendDokployRestartNotifications = async () => {
-	const date = new Date();
-	const unixDate = ~~(Number(date) / 1000);
-	const notificationList = await db.query.notifications.findMany({
-		where: eq(notifications.dokployRestart, true),
-		with: {
-			email: true,
-			discord: true,
-			telegram: true,
-			slack: true,
-			resend: true,
-			gotify: true,
-			ntfy: true,
-			custom: true,
-			lark: true,
-			pushover: true,
-			teams: true,
-		},
-	});
+	try {
+		const date = new Date();
+		const unixDate = ~~(Number(date) / 1000);
+		const notificationList = await db.query.notifications.findMany({
+			where: eq(notifications.dokployRestart, true),
+			with: {
+				email: true,
+				discord: true,
+				telegram: true,
+				slack: true,
+				resend: true,
+				gotify: true,
+				ntfy: true,
+				custom: true,
+				lark: true,
+				pushover: true,
+				teams: true,
+			},
+		});
 
-	for (const notification of notificationList) {
-		const {
+		for (const notification of notificationList) {
+			const {
 			email,
 			resend,
 			discord,
@@ -267,5 +268,8 @@ export const sendDokployRestartNotifications = async () => {
 		} catch (error) {
 			console.log(error);
 		}
+		}
+	} catch (error) {
+		console.error("[Dokploy] Restart notifications failed:", error);
 	}
 };

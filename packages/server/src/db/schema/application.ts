@@ -159,7 +159,7 @@ export const applications = pgTable("application", {
 		},
 	),
 	enableSubmodules: boolean("enableSubmodules").notNull().default(false),
-	dockerfile: text("dockerfile"),
+	dockerfile: text("dockerfile").default("Dockerfile"),
 	dockerContextPath: text("dockerContextPath"),
 	dockerBuildStage: text("dockerBuildStage"),
 	// Drop
