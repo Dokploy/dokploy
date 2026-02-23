@@ -87,7 +87,12 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isLoading && !canEdit) {
+			if (
+				(e.ctrlKey || e.metaKey) &&
+				e.code === "KeyS" &&
+				!isLoading &&
+				!canEdit
+			) {
 				e.preventDefault();
 				form.handleSubmit(onSubmit)();
 			}

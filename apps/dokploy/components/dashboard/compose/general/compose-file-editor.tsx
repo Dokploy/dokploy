@@ -93,7 +93,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isLoading) {
+			if ((e.ctrlKey || e.metaKey) && e.code === "KeyS" && !isLoading) {
 				e.preventDefault();
 				form.handleSubmit(onSubmit)();
 			}
