@@ -2,6 +2,7 @@ import {
 	createCertificate,
 	findCertificateById,
 	IS_CLOUD,
+	recordActivity,
 	removeCertificateById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -24,7 +25,19 @@ export const certificateRouter = createTRPCRouter({
 					message: "Please set a server to create a certificate",
 				});
 			}
-			return await createCertificate(input, ctx.session.activeOrganizationId);
+			const certificate = await createCertificate(
+				input,
+				ctx.session.activeOrganizationId,
+			);
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "certificate.create",
+				resourceType: "certificate",
+				resourceId: certificate.certificateId,
+				metadata: { name: certificate.name },
+			});
+			return certificate;
 		}),
 
 	one: adminProcedure
@@ -50,6 +63,14 @@ export const certificateRouter = createTRPCRouter({
 				});
 			}
 			await removeCertificateById(input.certificateId);
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "certificate.delete",
+				resourceType: "certificate",
+				resourceId: certificates.certificateId,
+				metadata: { name: certificates.name },
+			});
 			return true;
 		}),
 	all: adminProcedure.query(async ({ ctx }) => {

@@ -1,4 +1,4 @@
-import { IS_CLOUD } from "@dokploy/server/index";
+import { IS_CLOUD, recordActivity } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -50,6 +50,16 @@ export const organizationRouter = createTRPCRouter({
 				createdAt: new Date(),
 				userId: ctx.user.id,
 			});
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: result.id,
+				action: "organization.create",
+				resourceType: "organization",
+				resourceId: result.id,
+				metadata: { name: result.name },
+			});
+
 			return result;
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
@@ -148,15 +158,34 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			const result = await db
-				.update(organization)
-				.set({
-					name: input.name,
-					logo: input.logo,
-				})
-				.where(eq(organization.id, input.organizationId))
-				.returning();
-			return result[0];
+			try {
+				const result = await db
+					.update(organization)
+					.set({
+						name: input.name,
+						logo: input.logo,
+					})
+					.where(eq(organization.id, input.organizationId))
+					.returning();
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: input.organizationId,
+					action: "organization.update",
+					resourceType: "organization",
+					resourceId: input.organizationId,
+					metadata: { name: input.name, logo: input.logo },
+				});
+				return result[0];
+			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Error updating organization",
+					cause: error,
+				});
+			}
 		}),
 	delete: protectedProcedure
 		.input(
@@ -251,6 +280,14 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "organization.remove_invitation",
+				resourceType: "organization",
+				metadata: { email: invitationResult.email },
+			});
+
 			return await db
 				.delete(invitation)
 				.where(eq(invitation.id, input.invitationId));
@@ -311,6 +348,14 @@ export const organizationRouter = createTRPCRouter({
 				.update(member)
 				.set({ role: input.role })
 				.where(eq(member.id, input.memberId));
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "organization.update_member_role",
+				resourceType: "organization",
+				metadata: { memberEmail: target.user.email, role: input.role },
+			});
 
 			return true;
 		}),

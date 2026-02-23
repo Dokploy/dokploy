@@ -24,6 +24,7 @@ import {
 	loadServices,
 	randomizeComposeFile,
 	randomizeIsolatedDeploymentComposeFile,
+	recordActivity,
 	removeCompose,
 	removeComposeDirectory,
 	removeDeploymentsByComposeId,
@@ -195,7 +196,28 @@ export const composeRouter = createTRPCRouter({
 					message: "You are not authorized to update this compose",
 				});
 			}
-			return updateCompose(input.composeId, input);
+			try {
+				const result = await updateCompose(input.composeId, input);
+
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "compose.update",
+					resourceType: "compose",
+					resourceId: compose.composeId,
+					metadata: { name: compose.name, ...input },
+				});
+				return result;
+			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Error updating compose",
+					cause: error,
+				});
+			}
 		}),
 	delete: protectedProcedure
 		.input(apiDeleteCompose)
@@ -220,33 +242,52 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 
-			const result = await db
-				.delete(composeTable)
-				.where(eq(composeTable.composeId, input.composeId))
-				.returning();
+			try {
+				const result = await db
+					.delete(composeTable)
+					.where(eq(composeTable.composeId, input.composeId))
+					.returning();
 
-			if (!IS_CLOUD) {
-				const queueJobs = await getJobsByComposeId(input.composeId);
-				for (const job of queueJobs) {
-					if (job.id) {
-						deploymentWorker.cancelJob(job.id, "User requested cancellation");
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "compose.delete",
+					resourceType: "compose",
+					resourceId: composeResult.composeId,
+					metadata: { name: composeResult.name },
+				});
+
+				if (!IS_CLOUD) {
+					const queueJobs = await getJobsByComposeId(input.composeId);
+					for (const job of queueJobs) {
+						if (job.id) {
+							deploymentWorker.cancelJob(job.id, "User requested cancellation");
+						}
 					}
 				}
+
+				const cleanupOperations = [
+					async () => await removeCompose(composeResult, input.deleteVolumes),
+					async () => await removeDeploymentsByComposeId(composeResult),
+					async () => await removeComposeDirectory(composeResult.appName),
+				];
+
+				for (const operation of cleanupOperations) {
+					try {
+						await operation();
+					} catch (_) {}
+				}
+				return composeResult;
+			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Error deleting compose",
+					cause: error,
+				});
 			}
-
-			const cleanupOperations = [
-				async () => await removeCompose(composeResult, input.deleteVolumes),
-				async () => await removeDeploymentsByComposeId(composeResult),
-				async () => await removeComposeDirectory(composeResult.appName),
-			];
-
-			for (const operation of cleanupOperations) {
-				try {
-					await operation();
-				} catch (_) {}
-			}
-
-			return composeResult;
 		}),
 	cleanQueues: protectedProcedure
 		.input(apiFindCompose)
@@ -444,26 +485,49 @@ export const composeRouter = createTRPCRouter({
 				server: !!compose.serverId,
 			};
 
-			if (IS_CLOUD && compose.serverId) {
-				jobData.serverId = compose.serverId;
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
+			try {
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "compose.deploy",
+					resourceType: "compose",
+					resourceId: compose.composeId,
+					metadata: {
+						name: compose.name,
+					},
 				});
-				return true;
+
+				if (IS_CLOUD && compose.serverId) {
+					jobData.serverId = compose.serverId;
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
+					return true;
+				}
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
+
+				return {
+					success: true,
+					message: "Deployment queued",
+					composeId: compose.composeId,
+				};
+			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Error deploying compose",
+					cause: error,
+				});
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
-			return {
-				success: true,
-				message: "Deployment queued",
-				composeId: compose.composeId,
-			};
 		}),
 	redeploy: protectedProcedure
 		.input(apiRedeployCompose)
@@ -486,26 +550,47 @@ export const composeRouter = createTRPCRouter({
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
 			};
-			if (IS_CLOUD && compose.serverId) {
-				jobData.serverId = compose.serverId;
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
+			try {
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "compose.redeploy",
+					resourceType: "compose",
+					resourceId: compose.composeId,
+					metadata: { name: compose.name, title: input.title },
 				});
-				return true;
+
+				if (IS_CLOUD && compose.serverId) {
+					jobData.serverId = compose.serverId;
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
+					return true;
+				}
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
+
+				return {
+					success: true,
+					message: "Redeployment queued",
+					composeId: compose.composeId,
+				};
+			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Error redeploying compose",
+					cause: error,
+				});
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
-			return {
-				success: true,
-				message: "Redeployment queued",
-				composeId: compose.composeId,
-			};
 		}),
 	stop: protectedProcedure
 		.input(apiFindCompose)

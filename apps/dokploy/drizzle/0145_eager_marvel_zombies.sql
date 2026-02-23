@@ -1,0 +1,1 @@
+CREATE INDEX "org_created_at_idx" ON "activity_log" USING btree ("organizationId","createdAt" DESC NULLS LAST);

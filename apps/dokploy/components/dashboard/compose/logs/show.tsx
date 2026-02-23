@@ -1,8 +1,8 @@
 import { Loader2 } from "lucide-react";
-import { badgeStateColor } from "@/components/dashboard/application/logs/show";
-import { Badge } from "@/components/ui/badge";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { badgeStateColor } from "@/components/dashboard/application/logs/show";
+import { Badge } from "@/components/ui/badge";
 import {
 	Card,
 	CardContent,

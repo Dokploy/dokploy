@@ -2,6 +2,7 @@ import {
 	createSshKey,
 	findSSHKeyById,
 	generateSSHKey,
+	recordActivity,
 	removeSSHKeyById,
 	updateSSHKeyById,
 } from "@dokploy/server";
@@ -23,11 +24,23 @@ export const sshRouter = createTRPCRouter({
 		.input(apiCreateSshKey)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				await createSshKey({
+				const sshKey = await createSshKey({
 					...input,
 					organizationId: ctx.session.activeOrganizationId,
 				});
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "ssh_key.create",
+					resourceType: "system",
+					resourceId: sshKey?.sshKeyId,
+					metadata: { name: sshKey?.name },
+				});
+				return sshKey;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the SSH key",
@@ -38,18 +51,34 @@ export const sshRouter = createTRPCRouter({
 	remove: protectedProcedure
 		.input(apiRemoveSshKey)
 		.mutation(async ({ input, ctx }) => {
-			try {
-				const sshKey = await findSSHKeyById(input.sshKeyId);
-				if (sshKey.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not allowed to delete this SSH key",
-					});
-				}
+			const sshKey = await findSSHKeyById(input.sshKeyId);
+			if (sshKey.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to delete this SSH key",
+				});
+			}
 
-				return await removeSSHKeyById(input.sshKeyId);
+			try {
+				const result = await removeSSHKeyById(input.sshKeyId);
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "ssh_key.delete",
+					resourceType: "system",
+					resourceId: sshKey.sshKeyId,
+					metadata: { name: sshKey.name },
+				});
+				return result;
 			} catch (error) {
-				throw error;
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error deleting the SSH key",
+					cause: error,
+				});
 			}
 		}),
 	one: protectedProcedure
@@ -79,19 +108,31 @@ export const sshRouter = createTRPCRouter({
 	update: protectedProcedure
 		.input(apiUpdateSshKey)
 		.mutation(async ({ input, ctx }) => {
+			const sshKey = await findSSHKeyById(input.sshKeyId);
+			if (sshKey.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to update this SSH key",
+				});
+			}
 			try {
-				const sshKey = await findSSHKeyById(input.sshKeyId);
-				if (sshKey.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not allowed to update this SSH key",
-					});
-				}
-				return await updateSSHKeyById(input);
+				const result = await updateSSHKeyById(input);
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "ssh_key.update",
+					resourceType: "system",
+					resourceId: sshKey.sshKeyId,
+					metadata: { name: sshKey.name },
+				});
+				return result;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error updating this SSH key",
+					message: "Error updating the SSH key",
 					cause: error,
 				});
 			}

@@ -4,6 +4,7 @@ import {
 	execFileAsync,
 	findRegistryById,
 	IS_CLOUD,
+	recordActivity,
 	removeRegistry,
 	updateRegistry,
 } from "@dokploy/server";
@@ -24,7 +25,22 @@ export const registryRouter = createTRPCRouter({
 	create: adminProcedure
 		.input(apiCreateRegistry)
 		.mutation(async ({ ctx, input }) => {
-			return await createRegistry(input, ctx.session.activeOrganizationId);
+			const result = await createRegistry(
+				input,
+				ctx.session.activeOrganizationId,
+			);
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "registry.create",
+				resourceType: "system",
+				resourceId: result.registryId,
+				metadata: {
+					registryUrl: result.registryUrl,
+					username: result.username,
+				},
+			});
+			return result;
 		}),
 	remove: adminProcedure
 		.input(apiRemoveRegistry)
@@ -36,7 +52,19 @@ export const registryRouter = createTRPCRouter({
 					message: "You are not allowed to delete this registry",
 				});
 			}
-			return await removeRegistry(input.registryId);
+			const result = await removeRegistry(input.registryId);
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "registry.delete",
+				resourceType: "system",
+				resourceId: registry.registryId,
+				metadata: {
+					registryUrl: registry.registryUrl,
+					username: registry.username,
+				},
+			});
+			return result;
 		}),
 	update: protectedProcedure
 		.input(apiUpdateRegistry)
@@ -59,6 +87,18 @@ export const registryRouter = createTRPCRouter({
 					message: "Error updating registry",
 				});
 			}
+
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "registry.update",
+				resourceType: "system",
+				resourceId: registry.registryId,
+				metadata: {
+					registryUrl: registry.registryUrl,
+					username: registry.username,
+				},
+			});
 
 			return true;
 		}),

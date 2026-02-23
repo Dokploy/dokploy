@@ -11,6 +11,7 @@ import {
 	findProjectById,
 	IS_CLOUD,
 	rebuildDatabase,
+	recordActivity,
 	removeMySqlById,
 	removeService,
 	startService,
@@ -90,6 +91,18 @@ export const mysqlRouter = createTRPCRouter({
 					type: "volume",
 				});
 
+				await recordActivity({
+					userId: ctx.user.id,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "mysql.create",
+					resourceType: "database",
+					resourceId: newMysql.mysqlId,
+					metadata: {
+						name: newMysql.name,
+						appName: newMysql.appName,
+					},
+				});
+
 				return newMysql;
 			} catch (error) {
 				if (error instanceof TRPCError) {
@@ -154,9 +167,9 @@ export const mysqlRouter = createTRPCRouter({
 	stop: protectedProcedure
 		.input(apiFindOneMySql)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findMySqlById(input.mysqlId);
+			const mysql = await findMySqlById(input.mysqlId);
 			if (
-				mongo.environment.project.organizationId !==
+				mysql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -164,16 +177,16 @@ export const mysqlRouter = createTRPCRouter({
 					message: "You are not authorized to stop this MySQL",
 				});
 			}
-			if (mongo.serverId) {
-				await stopServiceRemote(mongo.serverId, mongo.appName);
+			if (mysql.serverId) {
+				await stopServiceRemote(mysql.serverId, mysql.appName);
 			} else {
-				await stopService(mongo.appName);
+				await stopService(mysql.appName);
 			}
 			await updateMySqlById(input.mysqlId, {
 				applicationStatus: "idle",
 			});
 
-			return mongo;
+			return mysql;
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMySql)
@@ -254,9 +267,9 @@ export const mysqlRouter = createTRPCRouter({
 	changeStatus: protectedProcedure
 		.input(apiChangeMySqlStatus)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findMySqlById(input.mysqlId);
+			const mysql = await findMySqlById(input.mysqlId);
 			if (
-				mongo.environment.project.organizationId !==
+				mysql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -267,7 +280,7 @@ export const mysqlRouter = createTRPCRouter({
 			await updateMySqlById(input.mysqlId, {
 				applicationStatus: input.applicationStatus,
 			});
-			return mongo;
+			return mysql;
 		}),
 	reload: protectedProcedure
 		.input(apiResetMysql)
@@ -311,9 +324,9 @@ export const mysqlRouter = createTRPCRouter({
 					"delete",
 				);
 			}
-			const mongo = await findMySqlById(input.mysqlId);
+			const mysql = await findMySqlById(input.mysqlId);
 			if (
-				mongo.environment.project.organizationId !==
+				mysql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -324,7 +337,7 @@ export const mysqlRouter = createTRPCRouter({
 
 			const backups = await findBackupsByDbId(input.mysqlId, "mysql");
 			const cleanupOperations = [
-				async () => await removeService(mongo?.appName, mongo.serverId),
+				async () => await removeService(mysql?.appName, mysql.serverId),
 				async () => await cancelJobs(backups),
 				async () => await removeMySqlById(input.mysqlId),
 			];
@@ -335,7 +348,19 @@ export const mysqlRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
-			return mongo;
+			await recordActivity({
+				userId: ctx.user.id,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "mysql.delete",
+				resourceType: "database",
+				resourceId: mysql.mysqlId,
+				metadata: {
+					name: mysql.name,
+					appName: mysql.appName,
+				},
+			});
+
+			return mysql;
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesMySql)

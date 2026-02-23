@@ -4,6 +4,7 @@ import {
 	getGiteaBranches,
 	getGiteaRepositories,
 	haveGiteaRequirements,
+	recordActivity,
 	testGiteaConnection,
 	updateGitea,
 	updateGitProvider,
@@ -24,11 +25,20 @@ export const giteaRouter = createTRPCRouter({
 		.input(apiCreateGitea)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createGitea(
+				const gitea = await createGitea(
 					input,
 					ctx.session.activeOrganizationId,
 					ctx.session.userId,
 				);
+				await recordActivity({
+					userId: ctx.session.userId,
+					organizationId: ctx.session.activeOrganizationId,
+					action: "git_provider.create_gitea",
+					resourceType: "system",
+					resourceId: gitea.giteaId,
+					metadata: { name: input.name },
+				});
+				return gitea;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -220,6 +230,15 @@ export const giteaRouter = createTRPCRouter({
 					...input,
 				});
 			}
+
+			await recordActivity({
+				userId: ctx.session.userId,
+				organizationId: ctx.session.activeOrganizationId,
+				action: "git_provider.update_gitea",
+				resourceType: "system",
+				resourceId: input.giteaId,
+				metadata: { name: input.name },
+			});
 
 			return { success: true };
 		}),
