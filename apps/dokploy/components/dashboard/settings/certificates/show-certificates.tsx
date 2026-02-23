@@ -1,4 +1,13 @@
-import { AlertCircle, Link, Loader2, ShieldCheck, Trash2 } from "lucide-react";
+import {
+	AlertCircle,
+	ChevronDown,
+	ChevronRight,
+	Link,
+	Loader2,
+	ShieldCheck,
+	Trash2,
+} from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -12,12 +21,18 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { AddCertificate } from "./add-certificate";
-import { getCertificateChainInfo, getExpirationStatus } from "./utils";
+import {
+	extractLeafCommonName,
+	getCertificateChainExpirationDetails,
+	getCertificateChainInfo,
+	getExpirationStatus,
+} from "./utils";
 
 export const ShowCertificates = () => {
 	const { mutateAsync, isLoading: isRemoving } =
 		api.certificates.remove.useMutation();
 	const { data, isLoading, refetch } = api.certificates.all.useQuery();
+	const [expandedChains, setExpandedChains] = useState<Set<string>>(new Set());
 
 	return (
 		<div className="w-full">
@@ -65,6 +80,30 @@ export const ShowCertificates = () => {
 												const chainInfo = getCertificateChainInfo(
 													certificate.certificateData,
 												);
+												const commonName = extractLeafCommonName(
+													certificate.certificateData,
+												);
+												const chainDetails = chainInfo.isChain
+													? getCertificateChainExpirationDetails(
+															certificate.certificateData,
+														)
+													: null;
+												const isExpanded = expandedChains.has(
+													certificate.certificateId,
+												);
+
+												const toggleChain = () => {
+													setExpandedChains((prev) => {
+														const next = new Set(prev);
+														if (next.has(certificate.certificateId)) {
+															next.delete(certificate.certificateId);
+														} else {
+															next.add(certificate.certificateId);
+														}
+														return next;
+													});
+												};
+
 												return (
 													<div
 														key={certificate.certificateId}
@@ -76,12 +115,52 @@ export const ShowCertificates = () => {
 																	<span className="text-sm font-medium">
 																		{index + 1}. {certificate.name}
 																	</span>
+																	{commonName && (
+																		<span className="text-xs text-muted-foreground">
+																			CN: {commonName}
+																		</span>
+																	)}
 																	{chainInfo.isChain && (
-																		<div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/50">
-																			<Link className="size-3 text-muted-foreground" />
-																			<span className="text-xs text-muted-foreground">
-																				Chain ({chainInfo.count})
-																			</span>
+																		<div className="flex flex-col gap-1.5 mt-1">
+																			<button
+																				type="button"
+																				onClick={toggleChain}
+																				className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/50 w-fit hover:bg-muted transition-colors"
+																			>
+																				{isExpanded ? (
+																					<ChevronDown className="size-3 text-muted-foreground" />
+																				) : (
+																					<ChevronRight className="size-3 text-muted-foreground" />
+																				)}
+																				<Link className="size-3 text-muted-foreground" />
+																				<span className="text-xs text-muted-foreground">
+																					Chain ({chainInfo.count} certificates)
+																				</span>
+																			</button>
+																			{isExpanded && (
+																				<div className="flex flex-col gap-3 pl-2 border-l-2 border-muted">
+																					{chainDetails?.map((cert) => (
+																						<div
+																							key={cert.index}
+																							className="flex flex-col gap-1 p-2 rounded-md bg-muted/30"
+																						>
+																							<span className="text-xs font-medium text-muted-foreground">
+																								{cert.label}
+																							</span>
+																							{cert.commonName && (
+																								<span className="text-xs text-muted-foreground/80">
+																									CN: {cert.commonName}
+																								</span>
+																							)}
+																							<span
+																								className={`text-xs ${cert.className}`}
+																							>
+																								{cert.message}
+																							</span>
+																						</div>
+																					))}
+																				</div>
+																			)}
 																		</div>
 																	)}
 																	<div
