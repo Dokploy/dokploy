@@ -314,9 +314,9 @@ export const AdvancedEnvironmentSelector = ({
 						</div>
 						<div className="space-y-1">
 							<Label htmlFor="description">Color</Label>
-							<Select onValueChange={setColor} value={color}>
-								<SelectTrigger>
-									<SelectValue placeholder="No color" />
+									<SelectItem value="#0091ff">
+										<span className="bg-[#0091ff] size-2.5 rounded-full inline-block mr-2"/> Blue
+									</SelectItem>
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value=" ">No color</SelectItem>
