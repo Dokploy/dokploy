@@ -887,7 +887,7 @@ const EnvironmentPage = (
 				<Card
 					className="h-full p-2.5 rounded-xl"
 					style={
-					  currentEnvironment.color
+						currentEnvironment.color
 							? { backgroundColor: currentEnvironment.color }
 							: undefined
 					}
