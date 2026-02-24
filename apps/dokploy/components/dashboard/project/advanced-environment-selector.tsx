@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
@@ -55,6 +56,7 @@ export const AdvancedEnvironmentSelector = ({
 	// Form states
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
+  const [color, setColor] = useState("");
 
 	// Get current user's permissions
 	const { data: currentUser } = api.user.get.useQuery();
@@ -93,7 +95,8 @@ export const AdvancedEnvironmentSelector = ({
 			await createEnvironment.mutateAsync({
 				projectId,
 				name: name.trim(),
-				description: description.trim() || null,
+        description: description.trim() || null,
+				color: color.trim() || null,
 			});
 
 			toast.success("Environment created successfully");
@@ -101,6 +104,7 @@ export const AdvancedEnvironmentSelector = ({
 			setIsCreateDialogOpen(false);
 			setName("");
 			setDescription("");
+      setColor("");
 		} catch (error) {
 			toast.error(
 				`Failed to create environment: ${error instanceof Error ? error.message : error}`,
@@ -116,14 +120,17 @@ export const AdvancedEnvironmentSelector = ({
 				environmentId: selectedEnvironment.environmentId,
 				name: name.trim(),
 				description: description.trim() || null,
+				color: color.trim() || null,
 			});
 
 			toast.success("Environment updated successfully");
 			utils.environment.byProjectId.invalidate({ projectId });
+			utils.environment.one.invalidate({ environmentId: selectedEnvironment.environmentId });
 			setIsEditDialogOpen(false);
 			setSelectedEnvironment(null);
 			setName("");
 			setDescription("");
+      setColor("");
 		} catch (error) {
 			toast.error(
 				`Failed to update environment: ${error instanceof Error ? error.message : error}`,
@@ -187,6 +194,7 @@ export const AdvancedEnvironmentSelector = ({
 		setSelectedEnvironment(environment);
 		setName(environment.name);
 		setDescription(environment.description || "");
+    setColor(environment.color || "");
 		setIsEditDialogOpen(true);
 	};
 
@@ -247,19 +255,17 @@ export const AdvancedEnvironmentSelector = ({
 									</div>
 								</DropdownMenuItem>
 								<div className="flex items-center gap-1 px-2">
-									{!environment.isDefault && (
-										<Button
-											variant="ghost"
-											size="sm"
-											className="h-6 w-6 p-0"
-											onClick={(e) => {
-												e.stopPropagation();
-												openEditDialog(environment);
-											}}
-										>
-											<PencilIcon className="h-3 w-3" />
-										</Button>
-									)}
+									<Button
+										variant="ghost"
+										size="sm"
+										className="h-6 w-6 p-0"
+										onClick={(e) => {
+											e.stopPropagation();
+											openEditDialog(environment);
+										}}
+									>
+										<PencilIcon className="h-3 w-3" />
+									</Button>
 									{canDeleteEnvironments && !environment.isDefault && (
 										<Button
 											variant="ghost"
@@ -319,6 +325,40 @@ export const AdvancedEnvironmentSelector = ({
 								placeholder="Environment description"
 							/>
 						</div>
+						<div className="space-y-1">
+							<Label htmlFor="description">Color</Label>
+							<Select onValueChange={setColor} value={color}>
+								<SelectTrigger>
+									<SelectValue placeholder="No color" />
+								</SelectTrigger>
+								<SelectContent>
+  								<SelectItem value=" ">
+                    No color
+                  </SelectItem>
+  								<SelectItem value="#0091ff">
+                    <span className="bg-[#0091ff] size-2.5 rounded-full inline-block mr-2"/> Blue
+                  </SelectItem>
+                  <SelectItem value="#e5484d">
+                    <span className="bg-[#e5484d] size-2.5 rounded-full inline-block mr-2"/> Red
+                  </SelectItem>
+                  <SelectItem value="#e79c13">
+                    <span className="bg-[#e79c13] size-2.5 rounded-full inline-block mr-2"/> Yellow
+                  </SelectItem>
+                  <SelectItem value="#1a9338">
+                    <span className="bg-[#1a9338] size-2.5 rounded-full inline-block mr-2"/> Green
+                  </SelectItem>
+                  <SelectItem value="#0c9784">
+                    <span className="bg-[#0c9784] size-2.5 rounded-full inline-block mr-2"/> Teal
+                  </SelectItem>
+                  <SelectItem value="#8e4ec6">
+                    <span className="bg-[#8e4ec6] size-2.5 rounded-full inline-block mr-2"/> Purple
+                  </SelectItem>
+                  <SelectItem value="#e93d82">
+                    <span className="bg-[#e93d82] size-2.5 rounded-full inline-block mr-2"/> Pink
+                  </SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
 					</div>
 
 					<DialogFooter>
@@ -328,6 +368,7 @@ export const AdvancedEnvironmentSelector = ({
 								setIsCreateDialogOpen(false);
 								setName("");
 								setDescription("");
+                setColor("");
 							}}
 						>
 							Cancel
@@ -358,9 +399,15 @@ export const AdvancedEnvironmentSelector = ({
 							<Input
 								id="edit-name"
 								value={name}
+                disabled={selectedEnvironment?.isDefault}
 								onChange={(e) => setName(e.target.value)}
 								placeholder="Environment name"
 							/>
+              {selectedEnvironment?.isDefault && (
+                <span className="text-sm text-muted-foreground">
+                  You cannot rename the default environment.
+       					</span>
+              )}
 						</div>
 						<div className="space-y-1">
 							<Label htmlFor="edit-description">Description (optional)</Label>
@@ -370,6 +417,40 @@ export const AdvancedEnvironmentSelector = ({
 								onChange={(e) => setDescription(e.target.value)}
 								placeholder="Environment description"
 							/>
+						</div>
+						<div className="space-y-1">
+							<Label htmlFor="description">Color</Label>
+							<Select onValueChange={setColor} value={color}>
+								<SelectTrigger>
+									<SelectValue placeholder="No color" />
+								</SelectTrigger>
+								<SelectContent>
+  								<SelectItem value=" ">
+                    No color
+                  </SelectItem>
+  								<SelectItem value="#0091ff">
+                    <span className="bg-[#0091ff] size-2.5 rounded-full inline-block mr-2"/> Blue
+                  </SelectItem>
+                  <SelectItem value="#e5484d">
+                    <span className="bg-[#e5484d] size-2.5 rounded-full inline-block mr-2"/> Red
+                  </SelectItem>
+                  <SelectItem value="#e79c13">
+                    <span className="bg-[#e79c13] size-2.5 rounded-full inline-block mr-2"/> Yellow
+                  </SelectItem>
+                  <SelectItem value="#1a9338">
+                    <span className="bg-[#1a9338] size-2.5 rounded-full inline-block mr-2"/> Green
+                  </SelectItem>
+                  <SelectItem value="#0c9784">
+                    <span className="bg-[#0c9784] size-2.5 rounded-full inline-block mr-2"/> Teal
+                  </SelectItem>
+                  <SelectItem value="#8e4ec6">
+                    <span className="bg-[#8e4ec6] size-2.5 rounded-full inline-block mr-2"/> Purple
+                  </SelectItem>
+                  <SelectItem value="#e93d82">
+                    <span className="bg-[#e93d82] size-2.5 rounded-full inline-block mr-2"/> Pink
+                  </SelectItem>
+								</SelectContent>
+							</Select>
 						</div>
 					</div>
 
@@ -381,6 +462,7 @@ export const AdvancedEnvironmentSelector = ({
 								setSelectedEnvironment(null);
 								setName("");
 								setDescription("");
+                setColor("");
 							}}
 						>
 							Cancel
