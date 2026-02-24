@@ -50,13 +50,13 @@ export const environmentRelations = relations(
 const createSchema = createInsertSchema(environments, {
 	environmentId: z.string().min(1),
 	name: z.string().min(1),
-  description: z.string().optional(),
+	description: z.string().optional(),
 });
 
 export const apiCreateEnvironment = createSchema.pick({
 	name: true,
 	description: true,
-  projectId: true,
+	projectId: true,
 	color: true
 });
 

@@ -56,7 +56,7 @@ export const AdvancedEnvironmentSelector = ({
 	// Form states
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
-  const [color, setColor] = useState("");
+	const [color, setColor] = useState("");
 
 	// Get current user's permissions
 	const { data: currentUser } = api.user.get.useQuery();
@@ -85,7 +85,6 @@ export const AdvancedEnvironmentSelector = ({
 	const createEnvironment = api.environment.create.useMutation();
 	const updateEnvironment = api.environment.update.useMutation();
 	const deleteEnvironment = api.environment.remove.useMutation();
-	const duplicateEnvironment = api.environment.duplicate.useMutation();
 
 	// Refetch project data
 	const utils = api.useUtils();
@@ -95,7 +94,7 @@ export const AdvancedEnvironmentSelector = ({
 			await createEnvironment.mutateAsync({
 				projectId,
 				name: name.trim(),
-        description: description.trim() || null,
+				description: description.trim() || null,
 				color: color.trim() || null,
 			});
 
@@ -104,7 +103,7 @@ export const AdvancedEnvironmentSelector = ({
 			setIsCreateDialogOpen(false);
 			setName("");
 			setDescription("");
-      setColor("");
+			setColor("");
 		} catch (error) {
 			toast.error(
 				`Failed to create environment: ${error instanceof Error ? error.message : error}`,
@@ -130,7 +129,7 @@ export const AdvancedEnvironmentSelector = ({
 			setSelectedEnvironment(null);
 			setName("");
 			setDescription("");
-      setColor("");
+			setColor("");
 		} catch (error) {
 			toast.error(
 				`Failed to update environment: ${error instanceof Error ? error.message : error}`,
@@ -170,31 +169,11 @@ export const AdvancedEnvironmentSelector = ({
 		}
 	};
 
-	const handleDuplicateEnvironment = async (environment: Environment) => {
-		try {
-			const result = await duplicateEnvironment.mutateAsync({
-				environmentId: environment.environmentId,
-				name: `${environment.name}-copy`,
-				description: environment.description,
-			});
-
-			toast.success("Environment duplicated successfully");
-			utils.project.one.invalidate({ projectId });
-
-			// Navigate to the new duplicated environment
-			router.push(
-				`/dashboard/project/${projectId}/environment/${result.environmentId}`,
-			);
-		} catch (error) {
-			toast.error("Failed to duplicate environment");
-		}
-	};
-
 	const openEditDialog = (environment: Environment) => {
 		setSelectedEnvironment(environment);
 		setName(environment.name);
 		setDescription(environment.description || "");
-    setColor(environment.color || "");
+		setColor(environment.color || "");
 		setIsEditDialogOpen(true);
 	};
 
@@ -250,7 +229,7 @@ export const AdvancedEnvironmentSelector = ({
 											{environment.name} ({servicesCount})
 										</span>
 										{environment.environmentId === currentEnvironmentId && (
-											<div className="w-2 h-2 bg-blue-500 rounded-full" />
+										 <div className="w-2 h-2 bg-blue-500 rounded-full" />
 										)}
 									</div>
 								</DropdownMenuItem>
@@ -332,35 +311,34 @@ export const AdvancedEnvironmentSelector = ({
 									<SelectValue placeholder="No color" />
 								</SelectTrigger>
 								<SelectContent>
-  								<SelectItem value=" ">
-                    No color
-                  </SelectItem>
-  								<SelectItem value="#0091ff">
-                    <span className="bg-[#0091ff] size-2.5 rounded-full inline-block mr-2"/> Blue
-                  </SelectItem>
-                  <SelectItem value="#e5484d">
-                    <span className="bg-[#e5484d] size-2.5 rounded-full inline-block mr-2"/> Red
-                  </SelectItem>
-                  <SelectItem value="#e79c13">
-                    <span className="bg-[#e79c13] size-2.5 rounded-full inline-block mr-2"/> Yellow
-                  </SelectItem>
-                  <SelectItem value="#1a9338">
-                    <span className="bg-[#1a9338] size-2.5 rounded-full inline-block mr-2"/> Green
-                  </SelectItem>
-                  <SelectItem value="#0c9784">
-                    <span className="bg-[#0c9784] size-2.5 rounded-full inline-block mr-2"/> Teal
-                  </SelectItem>
-                  <SelectItem value="#8e4ec6">
-                    <span className="bg-[#8e4ec6] size-2.5 rounded-full inline-block mr-2"/> Purple
-                  </SelectItem>
-                  <SelectItem value="#e93d82">
-                    <span className="bg-[#e93d82] size-2.5 rounded-full inline-block mr-2"/> Pink
-                  </SelectItem>
+								<SelectItem value=" ">
+										No	color
+									</SelectItem>
+									<SelectItem	value="#0091ff">
+										<span	className="bg-[#0091ff]	size-2.5	rounded-full	inline-block	mr-2"/>	Blue
+									</SelectItem>
+									<SelectItem	value="#e5484d">
+										<span	className="bg-[#e5484d]	size-2.5	rounded-full	inline-block	mr-2"/>	Red
+									</SelectItem>
+									<SelectItem	value="#e79c13">
+										<span	className="bg-[#e79c13]	size-2.5	rounded-full	inline-block	mr-2"/>	Yellow
+									</SelectItem>
+									<SelectItem	value="#1a9338">
+										<span	className="bg-[#1a9338]	size-2.5	rounded-full	inline-block	mr-2"/>	Green
+									</SelectItem>
+									<SelectItem	value="#0c9784">
+										<span	className="bg-[#0c9784]	size-2.5	rounded-full	inline-block	mr-2"/>	Teal
+									</SelectItem>
+									<SelectItem	value="#8e4ec6">
+										<span	className="bg-[#8e4ec6]	size-2.5	rounded-full	inline-block	mr-2"/>	Purple
+									</SelectItem>
+									<SelectItem	value="#e93d82">
+										<span	className="bg-[#e93d82]	size-2.5	rounded-full	inline-block	mr-2"/>	Pink
+									</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
 					</div>
-
 					<DialogFooter>
 						<Button
 							variant="outline"
@@ -368,7 +346,7 @@ export const AdvancedEnvironmentSelector = ({
 								setIsCreateDialogOpen(false);
 								setName("");
 								setDescription("");
-                setColor("");
+								setColor("");
 							}}
 						>
 							Cancel
@@ -399,15 +377,15 @@ export const AdvancedEnvironmentSelector = ({
 							<Input
 								id="edit-name"
 								value={name}
-                disabled={selectedEnvironment?.isDefault}
+								disabled={selectedEnvironment?.isDefault}
 								onChange={(e) => setName(e.target.value)}
 								placeholder="Environment name"
 							/>
-              {selectedEnvironment?.isDefault && (
-                <span className="text-sm text-muted-foreground">
-                  You cannot rename the default environment.
-       					</span>
-              )}
+							{selectedEnvironment?.isDefault && (
+								<span className="text-sm text-muted-foreground">
+									You cannot rename the default environment.
+			 					</span>
+							)}
 						</div>
 						<div className="space-y-1">
 							<Label htmlFor="edit-description">Description (optional)</Label>
@@ -425,30 +403,30 @@ export const AdvancedEnvironmentSelector = ({
 									<SelectValue placeholder="No color" />
 								</SelectTrigger>
 								<SelectContent>
-  								<SelectItem value=" ">
-                    No color
-                  </SelectItem>
-  								<SelectItem value="#0091ff">
-                    <span className="bg-[#0091ff] size-2.5 rounded-full inline-block mr-2"/> Blue
-                  </SelectItem>
-                  <SelectItem value="#e5484d">
-                    <span className="bg-[#e5484d] size-2.5 rounded-full inline-block mr-2"/> Red
-                  </SelectItem>
-                  <SelectItem value="#e79c13">
-                    <span className="bg-[#e79c13] size-2.5 rounded-full inline-block mr-2"/> Yellow
-                  </SelectItem>
-                  <SelectItem value="#1a9338">
-                    <span className="bg-[#1a9338] size-2.5 rounded-full inline-block mr-2"/> Green
-                  </SelectItem>
-                  <SelectItem value="#0c9784">
-                    <span className="bg-[#0c9784] size-2.5 rounded-full inline-block mr-2"/> Teal
-                  </SelectItem>
-                  <SelectItem value="#8e4ec6">
-                    <span className="bg-[#8e4ec6] size-2.5 rounded-full inline-block mr-2"/> Purple
-                  </SelectItem>
-                  <SelectItem value="#e93d82">
-                    <span className="bg-[#e93d82] size-2.5 rounded-full inline-block mr-2"/> Pink
-                  </SelectItem>
+								<SelectItem value=" ">
+										No color
+									</SelectItem>
+									<SelectItem value="#0091ff">
+										<span className="bg-[#0091ff] size-2.5 rounded-full inline-block mr-2"/> Blue
+									</SelectItem>
+									<SelectItem value="#e5484d">
+										<span className="bg-[#e5484d] size-2.5 rounded-full inline-block mr-2"/> Red
+									</SelectItem>
+									<SelectItem value="#e79c13">
+										<span className="bg-[#e79c13] size-2.5 rounded-full inline-block mr-2"/> Yellow
+									</SelectItem>
+									<SelectItem value="#1a9338">
+										<span className="bg-[#1a9338] size-2.5 rounded-full inline-block mr-2"/> Green
+									</SelectItem>
+									<SelectItem value="#0c9784">
+										<span className="bg-[#0c9784] size-2.5 rounded-full inline-block mr-2"/> Teal
+									</SelectItem>
+									<SelectItem value="#8e4ec6">
+										<span className="bg-[#8e4ec6] size-2.5 rounded-full inline-block mr-2"/> Purple
+									</SelectItem>
+									<SelectItem value="#e93d82">
+										<span className="bg-[#e93d82] size-2.5 rounded-full inline-block mr-2"/> Pink
+									</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
@@ -462,7 +440,7 @@ export const AdvancedEnvironmentSelector = ({
 								setSelectedEnvironment(null);
 								setName("");
 								setDescription("");
-                setColor("");
+								setColor("");
 							}}
 						>
 							Cancel
