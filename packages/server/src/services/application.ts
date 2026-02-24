@@ -418,10 +418,14 @@ export const deployPreviewApplication = async ({
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.rollbackActive = false;
-		application.buildRegistry = null;
+		if (!application.buildServerId || application.buildServerId === application.serverId) {
+			application.buildRegistry = null;
+		}
 		application.rollbackRegistry = null;
 		application.registry = null;
 
+		const buildServerId =
+			application.buildServerId || application.serverId;
 		let command = "set -e;";
 		if (application.sourceType === "github") {
 			command += await cloneGithubRepository({
@@ -430,10 +434,17 @@ export const deployPreviewApplication = async ({
 				branch: previewDeployment.branch,
 			});
 			command += await getBuildCommand(application);
+		} else if (application.sourceType === "docker") {
+			if (previewDeployment.dockerImage) {
+				application.dockerImage = previewDeployment.dockerImage;
+			}
+			command += await buildRemoteDocker(application);
+		}
 
+		if (application.sourceType === "github" || application.sourceType === "docker") {
 			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-			if (application.serverId) {
-				await execAsyncRemote(application.serverId, commandWithLog);
+			if (buildServerId) {
+				await execAsyncRemote(buildServerId, commandWithLog);
 			} else {
 				await execAsync(commandWithLog);
 			}
@@ -537,14 +548,22 @@ export const rebuildPreviewApplication = async ({
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.rollbackActive = false;
-		application.buildRegistry = null;
+		if (!application.buildServerId || application.buildServerId === application.serverId) {
+			application.buildRegistry = null;
+		}
 		application.rollbackRegistry = null;
 		application.registry = null;
 
-		const serverId = application.serverId;
+		const serverId = application.buildServerId || application.serverId;
 		let command = "set -e;";
-		// Only rebuild, don't clone repository
-		command += await getBuildCommand(application);
+		if (application.sourceType === "docker") {
+			if (previewDeployment.dockerImage) {
+				application.dockerImage = previewDeployment.dockerImage;
+			}
+			command += await buildRemoteDocker(application);
+		} else {
+			command += await getBuildCommand(application);
+		}
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
 			await execAsyncRemote(serverId, commandWithLog);
