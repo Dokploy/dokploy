@@ -265,7 +265,11 @@ export const environmentRouter = createTRPCRouter({
 				const currentEnvironment = await findEnvironmentById(environmentId);
 
 				// Prevent renaming the default environment, but allow updating env and description
-				if (currentEnvironment.isDefault && updateData.name !== undefined && updateData.name !== currentEnvironment.name) {
+				if (
+					currentEnvironment.isDefault &&
+					updateData.name !== undefined &&
+					updateData.name !== currentEnvironment.name
+				) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "You cannot rename the default environment",

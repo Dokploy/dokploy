@@ -57,7 +57,7 @@ export const apiCreateEnvironment = createSchema.pick({
 	name: true,
 	description: true,
 	projectId: true,
-	color: true
+	color: true,
 });
 
 export const apiFindOneEnvironment = createSchema

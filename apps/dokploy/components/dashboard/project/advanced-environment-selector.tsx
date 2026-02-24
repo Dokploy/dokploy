@@ -23,7 +23,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+	Select,
+	SelectTrigger,
+	SelectValue,
+	SelectContent,
+	SelectItem,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
@@ -124,7 +130,9 @@ export const AdvancedEnvironmentSelector = ({
 
 			toast.success("Environment updated successfully");
 			utils.environment.byProjectId.invalidate({ projectId });
-			utils.environment.one.invalidate({ environmentId: selectedEnvironment.environmentId });
+			utils.environment.one.invalidate({
+				environmentId: selectedEnvironment.environmentId,
+			});
 			setIsEditDialogOpen(false);
 			setSelectedEnvironment(null);
 			setName("");
@@ -229,7 +237,7 @@ export const AdvancedEnvironmentSelector = ({
 											{environment.name} ({servicesCount})
 										</span>
 										{environment.environmentId === currentEnvironmentId && (
-										 <div className="w-2 h-2 bg-blue-500 rounded-full" />
+											<div className="w-2 h-2 bg-blue-500 rounded-full" />
 										)}
 									</div>
 								</DropdownMenuItem>
@@ -311,29 +319,34 @@ export const AdvancedEnvironmentSelector = ({
 									<SelectValue placeholder="No color" />
 								</SelectTrigger>
 								<SelectContent>
-								<SelectItem value=" ">
-										No	color
+									<SelectItem value=" ">No color</SelectItem>
+									<SelectItem value="#0091ff">
+										<span className="bg-[#0091ff]	size-2.5	rounded-full	inline-block	mr-2" />{" "}
+										Blue
 									</SelectItem>
-									<SelectItem	value="#0091ff">
-										<span	className="bg-[#0091ff]	size-2.5	rounded-full	inline-block	mr-2"/>	Blue
+									<SelectItem value="#e5484d">
+										<span className="bg-[#e5484d]	size-2.5	rounded-full	inline-block	mr-2" />{" "}
+										Red
 									</SelectItem>
-									<SelectItem	value="#e5484d">
-										<span	className="bg-[#e5484d]	size-2.5	rounded-full	inline-block	mr-2"/>	Red
+									<SelectItem value="#e79c13">
+										<span className="bg-[#e79c13]	size-2.5	rounded-full	inline-block	mr-2" />{" "}
+										Yellow
 									</SelectItem>
-									<SelectItem	value="#e79c13">
-										<span	className="bg-[#e79c13]	size-2.5	rounded-full	inline-block	mr-2"/>	Yellow
+									<SelectItem value="#1a9338">
+										<span className="bg-[#1a9338]	size-2.5	rounded-full	inline-block	mr-2" />{" "}
+										Green
 									</SelectItem>
-									<SelectItem	value="#1a9338">
-										<span	className="bg-[#1a9338]	size-2.5	rounded-full	inline-block	mr-2"/>	Green
+									<SelectItem value="#0c9784">
+										<span className="bg-[#0c9784]	size-2.5	rounded-full	inline-block	mr-2" />{" "}
+										Teal
 									</SelectItem>
-									<SelectItem	value="#0c9784">
-										<span	className="bg-[#0c9784]	size-2.5	rounded-full	inline-block	mr-2"/>	Teal
+									<SelectItem value="#8e4ec6">
+										<span className="bg-[#8e4ec6]	size-2.5	rounded-full	inline-block	mr-2" />{" "}
+										Purple
 									</SelectItem>
-									<SelectItem	value="#8e4ec6">
-										<span	className="bg-[#8e4ec6]	size-2.5	rounded-full	inline-block	mr-2"/>	Purple
-									</SelectItem>
-									<SelectItem	value="#e93d82">
-										<span	className="bg-[#e93d82]	size-2.5	rounded-full	inline-block	mr-2"/>	Pink
+									<SelectItem value="#e93d82">
+										<span className="bg-[#e93d82]	size-2.5	rounded-full	inline-block	mr-2" />{" "}
+										Pink
 									</SelectItem>
 								</SelectContent>
 							</Select>
@@ -384,7 +397,7 @@ export const AdvancedEnvironmentSelector = ({
 							{selectedEnvironment?.isDefault && (
 								<span className="text-sm text-muted-foreground">
 									You cannot rename the default environment.
-			 					</span>
+								</span>
 							)}
 						</div>
 						<div className="space-y-1">
@@ -403,29 +416,34 @@ export const AdvancedEnvironmentSelector = ({
 									<SelectValue placeholder="No color" />
 								</SelectTrigger>
 								<SelectContent>
-								<SelectItem value=" ">
-										No color
-									</SelectItem>
+									<SelectItem value=" ">No color</SelectItem>
 									<SelectItem value="#0091ff">
-										<span className="bg-[#0091ff] size-2.5 rounded-full inline-block mr-2"/> Blue
+										<span className="bg-[#0091ff] size-2.5 rounded-full inline-block mr-2" />{" "}
+										Blue
 									</SelectItem>
 									<SelectItem value="#e5484d">
-										<span className="bg-[#e5484d] size-2.5 rounded-full inline-block mr-2"/> Red
+										<span className="bg-[#e5484d] size-2.5 rounded-full inline-block mr-2" />{" "}
+										Red
 									</SelectItem>
 									<SelectItem value="#e79c13">
-										<span className="bg-[#e79c13] size-2.5 rounded-full inline-block mr-2"/> Yellow
+										<span className="bg-[#e79c13] size-2.5 rounded-full inline-block mr-2" />{" "}
+										Yellow
 									</SelectItem>
 									<SelectItem value="#1a9338">
-										<span className="bg-[#1a9338] size-2.5 rounded-full inline-block mr-2"/> Green
+										<span className="bg-[#1a9338] size-2.5 rounded-full inline-block mr-2" />{" "}
+										Green
 									</SelectItem>
 									<SelectItem value="#0c9784">
-										<span className="bg-[#0c9784] size-2.5 rounded-full inline-block mr-2"/> Teal
+										<span className="bg-[#0c9784] size-2.5 rounded-full inline-block mr-2" />{" "}
+										Teal
 									</SelectItem>
 									<SelectItem value="#8e4ec6">
-										<span className="bg-[#8e4ec6] size-2.5 rounded-full inline-block mr-2"/> Purple
+										<span className="bg-[#8e4ec6] size-2.5 rounded-full inline-block mr-2" />{" "}
+										Purple
 									</SelectItem>
 									<SelectItem value="#e93d82">
-										<span className="bg-[#e93d82] size-2.5 rounded-full inline-block mr-2"/> Pink
+										<span className="bg-[#e93d82] size-2.5 rounded-full inline-block mr-2" />{" "}
+										Pink
 									</SelectItem>
 								</SelectContent>
 							</Select>
