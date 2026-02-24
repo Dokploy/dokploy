@@ -418,7 +418,9 @@ export const deployPreviewApplication = async ({
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.rollbackActive = false;
-		application.buildRegistry = null;
+		if (!application.buildServerId || application.buildServerId === application.serverId) {
+			application.buildRegistry = null;
+		}
 		application.rollbackRegistry = null;
 		application.registry = null;
 
@@ -546,7 +548,9 @@ export const rebuildPreviewApplication = async ({
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.rollbackActive = false;
-		application.buildRegistry = null;
+		if (!application.buildServerId || application.buildServerId === application.serverId) {
+			application.buildRegistry = null;
+		}
 		application.rollbackRegistry = null;
 		application.registry = null;
 
