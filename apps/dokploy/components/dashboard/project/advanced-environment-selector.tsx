@@ -321,31 +321,31 @@ export const AdvancedEnvironmentSelector = ({
 								<SelectContent>
 									<SelectItem value=" ">No color</SelectItem>
 									<SelectItem value="#0091ff">
-										<span className="bg-[#0091ff]	size-2.5	rounded-full	inline-block	mr-2" />{" "}
+										<span className="bg-[#0091ff] size-2.5 rounded-full inline-block mr-2" />{" "}
 										Blue
 									</SelectItem>
 									<SelectItem value="#e5484d">
-										<span className="bg-[#e5484d]	size-2.5	rounded-full	inline-block	mr-2" />{" "}
+										<span className="bg-[#e5484d] size-2.5 rounded-full inline-block mr-2" />{" "}
 										Red
 									</SelectItem>
 									<SelectItem value="#e79c13">
-										<span className="bg-[#e79c13]	size-2.5	rounded-full	inline-block	mr-2" />{" "}
+										<span className="bg-[#e79c13] size-2.5 rounded-full inline-block mr-2" />{" "}
 										Yellow
 									</SelectItem>
 									<SelectItem value="#1a9338">
-										<span className="bg-[#1a9338]	size-2.5	rounded-full	inline-block	mr-2" />{" "}
+										<span className="bg-[#1a9338] size-2.5 rounded-full inline-block mr-2" />{" "}
 										Green
 									</SelectItem>
 									<SelectItem value="#0c9784">
-										<span className="bg-[#0c9784]	size-2.5	rounded-full	inline-block	mr-2" />{" "}
+										<span className="bg-[#0c9784] size-2.5 rounded-full inline-block mr-2" />{" "}
 										Teal
 									</SelectItem>
 									<SelectItem value="#8e4ec6">
-										<span className="bg-[#8e4ec6]	size-2.5	rounded-full	inline-block	mr-2" />{" "}
+										<span className="bg-[#8e4ec6] size-2.5 rounded-full inline-block mr-2" />{" "}
 										Purple
 									</SelectItem>
 									<SelectItem value="#e93d82">
-										<span className="bg-[#e93d82]	size-2.5	rounded-full	inline-block	mr-2" />{" "}
+										<span className="bg-[#e93d82] size-2.5 rounded-full inline-block mr-2" />{" "}
 										Pink
 									</SelectItem>
 								</SelectContent>
