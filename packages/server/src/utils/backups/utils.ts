@@ -58,42 +58,53 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
+const shDoubleQuote = (value: string) => {
+	// These flags get interpolated into shell commands (local + remote over ssh).
+	// Keep the historical `--flag="..."` style (tests expect it), but escape chars that
+	// would break double-quoted strings / trigger expansion.
+	//
+	// We escape: backslash, double-quote, dollar, backtick.
+	return `"${value.replace(/[\\"$`]/g, "\\$&")}"`;
+};
+
 export const getS3Credentials = (destination: Destination) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 
+	// NOTE: these flags get interpolated into shell commands (local + remote over ssh).
+	// Always quote user-provided values to avoid breaking the command or worse.
 	if (provider === "FTP") {
 		return [
-			`--ftp-host="${endpoint}"`,
-			`--ftp-user="${accessKey}"`,
-			`--ftp-pass="${secretAccessKey}"`,
+			`--ftp-host=${shDoubleQuote(endpoint)}`,
+			`--ftp-user=${shDoubleQuote(accessKey)}`,
+			`--ftp-pass=${shDoubleQuote(secretAccessKey)}`,
 		];
 	}
 
 	if (provider === "SFTP") {
 		const [host, port] = endpoint.split(":");
 		const rcloneFlags = [
-			`--sftp-host="${host}"`,
-			`--sftp-user="${accessKey}"`,
-			`--sftp-pass="${secretAccessKey}"`,
+			`--sftp-host=${shDoubleQuote(host)}`,
+			`--sftp-user=${shDoubleQuote(accessKey)}`,
+			`--sftp-pass=${shDoubleQuote(secretAccessKey)}`,
 		];
 		if (port) {
-			rcloneFlags.push(`--sftp-port="${port}"`);
+			rcloneFlags.push(`--sftp-port=${shDoubleQuote(port)}`);
 		}
 		return rcloneFlags;
 	}
 
 	const rcloneFlags = [
-		`--s3-access-key-id="${accessKey}"`,
-		`--s3-secret-access-key="${secretAccessKey}"`,
-		`--s3-region="${region}"`,
-		`--s3-endpoint="${endpoint}"`,
+		`--s3-access-key-id=${shDoubleQuote(accessKey)}`,
+		`--s3-secret-access-key=${shDoubleQuote(secretAccessKey)}`,
+		`--s3-region=${shDoubleQuote(region)}`,
+		`--s3-endpoint=${shDoubleQuote(endpoint)}`,
 		"--s3-no-check-bucket",
 		"--s3-force-path-style",
 	];
 
 	if (provider) {
-		rcloneFlags.unshift(`--s3-provider="${provider}"`);
+		rcloneFlags.unshift(`--s3-provider=${shDoubleQuote(provider)}`);
 	}
 
 	return rcloneFlags;
