@@ -886,7 +886,7 @@ const EnvironmentPage = (
 			<div className="w-full">
 				<Card
 					className={cn(
-					style: currentEnvironment.color ? { backgroundColor: currentEnvironment.color } : undefined,
+						"h-full p-2.5 rounded-xl",
 						!!currentEnvironment.color
 							? `bg-[${currentEnvironment.color}]`
 							: "bg-sidebar",
