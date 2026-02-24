@@ -76,6 +76,7 @@ const baseApp: ApplicationNested = {
 		isDefault: false,
 		environmentId: "",
 		name: "",
+		color: "",
 		createdAt: "",
 		description: "",
 		projectId: "",
