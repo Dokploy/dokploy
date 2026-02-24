@@ -112,7 +112,7 @@ const menuItems: MenuItem[] = [
 
 const hasStopGracePeriodSwarm = (
 	value: unknown,
-): value is { stopGracePeriodSwarm: bigint | number | string | null } =>
+): value is { stopGracePeriodSwarm: number | string | null } =>
 	typeof value === "object" &&
 	value !== null &&
 	"stopGracePeriodSwarm" in value;
