@@ -424,7 +424,7 @@ export const AdvancedEnvironmentSelector = ({
 							/>
 						</div>
 						<div className="space-y-1">
-							<Label htmlFor="description">Color</Label>
+							<Label htmlFor="edit-color">Color</Label>
 							<ColorSelector onValueChange={setColor} value={color} />
 						</div>
 					</div>
