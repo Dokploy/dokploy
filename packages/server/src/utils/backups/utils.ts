@@ -58,13 +58,42 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
+const shEscapeForDoubleQuotes = (value: string) => {
+	// Escapes characters that would break / expand inside a shell double-quoted string.
+	// (Used for both flags and destination paths.)
+	return value.replace(/[\\"$`]/g, "\\$&");
+};
+
 const shDoubleQuote = (value: string) => {
 	// These flags get interpolated into shell commands (local + remote over ssh).
 	// Keep the historical `--flag="..."` style (tests expect it), but escape chars that
 	// would break double-quoted strings / trigger expansion.
-	//
-	// We escape: backslash, double-quote, dollar, backtick.
-	return `"${value.replace(/[\\"$`]/g, "\\$&")}"`;
+	return `"${shEscapeForDoubleQuotes(value)}"`;
+};
+
+const parseHostPort = (endpoint: string) => {
+	// Supports:
+	// - host:port
+	// - [ipv6]:port
+	// If the endpoint looks like a raw IPv6 address without brackets, we treat it as host-only.
+	if (endpoint.startsWith("[")) {
+		const closing = endpoint.indexOf("]");
+		if (closing !== -1) {
+			const host = endpoint.slice(1, closing);
+			const rest = endpoint.slice(closing + 1);
+			if (rest.startsWith(":")) {
+				return { host, port: rest.slice(1) };
+			}
+			return { host };
+		}
+	}
+
+	const lastColon = endpoint.lastIndexOf(":");
+	if (lastColon > 0 && endpoint.indexOf(":") === lastColon) {
+		return { host: endpoint.slice(0, lastColon), port: endpoint.slice(lastColon + 1) };
+	}
+
+	return { host: endpoint };
 };
 
 export const getS3Credentials = (destination: Destination) => {
@@ -82,7 +111,7 @@ export const getS3Credentials = (destination: Destination) => {
 	}
 
 	if (provider === "SFTP") {
-		const [host, port] = endpoint.split(":");
+		const { host, port } = parseHostPort(endpoint);
 		const rcloneFlags = [
 			`--sftp-host=${shDoubleQuote(host)}`,
 			`--sftp-user=${shDoubleQuote(accessKey)}`,
@@ -111,13 +140,15 @@ export const getS3Credentials = (destination: Destination) => {
 };
 
 export const getRcloneDestinationBase = (destination: Destination) => {
+	// Used inside shell commands as part of a double-quoted string.
+	const bucket = shEscapeForDoubleQuotes(destination.bucket);
 	if (destination.provider === "FTP") {
-		return `:ftp:${destination.bucket}`;
+		return `:ftp:${bucket}`;
 	}
 	if (destination.provider === "SFTP") {
-		return `:sftp:${destination.bucket}`;
+		return `:sftp:${bucket}`;
 	}
-	return `:s3:${destination.bucket}`;
+	return `:s3:${bucket}`;
 };
 
 export const getPostgresBackupCommand = (
