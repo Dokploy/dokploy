@@ -148,7 +148,7 @@ export const AdvancedEnvironmentSelector = ({
 			await createEnvironment.mutateAsync({
 				projectId,
 				name: name.trim(),
-        description: description.trim() || undefined,
+				description: description.trim() || undefined,
 				color: color.trim() || undefined
 			});
 
@@ -157,7 +157,7 @@ export const AdvancedEnvironmentSelector = ({
 			setIsCreateDialogOpen(false);
 			setName("");
 			setDescription("");
-      setColor("");
+			setColor("");
 		} catch (error) {
 			toast.error(
 				`Failed to create environment: ${error instanceof Error ? error.message : error}`,
@@ -173,6 +173,7 @@ export const AdvancedEnvironmentSelector = ({
 				environmentId: selectedEnvironment.environmentId,
 				name: name.trim(),
 				description: description.trim() || undefined,
+				color: color.trim() || undefined,
 			});
 
 			toast.success("Environment updated successfully");
