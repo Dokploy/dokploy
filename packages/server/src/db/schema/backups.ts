@@ -43,6 +43,7 @@ export const backups = pgTable("backup", {
 	enabled: boolean("enabled"),
 	database: text("database").notNull(),
 	prefix: text("prefix").notNull(),
+	storageClass: text("storageClass"),
 	serviceName: text("serviceName"),
 	destinationId: text("destinationId")
 		.notNull()
@@ -136,7 +137,7 @@ const createSchema = createInsertSchema(backups, {
 	prefix: z.string().min(1),
 	database: z.string().min(1),
 	schedule: z.string(),
-	keepLatestCount: z.number().optional(),
+	keepLatestCount: z.number().nullable().optional(),
 	databaseType: z.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"]),
 	postgresId: z.string().optional(),
 	mariadbId: z.string().optional(),
@@ -144,6 +145,7 @@ const createSchema = createInsertSchema(backups, {
 	mongoId: z.string().optional(),
 	userId: z.string().optional(),
 	metadata: z.any().optional(),
+	storageClass: z.string().nullable().optional(),
 });
 
 export const apiCreateBackup = createSchema.pick({
@@ -163,6 +165,7 @@ export const apiCreateBackup = createSchema.pick({
 	composeId: true,
 	serviceName: true,
 	metadata: true,
+	storageClass: true,
 });
 
 export const apiFindOneBackup = z.object({
@@ -187,8 +190,15 @@ export const apiUpdateBackup = createSchema
 		serviceName: true,
 		metadata: true,
 		databaseType: true,
+		storageClass: true,
 	})
-	.required();
+	.required()
+	.extend({
+		keepLatestCount: z.number().nullable().optional(),
+		serviceName: z.string().nullable().optional(),
+		metadata: z.any().optional(),
+		storageClass: z.string().nullable().optional(),
+	});
 
 export const apiRestoreBackup = z.object({
 	databaseId: z.string(),

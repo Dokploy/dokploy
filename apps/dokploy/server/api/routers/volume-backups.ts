@@ -1,5 +1,6 @@
 import {
 	createVolumeBackup,
+	findDestinationById,
 	findVolumeBackupById,
 	IS_CLOUD,
 	removeVolumeBackup,
@@ -19,12 +20,48 @@ import {
 	execAsyncRemote,
 	execAsyncStream,
 } from "@dokploy/server/utils/process/execAsync";
+import {
+	getS3StorageClassesForProvider,
+	normalizeS3StorageClass,
+} from "@dokploy/server/utils/backups/s3-storage-class";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+
+const validateStorageClassForDestination = async ({
+	destinationId,
+	storageClass,
+}: {
+	destinationId: string;
+	storageClass?: string | null;
+}) => {
+	const normalizedStorageClass = normalizeS3StorageClass(storageClass);
+	if (!normalizedStorageClass) {
+		return;
+	}
+
+	const destination = await findDestinationById(destinationId);
+	const supportedStorageClasses = getS3StorageClassesForProvider(
+		destination.provider,
+	);
+
+	if (supportedStorageClasses.length === 0) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Storage class is not supported for provider "${destination.provider || "Unknown"}".`,
+		});
+	}
+
+	if (!supportedStorageClasses.includes(normalizedStorageClass)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid storage class for provider "${destination.provider}". Allowed values: ${supportedStorageClasses.join(", ")}.`,
+		});
+	}
+};
 
 export const volumeBackupsRouter = createTRPCRouter({
 	list: protectedProcedure
@@ -60,6 +97,11 @@ export const volumeBackupsRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createVolumeBackupSchema)
 		.mutation(async ({ input }) => {
+			await validateStorageClassForDestination({
+				destinationId: input.destinationId,
+				storageClass: input.storageClass,
+			});
+
 			const newVolumeBackup = await createVolumeBackup(input);
 
 			if (newVolumeBackup?.enabled) {
@@ -96,6 +138,11 @@ export const volumeBackupsRouter = createTRPCRouter({
 	update: protectedProcedure
 		.input(updateVolumeBackupSchema)
 		.mutation(async ({ input }) => {
+			await validateStorageClassForDestination({
+				destinationId: input.destinationId,
+				storageClass: input.storageClass,
+			});
+
 			const updatedVolumeBackup = await updateVolumeBackup(
 				input.volumeBackupId,
 				input,

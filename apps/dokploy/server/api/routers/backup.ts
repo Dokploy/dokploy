@@ -31,6 +31,10 @@ import {
 	normalizeS3Path,
 } from "@dokploy/server/utils/backups/utils";
 import {
+	getS3StorageClassesForProvider,
+	normalizeS3StorageClass,
+} from "@dokploy/server/utils/backups/s3-storage-class";
+import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
@@ -60,17 +64,87 @@ interface RcloneFile {
 	Size: number;
 	IsDir: boolean;
 	Tier?: string;
+	StorageClass?: string;
+	RestoreAvailability?: "ready" | "restoring" | "archived" | "unknown";
+	RestoreExpiryDate?: string | null;
 	Hashes?: {
 		MD5?: string;
 		SHA1?: string;
 	};
 }
 
+interface RcloneRestoreStatusEntry {
+	Remote?: string;
+	StorageClass?: string;
+	RestoreStatus?: {
+		IsRestoreInProgress?: boolean;
+		RestoreExpiryDate?: string | null;
+	} | null;
+}
+
+const ARCHIVE_STORAGE_CLASSES = new Set([
+	"GLACIER",
+	"DEEP_ARCHIVE",
+	"ARCHIVE",
+]);
+
+const isArchiveStorageClass = (storageClass?: string | null) => {
+	if (!storageClass) {
+		return false;
+	}
+	return ARCHIVE_STORAGE_CLASSES.has(storageClass.toUpperCase());
+};
+
+const ARCHIVE_RESTORE_PRIORITY_MAP = {
+	standard: "Standard",
+	priority: "Expedited",
+	bulk: "Bulk",
+} as const;
+
+const shEscape = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
+const GLOB_PATTERN_CHARS = /[*?\[\]{}]/;
+
+const validateStorageClassForDestination = async ({
+	destinationId,
+	storageClass,
+}: {
+	destinationId: string;
+	storageClass?: string | null;
+}) => {
+	const normalizedStorageClass = normalizeS3StorageClass(storageClass);
+	if (!normalizedStorageClass) {
+		return;
+	}
+
+	const destination = await findDestinationById(destinationId);
+	const provider = destination.provider;
+	const supportedStorageClasses = getS3StorageClassesForProvider(provider);
+
+	if (supportedStorageClasses.length === 0) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Storage class is not supported for provider "${provider || "Unknown"}".`,
+		});
+	}
+
+	if (!supportedStorageClasses.includes(normalizedStorageClass)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid storage class for provider "${provider}". Allowed values: ${supportedStorageClasses.join(", ")}.`,
+		});
+	}
+};
+
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateBackup)
 		.mutation(async ({ input }) => {
 			try {
+				await validateStorageClassForDestination({
+					destinationId: input.destinationId,
+					storageClass: input.storageClass,
+				});
+
 				const newBackup = await createBackup(input);
 
 				const backup = await findBackupById(newBackup.backupId);
@@ -131,6 +205,11 @@ export const backupRouter = createTRPCRouter({
 		.input(apiUpdateBackup)
 		.mutation(async ({ input }) => {
 			try {
+				await validateStorageClassForDestination({
+					destinationId: input.destinationId,
+					storageClass: input.storageClass,
+				});
+
 				await updateBackupById(input.backupId, input);
 				const backup = await findBackupById(input.backupId);
 
@@ -313,15 +392,32 @@ export const backupRouter = createTRPCRouter({
 
 				const searchPath = baseDir ? `${bucketPath}/${baseDir}` : bucketPath;
 				const listCommand = `rclone lsjson ${rcloneFlags.join(" ")} "${searchPath}" --no-mimetype --no-modtime 2>/dev/null`;
+				const restoreStatusCommand = `rclone backend restore-status ${rcloneFlags.join(" ")} "${searchPath}" 2>/dev/null`;
 
 				let stdout = "";
+				let restoreStatusStdout = "";
 
 				if (input.serverId) {
 					const result = await execAsyncRemote(input.serverId, listCommand);
 					stdout = result.stdout;
+					try {
+						const restoreStatusResult = await execAsyncRemote(
+							input.serverId,
+							restoreStatusCommand,
+						);
+						restoreStatusStdout = restoreStatusResult.stdout;
+					} catch (error) {
+						console.warn("restore-status failed:", error);
+					}
 				} else {
 					const result = await execAsync(listCommand);
 					stdout = result.stdout;
+					try {
+						const restoreStatusResult = await execAsync(restoreStatusCommand);
+						restoreStatusStdout = restoreStatusResult.stdout;
+					} catch (error) {
+						console.warn("restore-status failed:", error);
+					}
 				}
 
 				let files: RcloneFile[] = [];
@@ -333,14 +429,74 @@ export const backupRouter = createTRPCRouter({
 					throw new Error("Failed to parse backup files list");
 				}
 
+				let restoreStatusEntries: RcloneRestoreStatusEntry[] = [];
+				if (restoreStatusStdout) {
+					try {
+						const parsed = JSON.parse(
+							restoreStatusStdout,
+						) as RcloneRestoreStatusEntry[];
+						restoreStatusEntries = Array.isArray(parsed) ? parsed : [];
+					} catch (error) {
+						console.warn("Failed to parse restore-status response:", error);
+					}
+				}
+
+				const restoreStatusMap = new Map<string, RcloneRestoreStatusEntry>();
+				for (const entry of restoreStatusEntries) {
+					const remote = entry.Remote?.replace(/\/$/, "");
+					if (!remote) {
+						continue;
+					}
+					restoreStatusMap.set(remote, entry);
+				}
+
 				// Limit to first 100 files
 
-				const results = baseDir
+				const normalizedBaseDir = baseDir.replace(/\/$/, "");
+				const results = (baseDir
 					? files.map((file) => ({
 							...file,
 							Path: `${baseDir}${file.Path}`,
 						}))
-					: files;
+					: files
+				).map((file) => {
+					const normalizedRemotePath = file.Path.replace(/^\/+/, "").replace(/\/$/, "");
+					const relativeRemotePath =
+						normalizedBaseDir && normalizedRemotePath.startsWith(`${normalizedBaseDir}/`)
+							? normalizedRemotePath.slice(normalizedBaseDir.length + 1)
+							: normalizedRemotePath;
+					const restoreStatus =
+						restoreStatusMap.get(normalizedRemotePath) ||
+						restoreStatusMap.get(relativeRemotePath);
+					const storageClass =
+						file.StorageClass || restoreStatus?.StorageClass || file.Tier;
+					const isArchive = isArchiveStorageClass(storageClass);
+					const inProgress =
+						restoreStatus?.RestoreStatus?.IsRestoreInProgress === true;
+					const restored =
+						restoreStatus?.RestoreStatus?.IsRestoreInProgress === false;
+
+					let restoreAvailability: RcloneFile["RestoreAvailability"] = "unknown";
+					if (file.IsDir) {
+						restoreAvailability = "unknown";
+					} else if (inProgress) {
+						restoreAvailability = "restoring";
+					} else if (restored) {
+						restoreAvailability = "ready";
+					} else if (isArchive) {
+						restoreAvailability = "archived";
+					} else {
+						restoreAvailability = "ready";
+					}
+
+					return {
+						...file,
+						StorageClass: storageClass,
+						RestoreAvailability: restoreAvailability,
+						RestoreExpiryDate:
+							restoreStatus?.RestoreStatus?.RestoreExpiryDate ?? null,
+					};
+				});
 
 				if (searchTerm) {
 					return results
@@ -359,6 +515,69 @@ export const backupRouter = createTRPCRouter({
 						error instanceof Error
 							? error.message
 							: "Error listing backup files",
+					cause: error,
+				});
+			}
+		}),
+	requestBackupFileRestore: protectedProcedure
+		.input(
+			z.object({
+				destinationId: z.string().min(1),
+				backupFile: z.string().min(1),
+				retrievalTier: z.enum(["standard", "priority", "bulk"]).default("standard"),
+				lifetimeDays: z.number().int().min(1).max(30).default(7),
+				serverId: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			try {
+				const destination = await findDestinationById(input.destinationId);
+				const rcloneFlags = getS3Credentials(destination);
+				const bucketPath = `:s3:${destination.bucket}`;
+				const normalizedPath = input.backupFile.trim().replace(/^\/+/, "");
+
+				if (normalizedPath.endsWith("/")) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Please select a backup file, not a directory.",
+					});
+				}
+
+				if (!normalizedPath) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Please select a valid backup file path.",
+					});
+				}
+
+				if (GLOB_PATTERN_CHARS.test(normalizedPath)) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Backup file path must be a literal object key and cannot contain wildcard characters.",
+					});
+				}
+
+				const priority = ARCHIVE_RESTORE_PRIORITY_MAP[input.retrievalTier];
+				const restoreCommand = `rclone backend restore ${rcloneFlags.join(" ")} --include ${shEscape(normalizedPath)} ${shEscape(bucketPath)} -o priority=${priority} -o lifetime=${input.lifetimeDays}`;
+
+				if (input.serverId) {
+					await execAsyncRemote(input.serverId, restoreCommand);
+				} else {
+					await execAsync(restoreCommand);
+				}
+
+				return {
+					success: true,
+					message: `Archive restore requested for the selected file with ${input.retrievalTier} priority.`,
+				};
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? error.message
+							: "Failed to request archive restore.",
 					cause: error,
 				});
 			}
