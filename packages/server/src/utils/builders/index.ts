@@ -1,4 +1,5 @@
 import type { InferResultType } from "@dokploy/server/types/with";
+import type Dockerode from "dockerode";
 import type { CreateServiceOptions } from "dockerode";
 import { getRegistryTag, uploadImageRemoteCommand } from "../cluster/upload";
 import {
@@ -180,10 +181,42 @@ export const mechanizeDockerContainer = async (
 				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
 			},
 		});
+
+		await waitForServiceConvergence(docker, appName);
 	} catch (error) {
 		console.log(error);
 		await docker.createService(settings);
 	}
+};
+
+const waitForServiceConvergence = async (
+	docker: Dockerode,
+	appName: string,
+	timeoutMs = 120_000,
+	pollIntervalMs = 3_000,
+): Promise<void> => {
+	const start = Date.now();
+
+	while (Date.now() - start < timeoutMs) {
+		const tasks = await docker.listTasks({
+			filters: JSON.stringify({
+				service: [appName],
+				"desired-state": ["running"],
+			}),
+		});
+
+		const runningTasks = tasks.filter(
+			(t: { Status?: { State?: string } }) => t.Status?.State === "running",
+		);
+
+		if (runningTasks.length <= 1) return;
+
+		await new Promise((r) => setTimeout(r, pollIntervalMs));
+	}
+
+	console.warn(
+		`[Dokploy] Service ${appName} did not converge after ${timeoutMs}ms — orphan tasks may still be running`,
+	);
 };
 
 const getImageName = (application: ApplicationNested) => {
