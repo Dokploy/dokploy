@@ -135,3 +135,12 @@ export const getTrustedOrigins = async () => {
 
 	return Array.from(new Set(trustedOrigins));
 };
+
+export const getTrustedProviders = async () => {
+	try {
+		const providers = await db.query.ssoProvider.findMany();
+		return providers.map((provider) => provider.providerId);
+	} catch (error) {
+		return [];
+	}
+};

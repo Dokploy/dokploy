@@ -11,10 +11,10 @@ import {
 	removeDeployment,
 	updateDeploymentStatus,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/server/db";
 import {
 	apiFindAllByApplication,
 	apiFindAllByCompose,

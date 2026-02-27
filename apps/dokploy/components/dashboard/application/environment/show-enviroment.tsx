@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { type CSSProperties, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -60,7 +60,7 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 		mongo: () => api.mongo.update.useMutation(),
 		compose: () => api.compose.update.useMutation(),
 	};
-	const { mutateAsync, isLoading } = mutationMap[type]
+	const { mutateAsync, isPending } = mutationMap[type]
 		? mutationMap[type]()
 		: api.mongo.update.useMutation();
 
@@ -111,7 +111,7 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isLoading) {
+			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isPending) {
 				e.preventDefault();
 				form.handleSubmit(onSubmit)();
 			}
@@ -121,7 +121,7 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 		return () => {
 			document.removeEventListener("keydown", handleKeyDown);
 		};
-	}, [form, onSubmit, isLoading]);
+	}, [form, onSubmit, isPending]);
 
 	return (
 		<div className="flex w-full flex-col gap-5 ">
@@ -196,7 +196,7 @@ PORT=3000
 									</Button>
 								)}
 								<Button
-									isLoading={isLoading}
+									isLoading={isPending}
 									className="w-fit"
 									type="submit"
 									disabled={!hasChanges}

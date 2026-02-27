@@ -11,16 +11,16 @@ import { api } from "@/utils/api";
 
 export function LicenseKeySettings() {
 	const utils = api.useUtils();
-	const { data, isLoading } = api.licenseKey.getEnterpriseSettings.useQuery();
-	const { mutateAsync: updateEnterpriseSettings, isLoading: isSaving } =
+	const { data, isPending } = api.licenseKey.getEnterpriseSettings.useQuery();
+	const { mutateAsync: updateEnterpriseSettings, isPending: isSaving } =
 		api.licenseKey.updateEnterpriseSettings.useMutation();
-	const { mutateAsync: activateLicenseKey, isLoading: isActivating } =
+	const { mutateAsync: activateLicenseKey, isPending: isActivating } =
 		api.licenseKey.activate.useMutation();
-	const { mutateAsync: validateLicenseKey, isLoading: isValidating } =
+	const { mutateAsync: validateLicenseKey, isPending: isValidating } =
 		api.licenseKey.validate.useMutation();
-	const { mutateAsync: deactivateLicenseKey, isLoading: isDeactivating } =
+	const { mutateAsync: deactivateLicenseKey, isPending: isDeactivating } =
 		api.licenseKey.deactivate.useMutation();
-	const { data: haveValidLicenseKey, isLoading: isCheckingLicenseKey } =
+	const { data: haveValidLicenseKey, isPending: isCheckingLicenseKey } =
 		api.licenseKey.haveValidLicenseKey.useQuery();
 	const [licenseKey, setLicenseKey] = useState("");
 
@@ -57,7 +57,7 @@ export function LicenseKeySettings() {
 									</span>
 									<Switch
 										checked={enabled}
-										disabled={isLoading || isSaving || isDeactivating}
+										disabled={isPending || isSaving || isDeactivating}
 										onCheckedChange={async (next) => {
 											try {
 												await updateEnterpriseSettings({
@@ -224,7 +224,7 @@ export function LicenseKeySettings() {
 									}
 								}}
 								isLoading={isSaving}
-								disabled={isLoading || isDeactivating}
+								disabled={isPending || isDeactivating}
 							>
 								Enable Enterprise Features
 							</Button>

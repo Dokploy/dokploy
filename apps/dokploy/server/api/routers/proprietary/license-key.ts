@@ -1,10 +1,10 @@
+import { db } from "@dokploy/server/db";
 import { user } from "@dokploy/server/db/schema";
 import { hasValidLicense, validateLicenseKey } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
-import { db } from "@/server/db";
 import {
 	activateLicenseKey,
 	deactivateLicenseKey,

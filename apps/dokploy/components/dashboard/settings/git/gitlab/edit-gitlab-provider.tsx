@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -18,9 +18,9 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
-	FormDescription,
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
@@ -59,9 +59,9 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const { mutateAsync, error, isError } = api.gitlab.update.useMutation();
-	const { mutateAsync: testConnection, isLoading } =
+	const { mutateAsync: testConnection, isPending } =
 		api.gitlab.testConnection.useMutation();
-	const form = useForm<Schema>({
+	const form = useForm({
 		defaultValues: {
 			groupName: "",
 			name: "",
@@ -205,7 +205,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 									<Button
 										type="button"
 										variant={"secondary"}
-										isLoading={isLoading}
+										isLoading={isPending}
 										onClick={async () => {
 											await testConnection({
 												gitlabId,

@@ -32,12 +32,12 @@ import {
 	IS_CLOUD,
 	updateProjectById,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { db } from "@/server/db";
 import {
 	apiCreateProject,
 	apiFindOneProject,
@@ -473,6 +473,7 @@ export const projectRouter = createTRPCRouter({
 									await createPreviewDeployment({
 										...rest,
 										applicationId: newApplication.applicationId,
+										domainId: undefined,
 									});
 								}
 

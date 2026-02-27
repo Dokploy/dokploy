@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -17,9 +17,9 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
-	FormDescription,
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
@@ -51,8 +51,8 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 		isLoading,
 		refetch,
 	} = api.gitea.one.useQuery({ giteaId });
-	const { mutateAsync, isLoading: isUpdating } = api.gitea.update.useMutation();
-	const { mutateAsync: testConnection, isLoading: isTesting } =
+	const { mutateAsync, isPending: isUpdating } = api.gitea.update.useMutation();
+	const { mutateAsync: testConnection, isPending: isTesting } =
 		api.gitea.testConnection.useMutation();
 	const url = useUrl();
 	const utils = api.useUtils();
@@ -94,7 +94,7 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 		}
 	}, [router.query, router.isReady, refetch]);
 
-	const form = useForm<z.infer<typeof formSchema>>({
+	const form = useForm({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			name: "",

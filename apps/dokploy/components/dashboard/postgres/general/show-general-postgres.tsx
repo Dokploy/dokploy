@@ -28,13 +28,13 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 		{ enabled: !!postgresId },
 	);
 
-	const { mutateAsync: reload, isLoading: isReloading } =
+	const { mutateAsync: reload, isPending: isReloading } =
 		api.postgres.reload.useMutation();
 
-	const { mutateAsync: stop, isLoading: isStopping } =
+	const { mutateAsync: stop, isPending: isStopping } =
 		api.postgres.stop.useMutation();
 
-	const { mutateAsync: start, isLoading: isStarting } =
+	const { mutateAsync: start, isPending: isStarting } =
 		api.postgres.start.useMutation();
 
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);

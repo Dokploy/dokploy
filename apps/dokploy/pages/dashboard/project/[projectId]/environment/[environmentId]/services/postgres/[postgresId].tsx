@@ -339,6 +339,7 @@ export async function getServerSideProps(
 				postgresId: params?.postgresId,
 			});
 			await helpers.settings.isCloud.prefetch();
+
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),

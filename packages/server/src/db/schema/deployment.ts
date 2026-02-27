@@ -209,44 +209,27 @@ export const apiCreateDeploymentVolumeBackup = schema
 		volumeBackupId: z.string().min(1),
 	});
 
-export const apiFindAllByApplication = schema
-	.pick({
-		applicationId: true,
-	})
-	.extend({
-		applicationId: z.string().min(1),
-	})
-	.required();
+export const apiFindAllByApplication = z.object({
+	applicationId: z.string().min(1),
+});
 
-export const apiFindAllByCompose = schema
-	.pick({
-		composeId: true,
-	})
-	.extend({
-		composeId: z.string().min(1),
-	})
-	.required();
+export const apiFindAllByCompose = z.object({
+	composeId: z.string().min(1),
+});
 
-export const apiFindAllByServer = schema
-	.pick({
-		serverId: true,
-	})
-	.extend({
-		serverId: z.string().min(1),
-	})
-	.required();
+export const apiFindAllByServer = z.object({
+	serverId: z.string().min(1),
+});
 
-export const apiFindAllByType = z
-	.object({
-		id: z.string().min(1),
-		type: z.enum([
-			"application",
-			"compose",
-			"server",
-			"schedule",
-			"previewDeployment",
-			"backup",
-			"volumeBackup",
-		]),
-	})
-	.required();
+export const apiFindAllByType = z.object({
+	id: z.string().min(1),
+	type: z.enum([
+		"application",
+		"compose",
+		"server",
+		"schedule",
+		"previewDeployment",
+		"backup",
+		"volumeBackup",
+	]),
+});

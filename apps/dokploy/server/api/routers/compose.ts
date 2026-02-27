@@ -33,6 +33,7 @@ import {
 	updateCompose,
 	updateDeploymentStatus,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import {
 	type CompleteTemplate,
 	fetchTemplateFiles,
@@ -47,7 +48,6 @@ import { parse } from "toml";
 import { stringify } from "yaml";
 import { z } from "zod";
 import { slugify } from "@/lib/slug";
-import { db } from "@/server/db";
 import {
 	apiCreateCompose,
 	apiDeleteCompose,

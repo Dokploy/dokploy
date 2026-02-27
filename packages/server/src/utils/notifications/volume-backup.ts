@@ -5,6 +5,7 @@ import { renderAsync } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
+	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendGotifyNotification,
@@ -59,6 +60,7 @@ export const sendVolumeBackupNotifications = async ({
 			ntfy: true,
 			pushover: true,
 			teams: true,
+			custom: true,
 		},
 	});
 
@@ -73,6 +75,7 @@ export const sendVolumeBackupNotifications = async ({
 			ntfy,
 			pushover,
 			teams,
+			custom,
 		} = notification;
 
 		if (email || resend) {
@@ -321,6 +324,26 @@ export const sendVolumeBackupNotifications = async ({
 						? "✅ Volume Backup Successful"
 						: "❌ Volume Backup Failed",
 				facts,
+			});
+		}
+
+		if (custom) {
+			await sendCustomNotification(custom, {
+				title: `Volume Backup ${type === "success" ? "Successful" : "Failed"}`,
+				message:
+					type === "success"
+						? "Volume backup completed successfully"
+						: "Volume backup failed",
+				projectName,
+				applicationName,
+				volumeName,
+				serviceType,
+				type,
+				errorMessage: errorMessage ?? "",
+				backupSize: backupSize ?? "",
+				timestamp: date.toISOString(),
+				date: date.toLocaleString(),
+				status: type,
 			});
 		}
 	}

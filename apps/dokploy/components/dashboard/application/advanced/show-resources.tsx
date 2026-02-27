@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { InfoIcon, Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -128,11 +128,11 @@ export const ShowResources = ({ id, type }: Props) => {
 		mongo: () => api.mongo.update.useMutation(),
 	};
 
-	const { mutateAsync, isLoading } = mutationMap[type]
+	const { mutateAsync, isPending } = mutationMap[type]
 		? mutationMap[type]()
 		: api.mongo.update.useMutation();
 
-	const form = useForm<AddResources>({
+	const form = useForm({
 		defaultValues: {
 			cpuLimit: "",
 			cpuReservation: "",
@@ -452,6 +452,11 @@ export const ShowResources = ({ id, type }: Props) => {
 																min={-1}
 																placeholder="65535"
 																{...field}
+																value={
+																	typeof field.value === "number"
+																		? field.value
+																		: ""
+																}
 																onChange={(e) =>
 																	field.onChange(Number(e.target.value))
 																}
@@ -475,6 +480,11 @@ export const ShowResources = ({ id, type }: Props) => {
 																min={-1}
 																placeholder="65535"
 																{...field}
+																value={
+																	typeof field.value === "number"
+																		? field.value
+																		: ""
+																}
 																onChange={(e) =>
 																	field.onChange(Number(e.target.value))
 																}
@@ -507,7 +517,7 @@ export const ShowResources = ({ id, type }: Props) => {
 						</div>
 
 						<div className="flex w-full justify-end">
-							<Button isLoading={isLoading} type="submit">
+							<Button isLoading={isPending} type="submit">
 								Save
 							</Button>
 						</div>
