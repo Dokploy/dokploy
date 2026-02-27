@@ -8,7 +8,12 @@ import { findEnvironmentById } from "@dokploy/server/services/environment";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	buildRcloneRcatCommand,
+	getBackupCommand,
+	getRcloneRemotePath,
+	normalizeS3Path,
+} from "./utils";
 
 export const runComposeBackup = async (
 	compose: Compose,
@@ -28,9 +33,14 @@ export const runComposeBackup = async (
 	});
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		const rcloneDestination = getRcloneRemotePath(
+			destination,
+			bucketDestination,
+		);
+		const rcloneCommand = buildRcloneRcatCommand(
+			destination,
+			rcloneDestination,
+		);
 
 		const backupCommand = getBackupCommand(
 			backup,

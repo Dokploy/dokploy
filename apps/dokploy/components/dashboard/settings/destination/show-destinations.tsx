@@ -1,4 +1,13 @@
-import { Database, FolderUp, Loader2, Trash2 } from "lucide-react";
+import {
+	Database,
+	FolderUp,
+	Globe,
+	HardDrive,
+	Loader2,
+	Server,
+	Trash2,
+	Upload,
+} from "lucide-react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
@@ -12,6 +21,40 @@ import {
 import { api } from "@/utils/api";
 import { HandleDestinations } from "./handle-destinations";
 
+const getDestinationTypeLabel = (
+	destType: string | null | undefined,
+): string => {
+	switch (destType) {
+		case "ftp":
+			return "FTP";
+		case "sftp":
+			return "SFTP";
+		case "google-drive":
+			return "Google Drive";
+		case "onedrive":
+			return "OneDrive";
+		case "custom-rclone":
+			return "Custom Rclone";
+		default:
+			return "S3";
+	}
+};
+
+const getDestinationIcon = (destType: string | null | undefined) => {
+	switch (destType) {
+		case "ftp":
+		case "sftp":
+			return <Server className="size-4 text-muted-foreground" />;
+		case "google-drive":
+		case "onedrive":
+			return <Globe className="size-4 text-muted-foreground" />;
+		case "custom-rclone":
+			return <HardDrive className="size-4 text-muted-foreground" />;
+		default:
+			return <Database className="size-4 text-muted-foreground" />;
+	}
+};
+
 export const ShowDestinations = () => {
 	const { data, isPending, refetch } = api.destination.all.useQuery();
 	const { mutateAsync, isPending: isRemoving } =
@@ -22,12 +65,13 @@ export const ShowDestinations = () => {
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
-							<Database className="size-6 text-muted-foreground self-center" />
-							S3 Destinations
+							<Upload className="size-6 text-muted-foreground self-center" />
+							Backup Destinations
 						</CardTitle>
 						<CardDescription>
-							Add your providers like AWS S3, Cloudflare R2, Wasabi,
-							DigitalOcean Spaces etc.
+							Add storage providers for your backups: S3-compatible (AWS,
+							Cloudflare R2, MinIO, etc.), FTP, SFTP, Google Drive, OneDrive,
+							or any rclone-supported backend.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -57,9 +101,19 @@ export const ShowDestinations = () => {
 												>
 													<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border  w-full">
 														<div className="flex flex-col gap-1">
-															<span className="text-sm">
-																{index + 1}. {destination.name}
-															</span>
+															<div className="flex items-center gap-2">
+																{getDestinationIcon(
+																	destination.destinationType,
+																)}
+																<span className="text-sm">
+																	{index + 1}. {destination.name}
+																</span>
+																<span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+																	{getDestinationTypeLabel(
+																		destination.destinationType,
+																	)}
+																</span>
+															</div>
 															<span className="text-xs text-muted-foreground">
 																Created at:{" "}
 																{new Date(

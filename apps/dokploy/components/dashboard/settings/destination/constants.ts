@@ -131,3 +131,41 @@ export const S3_PROVIDERS: Array<{
 		name: "Any other S3 compatible provider",
 	},
 ];
+
+export const DESTINATION_TYPES: Array<{
+	key: string;
+	name: string;
+	description: string;
+}> = [
+	{
+		key: "s3",
+		name: "S3 Compatible",
+		description: "AWS S3, Cloudflare R2, MinIO, DigitalOcean Spaces, etc.",
+	},
+	{
+		key: "ftp",
+		name: "FTP",
+		description: "Standard FTP server",
+	},
+	{
+		key: "sftp",
+		name: "SFTP",
+		description: "SSH File Transfer Protocol (secure)",
+	},
+	{
+		key: "google-drive",
+		name: "Google Drive",
+		description: "Google Drive storage via rclone",
+	},
+	{
+		key: "onedrive",
+		name: "OneDrive",
+		description: "Microsoft OneDrive storage via rclone",
+	},
+	{
+		key: "custom-rclone",
+		name: "Custom Rclone Config",
+		description:
+			"Provide a raw rclone config snippet for any supported backend",
+	},
+];

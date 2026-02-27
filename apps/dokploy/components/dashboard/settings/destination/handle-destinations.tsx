@@ -33,18 +33,42 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { S3_PROVIDERS } from "./constants";
+import { DESTINATION_TYPES, S3_PROVIDERS } from "./constants";
 
 const addDestination = z.object({
 	name: z.string().min(1, "Name is required"),
-	provider: z.string().min(1, "Provider is required"),
-	accessKeyId: z.string().min(1, "Access Key Id is required"),
-	secretAccessKey: z.string().min(1, "Secret Access Key is required"),
-	bucket: z.string().min(1, "Bucket is required"),
-	region: z.string(),
-	endpoint: z.string().min(1, "Endpoint is required"),
+	destinationType: z.string().min(1, "Destination type is required"),
+	// S3 fields
+	provider: z.string().optional(),
+	accessKeyId: z.string().optional(),
+	secretAccessKey: z.string().optional(),
+	bucket: z.string().optional(),
+	region: z.string().optional(),
+	endpoint: z.string().optional(),
+	// FTP / SFTP fields
+	ftpHost: z.string().optional(),
+	ftpPort: z.string().optional(),
+	ftpUser: z.string().optional(),
+	ftpPassword: z.string().optional(),
+	ftpBasePath: z.string().optional(),
+	// Google Drive fields
+	googleDriveClientId: z.string().optional(),
+	googleDriveClientSecret: z.string().optional(),
+	googleDriveToken: z.string().optional(),
+	googleDriveFolderId: z.string().optional(),
+	// OneDrive fields
+	onedriveClientId: z.string().optional(),
+	onedriveClientSecret: z.string().optional(),
+	onedriveToken: z.string().optional(),
+	onedriveDriveId: z.string().optional(),
+	onedriveFolderId: z.string().optional(),
+	// Custom rclone fields
+	rcloneConfig: z.string().optional(),
+	rcloneRemotePath: z.string().optional(),
+	// Server selection (for cloud)
 	serverId: z.string().optional(),
 });
 
@@ -82,6 +106,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 
 	const form = useForm<AddDestination>({
 		defaultValues: {
+			destinationType: "s3",
 			provider: "",
 			accessKeyId: "",
 			bucket: "",
@@ -89,19 +114,55 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			region: "",
 			secretAccessKey: "",
 			endpoint: "",
+			ftpHost: "",
+			ftpPort: "",
+			ftpUser: "",
+			ftpPassword: "",
+			ftpBasePath: "",
+			googleDriveClientId: "",
+			googleDriveClientSecret: "",
+			googleDriveToken: "",
+			googleDriveFolderId: "",
+			onedriveClientId: "",
+			onedriveClientSecret: "",
+			onedriveToken: "",
+			onedriveDriveId: "",
+			onedriveFolderId: "",
+			rcloneConfig: "",
+			rcloneRemotePath: "",
 		},
 		resolver: zodResolver(addDestination),
 	});
+
+	const watchedDestType = form.watch("destinationType");
+
 	useEffect(() => {
 		if (destination) {
 			form.reset({
 				name: destination.name,
+				destinationType: destination.destinationType || "s3",
 				provider: destination.provider || "",
 				accessKeyId: destination.accessKey,
 				secretAccessKey: destination.secretAccessKey,
 				bucket: destination.bucket,
 				region: destination.region,
 				endpoint: destination.endpoint,
+				ftpHost: destination.ftpHost || "",
+				ftpPort: destination.ftpPort || "",
+				ftpUser: destination.ftpUser || "",
+				ftpPassword: destination.ftpPassword || "",
+				ftpBasePath: destination.ftpBasePath || "",
+				googleDriveClientId: destination.googleDriveClientId || "",
+				googleDriveClientSecret: destination.googleDriveClientSecret || "",
+				googleDriveToken: destination.googleDriveToken || "",
+				googleDriveFolderId: destination.googleDriveFolderId || "",
+				onedriveClientId: destination.onedriveClientId || "",
+				onedriveClientSecret: destination.onedriveClientSecret || "",
+				onedriveToken: destination.onedriveToken || "",
+				onedriveDriveId: destination.onedriveDriveId || "",
+				onedriveFolderId: destination.onedriveFolderId || "",
+				rcloneConfig: destination.rcloneConfig || "",
+				rcloneRemotePath: destination.rcloneRemotePath || "",
 			});
 		} else {
 			form.reset();
@@ -110,14 +171,31 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 
 	const onSubmit = async (data: AddDestination) => {
 		await mutateAsync({
+			destinationType: (data.destinationType as any) || "s3",
 			provider: data.provider || "",
-			accessKey: data.accessKeyId,
-			bucket: data.bucket,
-			endpoint: data.endpoint,
+			accessKey: data.accessKeyId || "",
+			bucket: data.bucket || "",
+			endpoint: data.endpoint || "",
 			name: data.name,
-			region: data.region,
-			secretAccessKey: data.secretAccessKey,
+			region: data.region || "",
+			secretAccessKey: data.secretAccessKey || "",
 			destinationId: destinationId || "",
+			ftpHost: data.ftpHost || "",
+			ftpPort: data.ftpPort || "",
+			ftpUser: data.ftpUser || "",
+			ftpPassword: data.ftpPassword || "",
+			ftpBasePath: data.ftpBasePath || "",
+			googleDriveClientId: data.googleDriveClientId || "",
+			googleDriveClientSecret: data.googleDriveClientSecret || "",
+			googleDriveToken: data.googleDriveToken || "",
+			googleDriveFolderId: data.googleDriveFolderId || "",
+			onedriveClientId: data.onedriveClientId || "",
+			onedriveClientSecret: data.onedriveClientSecret || "",
+			onedriveToken: data.onedriveToken || "",
+			onedriveDriveId: data.onedriveDriveId || "",
+			onedriveFolderId: data.onedriveFolderId || "",
+			rcloneConfig: data.rcloneConfig || "",
+			rcloneRemotePath: data.rcloneRemotePath || "",
 		})
 			.then(async () => {
 				toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
@@ -135,25 +213,29 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 	};
 
 	const handleTestConnection = async (serverId?: string) => {
-		const result = await form.trigger([
-			"provider",
-			"accessKeyId",
-			"secretAccessKey",
-			"bucket",
-			"endpoint",
-		]);
+		const destType = form.getValues("destinationType") || "s3";
 
-		if (!result) {
-			const errors = form.formState.errors;
-			const errorFields = Object.entries(errors)
-				.map(([field, error]) => `${field}: ${error?.message}`)
-				.filter(Boolean)
-				.join("\n");
+		if (destType === "s3") {
+			const result = await form.trigger([
+				"provider",
+				"accessKeyId",
+				"secretAccessKey",
+				"bucket",
+				"endpoint",
+			]);
 
-			toast.error("Please fill all required fields", {
-				description: errorFields,
-			});
-			return;
+			if (!result) {
+				const errors = form.formState.errors;
+				const errorFields = Object.entries(errors)
+					.map(([field, error]) => `${field}: ${error?.message}`)
+					.filter(Boolean)
+					.join("\n");
+
+				toast.error("Please fill all required fields", {
+					description: errorFields,
+				});
+				return;
+			}
 		}
 
 		if (isCloud && !serverId) {
@@ -161,33 +243,436 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			return;
 		}
 
-		const provider = form.getValues("provider");
-		const accessKey = form.getValues("accessKeyId");
-		const secretKey = form.getValues("secretAccessKey");
-		const bucket = form.getValues("bucket");
-		const endpoint = form.getValues("endpoint");
-		const region = form.getValues("region");
-
-		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
+		const data = form.getValues();
 
 		await testConnection({
-			provider,
-			accessKey,
-			bucket,
-			endpoint,
+			destinationType: (data.destinationType as any) || "s3",
+			provider: data.provider || "",
+			accessKey: data.accessKeyId || "",
+			bucket: data.bucket || "",
+			endpoint: data.endpoint || "",
 			name: "Test",
-			region,
-			secretAccessKey: secretKey,
+			region: data.region || "",
+			secretAccessKey: data.secretAccessKey || "",
+			ftpHost: data.ftpHost || "",
+			ftpPort: data.ftpPort || "",
+			ftpUser: data.ftpUser || "",
+			ftpPassword: data.ftpPassword || "",
+			ftpBasePath: data.ftpBasePath || "",
+			googleDriveClientId: data.googleDriveClientId || "",
+			googleDriveClientSecret: data.googleDriveClientSecret || "",
+			googleDriveToken: data.googleDriveToken || "",
+			googleDriveFolderId: data.googleDriveFolderId || "",
+			onedriveClientId: data.onedriveClientId || "",
+			onedriveClientSecret: data.onedriveClientSecret || "",
+			onedriveToken: data.onedriveToken || "",
+			onedriveDriveId: data.onedriveDriveId || "",
+			onedriveFolderId: data.onedriveFolderId || "",
+			rcloneConfig: data.rcloneConfig || "",
+			rcloneRemotePath: data.rcloneRemotePath || "",
 			serverId,
 		})
 			.then(() => {
 				toast.success("Connection Success");
 			})
 			.catch((e) => {
-				toast.error("Error connecting to provider", {
-					description: `${e.message}\n\nTry manually: rclone ls ${connectionString}`,
+				toast.error("Error connecting to destination", {
+					description: e.message,
 				});
 			});
+	};
+
+	const renderS3Fields = () => (
+		<>
+			<FormField
+				control={form.control}
+				name="provider"
+				render={({ field }) => {
+					return (
+						<FormItem>
+							<FormLabel>Provider</FormLabel>
+							<FormControl>
+								<Select
+									onValueChange={field.onChange}
+									defaultValue={field.value}
+									value={field.value}
+								>
+									<FormControl>
+										<SelectTrigger>
+											<SelectValue placeholder="Select a S3 Provider" />
+										</SelectTrigger>
+									</FormControl>
+									<SelectContent>
+										{S3_PROVIDERS.map((s3Provider) => (
+											<SelectItem
+												key={s3Provider.key}
+												value={s3Provider.key}
+											>
+												{s3Provider.name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					);
+				}}
+			/>
+			<FormField
+				control={form.control}
+				name="accessKeyId"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Access Key Id</FormLabel>
+						<FormControl>
+							<Input placeholder="xcas41dasde" {...field} />
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="secretAccessKey"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Secret Access Key</FormLabel>
+						<FormControl>
+							<Input placeholder="asd123asdasw" {...field} />
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="bucket"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Bucket</FormLabel>
+						<FormControl>
+							<Input placeholder="dokploy-bucket" {...field} />
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="region"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Region</FormLabel>
+						<FormControl>
+							<Input placeholder="us-east-1" {...field} />
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="endpoint"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Endpoint</FormLabel>
+						<FormControl>
+							<Input
+								placeholder="https://us.bucket.aws/s3"
+								{...field}
+							/>
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+		</>
+	);
+
+	const renderFtpFields = () => (
+		<>
+			<FormField
+				control={form.control}
+				name="ftpHost"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Host</FormLabel>
+						<FormControl>
+							<Input placeholder="ftp.example.com" {...field} />
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="ftpPort"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Port</FormLabel>
+						<FormControl>
+							<Input
+								placeholder={
+									watchedDestType === "sftp" ? "22" : "21"
+								}
+								{...field}
+							/>
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="ftpUser"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Username</FormLabel>
+						<FormControl>
+							<Input placeholder="backup-user" {...field} />
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="ftpPassword"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Password</FormLabel>
+						<FormControl>
+							<Input
+								type="password"
+								placeholder="Password"
+								{...field}
+							/>
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="ftpBasePath"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Base Path (optional)</FormLabel>
+						<FormControl>
+							<Input placeholder="/backups/dokploy" {...field} />
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+		</>
+	);
+
+	const renderGoogleDriveFields = () => (
+		<>
+			<FormField
+				control={form.control}
+				name="googleDriveClientId"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Client ID</FormLabel>
+						<FormControl>
+							<Input placeholder="OAuth Client ID" {...field} />
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="googleDriveClientSecret"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Client Secret</FormLabel>
+						<FormControl>
+							<Input
+								type="password"
+								placeholder="OAuth Client Secret"
+								{...field}
+							/>
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="googleDriveToken"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>OAuth Token (JSON)</FormLabel>
+						<FormControl>
+							<Textarea
+								placeholder='{"access_token":"...","token_type":"Bearer","refresh_token":"...","expiry":"..."}'
+								className="font-mono text-xs"
+								rows={3}
+								{...field}
+							/>
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="googleDriveFolderId"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Folder ID (optional)</FormLabel>
+						<FormControl>
+							<Input
+								placeholder="Root folder ID from Google Drive"
+								{...field}
+							/>
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+		</>
+	);
+
+	const renderOneDriveFields = () => (
+		<>
+			<FormField
+				control={form.control}
+				name="onedriveClientId"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Client ID</FormLabel>
+						<FormControl>
+							<Input placeholder="Azure App Client ID" {...field} />
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="onedriveClientSecret"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Client Secret</FormLabel>
+						<FormControl>
+							<Input
+								type="password"
+								placeholder="Azure App Client Secret"
+								{...field}
+							/>
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="onedriveToken"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>OAuth Token (JSON)</FormLabel>
+						<FormControl>
+							<Textarea
+								placeholder='{"access_token":"...","token_type":"Bearer","refresh_token":"...","expiry":"..."}'
+								className="font-mono text-xs"
+								rows={3}
+								{...field}
+							/>
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="onedriveDriveId"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Drive ID (optional)</FormLabel>
+						<FormControl>
+							<Input placeholder="OneDrive drive ID" {...field} />
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="onedriveFolderId"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Folder Path (optional)</FormLabel>
+						<FormControl>
+							<Input
+								placeholder="Backups/dokploy"
+								{...field}
+							/>
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+		</>
+	);
+
+	const renderCustomRcloneFields = () => (
+		<>
+			<FormField
+				control={form.control}
+				name="rcloneConfig"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Rclone Configuration</FormLabel>
+						<FormControl>
+							<Textarea
+								placeholder={`[dokploy-remote]\ntype = b2\naccount = your-account-id\nkey = your-application-key`}
+								className="font-mono text-xs"
+								rows={8}
+								{...field}
+							/>
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+			<FormField
+				control={form.control}
+				name="rcloneRemotePath"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Remote Path (optional)</FormLabel>
+						<FormControl>
+							<Input
+								placeholder="bucket-name/backups"
+								{...field}
+							/>
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+		</>
+	);
+
+	const renderFieldsForType = () => {
+		switch (watchedDestType) {
+			case "ftp":
+			case "sftp":
+				return renderFtpFields();
+			case "google-drive":
+				return renderGoogleDriveFields();
+			case "onedrive":
+				return renderOneDriveFields();
+			case "custom-rclone":
+				return renderCustomRcloneFields();
+			default:
+				return renderS3Fields();
+		}
 	};
 
 	return (
@@ -208,15 +693,15 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>
 						{destinationId ? "Update" : "Add"} Destination
 					</DialogTitle>
 					<DialogDescription>
-						In this section, you can configure and add new destinations for your
-						backups. Please ensure that you provide the correct information to
-						guarantee secure and efficient storage.
+						Configure a backup destination. Choose from S3-compatible storage,
+						FTP, SFTP, Google Drive, OneDrive, or provide a custom rclone
+						configuration for any supported backend.
 					</DialogDescription>
 				</DialogHeader>
 				{(isError || isErrorConnection) && (
@@ -239,7 +724,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									<FormItem>
 										<FormLabel>Name</FormLabel>
 										<FormControl>
-											<Input placeholder={"S3 Bucket"} {...field} />
+											<Input placeholder={"My Backup Destination"} {...field} />
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -248,11 +733,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 						/>
 						<FormField
 							control={form.control}
-							name="provider"
+							name="destinationType"
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Provider</FormLabel>
+										<FormLabel>Destination Type</FormLabel>
 										<FormControl>
 											<Select
 												onValueChange={field.onChange}
@@ -261,16 +746,13 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a S3 Provider" />
+														<SelectValue placeholder="Select a destination type" />
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
-													{S3_PROVIDERS.map((s3Provider) => (
-														<SelectItem
-															key={s3Provider.key}
-															value={s3Provider.key}
-														>
-															{s3Provider.name}
+													{DESTINATION_TYPES.map((dt) => (
+														<SelectItem key={dt.key} value={dt.key}>
+															{dt.name} - {dt.description}
 														</SelectItem>
 													))}
 												</SelectContent>
@@ -282,82 +764,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							}}
 						/>
 
-						<FormField
-							control={form.control}
-							name="accessKeyId"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
-										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
-						<FormField
-							control={form.control}
-							name="secretAccessKey"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"asd123asdasw"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="bucket"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="region"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="endpoint"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
-									<FormControl>
-										<Input
-											placeholder={"https://us.bucket.aws/s3"}
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{renderFieldsForType()}
 					</form>
 
 					<DialogFooter

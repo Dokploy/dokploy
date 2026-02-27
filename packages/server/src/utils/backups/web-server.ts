@@ -10,7 +10,12 @@ import {
 } from "@dokploy/server/services/deployment";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { execAsync } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	buildRcloneCopytoCommand,
+	getRcloneConfigSetupCommand,
+	getRcloneRemotePath,
+	normalizeS3Path,
+} from "./utils";
 
 export const runWebServerBackup = async (backup: BackupSchedule) => {
 	if (IS_CLOUD) {
@@ -26,23 +31,31 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 
 	try {
 		const destination = await findDestinationById(backup.destinationId);
-		const rcloneFlags = getS3Credentials(destination);
 		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 		const { BASE_PATH } = paths();
 		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-backup-"));
 		const backupFileName = `webserver-backup-${timestamp}.zip`;
-		const s3Path = `:s3:${destination.bucket}/${normalizeS3Path(backup.prefix)}${backupFileName}`;
+		const remotePath = getRcloneRemotePath(
+			destination,
+			`${normalizeS3Path(backup.prefix)}${backupFileName}`,
+		);
 
 		try {
 			await execAsync(`mkdir -p ${tempDir}/filesystem`);
 
-			// First get the container ID
+			// Write the rclone config if needed for non-S3 backends
+			const configSetup = getRcloneConfigSetupCommand(destination);
+			if (configSetup) {
+				await execAsync(configSetup, { shell: "/bin/bash" });
+			}
+
+			// Get the Dokploy postgres container
 			const { stdout: containerId } = await execAsync(
 				`docker ps --filter "name=dokploy-postgres" --filter "status=running" -q | head -n 1`,
 			);
 
 			if (!containerId) {
-				writeStream.write("Dokploy postgres container not found❌\n");
+				writeStream.write("Dokploy postgres container not found\n");
 				writeStream.end();
 				throw new Error("Dokploy postgres container not found");
 			}
@@ -51,12 +64,12 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 
 			const postgresContainerId = containerId.trim();
 
-			// First dump the database inside the container
+			// Dump the database inside the container
 			const dumpCommand = `docker exec ${postgresContainerId} pg_dump -v -Fc -U dokploy -d dokploy -f /tmp/database.sql`;
 			writeStream.write(`Running dump command: ${dumpCommand}\n`);
 			await execAsync(dumpCommand);
 
-			// Then copy the file from the container to host
+			// Copy the dump file from the container to host
 			const copyCommand = `docker cp ${postgresContainerId}:/tmp/database.sql ${tempDir}/database.sql`;
 			writeStream.write(`Copying database dump: ${copyCommand}\n`);
 			await execAsync(copyCommand);
@@ -73,16 +86,19 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			writeStream.write("Copied filesystem to temp directory\n");
 
 			await execAsync(
-				// Zip all .sql files since we created more than one
 				`cd ${tempDir} && zip -r ${backupFileName} *.sql filesystem/ > /dev/null 2>&1`,
 			);
 
 			writeStream.write("Zipped database and filesystem\n");
 
-			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${s3Path}"`;
-			writeStream.write("Running command to upload backup to S3\n");
+			const uploadCommand = buildRcloneCopytoCommand(
+				destination,
+				`${tempDir}/${backupFileName}`,
+				remotePath,
+			);
+			writeStream.write("Running command to upload backup\n");
 			await execAsync(uploadCommand);
-			writeStream.write("Uploaded backup to S3 ✅\n");
+			writeStream.write("Uploaded backup successfully\n");
 			writeStream.end();
 			await updateDeploymentStatus(deployment.deploymentId, "done");
 			return true;
@@ -95,7 +111,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 		}
 	} catch (error) {
 		console.error("Backup error:", error);
-		writeStream.write("Backup error❌\n");
+		writeStream.write("Backup error\n");
 		writeStream.write(
 			error instanceof Error ? error.message : "Unknown error\n",
 		);

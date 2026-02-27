@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Destination } from "@dokploy/server/services/destination";
-import { getS3Credentials } from "../backups/utils";
+import {
+	buildRcloneCopytoCommand,
+	getRcloneConfigSetupCommand,
+	getRcloneRemotePath,
+} from "../backups/utils";
 import { execAsync } from "../process/execAsync";
 
 export const restoreWebServerBackup = async (
@@ -15,9 +19,7 @@ export const restoreWebServerBackup = async (
 		return;
 	}
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
-		const backupPath = `${bucketPath}/${backupFile}`;
+		const backupPath = getRcloneRemotePath(destination, backupFile);
 		const { BASE_PATH } = paths();
 
 		// Create a temporary directory outside of BASE_PATH
@@ -28,14 +30,31 @@ export const restoreWebServerBackup = async (
 			emit(`Backup path: ${backupPath}`);
 			emit(`Temp directory: ${tempDir}`);
 
+			// Write rclone config if needed for non-S3 backends
+			const configSetup = getRcloneConfigSetupCommand(destination);
+			if (configSetup) {
+				await execAsync(configSetup, { shell: "/bin/bash" });
+			}
+
 			// Create temp directory
 			emit("Creating temporary directory...");
 			await execAsync(`mkdir -p ${tempDir}`);
 
-			// Download backup from S3
-			emit("Downloading backup from S3...");
+			// Download backup from storage
+			emit("Downloading backup...");
+			// rclone copyto downloads the remote file to a local path
+			const downloadCmd = buildRcloneCopytoCommand(
+				destination,
+				backupPath,
+				`${tempDir}/${backupFile}`,
+			);
+			// Note: for copyto the args are (src, dest) but our helper expects (local, remote)
+			// so we construct it manually here
+			const flags = getRcloneConfigSetupCommand(destination)
+				? [`--config="/tmp/dokploy-rclone-${destination.destinationId}.conf"`]
+				: [];
 			await execAsync(
-				`rclone copyto ${rcloneFlags.join(" ")} "${backupPath}" "${tempDir}/${backupFile}"`,
+				`rclone copyto ${flags.join(" ")} "${backupPath}" "${tempDir}/${backupFile}"`,
 			);
 
 			// List files before extraction
@@ -51,7 +70,7 @@ export const restoreWebServerBackup = async (
 			emit("Restoring filesystem...");
 			emit(`Copying from ${tempDir}/filesystem/* to ${BASE_PATH}/`);
 
-			// First clean the target directory
+			// Clean the target directory
 			emit("Cleaning target directory...");
 			await execAsync(`rm -rf "${BASE_PATH}/"*`);
 
@@ -63,10 +82,10 @@ export const restoreWebServerBackup = async (
 			emit("Copying files...");
 			await execAsync(`cp -rp "${tempDir}/filesystem/"* "${BASE_PATH}/"`);
 
-			// Now handle database restore
+			// Handle database restore
 			emit("Starting database restore...");
 
-			// Check if database.sql.gz exists and decompress it
+			// Check for compressed database file
 			const { stdout: hasGzFile } = await execAsync(
 				`ls ${tempDir}/database.sql.gz || true`,
 			);

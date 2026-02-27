@@ -2,7 +2,11 @@ import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Postgres } from "@dokploy/server/services/postgres";
 import type { z } from "zod";
-import { getS3Credentials } from "../backups/utils";
+import {
+	buildRcloneCatCommand,
+	getRcloneConfigSetupCommand,
+	getRcloneRemotePath,
+} from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
 
@@ -15,17 +19,20 @@ export const restorePostgresBackup = async (
 	try {
 		const { appName, databaseUser, serverId } = postgres;
 
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
+		const backupPath = getRcloneRemotePath(
+			destination,
+			backupInput.backupFile,
+		);
 
-		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
+		const rcloneCommand = `${buildRcloneCatCommand(destination, backupPath)} | gunzip`;
 
-		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
+		// Write the config file for non-S3 backends
+		const configSetup = getRcloneConfigSetupCommand(destination);
 
 		emit("Starting restore...");
 		emit(`Backup path: ${backupPath}`);
 
-		const command = getRestoreCommand({
+		const restoreCmd = getRestoreCommand({
 			appName,
 			credentials: {
 				database: backupInput.databaseName,
@@ -35,6 +42,10 @@ export const restorePostgresBackup = async (
 			rcloneCommand,
 			restoreType: "database",
 		});
+
+		const command = configSetup
+			? `${configSetup} && ${restoreCmd}`
+			: restoreCmd;
 
 		emit(`Executing command: ${command}`);
 
