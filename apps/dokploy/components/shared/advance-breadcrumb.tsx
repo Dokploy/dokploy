@@ -36,12 +36,7 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { api } from "@/utils/api";
 
-interface AdvanceBreadcrumbProps {
-	projectId?: string;
-	environmentId?: string;
-	serviceId?: string;
-	serviceType?: ServiceType;
-}
+type AdvanceBreadcrumbProps = {};
 
 const getServiceIcon = (type: ServiceType, className = "size-4") => {
 	const icons: Record<ServiceType, React.ReactNode> = {
@@ -163,17 +158,31 @@ const extractServicesFromEnvironment = (
 	return services;
 };
 
-export const AdvanceBreadcrumb = ({
-	projectId,
-	environmentId,
-	serviceId,
-}: AdvanceBreadcrumbProps) => {
+export const AdvanceBreadcrumb = () => {
 	const router = useRouter();
+	const { query } = router;
+
+	// Read IDs from URL (dynamic route segments)
+	const projectId =
+		typeof query.projectId === "string" ? query.projectId : null;
+	const environmentId =
+		typeof query.environmentId === "string" ? query.environmentId : null;
+	const serviceId =
+		(typeof query.applicationId === "string" ? query.applicationId : null) ??
+		(typeof query.composeId === "string" ? query.composeId : null) ??
+		(typeof query.postgresId === "string" ? query.postgresId : null) ??
+		(typeof query.mysqlId === "string" ? query.mysqlId : null) ??
+		(typeof query.mariadbId === "string" ? query.mariadbId : null) ??
+		(typeof query.redisId === "string" ? query.redisId : null) ??
+		(typeof query.mongoId === "string" ? query.mongoId : null) ??
+		null;
+
 	const [projectOpen, setProjectOpen] = useState(false);
 	const [serviceOpen, setServiceOpen] = useState(false);
 	const [environmentOpen, setEnvironmentOpen] = useState(false);
 	const [projectSearch, setProjectSearch] = useState("");
 	const [serviceSearch, setServiceSearch] = useState("");
+	const [environmentSearch, setEnvironmentSearch] = useState("");
 	const [expandedProjectId, setExpandedProjectId] = useState<string | null>(
 		null,
 	);
@@ -183,19 +192,19 @@ export const AdvanceBreadcrumb = ({
 
 	// Fetch current project data
 	const { data: currentProject } = api.project.one.useQuery(
-		{ projectId: projectId || "" },
+		{ projectId: projectId ?? "" },
 		{ enabled: !!projectId },
 	);
 
 	// Fetch current environment
 	const { data: currentEnvironment } = api.environment.one.useQuery(
-		{ environmentId: environmentId || "" },
+		{ environmentId: environmentId ?? "" },
 		{ enabled: !!environmentId },
 	);
 
 	// Fetch environments for current project
 	const { data: projectEnvironments } = api.environment.byProjectId.useQuery(
-		{ projectId: projectId || "" },
+		{ projectId: projectId ?? "" },
 		{ enabled: !!projectId },
 	);
 
@@ -275,6 +284,12 @@ export const AdvanceBreadcrumb = ({
 			s.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
 			s.appName?.toLowerCase().includes(serviceSearch.toLowerCase()),
 	);
+
+	// Filter environments based on search
+	const filteredEnvironments =
+		projectEnvironments?.filter((env) =>
+			env.name.toLowerCase().includes(environmentSearch.toLowerCase()),
+		) ?? [];
 
 	// If we're just on the projects page, show simple breadcrumb
 	if (!projectId) {
@@ -367,7 +382,7 @@ export const AdvanceBreadcrumb = ({
 																	<span className="font-medium">
 																		{project.name}
 																	</span>
-																	<span className="text-xs text-muted-foreground">
+																	<span className="text-muted-foreground">
 																		{project.environments.length} env
 																		{project.environments.length !== 1
 																			? "s"
@@ -442,39 +457,58 @@ export const AdvanceBreadcrumb = ({
 								<Button
 									variant="ghost"
 									aria-expanded={environmentOpen}
-									className="h-auto px-2 py-1.5 hover:bg-accent gap-1"
+									className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
 								>
-									<p className="text-xs font-normal">
+									<span className="font-medium max-w-[150px] truncate">
 										{currentEnvironment?.name || "production"}
-									</p>
-									<ChevronDown className="size-3 text-muted-foreground" />
+									</span>
+									<ChevronDown className="size-4 text-muted-foreground" />
 								</Button>
 							</PopoverTrigger>
 							<PopoverContent
-								className="w-[200px] p-1"
+								className="w-[350px] p-0"
 								align="start"
 								sideOffset={8}
 							>
-								<div className="space-y-1">
-									{projectEnvironments.map((env) => {
-										const isSelected = env.environmentId === environmentId;
-										return (
-											<button
-												type="button"
-												key={env.environmentId}
-												onClick={() =>
-													handleEnvironmentSelect(env.environmentId)
-												}
-												className="flex items-center justify-between w-full px-2 py-1.5 text-sm rounded-md hover:bg-accent cursor-pointer"
-											>
-												<p className="text-xs">{env.name}</p>
-												{isSelected && (
-													<Check className="size-3 text-primary" />
-												)}
-											</button>
-										);
-									})}
-								</div>
+								<Command shouldFilter={false}>
+									<div className="relative">
+										<CommandInput
+											placeholder="Find Environment..."
+											value={environmentSearch}
+											onValueChange={setEnvironmentSearch}
+											className="w-full focus:ring-0"
+										/>
+										<kbd className="pointer-events-none h-5 absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 flex">
+											Esc
+										</kbd>
+									</div>
+									<CommandList>
+										<CommandEmpty>No environments found.</CommandEmpty>
+										<CommandGroup>
+											<ScrollArea className="h-[300px]">
+												{filteredEnvironments.map((env) => {
+													const isSelected =
+														env.environmentId === environmentId;
+													return (
+														<CommandItem
+															key={env.environmentId}
+															value={env.environmentId}
+															onSelect={() =>
+																handleEnvironmentSelect(env.environmentId)
+															}
+															className="flex items-center justify-between py-2 cursor-pointer"
+														>
+															<span className="font-medium">{env.name}</span>
+															{isSelected && (
+																<Check className="size-4 text-primary" />
+															)}
+														</CommandItem>
+													);
+												})}
+											</ScrollArea>
+										</CommandGroup>
+									</CommandList>
+								</Command>
 							</PopoverContent>
 						</Popover>
 					)}
@@ -532,7 +566,7 @@ export const AdvanceBreadcrumb = ({
 																key={service.id}
 																value={service.id}
 																onSelect={() => handleServiceSelect(service)}
-																className="flex items-center justify-between py-3 px-2 cursor-pointer"
+																className="flex items-center justify-between py-2 cursor-pointer"
 															>
 																<div className="flex items-center gap-3">
 																	<div className="flex items-center justify-center size-8 rounded-md bg-muted">
