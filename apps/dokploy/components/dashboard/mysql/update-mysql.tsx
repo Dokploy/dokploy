@@ -1,6 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -41,6 +41,7 @@ interface Props {
 }
 
 export const UpdateMysql = ({ mysqlId }: Props) => {
+	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isPending } =
 		api.mysql.update.useMutation();
@@ -79,6 +80,7 @@ export const UpdateMysql = ({ mysqlId }: Props) => {
 				utils.mysql.one.invalidate({
 					mysqlId: mysqlId,
 				});
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error updating MySQL");
@@ -87,7 +89,7 @@ export const UpdateMysql = ({ mysqlId }: Props) => {
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button
 					variant="ghost"
