@@ -266,7 +266,7 @@ export const environmentRouter = createTRPCRouter({
 
 				// Prevent renaming the default environment, but allow updating env and description
 				if (
-				  currentEnvironment.isDefault &&
+					currentEnvironment.isDefault &&
 					updateData.name !== undefined &&
 					updateData.name !== currentEnvironment.name
 				) {

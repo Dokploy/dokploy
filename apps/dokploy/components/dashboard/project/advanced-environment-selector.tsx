@@ -109,7 +109,7 @@ export const AdvancedEnvironmentSelector = ({
 	// Form states
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
-  const [color, setColor] = useState("");
+	const [color, setColor] = useState("");
 
 	// Get current user's permissions
 	const { data: currentUser } = api.user.get.useQuery();
@@ -149,7 +149,7 @@ export const AdvancedEnvironmentSelector = ({
 				projectId,
 				name: name.trim(),
 				description: description.trim() || undefined,
-				color: color.trim() || undefined
+				color: color.trim() || undefined,
 			});
 
 			toast.success("Environment created successfully");
@@ -178,12 +178,14 @@ export const AdvancedEnvironmentSelector = ({
 
 			toast.success("Environment updated successfully");
 			utils.environment.byProjectId.invalidate({ projectId });
-			utils.environment.one.invalidate({ environmentId: selectedEnvironment.environmentId });
+			utils.environment.one.invalidate({
+				environmentId: selectedEnvironment.environmentId,
+			});
 			setIsEditDialogOpen(false);
 			setSelectedEnvironment(null);
 			setName("");
 			setDescription("");
-      setColor("");
+			setColor("");
 		} catch (error) {
 			toast.error(
 				`Failed to update environment: ${error instanceof Error ? error.message : error}`,
@@ -247,7 +249,7 @@ export const AdvancedEnvironmentSelector = ({
 		setSelectedEnvironment(environment);
 		setName(environment.name);
 		setDescription(environment.description || "");
-    setColor(environment.color || "");
+		setColor(environment.color || "");
 		setIsEditDialogOpen(true);
 	};
 
@@ -455,7 +457,7 @@ export const AdvancedEnvironmentSelector = ({
 								setSelectedEnvironment(null);
 								setName("");
 								setDescription("");
-                setColor("");
+								setColor("");
 							}}
 						>
 							Cancel
