@@ -28,13 +28,13 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 		{ enabled: !!mongoId },
 	);
 
-	const { mutateAsync: reload, isLoading: isReloading } =
+	const { mutateAsync: reload, isPending: isReloading } =
 		api.mongo.reload.useMutation();
 
-	const { mutateAsync: start, isLoading: isStarting } =
+	const { mutateAsync: start, isPending: isStarting } =
 		api.mongo.start.useMutation();
 
-	const { mutateAsync: stop, isLoading: isStopping } =
+	const { mutateAsync: stop, isPending: isStopping } =
 		api.mongo.stop.useMutation();
 
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);

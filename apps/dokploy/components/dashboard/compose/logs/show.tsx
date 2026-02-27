@@ -1,8 +1,8 @@
 import { Loader2 } from "lucide-react";
-import { badgeStateColor } from "@/components/dashboard/application/logs/show";
-import { Badge } from "@/components/ui/badge";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { badgeStateColor } from "@/components/dashboard/application/logs/show";
+import { Badge } from "@/components/ui/badge";
 import {
 	Card,
 	CardContent,
@@ -42,7 +42,7 @@ export const ShowDockerLogsCompose = ({
 	appType,
 	serverId,
 }: Props) => {
-	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
+	const { data, isPending } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName,
 			appType,
@@ -73,7 +73,7 @@ export const ShowDockerLogsCompose = ({
 				<Label>Select a container to view logs</Label>
 				<Select onValueChange={setContainerId} value={containerId}>
 					<SelectTrigger>
-						{isLoading ? (
+						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
 								<span>Loading...</span>
 								<Loader2 className="animate-spin size-4" />

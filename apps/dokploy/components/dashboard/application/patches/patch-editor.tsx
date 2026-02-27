@@ -45,7 +45,7 @@ export const PatchEditor = ({ id, type, repoPath, onClose }: Props) => {
 	);
 
 	const utils = api.useUtils();
-	const { data: directories, isLoading: isDirLoading } =
+	const { data: directories, isPending: isDirLoading } =
 		api.patch.readRepoDirectories.useQuery(
 			{ id: id, type, repoPath },
 			{ enabled: !!repoPath },
@@ -56,10 +56,10 @@ export const PatchEditor = ({ id, type, repoPath, onClose }: Props) => {
 		{ enabled: !!id },
 	);
 
-	const { mutateAsync: saveAsPatch, isLoading: isSavingPatch } =
+	const { mutateAsync: saveAsPatch, isPending: isSavingPatch } =
 		api.patch.saveFileAsPatch.useMutation();
 
-	const { mutateAsync: markForDeletion, isLoading: isMarkingDeletion } =
+	const { mutateAsync: markForDeletion, isPending: isMarkingDeletion } =
 		api.patch.markFileForDeletion.useMutation();
 
 	const updatePatch = api.patch.update.useMutation();

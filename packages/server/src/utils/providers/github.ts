@@ -5,6 +5,7 @@ import { findGithubById, type Github } from "@dokploy/server/services/github";
 import type { InferResultType } from "@dokploy/server/types/with";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
+import type { z } from "zod";
 import { Octokit } from "octokit";
 
 export const authGithub = (githubProvider: Github): Octokit => {
@@ -197,7 +198,7 @@ export const getGithubRepositories = async (githubId?: string) => {
 };
 
 export const getGithubBranches = async (
-	input: typeof apiFindGithubBranches._type,
+	input: z.infer<typeof apiFindGithubBranches>,
 ) => {
 	if (!input.githubId) {
 		return [];

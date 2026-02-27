@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import {
 	getWebServerSettings,
@@ -12,8 +14,6 @@ export const startLogCleanup = async (
 	cronExpression = "0 0 * * *",
 ): Promise<boolean> => {
 	try {
-		const { DYNAMIC_TRAEFIK_PATH } = paths();
-
 		const existingJob = scheduledJobs[LOG_CLEANUP_JOB_NAME];
 		if (existingJob) {
 			existingJob.cancel();
@@ -21,10 +21,17 @@ export const startLogCleanup = async (
 
 		scheduleJob(LOG_CLEANUP_JOB_NAME, cronExpression, async () => {
 			try {
-				await execAsync(
-					`tail -n 1000 ${DYNAMIC_TRAEFIK_PATH}/access.log > ${DYNAMIC_TRAEFIK_PATH}/access.log.tmp && mv ${DYNAMIC_TRAEFIK_PATH}/access.log.tmp ${DYNAMIC_TRAEFIK_PATH}/access.log`,
-				);
+				const { DYNAMIC_TRAEFIK_PATH } = paths();
+				const accessLogPath = path.join(DYNAMIC_TRAEFIK_PATH, "access.log");
 
+				if (!fs.existsSync(accessLogPath)) {
+					console.error("Access log file does not exist");
+					return;
+				}
+
+				await execAsync(
+					`tail -n 1000 ${accessLogPath} > ${accessLogPath}.tmp && mv ${accessLogPath}.tmp ${accessLogPath}`,
+				);
 				await execAsync("docker exec dokploy-traefik kill -USR1 1");
 			} catch (error) {
 				console.error("Error during log cleanup:", error);

@@ -7,21 +7,16 @@
  * need to use are documented accordingly near the end.
  */
 
+// import { getServerAuthSession } from "@/server/auth";
+import { db } from "@dokploy/server/db";
 import { hasValidLicense } from "@dokploy/server/index";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
-import {
-	experimental_createMemoryUploadHandler,
-	experimental_isMultipartFormDataRequest,
-	experimental_parseMultipartFormData,
-} from "@trpc/server/adapters/node-http/content-type/form-data";
 import type { Session, User } from "better-auth";
 import superjson from "superjson";
 import { ZodError } from "zod";
-// import { getServerAuthSession } from "@/server/auth";
-import { db } from "@/server/db";
 
 /**
  * 1. CONTEXT
@@ -171,24 +166,6 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
 		},
 	});
 });
-
-export const uploadProcedure = async (opts: any) => {
-	if (!experimental_isMultipartFormDataRequest(opts.ctx.req)) {
-		return opts.next();
-	}
-
-	const formData = await experimental_parseMultipartFormData(
-		opts.ctx.req,
-		experimental_createMemoryUploadHandler({
-			// 2GB
-			maxPartSize: 1024 * 1024 * 1024 * 2,
-		}),
-	);
-
-	return opts.next({
-		rawInput: formData,
-	});
-};
 
 export const cliProcedure = t.procedure.use(({ ctx, next }) => {
 	if (

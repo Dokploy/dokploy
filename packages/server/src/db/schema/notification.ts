@@ -464,11 +464,9 @@ export const apiTestNtfyConnection = apiCreateNtfy.pick({
 	priority: true,
 });
 
-export const apiFindOneNotification = notificationsSchema
-	.pick({
-		notificationId: true,
-	})
-	.required();
+export const apiFindOneNotification = z.object({
+	notificationId: z.string().min(1),
+});
 
 export const apiCreateCustom = notificationsSchema
 	.pick({
@@ -483,7 +481,7 @@ export const apiCreateCustom = notificationsSchema
 	})
 	.extend({
 		endpoint: z.string().min(1),
-		headers: z.record(z.string()).optional(),
+		headers: z.record(z.string(), z.string()).optional(),
 	});
 
 export const apiUpdateCustom = apiCreateCustom.partial().extend({
@@ -494,7 +492,7 @@ export const apiUpdateCustom = apiCreateCustom.partial().extend({
 
 export const apiTestCustomConnection = z.object({
 	endpoint: z.string().min(1),
-	headers: z.record(z.string()).optional(),
+	headers: z.record(z.string(), z.string()).optional(),
 });
 
 export const apiCreateLark = notificationsSchema

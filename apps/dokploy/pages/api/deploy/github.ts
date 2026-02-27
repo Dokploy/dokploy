@@ -9,10 +9,10 @@ import {
 	removePreviewDeployment,
 	shouldDeploy,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/server/db";
 import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";

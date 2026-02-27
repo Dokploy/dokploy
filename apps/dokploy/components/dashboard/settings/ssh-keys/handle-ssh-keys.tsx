@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { DownloadIcon, PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -48,7 +48,7 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 		},
 	);
 
-	const { mutateAsync, isError, error, isLoading } = sshKeyId
+	const { mutateAsync, isError, error, isPending } = sshKeyId
 		? api.sshKey.update.useMutation()
 		: api.sshKey.create.useMutation();
 
@@ -164,7 +164,7 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 							<div className="flex gap-4">
 								<Button
 									variant={"secondary"}
-									disabled={generateMutation.isLoading}
+									disabled={generateMutation.isPending}
 									className="max-sm:w-full"
 									onClick={() =>
 										onGenerateSSHKey({
@@ -177,7 +177,7 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 								</Button>
 								<Button
 									variant={"secondary"}
-									disabled={generateMutation.isLoading}
+									disabled={generateMutation.isPending}
 									className="max-sm:w-full"
 									onClick={() =>
 										onGenerateSSHKey({
@@ -298,7 +298,7 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 									</Button>
 								)}
 							</div>
-							<Button isLoading={isLoading} type="submit">
+							<Button isLoading={isPending} type="submit">
 								{sshKeyId ? "Update" : "Create"}
 							</Button>
 						</DialogFooter>

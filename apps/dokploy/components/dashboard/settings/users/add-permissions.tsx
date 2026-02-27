@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -184,10 +184,10 @@ export const AddUserPermissions = ({ userId }: Props) => {
 		},
 	);
 
-	const { mutateAsync, isError, error, isLoading } =
+	const { mutateAsync, isError, error, isPending } =
 		api.user.assignPermissions.useMutation();
 
-	const form = useForm<AddPermissions>({
+	const form = useForm({
 		defaultValues: {
 			accessedProjects: [],
 			accessedEnvironments: [],
@@ -839,7 +839,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 						/>
 						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2">
 							<Button
-								isLoading={isLoading}
+								isLoading={isPending}
 								form="hook-form-add-permissions"
 								type="submit"
 							>

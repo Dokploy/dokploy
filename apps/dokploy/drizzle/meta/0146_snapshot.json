@@ -1,5 +1,5 @@
 {
-  "id": "ed06a820-e02d-414f-a36a-88e151a5dcbd",
+  "id": "f152cf50-c7de-44de-b4a7-57b0f0c02596",
   "prevId": "ec86a5ad-8776-483e-a003-346d32f65089",
   "version": "7",
   "dialect": "postgresql",
@@ -1233,7 +1233,8 @@
           "name": "dockerfile",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "default": "'Dockerfile'"
         },
         "dockerContextPath": {
           "name": "dockerContextPath",
@@ -1347,7 +1348,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "default": "'0.17.2'"
+          "default": "'0.15.4'"
         },
         "herokuVersion": {
           "name": "herokuVersion",

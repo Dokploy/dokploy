@@ -281,17 +281,43 @@ const installRequirements = async (
 			.on("error", (err) => {
 				client.end();
 				if (err.level === "client-authentication") {
-					onData?.(
-						`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
-					);
+					const technicalDetail = `Error: ${err.message} ${err.level}`;
+					const friendlyMessage = [
+						"",
+						"❌ Couldn't connect to your server — the SSH key was not accepted.",
+						"",
+						"This usually means the key doesn't match what's on the server, or the key format is invalid.",
+						"",
+						`Technical details: ${technicalDetail}`,
+						"",
+						"💡 Hints:",
+						"  • Check that the SSH key you added in Dokploy is the same one installed on the server (e.g. in ~/.ssh/authorized_keys).",
+						"  • Try generating a new SSH key in Dokploy and add only the public key to the server, then try again.",
+						"  • Make sure to follow the instructions on the Setup Server Button on the SSH Keys tab",
+					].join("\n");
+					onData?.(friendlyMessage);
 					reject(
 						new Error(
-							`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
+							`Authentication failed: Invalid SSH private key. ${technicalDetail}`,
 						),
 					);
 				} else {
-					onData?.(`SSH connection error: ${err.message} ${err.level}`);
-					reject(new Error(`SSH connection error: ${err.message}`));
+					const technicalDetail = `${err.message} ${err.level ?? ""}`.trim();
+					const friendlyMessage = [
+						"",
+						"❌ Couldn't connect to your server.",
+						"",
+						"The connection failed before setup could run. Common causes: wrong IP or port, firewall blocking access, or the server is offline.",
+						"",
+						`Technical details: ${technicalDetail}`,
+						"",
+						"💡 Hints:",
+						"  • Check that the server IP address and SSH port are correct and the server is powered on.",
+						"  • If the server is in a private network, ensure Dokploy can reach it (VPN, firewall rules, or correct security groups).",
+						"  • Make sure the SSH port (usually 22) is open and the SSH service is running on the server.",
+					].join("\n");
+					onData?.(friendlyMessage);
+					reject(new Error(`SSH connection error: ${technicalDetail}`));
 				}
 			})
 			.connect({

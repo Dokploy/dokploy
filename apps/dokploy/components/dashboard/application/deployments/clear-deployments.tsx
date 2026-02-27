@@ -21,7 +21,7 @@ interface Props {
 
 export const ClearDeployments = ({ id, type }: Props) => {
 	const utils = api.useUtils();
-	const { mutateAsync, isLoading } =
+	const { mutateAsync, isPending } =
 		type === "application"
 			? api.application.clearDeployments.useMutation()
 			: api.compose.clearDeployments.useMutation();
@@ -29,7 +29,7 @@ export const ClearDeployments = ({ id, type }: Props) => {
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button variant="outline" className="w-fit" isLoading={isLoading}>
+				<Button variant="outline" className="w-fit" isLoading={isPending}>
 					Clear deployments
 					<Paintbrush className="size-4" />
 				</Button>

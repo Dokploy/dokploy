@@ -38,6 +38,7 @@ import {
 	updateTeamsNotification,
 	updateTelegramNotification,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -47,7 +48,6 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "@/server/api/trpc";
-import { db } from "@/server/db";
 import {
 	apiCreateCustom,
 	apiCreateDiscord,

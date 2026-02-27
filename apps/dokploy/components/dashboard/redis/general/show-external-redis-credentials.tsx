@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -48,11 +48,11 @@ interface Props {
 export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
 	const { data: ip } = api.settings.getIp.useQuery();
 	const { data, refetch } = api.redis.one.useQuery({ redisId });
-	const { mutateAsync, isLoading } = api.redis.saveExternalPort.useMutation();
+	const { mutateAsync, isPending } = api.redis.saveExternalPort.useMutation();
 	const [connectionUrl, setConnectionUrl] = useState("");
 	const getIp = data?.server?.ipAddress || ip;
 
-	const form = useForm<DockerProvider>({
+	const form = useForm({
 		defaultValues: {},
 		resolver: zodResolver(DockerProviderSchema),
 	});
@@ -134,7 +134,7 @@ export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
 															<Input
 																placeholder="6379"
 																{...field}
-																value={field.value || ""}
+																value={field.value as string}
 															/>
 														</FormControl>
 														<FormMessage />
@@ -154,7 +154,7 @@ export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
 								)}
 
 								<div className="flex justify-end">
-									<Button type="submit" isLoading={isLoading}>
+									<Button type="submit" isLoading={isPending}>
 										Save
 									</Button>
 								</div>

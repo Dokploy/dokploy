@@ -30,16 +30,12 @@ import {
 	writeConfigRemote,
 	// uploadFileSchema
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import {
-	createTRPCRouter,
-	protectedProcedure,
-	uploadProcedure,
-} from "@/server/api/trpc";
-import { db } from "@/server/db";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
 	apiCreateApplication,
 	apiDeployApplication,
@@ -67,7 +63,6 @@ import {
 	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
-import { uploadFileSchema } from "@/utils/schema";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -814,12 +809,15 @@ export const applicationRouter = createTRPCRouter({
 				enabled: false,
 			},
 		})
-		.use(uploadProcedure)
-		.input(uploadFileSchema)
+		.input(z.instanceof(FormData))
 		.mutation(async ({ input, ctx }) => {
-			const zipFile = input.zip;
+			const formData = input;
 
-			const app = await findApplicationById(input.applicationId as string);
+			const zipFile = formData.get("zip") as File;
+			const applicationId = formData.get("applicationId") as string;
+			const dropBuildPath = formData.get("dropBuildPath") as string | null;
+
+			const app = await findApplicationById(applicationId);
 
 			if (
 				app.environment.project.organizationId !==
@@ -831,9 +829,9 @@ export const applicationRouter = createTRPCRouter({
 				});
 			}
 
-			await updateApplication(input.applicationId as string, {
+			await updateApplication(applicationId, {
 				sourceType: "drop",
-				dropBuildPath: input.dropBuildPath || "",
+				dropBuildPath: dropBuildPath || "",
 			});
 
 			await unzipDrop(zipFile, app);

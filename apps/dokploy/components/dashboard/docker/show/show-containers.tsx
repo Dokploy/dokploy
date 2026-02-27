@@ -45,7 +45,7 @@ interface Props {
 }
 
 export const ShowContainers = ({ serverId }: Props) => {
-	const { data, isLoading } = api.docker.getContainers.useQuery({
+	const { data, isPending } = api.docker.getContainers.useQuery({
 		serverId,
 	});
 
@@ -137,7 +137,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 									</DropdownMenu>
 								</div>
 								<div className="rounded-md border">
-									{isLoading ? (
+									{isPending ? (
 										<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 											<span className="text-muted-foreground text-lg font-medium">
 												Loading...
@@ -192,7 +192,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 															colSpan={columns.length}
 															className="h-24 text-center"
 														>
-															{isLoading ? (
+															{isPending ? (
 																<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 																	<span className="text-muted-foreground text-lg font-medium">
 																		Loading...

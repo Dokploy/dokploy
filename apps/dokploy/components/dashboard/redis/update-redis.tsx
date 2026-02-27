@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -42,7 +42,7 @@ interface Props {
 
 export const UpdateRedis = ({ redisId }: Props) => {
 	const utils = api.useUtils();
-	const { mutateAsync, error, isError, isLoading } =
+	const { mutateAsync, error, isError, isPending } =
 		api.redis.update.useMutation();
 	const { data } = api.redis.one.useQuery(
 		{
@@ -146,7 +146,7 @@ export const UpdateRedis = ({ redisId }: Props) => {
 								/>
 								<DialogFooter>
 									<Button
-										isLoading={isLoading}
+										isLoading={isPending}
 										form="hook-form-update-redis"
 										type="submit"
 									>

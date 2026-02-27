@@ -45,13 +45,13 @@ import {
 	writeTraefikConfigInPath,
 	writeTraefikSetup,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";
 import { eq, sql } from "drizzle-orm";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { parse, stringify } from "yaml";
 import { z } from "zod";
-import { db } from "@/server/db";
 import {
 	apiAssignDomain,
 	apiEnableDashboard,
@@ -530,12 +530,12 @@ export const settingsRouter = createTRPCRouter({
 	getOpenApiDocument: protectedProcedure.query(
 		async ({ ctx }): Promise<unknown> => {
 			const protocol = ctx.req.headers["x-forwarded-proto"];
-			const url = `${protocol}://${ctx.req.headers.host}/api`;
+			const url = `${protocol}://${ctx.req.headers.host}/api/trpc`;
 			const openApiDocument = generateOpenApiDocument(appRouter, {
 				title: "tRPC OpenAPI",
-				version: "1.0.0",
+				version: packageInfo.version,
 				baseUrl: url,
-				docsUrl: `${url}/settings.getOpenApiDocument`,
+				docsUrl: `${url}/trpc/settings.getOpenApiDocument`,
 				tags: [
 					"admin",
 					"docker",
@@ -563,6 +563,7 @@ export const settingsRouter = createTRPCRouter({
 					"sshRouter",
 					"gitProvider",
 					"bitbucket",
+					"ai",
 					"github",
 					"gitlab",
 					"gitea",
@@ -572,7 +573,7 @@ export const settingsRouter = createTRPCRouter({
 			openApiDocument.info = {
 				title: "Dokploy API",
 				description: "Endpoints for dokploy",
-				version: "1.0.0",
+				version: packageInfo.version,
 			};
 
 			// Add security schemes configuration
@@ -733,10 +734,6 @@ export const settingsRouter = createTRPCRouter({
 						filePath: "/etc/dokploy/traefik/dynamic/access.log",
 						format: "json",
 						bufferingSize: 100,
-						filters: {
-							retryAttempts: true,
-							minDuration: "10ms",
-						},
 					},
 				};
 				currentConfig.accessLog = config.accessLog;

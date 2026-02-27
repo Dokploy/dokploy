@@ -127,7 +127,7 @@ export const getBuildAppDirectory = (application: Application) => {
 			appName,
 			"code",
 			buildPath ?? "",
-			dockerfile || "",
+			dockerfile || "Dockerfile",
 		);
 	}
 
