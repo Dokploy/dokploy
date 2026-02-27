@@ -20,7 +20,7 @@ const Dashboard = () => {
 		false,
 	);
 
-	const { data: monitoring, isLoading } = api.user.getMetricsToken.useQuery();
+	const { data: monitoring, isPending } = api.user.getMetricsToken.useQuery();
 	return (
 		<div className="space-y-4 pb-10">
 			{/* <AlertBlock>
@@ -35,7 +35,7 @@ const Dashboard = () => {
 				</a>{" "}
 				to get more features.
 			</AlertBlock> */}
-			{isLoading ? (
+			{isPending ? (
 				<Card className="bg-sidebar  p-2.5 rounded-xl  mx-auto  items-center">
 					<div className="rounded-xl bg-background flex shadow-md px-4 min-h-[50vh] justify-center items-center text-muted-foreground">
 						Loading...

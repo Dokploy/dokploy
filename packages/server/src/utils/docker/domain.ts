@@ -164,10 +164,12 @@ export const addDomainToCompose = async (
 	for (const domain of domains) {
 		const { serviceName, https } = domain;
 		if (!serviceName) {
-			throw new Error("Service name not found");
+			throw new Error(`Domain "${domain.host}" is missing a service name`);
 		}
 		if (!result?.services?.[serviceName]) {
-			throw new Error(`The service ${serviceName} not found in the compose`);
+			throw new Error(
+				`Domain "${domain.host}" is attached to service "${serviceName}" which does not exist in the compose`,
+			);
 		}
 
 		const httpLabels = createDomainLabels(appName, domain, "web");
@@ -330,6 +332,7 @@ export const addDokployNetworkToService = (
 ) => {
 	let networks = networkService;
 	const network = "dokploy-network";
+	const defaultNetwork = "default";
 	if (!networks) {
 		networks = [];
 	}
@@ -338,9 +341,15 @@ export const addDokployNetworkToService = (
 		if (!networks.includes(network)) {
 			networks.push(network);
 		}
+		if (!networks.includes(defaultNetwork)) {
+			networks.push(defaultNetwork);
+		}
 	} else if (networks && typeof networks === "object") {
 		if (!(network in networks)) {
 			networks[network] = {};
+		}
+		if (!(defaultNetwork in networks)) {
+			networks[defaultNetwork] = {};
 		}
 	}
 

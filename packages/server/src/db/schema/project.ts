@@ -43,12 +43,9 @@ export const apiCreateProject = createSchema.pick({
 	env: true,
 });
 
-export const apiFindOneProject = createSchema
-	.pick({
-		projectId: true,
-	})
-	.required();
-
+export const apiFindOneProject = z.object({
+	projectId: z.string().min(1),
+});
 export const apiRemoveProject = createSchema
 	.pick({
 		projectId: true,

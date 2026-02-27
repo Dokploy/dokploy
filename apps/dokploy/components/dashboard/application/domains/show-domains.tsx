@@ -97,7 +97,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 
 	const { mutateAsync: validateDomain } =
 		api.domain.validateDomain.useMutation();
-	const { mutateAsync: deleteDomain, isLoading: isRemoving } =
+	const { mutateAsync: deleteDomain, isPending: isRemoving } =
 		api.domain.delete.useMutation();
 
 	const handleValidateDomain = async (host: string) => {

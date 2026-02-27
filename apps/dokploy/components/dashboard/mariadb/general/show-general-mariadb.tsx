@@ -28,13 +28,13 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 		{ enabled: !!mariadbId },
 	);
 
-	const { mutateAsync: reload, isLoading: isReloading } =
+	const { mutateAsync: reload, isPending: isReloading } =
 		api.mariadb.reload.useMutation();
 
-	const { mutateAsync: start, isLoading: isStarting } =
+	const { mutateAsync: start, isPending: isStarting } =
 		api.mariadb.start.useMutation();
 
-	const { mutateAsync: stop, isLoading: isStopping } =
+	const { mutateAsync: stop, isPending: isStopping } =
 		api.mariadb.stop.useMutation();
 
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);

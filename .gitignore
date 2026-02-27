@@ -44,6 +44,3 @@ yarn-error.log*
 
 
 .db
-
-# Development environment
-.devcontainer

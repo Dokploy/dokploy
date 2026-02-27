@@ -17,12 +17,14 @@ export const notificationType = pgEnum("notificationType", [
 	"telegram",
 	"discord",
 	"email",
+	"resend",
 	"gotify",
 	"ntfy",
 	"mattermost",
 	"pushover",
 	"custom",
 	"lark",
+	"teams",
 ]);
 
 export const notifications = pgTable("notification", {
@@ -54,6 +56,9 @@ export const notifications = pgTable("notification", {
 	emailId: text("emailId").references(() => email.emailId, {
 		onDelete: "cascade",
 	}),
+	resendId: text("resendId").references(() => resend.resendId, {
+		onDelete: "cascade",
+	}),
 	gotifyId: text("gotifyId").references(() => gotify.gotifyId, {
 		onDelete: "cascade",
 	}),
@@ -70,6 +75,9 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	pushoverId: text("pushoverId").references(() => pushover.pushoverId, {
+		onDelete: "cascade",
+	}),
+	teamsId: text("teamsId").references(() => teams.teamsId, {
 		onDelete: "cascade",
 	}),
 	organizationId: text("organizationId")
@@ -114,6 +122,16 @@ export const email = pgTable("email", {
 	smtpPort: integer("smtpPort").notNull(),
 	username: text("username").notNull(),
 	password: text("password").notNull(),
+	fromAddress: text("fromAddress").notNull(),
+	toAddresses: text("toAddress").array().notNull(),
+});
+
+export const resend = pgTable("resend", {
+	resendId: text("resendId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	apiKey: text("apiKey").notNull(),
 	fromAddress: text("fromAddress").notNull(),
 	toAddresses: text("toAddress").array().notNull(),
 });
@@ -179,6 +197,14 @@ export const pushover = pgTable("pushover", {
 	expire: integer("expire"),
 });
 
+export const teams = pgTable("teams", {
+	teamsId: text("teamsId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
+});
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
 	slack: one(slack, {
 		fields: [notifications.slackId],
@@ -195,6 +221,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	email: one(email, {
 		fields: [notifications.emailId],
 		references: [email.emailId],
+	}),
+	resend: one(resend, {
+		fields: [notifications.resendId],
+		references: [resend.resendId],
 	}),
 	gotify: one(gotify, {
 		fields: [notifications.gotifyId],
@@ -219,6 +249,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	pushover: one(pushover, {
 		fields: [notifications.pushoverId],
 		references: [pushover.pushoverId],
+	}),
+	teams: one(teams, {
+		fields: [notifications.teamsId],
+		references: [teams.teamsId],
 	}),
 	organization: one(organization, {
 		fields: [notifications.organizationId],
@@ -353,6 +387,36 @@ export const apiTestEmailConnection = apiCreateEmail.pick({
 	fromAddress: true,
 });
 
+export const apiCreateResend = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		volumeBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		apiKey: z.string().min(1),
+		fromAddress: z.string().min(1),
+		toAddresses: z.array(z.string()).min(1),
+	})
+	.required();
+
+export const apiUpdateResend = apiCreateResend.partial().extend({
+	notificationId: z.string().min(1),
+	resendId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestResendConnection = apiCreateResend.pick({
+	apiKey: true,
+	fromAddress: true,
+	toAddresses: true,
+});
+
 export const apiCreateGotify = notificationsSchema
 	.pick({
 		appBuildError: true,
@@ -422,6 +486,7 @@ export const apiCreateMattermost = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -438,6 +503,7 @@ export const apiCreateMattermost = notificationsSchema
 		webhookUrl: true,
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		appDeploy: true,
 		dockerCleanup: true,
@@ -461,11 +527,9 @@ export const apiTestMattermostConnection = apiCreateMattermost
 		username: z.string().optional(),
 	});
 
-export const apiFindOneNotification = notificationsSchema
-	.pick({
-		notificationId: true,
-	})
-	.required();
+export const apiFindOneNotification = z.object({
+	notificationId: z.string().min(1),
+});
 
 export const apiCreateCustom = notificationsSchema
 	.pick({
@@ -480,7 +544,7 @@ export const apiCreateCustom = notificationsSchema
 	})
 	.extend({
 		endpoint: z.string().min(1),
-		headers: z.record(z.string()).optional(),
+		headers: z.record(z.string(), z.string()).optional(),
 	});
 
 export const apiUpdateCustom = apiCreateCustom.partial().extend({
@@ -491,7 +555,7 @@ export const apiUpdateCustom = apiCreateCustom.partial().extend({
 
 export const apiTestCustomConnection = z.object({
 	endpoint: z.string().min(1),
-	headers: z.record(z.string()).optional(),
+	headers: z.record(z.string(), z.string()).optional(),
 });
 
 export const apiCreateLark = notificationsSchema
@@ -517,6 +581,32 @@ export const apiUpdateLark = apiCreateLark.partial().extend({
 });
 
 export const apiTestLarkConnection = apiCreateLark.pick({
+	webhookUrl: true,
+});
+
+export const apiCreateTeams = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		volumeBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		webhookUrl: z.string().min(1),
+	})
+	.required();
+
+export const apiUpdateTeams = apiCreateTeams.partial().extend({
+	notificationId: z.string().min(1),
+	teamsId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestTeamsConnection = apiCreateTeams.pick({
 	webhookUrl: true,
 });
 
@@ -595,6 +685,7 @@ export const apiSendTest = notificationsSchema
 		username: z.string(),
 		password: z.string(),
 		toAddresses: z.array(z.string()),
+		apiKey: z.string(),
 		serverUrl: z.string(),
 		topic: z.string(),
 		appToken: z.string(),

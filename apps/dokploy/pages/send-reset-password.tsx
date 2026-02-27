@@ -1,5 +1,5 @@
 import { IS_CLOUD } from "@dokploy/server";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -63,7 +63,7 @@ export default function Home() {
 
 	const onSubmit = async (values: Login) => {
 		setIsLoading(true);
-		const { error } = await authClient.forgetPassword({
+		const { error } = await authClient.requestPasswordReset({
 			email: values.email,
 			redirectTo: "/reset-password",
 		});

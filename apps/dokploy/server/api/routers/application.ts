@@ -1,6 +1,7 @@
 import {
 	addNewService,
 	checkServiceAccess,
+	clearOldDeployments,
 	createApplication,
 	deleteAllMiddlewares,
 	findApplicationById,
@@ -29,16 +30,12 @@ import {
 	writeConfigRemote,
 	// uploadFileSchema
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import {
-	createTRPCRouter,
-	protectedProcedure,
-	uploadProcedure,
-} from "@/server/api/trpc";
-import { db } from "@/server/db";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
 	apiCreateApplication,
 	apiDeployApplication,
@@ -57,14 +54,15 @@ import {
 	apiUpdateApplication,
 	applications,
 } from "@/server/db/schema";
+import { deploymentWorker } from "@/server/queues/deployments-queue";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByApplication,
+	getJobsByApplicationId,
 	killDockerBuild,
 	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
-import { uploadFileSchema } from "@/utils/schema";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -239,6 +237,15 @@ export const applicationRouter = createTRPCRouter({
 				.delete(applications)
 				.where(eq(applications.applicationId, input.applicationId))
 				.returning();
+
+			if (!IS_CLOUD) {
+				const queueJobs = await getJobsByApplicationId(input.applicationId);
+				for (const job of queueJobs) {
+					if (job.id) {
+						deploymentWorker.cancelJob(job.id, "User requested cancellation");
+					}
+				}
+			}
 
 			const cleanupOperations = [
 				async () => await deleteAllMiddlewares(application),
@@ -735,6 +742,23 @@ export const applicationRouter = createTRPCRouter({
 			}
 			await cleanQueuesByApplication(input.applicationId);
 		}),
+	clearDeployments: protectedProcedure
+		.input(apiFindOneApplication)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message:
+						"You are not authorized to clear deployments for this application",
+				});
+			}
+			await clearOldDeployments(application.appName, application.serverId);
+			return true;
+		}),
 	killBuild: protectedProcedure
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
@@ -785,12 +809,15 @@ export const applicationRouter = createTRPCRouter({
 				enabled: false,
 			},
 		})
-		.use(uploadProcedure)
-		.input(uploadFileSchema)
+		.input(z.instanceof(FormData))
 		.mutation(async ({ input, ctx }) => {
-			const zipFile = input.zip;
+			const formData = input;
 
-			const app = await findApplicationById(input.applicationId as string);
+			const zipFile = formData.get("zip") as File;
+			const applicationId = formData.get("applicationId") as string;
+			const dropBuildPath = formData.get("dropBuildPath") as string | null;
+
+			const app = await findApplicationById(applicationId);
 
 			if (
 				app.environment.project.organizationId !==
@@ -802,9 +829,9 @@ export const applicationRouter = createTRPCRouter({
 				});
 			}
 
-			await updateApplication(input.applicationId as string, {
+			await updateApplication(applicationId, {
 				sourceType: "drop",
-				dropBuildPath: input.dropBuildPath || "",
+				dropBuildPath: dropBuildPath || "",
 			});
 
 			await unzipDrop(zipFile, app);

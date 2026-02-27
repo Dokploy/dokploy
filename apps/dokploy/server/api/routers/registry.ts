@@ -7,9 +7,9 @@ import {
 	removeRegistry,
 	updateRegistry,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { db } from "@/server/db";
 import {
 	apiCreateRegistry,
 	apiFindOneRegistry,

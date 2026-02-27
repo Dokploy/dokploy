@@ -13,7 +13,9 @@ import {
 	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
+	sendResendNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -46,18 +48,21 @@ export const sendDatabaseBackupNotifications = async ({
 			discord: true,
 			telegram: true,
 			slack: true,
+			resend: true,
 			gotify: true,
 			ntfy: true,
 			mattermost: true,
 			custom: true,
 			lark: true,
 			pushover: true,
+			teams: true,
 		},
 	});
 
 	for (const notification of notificationList) {
 		const {
 			email,
+			resend,
 			discord,
 			telegram,
 			slack,
@@ -67,9 +72,10 @@ export const sendDatabaseBackupNotifications = async ({
 			custom,
 			lark,
 			pushover,
+			teams,
 		} = notification;
 		try {
-			if (email) {
+			if (email || resend) {
 				const template = await renderAsync(
 					DatabaseBackupEmail({
 						projectName,
@@ -80,11 +86,22 @@ export const sendDatabaseBackupNotifications = async ({
 						date: date.toLocaleString(),
 					}),
 				).catch();
-				await sendEmailNotification(
-					email,
-					"Database backup for dokploy",
-					template,
-				);
+
+				if (email) {
+					await sendEmailNotification(
+						email,
+						"Database backup for dokploy",
+						template,
+					);
+				}
+
+				if (resend) {
+					await sendResendNotification(
+						resend,
+						"Database backup for dokploy",
+						template,
+					);
+				}
 			}
 
 			if (discord) {
@@ -413,6 +430,30 @@ export const sendDatabaseBackupNotifications = async ({
 					`Database Backup ${type === "success" ? "Successful" : "Failed"}`,
 					`Project: ${projectName}\nApplication: ${applicationName}\nDatabase: ${databaseType}\nDatabase Name: ${databaseName}\nDate: ${date.toLocaleString()}${type === "error" && errorMessage ? `\nError: ${errorMessage}` : ""}`,
 				);
+			}
+
+			if (teams) {
+				const facts = [
+					{ name: "Project", value: projectName },
+					{ name: "Application", value: applicationName },
+					{ name: "Database Type", value: databaseType },
+					{ name: "Database Name", value: databaseName },
+					{ name: "Date", value: format(date, "PP pp") },
+					{
+						name: "Status",
+						value: type === "success" ? "Successful" : "Failed",
+					},
+				];
+				if (type === "error" && errorMessage) {
+					facts.push({ name: "Error", value: errorMessage.substring(0, 500) });
+				}
+				await sendTeamsNotification(teams, {
+					title:
+						type === "success"
+							? "✅ Database Backup Successful"
+							: "❌ Database Backup Failed",
+					facts,
+				});
 			}
 		} catch (error) {
 			console.log(error);

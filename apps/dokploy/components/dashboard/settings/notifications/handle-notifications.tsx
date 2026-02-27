@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import {
 	AlertTriangle,
 	Mail,
@@ -17,7 +17,9 @@ import {
 	LarkIcon,
 	NtfyIcon,
 	PushoverIcon,
+	ResendIcon,
 	SlackIcon,
+	TeamsIcon,
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
 import { Button } from "@/components/ui/button";
@@ -100,6 +102,23 @@ export const notificationSchema = z.discriminatedUnion("type", [
 		.merge(notificationBaseSchema),
 	z
 		.object({
+			type: z.literal("resend"),
+			apiKey: z.string().min(1, { message: "API Key is required" }),
+			fromAddress: z
+				.string()
+				.min(1, { message: "From Address is required" })
+				.email({ message: "Email is invalid" }),
+			toAddresses: z
+				.array(
+					z.string().min(1, { message: "Email is required" }).email({
+						message: "Email is invalid",
+					}),
+				)
+				.min(1, { message: "At least one email is required" }),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
 			type: z.literal("gotify"),
 			serverUrl: z.string().min(1, { message: "Server URL is required" }),
 			appToken: z.string().min(1, { message: "App Token is required" }),
@@ -155,6 +174,12 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
 		})
 		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("teams"),
+			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+		})
+		.merge(notificationBaseSchema),
 ]);
 
 export const notificationsMap = {
@@ -174,9 +199,17 @@ export const notificationsMap = {
 		icon: <LarkIcon className="text-muted-foreground" />,
 		label: "Lark",
 	},
+	teams: {
+		icon: <TeamsIcon className="text-muted-foreground" />,
+		label: "Microsoft Teams",
+	},
 	email: {
 		icon: <Mail size={29} className="text-muted-foreground" />,
 		label: "Email",
+	},
+	resend: {
+		icon: <ResendIcon className="text-muted-foreground" />,
+		label: "Resend",
 	},
 	gotify: {
 		icon: <GotifyIcon />,
@@ -219,25 +252,29 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			enabled: !!notificationId,
 		},
 	);
-	const { mutateAsync: testSlackConnection, isLoading: isLoadingSlack } =
+	const { mutateAsync: testSlackConnection, isPending: isLoadingSlack } =
 		api.notification.testSlackConnection.useMutation();
-	const { mutateAsync: testTelegramConnection, isLoading: isLoadingTelegram } =
+	const { mutateAsync: testTelegramConnection, isPending: isLoadingTelegram } =
 		api.notification.testTelegramConnection.useMutation();
-	const { mutateAsync: testDiscordConnection, isLoading: isLoadingDiscord } =
+	const { mutateAsync: testDiscordConnection, isPending: isLoadingDiscord } =
 		api.notification.testDiscordConnection.useMutation();
-	const { mutateAsync: testEmailConnection, isLoading: isLoadingEmail } =
+	const { mutateAsync: testEmailConnection, isPending: isLoadingEmail } =
 		api.notification.testEmailConnection.useMutation();
-	const { mutateAsync: testGotifyConnection, isLoading: isLoadingGotify } =
+	const { mutateAsync: testResendConnection, isPending: isLoadingResend } =
+		api.notification.testResendConnection.useMutation();
+	const { mutateAsync: testGotifyConnection, isPending: isLoadingGotify } =
 		api.notification.testGotifyConnection.useMutation();
-	const { mutateAsync: testNtfyConnection, isLoading: isLoadingNtfy } =
+	const { mutateAsync: testNtfyConnection, isPending: isLoadingNtfy } =
 		api.notification.testNtfyConnection.useMutation();
-	const { mutateAsync: testMattermostConnection, isLoading: isLoadingMattermost } =
+	const { mutateAsync: testMattermostConnection, isPending: isLoadingMattermost } =
 		api.notification.testMattermostConnection.useMutation();
-	const { mutateAsync: testLarkConnection, isLoading: isLoadingLark } =
+	const { mutateAsync: testLarkConnection, isPending: isLoadingLark } =
 		api.notification.testLarkConnection.useMutation();
-	const { mutateAsync: testCustomConnection, isLoading: isLoadingCustom } =
+	const { mutateAsync: testTeamsConnection, isPending: isLoadingTeams } =
+		api.notification.testTeamsConnection.useMutation();
+	const { mutateAsync: testCustomConnection, isPending: isLoadingCustom } =
 		api.notification.testCustomConnection.useMutation();
-	const { mutateAsync: testPushoverConnection, isLoading: isLoadingPushover } =
+	const { mutateAsync: testPushoverConnection, isPending: isLoadingPushover } =
 		api.notification.testPushoverConnection.useMutation();
 
 	const customMutation = notificationId
@@ -255,6 +292,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const emailMutation = notificationId
 		? api.notification.updateEmail.useMutation()
 		: api.notification.createEmail.useMutation();
+	const resendMutation = notificationId
+		? api.notification.updateResend.useMutation()
+		: api.notification.createResend.useMutation();
 	const gotifyMutation = notificationId
 		? api.notification.updateGotify.useMutation()
 		: api.notification.createGotify.useMutation();
@@ -267,11 +307,14 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const larkMutation = notificationId
 		? api.notification.updateLark.useMutation()
 		: api.notification.createLark.useMutation();
+	const teamsMutation = notificationId
+		? api.notification.updateTeams.useMutation()
+		: api.notification.createTeams.useMutation();
 	const pushoverMutation = notificationId
 		? api.notification.updatePushover.useMutation()
 		: api.notification.createPushover.useMutation();
 
-	const form = useForm<NotificationSchema>({
+	const form = useForm({
 		defaultValues: {
 			type: "slack",
 			webhookUrl: "",
@@ -297,7 +340,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	});
 
 	useEffect(() => {
-		if (type === "email" && fields.length === 0) {
+		if ((type === "email" || type === "resend") && fields.length === 0) {
 			append("");
 		}
 	}, [type, append, fields.length]);
@@ -342,7 +385,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					webhookUrl: notification.discord?.webhookUrl,
-					decoration: notification.discord?.decoration || undefined,
+					decoration: notification.discord?.decoration ?? undefined,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
@@ -365,6 +408,21 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
 				});
+			} else if (notification.notificationType === "resend") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					volumeBackup: notification.volumeBackup,
+					type: notification.notificationType,
+					apiKey: notification.resend?.apiKey,
+					toAddresses: notification.resend?.toAddresses,
+					fromAddress: notification.resend?.fromAddress,
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
 			} else if (notification.notificationType === "gotify") {
 				form.reset({
 					appBuildError: notification.appBuildError,
@@ -374,7 +432,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					appToken: notification.gotify?.appToken,
-					decoration: notification.gotify?.decoration || undefined,
+					decoration: notification.gotify?.decoration ?? undefined,
 					priority: notification.gotify?.priority,
 					serverUrl: notification.gotify?.serverUrl,
 					name: notification.name,
@@ -422,6 +480,19 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					volumeBackup: notification.volumeBackup,
+					serverThreshold: notification.serverThreshold,
+				});
+			} else if (notification.notificationType === "teams") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					volumeBackup: notification.volumeBackup,
+					type: notification.notificationType,
+					webhookUrl: notification.teams?.webhookUrl,
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "custom") {
@@ -473,10 +544,12 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		telegram: telegramMutation,
 		discord: discordMutation,
 		email: emailMutation,
+		resend: resendMutation,
 		gotify: gotifyMutation,
 		ntfy: ntfyMutation,
 		mattermost: mattermostMutation,
 		lark: larkMutation,
+		teams: teamsMutation,
 		custom: customMutation,
 		pushover: pushoverMutation,
 	};
@@ -557,6 +630,22 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				emailId: notification?.emailId || "",
 				serverThreshold: serverThreshold,
 			});
+		} else if (data.type === "resend") {
+			promise = resendMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
+				apiKey: data.apiKey,
+				fromAddress: data.fromAddress,
+				toAddresses: data.toAddresses,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				notificationId: notificationId || "",
+				resendId: notification?.resendId || "",
+				serverThreshold: serverThreshold,
+			});
 		} else if (data.type === "gotify") {
 			promise = gotifyMutation.mutateAsync({
 				appBuildError: appBuildError,
@@ -617,6 +706,20 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				larkId: notification?.larkId || "",
+				serverThreshold: serverThreshold,
+			});
+		} else if (data.type === "teams") {
+			promise = teamsMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
+				webhookUrl: data.webhookUrl,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				notificationId: notificationId || "",
+				teamsId: notification?.teamsId || "",
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "custom") {
@@ -1090,6 +1193,96 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									</>
 								)}
 
+								{type === "resend" && (
+									<>
+										<FormField
+											control={form.control}
+											name="apiKey"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>API Key</FormLabel>
+													<FormControl>
+														<Input
+															type="password"
+															placeholder="re_********"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="fromAddress"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>From Address</FormLabel>
+													<FormControl>
+														<Input placeholder="from@example.com" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<div className="flex flex-col gap-2 pt-2">
+											<FormLabel>To Addresses</FormLabel>
+
+											{fields.map((field, index) => (
+												<div
+													key={field.id}
+													className="flex flex-row gap-2 w-full"
+												>
+													<FormField
+														control={form.control}
+														name={`toAddresses.${index}`}
+														render={({ field }) => (
+															<FormItem className="w-full">
+																<FormControl>
+																	<Input
+																		placeholder="email@example.com"
+																		className="w-full"
+																		{...field}
+																	/>
+																</FormControl>
+
+																<FormMessage />
+															</FormItem>
+														)}
+													/>
+													<Button
+														variant="outline"
+														type="button"
+														onClick={() => {
+															remove(index);
+														}}
+													>
+														Remove
+													</Button>
+												</div>
+											))}
+											{type === "resend" &&
+												"toAddresses" in form.formState.errors && (
+													<div className="text-sm font-medium text-destructive">
+														{form.formState?.errors?.toAddresses?.root?.message}
+													</div>
+												)}
+										</div>
+
+										<Button
+											variant="outline"
+											type="button"
+											onClick={() => {
+												append("");
+											}}
+										>
+											Add
+										</Button>
+									</>
+								)}
+
 								{type === "gotify" && (
 									<>
 										<FormField
@@ -1422,6 +1615,31 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									</>
 								)}
 
+								{type === "teams" && (
+									<>
+										<FormField
+											control={form.control}
+											name="webhookUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Webhook URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://xxx.webhook.office.com/webhookb2/..."
+															{...field}
+														/>
+													</FormControl>
+													<FormDescription>
+														Incoming Webhook URL from a Teams channel. Add an
+														Incoming Webhook in your channel settings to get the
+														URL.
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
 								{type === "pushover" && (
 									<>
 										<FormField
@@ -1733,10 +1951,12 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingTelegram ||
 								isLoadingDiscord ||
 								isLoadingEmail ||
+								isLoadingResend ||
 								isLoadingGotify ||
 								isLoadingNtfy ||
 								isLoadingMattermost ||
 								isLoadingLark ||
+								isLoadingTeams ||
 								isLoadingCustom ||
 								isLoadingPushover
 							}
@@ -1774,11 +1994,17 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											fromAddress: data.fromAddress,
 											toAddresses: data.toAddresses,
 										});
+									} else if (data.type === "resend") {
+										await testResendConnection({
+											apiKey: data.apiKey,
+											fromAddress: data.fromAddress,
+											toAddresses: data.toAddresses,
+										});
 									} else if (data.type === "gotify") {
 										await testGotifyConnection({
 											serverUrl: data.serverUrl,
 											appToken: data.appToken,
-											priority: data.priority,
+											priority: data.priority ?? 0,
 											decoration: data.decoration,
 										});
 									} else if (data.type === "ntfy") {
@@ -1786,7 +2012,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											serverUrl: data.serverUrl,
 											topic: data.topic,
 											accessToken: data.accessToken || "",
-											priority: data.priority,
+											priority: data.priority ?? 0,
 										});
 									} else if (data.type === "mattermost") {
 										await testMattermostConnection({
@@ -1796,6 +2022,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										});
 									} else if (data.type === "lark") {
 										await testLarkConnection({
+											webhookUrl: data.webhookUrl,
+										});
+									} else if (data.type === "teams") {
+										await testTeamsConnection({
 											webhookUrl: data.webhookUrl,
 										});
 									} else if (data.type === "custom") {
@@ -1825,7 +2055,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										await testPushoverConnection({
 											userKey: data.userKey,
 											apiToken: data.apiToken,
-											priority: data.priority,
+											priority: data.priority ?? 0,
 											retry: data.priority === 2 ? data.retry : undefined,
 											expire: data.priority === 2 ? data.expire : undefined,
 										});

@@ -1,4 +1,5 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+
 import { PlusIcon, SquarePen } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -80,7 +81,7 @@ export const HandleProject = ({ projectId }: Props) => {
 			description: "",
 			name: "",
 		},
-		resolver: zodResolver(AddProjectSchema),
+		resolver: standardSchemaResolver(AddProjectSchema),
 	});
 
 	useEffect(() => {

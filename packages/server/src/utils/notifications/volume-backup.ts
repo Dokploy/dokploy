@@ -13,7 +13,9 @@ import {
 	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
+	sendResendNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -55,18 +57,21 @@ export const sendVolumeBackupNotifications = async ({
 			discord: true,
 			telegram: true,
 			slack: true,
+			resend: true,
 			gotify: true,
 			ntfy: true,
 			mattermost: true,
 			custom: true,
 			lark: true,
 			pushover: true,
+			teams: true,
 		},
 	});
 
 	for (const notification of notificationList) {
 		const {
 			email,
+			resend,
 			discord,
 			telegram,
 			slack,
@@ -76,10 +81,11 @@ export const sendVolumeBackupNotifications = async ({
 			custom,
 			lark,
 			pushover,
+			teams,
 		} = notification;
 
 		try {
-			if (email) {
+			if (email || resend) {
 				const subject = `Volume Backup ${type === "success" ? "Successful" : "Failed"} - ${applicationName}`;
 				const htmlContent = await renderAsync(
 					VolumeBackupEmail({
@@ -93,7 +99,12 @@ export const sendVolumeBackupNotifications = async ({
 						date: date.toISOString(),
 					}),
 				);
-				await sendEmailNotification(email, subject, htmlContent);
+				if (email) {
+					await sendEmailNotification(email, subject, htmlContent);
+				}
+				if (resend) {
+					await sendResendNotification(resend, subject, htmlContent);
+				}
 			}
 
 			if (discord) {
@@ -307,26 +318,6 @@ export const sendVolumeBackupNotifications = async ({
 				});
 			}
 
-			if (custom) {
-				await sendCustomNotification(custom, {
-					title: `Volume Backup ${type === "success" ? "Successful" : "Failed"}`,
-					message:
-						type === "success"
-							? "Volume backup completed successfully"
-							: "Volume backup failed",
-					projectName,
-					applicationName,
-					volumeName,
-					serviceType,
-					type,
-					errorMessage: errorMessage || "",
-					backupSize: backupSize || "",
-					timestamp: date.toISOString(),
-					date: date.toLocaleString(),
-					status: type,
-				});
-			}
-
 			if (lark) {
 				const limitCharacter = 800;
 				const truncatedErrorMessage =
@@ -448,6 +439,50 @@ export const sendVolumeBackupNotifications = async ({
 					`Volume Backup ${type === "success" ? "Successful" : "Failed"}`,
 					`Project: ${projectName}\nApplication: ${applicationName}\nVolume: ${volumeName}\nService Type: ${serviceType}${backupSize ? `\nBackup Size: ${backupSize}` : ""}\nDate: ${date.toLocaleString()}${type === "error" && errorMessage ? `\nError: ${errorMessage}` : ""}`,
 				);
+			}
+
+			if (teams) {
+				const facts = [
+					{ name: "Project", value: projectName },
+					{ name: "Application", value: applicationName },
+					{ name: "Volume Name", value: volumeName },
+					{ name: "Service Type", value: serviceType },
+					{ name: "Date", value: format(date, "PP pp") },
+					{ name: "Status", value: type === "success" ? "Successful" : "Failed" },
+				];
+				if (backupSize) {
+					facts.push({ name: "Backup Size", value: backupSize });
+				}
+				if (type === "error" && errorMessage) {
+					facts.push({ name: "Error", value: errorMessage.substring(0, 500) });
+				}
+				await sendTeamsNotification(teams, {
+					title:
+						type === "success"
+							? "✅ Volume Backup Successful"
+							: "❌ Volume Backup Failed",
+					facts,
+				});
+			}
+
+			if (custom) {
+				await sendCustomNotification(custom, {
+					title: `Volume Backup ${type === "success" ? "Successful" : "Failed"}`,
+					message:
+						type === "success"
+							? "Volume backup completed successfully"
+							: "Volume backup failed",
+					projectName,
+					applicationName,
+					volumeName,
+					serviceType,
+					type,
+					errorMessage: errorMessage ?? "",
+					backupSize: backupSize ?? "",
+					timestamp: date.toISOString(),
+					date: date.toLocaleString(),
+					status: type,
+				});
 			}
 		} catch (error) {
 			console.log(error);

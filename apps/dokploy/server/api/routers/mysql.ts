@@ -1,5 +1,6 @@
 import {
 	addNewService,
+	checkPortInUse,
 	checkServiceAccess,
 	createMount,
 	createMysql,
@@ -18,12 +19,11 @@ import {
 	stopServiceRemote,
 	updateMySqlById,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { db } from "@/server/db";
 import {
 	apiChangeMySqlStatus,
 	apiCreateMySql,
@@ -177,9 +177,9 @@ export const mysqlRouter = createTRPCRouter({
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMySql)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findMySqlById(input.mysqlId);
+			const mysql = await findMySqlById(input.mysqlId);
 			if (
-				mongo.environment.project.organizationId !==
+				mysql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -187,11 +187,25 @@ export const mysqlRouter = createTRPCRouter({
 					message: "You are not authorized to save this external port",
 				});
 			}
+
+			if (input.externalPort) {
+				const portCheck = await checkPortInUse(
+					input.externalPort,
+					mysql.serverId || undefined,
+				);
+				if (portCheck.isInUse) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `Port ${input.externalPort} is already in use by ${portCheck.conflictingContainer}`,
+					});
+				}
+			}
+
 			await updateMySqlById(input.mysqlId, {
 				externalPort: input.externalPort,
 			});
 			await deployMySql(input.mysqlId);
-			return mongo;
+			return mysql;
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployMySql)
@@ -218,7 +232,7 @@ export const mysqlRouter = createTRPCRouter({
 			},
 		})
 		.input(apiDeployMySql)
-		.subscription(async ({ input, ctx }) => {
+		.subscription(async function* ({ input, ctx, signal }) {
 			const mysql = await findMySqlById(input.mysqlId);
 			if (
 				mysql.environment.project.organizationId !==
@@ -230,11 +244,24 @@ export const mysqlRouter = createTRPCRouter({
 				});
 			}
 
-			return observable<string>((emit) => {
-				deployMySql(input.mysqlId, (log) => {
-					emit.next(log);
-				});
+			const queue: string[] = [];
+			const done = false;
+
+			deployMySql(input.mysqlId, (log) => {
+				queue.push(log);
 			});
+
+			while (!done || queue.length > 0) {
+				if (queue.length > 0) {
+					yield queue.shift()!;
+				} else {
+					await new Promise((r) => setTimeout(r, 50));
+				}
+
+				if (signal?.aborted) {
+					return;
+				}
+			}
 		}),
 	changeStatus: protectedProcedure
 		.input(apiChangeMySqlStatus)

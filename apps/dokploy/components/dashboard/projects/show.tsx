@@ -63,7 +63,7 @@ export const ShowProjects = () => {
 	const utils = api.useUtils();
 	const router = useRouter();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data, isLoading } = api.project.all.useQuery();
+	const { data, isPending } = api.project.all.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
 
@@ -200,7 +200,7 @@ export const ShowProjects = () => {
 						</div>
 
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
-							{isLoading ? (
+							{isPending ? (
 								<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[60vh]">
 									<span>Loading...</span>
 									<Loader2 className="animate-spin size-4" />
@@ -430,7 +430,7 @@ export const ShowProjects = () => {
 																</DropdownMenu>
 															) : null}
 															<CardHeader>
-																<CardTitle className="flex items-center justify-between gap-2">
+																<CardTitle className="flex items-center justify-between gap-2 overflow-clip">
 																	<span className="flex flex-col gap-1.5 ">
 																		<div className="flex items-center gap-2">
 																			<BookIcon className="size-4 text-muted-foreground" />
@@ -439,7 +439,7 @@ export const ShowProjects = () => {
 																			</span>
 																		</div>
 
-																		<span className="text-sm font-medium text-muted-foreground break-all">
+																		<span className="text-sm font-medium text-muted-foreground break-normal">
 																			{project.description}
 																		</span>
 

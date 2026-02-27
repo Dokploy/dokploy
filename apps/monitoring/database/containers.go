@@ -48,11 +48,7 @@ func (db *DB) SaveContainerMetric(metric *ContainerMetric) error {
 }
 
 func (db *DB) GetLastNContainerMetrics(containerName string, limit int) ([]ContainerMetric, error) {
-	name := strings.TrimPrefix(containerName, "/")
-	parts := strings.Split(name, "-")
-	if len(parts) > 1 {
-		containerName = strings.Join(parts[:len(parts)-1], "-")
-	}
+	containerName = strings.TrimPrefix(containerName, "/")
 
 	query := `
 		WITH recent_metrics AS (
@@ -88,11 +84,7 @@ func (db *DB) GetLastNContainerMetrics(containerName string, limit int) ([]Conta
 }
 
 func (db *DB) GetAllMetricsContainer(containerName string) ([]ContainerMetric, error) {
-	name := strings.TrimPrefix(containerName, "/")
-	parts := strings.Split(name, "-")
-	if len(parts) > 1 {
-		containerName = strings.Join(parts[:len(parts)-1], "-")
-	}
+	containerName = strings.TrimPrefix(containerName, "/")
 
 	query := `
 		WITH recent_metrics AS (

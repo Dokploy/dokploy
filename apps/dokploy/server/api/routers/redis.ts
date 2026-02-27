@@ -1,5 +1,6 @@
 import {
 	addNewService,
+	checkPortInUse,
 	checkServiceAccess,
 	createMount,
 	createRedis,
@@ -17,13 +18,11 @@ import {
 	stopServiceRemote,
 	updateRedisById,
 } from "@dokploy/server";
-
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { db } from "@/server/db";
 import {
 	apiChangeRedisStatus,
 	apiCreateRedis,
@@ -201,9 +200,9 @@ export const redisRouter = createTRPCRouter({
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortRedis)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findRedisById(input.redisId);
+			const redis = await findRedisById(input.redisId);
 			if (
-				mongo.environment.project.organizationId !==
+				redis.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -211,11 +210,25 @@ export const redisRouter = createTRPCRouter({
 					message: "You are not authorized to save this external port",
 				});
 			}
+
+			if (input.externalPort) {
+				const portCheck = await checkPortInUse(
+					input.externalPort,
+					redis.serverId || undefined,
+				);
+				if (portCheck.isInUse) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `Port ${input.externalPort} is already in use by ${portCheck.conflictingContainer}`,
+					});
+				}
+			}
+
 			await updateRedisById(input.redisId, {
 				externalPort: input.externalPort,
 			});
 			await deployRedis(input.redisId);
-			return mongo;
+			return redis;
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployRedis)
@@ -242,7 +255,7 @@ export const redisRouter = createTRPCRouter({
 			},
 		})
 		.input(apiDeployRedis)
-		.subscription(async ({ input, ctx }) => {
+		.subscription(async function* ({ input, ctx, signal }) {
 			const redis = await findRedisById(input.redisId);
 			if (
 				redis.environment.project.organizationId !==
@@ -253,11 +266,24 @@ export const redisRouter = createTRPCRouter({
 					message: "You are not authorized to deploy this Redis",
 				});
 			}
-			return observable<string>((emit) => {
-				deployRedis(input.redisId, (log) => {
-					emit.next(log);
-				});
+			const queue: string[] = [];
+			const done = false;
+
+			deployRedis(input.redisId, (log) => {
+				queue.push(log);
 			});
+
+			while (!done || queue.length > 0) {
+				if (queue.length > 0) {
+					yield queue.shift()!;
+				} else {
+					await new Promise((r) => setTimeout(r, 50));
+				}
+
+				if (signal?.aborted) {
+					return;
+				}
+			}
 		}),
 	changeStatus: protectedProcedure
 		.input(apiChangeRedisStatus)

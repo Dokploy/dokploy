@@ -8,6 +8,7 @@ import {
 	sendMattermostNotification,
 	sendPushoverNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -42,6 +43,7 @@ export const sendServerThresholdNotifications = async (
 			custom: true,
 			lark: true,
 			pushover: true,
+			teams: true,
 		},
 	});
 
@@ -49,7 +51,8 @@ export const sendServerThresholdNotifications = async (
 	const typeColor = 0xff0000; // Rojo para indicar alerta
 
 	for (const notification of notificationList) {
-		const { discord, telegram, slack, mattermost, custom, lark, pushover } = notification;
+		const { discord, telegram, slack, mattermost, custom, lark, pushover, teams } =
+			notification;
 
 		try {
 			if (discord) {
@@ -289,6 +292,20 @@ export const sendServerThresholdNotifications = async (
 			}
 		} catch (error) {
 			console.log(error);
+		}
+
+		if (teams) {
+			await sendTeamsNotification(teams, {
+				title: `⚠️ Server ${payload.Type} Alert`,
+				facts: [
+					{ name: "Server Name", value: payload.ServerName },
+					{ name: "Type", value: payload.Type },
+					{ name: "Current Value", value: `${payload.Value.toFixed(2)}%` },
+					{ name: "Threshold", value: `${payload.Threshold.toFixed(2)}%` },
+					{ name: "Time", value: date.toLocaleString() },
+					{ name: "Message", value: payload.Message },
+				],
+			});
 		}
 	}
 };
