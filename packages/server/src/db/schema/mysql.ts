@@ -157,11 +157,9 @@ export const apiCreateMySql = createSchema.pick({
 	serverId: true,
 });
 
-export const apiFindOneMySql = createSchema
-	.pick({
-		mysqlId: true,
-	})
-	.required();
+export const apiFindOneMySql = z.object({
+	mysqlId: z.string().min(1),
+});
 
 export const apiChangeMySqlStatus = createSchema
 	.pick({

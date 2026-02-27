@@ -2,6 +2,7 @@ import {
 	addDomainToCompose,
 	addNewService,
 	checkServiceAccess,
+	clearOldDeployments,
 	cloneCompose,
 	createCommand,
 	createCompose,
@@ -32,6 +33,7 @@ import {
 	updateCompose,
 	updateDeploymentStatus,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import {
 	type CompleteTemplate,
 	fetchTemplateFiles,
@@ -46,7 +48,6 @@ import { parse } from "toml";
 import { stringify } from "yaml";
 import { z } from "zod";
 import { slugify } from "@/lib/slug";
-import { db } from "@/server/db";
 import {
 	apiCreateCompose,
 	apiDeleteCompose,
@@ -262,6 +263,23 @@ export const composeRouter = createTRPCRouter({
 			}
 			await cleanQueuesByCompose(input.composeId);
 			return { success: true, message: "Queues cleaned successfully" };
+		}),
+	clearDeployments: protectedProcedure
+		.input(apiFindCompose)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message:
+						"You are not authorized to clear deployments for this compose",
+				});
+			}
+			await clearOldDeployments(compose.appName, compose.serverId);
+			return true;
 		}),
 	killBuild: protectedProcedure
 		.input(apiFindCompose)

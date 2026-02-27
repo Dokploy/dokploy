@@ -6,6 +6,7 @@ import { paths } from "@dokploy/server/constants";
 import AdmZip from "adm-zip";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
+const OUTPUT_BASE = "./__test__/drop/zips/output";
 const { APPLICATIONS_PATH } = paths();
 vi.mock("@dokploy/server/constants", async (importOriginal) => {
 	const actual = await importOriginal();
@@ -13,7 +14,10 @@ vi.mock("@dokploy/server/constants", async (importOriginal) => {
 		// @ts-ignore
 		...actual,
 		paths: () => ({
-			APPLICATIONS_PATH: "./__test__/drop/zips/output",
+			// @ts-ignore
+			...actual.paths(),
+			BASE_PATH: OUTPUT_BASE,
+			APPLICATIONS_PATH: OUTPUT_BASE,
 		}),
 	};
 });
@@ -150,6 +154,176 @@ const baseApp: ApplicationNested = {
 	ulimitsSwarm: null,
 };
 
+/**
+ * GHSA-66v7-g3fh-47h3: Remote Code Execution through Path Traversal.
+ * Validates the exact PoC: ZIP with path traversal entry ../../../../../etc/cron.d/malicious-cron
+ * plus cover files (package.json, index.js). unzipDrop must reject and never write outside output.
+ */
+describe("GHSA-66v7-g3fh-47h3 path traversal RCE", () => {
+	beforeAll(async () => {
+		await fs.rm(APPLICATIONS_PATH, { recursive: true, force: true });
+	});
+	afterAll(async () => {
+		await fs.rm(APPLICATIONS_PATH, { recursive: true, force: true });
+	});
+
+	it("rejects PoC ZIP: traversal ../../../../../etc/cron.d/malicious-cron + package.json + index.js", async () => {
+		baseApp.appName = "ghsa-rce";
+		// PoC payload: same entry name as advisory (Python zipfile keeps it; AdmZip normalizes on add → use placeholder + replace)
+		const traversalEntry = "../../../../../etc/cron.d/malicious-cron";
+		const cronPayload = "* * * * * root id\n";
+		const placeholder = "x".repeat(traversalEntry.length);
+		const zip = new AdmZip();
+		zip.addFile(
+			"package.json",
+			Buffer.from('{"name": "app", "version": "1.0.0"}'),
+		);
+		zip.addFile("index.js", Buffer.from('console.log("Application");'));
+		zip.addFile(placeholder, Buffer.from(cronPayload));
+		let buf = Buffer.from(zip.toBuffer());
+		buf = Buffer.from(
+			buf.toString("binary").split(placeholder).join(traversalEntry),
+			"binary",
+		);
+		const file = new File([buf as unknown as ArrayBuffer], "exploit.zip");
+		await expect(unzipDrop(file, baseApp)).rejects.toThrow(
+			/Path traversal detected.*resolved path escapes output directory/,
+		);
+	});
+});
+
+describe("security: existing symlink escape", () => {
+	beforeAll(async () => {
+		await fs.rm(APPLICATIONS_PATH, { recursive: true, force: true });
+	});
+
+	afterAll(async () => {
+		await fs.rm(APPLICATIONS_PATH, { recursive: true, force: true });
+	});
+
+	it("should NOT write outside base when directory is a symlink", async () => {
+		const appName = "symlink-existing";
+		const output = path.join(APPLICATIONS_PATH, appName, "code");
+		await fs.mkdir(output, { recursive: true });
+
+		// outside target (attacker wants to write here)
+		const outside = path.join(APPLICATIONS_PATH, "..", "outside");
+		await fs.mkdir(outside, { recursive: true });
+
+		// attacker-controlled symlink inside project
+		await fs.symlink(outside, path.join(output, "logs"));
+
+		// zip looks totally harmless
+		const zip = new AdmZip();
+		zip.addFile("logs/pwned.txt", Buffer.from("owned"));
+
+		const file = new File([zip.toBuffer() as any], "exploit.zip");
+
+		await unzipDrop(file, { ...baseApp, appName });
+
+		// if vulnerable -> file exists outside sandbox
+		const escaped = await fs
+			.readFile(path.join(outside, "pwned.txt"), "utf8")
+			.then(() => true)
+			.catch(() => false);
+
+		expect(escaped).toBe(false);
+	});
+});
+
+describe("security: zip symlink entry blocked", () => {
+	beforeAll(async () => {
+		await fs.rm(APPLICATIONS_PATH, { recursive: true, force: true });
+	});
+
+	afterAll(async () => {
+		await fs.rm(APPLICATIONS_PATH, { recursive: true, force: true });
+	});
+
+	it("rejects zip containing real symlink entry", async () => {
+		const appName = "zip-symlink";
+
+		const zipBuffer = await fs.readFile(
+			path.join(__dirname, "./zips/payload/symlink-entry.zip"),
+		);
+
+		const file = new File([zipBuffer as any], "exploit.zip");
+
+		await expect(unzipDrop(file, { ...baseApp, appName })).rejects.toThrow(
+			/Dangerous node entries are not allowed/,
+		);
+	});
+});
+
+describe("unzipDrop path under output (no traversal)", () => {
+	beforeAll(async () => {
+		await fs.rm(APPLICATIONS_PATH, { recursive: true, force: true });
+	});
+	afterAll(async () => {
+		await fs.rm(APPLICATIONS_PATH, { recursive: true, force: true });
+	});
+
+	it("allows entry etc/cron.d/malicious-cron when under output (no path traversal)", async () => {
+		baseApp.appName = "cron-under-output";
+		const zip = new AdmZip();
+		zip.addFile(
+			"etc/cron.d/malicious-cron",
+			Buffer.from("* * * * * root id\n"),
+		);
+		zip.addFile("package.json", Buffer.from('{"name":"app"}'));
+		const file = new File(
+			[zip.toBuffer() as unknown as ArrayBuffer],
+			"app.zip",
+		);
+		const outputPath = path.join(APPLICATIONS_PATH, baseApp.appName, "code");
+		await unzipDrop(file, baseApp);
+		const content = await fs.readFile(
+			path.join(outputPath, "etc/cron.d/malicious-cron"),
+			"utf8",
+		);
+		expect(content).toBe("* * * * * root id\n");
+	});
+});
+
+describe("security: traversal inside BASE_PATH (sandbox escape)", () => {
+	beforeAll(async () => {
+		await fs.rm(APPLICATIONS_PATH, { recursive: true, force: true });
+	});
+
+	afterAll(async () => {
+		await fs.rm(APPLICATIONS_PATH, { recursive: true, force: true });
+	});
+
+	it("should NOT allow writing outside application directory but inside BASE_PATH", async () => {
+		const appName = "sandbox-escape";
+
+		const base = APPLICATIONS_PATH.replace("/applications", "");
+		const output = path.join(APPLICATIONS_PATH, appName, "code");
+
+		await fs.mkdir(output, { recursive: true });
+
+		// attacker writes into traefik config inside base
+		const zip = new AdmZip();
+		zip.addFile(
+			"../../../traefik/dynamic/evil.yml",
+			Buffer.from("pwned: true"),
+		);
+
+		const file = new File([zip.toBuffer() as any], "exploit.zip");
+
+		await unzipDrop(file, { ...baseApp, appName });
+
+		const escapedPath = path.join(base, "traefik/dynamic/evil.yml");
+
+		const exists = await fs
+			.readFile(escapedPath)
+			.then(() => true)
+			.catch(() => false);
+
+		expect(exists).toBe(false);
+	});
+});
+
 describe("unzipDrop using real zip files", () => {
 	// const { APPLICATIONS_PATH } = paths();
 	beforeAll(async () => {
@@ -166,14 +340,12 @@ describe("unzipDrop using real zip files", () => {
 		try {
 			const outputPath = path.join(APPLICATIONS_PATH, baseApp.appName, "code");
 			const zip = new AdmZip("./__test__/drop/zips/single-file.zip");
-			console.log(`Output Path: ${outputPath}`);
 			const zipBuffer = zip.toBuffer() as Buffer<ArrayBuffer>;
 			const file = new File([zipBuffer], "single.zip");
 			await unzipDrop(file, baseApp);
 			const files = await fs.readdir(outputPath, { withFileTypes: true });
 			expect(files.some((f) => f.name === "test.txt")).toBe(true);
 		} catch (err) {
-			console.log(err);
 		} finally {
 		}
 	});

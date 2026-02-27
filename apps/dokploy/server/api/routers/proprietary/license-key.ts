@@ -1,10 +1,10 @@
+import { db } from "@dokploy/server/db";
 import { user } from "@dokploy/server/db/schema";
-import { validateLicenseKey } from "@dokploy/server/index";
+import { hasValidLicense, validateLicenseKey } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
-import { db } from "@/server/db";
 import {
 	activateLicenseKey,
 	deactivateLicenseKey,
@@ -184,18 +184,7 @@ export const licenseKeyRouter = createTRPCRouter({
 		};
 	}),
 	haveValidLicenseKey: adminProcedure.query(async ({ ctx }) => {
-		const currentUserId = ctx.user.id;
-		const currentUser = await db.query.user.findFirst({
-			where: eq(user.id, currentUserId),
-			columns: {
-				enableEnterpriseFeatures: true,
-				isValidEnterpriseLicense: true,
-			},
-		});
-		return !!(
-			currentUser?.enableEnterpriseFeatures &&
-			currentUser?.isValidEnterpriseLicense
-		);
+		return await hasValidLicense(ctx.session.activeOrganizationId);
 	}),
 	updateEnterpriseSettings: adminProcedure
 		.input(

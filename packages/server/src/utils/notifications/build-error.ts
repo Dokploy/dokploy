@@ -14,6 +14,7 @@ import {
 	sendPushoverNotification,
 	sendResendNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -52,6 +53,7 @@ export const sendBuildErrorNotifications = async ({
 			custom: true,
 			lark: true,
 			pushover: true,
+			teams: true,
 		},
 	});
 
@@ -67,6 +69,7 @@ export const sendBuildErrorNotifications = async ({
 			custom,
 			lark,
 			pushover,
+			teams,
 		} = notification;
 		try {
 			if (email || resend) {
@@ -381,6 +384,26 @@ export const sendBuildErrorNotifications = async ({
 					"Build Failed",
 					`Project: ${projectName}\nApplication: ${applicationName}\nType: ${applicationType}\nDate: ${date.toLocaleString()}\nError: ${errorMessage}`,
 				);
+			}
+
+			if (teams) {
+				const limitCharacter = 800;
+				const truncatedErrorMessage = errorMessage.substring(0, limitCharacter);
+				await sendTeamsNotification(teams, {
+					title: "⚠️ Build Failed",
+					facts: [
+						{ name: "Project", value: projectName },
+						{ name: "Application", value: applicationName },
+						{ name: "Type", value: applicationType },
+						{ name: "Date", value: format(date, "PP pp") },
+						{ name: "Error Message", value: truncatedErrorMessage },
+					],
+					potentialAction: {
+						type: "Action.OpenUrl",
+						title: "View Build Details",
+						url: buildLink,
+					},
+				});
 			}
 		} catch (error) {
 			console.log(error);

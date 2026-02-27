@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -48,10 +48,10 @@ interface Props {
 export const ShowExternalMongoCredentials = ({ mongoId }: Props) => {
 	const { data: ip } = api.settings.getIp.useQuery();
 	const { data, refetch } = api.mongo.one.useQuery({ mongoId });
-	const { mutateAsync, isLoading } = api.mongo.saveExternalPort.useMutation();
+	const { mutateAsync, isPending } = api.mongo.saveExternalPort.useMutation();
 	const [connectionUrl, setConnectionUrl] = useState("");
 	const getIp = data?.server?.ipAddress || ip;
-	const form = useForm<DockerProvider>({
+	const form = useForm({
 		defaultValues: {},
 		resolver: zodResolver(DockerProviderSchema),
 	});
@@ -140,7 +140,7 @@ export const ShowExternalMongoCredentials = ({ mongoId }: Props) => {
 															<Input
 																placeholder="27017"
 																{...field}
-																value={field.value || ""}
+																value={field.value as string}
 															/>
 														</FormControl>
 														<FormMessage />
@@ -160,7 +160,7 @@ export const ShowExternalMongoCredentials = ({ mongoId }: Props) => {
 								)}
 
 								<div className="flex justify-end">
-									<Button type="submit" isLoading={isLoading}>
+									<Button type="submit" isLoading={isPending}>
 										Save
 									</Button>
 								</div>

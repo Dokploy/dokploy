@@ -156,11 +156,9 @@ export const apiCreateMongo = createSchema.pick({
 	replicaSets: true,
 });
 
-export const apiFindOneMongo = createSchema
-	.pick({
-		mongoId: true,
-	})
-	.required();
+export const apiFindOneMongo = z.object({
+	mongoId: z.string().min(1),
+});
 
 export const apiChangeMongoStatus = createSchema
 	.pick({

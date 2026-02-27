@@ -8877,13 +8877,6 @@
 									"allowImpersonation": {
 										"type": "boolean"
 									},
-									"enableEnterpriseFeatures": {
-										"type": "boolean"
-									},
-									"licenseKey": {
-										"type": "string",
-										"nullable": true
-									},
 									"stripeCustomerId": {
 										"type": "string",
 										"nullable": true
@@ -21917,6 +21910,540 @@
 									}
 								},
 								"required": ["environmentId", "name"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.create": {
+			"post": {
+				"operationId": "patch-create",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"filePath": {
+										"type": "string",
+										"minLength": 1
+									},
+									"content": {
+										"type": "string"
+									},
+									"enabled": {
+										"type": "boolean"
+									},
+									"applicationId": {
+										"type": "string",
+										"nullable": true
+									},
+									"composeId": {
+										"type": "string",
+										"nullable": true
+									}
+								},
+								"required": ["filePath", "content"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.one": {
+			"get": {
+				"operationId": "patch-one",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "patchId",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.byApplicationId": {
+			"get": {
+				"operationId": "patch-byApplicationId",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "applicationId",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.byComposeId": {
+			"get": {
+				"operationId": "patch-byComposeId",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "composeId",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.update": {
+			"post": {
+				"operationId": "patch-update",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"patchId": {
+										"type": "string",
+										"minLength": 1
+									},
+									"filePath": {
+										"type": "string",
+										"minLength": 1
+									},
+									"enabled": {
+										"type": "boolean"
+									},
+									"content": {
+										"type": "string"
+									},
+									"createdAt": {
+										"type": "string"
+									},
+									"updatedAt": {
+										"type": "string",
+										"nullable": true
+									}
+								},
+								"required": ["patchId"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.delete": {
+			"post": {
+				"operationId": "patch-delete",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"patchId": {
+										"type": "string",
+										"minLength": 1
+									}
+								},
+								"required": ["patchId"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.toggleEnabled": {
+			"post": {
+				"operationId": "patch-toggleEnabled",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"patchId": {
+										"type": "string",
+										"minLength": 1
+									},
+									"enabled": {
+										"type": "boolean"
+									}
+								},
+								"required": ["patchId", "enabled"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.ensureRepo": {
+			"post": {
+				"operationId": "patch-ensureRepo",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"applicationId": {
+										"type": "string"
+									},
+									"composeId": {
+										"type": "string"
+									}
+								},
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.readRepoDirectories": {
+			"get": {
+				"operationId": "patch-readRepoDirectories",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "applicationId",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "composeId",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "repoPath",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.readRepoFile": {
+			"get": {
+				"operationId": "patch-readRepoFile",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "applicationId",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "composeId",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "repoPath",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "filePath",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.saveFileAsPatch": {
+			"post": {
+				"operationId": "patch-saveFileAsPatch",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"applicationId": {
+										"type": "string"
+									},
+									"composeId": {
+										"type": "string"
+									},
+									"repoPath": {
+										"type": "string"
+									},
+									"filePath": {
+										"type": "string"
+									},
+									"content": {
+										"type": "string"
+									}
+								},
+								"required": ["repoPath", "filePath", "content"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Successful response",
+						"content": {
+							"application/json": {}
+						}
+					},
+					"default": {
+						"$ref": "#/components/responses/error"
+					}
+				}
+			}
+		},
+		"/patch.cleanPatchRepos": {
+			"post": {
+				"operationId": "patch-cleanPatchRepos",
+				"tags": ["patch"],
+				"security": [
+					{
+						"Authorization": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"serverId": {
+										"type": "string"
+									}
+								},
 								"additionalProperties": false
 							}
 						}

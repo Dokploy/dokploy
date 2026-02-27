@@ -19,6 +19,7 @@ import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
+import { patch } from "./patch";
 import { ports } from "./port";
 import { previewDeployments } from "./preview-deployments";
 import { redirects } from "./redirects";
@@ -158,7 +159,7 @@ export const applications = pgTable("application", {
 		},
 	),
 	enableSubmodules: boolean("enableSubmodules").notNull().default(false),
-	dockerfile: text("dockerfile"),
+	dockerfile: text("dockerfile").default("Dockerfile"),
 	dockerContextPath: text("dockerContextPath"),
 	dockerBuildStage: text("dockerBuildStage"),
 	// Drop
@@ -286,6 +287,7 @@ export const applicationsRelations = relations(
 			references: [registry.registryId],
 			relationName: "applicationRollbackRegistry",
 		}),
+		patches: many(patch),
 	}),
 );
 
@@ -329,6 +331,7 @@ const createSchema = createInsertSchema(applications, {
 	sourceType: z
 		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
 		.optional(),
+	triggerType: z.enum(["push", "tag"]).optional(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	buildType: z.enum([
 		"dockerfile",
@@ -378,11 +381,9 @@ export const apiCreateApplication = createSchema.pick({
 	serverId: true,
 });
 
-export const apiFindOneApplication = createSchema
-	.pick({
-		applicationId: true,
-	})
-	.required();
+export const apiFindOneApplication = z.object({
+	applicationId: z.string().min(1),
+});
 
 export const apiDeployApplication = createSchema
 	.pick({
@@ -518,11 +519,9 @@ export const apiSaveEnvironmentVariables = createSchema
 	})
 	.required();
 
-export const apiFindMonitoringStats = createSchema
-	.pick({
-		appName: true,
-	})
-	.required();
+export const apiFindMonitoringStats = z.object({
+	appName: z.string().min(1),
+});
 
 export const apiUpdateApplication = createSchema
 	.partial()

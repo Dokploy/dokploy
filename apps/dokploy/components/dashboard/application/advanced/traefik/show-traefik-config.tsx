@@ -15,7 +15,7 @@ interface Props {
 }
 
 export const ShowTraefikConfig = ({ applicationId }: Props) => {
-	const { data, isLoading } = api.application.readTraefikConfig.useQuery(
+	const { data, isPending } = api.application.readTraefikConfig.useQuery(
 		{
 			applicationId,
 		},
@@ -35,7 +35,7 @@ export const ShowTraefikConfig = ({ applicationId }: Props) => {
 				</div>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
-				{isLoading ? (
+				{isPending ? (
 					<span className="text-base text-muted-foreground flex flex-row gap-3 items-center justify-center min-h-[10vh]">
 						Loading...
 						<Loader2 className="animate-spin" />

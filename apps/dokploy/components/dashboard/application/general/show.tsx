@@ -37,14 +37,14 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 		{ enabled: !!applicationId },
 	);
 	const { mutateAsync: update } = api.application.update.useMutation();
-	const { mutateAsync: start, isLoading: isStarting } =
+	const { mutateAsync: start, isPending: isStarting } =
 		api.application.start.useMutation();
-	const { mutateAsync: stop, isLoading: isStopping } =
+	const { mutateAsync: stop, isPending: isStopping } =
 		api.application.stop.useMutation();
 
 	const { mutateAsync: deploy } = api.application.deploy.useMutation();
 
-	const { mutateAsync: reload, isLoading: isReloading } =
+	const { mutateAsync: reload, isPending: isReloading } =
 		api.application.reload.useMutation();
 
 	const { mutateAsync: redeploy } = api.application.redeploy.useMutation();

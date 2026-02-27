@@ -53,11 +53,11 @@ const getStatusBadge = (status: Stripe.Invoice.Status | null) => {
 };
 
 export const ShowInvoices = () => {
-	const { data: invoices, isLoading } = api.stripe.getInvoices.useQuery();
+	const { data: invoices, isPending } = api.stripe.getInvoices.useQuery();
 
 	return (
 		<div className="space-y-4">
-			{isLoading ? (
+			{isPending ? (
 				<div className="flex items-center justify-center min-h-[20vh]">
 					<span className="text-base text-muted-foreground flex flex-row gap-3 items-center">
 						Loading invoices...

@@ -1,5 +1,4 @@
 import { ServerIcon } from "lucide-react";
-import { useTranslation } from "next-i18next";
 import {
 	Card,
 	CardContent,
@@ -15,7 +14,6 @@ import { ToggleDockerCleanup } from "./servers/actions/toggle-docker-cleanup";
 import { UpdateServer } from "./web-server/update-server";
 
 export const WebServer = () => {
-	const { t } = useTranslation("settings");
 	const { data: webServerSettings } =
 		api.settings.getWebServerSettings.useQuery();
 
@@ -29,18 +27,16 @@ export const WebServer = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<ServerIcon className="size-6 text-muted-foreground self-center" />
-							{t("settings.server.webServer.title")}
+							Web Server
 						</CardTitle>
-						<CardDescription>
-							{t("settings.server.webServer.description")}
-						</CardDescription>
+						<CardDescription>Reload or clean the web server.</CardDescription>
 					</CardHeader>
 					{/* <CardHeader>
 						<CardTitle className="text-xl">
-							{t("settings.server.webServer.title")}
+							Web Server
 						</CardTitle>
 						<CardDescription>
-							{t("settings.server.webServer.description")}
+							Reload or clean the web server.
 						</CardDescription>
 					</CardHeader> */}
 					<CardContent className="space-y-6 py-6 border-t">

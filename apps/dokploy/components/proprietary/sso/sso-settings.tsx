@@ -83,20 +83,19 @@ export const SSOSettings = () => {
 	const [editingValue, setEditingValue] = useState("");
 	const [newOriginInput, setNewOriginInput] = useState("");
 
-	const { data: providers, isLoading } = api.sso.listProviders.useQuery();
-	const { data: userData } = api.user.get.useQuery(undefined, {
-		enabled: manageOriginsOpen,
-	});
-	const { mutateAsync: deleteProvider, isLoading: isDeleting } =
+	const { data: providers, isPending } = api.sso.listProviders.useQuery();
+	const { data: trustedOrigins = [] } = api.sso.getTrustedOrigins.useQuery(
+		undefined,
+		{ enabled: manageOriginsOpen },
+	);
+	const { mutateAsync: deleteProvider, isPending: isDeleting } =
 		api.sso.deleteProvider.useMutation();
-	const { mutateAsync: addTrustedOrigin, isLoading: isAddingOrigin } =
+	const { mutateAsync: addTrustedOrigin, isPending: isAddingOrigin } =
 		api.sso.addTrustedOrigin.useMutation();
-	const { mutateAsync: removeTrustedOrigin, isLoading: isRemovingOrigin } =
+	const { mutateAsync: removeTrustedOrigin, isPending: isRemovingOrigin } =
 		api.sso.removeTrustedOrigin.useMutation();
-	const { mutateAsync: updateTrustedOrigin, isLoading: isUpdatingOrigin } =
+	const { mutateAsync: updateTrustedOrigin, isPending: isUpdatingOrigin } =
 		api.sso.updateTrustedOrigin.useMutation();
-
-	const trustedOrigins = userData?.user?.trustedOrigins ?? [];
 
 	const handleAddOrigin = async () => {
 		const value = newOriginInput.trim();
@@ -105,7 +104,7 @@ export const SSOSettings = () => {
 			await addTrustedOrigin({ origin: value });
 			toast.success("Trusted origin added");
 			setNewOriginInput("");
-			await utils.user.get.invalidate();
+			await utils.sso.getTrustedOrigins.invalidate();
 		} catch (err) {
 			toast.error(
 				err instanceof Error ? err.message : "Failed to add trusted origin",
@@ -118,7 +117,7 @@ export const SSOSettings = () => {
 			await removeTrustedOrigin({ origin });
 			toast.success("Trusted origin removed");
 			if (editingOrigin === origin) setEditingOrigin(null);
-			await utils.user.get.invalidate();
+			await utils.sso.getTrustedOrigins.invalidate();
 		} catch (err) {
 			toast.error(
 				err instanceof Error ? err.message : "Failed to remove trusted origin",
@@ -144,7 +143,7 @@ export const SSOSettings = () => {
 			toast.success("Trusted origin updated");
 			setEditingOrigin(null);
 			setEditingValue("");
-			await utils.user.get.invalidate();
+			await utils.sso.getTrustedOrigins.invalidate();
 		} catch (err) {
 			toast.error(
 				err instanceof Error ? err.message : "Failed to update trusted origin",
@@ -181,7 +180,7 @@ export const SSOSettings = () => {
 				</Button>
 			</div>
 
-			{isLoading ? (
+			{isPending ? (
 				<div className="flex items-center gap-2 justify-center min-h-[25vh]">
 					<Loader2 className="size-6 text-muted-foreground animate-spin" />
 					<span className="text-sm text-muted-foreground">

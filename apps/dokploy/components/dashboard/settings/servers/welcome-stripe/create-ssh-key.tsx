@@ -12,7 +12,7 @@ import { api } from "@/utils/api";
 export const CreateSSHKey = () => {
 	const { data, refetch } = api.sshKey.all.useQuery();
 	const generateMutation = api.sshKey.generate.useMutation();
-	const { mutateAsync, isLoading } = api.sshKey.create.useMutation();
+	const { mutateAsync, isPending } = api.sshKey.create.useMutation();
 	const hasCreatedKey = useRef(false);
 	const [selectedOption, setSelectedOption] = useState<"manual" | "provider">(
 		"manual",
@@ -24,7 +24,7 @@ export const CreateSSHKey = () => {
 
 	useEffect(() => {
 		const createKey = async () => {
-			if (!data || cloudSSHKey || hasCreatedKey.current || isLoading) {
+			if (!data || cloudSSHKey || hasCreatedKey.current || isPending) {
 				return;
 			}
 
@@ -55,7 +55,7 @@ export const CreateSSHKey = () => {
 		<Card className="h-full bg-transparent">
 			<CardContent>
 				<div className="grid w-full gap-4 pt-4">
-					{isLoading || !cloudSSHKey ? (
+					{isPending || !cloudSSHKey ? (
 						<div className="min-h-[25vh] justify-center flex items-center gap-4">
 							<Loader2
 								className="animate-spin text-muted-foreground"

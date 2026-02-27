@@ -1,6 +1,6 @@
 import { IS_CLOUD, isAdminPresent } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
@@ -105,7 +105,6 @@ export default function Home({ IS_CLOUD }: Props) {
 			setIsLoginLoading(false);
 		}
 	};
-
 	const onTwoFactorSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (twoFactorCode.length !== 6) {
@@ -254,7 +253,6 @@ export default function Home({ IS_CLOUD }: Props) {
 									onChange={setTwoFactorCode}
 									maxLength={6}
 									pattern={REGEXP_ONLY_DIGITS}
-									autoComplete="off"
 									autoFocus
 								>
 									<InputOTPGroup>

@@ -32,6 +32,7 @@ interface Props {
 }
 
 export const BreadcrumbSidebar = ({ list }: Props) => {
+	console.log(list);
 	return (
 		<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
 			<div className="flex items-center justify-between w-full">
@@ -41,7 +42,7 @@ export const BreadcrumbSidebar = ({ list }: Props) => {
 					<Breadcrumb>
 						<BreadcrumbList>
 							{list.map((item, index) => (
-								<Fragment key={item.name}>
+								<Fragment key={`${item.name}-${index}`}>
 									<BreadcrumbItem className="block">
 										{item.dropdownItems && item.dropdownItems.length > 0 ? (
 											<DropdownMenu>

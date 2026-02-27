@@ -23,6 +23,7 @@ export const notificationType = pgEnum("notificationType", [
 	"pushover",
 	"custom",
 	"lark",
+	"teams",
 ]);
 
 export const notifications = pgTable("notification", {
@@ -70,6 +71,9 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	pushoverId: text("pushoverId").references(() => pushover.pushoverId, {
+		onDelete: "cascade",
+	}),
+	teamsId: text("teamsId").references(() => teams.teamsId, {
 		onDelete: "cascade",
 	}),
 	organizationId: text("organizationId")
@@ -179,6 +183,14 @@ export const pushover = pgTable("pushover", {
 	expire: integer("expire"),
 });
 
+export const teams = pgTable("teams", {
+	teamsId: text("teamsId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
+});
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
 	slack: one(slack, {
 		fields: [notifications.slackId],
@@ -219,6 +231,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	pushover: one(pushover, {
 		fields: [notifications.pushoverId],
 		references: [pushover.pushoverId],
+	}),
+	teams: one(teams, {
+		fields: [notifications.teamsId],
+		references: [teams.teamsId],
 	}),
 	organization: one(organization, {
 		fields: [notifications.organizationId],
@@ -448,11 +464,9 @@ export const apiTestNtfyConnection = apiCreateNtfy.pick({
 	priority: true,
 });
 
-export const apiFindOneNotification = notificationsSchema
-	.pick({
-		notificationId: true,
-	})
-	.required();
+export const apiFindOneNotification = z.object({
+	notificationId: z.string().min(1),
+});
 
 export const apiCreateCustom = notificationsSchema
 	.pick({
@@ -467,7 +481,7 @@ export const apiCreateCustom = notificationsSchema
 	})
 	.extend({
 		endpoint: z.string().min(1),
-		headers: z.record(z.string()).optional(),
+		headers: z.record(z.string(), z.string()).optional(),
 	});
 
 export const apiUpdateCustom = apiCreateCustom.partial().extend({
@@ -478,7 +492,7 @@ export const apiUpdateCustom = apiCreateCustom.partial().extend({
 
 export const apiTestCustomConnection = z.object({
 	endpoint: z.string().min(1),
-	headers: z.record(z.string()).optional(),
+	headers: z.record(z.string(), z.string()).optional(),
 });
 
 export const apiCreateLark = notificationsSchema
@@ -504,6 +518,32 @@ export const apiUpdateLark = apiCreateLark.partial().extend({
 });
 
 export const apiTestLarkConnection = apiCreateLark.pick({
+	webhookUrl: true,
+});
+
+export const apiCreateTeams = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		volumeBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		webhookUrl: z.string().min(1),
+	})
+	.required();
+
+export const apiUpdateTeams = apiCreateTeams.partial().extend({
+	notificationId: z.string().min(1),
+	teamsId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestTeamsConnection = apiCreateTeams.pick({
 	webhookUrl: true,
 });
 
