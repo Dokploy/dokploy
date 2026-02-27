@@ -41,7 +41,7 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 	const [option, setOption] = useState<"swarm" | "native">("native");
 	const [containerId, setContainerId] = useState<string | undefined>();
 
-	const { data: services, isLoading: servicesLoading } =
+	const { data: services, isPending: servicesLoading } =
 		api.docker.getStackContainersByAppName.useQuery(
 			{
 				appName,
@@ -52,7 +52,7 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 			},
 		);
 
-	const { data: containers, isLoading: containersLoading } =
+	const { data: containers, isPending: containersLoading } =
 		api.docker.getContainersByAppNameMatch.useQuery(
 			{
 				appName,

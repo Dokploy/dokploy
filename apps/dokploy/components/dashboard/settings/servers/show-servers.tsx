@@ -53,7 +53,7 @@ import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
 export const ShowServers = () => {
 	const router = useRouter();
 	const query = router.query;
-	const { data, refetch, isLoading } = api.server.all.useQuery();
+	const { data, refetch, isPending } = api.server.all.useQuery();
 	const { mutateAsync } = api.server.remove.useMutation();
 	const { data: sshKeys } = api.sshKey.all.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -86,7 +86,7 @@ export const ShowServers = () => {
 						)}
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
-						{isLoading ? (
+						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
 								<Loader2 className="animate-spin size-4" />

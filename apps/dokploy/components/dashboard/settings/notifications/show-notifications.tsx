@@ -23,8 +23,8 @@ import { api } from "@/utils/api";
 import { HandleNotifications } from "./handle-notifications";
 
 export const ShowNotifications = () => {
-	const { data, isLoading, refetch } = api.notification.all.useQuery();
-	const { mutateAsync, isLoading: isRemoving } =
+	const { data, isPending, refetch } = api.notification.all.useQuery();
+	const { mutateAsync, isPending: isRemoving } =
 		api.notification.remove.useMutation();
 
 	return (
@@ -42,7 +42,7 @@ export const ShowNotifications = () => {
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
-						{isLoading ? (
+						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
 								<Loader2 className="animate-spin size-4" />

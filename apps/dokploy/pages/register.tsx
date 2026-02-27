@@ -1,5 +1,5 @@
 import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/server";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";

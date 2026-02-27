@@ -1,6 +1,6 @@
 import { IS_CLOUD, isAdminPresent } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";

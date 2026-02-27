@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Cog } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -163,14 +163,14 @@ const resetData = (data: ApplicationData): AddTemplate => {
 };
 
 export const ShowBuildChooseForm = ({ applicationId }: Props) => {
-	const { mutateAsync, isLoading } =
+	const { mutateAsync, isPending } =
 		api.application.saveBuildType.useMutation();
 	const { data, refetch } = api.application.one.useQuery(
 		{ applicationId },
 		{ enabled: !!applicationId },
 	);
 
-	const form = useForm<AddTemplate>({
+	const form = useForm({
 		defaultValues: {
 			buildType: BuildType.nixpacks,
 		},
@@ -528,7 +528,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 							</>
 						)}
 						<div className="flex w-full justify-end">
-							<Button isLoading={isLoading} type="submit">
+							<Button isLoading={isPending} type="submit">
 								Save
 							</Button>
 						</div>

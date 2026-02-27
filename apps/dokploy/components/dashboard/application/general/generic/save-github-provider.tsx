@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -72,10 +72,10 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 	const { data: githubProviders } = api.github.githubProviders.useQuery();
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
-	const { mutateAsync, isLoading: isSavingGithubProvider } =
+	const { mutateAsync, isPending: isSavingGithubProvider } =
 		api.application.saveGithubProvider.useMutation();
 
-	const form = useForm<GithubProvider>({
+	const form = useForm({
 		defaultValues: {
 			buildPath: "/",
 			repository: {
@@ -94,7 +94,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 	const githubId = form.watch("githubId");
 	const triggerType = form.watch("triggerType");
 
-	const { data: repositories, isLoading: isLoadingRepositories } =
+	const { data: repositories, isPending: isLoadingRepositories } =
 		api.github.getGithubRepositories.useQuery(
 			{
 				githubId,
@@ -320,7 +320,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{status === "loading" && fetchStatus === "fetching"
+													{status === "pending" && fetchStatus === "fetching"
 														? "Loading...."
 														: field.value
 															? branches?.find(
@@ -337,7 +337,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 													placeholder="Search branch..."
 													className="h-9"
 												/>
-												{status === "loading" && fetchStatus === "fetching" && (
+												{status === "pending" && fetchStatus === "fetching" && (
 													<span className="py-6 text-center text-sm text-muted-foreground">
 														Loading Branches....
 													</span>
@@ -459,7 +459,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 										<div className="flex flex-wrap gap-2 mb-2">
 											{field.value?.map((path, index) => (
 												<Badge
-													key={index}
+													key={`${path}-${index}`}
 													variant="secondary"
 													className="flex items-center gap-1"
 												>

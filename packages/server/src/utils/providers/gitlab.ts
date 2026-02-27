@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { apiGitlabTestConnection } from "@dokploy/server/db/schema";
+import type { z } from "zod";
 import {
 	findGitlabById,
 	type Gitlab,
@@ -171,7 +172,7 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 		if (groupName) {
 			return groupName
 				.split(",")
-				.some((name) =>
+				.some((name: string) =>
 					full_path.toLowerCase().startsWith(name.trim().toLowerCase()),
 				);
 		}
@@ -256,7 +257,7 @@ export const getGitlabBranches = async (input: {
 };
 
 export const testGitlabConnection = async (
-	input: typeof apiGitlabTestConnection._type,
+	input: z.infer<typeof apiGitlabTestConnection>,
 ) => {
 	const { gitlabId, groupName } = input;
 
@@ -276,7 +277,7 @@ export const testGitlabConnection = async (
 		if (groupName) {
 			return groupName
 				.split(",")
-				.some((name) =>
+				.some((name: string) =>
 					full_path.toLowerCase().startsWith(name.trim().toLowerCase()),
 				);
 		}

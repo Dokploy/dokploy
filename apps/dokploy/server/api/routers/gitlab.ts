@@ -8,9 +8,9 @@ import {
 	updateGitlab,
 	updateGitProvider,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { db } from "@/server/db";
 import {
 	apiCreateGitlab,
 	apiFindGitlabBranches,

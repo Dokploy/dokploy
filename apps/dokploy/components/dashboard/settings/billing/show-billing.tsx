@@ -81,7 +81,7 @@ export const ShowBilling = () => {
 	const router = useRouter();
 	const { data: servers } = api.server.count.useQuery();
 	const { data: admin } = api.user.get.useQuery();
-	const { data, isLoading } = api.stripe.getProducts.useQuery();
+	const { data, isPending } = api.stripe.getProducts.useQuery();
 	const { mutateAsync: createCheckoutSession } =
 		api.stripe.createCheckoutSession.useMutation();
 
@@ -643,7 +643,7 @@ export const ShowBilling = () => {
 									</Link>
 								</Button>
 							</div>
-							{isLoading ? (
+							{isPending ? (
 								<span className="text-base text-muted-foreground flex flex-row gap-3 items-center justify-center min-h-[10vh]">
 									Loading...
 									<Loader2 className="animate-spin" />

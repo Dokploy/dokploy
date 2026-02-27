@@ -43,7 +43,7 @@ export const securityRouter = createTRPCRouter({
 					message: "You are not authorized to access this application",
 				});
 			}
-			return await findSecurityById(input.securityId);
+			return security;
 		}),
 	delete: protectedProcedure
 		.input(apiFindOneSecurity)

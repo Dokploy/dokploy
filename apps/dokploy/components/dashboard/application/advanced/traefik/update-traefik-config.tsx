@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -24,7 +25,6 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
 
@@ -69,7 +69,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 		{ enabled: !!applicationId },
 	);
 
-	const { mutateAsync, isLoading, error, isError } =
+	const { mutateAsync, isPending, error, isError } =
 		api.application.updateTraefikConfig.useMutation();
 
 	const form = useForm<UpdateTraefikConfig>({
@@ -126,7 +126,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 			}}
 		>
 			<DialogTrigger asChild>
-				<Button isLoading={isLoading}>Modify</Button>
+				<Button isLoading={isPending}>Modify</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
@@ -198,7 +198,7 @@ routers:
 							</p>
 						</div>
 						<Button
-							isLoading={isLoading}
+							isLoading={isPending}
 							form="hook-form-update-traefik-config"
 							type="submit"
 						>

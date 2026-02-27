@@ -15,32 +15,32 @@ interface Props {
 	serverId?: string;
 }
 export const ShowStorageActions = ({ serverId }: Props) => {
-	const { mutateAsync: cleanAll, isLoading: cleanAllIsLoading } =
+	const { mutateAsync: cleanAll, isPending: cleanAllIsLoading } =
 		api.settings.cleanAll.useMutation();
 
 	const {
 		mutateAsync: cleanDockerBuilder,
-		isLoading: cleanDockerBuilderIsLoading,
+		isPending: cleanDockerBuilderIsPending,
 	} = api.settings.cleanDockerBuilder.useMutation();
 
 	const { mutateAsync: cleanMonitoring } =
 		api.settings.cleanMonitoring.useMutation();
 	const {
 		mutateAsync: cleanUnusedImages,
-		isLoading: cleanUnusedImagesIsLoading,
+		isPending: cleanUnusedImagesIsPending,
 	} = api.settings.cleanUnusedImages.useMutation();
 
 	const {
 		mutateAsync: cleanUnusedVolumes,
-		isLoading: cleanUnusedVolumesIsLoading,
+		isPending: cleanUnusedVolumesIsPending,
 	} = api.settings.cleanUnusedVolumes.useMutation();
 
 	const {
 		mutateAsync: cleanStoppedContainers,
-		isLoading: cleanStoppedContainersIsLoading,
+		isPending: cleanStoppedContainersIsPending,
 	} = api.settings.cleanStoppedContainers.useMutation();
 
-	const { mutateAsync: cleanPatchRepos, isLoading: cleanPatchReposIsLoading } =
+	const { mutateAsync: cleanPatchRepos, isPending: cleanPatchReposIsLoading } =
 		api.patch.cleanPatchRepos.useMutation();
 
 	return (
@@ -49,20 +49,20 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 				asChild
 				disabled={
 					cleanAllIsLoading ||
-					cleanDockerBuilderIsLoading ||
-					cleanUnusedImagesIsLoading ||
-					cleanUnusedVolumesIsLoading ||
-					cleanStoppedContainersIsLoading ||
+					cleanDockerBuilderIsPending ||
+					cleanUnusedImagesIsPending ||
+					cleanUnusedVolumesIsPending ||
+					cleanStoppedContainersIsPending ||
 					cleanPatchReposIsLoading
 				}
 			>
 				<Button
 					isLoading={
 						cleanAllIsLoading ||
-						cleanDockerBuilderIsLoading ||
-						cleanUnusedImagesIsLoading ||
-						cleanUnusedVolumesIsLoading ||
-						cleanStoppedContainersIsLoading ||
+						cleanDockerBuilderIsPending ||
+						cleanUnusedImagesIsPending ||
+						cleanUnusedVolumesIsPending ||
+						cleanStoppedContainersIsPending ||
 						cleanPatchReposIsLoading
 					}
 					variant="outline"

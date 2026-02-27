@@ -165,10 +165,11 @@ curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.39.1/pack-v0.
 
 ### Important Considerations for Pull Requests
 
-- **Testing is Mandatory:** All Pull Requests **must be tested** before submission. You must verify that your changes work as expected in a local development environment (see [Setup](#setup)). **Pull Requests that have not been tested will be closed.** This policy ensures clean contributions and reduces the time maintainers spend reviewing untested or broken code.
+- **Testing is Mandatory:** All Pull Requests **must be tested** by the PR author before submission. You must verify that your changes work as expected in a local development environment (see [Setup](#setup)). **Pull Requests that have not been tested by their creator will be rejected.** This policy keeps the PR history clean and values contributors who submit verified, working code. Untested PRs are often recognizable by disproportionately large or scattered changes for simple tasks—please test first.
 - **Focus and Scope:** Each Pull Request should ideally address a single, well-defined problem or introduce one new feature. This greatly facilitates review and reduces the chances of introducing unintended side effects.
 - **Avoid Unfocused Changes:** Please avoid submitting Pull Requests that contain only minor changes such as whitespace adjustments, IDE-generated formatting, or removal of unused variables, unless these are part of a larger, clearly defined refactor or a dedicated "cleanup" Pull Request that addresses a specific `good first issue` or maintenance task.
 - **Issue Association:** For any significant change, it's highly recommended to open an issue first to discuss the proposed solution with the community and maintainers. This ensures alignment and avoids duplicated effort. If your PR resolves an existing issue, please link it in the description (e.g., `Fixes #123`, `Closes #456`).
+- **Large Features:** Pull Requests that introduce very large or broad features **will not be accepted** unless the idea is first outlined and discussed in a GitHub issue. Large features should be designed together with the Dokploy team so the project stays coherent and moves in the same direction. Open an issue to propose and align on the design before implementing.
 
 Thank you for your contribution!
 

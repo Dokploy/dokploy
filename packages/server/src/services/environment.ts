@@ -6,11 +6,12 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
+import type { z } from "zod";
 
 export type Environment = typeof environments.$inferSelect;
 
 export const createEnvironment = async (
-	input: typeof apiCreateEnvironment._type,
+	input: z.infer<typeof apiCreateEnvironment>,
 ) => {
 	const newEnvironment = await db
 		.insert(environments)
@@ -156,7 +157,7 @@ export const updateEnvironmentById = async (
 };
 
 export const duplicateEnvironment = async (
-	input: typeof apiDuplicateEnvironment._type,
+	input: z.infer<typeof apiDuplicateEnvironment>,
 ) => {
 	// Find the original environment
 	const originalEnvironment = await findEnvironmentById(input.environmentId);

@@ -20,12 +20,11 @@ import {
 	stopServiceRemote,
 	updatePostgresById,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { db } from "@/server/db";
 import {
 	apiChangePostgresStatus,
 	apiCreatePostgres,
@@ -239,8 +238,9 @@ export const postgresRouter = createTRPCRouter({
 			},
 		})
 		.input(apiDeployPostgres)
-		.subscription(async ({ input, ctx }) => {
+		.subscription(async function* ({ input, ctx, signal }) {
 			const postgres = await findPostgresById(input.postgresId);
+
 			if (
 				postgres.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
@@ -250,11 +250,25 @@ export const postgresRouter = createTRPCRouter({
 					message: "You are not authorized to deploy this Postgres",
 				});
 			}
-			return observable<string>((emit) => {
-				deployPostgres(input.postgresId, (log) => {
-					emit.next(log);
-				});
+
+			const queue: string[] = [];
+			const done = false;
+
+			deployPostgres(input.postgresId, (log) => {
+				queue.push(log);
 			});
+
+			while (!done || queue.length > 0) {
+				if (queue.length > 0) {
+					yield queue.shift()!;
+				} else {
+					await new Promise((r) => setTimeout(r, 50));
+				}
+
+				if (signal?.aborted) {
+					return;
+				}
+			}
 		}),
 
 	changeStatus: protectedProcedure

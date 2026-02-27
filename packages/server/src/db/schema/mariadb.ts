@@ -160,11 +160,9 @@ export const apiCreateMariaDB = createSchema.pick({
 	serverId: true,
 });
 
-export const apiFindOneMariaDB = createSchema
-	.pick({
-		mariadbId: true,
-	})
-	.required();
+export const apiFindOneMariaDB = z.object({
+	mariadbId: z.string().min(1),
+});
 
 export const apiChangeMariaDBStatus = createSchema
 	.pick({

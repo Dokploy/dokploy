@@ -21,9 +21,51 @@ import {
 	STARTUP_PRODUCT_ID,
 	WEBSITE_URL,
 } from "@/server/utils/stripe";
-import { adminProcedure, createTRPCRouter } from "../trpc";
+import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const stripeRouter = createTRPCRouter({
+	/** Returns the current billing plan for the user's organization. Used to gate features like chat (Startup only). */
+	getCurrentPlan: protectedProcedure.query(async ({ ctx }) => {
+		if (!IS_CLOUD) return null;
+		const owner = await findUserById(ctx.user.ownerId);
+		if (!owner?.stripeCustomerId) return null;
+
+		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+			apiVersion: "2024-09-30.acacia",
+		});
+		const subscriptions = await stripe.subscriptions.list({
+			customer: owner.stripeCustomerId,
+			status: "active",
+			expand: ["data.items.data.price"],
+		});
+		const activeSub = subscriptions.data[0];
+		if (!activeSub) return null;
+
+		const priceIds = activeSub.items.data.map(
+			(item) => (item.price as Stripe.Price).id,
+		);
+		if (
+			priceIds.some(
+				(id) =>
+					id === STARTUP_BASE_PRICE_MONTHLY_ID ||
+					id === STARTUP_BASE_PRICE_ANNUAL_ID,
+			)
+		) {
+			return "startup" as const;
+		}
+		if (
+			priceIds.some(
+				(id) => id === HOBBY_PRICE_MONTHLY_ID || id === HOBBY_PRICE_ANNUAL_ID,
+			)
+		) {
+			return "hobby" as const;
+		}
+		if (priceIds.some((id) => LEGACY_PRICE_IDS.includes(id))) {
+			return "legacy" as const;
+		}
+		return null;
+	}),
+
 	getProducts: adminProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);
 		const stripeCustomerId = user.stripeCustomerId;

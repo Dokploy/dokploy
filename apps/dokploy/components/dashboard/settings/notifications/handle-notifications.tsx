@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import {
 	AlertTriangle,
 	Mail,
@@ -239,29 +239,29 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			enabled: !!notificationId,
 		},
 	);
-	const { mutateAsync: testSlackConnection, isLoading: isLoadingSlack } =
+	const { mutateAsync: testSlackConnection, isPending: isLoadingSlack } =
 		api.notification.testSlackConnection.useMutation();
-	const { mutateAsync: testTelegramConnection, isLoading: isLoadingTelegram } =
+	const { mutateAsync: testTelegramConnection, isPending: isLoadingTelegram } =
 		api.notification.testTelegramConnection.useMutation();
-	const { mutateAsync: testDiscordConnection, isLoading: isLoadingDiscord } =
+	const { mutateAsync: testDiscordConnection, isPending: isLoadingDiscord } =
 		api.notification.testDiscordConnection.useMutation();
-	const { mutateAsync: testEmailConnection, isLoading: isLoadingEmail } =
+	const { mutateAsync: testEmailConnection, isPending: isLoadingEmail } =
 		api.notification.testEmailConnection.useMutation();
-	const { mutateAsync: testResendConnection, isLoading: isLoadingResend } =
+	const { mutateAsync: testResendConnection, isPending: isLoadingResend } =
 		api.notification.testResendConnection.useMutation();
-	const { mutateAsync: testGotifyConnection, isLoading: isLoadingGotify } =
+	const { mutateAsync: testGotifyConnection, isPending: isLoadingGotify } =
 		api.notification.testGotifyConnection.useMutation();
-	const { mutateAsync: testNtfyConnection, isLoading: isLoadingNtfy } =
+	const { mutateAsync: testNtfyConnection, isPending: isLoadingNtfy } =
 		api.notification.testNtfyConnection.useMutation();
-	const { mutateAsync: testLarkConnection, isLoading: isLoadingLark } =
+	const { mutateAsync: testLarkConnection, isPending: isLoadingLark } =
 		api.notification.testLarkConnection.useMutation();
-	const { mutateAsync: testTeamsConnection, isLoading: isLoadingTeams } =
+	const { mutateAsync: testTeamsConnection, isPending: isLoadingTeams } =
 		api.notification.testTeamsConnection.useMutation();
 
-	const { mutateAsync: testCustomConnection, isLoading: isLoadingCustom } =
+	const { mutateAsync: testCustomConnection, isPending: isLoadingCustom } =
 		api.notification.testCustomConnection.useMutation();
 
-	const { mutateAsync: testPushoverConnection, isLoading: isLoadingPushover } =
+	const { mutateAsync: testPushoverConnection, isPending: isLoadingPushover } =
 		api.notification.testPushoverConnection.useMutation();
 
 	const customMutation = notificationId
@@ -298,7 +298,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		? api.notification.updatePushover.useMutation()
 		: api.notification.createPushover.useMutation();
 
-	const form = useForm<NotificationSchema>({
+	const form = useForm({
 		defaultValues: {
 			type: "slack",
 			webhookUrl: "",
@@ -1898,7 +1898,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										await testGotifyConnection({
 											serverUrl: data.serverUrl,
 											appToken: data.appToken,
-											priority: data.priority,
+											priority: data.priority ?? 0,
 											decoration: data.decoration,
 										});
 									} else if (data.type === "ntfy") {
@@ -1906,7 +1906,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											serverUrl: data.serverUrl,
 											topic: data.topic,
 											accessToken: data.accessToken || "",
-											priority: data.priority,
+											priority: data.priority ?? 0,
 										});
 									} else if (data.type === "lark") {
 										await testLarkConnection({
@@ -1943,7 +1943,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										await testPushoverConnection({
 											userKey: data.userKey,
 											apiToken: data.apiToken,
-											priority: data.priority,
+											priority: data.priority ?? 0,
 											retry: data.priority === 2 ? data.retry : undefined,
 											expire: data.priority === 2 ? data.expire : undefined,
 										});

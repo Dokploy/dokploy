@@ -1,9 +1,9 @@
 import { buffer } from "node:stream/consumers";
 import { findUserById, type Server } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
-import { db } from "@/server/db";
 import { organization, server, user } from "@/server/db/schema";
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;

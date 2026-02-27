@@ -28,7 +28,7 @@ export const EditPatchDialog = ({
 	type,
 	onSuccess,
 }: Props) => {
-	const { data: patch, isLoading: isPatchLoading } = api.patch.one.useQuery(
+	const { data: patch, isPending: isPatchLoading } = api.patch.one.useQuery(
 		{ patchId },
 		{ enabled: !!patchId },
 	);
@@ -89,7 +89,7 @@ export const EditPatchDialog = ({
 					<DialogClose asChild>
 						<Button variant="outline">Cancel</Button>
 					</DialogClose>
-					<Button onClick={handleSave} isLoading={updatePatch.isLoading}>
+					<Button onClick={handleSave} isLoading={updatePatch.isPending}>
 						{updatePatch.isPending && (
 							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 						)}

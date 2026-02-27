@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Pencil, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -77,10 +77,10 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 	);
 
 	const { data: sshKeys } = api.sshKey.all.useQuery();
-	const { mutateAsync, error, isLoading, isError } = serverId
+	const { mutateAsync, error, isPending, isError } = serverId
 		? api.server.update.useMutation()
 		: api.server.create.useMutation();
-	const form = useForm<Schema>({
+	const form = useForm({
 		defaultValues: {
 			description: "",
 			name: "",
@@ -171,9 +171,8 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 				</DialogHeader>
 				<div>
 					<p className="text-primary text-sm font-medium">
-						You will need to purchase or rent a Virtual Private Server (VPS) to
-						proceed, we recommend to use one of these providers since has been
-						heavily tested.
+						You may need to purchase or rent a Virtual Private Server (VPS) to
+						proceed. We recommend using one of these heavily tested providers:
 					</p>
 					<ul className="list-inside list-disc pl-4 text-sm text-muted-foreground mt-4">
 						<li>
@@ -419,7 +418,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 
 					<DialogFooter>
 						<Button
-							isLoading={isLoading}
+							isLoading={isPending}
 							disabled={!canCreateMoreServers && !serverId}
 							form="hook-form-add-server"
 							type="submit"

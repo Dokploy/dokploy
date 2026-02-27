@@ -136,11 +136,9 @@ export const apiCreateRedis = createSchema.pick({
 	serverId: true,
 });
 
-export const apiFindOneRedis = createSchema
-	.pick({
-		redisId: true,
-	})
-	.required();
+export const apiFindOneRedis = z.object({
+	redisId: z.string().min(1),
+});
 
 export const apiChangeRedisStatus = createSchema
 	.pick({

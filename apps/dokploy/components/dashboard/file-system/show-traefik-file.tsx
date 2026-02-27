@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -51,7 +51,7 @@ export const ShowTraefikFile = ({ path, serverId }: Props) => {
 	const [canEdit, setCanEdit] = useState(true);
 	const [skipYamlValidation, setSkipYamlValidation] = useState(false);
 
-	const { mutateAsync, isLoading, error, isError } =
+	const { mutateAsync, isPending, error, isError } =
 		api.settings.updateTraefikFile.useMutation();
 
 	const form = useForm<UpdateServerMiddlewareConfig>({
@@ -182,8 +182,8 @@ routers:
 						</p>
 						<div className="flex justify-end">
 							<Button
-								isLoading={isLoading}
-								disabled={canEdit || isLoading}
+								isLoading={isPending}
+								disabled={canEdit || isLoadingFile}
 								type="submit"
 							>
 								Update

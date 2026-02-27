@@ -9,7 +9,11 @@ import { and, desc, eq } from "drizzle-orm";
 import { BETTER_AUTH_SECRET, IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
-import { getTrustedOrigins, getUserByToken } from "../services/admin";
+import {
+	getTrustedOrigins,
+	getTrustedProviders,
+	getUserByToken,
+} from "../services/admin";
 import {
 	getWebServerSettings,
 	updateWebServerSettings,
@@ -17,8 +21,6 @@ import {
 import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
-
-const trustedProviders = process.env?.TRUSTED_PROVIDERS?.split(",") || [];
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -49,7 +51,10 @@ const { handler, api } = betterAuth({
 	account: {
 		accountLinking: {
 			enabled: true,
-			trustedProviders: ["github", "google", ...(trustedProviders || [])],
+			async trustedProviders() {
+				const fromDb = await getTrustedProviders();
+				return ["github", "google", ...fromDb];
+			},
 			allowDifferentEmails: true,
 		},
 	},
@@ -343,12 +348,15 @@ const { handler, api } = betterAuth({
 	],
 });
 
-export const auth = {
+const _auth = {
 	handler,
 	createApiKey: api.createApiKey,
 	registerSSOProvider: api.registerSSOProvider,
 	updateSSOProvider: api.updateSSOProvider,
 };
+
+export type AuthType = typeof _auth;
+export const auth: AuthType = _auth;
 
 export const validateRequest = async (request: IncomingMessage) => {
 	const apiKey = request.headers["x-api-key"] as string;
@@ -460,11 +468,16 @@ export const validateRequest = async (request: IncomingMessage) => {
 		const member = await db.query.member.findFirst({
 			where: and(
 				eq(schema.member.userId, session.user.id),
-				eq(
-					schema.member.organizationId,
-					session.session.activeOrganizationId || "",
-				),
+				...(session.session.activeOrganizationId
+					? [
+							eq(
+								schema.member.organizationId,
+								session.session.activeOrganizationId || "",
+							),
+						]
+					: []),
 			),
+			orderBy: [desc(schema.member.isDefault), desc(schema.member.createdAt)],
 			with: {
 				organization: true,
 				user: true,
@@ -476,6 +489,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 			member?.user.enableEnterpriseFeatures || false;
 		session.user.isValidEnterpriseLicense =
 			member?.user.isValidEnterpriseLicense || false;
+		session.session.activeOrganizationId = member?.organization.id || "";
 		if (member) {
 			session.user.ownerId = member.organization.ownerId;
 		} else {
