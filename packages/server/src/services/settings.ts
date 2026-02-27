@@ -8,6 +8,7 @@ import { and, eq } from "drizzle-orm";
 
 import semver from "semver";
 import { db } from "../db";
+import { docker } from "@dokploy/server/constants";
 import { compose } from "../db/schema";
 import {
 	initializeStandaloneTraefik,
