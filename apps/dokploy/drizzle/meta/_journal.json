@@ -1039,13 +1039,6 @@
       "breakpoints": true
     },
     {
-      "idx": 148,
-      "version": "7",
-      "when": 1771919484000,
-      "tag": "0147_mature_sumo",
-      "breakpoints": true
-    },
-    {
       "idx": 149,
       "version": "7",
       "when": 1771967432000,
