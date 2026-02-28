@@ -530,12 +530,12 @@ export const settingsRouter = createTRPCRouter({
 	getOpenApiDocument: protectedProcedure.query(
 		async ({ ctx }): Promise<unknown> => {
 			const protocol = ctx.req.headers["x-forwarded-proto"];
-			const url = `${protocol}://${ctx.req.headers.host}/api/trpc`;
+			const url = `${protocol}://${ctx.req.headers.host}/api`;
 			const openApiDocument = generateOpenApiDocument(appRouter, {
 				title: "tRPC OpenAPI",
 				version: packageInfo.version,
 				baseUrl: url,
-				docsUrl: `${url}/trpc/settings.getOpenApiDocument`,
+				docsUrl: `${url}/settings.getOpenApiDocument`,
 				tags: [
 					"admin",
 					"docker",
@@ -734,10 +734,6 @@ export const settingsRouter = createTRPCRouter({
 						filePath: "/etc/dokploy/traefik/dynamic/access.log",
 						format: "json",
 						bufferingSize: 100,
-						filters: {
-							retryAttempts: true,
-							minDuration: "10ms",
-						},
 					},
 				};
 				currentConfig.accessLog = config.accessLog;

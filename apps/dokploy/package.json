@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.28.0",
+	"version": "v0.28.1",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -55,7 +55,7 @@
 		"@codemirror/legacy-modes": "6.4.0",
 		"@codemirror/view": "6.29.0",
 		"@dokploy/server": "workspace:*",
-		"@dokploy/trpc-openapi": "0.0.16",
+		"@dokploy/trpc-openapi": "0.0.17",
 		"@faker-js/faker": "^8.4.1",
 		"@hookform/resolvers": "^5.2.2",
 		"@octokit/auth-app": "^6.1.3",

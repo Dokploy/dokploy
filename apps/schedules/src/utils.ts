@@ -83,6 +83,7 @@ export const runJobs = async (job: QueueJob) => {
 					return;
 				}
 				await runComposeBackup(compose, backup);
+				await keepLatestNBackups(backup, server.serverId);
 			}
 		} else if (job.type === "server") {
 			const { serverId } = job;
