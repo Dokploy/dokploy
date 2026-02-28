@@ -21,14 +21,17 @@ export const S3_PROVIDER_STORAGE_CLASS_OPTIONS: Record<string, string[]> = {
 		"INTELLIGENT_TIERING",
 		"GLACIER_IR",
 	],
-	Alibaba: ["STANDARD", "GLACIER", "STANDARD_IA"],
-	ArvanCloud: ["STANDARD"],
-	ChinaMobile: ["STANDARD", "GLACIER", "STANDARD_IA"],
-	Liara: ["STANDARD"],
-	Magalu: ["STANDARD", "GLACIER_IR"],
-	Qiniu: ["STANDARD", "GLACIER", "LINE", "DEEP_ARCHIVE"],
-	Scaleway: ["STANDARD", "GLACIER", "ONEZONE_IA"],
-	TencentCOS: ["STANDARD", "STANDARD_IA", "ARCHIVE"],
+    
+    // Other provoders can be added in the future
+    //
+	// Alibaba: ["STANDARD", "GLACIER", "STANDARD_IA"],
+	// ArvanCloud: ["STANDARD"],
+	// ChinaMobile: ["STANDARD", "GLACIER", "STANDARD_IA"],
+	// Liara: ["STANDARD"],
+	// Magalu: ["STANDARD", "GLACIER_IR"],
+	// Qiniu: ["STANDARD", "GLACIER", "LINE", "DEEP_ARCHIVE"],
+	// Scaleway: ["STANDARD", "GLACIER", "ONEZONE_IA"],
+	// TencentCOS: ["STANDARD", "STANDARD_IA", "ARCHIVE"],
 };
 
 export const getS3StorageClassOptionsByProvider = (provider?: string | null) => {
