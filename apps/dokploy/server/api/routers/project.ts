@@ -220,29 +220,54 @@ export const projectRouter = createTRPCRouter({
 									accessedServices,
 								),
 								with: { domains: true },
+								columns: {
+									applicationId: true,
+								},
 							},
 							mariadb: {
 								where: buildServiceFilter(mariadb.mariadbId, accessedServices),
+								columns: {
+									mariadbId: true,
+								},
 							},
 							mongo: {
 								where: buildServiceFilter(mongo.mongoId, accessedServices),
+								columns: {
+									mongoId: true,
+								},
 							},
 							mysql: {
 								where: buildServiceFilter(mysql.mysqlId, accessedServices),
+								columns: {
+									mysqlId: true,
+								},
 							},
 							postgres: {
 								where: buildServiceFilter(
 									postgres.postgresId,
 									accessedServices,
 								),
+								columns: {
+									postgresId: true,
+								},
 							},
 							redis: {
 								where: buildServiceFilter(redis.redisId, accessedServices),
+								columns: {
+									redisId: true,
+								},
 							},
 							compose: {
 								where: buildServiceFilter(compose.composeId, accessedServices),
 								with: { domains: true },
+								columns: {
+									composeId: true,
+								},
 							},
+						},
+						columns: {
+							environmentId: true,
+							isDefault: true,
 						},
 					},
 				},
@@ -258,17 +283,47 @@ export const projectRouter = createTRPCRouter({
 							with: {
 								domains: true,
 							},
+							columns: {
+								applicationId: true,
+							},
 						},
-						mariadb: true,
-						mongo: true,
-						mysql: true,
-						postgres: true,
-						redis: true,
+						mariadb: {
+							columns: {
+								mariadbId: true,
+							},
+						},
+						mongo: {
+							columns: {
+								mongoId: true,
+							},
+						},
+						mysql: {
+							columns: {
+								mysqlId: true,
+							},
+						},
+						postgres: {
+							columns: {
+								postgresId: true,
+							},
+						},
+						redis: {
+							columns: {
+								redisId: true,
+							},
+						},
 						compose: {
 							with: {
 								domains: true,
 							},
+							columns: {
+								composeId: true,
+							},
 						},
+					},
+					columns: {
+						environmentId: true,
+						isDefault: true,
 					},
 				},
 			},
