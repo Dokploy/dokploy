@@ -22,7 +22,7 @@ export const S3_PROVIDER_STORAGE_CLASS_OPTIONS: Record<string, string[]> = {
 		"GLACIER_IR",
 	],
 
-	// Other provoders can be added in the future
+	// Other providers can be added in the future
 	//
 	// Alibaba: ["STANDARD", "GLACIER", "STANDARD_IA"],
 	// ArvanCloud: ["STANDARD"],
