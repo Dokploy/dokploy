@@ -11,7 +11,9 @@ import {
 	findMemberById,
 	updateEnvironmentById,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
@@ -21,6 +23,7 @@ import {
 	apiRemoveEnvironment,
 	apiUpdateEnvironment,
 } from "@/server/db/schema";
+import { environments, projects } from "@/server/db/schema";
 
 // Helper function to filter services within an environment based on user permissions
 const filterEnvironmentServices = (
@@ -357,5 +360,93 @@ export const environmentRouter = createTRPCRouter({
 					message: `Error duplicating the environment: ${error instanceof Error ? error.message : error}`,
 				});
 			}
+		}),
+
+	search: protectedProcedure
+		.input(
+			z.object({
+				q: z.string().optional(),
+				name: z.string().optional(),
+				description: z.string().optional(),
+				projectId: z.string().optional(),
+				limit: z.number().min(1).max(100).default(20),
+				offset: z.number().min(0).default(0),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const baseConditions = [
+				eq(projects.organizationId, ctx.session.activeOrganizationId),
+			];
+
+			if (input.projectId) {
+				baseConditions.push(eq(environments.projectId, input.projectId));
+			}
+
+			if (input.q?.trim()) {
+				const term = `%${input.q.trim()}%`;
+				baseConditions.push(
+					or(
+						ilike(environments.name, term),
+						ilike(environments.description ?? "", term),
+					)!,
+				);
+			}
+
+			if (input.name?.trim()) {
+				baseConditions.push(
+					ilike(environments.name, `%${input.name.trim()}%`),
+				);
+			}
+			if (input.description?.trim()) {
+				baseConditions.push(
+					ilike(environments.description ?? "", `%${input.description.trim()}%`),
+				);
+			}
+
+			if (ctx.user.role === "member") {
+				const { accessedEnvironments } = await findMemberById(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				if (accessedEnvironments.length === 0)
+					return { items: [], total: 0 };
+				baseConditions.push(
+					sql`${environments.environmentId} IN (${sql.join(
+						accessedEnvironments.map((id) => sql`${id}`),
+						sql`, `,
+					)})`,
+				);
+			}
+
+			const where = and(...baseConditions);
+
+			const [items, countResult] = await Promise.all([
+				db
+					.select({
+						environmentId: environments.environmentId,
+						name: environments.name,
+						description: environments.description,
+						createdAt: environments.createdAt,
+						env: environments.env,
+						projectId: environments.projectId,
+						isDefault: environments.isDefault,
+					})
+					.from(environments)
+					.innerJoin(projects, eq(environments.projectId, projects.projectId))
+					.where(where)
+					.orderBy(desc(environments.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db
+					.select({ count: sql<number>`count(*)::int` })
+					.from(environments)
+					.innerJoin(projects, eq(environments.projectId, projects.projectId))
+					.where(where),
+			]);
+
+			return {
+				items,
+				total: countResult[0]?.count ?? 0,
+			};
 		}),
 });

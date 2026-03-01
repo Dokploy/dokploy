@@ -7,6 +7,7 @@ import {
 	findApplicationById,
 	findEnvironmentById,
 	findGitProviderById,
+	findMemberById,
 	findProjectById,
 	getApplicationStats,
 	IS_CLOUD,
@@ -32,7 +33,7 @@ import {
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
@@ -53,6 +54,8 @@ import {
 	apiSaveGitProvider,
 	apiUpdateApplication,
 	applications,
+	environments,
+	projects,
 } from "@/server/db/schema";
 import { deploymentWorker } from "@/server/queues/deployments-queue";
 import type { DeploymentJob } from "@/server/queues/queue-types";
@@ -1001,5 +1004,135 @@ export const applicationRouter = createTRPCRouter({
 				code: "BAD_REQUEST",
 				message: "Deployment cancellation only available in cloud version",
 			});
+		}),
+
+	search: protectedProcedure
+		.input(
+			z.object({
+				q: z.string().optional(),
+				name: z.string().optional(),
+				appName: z.string().optional(),
+				description: z.string().optional(),
+				repository: z.string().optional(),
+				owner: z.string().optional(),
+				dockerImage: z.string().optional(),
+				projectId: z.string().optional(),
+				environmentId: z.string().optional(),
+				limit: z.number().min(1).max(100).default(20),
+				offset: z.number().min(0).default(0),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const baseConditions = [
+				eq(projects.organizationId, ctx.session.activeOrganizationId),
+			];
+
+			if (input.projectId) {
+				baseConditions.push(eq(environments.projectId, input.projectId));
+			}
+			if (input.environmentId) {
+				baseConditions.push(
+					eq(applications.environmentId, input.environmentId),
+				);
+			}
+
+			if (input.q?.trim()) {
+				const term = `%${input.q.trim()}%`;
+				baseConditions.push(
+					or(
+						ilike(applications.name, term),
+						ilike(applications.appName, term),
+						ilike(applications.description ?? "", term),
+						ilike(applications.repository ?? "", term),
+						ilike(applications.owner ?? "", term),
+						ilike(applications.dockerImage ?? "", term),
+					)!,
+				);
+			}
+
+			if (input.name?.trim()) {
+				baseConditions.push(
+					ilike(applications.name, `%${input.name.trim()}%`),
+				);
+			}
+			if (input.appName?.trim()) {
+				baseConditions.push(
+					ilike(applications.appName, `%${input.appName.trim()}%`),
+				);
+			}
+			if (input.description?.trim()) {
+				baseConditions.push(
+					ilike(applications.description ?? "", `%${input.description.trim()}%`),
+				);
+			}
+			if (input.repository?.trim()) {
+				baseConditions.push(
+					ilike(applications.repository ?? "", `%${input.repository.trim()}%`),
+				);
+			}
+			if (input.owner?.trim()) {
+				baseConditions.push(
+					ilike(applications.owner ?? "", `%${input.owner.trim()}%`),
+				);
+			}
+			if (input.dockerImage?.trim()) {
+				baseConditions.push(
+					ilike(applications.dockerImage ?? "", `%${input.dockerImage.trim()}%`),
+				);
+			}
+
+			if (ctx.user.role === "member") {
+				const { accessedServices } = await findMemberById(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				if (accessedServices.length === 0) return { items: [], total: 0 };
+				baseConditions.push(
+					sql`${applications.applicationId} IN (${sql.join(
+						accessedServices.map((id) => sql`${id}`),
+						sql`, `,
+					)})`,
+				);
+			}
+
+			const where = and(...baseConditions);
+
+			const [items, countResult] = await Promise.all([
+				db
+					.select({
+						applicationId: applications.applicationId,
+						name: applications.name,
+						appName: applications.appName,
+						description: applications.description,
+						environmentId: applications.environmentId,
+						applicationStatus: applications.applicationStatus,
+						sourceType: applications.sourceType,
+						createdAt: applications.createdAt,
+					})
+					.from(applications)
+					.innerJoin(
+						environments,
+						eq(applications.environmentId, environments.environmentId),
+					)
+					.innerJoin(projects, eq(environments.projectId, projects.projectId))
+					.where(where)
+					.orderBy(desc(applications.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db
+					.select({ count: sql<number>`count(*)::int` })
+					.from(applications)
+					.innerJoin(
+						environments,
+						eq(applications.environmentId, environments.environmentId),
+					)
+					.innerJoin(projects, eq(environments.projectId, projects.projectId))
+					.where(where),
+			]);
+
+			return {
+				items,
+				total: countResult[0]?.count ?? 0,
+			};
 		}),
 });
