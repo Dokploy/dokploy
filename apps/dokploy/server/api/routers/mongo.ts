@@ -499,9 +499,7 @@ export const mongoRouter = createTRPCRouter({
 				baseConditions.push(eq(environments.projectId, input.projectId));
 			}
 			if (input.environmentId) {
-				baseConditions.push(
-					eq(mongoTable.environmentId, input.environmentId),
-				);
+				baseConditions.push(eq(mongoTable.environmentId, input.environmentId));
 			}
 			if (input.q?.trim()) {
 				const term = `%${input.q.trim()}%`;
@@ -514,9 +512,7 @@ export const mongoRouter = createTRPCRouter({
 				);
 			}
 			if (input.name?.trim()) {
-				baseConditions.push(
-					ilike(mongoTable.name, `%${input.name.trim()}%`),
-				);
+				baseConditions.push(ilike(mongoTable.name, `%${input.name.trim()}%`));
 			}
 			if (input.appName?.trim()) {
 				baseConditions.push(

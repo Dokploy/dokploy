@@ -473,9 +473,7 @@ export const redisRouter = createTRPCRouter({
 				baseConditions.push(eq(environments.projectId, input.projectId));
 			}
 			if (input.environmentId) {
-				baseConditions.push(
-					eq(redisTable.environmentId, input.environmentId),
-				);
+				baseConditions.push(eq(redisTable.environmentId, input.environmentId));
 			}
 			if (input.q?.trim()) {
 				const term = `%${input.q.trim()}%`;
@@ -488,9 +486,7 @@ export const redisRouter = createTRPCRouter({
 				);
 			}
 			if (input.name?.trim()) {
-				baseConditions.push(
-					ilike(redisTable.name, `%${input.name.trim()}%`),
-				);
+				baseConditions.push(ilike(redisTable.name, `%${input.name.trim()}%`));
 			}
 			if (input.appName?.trim()) {
 				baseConditions.push(

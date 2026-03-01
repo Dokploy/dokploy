@@ -484,9 +484,7 @@ export const mariadbRouter = createTRPCRouter({
 				);
 			}
 			if (input.name?.trim()) {
-				baseConditions.push(
-					ilike(mariadbTable.name, `%${input.name.trim()}%`),
-				);
+				baseConditions.push(ilike(mariadbTable.name, `%${input.name.trim()}%`));
 			}
 			if (input.appName?.trim()) {
 				baseConditions.push(
@@ -495,7 +493,10 @@ export const mariadbRouter = createTRPCRouter({
 			}
 			if (input.description?.trim()) {
 				baseConditions.push(
-					ilike(mariadbTable.description ?? "", `%${input.description.trim()}%`),
+					ilike(
+						mariadbTable.description ?? "",
+						`%${input.description.trim()}%`,
+					),
 				);
 			}
 			if (ctx.user.role === "member") {

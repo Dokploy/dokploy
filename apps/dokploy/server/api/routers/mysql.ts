@@ -508,9 +508,7 @@ export const mysqlRouter = createTRPCRouter({
 				);
 			}
 			if (input.name?.trim()) {
-				baseConditions.push(
-					ilike(mysqlTable.name, `%${input.name.trim()}%`),
-				);
+				baseConditions.push(ilike(mysqlTable.name, `%${input.name.trim()}%`));
 			}
 			if (input.appName?.trim()) {
 				baseConditions.push(

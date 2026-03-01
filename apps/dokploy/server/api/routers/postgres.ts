@@ -532,7 +532,10 @@ export const postgresRouter = createTRPCRouter({
 			}
 			if (input.description?.trim()) {
 				baseConditions.push(
-					ilike(postgresTable.description ?? "", `%${input.description.trim()}%`),
+					ilike(
+						postgresTable.description ?? "",
+						`%${input.description.trim()}%`,
+					),
 				);
 			}
 			if (ctx.user.role === "member") {

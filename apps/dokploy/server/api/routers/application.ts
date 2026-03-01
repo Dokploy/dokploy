@@ -1051,9 +1051,7 @@ export const applicationRouter = createTRPCRouter({
 			}
 
 			if (input.name?.trim()) {
-				baseConditions.push(
-					ilike(applications.name, `%${input.name.trim()}%`),
-				);
+				baseConditions.push(ilike(applications.name, `%${input.name.trim()}%`));
 			}
 			if (input.appName?.trim()) {
 				baseConditions.push(
@@ -1062,7 +1060,10 @@ export const applicationRouter = createTRPCRouter({
 			}
 			if (input.description?.trim()) {
 				baseConditions.push(
-					ilike(applications.description ?? "", `%${input.description.trim()}%`),
+					ilike(
+						applications.description ?? "",
+						`%${input.description.trim()}%`,
+					),
 				);
 			}
 			if (input.repository?.trim()) {
@@ -1077,7 +1078,10 @@ export const applicationRouter = createTRPCRouter({
 			}
 			if (input.dockerImage?.trim()) {
 				baseConditions.push(
-					ilike(applications.dockerImage ?? "", `%${input.dockerImage.trim()}%`),
+					ilike(
+						applications.dockerImage ?? "",
+						`%${input.dockerImage.trim()}%`,
+					),
 				);
 			}
 

@@ -393,13 +393,14 @@ export const environmentRouter = createTRPCRouter({
 			}
 
 			if (input.name?.trim()) {
-				baseConditions.push(
-					ilike(environments.name, `%${input.name.trim()}%`),
-				);
+				baseConditions.push(ilike(environments.name, `%${input.name.trim()}%`));
 			}
 			if (input.description?.trim()) {
 				baseConditions.push(
-					ilike(environments.description ?? "", `%${input.description.trim()}%`),
+					ilike(
+						environments.description ?? "",
+						`%${input.description.trim()}%`,
+					),
 				);
 			}
 
@@ -408,8 +409,7 @@ export const environmentRouter = createTRPCRouter({
 					ctx.user.id,
 					ctx.session.activeOrganizationId,
 				);
-				if (accessedEnvironments.length === 0)
-					return { items: [], total: 0 };
+				if (accessedEnvironments.length === 0) return { items: [], total: 0 };
 				baseConditions.push(
 					sql`${environments.environmentId} IN (${sql.join(
 						accessedEnvironments.map((id) => sql`${id}`),

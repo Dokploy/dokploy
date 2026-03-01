@@ -1097,9 +1097,7 @@ export const composeRouter = createTRPCRouter({
 			}
 
 			if (input.name?.trim()) {
-				baseConditions.push(
-					ilike(composeTable.name, `%${input.name.trim()}%`),
-				);
+				baseConditions.push(ilike(composeTable.name, `%${input.name.trim()}%`));
 			}
 			if (input.appName?.trim()) {
 				baseConditions.push(
@@ -1108,7 +1106,10 @@ export const composeRouter = createTRPCRouter({
 			}
 			if (input.description?.trim()) {
 				baseConditions.push(
-					ilike(composeTable.description ?? "", `%${input.description.trim()}%`),
+					ilike(
+						composeTable.description ?? "",
+						`%${input.description.trim()}%`,
+					),
 				);
 			}
 
