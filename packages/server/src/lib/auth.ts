@@ -73,23 +73,25 @@ const { handler, api } = betterAuth({
 		disabled: process.env.NODE_ENV === "production",
 	},
 	async trustedOrigins() {
-		const trustedOrigins = await getTrustedOrigins();
 		if (IS_CLOUD) {
-			return trustedOrigins;
+			return getTrustedOrigins();
 		}
-		const settings = await getWebServerSettings();
-		if (!settings) {
-			return [];
-		}
-		return [
-			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
-			...(settings?.host ? [`https://${settings?.host}`] : []),
-			...(process.env.NODE_ENV === "development"
+		const [trustedOrigins, settings] = await Promise.all([
+			getTrustedOrigins(),
+			getWebServerSettings(),
+		]);
+		if (!settings) return [];
+		const devOrigins =
+			process.env.NODE_ENV === "development"
 				? [
 						"http://localhost:3000",
 						"https://absolutely-handy-falcon.ngrok-free.app",
 					]
-				: []),
+				: [];
+		return [
+			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
+			...(settings?.host ? [`https://${settings?.host}`] : []),
+			...devOrigins,
 			...trustedOrigins,
 		];
 	},
