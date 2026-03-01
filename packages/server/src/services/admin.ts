@@ -117,7 +117,7 @@ export const getDokployUrl = async () => {
 	return `http://${settings?.serverIp}:${process.env.PORT}`;
 };
 
-const TRUSTED_ORIGINS_CACHE_TTL_MS = 60_000;
+const TRUSTED_ORIGINS_CACHE_TTL_MS = 30 * 60_000;
 let trustedOriginsCache: { data: string[]; expiresAt: number } | null = null;
 
 export const getTrustedOrigins = async () => {
@@ -132,7 +132,6 @@ export const getTrustedOrigins = async () => {
 
 	if (IS_CLOUD) {
 		const now = Date.now();
-		console.log("trustedOriginsCache", trustedOriginsCache?.data.length);
 		if (trustedOriginsCache && now < trustedOriginsCache.expiresAt) {
 			return trustedOriginsCache.data;
 		}
