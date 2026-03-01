@@ -99,7 +99,12 @@ export const findEnvironmentById = async (environmentId: string) => {
 			},
 			mysql: {
 				with: {
-					server: true,
+					server: {
+						columns: {
+							name: true,
+							serverId: true,
+						},
+					},
 				},
 				columns: {
 					mysqlId: true,
