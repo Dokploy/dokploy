@@ -34,42 +34,139 @@ export const createEnvironment = async (
 export const findEnvironmentById = async (environmentId: string) => {
 	const environment = await db.query.environments.findFirst({
 		where: eq(environments.environmentId, environmentId),
+		columns: {
+			name: true,
+			description: true,
+			environmentId: true,
+			isDefault: true,
+			projectId: true,
+			env: true,
+		},
 		with: {
 			applications: {
 				with: {
-					deployments: true,
-					server: true,
+					server: {
+						columns: {
+							name: true,
+							serverId: true,
+						},
+					},
+				},
+				columns: {
+					name: true,
+					applicationId: true,
+					createdAt: true,
+					applicationStatus: true,
+					description: true,
+					serverId: true,
 				},
 			},
 			mariadb: {
 				with: {
-					server: true,
+					server: {
+						columns: {
+							name: true,
+							serverId: true,
+						},
+					},
+				},
+				columns: {
+					mariadbId: true,
+					name: true,
+					createdAt: true,
+					applicationStatus: true,
+					description: true,
+					serverId: true,
 				},
 			},
 			mongo: {
 				with: {
-					server: true,
+					server: {
+						columns: {
+							name: true,
+							serverId: true,
+						},
+					},
+				},
+				columns: {
+					mongoId: true,
+					name: true,
+					createdAt: true,
+					applicationStatus: true,
+					description: true,
+					serverId: true,
 				},
 			},
 			mysql: {
 				with: {
-					server: true,
+					server: {
+						columns: {
+							name: true,
+							serverId: true,
+						},
+					},
+				},
+				columns: {
+					mysqlId: true,
+					name: true,
+					createdAt: true,
+					applicationStatus: true,
+					description: true,
+					serverId: true,
 				},
 			},
 			postgres: {
 				with: {
-					server: true,
+					server: {
+						columns: {
+							name: true,
+							serverId: true,
+						},
+					},
+				},
+				columns: {
+					postgresId: true,
+					name: true,
+					description: true,
+					createdAt: true,
+					applicationStatus: true,
+					serverId: true,
 				},
 			},
 			redis: {
 				with: {
-					server: true,
+					server: {
+						columns: {
+							name: true,
+							serverId: true,
+						},
+					},
+				},
+				columns: {
+					redisId: true,
+					name: true,
+					createdAt: true,
+					applicationStatus: true,
+					description: true,
+					serverId: true,
 				},
 			},
 			compose: {
 				with: {
-					deployments: true,
-					server: true,
+					server: {
+						columns: {
+							name: true,
+							serverId: true,
+						},
+					},
+				},
+				columns: {
+					composeId: true,
+					name: true,
+					createdAt: true,
+					composeStatus: true,
+					description: true,
+					serverId: true,
 				},
 			},
 			project: true,
@@ -97,6 +194,12 @@ export const findEnvironmentsByProjectId = async (projectId: string) => {
 			redis: true,
 			compose: true,
 			project: true,
+		},
+		columns: {
+			name: true,
+			description: true,
+			environmentId: true,
+			isDefault: true,
 		},
 	});
 	return projectEnvironments;
@@ -169,6 +272,7 @@ export const duplicateEnvironment = async (
 			name: input.name,
 			description: input.description || originalEnvironment.description,
 			projectId: originalEnvironment.projectId,
+			env: originalEnvironment.env,
 		})
 		.returning()
 		.then((value) => value[0]);

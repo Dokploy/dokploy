@@ -37,7 +37,11 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+} from "@/server/api/trpc";
 import {
 	apiCreateProject,
 	apiFindOneProject,
@@ -219,30 +223,68 @@ export const projectRouter = createTRPCRouter({
 									applications.applicationId,
 									accessedServices,
 								),
-								with: { domains: true },
+								columns: {
+									applicationId: true,
+									name: true,
+									applicationStatus: true,
+								},
 							},
 							mariadb: {
 								where: buildServiceFilter(mariadb.mariadbId, accessedServices),
+								columns: {
+									mariadbId: true,
+									name: true,
+									applicationStatus: true,
+								},
 							},
 							mongo: {
 								where: buildServiceFilter(mongo.mongoId, accessedServices),
+								columns: {
+									mongoId: true,
+									name: true,
+									applicationStatus: true,
+								},
 							},
 							mysql: {
 								where: buildServiceFilter(mysql.mysqlId, accessedServices),
+								columns: {
+									mysqlId: true,
+									name: true,
+									applicationStatus: true,
+								},
 							},
 							postgres: {
 								where: buildServiceFilter(
 									postgres.postgresId,
 									accessedServices,
 								),
+								columns: {
+									postgresId: true,
+									name: true,
+									applicationStatus: true,
+								},
 							},
 							redis: {
 								where: buildServiceFilter(redis.redisId, accessedServices),
+								columns: {
+									redisId: true,
+									name: true,
+									applicationStatus: true,
+								},
 							},
 							compose: {
 								where: buildServiceFilter(compose.composeId, accessedServices),
-								with: { domains: true },
+								columns: {
+									composeId: true,
+									name: true,
+									composeStatus: true,
+								},
 							},
+						},
+						columns: {
+							environmentId: true,
+							isDefault: true,
+							name: true,
 						},
 					},
 				},
@@ -255,25 +297,154 @@ export const projectRouter = createTRPCRouter({
 				environments: {
 					with: {
 						applications: {
-							with: {
-								domains: true,
+							columns: {
+								applicationId: true,
+								name: true,
+								applicationStatus: true,
 							},
 						},
-						mariadb: true,
-						mongo: true,
-						mysql: true,
-						postgres: true,
-						redis: true,
+						mariadb: {
+							columns: {
+								mariadbId: true,
+							},
+						},
+						mongo: {
+							columns: {
+								mongoId: true,
+							},
+						},
+						mysql: {
+							columns: {
+								mysqlId: true,
+							},
+						},
+						postgres: {
+							columns: {
+								postgresId: true,
+							},
+						},
+						redis: {
+							columns: {
+								redisId: true,
+							},
+						},
 						compose: {
-							with: {
-								domains: true,
+							columns: {
+								composeId: true,
+								name: true,
+								composeStatus: true,
 							},
 						},
+					},
+					columns: {
+						name: true,
+						environmentId: true,
+						isDefault: true,
 					},
 				},
 			},
 			where: eq(projects.organizationId, ctx.session.activeOrganizationId),
 			orderBy: desc(projects.createdAt),
+		});
+	}),
+
+	/** All projects with full environments and services for the admin permissions UI. Admin only. */
+	allForPermissions: adminProcedure.query(async ({ ctx }) => {
+		return await db.query.projects.findMany({
+			where: eq(projects.organizationId, ctx.session.activeOrganizationId),
+			orderBy: desc(projects.createdAt),
+			columns: {
+				projectId: true,
+				name: true,
+			},
+			with: {
+				environments: {
+					columns: {
+						environmentId: true,
+						name: true,
+						isDefault: true,
+					},
+					with: {
+						applications: {
+							columns: {
+								applicationId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						mariadb: {
+							columns: {
+								mariadbId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						postgres: {
+							columns: {
+								postgresId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						mysql: {
+							columns: {
+								mysqlId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						mongo: {
+							columns: {
+								mongoId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						redis: {
+							columns: {
+								redisId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						compose: {
+							columns: {
+								composeId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								composeStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+					},
+				},
+			},
 		});
 	}),
 

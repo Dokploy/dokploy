@@ -100,7 +100,6 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 
 export type Services = {
-	appName: string;
 	serverId?: string | null;
 	serverName?: string | null;
 	name: string;
@@ -146,7 +145,6 @@ export const extractServicesFromEnvironment = (
 				}
 			}
 			return {
-				appName: item.appName,
 				name: item.name,
 				type: "application",
 				id: item.applicationId,
@@ -161,7 +159,6 @@ export const extractServicesFromEnvironment = (
 
 	const mariadb: Services[] =
 		environment.mariadb?.map((item) => ({
-			appName: item.appName,
 			name: item.name,
 			type: "mariadb",
 			id: item.mariadbId,
@@ -174,7 +171,6 @@ export const extractServicesFromEnvironment = (
 
 	const postgres: Services[] =
 		environment.postgres?.map((item) => ({
-			appName: item.appName,
 			name: item.name,
 			type: "postgres",
 			id: item.postgresId,
@@ -187,7 +183,6 @@ export const extractServicesFromEnvironment = (
 
 	const mongo: Services[] =
 		environment.mongo?.map((item) => ({
-			appName: item.appName,
 			name: item.name,
 			type: "mongo",
 			id: item.mongoId,
@@ -200,7 +195,6 @@ export const extractServicesFromEnvironment = (
 
 	const redis: Services[] =
 		environment.redis?.map((item) => ({
-			appName: item.appName,
 			name: item.name,
 			type: "redis",
 			id: item.redisId,
@@ -213,7 +207,6 @@ export const extractServicesFromEnvironment = (
 
 	const mysql: Services[] =
 		environment.mysql?.map((item) => ({
-			appName: item.appName,
 			name: item.name,
 			type: "mysql",
 			id: item.mysqlId,
@@ -242,7 +235,6 @@ export const extractServicesFromEnvironment = (
 				}
 			}
 			return {
-				appName: item.appName,
 				name: item.name,
 				type: "compose",
 				id: item.composeId,
