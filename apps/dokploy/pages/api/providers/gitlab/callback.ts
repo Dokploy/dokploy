@@ -26,7 +26,7 @@ export default async function handler(
 		headers.Authorization = `Basic ${Buffer.from(`${gitlabUrl.username}:${gitlabUrl.password}`).toString("base64")}`;
 	}
 
-	const url = gitlabUrl.origin;
+	const url = gitlabUrl.origin + gitlabUrl.pathname.replace(/\/$/, "");
 
 	const response = await fetch(`${url}/oauth/token`, {
 		method: "POST",
