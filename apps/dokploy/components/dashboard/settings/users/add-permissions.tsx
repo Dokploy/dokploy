@@ -28,8 +28,12 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { api, type RouterOutputs } from "@/utils/api";
 
-type Project = RouterOutputs["project"]["all"][number];
-type Environment = Project["environments"][number];
+/** Shape returned by project.allForPermissions (admin only). Used for the permissions UI. */
+type ProjectForPermissions = RouterOutputs["project"]["allForPermissions"][number];
+type EnvironmentForPermissions = ProjectForPermissions["environments"][number];
+
+type Project = ProjectForPermissions;
+type Environment = EnvironmentForPermissions;
 
 export type Services = {
 	appName: string;
@@ -173,7 +177,9 @@ interface Props {
 
 export const AddUserPermissions = ({ userId }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const { data: projects } = api.project.all.useQuery();
+	const { data: projects } = api.project.allForPermissions.useQuery(undefined, {
+		enabled: isOpen,
+	});
 
 	const { data, refetch } = api.user.one.useQuery(
 		{

@@ -37,7 +37,11 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+} from "@/server/api/trpc";
 import {
 	apiCreateProject,
 	apiFindOneProject,
@@ -329,6 +333,106 @@ export const projectRouter = createTRPCRouter({
 			},
 			where: eq(projects.organizationId, ctx.session.activeOrganizationId),
 			orderBy: desc(projects.createdAt),
+		});
+	}),
+
+	/** All projects with full environments and services for the admin permissions UI. Admin only. */
+	allForPermissions: adminProcedure.query(async ({ ctx }) => {
+		return await db.query.projects.findMany({
+			where: eq(projects.organizationId, ctx.session.activeOrganizationId),
+			orderBy: desc(projects.createdAt),
+			columns: {
+				projectId: true,
+				name: true,
+			},
+			with: {
+				environments: {
+					columns: {
+						environmentId: true,
+						name: true,
+						isDefault: true,
+					},
+					with: {
+						applications: {
+							columns: {
+								applicationId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						mariadb: {
+							columns: {
+								mariadbId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						postgres: {
+							columns: {
+								postgresId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						mysql: {
+							columns: {
+								mysqlId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						mongo: {
+							columns: {
+								mongoId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						redis: {
+							columns: {
+								redisId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						compose: {
+							columns: {
+								composeId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								composeStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+					},
+				},
+			},
 		});
 	}),
 
