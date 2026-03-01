@@ -29,7 +29,8 @@ import { Switch } from "@/components/ui/switch";
 import { api, type RouterOutputs } from "@/utils/api";
 
 /** Shape returned by project.allForPermissions (admin only). Used for the permissions UI. */
-type ProjectForPermissions = RouterOutputs["project"]["allForPermissions"][number];
+type ProjectForPermissions =
+	RouterOutputs["project"]["allForPermissions"][number];
 type EnvironmentForPermissions = ProjectForPermissions["environments"][number];
 
 type Project = ProjectForPermissions;
