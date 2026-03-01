@@ -21,9 +21,9 @@ export const S3_PROVIDER_STORAGE_CLASS_OPTIONS: Record<string, string[]> = {
 		"INTELLIGENT_TIERING",
 		"GLACIER_IR",
 	],
-    
-    // Other provoders can be added in the future
-    //
+
+	// Other provoders can be added in the future
+	//
 	// Alibaba: ["STANDARD", "GLACIER", "STANDARD_IA"],
 	// ArvanCloud: ["STANDARD"],
 	// ChinaMobile: ["STANDARD", "GLACIER", "STANDARD_IA"],
@@ -34,7 +34,9 @@ export const S3_PROVIDER_STORAGE_CLASS_OPTIONS: Record<string, string[]> = {
 	// TencentCOS: ["STANDARD", "STANDARD_IA", "ARCHIVE"],
 };
 
-export const getS3StorageClassOptionsByProvider = (provider?: string | null) => {
+export const getS3StorageClassOptionsByProvider = (
+	provider?: string | null,
+) => {
 	if (!provider) {
 		return [];
 	}

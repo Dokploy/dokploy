@@ -82,11 +82,7 @@ interface RcloneRestoreStatusEntry {
 	} | null;
 }
 
-const ARCHIVE_STORAGE_CLASSES = new Set([
-	"GLACIER",
-	"DEEP_ARCHIVE",
-	"ARCHIVE",
-]);
+const ARCHIVE_STORAGE_CLASSES = new Set(["GLACIER", "DEEP_ARCHIVE", "ARCHIVE"]);
 
 const isArchiveStorageClass = (storageClass?: string | null) => {
 	if (!storageClass) {
@@ -453,16 +449,21 @@ export const backupRouter = createTRPCRouter({
 				// Limit to first 100 files
 
 				const normalizedBaseDir = baseDir.replace(/\/$/, "");
-				const results = (baseDir
-					? files.map((file) => ({
-							...file,
-							Path: `${baseDir}${file.Path}`,
-						}))
-					: files
+				const results = (
+					baseDir
+						? files.map((file) => ({
+								...file,
+								Path: `${baseDir}${file.Path}`,
+							}))
+						: files
 				).map((file) => {
-					const normalizedRemotePath = file.Path.replace(/^\/+/, "").replace(/\/$/, "");
+					const normalizedRemotePath = file.Path.replace(/^\/+/, "").replace(
+						/\/$/,
+						"",
+					);
 					const relativeRemotePath =
-						normalizedBaseDir && normalizedRemotePath.startsWith(`${normalizedBaseDir}/`)
+						normalizedBaseDir &&
+						normalizedRemotePath.startsWith(`${normalizedBaseDir}/`)
 							? normalizedRemotePath.slice(normalizedBaseDir.length + 1)
 							: normalizedRemotePath;
 					const restoreStatus =
@@ -476,7 +477,8 @@ export const backupRouter = createTRPCRouter({
 					const restored =
 						restoreStatus?.RestoreStatus?.IsRestoreInProgress === false;
 
-					let restoreAvailability: RcloneFile["RestoreAvailability"] = "unknown";
+					let restoreAvailability: RcloneFile["RestoreAvailability"] =
+						"unknown";
 					if (file.IsDir) {
 						restoreAvailability = "unknown";
 					} else if (inProgress) {
@@ -524,7 +526,9 @@ export const backupRouter = createTRPCRouter({
 			z.object({
 				destinationId: z.string().min(1),
 				backupFile: z.string().min(1),
-				retrievalTier: z.enum(["standard", "priority", "bulk"]).default("standard"),
+				retrievalTier: z
+					.enum(["standard", "priority", "bulk"])
+					.default("standard"),
 				lifetimeDays: z.number().int().min(1).max(30).default(7),
 				serverId: z.string().optional(),
 			}),

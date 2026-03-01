@@ -10,8 +10,8 @@ const PROVIDER_STORAGE_CLASS_OPTIONS = {
 		"GLACIER_IR",
 	],
 
-    // Other providers can be added in the future
-    //
+	// Other providers can be added in the future
+	//
 	// Alibaba: ["STANDARD", "GLACIER", "STANDARD_IA"],
 	// ArvanCloud: ["STANDARD"],
 	// ChinaMobile: ["STANDARD", "GLACIER", "STANDARD_IA"],

@@ -199,15 +199,17 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 		},
 	);
 
-	const requestArchiveRestore = api.backup.requestBackupFileRestore.useMutation({
-		onSuccess(data) {
-			toast.success(data.message);
-			void refetchFiles();
+	const requestArchiveRestore = api.backup.requestBackupFileRestore.useMutation(
+		{
+			onSuccess(data) {
+				toast.success(data.message);
+				void refetchFiles();
+			},
+			onError(error) {
+				toast.error(error.message);
+			},
 		},
-		onError(error) {
-			toast.error(error.message);
-		},
-	});
+	);
 
 	const onSubmit = async () => {
 		setIsDeploying(true);
@@ -410,13 +412,16 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 																				<span className="shrink-0">
 																					Class:{" "}
 																					{getS3StorageClassLabel(
-																						(file.StorageClass || file.Tier) ?? "",
+																						(file.StorageClass || file.Tier) ??
+																							"",
 																					)}
 																				</span>
 																			)}
 																			<span className="ml-auto shrink-0">
 																				{!file.IsDir ? (
-																					getAvailabilityBadge(file.RestoreAvailability)
+																					getAvailabilityBadge(
+																						file.RestoreAvailability,
+																					)
 																				) : (
 																					<span className="text-blue-500">
 																						Directory
@@ -424,7 +429,8 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 																				)}
 																			</span>
 																		</div>
-																		{(file.Hashes?.MD5 || file.RestoreExpiryDate) && (
+																		{(file.Hashes?.MD5 ||
+																			file.RestoreExpiryDate) && (
 																			<div className="flex flex-wrap items-center gap-x-4 text-xs text-muted-foreground">
 																				{file.Hashes?.MD5 && (
 																					<span>MD5: {file.Hashes.MD5}</span>
@@ -439,13 +445,13 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 																				)}
 																			</div>
 																		)}
-																			{file.IsDir && (
-																				<span className="text-xs text-muted-foreground">
-																					Folder prefix
-																				</span>
-																				)}
-																			</div>
-																	</CommandItem>
+																		{file.IsDir && (
+																			<span className="text-xs text-muted-foreground">
+																				Folder prefix
+																			</span>
+																		)}
+																	</div>
+																</CommandItem>
 															))}
 														</CommandGroup>
 													</ScrollArea>
@@ -504,9 +510,9 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 												</label>
 												<Select
 													value={archiveRetrievalTier}
-													onValueChange={(value: "standard" | "priority" | "bulk") =>
-														setArchiveRetrievalTier(value)
-													}
+													onValueChange={(
+														value: "standard" | "priority" | "bulk",
+													) => setArchiveRetrievalTier(value)}
 												>
 													<SelectTrigger className="h-9 w-full sm:w-56">
 														<SelectValue />
@@ -555,7 +561,10 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 													destinationId,
 													backupFile: selectedFile.Path,
 													retrievalTier: archiveRetrievalTier,
-													lifetimeDays: Number.parseInt(archiveLifetimeDays, 10),
+													lifetimeDays: Number.parseInt(
+														archiveLifetimeDays,
+														10,
+													),
 													serverId: serverId ?? undefined,
 												});
 											}}

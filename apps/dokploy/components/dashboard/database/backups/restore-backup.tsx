@@ -97,14 +97,14 @@ type BackupFileListItem = RouterOutputs["backup"]["listBackupFiles"][number] & {
 const RestoreBackupSchema = z
 	.object({
 		destinationId: z.string().min(1, {
-				message: "Destination is required",
-			}),
+			message: "Destination is required",
+		}),
 		backupFile: z.string().min(1, {
-				message: "Backup file is required",
-			}),
+			message: "Backup file is required",
+		}),
 		databaseName: z.string().min(1, {
-				message: "Database name is required",
-			}),
+			message: "Database name is required",
+		}),
 		databaseType: z
 			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"])
 			.optional(),
@@ -263,7 +263,11 @@ export const RestoreBackup = ({
 
 	const { data: destinations = [] } = api.destination.all.useQuery();
 
-	const form = useForm<RestoreBackupFormInput, unknown, RestoreBackupFormOutput>({
+	const form = useForm<
+		RestoreBackupFormInput,
+		unknown,
+		RestoreBackupFormOutput
+	>({
 		defaultValues: {
 			destinationId: "",
 			backupFile: "",
@@ -387,7 +391,7 @@ export const RestoreBackup = ({
 	const isSelectedFileRestorable =
 		selectedFile && !selectedFile.IsDir
 			? selectedFile.RestoreAvailability === "ready" ||
-			selectedFile.RestoreAvailability === "unknown"
+				selectedFile.RestoreAvailability === "unknown"
 			: true;
 
 	return (
@@ -434,8 +438,8 @@ export const RestoreBackup = ({
 												>
 													{field.value
 														? destinations.find(
-															(d) => d.destinationId === field.value,
-														)?.name
+																(d) => d.destinationId === field.value,
+															)?.name
 														: "Select Destination"}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -574,22 +578,32 @@ export const RestoreBackup = ({
 																			/>
 																		</div>
 																		<div className="flex w-full items-center gap-x-4 text-xs text-muted-foreground min-w-0">
-																			<span className="shrink-0">Size: {formatBytes(file.Size)}</span>
+																			<span className="shrink-0">
+																				Size: {formatBytes(file.Size)}
+																			</span>
 																			{(file.StorageClass || file.Tier) && (
 																				<span className="shrink-0">
 																					Class:{" "}
 																					{getS3StorageClassLabel(
-																						(file.StorageClass || file.Tier) ?? "",
+																						(file.StorageClass || file.Tier) ??
+																							"",
 																					)}
 																				</span>
 																			)}
 																			<span className="ml-auto shrink-0">
-																				{!file.IsDir
-																					? getAvailabilityBadge(file.RestoreAvailability)
-																					: <span className="text-blue-500">Directory</span>}
+																				{!file.IsDir ? (
+																					getAvailabilityBadge(
+																						file.RestoreAvailability,
+																					)
+																				) : (
+																					<span className="text-blue-500">
+																						Directory
+																					</span>
+																				)}
 																			</span>
 																		</div>
-																		{(file.Hashes?.MD5 || file.RestoreExpiryDate) && (
+																		{(file.Hashes?.MD5 ||
+																			file.RestoreExpiryDate) && (
 																			<div className="flex flex-wrap items-center gap-x-4 text-xs text-muted-foreground">
 																				{file.Hashes?.MD5 && (
 																					<span>MD5: {file.Hashes.MD5}</span>
@@ -597,7 +611,9 @@ export const RestoreBackup = ({
 																				{file.RestoreExpiryDate && (
 																					<span className={readableUntilClass}>
 																						Readable until:{" "}
-																						{new Date(file.RestoreExpiryDate).toLocaleString()}
+																						{new Date(
+																							file.RestoreExpiryDate,
+																						).toLocaleString()}
 																					</span>
 																				)}
 																			</div>
@@ -640,7 +656,9 @@ export const RestoreBackup = ({
 									{selectedFile.RestoreExpiryDate && (
 										<span className={readableUntilClass}>
 											Readable until:{" "}
-											{new Date(selectedFile.RestoreExpiryDate).toLocaleString()}
+											{new Date(
+												selectedFile.RestoreExpiryDate,
+											).toLocaleString()}
 										</span>
 									)}
 								</CardContent>
@@ -670,9 +688,9 @@ export const RestoreBackup = ({
 												</label>
 												<Select
 													value={archiveRetrievalTier}
-													onValueChange={(value: "standard" | "priority" | "bulk") =>
-														setArchiveRetrievalTier(value)
-													}
+													onValueChange={(
+														value: "standard" | "priority" | "bulk",
+													) => setArchiveRetrievalTier(value)}
 												>
 													<SelectTrigger className="h-9 w-full min-w-[10rem] sm:w-56">
 														<SelectValue />
@@ -721,7 +739,10 @@ export const RestoreBackup = ({
 													destinationId: form.watch("destinationId"),
 													backupFile: selectedFile.Path,
 													retrievalTier: archiveRetrievalTier,
-													lifetimeDays: Number.parseInt(archiveLifetimeDays, 10),
+													lifetimeDays: Number.parseInt(
+														archiveLifetimeDays,
+														10,
+													),
 													serverId: serverId ?? undefined,
 												});
 											}}
