@@ -563,7 +563,7 @@ export const backupRouter = createTRPCRouter({
 				}
 
 				const priority = ARCHIVE_RESTORE_PRIORITY_MAP[input.retrievalTier];
-		const restoreCommand = `rclone backend restore ${rcloneFlags.join(" ")} --include ${shEscape(normalizedPath)} ${shEscape(bucketPath)} -o priority=${shEscape(priority)} -o lifetime=${shEscape(String(input.lifetimeDays))}`;
+				const restoreCommand = `rclone backend restore ${rcloneFlags.join(" ")} --include ${shEscape(normalizedPath)} ${shEscape(bucketPath)} -o priority=${shEscape(priority)} -o lifetime=${shEscape(String(input.lifetimeDays))}`;
 
 				if (input.serverId) {
 					await execAsyncRemote(input.serverId, restoreCommand);
