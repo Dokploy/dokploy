@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -28,8 +28,12 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { api, type RouterOutputs } from "@/utils/api";
 
-type Project = RouterOutputs["project"]["all"][number];
-type Environment = Project["environments"][number];
+/** Shape returned by project.allForPermissions (admin only). Used for the permissions UI. */
+type ProjectForPermissions =
+	RouterOutputs["project"]["allForPermissions"][number];
+type EnvironmentForPermissions = ProjectForPermissions["environments"][number];
+
+type Environment = EnvironmentForPermissions;
 
 export type Services = {
 	appName: string;
@@ -173,7 +177,9 @@ interface Props {
 
 export const AddUserPermissions = ({ userId }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const { data: projects } = api.project.all.useQuery();
+	const { data: projects } = api.project.allForPermissions.useQuery(undefined, {
+		enabled: isOpen,
+	});
 
 	const { data, refetch } = api.user.one.useQuery(
 		{
@@ -184,10 +190,10 @@ export const AddUserPermissions = ({ userId }: Props) => {
 		},
 	);
 
-	const { mutateAsync, isError, error, isLoading } =
+	const { mutateAsync, isError, error, isPending } =
 		api.user.assignPermissions.useMutation();
 
-	const form = useForm<AddPermissions>({
+	const form = useForm({
 		defaultValues: {
 			accessedProjects: [],
 			accessedEnvironments: [],
@@ -839,7 +845,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 						/>
 						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2">
 							<Button
-								isLoading={isLoading}
+								isLoading={isPending}
 								form="hook-form-add-permissions"
 								type="submit"
 							>

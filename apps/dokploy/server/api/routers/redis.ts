@@ -6,6 +6,7 @@ import {
 	createRedis,
 	deployRedis,
 	findEnvironmentById,
+	findMemberById,
 	findProjectById,
 	findRedisById,
 	IS_CLOUD,
@@ -18,13 +19,11 @@ import {
 	stopServiceRemote,
 	updateRedisById,
 } from "@dokploy/server";
-
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { db } from "@/server/db";
 import {
 	apiChangeRedisStatus,
 	apiCreateRedis,
@@ -37,6 +36,7 @@ import {
 	apiUpdateRedis,
 	redis as redisTable,
 } from "@/server/db/schema";
+import { environments, projects } from "@/server/db/schema";
 export const redisRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateRedis)
@@ -257,7 +257,7 @@ export const redisRouter = createTRPCRouter({
 			},
 		})
 		.input(apiDeployRedis)
-		.subscription(async ({ input, ctx }) => {
+		.subscription(async function* ({ input, ctx, signal }) {
 			const redis = await findRedisById(input.redisId);
 			if (
 				redis.environment.project.organizationId !==
@@ -268,11 +268,24 @@ export const redisRouter = createTRPCRouter({
 					message: "You are not authorized to deploy this Redis",
 				});
 			}
-			return observable<string>((emit) => {
-				deployRedis(input.redisId, (log) => {
-					emit.next(log);
-				});
+			const queue: string[] = [];
+			const done = false;
+
+			deployRedis(input.redisId, (log) => {
+				queue.push(log);
 			});
+
+			while (!done || queue.length > 0) {
+				if (queue.length > 0) {
+					yield queue.shift()!;
+				} else {
+					await new Promise((r) => setTimeout(r, 50));
+				}
+
+				if (signal?.aborted) {
+					return;
+				}
+			}
 		}),
 	changeStatus: protectedProcedure
 		.input(apiChangeRedisStatus)
@@ -438,5 +451,98 @@ export const redisRouter = createTRPCRouter({
 
 			await rebuildDatabase(redis.redisId, "redis");
 			return true;
+		}),
+	search: protectedProcedure
+		.input(
+			z.object({
+				q: z.string().optional(),
+				name: z.string().optional(),
+				appName: z.string().optional(),
+				description: z.string().optional(),
+				projectId: z.string().optional(),
+				environmentId: z.string().optional(),
+				limit: z.number().min(1).max(100).default(20),
+				offset: z.number().min(0).default(0),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const baseConditions = [
+				eq(projects.organizationId, ctx.session.activeOrganizationId),
+			];
+			if (input.projectId) {
+				baseConditions.push(eq(environments.projectId, input.projectId));
+			}
+			if (input.environmentId) {
+				baseConditions.push(eq(redisTable.environmentId, input.environmentId));
+			}
+			if (input.q?.trim()) {
+				const term = `%${input.q.trim()}%`;
+				baseConditions.push(
+					or(
+						ilike(redisTable.name, term),
+						ilike(redisTable.appName, term),
+						ilike(redisTable.description ?? "", term),
+					)!,
+				);
+			}
+			if (input.name?.trim()) {
+				baseConditions.push(ilike(redisTable.name, `%${input.name.trim()}%`));
+			}
+			if (input.appName?.trim()) {
+				baseConditions.push(
+					ilike(redisTable.appName, `%${input.appName.trim()}%`),
+				);
+			}
+			if (input.description?.trim()) {
+				baseConditions.push(
+					ilike(redisTable.description ?? "", `%${input.description.trim()}%`),
+				);
+			}
+			if (ctx.user.role === "member") {
+				const { accessedServices } = await findMemberById(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				if (accessedServices.length === 0) return { items: [], total: 0 };
+				baseConditions.push(
+					sql`${redisTable.redisId} IN (${sql.join(
+						accessedServices.map((id) => sql`${id}`),
+						sql`, `,
+					)})`,
+				);
+			}
+			const where = and(...baseConditions);
+			const [items, countResult] = await Promise.all([
+				db
+					.select({
+						redisId: redisTable.redisId,
+						name: redisTable.name,
+						appName: redisTable.appName,
+						description: redisTable.description,
+						environmentId: redisTable.environmentId,
+						applicationStatus: redisTable.applicationStatus,
+						createdAt: redisTable.createdAt,
+					})
+					.from(redisTable)
+					.innerJoin(
+						environments,
+						eq(redisTable.environmentId, environments.environmentId),
+					)
+					.innerJoin(projects, eq(environments.projectId, projects.projectId))
+					.where(where)
+					.orderBy(desc(redisTable.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db
+					.select({ count: sql<number>`count(*)::int` })
+					.from(redisTable)
+					.innerJoin(
+						environments,
+						eq(redisTable.environmentId, environments.environmentId),
+					)
+					.innerJoin(projects, eq(environments.projectId, projects.projectId))
+					.where(where),
+			]);
+			return { items, total: countResult[0]?.count ?? 0 };
 		}),
 });

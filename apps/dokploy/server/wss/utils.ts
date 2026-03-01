@@ -16,6 +16,37 @@ export const isValidContainerId = (id: string): boolean => {
 };
 
 /**
+ * Validates the `tail` parameter for docker logs (number of lines, max 10000).
+ * Prevents command injection by allowing only digits.
+ */
+export const isValidTail = (tail: string): boolean => {
+	return (
+		/^\d+$/.test(tail) &&
+		Number.parseInt(tail, 10) <= 10000 &&
+		Number.parseInt(tail, 10) >= 0
+	);
+};
+
+/**
+ * Validates the `since` parameter for docker logs: "all" or duration like 5s, 10m, 1h, 2d.
+ * Prevents command injection by allowing only a strict format.
+ */
+export const isValidSince = (since: string): boolean => {
+	return since === "all" || /^\d+[smhd]$/.test(since);
+};
+
+/**
+ * Validates the `search` parameter for log filtering.
+ * Search is concatenated into shell commands (SSH path: double quotes; local path: single quotes).
+ * Only allow alphanumeric, space, dot, underscore, hyphen to prevent $, `, ', " from enabling command injection.
+ * Max length 500.
+ */
+export const isValidSearch = (search: string): boolean => {
+	// Space only (not \s) to reject \n, \r, \t and other control chars
+	return /^[a-zA-Z0-9 ._-]{0,500}$/.test(search);
+};
+
+/**
  * Validates that the shell is one of the allowed shells.
  */
 export const isValidShell = (shell: string): boolean => {
@@ -32,20 +63,6 @@ export const isValidShell = (shell: string): boolean => {
 	return allowedShells.includes(shell);
 };
 
-export const readValidDirectory = (
-	directory: string,
-	serverId?: string | null,
-) => {
-	const { BASE_PATH } = paths(!!serverId);
-
-	const resolvedBase = path.resolve(BASE_PATH);
-	const resolvedDir = path.resolve(directory);
-
-	return (
-		resolvedDir === resolvedBase ||
-		resolvedDir.startsWith(resolvedBase + path.sep)
-	);
-};
 export const getShell = () => {
 	if (IS_CLOUD) {
 		return "NO_AVAILABLE";

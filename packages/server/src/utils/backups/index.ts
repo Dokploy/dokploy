@@ -30,15 +30,19 @@ export const initCronJobs = async () => {
 	const webServerSettings = await getWebServerSettings();
 
 	if (webServerSettings?.enableDockerCleanup) {
-		scheduleJob("docker-cleanup", CLEANUP_CRON_JOB, async () => {
-			console.log(
-				`Docker Cleanup ${new Date().toLocaleString()}]  Running docker cleanup`,
-			);
+		try {
+			scheduleJob("docker-cleanup", CLEANUP_CRON_JOB, async () => {
+				console.log(
+					`Docker Cleanup ${new Date().toLocaleString()}]  Running docker cleanup`,
+				);
 
-			await cleanupAll();
+				await cleanupAll();
 
-			await sendDockerCleanupNotifications(admin.user.id);
-		});
+				await sendDockerCleanupNotifications(admin.user.id);
+			});
+		} catch (error) {
+			console.error("[Backup] Docker Cleanup Error", error);
+		}
 	}
 
 	const servers = await getAllServers();
@@ -46,18 +50,22 @@ export const initCronJobs = async () => {
 	for (const server of servers) {
 		const { serverId, enableDockerCleanup, name } = server;
 		if (enableDockerCleanup) {
-			scheduleJob(serverId, CLEANUP_CRON_JOB, async () => {
-				console.log(
-					`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${name}`,
-				);
+			try {
+				scheduleJob(serverId, CLEANUP_CRON_JOB, async () => {
+					console.log(
+						`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${name}`,
+					);
 
-				await cleanupAll(serverId);
+					await cleanupAll(serverId);
 
-				await sendDockerCleanupNotifications(
-					admin.user.id,
-					`Docker cleanup for Server ${name} (${serverId})`,
-				);
-			});
+					await sendDockerCleanupNotifications(
+						admin.user.id,
+						`Docker cleanup for Server ${name} (${serverId})`,
+					);
+				});
+			} catch (error) {
+				console.error(`[Backup] ${error}`);
+			}
 		}
 	}
 
@@ -87,11 +95,15 @@ export const initCronJobs = async () => {
 	}
 
 	if (webServerSettings?.logCleanupCron) {
-		console.log(
-			"Starting log requests cleanup",
-			webServerSettings.logCleanupCron,
-		);
-		await startLogCleanup(webServerSettings.logCleanupCron);
+		try {
+			console.log(
+				"Starting log requests cleanup",
+				webServerSettings.logCleanupCron,
+			);
+			await startLogCleanup(webServerSettings.logCleanupCron);
+		} catch (error) {
+			console.error("[Backup] Log Cleanup Error", error);
+		}
 	}
 };
 

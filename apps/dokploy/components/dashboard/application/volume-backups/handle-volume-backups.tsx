@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { DatabaseZap, PenBoxIcon, PlusCircle, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -116,7 +116,7 @@ export const HandleVolumeBackups = ({
 	const [keepLatestCountInput, setKeepLatestCountInput] = useState("");
 
 	const utils = api.useUtils();
-	const form = useForm<z.infer<typeof formSchema>>({
+	const form = useForm({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			name: "",
@@ -195,7 +195,7 @@ export const HandleVolumeBackups = ({
 		}
 	}, [form, volumeBackup, volumeBackupId]);
 
-	const { mutateAsync, isLoading } = volumeBackupId
+	const { mutateAsync, isPending } = volumeBackupId
 		? api.volumeBackups.update.useMutation()
 		: api.volumeBackups.create.useMutation();
 
@@ -207,7 +207,7 @@ export const HandleVolumeBackups = ({
 
 		await mutateAsync({
 			...values,
-			keepLatestCount: preparedKeepLatestCount,
+			keepLatestCount: preparedKeepLatestCount ?? undefined,
 			destinationId: values.destinationId,
 			volumeBackupId: volumeBackupId || "",
 			serviceType: volumeBackupType,
@@ -630,7 +630,7 @@ export const HandleVolumeBackups = ({
 							)}
 						/>
 
-						<Button type="submit" isLoading={isLoading} className="w-full">
+						<Button type="submit" isLoading={isPending} className="w-full">
 							{volumeBackupId ? "Update" : "Create"} Volume Backup
 						</Button>
 					</form>

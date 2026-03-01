@@ -9,7 +9,11 @@ import { and, desc, eq } from "drizzle-orm";
 import { BETTER_AUTH_SECRET, IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
-import { getTrustedOrigins, getUserByToken } from "../services/admin";
+import {
+	getTrustedOrigins,
+	getTrustedProviders,
+	getUserByToken,
+} from "../services/admin";
 import {
 	getWebServerSettings,
 	updateWebServerSettings,
@@ -30,6 +34,30 @@ const { handler, api } = betterAuth({
 		"/organization/delete",
 	],
 	secret: BETTER_AUTH_SECRET,
+	...(!IS_CLOUD
+		? {
+				advanced: {
+					useSecureCookies: false,
+					defaultCookieAttributes: {
+						sameSite: "lax",
+						secure: false,
+						httpOnly: true,
+						path: "/",
+					},
+				},
+			}
+		: {}),
+
+	account: {
+		accountLinking: {
+			enabled: true,
+			async trustedProviders() {
+				const fromDb = await getTrustedProviders();
+				return ["github", "google", ...fromDb];
+			},
+			allowDifferentEmails: true,
+		},
+	},
 	appName: "Dokploy",
 	socialProviders: {
 		github: {
@@ -45,23 +73,25 @@ const { handler, api } = betterAuth({
 		disabled: process.env.NODE_ENV === "production",
 	},
 	async trustedOrigins() {
-		const trustedOrigins = await getTrustedOrigins();
 		if (IS_CLOUD) {
-			return trustedOrigins;
+			return getTrustedOrigins();
 		}
-		const settings = await getWebServerSettings();
-		if (!settings) {
-			return [];
-		}
-		return [
-			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
-			...(settings?.host ? [`https://${settings?.host}`] : []),
-			...(process.env.NODE_ENV === "development"
+		const [trustedOrigins, settings] = await Promise.all([
+			getTrustedOrigins(),
+			getWebServerSettings(),
+		]);
+		if (!settings) return [];
+		const devOrigins =
+			process.env.NODE_ENV === "development"
 				? [
 						"http://localhost:3000",
 						"https://absolutely-handy-falcon.ngrok-free.app",
 					]
-				: []),
+				: [];
+		return [
+			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
+			...(settings?.host ? [`https://${settings?.host}`] : []),
+			...devOrigins,
 			...trustedOrigins,
 		];
 	},
@@ -320,11 +350,15 @@ const { handler, api } = betterAuth({
 	],
 });
 
-export const auth = {
+const _auth = {
 	handler,
 	createApiKey: api.createApiKey,
 	registerSSOProvider: api.registerSSOProvider,
+	updateSSOProvider: api.updateSSOProvider,
 };
+
+export type AuthType = typeof _auth;
+export const auth: AuthType = _auth;
 
 export const validateRequest = async (request: IncomingMessage) => {
 	const apiKey = request.headers["x-api-key"] as string;
@@ -337,7 +371,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 			});
 
 			if (error) {
-				throw new Error(error.message || "Error verifying API key");
+				throw new Error(error.message?.toString() || "Error verifying API key");
 			}
 			if (!valid || !key) {
 				return {
@@ -436,11 +470,16 @@ export const validateRequest = async (request: IncomingMessage) => {
 		const member = await db.query.member.findFirst({
 			where: and(
 				eq(schema.member.userId, session.user.id),
-				eq(
-					schema.member.organizationId,
-					session.session.activeOrganizationId || "",
-				),
+				...(session.session.activeOrganizationId
+					? [
+							eq(
+								schema.member.organizationId,
+								session.session.activeOrganizationId || "",
+							),
+						]
+					: []),
 			),
+			orderBy: [desc(schema.member.isDefault), desc(schema.member.createdAt)],
 			with: {
 				organization: true,
 				user: true,
@@ -452,6 +491,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 			member?.user.enableEnterpriseFeatures || false;
 		session.user.isValidEnterpriseLicense =
 			member?.user.isValidEnterpriseLicense || false;
+		session.session.activeOrganizationId = member?.organization.id || "";
 		if (member) {
 			session.user.ownerId = member.organization.ownerId;
 		} else {

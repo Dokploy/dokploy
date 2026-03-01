@@ -8,12 +8,13 @@ import {
 	findComposeById,
 	findDeploymentById,
 	findServerById,
+	removeDeployment,
 	updateDeploymentStatus,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/server/db";
 import {
 	apiFindAllByApplication,
 	apiFindAllByCompose,
@@ -106,5 +107,15 @@ export const deploymentRouter = createTRPCRouter({
 			}
 
 			await updateDeploymentStatus(deployment.deploymentId, "error");
+		}),
+
+	removeDeployment: protectedProcedure
+		.input(
+			z.object({
+				deploymentId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			return await removeDeployment(input.deploymentId);
 		}),
 });

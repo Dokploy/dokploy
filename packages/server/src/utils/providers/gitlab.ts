@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { apiGitlabTestConnection } from "@dokploy/server/db/schema";
+import type { z } from "zod";
 import {
 	findGitlabById,
 	type Gitlab,
@@ -107,6 +108,7 @@ interface CloneGitlabRepository {
 	enableSubmodules: boolean;
 	serverId: string | null;
 	type?: "application" | "compose";
+	outputPathOverride?: string;
 }
 
 export const cloneGitlabRepository = async ({
@@ -121,6 +123,7 @@ export const cloneGitlabRepository = async ({
 		gitlabPathNamespace,
 		enableSubmodules,
 		serverId,
+		outputPathOverride,
 	} = entity;
 	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
 
@@ -141,7 +144,7 @@ export const cloneGitlabRepository = async ({
 	}
 
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName, "code");
+	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
 	const repoClone = getGitlabRepoClone(gitlab, gitlabPathNamespace);
@@ -169,7 +172,7 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 		if (groupName) {
 			return groupName
 				.split(",")
-				.some((name) =>
+				.some((name: string) =>
 					full_path.toLowerCase().startsWith(name.trim().toLowerCase()),
 				);
 		}
@@ -254,7 +257,7 @@ export const getGitlabBranches = async (input: {
 };
 
 export const testGitlabConnection = async (
-	input: typeof apiGitlabTestConnection._type,
+	input: z.infer<typeof apiGitlabTestConnection>,
 ) => {
 	const { gitlabId, groupName } = input;
 
@@ -274,7 +277,7 @@ export const testGitlabConnection = async (
 		if (groupName) {
 			return groupName
 				.split(",")
-				.some((name) =>
+				.some((name: string) =>
 					full_path.toLowerCase().startsWith(name.trim().toLowerCase()),
 				);
 		}

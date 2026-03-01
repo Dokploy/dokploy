@@ -47,7 +47,7 @@ export const ShowModalLogs = ({
 	serverId,
 	type = "swarm",
 }: Props) => {
-	const { data, isLoading } = api.docker.getContainersByAppLabel.useQuery(
+	const { data, isPending } = api.docker.getContainersByAppLabel.useQuery(
 		{
 			appName,
 			serverId,
@@ -76,7 +76,7 @@ export const ShowModalLogs = ({
 					<Label>Select a container to view logs</Label>
 					<Select onValueChange={setContainerId} value={containerId}>
 						<SelectTrigger>
-							{isLoading ? (
+							{isPending ? (
 								<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
 									<span>Loading...</span>
 									<Loader2 className="animate-spin size-4" />

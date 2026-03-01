@@ -8,6 +8,7 @@ import {
 	findBackupsByDbId,
 	findEnvironmentById,
 	findMariadbById,
+	findMemberById,
 	findProjectById,
 	IS_CLOUD,
 	rebuildDatabase,
@@ -19,12 +20,12 @@ import {
 	stopServiceRemote,
 	updateMariadbById,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { db } from "@/server/db";
 import {
 	apiChangeMariaDBStatus,
 	apiCreateMariaDB,
@@ -37,6 +38,7 @@ import {
 	apiUpdateMariaDB,
 	mariadb as mariadbTable,
 } from "@/server/db/schema";
+import { environments, projects } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
 export const mariadbRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -445,5 +447,103 @@ export const mariadbRouter = createTRPCRouter({
 
 			await rebuildDatabase(mariadb.mariadbId, "mariadb");
 			return true;
+		}),
+	search: protectedProcedure
+		.input(
+			z.object({
+				q: z.string().optional(),
+				name: z.string().optional(),
+				appName: z.string().optional(),
+				description: z.string().optional(),
+				projectId: z.string().optional(),
+				environmentId: z.string().optional(),
+				limit: z.number().min(1).max(100).default(20),
+				offset: z.number().min(0).default(0),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const baseConditions = [
+				eq(projects.organizationId, ctx.session.activeOrganizationId),
+			];
+			if (input.projectId) {
+				baseConditions.push(eq(environments.projectId, input.projectId));
+			}
+			if (input.environmentId) {
+				baseConditions.push(
+					eq(mariadbTable.environmentId, input.environmentId),
+				);
+			}
+			if (input.q?.trim()) {
+				const term = `%${input.q.trim()}%`;
+				baseConditions.push(
+					or(
+						ilike(mariadbTable.name, term),
+						ilike(mariadbTable.appName, term),
+						ilike(mariadbTable.description ?? "", term),
+					)!,
+				);
+			}
+			if (input.name?.trim()) {
+				baseConditions.push(ilike(mariadbTable.name, `%${input.name.trim()}%`));
+			}
+			if (input.appName?.trim()) {
+				baseConditions.push(
+					ilike(mariadbTable.appName, `%${input.appName.trim()}%`),
+				);
+			}
+			if (input.description?.trim()) {
+				baseConditions.push(
+					ilike(
+						mariadbTable.description ?? "",
+						`%${input.description.trim()}%`,
+					),
+				);
+			}
+			if (ctx.user.role === "member") {
+				const { accessedServices } = await findMemberById(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				if (accessedServices.length === 0) return { items: [], total: 0 };
+				baseConditions.push(
+					sql`${mariadbTable.mariadbId} IN (${sql.join(
+						accessedServices.map((id) => sql`${id}`),
+						sql`, `,
+					)})`,
+				);
+			}
+			const where = and(...baseConditions);
+			const [items, countResult] = await Promise.all([
+				db
+					.select({
+						mariadbId: mariadbTable.mariadbId,
+						name: mariadbTable.name,
+						appName: mariadbTable.appName,
+						description: mariadbTable.description,
+						environmentId: mariadbTable.environmentId,
+						applicationStatus: mariadbTable.applicationStatus,
+						createdAt: mariadbTable.createdAt,
+					})
+					.from(mariadbTable)
+					.innerJoin(
+						environments,
+						eq(mariadbTable.environmentId, environments.environmentId),
+					)
+					.innerJoin(projects, eq(environments.projectId, projects.projectId))
+					.where(where)
+					.orderBy(desc(mariadbTable.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db
+					.select({ count: sql<number>`count(*)::int` })
+					.from(mariadbTable)
+					.innerJoin(
+						environments,
+						eq(mariadbTable.environmentId, environments.environmentId),
+					)
+					.innerJoin(projects, eq(environments.projectId, projects.projectId))
+					.where(where),
+			]);
+			return { items, total: countResult[0]?.count ?? 0 };
 		}),
 });

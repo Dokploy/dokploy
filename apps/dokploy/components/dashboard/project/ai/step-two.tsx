@@ -28,7 +28,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 	const suggestions = templateInfo.suggestions || [];
 	const selectedVariant = templateInfo.details;
 
-	const { mutateAsync, isLoading, error, isError } =
+	const { mutateAsync, isPending, error, isError } =
 		api.ai.suggest.useMutation();
 
 	useEffect(() => {
@@ -184,7 +184,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 			</div>
 		);
 	}
-	if (isLoading) {
+	if (isPending) {
 		return (
 			<div className="flex flex-col items-center justify-center h-full space-y-4">
 				<Bot className="w-16 h-16 text-primary animate-pulse" />

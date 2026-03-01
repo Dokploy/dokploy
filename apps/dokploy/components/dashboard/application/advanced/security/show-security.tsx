@@ -27,7 +27,7 @@ export const ShowSecurity = ({ applicationId }: Props) => {
 		{ enabled: !!applicationId },
 	);
 
-	const { mutateAsync: deleteSecurity, isLoading: isRemoving } =
+	const { mutateAsync: deleteSecurity, isPending: isRemoving } =
 		api.security.delete.useMutation();
 
 	const utils = api.useUtils();

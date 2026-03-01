@@ -8,7 +8,6 @@ import { EnterpriseFeatureGate } from "@/components/proprietary/enterprise-featu
 import { SSOSettings } from "@/components/proprietary/sso/sso-settings";
 import { Card } from "@/components/ui/card";
 import { appRouter } from "@/server/api/root";
-import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 const Page = () => {
 	return (
@@ -43,7 +42,6 @@ Page.getLayout = (page: ReactElement) => {
 
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	const { req, res } = ctx;
-	const locale = await getLocale(req.cookies);
 	const { user, session } = await validateRequest(ctx.req);
 	if (!user) {
 		return {
@@ -78,7 +76,6 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
-			...(await serverSideTranslations(locale, ["settings"])),
 		},
 	};
 }

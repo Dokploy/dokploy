@@ -13,10 +13,14 @@ import {
 	deployments,
 } from "@dokploy/server/db/schema";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
-import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
 import { desc, eq } from "drizzle-orm";
+import type { z } from "zod";
 import {
 	type Application,
 	findApplicationById,
@@ -69,7 +73,7 @@ export const findDeploymentByApplicationId = async (applicationId: string) => {
 
 export const createDeployment = async (
 	deployment: Omit<
-		typeof apiCreateDeployment._type,
+		z.infer<typeof apiCreateDeployment>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
@@ -150,7 +154,7 @@ export const createDeployment = async (
 
 export const createDeploymentPreview = async (
 	deployment: Omit<
-		typeof apiCreateDeploymentPreview._type,
+		z.infer<typeof apiCreateDeploymentPreview>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
@@ -233,7 +237,7 @@ export const createDeploymentPreview = async (
 
 export const createDeploymentCompose = async (
 	deployment: Omit<
-		typeof apiCreateDeploymentCompose._type,
+		z.infer<typeof apiCreateDeploymentCompose>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
@@ -310,7 +314,7 @@ echo "Initializing deployment\n" >> ${logFilePath};
 
 export const createDeploymentBackup = async (
 	deployment: Omit<
-		typeof apiCreateDeploymentBackup._type,
+		z.infer<typeof apiCreateDeploymentBackup>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
@@ -390,7 +394,7 @@ echo "Initializing backup\n" >> ${logFilePath};
 
 export const createDeploymentSchedule = async (
 	deployment: Omit<
-		typeof apiCreateDeploymentSchedule._type,
+		z.infer<typeof apiCreateDeploymentSchedule>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
@@ -466,7 +470,7 @@ export const createDeploymentSchedule = async (
 
 export const createDeploymentVolumeBackup = async (
 	deployment: Omit<
-		typeof apiCreateDeploymentVolumeBackup._type,
+		z.infer<typeof apiCreateDeploymentVolumeBackup>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
@@ -554,8 +558,25 @@ export const removeDeployment = async (deploymentId: string) => {
 		const deployment = await db
 			.delete(deployments)
 			.where(eq(deployments.deploymentId, deploymentId))
-			.returning();
-		return deployment[0];
+			.returning()
+			.then((result) => result[0]);
+
+		if (!deployment) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Deployment not found",
+			});
+		}
+		const command = `
+			rm -f ${deployment.logPath};
+		`;
+		if (deployment.serverId) {
+			await execAsyncRemote(deployment.serverId, command);
+		} else {
+			await execAsync(command);
+		}
+
+		return deployment;
 	} catch (error) {
 		const message =
 			error instanceof Error ? error.message : "Error creating the deployment";
@@ -753,7 +774,7 @@ export const updateDeploymentStatus = async (
 
 export const createServerDeployment = async (
 	deployment: Omit<
-		typeof apiCreateDeploymentServer._type,
+		z.infer<typeof apiCreateDeploymentServer>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
@@ -830,4 +851,20 @@ export const findAllDeploymentsByServerId = async (serverId: string) => {
 		orderBy: desc(deployments.createdAt),
 	});
 	return deploymentsList;
+};
+
+export const clearOldDeployments = async (
+	appName: string,
+	serverId: string | null,
+) => {
+	const { LOGS_PATH } = paths(!!serverId);
+	const folder = path.join(LOGS_PATH, appName);
+	const command = `
+		rm -rf ${folder};
+	`;
+	if (serverId) {
+		await execAsyncRemote(serverId, command);
+	} else {
+		await execAsync(command);
+	}
 };

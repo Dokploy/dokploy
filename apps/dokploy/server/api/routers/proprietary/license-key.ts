@@ -1,10 +1,10 @@
+import { db } from "@dokploy/server/db";
 import { user } from "@dokploy/server/db/schema";
-import { validateLicenseKey } from "@dokploy/server/index";
+import { hasValidLicense, validateLicenseKey } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
-import { db } from "@/server/db";
 import {
 	activateLicenseKey,
 	deactivateLicenseKey,
@@ -12,7 +12,7 @@ import {
 
 export const licenseKeyRouter = createTRPCRouter({
 	activate: adminProcedure
-		.input(z.object({ licenseKey: z.string() }))
+		.input(z.object({ licenseKey: z.string().min(1) }))
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const currentUserId = ctx.user.id;
@@ -71,6 +71,13 @@ export const licenseKeyRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "User not found",
+				});
+			}
+
+			if (ctx.user.role !== "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not authorized to validate a license key",
 				});
 			}
 
@@ -164,24 +171,20 @@ export const licenseKeyRouter = createTRPCRouter({
 			});
 		}
 
+		if (ctx.user.role !== "owner") {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "You are not authorized to get enterprise settings",
+			});
+		}
+
 		return {
 			enableEnterpriseFeatures: !!currentUser.enableEnterpriseFeatures,
 			licenseKey: currentUser.licenseKey ?? "",
 		};
 	}),
 	haveValidLicenseKey: adminProcedure.query(async ({ ctx }) => {
-		const currentUserId = ctx.user.id;
-		const currentUser = await db.query.user.findFirst({
-			where: eq(user.id, currentUserId),
-			columns: {
-				enableEnterpriseFeatures: true,
-				isValidEnterpriseLicense: true,
-			},
-		});
-		return !!(
-			currentUser?.enableEnterpriseFeatures &&
-			currentUser?.isValidEnterpriseLicense
-		);
+		return await hasValidLicense(ctx.session.activeOrganizationId);
 	}),
 	updateEnterpriseSettings: adminProcedure
 		.input(
@@ -197,6 +200,13 @@ export const licenseKeyRouter = createTRPCRouter({
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "enableEnterpriseFeatures must be provided",
+					});
+				}
+
+				if (ctx.user.role !== "owner") {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You are not authorized to update enterprise settings",
 					});
 				}
 

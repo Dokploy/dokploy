@@ -130,6 +130,7 @@ interface CloneGiteaRepository {
 	enableSubmodules: boolean;
 	serverId: string | null;
 	type?: "application" | "compose";
+	outputPathOverride?: string;
 }
 
 export const cloneGiteaRepository = async ({
@@ -145,6 +146,7 @@ export const cloneGiteaRepository = async ({
 		giteaRepository,
 		enableSubmodules,
 		serverId,
+		outputPathOverride,
 	} = entity;
 	const { APPLICATIONS_PATH, COMPOSE_PATH } = paths(!!serverId);
 
@@ -162,7 +164,7 @@ export const cloneGiteaRepository = async ({
 	}
 
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName, "code");
+	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
 
