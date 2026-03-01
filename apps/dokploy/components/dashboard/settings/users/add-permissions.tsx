@@ -33,7 +33,6 @@ type ProjectForPermissions =
 	RouterOutputs["project"]["allForPermissions"][number];
 type EnvironmentForPermissions = ProjectForPermissions["environments"][number];
 
-type Project = ProjectForPermissions;
 type Environment = EnvironmentForPermissions;
 
 export type Services = {

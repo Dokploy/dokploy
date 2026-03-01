@@ -284,11 +284,10 @@ export const projectRouter = createTRPCRouter({
 				environments: {
 					with: {
 						applications: {
-							with: {
-								domains: true,
-							},
 							columns: {
 								applicationId: true,
+								name: true,
+								applicationStatus: true,
 							},
 						},
 						mariadb: {
@@ -317,11 +316,10 @@ export const projectRouter = createTRPCRouter({
 							},
 						},
 						compose: {
-							with: {
-								domains: true,
-							},
 							columns: {
 								composeId: true,
+								name: true,
+								composeStatus: true,
 							},
 						},
 					},
