@@ -223,27 +223,34 @@ export const projectRouter = createTRPCRouter({
 									applications.applicationId,
 									accessedServices,
 								),
-								with: { domains: true },
 								columns: {
 									applicationId: true,
+									name: true,
+									applicationStatus: true,
 								},
 							},
 							mariadb: {
 								where: buildServiceFilter(mariadb.mariadbId, accessedServices),
 								columns: {
 									mariadbId: true,
+									name: true,
+									applicationStatus: true,
 								},
 							},
 							mongo: {
 								where: buildServiceFilter(mongo.mongoId, accessedServices),
 								columns: {
 									mongoId: true,
+									name: true,
+									applicationStatus: true,
 								},
 							},
 							mysql: {
 								where: buildServiceFilter(mysql.mysqlId, accessedServices),
 								columns: {
 									mysqlId: true,
+									name: true,
+									applicationStatus: true,
 								},
 							},
 							postgres: {
@@ -253,25 +260,31 @@ export const projectRouter = createTRPCRouter({
 								),
 								columns: {
 									postgresId: true,
+									name: true,
+									applicationStatus: true,
 								},
 							},
 							redis: {
 								where: buildServiceFilter(redis.redisId, accessedServices),
 								columns: {
 									redisId: true,
+									name: true,
+									applicationStatus: true,
 								},
 							},
 							compose: {
 								where: buildServiceFilter(compose.composeId, accessedServices),
-								with: { domains: true },
 								columns: {
 									composeId: true,
+									name: true,
+									composeStatus: true,
 								},
 							},
 						},
 						columns: {
 							environmentId: true,
 							isDefault: true,
+							name: true,
 						},
 					},
 				},
@@ -324,6 +337,7 @@ export const projectRouter = createTRPCRouter({
 						},
 					},
 					columns: {
+						name: true,
 						environmentId: true,
 						isDefault: true,
 					},
