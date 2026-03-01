@@ -4,6 +4,7 @@ import {
 	BookIcon,
 	ExternalLinkIcon,
 	FolderInput,
+	HardDrive,
 	Loader2,
 	MoreHorizontalIcon,
 	Search,
@@ -58,6 +59,17 @@ import { api } from "@/utils/api";
 import { useDebounce } from "@/utils/hooks/use-debounce";
 import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
+
+const formatBytes = (bytes: number): string => {
+	if (!bytes || bytes === 0 || !Number.isFinite(bytes)) return "0 B";
+	const k = 1024;
+	const sizes = ["B", "KB", "MB", "GB", "TB"];
+	const i = Math.floor(Math.log(bytes) / Math.log(k));
+	const size = bytes / Math.pow(k, i);
+	// Remove trailing zeros for cleaner display
+	const formatted = size.toFixed(2).replace(/\.?0+$/, "");
+	return `${formatted} ${sizes[i]}`;
+};
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
@@ -568,12 +580,22 @@ export const ShowProjects = () => {
 																	<DateTooltip date={project.createdAt}>
 																		Created
 																	</DateTooltip>
-																	<span>
-																		{totalServices}{" "}
-																		{totalServices === 1
-																			? "service"
-																			: "services"}
-																	</span>
+																	<div className="flex flex-col items-end gap-1.5">
+																		<span>
+																			{totalServices}{" "}
+																			{totalServices === 1
+																				? "service"
+																				: "services"}
+																		</span>
+																		<div className="flex items-center gap-1.5 text-muted-foreground">
+																			<HardDrive className="size-3.5" />
+																			<span className="text-xs">
+																				{formatBytes(
+																					project.diskUsageBytes ?? 0,
+																				)}
+																			</span>
+																		</div>
+																	</div>
 																</div>
 															</CardFooter>
 														</Card>
