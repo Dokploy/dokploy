@@ -72,12 +72,7 @@ const Redis = (
 	return (
 		<div className="pb-10">
 			<UseKeyboardNav forPage="redis" />
-			<AdvanceBreadcrumb
-				projectId={projectId as string}
-				environmentId={environmentId as string}
-				serviceId={redisId}
-				serviceType="redis"
-			/>
+			<AdvanceBreadcrumb />
 			<Head>
 				<title>
 					Database: {data?.name} - {data?.environment?.project?.name} | Dokploy

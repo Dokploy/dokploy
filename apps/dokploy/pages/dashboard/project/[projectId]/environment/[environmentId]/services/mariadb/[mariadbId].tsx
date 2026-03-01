@@ -74,12 +74,7 @@ const Mariadb = (
 	return (
 		<div className="pb-10">
 			<UseKeyboardNav forPage="mariadb" />
-			<AdvanceBreadcrumb
-				projectId={projectId as string}
-				environmentId={environmentId as string}
-				serviceId={mariadbId}
-				serviceType="mariadb"
-			/>
+			<AdvanceBreadcrumb />
 			<div className="flex flex-col gap-4">
 				<Head>
 					<title>

@@ -865,7 +865,7 @@ const EnvironmentPage = (
 
 	return (
 		<div>
-			<AdvanceBreadcrumb projectId={projectId} environmentId={environmentId} />
+			<AdvanceBreadcrumb />
 			<Head>
 				<title>
 					Environment: {currentEnvironment.name} | {projectData?.name} | Dokploy

@@ -104,12 +104,7 @@ const Service = (
 	return (
 		<div className="pb-10">
 			<UseKeyboardNav forPage="application" />
-			<AdvanceBreadcrumb
-				projectId={projectId as string}
-				environmentId={environmentId as string}
-				serviceId={applicationId}
-				serviceType="application"
-			/>
+			<AdvanceBreadcrumb />
 			<Head>
 				<title>
 					Application: {data?.name} - {data?.environment.project.name} | Dokploy

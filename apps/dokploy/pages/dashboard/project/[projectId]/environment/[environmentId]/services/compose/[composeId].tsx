@@ -93,12 +93,7 @@ const Service = (
 	return (
 		<div className="pb-10">
 			<UseKeyboardNav forPage="compose" />
-			<AdvanceBreadcrumb
-				projectId={projectId as string}
-				environmentId={environmentId as string}
-				serviceId={composeId}
-				serviceType="compose"
-			/>
+			<AdvanceBreadcrumb />
 			<Head>
 				<title>
 					Compose: {data?.name} - {data?.environment?.project?.name} | Dokploy

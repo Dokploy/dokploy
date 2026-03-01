@@ -73,12 +73,7 @@ const Mongo = (
 	return (
 		<div className="pb-10">
 			<UseKeyboardNav forPage="mongodb" />
-			<AdvanceBreadcrumb
-				projectId={projectId as string}
-				environmentId={environmentId as string}
-				serviceId={mongoId}
-				serviceType="mongo"
-			/>
+			<AdvanceBreadcrumb />
 			<Head>
 				<title>
 					Database: {data?.name} - {data?.environment?.project?.name} | Dokploy

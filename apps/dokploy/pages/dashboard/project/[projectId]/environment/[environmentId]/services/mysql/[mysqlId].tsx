@@ -72,12 +72,7 @@ const MySql = (
 	return (
 		<div className="pb-10">
 			<UseKeyboardNav forPage="mysql" />
-			<AdvanceBreadcrumb
-				projectId={projectId as string}
-				environmentId={environmentId as string}
-				serviceId={mysqlId}
-				serviceType="mysql"
-			/>
+			<AdvanceBreadcrumb />
 			<div className="flex flex-col gap-4">
 				<Head>
 					<title>
