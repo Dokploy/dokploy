@@ -23,7 +23,7 @@ import type {
 	InferGetServerSidePropsType,
 } from "next";
 import Head from "next/head";
-import { useRouter } from "next/router";
+import Link from "next/link";
 import { type ReactElement, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
@@ -358,7 +358,6 @@ const EnvironmentPage = (
 		environmentId,
 	});
 	const { data: allProjects } = api.project.all.useQuery();
-	const router = useRouter();
 
 	const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
 	const [selectedTargetProject, setSelectedTargetProject] =
@@ -412,6 +411,7 @@ const EnvironmentPage = (
 	};
 
 	const handleServiceSelect = (serviceId: string, event: React.MouseEvent) => {
+		event.preventDefault();
 		event.stopPropagation();
 		setSelectedServices((prev) =>
 			prev.includes(serviceId)
@@ -1463,101 +1463,99 @@ const EnvironmentPage = (
 										<div className="flex w-full flex-col gap-4">
 											<div className="gap-5 pb-10 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
 												{filteredServices?.map((service) => (
-													<Card
+													<Link
 														key={service.id}
-														onClick={() => {
-															router.push(
-																`/dashboard/project/${projectId}/environment/${environmentId}/services/${service.type}/${service.id}`,
-															);
-														}}
-														className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-border"
+														href={`/dashboard/project/${projectId}/environment/${environmentId}/services/${service.type}/${service.id}`}
+														className="block"
 													>
-														{service.serverId && (
-															<div className="absolute -left-1 -top-2">
-																<ServerIcon className="size-4 text-muted-foreground" />
-															</div>
-														)}
-														<div className="absolute -right-1 -top-2">
-															<StatusTooltip status={service.status} />
-														</div>
-
-														<div
-															className={cn(
-																"absolute -left-3 -bottom-3 size-9 translate-y-1 rounded-full p-0 transition-all duration-200 z-10 bg-background border",
-																selectedServices.includes(service.id)
-																	? "opacity-100 translate-y-0"
-																	: "opacity-0 group-hover:translate-y-0 group-hover:opacity-100",
-															)}
-															onClick={(e) =>
-																handleServiceSelect(service.id, e)
-															}
-														>
-															<div className="h-full w-full flex items-center justify-center">
-																<Checkbox
-																	checked={selectedServices.includes(
-																		service.id,
-																	)}
-																	className="data-[state=checked]:bg-primary"
-																/>
-															</div>
-														</div>
-
-														<CardHeader>
-															<CardTitle className="flex items-center justify-between">
-																<div className="flex flex-row items-center gap-2 justify-between w-full">
-																	<div className="flex flex-col gap-2">
-																		<span className="text-base flex items-center gap-2 font-medium leading-none flex-wrap">
-																			{service.name}
-																		</span>
-																		{service.description && (
-																			<span className="text-sm font-medium text-muted-foreground">
-																				{service.description}
-																			</span>
-																		)}
-																	</div>
-
-																	<span className="text-sm font-medium text-muted-foreground self-start">
-																		{service.type === "postgres" && (
-																			<PostgresqlIcon className="h-7 w-7" />
-																		)}
-																		{service.type === "redis" && (
-																			<RedisIcon className="h-7 w-7" />
-																		)}
-																		{service.type === "mariadb" && (
-																			<MariadbIcon className="h-7 w-7" />
-																		)}
-																		{service.type === "mongo" && (
-																			<MongodbIcon className="h-7 w-7" />
-																		)}
-																		{service.type === "mysql" && (
-																			<MysqlIcon className="h-7 w-7" />
-																		)}
-																		{service.type === "application" && (
-																			<GlobeIcon className="h-6 w-6" />
-																		)}
-																		{service.type === "compose" && (
-																			<CircuitBoard className="h-6 w-6" />
-																		)}
-																	</span>
+														<Card className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-border">
+															{service.serverId && (
+																<div className="absolute -left-1 -top-2">
+																	<ServerIcon className="size-4 text-muted-foreground" />
 																</div>
-															</CardTitle>
-														</CardHeader>
-														<CardFooter className="mt-auto">
-															<div className="space-y-1 text-sm w-full">
-																{service.serverName && (
-																	<div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-																		<ServerIcon className="size-3" />
-																		<span className="truncate">
-																			{service.serverName}
+															)}
+															<div className="absolute -right-1 -top-2">
+																<StatusTooltip status={service.status} />
+															</div>
+
+															<div
+																className={cn(
+																	"absolute -left-3 -bottom-3 size-9 translate-y-1 rounded-full p-0 transition-all duration-200 z-10 bg-background border",
+																	selectedServices.includes(service.id)
+																		? "opacity-100 translate-y-0"
+																		: "opacity-0 group-hover:translate-y-0 group-hover:opacity-100",
+																)}
+																onClick={(e) =>
+																	handleServiceSelect(service.id, e)
+																}
+															>
+																<div className="h-full w-full flex items-center justify-center">
+																	<Checkbox
+																		checked={selectedServices.includes(
+																			service.id,
+																		)}
+																		className="data-[state=checked]:bg-primary"
+																	/>
+																</div>
+															</div>
+
+															<CardHeader>
+																<CardTitle className="flex items-center justify-between">
+																	<div className="flex flex-row items-center gap-2 justify-between w-full">
+																		<div className="flex flex-col gap-2">
+																			<span className="text-base flex items-center gap-2 font-medium leading-none flex-wrap">
+																				{service.name}
+																			</span>
+																			{service.description && (
+																				<span className="text-sm font-medium text-muted-foreground">
+																					{service.description}
+																				</span>
+																			)}
+																		</div>
+
+																		<span className="text-sm font-medium text-muted-foreground self-start">
+																			{service.type === "postgres" && (
+																				<PostgresqlIcon className="h-7 w-7" />
+																			)}
+																			{service.type === "redis" && (
+																				<RedisIcon className="h-7 w-7" />
+																			)}
+																			{service.type === "mariadb" && (
+																				<MariadbIcon className="h-7 w-7" />
+																			)}
+																			{service.type === "mongo" && (
+																				<MongodbIcon className="h-7 w-7" />
+																			)}
+																			{service.type === "mysql" && (
+																				<MysqlIcon className="h-7 w-7" />
+																			)}
+																			{service.type === "application" && (
+																				<GlobeIcon className="h-6 w-6" />
+																			)}
+																			{service.type === "compose" && (
+																				<CircuitBoard className="h-6 w-6" />
+																			)}
 																		</span>
 																	</div>
-																)}
-																<DateTooltip date={service.createdAt}>
-																	Created
-																</DateTooltip>
-															</div>
-														</CardFooter>
-													</Card>
+																</CardTitle>
+															</CardHeader>
+															<CardFooter className="mt-auto">
+																<div className="space-y-1 text-sm w-full">
+																	{service.serverName && (
+																		<div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+																			<ServerIcon className="size-3" />
+																			<span className="truncate">
+																				{service.serverName}
+																			</span>
+																		</div>
+																	)}
+																	<DateTooltip date={service.createdAt}>
+																		Created
+																	</DateTooltip>
+																</div>
+															</CardFooter>
+														</Card>
+													</Link>
 												))}
 											</div>
 										</div>
