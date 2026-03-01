@@ -401,7 +401,7 @@ export const Enable2FA = () => {
 												<div className="grid grid-cols-2 gap-2">
 													{backupCodes.map((code, index) => (
 														<code
-															key={index}
+															key={`${code}-${index}`}
 															className="bg-muted p-2 rounded text-sm font-mono"
 														>
 															{code}

@@ -100,7 +100,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 
 	const url = useUrl();
 
-	const { data: projects } = api.project.all.useQuery();
+	const { data: projects } = api.project.allForPermissions.useQuery();
 
 	const extractServicesFromProjects = () => {
 		if (!projects) return [];

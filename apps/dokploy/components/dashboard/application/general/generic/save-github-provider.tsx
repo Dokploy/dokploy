@@ -459,7 +459,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 										<div className="flex flex-wrap gap-2 mb-2">
 											{field.value?.map((path, index) => (
 												<Badge
-													key={index}
+													key={`${path}-${index}`}
 													variant="secondary"
 													className="flex items-center gap-1"
 												>

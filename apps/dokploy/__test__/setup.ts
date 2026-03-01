@@ -12,8 +12,11 @@ vi.mock("@dokploy/server/db", () => {
 	chain.where = () => chain;
 	chain.values = () => chain;
 	chain.returning = () => Promise.resolve([{}]);
-	// biome-ignore lint/suspicious/noThenProperty: this is for testing
-	chain.then = undefined;
+	chain.from = () => chain;
+	chain.innerJoin = () => chain;
+	chain.then = (resolve: (value: unknown) => void) => {
+		resolve([]);
+	};
 
 	const tableMock = {
 		findFirst: vi.fn(() => Promise.resolve(undefined)),
@@ -22,7 +25,6 @@ vi.mock("@dokploy/server/db", () => {
 		update: vi.fn(() => chain),
 		delete: vi.fn(() => chain),
 	};
-	const createQueryMock = () => tableMock;
 
 	return {
 		db: {
