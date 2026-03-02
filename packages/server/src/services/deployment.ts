@@ -10,7 +10,11 @@ import {
 	type apiCreateDeploymentSchedule,
 	type apiCreateDeploymentServer,
 	type apiCreateDeploymentVolumeBackup,
+	applications,
+	compose,
 	deployments,
+	environments,
+	projects,
 } from "@dokploy/server/db/schema";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import {
@@ -19,7 +23,7 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and, inArray, or, sql } from "drizzle-orm";
 import type { z } from "zod";
 import {
 	type Application,
@@ -736,6 +740,137 @@ export const findAllDeploymentsByComposeId = async (composeId: string) => {
 		orderBy: desc(deployments.createdAt),
 	});
 	return deploymentsList;
+};
+
+const centralizedDeploymentsWith = {
+	application: {
+		columns: { applicationId: true, name: true, appName: true },
+		with: {
+			environment: {
+				columns: { environmentId: true, name: true },
+				with: {
+					project: {
+						columns: { projectId: true, name: true },
+					},
+				},
+			},
+			server: {
+				columns: { serverId: true, name: true, serverType: true },
+			},
+			buildServer: {
+				columns: { serverId: true, name: true, serverType: true },
+			},
+		},
+	},
+	compose: {
+		columns: { composeId: true, name: true, appName: true },
+		with: {
+			environment: {
+				columns: { environmentId: true, name: true },
+				with: {
+					project: {
+						columns: { projectId: true, name: true },
+					},
+				},
+			},
+			server: {
+				columns: { serverId: true, name: true, serverType: true },
+			},
+		},
+	},
+	server: {
+		columns: { serverId: true, name: true, serverType: true },
+	},
+	buildServer: {
+		columns: { serverId: true, name: true, serverType: true },
+	},
+} as const;
+
+async function getApplicationIdsInOrg(
+	orgId: string,
+	accessedServices: string[] | null,
+): Promise<string[]> {
+	const rows = await db
+		.select({ applicationId: applications.applicationId })
+		.from(applications)
+		.innerJoin(
+			environments,
+			eq(applications.environmentId, environments.environmentId),
+		)
+		.innerJoin(projects, eq(environments.projectId, projects.projectId))
+		.where(
+			accessedServices !== null
+				? and(
+						eq(projects.organizationId, orgId),
+						inArray(applications.applicationId, accessedServices),
+					)
+				: eq(projects.organizationId, orgId),
+		);
+	return rows.map((r) => r.applicationId);
+}
+
+async function getComposeIdsInOrg(
+	orgId: string,
+	accessedServices: string[] | null,
+): Promise<string[]> {
+	const rows = await db
+		.select({ composeId: compose.composeId })
+		.from(compose)
+		.innerJoin(
+			environments,
+			eq(compose.environmentId, environments.environmentId),
+		)
+		.innerJoin(projects, eq(environments.projectId, projects.projectId))
+		.where(
+			accessedServices !== null
+				? and(
+						eq(projects.organizationId, orgId),
+						inArray(compose.composeId, accessedServices),
+					)
+				: eq(projects.organizationId, orgId),
+		);
+	return rows.map((r) => r.composeId);
+}
+
+/**
+ * All deployments for applications and compose in the org.
+ * Pass accessedServices for members (only those services), null for owner/admin.
+ */
+export const findAllDeploymentsCentralized = async (
+	orgId: string,
+	accessedServices: string[] | null,
+) => {
+	if (accessedServices !== null && accessedServices.length === 0) {
+		return [];
+	}
+
+	const [appIds, compIds] = await Promise.all([
+		getApplicationIdsInOrg(orgId, accessedServices),
+		getComposeIdsInOrg(orgId, accessedServices),
+	]);
+
+	if (appIds.length === 0 && compIds.length === 0) {
+		return [];
+	}
+
+	const conditions = [
+		...(appIds.length > 0
+			? [inArray(deployments.applicationId, appIds)]
+			: []),
+		...(compIds.length > 0 ? [inArray(deployments.composeId, compIds)] : []),
+	];
+	const whereClause =
+		conditions.length === 0
+			? sql`1 = 0`
+			: conditions.length === 1
+				? conditions[0]
+				: or(...conditions);
+
+	return db.query.deployments.findMany({
+		where: whereClause,
+		orderBy: desc(deployments.createdAt),
+		with: centralizedDeploymentsWith,
+	});
 };
 
 export const updateDeployment = async (

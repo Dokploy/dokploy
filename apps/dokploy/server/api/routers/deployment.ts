@@ -4,9 +4,11 @@ import {
 	findAllDeploymentsByApplicationId,
 	findAllDeploymentsByComposeId,
 	findAllDeploymentsByServerId,
+	findAllDeploymentsCentralized,
 	findApplicationById,
 	findComposeById,
 	findDeploymentById,
+	findMemberById,
 	findServerById,
 	removeDeployment,
 	updateDeploymentStatus,
@@ -22,6 +24,7 @@ import {
 	apiFindAllByType,
 	deployments,
 } from "@/server/db/schema";
+import { myQueue } from "@/server/queues/queueSetup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const deploymentRouter = createTRPCRouter({
@@ -68,6 +71,39 @@ export const deploymentRouter = createTRPCRouter({
 			}
 			return await findAllDeploymentsByServerId(input.serverId);
 		}),
+	allCentralized: protectedProcedure.query(async ({ ctx }) => {
+		const orgId = ctx.session.activeOrganizationId;
+		const accessedServices =
+			ctx.user.role === "member"
+				? (await findMemberById(ctx.user.id, orgId)).accessedServices
+				: null;
+		if (accessedServices !== null && accessedServices.length === 0) {
+			return [];
+		}
+		return findAllDeploymentsCentralized(orgId, accessedServices);
+	}),
+
+	queueList: protectedProcedure.query(async () => {
+		const jobs = await myQueue.getJobs();
+		const rows = await Promise.all(
+			jobs.map(async (job) => {
+				const state = await job.getState();
+				console.log(job.data);
+				return {
+					id: job.id,
+					name: job.name ?? undefined,
+					data: job.data as Record<string, unknown>,
+					timestamp: job.timestamp,
+					processedOn: job.processedOn,
+					finishedOn: job.finishedOn,
+					failedReason: job.failedReason ?? undefined,
+					state,
+				};
+			}),
+		);
+		rows.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
+		return rows;
+	}),
 
 	allByType: protectedProcedure
 		.input(apiFindAllByType)
