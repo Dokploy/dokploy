@@ -162,22 +162,21 @@ export const createDeploymentPreview = async (
 		deployment.previewDeploymentId,
 	);
 	try {
+		const buildServerId = previewDeployment?.application?.buildServerId || previewDeployment?.application?.serverId;
 		await removeLastTenDeployments(
 			deployment.previewDeploymentId,
 			"previewDeployment",
-			previewDeployment?.application?.serverId,
+			buildServerId,
 		);
 
 		const appName = `${previewDeployment.appName}`;
-		const { LOGS_PATH } = paths(!!previewDeployment?.application?.serverId);
+		const { LOGS_PATH } = paths(!!buildServerId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, appName, fileName);
 
-		if (previewDeployment?.application?.serverId) {
-			const server = await findServerById(
-				previewDeployment?.application?.serverId,
-			);
+		if (buildServerId) {
+			const server = await findServerById(buildServerId);
 
 			const command = `
 				mkdir -p ${LOGS_PATH}/${appName};
