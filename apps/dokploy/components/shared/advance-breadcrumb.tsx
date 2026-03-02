@@ -9,7 +9,7 @@ import {
 	X,
 } from "lucide-react";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { type ComponentType, useEffect, useMemo, useState } from "react";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -34,128 +34,145 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { api } from "@/utils/api";
+import { api, type RouterOutputs } from "@/utils/api";
 
-type AdvanceBreadcrumbProps = {};
+type ProjectItem = RouterOutputs["project"]["all"][number];
+type ProjectEnvironment = ProjectItem["environments"][number];
+type EnvironmentDetails = RouterOutputs["environment"]["one"];
 
-const getServiceIcon = (type: ServiceType, className = "size-4") => {
-	const icons: Record<ServiceType, React.ReactNode> = {
-		application: <GlobeIcon className={className} />,
-		compose: <CircuitBoard className={className} />,
-		postgres: <PostgresqlIcon className={className} />,
-		mysql: <MysqlIcon className={className} />,
-		mariadb: <MariadbIcon className={className} />,
-		redis: <RedisIcon className={className} />,
-		mongo: <MongodbIcon className={className} />,
-	};
-
-	return icons[type];
-};
-
-interface ServiceItem {
+type ServiceItem = {
 	id: string;
 	name: string;
 	type: ServiceType;
-	appName?: string;
-}
-
-interface EnvironmentData {
-	applications?: Array<{
-		applicationId: string;
-		name: string;
-		appName: string;
-	}>;
-	compose?: Array<{ composeId: string; name: string; appName: string }>;
-	postgres?: Array<{ postgresId: string; name: string; appName: string }>;
-	mysql?: Array<{ mysqlId: string; name: string; appName: string }>;
-	mariadb?: Array<{ mariadbId: string; name: string; appName: string }>;
-	redis?: Array<{ redisId: string; name: string; appName: string }>;
-	mongo?: Array<{ mongoId: string; name: string; appName: string }>;
-}
-
-// Helper function to count total services in an environment
-const countEnvironmentServices = (env: EnvironmentData): number => {
-	return (
-		(env.applications?.length || 0) +
-		(env.compose?.length || 0) +
-		(env.postgres?.length || 0) +
-		(env.mysql?.length || 0) +
-		(env.mariadb?.length || 0) +
-		(env.redis?.length || 0) +
-		(env.mongo?.length || 0)
-	);
 };
 
-// Helper function to extract services from an environment into a flat array
+type NamedService = {
+	name: string;
+};
+
+type EnvironmentServiceCollections = {
+	applications: (NamedService & { applicationId: string })[];
+	compose: (NamedService & { composeId: string })[];
+	postgres: (NamedService & { postgresId: string })[];
+	mysql: (NamedService & { mysqlId: string })[];
+	mariadb: (NamedService & { mariadbId: string })[];
+	redis: (NamedService & { redisId: string })[];
+	mongo: (NamedService & { mongoId: string })[];
+};
+
+type ServiceCollections = Pick<
+	ProjectEnvironment,
+	| "applications"
+	| "compose"
+	| "postgres"
+	| "mysql"
+	| "mariadb"
+	| "redis"
+	| "mongo"
+>;
+
+const SERVICE_COLLECTION_KEYS = [
+	"applications",
+	"compose",
+	"postgres",
+	"mysql",
+	"mariadb",
+	"redis",
+	"mongo",
+] as const satisfies ReadonlyArray<keyof ServiceCollections>;
+
+const SERVICE_QUERY_KEYS = [
+	"applicationId",
+	"composeId",
+	"postgresId",
+	"mysqlId",
+	"mariadbId",
+	"redisId",
+	"mongoId",
+] as const;
+
+const SERVICE_ICONS: Record<
+	ServiceType,
+	ComponentType<{ className?: string }>
+> = {
+	application: GlobeIcon,
+	compose: CircuitBoard,
+	postgres: PostgresqlIcon,
+	mysql: MysqlIcon,
+	mariadb: MariadbIcon,
+	redis: RedisIcon,
+	mongo: MongodbIcon,
+};
+
+const getStringQueryParam = (value: string | string[] | undefined) =>
+	typeof value === "string" ? value : null;
+
+const includesSearch = (value: string | null | undefined, search: string) =>
+	value?.toLowerCase().includes(search.toLowerCase()) ?? false;
+
+const getServiceIcon = (type: ServiceType, className = "size-4") => {
+	const Icon = SERVICE_ICONS[type];
+	return <Icon className={className} />;
+};
+
+const countEnvironmentServices = (environment: ServiceCollections): number =>
+	SERVICE_COLLECTION_KEYS.reduce(
+		(total, key) => total + environment[key].length,
+		0,
+	);
+
+const mapServices = <T extends { name: string }>(
+	items: readonly T[],
+	getId: (item: T) => string,
+	type: ServiceType,
+): ServiceItem[] =>
+	items.map((item) => ({
+		id: getId(item),
+		name: item.name,
+		type,
+	}));
+
 const extractServicesFromEnvironment = (
-	env: EnvironmentData,
+	environment: EnvironmentDetails | null | undefined,
 ): ServiceItem[] => {
-	const services: ServiceItem[] = [];
+	if (!environment) return [];
 
-	env.applications?.forEach((app) => {
-		services.push({
-			id: app.applicationId,
-			name: app.name,
-			type: "application",
-			appName: app.appName,
-		});
-	});
+	const servicesByType =
+		environment as unknown as EnvironmentServiceCollections;
 
-	env.compose?.forEach((comp) => {
-		services.push({
-			id: comp.composeId,
-			name: comp.name,
-			type: "compose",
-			appName: comp.appName,
-		});
-	});
+	return [
+		...mapServices(
+			servicesByType.applications,
+			(item) => item.applicationId,
+			"application",
+		),
+		...mapServices(servicesByType.compose, (item) => item.composeId, "compose"),
+		...mapServices(
+			servicesByType.postgres,
+			(item) => item.postgresId,
+			"postgres",
+		),
+		...mapServices(servicesByType.mysql, (item) => item.mysqlId, "mysql"),
+		...mapServices(servicesByType.mariadb, (item) => item.mariadbId, "mariadb"),
+		...mapServices(servicesByType.redis, (item) => item.redisId, "redis"),
+		...mapServices(servicesByType.mongo, (item) => item.mongoId, "mongo"),
+	];
+};
 
-	env.postgres?.forEach((pg) => {
-		services.push({
-			id: pg.postgresId,
-			name: pg.name,
-			type: "postgres",
-			appName: pg.appName,
-		});
-	});
+const getTargetEnvironmentId = (
+	project: ProjectItem,
+	selectedEnvironmentId?: string,
+) => {
+	if (selectedEnvironmentId) return selectedEnvironmentId;
 
-	env.mysql?.forEach((my) => {
-		services.push({
-			id: my.mysqlId,
-			name: my.name,
-			type: "mysql",
-			appName: my.appName,
-		});
-	});
+	const productionEnvironment = project.environments.find(
+		(environment) => environment.name === "production",
+	);
 
-	env.mariadb?.forEach((maria) => {
-		services.push({
-			id: maria.mariadbId,
-			name: maria.name,
-			type: "mariadb",
-			appName: maria.appName,
-		});
-	});
-
-	env.redis?.forEach((red) => {
-		services.push({
-			id: red.redisId,
-			name: red.name,
-			type: "redis",
-			appName: red.appName,
-		});
-	});
-
-	env.mongo?.forEach((mon) => {
-		services.push({
-			id: mon.mongoId,
-			name: mon.name,
-			type: "mongo",
-			appName: mon.appName,
-		});
-	});
-
-	return services;
+	return (
+		productionEnvironment?.environmentId ??
+		project.environments[0]?.environmentId
+	);
 };
 
 export const AdvanceBreadcrumb = () => {
@@ -163,19 +180,12 @@ export const AdvanceBreadcrumb = () => {
 	const { query } = router;
 
 	// Read IDs from URL (dynamic route segments)
-	const projectId =
-		typeof query.projectId === "string" ? query.projectId : null;
-	const environmentId =
-		typeof query.environmentId === "string" ? query.environmentId : null;
+	const projectId = getStringQueryParam(query.projectId);
+	const environmentId = getStringQueryParam(query.environmentId);
 	const serviceId =
-		(typeof query.applicationId === "string" ? query.applicationId : null) ??
-		(typeof query.composeId === "string" ? query.composeId : null) ??
-		(typeof query.postgresId === "string" ? query.postgresId : null) ??
-		(typeof query.mysqlId === "string" ? query.mysqlId : null) ??
-		(typeof query.mariadbId === "string" ? query.mariadbId : null) ??
-		(typeof query.redisId === "string" ? query.redisId : null) ??
-		(typeof query.mongoId === "string" ? query.mongoId : null) ??
-		null;
+		SERVICE_QUERY_KEYS.map((key) => getStringQueryParam(query[key])).find(
+			(value): value is string => !!value,
+		) ?? null;
 
 	const [projectOpen, setProjectOpen] = useState(false);
 	const [serviceOpen, setServiceOpen] = useState(false);
@@ -221,13 +231,15 @@ export const AdvanceBreadcrumb = () => {
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, []);
 
-	// Extract services from current environment
-	const services: ServiceItem[] = currentEnvironment
-		? extractServicesFromEnvironment(currentEnvironment)
-		: [];
+	const services = useMemo(
+		() => extractServicesFromEnvironment(currentEnvironment),
+		[currentEnvironment],
+	);
 
-	// Get current service
-	const currentService = services.find((s) => s.id === serviceId);
+	const currentService = useMemo(
+		() => services.find((service) => service.id === serviceId),
+		[serviceId, services],
+	);
 
 	// Navigate to project's default environment
 	const handleProjectSelect = (
@@ -235,18 +247,15 @@ export const AdvanceBreadcrumb = () => {
 		selectedEnvironmentId?: string,
 	) => {
 		const project = allProjects?.find((p) => p.projectId === selectedProjectId);
-		if (project && project.environments.length > 0) {
-			// Use provided environment or find production environment or use the first one
-			const firstEnvironment = project.environments[0];
-			const targetEnvId =
-				selectedEnvironmentId ||
-				project.environments.find((e) => e.name === "production")
-					?.environmentId ||
-				firstEnvironment?.environmentId;
+		if (project) {
+			const targetEnvironmentId = getTargetEnvironmentId(
+				project,
+				selectedEnvironmentId,
+			);
 
-			if (targetEnvId) {
+			if (targetEnvironmentId) {
 				router.push(
-					`/dashboard/project/${selectedProjectId}/environment/${targetEnvId}`,
+					`/dashboard/project/${selectedProjectId}/environment/${targetEnvironmentId}`,
 				);
 			}
 		}
@@ -262,34 +271,37 @@ export const AdvanceBreadcrumb = () => {
 
 	// Navigate to service
 	const handleServiceSelect = (service: ServiceItem) => {
-		const serviceTypePath =
-			service.type === "application" ? "application" : service.type;
+		if (!environmentId) return;
+
 		router.push(
-			`/dashboard/project/${projectId}/environment/${environmentId}/services/${serviceTypePath}/${service.id}`,
+			`/dashboard/project/${projectId}/environment/${environmentId}/services/${service.type}/${service.id}`,
 		);
 		setServiceOpen(false);
 	};
 
-	// Filter projects based on search
-	const filteredProjects =
-		allProjects?.filter(
-			(p) =>
-				p.name.toLowerCase().includes(projectSearch.toLowerCase()) ||
-				p.description?.toLowerCase().includes(projectSearch.toLowerCase()),
-		) || [];
-
-	// Filter services based on search
-	const filteredServices = services.filter(
-		(s) =>
-			s.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
-			s.appName?.toLowerCase().includes(serviceSearch.toLowerCase()),
+	const filteredProjects = useMemo(
+		() =>
+			(allProjects ?? []).filter(
+				(project) =>
+					includesSearch(project.name, projectSearch) ||
+					includesSearch(project.description, projectSearch),
+			),
+		[allProjects, projectSearch],
 	);
 
-	// Filter environments based on search
-	const filteredEnvironments =
-		projectEnvironments?.filter((env) =>
-			env.name.toLowerCase().includes(environmentSearch.toLowerCase()),
-		) ?? [];
+	const filteredServices = useMemo(
+		() =>
+			services.filter((service) => includesSearch(service.name, serviceSearch)),
+		[serviceSearch, services],
+	);
+
+	const filteredEnvironments = useMemo(
+		() =>
+			(projectEnvironments ?? []).filter((environment) =>
+				includesSearch(environment.name, environmentSearch),
+			),
+		[environmentSearch, projectEnvironments],
+	);
 
 	// If we're just on the projects page, show simple breadcrumb
 	if (!projectId) {
