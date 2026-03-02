@@ -135,7 +135,7 @@ export const createDeployment = async (
 				applicationId: deployment.applicationId,
 				title: deployment.title || "Deployment",
 				status: "error",
-				logPath: "",
+				logPath: "none",
 				description: deployment.description || "",
 				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
 				startedAt: new Date().toISOString(),
@@ -216,7 +216,7 @@ export const createDeploymentPreview = async (
 				previewDeploymentId: deployment.previewDeploymentId,
 				title: deployment.title || "Deployment",
 				status: "error",
-				logPath: "",
+				logPath: "none",
 				description: deployment.description || "",
 				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
 				startedAt: new Date().toISOString(),
@@ -293,7 +293,7 @@ echo "Initializing deployment\n" >> ${logFilePath};
 				composeId: deployment.composeId,
 				title: deployment.title || "Deployment",
 				status: "error",
-				logPath: "",
+				logPath: "none",
 				description: deployment.description || "",
 				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
 				startedAt: new Date().toISOString(),
@@ -377,7 +377,7 @@ echo "Initializing backup\n" >> ${logFilePath};
 				backupId: deployment.backupId,
 				title: deployment.title || "Backup",
 				status: "error",
-				logPath: "",
+				logPath: "none",
 				description: deployment.description || "",
 				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
 				startedAt: new Date().toISOString(),
@@ -452,7 +452,7 @@ export const createDeploymentSchedule = async (
 				scheduleId: deployment.scheduleId,
 				title: deployment.title || "Deployment",
 				status: "error",
-				logPath: "",
+				logPath: "none",
 				description: deployment.description || "",
 				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
 				startedAt: new Date().toISOString(),
@@ -537,7 +537,7 @@ export const createDeploymentVolumeBackup = async (
 				volumeBackupId: deployment.volumeBackupId,
 				title: deployment.title || "Deployment",
 				status: "error",
-				logPath: "",
+				logPath: "none",
 				description: deployment.description || "",
 				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
 				startedAt: new Date().toISOString(),
@@ -552,7 +552,9 @@ export const createDeploymentVolumeBackup = async (
 	}
 };
 
-export const removeDeployment = async (deploymentId: string) => {
+export const removeDeployment = async (
+	deploymentId: string,
+): Promise<Deployment | undefined> => {
 	try {
 		const deployment = await db
 			.delete(deployments)
@@ -561,24 +563,27 @@ export const removeDeployment = async (deploymentId: string) => {
 			.then((result) => result[0]);
 
 		if (!deployment) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Deployment not found",
-			});
+			return undefined;
 		}
-		const command = `
-			rm -f ${deployment.logPath};
-		`;
-		if (deployment.serverId) {
-			await execAsyncRemote(deployment.serverId, command);
-		} else {
-			await execAsync(command);
+		if (
+			deployment.logPath &&
+			deployment.logPath !== "." &&
+			deployment.logPath !== "none"
+		) {
+			const command = `rm -f ${deployment.logPath};`;
+			if (deployment.serverId) {
+				await execAsyncRemote(deployment.serverId, command);
+			} else {
+				await execAsync(command);
+			}
 		}
 
 		return deployment;
 	} catch (error) {
 		const message =
-			error instanceof Error ? error.message : "Error creating the deployment";
+			error instanceof Error
+				? error.message
+				: "Error removing the deployment";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message,
@@ -646,34 +651,49 @@ const removeLastTenDeployments = async (
 		if (serverId) {
 			let command = "";
 			for (const oldDeployment of deploymentsToDelete) {
-				const logPath = path.join(oldDeployment.logPath);
-				if (oldDeployment.rollbackId) {
-					await removeRollbackById(oldDeployment.rollbackId);
-				}
+				try {
+					const logPath = path.join(oldDeployment.logPath);
+					if (oldDeployment.rollbackId) {
+						await removeRollbackById(oldDeployment.rollbackId);
+					}
 
-				if (logPath !== ".") {
-					command += `
-					rm -rf ${logPath};
-					`;
+					if (logPath !== "." && logPath !== "none") {
+						command += `rm -rf ${logPath};\n`;
+					}
+					await removeDeployment(oldDeployment.deploymentId);
+				} catch (error) {
+					console.error(
+						`Failed to remove old deployment ${oldDeployment.deploymentId}:`,
+						error,
+					);
 				}
-				await removeDeployment(oldDeployment.deploymentId);
 			}
 
-			await execAsyncRemote(serverId, command);
+			if (command.trim()) {
+				await execAsyncRemote(serverId, command);
+			}
 		} else {
 			for (const oldDeployment of deploymentsToDelete) {
-				if (oldDeployment.rollbackId) {
-					await removeRollbackById(oldDeployment.rollbackId);
+				try {
+					if (oldDeployment.rollbackId) {
+						await removeRollbackById(oldDeployment.rollbackId);
+					}
+					const logPath = path.join(oldDeployment.logPath);
+					if (
+						existsSync(logPath) &&
+						!oldDeployment.errorMessage &&
+						logPath !== "." &&
+						logPath !== "none"
+					) {
+						await fsPromises.unlink(logPath);
+					}
+					await removeDeployment(oldDeployment.deploymentId);
+				} catch (error) {
+					console.error(
+						`Failed to remove old deployment ${oldDeployment.deploymentId}:`,
+						error,
+					);
 				}
-				const logPath = path.join(oldDeployment.logPath);
-				if (
-					existsSync(logPath) &&
-					!oldDeployment.errorMessage &&
-					logPath !== "."
-				) {
-					await fsPromises.unlink(logPath);
-				}
-				await removeDeployment(oldDeployment.deploymentId);
 			}
 		}
 	}
@@ -824,11 +844,22 @@ export const removeLastFiveDeployments = async (serverId: string) => {
 	if (deploymentList.length >= 5) {
 		const deploymentsToDelete = deploymentList.slice(4);
 		for (const oldDeployment of deploymentsToDelete) {
-			const logPath = path.join(oldDeployment.logPath);
-			if (existsSync(logPath)) {
-				await fsPromises.unlink(logPath);
+			try {
+				const logPath = path.join(oldDeployment.logPath);
+				if (
+					existsSync(logPath) &&
+					logPath !== "." &&
+					logPath !== "none"
+				) {
+					await fsPromises.unlink(logPath);
+				}
+				await removeDeployment(oldDeployment.deploymentId);
+			} catch (error) {
+				console.error(
+					`Failed to remove old deployment ${oldDeployment.deploymentId}:`,
+					error,
+				);
 			}
-			await removeDeployment(oldDeployment.deploymentId);
 		}
 	}
 };
