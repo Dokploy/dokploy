@@ -581,9 +581,7 @@ export const removeDeployment = async (
 		return deployment;
 	} catch (error) {
 		const message =
-			error instanceof Error
-				? error.message
-				: "Error removing the deployment";
+			error instanceof Error ? error.message : "Error removing the deployment";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message,
@@ -846,11 +844,7 @@ export const removeLastFiveDeployments = async (serverId: string) => {
 		for (const oldDeployment of deploymentsToDelete) {
 			try {
 				const logPath = path.join(oldDeployment.logPath);
-				if (
-					existsSync(logPath) &&
-					logPath !== "." &&
-					logPath !== "none"
-				) {
+				if (existsSync(logPath) && logPath !== "." && logPath !== "none") {
 					await fsPromises.unlink(logPath);
 				}
 				await removeDeployment(oldDeployment.deploymentId);
