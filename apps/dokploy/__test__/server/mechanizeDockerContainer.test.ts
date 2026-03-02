@@ -17,7 +17,7 @@ const { inspectMock, getServiceMock, createServiceMock, getRemoteDockerMock } =
 		const inspect = vi.fn<() => Promise<never>>();
 		const getService = vi.fn(() => ({ inspect }));
 		const createService = vi.fn<
-			(opts: MockCreateServiceOptions) => Promise<void>
+			(authconfig: unknown, opts: MockCreateServiceOptions) => Promise<void>
 		>(async () => undefined);
 		const getRemoteDocker = vi.fn(async () => ({
 			getService,
@@ -83,12 +83,12 @@ describe("mechanizeDockerContainer", () => {
 
 		expect(createServiceMock).toHaveBeenCalledTimes(1);
 		const call = createServiceMock.mock.calls[0] as
-			| [MockCreateServiceOptions]
+			| [unknown, MockCreateServiceOptions]
 			| undefined;
 		if (!call) {
 			throw new Error("createServiceMock should have been called once");
 		}
-		const [settings] = call;
+		const [, settings] = call;
 		expect(settings.TaskTemplate?.ContainerSpec?.StopGracePeriod).toBe(0);
 		expect(typeof settings.TaskTemplate?.ContainerSpec?.StopGracePeriod).toBe(
 			"number",
@@ -102,12 +102,12 @@ describe("mechanizeDockerContainer", () => {
 
 		expect(createServiceMock).toHaveBeenCalledTimes(1);
 		const call = createServiceMock.mock.calls[0] as
-			| [MockCreateServiceOptions]
+			| [unknown, MockCreateServiceOptions]
 			| undefined;
 		if (!call) {
 			throw new Error("createServiceMock should have been called once");
 		}
-		const [settings] = call;
+		const [, settings] = call;
 		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty(
 			"StopGracePeriod",
 		);
@@ -127,7 +127,7 @@ describe("mechanizeDockerContainer", () => {
 		if (!call) {
 			throw new Error("createServiceMock should have been called once");
 		}
-		const [settings] = call;
+		const [, settings] = call;
 		expect(settings.TaskTemplate?.ContainerSpec?.Ulimits).toEqual(ulimits);
 	});
 
@@ -141,7 +141,7 @@ describe("mechanizeDockerContainer", () => {
 		if (!call) {
 			throw new Error("createServiceMock should have been called once");
 		}
-		const [settings] = call;
+		const [, settings] = call;
 		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty("Ulimits");
 	});
 
@@ -155,7 +155,7 @@ describe("mechanizeDockerContainer", () => {
 		if (!call) {
 			throw new Error("createServiceMock should have been called once");
 		}
-		const [settings] = call;
+		const [, settings] = call;
 		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty("Ulimits");
 	});
 });
