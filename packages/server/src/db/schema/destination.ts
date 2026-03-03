@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -18,6 +18,12 @@ export const destinations = pgTable("destination", {
 	bucket: text("bucket").notNull(),
 	region: text("region").notNull(),
 	endpoint: text("endpoint").notNull(),
+	// SFTP-specific columns
+	sftpHost: text("sftpHost"),
+	sftpPort: integer("sftpPort").default(22),
+	sftpUser: text("sftpUser"),
+	sftpPassword: text("sftpPassword"),
+	sftpPath: text("sftpPath"),
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
@@ -44,6 +50,11 @@ const createSchema = createInsertSchema(destinations, {
 	endpoint: z.string(),
 	secretAccessKey: z.string(),
 	region: z.string(),
+	sftpHost: z.string().optional(),
+	sftpPort: z.number().int().default(22),
+	sftpUser: z.string().optional(),
+	sftpPassword: z.string().optional(),
+	sftpPath: z.string().optional(),
 });
 
 export const apiCreateDestination = createSchema
@@ -55,8 +66,12 @@ export const apiCreateDestination = createSchema
 		region: true,
 		endpoint: true,
 		secretAccessKey: true,
+		sftpHost: true,
+		sftpPort: true,
+		sftpUser: true,
+		sftpPassword: true,
+		sftpPath: true,
 	})
-	.required()
 	.extend({
 		serverId: z.string().optional(),
 	});
@@ -81,6 +96,11 @@ export const apiUpdateDestination = createSchema
 		secretAccessKey: true,
 		destinationId: true,
 		provider: true,
+		sftpHost: true,
+		sftpPort: true,
+		sftpUser: true,
+		sftpPassword: true,
+		sftpPath: true,
 	})
 	.required()
 	.extend({
