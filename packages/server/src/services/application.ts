@@ -130,7 +130,7 @@ export const findApplicationById = async (applicationId: string) => {
 
 const applyPreviewDockerImage = (
 	application: ApplicationNested,
-	previewDeployment: { branch: string; pullRequestNumber: number },
+	previewDeployment: { branch: string; pullRequestNumber: string },
 ): boolean => {
 	if (!application.previewDockerImage) return false;
 
@@ -139,7 +139,7 @@ const applyPreviewDockerImage = (
 		.replace(/\{owner\}/g, application.owner || "")
 		.replace(/\{repository\}/g, application.repository || "")
 		.replace(/\{branch\}/g, previewDeployment.branch)
-		.replace(/\{pr_number\}/g, String(previewDeployment.pullRequestNumber))
+		.replace(/\{pr_number\}/g, previewDeployment.pullRequestNumber)
 		.replace(/\{app_name\}/g, application.appName);
 
 	if (application.previewRegistry) {
