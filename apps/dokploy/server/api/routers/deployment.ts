@@ -28,10 +28,7 @@ import {
 	server,
 } from "@/server/db/schema";
 import { myQueue } from "@/server/queues/queueSetup";
-import {
-	fetchDeployApiJobs,
-	type QueueJobRow,
-} from "@/server/utils/deploy";
+import { fetchDeployApiJobs, type QueueJobRow } from "@/server/utils/deploy";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const deploymentRouter = createTRPCRouter({

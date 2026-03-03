@@ -73,14 +73,18 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 	);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const utils = api.useUtils();
-	const { mutateAsync: cancelApplicationDeployment, isPending: isCancellingApp } =
-		api.application.cancelDeployment.useMutation({
-			onSuccess: () => void utils.deployment.queueList.invalidate(),
-		});
-	const { mutateAsync: cancelComposeDeployment, isPending: isCancellingCompose } =
-		api.compose.cancelDeployment.useMutation({
-			onSuccess: () => void utils.deployment.queueList.invalidate(),
-		});
+	const {
+		mutateAsync: cancelApplicationDeployment,
+		isPending: isCancellingApp,
+	} = api.application.cancelDeployment.useMutation({
+		onSuccess: () => void utils.deployment.queueList.invalidate(),
+	});
+	const {
+		mutateAsync: cancelComposeDeployment,
+		isPending: isCancellingCompose,
+	} = api.compose.cancelDeployment.useMutation({
+		onSuccess: () => void utils.deployment.queueList.invalidate(),
+	});
 	const isCancelling = isCancellingApp || isCancellingCompose;
 
 	return (
@@ -149,11 +153,14 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 															</Link>
 														</Button>
 													) : (
-														<span className="text-muted-foreground text-xs">—</span>
+														<span className="text-muted-foreground text-xs">
+															—
+														</span>
 													)}
 													{isCloud &&
 														row.state === "active" &&
-														(d?.applicationId != null || d?.composeId != null) && (
+														(d?.applicationId != null ||
+															d?.composeId != null) && (
 															<Button
 																variant="ghost"
 																size="sm"

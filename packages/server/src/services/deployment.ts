@@ -889,9 +889,7 @@ export const findAllDeploymentsCentralized = async (
 	}
 
 	const conditions = [
-		...(appIds.length > 0
-			? [inArray(deployments.applicationId, appIds)]
-			: []),
+		...(appIds.length > 0 ? [inArray(deployments.applicationId, appIds)] : []),
 		...(compIds.length > 0 ? [inArray(deployments.composeId, compIds)] : []),
 	];
 	const whereClause =
