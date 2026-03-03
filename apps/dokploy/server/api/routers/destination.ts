@@ -3,6 +3,8 @@ import {
 	execAsync,
 	execAsyncRemote,
 	findDestinationById,
+	getRcloneDestination,
+	getS3Credentials,
 	IS_CLOUD,
 	removeDestinationById,
 	updateDestinationById,
@@ -43,26 +45,16 @@ export const destinationRouter = createTRPCRouter({
 	testConnection: adminProcedure
 		.input(apiCreateDestination)
 		.mutation(async ({ input }) => {
-			const { secretAccessKey, bucket, region, endpoint, accessKey, provider } =
-				input;
 			try {
-				const rcloneFlags = [
-					`--s3-access-key-id="${accessKey}"`,
-					`--s3-secret-access-key="${secretAccessKey}"`,
-					`--s3-region="${region}"`,
-					`--s3-endpoint="${endpoint}"`,
-					"--s3-no-check-bucket",
-					"--s3-force-path-style",
-					"--retries 1",
-					"--low-level-retries 1",
-					"--timeout 10s",
-					"--contimeout 5s",
-				];
-				if (provider) {
-					rcloneFlags.unshift(`--s3-provider="${provider}"`);
-				}
-				const rcloneDestination = `:s3:${bucket}`;
-				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+				const destinationLike = {
+					...input,
+					createdAt: new Date(),
+					destinationId: "test-connection",
+					organizationId: "test-connection",
+				};
+				const rcloneFlags = getS3Credentials(destinationLike);
+				const rcloneDestination = getRcloneDestination(destinationLike, "");
+				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}" --retries 1 --low-level-retries 1 --timeout 10s --contimeout 5s`;
 
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
@@ -82,7 +74,7 @@ export const destinationRouter = createTRPCRouter({
 					message:
 						error instanceof Error
 							? error?.message
-							: "Error connecting to bucket",
+							: "Error connecting to destination",
 					cause: error,
 				});
 			}

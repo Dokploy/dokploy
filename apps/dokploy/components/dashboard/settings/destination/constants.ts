@@ -3,6 +3,22 @@ export const S3_PROVIDERS: Array<{
 	name: string;
 }> = [
 	{
+		key: "FTP",
+		name: "FTP (Rclone)",
+	},
+	{
+		key: "SFTP",
+		name: "SFTP (Rclone)",
+	},
+	{
+		key: "GDrive",
+		name: "Google Drive (Rclone)",
+	},
+	{
+		key: "OneDrive",
+		name: "OneDrive (Rclone)",
+	},
+	{
 		key: "AWS",
 		name: "Amazon Web Services (AWS) S3",
 	},

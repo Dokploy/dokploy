@@ -10,7 +10,7 @@ import {
 } from "@dokploy/server/services/deployment";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { execAsync } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path } from "./utils";
+import { getRcloneDestination, getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runWebServerBackup = async (backup: BackupSchedule) => {
 	if (IS_CLOUD) {
@@ -31,7 +31,8 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 		const { BASE_PATH } = paths();
 		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-backup-"));
 		const backupFileName = `webserver-backup-${timestamp}.zip`;
-		const s3Path = `:s3:${destination.bucket}/${backup.appName}/${normalizeS3Path(backup.prefix)}${backupFileName}`;
+		const objectPath = `${backup.appName}/${normalizeS3Path(backup.prefix)}${backupFileName}`;
+		const destinationPath = getRcloneDestination(destination, objectPath);
 
 		try {
 			await execAsync(`mkdir -p ${tempDir}/filesystem`);
@@ -79,10 +80,10 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 
 			writeStream.write("Zipped database and filesystem\n");
 
-			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${s3Path}"`;
-			writeStream.write("Running command to upload backup to S3\n");
+			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${destinationPath}"`;
+			writeStream.write("Running command to upload backup to destination\n");
 			await execAsync(uploadCommand);
-			writeStream.write("Uploaded backup to S3 ✅\n");
+			writeStream.write("Uploaded backup to destination ✅\n");
 			writeStream.end();
 			await updateDeploymentStatus(deployment.deploymentId, "done");
 			return true;
