@@ -31,6 +31,7 @@ export type ApplicationNested = InferResultType<
 		registry: true;
 		buildRegistry: true;
 		rollbackRegistry: true;
+		previewRegistry: true;
 		deployments: true;
 		environment: { with: { project: true } };
 	}

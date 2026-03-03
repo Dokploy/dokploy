@@ -42,6 +42,9 @@ export const registryRelations = relations(registry, ({ many }) => ({
 	rollbackApplications: many(applications, {
 		relationName: "applicationRollbackRegistry",
 	}),
+	previewApplications: many(applications, {
+		relationName: "applicationPreviewRegistry",
+	}),
 }));
 
 const createSchema = createInsertSchema(registry, {
