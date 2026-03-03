@@ -42,6 +42,41 @@ import { findScheduleById } from "./schedule";
 import { findServerById, type Server } from "./server";
 import { findVolumeBackupById } from "./volume-backups";
 
+export type ServicePath = { href: string | null; label: string };
+
+export async function resolveServicePath(
+	orgId: string,
+	data: Record<string, unknown>,
+): Promise<ServicePath> {
+	try {
+		const applicationId = data?.applicationId as string | undefined;
+		const composeId = data?.composeId as string | undefined;
+		if (applicationId) {
+			const app = await findApplicationById(applicationId);
+			if (app.environment.project.organizationId !== orgId) {
+				return { href: null, label: "Application" };
+			}
+			return {
+				href: `/dashboard/project/${app.environment.project.projectId}/environment/${app.environment.environmentId}/services/application/${app.applicationId}`,
+				label: "Application",
+			};
+		}
+		if (composeId) {
+			const comp = await findComposeById(composeId);
+			if (comp.environment.project.organizationId !== orgId) {
+				return { href: null, label: "Compose" };
+			}
+			return {
+				href: `/dashboard/project/${comp.environment.project.projectId}/environment/${comp.environment.environmentId}/services/compose/${comp.composeId}`,
+				label: "Compose",
+			};
+		}
+	} catch {
+		// not found or unauthorized
+	}
+	return { href: null, label: "—" };
+}
+
 export type Deployment = typeof deployments.$inferSelect;
 
 export const findDeploymentById = async (deploymentId: string) => {

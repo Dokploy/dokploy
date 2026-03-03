@@ -1,8 +1,10 @@
 "use client";
 
 import type { inferRouterOutputs } from "@trpc/server";
-import { ListTodo, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, ListTodo, Loader2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Table,
 	TableBody,
@@ -27,11 +29,13 @@ const stateVariants: Record<
 	| "green"
 	| "red"
 > = {
+	pending: "secondary",
 	waiting: "secondary",
 	active: "yellow",
 	delayed: "outline",
 	completed: "green",
 	failed: "destructive",
+	cancelled: "outline",
 	paused: "outline",
 };
 
@@ -62,11 +66,22 @@ function getJobLabel(row: QueueRow): string {
 }
 
 export function ShowQueueTable(props: { embedded?: boolean }) {
-	const { embedded = false } = props;
+	const { embedded: _embedded = false } = props;
 	const { data: queueList, isLoading } = api.deployment.queueList.useQuery(
 		undefined,
 		{ refetchInterval: 3000 },
 	);
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const utils = api.useUtils();
+	const { mutateAsync: cancelApplicationDeployment, isPending: isCancellingApp } =
+		api.application.cancelDeployment.useMutation({
+			onSuccess: () => void utils.deployment.queueList.invalidate(),
+		});
+	const { mutateAsync: cancelComposeDeployment, isPending: isCancellingCompose } =
+		api.compose.cancelDeployment.useMutation({
+			onSuccess: () => void utils.deployment.queueList.invalidate(),
+		});
+	const isCancelling = isCancellingApp || isCancellingCompose;
 
 	return (
 		<div className="px-0">
@@ -88,6 +103,7 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 								<TableHead>Processed</TableHead>
 								<TableHead>Finished</TableHead>
 								<TableHead>Error</TableHead>
+								<TableHead className="w-[100px]">Actions</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -95,6 +111,8 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 								queueList.map((row) => {
 									const d = row.data as Record<string, unknown>;
 									const appType = d?.applicationType as string | undefined;
+									const pathInfo = row.servicePath;
+									const hasLink = pathInfo?.href != null;
 									return (
 										<TableRow key={String(row.id)}>
 											<TableCell className="font-mono text-xs">
@@ -121,12 +139,58 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 											<TableCell className="max-w-[180px] truncate text-xs text-destructive">
 												{row.failedReason ?? "—"}
 											</TableCell>
+											<TableCell>
+												<div className="flex items-center gap-1">
+													{hasLink ? (
+														<Button variant="ghost" size="sm" asChild>
+															<Link href={pathInfo!.href!}>
+																<ArrowRight className="size-4 mr-1" />
+																Service
+															</Link>
+														</Button>
+													) : (
+														<span className="text-muted-foreground text-xs">—</span>
+													)}
+													{isCloud &&
+														row.state === "active" &&
+														(d?.applicationId != null || d?.composeId != null) && (
+															<Button
+																variant="ghost"
+																size="sm"
+																className="text-destructive hover:text-destructive"
+																disabled={isCancelling}
+																onClick={() => {
+																	const appId =
+																		typeof d.applicationId === "string"
+																			? d.applicationId
+																			: undefined;
+																	const compId =
+																		typeof d.composeId === "string"
+																			? d.composeId
+																			: undefined;
+																	if (appId) {
+																		void cancelApplicationDeployment({
+																			applicationId: appId,
+																		});
+																	} else if (compId) {
+																		void cancelComposeDeployment({
+																			composeId: compId,
+																		});
+																	}
+																}}
+															>
+																<XCircle className="size-4 mr-1" />
+																Cancel
+															</Button>
+														)}
+												</div>
+											</TableCell>
 										</TableRow>
 									);
 								})
 							) : (
 								<TableRow>
-									<TableCell colSpan={9} className="text-center py-12">
+									<TableCell colSpan={10} className="text-center py-12">
 										<div className="flex flex-col items-center justify-center gap-2 text-muted-foreground min-h-[30vh]">
 											<ListTodo className="size-8" />
 											<p className="font-medium">Queue is empty</p>

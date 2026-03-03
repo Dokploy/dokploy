@@ -1,6 +1,7 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { Rocket } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
+import { useRouter } from "next/router";
 import type { ReactElement } from "react";
 import { ShowDeploymentsTable } from "@/components/dashboard/deployments/show-deployments-table";
 import { ShowQueueTable } from "@/components/dashboard/deployments/show-queue-table";
@@ -13,7 +14,29 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+const TAB_VALUES = ["deployments", "queue"] as const;
+type TabValue = (typeof TAB_VALUES)[number];
+
+function isValidTab(t: string): t is TabValue {
+	return TAB_VALUES.includes(t as TabValue);
+}
+
 function DeploymentsPage() {
+	const router = useRouter();
+	const tab =
+		router.query.tab && isValidTab(router.query.tab as string)
+			? (router.query.tab as TabValue)
+			: "deployments";
+
+	const setTab = (value: string) => {
+		if (!isValidTab(value)) return;
+		router.replace(
+			{ pathname: "/dashboard/deployments", query: { tab: value } },
+			undefined,
+			{ shallow: true },
+		);
+	};
+
 	return (
 		<div className="w-full">
 			<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-8xl mx-auto min-h-[45vh]">
@@ -30,7 +53,7 @@ function DeploymentsPage() {
 								</CardDescription>
 							</div>
 						</div>
-						<Tabs defaultValue="deployments" className="w-full">
+						<Tabs value={tab} onValueChange={setTab} className="w-full">
 							<TabsList className="mt-2">
 								<TabsTrigger value="deployments">Deployments</TabsTrigger>
 								<TabsTrigger value="queue">Queue</TabsTrigger>
