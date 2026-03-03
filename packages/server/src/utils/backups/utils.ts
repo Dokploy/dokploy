@@ -79,12 +79,16 @@ export const getS3Credentials = (destination: Destination) => {
 
 export const getSftpCredentials = (destination: Destination) => {
 	const { sftpHost, sftpPort, sftpUser, sftpPassword } = destination;
+	if (!sftpHost || !sftpUser || !sftpPassword) {
+		throw new Error(
+			"SFTP destination requires host, user, and password to be configured",
+		);
+	}
 	return [
 		`--sftp-host="${sftpHost}"`,
 		`--sftp-port="${sftpPort ?? 22}"`,
 		`--sftp-user="${sftpUser}"`,
-		`--sftp-pass="${sftpPassword}"`,
-		"--sftp-pass-is-base64=false",
+		`--sftp-pass=$(rclone obscure "${sftpPassword}")`,
 	];
 };
 
