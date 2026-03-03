@@ -31,8 +31,7 @@ import {
 	normalizeS3Path,
 } from "@dokploy/server/utils/backups/utils";
 import {
-	getS3StorageClassesForProvider,
-	normalizeS3StorageClass,
+	validateS3StorageClassForDestination,
 } from "@dokploy/server/utils/backups/s3-storage-class";
 import {
 	execAsync,
@@ -100,43 +99,12 @@ const ARCHIVE_RESTORE_PRIORITY_MAP = {
 const shEscape = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
 const GLOB_PATTERN_CHARS = /[*?\[\]{}]/;
 
-const validateStorageClassForDestination = async ({
-	destinationId,
-	storageClass,
-}: {
-	destinationId: string;
-	storageClass?: string | null;
-}) => {
-	const normalizedStorageClass = normalizeS3StorageClass(storageClass);
-	if (!normalizedStorageClass) {
-		return;
-	}
-
-	const destination = await findDestinationById(destinationId);
-	const provider = destination.provider;
-	const supportedStorageClasses = getS3StorageClassesForProvider(provider);
-
-	if (supportedStorageClasses.length === 0) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Storage class is not supported for provider "${provider || "Unknown"}".`,
-		});
-	}
-
-	if (!supportedStorageClasses.includes(normalizedStorageClass)) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Invalid storage class for provider "${provider}". Allowed values: ${supportedStorageClasses.join(", ")}.`,
-		});
-	}
-};
-
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateBackup)
 		.mutation(async ({ input }) => {
 			try {
-				await validateStorageClassForDestination({
+				await validateS3StorageClassForDestination({
 					destinationId: input.destinationId,
 					storageClass: input.storageClass,
 				});
@@ -201,7 +169,7 @@ export const backupRouter = createTRPCRouter({
 		.input(apiUpdateBackup)
 		.mutation(async ({ input }) => {
 			try {
-				await validateStorageClassForDestination({
+				await validateS3StorageClassForDestination({
 					destinationId: input.destinationId,
 					storageClass: input.storageClass,
 				});
@@ -576,12 +544,13 @@ export const backupRouter = createTRPCRouter({
 					message: `Archive restore requested for the selected file with ${input.retrievalTier} priority.`,
 				};
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+
 				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message:
-						error instanceof Error
-							? error.message
-							: "Failed to request archive restore.",
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to request archive restore.",
 					cause: error,
 				});
 			}

@@ -46,8 +46,7 @@
 	},
 	"pnpm": {
 		"overrides": {
-			"esbuild": "0.20.2",
-			"@hookform/resolvers>zod": "^4.3.6"
+			"esbuild": "0.20.2"
 		},
 		"onlyBuiltDependencies": [
 			"@prisma/client",

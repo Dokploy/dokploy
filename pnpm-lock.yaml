@@ -8,7 +8,6 @@ overrides:
   '@types/react': 18.3.5
   '@types/react-dom': 18.3.0
   esbuild: 0.20.2
-  '@hookform/resolvers>zod': ^4.3.6
 
 importers:
 
