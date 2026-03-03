@@ -1,1 +1,0 @@
-ALTER TABLE "webServerSettings" ADD COLUMN "whitelabelCustomCss" text;
