@@ -30,9 +30,7 @@ import {
 	getS3Credentials,
 	normalizeS3Path,
 } from "@dokploy/server/utils/backups/utils";
-import {
-	validateS3StorageClassForDestination,
-} from "@dokploy/server/utils/backups/s3-storage-class";
+import { validateS3StorageClassForDestination } from "@dokploy/server/utils/backups/s3-storage-class";
 import {
 	execAsync,
 	execAsyncRemote,
