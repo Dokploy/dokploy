@@ -17,6 +17,7 @@ import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes
 import { ShowDeployments } from "@/components/dashboard/application/deployments/show-deployments";
 import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
+import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
@@ -97,6 +98,7 @@ const Service = (
 					{ name: "Projects", href: "/dashboard/projects" },
 					{
 						name: data?.environment?.project?.name || "",
+						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
 					},
 					{
 						name: data?.environment?.name || "",
@@ -182,7 +184,9 @@ const Service = (
 									<div className="flex flex-row gap-2 justify-end">
 										<UpdateCompose composeId={composeId} />
 
-										{(auth?.role === "owner" || auth?.canDeleteServices) && (
+										{(auth?.role === "owner" ||
+											auth?.role === "admin" ||
+											auth?.canDeleteServices) && (
 											<DeleteService id={composeId} type="compose" />
 										)}
 									</div>
@@ -234,6 +238,9 @@ const Service = (
 												Volume Backups
 											</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
+											{data?.sourceType !== "raw" && (
+												<TabsTrigger value="patches">Patches</TabsTrigger>
+											)}
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
@@ -355,6 +362,12 @@ const Service = (
 									<TabsContent value="domains">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowDomains id={composeId} type="compose" />
+										</div>
+									</TabsContent>
+
+									<TabsContent value="patches" className="w-full">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowPatches id={composeId} type="compose" />
 										</div>
 									</TabsContent>
 

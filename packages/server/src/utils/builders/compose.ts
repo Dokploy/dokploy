@@ -134,6 +134,7 @@ const getExportEnvCommand = (compose: ComposeNested) => {
 	const envVars = getEnviromentVariablesObject(
 		compose.env,
 		compose.environment.project.env,
+		compose.environment.env,
 	);
 	const exports = Object.entries(envVars)
 		.map(([key, value]) => `${key}=${quote([value])}`)

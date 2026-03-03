@@ -14,19 +14,30 @@ vi.mock("@dokploy/server/db", () => {
 			set: vi.fn(() => chain),
 			where: vi.fn(() => chain),
 			returning: vi.fn().mockResolvedValue([{}] as any),
+			from: vi.fn(() => chain),
+			innerJoin: vi.fn(() => chain),
+			then: (resolve: (v: any) => void) => {
+				resolve([]);
+			},
 		} as any;
 		return chain;
 	};
 
 	return {
 		db: {
-			select: vi.fn(),
+			select: vi.fn(() => createChainableMock()),
 			insert: vi.fn(),
 			update: vi.fn(() => createChainableMock()),
 			delete: vi.fn(),
 			query: {
 				applications: {
 					findFirst: vi.fn(),
+				},
+				patch: {
+					findMany: vi.fn().mockResolvedValue([]),
+				},
+				member: {
+					findMany: vi.fn().mockResolvedValue([]),
 				},
 			},
 		},

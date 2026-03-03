@@ -116,7 +116,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 	);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
-	const { data: tags, isLoading: isLoadingTags } = api.compose.getTags.useQuery(
+	const { data: tags, isPending: isLoadingTags } = api.compose.getTags.useQuery(
 		{ baseUrl: customBaseUrl },
 		{
 			enabled: open,
@@ -125,7 +125,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 	const utils = api.useUtils();
 
 	const [serverId, setServerId] = useState<string | undefined>(undefined);
-	const { mutateAsync, isLoading, error, isError } =
+	const { mutateAsync, isPending, error, isError } =
 		api.compose.deployTemplate.useMutation();
 
 	const templates =
@@ -512,7 +512,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 													<AlertDialogFooter>
 														<AlertDialogCancel>Cancel</AlertDialogCancel>
 														<AlertDialogAction
-															disabled={isLoading}
+															disabled={isPending}
 															onClick={async () => {
 																const promise = mutateAsync({
 																	serverId:

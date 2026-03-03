@@ -77,6 +77,7 @@ const Postgresql = (
 					{ name: "Projects", href: "/dashboard/projects" },
 					{
 						name: data?.environment?.project?.name || "",
+						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
 					},
 					{
 						name: data?.environment?.name || "",
@@ -154,7 +155,9 @@ const Postgresql = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdatePostgres postgresId={postgresId} />
-									{(auth?.role === "owner" || auth?.canDeleteServices) && (
+									{(auth?.role === "owner" ||
+										auth?.role === "admin" ||
+										auth?.canDeleteServices) && (
 										<DeleteService id={postgresId} type="postgres" />
 									)}
 								</div>
@@ -336,6 +339,7 @@ export async function getServerSideProps(
 				postgresId: params?.postgresId,
 			});
 			await helpers.settings.isCloud.prefetch();
+
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),

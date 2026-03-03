@@ -67,9 +67,7 @@ export const dockerRouter = createTRPCRouter({
 	getContainersByAppNameMatch: protectedProcedure
 		.input(
 			z.object({
-				appType: z
-					.union([z.literal("stack"), z.literal("docker-compose")])
-					.optional(),
+				appType: z.enum(["stack", "docker-compose"]).optional(),
 				appName: z.string().min(1).regex(containerIdRegex, "Invalid app name."),
 				serverId: z.string().optional(),
 			}),

@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { AlertTriangle, Database, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -52,13 +52,13 @@ import {
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 
-type DbType = typeof mySchema._type.type;
+type DbType = z.infer<typeof mySchema>["type"];
 
 const dockerImageDefaultPlaceholder: Record<DbType, string> = {
 	mongo: "mongo:7",
 	mariadb: "mariadb:11",
 	mysql: "mysql:8",
-	postgres: "postgres:15",
+	postgres: "postgres:18",
 	redis: "redis:7",
 };
 
@@ -196,7 +196,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
 	const shouldShowServerDropdown = hasServers;
 
-	const form = useForm<AddDatabase>({
+	const form = useForm({
 		defaultValues: {
 			type: "postgres",
 			dockerImage: "",
@@ -559,6 +559,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 													type="password"
 													placeholder="******************"
 													autoComplete="one-time-code"
+													enablePasswordGenerator={true}
 													{...field}
 												/>
 											</FormControl>
@@ -578,6 +579,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 													<Input
 														type="password"
 														placeholder="******************"
+														enablePasswordGenerator={true}
 														{...field}
 													/>
 												</FormControl>

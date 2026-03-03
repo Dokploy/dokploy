@@ -35,9 +35,9 @@ export const ComposeActions = ({ composeId }: Props) => {
 	const { mutateAsync: update } = api.compose.update.useMutation();
 	const { mutateAsync: deploy } = api.compose.deploy.useMutation();
 	const { mutateAsync: redeploy } = api.compose.redeploy.useMutation();
-	const { mutateAsync: start, isLoading: isStarting } =
+	const { mutateAsync: start, isPending: isStarting } =
 		api.compose.start.useMutation();
-	const { mutateAsync: stop, isLoading: isStopping } =
+	const { mutateAsync: stop, isPending: isStopping } =
 		api.compose.stop.useMutation();
 
 	const { mutateAsync: loadTemplate, isLoading: isLoadingTemplate } =

@@ -2,7 +2,6 @@ import {
 	AlertTriangle,
 	ArrowUpDown,
 	BookIcon,
-	ExternalLinkIcon,
 	FolderInput,
 	Loader2,
 	MoreHorizontalIcon,
@@ -16,7 +15,6 @@ import { toast } from "sonner";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -40,10 +38,8 @@ import {
 import {
 	DropdownMenu,
 	DropdownMenuContent,
-	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -63,7 +59,7 @@ export const ShowProjects = () => {
 	const utils = api.useUtils();
 	const router = useRouter();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data, isLoading } = api.project.all.useQuery();
+	const { data, isPending } = api.project.all.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
 
@@ -200,7 +196,7 @@ export const ShowProjects = () => {
 						</div>
 
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
-							{isLoading ? (
+							{isPending ? (
 								<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[60vh]">
 									<span>Loading...</span>
 									<Loader2 className="animate-spin size-4" />
@@ -280,17 +276,12 @@ export const ShowProjects = () => {
 												)
 												.reduce((acc, curr) => acc + curr, 0);
 
-											const haveServicesWithDomains = project?.environments
-												.map(
-													(env) =>
-														env.applications.length > 0 ||
-														env.compose.length > 0,
-												)
-												.some(Boolean);
+											// Find default environment from accessible environments, or fall back to first accessible environment
+											const accessibleEnvironment =
+												project?.environments.find((env) => env.isDefault) ||
+												project?.environments?.[0];
 
-											const productionEnvironment = project?.environments.find(
-												(env) => env.isDefault,
-											);
+											const hasNoEnvironments = !accessibleEnvironment;
 
 											return (
 												<div
@@ -298,128 +289,21 @@ export const ShowProjects = () => {
 													className="w-full lg:max-w-md"
 												>
 													<Link
-														href={`/dashboard/project/${project.projectId}/environment/${productionEnvironment?.environmentId}`}
+														href={
+															hasNoEnvironments
+																? "#"
+																: `/dashboard/project/${project.projectId}/environment/${accessibleEnvironment?.environmentId}`
+														}
+														onClick={(e) => {
+															if (hasNoEnvironments) {
+																e.preventDefault();
+															}
+														}}
 													>
 														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border">
-															{haveServicesWithDomains ? (
-																<DropdownMenu>
-																	<DropdownMenuTrigger asChild>
-																		<Button
-																			className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
-																			size="sm"
-																			variant="default"
-																		>
-																			<ExternalLinkIcon className="size-3.5" />
-																		</Button>
-																	</DropdownMenuTrigger>
-																	<DropdownMenuContent
-																		className="w-[200px] space-y-2 overflow-y-auto max-h-[400px]"
-																		onClick={(e) => e.stopPropagation()}
-																	>
-																		{project.environments.some(
-																			(env) => env.applications.length > 0,
-																		) && (
-																			<DropdownMenuGroup>
-																				<DropdownMenuLabel>
-																					Applications
-																				</DropdownMenuLabel>
-																				{project.environments.map((env) =>
-																					env.applications.map((app) => (
-																						<div key={app.applicationId}>
-																							<DropdownMenuSeparator />
-																							<DropdownMenuGroup>
-																								<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
-																									{app.name}
-																									<StatusTooltip
-																										status={
-																											app.applicationStatus
-																										}
-																									/>
-																								</DropdownMenuLabel>
-																								<DropdownMenuSeparator />
-																								{app.domains.map((domain) => (
-																									<DropdownMenuItem
-																										key={domain.domainId}
-																										asChild
-																									>
-																										<Link
-																											className="space-x-4 text-xs cursor-pointer justify-between"
-																											target="_blank"
-																											href={`${
-																												domain.https
-																													? "https"
-																													: "http"
-																											}://${domain.host}${
-																												domain.path
-																											}`}
-																										>
-																											<span className="truncate">
-																												{domain.host}
-																											</span>
-																											<ExternalLinkIcon className="size-4 shrink-0" />
-																										</Link>
-																									</DropdownMenuItem>
-																								))}
-																							</DropdownMenuGroup>
-																						</div>
-																					)),
-																				)}
-																			</DropdownMenuGroup>
-																		)}
-																		{project.environments.some(
-																			(env) => env.compose.length > 0,
-																		) && (
-																			<DropdownMenuGroup>
-																				<DropdownMenuLabel>
-																					Compose
-																				</DropdownMenuLabel>
-																				{project.environments.map((env) =>
-																					env.compose.map((comp) => (
-																						<div key={comp.composeId}>
-																							<DropdownMenuSeparator />
-																							<DropdownMenuGroup>
-																								<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
-																									{comp.name}
-																									<StatusTooltip
-																										status={comp.composeStatus}
-																									/>
-																								</DropdownMenuLabel>
-																								<DropdownMenuSeparator />
-																								{comp.domains.map((domain) => (
-																									<DropdownMenuItem
-																										key={domain.domainId}
-																										asChild
-																									>
-																										<Link
-																											className="space-x-4 text-xs cursor-pointer justify-between"
-																											target="_blank"
-																											href={`${
-																												domain.https
-																													? "https"
-																													: "http"
-																											}://${domain.host}${
-																												domain.path
-																											}`}
-																										>
-																											<span className="truncate">
-																												{domain.host}
-																											</span>
-																											<ExternalLinkIcon className="size-4 shrink-0" />
-																										</Link>
-																									</DropdownMenuItem>
-																								))}
-																							</DropdownMenuGroup>
-																						</div>
-																					)),
-																				)}
-																			</DropdownMenuGroup>
-																		)}
-																	</DropdownMenuContent>
-																</DropdownMenu>
-															) : null}
 															<CardHeader>
-																<CardTitle className="flex items-center justify-between gap-2">
-																	<span className="flex flex-col gap-1.5">
+																<CardTitle className="flex items-center justify-between gap-2 overflow-clip">
+																	<span className="flex flex-col gap-1.5 ">
 																		<div className="flex items-center gap-2">
 																			<BookIcon className="size-4 text-muted-foreground" />
 																			<span className="text-base font-medium leading-none">
@@ -427,9 +311,19 @@ export const ShowProjects = () => {
 																			</span>
 																		</div>
 
-																		<span className="text-sm font-medium text-muted-foreground">
+																		<span className="text-sm font-medium text-muted-foreground break-normal">
 																			{project.description}
 																		</span>
+
+																		{hasNoEnvironments && (
+																			<div className="flex flex-row gap-2 items-center rounded-lg bg-yellow-50 p-2 mt-2 dark:bg-yellow-950">
+																				<AlertTriangle className="size-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
+																				<span className="text-xs text-yellow-600 dark:text-yellow-400">
+																					You have access to this project but no
+																					environments are available
+																				</span>
+																			</div>
+																		)}
 																	</span>
 																	<div className="flex self-start space-x-1">
 																		<DropdownMenu>

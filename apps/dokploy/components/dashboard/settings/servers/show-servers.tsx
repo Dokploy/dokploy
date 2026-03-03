@@ -6,16 +6,13 @@ import {
 	Loader2,
 	MoreHorizontal,
 	Network,
-	Pencil,
 	ServerIcon,
-	Settings,
 	Terminal,
 	Trash2,
 	User,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -31,9 +28,7 @@ import {
 import {
 	DropdownMenu,
 	DropdownMenuContent,
-	DropdownMenuItem,
 	DropdownMenuLabel,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -56,10 +51,9 @@ import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
 
 export const ShowServers = () => {
-	const { t } = useTranslation("settings");
 	const router = useRouter();
 	const query = router.query;
-	const { data, refetch, isLoading } = api.server.all.useQuery();
+	const { data, refetch, isPending } = api.server.all.useQuery();
 	const { mutateAsync } = api.server.remove.useMutation();
 	const { data: sshKeys } = api.sshKey.all.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -92,7 +86,7 @@ export const ShowServers = () => {
 						)}
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
-						{isLoading ? (
+						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
 								<Loader2 className="animate-spin size-4" />
@@ -285,7 +279,32 @@ export const ShowServers = () => {
 
 																	{/* Compact Actions */}
 																	{isActive && (
-																		<div className="flex items-center gap-2 pt-3 border-t mt-auto">
+																		<div className="flex items-center  gap-2 pt-3 border-t mt-auto flex-wrap">
+																			<div className="flex items-center gap-2 w-full">
+																				<Tooltip>
+																					<TooltipTrigger asChild>
+																						<SetupServer
+																							serverId={server.serverId}
+																						/>
+																					</TooltipTrigger>
+																					<TooltipContent
+																						className="max-w-xs"
+																						side="bottom"
+																					>
+																						<div className="space-y-1">
+																							<p className="font-semibold">
+																								Setup Server
+																							</p>
+																							<p className="text-xs text-muted-foreground">
+																								Configure and initialize your
+																								server with Docker, Traefik, and
+																								other essential services
+																							</p>
+																						</div>
+																					</TooltipContent>
+																				</Tooltip>
+																			</div>
+
 																			<TooltipProvider>
 																				{server.sshKeyId && (
 																					<Tooltip>
@@ -310,20 +329,6 @@ export const ShowServers = () => {
 																						</TooltipContent>
 																					</Tooltip>
 																				)}
-
-																				<Tooltip>
-																					<TooltipTrigger asChild>
-																						<div>
-																							<SetupServer
-																								serverId={server.serverId}
-																								asButton={true}
-																							/>
-																						</div>
-																					</TooltipTrigger>
-																					<TooltipContent>
-																						<p>Setup Server</p>
-																					</TooltipContent>
-																				</Tooltip>
 
 																				<Tooltip>
 																					<TooltipTrigger asChild>

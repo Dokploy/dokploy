@@ -36,8 +36,8 @@ import { AddGitlabProvider } from "./gitlab/add-gitlab-provider";
 import { EditGitlabProvider } from "./gitlab/edit-gitlab-provider";
 
 export const ShowGitProviders = () => {
-	const { data, isLoading, refetch } = api.gitProvider.getAll.useQuery();
-	const { mutateAsync, isLoading: isRemoving } =
+	const { data, isPending, refetch } = api.gitProvider.getAll.useQuery();
+	const { mutateAsync, isPending: isRemoving } =
 		api.gitProvider.remove.useMutation();
 	const url = useUrl();
 
@@ -66,7 +66,7 @@ export const ShowGitProviders = () => {
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
-						{isLoading ? (
+						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
 								<Loader2 className="animate-spin size-4" />

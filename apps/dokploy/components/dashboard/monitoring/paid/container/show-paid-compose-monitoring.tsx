@@ -39,7 +39,7 @@ export const ComposePaidMonitoring = ({
 	baseUrl,
 	token,
 }: Props) => {
-	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
+	const { data, isPending } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName: appName,
 			appType,
@@ -56,7 +56,7 @@ export const ComposePaidMonitoring = ({
 
 	const [containerId, setContainerId] = useState<string | undefined>();
 
-	const { mutateAsync: restart, isLoading: isRestarting } =
+	const { mutateAsync: restart, isPending: isRestarting } =
 		api.docker.restartContainer.useMutation();
 
 	useEffect(() => {
@@ -87,7 +87,7 @@ export const ComposePaidMonitoring = ({
 							value={containerAppName}
 						>
 							<SelectTrigger>
-								{isLoading ? (
+								{isPending ? (
 									<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
 										<span>Loading...</span>
 										<Loader2 className="animate-spin size-4" />

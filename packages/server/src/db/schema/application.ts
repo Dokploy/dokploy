@@ -19,6 +19,7 @@ import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
+import { patch } from "./patch";
 import { ports } from "./port";
 import { previewDeployments } from "./preview-deployments";
 import { redirects } from "./redirects";
@@ -43,11 +44,13 @@ import {
 	type ServiceModeSwarm,
 	ServiceModeSwarmSchema,
 	triggerType,
+	type UlimitsSwarm,
+	UlimitsSwarmSchema,
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
 import { sshKeys } from "./ssh-key";
-import { generateAppName } from "./utils";
+import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
 export const sourceType = pgEnum("sourceType", [
 	"docker",
 	"git",
@@ -136,6 +139,7 @@ export const applications = pgTable("application", {
 	giteaBuildPath: text("giteaBuildPath").default("/"),
 	// Bitbucket
 	bitbucketRepository: text("bitbucketRepository"),
+	bitbucketRepositorySlug: text("bitbucketRepositorySlug"),
 	bitbucketOwner: text("bitbucketOwner"),
 	bitbucketBranch: text("bitbucketBranch"),
 	bitbucketBuildPath: text("bitbucketBuildPath").default("/"),
@@ -155,7 +159,7 @@ export const applications = pgTable("application", {
 		},
 	),
 	enableSubmodules: boolean("enableSubmodules").notNull().default(false),
-	dockerfile: text("dockerfile"),
+	dockerfile: text("dockerfile").default("Dockerfile"),
 	dockerContextPath: text("dockerContextPath"),
 	dockerBuildStage: text("dockerBuildStage"),
 	// Drop
@@ -171,13 +175,14 @@ export const applications = pgTable("application", {
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
+	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
 	//
 	replicas: integer("replicas").default(1).notNull(),
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
 		.default("idle"),
 	buildType: buildType("buildType").notNull().default("nixpacks"),
-	railpackVersion: text("railpackVersion").default("0.2.2"),
+	railpackVersion: text("railpackVersion").default("0.15.4"),
 	herokuVersion: text("herokuVersion").default("24"),
 	publishDirectory: text("publishDirectory"),
 	isStaticSpa: boolean("isStaticSpa"),
@@ -282,11 +287,17 @@ export const applicationsRelations = relations(
 			references: [registry.registryId],
 			relationName: "applicationRollbackRegistry",
 		}),
+		patches: many(patch),
 	}),
 );
 
 const createSchema = createInsertSchema(applications, {
-	appName: z.string(),
+	appName: z
+		.string()
+		.min(1)
+		.max(63)
+		.regex(APP_NAME_REGEX, APP_NAME_MESSAGE)
+		.optional(),
 	createdAt: z.string(),
 	applicationId: z.string(),
 	autoDeploy: z.boolean(),
@@ -320,6 +331,7 @@ const createSchema = createInsertSchema(applications, {
 	sourceType: z
 		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
 		.optional(),
+	triggerType: z.enum(["push", "tag"]).optional(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	buildType: z.enum([
 		"dockerfile",
@@ -358,6 +370,7 @@ const createSchema = createInsertSchema(applications, {
 	cleanCache: z.boolean().optional(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
+	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 });
 
 export const apiCreateApplication = createSchema.pick({
@@ -368,11 +381,9 @@ export const apiCreateApplication = createSchema.pick({
 	serverId: true,
 });
 
-export const apiFindOneApplication = createSchema
-	.pick({
-		applicationId: true,
-	})
-	.required();
+export const apiFindOneApplication = z.object({
+	applicationId: z.string().min(1),
+});
 
 export const apiDeployApplication = createSchema
 	.pick({
@@ -451,6 +462,7 @@ export const apiSaveBitbucketProvider = createSchema
 		bitbucketBuildPath: true,
 		bitbucketOwner: true,
 		bitbucketRepository: true,
+		bitbucketRepositorySlug: true,
 		bitbucketId: true,
 		applicationId: true,
 		watchPaths: true,
@@ -507,11 +519,9 @@ export const apiSaveEnvironmentVariables = createSchema
 	})
 	.required();
 
-export const apiFindMonitoringStats = createSchema
-	.pick({
-		appName: true,
-	})
-	.required();
+export const apiFindMonitoringStats = z.object({
+	appName: z.string().min(1),
+});
 
 export const apiUpdateApplication = createSchema
 	.partial()

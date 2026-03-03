@@ -94,11 +94,9 @@ export const apiRemoveRegistry = createSchema
 	})
 	.required();
 
-export const apiFindOneRegistry = createSchema
-	.pick({
-		registryId: true,
-	})
-	.required();
+export const apiFindOneRegistry = z.object({
+	registryId: z.string().min(1),
+});
 
 export const apiUpdateRegistry = createSchema.partial().extend({
 	registryId: z.string().min(1),

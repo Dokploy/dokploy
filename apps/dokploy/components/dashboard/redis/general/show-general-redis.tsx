@@ -28,12 +28,12 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 		{ enabled: !!redisId },
 	);
 
-	const { mutateAsync: reload, isLoading: isReloading } =
+	const { mutateAsync: reload, isPending: isReloading } =
 		api.redis.reload.useMutation();
-	const { mutateAsync: start, isLoading: isStarting } =
+	const { mutateAsync: start, isPending: isStarting } =
 		api.redis.start.useMutation();
 
-	const { mutateAsync: stop, isLoading: isStopping } =
+	const { mutateAsync: stop, isPending: isStopping } =
 		api.redis.stop.useMutation();
 
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);

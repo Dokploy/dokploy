@@ -26,6 +26,7 @@ import { ShowDomains } from "@/components/dashboard/application/domains/show-dom
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show";
 import { ShowGeneralApplication } from "@/components/dashboard/application/general/show";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
@@ -108,6 +109,7 @@ const Service = (
 					{ name: "Projects", href: "/dashboard/projects" },
 					{
 						name: data?.environment?.project?.name || "",
+						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
 					},
 					{
 						name: data?.environment?.name || "",
@@ -192,7 +194,9 @@ const Service = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateApplication applicationId={applicationId} />
-									{(auth?.role === "owner" || auth?.canDeleteServices) && (
+									{(auth?.role === "owner" ||
+										auth?.role === "admin" ||
+										auth?.canDeleteServices) && (
 										<DeleteService id={applicationId} type="application" />
 									)}
 								</div>
@@ -245,6 +249,9 @@ const Service = (
 												Volume Backups
 											</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
+											{data?.sourceType !== "docker" && (
+												<TabsTrigger value="patches">Patches</TabsTrigger>
+											)}
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
@@ -354,6 +361,11 @@ const Service = (
 									<TabsContent value="domains" className="w-full">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowDomains id={applicationId} type="application" />
+										</div>
+									</TabsContent>
+									<TabsContent value="patches" className="w-full">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowPatches id={applicationId} type="application" />
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">

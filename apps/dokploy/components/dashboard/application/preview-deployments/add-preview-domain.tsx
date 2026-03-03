@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Dices } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -75,11 +75,11 @@ export const AddPreviewDomain = ({
 		},
 	);
 
-	const { mutateAsync, isError, error, isLoading } = domainId
+	const { mutateAsync, isError, error, isPending } = domainId
 		? api.domain.update.useMutation()
 		: api.domain.create.useMutation();
 
-	const { mutateAsync: generateDomain, isLoading: isLoadingGenerate } =
+	const { mutateAsync: generateDomain, isPending: isLoadingGenerate } =
 		api.domain.generateDomain.useMutation();
 
 	const form = useForm<Domain>({
@@ -103,7 +103,7 @@ export const AddPreviewDomain = ({
 		if (!domainId) {
 			form.reset({});
 		}
-	}, [form, form.reset, data, isLoading]);
+	}, [form, form.reset, data, isPending]);
 
 	const dictionary = {
 		success: domainId ? "Domain Updated" : "Domain Created",
@@ -301,7 +301,7 @@ export const AddPreviewDomain = ({
 					</form>
 
 					<DialogFooter>
-						<Button isLoading={isLoading} form="hook-form" type="submit">
+						<Button isLoading={isPending} form="hook-form" type="submit">
 							{dictionary.submit}
 						</Button>
 					</DialogFooter>

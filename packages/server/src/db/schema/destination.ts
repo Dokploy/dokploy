@@ -61,11 +61,9 @@ export const apiCreateDestination = createSchema
 		serverId: z.string().optional(),
 	});
 
-export const apiFindOneDestination = createSchema
-	.pick({
-		destinationId: true,
-	})
-	.required();
+export const apiFindOneDestination = z.object({
+	destinationId: z.string().min(1),
+});
 
 export const apiRemoveDestination = createSchema
 	.pick({

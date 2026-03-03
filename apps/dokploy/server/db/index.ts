@@ -1,25 +1,38 @@
+import { dbUrl } from "@dokploy/server/db/constants";
+import * as schema from "@dokploy/server/db/schema";
+import { and, eq } from "drizzle-orm";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import * as schema from "./schema";
 
-declare global {
-	var db: PostgresJsDatabase<typeof schema> | undefined;
-}
+export { and, eq };
 
-const dbUrl =
-	process.env.DATABASE_URL ||
-	"postgres://dokploy:amukds4wi9001583845717ad2@dokploy-postgres:5432/dokploy";
+type Database = PostgresJsDatabase<typeof schema>;
+/**
+ * Evita problemas de redeclaración global en monorepos.
+ * No usamos `declare global`.
+ */
+const globalForDb = globalThis as unknown as {
+	db?: Database;
+};
 
-export let db: PostgresJsDatabase<typeof schema>;
+let dbConnection: Database;
+
 if (process.env.NODE_ENV === "production") {
-	db = drizzle(postgres(dbUrl!), {
+	// En producción no usamos global cache
+	dbConnection = drizzle(postgres(dbUrl), {
 		schema,
 	});
 } else {
-	if (!global.db)
-		global.db = drizzle(postgres(dbUrl!), {
+	// En desarrollo reutilizamos conexión para evitar múltiples conexiones
+	if (!globalForDb.db) {
+		globalForDb.db = drizzle(postgres(dbUrl), {
 			schema,
 		});
+	}
 
-	db = global.db;
+	dbConnection = globalForDb.db;
 }
+
+export const db: Database = dbConnection;
+
+export { dbUrl };

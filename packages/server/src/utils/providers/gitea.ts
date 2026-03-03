@@ -49,7 +49,9 @@ export const refreshGiteaToken = async (giteaProviderId: string) => {
 		}
 
 		// Token is expired or about to expire, refresh it
-		const tokenEndpoint = `${giteaProvider.giteaUrl}/login/oauth/access_token`;
+		// Use internal URL when Gitea is on same instance as Dokploy
+		const baseUrl = giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl;
+		const tokenEndpoint = `${baseUrl}/login/oauth/access_token`;
 		const params = new URLSearchParams({
 			grant_type: "refresh_token",
 			refresh_token: giteaProvider.refreshToken,
@@ -128,6 +130,7 @@ interface CloneGiteaRepository {
 	enableSubmodules: boolean;
 	serverId: string | null;
 	type?: "application" | "compose";
+	outputPathOverride?: string;
 }
 
 export const cloneGiteaRepository = async ({
@@ -143,6 +146,7 @@ export const cloneGiteaRepository = async ({
 		giteaRepository,
 		enableSubmodules,
 		serverId,
+		outputPathOverride,
 	} = entity;
 	const { APPLICATIONS_PATH, COMPOSE_PATH } = paths(!!serverId);
 
@@ -160,7 +164,7 @@ export const cloneGiteaRepository = async ({
 	}
 
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName, "code");
+	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
 
