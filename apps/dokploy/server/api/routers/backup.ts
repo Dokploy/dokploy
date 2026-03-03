@@ -104,9 +104,9 @@ export const backupRouter = createTRPCRouter({
 			try {
 				const normalizedStorageClass =
 					await validateS3StorageClassForDestination({
-					destinationId: input.destinationId,
-					storageClass: input.storageClass,
-				});
+						destinationId: input.destinationId,
+						storageClass: input.storageClass,
+					});
 
 				const newBackup = await createBackup({
 					...input,
@@ -174,9 +174,9 @@ export const backupRouter = createTRPCRouter({
 			try {
 				const normalizedStorageClass =
 					await validateS3StorageClassForDestination({
-					destinationId: input.destinationId,
-					storageClass: input.storageClass,
-				});
+						destinationId: input.destinationId,
+						storageClass: input.storageClass,
+					});
 
 				await updateBackupById(input.backupId, {
 					...input,
