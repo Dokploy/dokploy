@@ -25,6 +25,7 @@ import {
 	type LucideIcon,
 	Package,
 	PieChart,
+	Rocket,
 	Server,
 	ShieldCheck,
 	Star,
@@ -144,6 +145,12 @@ const MENU: Menu = {
 			title: "Projects",
 			url: "/dashboard/projects",
 			icon: Folder,
+		},
+		{
+			isSingle: true,
+			title: "Deployments",
+			url: "/dashboard/deployments",
+			icon: Rocket,
 		},
 		{
 			isSingle: true,
