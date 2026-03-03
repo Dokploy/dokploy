@@ -16,6 +16,7 @@
 		"server:dev": "pnpm --filter=server run dev",
 		"server:build": "pnpm --filter=server run build",
 		"docker:build:canary": "./apps/dokploy/docker/build.sh canary",
+		"docker:build:push": "VERSION=$(node -p \"require('./apps/dokploy/package.json').version.replace('v', '')\") && docker buildx build --platform linux/amd64,linux/arm64 --pull --rm --push -t \"joshua2212/dokploy:$VERSION\" -t \"joshua2212/dokploy:latest\" -f 'Dockerfile' .",
 		"typecheck": "pnpm -r run typecheck",
 		"build": "pnpm -r run build",
 		"format-and-lint": "biome check .",

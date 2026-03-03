@@ -13,7 +13,10 @@ import { destinationRouter } from "./routers/destination";
 import { dnsProviderRouter } from "./routers/dns-provider";
 import { dockerRouter } from "./routers/docker";
 import { domainRouter } from "./routers/domain";
+import { domainProviderRouter } from "./routers/domain-provider";
+import { domainsRouter } from "./routers/domains";
 import { environmentRouter } from "./routers/environment";
+import { oauthRouter } from "./routers/oauth";
 import { gitProviderRouter } from "./routers/git-provider";
 import { giteaRouter } from "./routers/gitea";
 import { githubRouter } from "./routers/github";
@@ -64,6 +67,9 @@ export const appRouter = createTRPCRouter({
 	userPreferences: userPreferencesRouter,
 	domain: domainRouter,
 	dnsProvider: dnsProviderRouter,
+	domainProvider: domainProviderRouter,
+	domains: domainsRouter,
+	oauth: oauthRouter,
 	destination: destinationRouter,
 	backup: backupRouter,
 	deployment: deploymentRouter,

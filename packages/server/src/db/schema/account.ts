@@ -66,6 +66,9 @@ export const organization = pgTable("organization", {
 	ownerId: text("owner_id")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
+	// Custom wildcard domain for generated domains (e.g., "*-apps.example.com")
+	// When set, new applications will use this pattern instead of traefik.me
+	wildcardDomain: text("wildcardDomain"),
 });
 
 export const organizationRelations = relations(

@@ -56,6 +56,7 @@ import { TimeBadge } from "@/components/ui/time-badge";
 import { api } from "@/utils/api";
 import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
+import { ProjectWildcardDomain } from "./project-wildcard-domain";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
@@ -419,6 +420,14 @@ export const ShowProjects = () => {
 																					onClick={(e) => e.stopPropagation()}
 																				>
 																					<HandleProject
+																						projectId={project.projectId}
+																					/>
+																				</div>
+
+																				<div
+																					onClick={(e) => e.stopPropagation()}
+																				>
+																					<ProjectWildcardDomain
 																						projectId={project.projectId}
 																					/>
 																				</div>

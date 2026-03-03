@@ -326,6 +326,80 @@ export const projectRouter = createTRPCRouter({
 				throw error;
 			}
 		}),
+	getWildcardDomainConfig: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			const project = await db.query.projects.findFirst({
+				where: eq(projects.projectId, input.projectId),
+				columns: {
+					wildcardDomain: true,
+					useOrganizationWildcard: true,
+				},
+				with: {
+					organization: {
+						columns: {
+							wildcardDomain: true,
+						},
+					},
+				},
+			});
+
+			if (!project) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project not found",
+				});
+			}
+
+			if (project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this project",
+				});
+			}
+
+			return {
+				projectWildcardDomain: project.wildcardDomain,
+				useOrganizationWildcard: project.useOrganizationWildcard,
+				organizationWildcardDomain: project.organization?.wildcardDomain || null,
+			};
+		}),
+	updateWildcardDomain: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string(),
+				wildcardDomain: z.string().nullable(),
+				useOrganizationWildcard: z.boolean(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const project = await findProjectById(input.projectId);
+
+			if (project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to update this project",
+				});
+			}
+
+			const result = await db
+				.update(projects)
+				.set({
+					wildcardDomain: input.wildcardDomain,
+					useOrganizationWildcard: input.useOrganizationWildcard,
+				})
+				.where(eq(projects.projectId, input.projectId))
+				.returning({
+					wildcardDomain: true,
+					useOrganizationWildcard: true,
+				});
+
+			return result[0];
+		}),
 	duplicate: protectedProcedure
 		.input(
 			z.object({

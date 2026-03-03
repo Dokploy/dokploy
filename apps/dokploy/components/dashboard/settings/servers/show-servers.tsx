@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { KeyIcon, Loader2, MoreHorizontal, ServerIcon } from "lucide-react";
+import { HardDrive, KeyIcon, Loader2, MoreHorizontal, ServerIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useTranslation } from "next-i18next";
@@ -23,6 +23,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Progress } from "@/components/ui/progress";
 import {
 	Table,
 	TableBody,
@@ -46,6 +47,64 @@ import { ShowSchedulesModal } from "./show-schedules-modal";
 import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
+
+interface StorageProgressBarProps {
+	serverId: string;
+	isActive: boolean;
+	hasSSHKey: boolean;
+}
+
+const StorageProgressBar = ({
+	serverId,
+	isActive,
+	hasSSHKey,
+}: StorageProgressBarProps) => {
+	const { data: storage, isLoading } = api.server.getStorageUsage.useQuery(
+		{ serverId },
+		{
+			enabled: isActive && hasSSHKey,
+			refetchInterval: 60000, // Refetch every minute
+		},
+	);
+
+	if (!isActive || !hasSSHKey) {
+		return <span className="text-xs text-muted-foreground">N/A</span>;
+	}
+
+	if (isLoading) {
+		return (
+			<div className="flex items-center gap-2">
+				<Loader2 className="size-3 animate-spin text-muted-foreground" />
+				<span className="text-xs text-muted-foreground">Loading...</span>
+			</div>
+		);
+	}
+
+	if (!storage) {
+		return <span className="text-xs text-muted-foreground">N/A</span>;
+	}
+
+	const getColorVariant = (percentage: number) => {
+		if (percentage >= 90) return "text-red-500";
+		if (percentage >= 75) return "text-orange-500";
+		if (percentage >= 50) return "text-yellow-500";
+		return "text-green-500";
+	};
+
+	return (
+		<div className="flex flex-col gap-1 min-w-[120px]">
+			<div className="flex items-center justify-between gap-2">
+				<span className={`text-xs font-medium ${getColorVariant(storage.usedPercentage)}`}>
+					{storage.used} / {storage.total}
+				</span>
+				<span className={`text-xs font-medium ${getColorVariant(storage.usedPercentage)}`}>
+					{storage.usedPercentage}%
+				</span>
+			</div>
+			<Progress value={storage.usedPercentage} className="h-2" />
+		</div>
+	);
+};
 
 export const ShowServers = () => {
 	const { t } = useTranslation("settings");
@@ -152,6 +211,10 @@ export const ShowServers = () => {
 																SSH Key
 															</TableHead>
 															<TableHead className="text-center">
+																<HardDrive className="size-4 inline mr-1" />
+																Storage
+															</TableHead>
+															<TableHead className="text-center">
 																Created
 															</TableHead>
 															<TableHead className="text-right">
@@ -204,6 +267,13 @@ export const ShowServers = () => {
 																		<span className="text-sm text-muted-foreground">
 																			{server.sshKeyId ? "Yes" : "No"}
 																		</span>
+																	</TableCell>
+																	<TableCell className="text-center">
+																		<StorageProgressBar
+																			serverId={server.serverId}
+																			isActive={isActive}
+																			hasSSHKey={!!server.sshKeyId}
+																		/>
 																	</TableCell>
 																	<TableCell className="text-right">
 																		<span className="text-sm text-muted-foreground">

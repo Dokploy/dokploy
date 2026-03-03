@@ -166,7 +166,7 @@ const ShowDnsProviders = () => {
 	};
 
 	return (
-		<div className="flex flex-col gap-4">
+		<div className="w-full">
 			<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md">
 					<CardHeader>

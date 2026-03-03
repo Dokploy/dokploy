@@ -1007,4 +1007,75 @@ export const composeRouter = createTRPCRouter({
 				message: "Deployment cancellation only available in cloud version",
 			});
 		}),
+
+	/**
+	 * Execute a command in a compose service container
+	 * Used for running scripts like generate_admin_key.sh in Convex containers
+	 */
+	execInContainer: protectedProcedure
+		.input(
+			z.object({
+				composeId: z.string().min(1),
+				serviceName: z.string().min(1),
+				command: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to execute commands in this compose",
+				});
+			}
+
+			// Get the container for the specified service
+			const container = await getComposeContainer(compose, input.serviceName);
+
+			if (!container) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Container not found for service "${input.serviceName}". Make sure the service is running.`,
+				});
+			}
+
+			const containerId = container.Id;
+
+			// Build the docker exec command
+			// Using -i for non-interactive (no TTY) and capturing output
+			const dockerCommand = `docker exec -i ${containerId} /bin/sh -c '${input.command.replace(/'/g, "'\\''")}'`;
+
+			try {
+				let stdout = "";
+				let stderr = "";
+
+				if (compose.serverId) {
+					// Remote server - use SSH
+					const result = await execAsyncRemote(compose.serverId, dockerCommand);
+					stdout = result.stdout;
+					stderr = result.stderr;
+				} else {
+					// Local server - execute directly
+					const result = await execAsync(dockerCommand);
+					stdout = result.stdout;
+					stderr = result.stderr;
+				}
+
+				return {
+					success: true,
+					stdout,
+					stderr,
+					containerId,
+				};
+			} catch (error) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: error instanceof Error ? error.message : "Failed to execute command",
+				});
+			}
+		}),
 });

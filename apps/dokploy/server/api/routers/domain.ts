@@ -2,19 +2,23 @@ import {
 	createDomain,
 	findApplicationById,
 	findComposeById,
-	findDomainById,
-	findDomainsByApplicationId,
-	findDomainsByComposeId,
-	findOrganizationById,
-	findPreviewDeploymentById,
-	findServerById,
-	generateTraefikMeDomain,
-	manageDomain,
-	removeDomain,
-	removeDomainById,
-	updateDomainById,
-	validateDomain,
+        findDomainById,
+        findDomainsByApplicationId,
+        findDomainsByComposeId,
+        findOrganizationById,
+        findPreviewDeploymentById,
+        findServerById,
+        generateTraefikMeDomain,
+        manageDomain,
+        removeDomain,
+        removeDomainById,
+        updateDomainById,
+        validateDomain,
 } from "@dokploy/server";
+// Import the functions directly from the service files to avoid export issues
+import { generateApplicationDomain, generatePreviewDeploymentDomain } from "@dokploy/server/services/domain";
+import { getProjectWildcardDomain } from "@dokploy/server/services/project";
+import { generateCustomWildcardDomain } from "@dokploy/server/templates";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
@@ -96,15 +100,39 @@ export const domainRouter = createTRPCRouter({
 			}
 			return await findDomainsByComposeId(input.composeId);
 		}),
-	generateDomain: protectedProcedure
-		.input(z.object({ appName: z.string(), serverId: z.string().optional() }))
-		.mutation(async ({ input, ctx }) => {
-			return generateTraefikMeDomain(
-				input.appName,
-				ctx.user.ownerId,
-				input.serverId,
-			);
-		}),
+	      generateDomain: protectedProcedure
+                .input(
+                        z.object({
+                                appName: z.string(),
+                                serverId: z.string().optional(),
+                                projectId: z.string().optional(),
+                                domainType: z
+                                        .enum(["application", "preview"])
+                                        .default("application"),
+                                previewWildcard: z.string().optional().nullable(),
+                        }),
+                )
+                .mutation(async ({ input, ctx }) => {
+                        if (input.domainType === "preview") {
+                                return generatePreviewDeploymentDomain(
+                                        input.appName,
+                                        ctx.user.ownerId,
+                                        input.projectId,
+                                        input.serverId,
+                                        input.previewWildcard ?? undefined,
+                                );
+                        }
+
+                        // Use the new generateApplicationDomain which supports custom wildcard domains
+                        const domain = await generateApplicationDomain(
+                                input.appName,
+                                ctx.user.ownerId,
+                                input.projectId,
+                                input.serverId,
+                        );
+                        console.log(`Generated domain for app ${input.appName}: ${domain} (projectId: ${input.projectId})`);
+                        return domain;
+                }),
 	canGenerateTraefikMeDomains: protectedProcedure
 		.input(z.object({ serverId: z.string() }))
 		.query(async ({ input, ctx }) => {
@@ -117,6 +145,12 @@ export const domainRouter = createTRPCRouter({
 				return server.ipAddress;
 			}
 			return organization?.owner.serverIp;
+		}),
+	// Get the effective wildcard domain for a project (project-level or inherited from organization)
+	getEffectiveWildcardDomain: protectedProcedure
+		.input(z.object({ projectId: z.string() }))
+		.query(async ({ input }) => {
+			return getProjectWildcardDomain(input.projectId);
 		}),
 
 	update: protectedProcedure

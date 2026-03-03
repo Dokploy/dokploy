@@ -134,3 +134,52 @@ export const validUniqueServerAppName = async (appName: string) => {
 
 	return nonEmptyProjects.length === 0;
 };
+
+/**
+ * Gets the effective wildcard domain for a project.
+ * Returns the project's wildcard domain if set and useOrganizationWildcard is true.
+ * Otherwise, returns the organization's wildcard domain if available.
+ */
+export const getProjectWildcardDomain = async (
+	projectId: string,
+): Promise<string | null> => {
+	const project = await db.query.projects.findFirst({
+		where: eq(projects.projectId, projectId),
+		with: {
+			organization: {
+				columns: {
+					wildcardDomain: true,
+				},
+			},
+		},
+	});
+
+	if (!project) {
+		console.log(`Project not found: ${projectId}`);
+		return null;
+	}
+
+	console.log(`Project data for ${projectId}:`, {
+		projectWildcard: project.wildcardDomain,
+		useOrgWildcard: project.useOrganizationWildcard,
+		orgWildcard: project.organization?.wildcardDomain
+	});
+
+	// Check if project has its own wildcard domain
+	if (project.wildcardDomain && project.useOrganizationWildcard) {
+		console.log(`Using project wildcard domain: ${project.wildcardDomain}`);
+		return project.wildcardDomain;
+	}
+
+	// Check if we should inherit from organization
+	if (!project.wildcardDomain && project.useOrganizationWildcard) {
+		const orgWildcard = project.organization?.wildcardDomain || null;
+		console.log(`Using organization wildcard domain: ${orgWildcard}`);
+		return orgWildcard;
+	}
+
+	// If project has useOrganizationWildcard set to false, return project's wildcard or null
+	const result = project.wildcardDomain || null;
+	console.log(`Using project wildcard (no inheritance): ${result}`);
+	return result;
+};

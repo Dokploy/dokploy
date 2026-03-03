@@ -235,4 +235,39 @@ export const organizationRouter = createTRPCRouter({
 
 			return { success: true };
 		}),
+	getWildcardDomain: protectedProcedure.query(async ({ ctx }) => {
+		const org = await db.query.organization.findFirst({
+			where: eq(organization.id, ctx.session.activeOrganizationId),
+			columns: {
+				wildcardDomain: true,
+			},
+		});
+		return org?.wildcardDomain || null;
+	}),
+	updateWildcardDomain: protectedProcedure
+		.input(
+			z.object({
+				wildcardDomain: z.string().nullable(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			if (ctx.user.role !== "owner" && !IS_CLOUD) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only the organization owner can update wildcard domain",
+				});
+			}
+
+			const result = await db
+				.update(organization)
+				.set({
+					wildcardDomain: input.wildcardDomain,
+				})
+				.where(eq(organization.id, ctx.session.activeOrganizationId))
+				.returning({
+					wildcardDomain: true,
+				});
+
+			return result[0]?.wildcardDomain;
+		}),
 });

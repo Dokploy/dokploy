@@ -6,6 +6,7 @@ import {
 	findServersByUserId,
 	findUserById,
 	getPublicIpWithFallback,
+	getServerStorageUsage,
 	haveActiveServices,
 	IS_CLOUD,
 	removeDeploymentsByServerId,
@@ -392,6 +393,28 @@ export const serverRouter = createTRPCRouter({
 			timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 		};
 	}),
+	getStorageUsage: protectedProcedure
+		.input(apiFindOneServer)
+		.query(async ({ input, ctx }) => {
+			try {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+				const storage = await getServerStorageUsage(input.serverId);
+				return storage;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error ? error.message : `Error: ${error}`,
+					cause: error as Error,
+				});
+			}
+		}),
 	getServerMetrics: protectedProcedure
 		.input(
 			z.object({
