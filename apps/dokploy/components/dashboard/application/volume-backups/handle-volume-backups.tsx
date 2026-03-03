@@ -1,6 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { DatabaseZap, PenBoxIcon, PlusCircle, RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -172,8 +172,9 @@ export const HandleVolumeBackups = ({
 	const selectedDestination = destinations?.find(
 		(destination) => destination.destinationId === destinationId,
 	);
-	const storageClassOptions = getS3StorageClassOptionsByProvider(
-		selectedDestination?.provider,
+	const storageClassOptions = useMemo(
+		() => getS3StorageClassOptionsByProvider(selectedDestination?.provider),
+		[selectedDestination?.provider],
 	);
 	const hasStorageClassSupport = storageClassOptions.length > 0;
 

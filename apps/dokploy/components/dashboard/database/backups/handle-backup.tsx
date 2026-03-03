@@ -7,7 +7,7 @@ import {
 	PlusIcon,
 	RefreshCw,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -235,8 +235,10 @@ export const HandleBackup = ({
 		(destination) => destination.destinationId === selectedDestinationId,
 	);
 	const selectedProvider = selectedDestination?.provider;
-	const storageClassOptions =
-		getS3StorageClassOptionsByProvider(selectedProvider);
+	const storageClassOptions = useMemo(
+		() => getS3StorageClassOptionsByProvider(selectedProvider),
+		[selectedProvider],
+	);
 	const hasStorageClassSupport = storageClassOptions.length > 0;
 
 	useEffect(() => {
