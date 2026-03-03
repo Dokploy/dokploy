@@ -80,10 +80,7 @@ const cleanupOldVolumeBackups = async (
 	if (!keepLatestCount) return;
 
 	try {
-		const rcloneFlags = getS3Credentials(
-			destination,
-			volumeBackup.storageClass,
-		);
+		const rcloneFlags = getS3Credentials(destination);
 		const normalizedPrefix = normalizeS3Path(prefix);
 		const backupFilesPath = `:s3:${destination.bucket}/${normalizedPrefix}`;
 		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include \"${volumeName}-*.tar\" :s3:${destination.bucket}/${normalizedPrefix}`;

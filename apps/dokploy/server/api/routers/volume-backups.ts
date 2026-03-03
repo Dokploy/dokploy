@@ -61,12 +61,17 @@ export const volumeBackupsRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createVolumeBackupSchema)
 		.mutation(async ({ input }) => {
-			await validateS3StorageClassForDestination({
+			const normalizedStorageClass =
+				await validateS3StorageClassForDestination({
 				destinationId: input.destinationId,
 				storageClass: input.storageClass,
 			});
 
-			const newVolumeBackup = await createVolumeBackup(input);
+			const newVolumeBackup = await createVolumeBackup({
+				...input,
+				storageClass:
+					input.storageClass === null ? null : normalizedStorageClass,
+			});
 
 			if (newVolumeBackup?.enabled) {
 				if (IS_CLOUD) {
@@ -102,14 +107,19 @@ export const volumeBackupsRouter = createTRPCRouter({
 	update: protectedProcedure
 		.input(updateVolumeBackupSchema)
 		.mutation(async ({ input }) => {
-			await validateS3StorageClassForDestination({
+			const normalizedStorageClass =
+				await validateS3StorageClassForDestination({
 				destinationId: input.destinationId,
 				storageClass: input.storageClass,
 			});
 
 			const updatedVolumeBackup = await updateVolumeBackup(
 				input.volumeBackupId,
-				input,
+				{
+					...input,
+					storageClass:
+						input.storageClass === null ? null : normalizedStorageClass,
+				},
 			);
 
 			if (!updatedVolumeBackup) {

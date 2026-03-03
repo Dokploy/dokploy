@@ -102,12 +102,17 @@ export const backupRouter = createTRPCRouter({
 		.input(apiCreateBackup)
 		.mutation(async ({ input }) => {
 			try {
-				await validateS3StorageClassForDestination({
+				const normalizedStorageClass =
+					await validateS3StorageClassForDestination({
 					destinationId: input.destinationId,
 					storageClass: input.storageClass,
 				});
 
-				const newBackup = await createBackup(input);
+				const newBackup = await createBackup({
+					...input,
+					storageClass:
+						input.storageClass === null ? null : normalizedStorageClass,
+				});
 
 				const backup = await findBackupById(newBackup.backupId);
 
@@ -167,12 +172,17 @@ export const backupRouter = createTRPCRouter({
 		.input(apiUpdateBackup)
 		.mutation(async ({ input }) => {
 			try {
-				await validateS3StorageClassForDestination({
+				const normalizedStorageClass =
+					await validateS3StorageClassForDestination({
 					destinationId: input.destinationId,
 					storageClass: input.storageClass,
 				});
 
-				await updateBackupById(input.backupId, input);
+				await updateBackupById(input.backupId, {
+					...input,
+					storageClass:
+						input.storageClass === null ? null : normalizedStorageClass,
+				});
 				const backup = await findBackupById(input.backupId);
 
 				if (IS_CLOUD) {

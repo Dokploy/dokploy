@@ -71,7 +71,7 @@ export const validateS3StorageClassForDestination = async ({
 }) => {
 	const normalizedStorageClass = normalizeS3StorageClass(storageClass);
 	if (!normalizedStorageClass) {
-		return;
+		return undefined;
 	}
 
 	const destination = await findDestinationById(destinationId);
@@ -91,4 +91,6 @@ export const validateS3StorageClassForDestination = async ({
 			message: `Invalid storage class for provider "${provider}". Allowed values: ${supportedStorageClasses.join(", ")}.`,
 		});
 	}
+
+	return normalizedStorageClass;
 };
