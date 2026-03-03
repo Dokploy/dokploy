@@ -174,6 +174,14 @@ export const SearchCommand = () => {
 						>
 							Projects
 						</CommandItem>
+						<CommandItem
+							onSelect={() => {
+								router.push("/dashboard/deployments");
+								setOpen(false);
+							}}
+						>
+							Deployments
+						</CommandItem>
 						{!isCloud && (
 							<>
 								<CommandItem
