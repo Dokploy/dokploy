@@ -57,6 +57,8 @@ const schema = z
 		previewCertificateType: z.enum(["letsencrypt", "none", "custom"]),
 		previewCustomCertResolver: z.string().optional(),
 		previewRequireCollaboratorPermissions: z.boolean(),
+		previewDockerImage: z.string().optional(),
+		previewRegistryId: z.string().optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (
@@ -84,6 +86,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 		api.application.update.useMutation();
 
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
+	const { data: registries } = api.registry.all.useQuery();
 
 	const form = useForm<Schema>({
 		defaultValues: {
@@ -96,6 +99,8 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewPath: "/",
 			previewCertificateType: "none",
 			previewRequireCollaboratorPermissions: true,
+			previewDockerImage: "",
+			previewRegistryId: "",
 		},
 		resolver: zodResolver(schema),
 	});
@@ -124,6 +129,8 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				previewCustomCertResolver: data.previewCustomCertResolver || "",
 				previewRequireCollaboratorPermissions:
 					data.previewRequireCollaboratorPermissions ?? true,
+				previewDockerImage: data.previewDockerImage || "",
+				previewRegistryId: data.previewRegistryId || "",
 			});
 		}
 	}, [data]);
@@ -144,6 +151,11 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewCustomCertResolver: formData.previewCustomCertResolver,
 			previewRequireCollaboratorPermissions:
 				formData.previewRequireCollaboratorPermissions,
+			previewDockerImage: formData.previewDockerImage || null,
+			previewRegistryId:
+				formData.previewRegistryId === "none" || !formData.previewRegistryId
+					? null
+					: formData.previewRegistryId,
 		})
 			.then(() => {
 				toast.success("Preview Deployments settings updated");
@@ -455,6 +467,99 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											</FormItem>
 										)}
 									/>
+								</div>
+
+								<div className="grid gap-4 lg:grid-cols-2">
+									<FormField
+										control={form.control}
+										name="previewDockerImage"
+										render={({ field }) => (
+											<FormItem className="md:col-span-2">
+												<div className="flex items-center gap-2">
+													<FormLabel>Docker Image</FormLabel>
+													<TooltipProvider>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+															</TooltipTrigger>
+															<TooltipContent className="max-w-sm">
+																<p>
+																	Skip building from source and pull a pre-built
+																	image instead. Supports template variables:
+																</p>
+																<ul className="mt-1 text-xs">
+																	<li>
+																		<code>{"{owner}"}</code> - GitHub org/user
+																	</li>
+																	<li>
+																		<code>{"{repository}"}</code> - Repo name
+																	</li>
+																	<li>
+																		<code>{"{branch}"}</code> - PR branch
+																	</li>
+																	<li>
+																		<code>{"{pr_number}"}</code> - PR number
+																	</li>
+																	<li>
+																		<code>{"{app_name}"}</code> - App name
+																	</li>
+																</ul>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+												</div>
+												<FormControl>
+													<Input
+														placeholder="ghcr.io/{owner}/{repository}:pr-{pr_number}"
+														{...field}
+													/>
+												</FormControl>
+												<FormDescription>
+													Leave empty to build from source (default behavior).
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									{form.watch("previewDockerImage") && (
+										<FormField
+											control={form.control}
+											name="previewRegistryId"
+											render={({ field }) => (
+												<FormItem className="md:col-span-2">
+													<FormLabel>Image Registry</FormLabel>
+													<Select
+														onValueChange={field.onChange}
+														value={field.value || "none"}
+													>
+														<FormControl>
+															<SelectTrigger>
+																<SelectValue placeholder="Select a registry for authentication" />
+															</SelectTrigger>
+														</FormControl>
+														<SelectContent>
+															<SelectItem value="none">
+																None (public image)
+															</SelectItem>
+															{registries?.map((reg) => (
+																<SelectItem
+																	key={reg.registryId}
+																	value={reg.registryId}
+																>
+																	{reg.registryName} ({reg.registryUrl})
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+													<FormDescription>
+														Registry credentials for pulling the image.
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									)}
 								</div>
 
 								<FormField

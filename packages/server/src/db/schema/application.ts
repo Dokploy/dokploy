@@ -109,6 +109,12 @@ export const applications = pgTable("application", {
 	previewRequireCollaboratorPermissions: boolean(
 		"previewRequireCollaboratorPermissions",
 	).default(true),
+	// Pre-built image for preview deployments (skip build, docker pull instead)
+	previewDockerImage: text("previewDockerImage"),
+	previewRegistryId: text("previewRegistryId").references(
+		() => registry.registryId,
+		{ onDelete: "set null" },
+	),
 	rollbackActive: boolean("rollbackActive").default(false),
 	buildArgs: encryptedText("buildArgs"),
 	buildSecrets: encryptedText("buildSecrets"),
@@ -298,6 +304,11 @@ export const applicationsRelations = relations(
 			references: [registry.registryId],
 			relationName: "applicationRollbackRegistry",
 		}),
+		previewRegistry: one(registry, {
+			fields: [applications.previewRegistryId],
+			references: [registry.registryId],
+			relationName: "applicationPreviewRegistry",
+		}),
 		patches: many(patch),
 	}),
 );
@@ -376,6 +387,8 @@ const createSchema = createInsertSchema(applications, {
 	previewPath: z.string().optional(),
 	previewCertificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 	previewRequireCollaboratorPermissions: z.boolean().optional(),
+	previewDockerImage: z.string().optional(),
+	previewRegistryId: z.string().optional(),
 	watchPaths: z.array(z.string()).optional().optional(),
 	previewLabels: z.array(z.string()).optional(),
 	networkIds: z.array(z.string()).optional(),

@@ -7,6 +7,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { getAdvancedStats } from "@dokploy/server/monitoring/utils";
 import {
+	type ApplicationNested,
 	getBuildCommand,
 	mechanizeDockerContainer,
 } from "@dokploy/server/utils/builders";
@@ -51,6 +52,7 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
+import { findRegistryByIdWithCredentials } from "./registry";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
@@ -125,6 +127,7 @@ export const findApplicationById = async (applicationId: string) => {
 			registry: { columns: { password: false } },
 			buildRegistry: { columns: { password: false } },
 			rollbackRegistry: { columns: { password: false } },
+			previewRegistry: { columns: { password: false } },
 		},
 	});
 	if (!application) {
@@ -134,6 +137,33 @@ export const findApplicationById = async (applicationId: string) => {
 		});
 	}
 	return application;
+};
+
+const applyPreviewDockerImage = async (
+	application: ApplicationNested,
+	previewDeployment: { branch: string; pullRequestNumber: string },
+): Promise<boolean> => {
+	if (!application.previewDockerImage) return false;
+
+	application.sourceType = "docker";
+	application.dockerImage = application.previewDockerImage
+		.replace(/\{owner\}/g, application.owner || "")
+		.replace(/\{repository\}/g, application.repository || "")
+		.replace(/\{branch\}/g, previewDeployment.branch)
+		.replace(/\{pr_number\}/g, previewDeployment.pullRequestNumber)
+		.replace(/\{app_name\}/g, application.appName);
+
+	if (application.previewRegistryId) {
+		// `findApplicationById` redacts registry passwords, so refetch with credentials.
+		const previewRegistry = await findRegistryByIdWithCredentials(
+			application.previewRegistryId,
+		);
+		application.username = previewRegistry.username;
+		application.password = previewRegistry.password;
+		application.registryUrl = previewRegistry.registryUrl;
+	}
+
+	return true;
 };
 
 export const findApplicationByName = async (appName: string) => {
@@ -440,7 +470,16 @@ export const deployPreviewApplication = async ({
 
 		const buildServerId = application.buildServerId || application.serverId;
 		let command = "set -e;";
-		if (application.sourceType === "github") {
+		if (await applyPreviewDockerImage(application, previewDeployment)) {
+			command += await buildRemoteDocker(application);
+			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+			if (buildServerId) {
+				await execAsyncRemote(buildServerId, commandWithLog);
+			} else {
+				await execAsync(commandWithLog);
+			}
+			await mechanizeDockerContainer(application);
+		} else if (application.sourceType === "github") {
 			command += await cloneGithubRepository({
 				...application,
 				appName: previewDeployment.appName,
@@ -566,7 +605,11 @@ export const rebuildPreviewApplication = async ({
 		const serverId = application.buildServerId || application.serverId;
 		let command = "set -e;";
 		// Only rebuild, don't clone repository
-		command += await getBuildCommand(application);
+		if (await applyPreviewDockerImage(application, previewDeployment)) {
+			command += await buildRemoteDocker(application);
+		} else {
+			command += await getBuildCommand(application);
+		}
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
 			await execAsyncRemote(serverId, commandWithLog);

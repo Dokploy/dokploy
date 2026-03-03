@@ -34,6 +34,7 @@ export type ApplicationNested = InferResultType<
 		registry: { columns: { password: false } };
 		buildRegistry: { columns: { password: false } };
 		rollbackRegistry: { columns: { password: false } };
+		previewRegistry: { columns: { password: false } };
 		deployments: true;
 		environment: { with: { project: true } };
 	}
