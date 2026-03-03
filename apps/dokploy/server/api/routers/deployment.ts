@@ -96,11 +96,10 @@ export const deploymentRouter = createTRPCRouter({
 				where: eq(server.organizationId, orgId),
 				columns: { serverId: true },
 			});
-			rows = [];
-			for (const { serverId } of servers) {
-				const serverRows = await fetchDeployApiJobs(serverId);
-				rows.push(...serverRows);
-			}
+			const serverRowsArrays = await Promise.all(
+				servers.map(({ serverId }) => fetchDeployApiJobs(serverId)),
+			);
+			rows = serverRowsArrays.flat();
 			rows.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
 		} else {
 			const jobs = await myQueue.getJobs();

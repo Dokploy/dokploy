@@ -197,7 +197,7 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 								})
 							) : (
 								<TableRow>
-									<TableCell colSpan={10} className="text-center py-12">
+									<TableCell colSpan={9} className="text-center py-12">
 										<div className="flex flex-col items-center justify-center gap-2 text-muted-foreground min-h-[30vh]">
 											<ListTodo className="size-8" />
 											<p className="font-medium">Queue is empty</p>

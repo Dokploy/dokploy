@@ -3,6 +3,9 @@ import { logger } from "./logger";
 const baseUrl = process.env.INNGEST_BASE_URL ?? "";
 const signingKey = process.env.INNGEST_SIGNING_KEY ?? "";
 
+const DEFAULT_MAX_EVENTS = 500;
+const MAX_EVENTS = DEFAULT_MAX_EVENTS;
+
 /** Event shape from GET /v1/events (https://api.inngest.com/v1/events) */
 type InngestEventRow = {
 	internal_id?: string;
@@ -232,9 +235,5 @@ export const fetchDeploymentJobs = async (
 		}),
 	);
 
-	return buildDeploymentRowsFromRuns(events, runsByEventId, serverId);
+	return buildDeploymentRowsFromRuns(toFetch, runsByEventId, serverId);
 };
-
-const DEFAULT_MAX_EVENTS = 500;
-
-const MAX_EVENTS = DEFAULT_MAX_EVENTS;
