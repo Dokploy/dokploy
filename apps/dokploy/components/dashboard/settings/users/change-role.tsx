@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -49,7 +49,7 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 
-	const { mutateAsync, isError, error, isLoading } =
+	const { mutateAsync, isError, error, isPending } =
 		api.organization.updateMemberRole.useMutation();
 
 	const form = useForm<ChangeRoleSchema>({
@@ -146,7 +146,7 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 
 				<DialogFooter>
 					<Button
-						isLoading={isLoading}
+						isLoading={isPending}
 						form="hook-form-change-role"
 						type="submit"
 					>

@@ -220,6 +220,7 @@ const rollbackApplication = async (
 		RollbackConfig,
 		UpdateConfig,
 		Networks,
+		Ulimits,
 	} = generateConfigContainer(fullContext as ApplicationNested);
 
 	const bindsMount = generateBindMounts(mounts);
@@ -254,6 +255,7 @@ const rollbackApplication = async (
 							Args: ["-c", command],
 						}
 					: {}),
+				...(Ulimits && { Ulimits }),
 				Labels,
 			},
 			Networks,

@@ -1,9 +1,9 @@
+import { db } from "@dokploy/server/db";
 import { IS_CLOUD } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { db } from "@/server/db";
 import { invitation, member, organization } from "@/server/db/schema";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 export const organizationRouter = createTRPCRouter({
@@ -355,4 +355,13 @@ export const organizationRouter = createTRPCRouter({
 
 			return { success: true };
 		}),
+	active: protectedProcedure.query(async ({ ctx }) => {
+		if (!ctx.session.activeOrganizationId) {
+			return null;
+		}
+
+		return await db.query.organization.findFirst({
+			where: eq(organization.id, ctx.session.activeOrganizationId),
+		});
+	}),
 });

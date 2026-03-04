@@ -43,7 +43,6 @@ import {
 	restoreWebServerBackup,
 } from "@dokploy/server/utils/restore";
 import { TRPCError } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
@@ -375,58 +374,59 @@ export const backupRouter = createTRPCRouter({
 			},
 		})
 		.input(apiRestoreBackup)
-		.subscription(async ({ input }) => {
+		.subscription(async function* ({ input, signal }) {
 			const destination = await findDestinationById(input.destinationId);
+			const queue: string[] = [];
+			const done = false;
 			if (input.backupType === "database") {
 				if (input.databaseType === "postgres") {
 					const postgres = await findPostgresById(input.databaseId);
 
-					return observable<string>((emit) => {
-						restorePostgresBackup(postgres, destination, input, (log) => {
-							emit.next(log);
-						});
+					restorePostgresBackup(postgres, destination, input, (log) => {
+						queue.push(log);
 					});
 				}
+
 				if (input.databaseType === "mysql") {
 					const mysql = await findMySqlById(input.databaseId);
-					return observable<string>((emit) => {
-						restoreMySqlBackup(mysql, destination, input, (log) => {
-							emit.next(log);
-						});
+					restoreMySqlBackup(mysql, destination, input, (log) => {
+						queue.push(log);
 					});
 				}
 				if (input.databaseType === "mariadb") {
 					const mariadb = await findMariadbById(input.databaseId);
-					return observable<string>((emit) => {
-						restoreMariadbBackup(mariadb, destination, input, (log) => {
-							emit.next(log);
-						});
+					restoreMariadbBackup(mariadb, destination, input, (log) => {
+						queue.push(log);
 					});
 				}
 				if (input.databaseType === "mongo") {
 					const mongo = await findMongoById(input.databaseId);
-					return observable<string>((emit) => {
-						restoreMongoBackup(mongo, destination, input, (log) => {
-							emit.next(log);
-						});
+					restoreMongoBackup(mongo, destination, input, (log) => {
+						queue.push(log);
 					});
 				}
 				if (input.databaseType === "web-server") {
-					return observable<string>((emit) => {
-						restoreWebServerBackup(destination, input.backupFile, (log) => {
-							emit.next(log);
-						});
+					restoreWebServerBackup(destination, input.backupFile, (log) => {
+						queue.push(log);
 					});
 				}
 			}
 			if (input.backupType === "compose") {
 				const compose = await findComposeById(input.databaseId);
-				return observable<string>((emit) => {
-					restoreComposeBackup(compose, destination, input, (log) => {
-						emit.next(log);
-					});
+				restoreComposeBackup(compose, destination, input, (log) => {
+					queue.push(log);
 				});
 			}
-			return true;
+			while (!done || queue.length > 0) {
+				if (queue.length > 0) {
+					yield queue.shift()!;
+				} else {
+					await new Promise((r) => setTimeout(r, 50));
+				}
+
+				if (signal?.aborted) {
+					return;
+				}
+			}
 		}),
 });

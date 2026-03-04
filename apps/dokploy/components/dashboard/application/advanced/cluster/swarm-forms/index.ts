@@ -2,6 +2,7 @@ export { EndpointSpecForm } from "./endpoint-spec-form";
 export { HealthCheckForm } from "./health-check-form";
 export { LabelsForm } from "./labels-form";
 export { ModeForm } from "./mode-form";
+export { NetworkForm } from "./network-form";
 export { PlacementForm } from "./placement-form";
 export { RestartPolicyForm } from "./restart-policy-form";
 export { RollbackConfigForm } from "./rollback-config-form";

@@ -20,7 +20,7 @@ export const TRAEFIK_PORT =
 	Number.parseInt(process.env.TRAEFIK_PORT!, 10) || 80;
 export const TRAEFIK_HTTP3_PORT =
 	Number.parseInt(process.env.TRAEFIK_HTTP3_PORT!, 10) || 443;
-export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.6.4";
+export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.6.7";
 
 export interface TraefikOptions {
 	env?: string[];

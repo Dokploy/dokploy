@@ -41,7 +41,7 @@ export const BreadcrumbSidebar = ({ list }: Props) => {
 					<Breadcrumb>
 						<BreadcrumbList>
 							{list.map((item, index) => (
-								<Fragment key={item.name}>
+								<Fragment key={`${item.name}-${index}`}>
 									<BreadcrumbItem className="block">
 										{item.dropdownItems && item.dropdownItems.length > 0 ? (
 											<DropdownMenu>

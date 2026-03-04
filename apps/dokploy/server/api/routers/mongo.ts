@@ -1,11 +1,13 @@
 import {
 	addNewService,
+	checkPortInUse,
 	checkServiceAccess,
 	createMongo,
 	createMount,
 	deployMongo,
 	findBackupsByDbId,
 	findEnvironmentById,
+	findMemberById,
 	findMongoById,
 	findProjectById,
 	IS_CLOUD,
@@ -18,12 +20,11 @@ import {
 	stopServiceRemote,
 	updateMongoById,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { db } from "@/server/db";
 import {
 	apiChangeMongoStatus,
 	apiCreateMongo,
@@ -36,6 +37,7 @@ import {
 	apiUpdateMongo,
 	mongo as mongoTable,
 } from "@/server/db/schema";
+import { environments, projects } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
 export const mongoRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -189,6 +191,20 @@ export const mongoRouter = createTRPCRouter({
 					message: "You are not authorized to save this external port",
 				});
 			}
+
+			if (input.externalPort) {
+				const portCheck = await checkPortInUse(
+					input.externalPort,
+					mongo.serverId || undefined,
+				);
+				if (portCheck.isInUse) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `Port ${input.externalPort} is already in use by ${portCheck.conflictingContainer}`,
+					});
+				}
+			}
+
 			await updateMongoById(input.mongoId, {
 				externalPort: input.externalPort,
 			});
@@ -220,7 +236,7 @@ export const mongoRouter = createTRPCRouter({
 			},
 		})
 		.input(apiDeployMongo)
-		.subscription(async ({ input, ctx }) => {
+		.subscription(async function* ({ input, ctx, signal }) {
 			const mongo = await findMongoById(input.mongoId);
 			if (
 				mongo.environment.project.organizationId !==
@@ -231,11 +247,24 @@ export const mongoRouter = createTRPCRouter({
 					message: "You are not authorized to deploy this mongo",
 				});
 			}
-			return observable<string>((emit) => {
-				deployMongo(input.mongoId, (log) => {
-					emit.next(log);
-				});
+			const queue: string[] = [];
+			const done = false;
+
+			deployMongo(input.mongoId, (log) => {
+				queue.push(log);
 			});
+
+			while (!done || queue.length > 0) {
+				if (queue.length > 0) {
+					yield queue.shift()!;
+				} else {
+					await new Promise((r) => setTimeout(r, 50));
+				}
+
+				if (signal?.aborted) {
+					return;
+				}
+			}
 		}),
 
 	changeStatus: protectedProcedure
@@ -448,5 +477,98 @@ export const mongoRouter = createTRPCRouter({
 			await rebuildDatabase(mongo.mongoId, "mongo");
 
 			return true;
+		}),
+	search: protectedProcedure
+		.input(
+			z.object({
+				q: z.string().optional(),
+				name: z.string().optional(),
+				appName: z.string().optional(),
+				description: z.string().optional(),
+				projectId: z.string().optional(),
+				environmentId: z.string().optional(),
+				limit: z.number().min(1).max(100).default(20),
+				offset: z.number().min(0).default(0),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const baseConditions = [
+				eq(projects.organizationId, ctx.session.activeOrganizationId),
+			];
+			if (input.projectId) {
+				baseConditions.push(eq(environments.projectId, input.projectId));
+			}
+			if (input.environmentId) {
+				baseConditions.push(eq(mongoTable.environmentId, input.environmentId));
+			}
+			if (input.q?.trim()) {
+				const term = `%${input.q.trim()}%`;
+				baseConditions.push(
+					or(
+						ilike(mongoTable.name, term),
+						ilike(mongoTable.appName, term),
+						ilike(mongoTable.description ?? "", term),
+					)!,
+				);
+			}
+			if (input.name?.trim()) {
+				baseConditions.push(ilike(mongoTable.name, `%${input.name.trim()}%`));
+			}
+			if (input.appName?.trim()) {
+				baseConditions.push(
+					ilike(mongoTable.appName, `%${input.appName.trim()}%`),
+				);
+			}
+			if (input.description?.trim()) {
+				baseConditions.push(
+					ilike(mongoTable.description ?? "", `%${input.description.trim()}%`),
+				);
+			}
+			if (ctx.user.role === "member") {
+				const { accessedServices } = await findMemberById(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				if (accessedServices.length === 0) return { items: [], total: 0 };
+				baseConditions.push(
+					sql`${mongoTable.mongoId} IN (${sql.join(
+						accessedServices.map((id) => sql`${id}`),
+						sql`, `,
+					)})`,
+				);
+			}
+			const where = and(...baseConditions);
+			const [items, countResult] = await Promise.all([
+				db
+					.select({
+						mongoId: mongoTable.mongoId,
+						name: mongoTable.name,
+						appName: mongoTable.appName,
+						description: mongoTable.description,
+						environmentId: mongoTable.environmentId,
+						applicationStatus: mongoTable.applicationStatus,
+						createdAt: mongoTable.createdAt,
+					})
+					.from(mongoTable)
+					.innerJoin(
+						environments,
+						eq(mongoTable.environmentId, environments.environmentId),
+					)
+					.innerJoin(projects, eq(environments.projectId, projects.projectId))
+					.where(where)
+					.orderBy(desc(mongoTable.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db
+					.select({ count: sql<number>`count(*)::int` })
+					.from(mongoTable)
+					.innerJoin(
+						environments,
+						eq(mongoTable.environmentId, environments.environmentId),
+					)
+					.innerJoin(projects, eq(environments.projectId, projects.projectId))
+					.where(where),
+			]);
+			return { items, total: countResult[0]?.count ?? 0 };
 		}),
 });

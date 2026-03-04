@@ -12,7 +12,9 @@ import {
 	sendLarkNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
+	sendResendNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -45,17 +47,20 @@ export const sendBuildErrorNotifications = async ({
 			discord: true,
 			telegram: true,
 			slack: true,
+			resend: true,
 			gotify: true,
 			ntfy: true,
 			custom: true,
 			lark: true,
 			pushover: true,
+			teams: true,
 		},
 	});
 
 	for (const notification of notificationList) {
 		const {
 			email,
+			resend,
 			discord,
 			telegram,
 			slack,
@@ -64,9 +69,10 @@ export const sendBuildErrorNotifications = async ({
 			custom,
 			lark,
 			pushover,
+			teams,
 		} = notification;
 		try {
-			if (email) {
+			if (email || resend) {
 				const template = await renderAsync(
 					BuildFailedEmail({
 						projectName,
@@ -77,11 +83,22 @@ export const sendBuildErrorNotifications = async ({
 						date: date.toLocaleString(),
 					}),
 				).catch();
-				await sendEmailNotification(
-					email,
-					"Build failed for dokploy",
-					template,
-				);
+
+				if (email) {
+					await sendEmailNotification(
+						email,
+						"Build failed for dokploy",
+						template,
+					);
+				}
+
+				if (resend) {
+					await sendResendNotification(
+						resend,
+						"Build failed for dokploy",
+						template,
+					);
+				}
 			}
 
 			if (discord) {
@@ -367,6 +384,26 @@ export const sendBuildErrorNotifications = async ({
 					"Build Failed",
 					`Project: ${projectName}\nApplication: ${applicationName}\nType: ${applicationType}\nDate: ${date.toLocaleString()}\nError: ${errorMessage}`,
 				);
+			}
+
+			if (teams) {
+				const limitCharacter = 800;
+				const truncatedErrorMessage = errorMessage.substring(0, limitCharacter);
+				await sendTeamsNotification(teams, {
+					title: "⚠️ Build Failed",
+					facts: [
+						{ name: "Project", value: projectName },
+						{ name: "Application", value: applicationName },
+						{ name: "Type", value: applicationType },
+						{ name: "Date", value: format(date, "PP pp") },
+						{ name: "Error Message", value: truncatedErrorMessage },
+					],
+					potentialAction: {
+						type: "Action.OpenUrl",
+						title: "View Build Details",
+						url: buildLink,
+					},
+				});
 			}
 		} catch (error) {
 			console.log(error);

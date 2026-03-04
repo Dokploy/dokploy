@@ -13,9 +13,9 @@ import { api } from "@/utils/api";
 import { HandleRegistry } from "./handle-registry";
 
 export const ShowRegistry = () => {
-	const { mutateAsync, isLoading: isRemoving } =
+	const { mutateAsync, isPending: isRemoving } =
 		api.registry.remove.useMutation();
-	const { data, isLoading, refetch } = api.registry.all.useQuery();
+	const { data, isPending, refetch } = api.registry.all.useQuery();
 
 	return (
 		<div className="w-full">
@@ -31,7 +31,7 @@ export const ShowRegistry = () => {
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
-						{isLoading ? (
+						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
 								<Loader2 className="animate-spin size-4" />

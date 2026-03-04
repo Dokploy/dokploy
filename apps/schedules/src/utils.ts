@@ -1,4 +1,5 @@
 import {
+	CLEANUP_CRON_JOB,
 	cleanupAll,
 	findBackupById,
 	findScheduleById,
@@ -13,14 +14,15 @@ import {
 	runPostgresBackup,
 	runVolumeBackup,
 } from "@dokploy/server";
-import { db } from "@dokploy/server/dist/db";
 import {
+	and,
 	backups,
+	db,
+	eq,
 	schedules,
 	server,
 	volumeBackups,
-} from "@dokploy/server/dist/db/schema";
-import { and, eq } from "drizzle-orm";
+} from "@dokploy/server/db";
 import { logger } from "./logger.js";
 import { scheduleJob } from "./queue.js";
 import type { QueueJob } from "./schema.js";
@@ -81,6 +83,7 @@ export const runJobs = async (job: QueueJob) => {
 					return;
 				}
 				await runComposeBackup(compose, backup);
+				await keepLatestNBackups(backup, server.serverId);
 			}
 		} else if (job.type === "server") {
 			const { serverId } = job;
@@ -125,7 +128,7 @@ export const initializeJobs = async () => {
 		scheduleJob({
 			serverId,
 			type: "server",
-			cronSchedule: "0 0 * * *",
+			cronSchedule: CLEANUP_CRON_JOB,
 		});
 	}
 

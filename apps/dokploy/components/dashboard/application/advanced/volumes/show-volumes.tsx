@@ -37,7 +37,7 @@ export const ShowVolumes = ({ id, type }: Props) => {
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
-	const { mutateAsync: deleteVolume, isLoading: isRemoving } =
+	const { mutateAsync: deleteVolume, isPending: isRemoving } =
 		api.mounts.remove.useMutation();
 	return (
 		<Card className="bg-background">

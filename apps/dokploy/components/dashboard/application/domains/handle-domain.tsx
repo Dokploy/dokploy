@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -159,11 +159,11 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 					},
 				);
 
-	const { mutateAsync, isError, error, isLoading } = domainId
+	const { mutateAsync, isError, error, isPending } = domainId
 		? api.domain.update.useMutation()
 		: api.domain.create.useMutation();
 
-	const { mutateAsync: generateDomain, isLoading: isLoadingGenerate } =
+	const { mutateAsync: generateDomain, isPending: isLoadingGenerate } =
 		api.domain.generateDomain.useMutation();
 
 	const { data: canGenerateTraefikMeDomains } =
@@ -240,7 +240,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				domainType: type,
 			});
 		}
-	}, [form, data, isLoading, domainId]);
+	}, [form, data, isPending, domainId]);
 
 	// Separate effect for handling custom cert resolver validation
 	useEffect(() => {
@@ -730,7 +730,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 					</form>
 
 					<DialogFooter>
-						<Button isLoading={isLoading} form="hook-form" type="submit">
+						<Button isLoading={isPending} form="hook-form" type="submit">
 							{dictionary.submit}
 						</Button>
 					</DialogFooter>

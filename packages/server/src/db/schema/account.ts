@@ -9,6 +9,7 @@ import {
 import { nanoid } from "nanoid";
 import { projects } from "./project";
 import { server } from "./server";
+import { ssoProvider } from "./sso";
 import { user } from "./user";
 
 export const account = pgTable("account", {
@@ -78,6 +79,7 @@ export const organizationRelations = relations(
 		servers: many(server),
 		projects: many(projects),
 		members: many(member),
+		ssoProviders: many(ssoProvider),
 	}),
 );
 
@@ -153,6 +155,7 @@ export const invitation = pgTable("invitation", {
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
 	teamId: text("team_id"),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const invitationRelations = relations(invitation, ({ one }) => ({

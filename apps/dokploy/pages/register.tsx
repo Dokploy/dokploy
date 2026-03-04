@@ -1,5 +1,5 @@
 import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/server";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
@@ -9,6 +9,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
+import { SignInWithGithub } from "@/components/proprietary/auth/sign-in-with-github";
+import { SignInWithGoogle } from "@/components/proprietary/auth/sign-in-with-google";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
@@ -152,6 +154,17 @@ const Register = ({ isCloud }: Props) => {
 							</AlertBlock>
 						)}
 						<CardContent className="p-0">
+							{isCloud && (
+								<div className="flex flex-col">
+									<SignInWithGithub />
+									<SignInWithGoogle />
+								</div>
+							)}
+							{isCloud && (
+								<p className="mb-4 text-center text-xs text-muted-foreground">
+									Or register with email
+								</p>
+							)}
 							<Form {...form}>
 								<form
 									onSubmit={form.handleSubmit(onSubmit)}

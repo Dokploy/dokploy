@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -55,7 +55,7 @@ export const AddInvitation = () => {
 		api.notification.getEmailProviders.useQuery();
 	const { mutateAsync: sendInvitation } = api.user.sendInvitation.useMutation();
 	const [error, setError] = useState<string | null>(null);
-	const { data: activeOrganization } = authClient.useActiveOrganization();
+	const { data: activeOrganization } = api.organization.active.useQuery();
 
 	const form = useForm<AddInvitation>({
 		defaultValues: {

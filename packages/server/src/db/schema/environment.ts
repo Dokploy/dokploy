@@ -1,6 +1,5 @@
 import { relations } from "drizzle-orm";
 import { boolean, pgTable, text } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
@@ -46,46 +45,30 @@ export const environmentRelations = relations(
 	}),
 );
 
-const createSchema = createInsertSchema(environments, {
+export const apiCreateEnvironment = z.object({
+	name: z.string().min(1),
+	description: z.string().optional(),
+	projectId: z.string().min(1),
+});
+
+export const apiFindOneEnvironment = z.object({
+	environmentId: z.string().min(1),
+});
+
+export const apiRemoveEnvironment = z.object({
+	environmentId: z.string().min(1),
+});
+
+export const apiUpdateEnvironment = z.object({
+	environmentId: z.string().min(1),
+	name: z.string().min(1).optional(),
+	description: z.string().optional(),
+	projectId: z.string().optional(),
+	env: z.string().optional(),
+});
+
+export const apiDuplicateEnvironment = z.object({
 	environmentId: z.string().min(1),
 	name: z.string().min(1),
 	description: z.string().optional(),
 });
-
-export const apiCreateEnvironment = createSchema.pick({
-	name: true,
-	description: true,
-	projectId: true,
-});
-
-export const apiFindOneEnvironment = createSchema
-	.pick({
-		environmentId: true,
-	})
-	.required();
-
-export const apiRemoveEnvironment = createSchema
-	.pick({
-		environmentId: true,
-	})
-	.required();
-
-export const apiUpdateEnvironment = createSchema
-	.partial()
-	.extend({
-		environmentId: z.string().min(1),
-	})
-	.omit({
-		isDefault: true,
-	});
-
-export const apiDuplicateEnvironment = createSchema
-	.pick({
-		environmentId: true,
-		name: true,
-		description: true,
-	})
-	.required({
-		environmentId: true,
-		name: true,
-	});
