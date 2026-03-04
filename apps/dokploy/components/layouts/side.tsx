@@ -557,8 +557,7 @@ function SidebarLogo() {
 	const { mutateAsync: setDefaultOrganization, isPending: isSettingDefault } =
 		api.organization.setDefault.useMutation();
 	const { isMobile } = useSidebar();
-	const { data: activeOrganization } = authClient.useActiveOrganization();
-	const _utils = api.useUtils();
+	const { data: activeOrganization } = api.organization.active.useQuery();
 
 	const { data: invitations, refetch: refetchInvitations } =
 		api.user.getInvitations.useQuery();
