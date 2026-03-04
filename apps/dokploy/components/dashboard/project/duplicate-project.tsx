@@ -25,7 +25,6 @@ import {
 import { api } from "@/utils/api";
 
 export type Services = {
-	appName: string;
 	serverId?: string | null;
 	name: string;
 	type:

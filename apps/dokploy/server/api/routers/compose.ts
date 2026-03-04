@@ -16,6 +16,7 @@ import {
 	findDomainsByComposeId,
 	findEnvironmentById,
 	findGitProviderById,
+	findMemberById,
 	findProjectById,
 	findServerById,
 	getComposeContainer,
@@ -41,7 +42,7 @@ import {
 } from "@dokploy/server/templates/github";
 import { processTemplate } from "@dokploy/server/templates/processors";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import _ from "lodash";
 import { nanoid } from "nanoid";
 import { parse } from "toml";
@@ -58,6 +59,8 @@ import {
 	apiRedeployCompose,
 	apiUpdateCompose,
 	compose as composeTable,
+	environments,
+	projects,
 } from "@/server/db/schema";
 import { deploymentWorker } from "@/server/queues/deployments-queue";
 import type { DeploymentJob } from "@/server/queues/queue-types";
@@ -1053,5 +1056,115 @@ export const composeRouter = createTRPCRouter({
 				code: "BAD_REQUEST",
 				message: "Deployment cancellation only available in cloud version",
 			});
+		}),
+
+	search: protectedProcedure
+		.input(
+			z.object({
+				q: z.string().optional(),
+				name: z.string().optional(),
+				appName: z.string().optional(),
+				description: z.string().optional(),
+				projectId: z.string().optional(),
+				environmentId: z.string().optional(),
+				limit: z.number().min(1).max(100).default(20),
+				offset: z.number().min(0).default(0),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const baseConditions = [
+				eq(projects.organizationId, ctx.session.activeOrganizationId),
+			];
+
+			if (input.projectId) {
+				baseConditions.push(eq(environments.projectId, input.projectId));
+			}
+			if (input.environmentId) {
+				baseConditions.push(
+					eq(composeTable.environmentId, input.environmentId),
+				);
+			}
+
+			if (input.q?.trim()) {
+				const term = `%${input.q.trim()}%`;
+				baseConditions.push(
+					or(
+						ilike(composeTable.name, term),
+						ilike(composeTable.appName, term),
+						ilike(composeTable.description ?? "", term),
+					)!,
+				);
+			}
+
+			if (input.name?.trim()) {
+				baseConditions.push(ilike(composeTable.name, `%${input.name.trim()}%`));
+			}
+			if (input.appName?.trim()) {
+				baseConditions.push(
+					ilike(composeTable.appName, `%${input.appName.trim()}%`),
+				);
+			}
+			if (input.description?.trim()) {
+				baseConditions.push(
+					ilike(
+						composeTable.description ?? "",
+						`%${input.description.trim()}%`,
+					),
+				);
+			}
+
+			if (ctx.user.role === "member") {
+				const { accessedServices } = await findMemberById(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				if (accessedServices.length === 0) return { items: [], total: 0 };
+				baseConditions.push(
+					sql`${composeTable.composeId} IN (${sql.join(
+						accessedServices.map((id) => sql`${id}`),
+						sql`, `,
+					)})`,
+				);
+			}
+
+			const where = and(...baseConditions);
+
+			const [items, countResult] = await Promise.all([
+				db
+					.select({
+						composeId: composeTable.composeId,
+						name: composeTable.name,
+						appName: composeTable.appName,
+						description: composeTable.description,
+						environmentId: composeTable.environmentId,
+						composeStatus: composeTable.composeStatus,
+						sourceType: composeTable.sourceType,
+						createdAt: composeTable.createdAt,
+					})
+					.from(composeTable)
+					.innerJoin(
+						environments,
+						eq(composeTable.environmentId, environments.environmentId),
+					)
+					.innerJoin(projects, eq(environments.projectId, projects.projectId))
+					.where(where)
+					.orderBy(desc(composeTable.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db
+					.select({ count: sql<number>`count(*)::int` })
+					.from(composeTable)
+					.innerJoin(
+						environments,
+						eq(composeTable.environmentId, environments.environmentId),
+					)
+					.innerJoin(projects, eq(environments.projectId, projects.projectId))
+					.where(where),
+			]);
+
+			return {
+				items,
+				total: countResult[0]?.count ?? 0,
+			};
 		}),
 });

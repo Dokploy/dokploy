@@ -25,6 +25,7 @@ import {
 	type LucideIcon,
 	Package,
 	PieChart,
+	Rocket,
 	Server,
 	ShieldCheck,
 	Star,
@@ -144,6 +145,12 @@ const MENU: Menu = {
 			title: "Projects",
 			url: "/dashboard/projects",
 			icon: Folder,
+		},
+		{
+			isSingle: true,
+			title: "Deployments",
+			url: "/dashboard/deployments",
+			icon: Rocket,
 		},
 		{
 			isSingle: true,
@@ -550,8 +557,7 @@ function SidebarLogo() {
 	const { mutateAsync: setDefaultOrganization, isPending: isSettingDefault } =
 		api.organization.setDefault.useMutation();
 	const { isMobile } = useSidebar();
-	const { data: activeOrganization } = authClient.useActiveOrganization();
-	const _utils = api.useUtils();
+	const { data: activeOrganization } = api.organization.active.useQuery();
 
 	const { data: invitations, refetch: refetchInvitations } =
 		api.user.getInvitations.useQuery();

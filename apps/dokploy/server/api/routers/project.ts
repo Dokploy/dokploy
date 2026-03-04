@@ -34,10 +34,14 @@ import {
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+} from "@/server/api/trpc";
 import {
 	apiCreateProject,
 	apiFindOneProject,
@@ -219,30 +223,68 @@ export const projectRouter = createTRPCRouter({
 									applications.applicationId,
 									accessedServices,
 								),
-								with: { domains: true },
+								columns: {
+									applicationId: true,
+									name: true,
+									applicationStatus: true,
+								},
 							},
 							mariadb: {
 								where: buildServiceFilter(mariadb.mariadbId, accessedServices),
+								columns: {
+									mariadbId: true,
+									name: true,
+									applicationStatus: true,
+								},
 							},
 							mongo: {
 								where: buildServiceFilter(mongo.mongoId, accessedServices),
+								columns: {
+									mongoId: true,
+									name: true,
+									applicationStatus: true,
+								},
 							},
 							mysql: {
 								where: buildServiceFilter(mysql.mysqlId, accessedServices),
+								columns: {
+									mysqlId: true,
+									name: true,
+									applicationStatus: true,
+								},
 							},
 							postgres: {
 								where: buildServiceFilter(
 									postgres.postgresId,
 									accessedServices,
 								),
+								columns: {
+									postgresId: true,
+									name: true,
+									applicationStatus: true,
+								},
 							},
 							redis: {
 								where: buildServiceFilter(redis.redisId, accessedServices),
+								columns: {
+									redisId: true,
+									name: true,
+									applicationStatus: true,
+								},
 							},
 							compose: {
 								where: buildServiceFilter(compose.composeId, accessedServices),
-								with: { domains: true },
+								columns: {
+									composeId: true,
+									name: true,
+									composeStatus: true,
+								},
 							},
+						},
+						columns: {
+							environmentId: true,
+							isDefault: true,
+							name: true,
 						},
 					},
 				},
@@ -255,20 +297,49 @@ export const projectRouter = createTRPCRouter({
 				environments: {
 					with: {
 						applications: {
-							with: {
-								domains: true,
+							columns: {
+								applicationId: true,
+								name: true,
+								applicationStatus: true,
 							},
 						},
-						mariadb: true,
-						mongo: true,
-						mysql: true,
-						postgres: true,
-						redis: true,
+						mariadb: {
+							columns: {
+								mariadbId: true,
+							},
+						},
+						mongo: {
+							columns: {
+								mongoId: true,
+							},
+						},
+						mysql: {
+							columns: {
+								mysqlId: true,
+							},
+						},
+						postgres: {
+							columns: {
+								postgresId: true,
+							},
+						},
+						redis: {
+							columns: {
+								redisId: true,
+							},
+						},
 						compose: {
-							with: {
-								domains: true,
+							columns: {
+								composeId: true,
+								name: true,
+								composeStatus: true,
 							},
 						},
+					},
+					columns: {
+						name: true,
+						environmentId: true,
+						isDefault: true,
 					},
 				},
 			},
@@ -276,6 +347,183 @@ export const projectRouter = createTRPCRouter({
 			orderBy: desc(projects.createdAt),
 		});
 	}),
+
+	/** All projects with full environments and services for the admin permissions UI. Admin only. */
+	allForPermissions: adminProcedure.query(async ({ ctx }) => {
+		return await db.query.projects.findMany({
+			where: eq(projects.organizationId, ctx.session.activeOrganizationId),
+			orderBy: desc(projects.createdAt),
+			columns: {
+				projectId: true,
+				name: true,
+			},
+			with: {
+				environments: {
+					columns: {
+						environmentId: true,
+						name: true,
+						isDefault: true,
+					},
+					with: {
+						applications: {
+							columns: {
+								applicationId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						mariadb: {
+							columns: {
+								mariadbId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						postgres: {
+							columns: {
+								postgresId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						mysql: {
+							columns: {
+								mysqlId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						mongo: {
+							columns: {
+								mongoId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						redis: {
+							columns: {
+								redisId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								applicationStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+						compose: {
+							columns: {
+								composeId: true,
+								appName: true,
+								name: true,
+								createdAt: true,
+								composeStatus: true,
+								description: true,
+								serverId: true,
+							},
+						},
+					},
+				},
+			},
+		});
+	}),
+
+	search: protectedProcedure
+		.input(
+			z.object({
+				q: z.string().optional(),
+				name: z.string().optional(),
+				description: z.string().optional(),
+				limit: z.number().min(1).max(100).default(20),
+				offset: z.number().min(0).default(0),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const baseConditions = [
+				eq(projects.organizationId, ctx.session.activeOrganizationId),
+			];
+
+			if (input.q?.trim()) {
+				const term = `%${input.q.trim()}%`;
+				baseConditions.push(
+					or(
+						ilike(projects.name, term),
+						ilike(projects.description ?? "", term),
+					)!,
+				);
+			}
+
+			if (input.name?.trim()) {
+				baseConditions.push(ilike(projects.name, `%${input.name.trim()}%`));
+			}
+			if (input.description?.trim()) {
+				baseConditions.push(
+					ilike(projects.description ?? "", `%${input.description.trim()}%`),
+				);
+			}
+
+			if (ctx.user.role === "member") {
+				const { accessedProjects } = await findMemberById(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				if (accessedProjects.length === 0) return { items: [], total: 0 };
+				baseConditions.push(
+					sql`${projects.projectId} IN (${sql.join(
+						accessedProjects.map((id) => sql`${id}`),
+						sql`, `,
+					)})`,
+				);
+			}
+
+			const where = and(...baseConditions);
+
+			const [items, countResult] = await Promise.all([
+				db.query.projects.findMany({
+					where,
+					limit: input.limit,
+					offset: input.offset,
+					orderBy: desc(projects.createdAt),
+					columns: {
+						projectId: true,
+						name: true,
+						description: true,
+						createdAt: true,
+						organizationId: true,
+						env: true,
+					},
+				}),
+				db
+					.select({ count: sql<number>`count(*)::int` })
+					.from(projects)
+					.where(where),
+			]);
+
+			return {
+				items,
+				total: countResult[0]?.count ?? 0,
+			};
+		}),
 
 	remove: protectedProcedure
 		.input(apiRemoveProject)
