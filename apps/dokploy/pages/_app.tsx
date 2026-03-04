@@ -7,6 +7,7 @@ import Head from "next/head";
 import { ThemeProvider } from "next-themes";
 import NextTopLoader from "nextjs-toploader";
 import type { ReactElement, ReactNode } from "react";
+import { useEffect } from "react";
 import { SearchCommand } from "@/components/dashboard/search-command";
 import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/utils/api";
@@ -27,18 +28,28 @@ const MyApp = ({
 	pageProps: { ...pageProps },
 }: AppPropsWithLayout) => {
 	const getLayout = Component.getLayout ?? ((page) => page);
+	const { data: webServerSettings } =
+		api.settings.getWebServerSettings.useQuery();
+
+	const pageTitle = webServerSettings?.nickname
+		? `[${webServerSettings.nickname}] - Dokploy`
+		: "Dokploy";
+
+	useEffect(() => {
+		document.title = pageTitle;
+	}, [pageTitle]);
 
 	return (
 		<>
 			<style jsx global>
 				{`
-					:root {
-						--font-inter: ${inter.style.fontFamily};
-					}
-				`}
+          :root {
+            --font-inter: ${inter.style.fontFamily};
+          }
+        `}
 			</style>
 			<Head>
-				<title>Dokploy</title>
+				<title>{pageTitle}</title>
 			</Head>
 			<ThemeProvider
 				attribute="class"

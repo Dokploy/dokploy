@@ -39,6 +39,7 @@ const addServerDomain = z
 		letsEncryptEmail: z.string(),
 		https: z.boolean().optional(),
 		certificateType: z.enum(["letsencrypt", "none", "custom"]),
+		nickname: z.string().optional(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.https && !data.certificateType) {
@@ -75,6 +76,7 @@ export const WebDomain = () => {
 			certificateType: "none",
 			letsEncryptEmail: "",
 			https: false,
+			nickname: "",
 		},
 		resolver: zodResolver(addServerDomain),
 	});
@@ -89,6 +91,7 @@ export const WebDomain = () => {
 				certificateType: data?.certificateType || "none",
 				letsEncryptEmail: data?.letsEncryptEmail || "",
 				https: data?.https || false,
+				nickname: data?.nickname || "",
 			});
 		}
 	}, [form, form.reset, data]);
@@ -99,6 +102,7 @@ export const WebDomain = () => {
 			letsEncryptEmail: data.letsEncryptEmail,
 			certificateType: data.certificateType,
 			https: data.https,
+			nickname: data.nickname,
 		})
 			.then(async () => {
 				await refetch();
@@ -141,8 +145,30 @@ export const WebDomain = () => {
 						<Form {...form}>
 							<form
 								onSubmit={form.handleSubmit(onSubmit)}
-								className="grid w-full gap-4 md:grid-cols-2"
+								className="grid w-full gap-4 md:grid-cols-3"
 							>
+								<FormField
+									control={form.control}
+									name="nickname"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Nickname</FormLabel>
+												<FormControl>
+													<Input
+														className="w-full"
+														placeholder={"My Server"}
+														{...field}
+													/>
+												</FormControl>
+												<FormDescription className="text-xs">
+													Displayed in the browser tab title.
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
 								<FormField
 									control={form.control}
 									name="domain"
@@ -186,7 +212,7 @@ export const WebDomain = () => {
 									control={form.control}
 									name="https"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm w-full col-span-2">
+										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm w-full col-span-3">
 											<div className="space-y-0.5">
 												<FormLabel>HTTPS</FormLabel>
 												<FormDescription>
@@ -209,7 +235,7 @@ export const WebDomain = () => {
 										name="certificateType"
 										render={({ field }) => {
 											return (
-												<FormItem className="md:col-span-2">
+												<FormItem className="md:col-span-3">
 													<FormLabel>Certificate Provider</FormLabel>
 													<Select
 														onValueChange={field.onChange}
@@ -234,7 +260,7 @@ export const WebDomain = () => {
 									/>
 								)}
 
-								<div className="flex w-full justify-end col-span-2">
+								<div className="flex w-full justify-end col-span-3">
 									<Button isLoading={isPending} type="submit">
 										Save
 									</Button>

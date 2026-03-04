@@ -24,6 +24,7 @@ const baseSettings: WebServerSettings = {
 	serverIp: null,
 	letsEncryptEmail: null,
 	sshPrivateKey: null,
+	nickname: null,
 	enableDockerCleanup: false,
 	logCleanupCron: null,
 	metricsConfig: {
