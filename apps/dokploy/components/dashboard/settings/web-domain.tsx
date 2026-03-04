@@ -39,7 +39,7 @@ const addServerDomain = z
 		letsEncryptEmail: z.string(),
 		https: z.boolean().optional(),
 		certificateType: z.enum(["letsencrypt", "none", "custom"]),
-		nickname: z.string().optional(),
+		nickname: z.string().max(50, "Nickname must be 50 characters or less").optional(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.https && !data.certificateType) {
