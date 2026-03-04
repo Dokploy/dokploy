@@ -31,11 +31,11 @@ export const rollbackRouter = createTRPCRouter({
 				const currentRollback = await findRollbackById(input.rollbackId);
 				const organizationId =
 					currentRollback?.deployment?.application?.environment?.project
-						?.organizationId ||
+						?.organizationId ??
 					currentRollback?.deployment?.compose?.environment?.project
 						?.organizationId;
 
-				if (organizationId !== ctx.session.activeOrganizationId) {
+				if (!organizationId || organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to rollback this deployment",

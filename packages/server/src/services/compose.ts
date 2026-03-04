@@ -210,11 +210,13 @@ export const deployCompose = async ({
 	titleLog = "Manual deployment",
 	descriptionLog = "",
 	commitHash,
+	isRollback = false,
 }: {
 	composeId: string;
 	titleLog?: string;
 	descriptionLog?: string;
 	commitHash?: string;
+	isRollback?: boolean;
 }) => {
 	const compose = await findComposeById(composeId);
 
@@ -275,23 +277,25 @@ export const deployCompose = async ({
 			composeStatus: "done",
 		});
 
-		let hashToSave = commitHash;
-		if (compose.sourceType !== "raw" && !hashToSave) {
-			const commitInfo = await getGitCommitInfo({
-				...compose,
-				type: "compose",
-			});
-			if (commitInfo) {
-				hashToSave = commitInfo.hash;
+		if (!isRollback) {
+			let hashToSave = commitHash;
+			if (compose.sourceType !== "raw" && !hashToSave) {
+				const commitInfo = await getGitCommitInfo({
+					...compose,
+					type: "compose",
+				});
+				if (commitInfo) {
+					hashToSave = commitInfo.hash;
+				}
 			}
-		}
 
-		const { createRollback } = await import("./rollbacks");
-		await createRollback({
-			appName: compose.name,
-			deploymentId: deployment.deploymentId,
-			commitHash: hashToSave,
-		});
+			const { createRollback } = await import("./rollbacks");
+			await createRollback({
+				appName: compose.name,
+				deploymentId: deployment.deploymentId,
+				commitHash: hashToSave,
+			});
+		}
 
 		await sendBuildSuccessNotifications({
 			projectName: compose.environment.project.name,

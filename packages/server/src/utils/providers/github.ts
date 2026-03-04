@@ -123,6 +123,7 @@ interface CloneGithubRepository {
 	enableSubmodules: boolean;
 	serverId: string | null;
 	outputPathOverride?: string;
+	commitHash?: string;
 }
 export const cloneGithubRepository = async ({
 	type = "application",
@@ -167,7 +168,12 @@ export const cloneGithubRepository = async ({
 	const cloneUrl = `https://oauth2:${token}@${repoclone}`;
 
 	command += `echo "Cloning Repo ${repoclone} to ${outputPath}: ✅";`;
-	command += `git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	if (entity.commitHash) {
+		command += `git clone ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+		command += `cd ${outputPath} && git checkout ${entity.commitHash};`;
+	} else {
+		command += `git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	}
 
 	return command;
 };

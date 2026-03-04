@@ -161,16 +161,16 @@ export const removeRollbackById = async (rollbackId: string) => {
 				const application = await findApplicationById(deployment.applicationId);
 				await deleteRollbackImage(rollback.image, application.serverId);
 			}
-
-			await db
-				.delete(rollbacks)
-				.where(eq(rollbacks.rollbackId, rollbackId))
-				.returning()
-				.then((res) => res[0]);
 		} catch (error) {
 			console.error(error);
 		}
 	}
+
+	await db
+		.delete(rollbacks)
+		.where(eq(rollbacks.rollbackId, rollbackId))
+		.returning()
+		.then((res) => res[0]);
 
 	return rollback;
 };
@@ -224,6 +224,7 @@ const rollbackComposeApplication = async (
 		titleLog: "Rollback deployment",
 		descriptionLog: "Rolled back to a previous configuration",
 		commitHash: fullContext.commitHash,
+		isRollback: true,
 	});
 };
 
