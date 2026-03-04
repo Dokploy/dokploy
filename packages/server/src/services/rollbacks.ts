@@ -19,6 +19,7 @@ import {
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import { type Application, findApplicationById } from "./application";
+import { type Compose, findComposeById, updateCompose } from "./compose";
 import { findDeploymentById } from "./deployment";
 import type { Mount } from "./mount";
 import type { Port } from "./port";
@@ -29,7 +30,7 @@ export const createRollback = async (
 	input: z.infer<typeof createRollbackSchema>,
 ) => {
 	return await db.transaction(async (tx) => {
-		const { fullContext, ...other } = input;
+		const { fullContext, commitHash, ...other } = input;
 		const rollback = await tx
 			.insert(rollbacks)
 			.values(other)
@@ -40,29 +41,48 @@ export const createRollback = async (
 			throw new Error("Failed to create rollback");
 		}
 
-		const tagImage = `${input.appName}:v${rollback.version}`;
 		const deployment = await findDeploymentById(rollback.deploymentId);
 
-		if (!deployment?.applicationId) {
+		if (!deployment?.applicationId && !deployment?.composeId) {
 			throw new Error("Deployment not found");
 		}
 
-		const {
-			deployments: _,
-			bitbucket,
-			github,
-			gitlab,
-			gitea,
-			...rest
-		} = await findApplicationById(deployment.applicationId);
+		if (deployment.applicationId) {
+			const tagImage = `${input.appName}:v${rollback.version}`;
+			const {
+				deployments: _,
+				bitbucket,
+				github,
+				gitlab,
+				gitea,
+				...rest
+			} = await findApplicationById(deployment.applicationId);
 
-		await tx
-			.update(rollbacks)
-			.set({
-				image: tagImage,
-				fullContext: rest,
-			})
-			.where(eq(rollbacks.rollbackId, rollback.rollbackId));
+			await tx
+				.update(rollbacks)
+				.set({
+					image: tagImage,
+					fullContext: rest,
+				})
+				.where(eq(rollbacks.rollbackId, rollback.rollbackId));
+		} else if (deployment.composeId) {
+			const {
+				deployments: _,
+				bitbucket,
+				github,
+				gitlab,
+				gitea,
+				...rest
+			} = await findComposeById(deployment.composeId);
+
+			await tx
+				.update(rollbacks)
+				.set({
+					image: null,
+					fullContext: { ...rest, commitHash },
+				})
+				.where(eq(rollbacks.rollbackId, rollback.rollbackId));
+		}
 
 		// Update the deployment to reference this rollback
 		await tx
@@ -87,6 +107,15 @@ export const findRollbackById = async (rollbackId: string) => {
 			deployment: {
 				with: {
 					application: {
+						with: {
+							environment: {
+								with: {
+									project: true,
+								},
+							},
+						},
+					},
+					compose: {
 						with: {
 							environment: {
 								with: {
@@ -128,12 +157,10 @@ export const removeRollbackById = async (rollbackId: string) => {
 		try {
 			const deployment = await findDeploymentById(rollback.deploymentId);
 
-			if (!deployment?.applicationId) {
-				throw new Error("Deployment not found");
+			if (deployment?.applicationId) {
+				const application = await findApplicationById(deployment.applicationId);
+				await deleteRollbackImage(rollback.image, application.serverId);
 			}
-
-			const application = await findApplicationById(deployment.applicationId);
-			await deleteRollbackImage(rollback.image, application.serverId);
 
 			await db
 				.delete(rollbacks)
@@ -153,22 +180,51 @@ export const rollback = async (rollbackId: string) => {
 
 	const deployment = await findDeploymentById(result.deploymentId);
 
-	if (!deployment?.applicationId) {
+	if (!deployment?.applicationId && !deployment?.composeId) {
 		throw new Error("Deployment not found");
 	}
-
-	const application = await findApplicationById(deployment.applicationId);
 
 	if (!result.fullContext) {
 		throw new Error("Rollback context not found");
 	}
-	// Use the full context for rollback
-	await rollbackApplication(
-		application.appName,
-		result.image || "",
-		application.serverId,
-		result.fullContext,
-	);
+
+	if (deployment.applicationId) {
+		const application = await findApplicationById(deployment.applicationId);
+		// Use the full context for rollback
+		await rollbackApplication(
+			application.appName,
+			result.image || "",
+			application.serverId,
+			result.fullContext as Application & any,
+		);
+	} else if (deployment.composeId) {
+		const compose = await findComposeById(deployment.composeId);
+		await rollbackComposeApplication(
+			compose.composeId,
+			result.fullContext as Compose & any,
+		);
+	}
+};
+
+const rollbackComposeApplication = async (
+	composeId: string,
+	fullContext: Compose & { commitHash?: string },
+) => {
+	await updateCompose(composeId, {
+		composeFile: fullContext.composeFile,
+		env: fullContext.env,
+		// Provide everything else correctly if needed, but the primary drivers are the files.
+	});
+
+	// For git repos, we need a way to pass the commitHash to the deployment function so it checks it out.
+	// We'll call deployCompose with an optional commitHash override.
+	const { deployCompose } = await import("./compose");
+	await deployCompose({
+		composeId,
+		titleLog: "Rollback deployment",
+		descriptionLog: "Rolled back to a previous configuration",
+		commitHash: fullContext.commitHash,
+	});
 };
 
 const rollbackApplication = async (
@@ -251,9 +307,9 @@ const rollbackApplication = async (
 				Mounts: [...volumesMount, ...bindsMount],
 				...(command
 					? {
-							Command: ["/bin/sh"],
-							Args: ["-c", command],
-						}
+						Command: ["/bin/sh"],
+						Args: ["-c", command],
+					}
 					: {}),
 				...(Ulimits && { Ulimits }),
 				Labels,

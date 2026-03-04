@@ -15,6 +15,7 @@ interface CloneGitRepository {
 	serverId: string | null;
 	type?: "application" | "compose";
 	outputPathOverride?: string;
+	commitHash?: string;
 }
 
 export const cloneGitRepository = async ({
@@ -78,11 +79,20 @@ export const cloneGitRepository = async ({
 		command += "chmod 600 /tmp/id_rsa;";
 		command += `export GIT_SSH_COMMAND="${gitSshCommand}";`;
 	}
-	command += `if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath}; then
+	if (entity.commitHash) {
+		command += `if ! git clone ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath}; then
+				echo "❌ [ERROR] Fail to clone the repository ${customGitUrl}";
+				exit 1;
+			fi
+			cd ${outputPath} && git checkout ${entity.commitHash};
+			`;
+	} else {
+		command += `if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath}; then
 				echo "❌ [ERROR] Fail to clone the repository ${customGitUrl}";
 				exit 1;
 			fi
 			`;
+	}
 
 	return command;
 };
@@ -142,9 +152,8 @@ const sanitizeRepoPathSSH = (input: string) => {
 		owner: found.groups?.owner ?? "",
 		repo: found.groups?.repo,
 		get repoPath() {
-			return `ssh://${this.user}@${this.domain}:${this.port}/${this.owner}${
-				this.owner && "/"
-			}${this.repo}.git`;
+			return `ssh://${this.user}@${this.domain}:${this.port}/${this.owner}${this.owner && "/"
+				}${this.repo}.git`;
 		},
 	};
 };

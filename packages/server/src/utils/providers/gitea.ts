@@ -131,6 +131,7 @@ interface CloneGiteaRepository {
 	serverId: string | null;
 	type?: "application" | "compose";
 	outputPathOverride?: string;
+	commitHash?: string;
 }
 
 export const cloneGiteaRepository = async ({
@@ -177,7 +178,12 @@ export const cloneGiteaRepository = async ({
 	);
 
 	command += `echo "Cloning Repo ${repoClone} to ${outputPath}: ✅";`;
-	command += `git clone --branch ${giteaBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	if (entity.commitHash) {
+		command += `git clone ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+		command += `cd ${outputPath} && git checkout ${entity.commitHash};`;
+	} else {
+		command += `git clone --branch ${giteaBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	}
 	return command;
 };
 

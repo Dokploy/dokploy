@@ -209,16 +209,17 @@ export const deployCompose = async ({
 	composeId,
 	titleLog = "Manual deployment",
 	descriptionLog = "",
+	commitHash,
 }: {
 	composeId: string;
-	titleLog: string;
-	descriptionLog: string;
+	titleLog?: string;
+	descriptionLog?: string;
+	commitHash?: string;
 }) => {
 	const compose = await findComposeById(composeId);
 
-	const buildLink = `${await getDokployUrl()}/dashboard/project/${
-		compose.environment.projectId
-	}/environment/${compose.environmentId}/services/compose/${compose.composeId}?tab=deployments`;
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${compose.environment.projectId
+		}/environment/${compose.environmentId}/services/compose/${compose.composeId}?tab=deployments`;
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -229,6 +230,7 @@ export const deployCompose = async ({
 		const entity = {
 			...compose,
 			type: "compose" as const,
+			commitHash,
 		};
 		let command = "set -e;";
 		if (compose.sourceType === "github") {
@@ -271,6 +273,24 @@ export const deployCompose = async ({
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateCompose(composeId, {
 			composeStatus: "done",
+		});
+
+		let hashToSave = commitHash;
+		if (compose.sourceType !== "raw" && !hashToSave) {
+			const commitInfo = await getGitCommitInfo({
+				...compose,
+				type: "compose",
+			});
+			if (commitInfo) {
+				hashToSave = commitInfo.hash;
+			}
+		}
+
+		const { createRollback } = await import("./rollbacks");
+		await createRollback({
+			appName: compose.name,
+			deploymentId: deployment.deploymentId,
+			commitHash: hashToSave,
 		});
 
 		await sendBuildSuccessNotifications({
@@ -417,9 +437,8 @@ export const removeCompose = async (
 		} else {
 			const command = `
 			 docker network disconnect ${compose.appName} dokploy-traefik;
-			cd ${projectPath} && env -i PATH="$PATH" docker compose -p ${compose.appName} down ${
-				deleteVolumes ? "--volumes" : ""
-			} && rm -rf ${projectPath}`;
+			cd ${projectPath} && env -i PATH="$PATH" docker compose -p ${compose.appName} down ${deleteVolumes ? "--volumes" : ""
+				} && rm -rf ${projectPath}`;
 
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);
@@ -479,8 +498,7 @@ export const stopCompose = async (composeId: string) => {
 			if (compose.serverId) {
 				await execAsyncRemote(
 					compose.serverId,
-					`cd ${join(COMPOSE_PATH, compose.appName)} && env -i PATH="$PATH" docker compose -p ${
-						compose.appName
+					`cd ${join(COMPOSE_PATH, compose.appName)} && env -i PATH="$PATH" docker compose -p ${compose.appName
 					} stop`,
 				);
 			} else {
