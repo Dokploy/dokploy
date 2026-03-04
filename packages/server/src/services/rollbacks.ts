@@ -23,7 +23,7 @@ import { findDeploymentById } from "./deployment";
 import type { Mount } from "./mount";
 import type { Port } from "./port";
 import type { Project } from "./project";
-import type { Registry } from "./registry";
+import { type Registry, safeDockerLoginCommand } from "./registry";
 
 export const createRollback = async (
 	input: z.infer<typeof createRollbackSchema>,
@@ -175,10 +175,11 @@ const dockerLoginForRegistry = async (
 	registry: Registry,
 	serverId?: string | null,
 ) => {
-	const escapedRegistry = shEscape(registry.registryUrl);
-	const escapedUser = shEscape(registry.username);
-	const escapedPassword = shEscape(registry.password);
-	const loginCommand = `printf %s ${escapedPassword} | docker login ${escapedRegistry} -u ${escapedUser} --password-stdin`;
+	const loginCommand = safeDockerLoginCommand(
+		registry.registryUrl,
+		registry.username,
+		registry.password,
+	);
 
 	if (serverId) {
 		await execAsyncRemote(serverId, loginCommand);
@@ -186,11 +187,6 @@ const dockerLoginForRegistry = async (
 		await execAsync(loginCommand);
 	}
 };
-
-function shEscape(s: string | undefined): string {
-	if (!s) return "''";
-	return `'${s.replace(/'/g, `'\\''`)}'`;
-}
 
 const rollbackApplication = async (
 	appName: string,

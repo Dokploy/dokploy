@@ -16,7 +16,7 @@ function shEscape(s: string | undefined): string {
 	return `'${s.replace(/'/g, `'\\''`)}'`;
 }
 
-function safeDockerLoginCommand(
+export function safeDockerLoginCommand(
 	registry: string | undefined,
 	user: string | undefined,
 	pass: string | undefined,
