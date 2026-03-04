@@ -17,7 +17,8 @@ import { api } from "@/utils/api";
 
 export const AddGithubProvider = () => {
 	const [isOpen, setIsOpen] = useState(false);
-	const { data: activeOrganization } = authClient.useActiveOrganization();
+	const { data: activeOrganization } = api.organization.active.useQuery();
+
 	const { data: session } = authClient.useSession();
 	const { data } = api.user.get.useQuery();
 	const [manifest, setManifest] = useState("");
@@ -52,7 +53,7 @@ export const AddGithubProvider = () => {
 		);
 
 		setManifest(manifest);
-	}, [data?.id, activeOrganization?.id, session?.user?.id]);
+	}, [activeOrganization?.id, session?.user?.id]);
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -131,11 +132,7 @@ export const AddGithubProvider = () => {
 										Unsure if you already have an app?
 									</a>
 									<Button
-										disabled={
-											(isOrganization && organizationName.length < 1) ||
-											!activeOrganization?.id ||
-											!session?.user?.id
-										}
+										disabled={isOrganization && organizationName.length < 1}
 										type="submit"
 										className="self-end"
 									>
