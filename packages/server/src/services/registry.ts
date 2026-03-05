@@ -170,3 +170,75 @@ export const findAllRegistryByOrganizationId = async (
 	});
 	return registryResponse;
 };
+
+export const findRegistryByIdWithPassword = async (registryId: string) => {
+	const registryResponse = await db.query.registry.findFirst({
+		where: eq(registry.registryId, registryId),
+	});
+	if (!registryResponse) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Registry not found",
+		});
+	}
+	return registryResponse;
+};
+
+function buildRegistryApiUrl(registryUrl: string): string {
+	const trimmed = registryUrl.replace(/\/+$/, "");
+	if (/^https?:\/\//i.test(trimmed)) {
+		return trimmed;
+	}
+	return `http://${trimmed}`;
+}
+
+export const fetchRegistryImages = async (
+	registryUrl: string,
+	username: string,
+	password: string,
+): Promise<string[]> => {
+	const baseUrl = buildRegistryApiUrl(registryUrl);
+	const auth = Buffer.from(`${username}:${password}`).toString("base64");
+
+	const response = await fetch(`${baseUrl}/v2/_catalog`, {
+		headers: {
+			Authorization: `Basic ${auth}`,
+		},
+	});
+
+	if (!response.ok) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Failed to fetch images from registry: ${response.statusText}`,
+		});
+	}
+
+	const data = (await response.json()) as { repositories?: string[] };
+	return data.repositories ?? [];
+};
+
+export const fetchRegistryImageTags = async (
+	registryUrl: string,
+	username: string,
+	password: string,
+	imageName: string,
+): Promise<string[]> => {
+	const baseUrl = buildRegistryApiUrl(registryUrl);
+	const auth = Buffer.from(`${username}:${password}`).toString("base64");
+
+	const response = await fetch(`${baseUrl}/v2/${imageName}/tags/list`, {
+		headers: {
+			Authorization: `Basic ${auth}`,
+		},
+	});
+
+	if (!response.ok) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Failed to fetch tags for image "${imageName}": ${response.statusText}`,
+		});
+	}
+
+	const data = (await response.json()) as { tags?: string[] };
+	return data.tags ?? [];
+};

@@ -2,7 +2,10 @@ import {
 	createRegistry,
 	execAsyncRemote,
 	execFileAsync,
+	fetchRegistryImages,
+	fetchRegistryImageTags,
 	findRegistryById,
+	findRegistryByIdWithPassword,
 	IS_CLOUD,
 	removeRegistry,
 	updateRegistry,
@@ -10,6 +13,7 @@ import {
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import {
 	apiCreateRegistry,
 	apiFindOneRegistry,
@@ -121,6 +125,43 @@ export const registryRouter = createTRPCRouter({
 					cause: error,
 				});
 			}
+		}),
+	getImages: protectedProcedure
+		.input(apiFindOneRegistry)
+		.query(async ({ input, ctx }) => {
+			const reg = await findRegistryByIdWithPassword(input.registryId);
+			if (reg.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to access this registry",
+				});
+			}
+			return await fetchRegistryImages(
+				reg.registryUrl,
+				reg.username,
+				reg.password,
+			);
+		}),
+	getImageTags: protectedProcedure
+		.input(
+			apiFindOneRegistry.extend({
+				imageName: z.string().min(1),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			const reg = await findRegistryByIdWithPassword(input.registryId);
+			if (reg.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to access this registry",
+				});
+			}
+			return await fetchRegistryImageTags(
+				reg.registryUrl,
+				reg.username,
+				reg.password,
+				input.imageName,
+			);
 		}),
 	testRegistryById: protectedProcedure
 		.input(apiTestRegistryById)
