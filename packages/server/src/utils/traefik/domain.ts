@@ -152,16 +152,13 @@ export const createRouterConfig = async (
 	}
 
 	if ((entryPoint === "websecure" && https) || !https) {
-		// redirects
-		for (const redirect of redirects) {
-			let middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
-			if (domain.domainType === "preview") {
-				middlewareName = `redirect-${appName.replace(
-					/^preview-(.+)-[^-]+$/,
-					"$1",
-				)}-${redirect.uniqueConfigKey}`;
+		// redirects - skip for preview deployments as wildcard subdomains
+		// should not inherit parent redirect rules (e.g., www-redirect)
+		if (domain.domainType !== "preview") {
+			for (const redirect of redirects) {
+				const middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
+				routerConfig.middlewares?.push(middlewareName);
 			}
-			routerConfig.middlewares?.push(middlewareName);
 		}
 
 		// security
