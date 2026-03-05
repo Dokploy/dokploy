@@ -203,7 +203,7 @@ async function buildRegistryApiUrl(registryUrl: string): Promise<string> {
 function parseNextLinkHeader(header: string | null): string | null {
 	if (!header) return null;
 	const match = header.match(/<([^>]+)>;\s*rel="next"/);
-	return match ? match[1] : null;
+	return match?.[1] ?? null;
 }
 
 export const fetchRegistryImages = async (
