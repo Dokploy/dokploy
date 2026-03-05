@@ -191,7 +191,9 @@ async function buildRegistryApiUrl(registryUrl: string): Promise<string> {
 	}
 	// Try HTTPS first, fall back to HTTP for self-hosted registries
 	try {
-		await fetch(`https://${trimmed}/v2/`, { signal: AbortSignal.timeout(3000) });
+		await fetch(`https://${trimmed}/v2/`, {
+			signal: AbortSignal.timeout(3000),
+		});
 		return `https://${trimmed}`;
 	} catch {
 		return `http://${trimmed}`;

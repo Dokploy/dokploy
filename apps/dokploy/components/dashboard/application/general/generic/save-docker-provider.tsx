@@ -280,9 +280,9 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 											role="combobox"
 											aria-expanded={imageOpen}
 											className={cn(
-											"w-full justify-between font-normal",
-											imageError && "border-destructive",
-										)}
+												"w-full justify-between font-normal",
+												imageError && "border-destructive",
+											)}
 										>
 											{derivedImage || "Select an image..."}
 											{imagesLoading ? (
@@ -324,7 +324,9 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 									</PopoverContent>
 								</Popover>
 								{imageError && (
-									<p className="text-sm font-medium text-destructive mt-1">{imageError}</p>
+									<p className="text-sm font-medium text-destructive mt-1">
+										{imageError}
+									</p>
 								)}
 							</div>
 
@@ -337,9 +339,9 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 											role="combobox"
 											aria-expanded={tagOpen}
 											className={cn(
-											"w-full justify-between font-normal",
-											tagError && "border-destructive",
-										)}
+												"w-full justify-between font-normal",
+												tagError && "border-destructive",
+											)}
 											disabled={!derivedImage}
 										>
 											{derivedTag || "Select a tag..."}
@@ -379,7 +381,9 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 									</PopoverContent>
 								</Popover>
 								{tagError && (
-									<p className="text-sm font-medium text-destructive mt-1">{tagError}</p>
+									<p className="text-sm font-medium text-destructive mt-1">
+										{tagError}
+									</p>
 								)}
 							</div>
 						</div>
