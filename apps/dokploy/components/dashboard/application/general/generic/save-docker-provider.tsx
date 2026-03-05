@@ -84,7 +84,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 
 	const derivedRegistryId = userOverride
 		? selectedRegistryId
-		: data?.registryId ?? "";
+		: (data?.registryId ?? "");
 
 	const derivedImage = (() => {
 		if (userOverride) return selectedImage;
