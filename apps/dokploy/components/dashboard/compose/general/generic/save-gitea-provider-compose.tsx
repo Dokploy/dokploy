@@ -409,10 +409,13 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 										<FormLabel>Watch Paths</FormLabel>
 										<TooltipProvider>
 											<Tooltip>
-												<TooltipTrigger>
-													<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
-														?
-													</div>
+												<TooltipTrigger asChild>
+  													<button
+    													type="button"
+    													className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 text-muted-foreground hover:text-foreground transition-colors"
+  													>
+    													<HelpCircle className="size-4" />
+  													</button>
 												</TooltipTrigger>
 												<TooltipContent>
 													<p>
