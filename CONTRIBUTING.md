@@ -62,6 +62,16 @@ pnpm install
 cp apps/dokploy/.env.example apps/dokploy/.env
 ```
 
+### Optional Docker Configuration
+
+The following environment variables can be added to your `.env` file if you need custom Docker daemon configuration:
+
+- **DOCKER_API_VERSION**: Specify which Docker API version to use (optional)
+- **DOCKER_HOST**: Specify a custom Docker daemon host (optional)
+- **DOCKER_PORT**: Specify a custom Docker daemon port (optional)
+
+These variables are typically not needed for standard local development but can be useful if you need to connect to a remote Docker daemon or require a specific Docker API version.
+
 ## Requirements
 
 - [Docker](/GUIDES.md#docker)
@@ -170,6 +180,11 @@ curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.39.1/pack-v0.
 - **Avoid Unfocused Changes:** Please avoid submitting Pull Requests that contain only minor changes such as whitespace adjustments, IDE-generated formatting, or removal of unused variables, unless these are part of a larger, clearly defined refactor or a dedicated "cleanup" Pull Request that addresses a specific `good first issue` or maintenance task.
 - **Issue Association:** For any significant change, it's highly recommended to open an issue first to discuss the proposed solution with the community and maintainers. This ensures alignment and avoids duplicated effort. If your PR resolves an existing issue, please link it in the description (e.g., `Fixes #123`, `Closes #456`).
 - **Large Features:** Pull Requests that introduce very large or broad features **will not be accepted** unless the idea is first outlined and discussed in a GitHub issue. Large features should be designed together with the Dokploy team so the project stays coherent and moves in the same direction. Open an issue to propose and align on the design before implementing.
+
+### Pull Request Guidelines
+
+- **Keep PRs small and focused.** Avoid very large PRs; prefer several smaller PRs (e.g., one template or one logical change per PR). This speeds up review and keeps the history clear.
+- **Test before submitting.** Any PR that has not been tested by the contributor will be closed. This keeps the PR queue tidy and ensures that only contributions that have been verified by their authors are considered.
 
 Thank you for your contribution!
 
