@@ -184,12 +184,24 @@ export const findRegistryByIdWithPassword = async (registryId: string) => {
 	return registryResponse;
 };
 
-function buildRegistryApiUrl(registryUrl: string): string {
+async function buildRegistryApiUrl(registryUrl: string): Promise<string> {
 	const trimmed = registryUrl.replace(/\/+$/, "");
 	if (/^https?:\/\//i.test(trimmed)) {
 		return trimmed;
 	}
-	return `http://${trimmed}`;
+	// Try HTTPS first, fall back to HTTP for self-hosted registries
+	try {
+		await fetch(`https://${trimmed}/v2/`, { signal: AbortSignal.timeout(3000) });
+		return `https://${trimmed}`;
+	} catch {
+		return `http://${trimmed}`;
+	}
+}
+
+function parseNextLinkHeader(header: string | null): string | null {
+	if (!header) return null;
+	const match = header.match(/<([^>]+)>;\s*rel="next"/);
+	return match ? match[1] : null;
 }
 
 export const fetchRegistryImages = async (
@@ -197,24 +209,54 @@ export const fetchRegistryImages = async (
 	username: string,
 	password: string,
 ): Promise<string[]> => {
-	const baseUrl = buildRegistryApiUrl(registryUrl);
+	const baseUrl = await buildRegistryApiUrl(registryUrl);
 	const auth = Buffer.from(`${username}:${password}`).toString("base64");
+	const headers = { Authorization: `Basic ${auth}` };
 
-	const response = await fetch(`${baseUrl}/v2/_catalog`, {
-		headers: {
-			Authorization: `Basic ${auth}`,
-		},
-	});
+	const repositories: string[] = [];
+	let url: string | null = `${baseUrl}/v2/_catalog?n=100`;
 
-	if (!response.ok) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Failed to fetch images from registry: ${response.statusText}`,
-		});
+	while (url) {
+		let response: Response;
+		try {
+			response = await fetch(url, { headers });
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Could not connect to registry: ${message}`,
+			});
+		}
+
+		if (!response.ok) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Failed to fetch images from registry: ${response.statusText}`,
+			});
+		}
+
+		const data = (await response.json()) as { repositories?: string[] };
+		repositories.push(...(data.repositories ?? []));
+		url = parseNextLinkHeader(response.headers.get("Link"));
 	}
 
-	const data = (await response.json()) as { repositories?: string[] };
-	return data.repositories ?? [];
+	// Filter out repositories with no tags (e.g. after manifest deletion)
+	const results = await Promise.all(
+		repositories.map(async (repo) => {
+			try {
+				const tags = await fetchRegistryImageTags(
+					registryUrl,
+					username,
+					password,
+					repo,
+				);
+				return tags.length > 0 ? repo : null;
+			} catch {
+				return null;
+			}
+		}),
+	);
+	return results.filter((r): r is string => r !== null);
 };
 
 export const fetchRegistryImageTags = async (
@@ -223,22 +265,36 @@ export const fetchRegistryImageTags = async (
 	password: string,
 	imageName: string,
 ): Promise<string[]> => {
-	const baseUrl = buildRegistryApiUrl(registryUrl);
+	const baseUrl = await buildRegistryApiUrl(registryUrl);
 	const auth = Buffer.from(`${username}:${password}`).toString("base64");
+	const headers = { Authorization: `Basic ${auth}` };
 
-	const response = await fetch(`${baseUrl}/v2/${imageName}/tags/list`, {
-		headers: {
-			Authorization: `Basic ${auth}`,
-		},
-	});
+	const allTags: string[] = [];
+	let url: string | null = `${baseUrl}/v2/${imageName}/tags/list?n=100`;
 
-	if (!response.ok) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Failed to fetch tags for image "${imageName}": ${response.statusText}`,
-		});
+	while (url) {
+		let response: Response;
+		try {
+			response = await fetch(url, { headers });
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Could not connect to registry: ${message}`,
+			});
+		}
+
+		if (!response.ok) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Failed to fetch tags for image "${imageName}": ${response.statusText}`,
+			});
+		}
+
+		const data = (await response.json()) as { tags?: string[] };
+		allTags.push(...(data.tags ?? []));
+		url = parseNextLinkHeader(response.headers.get("Link"));
 	}
 
-	const data = (await response.json()) as { tags?: string[] };
-	return data.tags ?? [];
+	return allTags;
 };

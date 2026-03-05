@@ -38,9 +38,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
 const DockerProviderSchema = z.object({
-	dockerImage: z.string().min(1, {
-		message: "Docker image is required",
-	}),
+	dockerImage: z.string().optional(),
 	username: z.string().optional(),
 	password: z.string().optional(),
 	registryURL: z.string().optional(),
@@ -66,10 +64,13 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 		resolver: zodResolver(DockerProviderSchema),
 	});
 
+	const NO_REGISTRY = "none";
 	const [userOverride, setUserOverride] = useState(false);
 	const [selectedRegistryId, setSelectedRegistryId] = useState<string>("");
 	const [selectedImage, setSelectedImage] = useState<string>("");
 	const [selectedTag, setSelectedTag] = useState<string>("");
+	const [imageError, setImageError] = useState<string>("");
+	const [tagError, setTagError] = useState<string>("");
 
 	useEffect(() => {
 		if (data) {
@@ -113,7 +114,30 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 	const [imageOpen, setImageOpen] = useState(false);
 	const [tagOpen, setTagOpen] = useState(false);
 
-	const { data: registries } = api.registry.all.useQuery();
+	const { data: registries, isLoading: registriesLoading } =
+		api.registry.all.useQuery();
+
+	const selectedRegistry = registries?.find(
+		(r) => r.registryId === derivedRegistryId,
+	);
+
+	// Strip imagePrefix from catalog names for display/storage.
+	// The registry API returns full paths (e.g. "docker/empty") but we store
+	// only the base name so populateFormFromRegistry can add the prefix back once.
+	const stripPrefix = (imageName: string) => {
+		const prefix = selectedRegistry?.imagePrefix;
+		if (prefix && imageName.startsWith(`${prefix}/`)) {
+			return imageName.substring(prefix.length + 1);
+		}
+		return imageName;
+	};
+
+	// Reconstruct full registry path (prefix + base name) for API calls
+	const fullImageName = (() => {
+		if (!derivedImage) return "";
+		const prefix = selectedRegistry?.imagePrefix;
+		return prefix ? `${prefix}/${derivedImage}` : derivedImage;
+	})();
 
 	const { data: images, isLoading: imagesLoading } =
 		api.registry.getImages.useQuery(
@@ -123,13 +147,9 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 
 	const { data: tags, isLoading: tagsLoading } =
 		api.registry.getImageTags.useQuery(
-			{ registryId: derivedRegistryId, imageName: derivedImage },
+			{ registryId: derivedRegistryId, imageName: fullImageName },
 			{ enabled: !!derivedRegistryId && !!derivedImage },
 		);
-
-	const selectedRegistry = registries?.find(
-		(r) => r.registryId === derivedRegistryId,
-	);
 
 	const populateFormFromRegistry = (
 		reg: typeof selectedRegistry,
@@ -149,10 +169,12 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 
 	const handleRegistryChange = (value: string) => {
 		setUserOverride(true);
-		setSelectedRegistryId(value === "none" ? "" : value);
+		setSelectedRegistryId(value === NO_REGISTRY ? "" : value);
 		setSelectedImage("");
 		setSelectedTag("");
-		if (value === "none") {
+		setImageError("");
+		setTagError("");
+		if (value === NO_REGISTRY) {
 			form.setValue("dockerImage", "");
 			form.setValue("username", "");
 			form.setValue("password", "");
@@ -165,18 +187,36 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 		setSelectedImage(image);
 		setSelectedTag("");
 		setImageOpen(false);
+		setImageError("");
+		setTagError("");
 	};
 
 	const handleTagSelect = (tag: string) => {
 		setUserOverride(true);
 		setSelectedTag(tag);
 		setTagOpen(false);
+		setTagError("");
 		populateFormFromRegistry(selectedRegistry, derivedImage, tag);
 	};
 
 	const onSubmit = async (values: DockerProvider) => {
+		if (derivedRegistryId) {
+			let hasError = false;
+			if (!derivedImage) {
+				setImageError("Image is required");
+				hasError = true;
+			}
+			if (!derivedTag) {
+				setTagError("Tag is required");
+				hasError = true;
+			}
+			if (hasError) return;
+		} else if (!values.dockerImage) {
+			form.setError("dockerImage", { message: "Docker image is required" });
+			return;
+		}
 		await mutateAsync({
-			dockerImage: values.dockerImage,
+			dockerImage: values.dockerImage ?? "",
 			password: values.password || null,
 			applicationId,
 			username: values.username || null,
@@ -202,14 +242,24 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 					<div>
 						<FormLabel>Browse from Registry</FormLabel>
 						<Select
-							value={derivedRegistryId || "none"}
+							value={derivedRegistryId || NO_REGISTRY}
 							onValueChange={handleRegistryChange}
+							disabled={registriesLoading}
 						>
 							<SelectTrigger>
-								<SelectValue placeholder="Select a registry" />
+								{registriesLoading ? (
+									<div className="flex items-center gap-2">
+										<Loader2 className="h-4 w-4 animate-spin" />
+										<span className="text-muted-foreground">
+											Loading registries...
+										</span>
+									</div>
+								) : (
+									<SelectValue placeholder="Select a registry" />
+								)}
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="none">None (manual input)</SelectItem>
+								<SelectItem value={NO_REGISTRY}>None (manual input)</SelectItem>
 								{registries?.map((reg) => (
 									<SelectItem key={reg.registryId} value={reg.registryId}>
 										{reg.registryName}
@@ -229,7 +279,10 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 											variant="outline"
 											role="combobox"
 											aria-expanded={imageOpen}
-											className="w-full justify-between font-normal"
+											className={cn(
+											"w-full justify-between font-normal",
+											imageError && "border-destructive",
+										)}
 										>
 											{derivedImage || "Select an image..."}
 											{imagesLoading ? (
@@ -245,28 +298,34 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 											<CommandList>
 												<CommandEmpty>No images found.</CommandEmpty>
 												<CommandGroup>
-													{images?.map((image) => (
-														<CommandItem
-															key={image}
-															value={image}
-															onSelect={() => handleImageSelect(image)}
-														>
-															<Check
-																className={cn(
-																	"mr-2 h-4 w-4",
-																	derivedImage === image
-																		? "opacity-100"
-																		: "opacity-0",
-																)}
-															/>
-															{image}
-														</CommandItem>
-													))}
+													{images?.map((image) => {
+														const baseName = stripPrefix(image);
+														return (
+															<CommandItem
+																key={image}
+																value={baseName}
+																onSelect={() => handleImageSelect(baseName)}
+															>
+																<Check
+																	className={cn(
+																		"mr-2 h-4 w-4",
+																		derivedImage === baseName
+																			? "opacity-100"
+																			: "opacity-0",
+																	)}
+																/>
+																{baseName}
+															</CommandItem>
+														);
+													})}
 												</CommandGroup>
 											</CommandList>
 										</Command>
 									</PopoverContent>
 								</Popover>
+								{imageError && (
+									<p className="text-sm font-medium text-destructive mt-1">{imageError}</p>
+								)}
 							</div>
 
 							<div>
@@ -277,7 +336,10 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 											variant="outline"
 											role="combobox"
 											aria-expanded={tagOpen}
-											className="w-full justify-between font-normal"
+											className={cn(
+											"w-full justify-between font-normal",
+											tagError && "border-destructive",
+										)}
 											disabled={!derivedImage}
 										>
 											{derivedTag || "Select a tag..."}
@@ -316,6 +378,9 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 										</Command>
 									</PopoverContent>
 								</Popover>
+								{tagError && (
+									<p className="text-sm font-medium text-destructive mt-1">{tagError}</p>
+								)}
 							</div>
 						</div>
 					)}
