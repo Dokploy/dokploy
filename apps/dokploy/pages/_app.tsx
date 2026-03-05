@@ -7,7 +7,6 @@ import Head from "next/head";
 import { ThemeProvider } from "next-themes";
 import NextTopLoader from "nextjs-toploader";
 import type { ReactElement, ReactNode } from "react";
-import { useEffect } from "react";
 import { SearchCommand } from "@/components/dashboard/search-command";
 import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/utils/api";
@@ -34,10 +33,6 @@ const MyApp = ({
 	const pageTitle = webServerSettings?.nickname
 		? `[${webServerSettings.nickname}] - Dokploy`
 		: "Dokploy";
-
-	useEffect(() => {
-		document.title = pageTitle;
-	}, [pageTitle]);
 
 	return (
 		<>
