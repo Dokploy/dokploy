@@ -7,6 +7,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { getAdvancedStats } from "@dokploy/server/monitoring/utils";
 import {
+	type ApplicationNested,
 	getBuildCommand,
 	mechanizeDockerContainer,
 } from "@dokploy/server/utils/builders";
@@ -115,6 +116,7 @@ export const findApplicationById = async (applicationId: string) => {
 			previewDeployments: true,
 			buildRegistry: true,
 			rollbackRegistry: true,
+			previewRegistry: true,
 		},
 	});
 	if (!application) {
@@ -124,6 +126,29 @@ export const findApplicationById = async (applicationId: string) => {
 		});
 	}
 	return application;
+};
+
+const applyPreviewDockerImage = (
+	application: ApplicationNested,
+	previewDeployment: { branch: string; pullRequestNumber: string },
+): boolean => {
+	if (!application.previewDockerImage) return false;
+
+	application.sourceType = "docker";
+	application.dockerImage = application.previewDockerImage
+		.replace(/\{owner\}/g, application.owner || "")
+		.replace(/\{repository\}/g, application.repository || "")
+		.replace(/\{branch\}/g, previewDeployment.branch)
+		.replace(/\{pr_number\}/g, previewDeployment.pullRequestNumber)
+		.replace(/\{app_name\}/g, application.appName);
+
+	if (application.previewRegistry) {
+		application.username = application.previewRegistry.username;
+		application.password = application.previewRegistry.password;
+		application.registryUrl = application.previewRegistry.registryUrl;
+	}
+
+	return true;
 };
 
 export const findApplicationByName = async (appName: string) => {
@@ -419,12 +444,24 @@ export const deployPreviewApplication = async ({
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.rollbackActive = false;
-		application.buildRegistry = null;
+		if (!application.buildServerId || application.buildServerId === application.serverId) {
+			application.buildRegistry = null;
+		}
 		application.rollbackRegistry = null;
 		application.registry = null;
 
+		const buildServerId = application.buildServerId || application.serverId;
 		let command = "set -e;";
-		if (application.sourceType === "github") {
+		if (applyPreviewDockerImage(application, previewDeployment)) {
+			command += await buildRemoteDocker(application);
+			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+			if (buildServerId) {
+				await execAsyncRemote(buildServerId, commandWithLog);
+			} else {
+				await execAsync(commandWithLog);
+			}
+			await mechanizeDockerContainer(application);
+		} else if (application.sourceType === "github") {
 			command += await cloneGithubRepository({
 				...application,
 				appName: previewDeployment.appName,
@@ -433,8 +470,8 @@ export const deployPreviewApplication = async ({
 			command += await getBuildCommand(application);
 
 			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-			if (application.serverId) {
-				await execAsyncRemote(application.serverId, commandWithLog);
+			if (buildServerId) {
+				await execAsyncRemote(buildServerId, commandWithLog);
 			} else {
 				await execAsync(commandWithLog);
 			}
@@ -538,14 +575,20 @@ export const rebuildPreviewApplication = async ({
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.rollbackActive = false;
-		application.buildRegistry = null;
+		if (!application.buildServerId || application.buildServerId === application.serverId) {
+			application.buildRegistry = null;
+		}
 		application.rollbackRegistry = null;
 		application.registry = null;
 
-		const serverId = application.serverId;
+		const serverId = application.buildServerId || application.serverId;
 		let command = "set -e;";
 		// Only rebuild, don't clone repository
-		command += await getBuildCommand(application);
+		if (applyPreviewDockerImage(application, previewDeployment)) {
+			command += await buildRemoteDocker(application);
+		} else {
+			command += await getBuildCommand(application);
+		}
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
 			await execAsyncRemote(serverId, commandWithLog);

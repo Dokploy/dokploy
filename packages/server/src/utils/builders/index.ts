@@ -31,6 +31,7 @@ export type ApplicationNested = InferResultType<
 		registry: true;
 		buildRegistry: true;
 		rollbackRegistry: true;
+		previewRegistry: true;
 		deployments: true;
 		environment: { with: { project: true } };
 	}
@@ -182,7 +183,7 @@ export const mechanizeDockerContainer = async (
 		});
 	} catch (error) {
 		console.log(error);
-		await docker.createService(settings);
+		await docker.createService(settings.authconfig, settings);
 	}
 };
 
