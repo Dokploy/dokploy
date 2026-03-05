@@ -414,8 +414,8 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 													    type="button"
 													    className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 text-muted-foreground hover:text-foreground transition-colors"
 												    >
-													<HelpCircle className="size-4" />
-												</button>
+													    <HelpCircle className="size-4" />
+												    </button>
 												</TooltipTrigger>
 												<TooltipContent>
 													<p>
