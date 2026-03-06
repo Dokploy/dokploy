@@ -3,9 +3,9 @@ import { logger } from "./logger.js";
 import type { QueueJob } from "./schema.js";
 import { runJobs } from "./utils.js";
 
-const workerCount = Number(process.env.SCHEDULE_WORKER_COUNT) || 3;
+const workerCount = Math.max(1, Number(process.env.SCHEDULE_WORKER_COUNT) || 3);
 const workerConcurrency =
-	Number(process.env.SCHEDULE_WORKER_CONCURRENCY) || 100;
+	Math.max(1, Number(process.env.SCHEDULE_WORKER_CONCURRENCY) || 100);
 
 export const workers: Worker[] = [];
 
