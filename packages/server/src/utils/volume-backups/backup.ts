@@ -2,7 +2,11 @@ import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { findComposeById } from "@dokploy/server/services/compose";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
-import { getS3Credentials, normalizeS3Path } from "../backups/utils";
+import {
+	getRcloneDestinationBase,
+	getS3Credentials,
+	normalizeS3Path,
+} from "../backups/utils";
 
 export const backupVolume = async (
 	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
@@ -15,7 +19,7 @@ export const backupVolume = async (
 	const backupFileName = `${volumeName}-${new Date().toISOString()}.tar`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 	const rcloneFlags = getS3Credentials(volumeBackup.destination);
-	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+	const rcloneDestination = `${getRcloneDestinationBase(destination)}/${bucketDestination}`;
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
 
 	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;

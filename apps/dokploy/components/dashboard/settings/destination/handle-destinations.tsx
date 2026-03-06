@@ -108,6 +108,8 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		}
 	}, [form, form.reset, form.formState.isSubmitSuccessful, destination]);
 
+	const selectedProvider = form.watch("provider");
+
 	const onSubmit = async (data: AddDestination) => {
 		await mutateAsync({
 			provider: data.provider || "",
@@ -168,7 +170,12 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		const endpoint = form.getValues("endpoint");
 		const region = form.getValues("region");
 
-		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
+		const connectionString =
+			provider === "FTP"
+				? `rclone ls --ftp-host=${endpoint} --ftp-user=${accessKey} --ftp-pass=*** :ftp:${bucket}`
+				: provider === "SFTP"
+					? `rclone ls --sftp-host=${endpoint} --sftp-user=${accessKey} --sftp-pass=*** :sftp:${bucket}`
+					: `rclone ls :s3,provider=${provider},access_key_id=${accessKey},secret_access_key=***,endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
 
 		await testConnection({
 			provider,
@@ -288,9 +295,21 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
+										<FormLabel>
+											{selectedProvider === "FTP" || selectedProvider === "SFTP"
+												? "Username"
+												: "Access Key Id"}
+										</FormLabel>
 										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
+											<Input
+												placeholder={
+													selectedProvider === "FTP" ||
+													selectedProvider === "SFTP"
+														? "backup-user"
+														: "xcas41dasde"
+												}
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -303,7 +322,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
+										<FormLabel>
+											{selectedProvider === "FTP" || selectedProvider === "SFTP"
+												? "Password"
+												: "Secret Access Key"}
+										</FormLabel>
 									</div>
 									<FormControl>
 										<Input placeholder={"asd123asdasw"} {...field} />
@@ -318,10 +341,22 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
+										<FormLabel>
+											{selectedProvider === "FTP" || selectedProvider === "SFTP"
+												? "Remote Path"
+												: "Bucket"}
+										</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
+										<Input
+											placeholder={
+												selectedProvider === "FTP" ||
+												selectedProvider === "SFTP"
+													? "/backups"
+													: "dokploy-bucket"
+											}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -347,10 +382,20 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							name="endpoint"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
+									<FormLabel>
+										{selectedProvider === "FTP" || selectedProvider === "SFTP"
+											? "Host"
+											: "Endpoint"}
+									</FormLabel>
 									<FormControl>
 										<Input
-											placeholder={"https://us.bucket.aws/s3"}
+											placeholder={
+												selectedProvider === "FTP"
+													? "ftp.example.com"
+													: selectedProvider === "SFTP"
+														? "sftp.example.com:22"
+														: "https://us.bucket.aws/s3"
+											}
 											{...field}
 										/>
 									</FormControl>

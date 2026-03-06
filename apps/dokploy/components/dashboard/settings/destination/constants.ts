@@ -130,4 +130,12 @@ export const S3_PROVIDERS: Array<{
 		key: "Other",
 		name: "Any other S3 compatible provider",
 	},
+	{
+		key: "FTP",
+		name: "FTP (via rclone backend)",
+	},
+	{
+		key: "SFTP",
+		name: "SFTP (via rclone backend)",
+	},
 ];
