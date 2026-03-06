@@ -8,7 +8,121 @@ import {
 	recordAdvancedStats,
 	validateRequest,
 } from "@dokploy/server";
-import { WebSocketServer } from "ws";
+import { type WebSocket, WebSocketServer } from "ws";
+
+const REFRESH_MS = Number(process.env.MONITORING_WS_REFRESH_MS) || 1300;
+
+interface Poller {
+	clients: Set<WebSocket>;
+	running: boolean;
+	appType: "application" | "stack" | "docker-compose";
+}
+
+const pollers = new Map<string, Poller>();
+
+async function runPollerLoop(appName: string) {
+	const poller = pollers.get(appName);
+	if (!poller) return;
+
+	while (poller.running && poller.clients.size > 0) {
+		try {
+			let data: unknown;
+
+			if (appName === "dokploy") {
+				const stat = await getHostSystemStats();
+				await recordAdvancedStats(stat, appName);
+				data = await getLastAdvancedStatsFile(appName);
+			} else {
+				const filter = {
+					status: ["running"],
+					...(poller.appType === "application" && {
+						label: [`com.docker.swarm.service.name=${appName}`],
+					}),
+					...(poller.appType === "stack" && {
+						label: [`com.docker.swarm.task.name=${appName}`],
+					}),
+					...(poller.appType === "docker-compose" && {
+						name: [appName],
+					}),
+				};
+
+				const containers = await docker.listContainers({
+					filters: JSON.stringify(filter),
+				});
+
+				const container = containers[0];
+				if (!container || container?.State !== "running") {
+					for (const client of poller.clients) {
+						client.close(4000, "Container not running");
+					}
+					break;
+				}
+
+				const { stdout, stderr } = await execAsync(
+					`docker stats ${container.Id} --no-stream --format '{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}'`,
+				);
+				if (stderr) {
+					console.error("Docker stats error:", stderr);
+					await delay(REFRESH_MS);
+					continue;
+				}
+
+				const stat = JSON.parse(stdout);
+				await recordAdvancedStats(stat, appName);
+				data = await getLastAdvancedStatsFile(appName);
+			}
+
+			const message = JSON.stringify({ data });
+			for (const client of poller.clients) {
+				if (client.readyState === client.OPEN) {
+					client.send(message);
+				}
+			}
+		} catch (error) {
+			const msg = `Error: ${(error as Error).message}`;
+			for (const client of poller.clients) {
+				client.close(4000, msg);
+			}
+			break;
+		}
+
+		await delay(REFRESH_MS);
+	}
+
+	pollers.delete(appName);
+}
+
+function delay(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function addClientToPoller(
+	appName: string,
+	appType: "application" | "stack" | "docker-compose",
+	ws: WebSocket,
+) {
+	let poller = pollers.get(appName);
+
+	if (poller) {
+		poller.clients.add(ws);
+	} else {
+		poller = {
+			clients: new Set([ws]),
+			running: true,
+			appType,
+		};
+		pollers.set(appName, poller);
+		runPollerLoop(appName);
+	}
+
+	ws.on("close", () => {
+		if (!poller) return;
+		poller.clients.delete(ws);
+		if (poller.clients.size === 0) {
+			poller.running = false;
+		}
+	});
+}
 
 export const setupDockerStatsMonitoringSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -55,70 +169,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 			ws.close();
 			return;
 		}
-		const intervalId = setInterval(async () => {
-			try {
-				// Special case: when monitoring "dokploy", get host system stats instead of container stats
-				if (appName === "dokploy") {
-					const stat = await getHostSystemStats();
 
-					await recordAdvancedStats(stat, appName);
-					const data = await getLastAdvancedStatsFile(appName);
-
-					ws.send(
-						JSON.stringify({
-							data,
-						}),
-					);
-					return;
-				}
-
-				const filter = {
-					status: ["running"],
-					...(appType === "application" && {
-						label: [`com.docker.swarm.service.name=${appName}`],
-					}),
-					...(appType === "stack" && {
-						label: [`com.docker.swarm.task.name=${appName}`],
-					}),
-					...(appType === "docker-compose" && {
-						name: [appName],
-					}),
-				};
-
-				const containers = await docker.listContainers({
-					filters: JSON.stringify(filter),
-				});
-
-				const container = containers[0];
-				if (!container || container?.State !== "running") {
-					ws.close(4000, "Container not running");
-					return;
-				}
-				const { stdout, stderr } = await execAsync(
-					`docker stats ${container.Id} --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'`,
-				);
-				if (stderr) {
-					console.error("Docker stats error:", stderr);
-					return;
-				}
-				const stat = JSON.parse(stdout);
-
-				await recordAdvancedStats(stat, appName);
-				const data = await getLastAdvancedStatsFile(appName);
-
-				ws.send(
-					JSON.stringify({
-						data,
-					}),
-				);
-			} catch (error) {
-				// @ts-ignore
-				ws.close(4000, `Error: ${error.message}`);
-			}
-		}, 1300);
-
-		ws.on("close", () => {
-			clearInterval(intervalId);
-		});
+		addClientToPoller(appName, appType, ws);
 	});
 };
