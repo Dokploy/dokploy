@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 )
 
 func (db *DB) InitContainerMetricsTable() error {
@@ -81,6 +82,49 @@ func (db *DB) GetLastNContainerMetrics(containerName string, limit int) ([]Conta
 		metrics = append(metrics, metric)
 	}
 	return metrics, nil
+}
+
+func (db *DB) GetContainerMetricsBefore(containerName string, cursor time.Time, limit int) ([]ContainerMetric, error) {
+	containerName = strings.TrimPrefix(containerName, "/")
+
+	query := `
+		WITH before_metrics AS (
+			SELECT metrics_json
+			FROM container_metrics
+			WHERE container_name = ? AND timestamp < ?
+			ORDER BY timestamp DESC
+			LIMIT ?
+		)
+		SELECT metrics_json FROM before_metrics ORDER BY json_extract(metrics_json, '$.timestamp') ASC
+	`
+	rows, err := db.Query(query, containerName, cursor.UTC().Format(time.RFC3339Nano), limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var metrics []ContainerMetric
+	for rows.Next() {
+		var metricsJSON string
+		err := rows.Scan(&metricsJSON)
+		if err != nil {
+			return nil, err
+		}
+
+		var metric ContainerMetric
+		if err := json.Unmarshal([]byte(metricsJSON), &metric); err != nil {
+			return nil, err
+		}
+		metrics = append(metrics, metric)
+	}
+	return metrics, nil
+}
+
+func (db *DB) GetContainerMetricsCount(containerName string) (int, error) {
+	containerName = strings.TrimPrefix(containerName, "/")
+	var count int
+	err := db.QueryRow(`SELECT COUNT(*) FROM container_metrics WHERE container_name = ?`, containerName).Scan(&count)
+	return count, err
 }
 
 func (db *DB) GetAllMetricsContainer(containerName string) ([]ContainerMetric, error) {
