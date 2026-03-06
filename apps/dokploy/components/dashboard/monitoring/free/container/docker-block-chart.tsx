@@ -80,8 +80,8 @@ interface CustomTooltipProps {
 		value?: number;
 		payload: {
 			time: string;
-			readMb: number;
-			writeMb: number;
+			readMb: string;
+			writeMb: string;
 		};
 	}[];
 }
