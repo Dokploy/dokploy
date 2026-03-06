@@ -53,13 +53,13 @@ func (db *DB) GetLastNContainerMetrics(containerName string, limit int) ([]Conta
 
 	query := `
 		WITH recent_metrics AS (
-			SELECT metrics_json
+			SELECT timestamp, metrics_json
 			FROM container_metrics
 			WHERE container_name = ?
 			ORDER BY timestamp DESC
 			LIMIT ?
 		)
-		SELECT metrics_json FROM recent_metrics ORDER BY json_extract(metrics_json, '$.timestamp') ASC
+		SELECT metrics_json FROM recent_metrics ORDER BY timestamp ASC
 	`
 	rows, err := db.Query(query, containerName, limit)
 	if err != nil {
@@ -89,13 +89,13 @@ func (db *DB) GetContainerMetricsBefore(containerName string, cursor time.Time, 
 
 	query := `
 		WITH before_metrics AS (
-			SELECT metrics_json
+			SELECT timestamp, metrics_json
 			FROM container_metrics
 			WHERE container_name = ? AND timestamp < ?
 			ORDER BY timestamp DESC
 			LIMIT ?
 		)
-		SELECT metrics_json FROM before_metrics ORDER BY json_extract(metrics_json, '$.timestamp') ASC
+		SELECT metrics_json FROM before_metrics ORDER BY timestamp ASC
 	`
 	rows, err := db.Query(query, containerName, cursor.UTC().Format(time.RFC3339Nano), limit)
 	if err != nil {
@@ -132,12 +132,12 @@ func (db *DB) GetAllMetricsContainer(containerName string) ([]ContainerMetric, e
 
 	query := `
 		WITH recent_metrics AS (
-			SELECT metrics_json
+			SELECT timestamp, metrics_json
 			FROM container_metrics
 			WHERE container_name = ?
 			ORDER BY timestamp DESC
 		)
-		SELECT metrics_json FROM recent_metrics ORDER BY json_extract(metrics_json, '$.timestamp') ASC
+		SELECT metrics_json FROM recent_metrics ORDER BY timestamp ASC
 	`
 	rows, err := db.Query(query, containerName)
 	if err != nil {
