@@ -10,7 +10,7 @@ import {
 } from "@dokploy/server";
 import { type WebSocket, WebSocketServer } from "ws";
 
-const REFRESH_MS = Number(process.env.MONITORING_WS_REFRESH_MS) || 1300;
+const REFRESH_MS = Math.max(500, Number(process.env.MONITORING_WS_REFRESH_MS) || 1300);
 
 interface Poller {
 	clients: Set<WebSocket>;
@@ -116,10 +116,11 @@ function addClientToPoller(
 	}
 
 	ws.on("close", () => {
-		if (!poller) return;
-		poller.clients.delete(ws);
-		if (poller.clients.size === 0) {
-			poller.running = false;
+		const p = pollers.get(appName);
+		if (!p) return;
+		p.clients.delete(ws);
+		if (p.clients.size === 0) {
+			p.running = false;
 		}
 	});
 }
