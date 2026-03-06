@@ -3,43 +3,25 @@ import { logger } from "./logger.js";
 import type { QueueJob } from "./schema.js";
 import { runJobs } from "./utils.js";
 
-export const firstWorker = new Worker(
-	"backupQueue",
-	async (job: Job<QueueJob>) => {
-		logger.info({ data: job.data }, "Running job first worker");
-		await runJobs(job.data);
-	},
-	{
-		concurrency: 100,
-		connection: {
-			url: process.env.REDIS_URL!,
-		},
-	},
-);
-export const secondWorker = new Worker(
-	"backupQueue",
-	async (job: Job<QueueJob>) => {
-		logger.info({ data: job.data }, "Running job second worker");
-		await runJobs(job.data);
-	},
-	{
-		concurrency: 100,
-		connection: {
-			url: process.env.REDIS_URL!,
-		},
-	},
-);
+const workerCount = Number(process.env.SCHEDULE_WORKER_COUNT) || 3;
+const workerConcurrency =
+	Number(process.env.SCHEDULE_WORKER_CONCURRENCY) || 100;
 
-export const thirdWorker = new Worker(
-	"backupQueue",
-	async (job: Job<QueueJob>) => {
-		logger.info({ data: job.data }, "Running job third worker");
-		await runJobs(job.data);
-	},
-	{
-		concurrency: 100,
-		connection: {
-			url: process.env.REDIS_URL!,
+export const workers: Worker[] = [];
+
+for (let i = 0; i < workerCount; i++) {
+	const worker = new Worker(
+		"backupQueue",
+		async (job: Job<QueueJob>) => {
+			logger.info({ data: job.data }, `Running job worker-${i}`);
+			await runJobs(job.data);
 		},
-	},
-);
+		{
+			concurrency: workerConcurrency,
+			connection: {
+				url: process.env.REDIS_URL!,
+			},
+		},
+	);
+	workers.push(worker);
+}
