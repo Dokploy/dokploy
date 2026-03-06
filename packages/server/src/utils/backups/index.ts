@@ -1,4 +1,3 @@
-import path from "node:path";
 import { CLEANUP_CRON_JOB } from "@dokploy/server/constants";
 import { member } from "@dokploy/server/db/schema";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
@@ -11,7 +10,11 @@ import { startLogCleanup } from "../access-log/handler";
 import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials, scheduleBackup } from "./utils";
+import {
+	getRcloneCredentials,
+	getRcloneDestinationPath,
+	scheduleBackup,
+} from "./utils";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
@@ -116,9 +119,9 @@ export const keepLatestNBackups = async (
 	if (!backup.keepLatestCount) return;
 
 	try {
-		const rcloneFlags = getS3Credentials(backup.destination);
-		const backupFilesPath = path.join(
-			`:s3:${backup.destination.bucket}`,
+		const { flags: rcloneFlags } = getRcloneCredentials(backup.destination);
+		const backupFilesPath = getRcloneDestinationPath(
+			backup.destination,
 			backup.prefix,
 		);
 

@@ -77,6 +77,41 @@ export const getS3Credentials = (destination: Destination) => {
 	return rcloneFlags;
 };
 
+export const getSftpCredentials = (destination: Destination) => {
+	const { sftpHost, sftpPort, sftpUser, sftpPassword } = destination;
+	if (!sftpHost || !sftpUser || !sftpPassword) {
+		throw new Error(
+			"SFTP destination requires host, user, and password to be configured",
+		);
+	}
+	return [
+		`--sftp-host="${sftpHost}"`,
+		`--sftp-port="${sftpPort ?? 22}"`,
+		`--sftp-user="${sftpUser}"`,
+		`--sftp-pass=$(rclone obscure "${sftpPassword}")`,
+	];
+};
+
+export const getRcloneCredentials = (
+	destination: Destination,
+): { flags: string[]; backend: string } => {
+	if (destination.provider === "sftp") {
+		return { flags: getSftpCredentials(destination), backend: "sftp" };
+	}
+	return { flags: getS3Credentials(destination), backend: "s3" };
+};
+
+export const getRcloneDestinationPath = (
+	destination: Destination,
+	remotePath: string,
+): string => {
+	if (destination.provider === "sftp") {
+		const basePath = (destination.sftpPath ?? "").replace(/\/+$/, "");
+		return `:sftp:${basePath}/${remotePath}`;
+	}
+	return `:s3:${destination.bucket}/${remotePath}`;
+};
+
 export const getPostgresBackupCommand = (
 	database: string,
 	databaseUser: string,
