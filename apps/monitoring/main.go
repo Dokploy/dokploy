@@ -122,7 +122,10 @@ func main() {
 		}
 
 		// Report total count so clients know if results were truncated
-		totalCount, _ := db.GetMetricsCount()
+		totalCount, countErr := db.GetMetricsCount()
+		if countErr != nil {
+			log.Printf("Error getting metrics count: %v", countErr)
+		}
 		c.Set("X-Total-Count", strconv.Itoa(totalCount))
 
 		return c.JSON(metrics)
@@ -186,7 +189,10 @@ func main() {
 			})
 		}
 
-		totalCount, _ := db.GetContainerMetricsCount(appName)
+		totalCount, countErr := db.GetContainerMetricsCount(appName)
+		if countErr != nil {
+			log.Printf("Error getting container metrics count: %v", countErr)
+		}
 		c.Set("X-Total-Count", strconv.Itoa(totalCount))
 
 		return c.JSON(metrics)
