@@ -107,6 +107,7 @@ class RingBuffer<T = StatValue> {
 
 const statsCache = new Map<string, RingBuffer>();
 const dirtyKeys = new Set<string>();
+const loadingPromises = new Map<string, Promise<RingBuffer>>();
 let flushTimer: ReturnType<typeof setInterval> | null = null;
 
 function getCacheKey(appName: string, statType: StatType): string {
@@ -130,19 +131,31 @@ async function loadFromDisk(
 	const existing = statsCache.get(key);
 	if (existing && existing.length > 0) return existing;
 
-	const buf = getOrCreateBuffer(key);
-	try {
-		const { MONITORING_PATH } = paths();
-		const filePath = `${MONITORING_PATH}/${appName}/${statType}.json`;
-		const data = await promises.readFile(filePath, "utf-8");
-		const entries: StatsEntry[] = JSON.parse(data);
-		for (const entry of entries) {
-			buf.push(entry);
+	const inflight = loadingPromises.get(key);
+	if (inflight) return inflight;
+
+	const promise = (async () => {
+		const buf = getOrCreateBuffer(key);
+		try {
+			const { MONITORING_PATH } = paths();
+			const filePath = `${MONITORING_PATH}/${appName}/${statType}.json`;
+			const data = await promises.readFile(filePath, "utf-8");
+			const entries: StatsEntry[] = JSON.parse(data);
+			for (const entry of entries) {
+				buf.push(entry);
+			}
+		} catch {
+			// File doesn't exist yet
 		}
-	} catch {
-		// File doesn't exist yet
+		return buf;
+	})();
+
+	loadingPromises.set(key, promise);
+	try {
+		return await promise;
+	} finally {
+		loadingPromises.delete(key);
 	}
-	return buf;
 }
 
 async function flushToDisk() {
@@ -180,6 +193,9 @@ function ensureFlushTimer() {
 // Flush on process exit
 process.on("beforeExit", () => flushToDisk());
 process.on("SIGTERM", () => {
+	flushToDisk().then(() => process.exit(0));
+});
+process.on("SIGINT", () => {
 	flushToDisk().then(() => process.exit(0));
 });
 
@@ -338,15 +354,14 @@ export const updateStatsFile = async (
 	value: StatValue,
 ) => {
 	const key = getCacheKey(appName, statType);
-	const buf = getOrCreateBuffer(key);
+	let buf = getOrCreateBuffer(key);
 
 	// Ensure buffer is loaded from disk on first write
 	if (buf.length === 0) {
-		await loadFromDisk(appName, statType);
+		buf = await loadFromDisk(appName, statType);
 	}
 
-	const finalBuf = getOrCreateBuffer(key);
-	finalBuf.push({ value, time: new Date().toISOString() });
+	buf.push({ value, time: new Date().toISOString() });
 	dirtyKeys.add(key);
 };
 
