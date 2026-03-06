@@ -169,7 +169,9 @@ async function flushToDisk() {
 		const buf = statsCache.get(key);
 		if (!buf) continue;
 
-		const [appName, statType] = key.split("/");
+		const lastSlash = key.lastIndexOf("/");
+		const appName = key.substring(0, lastSlash);
+		const statType = key.substring(lastSlash + 1);
 		const dirPath = `${MONITORING_PATH}/${appName}`;
 		try {
 			await promises.mkdir(dirPath, { recursive: true });
@@ -193,10 +195,14 @@ function ensureFlushTimer() {
 // Flush on process exit
 process.on("beforeExit", () => flushToDisk());
 process.on("SIGTERM", () => {
-	flushToDisk().then(() => process.exit(0));
+	flushToDisk()
+		.catch((err) => console.error("Flush failed on SIGTERM:", err))
+		.finally(() => process.exit(0));
 });
 process.on("SIGINT", () => {
-	flushToDisk().then(() => process.exit(0));
+	flushToDisk()
+		.catch((err) => console.error("Flush failed on SIGINT:", err))
+		.finally(() => process.exit(0));
 });
 
 export const recordAdvancedStats = async (
