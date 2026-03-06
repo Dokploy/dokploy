@@ -10,7 +10,10 @@ import {
 } from "@dokploy/server";
 import { type WebSocket, WebSocketServer } from "ws";
 
-const REFRESH_MS = Math.max(500, Number(process.env.MONITORING_WS_REFRESH_MS) || 1300);
+const REFRESH_MS = Math.max(
+	500,
+	Number(process.env.MONITORING_WS_REFRESH_MS) || 1300,
+);
 
 interface Poller {
 	clients: Set<WebSocket>;
