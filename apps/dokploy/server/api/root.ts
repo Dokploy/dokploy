@@ -21,6 +21,7 @@ import { mariadbRouter } from "./routers/mariadb";
 import { mongoRouter } from "./routers/mongo";
 import { mountRouter } from "./routers/mount";
 import { mysqlRouter } from "./routers/mysql";
+import { networkRouter } from "./routers/network";
 import { notificationRouter } from "./routers/notification";
 import { organizationRouter } from "./routers/organization";
 import { patchRouter } from "./routers/patch";
@@ -74,6 +75,7 @@ export const appRouter = createTRPCRouter({
 	mongo: mongoRouter,
 	mounts: mountRouter,
 	mysql: mysqlRouter,
+	network: networkRouter,
 	notification: notificationRouter,
 	port: portRouter,
 	postgres: postgresRouter,
