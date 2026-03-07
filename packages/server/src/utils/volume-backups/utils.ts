@@ -141,7 +141,10 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 				organizationId,
 			});
 		} catch (notificationError) {
-			console.error("Failed to send volume backup success notification", notificationError);
+			console.error(
+				"Failed to send volume backup success notification",
+				notificationError,
+			);
 		}
 	} catch (error) {
 		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
@@ -175,7 +178,10 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 				errorMessage: error instanceof Error ? error.message : String(error),
 			});
 		} catch (notificationError) {
-			console.error("Failed to send volume backup error notification", notificationError);
+			console.error(
+				"Failed to send volume backup error notification",
+				notificationError,
+			);
 		}
 	}
 };
