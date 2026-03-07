@@ -26,7 +26,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 
 	try {
 		const destination = await findDestinationById(backup.destinationId);
-		const rcloneFlags = getS3Credentials(destination);
+		const rcloneFlags = getS3Credentials(destination, backup.storageClass);
 		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 		const { BASE_PATH } = paths();
 		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-backup-"));

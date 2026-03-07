@@ -3,6 +3,10 @@ import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { keepLatestNBackups } from ".";
+import {
+	isValidS3StorageClassForProvider,
+	normalizeS3StorageClass,
+} from "./s3-storage-class";
 import { runComposeBackup } from "./compose";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
@@ -58,7 +62,10 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
-export const getS3Credentials = (destination: Destination) => {
+export const getS3Credentials = (
+	destination: Destination,
+	storageClass?: string | null,
+) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [
@@ -72,6 +79,27 @@ export const getS3Credentials = (destination: Destination) => {
 
 	if (provider) {
 		rcloneFlags.unshift(`--s3-provider="${provider}"`);
+	}
+
+	const normalizedStorageClass = normalizeS3StorageClass(storageClass);
+	if (normalizedStorageClass) {
+		if (
+			isValidS3StorageClassForProvider({
+				provider,
+				storageClass: normalizedStorageClass,
+			})
+		) {
+			rcloneFlags.push(`--s3-storage-class="${normalizedStorageClass}"`);
+		} else {
+			logger.warn(
+				{
+					destinationId: destination.destinationId,
+					provider,
+					storageClass: normalizedStorageClass,
+				},
+				"Invalid backup storage class for provider, falling back to destination default",
+			);
+		}
 	}
 
 	return rcloneFlags;

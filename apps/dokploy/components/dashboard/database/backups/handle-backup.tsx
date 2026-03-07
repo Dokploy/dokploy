@@ -7,7 +7,7 @@ import {
 	PlusIcon,
 	RefreshCw,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -62,6 +62,10 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { ScheduleFormField } from "../../application/schedules/handle-schedules";
+import {
+	getS3StorageClassLabel,
+	getS3StorageClassOptionsByProvider,
+} from "./constants";
 
 type CacheType = "cache" | "fetch";
 
@@ -106,6 +110,7 @@ const Schema = z
 					.optional(),
 			})
 			.optional(),
+		storageClass: z.string().optional(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.backupType === "compose" && !data.databaseType) {
@@ -219,9 +224,31 @@ export const HandleBackup = ({
 			databaseType: backupType === "compose" ? undefined : databaseType,
 			backupType: backupType,
 			metadata: {},
+			storageClass: "",
 		},
 		resolver: zodResolver(Schema),
 	});
+
+	const selectedDestinationId = form.watch("destinationId");
+	const selectedStorageClass = form.watch("storageClass");
+	const selectedDestination = data?.find(
+		(destination) => destination.destinationId === selectedDestinationId,
+	);
+	const selectedProvider = selectedDestination?.provider;
+	const storageClassOptions = useMemo(
+		() => getS3StorageClassOptionsByProvider(selectedProvider),
+		[selectedProvider],
+	);
+	const hasStorageClassSupport = storageClassOptions.length > 0;
+
+	useEffect(() => {
+		if (
+			selectedStorageClass &&
+			!storageClassOptions.includes(selectedStorageClass)
+		) {
+			form.setValue("storageClass", "");
+		}
+	}, [form, selectedStorageClass, storageClassOptions]);
 
 	const {
 		data: services,
@@ -256,6 +283,7 @@ export const HandleBackup = ({
 			databaseType: backup?.databaseType ?? databaseType,
 			backupType: backup?.backupType ?? backupType,
 			metadata: backup?.metadata ?? {},
+			storageClass: backup?.storageClass ?? "",
 		});
 	}, [form, form.reset, backupId, backup]);
 
@@ -300,6 +328,11 @@ export const HandleBackup = ({
 			backupId: backupId ?? "",
 			backupType,
 			metadata: data.metadata,
+			storageClass: data.storageClass?.trim()
+				? data.storageClass.trim()
+				: backupId
+					? null
+					: undefined,
 		})
 			.then(async () => {
 				toast.success(`Backup ${backupId ? "Updated" : "Created"}`);
@@ -455,6 +488,51 @@ export const HandleBackup = ({
 									</FormItem>
 								)}
 							/>
+							{hasStorageClassSupport && (
+								<FormField
+									control={form.control}
+									name="storageClass"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Storage Class</FormLabel>
+											<FormControl>
+												<Select
+													onValueChange={(value) =>
+														field.onChange(value === "__DEFAULT__" ? "" : value)
+													}
+													defaultValue={field.value || "__DEFAULT__"}
+													value={field.value || "__DEFAULT__"}
+													disabled={!selectedDestination}
+												>
+													<SelectTrigger>
+														<SelectValue
+															placeholder={
+																!selectedDestination
+																	? "Select destination first"
+																	: "Use destination default"
+															}
+														/>
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="__DEFAULT__">
+															Use destination default
+														</SelectItem>
+														{storageClassOptions.map((storageClassOption) => (
+															<SelectItem
+																key={storageClassOption}
+																value={storageClassOption}
+															>
+																{getS3StorageClassLabel(storageClassOption)}
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							)}
 							{backupType === "compose" && (
 								<div className="flex flex-row items-end w-full gap-4">
 									<FormField

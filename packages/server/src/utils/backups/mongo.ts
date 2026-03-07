@@ -24,7 +24,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 		description: "MongoDB Backup",
 	});
 	try {
-		const rcloneFlags = getS3Credentials(destination);
+		const rcloneFlags = getS3Credentials(destination, backup.storageClass);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
 		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 

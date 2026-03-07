@@ -23,6 +23,7 @@ export const volumeBackups = pgTable("volume_backup", {
 	name: text("name").notNull(),
 	volumeName: text("volumeName").notNull(),
 	prefix: text("prefix").notNull(),
+	storageClass: text("storageClass"),
 	serviceType: serviceType("serviceType").notNull().default("application"),
 	appName: text("appName")
 		.notNull()

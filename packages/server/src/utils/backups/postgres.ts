@@ -28,7 +28,7 @@ export const runPostgresBackup = async (
 	const backupFileName = `${new Date().toISOString()}.sql.gz`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 	try {
-		const rcloneFlags = getS3Credentials(destination);
+		const rcloneFlags = getS3Credentials(destination, backup.storageClass);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
 
 		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;

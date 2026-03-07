@@ -1037,6 +1037,13 @@
       "when": 1771830695385,
       "tag": "0147_right_lake",
       "breakpoints": true
+    },
+    {
+      "idx": 149,
+      "version": "7",
+      "when": 1771967432000,
+      "tag": "0148_large_beef",
+      "breakpoints": true
     }
   ]
 }
