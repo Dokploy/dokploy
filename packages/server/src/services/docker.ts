@@ -583,12 +583,12 @@ export const createNetwork = async (
 ) => {
 	try {
 		let command = `docker network create --driver ${driver}`;
-		
+
 		// Add options
 		for (const [key, value] of Object.entries(options)) {
 			command += ` --opt ${key}=${value}`;
 		}
-		
+
 		command += ` ${name}`;
 
 		let stdout = "";
