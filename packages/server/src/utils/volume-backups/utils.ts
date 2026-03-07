@@ -131,14 +131,18 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 				? "mongodb"
 				: volumeBackup.serviceType;
 
-		await sendVolumeBackupNotifications({
-			projectName,
-			applicationName: volumeBackup.name,
-			volumeName: volumeBackup.volumeName,
-			serviceType: mappedServiceType,
-			type: "success",
-			organizationId,
-		});
+		try {
+			await sendVolumeBackupNotifications({
+				projectName,
+				applicationName: volumeBackup.name,
+				volumeName: volumeBackup.volumeName,
+				serviceType: mappedServiceType,
+				type: "success",
+				organizationId,
+			});
+		} catch (notificationError) {
+			console.error("Failed to send volume backup success notification", notificationError);
+		}
 	} catch (error) {
 		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 		const volumeBackupPath = path.join(
@@ -160,14 +164,18 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 				? "mongodb"
 				: volumeBackup.serviceType;
 
-		await sendVolumeBackupNotifications({
-			projectName,
-			applicationName: volumeBackup.name,
-			volumeName: volumeBackup.volumeName,
-			serviceType: mappedServiceType,
-			type: "error",
-			organizationId,
-			errorMessage: error instanceof Error ? error.message : String(error),
-		});
+		try {
+			await sendVolumeBackupNotifications({
+				projectName,
+				applicationName: volumeBackup.name,
+				volumeName: volumeBackup.volumeName,
+				serviceType: mappedServiceType,
+				type: "error",
+				organizationId,
+				errorMessage: error instanceof Error ? error.message : String(error),
+			});
+		} catch (notificationError) {
+			console.error("Failed to send volume backup error notification", notificationError);
+		}
 	}
 };
