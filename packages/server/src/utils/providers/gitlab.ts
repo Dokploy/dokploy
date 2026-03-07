@@ -214,7 +214,9 @@ export const getGitlabBranches = async (input: {
 	const allBranches = [];
 	let page = 1;
 	const perPage = 100; // GitLab's max per page is 100
-	const baseUrl = (gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl).replace(/\/+$/, "");
+	const baseUrl = (
+		gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
+	).replace(/\/+$/, "");
 
 	while (true) {
 		const branchesResponse = await fetch(
@@ -293,7 +295,9 @@ export const validateGitlabProvider = async (gitlabProvider: Gitlab) => {
 		const allProjects = [];
 		let page = 1;
 		const perPage = 100; // GitLab's max per page is 100
-		const baseUrl = (gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl).replace(/\/+$/, "");
+		const baseUrl = (
+			gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
+		).replace(/\/+$/, "");
 
 		while (true) {
 			const response = await fetch(
