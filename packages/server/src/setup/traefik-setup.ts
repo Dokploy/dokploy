@@ -311,6 +311,15 @@ export const getDefaultTraefikConfig = () => {
 						},
 					},
 				},
+				"letsencrypt-dns": {
+					acme: {
+						email: "test@localhost.com",
+						storage: "/etc/dokploy/traefik/dynamic/acme-dns.json",
+						dnsChallenge: {
+							provider: "cloudflare",
+						},
+					},
+				},
 			},
 		}),
 	};
@@ -363,6 +372,15 @@ export const getDefaultServerTraefikConfig = () => {
 					storage: "/etc/dokploy/traefik/dynamic/acme.json",
 					httpChallenge: {
 						entryPoint: "web",
+					},
+				},
+			},
+			"letsencrypt-dns": {
+				acme: {
+					email: "test@localhost.com",
+					storage: "/etc/dokploy/traefik/dynamic/acme-dns.json",
+					dnsChallenge: {
+						provider: "cloudflare",
 					},
 				},
 			},

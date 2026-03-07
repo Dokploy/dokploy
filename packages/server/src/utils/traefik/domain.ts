@@ -118,6 +118,20 @@ const toPunycode = (host: string): string => {
 	}
 };
 
+export const isWildcardDomain = (host: string): boolean => {
+	return host.startsWith("*.");
+};
+
+export const buildHostRule = (host: string): string => {
+	if (isWildcardDomain(host)) {
+		const baseDomain = host.slice(2);
+		const escapedDomain = baseDomain.replace(/\./g, "\\.");
+		return `HostRegexp(\`^.+\\.${escapedDomain}$\`)`;
+	}
+	const punycodeHost = toPunycode(host);
+	return `Host(\`${punycodeHost}\`)`;
+};
+
 export const createRouterConfig = async (
 	app: ApplicationNested,
 	domain: Domain,
@@ -128,9 +142,10 @@ export const createRouterConfig = async (
 
 	const { host, path, https, uniqueConfigKey, internalPath, stripPath } =
 		domain;
-	const punycodeHost = toPunycode(host);
+	const hostRule = buildHostRule(host);
+	const wildcardDomain = isWildcardDomain(host);
 	const routerConfig: HttpRouter = {
-		rule: `Host(\`${punycodeHost}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
+		rule: `${hostRule}${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
 		service: `${appName}-service-${uniqueConfigKey}`,
 		middlewares: [],
 		entryPoints: [entryPoint],
@@ -176,7 +191,10 @@ export const createRouterConfig = async (
 
 	if (entryPoint === "websecure") {
 		if (certificateType === "letsencrypt") {
-			routerConfig.tls = { certResolver: "letsencrypt" };
+			const resolverName = wildcardDomain
+				? "letsencrypt-dns"
+				: "letsencrypt";
+			routerConfig.tls = { certResolver: resolverName };
 		} else if (certificateType === "custom" && domain.customCertResolver) {
 			routerConfig.tls = { certResolver: domain.customCertResolver };
 		} else if (certificateType === "none") {

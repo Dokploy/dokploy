@@ -1,5 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
+import { AlertTriangle, DatabaseZap, Dices, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -210,6 +210,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const domainType = form.watch("domainType");
 	const host = form.watch("host");
 	const isTraefikMeDomain = host?.includes("traefik.me") || false;
+	const isWildcardHost = host?.startsWith("*.") || false;
 
 	useEffect(() => {
 		if (data) {
@@ -555,6 +556,14 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									)}
 								/>
 
+								{isWildcardHost && (
+									<AlertBlock type="info">
+										<strong>Wildcard Domain:</strong> This domain will match all
+										subdomains (e.g., <code>app.{host?.slice(2)}</code>,{" "}
+										<code>api.{host?.slice(2)}</code>).
+									</AlertBlock>
+								)}
+
 								<FormField
 									control={form.control}
 									name="path"
@@ -696,6 +705,27 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 												);
 											}}
 										/>
+
+										{isWildcardHost && certificateType === "letsencrypt" && (
+											<AlertBlock type="warning">
+												<div className="flex items-start gap-2">
+													<AlertTriangle className="size-4 mt-0.5 shrink-0" />
+													<div>
+														<strong>DNS Challenge Required:</strong> Wildcard SSL
+														certificates require DNS challenge validation.
+														Make sure you have configured your DNS provider
+														credentials in{" "}
+														<Link
+															href="/dashboard/settings/server"
+															className="text-primary underline"
+														>
+															Settings → Web Server → Traefik Environment
+														</Link>{" "}
+														(e.g., <code>CF_DNS_API_TOKEN</code> for Cloudflare).
+													</div>
+												</div>
+											</AlertBlock>
+										)}
 
 										{certificateType === "custom" && (
 											<FormField
