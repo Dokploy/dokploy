@@ -1,5 +1,4 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -36,34 +35,30 @@ type Schema = z.infer<typeof schema>;
 interface Props {
 	children?: React.ReactNode;
 	serverId?: string;
+	autoOpen?: boolean;
+	showDnsGuide?: boolean;
+	onOpenChange?: (open: boolean) => void;
 }
 
-export const EditTraefikEnv = ({ children, serverId }: Props) => {
-	const router = useRouter();
-	const isOpenedViaWildcard = router.query.traefikEnv === "true";
-	const [isOpen, setIsOpen] = useState(false);
+export const EditTraefikEnv = ({
+	children,
+	serverId,
+	autoOpen = false,
+	showDnsGuide = false,
+	onOpenChange: onOpenChangeProp,
+}: Props) => {
+	const [isOpen, setIsOpen] = useState(autoOpen);
 	const [canEdit, setCanEdit] = useState(true);
 
 	useEffect(() => {
-		if (isOpenedViaWildcard) {
+		if (autoOpen) {
 			setIsOpen(true);
 		}
-	}, [isOpenedViaWildcard]);
+	}, [autoOpen]);
 
 	const handleOpenChange = (open: boolean) => {
 		setIsOpen(open);
-		if (!open && isOpenedViaWildcard) {
-			const query = { ...router.query };
-			delete query.traefikEnv;
-			router.replace(
-				{
-					pathname: router.pathname,
-					query,
-				},
-				undefined,
-				{ shallow: true },
-			);
-		}
+		onOpenChangeProp?.(open);
 	};
 
 	const { data } = api.settings.readTraefikEnv.useQuery({
@@ -127,7 +122,7 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
-			<DialogTrigger asChild>{children}</DialogTrigger>
+			{children && <DialogTrigger asChild>{children}</DialogTrigger>}
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
 					<DialogTitle>Update Traefik Environment</DialogTitle>
@@ -139,7 +134,7 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
-				{isOpenedViaWildcard && (
+				{showDnsGuide && (
 					<AlertBlock type="info">
 						<strong>DNS Challenge for Wildcard Certificates:</strong>{" "}
 						To use wildcard domains (e.g., *.example.com) with HTTPS,

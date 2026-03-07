@@ -1,4 +1,5 @@
 import { ServerIcon } from "lucide-react";
+import { useRouter } from "next/router";
 import {
 	Card,
 	CardContent,
@@ -12,8 +13,27 @@ import { ShowStorageActions } from "./servers/actions/show-storage-actions";
 import { ShowTraefikActions } from "./servers/actions/show-traefik-actions";
 import { ToggleDockerCleanup } from "./servers/actions/toggle-docker-cleanup";
 import { UpdateServer } from "./web-server/update-server";
+import { EditTraefikEnv } from "./web-server/edit-traefik-env";
 
 export const WebServer = () => {
+	const router = useRouter();
+	const showTraefikEnv = router.query.traefikEnv === "true";
+
+	const handleTraefikEnvClose = (open: boolean) => {
+		if (!open && showTraefikEnv) {
+			const query = { ...router.query };
+			delete query.traefikEnv;
+			router.replace(
+				{
+					pathname: router.pathname,
+					query,
+				},
+				undefined,
+				{ shallow: true },
+			);
+		}
+	};
+
 	const { data: webServerSettings } =
 		api.settings.getWebServerSettings.useQuery();
 
@@ -21,7 +41,14 @@ export const WebServer = () => {
 
 	return (
 		<div className="w-full">
-			{/* <Card className={cn("rounded-lg w-full bg-transparent p-0", className)}></Card> */}
+			{showTraefikEnv && (
+				<EditTraefikEnv
+					autoOpen
+					showDnsGuide
+					onOpenChange={handleTraefikEnvClose}
+				/>
+			)}
+
 			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
@@ -31,14 +58,6 @@ export const WebServer = () => {
 						</CardTitle>
 						<CardDescription>Reload or clean the web server.</CardDescription>
 					</CardHeader>
-					{/* <CardHeader>
-						<CardTitle className="text-xl">
-							Web Server
-						</CardTitle>
-						<CardDescription>
-							Reload or clean the web server.
-						</CardDescription>
-					</CardHeader> */}
 					<CardContent className="space-y-6 py-6 border-t">
 						<div className="grid md:grid-cols-2 gap-4">
 							<ShowDokployActions />
