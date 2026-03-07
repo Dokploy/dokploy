@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { webServerSettings } from "@dokploy/server/db/schema/web-server-settings";
-import { parse, stringify } from "yaml";
+import { parse, stringify } from "../yaml";
 import {
 	loadOrCreateConfig,
 	removeTraefikConfig,

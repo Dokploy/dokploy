@@ -3,9 +3,9 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
-import { parse, stringify } from "yaml";
 import { encodeBase64 } from "../docker/utils";
 import { execAsyncRemote } from "../process/execAsync";
+import { parse, stringify } from "../yaml";
 import type { FileConfig, HttpLoadBalancerService } from "./file-types";
 
 export const createTraefikConfig = (appName: string) => {

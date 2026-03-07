@@ -7,9 +7,9 @@ import {
 	certificates,
 } from "@dokploy/server/db/schema";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
+import { stringify } from "@dokploy/server/utils/yaml";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { stringify } from "yaml";
 import type { z } from "zod";
 import { encodeBase64 } from "../utils/docker/utils";
 import { execAsyncRemote } from "../utils/process/execAsync";

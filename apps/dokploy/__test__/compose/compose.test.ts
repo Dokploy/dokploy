@@ -1,7 +1,7 @@
 import type { ComposeSpecification } from "@dokploy/server";
 import { addSuffixToAllProperties } from "@dokploy/server";
+import { parse } from "@dokploy/server/utils/yaml";
 import { expect, test } from "vitest";
-import { parse } from "yaml";
 
 const composeFile1 = `
 version: "3.8"

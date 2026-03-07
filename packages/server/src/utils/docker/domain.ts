@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Domain } from "@dokploy/server/services/domain";
-import { parse, stringify } from "yaml";
 import { execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
@@ -11,6 +10,7 @@ import { cloneGiteaRepository } from "../providers/gitea";
 import { cloneGithubRepository } from "../providers/github";
 import { cloneGitlabRepository } from "../providers/gitlab";
 import { getCreateComposeFileCommand } from "../providers/raw";
+import { parse, stringify } from "../yaml";
 import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
 import type {

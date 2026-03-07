@@ -3,8 +3,8 @@ import {
 	addSuffixToAllServiceNames,
 	addSuffixToServiceNames,
 } from "@dokploy/server";
+import { parse } from "@dokploy/server/utils/yaml";
 import { expect, test } from "vitest";
-import { parse } from "yaml";
 
 const composeFileCombinedAllCases = `
 version: "3.8"

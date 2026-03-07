@@ -1,8 +1,8 @@
+import { parse, stringify, YAMLParseError } from "@dokploy/server/utils/yaml";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { parse, stringify, YAMLParseError } from "yaml";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";

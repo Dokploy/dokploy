@@ -46,11 +46,11 @@ import {
 	writeTraefikSetup,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { parse, stringify } from "@dokploy/server/utils/yaml";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";
 import { eq, sql } from "drizzle-orm";
 import { scheduledJobs, scheduleJob } from "node-schedule";
-import { parse, stringify } from "yaml";
 import { z } from "zod";
 import {
 	apiAssignDomain,

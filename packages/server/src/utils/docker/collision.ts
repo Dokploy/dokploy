@@ -1,6 +1,6 @@
 import { findComposeById } from "@dokploy/server/services/compose";
-import { stringify } from "yaml";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { stringify } from "../yaml";
 import { addAppNameToAllServiceNames } from "./collision/root-network";
 import { generateRandomHash } from "./compose";
 import { addSuffixToAllVolumes } from "./compose/volume";
