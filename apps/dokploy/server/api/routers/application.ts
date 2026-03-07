@@ -66,6 +66,7 @@ import {
 	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
+import { uploadFileSchema } from "@/utils/schema";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -811,13 +812,11 @@ export const applicationRouter = createTRPCRouter({
 				override: true,
 			},
 		})
-		.input(z.instanceof(FormData))
+		.input(uploadFileSchema)
 		.mutation(async ({ input, ctx }) => {
-			const formData = input;
-
-			const zipFile = formData.get("zip") as File;
-			const applicationId = formData.get("applicationId") as string;
-			const dropBuildPath = formData.get("dropBuildPath") as string | null;
+			const zipFile = input.zip;
+			const applicationId = input.applicationId as string;
+			const dropBuildPath = input.dropBuildPath ?? null;
 
 			const app = await findApplicationById(applicationId);
 
