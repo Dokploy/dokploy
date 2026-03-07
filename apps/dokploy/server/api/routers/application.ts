@@ -814,11 +814,18 @@ export const applicationRouter = createTRPCRouter({
 		})
 		.input(uploadFileSchema)
 		.mutation(async ({ input, ctx }) => {
-			const zipFile = input.zip;
-			const applicationId = input.applicationId as string;
-			const dropBuildPath = input.dropBuildPath ?? null;
+		const zipFile = input.zip;
+		const applicationId = input.applicationId;
+		const dropBuildPath = input.dropBuildPath ?? null;
 
-			const app = await findApplicationById(applicationId);
+		if (!applicationId) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "applicationId is required",
+			});
+		}
+
+		const app = await findApplicationById(applicationId);
 
 			if (
 				app.environment.project.organizationId !==
