@@ -745,7 +745,6 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 														>
 															Settings → Web Server → Traefik Environment
 														</Link>{" "}
-														(e.g., <code>CF_DNS_API_TOKEN</code> for Cloudflare).
 													</div>
 												</div>
 											</AlertBlock>
