@@ -13,7 +13,10 @@ export const backupVolume = async (
 	const { VOLUME_BACKUPS_PATH, VOLUME_BACKUP_LOCK_PATH } = paths(!!serverId);
 	const destination = volumeBackup.destination;
 	const backupFileName = `${volumeName}-${new Date().toISOString()}.tar`;
-	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
+	const effectivePrefix = prefix
+		? normalizeS3Path(prefix)
+		: `${volumeBackup.appName}/`;
+	const bucketDestination = `${effectivePrefix}${backupFileName}`;
 	const rcloneFlags = getS3Credentials(volumeBackup.destination);
 	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
