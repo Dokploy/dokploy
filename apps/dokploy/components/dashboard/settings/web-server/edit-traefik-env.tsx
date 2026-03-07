@@ -106,10 +106,24 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 				<DialogHeader>
 					<DialogTitle>Update Traefik Environment</DialogTitle>
 					<DialogDescription>
-						Update the traefik environment variables
+						Update the traefik environment variables. For wildcard
+						SSL certificates, configure your DNS provider credentials
+						below.
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+
+				<AlertBlock type="info">
+					<strong>DNS Challenge for Wildcard Certificates:</strong>{" "}
+					To use wildcard domains (e.g., *.example.com) with HTTPS,
+					add your DNS provider API credentials here. Common providers:
+					<ul className="mt-1 ml-4 list-disc text-xs space-y-0.5">
+						<li><strong>Cloudflare:</strong> <code>CF_DNS_API_TOKEN=your_token</code></li>
+						<li><strong>Route53:</strong> <code>AWS_ACCESS_KEY_ID</code> + <code>AWS_SECRET_ACCESS_KEY</code></li>
+						<li><strong>DigitalOcean:</strong> <code>DO_AUTH_TOKEN=your_token</code></li>
+						<li><strong>Hetzner:</strong> <code>HETZNER_API_KEY=your_key</code></li>
+					</ul>
+				</AlertBlock>
 
 				<Form {...form}>
 					<form
@@ -128,13 +142,9 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 											<CodeEditor
 												language="properties"
 												wrapperClassName="h-[35rem] font-mono"
-												placeholder={`TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL=test@localhost.com
-TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_STORAGE=/etc/dokploy/traefik/dynamic/acme.json
-TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_HTTP_CHALLENGE=true
-TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_HTTP_CHALLENGE_PRETTY=true
-TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_HTTP_CHALLENGE_ENTRYPOINT=web
-TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_HTTP_CHALLENGE_DNS_CHALLENGE=true
-TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_HTTP_CHALLENGE_DNS_PROVIDER=cloudflare
+												placeholder={`# DNS Challenge credentials for wildcard certificates
+CF_DNS_API_TOKEN=your_cloudflare_api_token
+CF_API_EMAIL=your_cloudflare_email
                                                     `}
 												{...field}
 											/>
