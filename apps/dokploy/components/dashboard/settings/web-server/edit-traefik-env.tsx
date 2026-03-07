@@ -1,4 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -38,7 +39,32 @@ interface Props {
 }
 
 export const EditTraefikEnv = ({ children, serverId }: Props) => {
+	const router = useRouter();
+	const isOpenedViaWildcard = router.query.traefikEnv === "true";
+	const [isOpen, setIsOpen] = useState(false);
 	const [canEdit, setCanEdit] = useState(true);
+
+	useEffect(() => {
+		if (isOpenedViaWildcard) {
+			setIsOpen(true);
+		}
+	}, [isOpenedViaWildcard]);
+
+	const handleOpenChange = (open: boolean) => {
+		setIsOpen(open);
+		if (!open && isOpenedViaWildcard) {
+			const query = { ...router.query };
+			delete query.traefikEnv;
+			router.replace(
+				{
+					pathname: router.pathname,
+					query,
+				},
+				undefined,
+				{ shallow: true },
+			);
+		}
+	};
 
 	const { data } = api.settings.readTraefikEnv.useQuery({
 		serverId,
@@ -100,7 +126,7 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 	}, [form, onSubmit, isPending, canEdit]);
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
@@ -113,17 +139,19 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
-				<AlertBlock type="info">
-					<strong>DNS Challenge for Wildcard Certificates:</strong>{" "}
-					To use wildcard domains (e.g., *.example.com) with HTTPS,
-					add your DNS provider API credentials here. Common providers:
-					<ul className="mt-1 ml-4 list-disc text-xs space-y-0.5">
-						<li><strong>Cloudflare:</strong> <code>CF_DNS_API_TOKEN=your_token</code></li>
-						<li><strong>Route53:</strong> <code>AWS_ACCESS_KEY_ID</code> + <code>AWS_SECRET_ACCESS_KEY</code></li>
-						<li><strong>DigitalOcean:</strong> <code>DO_AUTH_TOKEN=your_token</code></li>
-						<li><strong>Hetzner:</strong> <code>HETZNER_API_KEY=your_key</code></li>
-					</ul>
-				</AlertBlock>
+				{isOpenedViaWildcard && (
+					<AlertBlock type="info">
+						<strong>DNS Challenge for Wildcard Certificates:</strong>{" "}
+						To use wildcard domains (e.g., *.example.com) with HTTPS,
+						add your DNS provider API credentials here. Common providers:
+						<ul className="mt-1 ml-4 list-disc text-xs space-y-0.5">
+							<li><strong>Cloudflare:</strong> <code>CF_DNS_API_TOKEN=your_token</code></li>
+							<li><strong>Route53:</strong> <code>AWS_ACCESS_KEY_ID</code> + <code>AWS_SECRET_ACCESS_KEY</code></li>
+							<li><strong>DigitalOcean:</strong> <code>DO_AUTH_TOKEN=your_token</code></li>
+							<li><strong>Hetzner:</strong> <code>HETZNER_API_KEY=your_key</code></li>
+						</ul>
+					</AlertBlock>
+				)}
 
 				<Form {...form}>
 					<form

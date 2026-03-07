@@ -740,7 +740,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 														Make sure you have configured your DNS provider
 														credentials in{" "}
 														<Link
-															href="/dashboard/settings/server"
+															href="/dashboard/settings/server?traefikEnv=true"
 															className="text-primary underline"
 														>
 															Settings → Web Server → Traefik Environment
