@@ -490,3 +490,223 @@ export const getApplicationInfo = async (
 		return appArray;
 	} catch {}
 };
+
+// Docker Network Management Functions
+export const getNetworks = async (serverId?: string | null) => {
+	try {
+		const command = "docker network ls --format '{{json .}}'";
+		let stdout = "";
+		let stderr = "";
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return [];
+		}
+
+		if (!stdout.trim()) return [];
+
+		const networks = stdout
+			.trim()
+			.split("\n")
+			.map((line) => {
+				try {
+					const network = JSON.parse(line);
+					return {
+						id: network.ID,
+						name: network.Name,
+						driver: network.Driver,
+						scope: network.Scope,
+						created: network.CreatedAt,
+						serverId,
+					};
+				} catch (error) {
+					console.error("Error parsing network:", error);
+					return null;
+				}
+			})
+			.filter((network) => network !== null);
+
+		return networks;
+	} catch (error) {
+		console.error("Error getting networks:", error);
+		return [];
+	}
+};
+
+export const getNetworkDetails = async (
+	networkId: string,
+	serverId?: string | null,
+) => {
+	try {
+		const command = `docker network inspect ${networkId}`;
+		let stdout = "";
+		let stderr = "";
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			throw new Error(`Failed to inspect network: ${stderr}`);
+		}
+
+		const networkDetails = JSON.parse(stdout)[0];
+		return networkDetails;
+	} catch (error) {
+		console.error("Error getting network details:", error);
+		throw error;
+	}
+};
+
+export const createNetwork = async (
+	name: string,
+	driver = "bridge",
+	options: { [key: string]: string } = {},
+	serverId?: string | null,
+) => {
+	try {
+		let command = `docker network create --driver ${driver}`;
+		
+		// Add options
+		for (const [key, value] of Object.entries(options)) {
+			command += ` --opt ${key}=${value}`;
+		}
+		
+		command += ` ${name}`;
+
+		let stdout = "";
+		let stderr = "";
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			throw new Error(`Failed to create network: ${stderr}`);
+		}
+
+		return stdout.trim();
+	} catch (error) {
+		console.error("Error creating network:", error);
+		throw error;
+	}
+};
+
+export const removeNetwork = async (
+	networkId: string,
+	serverId?: string | null,
+) => {
+	try {
+		const command = `docker network rm ${networkId}`;
+		let stdout = "";
+		let stderr = "";
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			throw new Error(`Failed to remove network: ${stderr}`);
+		}
+
+		return true;
+	} catch (error) {
+		console.error("Error removing network:", error);
+		throw error;
+	}
+};
+
+export const connectContainerToNetwork = async (
+	networkId: string,
+	containerId: string,
+	serverId?: string | null,
+) => {
+	try {
+		const command = `docker network connect ${networkId} ${containerId}`;
+		let stdout = "";
+		let stderr = "";
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			throw new Error(`Failed to connect container to network: ${stderr}`);
+		}
+
+		return true;
+	} catch (error) {
+		console.error("Error connecting container to network:", error);
+		throw error;
+	}
+};
+
+export const disconnectContainerFromNetwork = async (
+	networkId: string,
+	containerId: string,
+	serverId?: string | null,
+) => {
+	try {
+		const command = `docker network disconnect ${networkId} ${containerId}`;
+		let stdout = "";
+		let stderr = "";
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			throw new Error(`Failed to disconnect container from network: ${stderr}`);
+		}
+
+		return true;
+	} catch (error) {
+		console.error("Error disconnecting container from network:", error);
+		throw error;
+	}
+};
