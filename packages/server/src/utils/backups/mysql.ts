@@ -17,7 +17,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	const { prefix } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${new Date().toISOString()}.sql.gz`;
-	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
+	const bucketDestination = `${backup.appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
 		title: "MySQL Backup",

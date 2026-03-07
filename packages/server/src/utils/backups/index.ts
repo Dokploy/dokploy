@@ -1,4 +1,3 @@
-import path from "node:path";
 import { CLEANUP_CRON_JOB } from "@dokploy/server/constants";
 import { member } from "@dokploy/server/db/schema";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
@@ -11,7 +10,7 @@ import { startLogCleanup } from "../access-log/handler";
 import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials, scheduleBackup } from "./utils";
+import { getS3Credentials, normalizeS3Path, scheduleBackup } from "./utils";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
@@ -117,18 +116,15 @@ export const keepLatestNBackups = async (
 
 	try {
 		const rcloneFlags = getS3Credentials(backup.destination);
-		const backupFilesPath = path.join(
-			`:s3:${backup.destination.bucket}`,
-			backup.prefix,
-		);
+		const backupFilesPath = `:s3:${backup.destination.bucket}/${backup.appName}/${normalizeS3Path(backup.prefix)}`;
 
 		// --include "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
 		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".sql.gz"}" ${backupFilesPath}`;
 		// when we pipe the above command with this one, we only get the list of files we want to delete
 		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
 		// this command deletes the files
-		// to test the deletion before actually deleting we can add --dry-run before ${backupFilesPath}/{}
-		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}/{}`;
+		// to test the deletion before actually deleting we can add --dry-run before ${backupFilesPath}{}
+		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
 
 		const rcloneCommand = `${rcloneList} | ${sortAndPickUnwantedBackups} ${rcloneDelete}`;
 
