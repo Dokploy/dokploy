@@ -26,6 +26,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { AddUserPermissions } from "./add-permissions";
 import { ChangeRole } from "./change-role";
