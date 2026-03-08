@@ -1,5 +1,6 @@
 import {
 	addNewService,
+	canAccessServer,
 	checkPortInUse,
 	checkServiceAccess,
 	createMongo,
@@ -55,6 +56,18 @@ export const mongoRouter = createTRPCRouter({
 						ctx.session.activeOrganizationId,
 						"create",
 					);
+
+					const hasServerAccess = await canAccessServer(
+						ctx.user.id,
+						input.serverId ?? "local",
+						ctx.session.activeOrganizationId,
+					);
+					if (!hasServerAccess) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "You don't have access to the selected server",
+						});
+					}
 				}
 
 				if (IS_CLOUD && !input.serverId) {

@@ -495,6 +495,28 @@ export const userRouter = createTRPCRouter({
 
 			return organizations.length;
 		}),
+	updateMemberServers: adminProcedure
+		.input(
+			z.object({
+				userId: z.string(),
+				accessedServers: z.array(z.string()),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			await db
+				.update(member)
+				.set({ accessedServers: input.accessedServers })
+				.where(
+					and(
+						eq(member.userId, input.userId),
+						eq(
+							member.organizationId,
+							ctx.session?.activeOrganizationId || "",
+						),
+					),
+				);
+			return { success: true };
+		}),
 	sendInvitation: adminProcedure
 		.input(
 			z.object({

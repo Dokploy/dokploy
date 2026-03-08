@@ -2,6 +2,7 @@ import {
 	createServer,
 	defaultCommand,
 	deleteServer,
+	findMemberById,
 	findServerById,
 	findServersByUserId,
 	findUserById,
@@ -104,7 +105,16 @@ export const serverRouter = createTRPCRouter({
 			.orderBy(desc(server.createdAt))
 			.groupBy(server.serverId);
 
-		return result;
+		if (ctx.user.role === "owner" || ctx.user.role === "admin") {
+			return result;
+		}
+
+		const memberData = await findMemberById(
+			ctx.user.id,
+			ctx.session.activeOrganizationId,
+		);
+		const allowed = new Set(memberData.accessedServers ?? []);
+		return result.filter((s) => allowed.has(s.serverId));
 	}),
 	count: protectedProcedure.query(async ({ ctx }) => {
 		const organizations = await db.query.organization.findMany({
@@ -134,7 +144,17 @@ export const serverRouter = createTRPCRouter({
 						eq(server.serverType, "deploy"),
 					),
 		});
-		return result;
+
+		if (ctx.user.role === "owner" || ctx.user.role === "admin") {
+			return result;
+		}
+
+		const memberData = await findMemberById(
+			ctx.user.id,
+			ctx.session.activeOrganizationId,
+		);
+		const allowed = new Set(memberData.accessedServers ?? []);
+		return result.filter((s) => allowed.has(s.serverId));
 	}),
 	buildServers: protectedProcedure.query(async ({ ctx }) => {
 		const result = await db.query.server.findMany({

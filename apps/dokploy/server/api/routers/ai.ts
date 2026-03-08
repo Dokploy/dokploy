@@ -20,6 +20,7 @@ import { createComposeByTemplate } from "@dokploy/server/services/compose";
 import { findProjectById } from "@dokploy/server/services/project";
 import {
 	addNewService,
+	canAccessServer,
 	checkServiceAccess,
 } from "@dokploy/server/services/user";
 import {
@@ -225,10 +226,23 @@ export const aiRouter = createTRPCRouter({
 			const project = await findProjectById(environment.projectId);
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
-					ctx.session.activeOrganizationId,
+					ctx.user.id,
 					environment.projectId,
+					ctx.session.activeOrganizationId,
 					"create",
 				);
+
+				const hasServerAccess = await canAccessServer(
+					ctx.user.id,
+					input.serverId ?? "local",
+					ctx.session.activeOrganizationId,
+				);
+				if (!hasServerAccess) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You don't have access to the selected server",
+					});
+				}
 			}
 
 			if (IS_CLOUD && !input.serverId) {

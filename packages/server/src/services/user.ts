@@ -148,6 +148,20 @@ export const canPerformAccessProject = async (
 	return false;
 };
 
+export const canAccessServer = async (
+	userId: string,
+	serverId: string,
+	organizationId: string,
+): Promise<boolean> => {
+	const memberResult = await findMemberById(userId, organizationId);
+
+	if (memberResult.role === "owner" || memberResult.role === "admin") {
+		return true;
+	}
+
+	return (memberResult.accessedServers ?? []).includes(serverId);
+};
+
 export const canPerformAccessEnvironment = async (
 	userId: string,
 	environmentId: string,
