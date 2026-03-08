@@ -17,6 +17,8 @@ import { manageDomain } from "../utils/traefik/domain";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
 import { createDomain } from "./domain";
+import { isPrivateIp } from "../utils/ip";
+import { getPublicIpWithFallback } from "../wss/utils";
 import { type Github, getIssueComment } from "./github";
 import { getWebServerSettings } from "./web-server-settings";
 
@@ -256,6 +258,10 @@ const generateWildcardDomain = async (
 		if (!ip) {
 			const settings = await getWebServerSettings();
 			ip = settings?.serverIp || "";
+		}
+
+		if (isPrivateIp(ip)) {
+			ip = (await getPublicIpWithFallback()) || ip;
 		}
 
 		const slugIp = ip.replaceAll(".", "-");
