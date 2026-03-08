@@ -48,7 +48,7 @@ export const redisRouter = createTRPCRouter({
 				const project = await findProjectById(environment.projectId);
 
 				if (ctx.user.role === "member") {
-					await checkServiceAccess(
+					const member = await checkServiceAccess(
 						ctx.user.id,
 						project.projectId,
 						ctx.session.activeOrganizationId,
@@ -59,6 +59,7 @@ export const redisRouter = createTRPCRouter({
 						ctx.user.id,
 						input.serverId ?? "local",
 						ctx.session.activeOrganizationId,
+						member,
 					);
 					if (!hasServerAccess) {
 						throw new TRPCError({

@@ -152,8 +152,10 @@ export const canAccessServer = async (
 	userId: string,
 	serverId: string,
 	organizationId: string,
+	prefetchedMember?: Awaited<ReturnType<typeof findMemberById>>,
 ): Promise<boolean> => {
-	const memberResult = await findMemberById(userId, organizationId);
+	const memberResult =
+		prefetchedMember ?? (await findMemberById(userId, organizationId));
 
 	if (memberResult.role === "owner" || memberResult.role === "admin") {
 		return true;
@@ -211,39 +213,36 @@ export const checkServiceAccess = async (
 	serviceId: string,
 	organizationId: string,
 	action = "access" as "access" | "create" | "delete",
-) => {
+): Promise<Awaited<ReturnType<typeof findMemberById>>> => {
+	const memberResult = await findMemberById(userId, organizationId);
+
 	let hasPermission = false;
 	switch (action) {
 		case "create":
-			hasPermission = await canPerformCreationService(
-				userId,
-				serviceId,
-				organizationId,
-			);
+			hasPermission =
+				memberResult.canCreateServices &&
+				memberResult.accessedProjects.includes(serviceId);
 			break;
 		case "access":
-			hasPermission = await canPerformAccessService(
-				userId,
-				serviceId,
-				organizationId,
-			);
+			hasPermission = memberResult.accessedServices.includes(serviceId);
 			break;
 		case "delete":
-			hasPermission = await canPeformDeleteService(
-				userId,
-				serviceId,
-				organizationId,
-			);
+			hasPermission =
+				memberResult.canDeleteServices &&
+				memberResult.accessedServices.includes(serviceId);
 			break;
 		default:
 			hasPermission = false;
 	}
+
 	if (!hasPermission) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
 			message: "Permission denied",
 		});
 	}
+
+	return memberResult;
 };
 
 export const checkEnvironmentAccess = async (

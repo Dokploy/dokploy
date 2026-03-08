@@ -918,7 +918,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 															variant="outline"
 															role="combobox"
 															className={cn(
-																"w-full justify-start gap-2 flex-wrap min-h-9 h-auto font-normal hover:bg-transparent transition-none active:scale-100 active:translate-y-0",
+																"w-full justify-start gap-2 flex-wrap min-h-9 h-auto font-normal hover:bg-transparent transition-none active:hover:scale-100 active:hover:translate-y-0",
 																allLabels.length === 0 && "text-muted-foreground",
 															)}
 														>

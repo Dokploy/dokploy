@@ -85,7 +85,7 @@ export const composeRouter = createTRPCRouter({
 				const project = await findProjectById(environment.projectId);
 
 				if (ctx.user.role === "member") {
-					await checkServiceAccess(
+					const member = await checkServiceAccess(
 						ctx.user.id,
 						project.projectId,
 						ctx.session.activeOrganizationId,
@@ -95,6 +95,7 @@ export const composeRouter = createTRPCRouter({
 						ctx.user.id,
 						input.serverId ?? "local",
 						ctx.session.activeOrganizationId,
+						member,
 					);
 					if (!hasServerAccess) {
 						throw new TRPCError({
@@ -604,7 +605,7 @@ export const composeRouter = createTRPCRouter({
 			const environment = await findEnvironmentById(input.environmentId);
 
 			if (ctx.user.role === "member") {
-				await checkServiceAccess(
+				const member = await checkServiceAccess(
 					ctx.user.id,
 					environment.projectId,
 					ctx.session.activeOrganizationId,
@@ -615,6 +616,7 @@ export const composeRouter = createTRPCRouter({
 					ctx.user.id,
 					input.serverId ?? "local",
 					ctx.session.activeOrganizationId,
+					member,
 				);
 				if (!hasServerAccess) {
 					throw new TRPCError({

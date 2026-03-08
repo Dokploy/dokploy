@@ -225,7 +225,7 @@ export const aiRouter = createTRPCRouter({
 			const environment = await findEnvironmentById(input.environmentId);
 			const project = await findProjectById(environment.projectId);
 			if (ctx.user.role === "member") {
-				await checkServiceAccess(
+				const member = await checkServiceAccess(
 					ctx.user.id,
 					environment.projectId,
 					ctx.session.activeOrganizationId,
@@ -236,6 +236,7 @@ export const aiRouter = createTRPCRouter({
 					ctx.user.id,
 					input.serverId ?? "local",
 					ctx.session.activeOrganizationId,
+					member,
 				);
 				if (!hasServerAccess) {
 					throw new TRPCError({
