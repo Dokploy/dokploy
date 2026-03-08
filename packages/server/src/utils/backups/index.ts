@@ -106,6 +106,20 @@ export const initCronJobs = async () => {
 	}
 };
 
+const getServiceAppName = (backup: BackupSchedule): string => {
+	if (backup.compose?.appName) {
+		return backup.serviceName
+			? `${backup.compose.appName}_${backup.serviceName}`
+			: backup.compose.appName;
+	}
+	const serviceAppName =
+		backup.postgres?.appName ||
+		backup.mysql?.appName ||
+		backup.mariadb?.appName ||
+		backup.mongo?.appName;
+	return serviceAppName || backup.appName;
+};
+
 export const keepLatestNBackups = async (
 	backup: BackupSchedule,
 	serverId?: string | null,
@@ -116,7 +130,8 @@ export const keepLatestNBackups = async (
 
 	try {
 		const rcloneFlags = getS3Credentials(backup.destination);
-		const backupFilesPath = `:s3:${backup.destination.bucket}/${backup.appName}/${normalizeS3Path(backup.prefix)}`;
+		const appName = getServiceAppName(backup);
+		const backupFilesPath = `:s3:${backup.destination.bucket}/${appName}/${normalizeS3Path(backup.prefix)}`;
 
 		// --include "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
 		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".sql.gz"}" ${backupFilesPath}`;

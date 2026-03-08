@@ -4,6 +4,24 @@ import { findComposeById } from "@dokploy/server/services/compose";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
 import { getS3Credentials, normalizeS3Path } from "../backups/utils";
 
+export const getVolumeServiceAppName = (
+	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
+): string => {
+	if (volumeBackup.compose?.appName) {
+		return volumeBackup.serviceName
+			? `${volumeBackup.compose.appName}_${volumeBackup.serviceName}`
+			: volumeBackup.compose.appName;
+	}
+	const serviceAppName =
+		volumeBackup.application?.appName ||
+		volumeBackup.postgres?.appName ||
+		volumeBackup.mysql?.appName ||
+		volumeBackup.mariadb?.appName ||
+		volumeBackup.mongo?.appName ||
+		volumeBackup.redis?.appName;
+	return serviceAppName || volumeBackup.appName;
+};
+
 export const backupVolume = async (
 	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
 ) => {
@@ -12,8 +30,9 @@ export const backupVolume = async (
 		volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
 	const { VOLUME_BACKUPS_PATH, VOLUME_BACKUP_LOCK_PATH } = paths(!!serverId);
 	const destination = volumeBackup.destination;
+	const s3AppName = getVolumeServiceAppName(volumeBackup);
 	const backupFileName = `${volumeName}-${new Date().toISOString()}.tar`;
-	const bucketDestination = `${volumeBackup.appName}/${normalizeS3Path(prefix || "")}${backupFileName}`;
+	const bucketDestination = `${s3AppName}/${normalizeS3Path(prefix || "")}${backupFileName}`;
 	const rcloneFlags = getS3Credentials(volumeBackup.destination);
 	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
