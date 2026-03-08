@@ -26,7 +26,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { AddUserPermissions } from "./add-permissions";
 import { ChangeRole } from "./change-role";
@@ -37,7 +36,7 @@ export const ShowUsers = () => {
 	const { mutateAsync } = api.user.remove.useMutation();
 
 	const utils = api.useUtils();
-	const { data: session } = authClient.useSession();
+	const { data: session } = api.user.session.useQuery();
 
 	return (
 		<div className="w-full">
