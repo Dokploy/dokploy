@@ -777,7 +777,7 @@ const EnvironmentPage = (
 		}
 		if (success > 0) {
 			toast.success(
-				`${success} service${success !== 1 ? "s" : ""} deployed successfully`,
+				`${success} service${success !== 1 ? "s" : ""} queued for deployment`,
 			);
 		}
 		if (failed > 0) {
