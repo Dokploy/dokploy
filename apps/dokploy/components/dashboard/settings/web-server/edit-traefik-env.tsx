@@ -51,9 +51,7 @@ export const EditTraefikEnv = ({
 	const [canEdit, setCanEdit] = useState(true);
 
 	useEffect(() => {
-		if (autoOpen) {
-			setIsOpen(true);
-		}
+		setIsOpen(autoOpen);
 	}, [autoOpen]);
 
 	const handleOpenChange = (open: boolean) => {
@@ -165,10 +163,16 @@ export const EditTraefikEnv = ({
 											<CodeEditor
 												language="properties"
 												wrapperClassName="h-[35rem] font-mono"
-												placeholder={`# DNS Challenge credentials for wildcard certificates
+												placeholder={
+													showDnsGuide
+														? `# DNS Challenge credentials for wildcard certificates
 CF_DNS_API_TOKEN=your_cloudflare_api_token
-CF_API_EMAIL=your_cloudflare_email
-                                                    `}
+CF_API_EMAIL=your_cloudflare_email`
+														: `TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL=test@localhost.com
+TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_STORAGE=/etc/dokploy/traefik/dynamic/acme.json
+TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_HTTPCHALLENGE=true
+TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_HTTPCHALLENGE_ENTRYPOINT=web`
+												}
 												{...field}
 											/>
 										</FormControl>

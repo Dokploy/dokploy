@@ -316,7 +316,7 @@ export const getDefaultTraefikConfig = () => {
 						email: "test@localhost.com",
 						storage: "/etc/dokploy/traefik/dynamic/acme-dns.json",
 						dnsChallenge: {
-							provider: "cloudflare",
+							provider: process.env.TRAEFIK_DNS_PROVIDER || "cloudflare",
 						},
 					},
 				},
@@ -380,7 +380,7 @@ export const getDefaultServerTraefikConfig = () => {
 					email: "test@localhost.com",
 					storage: "/etc/dokploy/traefik/dynamic/acme-dns.json",
 					dnsChallenge: {
-						provider: "cloudflare",
+						provider: process.env.TRAEFIK_DNS_PROVIDER || "cloudflare",
 					},
 				},
 			},
