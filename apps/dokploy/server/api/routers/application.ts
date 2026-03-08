@@ -36,6 +36,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { zfd } from "zod-form-data";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
 	apiCreateApplication,
@@ -66,7 +67,6 @@ import {
 	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
-import { uploadFileSchema } from "@/utils/schema";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -812,20 +812,19 @@ export const applicationRouter = createTRPCRouter({
 				override: true,
 			},
 		})
-		.input(uploadFileSchema)
+		.input(
+			zfd.formData({
+				applicationId: z.string(),
+				zip: zfd.file(),
+				dropBuildPath: z.string().optional(),
+			}),
+		)
 		.mutation(async ({ input, ctx }) => {
-		const zipFile = input.zip;
-		const applicationId = input.applicationId;
-		const dropBuildPath = input.dropBuildPath ?? null;
+			const zipFile = input.zip;
+			const applicationId = input.applicationId;
+			const dropBuildPath = input.dropBuildPath ?? null;
 
-		if (!applicationId) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "applicationId is required",
-			});
-		}
-
-		const app = await findApplicationById(applicationId);
+			const app = await findApplicationById(applicationId);
 
 			if (
 				app.environment.project.organizationId !==
