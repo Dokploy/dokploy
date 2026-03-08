@@ -19,7 +19,6 @@ export const AddGithubProvider = () => {
 	const { data: activeOrganization } = api.organization.active.useQuery();
 
 	const { data: session } = api.user.session.useQuery();
-	console.log(session);
 	const { data } = api.user.get.useQuery();
 	const [manifest, setManifest] = useState("");
 	const [isOrganization, setIsOrganization] = useState(false);
