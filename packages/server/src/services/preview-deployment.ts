@@ -260,7 +260,7 @@ const generateWildcardDomain = async (
 			ip = settings?.serverIp || "";
 		}
 
-		if (isPrivateIp(ip)) {
+		if (process.env.NODE_ENV !== "development" && isPrivateIp(ip)) {
 			ip = (await getPublicIpWithFallback()) || ip;
 		}
 

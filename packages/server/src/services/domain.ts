@@ -4,7 +4,7 @@ import { db } from "@dokploy/server/db";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { generateRandomDomain } from "@dokploy/server/templates";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
-import { isPrivateIp } from "@dokploy/server/utils/ip";
+import { getRemotePublicIp, isPrivateIp } from "@dokploy/server/utils/ip";
 import { getPublicIpWithFallback } from "@dokploy/server/wss/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -54,7 +54,7 @@ export const generateTraefikMeDomain = async (
 		const server = await findServerById(serverId);
 		let serverIp = server.ipAddress;
 		if (isPrivateIp(serverIp)) {
-			serverIp = (await getPublicIpWithFallback()) || serverIp;
+			serverIp = (await getRemotePublicIp(serverId)) ?? serverIp;
 		}
 		return generateRandomDomain({
 			serverIp,
