@@ -172,7 +172,17 @@ export const serverRouter = createTRPCRouter({
 						eq(server.serverType, "build"),
 					),
 		});
-		return result;
+
+		if (ctx.user.role === "owner" || ctx.user.role === "admin") {
+			return result;
+		}
+
+		const memberData = await findMemberById(
+			ctx.user.id,
+			ctx.session.activeOrganizationId,
+		);
+		const allowed = new Set(memberData.accessedServers ?? []);
+		return result.filter((s) => allowed.has(s.serverId));
 	}),
 	setup: protectedProcedure
 		.input(apiFindOneServer)

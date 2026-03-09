@@ -181,11 +181,13 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 	const slug = slugify(projectName);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
-	const { data: currentMember } = api.user.get.useQuery();
+	const { data: currentMember, isLoading: isLoadingMember } =
+		api.user.get.useQuery();
 	const canUseLocalServer =
-		!currentMember ||
-		currentMember.role !== "member" ||
-		(currentMember.accessedServers ?? []).includes("local");
+		!isLoadingMember &&
+		(!currentMember ||
+			currentMember.role !== "member" ||
+			(currentMember.accessedServers ?? []).includes("local"));
 	const postgresMutation = api.postgres.create.useMutation();
 	const mongoMutation = api.mongo.create.useMutation();
 	const redisMutation = api.redis.create.useMutation();

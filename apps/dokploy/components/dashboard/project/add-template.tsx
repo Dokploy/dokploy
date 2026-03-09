@@ -116,11 +116,13 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 	);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
-	const { data: currentMember } = api.user.get.useQuery();
+	const { data: currentMember, isLoading: isLoadingMember } =
+		api.user.get.useQuery();
 	const canUseLocalServer =
-		!currentMember ||
-		currentMember.role !== "member" ||
-		(currentMember.accessedServers ?? []).includes("local");
+		!isLoadingMember &&
+		(!currentMember ||
+			currentMember.role !== "member" ||
+			(currentMember.accessedServers ?? []).includes("local"));
 	const { data: tags, isPending: isLoadingTags } = api.compose.getTags.useQuery(
 		{ baseUrl: customBaseUrl },
 		{
