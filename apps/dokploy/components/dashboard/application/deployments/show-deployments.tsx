@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import copy from "copy-to-clipboard";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -31,7 +32,6 @@ import { ClearDeployments } from "./clear-deployments";
 import { KillBuild } from "./kill-build";
 import { RefreshToken } from "./refresh-token";
 import { ShowDeployment } from "./show-deployment";
-import copy from "copy-to-clipboard";
 
 interface Props {
 	id: string;
@@ -97,6 +97,11 @@ export const ShowDeployments = ({
 	const [url, setUrl] = React.useState("");
 	const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
 		new Set(),
+	);
+
+	const webhookUrl = useMemo(
+		() => `${url}/api/deploy${type === "compose" ? "/compose" : ""}/${refreshToken}`,
+		[url, refreshToken, type]
 	);
 
 	const MAX_DESCRIPTION_LENGTH = 200;
@@ -231,17 +236,20 @@ export const ShowDeployments = ({
 									tabIndex={0}
 									className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all"
 									variant="outline"
+									onKeyDown={(event) => {
+										if (event.key === "Enter" || event.key === " ") {
+											event.preventDefault();
+											copy(webhookUrl);
+											toast.success("Copied to clipboard.");
+										}
+									}}
 									onClick={() => {
-										copy(
-											`${url}/api/deploy${type === "compose" ? "/compose" : ""}/${refreshToken}`,
-										);
+										copy(webhookUrl);
 										toast.success("Copied to clipboard.");
 									}}
 								>
-									{`${url}/api/deploy${
-										type === "compose" ? "/compose" : ""
-									}/${refreshToken}`}
-									<Copy className="h-4 w-4 ml-1 text-muted-foreground" />
+									{webhookUrl}
+									<Copy className="h-4 w-4 ml-2" />
 								</Badge>
 								{(type === "application" || type === "compose") && (
 									<RefreshToken id={id} type={type} />
