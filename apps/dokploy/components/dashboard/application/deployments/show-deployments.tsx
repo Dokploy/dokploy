@@ -235,6 +235,7 @@ export const ShowDeployments = ({
 								<Badge
 									role="button"
 									tabIndex={0}
+									aria-label="Copy webhook URL to clipboard"
 									className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all"
 									variant="outline"
 									onKeyDown={(event) => {
