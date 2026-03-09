@@ -1,24 +1,27 @@
-import { getDokployUrl } from "@dokploy/server/services/admin";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+
+const PUBLIC_IP_SERVICES = [
+  "https://api.ipify.org",
+  "https://checkip.amazonaws.com",
+  "https://ipinfo.io/ip",
+] as const;
 
 export const getRemotePublicIp = async (
 	serverId: string,
 ): Promise<string | null> => {
 	try {
-		const dokployUrl = await getDokployUrl();
-		const { stdout } = await execAsyncRemote(
-			serverId,
-			`curl -s --max-time 5 ${dokployUrl}/api/public-ip`,
-		);
-		const parsed = JSON.parse(stdout.trim()) as { ip?: string };
-		const ip = parsed.ip?.trim() ?? "";
-		if (/^[\d.:a-f]+$/i.test(ip) && ip.length > 0) {
+		const command = PUBLIC_IP_SERVICES.map(
+			(s) => `curl -sf --max-time 5 ${s}`,
+		).join(" || ");
+		const { stdout } = await execAsyncRemote(serverId, command);
+		const ip = stdout.trim();
+		if (/^[\d.:a-f]+$/i.test(ip) && ip.length > 0 && !isPrivateIp(ip)) {
 			return ip;
 		}
-		return null;
 	} catch {
 		return null;
 	}
+	return null;
 };
 
 export const isPrivateIp = (ip: string): boolean => {
