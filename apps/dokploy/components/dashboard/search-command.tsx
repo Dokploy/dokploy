@@ -23,7 +23,6 @@ import {
 	CommandList,
 	CommandSeparator,
 } from "@/components/ui/command";
-import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { StatusTooltip } from "../shared/status-tooltip";
 
@@ -56,7 +55,7 @@ export const SearchCommand = () => {
 	const router = useRouter();
 	const [open, setOpen] = React.useState(false);
 	const [search, setSearch] = React.useState("");
-	const { data: session } = authClient.useSession();
+	const { data: session } = api.user.session.useQuery();
 	const { data } = api.project.all.useQuery(undefined, {
 		enabled: !!session,
 	});

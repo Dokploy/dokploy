@@ -546,7 +546,7 @@ function SidebarLogo() {
 	const { state } = useSidebar();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.get.useQuery();
-	const { data: session } = authClient.useSession();
+	const { data: session } = api.user.session.useQuery();
 	const {
 		data: organizations,
 		refetch,

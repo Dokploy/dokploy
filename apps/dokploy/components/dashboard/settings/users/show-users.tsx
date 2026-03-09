@@ -37,7 +37,7 @@ export const ShowUsers = () => {
 	const { mutateAsync } = api.user.remove.useMutation();
 
 	const utils = api.useUtils();
-	const { data: session } = authClient.useSession();
+	const { data: session } = api.user.session.useQuery();
 
 	return (
 		<div className="w-full">

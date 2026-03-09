@@ -101,6 +101,16 @@ export const userRouter = createTRPCRouter({
 
 			return memberResult;
 		}),
+	session: protectedProcedure.query(async ({ ctx }) => {
+		return {
+			user: {
+				id: ctx.user.id,
+			},
+			session: {
+				activeOrganizationId: ctx.session.activeOrganizationId,
+			},
+		};
+	}),
 	get: protectedProcedure.query(async ({ ctx }) => {
 		const memberResult = await db.query.member.findFirst({
 			where: and(
