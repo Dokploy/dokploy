@@ -99,17 +99,15 @@ const createSchema = createInsertSchema(mounts, {
 	mountPath: z.string().min(1),
 	mountId: z.string().optional(),
 	filePath: z.string().optional(),
-	serviceType: z
-		.enum([
-			"application",
-			"postgres",
-			"mysql",
-			"mariadb",
-			"mongo",
-			"redis",
-			"compose",
-		])
-		.default("application"),
+	serviceType: z.enum([
+		"application",
+		"postgres",
+		"mysql",
+		"mariadb",
+		"mongo",
+		"redis",
+		"compose",
+	]),
 });
 
 export type ServiceType = NonNullable<

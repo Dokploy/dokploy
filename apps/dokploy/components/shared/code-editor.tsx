@@ -10,7 +10,8 @@ import { yaml } from "@codemirror/lang-yaml";
 import { StreamLanguage } from "@codemirror/language";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
-import { EditorView } from "@codemirror/view";
+import { search, searchKeymap } from "@codemirror/search";
+import { EditorView, keymap } from "@codemirror/view";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import CodeMirror, { type ReactCodeMirrorProps } from "@uiw/react-codemirror";
 import { useTheme } from "next-themes";
@@ -156,6 +157,8 @@ export const CodeEditor = ({
 				}}
 				theme={resolvedTheme === "dark" ? githubDark : githubLight}
 				extensions={[
+					search(),
+					keymap.of(searchKeymap),
 					language === "yaml"
 						? yaml()
 						: language === "json"

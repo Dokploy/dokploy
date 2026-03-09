@@ -24,7 +24,6 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 
 const organizationSchema = z.object({
@@ -55,8 +54,6 @@ export function AddOrganization({ organizationId }: Props) {
 	const { mutateAsync, isLoading } = organizationId
 		? api.organization.update.useMutation()
 		: api.organization.create.useMutation();
-	const { refetch: refetchActiveOrganization } =
-		authClient.useActiveOrganization();
 
 	const form = useForm<OrganizationFormValues>({
 		resolver: zodResolver(organizationSchema),
@@ -89,7 +86,7 @@ export function AddOrganization({ organizationId }: Props) {
 				utils.organization.all.invalidate();
 				if (organizationId) {
 					utils.organization.one.invalidate({ organizationId });
-					refetchActiveOrganization();
+					utils.organization.active.invalidate();
 				}
 				setOpen(false);
 			})

@@ -209,7 +209,10 @@ export const testGiteaConnection = async (input: { giteaId: string }) => {
 			});
 		}
 
-		const baseUrl = provider.giteaUrl.replace(/\/+$/, "");
+		const baseUrl = (provider.giteaInternalUrl || provider.giteaUrl).replace(
+			/\/+$/,
+			"",
+		);
 
 		// Use /user/repos to get authenticated user's repositories with pagination
 		let allRepos = 0;
@@ -266,7 +269,9 @@ export const getGiteaRepositories = async (giteaId?: string) => {
 	await refreshGiteaToken(giteaId);
 	const giteaProvider = await findGiteaById(giteaId);
 
-	const baseUrl = giteaProvider.giteaUrl.replace(/\/+$/, "");
+	const baseUrl = (
+		giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl
+	).replace(/\/+$/, "");
 
 	// Use /user/repos to get authenticated user's repositories with pagination
 	let allRepositories: any[] = [];
@@ -331,7 +336,9 @@ export const getGiteaBranches = async (input: {
 
 	const giteaProvider = await findGiteaById(input.giteaId);
 
-	const baseUrl = giteaProvider.giteaUrl.replace(/\/+$/, "");
+	const baseUrl = (
+		giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl
+	).replace(/\/+$/, "");
 
 	// Handle pagination for branches
 	let allBranches: any[] = [];

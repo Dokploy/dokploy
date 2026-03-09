@@ -149,12 +149,12 @@ export const settingsRouter = createTRPCRouter({
 				// Check if port 8080 is already in use before enabling dashboard
 				const portCheck = await checkPortInUse(8080, input.serverId);
 				if (portCheck.isInUse) {
-					const conflictingContainer = portCheck.conflictingContainer
-						? ` by container "${portCheck.conflictingContainer}"`
+					const conflictInfo = portCheck.conflictingContainer
+						? ` by ${portCheck.conflictingContainer}`
 						: "";
 					throw new TRPCError({
 						code: "CONFLICT",
-						message: `Port 8080 is already in use${conflictingContainer}. Please stop the conflicting service or use a different port for the Traefik dashboard.`,
+						message: `Port 8080 is already in use${conflictInfo}. Please stop the conflicting service or use a different port for the Traefik dashboard.`,
 					});
 				}
 				newPorts.push({

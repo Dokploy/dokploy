@@ -14,7 +14,7 @@ export const runPostgresBackup = async (
 	postgres: Postgres,
 	backup: BackupSchedule,
 ) => {
-	const { name, environmentId } = postgres;
+	const { name, environmentId, appName } = postgres;
 	const environment = await findEnvironmentById(environmentId);
 	const project = await findProjectById(environment.projectId);
 
@@ -26,7 +26,7 @@ export const runPostgresBackup = async (
 	const { prefix } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${new Date().toISOString()}.sql.gz`;
-	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
+	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	try {
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;

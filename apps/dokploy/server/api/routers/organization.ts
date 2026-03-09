@@ -355,4 +355,13 @@ export const organizationRouter = createTRPCRouter({
 
 			return { success: true };
 		}),
+	active: protectedProcedure.query(async ({ ctx }) => {
+		if (!ctx.session.activeOrganizationId) {
+			return null;
+		}
+
+		return await db.query.organization.findFirst({
+			where: eq(organization.id, ctx.session.activeOrganizationId),
+		});
+	}),
 });

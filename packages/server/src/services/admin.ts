@@ -125,7 +125,37 @@ export const getTrustedOrigins = async () => {
 		},
 	});
 
-	if (members.length === 0) {
+	if (IS_CLOUD) {
+		const now = Date.now();
+		if (trustedOriginsCache && now < trustedOriginsCache.expiresAt) {
+			return trustedOriginsCache.data;
+		}
+		try {
+			const trustedOrigins = await runQuery();
+			trustedOriginsCache = {
+				data: trustedOrigins,
+				expiresAt: now + TRUSTED_ORIGINS_CACHE_TTL_MS,
+			};
+			return trustedOrigins;
+		} catch (error) {
+			console.error("Failed to fetch trusted origins:", error);
+			return trustedOriginsCache?.data ?? [];
+		}
+	}
+
+	try {
+		return await runQuery();
+	} catch (error) {
+		console.error("Failed to fetch trusted origins:", error);
+		return [];
+	}
+};
+
+export const getTrustedProviders = async () => {
+	try {
+		const providers = await db.query.ssoProvider.findMany();
+		return providers.map((provider) => provider.providerId);
+	} catch (error) {
 		return [];
 	}
 
