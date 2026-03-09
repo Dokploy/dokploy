@@ -31,6 +31,7 @@ export const isPrivateIp = (ip: string): boolean => {
 		/^172\.(1[6-9]|2\d|3[01])\./.test(ip) ||
 		/^192\.168\./.test(ip) ||
 		/^127\./.test(ip) ||
+		/^169\.254\./.test(ip) || // RFC 3927 link-local
 		/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(ip) ||
 		ip === "::1" ||
 		/^f[cd][0-9a-f]{2}:/i.test(ip)
