@@ -69,6 +69,7 @@ export const restoreComposeBackup = async (
 			},
 			restoreType: composeType,
 			rcloneCommand,
+			backupFile: backupInput.backupFile,
 		});
 
 		emit("Starting restore...");

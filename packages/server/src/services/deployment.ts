@@ -117,12 +117,12 @@ export const createDeployment = async (
 	>,
 ) => {
 	const application = await findApplicationById(deployment.applicationId);
+	await removeLastTenDeployments(
+		deployment.applicationId,
+		"application",
+		application.serverId,
+	);
 	try {
-		await removeLastTenDeployments(
-			deployment.applicationId,
-			"application",
-			application.serverId,
-		);
 		const serverId = application.buildServerId || application.serverId;
 
 		const { LOGS_PATH } = paths(!!serverId);
@@ -200,13 +200,12 @@ export const createDeploymentPreview = async (
 	const previewDeployment = await findPreviewDeploymentById(
 		deployment.previewDeploymentId,
 	);
+	await removeLastTenDeployments(
+		deployment.previewDeploymentId,
+		"previewDeployment",
+		previewDeployment?.application?.serverId,
+	);
 	try {
-		await removeLastTenDeployments(
-			deployment.previewDeploymentId,
-			"previewDeployment",
-			previewDeployment?.application?.serverId,
-		);
-
 		const appName = `${previewDeployment.appName}`;
 		const { LOGS_PATH } = paths(!!previewDeployment?.application?.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
@@ -281,12 +280,12 @@ export const createDeploymentCompose = async (
 	>,
 ) => {
 	const compose = await findComposeById(deployment.composeId);
+	await removeLastTenDeployments(
+		deployment.composeId,
+		"compose",
+		compose.serverId,
+	);
 	try {
-		await removeLastTenDeployments(
-			deployment.composeId,
-			"compose",
-			compose.serverId,
-		);
 		const { LOGS_PATH } = paths(!!compose.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${compose.appName}-${formattedDateTime}.log`;
@@ -369,8 +368,8 @@ export const createDeploymentBackup = async (
 	} else if (backup.backupType === "compose") {
 		serverId = backup.compose?.serverId;
 	}
+	await removeLastTenDeployments(deployment.backupId, "backup", serverId);
 	try {
-		await removeLastTenDeployments(deployment.backupId, "backup", serverId);
 		const { LOGS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${backup.appName}-${formattedDateTime}.log`;
@@ -439,12 +438,12 @@ export const createDeploymentSchedule = async (
 ) => {
 	const schedule = await findScheduleById(deployment.scheduleId);
 
+	const serverId =
+		schedule.application?.serverId ||
+		schedule.compose?.serverId ||
+		schedule.server?.serverId;
+	await removeLastTenDeployments(deployment.scheduleId, "schedule", serverId);
 	try {
-		const serverId =
-			schedule.application?.serverId ||
-			schedule.compose?.serverId ||
-			schedule.server?.serverId;
-		await removeLastTenDeployments(deployment.scheduleId, "schedule", serverId);
 		const { SCHEDULES_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${schedule.appName}-${formattedDateTime}.log`;
@@ -515,14 +514,14 @@ export const createDeploymentVolumeBackup = async (
 ) => {
 	const volumeBackup = await findVolumeBackupById(deployment.volumeBackupId);
 
+	const serverId =
+		volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
+	await removeLastTenDeployments(
+		deployment.volumeBackupId,
+		"volumeBackup",
+		serverId,
+	);
 	try {
-		const serverId =
-			volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
-		await removeLastTenDeployments(
-			deployment.volumeBackupId,
-			"volumeBackup",
-			serverId,
-		);
 		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${volumeBackup.appName}-${formattedDateTime}.log`;
@@ -601,24 +600,23 @@ export const removeDeployment = async (deploymentId: string) => {
 			.then((result) => result[0]);
 
 		if (!deployment) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Deployment not found",
-			});
+			return null;
 		}
-		const command = `
-			rm -f ${deployment.logPath};
-		`;
-		if (deployment.serverId) {
-			await execAsyncRemote(deployment.serverId, command);
-		} else {
-			await execAsync(command);
+
+		const logPath = path.join(deployment.logPath);
+		if (logPath && logPath !== ".") {
+			const command = `rm -f ${logPath};`;
+			if (deployment.serverId) {
+				await execAsyncRemote(deployment.serverId, command);
+			} else {
+				await execAsync(command);
+			}
 		}
 
 		return deployment;
 	} catch (error) {
 		const message =
-			error instanceof Error ? error.message : "Error creating the deployment";
+			error instanceof Error ? error.message : "Error removing the deployment";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message,
@@ -686,34 +684,49 @@ const removeLastTenDeployments = async (
 		if (serverId) {
 			let command = "";
 			for (const oldDeployment of deploymentsToDelete) {
-				const logPath = path.join(oldDeployment.logPath);
-				if (oldDeployment.rollbackId) {
-					await removeRollbackById(oldDeployment.rollbackId);
-				}
+				try {
+					const logPath = path.join(oldDeployment.logPath);
+					if (oldDeployment.rollbackId) {
+						await removeRollbackById(oldDeployment.rollbackId);
+					}
 
-				if (logPath !== ".") {
-					command += `
-					rm -rf ${logPath};
-					`;
+					if (logPath && logPath !== ".") {
+						command += `rm -rf ${logPath};`;
+					}
+					await removeDeployment(oldDeployment.deploymentId);
+				} catch (err) {
+					console.error(
+						`Failed to remove deployment ${oldDeployment.deploymentId} during cleanup:`,
+						err,
+					);
 				}
-				await removeDeployment(oldDeployment.deploymentId);
 			}
 
-			await execAsyncRemote(serverId, command);
+			if (command) {
+				await execAsyncRemote(serverId, command);
+			}
 		} else {
 			for (const oldDeployment of deploymentsToDelete) {
-				if (oldDeployment.rollbackId) {
-					await removeRollbackById(oldDeployment.rollbackId);
+				try {
+					if (oldDeployment.rollbackId) {
+						await removeRollbackById(oldDeployment.rollbackId);
+					}
+					const logPath = path.join(oldDeployment.logPath);
+					if (
+						logPath &&
+						logPath !== "." &&
+						existsSync(logPath) &&
+						!oldDeployment.errorMessage
+					) {
+						await fsPromises.unlink(logPath);
+					}
+					await removeDeployment(oldDeployment.deploymentId);
+				} catch (err) {
+					console.error(
+						`Failed to remove deployment ${oldDeployment.deploymentId} during cleanup:`,
+						err,
+					);
 				}
-				const logPath = path.join(oldDeployment.logPath);
-				if (
-					existsSync(logPath) &&
-					!oldDeployment.errorMessage &&
-					logPath !== "."
-				) {
-					await fsPromises.unlink(logPath);
-				}
-				await removeDeployment(oldDeployment.deploymentId);
 			}
 		}
 	}

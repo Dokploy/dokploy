@@ -135,15 +135,25 @@ export const getTrustedOrigins = async () => {
 		if (trustedOriginsCache && now < trustedOriginsCache.expiresAt) {
 			return trustedOriginsCache.data;
 		}
-		const trustedOrigins = await runQuery();
-		trustedOriginsCache = {
-			data: trustedOrigins,
-			expiresAt: now + TRUSTED_ORIGINS_CACHE_TTL_MS,
-		};
-		return trustedOrigins;
+		try {
+			const trustedOrigins = await runQuery();
+			trustedOriginsCache = {
+				data: trustedOrigins,
+				expiresAt: now + TRUSTED_ORIGINS_CACHE_TTL_MS,
+			};
+			return trustedOrigins;
+		} catch (error) {
+			console.error("Failed to fetch trusted origins:", error);
+			return trustedOriginsCache?.data ?? [];
+		}
 	}
 
-	return runQuery();
+	try {
+		return await runQuery();
+	} catch (error) {
+		console.error("Failed to fetch trusted origins:", error);
+		return [];
+	}
 };
 
 export const getTrustedProviders = async () => {
