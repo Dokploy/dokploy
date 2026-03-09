@@ -18,7 +18,11 @@ export const getRemotePublicIp = async (
 		if (/^[\d.:a-f]+$/i.test(ip) && ip.length > 0 && !isPrivateIp(ip)) {
 			return ip;
 		}
-	} catch {
+	} catch (error) {
+		console.error(
+			`[getRemotePublicIp] Failed to retrieve public IP for server ${serverId}:`,
+			error,
+		);
 		return null;
 	}
 	return null;
