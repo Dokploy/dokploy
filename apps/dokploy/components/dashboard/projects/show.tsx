@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
+import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 import {
@@ -165,9 +165,7 @@ export const ShowProjects = () => {
 
 	return (
 		<>
-			<BreadcrumbSidebar
-				list={[{ name: "Projects", href: "/dashboard/projects" }]}
-			/>
+			<AdvanceBreadcrumb />
 			{!isCloud && (
 				<div className="absolute top-4 right-4">
 					<TimeBadge />
@@ -436,7 +434,7 @@ export const ShowProjects = () => {
 																</CardTitle>
 															</CardHeader>
 															<CardFooter className="pt-4">
-																<div className="space-y-1 text-sm flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
+																<div className="space-y-1 text-xs flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
 																	<DateTooltip date={project.createdAt}>
 																		Created
 																	</DateTooltip>
