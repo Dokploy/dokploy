@@ -410,7 +410,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 										<TooltipProvider>
 											<Tooltip>
 												<TooltipTrigger asChild>
-												    <HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 												</TooltipTrigger>
 												<TooltipContent>
 													<p>
