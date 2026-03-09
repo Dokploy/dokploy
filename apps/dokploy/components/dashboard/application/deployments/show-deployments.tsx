@@ -34,13 +34,13 @@ import { ShowDeployment } from "./show-deployment";
 interface Props {
 	id: string;
 	type:
-		| "application"
-		| "compose"
-		| "schedule"
-		| "server"
-		| "backup"
-		| "previewDeployment"
-		| "volumeBackup";
+	| "application"
+	| "compose"
+	| "schedule"
+	| "server"
+	| "backup"
+	| "previewDeployment"
+	| "volumeBackup";
 	refreshToken?: string;
 	serverId?: string;
 }
@@ -225,9 +225,8 @@ export const ShowDeployments = ({
 							<span>Webhook URL: </span>
 							<div className="flex flex-row items-center gap-2">
 								<span className="break-all text-muted-foreground">
-									{`${url}/api/deploy${
-										type === "compose" ? "/compose" : ""
-									}/${refreshToken}`}
+									{`${url}/api/deploy${type === "compose" ? "/compose" : ""
+										}/${refreshToken}`}
 								</span>
 								{(type === "application" || type === "compose") && (
 									<RefreshToken id={id} type={type} />
@@ -335,7 +334,7 @@ export const ShowDeployments = ({
 														Math.floor(
 															(new Date(deployment.finishedAt).getTime() -
 																new Date(deployment.startedAt).getTime()) /
-																1000,
+															1000,
 														),
 													)}
 												</Badge>
@@ -408,7 +407,7 @@ export const ShowDeployments = ({
 
 											{deployment?.rollback &&
 												deployment.status === "done" &&
-												type === "application" && (
+												(type === "application" || type === "compose") && (
 													<DialogAction
 														title="Rollback to this deployment"
 														description={
@@ -418,8 +417,7 @@ export const ShowDeployments = ({
 																	deployment?
 																</p>
 																<AlertBlock type="info" className="text-sm">
-																	Please wait a few seconds while the image is
-																	pulled from the registry. Your application
+																	Please wait a few seconds while the previous version is deployed. Your service
 																	should be running shortly.
 																</AlertBlock>
 															</div>

@@ -1,4 +1,5 @@
 import type { Application } from "@dokploy/server/services/application";
+import type { Compose } from "@dokploy/server/services/compose";
 import type { Mount } from "@dokploy/server/services/mount";
 import type { Port } from "@dokploy/server/services/port";
 import type { Project } from "@dokploy/server/services/project";
@@ -26,14 +27,20 @@ export const rollbacks = pgTable("rollback", {
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
 	fullContext: jsonb("fullContext").$type<
-		Application & {
+		| (Application & {
 			environment: {
 				project: Project;
 			};
 			mounts: Mount[];
 			ports: Port[];
 			registry?: Registry | null;
-		}
+		})
+		| (Compose & {
+			environment: {
+				project: Project;
+			};
+			commitHash?: string;
+		})
 	>(),
 });
 
@@ -48,6 +55,7 @@ export const rollbacksRelations = relations(rollbacks, ({ one }) => ({
 
 export const createRollbackSchema = createInsertSchema(rollbacks).extend({
 	appName: z.string().min(1),
+	commitHash: z.string().optional(),
 });
 
 export const updateRollbackSchema = createRollbackSchema.extend({

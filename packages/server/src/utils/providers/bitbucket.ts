@@ -88,6 +88,7 @@ interface CloneBitbucketRepository {
 	serverId: string | null;
 	type?: "application" | "compose";
 	outputPathOverride?: string;
+	commitHash?: string;
 }
 
 export const cloneBitbucketRepository = async ({
@@ -125,7 +126,12 @@ export const cloneBitbucketRepository = async ({
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${repoToUse}.git`;
 	const cloneUrl = getBitbucketCloneUrl(bitbucket, repoclone);
 	command += `echo "Cloning Repo ${repoclone} to ${outputPath}: ✅";`;
-	command += `git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	if (entity.commitHash) {
+		command += `git clone ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+		command += `cd ${outputPath} && git checkout ${entity.commitHash};`;
+	} else {
+		command += `git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	}
 	return command;
 };
 
