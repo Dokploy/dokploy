@@ -268,7 +268,7 @@ const generateWildcardDomain = async (
 				: (await getPublicIpWithFallback()) || ip;
 		}
 
-		const slugIp = ip.replaceAll(".", "-");
+		const slugIp = ip.replaceAll(".", "-").replaceAll(":", "-");
 		return baseDomain.replace(
 			"*",
 			`${hash}${slugIp === "" ? "" : `-${slugIp}`}`,
