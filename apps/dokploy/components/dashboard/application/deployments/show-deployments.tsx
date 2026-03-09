@@ -100,8 +100,9 @@ export const ShowDeployments = ({
 	);
 
 	const webhookUrl = useMemo(
-		() => `${url}/api/deploy${type === "compose" ? "/compose" : ""}/${refreshToken}`,
-		[url, refreshToken, type]
+		() =>
+			`${url}/api/deploy${type === "compose" ? "/compose" : ""}/${refreshToken}`,
+		[url, refreshToken, type],
 	);
 
 	const MAX_DESCRIPTION_LENGTH = 200;
