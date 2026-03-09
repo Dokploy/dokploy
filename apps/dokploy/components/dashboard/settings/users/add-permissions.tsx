@@ -893,12 +893,13 @@ export const AddUserPermissions = ({ userId }: Props) => {
 										field.onChange(allSelected ? [] : allServerIds);
 									};
 									const localLabel = "Dokploy";
-									const serverLabels = (allServers ?? [])
-										.filter((s) => selectedIds.includes(s.serverId))
-										.map((s) => s.name);
 									const allLabels = [
-										...(selectedIds.includes("local") ? [localLabel] : []),
-										...serverLabels,
+										...(selectedIds.includes("local")
+											? [{ label: localLabel, id: "local" }]
+											: []),
+										...(allServers ?? [])
+											.filter((s) => selectedIds.includes(s.serverId))
+											.map((s) => ({ label: s.name, id: s.serverId })),
 									];
 									return (
 										<FormItem className="md:col-span-2">
@@ -925,17 +926,13 @@ export const AddUserPermissions = ({ userId }: Props) => {
 															{allLabels.length === 0 ? (
 																<span>Select servers...</span>
 															) : (
-																allLabels.map((label) => (
-																	<Badge key={label} variant="secondary" className="gap-1">
+																allLabels.map(({ label, id }) => (
+																	<Badge key={id} variant="secondary" className="gap-1">
 																		{label}
 																		<X
 																			className="h-3 w-3 cursor-pointer"
 																			onClick={(e) => {
 																				e.stopPropagation();
-																				const id =
-																					label === localLabel
-																						? "local"
-																						: (allServers?.find((s) => s.name === label)?.serverId ?? "");
 																				toggleServer(id);
 																			}}
 																		/>
