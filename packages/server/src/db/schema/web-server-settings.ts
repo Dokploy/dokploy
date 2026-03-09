@@ -17,6 +17,7 @@ export const webServerSettings = pgTable("webServerSettings", {
 	host: text("host"),
 	letsEncryptEmail: text("letsEncryptEmail"),
 	sshPrivateKey: text("sshPrivateKey"),
+	nickname: text("nickname"),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(true),
 	logCleanupCron: text("logCleanupCron").default("0 0 * * *"),
 	// Metrics Configuration
@@ -96,6 +97,7 @@ export const apiUpdateWebServerSettings = createSchema.partial().extend({
 	host: z.string().optional(),
 	letsEncryptEmail: z.string().email().optional().nullable(),
 	sshPrivateKey: z.string().optional(),
+	nickname: z.string().optional().nullable(),
 	enableDockerCleanup: z.boolean().optional(),
 	logCleanupCron: z.string().optional().nullable(),
 	metricsConfig: z
@@ -136,11 +138,13 @@ export const apiAssignDomain = z
 			.optional()
 			.nullable(),
 		https: z.boolean().optional(),
+		nickname: z.string().optional().nullable(),
 	})
 	.required()
 	.partial({
 		letsEncryptEmail: true,
 		https: true,
+		nickname: true,
 	});
 
 export const apiSaveSSHKey = z

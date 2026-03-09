@@ -27,18 +27,24 @@ const MyApp = ({
 	pageProps: { ...pageProps },
 }: AppPropsWithLayout) => {
 	const getLayout = Component.getLayout ?? ((page) => page);
+	const { data: webServerSettings } =
+		api.settings.getWebServerSettings.useQuery();
+
+	const pageTitle = webServerSettings?.nickname
+		? `[${webServerSettings.nickname}] - Dokploy`
+		: "Dokploy";
 
 	return (
 		<>
 			<style jsx global>
 				{`
-					:root {
-						--font-inter: ${inter.style.fontFamily};
-					}
-				`}
+          :root {
+            --font-inter: ${inter.style.fontFamily};
+          }
+        `}
 			</style>
 			<Head>
-				<title>Dokploy</title>
+				<title>{pageTitle}</title>
 			</Head>
 			<ThemeProvider
 				attribute="class"

@@ -247,6 +247,7 @@ export const settingsRouter = createTRPCRouter({
 				letsEncryptEmail: input.letsEncryptEmail,
 				certificateType: input.certificateType,
 				https: input.https,
+				nickname: input.nickname,
 			});
 
 			if (!settings) {
