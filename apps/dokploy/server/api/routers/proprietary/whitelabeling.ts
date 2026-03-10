@@ -5,10 +5,14 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { apiUpdateWhitelabeling } from "@/server/db/schema";
-import { adminProcedure, createTRPCRouter, publicProcedure } from "../../trpc";
+import {
+	createTRPCRouter,
+	enterpriseProcedure,
+	publicProcedure,
+} from "../../trpc";
 
 export const whitelabelingRouter = createTRPCRouter({
-	get: adminProcedure.query(async () => {
+	get: enterpriseProcedure.query(async () => {
 		if (IS_CLOUD) {
 			return null;
 		}
@@ -16,7 +20,7 @@ export const whitelabelingRouter = createTRPCRouter({
 		return settings?.whitelabelingConfig ?? null;
 	}),
 
-	update: adminProcedure
+	update: enterpriseProcedure
 		.input(apiUpdateWhitelabeling)
 		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
@@ -40,7 +44,7 @@ export const whitelabelingRouter = createTRPCRouter({
 			return { success: true };
 		}),
 
-	reset: adminProcedure.mutation(async ({ ctx }) => {
+	reset: enterpriseProcedure.mutation(async ({ ctx }) => {
 		if (IS_CLOUD) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
