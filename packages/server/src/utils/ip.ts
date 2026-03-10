@@ -18,12 +18,14 @@ export const getRemotePublicIp = async (
 		if (/^[\d.:a-f]+$/i.test(ip) && ip.length > 0 && !isPrivateIp(ip)) {
 			return ip;
 		}
+		console.warn(
+			`[getRemotePublicIp] Unexpected output from server ${serverId}: "${ip.slice(0, 64)}"`,
+		);
 	} catch (error) {
 		console.error(
 			`[getRemotePublicIp] Failed to retrieve public IP for server ${serverId}:`,
 			error,
 		);
-		return null;
 	}
 	return null;
 };

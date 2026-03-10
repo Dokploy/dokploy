@@ -53,7 +53,7 @@ export const generateTraefikMeDomain = async (
 	if (serverId) {
 		const server = await findServerById(serverId);
 		let serverIp = server.ipAddress;
-		if (isPrivateIp(serverIp)) {
+		if (process.env.NODE_ENV !== "development" && isPrivateIp(serverIp)) {
 			serverIp = (await getRemotePublicIp(serverId)) ?? serverIp;
 		}
 		return generateRandomDomain({
