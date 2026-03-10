@@ -102,6 +102,80 @@ export const aiRouter = createTRPCRouter({
 								owned_by: "perplexity",
 							},
 						] as Model[];
+					case "zai":
+						// Z.AI doesn't have a /models endpoint, return hardcoded list
+						return [
+							{
+								id: "glm-4-plus",
+								object: "model",
+								created: Date.now(),
+								owned_by: "zai",
+							},
+							{
+								id: "glm-4-flash",
+								object: "model",
+								created: Date.now(),
+								owned_by: "zai",
+							},
+							{
+								id: "glm-4",
+								object: "model",
+								created: Date.now(),
+								owned_by: "zai",
+							},
+							{
+								id: "glm-4-air",
+								object: "model",
+								created: Date.now(),
+								owned_by: "zai",
+							},
+							{
+								id: "glm-4-air-long",
+								object: "model",
+								created: Date.now(),
+								owned_by: "zai",
+							},
+							{
+								id: "glm-3-turbo",
+								object: "model",
+								created: Date.now(),
+								owned_by: "zai",
+							},
+						] as Model[];
+					case "minimax":
+						// MiniMax doesn't have a /models endpoint, return hardcoded list
+						return [
+							{
+								id: "MiniMax-M2.5",
+								object: "model",
+								created: Date.now(),
+								owned_by: "minimax",
+							},
+							{
+								id: "MiniMax-M2.5-highspeed",
+								object: "model",
+								created: Date.now(),
+								owned_by: "minimax",
+							},
+							{
+								id: "MiniMax-M2.1",
+								object: "model",
+								created: Date.now(),
+								owned_by: "minimax",
+							},
+							{
+								id: "MiniMax-M2.1-highspeed",
+								object: "model",
+								created: Date.now(),
+								owned_by: "minimax",
+							},
+							{
+								id: "MiniMax-M2",
+								object: "model",
+								created: Date.now(),
+								owned_by: "minimax",
+							},
+						] as Model[];
 					default:
 						if (!input.apiKey)
 							throw new TRPCError({
