@@ -98,6 +98,7 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 export type Services = {
 	serverId?: string | null;
@@ -370,6 +371,8 @@ const EnvironmentPage = (
 			{ projectId: selectedTargetProject },
 			{ enabled: !!selectedTargetProject },
 		);
+	const { config: whitelabeling } = useWhitelabelingPublic();
+	const appName = whitelabeling?.appName || "Dokploy";
 
 	const emptyServices =
 		!currentEnvironment ||
@@ -871,7 +874,8 @@ const EnvironmentPage = (
 			/>
 			<Head>
 				<title>
-					Environment: {currentEnvironment.name} | {projectData?.name} | Dokploy
+					Environment: {currentEnvironment.name} | {projectData?.name} |{" "}
+					{appName}
 				</title>
 			</Head>
 			<div className="w-full">

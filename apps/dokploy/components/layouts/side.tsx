@@ -23,6 +23,7 @@ import {
 	Loader2,
 	LogIn,
 	type LucideIcon,
+	Palette,
 	Package,
 	PieChart,
 	Rocket,
@@ -422,6 +423,15 @@ const MENU: Menu = {
 			isEnabled: ({ auth }) =>
 				!!(auth?.role === "owner" || auth?.role === "admin"),
 		},
+		{
+			isSingle: true,
+			title: "Whitelabeling",
+			url: "/dashboard/settings/whitelabeling",
+			icon: Palette,
+			// Only enabled for owners in non-cloud environments (enterprise)
+			isEnabled: ({ auth, isCloud }) =>
+				!!(auth?.role === "owner" && !isCloud),
+		},
 	],
 
 	help: [
@@ -445,38 +455,33 @@ const MENU: Menu = {
 function createMenuForAuthUser(opts: {
 	auth?: AuthQueryOutput;
 	isCloud: boolean;
+	whitelabeling?: {
+		docsUrl?: string | null;
+		supportUrl?: string | null;
+	} | null;
 }): Menu {
+	const filterEnabled = <T extends { isEnabled?: (o: { auth?: AuthQueryOutput; isCloud: boolean }) => boolean }>(items: readonly T[]): T[] =>
+		items.filter((item) =>
+			!item.isEnabled
+				? true
+				: item.isEnabled({ auth: opts.auth, isCloud: opts.isCloud }),
+		) as T[];
+
+	// Apply whitelabeling URL overrides to help items
+	const helpItems = filterEnabled(MENU.help).map((item) => {
+		if (opts.whitelabeling?.docsUrl && item.name === "Documentation") {
+			return { ...item, url: opts.whitelabeling.docsUrl };
+		}
+		if (opts.whitelabeling?.supportUrl && item.name === "Support") {
+			return { ...item, url: opts.whitelabeling.supportUrl };
+		}
+		return item;
+	});
+
 	return {
-		// Filter the home items based on the user's role and permissions
-		// Calls the `isEnabled` function if it exists to determine if the item should be displayed
-		home: MENU.home.filter((item) =>
-			!item.isEnabled
-				? true
-				: item.isEnabled({
-						auth: opts.auth,
-						isCloud: opts.isCloud,
-					}),
-		),
-		// Filter the settings items based on the user's role and permissions
-		// Calls the `isEnabled` function if it exists to determine if the item should be displayed
-		settings: MENU.settings.filter((item) =>
-			!item.isEnabled
-				? true
-				: item.isEnabled({
-						auth: opts.auth,
-						isCloud: opts.isCloud,
-					}),
-		),
-		// Filter the help items based on the user's role and permissions
-		// Calls the `isEnabled` function if it exists to determine if the item should be displayed
-		help: MENU.help.filter((item) =>
-			!item.isEnabled
-				? true
-				: item.isEnabled({
-						auth: opts.auth,
-						isCloud: opts.isCloud,
-					}),
-		),
+		home: filterEnabled(MENU.home),
+		settings: filterEnabled(MENU.settings),
+		help: helpItems,
 	};
 }
 
@@ -885,6 +890,10 @@ export default function Page({ children }: Props) {
 	const pathname = usePathname();
 	const { data: auth } = api.user.get.useQuery();
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
+	const { data: whitelabeling } = api.whitelabeling.getPublic.useQuery(
+		undefined,
+		{ staleTime: 5 * 60 * 1000, refetchOnWindowFocus: false },
+	);
 
 	const includesProjects = pathname?.includes("/dashboard/project");
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -893,7 +902,7 @@ export default function Page({ children }: Props) {
 		home: filteredHome,
 		settings: filteredSettings,
 		help,
-	} = createMenuForAuthUser({ auth, isCloud: !!isCloud });
+	} = createMenuForAuthUser({ auth, isCloud: !!isCloud, whitelabeling });
 
 	const activeItem = findActiveNavItem(
 		[...filteredHome, ...filteredSettings],
@@ -1141,6 +1150,11 @@ export default function Page({ children }: Props) {
 						<SidebarMenuItem>
 							<UserNav />
 						</SidebarMenuItem>
+						{whitelabeling?.footerText && (
+							<div className="px-3 text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
+								{whitelabeling.footerText}
+							</div>
+						)}
 						{dokployVersion && (
 							<>
 								<div className="px-3 text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">

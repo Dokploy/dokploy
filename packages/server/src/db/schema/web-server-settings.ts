@@ -1,5 +1,11 @@
 import { relations } from "drizzle-orm";
-import { boolean, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	jsonb,
+	pgTable,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -65,6 +71,38 @@ export const webServerSettings = pgTable("webServerSettings", {
 					exclude: [],
 				},
 			},
+		}),
+	// Whitelabeling Configuration (Enterprise / Proprietary)
+	whitelabelingConfig: jsonb("whitelabelingConfig")
+		.$type<{
+			appName: string | null;
+			appDescription: string | null;
+			logoUrl: string | null;
+			faviconUrl: string | null;
+			primaryColor: string | null;
+			customCss: string | null;
+			loginLogoUrl: string | null;
+			supportUrl: string | null;
+			docsUrl: string | null;
+			errorPageTitle: string | null;
+			errorPageDescription: string | null;
+			metaTitle: string | null;
+			footerText: string | null;
+		}>()
+		.default({
+			appName: null,
+			appDescription: null,
+			logoUrl: null,
+			faviconUrl: null,
+			primaryColor: null,
+			customCss: null,
+			loginLogoUrl: null,
+			supportUrl: null,
+			docsUrl: null,
+			errorPageTitle: null,
+			errorPageDescription: null,
+			metaTitle: null,
+			footerText: null,
 		}),
 	// Cache Cleanup Configuration
 	cleanupCacheApplications: boolean("cleanupCacheApplications")
@@ -152,6 +190,27 @@ export const apiSaveSSHKey = z
 export const apiUpdateDockerCleanup = z.object({
 	enableDockerCleanup: z.boolean(),
 	serverId: z.string().optional(),
+});
+
+// Whitelabeling validation schemas
+export const whitelabelingConfigSchema = z.object({
+	appName: z.string().nullable(),
+	appDescription: z.string().nullable(),
+	logoUrl: z.string().nullable(),
+	faviconUrl: z.string().nullable(),
+	primaryColor: z.string().nullable(),
+	customCss: z.string().nullable(),
+	loginLogoUrl: z.string().nullable(),
+	supportUrl: z.string().nullable(),
+	docsUrl: z.string().nullable(),
+	errorPageTitle: z.string().nullable(),
+	errorPageDescription: z.string().nullable(),
+	metaTitle: z.string().nullable(),
+	footerText: z.string().nullable(),
+});
+
+export const apiUpdateWhitelabeling = z.object({
+	whitelabelingConfig: whitelabelingConfigSchema,
 });
 
 export const apiUpdateWebServerMonitoring = z.object({
