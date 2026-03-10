@@ -12,14 +12,12 @@ interface WhitelabelingPreviewProps {
 	config: {
 		appName?: string;
 		logoUrl?: string;
-		primaryColor?: string;
 		footerText?: string;
 	};
 }
 
 export function WhitelabelingPreview({ config }: WhitelabelingPreviewProps) {
 	const appName = config.appName || "Dokploy";
-	const primaryColor = config.primaryColor || "hsl(var(--primary))";
 
 	return (
 		<Card className="bg-transparent">
@@ -40,10 +38,7 @@ export function WhitelabelingPreview({ config }: WhitelabelingPreviewProps) {
 								className="size-8 rounded-sm object-contain"
 							/>
 						) : (
-							<div
-								className="size-8 rounded-sm flex items-center justify-center text-white font-bold text-sm"
-								style={{ backgroundColor: primaryColor }}
-							>
+							<div className="size-8 rounded-sm flex items-center justify-center bg-primary text-primary-foreground font-bold text-sm">
 								{appName.charAt(0).toUpperCase()}
 							</div>
 						)}
@@ -53,17 +48,11 @@ export function WhitelabelingPreview({ config }: WhitelabelingPreviewProps) {
 					{/* Simulated content area */}
 					<div className="p-4 bg-background">
 						<div className="flex items-center gap-2 mb-3">
-							<div
-								className="h-2 w-16 rounded-full"
-								style={{ backgroundColor: primaryColor }}
-							/>
+							<div className="h-2 w-16 rounded-full bg-primary" />
 							<div className="h-2 w-24 rounded-full bg-muted" />
 						</div>
 						<div className="flex gap-2">
-							<div
-								className="px-3 py-1.5 rounded-md text-xs text-white font-medium"
-								style={{ backgroundColor: primaryColor }}
-							>
+							<div className="px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground font-medium">
 								Button
 							</div>
 							<div className="px-3 py-1.5 rounded-md text-xs border font-medium">

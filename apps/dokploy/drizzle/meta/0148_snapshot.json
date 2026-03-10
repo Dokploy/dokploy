@@ -1,5 +1,5 @@
 {
-  "id": "cec2dc6b-f0db-4064-bc17-7f79ed1b8638",
+  "id": "a293a443-ceaf-418e-8e34-ff46e183995f",
   "prevId": "2e0aba0b-93fc-4bfe-a975-1c5d45354753",
   "version": "7",
   "dialect": "postgresql",
@@ -7179,7 +7179,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false,
-          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"primaryColor\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"metaTitle\":null,\"footerText\":null}'::jsonb"
+          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"metaTitle\":null,\"footerText\":null}'::jsonb"
         },
         "cleanupCacheApplications": {
           "name": "cleanupCacheApplications",

@@ -53,7 +53,6 @@ const baseSettings: WebServerSettings = {
 		appDescription: null,
 		logoUrl: null,
 		faviconUrl: null,
-		primaryColor: null,
 		customCss: null,
 		loginLogoUrl: null,
 		supportUrl: null,

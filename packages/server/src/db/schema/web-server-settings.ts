@@ -73,7 +73,6 @@ export const webServerSettings = pgTable("webServerSettings", {
 			appDescription: string | null;
 			logoUrl: string | null;
 			faviconUrl: string | null;
-			primaryColor: string | null;
 			customCss: string | null;
 			loginLogoUrl: string | null;
 			supportUrl: string | null;
@@ -88,7 +87,6 @@ export const webServerSettings = pgTable("webServerSettings", {
 			appDescription: null,
 			logoUrl: null,
 			faviconUrl: null,
-			primaryColor: null,
 			customCss: null,
 			loginLogoUrl: null,
 			supportUrl: null,
@@ -199,7 +197,6 @@ export const whitelabelingConfigSchema = z.object({
 	appDescription: z.string().nullable(),
 	logoUrl: safeUrl,
 	faviconUrl: safeUrl,
-	primaryColor: z.string().nullable(),
 	customCss: z.string().nullable(),
 	loginLogoUrl: safeUrl,
 	supportUrl: safeUrl,

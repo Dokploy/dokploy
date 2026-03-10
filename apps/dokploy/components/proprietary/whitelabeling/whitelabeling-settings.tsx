@@ -228,7 +228,6 @@ export function WhitelabelingSettings() {
 				appDescription: values.appDescription || null,
 				logoUrl: values.logoUrl || null,
 				faviconUrl: values.faviconUrl || null,
-				primaryColor: null,
 				customCss: values.customCss || null,
 				loginLogoUrl: values.loginLogoUrl || null,
 				supportUrl: values.supportUrl || null,
