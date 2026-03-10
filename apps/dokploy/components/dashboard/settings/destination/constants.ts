@@ -1,3 +1,4 @@
+// S3 Compatible Providers
 export const S3_PROVIDERS: Array<{
 	key: string;
 	name: string;
@@ -129,5 +130,60 @@ export const S3_PROVIDERS: Array<{
 	{
 		key: "Other",
 		name: "Any other S3 compatible provider",
+	},
+];
+
+// Non-S3 Providers (using rclone native protocols)
+export const NON_S3_PROVIDERS: Array<{
+	key: string;
+	name: string;
+}> = [
+	{
+		key: "ftp",
+		name: "FTP Server",
+	},
+	{
+		key: "sftp",
+		name: "SFTP (SSH File Transfer)",
+	},
+	{
+		key: "drive",
+		name: "Google Drive",
+	},
+	{
+		key: "onedrive",
+		name: "Microsoft OneDrive",
+	},
+	{
+		key: "dropbox",
+		name: "Dropbox",
+	},
+	{
+		key: "webdav",
+		name: "WebDAV",
+	},
+	{
+		key: "b2",
+		name: "Backblaze B2",
+	},
+	{
+		key: "mega",
+		name: "MEGA",
+	},
+	{
+		key: "pcloud",
+		name: "pCloud",
+	},
+	{
+		key: "box",
+		name: "Box",
+	},
+	{
+		key: "hubic",
+		name: "hubic",
+	},
+	{
+		key: "yandex",
+		name: "Yandex Disk",
 	},
 ];

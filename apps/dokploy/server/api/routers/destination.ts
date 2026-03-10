@@ -40,29 +40,74 @@ export const destinationRouter = createTRPCRouter({
 				});
 			}
 		}),
+	// Non-S3 providers that use rclone native protocols
+	const NON_S3_PROVIDERS = [
+		"ftp", "sftp", "drive", "onedrive", "dropbox", "webdav",
+		"b2", "mega", "pcloud", "box", "hubic", "yandex"
+	];
+
 	testConnection: adminProcedure
 		.input(apiCreateDestination)
 		.mutation(async ({ input }) => {
 			const { secretAccessKey, bucket, region, endpoint, accessKey, provider } =
 				input;
+			
+			// Check if it's a non-S3 provider
+			const isNonS3 = provider && NON_S3_PROVIDERS.includes(provider);
+			
 			try {
-				const rcloneFlags = [
-					`--s3-access-key-id="${accessKey}"`,
-					`--s3-secret-access-key="${secretAccessKey}"`,
-					`--s3-region="${region}"`,
-					`--s3-endpoint="${endpoint}"`,
-					"--s3-no-check-bucket",
-					"--s3-force-path-style",
-					"--retries 1",
-					"--low-level-retries 1",
-					"--timeout 10s",
-					"--contimeout 5s",
-				];
-				if (provider) {
-					rcloneFlags.unshift(`--s3-provider="${provider}"`);
+				let rcloneCommand: string;
+				
+				if (isNonS3) {
+					// Non-S3 providers use rclone native protocols
+					const providerConfig: Record<string, string> = {
+						ftp: `:ftp:${bucket || ""}`,
+						sftp: `:sftp:${bucket || ""}`,
+						drive: `:drive:${bucket || ""}`,
+						onedrive: `:onedrive:${bucket || ""}`,
+						dropbox: `:dropbox:${bucket || ""}`,
+						webdav: `:webdav:${bucket || ""}`,
+						b2: `:b2:${bucket || ""}`,
+						mega: `:mega:${bucket || ""}`,
+						pcloud: `:pcloud:${bucket || ""}`,
+						box: `:box:${bucket || ""}`,
+						hubic: `:hubic:${bucket || ""}`,
+						yandex: `:yandex:${bucket || ""}`,
+					};
+					
+					const rcloneFlags = [
+						"--retries 1",
+						"--low-level-retries 1",
+						"--timeout 10s",
+						"--contimeout 5s",
+					];
+					
+					// Add authentication if provided
+					if (accessKey) rcloneFlags.push(`--${provider}-user="${accessKey}"`);
+					if (secretAccessKey) rcloneFlags.push(`--${provider}-pass="${secretAccessKey}"`);
+					if (endpoint) rcloneFlags.push(`--${provider}-url="${endpoint}"`);
+					
+					rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${providerConfig[provider]}"`;
+				} else {
+					// S3 compatible providers
+					const rcloneFlags = [
+						`--s3-access-key-id="${accessKey}"`,
+						`--s3-secret-access-key="${secretAccessKey}"`,
+						`--s3-region="${region}"`,
+						`--s3-endpoint="${endpoint}"`,
+						"--s3-no-check-bucket",
+						"--s3-force-path-style",
+						"--retries 1",
+						"--low-level-retries 1",
+						"--timeout 10s",
+						"--contimeout 5s",
+					];
+					if (provider) {
+						rcloneFlags.unshift(`--s3-provider="${provider}"`);
+					}
+					const rcloneDestination = `:s3:${bucket}`;
+					rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 				}
-				const rcloneDestination = `:s3:${bucket}`;
-				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
