@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { findComposeById } from "@dokploy/server/services/compose";
-import { parse, stringify } from "yaml";
+import { parse, stringify } from "../yaml";
 import { addSuffixToAllConfigs } from "./compose/configs";
 import { addSuffixToAllNetworks } from "./compose/network";
 import { addSuffixToAllSecrets } from "./compose/secrets";

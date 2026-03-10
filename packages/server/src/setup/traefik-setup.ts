@@ -7,8 +7,8 @@ import {
 	writeFileSync,
 } from "node:fs";
 import path from "node:path";
+import { stringify } from "@dokploy/server/utils/yaml";
 import type { ContainerCreateOptions, CreateServiceOptions } from "dockerode";
-import { stringify } from "yaml";
 import { paths } from "../constants";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { FileConfig } from "../utils/traefik/file-types";

@@ -5,8 +5,8 @@ import {
 	addSuffixToServiceNetworks,
 	generateRandomHash,
 } from "@dokploy/server";
+import { parse } from "@dokploy/server/utils/yaml";
 import { expect, test } from "vitest";
-import { parse } from "yaml";
 
 const composeFileCombined = `
 version: "3.8"

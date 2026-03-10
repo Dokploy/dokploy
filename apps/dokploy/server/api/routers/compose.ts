@@ -41,12 +41,12 @@ import {
 	fetchTemplatesList,
 } from "@dokploy/server/templates/github";
 import { processTemplate } from "@dokploy/server/templates/processors";
+import { stringify } from "@dokploy/server/utils/yaml";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import _ from "lodash";
 import { nanoid } from "nanoid";
 import { parse } from "toml";
-import { stringify } from "yaml";
 import { z } from "zod";
 import { slugify } from "@/lib/slug";
 import {
