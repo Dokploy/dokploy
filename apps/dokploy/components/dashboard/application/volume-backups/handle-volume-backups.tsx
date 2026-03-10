@@ -55,6 +55,7 @@ const formSchema = z
 				"Invalid volume name. Use letters, numbers, '._-' and start with a letter/number.",
 			),
 		prefix: z.string(),
+		fileNameFormat: z.string().optional(),
 		keepLatestCount: z.coerce
 			.number()
 			.int()
@@ -123,6 +124,7 @@ export const HandleVolumeBackups = ({
 			cronExpression: "",
 			volumeName: "",
 			prefix: "",
+			fileNameFormat: "",
 			keepLatestCount: undefined,
 			turnOff: false,
 			enabled: true,
@@ -179,6 +181,7 @@ export const HandleVolumeBackups = ({
 				cronExpression: volumeBackup.cronExpression,
 				volumeName: volumeBackup.volumeName || "",
 				prefix: volumeBackup.prefix,
+				fileNameFormat: volumeBackup.fileNameFormat || "",
 				keepLatestCount: volumeBackup.keepLatestCount || undefined,
 				turnOff: volumeBackup.turnOff,
 				enabled: volumeBackup.enabled || false,
@@ -554,6 +557,27 @@ export const HandleVolumeBackups = ({
 									</FormControl>
 									<FormDescription>
 										Prefix for backup files (optional)
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={form.control}
+							name="fileNameFormat"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>File Name Format</FormLabel>
+									<FormControl>
+										<Input
+											placeholder={"{volumeName}-{timestamp}"}
+											{...field}
+										/>
+									</FormControl>
+									<FormDescription>
+										Format for backup file name. Variables:{" "}
+										{"{timestamp}, {date}, {time}, {volumeName}, {appName}, {uuid}"}
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
