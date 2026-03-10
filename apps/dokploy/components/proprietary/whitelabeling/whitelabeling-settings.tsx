@@ -37,6 +37,8 @@ const formSchema = z.object({
 	faviconUrl: z.string(),
 	customCss: z.string(),
 	loginLogoUrl: z.string(),
+	supportUrl: z.string(),
+	docsUrl: z.string(),
 	errorPageTitle: z.string(),
 	errorPageDescription: z.string(),
 	metaTitle: z.string(),
@@ -173,6 +175,8 @@ export function WhitelabelingSettings() {
 			faviconUrl: "",
 			customCss: "",
 			loginLogoUrl: "",
+			supportUrl: "",
+			docsUrl: "",
 			errorPageTitle: "",
 			errorPageDescription: "",
 			metaTitle: "",
@@ -190,6 +194,8 @@ export function WhitelabelingSettings() {
 				faviconUrl: data.faviconUrl ?? "",
 				customCss: data.customCss ?? "",
 				loginLogoUrl: data.loginLogoUrl ?? "",
+				supportUrl: data.supportUrl ?? "",
+				docsUrl: data.docsUrl ?? "",
 				errorPageTitle: data.errorPageTitle ?? "",
 				errorPageDescription: data.errorPageDescription ?? "",
 				metaTitle: data.metaTitle ?? "",
@@ -219,8 +225,8 @@ export function WhitelabelingSettings() {
 				primaryColor: null,
 				customCss: values.customCss || null,
 				loginLogoUrl: values.loginLogoUrl || null,
-				supportUrl: null,
-				docsUrl: null,
+				supportUrl: values.supportUrl || null,
+				docsUrl: values.docsUrl || null,
 				errorPageTitle: values.errorPageTitle || null,
 				errorPageDescription: values.errorPageDescription || null,
 				metaTitle: values.metaTitle || null,
@@ -231,6 +237,7 @@ export function WhitelabelingSettings() {
 				toast.success("Whitelabeling settings updated");
 				await refetch();
 				await utils.whitelabeling.getPublic.invalidate();
+				await utils.whitelabeling.get.invalidate();
 			})
 			.catch((error) => {
 				toast.error(
@@ -245,6 +252,7 @@ export function WhitelabelingSettings() {
 				toast.success("Whitelabeling settings reset to defaults");
 				await refetch();
 				await utils.whitelabeling.getPublic.invalidate();
+				await utils.whitelabeling.get.invalidate();
 			})
 			.catch((error) => {
 				toast.error(error?.message || "Failed to reset whitelabeling settings");
@@ -423,9 +431,9 @@ export function WhitelabelingSettings() {
 					{/* Metadata & Links Section */}
 					<Card className="bg-transparent">
 						<CardHeader>
-							<CardTitle>Metadata</CardTitle>
+							<CardTitle>Metadata & Links</CardTitle>
 							<CardDescription>
-								Customize the page title and footer text.
+								Customize the page title, footer text, and sidebar links.
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="flex flex-col gap-4">
@@ -457,6 +465,46 @@ export function WhitelabelingSettings() {
 										</FormControl>
 										<FormDescription>
 											Custom text displayed in the footer area.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="supportUrl"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Support URL</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="https://support.example.com"
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Custom URL for the "Support" link in the sidebar.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="docsUrl"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Documentation URL</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="https://docs.example.com"
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Custom URL for the "Documentation" link in the sidebar.
 										</FormDescription>
 										<FormMessage />
 									</FormItem>

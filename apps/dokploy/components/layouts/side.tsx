@@ -23,8 +23,8 @@ import {
 	Loader2,
 	LogIn,
 	type LucideIcon,
-	Palette,
 	Package,
+	Palette,
 	PieChart,
 	Rocket,
 	Server,
@@ -895,10 +895,10 @@ export default function Page({ children }: Props) {
 	const pathname = usePathname();
 	const { data: auth } = api.user.get.useQuery();
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
-	const { data: whitelabeling } = api.whitelabeling.getPublic.useQuery(
-		undefined,
-		{ staleTime: 5 * 60 * 1000, refetchOnWindowFocus: false },
-	);
+	const { data: whitelabeling } = api.whitelabeling.get.useQuery(undefined, {
+		staleTime: 5 * 60 * 1000,
+		refetchOnWindowFocus: false,
+	});
 
 	const includesProjects = pathname?.includes("/dashboard/project");
 	const { data: isCloud } = api.settings.isCloud.useQuery();

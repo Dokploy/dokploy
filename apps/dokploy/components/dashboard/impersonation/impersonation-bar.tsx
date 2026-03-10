@@ -45,12 +45,12 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
+import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
 
 type User = typeof authClient.$Infer.Session.user;
 
 export const ImpersonationBar = () => {
-	const { config: whitelabeling } = useWhitelabelingPublic();
+	const { config: whitelabeling } = useWhitelabeling();
 	const [users, setUsers] = useState<User[]>([]);
 	const [selectedUser, setSelectedUser] = useState<User | null>(null);
 	const [isImpersonating, setIsImpersonating] = useState(false);

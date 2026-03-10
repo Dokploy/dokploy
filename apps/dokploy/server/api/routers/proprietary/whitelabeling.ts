@@ -8,11 +8,12 @@ import { apiUpdateWhitelabeling } from "@/server/db/schema";
 import {
 	createTRPCRouter,
 	enterpriseProcedure,
+	protectedProcedure,
 	publicProcedure,
 } from "../../trpc";
 
 export const whitelabelingRouter = createTRPCRouter({
-	get: enterpriseProcedure.query(async () => {
+	get: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
 			return null;
 		}
@@ -80,13 +81,28 @@ export const whitelabelingRouter = createTRPCRouter({
 		return { success: true };
 	}),
 
-	// Public endpoint so the whitelabeling config can be applied globally
-	// (including on the login page before auth)
+	// Public endpoint only for unauthenticated pages (login, register, error)
+	// Returns only the fields needed for public pages
 	getPublic: publicProcedure.query(async () => {
 		if (IS_CLOUD) {
 			return null;
 		}
 		const settings = await getWebServerSettings();
-		return settings?.whitelabelingConfig ?? null;
+		const config = settings?.whitelabelingConfig;
+		if (!config) return null;
+
+		return {
+			appName: config.appName,
+			appDescription: config.appDescription,
+			logoUrl: config.logoUrl,
+			loginLogoUrl: config.loginLogoUrl,
+			faviconUrl: config.faviconUrl,
+			primaryColor: config.primaryColor,
+			customCss: config.customCss,
+			metaTitle: config.metaTitle,
+			errorPageTitle: config.errorPageTitle,
+			errorPageDescription: config.errorPageDescription,
+			footerText: config.footerText,
+		};
 	}),
 });

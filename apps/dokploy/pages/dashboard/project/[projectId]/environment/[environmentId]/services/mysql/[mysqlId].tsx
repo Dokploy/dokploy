@@ -45,7 +45,7 @@ import { UseKeyboardNav } from "@/hooks/use-keyboard-nav";
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
+import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
 
 type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 
@@ -64,7 +64,7 @@ const MySql = (
 	const { data: environments } = api.environment.byProjectId.useQuery({
 		projectId: data?.environment?.projectId || "",
 	});
-	const { config: whitelabeling } = useWhitelabelingPublic();
+	const { config: whitelabeling } = useWhitelabeling();
 	const appName = whitelabeling?.appName || "Dokploy";
 	const environmentDropdownItems =
 		environments?.map((env) => ({
