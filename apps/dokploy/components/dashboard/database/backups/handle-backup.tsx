@@ -72,6 +72,7 @@ const Schema = z
 		destinationId: z.string().min(1, "Destination required"),
 		schedule: z.string().min(1, "Schedule (Cron) required"),
 		prefix: z.string().min(1, "Prefix required"),
+		fileNameFormat: z.string().optional(),
 		enabled: z.boolean(),
 		database: z.string().min(1, "Database required"),
 		keepLatestCount: z.coerce.number().optional(),
@@ -213,6 +214,7 @@ export const HandleBackup = ({
 			destinationId: "",
 			enabled: true,
 			prefix: "/",
+			fileNameFormat: "",
 			schedule: "",
 			keepLatestCount: undefined,
 			serviceName: null,
@@ -596,6 +598,28 @@ export const HandleBackup = ({
 												destination/bucket
 											</FormDescription>
 
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+							<FormField
+								control={form.control}
+								name="fileNameFormat"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<FormLabel>File Name Format</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={"{timestamp}"}
+													{...field}
+												/>
+											</FormControl>
+											<FormDescription>
+												Format for backup file name. Variables:{" "}
+												{"{timestamp}, {date}, {time}, {appName}, {databaseType}, {uuid}"}
+											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									);
