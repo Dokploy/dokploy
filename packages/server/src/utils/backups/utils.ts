@@ -77,7 +77,9 @@ const VALID_FORMAT_VARIABLES = [
 ] as const;
 
 export const validateFileNameFormat = (format: string): string[] => {
-	const usedVars = [...format.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
+	const usedVars = [...format.matchAll(/\{(\w+)\}/g)]
+		.map((m) => m[1])
+		.filter((v): v is string => v !== undefined);
 	return usedVars.filter(
 		(v) =>
 			!VALID_FORMAT_VARIABLES.includes(
@@ -97,10 +99,13 @@ export const formatBackupFileName = (
 	const now = new Date();
 	const uuid = crypto.randomUUID();
 
+	const isoString = now.toISOString();
+	const [datePart, timePart] = isoString.split("T");
+
 	const variables: Record<string, string> = {
-		timestamp: now.toISOString(),
-		date: now.toISOString().split("T")[0],
-		time: now.toISOString().split("T")[1].replace(/[:.]/g, "-").slice(0, 8),
+		timestamp: isoString,
+		date: datePart ?? "",
+		time: timePart?.replace(/[:.]/g, "-").slice(0, 8) ?? "",
 		year: String(now.getFullYear()),
 		month: String(now.getMonth() + 1).padStart(2, "0"),
 		day: String(now.getDate()).padStart(2, "0"),

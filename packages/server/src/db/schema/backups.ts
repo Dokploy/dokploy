@@ -43,6 +43,7 @@ export const backups = pgTable("backup", {
 	enabled: boolean("enabled"),
 	database: text("database").notNull(),
 	prefix: text("prefix").notNull(),
+	fileNameFormat: text("fileNameFormat").default("{timestamp}"),
 	serviceName: text("serviceName"),
 	destinationId: text("destinationId")
 		.notNull()
@@ -134,6 +135,7 @@ const createSchema = createInsertSchema(backups, {
 	destinationId: z.string(),
 	enabled: z.boolean().optional(),
 	prefix: z.string().min(1),
+	fileNameFormat: z.string().optional(),
 	database: z.string().min(1),
 	schedule: z.string(),
 	keepLatestCount: z.number().optional(),
@@ -150,6 +152,7 @@ export const apiCreateBackup = createSchema.pick({
 	schedule: true,
 	enabled: true,
 	prefix: true,
+	fileNameFormat: true,
 	destinationId: true,
 	keepLatestCount: true,
 	database: true,
@@ -180,6 +183,7 @@ export const apiUpdateBackup = createSchema
 		schedule: true,
 		enabled: true,
 		prefix: true,
+		fileNameFormat: true,
 		backupId: true,
 		destinationId: true,
 		database: true,
