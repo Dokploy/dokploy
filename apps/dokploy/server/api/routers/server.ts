@@ -40,6 +40,18 @@ import {
 	server,
 } from "@/server/db/schema";
 
+async function getMemberAccess(
+	userId: string,
+	orgId: string,
+	role: string,
+): Promise<Set<string> | null> {
+	if (role === "owner" || role === "admin") {
+		return null;
+	}
+	const member = await findMemberById(userId, orgId);
+	return new Set(member.accessedServers ?? []);
+}
+
 export const serverRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateServer)
@@ -105,16 +117,12 @@ export const serverRouter = createTRPCRouter({
 			.orderBy(desc(server.createdAt))
 			.groupBy(server.serverId);
 
-		if (ctx.user.role === "owner" || ctx.user.role === "admin") {
-			return result;
-		}
-
-		const memberData = await findMemberById(
+		const allowed = await getMemberAccess(
 			ctx.user.id,
 			ctx.session.activeOrganizationId,
+			ctx.user.role,
 		);
-		const allowed = new Set(memberData.accessedServers ?? []);
-		return result.filter((s) => allowed.has(s.serverId));
+		return allowed ? result.filter((s) => allowed.has(s.serverId)) : result;
 	}),
 	count: protectedProcedure.query(async ({ ctx }) => {
 		const organizations = await db.query.organization.findMany({
@@ -145,16 +153,12 @@ export const serverRouter = createTRPCRouter({
 					),
 		});
 
-		if (ctx.user.role === "owner" || ctx.user.role === "admin") {
-			return result;
-		}
-
-		const memberData = await findMemberById(
+		const allowed = await getMemberAccess(
 			ctx.user.id,
 			ctx.session.activeOrganizationId,
+			ctx.user.role,
 		);
-		const allowed = new Set(memberData.accessedServers ?? []);
-		return result.filter((s) => allowed.has(s.serverId));
+		return allowed ? result.filter((s) => allowed.has(s.serverId)) : result;
 	}),
 	buildServers: protectedProcedure.query(async ({ ctx }) => {
 		const result = await db.query.server.findMany({
@@ -173,16 +177,12 @@ export const serverRouter = createTRPCRouter({
 					),
 		});
 
-		if (ctx.user.role === "owner" || ctx.user.role === "admin") {
-			return result;
-		}
-
-		const memberData = await findMemberById(
+		const allowed = await getMemberAccess(
 			ctx.user.id,
 			ctx.session.activeOrganizationId,
+			ctx.user.role,
 		);
-		const allowed = new Set(memberData.accessedServers ?? []);
-		return result.filter((s) => allowed.has(s.serverId));
+		return allowed ? result.filter((s) => allowed.has(s.serverId)) : result;
 	}),
 	setup: protectedProcedure
 		.input(apiFindOneServer)
