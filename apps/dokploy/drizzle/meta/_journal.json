@@ -1041,15 +1041,8 @@
     {
       "idx": 148,
       "version": "7",
-      "when": 1773039642819,
-      "tag": "0148_strong_karma",
-      "breakpoints": true
-    },
-    {
-      "idx": 149,
-      "version": "7",
-      "when": 1773064075434,
-      "tag": "0149_omniscient_bug",
+      "when": 1773124119746,
+      "tag": "0148_cold_kitty_pryde",
       "breakpoints": true
     }
   ]
