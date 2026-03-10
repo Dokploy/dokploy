@@ -43,8 +43,7 @@ export const gitlabRouter = createTRPCRouter({
 			const gitlabProvider = await findGitlabById(input.gitlabId);
 			if (
 				gitlabProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				gitlabProvider.gitProvider.userId !== ctx.session.userId
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -60,13 +59,11 @@ export const gitlabRouter = createTRPCRouter({
 			},
 		});
 
-		result = result.filter((provider) => {
-			return (
+		result = result.filter(
+			(provider) =>
 				provider.gitProvider.organizationId ===
-					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId
-			);
-		});
+				ctx.session.activeOrganizationId,
+		);
 		const filtered = result
 			.filter((provider) => haveGitlabRequirements(provider))
 			.map((provider) => {
@@ -87,8 +84,7 @@ export const gitlabRouter = createTRPCRouter({
 			const gitlabProvider = await findGitlabById(input.gitlabId);
 			if (
 				gitlabProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				gitlabProvider.gitProvider.userId !== ctx.session.userId
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -104,8 +100,7 @@ export const gitlabRouter = createTRPCRouter({
 			const gitlabProvider = await findGitlabById(input.gitlabId || "");
 			if (
 				gitlabProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				gitlabProvider.gitProvider.userId !== ctx.session.userId
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -121,8 +116,7 @@ export const gitlabRouter = createTRPCRouter({
 				const gitlabProvider = await findGitlabById(input.gitlabId || "");
 				if (
 					gitlabProvider.gitProvider.organizationId !==
-						ctx.session.activeOrganizationId &&
-					gitlabProvider.gitProvider.userId !== ctx.session.userId
+					ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -145,8 +139,7 @@ export const gitlabRouter = createTRPCRouter({
 			const gitlabProvider = await findGitlabById(input.gitlabId);
 			if (
 				gitlabProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				gitlabProvider.gitProvider.userId !== ctx.session.userId
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",

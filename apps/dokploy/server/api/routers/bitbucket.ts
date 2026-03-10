@@ -41,8 +41,7 @@ export const bitbucketRouter = createTRPCRouter({
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
 				bitbucketProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				bitbucketProvider.gitProvider.userId !== ctx.session.userId
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -61,13 +60,11 @@ export const bitbucketRouter = createTRPCRouter({
 			},
 		});
 
-		result = result.filter((provider) => {
-			return (
+		result = result.filter(
+			(provider) =>
 				provider.gitProvider.organizationId ===
-					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId
-			);
-		});
+				ctx.session.activeOrganizationId,
+		);
 		return result;
 	}),
 
@@ -77,8 +74,7 @@ export const bitbucketRouter = createTRPCRouter({
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
 				bitbucketProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				bitbucketProvider.gitProvider.userId !== ctx.session.userId
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -95,8 +91,7 @@ export const bitbucketRouter = createTRPCRouter({
 			);
 			if (
 				bitbucketProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				bitbucketProvider.gitProvider.userId !== ctx.session.userId
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -112,8 +107,7 @@ export const bitbucketRouter = createTRPCRouter({
 				const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 				if (
 					bitbucketProvider.gitProvider.organizationId !==
-						ctx.session.activeOrganizationId &&
-					bitbucketProvider.gitProvider.userId !== ctx.session.userId
+					ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -136,8 +130,7 @@ export const bitbucketRouter = createTRPCRouter({
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
 				bitbucketProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				bitbucketProvider.gitProvider.userId !== ctx.session.userId
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
