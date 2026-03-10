@@ -8,7 +8,12 @@ import type { Postgres } from "@dokploy/server/services/postgres";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	formatBackupFileName,
+	getBackupCommand,
+	getS3Credentials,
+	normalizeS3Path,
+} from "./utils";
 
 export const runPostgresBackup = async (
 	postgres: Postgres,
@@ -25,7 +30,10 @@ export const runPostgresBackup = async (
 	});
 	const { prefix } = backup;
 	const destination = backup.destination;
-	const backupFileName = `${new Date().toISOString()}.sql.gz`;
+	const backupFileName = `${formatBackupFileName(
+		backup.fileNameFormat ?? "{timestamp}",
+		{ appName, databaseType: "postgres" },
+	)}.sql.gz`;
 	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	try {
 		const rcloneFlags = getS3Credentials(destination);
