@@ -23,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
+import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const registerSchema = z
 	.object({
@@ -82,6 +83,7 @@ const Invitation = ({
 	userAlreadyExists,
 }: Props) => {
 	const router = useRouter();
+	const { config: whitelabeling } = useWhitelabelingPublic();
 	const { data } = api.user.getUserByToken.useQuery(
 		{
 			token,
@@ -148,12 +150,15 @@ const Invitation = ({
 			<div className="flex  h-screen w-full items-center justify-center ">
 				<div className="flex flex-col items-center gap-4 w-full">
 					<CardTitle className="text-2xl font-bold flex items-center gap-2">
-						<Link
-							href="https://dokploy.com"
-							target="_blank"
-							className="flex flex-row items-center gap-2"
-						>
-							<Logo className="size-12" />
+						<Link href="/" className="flex flex-row items-center gap-2">
+							<Logo
+								className="size-12"
+								logoUrl={
+									whitelabeling?.loginLogoUrl ||
+									whitelabeling?.logoUrl ||
+									undefined
+								}
+							/>
 						</Link>
 						Invitation
 					</CardTitle>

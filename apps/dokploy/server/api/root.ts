@@ -25,6 +25,7 @@ import { organizationRouter } from "./routers/organization";
 import { patchRouter } from "./routers/patch";
 import { licenseKeyRouter } from "./routers/proprietary/license-key";
 import { ssoRouter } from "./routers/proprietary/sso";
+import { whitelabelingRouter } from "./routers/proprietary/whitelabeling";
 import { portRouter } from "./routers/port";
 import { postgresRouter } from "./routers/postgres";
 import { previewDeploymentRouter } from "./routers/preview-deployment";
@@ -87,6 +88,7 @@ export const appRouter = createTRPCRouter({
 	organization: organizationRouter,
 	licenseKey: licenseKeyRouter,
 	sso: ssoRouter,
+	whitelabeling: whitelabelingRouter,
 	schedule: scheduleRouter,
 	rollback: rollbackRouter,
 	volumeBackups: volumeBackupsRouter,
