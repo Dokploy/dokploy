@@ -10,7 +10,7 @@ import {
 } from "@dokploy/server/services/deployment";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { execAsync } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path } from "./utils";
+import { formatBackupFileName, getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runWebServerBackup = async (backup: BackupSchedule) => {
 	if (IS_CLOUD) {
@@ -27,10 +27,12 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 	try {
 		const destination = await findDestinationById(backup.destinationId);
 		const rcloneFlags = getS3Credentials(destination);
-		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 		const { BASE_PATH } = paths();
 		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-backup-"));
-		const backupFileName = `webserver-backup-${timestamp}.zip`;
+		const backupFileName = `${formatBackupFileName(
+			backup.fileNameFormat ?? "webserver-backup-{date}T{time}",
+			{ appName: backup.appName },
+		)}.zip`;
 		const s3Path = `:s3:${destination.bucket}/${backup.appName}/${normalizeS3Path(backup.prefix)}${backupFileName}`;
 
 		try {
