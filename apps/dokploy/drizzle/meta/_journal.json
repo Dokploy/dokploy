@@ -1037,6 +1037,13 @@
       "when": 1771830695385,
       "tag": "0147_right_lake",
       "breakpoints": true
+    },
+    {
+      "idx": 148,
+      "version": "7",
+      "when": 1772008978786,
+      "tag": "0148_amused_nemesis",
+      "breakpoints": true
     }
   ]
 }

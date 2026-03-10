@@ -26,6 +26,7 @@ export const environments = pgTable("environment", {
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
 	isDefault: boolean("isDefault").notNull().default(false),
+	color: text("color"),
 });
 
 export const environmentRelations = relations(
@@ -48,6 +49,7 @@ export const environmentRelations = relations(
 export const apiCreateEnvironment = z.object({
 	name: z.string().min(1),
 	description: z.string().optional(),
+	color: z.string().optional(),
 	projectId: z.string().min(1),
 });
 
@@ -63,6 +65,7 @@ export const apiUpdateEnvironment = z.object({
 	environmentId: z.string().min(1),
 	name: z.string().min(1).optional(),
 	description: z.string().optional(),
+	color: z.string().optional(),
 	projectId: z.string().optional(),
 	env: z.string().optional(),
 });
@@ -71,4 +74,5 @@ export const apiDuplicateEnvironment = z.object({
 	environmentId: z.string().min(1),
 	name: z.string().min(1),
 	description: z.string().optional(),
+	color: z.string().optional(),
 });

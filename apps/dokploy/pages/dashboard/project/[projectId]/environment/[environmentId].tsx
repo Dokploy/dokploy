@@ -875,7 +875,17 @@ const EnvironmentPage = (
 				</title>
 			</Head>
 			<div className="w-full">
-				<Card className="h-full bg-sidebar p-2.5 rounded-xl">
+				<Card
+					className={cn(
+						"h-full bg-sidebar p-2.5 rounded-xl",
+						!currentEnvironment.color && "bg-sidebar",
+					)}
+					style={
+						currentEnvironment.color
+							? { backgroundColor: currentEnvironment.color }
+							: undefined
+					}
+				>
 					<div className="rounded-xl bg-background shadow-md">
 						<div className="flex justify-between gap-4 w-full items-center flex-wrap p-6">
 							<CardHeader className="p-0">
