@@ -116,6 +116,12 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 	);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
+	const { data: currentMember, isLoading: isLoadingMember } =
+		api.user.get.useQuery();
+	const canUseLocalServer =
+		!currentMember ||
+		currentMember.role !== "member" ||
+		(currentMember.accessedServers ?? []).includes("local");
 	const { data: tags, isPending: isLoadingTags } = api.compose.getTags.useQuery(
 		{ baseUrl: customBaseUrl },
 		{
@@ -460,23 +466,24 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																</TooltipProvider>
 
 																<Select
+																	key={String(isLoadingMember)}
 																	onValueChange={(e) => {
 																		setServerId(e);
 																	}}
 																	defaultValue={
-																		!isCloud ? "dokploy" : undefined
+																		!isCloud && canUseLocalServer ? "dokploy" : undefined
 																	}
 																>
 																	<SelectTrigger>
 																		<SelectValue
 																			placeholder={
-																				!isCloud ? "Dokploy" : "Select a Server"
+																				!isCloud && canUseLocalServer ? "Dokploy" : "Select a Server"
 																			}
 																		/>
 																	</SelectTrigger>
 																	<SelectContent>
 																		<SelectGroup>
-																			{!isCloud && (
+																			{!isCloud && canUseLocalServer && (
 																				<SelectItem value="dokploy">
 																					<span className="flex items-center gap-2 justify-between w-full">
 																						<span>Dokploy</span>
@@ -501,7 +508,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																			))}
 																			<SelectLabel>
 																				Servers (
-																				{servers?.length + (!isCloud ? 1 : 0)})
+																				{(servers?.length ?? 0) +(!isCloud && canUseLocalServer ? 1 : 0)})
 																			</SelectLabel>
 																		</SelectGroup>
 																	</SelectContent>

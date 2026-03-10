@@ -1,0 +1,1 @@
+ALTER TABLE "member" ADD COLUMN "accessed_servers" text[] DEFAULT ARRAY[]::text[] NOT NULL;

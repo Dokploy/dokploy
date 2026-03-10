@@ -1,11 +1,27 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { Check, ChevronsUpDown, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@/components/ui/command";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import {
 	Dialog,
 	DialogContent,
@@ -156,6 +172,7 @@ const addPermissions = z.object({
 	accessedProjects: z.array(z.string()).optional(),
 	accessedEnvironments: z.array(z.string()).optional(),
 	accessedServices: z.array(z.string()).optional(),
+	accessedServers: z.array(z.string()).optional().default([]),
 	canCreateProjects: z.boolean().optional().default(false),
 	canCreateServices: z.boolean().optional().default(false),
 	canDeleteProjects: z.boolean().optional().default(false),
@@ -177,9 +194,14 @@ interface Props {
 
 export const AddUserPermissions = ({ userId }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
+	const [serverPopoverOpen, setServerPopoverOpen] = useState(false);
 	const { data: projects } = api.project.allForPermissions.useQuery(undefined, {
 		enabled: isOpen,
 	});
+	const { data: allServers } = api.server.all.useQuery(undefined, {
+		enabled: isOpen,
+	});
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	const { data, refetch } = api.user.one.useQuery(
 		{
@@ -198,6 +220,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 			accessedProjects: [],
 			accessedEnvironments: [],
 			accessedServices: [],
+			accessedServers: [],
 			canDeleteEnvironments: false,
 			canCreateProjects: false,
 			canCreateServices: false,
@@ -219,6 +242,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 				accessedProjects: data.accessedProjects || [],
 				accessedEnvironments: data.accessedEnvironments || [],
 				accessedServices: data.accessedServices || [],
+				accessedServers: data.accessedServers || [],
 				canCreateProjects: data.canCreateProjects,
 				canCreateServices: data.canCreateServices,
 				canDeleteProjects: data.canDeleteProjects,
@@ -246,6 +270,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 			accessedProjects: data.accessedProjects || [],
 			accessedEnvironments: data.accessedEnvironments || [],
 			accessedServices: data.accessedServices || [],
+			accessedServers: data.accessedServers || [],
 			canAccessToDocker: data.canAccessToDocker,
 			canAccessToAPI: data.canAccessToAPI,
 			canAccessToSSHKeys: data.canAccessToSSHKeys,
@@ -843,6 +868,153 @@ export const AddUserPermissions = ({ userId }: Props) => {
 								</FormItem>
 							)}
 						/>
+						{data?.role === "member" && (
+							<FormField
+								control={form.control}
+								name="accessedServers"
+								render={({ field }) => {
+									const toggleServer = (id: string) => {
+										const current = field.value ?? [];
+										field.onChange(
+											current.includes(id)
+												? current.filter((v) => v !== id)
+												: [...current, id],
+										);
+									};
+									const selectedIds = field.value ?? [];
+									const allServerIds = [
+										...(isCloud === false ? ["local"] : []),
+										...(allServers ?? []).map((s) => s.serverId),
+									];
+									const allSelected =
+										allServerIds.length > 0 &&
+										allServerIds.every((id) => selectedIds.includes(id));
+									const toggleAll = () => {
+										field.onChange(allSelected ? [] : allServerIds);
+									};
+									const localLabel = "Dokploy";
+									const allLabels = [
+										...(selectedIds.includes("local")
+											? [{ label: localLabel, id: "local" }]
+											: []),
+										...(allServers ?? [])
+											.filter((s) => selectedIds.includes(s.serverId))
+											.map((s) => ({ label: s.name, id: s.serverId })),
+									];
+									return (
+										<FormItem className="md:col-span-2">
+											<div className="mb-2">
+												<FormLabel className="text-base">Servers</FormLabel>
+												<FormDescription>
+													Select the servers that the user can access
+												</FormDescription>
+											</div>
+											<Popover
+												open={serverPopoverOpen}
+												onOpenChange={setServerPopoverOpen}
+											>
+												<PopoverTrigger asChild>
+													<FormControl>
+														<Button
+															variant="outline"
+															role="combobox"
+															className={cn(
+																"w-full justify-start gap-2 flex-wrap min-h-9 h-auto font-normal hover:bg-transparent transition-none active:hover:scale-100 active:hover:translate-y-0",
+																allLabels.length === 0 && "text-muted-foreground",
+															)}
+														>
+															{allLabels.length === 0 ? (
+																<span>Select servers...</span>
+															) : (
+																allLabels.map(({ label, id }) => (
+																	<Badge key={id} variant="secondary" className="gap-1">
+																		{label}
+																		<X
+																			className="h-3 w-3 cursor-pointer"
+																			onClick={(e) => {
+																				e.stopPropagation();
+																				toggleServer(id);
+																			}}
+																		/>
+																	</Badge>
+																))
+															)}
+															<ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+														</Button>
+													</FormControl>
+												</PopoverTrigger>
+												<PopoverContent
+													className="w-[--radix-popover-trigger-width] p-0 data-[state=open]:animate-none data-[state=closed]:animate-none"
+													align="start"
+												>
+													<Command>
+														<CommandInput placeholder="Search servers..." className="h-8 focus-visible:ring-0 focus-visible:ring-offset-0" />
+														<CommandList>
+															<CommandEmpty>No servers found</CommandEmpty>
+															<CommandGroup>
+																<CommandItem
+																	value="select all servers"
+																	onSelect={toggleAll}
+																	className="font-medium border-b cursor-pointer"
+																>
+																	<Check
+																		className={cn(
+																			"mr-2 h-4 w-4",
+																			allSelected ? "opacity-100" : "opacity-0",
+																		)}
+																	/>
+																	{allSelected ? "Deselect All" : "Select All"}
+																</CommandItem>
+																{isCloud === false && (
+																	<CommandItem
+																		value="Dokploy"
+																		onSelect={() => toggleServer("local")}
+																		className="cursor-pointer"
+																	>
+																		<Check
+																			className={cn(
+																				"mr-2 h-4 w-4",
+																				selectedIds.includes("local") ? "opacity-100" : "opacity-0",
+																			)}
+																		/>
+																		Dokploy
+																		<span className="ml-1 text-xs text-muted-foreground">
+																			(Default)
+																		</span>
+																	</CommandItem>
+																)}
+																{(allServers ?? []).map((server) => (
+																	<CommandItem
+																		key={server.serverId}
+																		value={`${server.name} ${server.ipAddress ?? ""}`}
+																		onSelect={() => toggleServer(server.serverId)}
+																		className="cursor-pointer"
+																	>
+																		<Check
+																			className={cn(
+																				"mr-2 h-4 w-4",
+																				selectedIds.includes(server.serverId) ? "opacity-100" : "opacity-0",
+																			)}
+																		/>
+																		{server.name}
+																		{server.ipAddress && (
+																			<span className="ml-1 text-xs text-muted-foreground">
+																				({server.ipAddress})
+																			</span>
+																		)}
+																	</CommandItem>
+																))}
+															</CommandGroup>
+														</CommandList>
+													</Command>
+												</PopoverContent>
+											</Popover>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+						)}
 						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2">
 							<Button
 								isLoading={isPending}

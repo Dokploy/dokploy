@@ -2,6 +2,7 @@ import {
 	createServer,
 	defaultCommand,
 	deleteServer,
+	findMemberById,
 	findServerById,
 	findServersByUserId,
 	findUserById,
@@ -38,6 +39,18 @@ import {
 	redis,
 	server,
 } from "@/server/db/schema";
+
+async function getMemberAccess(
+	userId: string,
+	orgId: string,
+	role: string,
+): Promise<Set<string> | null> {
+	if (role === "owner" || role === "admin") {
+		return null;
+	}
+	const member = await findMemberById(userId, orgId);
+	return new Set(member.accessedServers ?? []);
+}
 
 export const serverRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -104,7 +117,12 @@ export const serverRouter = createTRPCRouter({
 			.orderBy(desc(server.createdAt))
 			.groupBy(server.serverId);
 
-		return result;
+		const allowed = await getMemberAccess(
+			ctx.user.id,
+			ctx.session.activeOrganizationId,
+			ctx.user.role,
+		);
+		return allowed ? result.filter((s) => allowed.has(s.serverId)) : result;
 	}),
 	count: protectedProcedure.query(async ({ ctx }) => {
 		const organizations = await db.query.organization.findMany({
@@ -134,7 +152,13 @@ export const serverRouter = createTRPCRouter({
 						eq(server.serverType, "deploy"),
 					),
 		});
-		return result;
+
+		const allowed = await getMemberAccess(
+			ctx.user.id,
+			ctx.session.activeOrganizationId,
+			ctx.user.role,
+		);
+		return allowed ? result.filter((s) => allowed.has(s.serverId)) : result;
 	}),
 	buildServers: protectedProcedure.query(async ({ ctx }) => {
 		const result = await db.query.server.findMany({
@@ -152,7 +176,13 @@ export const serverRouter = createTRPCRouter({
 						eq(server.serverType, "build"),
 					),
 		});
-		return result;
+
+		const allowed = await getMemberAccess(
+			ctx.user.id,
+			ctx.session.activeOrganizationId,
+			ctx.user.role,
+		);
+		return allowed ? result.filter((s) => allowed.has(s.serverId)) : result;
 	}),
 	setup: protectedProcedure
 		.input(apiFindOneServer)

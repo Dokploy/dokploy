@@ -129,6 +129,10 @@ export const member = pgTable("member", {
 		.array()
 		.notNull()
 		.default(sql`ARRAY[]::text[]`),
+	accessedServers: text("accessed_servers")
+		.array()
+		.notNull()
+		.default(sql`ARRAY[]::text[]`),
 });
 
 export const memberRelations = relations(member, ({ one }) => ({

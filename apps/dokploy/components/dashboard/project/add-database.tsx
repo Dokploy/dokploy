@@ -181,6 +181,12 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 	const slug = slugify(projectName);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
+	const { data: currentMember, isLoading: isLoadingMember } =
+		api.user.get.useQuery();
+	const canUseLocalServer =
+		!currentMember ||
+		currentMember.role !== "member" ||
+		(currentMember.accessedServers ?? []).includes("local");
 	const postgresMutation = api.postgres.create.useMutation();
 	const mongoMutation = api.mongo.create.useMutation();
 	const redisMutation = api.redis.create.useMutation();
@@ -415,21 +421,22 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 											<FormItem>
 												<FormLabel>Select a Server</FormLabel>
 												<Select
+													key={String(isLoadingMember)}
 													onValueChange={field.onChange}
 													defaultValue={
-														field.value || (!isCloud ? "dokploy" : undefined)
+														field.value || (!isCloud && canUseLocalServer ? "dokploy" : undefined)
 													}
 												>
 													<SelectTrigger>
 														<SelectValue
 															placeholder={
-																!isCloud ? "Dokploy" : "Select a Server"
+																!isCloud && canUseLocalServer ? "Dokploy" : "Select a Server"
 															}
 														/>
 													</SelectTrigger>
 													<SelectContent>
 														<SelectGroup>
-															{!isCloud && (
+															{!isCloud && canUseLocalServer && (
 																<SelectItem value="dokploy">
 																	<span className="flex items-center gap-2 justify-between w-full">
 																		<span>Dokploy</span>
@@ -448,7 +455,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 																</SelectItem>
 															))}
 															<SelectLabel>
-																Servers ({servers?.length + (!isCloud ? 1 : 0)})
+																Servers ({(servers?.length ?? 0) +(!isCloud && canUseLocalServer ? 1 : 0)})
 															</SelectLabel>
 														</SelectGroup>
 													</SelectContent>
