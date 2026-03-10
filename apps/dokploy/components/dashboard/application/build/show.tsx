@@ -31,6 +31,10 @@ import { api } from "@/utils/api";
 
 // Railpack versions from https://github.com/railwayapp/railpack/releases
 export const RAILPACK_VERSIONS = [
+	"0.17.2",
+	"0.17.1",
+	"0.17.0",
+	"0.16.0",
 	"0.15.4",
 	"0.15.3",
 	"0.15.2",
@@ -91,7 +95,7 @@ const mySchema = z.discriminatedUnion("buildType", [
 	}),
 	z.object({
 		buildType: z.literal(BuildType.railpack),
-		railpackVersion: z.string().nullable().default("0.15.4"),
+		railpackVersion: z.string().nullable().default("0.17.2"),
 	}),
 	z.object({
 		buildType: z.literal(BuildType.static),
@@ -227,7 +231,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 				data.buildType === BuildType.static ? data.isStaticSpa : null,
 			railpackVersion:
 				data.buildType === BuildType.railpack
-					? data.railpackVersion || "0.15.4"
+					? data.railpackVersion || "0.17.2"
 					: null,
 		})
 			.then(async () => {
