@@ -164,10 +164,10 @@ export const CodeEditor = ({
 						: language === "json"
 							? json()
 							: language === "css"
-							? css()
-							: language === "shell"
-								? StreamLanguage.define(shell)
-								: StreamLanguage.define(properties),
+								? css()
+								: language === "shell"
+									? StreamLanguage.define(shell)
+									: StreamLanguage.define(properties),
 					props.lineWrapping ? EditorView.lineWrapping : [],
 					language === "yaml"
 						? autocompletion({

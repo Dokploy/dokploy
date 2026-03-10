@@ -429,8 +429,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/whitelabeling",
 			icon: Palette,
 			// Only enabled for owners in non-cloud environments (enterprise)
-			isEnabled: ({ auth, isCloud }) =>
-				!!(auth?.role === "owner" && !isCloud),
+			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && !isCloud),
 		},
 	],
 
@@ -460,7 +459,13 @@ function createMenuForAuthUser(opts: {
 		supportUrl?: string | null;
 	} | null;
 }): Menu {
-	const filterEnabled = <T extends { isEnabled?: (o: { auth?: AuthQueryOutput; isCloud: boolean }) => boolean }>(items: readonly T[]): T[] =>
+	const filterEnabled = <
+		T extends {
+			isEnabled?: (o: { auth?: AuthQueryOutput; isCloud: boolean }) => boolean;
+		},
+	>(
+		items: readonly T[],
+	): T[] =>
 		items.filter((item) =>
 			!item.isEnabled
 				? true
