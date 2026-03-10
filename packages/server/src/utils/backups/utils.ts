@@ -58,23 +58,110 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
+const normalizeProvider = (provider: string | null) =>
+	(provider || "").trim().toLowerCase();
+
+const shellQuote = (value: string) => `'${value.replaceAll("'", "'\"'\"'")}'`;
+
+type RcloneProviderKind = "s3" | "ftp" | "sftp" | "gdrive" | "onedrive";
+
+const getRcloneProviderKind = (destination: Destination): RcloneProviderKind => {
+	const provider = normalizeProvider(destination.provider);
+	if (provider === "ftp") return "ftp";
+	if (provider === "sftp") return "sftp";
+	if (provider === "gdrive" || provider === "google drive" || provider === "drive") {
+		return "gdrive";
+	}
+	if (provider === "onedrive" || provider === "one drive") return "onedrive";
+	return "s3";
+};
+
 export const getS3Credentials = (destination: Destination) => {
+	const providerKind = getRcloneProviderKind(destination);
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
+	if (providerKind === "ftp") {
+		return [
+			`--ftp-host=${shellQuote(endpoint)}`,
+			`--ftp-user=${shellQuote(accessKey)}`,
+			`--ftp-pass=${shellQuote(secretAccessKey)}`,
+		];
+	}
+	if (providerKind === "sftp") {
+		return [
+			`--sftp-host=${shellQuote(endpoint)}`,
+			`--sftp-user=${shellQuote(accessKey)}`,
+			`--sftp-pass=${shellQuote(secretAccessKey)}`,
+		];
+	}
+	if (providerKind === "gdrive") {
+		const flags = [
+			`--drive-client-id=${shellQuote(accessKey)}`,
+			`--drive-client-secret=${shellQuote(secretAccessKey)}`,
+		];
+		if (endpoint) {
+			flags.push(`--drive-token=${shellQuote(endpoint)}`);
+		}
+		return flags;
+	}
+	if (providerKind === "onedrive") {
+		const flags = [
+			`--onedrive-client-id=${shellQuote(accessKey)}`,
+			`--onedrive-client-secret=${shellQuote(secretAccessKey)}`,
+		];
+		if (endpoint) {
+			flags.push(`--onedrive-token=${shellQuote(endpoint)}`);
+		}
+		return flags;
+	}
+
 	const rcloneFlags = [
-		`--s3-access-key-id="${accessKey}"`,
-		`--s3-secret-access-key="${secretAccessKey}"`,
-		`--s3-region="${region}"`,
-		`--s3-endpoint="${endpoint}"`,
+		`--s3-access-key-id=${shellQuote(accessKey)}`,
+		`--s3-secret-access-key=${shellQuote(secretAccessKey)}`,
+		`--s3-region=${shellQuote(region)}`,
+		`--s3-endpoint=${shellQuote(endpoint)}`,
 		"--s3-no-check-bucket",
 		"--s3-force-path-style",
 	];
 
 	if (provider) {
-		rcloneFlags.unshift(`--s3-provider="${provider}"`);
+		rcloneFlags.unshift(`--s3-provider=${shellQuote(provider)}`);
 	}
-
 	return rcloneFlags;
+};
+
+export const getRcloneRemoteType = (destination: Destination) => {
+	const providerKind = getRcloneProviderKind(destination);
+	if (providerKind === "ftp") return "ftp";
+	if (providerKind === "sftp") return "sftp";
+	if (providerKind === "gdrive") return "drive";
+	if (providerKind === "onedrive") return "onedrive";
+	return "s3";
+};
+
+export const getRcloneDestination = (
+	destination: Destination,
+	objectPath: string,
+) => {
+	const remoteType = getRcloneRemoteType(destination);
+	if (remoteType === "s3") {
+		return `:s3:${destination.bucket}/${objectPath}`;
+	}
+	const rootPrefix = normalizeS3Path(destination.bucket || "");
+	return `:${remoteType}:${rootPrefix}${objectPath}`;
+};
+
+export const getRclonePrefixPath = (
+	destination: Destination,
+	prefix: string,
+) => {
+	const remoteType = getRcloneRemoteType(destination);
+	const normalizedPrefix = normalizeS3Path(prefix);
+	if (remoteType === "s3") {
+		return `:s3:${destination.bucket}/${normalizedPrefix}`;
+	}
+	const rootPrefix = normalizeS3Path(destination.bucket || "");
+	return `:${remoteType}:${rootPrefix}${normalizedPrefix}`;
 };
 
 export const getPostgresBackupCommand = (

@@ -92,6 +92,36 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		},
 		resolver: zodResolver(addDestination),
 	});
+	const selectedProvider = form.watch("provider");
+	const normalizedProvider = selectedProvider.toLowerCase();
+	const isFtp = normalizedProvider === "ftp" || normalizedProvider === "sftp";
+	const isDrive =
+		normalizedProvider === "gdrive" || normalizedProvider === "onedrive";
+	const accessKeyLabel = isFtp
+		? "Username"
+		: isDrive
+			? "Client ID"
+			: "Access Key Id";
+	const secretLabel = isFtp
+		? "Password"
+		: isDrive
+			? "Client Secret"
+			: "Secret Access Key";
+	const bucketLabel = isFtp
+		? "Remote Root Path"
+		: isDrive
+			? "Remote Folder"
+			: "Bucket";
+	const endpointLabel = isFtp
+		? "Host"
+		: isDrive
+			? "OAuth Token JSON"
+			: "Endpoint";
+	const endpointPlaceholder = isFtp
+		? "storage.example.com"
+		: isDrive
+			? '{"access_token":"...","refresh_token":"..."}'
+			: "https://s3.example.com";
 	useEffect(() => {
 		if (destination) {
 			form.reset({
@@ -168,8 +198,6 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		const endpoint = form.getValues("endpoint");
 		const region = form.getValues("region");
 
-		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
-
 		await testConnection({
 			provider,
 			accessKey,
@@ -185,7 +213,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			})
 			.catch((e) => {
 				toast.error("Error connecting to provider", {
-					description: `${e.message}\n\nTry manually: rclone ls ${connectionString}`,
+					description: e.message,
 				});
 			});
 	};
@@ -261,7 +289,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a S3 Provider" />
+														<SelectValue placeholder="Select a Provider" />
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
@@ -288,7 +316,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
+										<FormLabel>{accessKeyLabel}</FormLabel>
 										<FormControl>
 											<Input placeholder={"xcas41dasde"} {...field} />
 										</FormControl>
@@ -303,7 +331,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
+										<FormLabel>{secretLabel}</FormLabel>
 									</div>
 									<FormControl>
 										<Input placeholder={"asd123asdasw"} {...field} />
@@ -318,7 +346,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
+										<FormLabel>{bucketLabel}</FormLabel>
 									</div>
 									<FormControl>
 										<Input placeholder={"dokploy-bucket"} {...field} />
@@ -327,32 +355,31 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="region"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{!isFtp && !isDrive && (
+							<FormField
+								control={form.control}
+								name="region"
+								render={({ field }) => (
+									<FormItem>
+										<div className="space-y-0.5">
+											<FormLabel>Region</FormLabel>
+										</div>
+										<FormControl>
+											<Input placeholder={"us-east-1"} {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 						<FormField
 							control={form.control}
 							name="endpoint"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
+									<FormLabel>{endpointLabel}</FormLabel>
 									<FormControl>
-										<Input
-											placeholder={"https://us.bucket.aws/s3"}
-											{...field}
-										/>
+										<Input placeholder={endpointPlaceholder} {...field} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
