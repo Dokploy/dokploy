@@ -29,10 +29,10 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 	const { data: currentMember, isLoading: isLoadingMember } =
 		api.user.get.useQuery();
 	const canUseLocalServer =
-		!isLoadingMember &&
-		(!currentMember ||
-			currentMember.role !== "member" ||
-			(currentMember.accessedServers ?? []).includes("local"));
+		isLoadingMember ||
+		!currentMember ||
+		currentMember.role !== "member" ||
+		(currentMember.accessedServers ?? []).includes("local");
 	const hasServers = servers && servers.length > 0;
 	// Show dropdown logic based on cloud environment
 	// Cloud: show only if there are remote servers (no Dokploy option)

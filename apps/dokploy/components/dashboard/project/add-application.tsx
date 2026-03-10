@@ -77,10 +77,10 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 	const { data: currentMember, isLoading: isLoadingMember } =
 		api.user.get.useQuery();
 	const canUseLocalServer =
-		!isLoadingMember &&
-		(!currentMember ||
-			currentMember.role !== "member" ||
-			(currentMember.accessedServers ?? []).includes("local"));
+		isLoadingMember ||
+		!currentMember ||
+		currentMember.role !== "member" ||
+		(currentMember.accessedServers ?? []).includes("local");
 
 	const hasServers = servers && servers.length > 0;
 	// Show dropdown logic based on cloud environment
@@ -196,6 +196,7 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 										</TooltipProvider>
 
 										<Select
+											key={String(isLoadingMember)}
 											onValueChange={field.onChange}
 											defaultValue={
 												field.value || (!isCloud && canUseLocalServer ? "dokploy" : undefined)

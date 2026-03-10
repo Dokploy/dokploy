@@ -78,10 +78,10 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 	const { data: currentMember, isLoading: isLoadingMember } =
 		api.user.get.useQuery();
 	const canUseLocalServer =
-		!isLoadingMember &&
-		(!currentMember ||
-			currentMember.role !== "member" ||
-			(currentMember.accessedServers ?? []).includes("local"));
+		isLoadingMember ||
+		!currentMember ||
+		currentMember.role !== "member" ||
+		(currentMember.accessedServers ?? []).includes("local");
 	const { mutateAsync, isPending, error, isError } =
 		api.compose.create.useMutation();
 
@@ -208,6 +208,7 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 										</TooltipProvider>
 
 										<Select
+											key={String(isLoadingMember)}
 											onValueChange={field.onChange}
 											defaultValue={
 												field.value || (!isCloud && canUseLocalServer ? "dokploy" : undefined)

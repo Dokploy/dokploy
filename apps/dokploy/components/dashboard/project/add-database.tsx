@@ -184,10 +184,10 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 	const { data: currentMember, isLoading: isLoadingMember } =
 		api.user.get.useQuery();
 	const canUseLocalServer =
-		!isLoadingMember &&
-		(!currentMember ||
-			currentMember.role !== "member" ||
-			(currentMember.accessedServers ?? []).includes("local"));
+		isLoadingMember ||
+		!currentMember ||
+		currentMember.role !== "member" ||
+		(currentMember.accessedServers ?? []).includes("local");
 	const postgresMutation = api.postgres.create.useMutation();
 	const mongoMutation = api.mongo.create.useMutation();
 	const redisMutation = api.redis.create.useMutation();
@@ -422,6 +422,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 											<FormItem>
 												<FormLabel>Select a Server</FormLabel>
 												<Select
+													key={String(isLoadingMember)}
 													onValueChange={field.onChange}
 													defaultValue={
 														field.value || (!isCloud && canUseLocalServer ? "dokploy" : undefined)
