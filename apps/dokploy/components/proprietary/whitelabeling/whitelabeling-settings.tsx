@@ -30,15 +30,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { WhitelabelingPreview } from "./whitelabeling-preview";
 
+const safeUrlField = z
+	.string()
+	.refine((val) => val === "" || /^https?:\/\//i.test(val), {
+		message: "Only http:// and https:// URLs are allowed",
+	});
+
 const formSchema = z.object({
 	appName: z.string(),
 	appDescription: z.string(),
-	logoUrl: z.string(),
-	faviconUrl: z.string(),
+	logoUrl: safeUrlField,
+	faviconUrl: safeUrlField,
 	customCss: z.string(),
-	loginLogoUrl: z.string(),
-	supportUrl: z.string(),
-	docsUrl: z.string(),
+	loginLogoUrl: safeUrlField,
+	supportUrl: safeUrlField,
+	docsUrl: safeUrlField,
 	errorPageTitle: z.string(),
 	errorPageDescription: z.string(),
 	metaTitle: z.string(),

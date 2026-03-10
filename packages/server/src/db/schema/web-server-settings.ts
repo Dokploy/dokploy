@@ -187,16 +187,23 @@ export const apiUpdateDockerCleanup = z.object({
 });
 
 // Whitelabeling validation schemas
+const safeUrl = z
+	.string()
+	.refine((url) => /^https?:\/\//i.test(url), {
+		message: "Only http:// and https:// URLs are allowed",
+	})
+	.nullable();
+
 export const whitelabelingConfigSchema = z.object({
 	appName: z.string().nullable(),
 	appDescription: z.string().nullable(),
-	logoUrl: z.string().nullable(),
-	faviconUrl: z.string().nullable(),
+	logoUrl: safeUrl,
+	faviconUrl: safeUrl,
 	primaryColor: z.string().nullable(),
 	customCss: z.string().nullable(),
-	loginLogoUrl: z.string().nullable(),
-	supportUrl: z.string().nullable(),
-	docsUrl: z.string().nullable(),
+	loginLogoUrl: safeUrl,
+	supportUrl: safeUrl,
+	docsUrl: safeUrl,
 	errorPageTitle: z.string().nullable(),
 	errorPageDescription: z.string().nullable(),
 	metaTitle: z.string().nullable(),
