@@ -883,7 +883,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 									};
 									const selectedIds = field.value ?? [];
 									const allServerIds = [
-										...(!isCloud ? ["local"] : []),
+										...(isCloud === false ? ["local"] : []),
 										...(allServers ?? []).map((s) => s.serverId),
 									];
 									const allSelected =
@@ -965,7 +965,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 																	/>
 																	{allSelected ? "Deselect All" : "Select All"}
 																</CommandItem>
-																{!isCloud && (
+																{isCloud === false && (
 																	<CommandItem
 																		value="Dokploy"
 																		onSelect={() => toggleServer("local")}

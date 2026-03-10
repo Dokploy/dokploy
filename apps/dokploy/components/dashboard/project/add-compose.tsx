@@ -78,7 +78,6 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 	const { data: currentMember, isLoading: isLoadingMember } =
 		api.user.get.useQuery();
 	const canUseLocalServer =
-		isLoadingMember ||
 		!currentMember ||
 		currentMember.role !== "member" ||
 		(currentMember.accessedServers ?? []).includes("local");
