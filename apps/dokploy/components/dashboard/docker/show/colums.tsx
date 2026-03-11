@@ -11,6 +11,7 @@ import {
 import { ShowContainerConfig } from "../config/show-container-config";
 import { ShowDockerModalLogs } from "../logs/show-docker-modal-logs";
 import { DockerTerminalModal } from "../terminal/docker-terminal-modal";
+import { UploadFileModal } from "../upload/upload-file-modal";
 import type { Container } from "./show-containers";
 
 export const columns: ColumnDef<Container>[] = [
@@ -127,6 +128,12 @@ export const columns: ColumnDef<Container>[] = [
 						>
 							Terminal
 						</DockerTerminalModal>
+						<UploadFileModal
+							containerId={container.containerId}
+							serverId={container.serverId || undefined}
+						>
+							Upload File
+						</UploadFileModal>
 					</DropdownMenuContent>
 				</DropdownMenu>
 			);
