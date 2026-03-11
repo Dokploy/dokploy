@@ -58,6 +58,73 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
+// Valid variables for backup file name format
+const VALID_FORMAT_VARIABLES = [
+	"timestamp",
+	"date",
+	"time",
+	"year",
+	"month",
+	"day",
+	"hour",
+	"minute",
+	"epoch",
+	"appName",
+	"volumeName",
+	"databaseType",
+	"uuid",
+	"shortUuid",
+] as const;
+
+export const validateFileNameFormat = (format: string): string[] => {
+	const usedVars = [...format.matchAll(/\{(\w+)\}/g)]
+		.map((m) => m[1])
+		.filter((v): v is string => v !== undefined);
+	return usedVars.filter(
+		(v) =>
+			!VALID_FORMAT_VARIABLES.includes(
+				v as (typeof VALID_FORMAT_VARIABLES)[number],
+			),
+	);
+};
+
+export const formatBackupFileName = (
+	format: string,
+	context: {
+		appName?: string;
+		volumeName?: string;
+		databaseType?: string;
+	},
+): string => {
+
+	if (!format || !format.trim()) return "";
+
+	const now = new Date();
+	const uuid = crypto.randomUUID();
+
+	const isoString = now.toISOString();
+	const [datePart, timePart] = isoString.split("T");
+
+	const variables: Record<string, string> = {
+		timestamp: isoString,
+		date: datePart ?? "",
+		time: timePart?.replace(/[:.]/g, "-").slice(0, 8) ?? "",
+		year: String(now.getFullYear()),
+		month: String(now.getMonth() + 1).padStart(2, "0"),
+		day: String(now.getDate()).padStart(2, "0"),
+		hour: String(now.getHours()).padStart(2, "0"),
+		minute: String(now.getMinutes()).padStart(2, "0"),
+		epoch: String(Math.floor(now.getTime() / 1000)),
+		appName: context.appName ?? "",
+		volumeName: context.volumeName ?? "",
+		databaseType: context.databaseType ?? "",
+		uuid: uuid,
+		shortUuid: uuid.slice(0, 8),
+	};
+
+	return format.replace(/\{(\w+)\}/g, (_, key) => variables[key] ?? `{${key}}`);
+};
+
 export const getS3Credentials = (destination: Destination) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
