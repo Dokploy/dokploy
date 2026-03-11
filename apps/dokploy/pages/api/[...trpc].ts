@@ -16,7 +16,22 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 	return createOpenApiNextHandler({
 		router: appRouter,
 		createContext: createTRPCContext,
+		onError:
+			process.env.NODE_ENV === "development"
+				? ({ path, error }: { path: string | undefined; error: Error }) => {
+						console.error(
+							`❌ OpenAPI failed on ${path ?? "<no-path>"}: ${error.message}`,
+						);
+					}
+				: undefined,
 	})(req, res);
 };
 
 export default handler;
+
+export const config = {
+	api: {
+		bodyParser: false,
+		sizeLimit: "1gb",
+	},
+};
