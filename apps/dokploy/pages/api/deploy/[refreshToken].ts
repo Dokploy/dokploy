@@ -23,6 +23,71 @@ const getPackageVersion = (headers: any, body: any) => {
 	return null;
 };
 
+/**
+ * Validate if the webhook event matches the configured trigger type
+ * @param headers - Request headers containing event information
+ * @param body - Request body containing event details
+ * @param triggerType - Configured trigger type ("push" or "tag")
+ * @returns true if the event matches the trigger type, false otherwise
+ */
+export const validateTriggerType = (
+	headers: any,
+	body: any,
+	triggerType: "push" | "tag",
+): boolean => {
+	// GitHub
+	const githubEvent = headers["x-github-event"];
+	if (githubEvent) {
+		if (triggerType === "tag") {
+			// For tag trigger type, only accept "create" events with ref_type "tag"
+			return githubEvent === "create" && body.ref_type === "tag";
+		}
+		// For push trigger type, accept push and registry_package events
+		return githubEvent === "push" || githubEvent === "registry_package";
+	}
+
+	// GitLab
+	const gitlabEvent = headers["x-gitlab-event"];
+	if (gitlabEvent) {
+		if (triggerType === "tag") {
+			// GitLab uses "Tag Push Hook" for tag events
+			return gitlabEvent === "Tag Push Hook";
+		}
+		// For push trigger type, accept push events
+		return gitlabEvent === "Push Hook";
+	}
+
+	// Gitea
+	const giteaEvent = headers["x-gitea-event"];
+	if (giteaEvent) {
+		if (triggerType === "tag") {
+			// For Gitea, check for create event with ref_type tag
+			return giteaEvent === "create" && body.ref_type === "tag";
+		}
+		// For push trigger type, accept push events
+		return giteaEvent === "push";
+	}
+
+	// Bitbucket
+	const bitbucketEvent = headers["x-event-key"];
+	if (bitbucketEvent?.includes("repo:push")) {
+		const changes = body.push?.changes || [];
+		if (triggerType === "tag") {
+			// For Bitbucket, check if the push is for a tag
+			return changes.some(
+				(change: any) => change.new?.type === "tag" || change.new?.type === "annotated_tag",
+			);
+		}
+		// For push trigger type, accept push events that are not tags
+		return !changes.some(
+			(change: any) => change.new?.type === "tag" || change.new?.type === "annotated_tag",
+		);
+	}
+
+	// Default: if we can't determine the provider, allow the event (backward compatibility)
+	return true;
+};
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
@@ -52,6 +117,14 @@ export default async function handler(
 		if (!application?.autoDeploy) {
 			res.status(400).json({
 				message: "Automatic deployments are disabled for this application",
+			});
+			return;
+		}
+
+		// Validate trigger type matches the webhook event
+		if (!validateTriggerType(req.headers, req.body, application.triggerType)) {
+			res.status(200).json({
+				message: `Event type does not match configured trigger type (${application.triggerType})`,
 			});
 			return;
 		}
