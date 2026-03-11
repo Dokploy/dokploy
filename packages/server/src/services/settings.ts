@@ -8,6 +8,7 @@ import { and, eq } from "drizzle-orm";
 
 import semver from "semver";
 import { db } from "../db";
+import { docker } from "@dokploy/server/constants";
 import { compose } from "../db/schema";
 import {
 	initializeStandaloneTraefik,
@@ -27,6 +28,22 @@ export const DEFAULT_UPDATE_DATA: IUpdateData = {
 /** Returns current Dokploy docker image tag or `latest` by default. */
 export const getDokployImageTag = () => {
 	return process.env.RELEASE_TAG || "latest";
+};
+
+export const getDokployImage = () => {
+	if (process.env.DOKPLOY_IMAGE) {
+		return process.env.DOKPLOY_IMAGE;
+	}
+	return `dokploy/dokploy:${getDokployImageTag()}`;
+};
+
+export const pullLatestRelease = async () => {
+	const stream = await docker.pull(getDokployImage());
+	await new Promise((resolve, reject) => {
+		docker.modem.followProgress(stream, (err, res) =>
+			err ? reject(err) : resolve(res),
+		);
+	});
 };
 
 /** Returns Dokploy docker service image digest */
@@ -49,6 +66,11 @@ export const getUpdateData = async (
 	currentVersion: string,
 ): Promise<IUpdateData> => {
 	try {
+		// Skip update checks for custom images - users manage their own updates
+		if (process.env.DOKPLOY_IMAGE) {
+			return DEFAULT_UPDATE_DATA;
+		}
+
 		const baseUrl =
 			"https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
 		let url: string | null = `${baseUrl}?page_size=100`;
@@ -289,13 +311,21 @@ export const reloadDockerResource = async (
 	let command = "";
 	if (resourceType === "service") {
 		if (resourceName === "dokploy") {
-			const currentImageTag = getDokployImageTag();
-			let imageTag = version;
-			if (currentImageTag === "canary" || currentImageTag === "feature") {
-				imageTag = currentImageTag;
+			const image = getDokployImage();
+			// For custom images (DOKPLOY_IMAGE), use the full image path as-is
+			// For canary/feature branches, keep the current tag
+			// For stable releases, use the provided version or current tag
+			let finalImage = image;
+			if (!process.env.DOKPLOY_IMAGE) {
+				const currentImageTag = getDokployImageTag();
+				if (currentImageTag === "canary" || currentImageTag === "feature") {
+					finalImage = `dokploy/dokploy:${currentImageTag}`;
+				} else if (version) {
+					finalImage = `dokploy/dokploy:${version}`;
+				}
 			}
 
-			command = `docker service update --force --image dokploy/dokploy:${imageTag} ${resourceName}`;
+			command = `docker service update --force --image ${finalImage} ${resourceName}`;
 		} else {
 			command = `docker service update --force ${resourceName}`;
 		}
