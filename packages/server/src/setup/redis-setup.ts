@@ -1,8 +1,13 @@
 import type { CreateServiceOptions } from "dockerode";
 import { docker } from "../constants";
+import { isExternalRedis } from "../db/constants";
 import { pullImage } from "../utils/docker/utils";
 
 export const initializeRedis = async () => {
+	if (isExternalRedis()) {
+		console.log("Using external Redis — skipping built-in Redis service ✅");
+		return;
+	}
 	const imageName = "redis:7";
 	const containerName = "dokploy-redis";
 
