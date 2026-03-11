@@ -49,11 +49,37 @@ go mod download
 go run main.go
 ```
 
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `METRICS_CONFIG` | — | JSON configuration (see above) |
+| `MAX_METRICS_LIMIT` | `2000` | Server-side cap for metrics queries. Applies when `limit=all` or when a requested limit exceeds this value. |
+
 ## Endpoints
 
 - `GET /health` - Check service health status (no authentication required)
-- `GET /metrics?limit=<number|all>` - Get server metrics (default limit: 50)
-- `GET /metrics/containers?limit=<number|all>&appName=<name>` - Get container metrics for a specific application (default limit: 50)
+- `GET /metrics?limit=<number|all>&before=<RFC3339Nano>` - Get server metrics (default limit: 50). Returns `X-Total-Count` header with total row count.
+- `GET /metrics/containers?limit=<number|all>&appName=<name>&before=<RFC3339Nano>` - Get container metrics for a specific application (default limit: 50). Returns `X-Total-Count` header.
+
+### Query Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `limit` | Number of records to return, or `all` (capped at `MAX_METRICS_LIMIT`). Default: `50`. |
+| `before` | RFC3339Nano timestamp cursor for pagination. Returns records older than this timestamp. |
+| `appName` | (containers only) Filter by application/container name. |
+
+### Pagination
+
+Use the `before` parameter to paginate through historical data. Take the oldest `timestamp` from the current response and pass it as `before` in the next request.
+
+```
+GET /metrics?limit=50
+GET /metrics?limit=50&before=2025-01-19T21:44:54.232164Z
+```
+
+> **Note:** `limit=all` is deprecated and capped at `MAX_METRICS_LIMIT` (default 2000). Use pagination with `before` for large datasets.
 
 ## Features
 

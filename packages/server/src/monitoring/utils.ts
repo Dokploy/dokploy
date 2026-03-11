@@ -12,33 +12,226 @@ export interface Container {
 	Name: string;
 	NetIO: string;
 }
+
+type StatType = "cpu" | "memory" | "disk" | "network" | "block";
+
+export interface MemoryStatValue {
+	used: string;
+	total: string;
+}
+
+export interface BlockStatValue {
+	readMb: string;
+	writeMb: string;
+}
+
+export interface NetworkStatValue {
+	inputMb: string;
+	outputMb: string;
+}
+
+export interface DiskStatValue {
+	diskTotal: number;
+	diskUsedPercentage: number;
+	diskUsage: number;
+	diskFree: number;
+}
+
+export type StatValue =
+	| string
+	| MemoryStatValue
+	| BlockStatValue
+	| NetworkStatValue
+	| DiskStatValue;
+
+export interface StatTypeMap {
+	cpu: string;
+	memory: MemoryStatValue;
+	block: BlockStatValue;
+	network: NetworkStatValue;
+	disk: DiskStatValue;
+}
+
+const MAX_ENTRIES = 288;
+const FLUSH_INTERVAL_MS = 30_000;
+
+// Cached OSUtils instances
+const osutils = new OSUtils();
+const osutilsWithDisk = new OSUtils({ disk: { includeStats: true } });
+
+// In-memory ring buffer
+export interface StatsEntry<T = StatValue> {
+	value: T;
+	time: string;
+}
+
+class RingBuffer<T = StatValue> {
+	private buffer: StatsEntry<T>[];
+	private head = 0;
+	private count = 0;
+
+	constructor(private capacity: number) {
+		this.buffer = new Array(capacity);
+	}
+
+	push(entry: StatsEntry<T>) {
+		this.buffer[this.head] = entry;
+		this.head = (this.head + 1) % this.capacity;
+		if (this.count < this.capacity) {
+			this.count++;
+		}
+	}
+
+	toArray(): StatsEntry<T>[] {
+		if (this.count === 0) return [];
+		if (this.count < this.capacity) {
+			return this.buffer.slice(0, this.count);
+		}
+		// Wrap around: from head to end, then start to head
+		return [
+			...this.buffer.slice(this.head),
+			...this.buffer.slice(0, this.head),
+		];
+	}
+
+	last(): StatsEntry<T> | null {
+		if (this.count === 0) return null;
+		const idx = (this.head - 1 + this.capacity) % this.capacity;
+		return this.buffer[idx]!;
+	}
+
+	get length() {
+		return this.count;
+	}
+}
+
+const statsCache = new Map<string, RingBuffer>();
+const dirtyKeys = new Set<string>();
+const loadingPromises = new Map<string, Promise<RingBuffer>>();
+let flushTimer: ReturnType<typeof setInterval> | null = null;
+
+function getCacheKey(appName: string, statType: StatType): string {
+	return `${appName}/${statType}`;
+}
+
+function getOrCreateBuffer(key: string): RingBuffer {
+	let buf = statsCache.get(key);
+	if (!buf) {
+		buf = new RingBuffer(MAX_ENTRIES);
+		statsCache.set(key, buf);
+	}
+	return buf;
+}
+
+async function loadFromDisk(
+	appName: string,
+	statType: StatType,
+): Promise<RingBuffer> {
+	const key = getCacheKey(appName, statType);
+	const existing = statsCache.get(key);
+	if (existing && existing.length > 0) return existing;
+
+	const inflight = loadingPromises.get(key);
+	if (inflight) return inflight;
+
+	const promise = (async () => {
+		const buf = getOrCreateBuffer(key);
+		try {
+			const { MONITORING_PATH } = paths();
+			const filePath = `${MONITORING_PATH}/${appName}/${statType}.json`;
+			const data = await promises.readFile(filePath, "utf-8");
+			const entries: StatsEntry[] = JSON.parse(data);
+			for (const entry of entries) {
+				buf.push(entry);
+			}
+		} catch {
+			// File doesn't exist yet
+		}
+		return buf;
+	})();
+
+	loadingPromises.set(key, promise);
+	try {
+		return await promise;
+	} finally {
+		loadingPromises.delete(key);
+	}
+}
+
+async function flushToDisk() {
+	if (dirtyKeys.size === 0) return;
+
+	const { MONITORING_PATH } = paths();
+	const keysToFlush = [...dirtyKeys];
+	dirtyKeys.clear();
+
+	for (const key of keysToFlush) {
+		const buf = statsCache.get(key);
+		if (!buf) continue;
+
+		const lastSlash = key.lastIndexOf("/");
+		const appName = key.substring(0, lastSlash);
+		const statType = key.substring(lastSlash + 1);
+		const dirPath = `${MONITORING_PATH}/${appName}`;
+		try {
+			await promises.mkdir(dirPath, { recursive: true });
+			await promises.writeFile(
+				`${dirPath}/${statType}.json`,
+				JSON.stringify(buf.toArray()),
+			);
+		} catch (err) {
+			console.error(`Failed to flush stats for ${key}:`, err);
+		}
+	}
+}
+
+function ensureFlushTimer() {
+	if (flushTimer) return;
+	flushTimer = setInterval(flushToDisk, FLUSH_INTERVAL_MS);
+	// Don't prevent process exit
+	if (flushTimer.unref) flushTimer.unref();
+}
+
+// Flush on process exit
+process.on("beforeExit", () => flushToDisk());
+process.on("SIGTERM", () => {
+	flushToDisk()
+		.catch((err) => console.error("Flush failed on SIGTERM:", err))
+		.finally(() => process.exit(0));
+});
+process.on("SIGINT", () => {
+	flushToDisk()
+		.catch((err) => console.error("Flush failed on SIGINT:", err))
+		.finally(() => process.exit(0));
+});
+
 export const recordAdvancedStats = async (
 	stats: Container,
 	appName: string,
 ) => {
-	const { MONITORING_PATH } = paths();
-	const path = `${MONITORING_PATH}/${appName}`;
+	ensureFlushTimer();
 
-	await promises.mkdir(path, { recursive: true });
+	const memParts = stats.MemUsage.split(" ");
+	const blockParts = stats.BlockIO.split(" ");
+	const netParts = stats.NetIO.split(" ");
 
 	await updateStatsFile(appName, "cpu", stats.CPUPerc);
 	await updateStatsFile(appName, "memory", {
-		used: stats.MemUsage.split(" ")[0],
-		total: stats.MemUsage.split(" ")[2],
+		used: memParts[0] ?? "0",
+		total: memParts[2] ?? "0",
 	});
 
 	await updateStatsFile(appName, "block", {
-		readMb: stats.BlockIO.split(" ")[0],
-		writeMb: stats.BlockIO.split(" ")[2],
+		readMb: blockParts[0] ?? "0",
+		writeMb: blockParts[2] ?? "0",
 	});
 
 	await updateStatsFile(appName, "network", {
-		inputMb: stats.NetIO.split(" ")[0],
-		outputMb: stats.NetIO.split(" ")[2],
+		inputMb: netParts[0] ?? "0",
+		outputMb: netParts[2] ?? "0",
 	});
 
 	if (appName === "dokploy") {
-		const osutils = new OSUtils();
 		const diskResult = await osutils.disk.usageByMountPoint("/");
 
 		if (diskResult.success && diskResult.data) {
@@ -58,23 +251,13 @@ export const recordAdvancedStats = async (
 	}
 };
 
-/**
- * Get host system statistics using node-os-utils
- * This is used when monitoring "dokploy" to show host stats instead of container stats
- */
 export const getHostSystemStats = async (): Promise<Container> => {
-	const osutils = new OSUtils({
-		disk: {
-			includeStats: true, // Enable disk I/O statistics
-		},
-	});
-
 	// Get CPU usage
-	const cpuResult = await osutils.cpu.usage();
+	const cpuResult = await osutilsWithDisk.cpu.usage();
 	const cpuUsage = cpuResult.success ? cpuResult.data : 0;
 
 	// Get memory info
-	const memResult = await osutils.memory.info();
+	const memResult = await osutilsWithDisk.memory.info();
 	let memUsedGB = 0;
 	let memTotalGB = 0;
 	let memUsedPercent = 0;
@@ -87,7 +270,7 @@ export const getHostSystemStats = async (): Promise<Container> => {
 	// Get network stats from network.overview()
 	let netInputBytes = 0;
 	let netOutputBytes = 0;
-	const networkOverview = await osutils.network.overview();
+	const networkOverview = await osutilsWithDisk.network.overview();
 	if (networkOverview.success) {
 		netInputBytes = networkOverview.data.totalRxBytes.toBytes();
 		netOutputBytes = networkOverview.data.totalTxBytes.toBytes();
@@ -96,25 +279,21 @@ export const getHostSystemStats = async (): Promise<Container> => {
 	// Get Block I/O from disk.stats()
 	let blockReadBytes = 0;
 	let blockWriteBytes = 0;
-	const diskStats = await osutils.disk.stats();
+	const diskStats = await osutilsWithDisk.disk.stats();
 	if (diskStats.success && diskStats.data.length > 0) {
-		// Filter out virtual devices (loop, ram, sr, etc.) - only include real disk devices
 		const excludePatterns = [/^loop/, /^ram/, /^sr\d+$/, /^fd\d+$/];
 		for (const stat of diskStats.data) {
-			// Skip virtual devices
 			if (
 				stat.device &&
 				excludePatterns.some((pattern) => pattern.test(stat.device))
 			) {
 				continue;
 			}
-			// readBytes and writeBytes are DataSize objects with .toBytes() method
 			blockReadBytes += stat.readBytes.toBytes();
 			blockWriteBytes += stat.writeBytes.toBytes();
 		}
 	}
 
-	// Format values similar to docker stats
 	const formatBytes = (bytes: number): string => {
 		if (bytes >= 1024 * 1024 * 1024) {
 			return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)}GiB`;
@@ -128,20 +307,16 @@ export const getHostSystemStats = async (): Promise<Container> => {
 		return `${bytes}B`;
 	};
 
-	// Format memory usage similar to docker stats format: "used / total"
 	const memUsedFormatted = `${memUsedGB.toFixed(2)}GiB`;
 	const memTotalFormatted = `${memTotalGB.toFixed(2)}GiB`;
 	const memUsageFormatted = `${memUsedFormatted} / ${memTotalFormatted}`;
 
-	// Format network I/O
 	const netInputMb = netInputBytes / (1024 * 1024);
 	const netOutputMb = netOutputBytes / (1024 * 1024);
 	const netIOFormatted = `${netInputMb.toFixed(2)}MB / ${netOutputMb.toFixed(2)}MB`;
 
-	// Format Block I/O
 	const blockIOFormatted = `${formatBytes(blockReadBytes)} / ${formatBytes(blockWriteBytes)}`;
 
-	// Create a stat object compatible with recordAdvancedStats
 	return {
 		CPUPerc: `${cpuUsage.toFixed(2)}%`,
 		MemPerc: `${memUsedPercent.toFixed(2)}%`,
@@ -164,53 +339,51 @@ export const getAdvancedStats = async (appName: string) => {
 	};
 };
 
-export const readStatsFile = async (
+export const readStatsFile = async <T extends StatType>(
 	appName: string,
-	statType: "cpu" | "memory" | "disk" | "network" | "block",
-) => {
-	try {
-		const { MONITORING_PATH } = paths();
-		const filePath = `${MONITORING_PATH}/${appName}/${statType}.json`;
-		const data = await promises.readFile(filePath, "utf-8");
-		return JSON.parse(data);
-	} catch {
-		return [];
+	statType: T,
+): Promise<StatsEntry<StatTypeMap[T]>[]> => {
+	const key = getCacheKey(appName, statType);
+	const cached = statsCache.get(key);
+	if (cached && cached.length > 0) {
+		return cached.toArray() as StatsEntry<StatTypeMap[T]>[];
 	}
+
+	// Cold start: load from disk
+	const buf = await loadFromDisk(appName, statType);
+	return buf.toArray() as StatsEntry<StatTypeMap[T]>[];
 };
 
 export const updateStatsFile = async (
 	appName: string,
-	statType: "cpu" | "memory" | "disk" | "network" | "block",
-	value: number | string | unknown,
+	statType: StatType,
+	value: StatValue,
 ) => {
-	const { MONITORING_PATH } = paths();
-	const stats = await readStatsFile(appName, statType);
-	stats.push({ value, time: new Date() });
+	const key = getCacheKey(appName, statType);
+	let buf = getOrCreateBuffer(key);
 
-	if (stats.length > 288) {
-		stats.shift();
+	// Ensure buffer is loaded from disk on first write
+	if (buf.length === 0) {
+		buf = await loadFromDisk(appName, statType);
 	}
 
-	const content = JSON.stringify(stats);
-	await promises.writeFile(
-		`${MONITORING_PATH}/${appName}/${statType}.json`,
-		content,
-	);
+	buf.push({ value, time: new Date().toISOString() });
+	dirtyKeys.add(key);
 };
 
-export const readLastValueStatsFile = async (
+export const readLastValueStatsFile = async <T extends StatType>(
 	appName: string,
-	statType: "cpu" | "memory" | "disk" | "network" | "block",
-) => {
-	try {
-		const { MONITORING_PATH } = paths();
-		const filePath = `${MONITORING_PATH}/${appName}/${statType}.json`;
-		const data = await promises.readFile(filePath, "utf-8");
-		const stats = JSON.parse(data);
-		return stats[stats.length - 1] || null;
-	} catch {
-		return null;
+	statType: T,
+): Promise<StatsEntry<StatTypeMap[T]> | null> => {
+	const key = getCacheKey(appName, statType);
+	const cached = statsCache.get(key);
+	if (cached && cached.length > 0) {
+		return cached.last() as StatsEntry<StatTypeMap[T]> | null;
 	}
+
+	// Cold start: load from disk
+	const buf = await loadFromDisk(appName, statType);
+	return buf.last() as StatsEntry<StatTypeMap[T]> | null;
 };
 
 export const getLastAdvancedStatsFile = async (appName: string) => {

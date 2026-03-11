@@ -29,6 +29,7 @@ WORKDIR /app
 
 # Set production
 ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=512"
 
 # Copy only the necessary files
 COPY --from=build /prod/api/dist ./dist

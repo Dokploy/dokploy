@@ -11,7 +11,7 @@ import {
 } from "./queue.js";
 import { jobQueueSchema } from "./schema.js";
 import { initializeJobs } from "./utils.js";
-import { firstWorker, secondWorker, thirdWorker } from "./workers.js";
+import { workers } from "./workers.js";
 
 const app = new Hono();
 
@@ -89,9 +89,7 @@ app.get("/health", async (c) => {
 
 export const gracefulShutdown = async (signal: string) => {
 	logger.warn(`Received ${signal}, closing server...`);
-	await firstWorker.close();
-	await secondWorker.close();
-	await thirdWorker.close();
+	await Promise.all(workers.map((w) => w.close()));
 	process.exit(0);
 };
 
