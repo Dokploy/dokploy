@@ -96,6 +96,9 @@ export const formatBackupFileName = (
 		databaseType?: string;
 	},
 ): string => {
+
+	if (!format || !format.trim()) return "";
+
 	const now = new Date();
 	const uuid = crypto.randomUUID();
 
