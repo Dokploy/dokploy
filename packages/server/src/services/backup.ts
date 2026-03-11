@@ -1,5 +1,9 @@
 import { db } from "@dokploy/server/db";
-import { type apiCreateBackup, backups } from "@dokploy/server/db/schema";
+import {
+	type apiCreateBackup,
+	backups,
+} from "@dokploy/server/db/schema";
+import { formatBackupFileName, validateFileNameFormat } from "../utils/backups/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -9,6 +13,23 @@ export type Backup = typeof backups.$inferSelect;
 export type BackupSchedule = Awaited<ReturnType<typeof findBackupById>>;
 export type BackupScheduleList = Awaited<ReturnType<typeof findBackupsByDbId>>;
 export const createBackup = async (input: z.infer<typeof apiCreateBackup>) => {
+	if (input.fileNameFormat) {
+		const invalidVars = validateFileNameFormat(input.fileNameFormat);
+		if (invalidVars.length > 0) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Invalid format variables in fileNameFormat: ${invalidVars.join(", ")}`,
+			});
+		}
+		try {
+			formatBackupFileName(input.fileNameFormat, {});
+		} catch (error) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Error parsing fileNameFormat: ${(error as Error).message}`,
+			});
+		}
+	}
 	const newBackup = await db
 		.insert(backups)
 		.values({ ...input } as typeof backups.$inferInsert)
@@ -50,6 +71,23 @@ export const updateBackupById = async (
 	backupId: string,
 	backupData: Partial<Backup>,
 ) => {
+	if (backupData.fileNameFormat) {
+		const invalidVars = validateFileNameFormat(backupData.fileNameFormat);
+		if (invalidVars.length > 0) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Invalid format variables in fileNameFormat: ${invalidVars.join(", ")}`,
+			});
+		}
+		try {
+			formatBackupFileName(backupData.fileNameFormat, {});
+		} catch (error) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Error parsing fileNameFormat: ${(error as Error).message}`,
+			});
+		}
+	}
 	const result = await db
 		.update(backups)
 		.set({
