@@ -568,6 +568,7 @@ export const HandleVolumeBackups = ({
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>File Name Format</FormLabel>
+									<VolumeFileNameFormatValidation value={field.value} />
 									<FormControl>
 										<Input
 											placeholder={"{volumeName}-{timestamp}"}
