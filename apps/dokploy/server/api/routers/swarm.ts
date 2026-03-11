@@ -1,5 +1,6 @@
 import {
 	findServerById,
+	getAllContainerStats,
 	getApplicationInfo,
 	getNodeApplications,
 	getNodeInfo,
@@ -79,5 +80,20 @@ export const swarmRouter = createTRPCRouter({
 				}
 			}
 			return await getApplicationInfo(input.appName, input.serverId);
+		}),
+	getContainerStats: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			return await getAllContainerStats(input.serverId);
 		}),
 });

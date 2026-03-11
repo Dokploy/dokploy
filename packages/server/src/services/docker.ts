@@ -397,7 +397,9 @@ export const getSwarmNodes = async (serverId?: string) => {
 			.split("\n")
 			.map((line) => JSON.parse(line));
 		return nodesArray;
-	} catch {}
+	} catch (error) {
+		console.error("getSwarmNodes error:", error);
+	}
 };
 
 export const getNodeInfo = async (nodeId: string, serverId?: string) => {
@@ -448,6 +450,10 @@ export const getNodeApplications = async (serverId?: string) => {
 			return;
 		}
 
+		if (!stdout.trim()) {
+			return [];
+		}
+
 		const appArray = stdout
 			.trim()
 			.split("\n")
@@ -455,13 +461,19 @@ export const getNodeApplications = async (serverId?: string) => {
 			.filter((service) => !service.Name.startsWith("dokploy-"));
 
 		return appArray;
-	} catch {}
+	} catch (error) {
+		console.error("getNodeApplications error:", error);
+		return [];
+	}
 };
 
 export const getApplicationInfo = async (
 	appNames: string[],
 	serverId?: string,
 ) => {
+	if (appNames.length === 0) {
+		return [];
+	}
 	try {
 		let stdout = "";
 		let stderr = "";
@@ -482,11 +494,48 @@ export const getApplicationInfo = async (
 			return;
 		}
 
+		if (!stdout.trim()) {
+			return [];
+		}
+
 		const appArray = stdout
 			.trim()
 			.split("\n")
 			.map((line) => JSON.parse(line));
 
 		return appArray;
-	} catch {}
+	} catch (error) {
+		console.error("getApplicationInfo error:", error);
+		return [];
+	}
+};
+
+export const getAllContainerStats = async (serverId?: string) => {
+	try {
+		let stdout = "";
+		const command =
+			'docker stats --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'';
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+		}
+
+		if (!stdout.trim()) {
+			return [];
+		}
+
+		const stats = stdout
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line));
+
+		return stats;
+	} catch (error) {
+		console.error("getAllContainerStats error:", error);
+		return [];
+	}
 };
