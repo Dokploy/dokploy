@@ -36,6 +36,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { zfd } from "zod-form-data";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
 	apiCreateApplication,
@@ -809,16 +810,19 @@ export const applicationRouter = createTRPCRouter({
 				path: "/drop-deployment",
 				method: "POST",
 				override: true,
-				enabled: false,
 			},
 		})
-		.input(z.instanceof(FormData))
+		.input(
+			zfd.formData({
+				applicationId: z.string(),
+				zip: zfd.file(),
+				dropBuildPath: z.string().optional(),
+			}),
+		)
 		.mutation(async ({ input, ctx }) => {
-			const formData = input;
-
-			const zipFile = formData.get("zip") as File;
-			const applicationId = formData.get("applicationId") as string;
-			const dropBuildPath = formData.get("dropBuildPath") as string | null;
+			const zipFile = input.zip;
+			const applicationId = input.applicationId;
+			const dropBuildPath = input.dropBuildPath ?? null;
 
 			const app = await findApplicationById(applicationId);
 
