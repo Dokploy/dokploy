@@ -1,6 +1,6 @@
 {
-  "id": "b9d3789b-af1b-4e4d-8b6c-7a8030b47020",
-  "prevId": "a293a443-ceaf-418e-8e34-ff46e183995f",
+  "id": "39e4dcb3-c218-4341-a149-0929e0835141",
+  "prevId": "68c71185-6e91-4b8d-8f91-795457e75ab2",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -174,8 +174,15 @@
           "primaryKey": false,
           "notNull": true
         },
-        "user_id": {
-          "name": "user_id",
+        "config_id": {
+          "name": "config_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'default'"
+        },
+        "reference_id": {
+          "name": "reference_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -273,12 +280,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "apikey_user_id_user_id_fk": {
-          "name": "apikey_user_id_user_id_fk",
+        "apikey_reference_id_user_id_fk": {
+          "name": "apikey_reference_id_user_id_fk",
           "tableFrom": "apikey",
           "tableTo": "user",
           "columnsFrom": [
-            "user_id"
+            "reference_id"
           ],
           "columnsTo": [
             "id"
@@ -646,6 +653,101 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.organization_role": {
+      "name": "organization_role",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "permission": {
+          "name": "permission",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "organizationRole_organizationId_idx": {
+          "name": "organizationRole_organizationId_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "organizationRole_role_idx": {
+          "name": "organizationRole_role_idx",
+          "columns": [
+            {
+              "expression": "role",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "organization_role_organization_id_organization_id_fk": {
+          "name": "organization_role_organization_id_organization_id_fk",
+          "tableFrom": "organization_role",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.two_factor": {
       "name": "two_factor",
       "schema": "",
@@ -822,6 +924,159 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.audit_log": {
+      "name": "audit_log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_email": {
+          "name": "user_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_role": {
+          "name": "user_role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resource_type": {
+          "name": "resource_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resource_id": {
+          "name": "resource_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resource_name": {
+          "name": "resource_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "auditLog_organizationId_idx": {
+          "name": "auditLog_organizationId_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "auditLog_userId_idx": {
+          "name": "auditLog_userId_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "auditLog_createdAt_idx": {
+          "name": "auditLog_createdAt_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "audit_log_organization_id_organization_id_fk": {
+          "name": "audit_log_organization_id_organization_id_fk",
+          "tableFrom": "audit_log",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "audit_log_user_id_user_id_fk": {
+          "name": "audit_log_user_id_user_id_fk",
+          "tableFrom": "audit_log",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.application": {
       "name": "application",
       "schema": "",
@@ -987,12 +1242,6 @@
         },
         "cpuLimit": {
           "name": "cpuLimit",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "shmSize": {
-          "name": "shmSize",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1444,6 +1693,12 @@
         },
         "buildRegistryId": {
           "name": "buildRegistryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shmSize": {
+          "name": "shmSize",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -3414,12 +3669,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "shmSize": {
-          "name": "shmSize",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "externalPort": {
           "name": "externalPort",
           "type": "integer",
@@ -3521,6 +3770,12 @@
         },
         "serverId": {
           "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shmSize": {
+          "name": "shmSize",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -3657,12 +3912,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "shmSize": {
-          "name": "shmSize",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "externalPort": {
           "name": "externalPort",
           "type": "integer",
@@ -3774,6 +4023,12 @@
           "primaryKey": false,
           "notNull": false,
           "default": false
+        },
+        "shmSize": {
+          "name": "shmSize",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -4117,12 +4372,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "shmSize": {
-          "name": "shmSize",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "externalPort": {
           "name": "externalPort",
           "type": "integer",
@@ -4224,6 +4473,12 @@
         },
         "serverId": {
           "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shmSize": {
+          "name": "shmSize",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -5278,12 +5533,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "shmSize": {
-          "name": "shmSize",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
@@ -5379,6 +5628,12 @@
         },
         "serverId": {
           "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shmSize": {
+          "name": "shmSize",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -5771,12 +6026,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "shmSize": {
-          "name": "shmSize",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "externalPort": {
           "name": "externalPort",
           "type": "integer",
@@ -5878,6 +6127,12 @@
         },
         "serverId": {
           "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shmSize": {
+          "name": "shmSize",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -6711,6 +6966,139 @@
           "nullsNotDistinct": false,
           "columns": [
             "provider_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.project_tag": {
+      "name": "project_tag",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "projectId": {
+          "name": "projectId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tagId": {
+          "name": "tagId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "project_tag_projectId_project_projectId_fk": {
+          "name": "project_tag_projectId_project_projectId_fk",
+          "tableFrom": "project_tag",
+          "tableTo": "project",
+          "columnsFrom": [
+            "projectId"
+          ],
+          "columnsTo": [
+            "projectId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "project_tag_tagId_tag_tagId_fk": {
+          "name": "project_tag_tagId_tag_tagId_fk",
+          "tableFrom": "project_tag",
+          "tableTo": "tag",
+          "columnsFrom": [
+            "tagId"
+          ],
+          "columnsTo": [
+            "tagId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_project_tag": {
+          "name": "unique_project_tag",
+          "nullsNotDistinct": false,
+          "columns": [
+            "projectId",
+            "tagId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tag": {
+      "name": "tag",
+      "schema": "",
+      "columns": {
+        "tagId": {
+          "name": "tagId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "color": {
+          "name": "color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organizationId": {
+          "name": "organizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tag_organizationId_organization_id_fk": {
+          "name": "tag_organizationId_organization_id_fk",
+          "tableFrom": "tag",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organizationId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_org_tag_name": {
+          "name": "unique_org_tag_name",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organizationId",
+            "name"
           ]
         }
       },

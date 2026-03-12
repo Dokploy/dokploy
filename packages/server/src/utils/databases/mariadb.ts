@@ -31,6 +31,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		command,
 		args,
 		mounts,
+		shmSize,
 	} = mariadb;
 
 	const defaultMariadbEnv = `MARIADB_DATABASE="${databaseName}"\nMARIADB_USER="${databaseUser}"\nMARIADB_PASSWORD="${databasePassword}"\nMARIADB_ROOT_PASSWORD="${databaseRootPassword}"${
@@ -85,6 +86,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 						Args: args,
 					}),
 				...(Ulimits && { Ulimits }),
+				...(shmSize && { ShmSize: Number.parseInt(shmSize) }),
 				Labels,
 			},
 			Networks,
