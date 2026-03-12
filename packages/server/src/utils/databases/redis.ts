@@ -84,6 +84,7 @@ export const buildRedis = async (redis: RedisNested) => {
 									Type: "tmpfs" as const,
 									TmpfsOptions: {
 										SizeBytes: Number.parseInt(shmSize),
+										Mode: 0o1777,
 									},
 								},
 							]

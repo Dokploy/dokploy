@@ -146,6 +146,7 @@ export const mechanizeDockerContainer = async (
 									Type: "tmpfs" as const,
 									TmpfsOptions: {
 										SizeBytes: Number.parseInt(shmSize),
+										Mode: 0o1777,
 									},
 								},
 							]
