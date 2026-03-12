@@ -31,6 +31,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		command,
 		args,
 		mounts,
+		shmSize,
 	} = mariadb;
 
 	const defaultMariadbEnv = `MARIADB_DATABASE="${databaseName}"\nMARIADB_USER="${databaseUser}"\nMARIADB_PASSWORD="${databasePassword}"\nMARIADB_ROOT_PASSWORD="${databaseRootPassword}"${
@@ -74,7 +75,24 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...filesMount,
+					...(shmSize
+						? [
+								{
+									Target: "/dev/shm",
+									Source: "",
+									Type: "tmpfs" as const,
+									TmpfsOptions: {
+										SizeBytes: Number.parseInt(shmSize),
+										Mode: 0o1777,
+									},
+								},
+							]
+						: []),
+				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(command && {

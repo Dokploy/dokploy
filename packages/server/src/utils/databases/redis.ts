@@ -28,6 +28,7 @@ export const buildRedis = async (redis: RedisNested) => {
 		command,
 		args,
 		mounts,
+		shmSize,
 	} = redis;
 
 	const defaultRedisEnv = `REDIS_PASSWORD="${databasePassword}"${
@@ -71,7 +72,24 @@ export const buildRedis = async (redis: RedisNested) => {
 				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...filesMount,
+					...(shmSize
+						? [
+								{
+									Target: "/dev/shm",
+									Source: "",
+									Type: "tmpfs" as const,
+									TmpfsOptions: {
+										SizeBytes: Number.parseInt(shmSize),
+										Mode: 0o1777,
+									},
+								},
+							]
+						: []),
+				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(command || args

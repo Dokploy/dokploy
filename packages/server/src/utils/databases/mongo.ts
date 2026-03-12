@@ -31,6 +31,7 @@ export const buildMongo = async (mongo: MongoNested) => {
 		args,
 		mounts,
 		replicaSets,
+		shmSize,
 	} = mongo;
 
 	const startupScript = `
@@ -122,7 +123,24 @@ ${command ?? "wait $MONGOD_PID"}`;
 				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...filesMount,
+					...(shmSize
+						? [
+								{
+									Target: "/dev/shm",
+									Source: "",
+									Type: "tmpfs" as const,
+									TmpfsOptions: {
+										SizeBytes: Number.parseInt(shmSize),
+										Mode: 0o1777,
+									},
+								},
+							]
+						: []),
+				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(replicaSets
