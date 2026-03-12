@@ -72,7 +72,23 @@ export const buildRedis = async (redis: RedisNested) => {
 				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...filesMount,
+					...(shmSize
+						? [
+								{
+									Target: "/dev/shm",
+									Source: "",
+									Type: "tmpfs" as const,
+									TmpfsOptions: {
+										SizeBytes: Number.parseInt(shmSize),
+									},
+								},
+							]
+						: []),
+				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(command || args
@@ -90,7 +106,6 @@ export const buildRedis = async (redis: RedisNested) => {
 							Args: ["-c", `redis-server --requirepass ${databasePassword}`],
 						}),
 				...(Ulimits && { Ulimits }),
-				...(shmSize && { ShmSize: Number.parseInt(shmSize) }),
 				Labels,
 			},
 			Networks,
