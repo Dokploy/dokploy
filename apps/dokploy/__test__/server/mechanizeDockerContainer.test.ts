@@ -58,6 +58,7 @@ const createApplication = (
 		},
 		replicas: 1,
 		stopGracePeriodSwarm: 0n,
+		shmSize: null,
 		ulimitsSwarm: null,
 		serverId: "server-id",
 		...overrides,
