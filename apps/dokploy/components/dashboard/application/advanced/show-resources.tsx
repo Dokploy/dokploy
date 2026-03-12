@@ -69,6 +69,7 @@ const addResourcesSchema = z.object({
 	cpuLimit: z.string().optional(),
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
+	shmSize: z.string().optional(),
 	ulimitsSwarm: z.array(ulimitSchema).optional(),
 });
 
@@ -138,6 +139,7 @@ export const ShowResources = ({ id, type }: Props) => {
 			cpuReservation: "",
 			memoryLimit: "",
 			memoryReservation: "",
+			shmSize: "",
 			ulimitsSwarm: [],
 		},
 		resolver: zodResolver(addResourcesSchema),
@@ -155,6 +157,7 @@ export const ShowResources = ({ id, type }: Props) => {
 				cpuReservation: data?.cpuReservation || undefined,
 				memoryLimit: data?.memoryLimit || undefined,
 				memoryReservation: data?.memoryReservation || undefined,
+				shmSize: data?.shmSize || undefined,
 				ulimitsSwarm: data?.ulimitsSwarm || [],
 			});
 		}
@@ -172,6 +175,7 @@ export const ShowResources = ({ id, type }: Props) => {
 			cpuReservation: formData.cpuReservation || null,
 			memoryLimit: formData.memoryLimit || null,
 			memoryReservation: formData.memoryReservation || null,
+			shmSize: formData.shmSize || null,
 			ulimitsSwarm:
 				formData.ulimitsSwarm && formData.ulimitsSwarm.length > 0
 					? formData.ulimitsSwarm
@@ -359,6 +363,49 @@ export const ShowResources = ({ id, type }: Props) => {
 													placeholder="1000000000 (1 CPU)"
 													step={CPU_STEP}
 													converter={cpuConverter}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+						</div>
+
+						<div className="grid w-full md:grid-cols-2 gap-4">
+							<FormField
+								control={form.control}
+								name="shmSize"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<div
+												className="flex items-center gap-2"
+												onClick={(e) => e.preventDefault()}
+											>
+												<FormLabel>SHM Size</FormLabel>
+												<TooltipProvider>
+													<Tooltip delayDuration={0}>
+														<TooltipTrigger>
+															<InfoIcon className="h-4 w-4 text-muted-foreground" />
+														</TooltipTrigger>
+														<TooltipContent>
+															<p>
+																Size of /dev/shm (shared memory) in bytes.
+																Default is 64MB. Use +/- buttons to adjust by
+																256 MB.
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
+											<FormControl>
+												<NumberInputWithSteps
+													value={field.value}
+													onChange={field.onChange}
+													placeholder="67108864 (64MB in bytes)"
+													step={MEMORY_STEP_MB}
+													converter={memoryConverter}
 												/>
 											</FormControl>
 											<FormMessage />

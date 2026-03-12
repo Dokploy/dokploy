@@ -31,6 +31,7 @@ export const buildMongo = async (mongo: MongoNested) => {
 		args,
 		mounts,
 		replicaSets,
+		shmSize,
 	} = mongo;
 
 	const startupScript = `
@@ -141,6 +142,7 @@ ${command ?? "wait $MONGOD_PID"}`;
 						Args: args,
 					}),
 				...(Ulimits && { Ulimits }),
+				...(shmSize && { ShmSize: Number.parseInt(shmSize) }),
 				Labels,
 			},
 			Networks,

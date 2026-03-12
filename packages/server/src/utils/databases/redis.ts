@@ -28,6 +28,7 @@ export const buildRedis = async (redis: RedisNested) => {
 		command,
 		args,
 		mounts,
+		shmSize,
 	} = redis;
 
 	const defaultRedisEnv = `REDIS_PASSWORD="${databasePassword}"${
@@ -89,6 +90,7 @@ export const buildRedis = async (redis: RedisNested) => {
 							Args: ["-c", `redis-server --requirepass ${databasePassword}`],
 						}),
 				...(Ulimits && { Ulimits }),
+				...(shmSize && { ShmSize: Number.parseInt(shmSize) }),
 				Labels,
 			},
 			Networks,

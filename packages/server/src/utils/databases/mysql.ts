@@ -32,6 +32,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 		command,
 		args,
 		mounts,
+		shmSize,
 	} = mysql;
 
 	const defaultMysqlEnv =
@@ -91,6 +92,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 						Args: args,
 					}),
 				...(Ulimits && { Ulimits }),
+				...(shmSize && { ShmSize: Number.parseInt(shmSize) }),
 				Labels,
 			},
 			Networks,

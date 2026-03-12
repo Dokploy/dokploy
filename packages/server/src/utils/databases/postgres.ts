@@ -30,6 +30,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		command,
 		args,
 		mounts,
+		shmSize,
 	} = postgres;
 
 	const defaultPostgresEnv = `POSTGRES_DB="${databaseName}"\nPOSTGRES_USER="${databaseUser}"\nPOSTGRES_PASSWORD="${databasePassword}"${
@@ -84,6 +85,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 						Args: args,
 					}),
 				...(Ulimits && { Ulimits }),
+				...(shmSize && { ShmSize: Number.parseInt(shmSize) }),
 				Labels,
 			},
 			Networks,

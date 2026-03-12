@@ -49,6 +49,7 @@ export const redis = pgTable("redis", {
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
 	cpuLimit: text("cpuLimit"),
+	shmSize: text("shmSize"),
 	externalPort: integer("externalPort"),
 	createdAt: text("createdAt")
 		.notNull()
@@ -108,6 +109,7 @@ const createSchema = createInsertSchema(redis, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
+	shmSize: z.string().optional(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
