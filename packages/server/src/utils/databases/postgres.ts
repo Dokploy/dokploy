@@ -74,7 +74,23 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...filesMount,
+					...(shmSize
+						? [
+								{
+									Target: "/dev/shm",
+									Source: "",
+									Type: "tmpfs" as const,
+									TmpfsOptions: {
+										SizeBytes: Number.parseInt(shmSize),
+									},
+								},
+							]
+						: []),
+				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(command && {
@@ -85,7 +101,6 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 						Args: args,
 					}),
 				...(Ulimits && { Ulimits }),
-				...(shmSize && { ShmSize: Number.parseInt(shmSize) }),
 				Labels,
 			},
 			Networks,
