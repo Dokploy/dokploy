@@ -93,6 +93,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 									Type: "tmpfs" as const,
 									TmpfsOptions: {
 										SizeBytes: Number.parseInt(shmSize),
+										Mode: 0o1777,
 									},
 								},
 							]
