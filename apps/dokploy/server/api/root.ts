@@ -20,6 +20,7 @@ import { mariadbRouter } from "./routers/mariadb";
 import { mongoRouter } from "./routers/mongo";
 import { mountRouter } from "./routers/mount";
 import { mysqlRouter } from "./routers/mysql";
+import { networkRouter } from "./routers/network";
 import { notificationRouter } from "./routers/notification";
 import { organizationRouter } from "./routers/organization";
 import { patchRouter } from "./routers/patch";
@@ -30,6 +31,8 @@ import { portRouter } from "./routers/port";
 import { postgresRouter } from "./routers/postgres";
 import { previewDeploymentRouter } from "./routers/preview-deployment";
 import { projectRouter } from "./routers/project";
+import { licenseKeyRouter } from "./routers/proprietary/license-key";
+import { ssoRouter } from "./routers/proprietary/sso";
 import { redirectsRouter } from "./routers/redirects";
 import { redisRouter } from "./routers/redis";
 import { registryRouter } from "./routers/registry";
@@ -52,6 +55,7 @@ import { volumeBackupsRouter } from "./routers/volume-backups";
 export const appRouter = createTRPCRouter({
 	admin: adminRouter,
 	docker: dockerRouter,
+	network: networkRouter,
 	project: projectRouter,
 	application: applicationRouter,
 	mysql: mysqlRouter,
