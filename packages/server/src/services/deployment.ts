@@ -368,7 +368,11 @@ export const createDeploymentBackup = async (
 	} else if (backup.backupType === "compose") {
 		serverId = backup.compose?.serverId;
 	}
-	await removeLastOneHundredDeployments(deployment.backupId, "backup", serverId);
+	await removeLastOneHundredDeployments(
+		deployment.backupId,
+		"backup",
+		serverId,
+	);
 	try {
 		const { LOGS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
@@ -442,7 +446,11 @@ export const createDeploymentSchedule = async (
 		schedule.application?.serverId ||
 		schedule.compose?.serverId ||
 		schedule.server?.serverId;
-	await removeLastOneHundredDeployments(deployment.scheduleId, "schedule", serverId);
+	await removeLastOneHundredDeployments(
+		deployment.scheduleId,
+		"schedule",
+		serverId,
+	);
 	try {
 		const { SCHEDULES_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
