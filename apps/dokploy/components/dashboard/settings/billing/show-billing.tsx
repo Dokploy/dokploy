@@ -1082,7 +1082,9 @@ export const ShowBilling = () => {
 																onClick={() => {
 																	if (serverQuantity <= 1) return;
 
-																	setServerQuantity(serverQuantity - 1);
+																	setServerQuantity((prev) =>
+																		prev <= 1 ? prev : prev - 1,
+																	);
 																}}
 															>
 																<MinusIcon className="h-4 w-4" />
@@ -1099,7 +1101,7 @@ export const ShowBilling = () => {
 															<Button
 																variant="outline"
 																onClick={() => {
-																	setServerQuantity(serverQuantity + 1);
+																	setServerQuantity((prev) => prev + 1);
 																}}
 															>
 																<PlusIcon className="h-4 w-4" />
