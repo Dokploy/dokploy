@@ -4,6 +4,7 @@ import {
 	createEmailNotification,
 	createGotifyNotification,
 	createLarkNotification,
+	createMattermostNotification,
 	createNtfyNotification,
 	createPushoverNotification,
 	createResendNotification,
@@ -19,6 +20,7 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
 	sendResendNotification,
@@ -31,6 +33,7 @@ import {
 	updateEmailNotification,
 	updateGotifyNotification,
 	updateLarkNotification,
+	updateMattermostNotification,
 	updateNtfyNotification,
 	updatePushoverNotification,
 	updateResendNotification,
@@ -54,6 +57,7 @@ import {
 	apiCreateEmail,
 	apiCreateGotify,
 	apiCreateLark,
+	apiCreateMattermost,
 	apiCreateNtfy,
 	apiCreatePushover,
 	apiCreateResend,
@@ -66,6 +70,7 @@ import {
 	apiTestEmailConnection,
 	apiTestGotifyConnection,
 	apiTestLarkConnection,
+	apiTestMattermostConnection,
 	apiTestNtfyConnection,
 	apiTestPushoverConnection,
 	apiTestResendConnection,
@@ -77,6 +82,7 @@ import {
 	apiUpdateEmail,
 	apiUpdateGotify,
 	apiUpdateLark,
+	apiUpdateMattermost,
 	apiUpdateNtfy,
 	apiUpdatePushover,
 	apiUpdateResend,
@@ -416,6 +422,7 @@ export const notificationRouter = createTRPCRouter({
 				resend: true,
 				gotify: true,
 				ntfy: true,
+				mattermost: true,
 				custom: true,
 				lark: true,
 				pushover: true,
@@ -593,6 +600,62 @@ export const notificationRouter = createTRPCRouter({
 					"view, visit Dokploy on Github, https://github.com/dokploy/dokploy, clear=true;",
 					"Hi, From Dokploy 👋",
 				);
+				return true;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error testing the notification",
+					cause: error,
+				});
+			}
+		}),
+	createMattermost: adminProcedure
+		.input(apiCreateMattermost)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				return await createMattermostNotification(
+					input,
+					ctx.session.activeOrganizationId,
+				);
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error creating the notification",
+					cause: error,
+				});
+			}
+		}),
+	updateMattermost: adminProcedure
+		.input(apiUpdateMattermost)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const notification = await findNotificationById(input.notificationId);
+				if (
+					IS_CLOUD &&
+					notification.organizationId !== ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this notification",
+					});
+				}
+				return await updateMattermostNotification({
+					...input,
+					organizationId: ctx.session.activeOrganizationId,
+				});
+			} catch (error) {
+				throw error;
+			}
+		}),
+	testMattermostConnection: adminProcedure
+		.input(apiTestMattermostConnection)
+		.mutation(async ({ input }) => {
+			try {
+				await sendMattermostNotification(input, {
+					text: "Hi, From Dokploy 👋",
+					channel: input.channel,
+					username: input.username || "Dokploy Bot",
+				});
 				return true;
 			} catch (error) {
 				throw new TRPCError({
