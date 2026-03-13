@@ -9,7 +9,7 @@ import {
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
 import { findDestinationById } from "@dokploy/server/services/destination";
-import { execAsync } from "../process/execAsync";
+import { execAsync, ExecError } from "../process/execAsync";
 import { getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runWebServerBackup = async (backup: BackupSchedule) => {
@@ -72,10 +72,17 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 
 			writeStream.write("Copied filesystem to temp directory\n");
 
-			await execAsync(
-				// Zip all .sql files since we created more than one
-				`cd ${tempDir} && zip -r ${backupFileName} *.sql filesystem/ > /dev/null 2>&1`,
-			);
+			try {
+				await execAsync(
+					`cd ${tempDir} && zip -r ${backupFileName} *.sql filesystem/ > /dev/null 2>&1`,
+				);
+			} catch (error) {
+				// zip exit code 18 = "completed with warnings, some files not readable"
+				// This happens when sockets/pipes exist under /etc/dokploy/ — the archive is still valid
+				if (!(error instanceof ExecError && error.exitCode === 18)) {
+					throw error;
+				}
+			}
 
 			writeStream.write("Zipped database and filesystem\n");
 
