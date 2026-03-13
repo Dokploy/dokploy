@@ -50,7 +50,7 @@ export const mongo = pgTable("mongo", {
 	description: text("description"),
 	databaseUser: text("databaseUser").notNull(),
 	databasePassword: text("databasePassword").notNull(),
-	dockerImage: text("dockerImage").notNull(),
+	dockerImage: text("dockerImage").notNull().default("mongo:8"),
 	command: text("command"),
 	args: text("args").array(),
 	env: text("env"),
