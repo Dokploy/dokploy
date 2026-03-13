@@ -11,5 +11,6 @@ export default defineConfig({
 	migrations: {
 		table: "migrations",
 		schema: "public",
+		prefix: "timestamp",
 	},
 });
