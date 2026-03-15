@@ -1,6 +1,7 @@
 import { prepareEnvironmentVariablesForShell } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
+import { getCommitInfoEnvArgs, getGitCommitInfoCommands } from "./utils";
 
 export const getHerokuCommand = (application: ApplicationNested) => {
 	const { env, appName, cleanCache } = application;
@@ -31,8 +32,9 @@ export const getHerokuCommand = (application: ApplicationNested) => {
 
 	const command = `pack ${args.join(" ")}`;
 	const bashCommand = `
+${getGitCommitInfoCommands()}
 echo "Starting heroku build..." ;
-${command} || { 
+${command} ${getCommitInfoEnvArgs()} || {
   echo "❌ Heroku build failed" ;
   exit 1;
 }

@@ -4,6 +4,7 @@ import { nanoid } from "nanoid";
 import { prepareEnvironmentVariablesForShell } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
+import { getCommitInfoEnvArgs, getGitCommitInfoCommands } from "./utils";
 
 export const getNixpacksCommand = (application: ApplicationNested) => {
 	const { env, appName, publishDirectory, cleanCache } = application;
@@ -32,8 +33,9 @@ export const getNixpacksCommand = (application: ApplicationNested) => {
 	}
 	const command = `nixpacks ${args.join(" ")}`;
 	let bashCommand = `
+		${getGitCommitInfoCommands()}
 		echo "Starting nixpacks build..." ;
-		${command} || {
+		${command} ${getCommitInfoEnvArgs()} || {
 			echo "❌ Nixpacks build failed" ;
 			exit 1;
 		}

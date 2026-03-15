@@ -8,7 +8,11 @@ import {
 	getDockerContextPath,
 } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
-import { createEnvFileCommand } from "./utils";
+import {
+	createEnvFileCommand,
+	getCommitInfoBuildArgs,
+	getGitCommitInfoCommands,
+} from "./utils";
 
 export const getDockerCommand = (application: ApplicationNested) => {
 	const {
@@ -86,12 +90,14 @@ export const getDockerCommand = (application: ApplicationNested) => {
 
 		command += `
 echo "Building ${appName}" ;
-cd ${dockerContextPath} || { 
+cd ${dockerContextPath} || {
   echo "❌ The path ${dockerContextPath} does not exist" ;
   exit 1;
 }
 
-${joinedSecrets} docker ${commandArgs.join(" ")} || { 
+${getGitCommitInfoCommands()}
+
+${joinedSecrets} docker ${commandArgs.join(" ")} ${getCommitInfoBuildArgs()} || {
   echo "❌ Docker build failed" ;
   exit 1;
 }
