@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockMemberData = (role: string, overrides: Record<string, boolean> = {}) => ({
+const mockMemberData = (
+	role: string,
+	overrides: Record<string, boolean> = {},
+) => ({
 	id: "member-1",
 	role,
 	userId: "user-1",
@@ -22,7 +25,8 @@ const mockMemberData = (role: string, overrides: Record<string, boolean> = {}) =
 	user: { id: "user-1", email: "test@test.com" },
 });
 
-let memberToReturn: ReturnType<typeof mockMemberData> = mockMemberData("member");
+let memberToReturn: ReturnType<typeof mockMemberData> =
+	mockMemberData("member");
 
 vi.mock("@dokploy/server/db", () => ({
 	db: {
@@ -43,8 +47,12 @@ vi.mock("@dokploy/server/services/proprietary/license-key", () => ({
 	hasValidLicense: vi.fn(() => Promise.resolve(false)),
 }));
 
-const { resolvePermissions } = await import("@dokploy/server/services/permission");
-const { enterpriseOnlyResources, statements } = await import("@dokploy/server/lib/access-control");
+const { resolvePermissions } = await import(
+	"@dokploy/server/services/permission"
+);
+const { enterpriseOnlyResources, statements } = await import(
+	"@dokploy/server/lib/access-control"
+);
 
 const ctx = {
 	user: { id: "user-1" },

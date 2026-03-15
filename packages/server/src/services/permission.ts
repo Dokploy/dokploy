@@ -265,10 +265,7 @@ export const checkServiceAccess = async (
 
 	await checkPermission(ctx, { service: [action] });
 
-	if (
-		memberRecord.role !== "owner" &&
-		memberRecord.role !== "admin"
-	) {
+	if (memberRecord.role !== "owner" && memberRecord.role !== "admin") {
 		if (action === "create") {
 			if (!memberRecord.accessedProjects.includes(serviceId)) {
 				throw new TRPCError({
@@ -352,10 +349,7 @@ export const checkEnvironmentDeletionPermission = async (
 	}
 };
 
-export const addNewProject = async (
-	ctx: PermissionCtx,
-	projectId: string,
-) => {
+export const addNewProject = async (ctx: PermissionCtx, projectId: string) => {
 	const userId = ctx.user.id;
 	const organizationId = ctx.session.activeOrganizationId;
 	const memberRecord = await findMemberByUserId(userId, organizationId);
@@ -395,10 +389,7 @@ export const addNewEnvironment = async (
 		);
 };
 
-export const addNewService = async (
-	ctx: PermissionCtx,
-	serviceId: string,
-) => {
+export const addNewService = async (ctx: PermissionCtx, serviceId: string) => {
 	const userId = ctx.user.id;
 	const organizationId = ctx.session.activeOrganizationId;
 	const memberRecord = await findMemberByUserId(userId, organizationId);

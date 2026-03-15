@@ -74,7 +74,8 @@ export const getAuditLogs = async (input: GetAuditLogsInput) => {
 
 	if (userId) conditions.push(eq(auditLog.userId, userId));
 	if (userEmail) conditions.push(ilike(auditLog.userEmail, `%${userEmail}%`));
-	if (resourceName) conditions.push(ilike(auditLog.resourceName, `%${resourceName}%`));
+	if (resourceName)
+		conditions.push(ilike(auditLog.resourceName, `%${resourceName}%`));
 	if (action) conditions.push(eq(auditLog.action, action));
 	if (resourceType) conditions.push(eq(auditLog.resourceType, resourceType));
 	if (from) conditions.push(gte(auditLog.createdAt, from));

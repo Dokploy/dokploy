@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { enterpriseOnlyResources, statements } from "@dokploy/server/lib/access-control";
+import {
+	enterpriseOnlyResources,
+	statements,
+} from "@dokploy/server/lib/access-control";
 
 const FREE_TIER_RESOURCES = [
 	"organization",

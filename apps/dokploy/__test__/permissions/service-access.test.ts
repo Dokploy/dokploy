@@ -26,7 +26,8 @@ const mockMemberData = (
 	user: { id: "user-1", email: "test@test.com" },
 });
 
-let memberToReturn: ReturnType<typeof mockMemberData> = mockMemberData("member");
+let memberToReturn: ReturnType<typeof mockMemberData> =
+	mockMemberData("member");
 
 vi.mock("@dokploy/server/db", () => ({
 	db: {
@@ -64,35 +65,45 @@ describe("checkServicePermissionAndAccess", () => {
 	it("owner bypasses accessedServices check", async () => {
 		memberToReturn = mockMemberData("owner", []);
 		await expect(
-			checkServicePermissionAndAccess(ctx, "service-123", { deployment: ["read"] }),
+			checkServicePermissionAndAccess(ctx, "service-123", {
+				deployment: ["read"],
+			}),
 		).resolves.toBeUndefined();
 	});
 
 	it("admin bypasses accessedServices check", async () => {
 		memberToReturn = mockMemberData("admin", []);
 		await expect(
-			checkServicePermissionAndAccess(ctx, "service-123", { backup: ["create"] }),
+			checkServicePermissionAndAccess(ctx, "service-123", {
+				backup: ["create"],
+			}),
 		).resolves.toBeUndefined();
 	});
 
 	it("member with access to service passes", async () => {
 		memberToReturn = mockMemberData("member", ["service-123"]);
 		await expect(
-			checkServicePermissionAndAccess(ctx, "service-123", { deployment: ["read"] }),
+			checkServicePermissionAndAccess(ctx, "service-123", {
+				deployment: ["read"],
+			}),
 		).resolves.toBeUndefined();
 	});
 
 	it("member WITHOUT access to service fails", async () => {
 		memberToReturn = mockMemberData("member", ["other-service"]);
 		await expect(
-			checkServicePermissionAndAccess(ctx, "service-123", { deployment: ["read"] }),
+			checkServicePermissionAndAccess(ctx, "service-123", {
+				deployment: ["read"],
+			}),
 		).rejects.toThrow("You don't have access to this service");
 	});
 
 	it("member with empty accessedServices fails", async () => {
 		memberToReturn = mockMemberData("member", []);
 		await expect(
-			checkServicePermissionAndAccess(ctx, "service-123", { domain: ["delete"] }),
+			checkServicePermissionAndAccess(ctx, "service-123", {
+				domain: ["delete"],
+			}),
 		).rejects.toThrow("You don't have access to this service");
 	});
 });
@@ -100,7 +111,9 @@ describe("checkServicePermissionAndAccess", () => {
 describe("checkServiceAccess", () => {
 	it("member with service access passes read check", async () => {
 		memberToReturn = mockMemberData("member", ["app-1"]);
-		await expect(checkServiceAccess(ctx, "app-1", "read")).resolves.toBeUndefined();
+		await expect(
+			checkServiceAccess(ctx, "app-1", "read"),
+		).resolves.toBeUndefined();
 	});
 
 	it("member without service access fails read check", async () => {
@@ -112,6 +125,8 @@ describe("checkServiceAccess", () => {
 
 	it("owner bypasses all access checks", async () => {
 		memberToReturn = mockMemberData("owner", [], []);
-		await expect(checkServiceAccess(ctx, "project-1", "create")).resolves.toBeUndefined();
+		await expect(
+			checkServiceAccess(ctx, "project-1", "create"),
+		).resolves.toBeUndefined();
 	});
 });
