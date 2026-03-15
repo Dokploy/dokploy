@@ -15,12 +15,16 @@ interface Props {
 }
 
 export const ShowTraefikConfig = ({ applicationId }: Props) => {
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canRead = permissions?.traefikFiles.read ?? false;
 	const { data, isPending } = api.application.readTraefikConfig.useQuery(
 		{
 			applicationId,
 		},
-		{ enabled: !!applicationId },
+		{ enabled: !!applicationId && canRead },
 	);
+
+	if (!canRead) return null;
 
 	return (
 		<Card className="bg-background">

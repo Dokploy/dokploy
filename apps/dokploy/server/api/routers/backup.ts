@@ -44,7 +44,13 @@ import {
 } from "@dokploy/server/utils/restore";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	withPermission,
+} from "@/server/api/trpc";
+import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateBackup,
 	apiFindOneBackup,
@@ -69,11 +75,23 @@ interface RcloneFile {
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const newBackup = await createBackup(input);
 
 				const backup = await findBackupById(newBackup.backupId);
+
+				const serviceId =
+					backup.postgresId ||
+					backup.mysqlId ||
+					backup.mariadbId ||
+					backup.mongoId ||
+					backup.composeId;
+				if (serviceId) {
+					await checkServicePermissionAndAccess(ctx, serviceId, {
+						backup: ["create"],
+					});
+				}
 
 				if (IS_CLOUD && backup.enabled) {
 					const databaseType = backup.databaseType;
@@ -110,6 +128,11 @@ export const backupRouter = createTRPCRouter({
 						scheduleBackup(backup);
 					}
 				}
+				await audit(ctx, {
+					action: "create",
+					resourceType: "backup",
+					resourceId: backup.backupId,
+				});
 			} catch (error) {
 				console.error(error);
 				throw new TRPCError({
@@ -122,17 +145,43 @@ export const backupRouter = createTRPCRouter({
 				});
 			}
 		}),
-	one: protectedProcedure.input(apiFindOneBackup).query(async ({ input }) => {
-		const backup = await findBackupById(input.backupId);
+	one: protectedProcedure
+		.input(apiFindOneBackup)
+		.query(async ({ input, ctx }) => {
+			const backup = await findBackupById(input.backupId);
 
-		return backup;
-	}),
+			const serviceId =
+				backup.postgresId ||
+				backup.mysqlId ||
+				backup.mariadbId ||
+				backup.mongoId ||
+				backup.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					backup: ["read"],
+				});
+			}
+
+			return backup;
+		}),
 	update: protectedProcedure
 		.input(apiUpdateBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				await updateBackupById(input.backupId, input);
 				const backup = await findBackupById(input.backupId);
+
+				const serviceId =
+					backup.postgresId ||
+					backup.mysqlId ||
+					backup.mariadbId ||
+					backup.mongoId ||
+					backup.composeId;
+				if (serviceId) {
+					await checkServicePermissionAndAccess(ctx, serviceId, {
+						backup: ["create"],
+					});
+				}
 
 				if (IS_CLOUD) {
 					if (backup.enabled) {
@@ -156,6 +205,11 @@ export const backupRouter = createTRPCRouter({
 						removeScheduleBackup(input.backupId);
 					}
 				}
+				await audit(ctx, {
+					action: "update",
+					resourceType: "backup",
+					resourceId: backup.backupId,
+				});
 			} catch (error) {
 				const message =
 					error instanceof Error ? error.message : "Error updating this Backup";
@@ -167,8 +221,21 @@ export const backupRouter = createTRPCRouter({
 		}),
 	remove: protectedProcedure
 		.input(apiRemoveBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const backup = await findBackupById(input.backupId);
+				const serviceId =
+					backup.postgresId ||
+					backup.mysqlId ||
+					backup.mariadbId ||
+					backup.mongoId ||
+					backup.composeId;
+				if (serviceId) {
+					await checkServicePermissionAndAccess(ctx, serviceId, {
+						backup: ["delete"],
+					});
+				}
+
 				const value = await removeBackupById(input.backupId);
 				if (IS_CLOUD && value) {
 					removeJob({
@@ -179,6 +246,11 @@ export const backupRouter = createTRPCRouter({
 				} else if (!IS_CLOUD) {
 					removeScheduleBackup(input.backupId);
 				}
+				await audit(ctx, {
+					action: "delete",
+					resourceType: "backup",
+					resourceId: input.backupId,
+				});
 				return value;
 			} catch (error) {
 				const message =
@@ -191,13 +263,22 @@ export const backupRouter = createTRPCRouter({
 		}),
 	manualBackupPostgres: protectedProcedure
 		.input(apiFindOneBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const backup = await findBackupById(input.backupId);
+				if (backup.postgresId) {
+					await checkServicePermissionAndAccess(ctx, backup.postgresId, {
+						backup: ["create"],
+					});
+				}
 				const postgres = await findPostgresByBackupId(backup.backupId);
 				await runPostgresBackup(postgres, backup);
-
 				await keepLatestNBackups(backup, postgres?.serverId);
+				await audit(ctx, {
+					action: "run",
+					resourceType: "backup",
+					resourceId: backup.backupId,
+				});
 				return true;
 			} catch (error) {
 				const message =
@@ -213,12 +294,22 @@ export const backupRouter = createTRPCRouter({
 
 	manualBackupMySql: protectedProcedure
 		.input(apiFindOneBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const backup = await findBackupById(input.backupId);
+				if (backup.mysqlId) {
+					await checkServicePermissionAndAccess(ctx, backup.mysqlId, {
+						backup: ["create"],
+					});
+				}
 				const mysql = await findMySqlByBackupId(backup.backupId);
 				await runMySqlBackup(mysql, backup);
 				await keepLatestNBackups(backup, mysql?.serverId);
+				await audit(ctx, {
+					action: "run",
+					resourceType: "backup",
+					resourceId: backup.backupId,
+				});
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -230,12 +321,22 @@ export const backupRouter = createTRPCRouter({
 		}),
 	manualBackupMariadb: protectedProcedure
 		.input(apiFindOneBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const backup = await findBackupById(input.backupId);
+				if (backup.mariadbId) {
+					await checkServicePermissionAndAccess(ctx, backup.mariadbId, {
+						backup: ["create"],
+					});
+				}
 				const mariadb = await findMariadbByBackupId(backup.backupId);
 				await runMariadbBackup(mariadb, backup);
 				await keepLatestNBackups(backup, mariadb?.serverId);
+				await audit(ctx, {
+					action: "run",
+					resourceType: "backup",
+					resourceId: backup.backupId,
+				});
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -247,12 +348,22 @@ export const backupRouter = createTRPCRouter({
 		}),
 	manualBackupCompose: protectedProcedure
 		.input(apiFindOneBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const backup = await findBackupById(input.backupId);
+				if (backup.composeId) {
+					await checkServicePermissionAndAccess(ctx, backup.composeId, {
+						backup: ["create"],
+					});
+				}
 				const compose = await findComposeByBackupId(backup.backupId);
 				await runComposeBackup(compose, backup);
 				await keepLatestNBackups(backup, compose?.serverId);
+				await audit(ctx, {
+					action: "run",
+					resourceType: "backup",
+					resourceId: backup.backupId,
+				});
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -264,12 +375,22 @@ export const backupRouter = createTRPCRouter({
 		}),
 	manualBackupMongo: protectedProcedure
 		.input(apiFindOneBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const backup = await findBackupById(input.backupId);
+				if (backup.mongoId) {
+					await checkServicePermissionAndAccess(ctx, backup.mongoId, {
+						backup: ["create"],
+					});
+				}
 				const mongo = await findMongoByBackupId(backup.backupId);
 				await runMongoBackup(mongo, backup);
 				await keepLatestNBackups(backup, mongo?.serverId);
+				await audit(ctx, {
+					action: "run",
+					resourceType: "backup",
+					resourceId: backup.backupId,
+				});
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -279,15 +400,20 @@ export const backupRouter = createTRPCRouter({
 				});
 			}
 		}),
-	manualBackupWebServer: protectedProcedure
+	manualBackupWebServer: withPermission("backup", "create")
 		.input(apiFindOneBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const backup = await findBackupById(input.backupId);
 			await runWebServerBackup(backup);
 			await keepLatestNBackups(backup);
+			await audit(ctx, {
+				action: "run",
+				resourceType: "backup",
+				resourceId: backup.backupId,
+			});
 			return true;
 		}),
-	listBackupFiles: protectedProcedure
+	listBackupFiles: withPermission("backup", "read")
 		.input(
 			z.object({
 				destinationId: z.string(),
@@ -374,7 +500,12 @@ export const backupRouter = createTRPCRouter({
 			},
 		})
 		.input(apiRestoreBackup)
-		.subscription(async function* ({ input, signal }) {
+		.subscription(async function* ({ input, ctx, signal }) {
+			if (input.databaseId) {
+				await checkServicePermissionAndAccess(ctx, input.databaseId, {
+					backup: ["restore"],
+				});
+			}
 			const destination = await findDestinationById(input.destinationId);
 			const queue: string[] = [];
 			const done = false;

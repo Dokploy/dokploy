@@ -1044,6 +1044,20 @@
       "when": 1773129798212,
       "tag": "0148_futuristic_bullseye",
       "breakpoints": true
+    },
+    {
+      "idx": 149,
+      "version": "7",
+      "when": 1773184273215,
+      "tag": "0149_clumsy_speedball",
+      "breakpoints": true
+    },
+    {
+      "idx": 150,
+      "version": "7",
+      "when": 1773374115852,
+      "tag": "0150_glorious_pyro",
+      "breakpoints": true
     }
   ]
 }

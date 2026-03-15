@@ -61,6 +61,7 @@ export const ShowProjects = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isPending } = api.project.all.useQuery();
 	const { data: auth } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
 
 	const [searchQuery, setSearchQuery] = useState(
@@ -186,9 +187,7 @@ export const ShowProjects = () => {
 									Create and manage your projects
 								</CardDescription>
 							</CardHeader>
-							{(auth?.role === "owner" ||
-								auth?.role === "admin" ||
-								auth?.canCreateProjects) && (
+							{permissions?.project.create && (
 								<div className="">
 									<HandleProject />
 								</div>
@@ -361,8 +360,7 @@ export const ShowProjects = () => {
 																				<div
 																					onClick={(e) => e.stopPropagation()}
 																				>
-																					{(auth?.role === "owner" ||
-																						auth?.canDeleteProjects) && (
+																					{permissions?.project.delete && (
 																						<AlertDialog>
 																							<AlertDialogTrigger className="w-full">
 																								<DropdownMenuItem

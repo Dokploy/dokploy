@@ -35,6 +35,7 @@ export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isPending, refetch } = api.user.all.useQuery();
 	const { mutateAsync } = api.user.remove.useMutation();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	const utils = api.useUtils();
 	const { data: session } = api.user.session.useQuery();
@@ -89,40 +90,39 @@ export const ShowUsers = () => {
 													)?.role;
 
 													// Owner never has "Edit Permissions" (they're absolute owner)
-													// Other users can edit permissions if target is not themselves and target is a member
+													// Other users can edit permissions if target is not themselves and target is a member/custom role
+													const isStaticAdminOrOwner =
+														member.role === "owner" || member.role === "admin";
 													const canEditPermissions =
-														member.role !== "owner" &&
-														member.role === "member" &&
+														!isStaticAdminOrOwner &&
 														member.user.id !== session?.user?.id;
 
 													// Can change role based on hierarchy:
 													// - Owner: Can change anyone's role (except themselves and other owners)
-													// - Admin: Can only change member roles (not other admins or owners)
+													// - Admin: Can only change member/custom roles (not other admins or owners)
 													// - Owner role is intransferible
 													const canChangeRole =
 														member.role !== "owner" &&
 														member.user.id !== session?.user?.id &&
 														(currentUserRole === "owner" ||
 															(currentUserRole === "admin" &&
-																member.role === "member"));
+																member.role !== "admin"));
 
-													// Delete/Unlink follow same hierarchy as role changes
-													// - Owner: Can delete/unlink anyone (except themselves and owner can't be deleted)
-													// - Admin: Can only delete/unlink members (not other admins or owner)
-													const canDelete =
-														member.role !== "owner" &&
-														!isCloud &&
-														member.user.id !== session?.user?.id &&
-														(currentUserRole === "owner" ||
-															(currentUserRole === "admin" &&
-																member.role === "member"));
+													const canDeleteMember =
+														permissions?.member.delete ?? false;
 
-													const canUnlink =
+													// Self-hosted: "Delete User" removes the user entirely
+													// Cloud: "Unlink User" removes from the organization only
+													const canRemove =
 														member.role !== "owner" &&
 														member.user.id !== session?.user?.id &&
 														(currentUserRole === "owner" ||
 															(currentUserRole === "admin" &&
-																member.role === "member"));
+																member.role !== "admin") ||
+															(canDeleteMember && !isStaticAdminOrOwner));
+
+													const canDelete = canRemove && !isCloud;
+													const canUnlink = canRemove && !!isCloud;
 
 													const hasAnyAction =
 														canEditPermissions ||
@@ -134,6 +134,11 @@ export const ShowUsers = () => {
 														<TableRow key={member.id}>
 															<TableCell className="w-[100px]">
 																{member.user.email}
+																{member.user.id === session?.user?.id && (
+																	<span className="text-muted-foreground ml-1">
+																		(You)
+																	</span>
+																)}
 															</TableCell>
 															<TableCell className="text-center">
 																<Badge
@@ -179,9 +184,7 @@ export const ShowUsers = () => {
 																			{canChangeRole && (
 																				<ChangeRole
 																					memberId={member.id}
-																					currentRole={
-																						member.role as "admin" | "member"
-																					}
+																					currentRole={member.role}
 																					userEmail={member.user.email}
 																				/>
 																			)}
@@ -189,6 +192,7 @@ export const ShowUsers = () => {
 																			{canEditPermissions && (
 																				<AddUserPermissions
 																					userId={member.user.id}
+																					role={member.role}
 																				/>
 																			)}
 
