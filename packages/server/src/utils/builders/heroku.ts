@@ -1,7 +1,7 @@
 import { prepareEnvironmentVariablesForShell } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
-import { getGitCommitInfoCommands } from "./utils";
+import { getCommitInfoEnvArgs, getGitCommitInfoCommands } from "./utils";
 
 export const getHerokuCommand = (application: ApplicationNested) => {
 	const { env, appName, cleanCache } = application;
@@ -34,7 +34,7 @@ export const getHerokuCommand = (application: ApplicationNested) => {
 	const bashCommand = `
 ${getGitCommitInfoCommands()}
 echo "Starting heroku build..." ;
-${command} --env DOKPLOY_COMMIT_HASH="$DOKPLOY_COMMIT_HASH" --env DOKPLOY_COMMIT_MESSAGE="$DOKPLOY_COMMIT_MESSAGE" || {
+${command} ${getCommitInfoEnvArgs()} || {
   echo "❌ Heroku build failed" ;
   exit 1;
 }
