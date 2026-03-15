@@ -87,6 +87,7 @@ describe("Git Commit Info Helpers", () => {
 	it("getGitCommitInfoCommands should return shell commands to extract commit info", () => {
 		const commands = getGitCommitInfoCommands();
 		expect(commands).toContain("DOKPLOY_COMMIT_HASH=$(git rev-parse --short HEAD");
+		expect(commands).toContain("DOKPLOY_COMMIT_HASH_LONG=$(git rev-parse HEAD");
 		expect(commands).toContain("DOKPLOY_COMMIT_MESSAGE=$(git log -1 --pretty=%s");
 		expect(commands).toContain('|| echo "unknown"');
 	});
@@ -94,12 +95,14 @@ describe("Git Commit Info Helpers", () => {
 	it("getCommitInfoBuildArgs should return --build-arg flags", () => {
 		const args = getCommitInfoBuildArgs();
 		expect(args).toContain('--build-arg DOKPLOY_COMMIT_HASH="$DOKPLOY_COMMIT_HASH"');
+		expect(args).toContain('--build-arg DOKPLOY_COMMIT_HASH_LONG="$DOKPLOY_COMMIT_HASH_LONG"');
 		expect(args).toContain('--build-arg DOKPLOY_COMMIT_MESSAGE="$DOKPLOY_COMMIT_MESSAGE"');
 	});
 
 	it("getCommitInfoEnvArgs should return --env flags", () => {
 		const args = getCommitInfoEnvArgs();
 		expect(args).toContain('--env DOKPLOY_COMMIT_HASH="$DOKPLOY_COMMIT_HASH"');
+		expect(args).toContain('--env DOKPLOY_COMMIT_HASH_LONG="$DOKPLOY_COMMIT_HASH_LONG"');
 		expect(args).toContain('--env DOKPLOY_COMMIT_MESSAGE="$DOKPLOY_COMMIT_MESSAGE"');
 	});
 });
@@ -108,12 +111,14 @@ describe("Dockerfile builder - commit info injection", () => {
 	it("should include git commit info extraction commands", () => {
 		const command = getDockerCommand(createMockApplication());
 		expect(command).toContain("DOKPLOY_COMMIT_HASH=$(git rev-parse --short HEAD");
+		expect(command).toContain("DOKPLOY_COMMIT_HASH_LONG=$(git rev-parse HEAD");
 		expect(command).toContain("DOKPLOY_COMMIT_MESSAGE=$(git log -1 --pretty=%s");
 	});
 
 	it("should pass commit info as --build-arg to docker build", () => {
 		const command = getDockerCommand(createMockApplication());
 		expect(command).toContain('--build-arg DOKPLOY_COMMIT_HASH="$DOKPLOY_COMMIT_HASH"');
+		expect(command).toContain('--build-arg DOKPLOY_COMMIT_HASH_LONG="$DOKPLOY_COMMIT_HASH_LONG"');
 		expect(command).toContain('--build-arg DOKPLOY_COMMIT_MESSAGE="$DOKPLOY_COMMIT_MESSAGE"');
 	});
 
@@ -132,6 +137,7 @@ describe("Nixpacks builder - commit info injection", () => {
 			createMockApplication({ buildType: "nixpacks" }),
 		);
 		expect(command).toContain("DOKPLOY_COMMIT_HASH=$(git rev-parse --short HEAD");
+		expect(command).toContain("DOKPLOY_COMMIT_HASH_LONG=$(git rev-parse HEAD");
 		expect(command).toContain("DOKPLOY_COMMIT_MESSAGE=$(git log -1 --pretty=%s");
 	});
 
@@ -140,6 +146,7 @@ describe("Nixpacks builder - commit info injection", () => {
 			createMockApplication({ buildType: "nixpacks" }),
 		);
 		expect(command).toContain('--env DOKPLOY_COMMIT_HASH="$DOKPLOY_COMMIT_HASH"');
+		expect(command).toContain('--env DOKPLOY_COMMIT_HASH_LONG="$DOKPLOY_COMMIT_HASH_LONG"');
 		expect(command).toContain('--env DOKPLOY_COMMIT_MESSAGE="$DOKPLOY_COMMIT_MESSAGE"');
 	});
 });
@@ -150,6 +157,7 @@ describe("Heroku builder - commit info injection", () => {
 			createMockApplication({ buildType: "heroku_buildpacks" }),
 		);
 		expect(command).toContain("DOKPLOY_COMMIT_HASH=$(git rev-parse --short HEAD");
+		expect(command).toContain("DOKPLOY_COMMIT_HASH_LONG=$(git rev-parse HEAD");
 		expect(command).toContain("DOKPLOY_COMMIT_MESSAGE=$(git log -1 --pretty=%s");
 	});
 
@@ -158,6 +166,7 @@ describe("Heroku builder - commit info injection", () => {
 			createMockApplication({ buildType: "heroku_buildpacks" }),
 		);
 		expect(command).toContain('--env DOKPLOY_COMMIT_HASH="$DOKPLOY_COMMIT_HASH"');
+		expect(command).toContain('--env DOKPLOY_COMMIT_HASH_LONG="$DOKPLOY_COMMIT_HASH_LONG"');
 		expect(command).toContain('--env DOKPLOY_COMMIT_MESSAGE="$DOKPLOY_COMMIT_MESSAGE"');
 	});
 });
@@ -168,6 +177,7 @@ describe("Paketo builder - commit info injection", () => {
 			createMockApplication({ buildType: "paketo_buildpacks" }),
 		);
 		expect(command).toContain("DOKPLOY_COMMIT_HASH=$(git rev-parse --short HEAD");
+		expect(command).toContain("DOKPLOY_COMMIT_HASH_LONG=$(git rev-parse HEAD");
 		expect(command).toContain("DOKPLOY_COMMIT_MESSAGE=$(git log -1 --pretty=%s");
 	});
 
@@ -176,6 +186,7 @@ describe("Paketo builder - commit info injection", () => {
 			createMockApplication({ buildType: "paketo_buildpacks" }),
 		);
 		expect(command).toContain('--env DOKPLOY_COMMIT_HASH="$DOKPLOY_COMMIT_HASH"');
+		expect(command).toContain('--env DOKPLOY_COMMIT_HASH_LONG="$DOKPLOY_COMMIT_HASH_LONG"');
 		expect(command).toContain('--env DOKPLOY_COMMIT_MESSAGE="$DOKPLOY_COMMIT_MESSAGE"');
 	});
 });
@@ -186,6 +197,7 @@ describe("Railpack builder - commit info injection", () => {
 			createMockApplication({ buildType: "railpack" }),
 		);
 		expect(command).toContain("DOKPLOY_COMMIT_HASH=$(git rev-parse --short HEAD");
+		expect(command).toContain("DOKPLOY_COMMIT_HASH_LONG=$(git rev-parse HEAD");
 		expect(command).toContain("DOKPLOY_COMMIT_MESSAGE=$(git log -1 --pretty=%s");
 	});
 
@@ -194,6 +206,7 @@ describe("Railpack builder - commit info injection", () => {
 			createMockApplication({ buildType: "railpack" }),
 		);
 		expect(command).toContain('--build-arg DOKPLOY_COMMIT_HASH="$DOKPLOY_COMMIT_HASH"');
+		expect(command).toContain('--build-arg DOKPLOY_COMMIT_HASH_LONG="$DOKPLOY_COMMIT_HASH_LONG"');
 		expect(command).toContain('--build-arg DOKPLOY_COMMIT_MESSAGE="$DOKPLOY_COMMIT_MESSAGE"');
 	});
 });

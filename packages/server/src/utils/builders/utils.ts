@@ -25,6 +25,7 @@ export const createEnvFileCommand = (
  */
 export const getGitCommitInfoCommands = () => {
 	return `DOKPLOY_COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+DOKPLOY_COMMIT_HASH_LONG=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
 DOKPLOY_COMMIT_MESSAGE=$(git log -1 --pretty=%s 2>/dev/null || echo "unknown")`;
 };
 
@@ -32,12 +33,12 @@ DOKPLOY_COMMIT_MESSAGE=$(git log -1 --pretty=%s 2>/dev/null || echo "unknown")`;
  * Returns docker --build-arg flags for commit info.
  */
 export const getCommitInfoBuildArgs = () => {
-	return '--build-arg DOKPLOY_COMMIT_HASH="$DOKPLOY_COMMIT_HASH" --build-arg DOKPLOY_COMMIT_MESSAGE="$DOKPLOY_COMMIT_MESSAGE"';
+	return '--build-arg DOKPLOY_COMMIT_HASH="$DOKPLOY_COMMIT_HASH" --build-arg DOKPLOY_COMMIT_HASH_LONG="$DOKPLOY_COMMIT_HASH_LONG" --build-arg DOKPLOY_COMMIT_MESSAGE="$DOKPLOY_COMMIT_MESSAGE"';
 };
 
 /**
  * Returns --env flags for commit info (for pack/nixpacks builders).
  */
 export const getCommitInfoEnvArgs = () => {
-	return '--env DOKPLOY_COMMIT_HASH="$DOKPLOY_COMMIT_HASH" --env DOKPLOY_COMMIT_MESSAGE="$DOKPLOY_COMMIT_MESSAGE"';
+	return '--env DOKPLOY_COMMIT_HASH="$DOKPLOY_COMMIT_HASH" --env DOKPLOY_COMMIT_HASH_LONG="$DOKPLOY_COMMIT_HASH_LONG" --env DOKPLOY_COMMIT_MESSAGE="$DOKPLOY_COMMIT_MESSAGE"';
 };
