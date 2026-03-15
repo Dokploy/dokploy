@@ -1,30 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
-
-vi.mock("@dokploy/server/db", () => {
-	const createChainableMock = (): any => {
-		const chain = {
-			set: vi.fn(() => chain),
-			where: vi.fn(() => chain),
-			returning: vi.fn().mockResolvedValue([{}] as any),
-			from: vi.fn(() => chain),
-			innerJoin: vi.fn(() => chain),
-			then: (resolve: (v: any) => void) => {
-				resolve([]);
-			},
-		} as any;
-		return chain;
-	};
-
-	return {
-		db: {
-			select: vi.fn(() => createChainableMock()),
-			insert: vi.fn(),
-			update: vi.fn(() => createChainableMock()),
-			delete: vi.fn(),
-			query: {},
-		},
-	};
-});
+import { describe, expect, it } from "vitest";
 
 import { getDockerCommand } from "@dokploy/server/utils/builders/docker-file";
 import { getHerokuCommand } from "@dokploy/server/utils/builders/heroku";
