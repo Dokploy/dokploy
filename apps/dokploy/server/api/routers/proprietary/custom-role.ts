@@ -1,7 +1,6 @@
 import { db } from "@dokploy/server/db";
 import { member, organizationRole, user } from "@dokploy/server/db/schema";
 import { statements } from "@dokploy/server/lib/access-control";
-import { audit } from "../../utils/audit";
 import { TRPCError } from "@trpc/server";
 import { and, count, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -10,6 +9,7 @@ import {
 	enterpriseProcedure,
 	protectedProcedure,
 } from "../../trpc";
+import { audit } from "../../utils/audit";
 
 const permissionsSchema = z.record(z.string(), z.array(z.string()));
 
@@ -182,8 +182,12 @@ export const customRoleRouter = createTRPCRouter({
 
 			validatePermissions(input.permissions);
 
-			await db
-				.delete(organizationRole)
+			const [updated] = await db
+				.update(organizationRole)
+				.set({
+					role: effectiveRoleName,
+					permission: JSON.stringify(input.permissions),
+				})
 				.where(
 					and(
 						eq(
@@ -192,15 +196,7 @@ export const customRoleRouter = createTRPCRouter({
 						),
 						eq(organizationRole.role, input.roleName),
 					),
-				);
-
-			const [created] = await db
-				.insert(organizationRole)
-				.values({
-					organizationId: ctx.session.activeOrganizationId,
-					role: effectiveRoleName,
-					permission: JSON.stringify(input.permissions),
-				})
+				)
 				.returning();
 
 			await audit(ctx, {
@@ -208,7 +204,7 @@ export const customRoleRouter = createTRPCRouter({
 				resourceType: "customRole",
 				resourceName: effectiveRoleName,
 			});
-			return created;
+			return updated;
 		}),
 
 	remove: enterpriseProcedure
