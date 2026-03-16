@@ -545,6 +545,7 @@ function SidebarLogo() {
 	const { mutateAsync: setDefaultOrganization, isPending: isSettingDefault } =
 		api.organization.setDefault.useMutation();
 	const { isMobile } = useSidebar();
+	const isCollapsed = state === "collapsed" && !isMobile;
 	const { data: activeOrganization } = api.organization.active.useQuery();
 
 	const { data: invitations, refetch: refetchInvitations } =
@@ -570,7 +571,7 @@ function SidebarLogo() {
 				<SidebarMenu
 					className={cn(
 						"flex gap-2",
-						state === "collapsed"
+						isCollapsed
 							? "flex-col"
 							: "flex-row justify-between items-center",
 					)}
@@ -580,17 +581,17 @@ function SidebarLogo() {
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<SidebarMenuButton
-									size={state === "collapsed" ? "sm" : "lg"}
+									size={isCollapsed ? "sm" : "lg"}
 									className={cn(
 										"data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
-										state === "collapsed" &&
+										isCollapsed &&
 											"flex justify-center items-center p-2 h-10 w-10 mx-auto",
 									)}
 								>
 									<div
 										className={cn(
 											"flex items-center gap-2",
-											state === "collapsed" && "justify-center",
+											isCollapsed && "justify-center",
 										)}
 									>
 										<div
@@ -602,7 +603,7 @@ function SidebarLogo() {
 											<Logo
 												className={cn(
 													"transition-all",
-													state === "collapsed" ? "size-4" : "size-5",
+													isCollapsed ? "size-4" : "size-5",
 												)}
 												logoUrl={activeOrganization?.logo || undefined}
 											/>
@@ -610,7 +611,7 @@ function SidebarLogo() {
 										<div
 											className={cn(
 												"flex flex-col items-start",
-												state === "collapsed" && "hidden",
+												isCollapsed && "hidden",
 											)}
 										>
 											<p className="text-sm font-medium leading-none">
@@ -619,7 +620,7 @@ function SidebarLogo() {
 										</div>
 									</div>
 									<ChevronsUpDown
-										className={cn("ml-auto", state === "collapsed" && "hidden")}
+										className={cn("ml-auto", isCollapsed && "hidden")}
 									/>
 								</SidebarMenuButton>
 							</DropdownMenuTrigger>
@@ -768,7 +769,7 @@ function SidebarLogo() {
 					</SidebarMenuItem>
 
 					{/* Notification Bell */}
-					<SidebarMenuItem className={cn(state === "collapsed" && "mt-2")}>
+					<SidebarMenuItem className={cn(isCollapsed && "mt-2")}>
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button
@@ -776,7 +777,7 @@ function SidebarLogo() {
 									size="icon"
 									className={cn(
 										"relative",
-										state === "collapsed" && "h-8 w-8 p-1.5 mx-auto",
+										isCollapsed && "h-8 w-8 p-1.5 mx-auto",
 									)}
 								>
 									<Bell className="size-4" />
@@ -1145,14 +1146,9 @@ export default function Page({ children }: Props) {
 							</div>
 						)}
 						{dokployVersion && (
-							<>
-								<div className="px-3 text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
-									Version {dokployVersion}
-								</div>
-								<div className="hidden text-xs text-muted-foreground text-center group-data-[collapsible=icon]:block">
-									{dokployVersion}
-								</div>
-							</>
+							<div className="px-3 text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
+								Version {dokployVersion}
+							</div>
 						)}
 					</SidebarMenu>
 				</SidebarFooter>
