@@ -169,11 +169,6 @@ export const ShowProjects = () => {
 			<BreadcrumbSidebar
 				list={[{ name: "Projects", href: "/dashboard/projects" }]}
 			/>
-			{!isCloud && (
-				<div className="absolute top-4 right-4">
-					<TimeBadge />
-				</div>
-			)}
 			<div className="w-full">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl  ">
 					<div className="rounded-xl bg-background shadow-md ">
