@@ -10,10 +10,10 @@ export const auditLog = pgTable(
 		id: text("id")
 			.primaryKey()
 			.$defaultFn(() => nanoid()),
-		organizationId: text("organization_id")
-			.references(() => organization.id, { onDelete: "set null" }),
-		userId: text("user_id")
-			.references(() => user.id, { onDelete: "set null" }),
+		organizationId: text("organization_id").references(() => organization.id, {
+			onDelete: "set null",
+		}),
+		userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
 		userEmail: text("user_email").notNull(),
 		userRole: text("user_role").notNull(),
 		action: text("action").notNull(),
