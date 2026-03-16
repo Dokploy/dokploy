@@ -27,7 +27,7 @@
     "esbuild": "tsx ./esbuild.config.ts && tsc --project tsconfig.server.json --emitDeclarationOnly ",
     "typecheck": "tsc --noEmit",
     "dbml:generate": "npx tsx src/db/schema/dbml.ts",
-    "generate:drizzle": "pnpm dlx  @better-auth/cli generate --output auth-schema2.ts --config src/lib/auth.ts"
+    "generate:drizzle": "pnpm dlx  @better-auth/cli generate --output auth-schema2.ts --config src/lib/auth-cli.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.44",

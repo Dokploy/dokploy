@@ -23,8 +23,10 @@ import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
+import { audit } from "@/server/api/utils/audit";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
+import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
 export const volumeBackupsRouter = createTRPCRouter({
 	list: protectedProcedure
@@ -42,7 +44,10 @@ export const volumeBackupsRouter = createTRPCRouter({
 				]),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.id, {
+				volumeBackup: ["read"],
+			});
 			return await db.query.volumeBackups.findMany({
 				where: eq(volumeBackups[`${input.volumeBackupType}Id`], input.id),
 				with: {
@@ -59,7 +64,20 @@ export const volumeBackupsRouter = createTRPCRouter({
 		}),
 	create: protectedProcedure
 		.input(createVolumeBackupSchema)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const serviceId =
+				input.applicationId ||
+				input.postgresId ||
+				input.mysqlId ||
+				input.mariadbId ||
+				input.mongoId ||
+				input.redisId ||
+				input.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					volumeBackup: ["create"],
+				});
+			}
 			const newVolumeBackup = await createVolumeBackup(input);
 
 			if (newVolumeBackup?.enabled) {
@@ -73,6 +91,11 @@ export const volumeBackupsRouter = createTRPCRouter({
 					await scheduleVolumeBackup(newVolumeBackup.volumeBackupId);
 				}
 			}
+			await audit(ctx, {
+				action: "create",
+				resourceType: "volumeBackup",
+				resourceId: newVolumeBackup?.volumeBackupId,
+			});
 			return newVolumeBackup;
 		}),
 	one: protectedProcedure
@@ -81,8 +104,22 @@ export const volumeBackupsRouter = createTRPCRouter({
 				volumeBackupId: z.string().min(1),
 			}),
 		)
-		.query(async ({ input }) => {
-			return await findVolumeBackupById(input.volumeBackupId);
+		.query(async ({ input, ctx }) => {
+			const vb = await findVolumeBackupById(input.volumeBackupId);
+			const serviceId =
+				vb.applicationId ||
+				vb.postgresId ||
+				vb.mysqlId ||
+				vb.mariadbId ||
+				vb.mongoId ||
+				vb.redisId ||
+				vb.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					volumeBackup: ["read"],
+				});
+			}
+			return vb;
 		}),
 	delete: protectedProcedure
 		.input(
@@ -90,12 +127,46 @@ export const volumeBackupsRouter = createTRPCRouter({
 				volumeBackupId: z.string().min(1),
 			}),
 		)
-		.mutation(async ({ input }) => {
-			return await removeVolumeBackup(input.volumeBackupId);
+		.mutation(async ({ input, ctx }) => {
+			const vb = await findVolumeBackupById(input.volumeBackupId);
+			const serviceId =
+				vb.applicationId ||
+				vb.postgresId ||
+				vb.mysqlId ||
+				vb.mariadbId ||
+				vb.mongoId ||
+				vb.redisId ||
+				vb.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					volumeBackup: ["delete"],
+				});
+			}
+			const result = await removeVolumeBackup(input.volumeBackupId);
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "volumeBackup",
+				resourceId: input.volumeBackupId,
+			});
+			return result;
 		}),
 	update: protectedProcedure
 		.input(updateVolumeBackupSchema)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const existingVb = await findVolumeBackupById(input.volumeBackupId);
+			const serviceId =
+				existingVb.applicationId ||
+				existingVb.postgresId ||
+				existingVb.mysqlId ||
+				existingVb.mariadbId ||
+				existingVb.mongoId ||
+				existingVb.redisId ||
+				existingVb.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					volumeBackup: ["update"],
+				});
+			}
 			const updatedVolumeBackup = await updateVolumeBackup(
 				input.volumeBackupId,
 				input,
@@ -130,20 +201,45 @@ export const volumeBackupsRouter = createTRPCRouter({
 					removeVolumeBackupJob(updatedVolumeBackup.volumeBackupId);
 				}
 			}
+			await audit(ctx, {
+				action: "update",
+				resourceType: "volumeBackup",
+				resourceId: updatedVolumeBackup.volumeBackupId,
+			});
 			return updatedVolumeBackup;
 		}),
 
 	runManually: protectedProcedure
 		.input(z.object({ volumeBackupId: z.string().min(1) }))
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const vb = await findVolumeBackupById(input.volumeBackupId);
+			const serviceId =
+				vb.applicationId ||
+				vb.postgresId ||
+				vb.mysqlId ||
+				vb.mariadbId ||
+				vb.mongoId ||
+				vb.redisId ||
+				vb.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					volumeBackup: ["create"],
+				});
+			}
 			try {
-				return await runVolumeBackup(input.volumeBackupId);
+				const result = await runVolumeBackup(input.volumeBackupId);
+				await audit(ctx, {
+					action: "run",
+					resourceType: "volumeBackup",
+					resourceId: input.volumeBackupId,
+				});
+				return result;
 			} catch (error) {
 				console.error(error);
 				return false;
 			}
 		}),
-	restoreVolumeBackupWithLogs: protectedProcedure
+	restoreVolumeBackupWithLogs: withPermission("volumeBackup", "restore")
 		.meta({
 			openapi: {
 				enabled: false,

@@ -10,7 +10,12 @@ import {
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	withPermission,
+} from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateGitlab,
 	apiFindGitlabBranches,
@@ -20,15 +25,23 @@ import {
 } from "@/server/db/schema";
 
 export const gitlabRouter = createTRPCRouter({
-	create: protectedProcedure
+	create: withPermission("gitProviders", "create")
 		.input(apiCreateGitlab)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createGitlab(
+				const result = await createGitlab(
 					input,
 					ctx.session.activeOrganizationId,
 					ctx.session.userId,
 				);
+
+				await audit(ctx, {
+					action: "create",
+					resourceType: "gitProvider",
+					resourceName: input.name,
+				});
+
+				return result;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -37,22 +50,9 @@ export const gitlabRouter = createTRPCRouter({
 				});
 			}
 		}),
-	one: protectedProcedure
-		.input(apiFindOneGitlab)
-		.query(async ({ input, ctx }) => {
-			const gitlabProvider = await findGitlabById(input.gitlabId);
-			if (
-				gitlabProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				gitlabProvider.gitProvider.userId !== ctx.session.userId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not allowed to access this Gitlab provider",
-				});
-			}
-			return gitlabProvider;
-		}),
+	one: protectedProcedure.input(apiFindOneGitlab).query(async ({ input }) => {
+		return await findGitlabById(input.gitlabId);
+	}),
 	gitlabProviders: protectedProcedure.query(async ({ ctx }) => {
 		let result = await db.query.gitlab.findMany({
 			with: {
@@ -83,52 +83,19 @@ export const gitlabRouter = createTRPCRouter({
 	}),
 	getGitlabRepositories: protectedProcedure
 		.input(apiFindOneGitlab)
-		.query(async ({ input, ctx }) => {
-			const gitlabProvider = await findGitlabById(input.gitlabId);
-			if (
-				gitlabProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				gitlabProvider.gitProvider.userId !== ctx.session.userId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not allowed to access this Gitlab provider",
-				});
-			}
+		.query(async ({ input }) => {
 			return await getGitlabRepositories(input.gitlabId);
 		}),
 
 	getGitlabBranches: protectedProcedure
 		.input(apiFindGitlabBranches)
-		.query(async ({ input, ctx }) => {
-			const gitlabProvider = await findGitlabById(input.gitlabId || "");
-			if (
-				gitlabProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				gitlabProvider.gitProvider.userId !== ctx.session.userId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not allowed to access this Gitlab provider",
-				});
-			}
+		.query(async ({ input }) => {
 			return await getGitlabBranches(input);
 		}),
 	testConnection: protectedProcedure
 		.input(apiGitlabTestConnection)
-		.mutation(async ({ input, ctx }) => {
+		.mutation(async ({ input }) => {
 			try {
-				const gitlabProvider = await findGitlabById(input.gitlabId || "");
-				if (
-					gitlabProvider.gitProvider.organizationId !==
-						ctx.session.activeOrganizationId &&
-					gitlabProvider.gitProvider.userId !== ctx.session.userId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not allowed to access this Gitlab provider",
-					});
-				}
 				const result = await testGitlabConnection(input);
 
 				return `Found ${result} repositories`;
@@ -139,20 +106,9 @@ export const gitlabRouter = createTRPCRouter({
 				});
 			}
 		}),
-	update: protectedProcedure
+	update: withPermission("gitProviders", "create")
 		.input(apiUpdateGitlab)
 		.mutation(async ({ input, ctx }) => {
-			const gitlabProvider = await findGitlabById(input.gitlabId);
-			if (
-				gitlabProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				gitlabProvider.gitProvider.userId !== ctx.session.userId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not allowed to access this Gitlab provider",
-				});
-			}
 			if (input.name) {
 				await updateGitProvider(input.gitProviderId, {
 					name: input.name,
@@ -167,5 +123,12 @@ export const gitlabRouter = createTRPCRouter({
 					...input,
 				});
 			}
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "gitProvider",
+				resourceId: input.gitProviderId,
+				resourceName: input.name,
+			});
 		}),
 });

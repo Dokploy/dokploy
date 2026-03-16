@@ -18,6 +18,7 @@ export const ShowCertificates = () => {
 	const { mutateAsync, isPending: isRemoving } =
 		api.certificates.remove.useMutation();
 	const { data, isPending, refetch } = api.certificates.all.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	return (
 		<div className="w-full">
@@ -53,7 +54,7 @@ export const ShowCertificates = () => {
 										<span className="text-base text-muted-foreground text-center">
 											You don't have any certificates created
 										</span>
-										<AddCertificate />
+										{permissions?.certificate.create && <AddCertificate />}
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
@@ -101,47 +102,52 @@ export const ShowCertificates = () => {
 																</div>
 															</div>
 
-															<div className="flex flex-row gap-1">
-																<DialogAction
-																	title="Delete Certificate"
-																	description="Are you sure you want to delete this certificate?"
-																	type="destructive"
-																	onClick={async () => {
-																		await mutateAsync({
-																			certificateId: certificate.certificateId,
-																		})
-																			.then(() => {
-																				toast.success(
-																					"Certificate deleted successfully",
-																				);
-																				refetch();
+															{permissions?.certificate.delete && (
+																<div className="flex flex-row gap-1">
+																	<DialogAction
+																		title="Delete Certificate"
+																		description="Are you sure you want to delete this certificate?"
+																		type="destructive"
+																		onClick={async () => {
+																			await mutateAsync({
+																				certificateId:
+																					certificate.certificateId,
 																			})
-																			.catch(() => {
-																				toast.error(
-																					"Error deleting certificate",
-																				);
-																			});
-																	}}
-																>
-																	<Button
-																		variant="ghost"
-																		size="icon"
-																		className="group hover:bg-red-500/10 "
-																		isLoading={isRemoving}
+																				.then(() => {
+																					toast.success(
+																						"Certificate deleted successfully",
+																					);
+																					refetch();
+																				})
+																				.catch(() => {
+																					toast.error(
+																						"Error deleting certificate",
+																					);
+																				});
+																		}}
 																	>
-																		<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-																	</Button>
-																</DialogAction>
-															</div>
+																		<Button
+																			variant="ghost"
+																			size="icon"
+																			className="group hover:bg-red-500/10 "
+																			isLoading={isRemoving}
+																		>
+																			<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+																		</Button>
+																	</DialogAction>
+																</div>
+															)}
 														</div>
 													</div>
 												);
 											})}
 										</div>
 
-										<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
-											<AddCertificate />
-										</div>
+										{permissions?.certificate.create && (
+											<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
+												<AddCertificate />
+											</div>
+										)}
 									</div>
 								)}
 							</>

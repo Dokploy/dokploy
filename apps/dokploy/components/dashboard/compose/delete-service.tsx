@@ -46,6 +46,8 @@ interface Props {
 }
 
 export const DeleteService = ({ id, type }: Props) => {
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canDelete = permissions?.service.delete ?? false;
 	const [isOpen, setIsOpen] = useState(false);
 
 	const queryMap = {
@@ -122,6 +124,8 @@ export const DeleteService = ({ id, type }: Props) => {
 			"applicationStatus" in data &&
 			data?.applicationStatus === "running") ||
 		(data && "composeStatus" in data && data?.composeStatus === "running");
+
+	if (!canDelete) return null;
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>

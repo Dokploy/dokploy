@@ -272,6 +272,7 @@ const EnvironmentPage = (
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId, environmentId } = props;
 	const { data: auth } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	const { data: environments } = api.environment.byProjectId.useQuery({
 		projectId: projectId,
@@ -905,9 +906,7 @@ const EnvironmentPage = (
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>
-									{(auth?.role === "owner" ||
-										auth?.role === "admin" ||
-										auth?.canCreateServices) && (
+									{permissions?.service.create && (
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
 												<Button>
@@ -1029,9 +1028,7 @@ const EnvironmentPage = (
 														Stop
 													</Button>
 												</DialogAction>
-												{(auth?.role === "owner" ||
-													auth?.role === "admin" ||
-													auth?.canDeleteServices) && (
+												{permissions?.service.delete && (
 													<>
 														<DialogAction
 															title="Delete Services"
@@ -1624,6 +1621,7 @@ export async function getServerSideProps(
 					environmentId: params.environmentId,
 				});
 			} catch (error) {
+				console.log(error);
 				// If user doesn't have access to requested environment, redirect to accessible one
 				const accessibleEnvironments =
 					await helpers.environment.byProjectId.fetch({
@@ -1643,11 +1641,11 @@ export async function getServerSideProps(
 						},
 					};
 				}
-				// No accessible environments, redirect to home
+				// No accessible environments, redirect to projects
 				return {
 					redirect: {
 						permanent: false,
-						destination: "/",
+						destination: "/dashboard/projects",
 					},
 				};
 			}
@@ -1663,7 +1661,8 @@ export async function getServerSideProps(
 					environmentId: params.environmentId,
 				},
 			};
-		} catch {
+		} catch (error) {
+			console.log(error);
 			return {
 				redirect: {
 					permanent: false,
