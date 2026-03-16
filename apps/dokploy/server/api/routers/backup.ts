@@ -77,21 +77,20 @@ export const backupRouter = createTRPCRouter({
 		.input(apiCreateBackup)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const newBackup = await createBackup(input);
-
-				const backup = await findBackupById(newBackup.backupId);
-
 				const serviceId =
-					backup.postgresId ||
-					backup.mysqlId ||
-					backup.mariadbId ||
-					backup.mongoId ||
-					backup.composeId;
+					input.postgresId ||
+					input.mysqlId ||
+					input.mariadbId ||
+					input.mongoId ||
+					input.composeId;
 				if (serviceId) {
 					await checkServicePermissionAndAccess(ctx, serviceId, {
 						backup: ["create"],
 					});
 				}
+
+				const newBackup = await createBackup(input);
+				const backup = await findBackupById(newBackup.backupId);
 
 				if (IS_CLOUD && backup.enabled) {
 					const databaseType = backup.databaseType;
@@ -168,20 +167,21 @@ export const backupRouter = createTRPCRouter({
 		.input(apiUpdateBackup)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				await updateBackupById(input.backupId, input);
-				const backup = await findBackupById(input.backupId);
-
+				const existing = await findBackupById(input.backupId);
 				const serviceId =
-					backup.postgresId ||
-					backup.mysqlId ||
-					backup.mariadbId ||
-					backup.mongoId ||
-					backup.composeId;
+					existing.postgresId ||
+					existing.mysqlId ||
+					existing.mariadbId ||
+					existing.mongoId ||
+					existing.composeId;
 				if (serviceId) {
 					await checkServicePermissionAndAccess(ctx, serviceId, {
-						backup: ["create"],
+						backup: ["update"],
 					});
 				}
+
+				await updateBackupById(input.backupId, input);
+				const backup = await findBackupById(input.backupId);
 
 				if (IS_CLOUD) {
 					if (backup.enabled) {

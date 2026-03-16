@@ -107,7 +107,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 			}
 		}),
-	updateSlack: withPermission("notification", "create")
+	updateSlack: withPermission("notification", "update")
 		.input(apiUpdateSlack)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -172,7 +172,7 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 
-	updateTelegram: withPermission("notification", "create")
+	updateTelegram: withPermission("notification", "update")
 		.input(apiUpdateTelegram)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -238,7 +238,7 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 
-	updateDiscord: withPermission("notification", "create")
+	updateDiscord: withPermission("notification", "update")
 		.input(apiUpdateDiscord)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -309,7 +309,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 			}
 		}),
-	updateEmail: withPermission("notification", "create")
+	updateEmail: withPermission("notification", "update")
 		.input(apiUpdateEmail)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -375,7 +375,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 			}
 		}),
-	updateResend: withPermission("notification", "create")
+	updateResend: withPermission("notification", "update")
 		.input(apiUpdateResend)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -561,7 +561,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 			}
 		}),
-	updateGotify: withPermission("notification", "create")
+	updateGotify: withPermission("notification", "update")
 		.input(apiUpdateGotify)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -626,7 +626,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 			}
 		}),
-	updateNtfy: withPermission("notification", "create")
+	updateNtfy: withPermission("notification", "update")
 		.input(apiUpdateNtfy)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -693,7 +693,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 			}
 		}),
-	updateCustom: withPermission("notification", "create")
+	updateCustom: withPermission("notification", "update")
 		.input(apiUpdateCustom)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -755,7 +755,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 			}
 		}),
-	updateLark: withPermission("notification", "create")
+	updateLark: withPermission("notification", "update")
 		.input(apiUpdateLark)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -821,7 +821,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 			}
 		}),
-	updateTeams: withPermission("notification", "create")
+	updateTeams: withPermission("notification", "update")
 		.input(apiUpdateTeams)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -888,7 +888,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 			}
 		}),
-	updatePushover: withPermission("notification", "create")
+	updatePushover: withPermission("notification", "update")
 		.input(apiUpdatePushover)
 		.mutation(async ({ input, ctx }) => {
 			try {

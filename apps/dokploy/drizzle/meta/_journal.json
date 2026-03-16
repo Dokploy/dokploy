@@ -1048,15 +1048,8 @@
     {
       "idx": 149,
       "version": "7",
-      "when": 1773184273215,
-      "tag": "0149_clumsy_speedball",
-      "breakpoints": true
-    },
-    {
-      "idx": 150,
-      "version": "7",
-      "when": 1773374115852,
-      "tag": "0150_glorious_pyro",
+      "when": 1773637297592,
+      "tag": "0149_rare_radioactive_man",
       "breakpoints": true
     }
   ]
