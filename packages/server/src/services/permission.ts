@@ -182,13 +182,14 @@ export const resolvePermissions = async (
 	const legacyOverrides =
 		memberRecord.role === "member" ? getLegacyOverrides(memberRecord) : {};
 
-	const isStaticRole = memberRecord.role in staticRoles;
+	const isPrivilegedRole =
+		memberRecord.role === "owner" || memberRecord.role === "admin";
 	const result = {} as ResolvedPermissions;
 
 	for (const [resource, actions] of Object.entries(statements)) {
 		const resourcePerms = {} as Record<string, boolean>;
 		for (const action of actions) {
-			if (isStaticRole && enterpriseOnlyResources.has(resource)) {
+			if (isPrivilegedRole && enterpriseOnlyResources.has(resource)) {
 				resourcePerms[action] = true;
 				continue;
 			}

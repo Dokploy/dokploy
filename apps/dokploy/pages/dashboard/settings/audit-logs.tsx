@@ -3,8 +3,8 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
-import { ShowAuditLogs } from "@/components/dashboard/settings/audit-logs/show-audit-logs";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { ShowAuditLogs } from "@/components/proprietary/audit-logs/show-audit-logs";
 import { appRouter } from "@/server/api/root";
 
 const Page = () => {

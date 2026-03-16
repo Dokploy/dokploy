@@ -88,16 +88,28 @@ describe("enterprise resources for static roles", () => {
 		}
 	});
 
-	it("member gets true for all enterprise resources", async () => {
+	it("member gets true for service-level enterprise resources", async () => {
 		memberToReturn = mockMemberData("member");
 		const perms = await resolvePermissions(ctx);
 
-		for (const resource of enterpriseOnlyResources) {
-			const actions = statements[resource as keyof typeof statements];
-			for (const action of actions) {
-				expect((perms as any)[resource][action]).toBe(true);
-			}
-		}
+		expect(perms.deployment.read).toBe(true);
+		expect(perms.deployment.create).toBe(true);
+		expect(perms.domain.read).toBe(true);
+		expect(perms.backup.read).toBe(true);
+		expect(perms.logs.read).toBe(true);
+		expect(perms.monitoring.read).toBe(true);
+	});
+
+	it("member gets false for org-level enterprise resources", async () => {
+		memberToReturn = mockMemberData("member");
+		const perms = await resolvePermissions(ctx);
+
+		expect(perms.server.read).toBe(false);
+		expect(perms.registry.read).toBe(false);
+		expect(perms.certificate.read).toBe(false);
+		expect(perms.destination.read).toBe(false);
+		expect(perms.notification.read).toBe(false);
+		expect(perms.auditLog.read).toBe(false);
 	});
 });
 
