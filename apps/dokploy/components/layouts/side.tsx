@@ -571,9 +571,7 @@ function SidebarLogo() {
 				<SidebarMenu
 					className={cn(
 						"flex gap-2",
-						isCollapsed
-							? "flex-col"
-							: "flex-row justify-between items-center",
+						isCollapsed ? "flex-col" : "flex-row justify-between items-center",
 					)}
 				>
 					{/* Organization Logo and Selector */}
