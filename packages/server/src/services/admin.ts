@@ -37,19 +37,30 @@ export const findOrganizationById = async (organizationId: string) => {
 };
 
 export const isAdminPresent = async () => {
-	const admin = await db.query.member.findFirst({
-		where: eq(member.role, "owner"),
-	});
-
-	if (!admin) {
+	try {
+		const admin = await db.query.member.findFirst({
+			where: eq(member.role, "owner"),
+			columns: {
+				id: true,
+			},
+		});
+		if (!admin) {
+			return false;
+		}
+		return true;
+	} catch (error) {
+		console.error("Failed to check admin presence:", error);
 		return false;
 	}
-	return true;
 };
 
 export const findOwner = async () => {
 	const admin = await db.query.member.findFirst({
 		where: eq(member.role, "owner"),
+		columns: {
+			id: true,
+			userId: true,
+		},
 		with: {
 			user: true,
 		},
