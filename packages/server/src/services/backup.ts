@@ -3,7 +3,7 @@ import {
 	type apiCreateBackup,
 	backups,
 } from "@dokploy/server/db/schema";
-import { formatBackupFileName, validateFileNameFormat } from "../utils/backups/utils";
+import { validateFileNameFormat } from "../utils/backups/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -19,14 +19,6 @@ export const createBackup = async (input: z.infer<typeof apiCreateBackup>) => {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
 				message: `Invalid format variables in fileNameFormat: ${invalidVars.join(", ")}`,
-			});
-		}
-		try {
-			formatBackupFileName(input.fileNameFormat, {});
-		} catch (error) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: `Error parsing fileNameFormat: ${(error as Error).message}`,
 			});
 		}
 	}
@@ -77,14 +69,6 @@ export const updateBackupById = async (
 			throw new TRPCError({
 				code: "BAD_REQUEST",
 				message: `Invalid format variables in fileNameFormat: ${invalidVars.join(", ")}`,
-			});
-		}
-		try {
-			formatBackupFileName(backupData.fileNameFormat, {});
-		} catch (error) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: `Error parsing fileNameFormat: ${(error as Error).message}`,
 			});
 		}
 	}
