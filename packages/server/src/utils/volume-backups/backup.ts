@@ -55,7 +55,6 @@ export const backupVolume = async (
   `;
 
 	const uploadCommand = `
-  set -e
   echo "Starting upload to S3..."
   ${rcloneCommand}
   echo "Upload to S3 done ✅"
