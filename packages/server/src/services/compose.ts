@@ -25,6 +25,7 @@ import {
 import { cloneBitbucketRepository } from "@dokploy/server/utils/providers/bitbucket";
 import {
 	cloneGitRepository,
+	getCheckoutCommitCommand,
 	getGitCommitInfo,
 } from "@dokploy/server/utils/providers/git";
 import { cloneGiteaRepository } from "@dokploy/server/utils/providers/gitea";
@@ -209,10 +210,12 @@ export const deployCompose = async ({
 	composeId,
 	titleLog = "Manual deployment",
 	descriptionLog = "",
+	commitHash,
 }: {
 	composeId: string;
 	titleLog: string;
 	descriptionLog: string;
+	commitHash?: string;
 }) => {
 	const compose = await findComposeById(composeId);
 
@@ -223,6 +226,7 @@ export const deployCompose = async ({
 		composeId: composeId,
 		title: titleLog,
 		description: descriptionLog,
+		commitHash,
 	});
 
 	try {
@@ -253,6 +257,14 @@ export const deployCompose = async ({
 		}
 		command = "set -e;";
 		if (compose.sourceType !== "raw") {
+			if (commitHash) {
+				command += getCheckoutCommitCommand({
+					appName: compose.appName,
+					type: "compose",
+					serverId: compose.serverId,
+					commitHash,
+				});
+			}
 			command += await generateApplyPatchesCommand({
 				id: compose.composeId,
 				type: "compose",
@@ -322,6 +334,7 @@ export const deployCompose = async ({
 				await updateDeployment(deployment.deploymentId, {
 					title: commitInfo.message,
 					description: `Commit: ${commitInfo.hash}`,
+					commitHash: commitInfo.hash,
 				});
 			}
 		}
@@ -332,10 +345,12 @@ export const rebuildCompose = async ({
 	composeId,
 	titleLog = "Rebuild deployment",
 	descriptionLog = "",
+	commitHash,
 }: {
 	composeId: string;
 	titleLog: string;
 	descriptionLog: string;
+	commitHash?: string;
 }) => {
 	const compose = await findComposeById(composeId);
 
@@ -343,12 +358,20 @@ export const rebuildCompose = async ({
 		composeId: composeId,
 		title: titleLog,
 		description: descriptionLog,
+		commitHash,
 	});
 
 	try {
 		let command = "set -e;";
 		if (compose.sourceType === "raw") {
 			command += getCreateComposeFileCommand(compose);
+		} else if (commitHash) {
+			command += getCheckoutCommitCommand({
+				appName: compose.appName,
+				type: "compose",
+				serverId: compose.serverId,
+				commitHash,
+			});
 		}
 
 		let commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
@@ -390,6 +413,20 @@ export const rebuildCompose = async ({
 			composeStatus: "error",
 		});
 		throw error;
+	} finally {
+		if (compose.sourceType !== "raw") {
+			const commitInfo = await getGitCommitInfo({
+				...compose,
+				type: "compose",
+			});
+			if (commitInfo) {
+				await updateDeployment(deployment.deploymentId, {
+					title: commitInfo.message,
+					description: `Commit: ${commitInfo.hash}`,
+					commitHash: commitInfo.hash,
+				});
+			}
+		}
 	}
 
 	return true;

@@ -31,6 +31,7 @@ export const deployments = pgTable("deployment", {
 		.$defaultFn(() => nanoid()),
 	title: text("title").notNull(),
 	description: text("description"),
+	commitHash: text("commitHash"),
 	status: deploymentStatus("status").default("running"),
 	logPath: text("logPath").notNull(),
 	pid: text("pid"),
@@ -123,6 +124,7 @@ const schema = createInsertSchema(deployments, {
 	applicationId: z.string(),
 	composeId: z.string(),
 	description: z.string().optional(),
+	commitHash: z.string().optional(),
 	previewDeploymentId: z.string(),
 	buildServerId: z.string(),
 });
@@ -133,6 +135,7 @@ export const apiCreateDeployment = schema
 		logPath: true,
 		applicationId: true,
 		description: true,
+		commitHash: true,
 		previewDeploymentId: true,
 	})
 	.extend({
@@ -158,6 +161,7 @@ export const apiCreateDeploymentCompose = schema
 		logPath: true,
 		composeId: true,
 		description: true,
+		commitHash: true,
 	})
 	.extend({
 		composeId: z.string().min(1),

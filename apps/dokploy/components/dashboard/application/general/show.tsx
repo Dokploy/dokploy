@@ -8,12 +8,14 @@ import {
 	Terminal,
 } from "lucide-react";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import { toast } from "sonner";
 import { ShowBuildChooseForm } from "@/components/dashboard/application/build/show";
 import { ShowProviderForm } from "@/components/dashboard/application/general/generic/show";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip,
@@ -51,6 +53,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 		api.application.reload.useMutation();
 
 	const { mutateAsync: redeploy } = api.application.redeploy.useMutation();
+	const [commitHash, setCommitHash] = useState("");
 
 	return (
 		<>
@@ -63,14 +66,45 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 						{canDeploy && (
 							<DialogAction
 								title="Deploy Application"
-								description="Are you sure you want to deploy this application?"
+								description={
+									<div className="space-y-2">
+										<p>Are you sure you want to deploy this application?</p>
+										<div className="space-y-1">
+											<p className="text-xs text-muted-foreground">
+												Optional: Deploy a specific commit hash (7-40 hex
+												characters)
+											</p>
+											<Input
+												value={commitHash}
+												onChange={(e) => {
+													setCommitHash(e.target.value);
+												}}
+												placeholder="e.g. a1b2c3d4"
+											/>
+										</div>
+									</div>
+								}
 								type="default"
 								onClick={async () => {
+									const normalizedCommitHash = commitHash.trim();
+									if (
+										normalizedCommitHash &&
+										!/^[a-fA-F0-9]{7,40}$/.test(normalizedCommitHash)
+									) {
+										toast.error(
+											"Invalid commit hash. Use 7-40 hexadecimal characters.",
+										);
+										return;
+									}
 									await deploy({
 										applicationId: applicationId,
+										...(normalizedCommitHash && {
+											commitHash: normalizedCommitHash,
+										}),
 									})
 										.then(() => {
 											toast.success("Application deployed successfully");
+											setCommitHash("");
 											refetch();
 											router.push(
 												`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/application/${applicationId}?tab=deployments`,
@@ -151,11 +185,25 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 								description="Are you sure you want to rebuild this application?"
 								type="default"
 								onClick={async () => {
+									const normalizedCommitHash = commitHash.trim();
+									if (
+										normalizedCommitHash &&
+										!/^[a-fA-F0-9]{7,40}$/.test(normalizedCommitHash)
+									) {
+										toast.error(
+											"Invalid commit hash. Use 7-40 hexadecimal characters.",
+										);
+										return;
+									}
 									await redeploy({
 										applicationId: applicationId,
+										...(normalizedCommitHash && {
+											commitHash: normalizedCommitHash,
+										}),
 									})
 										.then(() => {
 											toast.success("Application rebuilt successfully");
+											setCommitHash("");
 											refetch();
 										})
 										.catch(() => {

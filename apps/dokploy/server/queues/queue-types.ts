@@ -3,6 +3,7 @@ type DeployJob =
 			applicationId: string;
 			titleLog: string;
 			descriptionLog: string;
+			commitHash?: string;
 			server?: boolean;
 			type: "deploy" | "redeploy";
 			applicationType: "application";
@@ -12,6 +13,7 @@ type DeployJob =
 			composeId: string;
 			titleLog: string;
 			descriptionLog: string;
+			commitHash?: string;
 			server?: boolean;
 			type: "deploy" | "redeploy";
 			applicationType: "compose";

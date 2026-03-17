@@ -155,6 +155,22 @@ interface Props {
 	serverId: string | null;
 }
 
+interface CheckoutProps extends Props {
+	commitHash: string;
+}
+
+export const getCheckoutCommitCommand = ({
+	appName,
+	type = "application",
+	serverId,
+	commitHash,
+}: CheckoutProps) => {
+	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
+	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const outputPath = join(basePath, appName, "code");
+	return `echo "Checking out commit ${commitHash}" && git -C ${outputPath} fetch --depth 1 origin ${commitHash} && git -C ${outputPath} checkout ${commitHash};`;
+};
+
 export const getGitCommitInfo = async ({
 	appName,
 	type = "application",

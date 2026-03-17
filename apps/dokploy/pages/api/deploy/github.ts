@@ -103,6 +103,11 @@ export default async function handler(
 			const owner = githubBody?.repository?.owner?.name;
 			const deploymentTitle = `Tag created: ${tagName}`;
 			const deploymentHash = extractHash(req.headers, githubBody);
+			const normalizedCommitHash =
+				typeof deploymentHash === "string" &&
+				/^[a-fA-F0-9]{7,40}$/.test(deploymentHash)
+					? deploymentHash
+					: undefined;
 
 			// Find applications configured to deploy on tag
 			const apps = await db.query.applications.findMany({
@@ -121,6 +126,7 @@ export default async function handler(
 					applicationId: app.applicationId as string,
 					titleLog: deploymentTitle,
 					descriptionLog: `Hash: ${deploymentHash}`,
+					...(normalizedCommitHash && { commitHash: normalizedCommitHash }),
 					type: "deploy",
 					applicationType: "application",
 					server: !!app.serverId,
@@ -162,6 +168,7 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "compose",
 					descriptionLog: `Hash: ${deploymentHash}`,
+					...(normalizedCommitHash && { commitHash: normalizedCommitHash }),
 					server: !!composeApp.serverId,
 				};
 
@@ -212,6 +219,11 @@ export default async function handler(
 
 			const deploymentTitle = extractCommitMessage(req.headers, req.body);
 			const deploymentHash = extractHash(req.headers, req.body);
+			const normalizedCommitHash =
+				typeof deploymentHash === "string" &&
+				/^[a-fA-F0-9]{7,40}$/.test(deploymentHash)
+					? deploymentHash
+					: undefined;
 			const owner = githubBody?.repository?.owner?.name;
 			const normalizedCommits = githubBody?.commits?.flatMap(
 				(commit: any) => commit.modified,
@@ -234,6 +246,7 @@ export default async function handler(
 					applicationId: app.applicationId as string,
 					titleLog: deploymentTitle,
 					descriptionLog: `Hash: ${deploymentHash}`,
+					...(normalizedCommitHash && { commitHash: normalizedCommitHash }),
 					type: "deploy",
 					applicationType: "application",
 					server: !!app.serverId,
@@ -284,6 +297,7 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "compose",
 					descriptionLog: `Hash: ${deploymentHash}`,
+					...(normalizedCommitHash && { commitHash: normalizedCommitHash }),
 					server: !!composeApp.serverId,
 				};
 
@@ -497,6 +511,10 @@ export default async function handler(
 					applicationId: app.applicationId as string,
 					titleLog: "Preview Deployment",
 					descriptionLog: `Hash: ${deploymentHash}`,
+					...(deploymentHash &&
+						/^[a-fA-F0-9]{7,40}$/.test(deploymentHash) && {
+							commitHash: deploymentHash,
+						}),
 					type: "deploy",
 					applicationType: "application-preview",
 					server: !!app.serverId,

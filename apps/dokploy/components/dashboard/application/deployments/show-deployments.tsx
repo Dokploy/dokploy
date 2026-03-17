@@ -1,3 +1,4 @@
+import copy from "copy-to-clipboard";
 import {
 	ChevronDown,
 	ChevronUp,
@@ -11,7 +12,6 @@ import {
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import copy from "copy-to-clipboard";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -25,6 +25,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { api, type RouterOutputs } from "@/utils/api";
 import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
 import { CancelQueues } from "./cancel-queues";
@@ -79,6 +86,10 @@ export const ShowDeployments = ({
 
 	const { mutateAsync: rollback, isPending: isRollingBack } =
 		api.rollback.rollback.useMutation();
+	const { mutateAsync: deployApplication, isPending: isPromotingApplication } =
+		api.application.deploy.useMutation();
+	const { mutateAsync: deployCompose, isPending: isPromotingCompose } =
+		api.compose.deploy.useMutation();
 	const { mutateAsync: killProcess, isPending: isKillingProcess } =
 		api.deployment.killProcess.useMutation();
 	const { mutateAsync: removeDeployment, isPending: isRemovingDeployment } =
@@ -95,8 +106,33 @@ export const ShowDeployments = ({
 	} = api.compose.cancelDeployment.useMutation();
 
 	const [url, setUrl] = React.useState("");
+	const [targetEnvironmentId, setTargetEnvironmentId] = useState("");
+	const [targetServiceId, setTargetServiceId] = useState("");
 	const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
 		new Set(),
+	);
+	const { data: currentApplication } = api.application.one.useQuery(
+		{ applicationId: id },
+		{ enabled: type === "application" },
+	);
+	const { data: currentCompose } = api.compose.one.useQuery(
+		{ composeId: id },
+		{ enabled: type === "compose" },
+	);
+	const currentProjectId =
+		type === "application"
+			? currentApplication?.environment.projectId
+			: currentCompose?.environment.projectId;
+	const currentEnvironmentId =
+		type === "application"
+			? currentApplication?.environmentId
+			: currentCompose?.environmentId;
+	const { data: projectEnvironments } = api.environment.byProjectId.useQuery(
+		{ projectId: currentProjectId || "" },
+		{
+			enabled:
+				!!currentProjectId && (type === "application" || type === "compose"),
+		},
 	);
 
 	const webhookUrl = useMemo(
@@ -118,6 +154,24 @@ export const ShowDeployments = ({
 		}
 		return `${truncated}...`;
 	};
+
+	const extractCommitHash = (
+		deployment: RouterOutputs["deployment"]["all"][number],
+	) => {
+		if (deployment.commitHash?.trim()) {
+			return deployment.commitHash.trim();
+		}
+		const description = deployment.description?.trim() || "";
+		const matched = description.match(/[a-fA-F0-9]{7,40}/);
+		return matched?.[0] || "";
+	};
+	const selectedEnvironment = projectEnvironments?.find(
+		(environment) => environment.environmentId === targetEnvironmentId,
+	);
+	const targetServices =
+		type === "application"
+			? (selectedEnvironment?.applications ?? [])
+			: (selectedEnvironment?.compose ?? []);
 
 	// Check for stuck deployment (more than 9 minutes) - only for the most recent deployment
 	const stuckDeployment = useMemo(() => {
@@ -232,19 +286,10 @@ export const ShowDeployments = ({
 						<div className="flex flex-row items-center gap-2 flex-wrap">
 							<span>Webhook URL: </span>
 							<div className="flex flex-row items-center gap-2">
-								<Badge
-									role="button"
-									tabIndex={0}
+								<button
+									type="button"
 									aria-label="Copy webhook URL to clipboard"
-									className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all"
-									variant="outline"
-									onKeyDown={(event) => {
-										if (event.key === "Enter" || event.key === " ") {
-											event.preventDefault();
-											copy(webhookUrl);
-											toast.success("Copied to clipboard.");
-										}
-									}}
+									className="inline-flex items-center p-2 rounded-md ml-1 mr-1 border text-sm hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all"
 									onClick={() => {
 										copy(webhookUrl);
 										toast.success("Copied to clipboard.");
@@ -252,7 +297,7 @@ export const ShowDeployments = ({
 								>
 									{webhookUrl}
 									<Copy className="h-4 w-4 ml-2" />
-								</Badge>
+								</button>
 								{(type === "application" || type === "compose") && (
 									<RefreshToken id={id} type={type} />
 								)}
@@ -278,6 +323,7 @@ export const ShowDeployments = ({
 				) : (
 					<div className="flex flex-col gap-4">
 						{deployments?.map((deployment, index) => {
+							const commitHash = extractCommitHash(deployment);
 							const titleText = deployment?.title?.trim() || "";
 							const needsTruncation = titleText.length > MAX_DESCRIPTION_LENGTH;
 							const isExpanded = expandedDescriptions.has(
@@ -338,12 +384,24 @@ export const ShowDeployments = ({
 													)}
 												</button>
 											)}
-											{/* Hash (from description) - shown in compact form */}
-											{deployment.description?.trim() && (
-												<span className="text-xs text-muted-foreground font-mono">
-													{deployment.description}
-												</span>
+											{commitHash && (
+												<button
+													type="button"
+													className="text-xs text-muted-foreground font-mono w-fit hover:text-foreground cursor-pointer"
+													onClick={() => {
+														copy(commitHash);
+														toast.success("Commit hash copied.");
+													}}
+												>
+													Commit: {commitHash.slice(0, 12)}
+												</button>
 											)}
+											{deployment.description?.trim() &&
+												deployment.description !== `Commit: ${commitHash}` && (
+													<span className="text-xs text-muted-foreground font-mono">
+														{deployment.description}
+													</span>
+												)}
 										</div>
 									</div>
 									<div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:max-w-[300px] sm:items-end sm:justify-start">
@@ -429,6 +487,131 @@ export const ShowDeployments = ({
 													</Button>
 												</DialogAction>
 											)}
+											{(type === "application" || type === "compose") &&
+												deployment.status === "done" &&
+												commitHash && (
+													<DialogAction
+														title="Promote deployment"
+														description={
+															<div className="space-y-3">
+																<p>
+																	Promote commit{" "}
+																	<span className="font-mono">
+																		{commitHash}
+																	</span>{" "}
+																	to another environment.
+																</p>
+																<div className="space-y-1">
+																	<p className="text-xs text-muted-foreground">
+																		Target environment
+																	</p>
+																	<Select
+																		value={targetEnvironmentId}
+																		onValueChange={(value) => {
+																			setTargetEnvironmentId(value);
+																			setTargetServiceId("");
+																		}}
+																	>
+																		<SelectTrigger>
+																			<SelectValue placeholder="Select environment" />
+																		</SelectTrigger>
+																		<SelectContent>
+																			{projectEnvironments
+																				?.filter(
+																					(environment) =>
+																						environment.environmentId !==
+																						currentEnvironmentId,
+																				)
+																				.map((environment) => (
+																					<SelectItem
+																						key={environment.environmentId}
+																						value={environment.environmentId}
+																					>
+																						{environment.name}
+																					</SelectItem>
+																				))}
+																		</SelectContent>
+																	</Select>
+																</div>
+																<div className="space-y-1">
+																	<p className="text-xs text-muted-foreground">
+																		Target service
+																	</p>
+																	<Select
+																		value={targetServiceId}
+																		onValueChange={setTargetServiceId}
+																	>
+																		<SelectTrigger>
+																			<SelectValue placeholder="Select service" />
+																		</SelectTrigger>
+																		<SelectContent>
+																			{targetServices.map((service) => (
+																				<SelectItem
+																					key={
+																						type === "application"
+																							? service.applicationId
+																							: service.composeId
+																					}
+																					value={
+																						type === "application"
+																							? service.applicationId
+																							: service.composeId
+																					}
+																				>
+																					{service.name}
+																				</SelectItem>
+																			))}
+																		</SelectContent>
+																	</Select>
+																</div>
+															</div>
+														}
+														type="default"
+														onClick={async () => {
+															if (!targetEnvironmentId || !targetServiceId) {
+																toast.error(
+																	"Please select target environment and service.",
+																);
+																return;
+															}
+															try {
+																if (type === "application") {
+																	await deployApplication({
+																		applicationId: targetServiceId,
+																		commitHash,
+																		title: `Promote commit ${commitHash.slice(0, 12)}`,
+																	});
+																} else {
+																	await deployCompose({
+																		composeId: targetServiceId,
+																		commitHash,
+																		title: `Promote commit ${commitHash.slice(0, 12)}`,
+																	});
+																}
+																toast.success("Promotion deployment queued");
+																setTargetEnvironmentId("");
+																setTargetServiceId("");
+															} catch {
+																toast.error(
+																	"Failed to queue promotion deployment",
+																);
+															}
+														}}
+													>
+														<Button
+															variant="secondary"
+															size="sm"
+															isLoading={
+																type === "application"
+																	? isPromotingApplication
+																	: isPromotingCompose
+															}
+															className="w-full sm:w-auto"
+														>
+															Promote
+														</Button>
+													</DialogAction>
+												)}
 
 											{deployment?.rollback &&
 												deployment.status === "done" &&

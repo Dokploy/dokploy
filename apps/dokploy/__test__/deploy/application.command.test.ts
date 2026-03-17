@@ -284,4 +284,26 @@ describe("deployApplication - Command Generation Tests", () => {
 
 		expect(fullCommand).toContain(">> /tmp/test-deployment.log 2>&1");
 	});
+
+	it("should checkout a specific commit when commit hash is provided", async () => {
+		vi.mocked(builders.getBuildCommand).mockResolvedValue("nixpacks build");
+		await deployApplication({
+			applicationId: "test-app-id",
+			titleLog: "Specific commit deploy",
+			descriptionLog: "",
+			commitHash: "abcdef1234567890",
+		});
+
+		expect(deploymentService.createDeployment).toHaveBeenCalledWith(
+			expect.objectContaining({
+				commitHash: "abcdef1234567890",
+			}),
+		);
+		expect(execProcess.execAsync).toHaveBeenCalledWith(
+			expect.stringContaining("git -C"),
+		);
+		expect(execProcess.execAsync).toHaveBeenCalledWith(
+			expect.stringContaining("checkout abcdef1234567890"),
+		);
+	});
 });

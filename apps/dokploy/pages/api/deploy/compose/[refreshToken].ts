@@ -170,12 +170,18 @@ export default async function handler(
 		}
 
 		try {
+			const normalizedCommitHash =
+				typeof deploymentHash === "string" &&
+				/^[a-fA-F0-9]{7,40}$/.test(deploymentHash)
+					? deploymentHash
+					: undefined;
 			const jobData: DeploymentJob = {
 				composeId: composeResult.composeId as string,
 				titleLog: deploymentTitle,
 				type: "deploy",
 				applicationType: "compose",
 				descriptionLog: `Hash: ${deploymentHash}`,
+				...(normalizedCommitHash && { commitHash: normalizedCommitHash }),
 				server: !!composeResult.serverId,
 			};
 

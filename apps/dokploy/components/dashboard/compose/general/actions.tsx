@@ -1,9 +1,11 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip,
@@ -35,20 +37,52 @@ export const ComposeActions = ({ composeId }: Props) => {
 		api.compose.start.useMutation();
 	const { mutateAsync: stop, isPending: isStopping } =
 		api.compose.stop.useMutation();
+	const [commitHash, setCommitHash] = useState("");
 	return (
 		<div className="flex flex-row gap-4 w-full flex-wrap ">
 			<TooltipProvider delayDuration={0} disableHoverableContent={false}>
 				{canDeploy && (
 					<DialogAction
 						title="Deploy Compose"
-						description="Are you sure you want to deploy this compose?"
+						description={
+							<div className="space-y-2">
+								<p>Are you sure you want to deploy this compose?</p>
+								<div className="space-y-1">
+									<p className="text-xs text-muted-foreground">
+										Optional: Deploy a specific commit hash (7-40 hex
+										characters)
+									</p>
+									<Input
+										value={commitHash}
+										onChange={(e) => {
+											setCommitHash(e.target.value);
+										}}
+										placeholder="e.g. a1b2c3d4"
+									/>
+								</div>
+							</div>
+						}
 						type="default"
 						onClick={async () => {
+							const normalizedCommitHash = commitHash.trim();
+							if (
+								normalizedCommitHash &&
+								!/^[a-fA-F0-9]{7,40}$/.test(normalizedCommitHash)
+							) {
+								toast.error(
+									"Invalid commit hash. Use 7-40 hexadecimal characters.",
+								);
+								return;
+							}
 							await deploy({
 								composeId: composeId,
+								...(normalizedCommitHash && {
+									commitHash: normalizedCommitHash,
+								}),
 							})
 								.then(() => {
 									toast.success("Compose deployed successfully");
+									setCommitHash("");
 									refetch();
 									router.push(
 										`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/compose/${composeId}?tab=deployments`,
@@ -88,11 +122,25 @@ export const ComposeActions = ({ composeId }: Props) => {
 						description="Are you sure you want to reload this compose?"
 						type="default"
 						onClick={async () => {
+							const normalizedCommitHash = commitHash.trim();
+							if (
+								normalizedCommitHash &&
+								!/^[a-fA-F0-9]{7,40}$/.test(normalizedCommitHash)
+							) {
+								toast.error(
+									"Invalid commit hash. Use 7-40 hexadecimal characters.",
+								);
+								return;
+							}
 							await redeploy({
 								composeId: composeId,
+								...(normalizedCommitHash && {
+									commitHash: normalizedCommitHash,
+								}),
 							})
 								.then(() => {
 									toast.success("Compose reloaded successfully");
+									setCommitHash("");
 									refetch();
 								})
 								.catch(() => {

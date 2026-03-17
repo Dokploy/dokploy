@@ -21,6 +21,7 @@ import { cloneBitbucketRepository } from "@dokploy/server/utils/providers/bitbuc
 import { buildRemoteDocker } from "@dokploy/server/utils/providers/docker";
 import {
 	cloneGitRepository,
+	getCheckoutCommitCommand,
 	getGitCommitInfo,
 } from "@dokploy/server/utils/providers/git";
 import { cloneGiteaRepository } from "@dokploy/server/utils/providers/gitea";
@@ -169,10 +170,12 @@ export const deployApplication = async ({
 	applicationId,
 	titleLog = "Manual deployment",
 	descriptionLog = "",
+	commitHash,
 }: {
 	applicationId: string;
 	titleLog: string;
 	descriptionLog: string;
+	commitHash?: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 	const serverId = application.buildServerId || application.serverId;
@@ -186,6 +189,7 @@ export const deployApplication = async ({
 		applicationId: applicationId,
 		title: titleLog,
 		description: descriptionLog,
+		commitHash,
 	});
 
 	try {
@@ -205,6 +209,14 @@ export const deployApplication = async ({
 		}
 
 		if (application.sourceType !== "docker") {
+			if (commitHash) {
+				command += getCheckoutCommitCommand({
+					appName: application.appName,
+					type: "application",
+					serverId,
+					commitHash,
+				});
+			}
 			command += await generateApplyPatchesCommand({
 				id: application.applicationId,
 				type: "application",
@@ -276,6 +288,7 @@ export const deployApplication = async ({
 				await updateDeployment(deployment.deploymentId, {
 					title: commitInfo.message,
 					description: `Commit: ${commitInfo.hash}`,
+					commitHash: commitInfo.hash,
 				});
 			}
 		}
@@ -287,10 +300,12 @@ export const rebuildApplication = async ({
 	applicationId,
 	titleLog = "Rebuild deployment",
 	descriptionLog = "",
+	commitHash,
 }: {
 	applicationId: string;
 	titleLog: string;
 	descriptionLog: string;
+	commitHash?: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 	const serverId = application.buildServerId || application.serverId;
@@ -300,10 +315,19 @@ export const rebuildApplication = async ({
 		applicationId: applicationId,
 		title: titleLog,
 		description: descriptionLog,
+		commitHash,
 	});
 
 	try {
 		let command = "set -e;";
+		if (commitHash && application.sourceType !== "docker") {
+			command += getCheckoutCommitCommand({
+				appName: application.appName,
+				type: "application",
+				serverId,
+				commitHash,
+			});
+		}
 		// Check case for docker only
 		command += await getBuildCommand(application);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
@@ -344,6 +368,21 @@ export const rebuildApplication = async ({
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 		throw error;
+	} finally {
+		if (application.sourceType !== "docker") {
+			const commitInfo = await getGitCommitInfo({
+				appName: application.appName,
+				type: "application",
+				serverId,
+			});
+			if (commitInfo) {
+				await updateDeployment(deployment.deploymentId, {
+					title: commitInfo.message,
+					description: `Commit: ${commitInfo.hash}`,
+					commitHash: commitInfo.hash,
+				});
+			}
+		}
 	}
 
 	return true;

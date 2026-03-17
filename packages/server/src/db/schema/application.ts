@@ -394,6 +394,10 @@ export const apiDeployApplication = createSchema
 		applicationId: z.string().min(1),
 		title: z.string().optional(),
 		description: z.string().optional(),
+		commitHash: z
+			.string()
+			.regex(/^[a-fA-F0-9]{7,40}$/)
+			.optional(),
 	});
 
 export const apiRedeployApplication = createSchema
@@ -404,6 +408,10 @@ export const apiRedeployApplication = createSchema
 		applicationId: z.string().min(1),
 		title: z.string().optional(),
 		description: z.string().optional(),
+		commitHash: z
+			.string()
+			.regex(/^[a-fA-F0-9]{7,40}$/)
+			.optional(),
 	});
 
 export const apiReloadApplication = createSchema

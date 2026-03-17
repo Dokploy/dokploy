@@ -198,12 +198,20 @@ export const apiDeployCompose = z.object({
 	composeId: z.string().min(1),
 	title: z.string().optional(),
 	description: z.string().optional(),
+	commitHash: z
+		.string()
+		.regex(/^[a-fA-F0-9]{7,40}$/)
+		.optional(),
 });
 
 export const apiRedeployCompose = z.object({
 	composeId: z.string().min(1),
 	title: z.string().optional(),
 	description: z.string().optional(),
+	commitHash: z
+		.string()
+		.regex(/^[a-fA-F0-9]{7,40}$/)
+		.optional(),
 });
 
 export const apiDeleteCompose = z.object({

@@ -23,7 +23,7 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
-import { desc, eq, and, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import type { z } from "zod";
 import {
 	type Application,
@@ -155,6 +155,7 @@ export const createDeployment = async (
 				status: "running",
 				logPath: logFilePath,
 				description: deployment.description || "",
+				commitHash: deployment.commitHash ?? null,
 				startedAt: new Date().toISOString(),
 				...(application.buildServerId && {
 					buildServerId: application.buildServerId,
@@ -177,6 +178,7 @@ export const createDeployment = async (
 				status: "error",
 				logPath: "",
 				description: deployment.description || "",
+				commitHash: deployment.commitHash ?? null,
 				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
 				startedAt: new Date().toISOString(),
 				finishedAt: new Date().toISOString(),
@@ -313,6 +315,7 @@ echo "Initializing deployment\n" >> ${logFilePath};
 				composeId: deployment.composeId,
 				title: deployment.title || "Deployment",
 				description: deployment.description || "",
+				commitHash: deployment.commitHash ?? null,
 				status: "running",
 				logPath: logFilePath,
 				startedAt: new Date().toISOString(),
@@ -334,6 +337,7 @@ echo "Initializing deployment\n" >> ${logFilePath};
 				status: "error",
 				logPath: "",
 				description: deployment.description || "",
+				commitHash: deployment.commitHash ?? null,
 				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
 				startedAt: new Date().toISOString(),
 				finishedAt: new Date().toISOString(),
