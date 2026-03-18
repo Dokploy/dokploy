@@ -432,7 +432,7 @@ export const createApiKey = async (
 		refillInterval?: number;
 	},
 ) => {
-	const apiKey = await auth.createApiKey({
+	const result = await auth.createApiKey({
 		body: {
 			name: input.name,
 			expiresIn: input.expiresIn,
@@ -450,10 +450,9 @@ export const createApiKey = async (
 	if (input.metadata) {
 		await db
 			.update(apikey)
-			.set({
-				metadata: JSON.stringify(input.metadata),
-			})
-			.where(eq(apikey.id, apiKey.id));
+			.set({ metadata: JSON.stringify(input.metadata) })
+			.where(eq(apikey.id, result.id));
 	}
-	return apiKey;
+
+	return result;
 };

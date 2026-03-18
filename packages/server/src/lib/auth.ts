@@ -367,6 +367,7 @@ const { handler, api } = betterAuth({
 	plugins: [
 		apiKey({
 			enableMetadata: true,
+			references: "user",
 		}),
 		sso(),
 		twoFactor(),

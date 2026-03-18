@@ -1051,6 +1051,20 @@
       "when": 1773637297592,
       "tag": "0149_rare_radioactive_man",
       "breakpoints": true
+    },
+    {
+      "idx": 150,
+      "version": "7",
+      "when": 1773870095817,
+      "tag": "0150_nappy_blue_blade",
+      "breakpoints": true
+    },
+    {
+      "idx": 151,
+      "version": "7",
+      "when": 1773872561300,
+      "tag": "0151_modern_sunfire",
+      "breakpoints": true
     }
   ]
 }
