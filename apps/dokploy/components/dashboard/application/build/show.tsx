@@ -31,6 +31,12 @@ import { api } from "@/utils/api";
 
 // Railpack versions from https://github.com/railwayapp/railpack/releases
 export const RAILPACK_VERSIONS = [
+	"0.19.0",
+	"0.18.0",
+	"0.17.2",
+	"0.17.1",
+	"0.17.0",
+	"0.16.0",
 	"0.15.4",
 	"0.15.3",
 	"0.15.2",
