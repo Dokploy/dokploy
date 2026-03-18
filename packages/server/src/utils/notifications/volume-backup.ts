@@ -161,7 +161,7 @@ export const sendVolumeBackupNotifications = async ({
 						? [
 								{
 									name: decorate("`⚠️`", "Error Message"),
-									value: `\`\`\`${errorMessage}\`\`\``,
+									value: `\`\`\`${errorMessage.substring(0, 1010)}\`\`\``,
 								},
 							]
 						: []),
