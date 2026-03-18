@@ -116,7 +116,7 @@ const { handler, api } = betterAuth({
 	emailAndPassword: {
 		enabled: true,
 		autoSignIn: !IS_CLOUD,
-		requireEmailVerification: IS_CLOUD,
+		requireEmailVerification: IS_CLOUD && process.env.NODE_ENV === "production",
 		password: {
 			async hash(password) {
 				return bcrypt.hashSync(password, 10);
