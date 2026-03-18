@@ -232,6 +232,7 @@ export const apikey = pgTable("apikey", {
 	updatedAt: timestamp("updated_at").notNull(),
 	permissions: text("permissions"),
 	metadata: text("metadata"),
+	configId: text("config_id"),
 });
 
 export const apikeyRelations = relations(apikey, ({ one }) => ({
