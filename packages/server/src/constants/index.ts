@@ -2,8 +2,25 @@ import path from "node:path";
 import Docker from "dockerode";
 
 export const IS_CLOUD = process.env.IS_CLOUD === "true";
+export const DOKPLOY_DOCKER_API_VERSION =
+	process.env.DOKPLOY_DOCKER_API_VERSION;
+export const DOKPLOY_DOCKER_HOST = process.env.DOKPLOY_DOCKER_HOST;
+export const DOKPLOY_DOCKER_PORT = process.env.DOKPLOY_DOCKER_PORT
+	? Number(process.env.DOKPLOY_DOCKER_PORT)
+	: undefined;
+
 export const CLEANUP_CRON_JOB = "50 23 * * *";
-export const docker = new Docker();
+export const docker = new Docker({
+	...(DOKPLOY_DOCKER_API_VERSION && {
+		version: DOKPLOY_DOCKER_API_VERSION,
+	}),
+	...(DOKPLOY_DOCKER_HOST && {
+		host: DOKPLOY_DOCKER_HOST,
+	}),
+	...(DOKPLOY_DOCKER_PORT && {
+		port: DOKPLOY_DOCKER_PORT,
+	}),
+});
 
 // When not set, use the legacy default so 2FA remains working for users who
 // enabled it before BETTER_AUTH_SECRET was introduced .

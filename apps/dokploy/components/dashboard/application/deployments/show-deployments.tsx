@@ -2,6 +2,7 @@ import {
 	ChevronDown,
 	ChevronUp,
 	Clock,
+	Copy,
 	Loader2,
 	RefreshCcw,
 	RocketIcon,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import copy from "copy-to-clipboard";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -95,6 +97,12 @@ export const ShowDeployments = ({
 	const [url, setUrl] = React.useState("");
 	const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
 		new Set(),
+	);
+
+	const webhookUrl = useMemo(
+		() =>
+			`${url}/api/deploy${type === "compose" ? "/compose" : ""}/${refreshToken}`,
+		[url, refreshToken, type],
 	);
 
 	const MAX_DESCRIPTION_LENGTH = 200;
@@ -224,11 +232,27 @@ export const ShowDeployments = ({
 						<div className="flex flex-row items-center gap-2 flex-wrap">
 							<span>Webhook URL: </span>
 							<div className="flex flex-row items-center gap-2">
-								<span className="break-all text-muted-foreground">
-									{`${url}/api/deploy${
-										type === "compose" ? "/compose" : ""
-									}/${refreshToken}`}
-								</span>
+								<Badge
+									role="button"
+									tabIndex={0}
+									aria-label="Copy webhook URL to clipboard"
+									className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all"
+									variant="outline"
+									onKeyDown={(event) => {
+										if (event.key === "Enter" || event.key === " ") {
+											event.preventDefault();
+											copy(webhookUrl);
+											toast.success("Copied to clipboard.");
+										}
+									}}
+									onClick={() => {
+										copy(webhookUrl);
+										toast.success("Copied to clipboard.");
+									}}
+								>
+									{webhookUrl}
+									<Copy className="h-4 w-4 ml-2" />
+								</Badge>
 								{(type === "application" || type === "compose") && (
 									<RefreshToken id={id} type={type} />
 								)}

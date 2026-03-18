@@ -1,4 +1,4 @@
-import { logger } from "./logger";
+import { logger } from "./logger.js";
 
 const baseUrl = process.env.INNGEST_BASE_URL ?? "";
 const signingKey = process.env.INNGEST_SIGNING_KEY ?? "";

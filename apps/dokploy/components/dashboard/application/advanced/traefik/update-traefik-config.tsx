@@ -60,6 +60,8 @@ export const validateAndFormatYAML = (yamlText: string) => {
 };
 
 export const UpdateTraefikConfig = ({ applicationId }: Props) => {
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canWrite = permissions?.traefikFiles.write ?? false;
 	const [open, setOpen] = useState(false);
 	const [skipYamlValidation, setSkipYamlValidation] = useState(false);
 	const { data, refetch } = api.application.readTraefikConfig.useQuery(
@@ -125,9 +127,11 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 				}
 			}}
 		>
-			<DialogTrigger asChild>
-				<Button isLoading={isPending}>Modify</Button>
-			</DialogTrigger>
+			{canWrite && (
+				<DialogTrigger asChild>
+					<Button isLoading={isPending}>Modify</Button>
+				</DialogTrigger>
+			)}
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
 					<DialogTitle>Update traefik config</DialogTitle>

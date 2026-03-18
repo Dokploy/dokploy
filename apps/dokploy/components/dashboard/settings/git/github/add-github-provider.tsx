@@ -12,13 +12,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 
 export const AddGithubProvider = () => {
 	const [isOpen, setIsOpen] = useState(false);
-	const { data: activeOrganization } = authClient.useActiveOrganization();
-	const { data: session } = authClient.useSession();
+	const { data: activeOrganization } = api.organization.active.useQuery();
+
+	const { data: session } = api.user.session.useQuery();
 	const { data } = api.user.get.useQuery();
 	const [manifest, setManifest] = useState("");
 	const [isOrganization, setIsOrganization] = useState(false);
@@ -52,7 +52,7 @@ export const AddGithubProvider = () => {
 		);
 
 		setManifest(manifest);
-	}, [data?.id, activeOrganization?.id, session?.user?.id]);
+	}, [activeOrganization?.id, session?.user?.id]);
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -98,8 +98,8 @@ export const AddGithubProvider = () => {
 							<form
 								action={
 									isOrganization
-										? `https://github.com/organizations/${organizationName}/settings/apps/new?state=gh_init:${activeOrganization?.id}`
-										: `https://github.com/settings/apps/new?state=gh_init:${activeOrganization?.id}`
+										? `https://github.com/organizations/${organizationName}/settings/apps/new?state=gh_init:${activeOrganization?.id}:${session?.user?.id ?? ""}`
+										: `https://github.com/settings/apps/new?state=gh_init:${activeOrganization?.id}:${session?.user?.id ?? ""}`
 								}
 								method="post"
 							>
@@ -131,11 +131,7 @@ export const AddGithubProvider = () => {
 										Unsure if you already have an app?
 									</a>
 									<Button
-										disabled={
-											(isOrganization && organizationName.length < 1) ||
-											!activeOrganization?.id ||
-											!session?.user?.id
-										}
+										disabled={isOrganization && organizationName.length < 1}
 										type="submit"
 										className="self-end"
 									>

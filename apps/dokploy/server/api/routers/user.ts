@@ -22,15 +22,21 @@ import {
 	invitation,
 	member,
 } from "@dokploy/server/db/schema";
+import {
+	hasPermission,
+	resolvePermissions,
+} from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { and, asc, eq, gt } from "drizzle-orm";
 import { z } from "zod";
+import { audit } from "@/server/api/utils/audit";
 import {
 	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
 	publicProcedure,
+	withPermission,
 } from "../trpc";
 
 const apiCreateApiKey = z.object({
@@ -51,7 +57,7 @@ const apiCreateApiKey = z.object({
 });
 
 export const userRouter = createTRPCRouter({
-	all: adminProcedure.query(async ({ ctx }) => {
+	all: withPermission("member", "read").query(async ({ ctx }) => {
 		return await db.query.member.findMany({
 			where: eq(member.organizationId, ctx.session.activeOrganizationId),
 			with: {
@@ -87,20 +93,37 @@ export const userRouter = createTRPCRouter({
 
 			// Allow access if:
 			// 1. User is requesting their own information
-			// 2. User has owner role (admin permissions) AND user is in the same organization
+			// 2. User is owner/admin
+			// 3. User has member.update permission (custom roles managing permissions)
 			if (
 				memberResult.userId !== ctx.user.id &&
 				ctx.user.role !== "owner" &&
 				ctx.user.role !== "admin"
 			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this user",
-				});
+				const canUpdate = await hasPermission(ctx, { member: ["update"] });
+				if (!canUpdate) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this user",
+					});
+				}
 			}
 
 			return memberResult;
 		}),
+	session: publicProcedure.query(async ({ ctx }) => {
+		if (!ctx.user || !ctx.session || !ctx.session.activeOrganizationId) {
+			return null;
+		}
+		return {
+			user: {
+				id: ctx.user.id,
+			},
+			session: {
+				activeOrganizationId: ctx.session.activeOrganizationId,
+			},
+		};
+	}),
 	get: protectedProcedure.query(async ({ ctx }) => {
 		const memberResult = await db.query.member.findFirst({
 			where: and(
@@ -117,6 +140,9 @@ export const userRouter = createTRPCRouter({
 		});
 
 		return memberResult;
+	}),
+	getPermissions: protectedProcedure.query(async ({ ctx }) => {
+		return resolvePermissions(ctx);
 	}),
 	haveRootAccess: protectedProcedure.query(async ({ ctx }) => {
 		if (!IS_CLOUD) {
@@ -153,19 +179,21 @@ export const userRouter = createTRPCRouter({
 
 		return memberResult?.user;
 	}),
-	getServerMetrics: protectedProcedure.query(async ({ ctx }) => {
-		const memberResult = await db.query.member.findFirst({
-			where: and(
-				eq(member.userId, ctx.user.id),
-				eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
-			),
-			with: {
-				user: true,
-			},
-		});
+	getServerMetrics: withPermission("monitoring", "read").query(
+		async ({ ctx }) => {
+			const memberResult = await db.query.member.findFirst({
+				where: and(
+					eq(member.userId, ctx.user.id),
+					eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
+				),
+				with: {
+					user: true,
+				},
+			});
 
-		return memberResult?.user;
-	}),
+			return memberResult?.user;
+		},
+	),
 	update: protectedProcedure
 		.input(apiUpdateUser)
 		.mutation(async ({ input, ctx }) => {
@@ -200,7 +228,14 @@ export const userRouter = createTRPCRouter({
 			}
 
 			try {
-				return await updateUser(ctx.user.id, input);
+				const result = await updateUser(ctx.user.id, input);
+				await audit(ctx, {
+					action: "update",
+					resourceType: "user",
+					resourceId: ctx.user.id,
+					resourceName: ctx.user.email,
+				});
+				return result;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -214,15 +249,17 @@ export const userRouter = createTRPCRouter({
 		.query(async ({ input }) => {
 			return await getUserByToken(input.token);
 		}),
-	getMetricsToken: protectedProcedure.query(async ({ ctx }) => {
-		const user = await findUserById(ctx.user.ownerId);
-		const settings = await getWebServerSettings();
-		return {
-			serverIp: settings?.serverIp,
-			enabledFeatures: user.enablePaidFeatures,
-			metricsConfig: settings?.metricsConfig,
-		};
-	}),
+	getMetricsToken: withPermission("monitoring", "read").query(
+		async ({ ctx }) => {
+			const user = await findUserById(ctx.user.ownerId);
+			const settings = await getWebServerSettings();
+			return {
+				serverIp: settings?.serverIp,
+				enabledFeatures: user.enablePaidFeatures,
+				metricsConfig: settings?.metricsConfig,
+			};
+		},
+	),
 	remove: protectedProcedure
 		.input(
 			z.object({
@@ -284,9 +321,15 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			return await removeUserById(input.userId);
+			const result = await removeUserById(input.userId);
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "user",
+				resourceId: input.userId,
+			});
+			return result;
 		}),
-	assignPermissions: adminProcedure
+	assignPermissions: withPermission("member", "update")
 		.input(apiAssignPermissions)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -317,6 +360,12 @@ export const userRouter = createTRPCRouter({
 							),
 						),
 					);
+				await audit(ctx, {
+					action: "update",
+					resourceType: "user",
+					resourceId: input.id,
+					metadata: { permissions: rest },
+				});
 			} catch (error) {
 				throw error;
 			}
@@ -334,7 +383,7 @@ export const userRouter = createTRPCRouter({
 		});
 	}),
 
-	getContainerMetrics: protectedProcedure
+	getContainerMetrics: withPermission("monitoring", "read")
 		.input(
 			z.object({
 				url: z.string(),
@@ -424,6 +473,12 @@ export const userRouter = createTRPCRouter({
 				}
 
 				await db.delete(apikey).where(eq(apikey.id, input.apiKeyId));
+				await audit(ctx, {
+					action: "delete",
+					resourceType: "user",
+					resourceId: input.apiKeyId,
+					resourceName: apiKeyToDelete.name || undefined,
+				});
 				return true;
 			} catch (error) {
 				throw error;
@@ -451,6 +506,12 @@ export const userRouter = createTRPCRouter({
 			}
 
 			const apiKey = await createApiKey(ctx.user.id, input);
+			await audit(ctx, {
+				action: "create",
+				resourceType: "user",
+				resourceId: apiKey.id,
+				resourceName: input.name,
+			});
 			return apiKey;
 		}),
 
@@ -495,7 +556,7 @@ export const userRouter = createTRPCRouter({
 
 			return organizations.length;
 		}),
-	sendInvitation: adminProcedure
+	sendInvitation: withPermission("member", "create")
 		.input(
 			z.object({
 				invitationId: z.string().min(1),
@@ -561,6 +622,13 @@ export const userRouter = createTRPCRouter({
 				console.log(error);
 				throw error;
 			}
+			await audit(ctx, {
+				action: "create",
+				resourceType: "user",
+				resourceId: input.invitationId,
+				resourceName: currentInvitation?.email || "",
+				metadata: { type: "sendInvitation" },
+			});
 			return inviteLink;
 		}),
 });

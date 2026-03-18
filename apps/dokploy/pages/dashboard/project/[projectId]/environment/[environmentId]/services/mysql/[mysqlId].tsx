@@ -45,6 +45,7 @@ import { UseKeyboardNav } from "@/hooks/use-keyboard-nav";
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
 
 type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 
@@ -58,11 +59,14 @@ const MySql = (
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.mysql.one.useQuery({ mysqlId });
 	const { data: auth } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: environments } = api.environment.byProjectId.useQuery({
 		projectId: data?.environment?.projectId || "",
 	});
+	const { config: whitelabeling } = useWhitelabeling();
+	const appName = whitelabeling?.appName || "Dokploy";
 	const environmentDropdownItems =
 		environments?.map((env) => ({
 			name: env.name,
@@ -92,7 +96,7 @@ const MySql = (
 				<Head>
 					<title>
 						Database: {data?.name} - {data?.environment?.project?.name} |
-						Dokploy
+						{appName}
 					</title>
 				</Head>
 				<div className="w-full">
@@ -156,10 +160,10 @@ const MySql = (
 									</div>
 
 									<div className="flex flex-row gap-2 justify-end">
-										<UpdateMysql mysqlId={mysqlId} />
-										{(auth?.role === "owner" ||
-											auth?.role === "admin" ||
-											auth?.canDeleteServices) && (
+										{permissions?.service.create && (
+											<UpdateMysql mysqlId={mysqlId} />
+										)}
+										{permissions?.service.delete && (
 											<DeleteService id={mysqlId} type="mysql" />
 										)}
 									</div>
@@ -211,17 +215,24 @@ const MySql = (
 												)}
 											>
 												<TabsTrigger value="general">General</TabsTrigger>
-												<TabsTrigger value="environment">
-													Environment
-												</TabsTrigger>
-												<TabsTrigger value="logs">Logs</TabsTrigger>
-												{((data?.serverId && isCloud) || !data?.server) && (
-													<TabsTrigger value="monitoring">
-														Monitoring
+												{permissions?.envVars.read && (
+													<TabsTrigger value="environment">
+														Environment
 													</TabsTrigger>
 												)}
+												{permissions?.logs.read && (
+													<TabsTrigger value="logs">Logs</TabsTrigger>
+												)}
+												{permissions?.monitoring.read &&
+													((data?.serverId && isCloud) || !data?.server) && (
+														<TabsTrigger value="monitoring">
+															Monitoring
+														</TabsTrigger>
+													)}
 												<TabsTrigger value="backups">Backups</TabsTrigger>
-												<TabsTrigger value="advanced">Advanced</TabsTrigger>
+												{permissions?.service.create && (
+													<TabsTrigger value="advanced">Advanced</TabsTrigger>
+												)}
 											</TabsList>
 										</div>
 
@@ -232,40 +243,47 @@ const MySql = (
 												<ShowExternalMysqlCredentials mysqlId={mysqlId} />
 											</div>
 										</TabsContent>
-										<TabsContent value="environment" className="w-full">
-											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowEnvironment id={mysqlId} type="mysql" />
-											</div>
-										</TabsContent>
-										<TabsContent value="monitoring">
-											<div className="pt-2.5">
-												<div className="flex flex-col gap-4 border rounded-lg p-6">
-													{data?.serverId && isCloud ? (
-														<ContainerPaidMonitoring
-															appName={data?.appName || ""}
-															baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
-															token={
-																data?.server?.metricsConfig?.server?.token || ""
-															}
-														/>
-													) : (
-														<>
-															<ContainerFreeMonitoring
-																appName={data?.appName || ""}
-															/>
-														</>
-													)}
+										{permissions?.envVars.read && (
+											<TabsContent value="environment" className="w-full">
+												<div className="flex flex-col gap-4 pt-2.5">
+													<ShowEnvironment id={mysqlId} type="mysql" />
 												</div>
-											</div>
-										</TabsContent>
-										<TabsContent value="logs">
-											<div className="flex flex-col gap-4  pt-2.5">
-												<ShowDockerLogs
-													serverId={data?.serverId || ""}
-													appName={data?.appName || ""}
-												/>
-											</div>
-										</TabsContent>
+											</TabsContent>
+										)}
+										{permissions?.monitoring.read && (
+											<TabsContent value="monitoring">
+												<div className="pt-2.5">
+													<div className="flex flex-col gap-4 border rounded-lg p-6">
+														{data?.serverId && isCloud ? (
+															<ContainerPaidMonitoring
+																appName={data?.appName || ""}
+																baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+																token={
+																	data?.server?.metricsConfig?.server?.token ||
+																	""
+																}
+															/>
+														) : (
+															<>
+																<ContainerFreeMonitoring
+																	appName={data?.appName || ""}
+																/>
+															</>
+														)}
+													</div>
+												</div>
+											</TabsContent>
+										)}
+										{permissions?.logs.read && (
+											<TabsContent value="logs">
+												<div className="flex flex-col gap-4  pt-2.5">
+													<ShowDockerLogs
+														serverId={data?.serverId || ""}
+														appName={data?.appName || ""}
+													/>
+												</div>
+											</TabsContent>
+										)}
 										<TabsContent value="backups">
 											<div className="flex flex-col gap-4 pt-2.5">
 												<ShowBackups
@@ -275,14 +293,16 @@ const MySql = (
 												/>
 											</div>
 										</TabsContent>
-										<TabsContent value="advanced">
-											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowDatabaseAdvancedSettings
-													id={mysqlId}
-													type="mysql"
-												/>
-											</div>
-										</TabsContent>
+										{permissions?.service.create && (
+											<TabsContent value="advanced">
+												<div className="flex flex-col gap-4 pt-2.5">
+													<ShowDatabaseAdvancedSettings
+														id={mysqlId}
+														type="mysql"
+													/>
+												</div>
+											</TabsContent>
+										)}
 									</Tabs>
 								)}
 							</CardContent>

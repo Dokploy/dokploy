@@ -1,4 +1,5 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
+import { hasPermission } from "@dokploy/server/services/permission";
 import { Rocket } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
@@ -79,7 +80,7 @@ DeploymentsPage.getLayout = (page: ReactElement) => {
 };
 
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
-	const { user } = await validateRequest(ctx.req);
+	const { user, session } = await validateRequest(ctx.req);
 	if (!user) {
 		return {
 			redirect: {
@@ -88,6 +89,24 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 			},
 		};
 	}
+
+	const canView = await hasPermission(
+		{
+			user: { id: user.id },
+			session: { activeOrganizationId: session?.activeOrganizationId || "" },
+		},
+		{ deployment: ["read"] },
+	);
+
+	if (!canView) {
+		return {
+			redirect: {
+				permanent: false,
+				destination: "/dashboard/projects",
+			},
+		};
+	}
+
 	return {
 		props: {},
 	};
