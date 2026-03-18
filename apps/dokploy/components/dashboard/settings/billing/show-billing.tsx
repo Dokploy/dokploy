@@ -92,7 +92,9 @@ export const ShowBilling = () => {
 	const utils = api.useUtils();
 
 	const [hobbyServerQuantity, setHobbyServerQuantity] = useState(1);
-	const [startupServerQuantity, setStartupServerQuantity] = useState(STARTUP_SERVERS_INCLUDED);
+	const [startupServerQuantity, setStartupServerQuantity] = useState(
+		STARTUP_SERVERS_INCLUDED,
+	);
 	const [isAnnual, setIsAnnual] = useState(false);
 	const [upgradeTier, setUpgradeTier] = useState<"hobby" | "startup" | null>(
 		null,
@@ -699,7 +701,8 @@ export const ShowBilling = () => {
 													<p className="text-xs text-muted-foreground mt-2">
 														$
 														{(
-															calculatePriceHobby(hobbyServerQuantity, true) / 12
+															calculatePriceHobby(hobbyServerQuantity, true) /
+															12
 														).toFixed(2)}
 														/mo
 													</p>
@@ -826,7 +829,10 @@ export const ShowBilling = () => {
 													<p className="text-xs text-muted-foreground mt-2">
 														$
 														{(
-															calculatePriceStartup(startupServerQuantity, true) / 12
+															calculatePriceStartup(
+																startupServerQuantity,
+																true,
+															) / 12
 														).toFixed(2)}
 														/mo
 													</p>
@@ -863,7 +869,8 @@ export const ShowBilling = () => {
 													<div className="flex items-center gap-2">
 														<Button
 															disabled={
-																startupServerQuantity <= STARTUP_SERVERS_INCLUDED
+																startupServerQuantity <=
+																STARTUP_SERVERS_INCLUDED
 															}
 															variant="outline"
 															size="icon"
@@ -894,7 +901,9 @@ export const ShowBilling = () => {
 															variant="outline"
 															size="icon"
 															className="h-8 w-8"
-															onClick={() => setStartupServerQuantity((q) => q + 1)}
+															onClick={() =>
+																setStartupServerQuantity((q) => q + 1)
+															}
 														>
 															<PlusIcon className="h-4 w-4" />
 														</Button>
@@ -1025,7 +1034,10 @@ export const ShowBilling = () => {
 															<p className="text-base font-semibold tracking-tight text-muted-foreground">
 																${" "}
 																{(
-																	calculatePrice(hobbyServerQuantity, isAnnual) / 12
+																	calculatePrice(
+																		hobbyServerQuantity,
+																		isAnnual,
+																	) / 12
 																).toFixed(2)}{" "}
 																/ Month USD
 															</p>
@@ -1033,9 +1045,10 @@ export const ShowBilling = () => {
 													) : (
 														<p className="text-2xl font-semibold tracking-tight text-primary ">
 															${" "}
-															{calculatePrice(hobbyServerQuantity, isAnnual).toFixed(
-																2,
-															)}{" "}
+															{calculatePrice(
+																hobbyServerQuantity,
+																isAnnual,
+															).toFixed(2)}{" "}
 															USD
 														</p>
 													)}
@@ -1089,7 +1102,9 @@ export const ShowBilling = () => {
 																onClick={() => {
 																	if (hobbyServerQuantity <= 1) return;
 
-																	setHobbyServerQuantity(hobbyServerQuantity - 1);
+																	setHobbyServerQuantity(
+																		hobbyServerQuantity - 1,
+																	);
 																}}
 															>
 																<MinusIcon className="h-4 w-4" />
@@ -1106,7 +1121,9 @@ export const ShowBilling = () => {
 															<Button
 																variant="outline"
 																onClick={() => {
-																	setHobbyServerQuantity(hobbyServerQuantity + 1);
+																	setHobbyServerQuantity(
+																		hobbyServerQuantity + 1,
+																	);
 																}}
 															>
 																<PlusIcon className="h-4 w-4" />

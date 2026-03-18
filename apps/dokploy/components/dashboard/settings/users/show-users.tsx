@@ -80,18 +80,18 @@ export const ShowUsers = () => {
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
-									{hasCustomRolesWithoutLicense && (
-										<AlertBlock type="warning">
-											You have{" "}
-											{membersWithCustomRoles?.length === 1
-												? "1 user"
-												: `${membersWithCustomRoles?.length} users`}{" "}
-											assigned to custom roles. Custom roles will not work
-											without a valid Enterprise license. Please activate
-											your license or change these users to a free role
-											(Admin or Member).
-										</AlertBlock>
-									)}
+										{hasCustomRolesWithoutLicense && (
+											<AlertBlock type="warning">
+												You have{" "}
+												{membersWithCustomRoles?.length === 1
+													? "1 user"
+													: `${membersWithCustomRoles?.length} users`}{" "}
+												assigned to custom roles. Custom roles will not work
+												without a valid Enterprise license. Please activate your
+												license or change these users to a free role (Admin or
+												Member).
+											</AlertBlock>
+										)}
 										<Table>
 											<TableHeader>
 												<TableRow>
