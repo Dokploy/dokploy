@@ -60,6 +60,7 @@ const Mariadb = (
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.mariadb.one.useQuery({ mariadbId });
 	const { data: auth } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -159,10 +160,10 @@ const Mariadb = (
 									)}
 								</div>
 								<div className="flex flex-row gap-2 justify-end">
-									<UpdateMariadb mariadbId={mariadbId} />
-									{(auth?.role === "owner" ||
-										auth?.role === "admin" ||
-										auth?.canDeleteServices) && (
+									{permissions?.service.create && (
+										<UpdateMariadb mariadbId={mariadbId} />
+									)}
+									{permissions?.service.delete && (
 										<DeleteService id={mariadbId} type="mariadb" />
 									)}
 								</div>
@@ -214,13 +215,24 @@ const Mariadb = (
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
-											<TabsTrigger value="environment">Environment</TabsTrigger>
-											<TabsTrigger value="logs">Logs</TabsTrigger>
-											{((data?.serverId && isCloud) || !data?.server) && (
-												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+											{permissions?.envVars.read && (
+												<TabsTrigger value="environment">
+													Environment
+												</TabsTrigger>
 											)}
+											{permissions?.logs.read && (
+												<TabsTrigger value="logs">Logs</TabsTrigger>
+											)}
+											{permissions?.monitoring.read &&
+												((data?.serverId && isCloud) || !data?.server) && (
+													<TabsTrigger value="monitoring">
+														Monitoring
+													</TabsTrigger>
+												)}
 											<TabsTrigger value="backups">Backups</TabsTrigger>
-											<TabsTrigger value="advanced">Advanced</TabsTrigger>
+											{permissions?.service.create && (
+												<TabsTrigger value="advanced">Advanced</TabsTrigger>
+											)}
 										</TabsList>
 									</div>
 
@@ -231,25 +243,28 @@ const Mariadb = (
 											<ShowExternalMariadbCredentials mariadbId={mariadbId} />
 										</div>
 									</TabsContent>
-									<TabsContent value="environment">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowEnvironment id={mariadbId} type="mariadb" />
-										</div>
-									</TabsContent>
-									<TabsContent value="monitoring">
-										<div className="pt-2.5">
-											<div className="flex flex-col gap-4 border rounded-lg p-6">
-												{data?.serverId && isCloud ? (
-													<ContainerPaidMonitoring
-														appName={data?.appName || ""}
-														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
-														token={
-															data?.server?.metricsConfig?.server?.token || ""
-														}
-													/>
-												) : (
-													<>
-														{/* {monitoring?.enabledFeatures && (
+									{permissions?.envVars.read && (
+										<TabsContent value="environment">
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowEnvironment id={mariadbId} type="mariadb" />
+											</div>
+										</TabsContent>
+									)}
+									{permissions?.monitoring.read && (
+										<TabsContent value="monitoring">
+											<div className="pt-2.5">
+												<div className="flex flex-col gap-4 border rounded-lg p-6">
+													{data?.serverId && isCloud ? (
+														<ContainerPaidMonitoring
+															appName={data?.appName || ""}
+															baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+															token={
+																data?.server?.metricsConfig?.server?.token || ""
+															}
+														/>
+													) : (
+														<>
+															{/* {monitoring?.enabledFeatures && (
 															<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
 																<Label className="text-muted-foreground">
 																	Change Monitoring
@@ -271,37 +286,42 @@ const Mariadb = (
 															/>
 														) : (
 															<div> */}
-														<ContainerFreeMonitoring
-															appName={data?.appName || ""}
-														/>
-														{/* </div> */}
-														{/* )} */}
-													</>
-												)}
+															<ContainerFreeMonitoring
+																appName={data?.appName || ""}
+															/>
+															{/* </div> */}
+															{/* )} */}
+														</>
+													)}
+												</div>
 											</div>
-										</div>
-									</TabsContent>
-									<TabsContent value="logs">
-										<div className="flex flex-col gap-4  pt-2.5">
-											<ShowDockerLogs
-												serverId={data?.serverId || ""}
-												appName={data?.appName || ""}
-											/>
-										</div>
-									</TabsContent>
+										</TabsContent>
+									)}
+									{permissions?.logs.read && (
+										<TabsContent value="logs">
+											<div className="flex flex-col gap-4  pt-2.5">
+												<ShowDockerLogs
+													serverId={data?.serverId || ""}
+													appName={data?.appName || ""}
+												/>
+											</div>
+										</TabsContent>
+									)}
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowBackups id={mariadbId} databaseType="mariadb" />
 										</div>
 									</TabsContent>
-									<TabsContent value="advanced">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDatabaseAdvancedSettings
-												id={mariadbId}
-												type="mariadb"
-											/>
-										</div>
-									</TabsContent>
+									{permissions?.service.create && (
+										<TabsContent value="advanced">
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowDatabaseAdvancedSettings
+													id={mariadbId}
+													type="mariadb"
+												/>
+											</div>
+										</TabsContent>
+									)}
 								</Tabs>
 							)}
 						</CardContent>

@@ -98,19 +98,15 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		},
 		transformer: superjson,
 	});
-	if (user.role === "member") {
-		const userR = await helpers.user.one.fetch({
-			userId: user.id,
-		});
+	const userPermissions = await helpers.user.getPermissions.fetch();
 
-		if (!userR?.canAccessToAPI) {
-			return {
-				redirect: {
-					permanent: true,
-					destination: "/",
-				},
-			};
-		}
+	if (!userPermissions?.api.read) {
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/",
+			},
+		};
 	}
 
 	return {

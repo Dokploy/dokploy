@@ -17,6 +17,7 @@ export const ShowDestinations = () => {
 	const { data, isPending, refetch } = api.sshKey.all.useQuery();
 	const { mutateAsync, isPending: isRemoving } =
 		api.sshKey.remove.useMutation();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	return (
 		<div className="w-full">
@@ -46,7 +47,7 @@ export const ShowDestinations = () => {
 										<span className="text-base text-muted-foreground text-center">
 											You don't have any SSH keys
 										</span>
-										<HandleSSHKeys />
+										{permissions?.sshKeys.create && <HandleSSHKeys />}
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
@@ -84,43 +85,47 @@ export const ShowDestinations = () => {
 														<div className="flex flex-row gap-1">
 															<HandleSSHKeys sshKeyId={sshKey.sshKeyId} />
 
-															<DialogAction
-																title="Delete SSH Key"
-																description="Are you sure you want to delete this SSH Key?"
-																type="destructive"
-																onClick={async () => {
-																	await mutateAsync({
-																		sshKeyId: sshKey.sshKeyId,
-																	})
-																		.then(() => {
-																			toast.success(
-																				"SSH Key deleted successfully",
-																			);
-																			refetch();
+															{permissions?.sshKeys.delete && (
+																<DialogAction
+																	title="Delete SSH Key"
+																	description="Are you sure you want to delete this SSH Key?"
+																	type="destructive"
+																	onClick={async () => {
+																		await mutateAsync({
+																			sshKeyId: sshKey.sshKeyId,
 																		})
-																		.catch(() => {
-																			toast.error("Error deleting SSH Key");
-																		});
-																}}
-															>
-																<Button
-																	variant="ghost"
-																	size="icon"
-																	className="group hover:bg-red-500/10 "
-																	isLoading={isRemoving}
+																			.then(() => {
+																				toast.success(
+																					"SSH Key deleted successfully",
+																				);
+																				refetch();
+																			})
+																			.catch(() => {
+																				toast.error("Error deleting SSH Key");
+																			});
+																	}}
 																>
-																	<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-																</Button>
-															</DialogAction>
+																	<Button
+																		variant="ghost"
+																		size="icon"
+																		className="group hover:bg-red-500/10 "
+																		isLoading={isRemoving}
+																	>
+																		<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+																	</Button>
+																</DialogAction>
+															)}
 														</div>
 													</div>
 												</div>
 											))}
 										</div>
 
-										<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
-											<HandleSSHKeys />
-										</div>
+										{permissions?.sshKeys.create && (
+											<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
+												<HandleSSHKeys />
+											</div>
+										)}
 									</div>
 								)}
 							</>

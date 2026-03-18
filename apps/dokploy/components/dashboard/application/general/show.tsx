@@ -30,6 +30,9 @@ interface Props {
 
 export const ShowGeneralApplication = ({ applicationId }: Props) => {
 	const router = useRouter();
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canDeploy = permissions?.deployment.create ?? false;
+	const canUpdateService = permissions?.service.create ?? false;
 	const { data, refetch } = api.application.one.useQuery(
 		{
 			applicationId,
@@ -57,128 +60,135 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 				</CardHeader>
 				<CardContent className="flex flex-row gap-4 flex-wrap">
 					<TooltipProvider delayDuration={0} disableHoverableContent={false}>
-						<DialogAction
-							title="Deploy Application"
-							description="Are you sure you want to deploy this application?"
-							type="default"
-							onClick={async () => {
-								await deploy({
-									applicationId: applicationId,
-								})
-									.then(() => {
-										toast.success("Application deployed successfully");
-										refetch();
-										router.push(
-											`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/application/${applicationId}?tab=deployments`,
-										);
+						{canDeploy && (
+							<DialogAction
+								title="Deploy Application"
+								description="Are you sure you want to deploy this application?"
+								type="default"
+								onClick={async () => {
+									await deploy({
+										applicationId: applicationId,
 									})
-									.catch(() => {
-										toast.error("Error deploying application");
-									});
-							}}
-						>
-							<Button
-								variant="default"
-								isLoading={data?.applicationStatus === "running"}
-								className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+										.then(() => {
+											toast.success("Application deployed successfully");
+											refetch();
+											router.push(
+												`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/application/${applicationId}?tab=deployments`,
+											);
+										})
+										.catch(() => {
+											toast.error("Error deploying application");
+										});
+								}}
 							>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<div className="flex items-center">
-											<Rocket className="size-4 mr-1" />
-											Deploy
-										</div>
-									</TooltipTrigger>
-									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>
-												Downloads the source code and performs a complete build
-											</p>
-										</TooltipContent>
-									</TooltipPrimitive.Portal>
-								</Tooltip>
-							</Button>
-						</DialogAction>
-						<DialogAction
-							title="Reload Application"
-							description="Are you sure you want to reload this application?"
-							type="default"
-							onClick={async () => {
-								await reload({
-									applicationId: applicationId,
-									appName: data?.appName || "",
-								})
-									.then(() => {
-										toast.success("Application reloaded successfully");
-										refetch();
+								<Button
+									variant="default"
+									isLoading={data?.applicationStatus === "running"}
+									className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+								>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<div className="flex items-center">
+												<Rocket className="size-4 mr-1" />
+												Deploy
+											</div>
+										</TooltipTrigger>
+										<TooltipPrimitive.Portal>
+											<TooltipContent sideOffset={5} className="z-[60]">
+												<p>
+													Downloads the source code and performs a complete
+													build
+												</p>
+											</TooltipContent>
+										</TooltipPrimitive.Portal>
+									</Tooltip>
+								</Button>
+							</DialogAction>
+						)}
+						{canDeploy && (
+							<DialogAction
+								title="Reload Application"
+								description="Are you sure you want to reload this application?"
+								type="default"
+								onClick={async () => {
+									await reload({
+										applicationId: applicationId,
+										appName: data?.appName || "",
 									})
-									.catch(() => {
-										toast.error("Error reloading application");
-									});
-							}}
-						>
-							<Button
-								variant="secondary"
-								isLoading={isReloading}
-								className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+										.then(() => {
+											toast.success("Application reloaded successfully");
+											refetch();
+										})
+										.catch(() => {
+											toast.error("Error reloading application");
+										});
+								}}
 							>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<div className="flex items-center">
-											<RefreshCcw className="size-4 mr-1" />
-											Reload
-										</div>
-									</TooltipTrigger>
-									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>Reload the application without rebuilding it</p>
-										</TooltipContent>
-									</TooltipPrimitive.Portal>
-								</Tooltip>
-							</Button>
-						</DialogAction>
-						<DialogAction
-							title="Rebuild Application"
-							description="Are you sure you want to rebuild this application?"
-							type="default"
-							onClick={async () => {
-								await redeploy({
-									applicationId: applicationId,
-								})
-									.then(() => {
-										toast.success("Application rebuilt successfully");
-										refetch();
+								<Button
+									variant="secondary"
+									isLoading={isReloading}
+									className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+								>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<div className="flex items-center">
+												<RefreshCcw className="size-4 mr-1" />
+												Reload
+											</div>
+										</TooltipTrigger>
+										<TooltipPrimitive.Portal>
+											<TooltipContent sideOffset={5} className="z-[60]">
+												<p>Reload the application without rebuilding it</p>
+											</TooltipContent>
+										</TooltipPrimitive.Portal>
+									</Tooltip>
+								</Button>
+							</DialogAction>
+						)}
+						{canDeploy && (
+							<DialogAction
+								title="Rebuild Application"
+								description="Are you sure you want to rebuild this application?"
+								type="default"
+								onClick={async () => {
+									await redeploy({
+										applicationId: applicationId,
 									})
-									.catch(() => {
-										toast.error("Error rebuilding application");
-									});
-							}}
-						>
-							<Button
-								variant="secondary"
-								isLoading={data?.applicationStatus === "running"}
-								className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+										.then(() => {
+											toast.success("Application rebuilt successfully");
+											refetch();
+										})
+										.catch(() => {
+											toast.error("Error rebuilding application");
+										});
+								}}
 							>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<div className="flex items-center">
-											<Hammer className="size-4 mr-1" />
-											Rebuild
-										</div>
-									</TooltipTrigger>
-									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>
-												Only rebuilds the application without downloading new
-												code
-											</p>
-										</TooltipContent>
-									</TooltipPrimitive.Portal>
-								</Tooltip>
-							</Button>
-						</DialogAction>
+								<Button
+									variant="secondary"
+									isLoading={data?.applicationStatus === "running"}
+									className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+								>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<div className="flex items-center">
+												<Hammer className="size-4 mr-1" />
+												Rebuild
+											</div>
+										</TooltipTrigger>
+										<TooltipPrimitive.Portal>
+											<TooltipContent sideOffset={5} className="z-[60]">
+												<p>
+													Only rebuilds the application without downloading new
+													code
+												</p>
+											</TooltipContent>
+										</TooltipPrimitive.Portal>
+									</Tooltip>
+								</Button>
+							</DialogAction>
+						)}
 
-						{data?.applicationStatus === "idle" ? (
+						{canDeploy && data?.applicationStatus === "idle" ? (
 							<DialogAction
 								title="Start Application"
 								description="Are you sure you want to start this application?"
@@ -219,7 +229,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 									</Tooltip>
 								</Button>
 							</DialogAction>
-						) : (
+						) : canDeploy ? (
 							<DialogAction
 								title="Stop Application"
 								description="Are you sure you want to stop this application?"
@@ -256,7 +266,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 									</Tooltip>
 								</Button>
 							</DialogAction>
-						)}
+						) : null}
 					</TooltipProvider>
 					<DockerTerminalModal
 						appName={data?.appName || ""}
@@ -270,49 +280,53 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							Open Terminal
 						</Button>
 					</DockerTerminalModal>
-					<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
-						<span className="text-sm font-medium">Autodeploy</span>
-						<Switch
-							aria-label="Toggle autodeploy"
-							checked={data?.autoDeploy || false}
-							onCheckedChange={async (enabled) => {
-								await update({
-									applicationId,
-									autoDeploy: enabled,
-								})
-									.then(async () => {
-										toast.success("Auto Deploy Updated");
-										await refetch();
+					{canUpdateService && (
+						<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
+							<span className="text-sm font-medium">Autodeploy</span>
+							<Switch
+								aria-label="Toggle autodeploy"
+								checked={data?.autoDeploy || false}
+								onCheckedChange={async (enabled) => {
+									await update({
+										applicationId,
+										autoDeploy: enabled,
 									})
-									.catch(() => {
-										toast.error("Error updating Auto Deploy");
-									});
-							}}
-							className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
-						/>
-					</div>
+										.then(async () => {
+											toast.success("Auto Deploy Updated");
+											await refetch();
+										})
+										.catch(() => {
+											toast.error("Error updating Auto Deploy");
+										});
+								}}
+								className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
+							/>
+						</div>
+					)}
 
-					<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
-						<span className="text-sm font-medium">Clean Cache</span>
-						<Switch
-							aria-label="Toggle clean cache"
-							checked={data?.cleanCache || false}
-							onCheckedChange={async (enabled) => {
-								await update({
-									applicationId,
-									cleanCache: enabled,
-								})
-									.then(async () => {
-										toast.success("Clean Cache Updated");
-										await refetch();
+					{canUpdateService && (
+						<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
+							<span className="text-sm font-medium">Clean Cache</span>
+							<Switch
+								aria-label="Toggle clean cache"
+								checked={data?.cleanCache || false}
+								onCheckedChange={async (enabled) => {
+									await update({
+										applicationId,
+										cleanCache: enabled,
 									})
-									.catch(() => {
-										toast.error("Error updating Clean Cache");
-									});
-							}}
-							className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
-						/>
-					</div>
+										.then(async () => {
+											toast.success("Clean Cache Updated");
+											await refetch();
+										})
+										.catch(() => {
+											toast.error("Error updating Clean Cache");
+										});
+								}}
+								className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
+							/>
+						</div>
+					)}
 				</CardContent>
 			</Card>
 			<ShowProviderForm applicationId={applicationId} />

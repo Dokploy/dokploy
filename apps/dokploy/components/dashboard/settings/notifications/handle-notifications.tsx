@@ -737,6 +737,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					});
 					setVisible(false);
 					await utils.notification.all.invalidate();
+					if (notificationId) {
+						await utils.notification.one.invalidate({ notificationId });
+					}
 				})
 				.catch(() => {
 					toast.error(

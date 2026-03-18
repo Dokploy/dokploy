@@ -50,6 +50,9 @@ interface Props {
 }
 
 export const ShowDomains = ({ id, type }: Props) => {
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canCreateDomain = permissions?.domain.create ?? false;
+	const canDeleteDomain = permissions?.domain.delete ?? false;
 	const { data: application } =
 		type === "application"
 			? api.application.one.useQuery(
@@ -149,7 +152,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 					</div>
 
 					<div className="flex flex-row gap-4 flex-wrap">
-						{data && data?.length > 0 && (
+						{canCreateDomain && data && data?.length > 0 && (
 							<AddDomain id={id} type={type}>
 								<Button>
 									<GlobeIcon className="size-4" /> Add Domain
@@ -173,13 +176,15 @@ export const ShowDomains = ({ id, type }: Props) => {
 								To access the application it is required to set at least 1
 								domain
 							</span>
-							<div className="flex flex-row gap-4 flex-wrap">
-								<AddDomain id={id} type={type}>
-									<Button>
-										<GlobeIcon className="size-4" /> Add Domain
-									</Button>
-								</AddDomain>
-							</div>
+							{canCreateDomain && (
+								<div className="flex flex-row gap-4 flex-wrap">
+									<AddDomain id={id} type={type}>
+										<Button>
+											<GlobeIcon className="size-4" /> Add Domain
+										</Button>
+									</AddDomain>
+								</div>
+							)}
 						</div>
 					) : (
 						<div className="grid grid-cols-1 gap-4 xl:grid-cols-2 w-full min-h-[40vh] ">
@@ -214,47 +219,51 @@ export const ShowDomains = ({ id, type }: Props) => {
 																}
 															/>
 														)}
-														<AddDomain
-															id={id}
-															type={type}
-															domainId={item.domainId}
-														>
-															<Button
-																variant="ghost"
-																size="icon"
-																className="group hover:bg-blue-500/10"
+														{canCreateDomain && (
+															<AddDomain
+																id={id}
+																type={type}
+																domainId={item.domainId}
 															>
-																<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
-															</Button>
-														</AddDomain>
-														<DialogAction
-															title="Delete Domain"
-															description="Are you sure you want to delete this domain?"
-															type="destructive"
-															onClick={async () => {
-																await deleteDomain({
-																	domainId: item.domainId,
-																})
-																	.then((_data) => {
-																		refetch();
-																		toast.success(
-																			"Domain deleted successfully",
-																		);
+																<Button
+																	variant="ghost"
+																	size="icon"
+																	className="group hover:bg-blue-500/10"
+																>
+																	<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
+																</Button>
+															</AddDomain>
+														)}
+														{canDeleteDomain && (
+															<DialogAction
+																title="Delete Domain"
+																description="Are you sure you want to delete this domain?"
+																type="destructive"
+																onClick={async () => {
+																	await deleteDomain({
+																		domainId: item.domainId,
 																	})
-																	.catch(() => {
-																		toast.error("Error deleting domain");
-																	});
-															}}
-														>
-															<Button
-																variant="ghost"
-																size="icon"
-																className="group hover:bg-red-500/10"
-																isLoading={isRemoving}
+																		.then((_data) => {
+																			refetch();
+																			toast.success(
+																				"Domain deleted successfully",
+																			);
+																		})
+																		.catch(() => {
+																			toast.error("Error deleting domain");
+																		});
+																}}
 															>
-																<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-															</Button>
-														</DialogAction>
+																<Button
+																	variant="ghost"
+																	size="icon"
+																	className="group hover:bg-red-500/10"
+																	isLoading={isRemoving}
+																>
+																	<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+																</Button>
+															</DialogAction>
+														)}
 													</div>
 												</div>
 												<div className="w-full break-all">

@@ -1,5 +1,4 @@
 import {
-	checkServiceAccess,
 	cleanPatchRepos,
 	createPatch,
 	deletePatch,
@@ -14,6 +13,7 @@ import {
 	readPatchRepoFile,
 	updatePatch,
 } from "@dokploy/server";
+import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -21,6 +21,7 @@ import {
 	createTRPCRouter,
 	protectedProcedure,
 } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreatePatch,
 	apiDeletePatch,
@@ -29,47 +30,56 @@ import {
 	apiUpdatePatch,
 } from "@/server/db/schema";
 
+/**
+ * Resolves the serviceId from a patch record (applicationId or composeId).
+ * Throws if neither is set.
+ */
+const resolvePatchServiceId = (patch: {
+	applicationId: string | null;
+	composeId: string | null;
+}): string => {
+	const serviceId = patch.applicationId ?? patch.composeId;
+	if (!serviceId) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Patch has no associated service",
+		});
+	}
+	return serviceId;
+};
+
 export const patchRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreatePatch)
 		.mutation(async ({ input, ctx }) => {
-			if (input.applicationId) {
-				const app = await findApplicationById(input.applicationId);
-				if (
-					app.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this application",
-					});
-				}
-				if (ctx.user.role === "member") {
-					await checkServiceAccess(
-						ctx.user.id,
-						input.applicationId,
-						ctx.session.activeOrganizationId,
-						"access",
-					);
-				}
-			} else if (input.composeId) {
-				const compose = await findComposeById(input.composeId);
-				if (
-					compose.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this compose",
-					});
-				}
+			const serviceId = input.applicationId ?? input.composeId;
+			if (!serviceId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Either applicationId or composeId must be provided",
+				});
 			}
-
-			return await createPatch(input);
+			await checkServicePermissionAndAccess(ctx, serviceId, {
+				service: ["create"],
+			});
+			const result = await createPatch(input);
+			await audit(ctx, {
+				action: "create",
+				resourceType: "settings",
+				resourceId: result.patchId,
+				resourceName: result.filePath,
+				metadata: { type: "patch" },
+			});
+			return result;
 		}),
 
-	one: protectedProcedure.input(apiFindPatch).query(async ({ input }) => {
-		return await findPatchById(input.patchId);
+	one: protectedProcedure.input(apiFindPatch).query(async ({ input, ctx }) => {
+		const patch = await findPatchById(input.patchId);
+		const serviceId = resolvePatchServiceId(patch);
+		await checkServicePermissionAndAccess(ctx, serviceId, {
+			service: ["read"],
+		});
+		return patch;
 	}),
 
 	byEntityId: protectedProcedure
@@ -77,51 +87,70 @@ export const patchRouter = createTRPCRouter({
 			z.object({ id: z.string(), type: z.enum(["application", "compose"]) }),
 		)
 		.query(async ({ input, ctx }) => {
-			if (input.type === "application") {
-				const app = await findApplicationById(input.id);
-				if (
-					app.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this application",
-					});
-				}
-			} else if (input.type === "compose") {
-				const compose = await findComposeById(input.id);
-				if (
-					compose.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this compose",
-					});
-				}
-			}
-			const result = await findPatchesByEntityId(input.id, input.type);
-
-			return result;
+			await checkServicePermissionAndAccess(ctx, input.id, {
+				service: ["read"],
+			});
+			return await findPatchesByEntityId(input.id, input.type);
 		}),
 
 	update: protectedProcedure
 		.input(apiUpdatePatch)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const patch = await findPatchById(input.patchId);
+			const serviceId = resolvePatchServiceId(patch);
+			await checkServicePermissionAndAccess(ctx, serviceId, {
+				service: ["create"],
+			});
 			const { patchId, ...data } = input;
-			return await updatePatch(patchId, data);
+			const result = await updatePatch(patchId, data);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceId: patchId,
+				resourceName: patch.filePath,
+				metadata: { type: "patch" },
+			});
+			return result;
 		}),
 
 	delete: protectedProcedure
 		.input(apiDeletePatch)
-		.mutation(async ({ input }) => {
-			return await deletePatch(input.patchId);
+		.mutation(async ({ input, ctx }) => {
+			const patch = await findPatchById(input.patchId);
+			const serviceId = resolvePatchServiceId(patch);
+			await checkServicePermissionAndAccess(ctx, serviceId, {
+				service: ["delete"],
+			});
+			const result = await deletePatch(input.patchId);
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "settings",
+				resourceId: input.patchId,
+				resourceName: patch.filePath,
+				metadata: { type: "patch" },
+			});
+			return result;
 		}),
 
 	toggleEnabled: protectedProcedure
 		.input(apiTogglePatchEnabled)
-		.mutation(async ({ input }) => {
-			return await updatePatch(input.patchId, { enabled: input.enabled });
+		.mutation(async ({ input, ctx }) => {
+			const patch = await findPatchById(input.patchId);
+			const serviceId = resolvePatchServiceId(patch);
+			await checkServicePermissionAndAccess(ctx, serviceId, {
+				service: ["create"],
+			});
+			const result = await updatePatch(input.patchId, {
+				enabled: input.enabled,
+			});
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceId: input.patchId,
+				resourceName: patch.filePath,
+				metadata: { type: "patch", enabled: input.enabled },
+			});
+			return result;
 		}),
 
 	// Repository Operations
@@ -132,11 +161,21 @@ export const patchRouter = createTRPCRouter({
 				type: z.enum(["application", "compose"]),
 			}),
 		)
-		.mutation(async ({ input }) => {
-			return await ensurePatchRepo({
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.id, {
+				service: ["create"],
+			});
+			const result = await ensurePatchRepo({
 				type: input.type,
 				id: input.id,
 			});
+			await audit(ctx, {
+				action: "create",
+				resourceType: "settings",
+				resourceId: input.id,
+				metadata: { type: "ensurePatchRepo", serviceType: input.type },
+			});
+			return result;
 		}),
 
 	readRepoDirectories: protectedProcedure
@@ -148,36 +187,17 @@ export const patchRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.id, {
+				service: ["read"],
+			});
 			let serverId: string | null = null;
-
 			if (input.type === "application") {
 				const app = await findApplicationById(input.id);
-				if (
-					app.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this application",
-					});
-				}
 				serverId = app.serverId;
-			}
-
-			if (input.type === "compose") {
+			} else {
 				const compose = await findComposeById(input.id);
-				if (
-					compose.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this compose",
-					});
-				}
 				serverId = compose.serverId;
 			}
-
 			return await readPatchRepoDirectory(input.repoPath, serverId);
 		}),
 
@@ -190,44 +210,22 @@ export const patchRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.id, {
+				service: ["read"],
+			});
 			let serverId: string | null = null;
-
 			if (input.type === "application") {
 				const app = await findApplicationById(input.id);
-				if (
-					app.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this application",
-					});
-				}
 				serverId = app.serverId;
-			} else if (input.type === "compose") {
-				const compose = await findComposeById(input.id);
-				if (
-					compose.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this compose",
-					});
-				}
-				serverId = compose.serverId;
 			} else {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Either applicationId or composeId must be provided",
-				});
+				const compose = await findComposeById(input.id);
+				serverId = compose.serverId;
 			}
 			const existingPatch = await findPatchByFilePath(
 				input.filePath,
 				input.id,
 				input.type,
 			);
-
 			// For delete patches, show current file content from repo (what will be deleted)
 			if (existingPatch?.type === "delete") {
 				try {
@@ -253,55 +251,43 @@ export const patchRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			if (input.type === "application") {
-				const app = await findApplicationById(input.id);
-				if (
-					app.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this application",
-					});
-				}
-			} else if (input.type === "compose") {
-				const compose = await findComposeById(input.id);
-				if (
-					compose.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this compose",
-					});
-				}
-			} else {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Either application or compose must be provided",
-				});
-			}
-
+			await checkServicePermissionAndAccess(ctx, input.id, {
+				service: ["create"],
+			});
 			const existingPatch = await findPatchByFilePath(
 				input.filePath,
 				input.id,
 				input.type,
 			);
-
 			if (!existingPatch) {
-				return await createPatch({
+				const result = await createPatch({
 					filePath: input.filePath,
 					content: input.content,
 					type: input.patchType,
 					applicationId: input.type === "application" ? input.id : undefined,
 					composeId: input.type === "compose" ? input.id : undefined,
 				});
+				await audit(ctx, {
+					action: "create",
+					resourceType: "settings",
+					resourceId: result.patchId,
+					resourceName: input.filePath,
+					metadata: { type: "saveFileAsPatch" },
+				});
+				return result;
 			}
-
-			return await updatePatch(existingPatch.patchId, {
+			const result = await updatePatch(existingPatch.patchId, {
 				content: input.content,
 				type: input.patchType,
 			});
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceId: existingPatch.patchId,
+				resourceName: input.filePath,
+				metadata: { type: "saveFileAsPatch" },
+			});
+			return result;
 		}),
 
 	markFileForDeletion: protectedProcedure
@@ -313,36 +299,34 @@ export const patchRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			if (input.type === "application") {
-				const app = await findApplicationById(input.id);
-				if (
-					app.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this application",
-					});
-				}
-			} else if (input.type === "compose") {
-				const compose = await findComposeById(input.id);
-				if (
-					compose.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this compose",
-					});
-				}
-			}
-
-			return await markPatchForDeletion(input.filePath, input.id, input.type);
+			await checkServicePermissionAndAccess(ctx, input.id, {
+				service: ["create"],
+			});
+			const result = await markPatchForDeletion(
+				input.filePath,
+				input.id,
+				input.type,
+			);
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "settings",
+				resourceId: input.id,
+				resourceName: input.filePath,
+				metadata: { type: "markFileForDeletion" },
+			});
+			return result;
 		}),
+
 	cleanPatchRepos: adminProcedure
 		.input(z.object({ serverId: z.string().optional() }))
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			await cleanPatchRepos(input.serverId);
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "settings",
+				resourceId: input.serverId || "local",
+				metadata: { type: "cleanPatchRepos" },
+			});
 			return true;
 		}),
 });
