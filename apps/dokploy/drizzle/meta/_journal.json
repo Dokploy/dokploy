@@ -1051,6 +1051,13 @@
       "when": 1773637297592,
       "tag": "0149_rare_radioactive_man",
       "breakpoints": true
+    },
+    {
+      "idx": 150,
+      "version": "7",
+      "when": 1773802983138,
+      "tag": "0150_tricky_psynapse",
+      "breakpoints": true
     }
   ]
 }
