@@ -38,3 +38,5 @@ export const redirectWithError = (res: NextApiResponse, error: string) => {
 		`/dashboard/settings/git-providers?error=${encodeURIComponent(error)}`,
 	);
 };
+
+export default findGitea;

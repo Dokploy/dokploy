@@ -166,6 +166,11 @@ export const ShowProjects = () => {
 
 	return (
 		<>
+			{!isCloud && (
+				<div className="absolute top-4 right-4">
+					<TimeBadge />
+				</div>
+			)}
 			<BreadcrumbSidebar
 				list={[{ name: "Projects", href: "/dashboard/projects" }]}
 			/>
@@ -429,7 +434,7 @@ export const ShowProjects = () => {
 																</CardTitle>
 															</CardHeader>
 															<CardFooter className="pt-4">
-																<div className="space-y-1 text-sm flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
+																<div className="space-y-1 text-xs flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
 																	<DateTooltip date={project.createdAt}>
 																		Created
 																	</DateTooltip>

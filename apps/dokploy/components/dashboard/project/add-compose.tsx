@@ -79,7 +79,7 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 		api.compose.create.useMutation();
 
 	// Get environment data to extract projectId
-	const { data: environment } = api.environment.one.useQuery({ environmentId });
+	// const { data: environment } = api.environment.one.useQuery({ environmentId });
 
 	const hasServers = servers && servers.length > 0;
 	// Show dropdown logic based on cloud environment
@@ -117,6 +117,8 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 				await utils.environment.one.invalidate({
 					environmentId,
 				});
+				// Invalidate the project query to refresh the project data for the advance-breadcrumb
+				await utils.project.all.invalidate();
 			})
 			.catch(() => {
 				toast.error("Error creating the compose");

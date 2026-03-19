@@ -908,6 +908,7 @@ export default function Page({ children }: Props) {
 			onOpenChange={(open) => {
 				setDefaultOpen(open);
 
+				// biome-ignore lint/suspicious/noDocumentCookie: this sets the cookie to keep the sidebar state.
 				document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}`;
 			}}
 			style={
