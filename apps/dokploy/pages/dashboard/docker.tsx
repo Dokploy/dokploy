@@ -53,19 +53,15 @@ export async function getServerSideProps(
 	try {
 		await helpers.project.all.prefetch();
 
-		if (user.role === "member") {
-			const userR = await helpers.user.one.fetch({
-				userId: user.id,
-			});
+		const userPermissions = await helpers.user.getPermissions.fetch();
 
-			if (!userR?.canAccessToDocker) {
-				return {
-					redirect: {
-						permanent: true,
-						destination: "/",
-					},
-				};
-			}
+		if (!userPermissions?.docker.read) {
+			return {
+				redirect: {
+					permanent: true,
+					destination: "/",
+				},
+			};
 		}
 		return {
 			props: {

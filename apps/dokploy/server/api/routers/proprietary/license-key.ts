@@ -4,7 +4,11 @@ import { hasValidLicense, validateLicenseKey } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+} from "@/server/api/trpc";
 import {
 	activateLicenseKey,
 	deactivateLicenseKey,
@@ -183,7 +187,7 @@ export const licenseKeyRouter = createTRPCRouter({
 			licenseKey: currentUser.licenseKey ?? "",
 		};
 	}),
-	haveValidLicenseKey: adminProcedure.query(async ({ ctx }) => {
+	haveValidLicenseKey: protectedProcedure.query(async ({ ctx }) => {
 		return await hasValidLicense(ctx.session.activeOrganizationId);
 	}),
 	updateEnterpriseSettings: adminProcedure

@@ -202,6 +202,7 @@ export const apiUpdateMariaDB = createSchema
 	.partial()
 	.extend({
 		mariadbId: z.string().min(1),
+		dockerImage: z.string().optional(),
 	})
 	.omit({ serverId: true });
 

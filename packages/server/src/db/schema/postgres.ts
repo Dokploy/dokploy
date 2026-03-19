@@ -192,6 +192,7 @@ export const apiUpdatePostgres = createSchema
 	.partial()
 	.extend({
 		postgresId: z.string().min(1),
+		dockerImage: z.string().optional(),
 	})
 	.omit({ serverId: true });
 

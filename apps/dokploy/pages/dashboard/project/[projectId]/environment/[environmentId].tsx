@@ -98,6 +98,7 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
 
 export type Services = {
 	serverId?: string | null;
@@ -271,6 +272,7 @@ const EnvironmentPage = (
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId, environmentId } = props;
 	const { data: auth } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	const { data: environments } = api.environment.byProjectId.useQuery({
 		projectId: projectId,
@@ -370,6 +372,8 @@ const EnvironmentPage = (
 			{ projectId: selectedTargetProject },
 			{ enabled: !!selectedTargetProject },
 		);
+	const { config: whitelabeling } = useWhitelabeling();
+	const appName = whitelabeling?.appName || "Dokploy";
 
 	const emptyServices =
 		!currentEnvironment ||
@@ -860,7 +864,8 @@ const EnvironmentPage = (
 			<AdvanceBreadcrumb />
 			<Head>
 				<title>
-					Environment: {currentEnvironment.name} | {projectData?.name} | Dokploy
+					Environment: {currentEnvironment.name} | {projectData?.name} |{" "}
+					{appName}
 				</title>
 			</Head>
 			<div className="w-full">
@@ -890,9 +895,7 @@ const EnvironmentPage = (
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>
-									{(auth?.role === "owner" ||
-										auth?.role === "admin" ||
-										auth?.canCreateServices) && (
+									{permissions?.service.create && (
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
 												<Button>
@@ -1014,9 +1017,7 @@ const EnvironmentPage = (
 														Stop
 													</Button>
 												</DialogAction>
-												{(auth?.role === "owner" ||
-													auth?.role === "admin" ||
-													auth?.canDeleteServices) && (
+												{permissions?.service.delete && (
 													<>
 														<DialogAction
 															title="Delete Services"
@@ -1609,6 +1610,7 @@ export async function getServerSideProps(
 					environmentId: params.environmentId,
 				});
 			} catch (error) {
+				console.log(error);
 				// If user doesn't have access to requested environment, redirect to accessible one
 				const accessibleEnvironments =
 					await helpers.environment.byProjectId.fetch({
@@ -1628,11 +1630,11 @@ export async function getServerSideProps(
 						},
 					};
 				}
-				// No accessible environments, redirect to home
+				// No accessible environments, redirect to projects
 				return {
 					redirect: {
 						permanent: false,
-						destination: "/",
+						destination: "/dashboard/projects",
 					},
 				};
 			}
@@ -1648,7 +1650,8 @@ export async function getServerSideProps(
 					environmentId: params.environmentId,
 				},
 			};
-		} catch {
+		} catch (error) {
+			console.log(error);
 			return {
 				redirect: {
 					permanent: false,

@@ -1,80 +1,74 @@
 import {
 	createRedirect,
-	findApplicationById,
 	findRedirectById,
 	removeRedirectById,
 	updateRedirectById,
 } from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
+import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateRedirect,
 	apiFindOneRedirect,
 	apiUpdateRedirect,
 } from "@/server/db/schema";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const redirectsRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateRedirect)
 		.mutation(async ({ input, ctx }) => {
-			const application = await findApplicationById(input.applicationId);
-			if (
-				application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this application",
-				});
-			}
-			return await createRedirect(input);
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				service: ["create"],
+			});
+			await createRedirect(input);
+			await audit(ctx, {
+				action: "create",
+				resourceType: "redirect",
+				resourceId: input.applicationId,
+				resourceName: input.regex,
+			});
+			return true;
 		}),
+
 	one: protectedProcedure
 		.input(apiFindOneRedirect)
 		.query(async ({ input, ctx }) => {
 			const redirect = await findRedirectById(input.redirectId);
-			const application = await findApplicationById(redirect.applicationId);
-			if (
-				application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this application",
-				});
-			}
-			return findRedirectById(input.redirectId);
+			await checkServicePermissionAndAccess(ctx, redirect.applicationId, {
+				service: ["read"],
+			});
+			return redirect;
 		}),
+
 	delete: protectedProcedure
 		.input(apiFindOneRedirect)
 		.mutation(async ({ input, ctx }) => {
 			const redirect = await findRedirectById(input.redirectId);
-			const application = await findApplicationById(redirect.applicationId);
-			if (
-				application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this application",
-				});
-			}
-			return removeRedirectById(input.redirectId);
+			await checkServicePermissionAndAccess(ctx, redirect.applicationId, {
+				service: ["delete"],
+			});
+			const result = await removeRedirectById(input.redirectId);
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "redirect",
+				resourceId: input.redirectId,
+			});
+			return result;
 		}),
+
 	update: protectedProcedure
 		.input(apiUpdateRedirect)
 		.mutation(async ({ input, ctx }) => {
 			const redirect = await findRedirectById(input.redirectId);
-			const application = await findApplicationById(redirect.applicationId);
-			if (
-				application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this application",
-				});
-			}
-			return updateRedirectById(input.redirectId, input);
+			await checkServicePermissionAndAccess(ctx, redirect.applicationId, {
+				service: ["create"],
+			});
+			const result = await updateRedirectById(input.redirectId, input);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "redirect",
+				resourceId: input.redirectId,
+			});
+			return result;
 		}),
 });

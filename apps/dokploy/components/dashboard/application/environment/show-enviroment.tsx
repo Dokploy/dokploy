@@ -36,6 +36,8 @@ interface Props {
 }
 
 export const ShowEnvironment = ({ id, type }: Props) => {
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canWrite = permissions?.envVars.write ?? false;
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -185,25 +187,27 @@ PORT=3000
 								)}
 							/>
 
-							<div className="flex flex-row justify-end gap-2">
-								{hasChanges && (
+							{canWrite && (
+								<div className="flex flex-row justify-end gap-2">
+									{hasChanges && (
+										<Button
+											type="button"
+											variant="outline"
+											onClick={handleCancel}
+										>
+											Cancel
+										</Button>
+									)}
 									<Button
-										type="button"
-										variant="outline"
-										onClick={handleCancel}
+										isLoading={isPending}
+										className="w-fit"
+										type="submit"
+										disabled={!hasChanges}
 									>
-										Cancel
+										Save
 									</Button>
-								)}
-								<Button
-									isLoading={isPending}
-									className="w-fit"
-									type="submit"
-									disabled={!hasChanges}
-								>
-									Save
-								</Button>
-							</div>
+								</div>
+							)}
 						</form>
 					</Form>
 				</CardContent>

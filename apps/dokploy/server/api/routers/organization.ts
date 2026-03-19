@@ -1,11 +1,18 @@
 import { db } from "@dokploy/server/db";
 import { IS_CLOUD } from "@dokploy/server/index";
+import { audit } from "@/server/api/utils/audit";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { invitation, member, organization } from "@/server/db/schema";
-import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
+import {
+	invitation,
+	member,
+	organization,
+	organizationRole,
+	user,
+} from "@/server/db/schema";
+import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 export const organizationRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(
@@ -49,6 +56,12 @@ export const organizationRouter = createTRPCRouter({
 				role: "owner",
 				createdAt: new Date(),
 				userId: ctx.user.id,
+			});
+			await audit(ctx, {
+				action: "create",
+				resourceType: "organization",
+				resourceId: result.id,
+				resourceName: result.name,
 			});
 			return result;
 		}),
@@ -156,6 +169,12 @@ export const organizationRouter = createTRPCRouter({
 				})
 				.where(eq(organization.id, input.organizationId))
 				.returning();
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: input.organizationId,
+				resourceName: input.name,
+			});
 			return result[0];
 		}),
 	delete: protectedProcedure
@@ -220,15 +239,109 @@ export const organizationRouter = createTRPCRouter({
 				.delete(organization)
 				.where(eq(organization.id, input.organizationId));
 
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "organization",
+				resourceId: input.organizationId,
+				resourceName: org.name,
+			});
 			return result;
 		}),
-	allInvitations: adminProcedure.query(async ({ ctx }) => {
+	inviteMember: withPermission("member", "create")
+		.input(
+			z.object({
+				email: z.string().email(),
+				role: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			const email = input.email.toLowerCase();
+
+			// Check if user is already a member
+			const existingUser = await db.query.user.findFirst({
+				where: eq(user.email, email),
+			});
+
+			if (existingUser) {
+				const existingMember = await db.query.member.findFirst({
+					where: and(
+						eq(member.organizationId, orgId),
+						eq(member.userId, existingUser.id),
+					),
+				});
+
+				if (existingMember) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "User is already a member of this organization",
+					});
+				}
+			}
+
+			// Check for pending invitation
+			const existingInvitation = await db.query.invitation.findFirst({
+				where: and(
+					eq(invitation.organizationId, orgId),
+					eq(invitation.email, email),
+					eq(invitation.status, "pending"),
+				),
+			});
+
+			if (existingInvitation) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: "An invitation has already been sent to this email",
+				});
+			}
+
+			// If assigning a custom role, verify it exists
+			if (!["owner", "admin", "member"].includes(input.role)) {
+				const customRole = await db.query.organizationRole.findFirst({
+					where: and(
+						eq(organizationRole.organizationId, orgId),
+						eq(organizationRole.role, input.role),
+					),
+				});
+
+				if (!customRole) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Role "${input.role}" not found`,
+					});
+				}
+			}
+
+			const [created] = await db
+				.insert(invitation)
+				.values({
+					id: nanoid(),
+					organizationId: orgId,
+					email,
+					role: input.role as any,
+					status: "pending",
+					expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+					inviterId: ctx.user.id,
+				})
+				.returning();
+
+			await audit(ctx, {
+				action: "create",
+				resourceType: "organization",
+				resourceId: created?.id,
+				resourceName: email,
+				metadata: { type: "inviteMember", role: input.role },
+			});
+			return created;
+		}),
+
+	allInvitations: withPermission("member", "create").query(async ({ ctx }) => {
 		return await db.query.invitation.findMany({
 			where: eq(invitation.organizationId, ctx.session.activeOrganizationId),
 			orderBy: [desc(invitation.status), desc(invitation.expiresAt)],
 		});
 	}),
-	removeInvitation: adminProcedure
+	removeInvitation: withPermission("member", "create")
 		.input(z.object({ invitationId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
 			const invitationResult = await db.query.invitation.findFirst({
@@ -251,15 +364,23 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			return await db
+			const result = await db
 				.delete(invitation)
 				.where(eq(invitation.id, input.invitationId));
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "organization",
+				resourceId: input.invitationId,
+				resourceName: invitationResult.email,
+				metadata: { type: "removeInvitation" },
+			});
+			return result;
 		}),
-	updateMemberRole: adminProcedure
+	updateMemberRole: withPermission("member", "update")
 		.input(
 			z.object({
 				memberId: z.string(),
-				role: z.enum(["admin", "member"]),
+				role: z.string().min(1),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -289,7 +410,7 @@ export const organizationRouter = createTRPCRouter({
 			}
 
 			// Owner role is intransferible - cannot change to or from owner
-			if (target.role === "owner") {
+			if (target.role === "owner" || input.role === "owner") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "The owner role is intransferible",
@@ -306,12 +427,39 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
+			// If assigning a custom role (not admin/member), verify it exists
+			if (input.role !== "admin" && input.role !== "member") {
+				const customRole = await db.query.organizationRole.findFirst({
+					where: and(
+						eq(
+							organizationRole.organizationId,
+							ctx.session.activeOrganizationId,
+						),
+						eq(organizationRole.role, input.role),
+					),
+				});
+
+				if (!customRole) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Custom role "${input.role}" not found`,
+					});
+				}
+			}
+
 			// Update the target member's role
 			await db
 				.update(member)
 				.set({ role: input.role })
 				.where(eq(member.id, input.memberId));
 
+			await audit(ctx, {
+				action: "update",
+				resourceType: "user",
+				resourceId: target.userId,
+				resourceName: target.user.email,
+				metadata: { before: target.role, after: input.role },
+			});
 			return true;
 		}),
 	setDefault: protectedProcedure
@@ -353,6 +501,12 @@ export const organizationRouter = createTRPCRouter({
 					),
 				);
 
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: input.organizationId,
+				metadata: { type: "setDefault" },
+			});
 			return { success: true };
 		}),
 	active: protectedProcedure.query(async ({ ctx }) => {

@@ -8,7 +8,8 @@ import {
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
+import { createTRPCRouter, withPermission } from "@/server/api/trpc";
 import {
 	apiCreateSshKey,
 	apiFindOneSshKey,
@@ -19,13 +20,18 @@ import {
 } from "@/server/db/schema";
 
 export const sshRouter = createTRPCRouter({
-	create: protectedProcedure
+	create: withPermission("sshKeys", "create")
 		.input(apiCreateSshKey)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				await createSshKey({
 					...input,
 					organizationId: ctx.session.activeOrganizationId,
+				});
+				await audit(ctx, {
+					action: "create",
+					resourceType: "sshKey",
+					resourceName: input.name,
 				});
 			} catch (error) {
 				throw new TRPCError({
@@ -35,7 +41,7 @@ export const sshRouter = createTRPCRouter({
 				});
 			}
 		}),
-	remove: protectedProcedure
+	remove: withPermission("sshKeys", "delete")
 		.input(apiRemoveSshKey)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -47,12 +53,18 @@ export const sshRouter = createTRPCRouter({
 					});
 				}
 
+				await audit(ctx, {
+					action: "delete",
+					resourceType: "sshKey",
+					resourceId: sshKey.sshKeyId,
+					resourceName: sshKey.name,
+				});
 				return await removeSSHKeyById(input.sshKeyId);
 			} catch (error) {
 				throw error;
 			}
 		}),
-	one: protectedProcedure
+	one: withPermission("sshKeys", "read")
 		.input(apiFindOneSshKey)
 		.query(async ({ input, ctx }) => {
 			const sshKey = await findSSHKeyById(input.sshKeyId);
@@ -65,18 +77,18 @@ export const sshRouter = createTRPCRouter({
 			}
 			return sshKey;
 		}),
-	all: protectedProcedure.query(async ({ ctx }) => {
+	all: withPermission("sshKeys", "read").query(async ({ ctx }) => {
 		return await db.query.sshKeys.findMany({
 			where: eq(sshKeys.organizationId, ctx.session.activeOrganizationId),
 			orderBy: desc(sshKeys.createdAt),
 		});
 	}),
-	generate: protectedProcedure
+	generate: withPermission("sshKeys", "read")
 		.input(apiGenerateSSHKey)
 		.mutation(async ({ input }) => {
 			return await generateSSHKey(input.type);
 		}),
-	update: protectedProcedure
+	update: withPermission("sshKeys", "create")
 		.input(apiUpdateSshKey)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -87,7 +99,14 @@ export const sshRouter = createTRPCRouter({
 						message: "You are not allowed to update this SSH key",
 					});
 				}
-				return await updateSSHKeyById(input);
+				const result = await updateSSHKeyById(input);
+				await audit(ctx, {
+					action: "update",
+					resourceType: "sshKey",
+					resourceId: sshKey.sshKeyId,
+					resourceName: sshKey.name,
+				});
+				return result;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
