@@ -1,3 +1,4 @@
+import { findMemberByUserId } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -11,10 +12,10 @@ import {
 	projectTags,
 	tags,
 } from "@/server/db/schema";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
 export const tagRouter = createTRPCRouter({
-	create: protectedProcedure
+	create: withPermission("tag", "create")
 		.input(apiCreateTag)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -46,7 +47,7 @@ export const tagRouter = createTRPCRouter({
 			}
 		}),
 
-	all: protectedProcedure.query(async ({ ctx }) => {
+	all: withPermission("tag", "read").query(async ({ ctx }) => {
 		try {
 			const organizationTags = await db.query.tags.findMany({
 				where: eq(tags.organizationId, ctx.session.activeOrganizationId),
@@ -63,36 +64,38 @@ export const tagRouter = createTRPCRouter({
 		}
 	}),
 
-	one: protectedProcedure.input(apiFindOneTag).query(async ({ input, ctx }) => {
-		try {
-			const tag = await db.query.tags.findFirst({
-				where: and(
-					eq(tags.tagId, input.tagId),
-					eq(tags.organizationId, ctx.session.activeOrganizationId),
-				),
-			});
+	one: withPermission("tag", "read")
+		.input(apiFindOneTag)
+		.query(async ({ input, ctx }) => {
+			try {
+				const tag = await db.query.tags.findFirst({
+					where: and(
+						eq(tags.tagId, input.tagId),
+						eq(tags.organizationId, ctx.session.activeOrganizationId),
+					),
+				});
 
-			if (!tag) {
+				if (!tag) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Tag not found",
+					});
+				}
+
+				return tag;
+			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Tag not found",
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Error fetching tag: ${error instanceof Error ? error.message : error}`,
+					cause: error,
 				});
 			}
+		}),
 
-			return tag;
-		} catch (error) {
-			if (error instanceof TRPCError) {
-				throw error;
-			}
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: `Error fetching tag: ${error instanceof Error ? error.message : error}`,
-				cause: error,
-			});
-		}
-	}),
-
-	update: protectedProcedure
+	update: withPermission("tag", "update")
 		.input(apiUpdateTag)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -142,7 +145,7 @@ export const tagRouter = createTRPCRouter({
 			}
 		}),
 
-	remove: protectedProcedure
+	remove: withPermission("tag", "delete")
 		.input(apiRemoveTag)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -186,6 +189,11 @@ export const tagRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				const memberRecord = await findMemberByUserId(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+
 				// Verify the project belongs to the user's organization
 				const project = await db.query.projects.findFirst({
 					where: and(
@@ -199,6 +207,18 @@ export const tagRouter = createTRPCRouter({
 						code: "NOT_FOUND",
 						message:
 							"Project not found or you don't have permission to modify it",
+					});
+				}
+
+				// Verify the member has access to the project
+				if (
+					memberRecord.role !== "owner" &&
+					memberRecord.role !== "admin" &&
+					!memberRecord.accessedProjects.includes(input.projectId)
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this project",
 					});
 				}
 
@@ -257,6 +277,11 @@ export const tagRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				const memberRecord = await findMemberByUserId(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+
 				// Verify the project belongs to the user's organization
 				const project = await db.query.projects.findFirst({
 					where: and(
@@ -270,6 +295,18 @@ export const tagRouter = createTRPCRouter({
 						code: "NOT_FOUND",
 						message:
 							"Project not found or you don't have permission to modify it",
+					});
+				}
+
+				// Verify the member has access to the project
+				if (
+					memberRecord.role !== "owner" &&
+					memberRecord.role !== "admin" &&
+					!memberRecord.accessedProjects.includes(input.projectId)
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this project",
 					});
 				}
 
@@ -320,6 +357,11 @@ export const tagRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				const memberRecord = await findMemberByUserId(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+
 				// Verify the project belongs to the user's organization
 				const project = await db.query.projects.findFirst({
 					where: and(
@@ -333,6 +375,18 @@ export const tagRouter = createTRPCRouter({
 						code: "NOT_FOUND",
 						message:
 							"Project not found or you don't have permission to modify it",
+					});
+				}
+
+				// Verify the member has access to the project
+				if (
+					memberRecord.role !== "owner" &&
+					memberRecord.role !== "admin" &&
+					!memberRecord.accessedProjects.includes(input.projectId)
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this project",
 					});
 				}
 

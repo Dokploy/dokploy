@@ -18,6 +18,7 @@ export const TagManager = () => {
 	const { data: tags, isPending } = api.tag.all.useQuery();
 	const { mutateAsync: deleteTag, isPending: isRemoving } =
 		api.tag.remove.useMutation();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	return (
 		<div className="w-full">
@@ -47,7 +48,7 @@ export const TagManager = () => {
 											No tags yet. Create your first tag to start organizing
 											projects.
 										</span>
-										<HandleTag />
+										{permissions?.tag.create && <HandleTag />}
 									</div>
 								) : (
 									<div className="flex flex-col gap-4 min-h-[25vh]">
@@ -70,8 +71,10 @@ export const TagManager = () => {
 															)}
 														</div>
 														<div className="flex flex-row gap-1 items-center">
-															<HandleTag tagId={tag.tagId} />
-															<DialogAction
+															{permissions?.tag.update && (
+																<HandleTag tagId={tag.tagId} />
+															)}
+															{permissions?.tag.delete && (<DialogAction
 																title="Delete Tag"
 																description={`Are you sure you want to delete the tag "${tag.name}"? This will remove the tag from all projects. This action cannot be undone.`}
 																type="destructive"
@@ -101,15 +104,18 @@ export const TagManager = () => {
 																	<Trash2 className="size-4 text-primary group-hover:text-red-500" />
 																</Button>
 															</DialogAction>
+															)}
 														</div>
 													</div>
 												</div>
 											))}
 										</div>
 
-										<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
-											<HandleTag />
-										</div>
+										{permissions?.tag.create && (
+											<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
+												<HandleTag />
+											</div>
+										)}
 									</div>
 								)}
 							</>

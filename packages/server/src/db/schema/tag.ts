@@ -84,11 +84,9 @@ export const apiCreateTag = createSchema.pick({
 	color: true,
 });
 
-export const apiFindOneTag = createSchema
-	.pick({
-		tagId: true,
-	})
-	.required();
+export const apiFindOneTag = z.object({
+	tagId: z.string().min(1),
+});
 
 export const apiRemoveTag = createSchema
 	.pick({

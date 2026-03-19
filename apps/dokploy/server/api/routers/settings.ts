@@ -656,6 +656,18 @@ export const settingsRouter = createTRPCRouter({
 					"github",
 					"gitlab",
 					"gitea",
+					"tag",
+					"patch",
+					"server",
+					"volumeBackups",
+					"environment",
+					"auditLog",
+					"customRole",
+					"whitelabeling",
+					"sso",
+					"licenseKey",
+					"organization",
+					"previewDeployment",
 				],
 			});
 
