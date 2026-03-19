@@ -54,6 +54,7 @@ export const mariadb = pgTable("mariadb", {
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
 	cpuLimit: text("cpuLimit"),
+	shmSize: text("shmSize"),
 	//
 	externalPort: integer("externalPort"),
 	applicationStatus: applicationStatus("applicationStatus")
@@ -129,6 +130,7 @@ const createSchema = createInsertSchema(mariadb, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
+	shmSize: z.string().optional(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),

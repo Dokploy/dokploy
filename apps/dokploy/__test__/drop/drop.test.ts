@@ -151,6 +151,7 @@ const baseApp: ApplicationNested = {
 	dockerContextPath: null,
 	rollbackActive: false,
 	stopGracePeriodSwarm: null,
+	shmSize: null,
 	ulimitsSwarm: null,
 };
 

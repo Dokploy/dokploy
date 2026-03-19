@@ -30,6 +30,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		command,
 		args,
 		mounts,
+		shmSize,
 	} = postgres;
 
 	const defaultPostgresEnv = `POSTGRES_DB="${databaseName}"\nPOSTGRES_USER="${databaseUser}"\nPOSTGRES_PASSWORD="${databasePassword}"${
@@ -73,7 +74,24 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...filesMount,
+					...(shmSize
+						? [
+								{
+									Target: "/dev/shm",
+									Source: "",
+									Type: "tmpfs" as const,
+									TmpfsOptions: {
+										SizeBytes: Number.parseInt(shmSize),
+										Mode: 0o1777,
+									},
+								},
+							]
+						: []),
+				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(command && {
