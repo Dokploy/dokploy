@@ -11,12 +11,13 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import type { z } from "zod";
 import { createProductionEnvironment } from "./environment";
 
 export type Project = typeof projects.$inferSelect;
 
 export const createProject = async (
-	input: typeof apiCreateProject._type,
+	input: z.infer<typeof apiCreateProject>,
 	organizationId: string,
 ) => {
 	const newProject = await db

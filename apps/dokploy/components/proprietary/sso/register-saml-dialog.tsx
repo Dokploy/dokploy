@@ -1,6 +1,6 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
@@ -117,9 +117,9 @@ export function RegisterSamlDialog({
 	const mutateAsync = isEdit
 		? updateMutation.mutateAsync
 		: registerMutation.mutateAsync;
-	const isLoading = isEdit
-		? updateMutation.isLoading
-		: registerMutation.isLoading;
+	const isPending = isEdit
+		? updateMutation.isPending
+		: registerMutation.isPending;
 
 	const baseURL = useUrl();
 
@@ -407,7 +407,7 @@ export function RegisterSamlDialog({
 							>
 								Cancel
 							</Button>
-							<Button type="submit" isLoading={isLoading}>
+							<Button type="submit" isLoading={isPending}>
 								{isEdit ? "Update provider" : "Register provider"}
 							</Button>
 						</DialogFooter>

@@ -1,6 +1,6 @@
 import { IS_CLOUD, isAdminPresent } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
@@ -41,6 +41,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
+import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const LoginSchema = z.object({
 	email: z.string().email(),
@@ -58,6 +59,7 @@ interface Props {
 }
 export default function Home({ IS_CLOUD }: Props) {
 	const router = useRouter();
+	const { config: whitelabeling } = useWhitelabelingPublic();
 	const { data: showSignInWithSSO } = api.sso.showSignInWithSSO.useQuery();
 	const [isLoginLoading, setIsLoginLoading] = useState(false);
 	const [isTwoFactorLoading, setIsTwoFactorLoading] = useState(false);
@@ -105,7 +107,6 @@ export default function Home({ IS_CLOUD }: Props) {
 			setIsLoginLoading(false);
 		}
 	};
-
 	const onTwoFactorSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (twoFactorCode.length !== 6) {
@@ -217,7 +218,14 @@ export default function Home({ IS_CLOUD }: Props) {
 			<div className="flex flex-col space-y-2 text-center">
 				<h1 className="text-2xl font-semibold tracking-tight">
 					<div className="flex flex-row items-center justify-center gap-2">
-						<Logo className="size-12" />
+						<Logo
+							className="size-12"
+							logoUrl={
+								whitelabeling?.loginLogoUrl ||
+								whitelabeling?.logoUrl ||
+								undefined
+							}
+						/>
 						Sign in
 					</div>
 				</h1>
@@ -254,7 +262,6 @@ export default function Home({ IS_CLOUD }: Props) {
 									onChange={setTwoFactorCode}
 									maxLength={6}
 									pattern={REGEXP_ONLY_DIGITS}
-									autoComplete="off"
 									autoFocus
 								>
 									<InputOTPGroup>

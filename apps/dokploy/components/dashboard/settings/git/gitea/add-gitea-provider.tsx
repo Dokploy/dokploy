@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -19,9 +19,9 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
-	FormDescription,
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
@@ -68,7 +68,7 @@ export const AddGiteaProvider = () => {
 	const { mutateAsync, error, isError } = api.gitea.create.useMutation();
 	const webhookUrl = `${baseUrl}/api/providers/gitea/callback`;
 
-	const form = useForm<Schema>({
+	const form = useForm({
 		defaultValues: {
 			clientId: "",
 			clientSecret: "",

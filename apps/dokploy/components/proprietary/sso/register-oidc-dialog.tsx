@@ -1,6 +1,6 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { FieldArrayPath } from "react-hook-form";
@@ -113,8 +113,8 @@ export function RegisterOidcDialog({
 		? updateMutation.mutateAsync
 		: registerMutation.mutateAsync;
 	const isLoading = isEdit
-		? updateMutation.isLoading
-		: registerMutation.isLoading;
+		? updateMutation.isPending
+		: registerMutation.isPending;
 
 	const form = useForm<OidcProviderForm>({
 		resolver: zodResolver(oidcProviderSchema),

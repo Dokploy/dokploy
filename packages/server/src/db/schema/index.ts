@@ -1,5 +1,6 @@
 export * from "./account";
 export * from "./ai";
+export * from "./audit-log";
 export * from "./application";
 export * from "./backups";
 export * from "./bitbucket";
@@ -18,6 +19,7 @@ export * from "./mongo";
 export * from "./mount";
 export * from "./mysql";
 export * from "./notification";
+export * from "./patch";
 export * from "./port";
 export * from "./postgres";
 export * from "./preview-deployments";

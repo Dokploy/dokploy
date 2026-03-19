@@ -4,12 +4,14 @@ import {
 	type CompletionContext,
 	type CompletionResult,
 } from "@codemirror/autocomplete";
+import { css } from "@codemirror/lang-css";
 import { json } from "@codemirror/lang-json";
 import { yaml } from "@codemirror/lang-yaml";
 import { StreamLanguage } from "@codemirror/language";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
-import { EditorView } from "@codemirror/view";
+import { search, searchKeymap } from "@codemirror/search";
+import { EditorView, keymap } from "@codemirror/view";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import CodeMirror, { type ReactCodeMirrorProps } from "@uiw/react-codemirror";
 import { useTheme } from "next-themes";
@@ -130,7 +132,7 @@ function dockerComposeComplete(
 interface Props extends ReactCodeMirrorProps {
 	wrapperClassName?: string;
 	disabled?: boolean;
-	language?: "yaml" | "json" | "properties" | "shell";
+	language?: "yaml" | "json" | "properties" | "shell" | "css";
 	lineWrapping?: boolean;
 	lineNumbers?: boolean;
 }
@@ -155,13 +157,17 @@ export const CodeEditor = ({
 				}}
 				theme={resolvedTheme === "dark" ? githubDark : githubLight}
 				extensions={[
+					search(),
+					keymap.of(searchKeymap),
 					language === "yaml"
 						? yaml()
 						: language === "json"
 							? json()
-							: language === "shell"
-								? StreamLanguage.define(shell)
-								: StreamLanguage.define(properties),
+							: language === "css"
+								? css()
+								: language === "shell"
+									? StreamLanguage.define(shell)
+									: StreamLanguage.define(properties),
 					props.lineWrapping ? EditorView.lineWrapping : [],
 					language === "yaml"
 						? autocompletion({

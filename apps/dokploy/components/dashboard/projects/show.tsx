@@ -2,7 +2,6 @@ import {
 	AlertTriangle,
 	ArrowUpDown,
 	BookIcon,
-	ExternalLinkIcon,
 	FolderInput,
 	Loader2,
 	MoreHorizontalIcon,
@@ -42,10 +41,8 @@ import {
 import {
 	DropdownMenu,
 	DropdownMenuContent,
-	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -65,8 +62,9 @@ export const ShowProjects = () => {
 	const utils = api.useUtils();
 	const router = useRouter();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data, isLoading } = api.project.all.useQuery();
+	const { data, isPending } = api.project.all.useQuery();
 	const { data: auth } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
 	const { data: availableTags } = api.tag.all.useQuery();
 
@@ -202,14 +200,14 @@ export const ShowProjects = () => {
 
 	return (
 		<>
-			<BreadcrumbSidebar
-				list={[{ name: "Projects", href: "/dashboard/projects" }]}
-			/>
 			{!isCloud && (
 				<div className="absolute top-4 right-4">
 					<TimeBadge />
 				</div>
 			)}
+			<BreadcrumbSidebar
+				list={[{ name: "Projects", href: "/dashboard/projects" }]}
+			/>
 			<div className="w-full">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl  ">
 					<div className="rounded-xl bg-background shadow-md ">
@@ -223,9 +221,7 @@ export const ShowProjects = () => {
 									Create and manage your projects
 								</CardDescription>
 							</CardHeader>
-							{(auth?.role === "owner" ||
-								auth?.role === "admin" ||
-								auth?.canCreateProjects) && (
+							{permissions?.project.create && (
 								<div className="">
 									<HandleProject />
 								</div>
@@ -233,7 +229,7 @@ export const ShowProjects = () => {
 						</div>
 
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
-							{isLoading ? (
+							{isPending ? (
 								<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[60vh]">
 									<span>Loading...</span>
 									<Loader2 className="animate-spin size-4" />
@@ -328,14 +324,6 @@ export const ShowProjects = () => {
 												)
 												.reduce((acc, curr) => acc + curr, 0);
 
-											const haveServicesWithDomains = project?.environments
-												.map(
-													(env) =>
-														env.applications.length > 0 ||
-														env.compose.length > 0,
-												)
-												.some(Boolean);
-
 											// Find default environment from accessible environments, or fall back to first accessible environment
 											const accessibleEnvironment =
 												project?.environments.find((env) => env.isDefault) ||
@@ -361,122 +349,6 @@ export const ShowProjects = () => {
 														}}
 													>
 														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border">
-															{haveServicesWithDomains ? (
-																<DropdownMenu>
-																	<DropdownMenuTrigger asChild>
-																		<Button
-																			className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
-																			size="sm"
-																			variant="default"
-																		>
-																			<ExternalLinkIcon className="size-3.5" />
-																		</Button>
-																	</DropdownMenuTrigger>
-																	<DropdownMenuContent
-																		className="w-[200px] space-y-2 overflow-y-auto max-h-[400px]"
-																		onClick={(e) => e.stopPropagation()}
-																	>
-																		{project.environments.some(
-																			(env) => env.applications.length > 0,
-																		) && (
-																			<DropdownMenuGroup>
-																				<DropdownMenuLabel>
-																					Applications
-																				</DropdownMenuLabel>
-																				{project.environments.map((env) =>
-																					env.applications.map((app) => (
-																						<div key={app.applicationId}>
-																							<DropdownMenuSeparator />
-																							<DropdownMenuGroup>
-																								<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
-																									{app.name}
-																									<StatusTooltip
-																										status={
-																											app.applicationStatus
-																										}
-																									/>
-																								</DropdownMenuLabel>
-																								<DropdownMenuSeparator />
-																								{app.domains.map((domain) => (
-																									<DropdownMenuItem
-																										key={domain.domainId}
-																										asChild
-																									>
-																										<Link
-																											className="space-x-4 text-xs cursor-pointer justify-between"
-																											target="_blank"
-																											href={`${
-																												domain.https
-																													? "https"
-																													: "http"
-																											}://${domain.host}${
-																												domain.path
-																											}`}
-																										>
-																											<span className="truncate">
-																												{domain.host}
-																											</span>
-																											<ExternalLinkIcon className="size-4 shrink-0" />
-																										</Link>
-																									</DropdownMenuItem>
-																								))}
-																							</DropdownMenuGroup>
-																						</div>
-																					)),
-																				)}
-																			</DropdownMenuGroup>
-																		)}
-																		{project.environments.some(
-																			(env) => env.compose.length > 0,
-																		) && (
-																			<DropdownMenuGroup>
-																				<DropdownMenuLabel>
-																					Compose
-																				</DropdownMenuLabel>
-																				{project.environments.map((env) =>
-																					env.compose.map((comp) => (
-																						<div key={comp.composeId}>
-																							<DropdownMenuSeparator />
-																							<DropdownMenuGroup>
-																								<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
-																									{comp.name}
-																									<StatusTooltip
-																										status={comp.composeStatus}
-																									/>
-																								</DropdownMenuLabel>
-																								<DropdownMenuSeparator />
-																								{comp.domains.map((domain) => (
-																									<DropdownMenuItem
-																										key={domain.domainId}
-																										asChild
-																									>
-																										<Link
-																											className="space-x-4 text-xs cursor-pointer justify-between"
-																											target="_blank"
-																											href={`${
-																												domain.https
-																													? "https"
-																													: "http"
-																											}://${domain.host}${
-																												domain.path
-																											}`}
-																										>
-																											<span className="truncate">
-																												{domain.host}
-																											</span>
-																											<ExternalLinkIcon className="size-4 shrink-0" />
-																										</Link>
-																									</DropdownMenuItem>
-																								))}
-																							</DropdownMenuGroup>
-																						</div>
-																					)),
-																				)}
-																			</DropdownMenuGroup>
-																		)}
-																	</DropdownMenuContent>
-																</DropdownMenu>
-															) : null}
 															<CardHeader>
 																<CardTitle className="flex items-center justify-between gap-2 overflow-clip">
 																	<span className="flex flex-col gap-1.5 ">
@@ -550,8 +422,7 @@ export const ShowProjects = () => {
 																				<div
 																					onClick={(e) => e.stopPropagation()}
 																				>
-																					{(auth?.role === "owner" ||
-																						auth?.canDeleteProjects) && (
+																					{permissions?.project.delete && (
 																						<AlertDialog>
 																							<AlertDialogTrigger className="w-full">
 																								<DropdownMenuItem
@@ -625,7 +496,7 @@ export const ShowProjects = () => {
 																</CardTitle>
 															</CardHeader>
 															<CardFooter className="pt-4">
-																<div className="space-y-1 text-sm flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
+																<div className="space-y-1 text-xs flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
 																	<DateTooltip date={project.createdAt}>
 																		Created
 																	</DateTooltip>

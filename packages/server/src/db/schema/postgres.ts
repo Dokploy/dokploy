@@ -150,11 +150,9 @@ export const apiCreatePostgres = createSchema.pick({
 	serverId: true,
 });
 
-export const apiFindOnePostgres = createSchema
-	.pick({
-		postgresId: true,
-	})
-	.required();
+export const apiFindOnePostgres = z.object({
+	postgresId: z.string().min(1),
+});
 
 export const apiChangePostgresStatus = createSchema
 	.pick({
@@ -194,6 +192,7 @@ export const apiUpdatePostgres = createSchema
 	.partial()
 	.extend({
 		postgresId: z.string().min(1),
+		dockerImage: z.string().optional(),
 	})
 	.omit({ serverId: true });
 

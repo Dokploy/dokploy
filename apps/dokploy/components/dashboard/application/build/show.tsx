@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Cog } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -74,12 +74,7 @@ const buildTypeDisplayMap: Record<BuildType, string> = {
 const mySchema = z.discriminatedUnion("buildType", [
 	z.object({
 		buildType: z.literal(BuildType.dockerfile),
-		dockerfile: z
-			.string({
-				required_error: "Dockerfile path is required",
-				invalid_type_error: "Dockerfile path is required",
-			})
-			.min(1, "Dockerfile required"),
+		dockerfile: z.string().nullable().default(""),
 		dockerContextPath: z.string().nullable().default(""),
 		dockerBuildStage: z.string().nullable().default(""),
 	}),
@@ -168,14 +163,14 @@ const resetData = (data: ApplicationData): AddTemplate => {
 };
 
 export const ShowBuildChooseForm = ({ applicationId }: Props) => {
-	const { mutateAsync, isLoading } =
+	const { mutateAsync, isPending } =
 		api.application.saveBuildType.useMutation();
 	const { data, refetch } = api.application.one.useQuery(
 		{ applicationId },
 		{ enabled: !!applicationId },
 	);
 
-	const form = useForm<AddTemplate>({
+	const form = useForm({
 		defaultValues: {
 			buildType: BuildType.nixpacks,
 		},
@@ -347,7 +342,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 											<FormLabel>Docker File</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Path of your docker file"
+													placeholder="Path of your docker file (default: Dockerfile)"
 													{...field}
 													value={field.value ?? ""}
 												/>
@@ -533,7 +528,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 							</>
 						)}
 						<div className="flex w-full justify-end">
-							<Button isLoading={isLoading} type="submit">
+							<Button isLoading={isPending} type="submit">
 								Save
 							</Button>
 						</div>

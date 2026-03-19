@@ -130,6 +130,7 @@ interface CloneGiteaRepository {
 	enableSubmodules: boolean;
 	serverId: string | null;
 	type?: "application" | "compose";
+	outputPathOverride?: string;
 }
 
 export const cloneGiteaRepository = async ({
@@ -145,6 +146,7 @@ export const cloneGiteaRepository = async ({
 		giteaRepository,
 		enableSubmodules,
 		serverId,
+		outputPathOverride,
 	} = entity;
 	const { APPLICATIONS_PATH, COMPOSE_PATH } = paths(!!serverId);
 
@@ -162,7 +164,7 @@ export const cloneGiteaRepository = async ({
 	}
 
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName, "code");
+	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
 
@@ -209,7 +211,10 @@ export const testGiteaConnection = async (input: { giteaId: string }) => {
 			});
 		}
 
-		const baseUrl = provider.giteaUrl.replace(/\/+$/, "");
+		const baseUrl = (provider.giteaInternalUrl || provider.giteaUrl).replace(
+			/\/+$/,
+			"",
+		);
 
 		// Use /user/repos to get authenticated user's repositories with pagination
 		let allRepos = 0;
@@ -266,7 +271,9 @@ export const getGiteaRepositories = async (giteaId?: string) => {
 	await refreshGiteaToken(giteaId);
 	const giteaProvider = await findGiteaById(giteaId);
 
-	const baseUrl = giteaProvider.giteaUrl.replace(/\/+$/, "");
+	const baseUrl = (
+		giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl
+	).replace(/\/+$/, "");
 
 	// Use /user/repos to get authenticated user's repositories with pagination
 	let allRepositories: any[] = [];
@@ -331,7 +338,9 @@ export const getGiteaBranches = async (input: {
 
 	const giteaProvider = await findGiteaById(input.giteaId);
 
-	const baseUrl = giteaProvider.giteaUrl.replace(/\/+$/, "");
+	const baseUrl = (
+		giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl
+	).replace(/\/+$/, "");
 
 	// Handle pagination for branches
 	let allBranches: any[] = [];

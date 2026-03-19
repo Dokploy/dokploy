@@ -1,4 +1,6 @@
 import { db } from "@dokploy/server/db";
+import { organization } from "@dokploy/server/db/schema";
+import { eq } from "drizzle-orm";
 
 export const getSSOProviders = async () => {
 	const providers = await db.query.ssoProvider.findMany({
@@ -32,4 +34,13 @@ export const normalizeTrustedOrigin = (value: string): string => {
 	// Keep it simple: trim and remove trailing slashes.
 	// e.g. "https://example.com/" -> "https://example.com"
 	return value.trim().replace(/\/+$/, "");
+};
+
+export const getOrganizationOwnerId = async (organizationId: string) => {
+	const org = await db.query.organization.findFirst({
+		where: eq(organization.id, organizationId),
+		columns: { ownerId: true },
+	});
+	if (!org) return null;
+	return org.ownerId;
 };
