@@ -31,6 +31,7 @@ import {
 	Server,
 	ShieldCheck,
 	Star,
+	Tags,
 	Trash2,
 	User,
 	Users,
@@ -324,6 +325,13 @@ const MENU: Menu = {
 			url: "/dashboard/settings/ai",
 			isSingle: true,
 			isEnabled: ({ permissions }) => !!permissions?.organization.update,
+		},
+		{
+			isSingle: true,
+			title: "Tags",
+			url: "/dashboard/settings/tags",
+			icon: Tags,
+			isEnabled: ({ permissions }) => !!permissions?.tag.read,
 		},
 		{
 			isSingle: true,
