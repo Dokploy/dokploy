@@ -1,0 +1,1 @@
+ALTER TABLE "bitbucket" ADD COLUMN "bitbucketEmail" text;

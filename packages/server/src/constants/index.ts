@@ -2,7 +2,30 @@ import path from "node:path";
 import Docker from "dockerode";
 
 export const IS_CLOUD = process.env.IS_CLOUD === "true";
-export const docker = new Docker();
+export const DOKPLOY_DOCKER_API_VERSION =
+	process.env.DOKPLOY_DOCKER_API_VERSION;
+export const DOKPLOY_DOCKER_HOST = process.env.DOKPLOY_DOCKER_HOST;
+export const DOKPLOY_DOCKER_PORT = process.env.DOKPLOY_DOCKER_PORT
+	? Number(process.env.DOKPLOY_DOCKER_PORT)
+	: undefined;
+
+export const CLEANUP_CRON_JOB = "50 23 * * *";
+export const docker = new Docker({
+	...(DOKPLOY_DOCKER_API_VERSION && {
+		version: DOKPLOY_DOCKER_API_VERSION,
+	}),
+	...(DOKPLOY_DOCKER_HOST && {
+		host: DOKPLOY_DOCKER_HOST,
+	}),
+	...(DOKPLOY_DOCKER_PORT && {
+		port: DOKPLOY_DOCKER_PORT,
+	}),
+});
+
+// When not set, use the legacy default so 2FA remains working for users who
+// enabled it before BETTER_AUTH_SECRET was introduced .
+export const BETTER_AUTH_SECRET =
+	process.env.BETTER_AUTH_SECRET || "better-auth-secret-123456789";
 
 export const paths = (isServer = false) => {
 	const BASE_PATH =
@@ -25,5 +48,7 @@ export const paths = (isServer = false) => {
 		REGISTRY_PATH: `${BASE_PATH}/registry`,
 		SCHEDULES_PATH: `${BASE_PATH}/schedules`,
 		VOLUME_BACKUPS_PATH: `${BASE_PATH}/volume-backups`,
+		VOLUME_BACKUP_LOCK_PATH: `${BASE_PATH}/volume-backup-lock`,
+		PATCH_REPOS_PATH: `${BASE_PATH}/patch-repos`,
 	};
 };

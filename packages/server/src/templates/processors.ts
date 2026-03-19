@@ -141,8 +141,8 @@ export function processValue(
 			}
 			if (
 				typeof payload === "string" &&
-				payload.startsWith("{") &&
-				payload.endsWith("}")
+				payload.trimStart().startsWith("{") &&
+				payload.trimEnd().endsWith("}")
 			) {
 				try {
 					payload = JSON.parse(payload);
@@ -170,12 +170,12 @@ export function processValue(
 		}
 
 		// If not a utility function, try to get from variables
-		return variables[varName] || match;
+		return varName in variables ? (variables[varName] ?? match) : match;
 	});
 
 	// Then replace any remaining ${var} with their values from variables
 	processedValue = processedValue.replace(/\${([^}]+)}/g, (match, varName) => {
-		return variables[varName] || match;
+		return varName in variables ? (variables[varName] ?? match) : match;
 	});
 
 	return processedValue;

@@ -11,7 +11,53 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { getS3Credentials, normalizeS3Path } from "../backups/utils";
-import { backupVolume } from "./backup";
+import { sendVolumeBackupNotifications } from "../notifications/volume-backup";
+import { backupVolume, getVolumeServiceAppName } from "./backup";
+
+// Helper functions to extract project info from volume backup
+const getProjectName = (
+	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
+): string => {
+	const services = [
+		volumeBackup.application,
+		volumeBackup.compose,
+		volumeBackup.postgres,
+		volumeBackup.mysql,
+		volumeBackup.mariadb,
+		volumeBackup.mongo,
+		volumeBackup.redis,
+	];
+
+	for (const service of services) {
+		if (service?.environment?.project?.name) {
+			return service.environment.project.name;
+		}
+	}
+
+	return "Unknown Project";
+};
+
+const getOrganizationId = (
+	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
+): string => {
+	const services = [
+		volumeBackup.application,
+		volumeBackup.compose,
+		volumeBackup.postgres,
+		volumeBackup.mysql,
+		volumeBackup.mariadb,
+		volumeBackup.mongo,
+		volumeBackup.redis,
+	];
+
+	for (const service of services) {
+		if (service?.environment?.project?.organizationId) {
+			return service.environment.project.organizationId;
+		}
+	}
+
+	return "";
+};
 
 export const scheduleVolumeBackup = async (volumeBackupId: string) => {
 	const volumeBackup = await findVolumeBackupById(volumeBackupId);
@@ -35,9 +81,9 @@ const cleanupOldVolumeBackups = async (
 
 	try {
 		const rcloneFlags = getS3Credentials(destination);
-		const normalizedPrefix = normalizeS3Path(prefix);
-		const backupFilesPath = `:s3:${destination.bucket}/${normalizedPrefix}`;
-		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include \"${volumeName}-*.tar\" :s3:${destination.bucket}/${normalizedPrefix}`;
+		const s3AppName = getVolumeServiceAppName(volumeBackup);
+		const backupFilesPath = `:s3:${destination.bucket}/${s3AppName}/${normalizeS3Path(prefix || "")}`;
+		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include \"${volumeName}-*.tar\" ${backupFilesPath}`;
 		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
 		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
 		const fullCommand = `${listCommand} | ${sortAndPick} ${deleteCommand}`;
@@ -61,7 +107,8 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 		title: "Volume Backup",
 		description: "Volume Backup",
 	});
-
+	const projectName = getProjectName(volumeBackup);
+	const organizationId = getOrganizationId(volumeBackup);
 	try {
 		const command = await backupVolume(volumeBackup);
 
@@ -77,6 +124,28 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
+
+		// Map service type to match notification function expectations
+		const mappedServiceType =
+			volumeBackup.serviceType === "mongo"
+				? "mongodb"
+				: volumeBackup.serviceType;
+
+		try {
+			await sendVolumeBackupNotifications({
+				projectName,
+				applicationName: volumeBackup.name,
+				volumeName: volumeBackup.volumeName,
+				serviceType: mappedServiceType,
+				type: "success",
+				organizationId,
+			});
+		} catch (notificationError) {
+			console.error(
+				"Failed to send volume backup success notification",
+				notificationError,
+			);
+		}
 	} catch (error) {
 		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 		const volumeBackupPath = path.join(
@@ -92,6 +161,27 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 
-		console.error(error);
+		// Send error notification
+		const mappedServiceType =
+			volumeBackup.serviceType === "mongo"
+				? "mongodb"
+				: volumeBackup.serviceType;
+
+		try {
+			await sendVolumeBackupNotifications({
+				projectName,
+				applicationName: volumeBackup.name,
+				volumeName: volumeBackup.volumeName,
+				serviceType: mappedServiceType,
+				type: "error",
+				organizationId,
+				errorMessage: error instanceof Error ? error.message : String(error),
+			});
+		} catch (notificationError) {
+			console.error(
+				"Failed to send volume backup error notification",
+				notificationError,
+			);
+		}
 	}
 };

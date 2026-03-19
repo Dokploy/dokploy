@@ -67,9 +67,10 @@ export const Dropzone = React.forwardRef<HTMLDivElement, DropzoneProps>(
 							ref={inputRef}
 							type="file"
 							className={cn("hidden", className)}
-							onChange={(e: ChangeEvent<HTMLInputElement>) =>
-								onChange(e.target.files)
-							}
+							onChange={(e: ChangeEvent<HTMLInputElement>) => {
+								onChange(e.target.files);
+								e.target.value = "";
+							}}
 						/>
 					</div>
 				</CardContent>

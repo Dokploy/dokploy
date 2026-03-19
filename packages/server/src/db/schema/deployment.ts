@@ -21,6 +21,7 @@ export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",
 	"done",
 	"error",
+	"cancelled",
 ]);
 
 export const deployments = pgTable("deployment", {
@@ -69,6 +70,9 @@ export const deployments = pgTable("deployment", {
 		(): AnyPgColumn => volumeBackups.volumeBackupId,
 		{ onDelete: "cascade" },
 	),
+	buildServerId: text("buildServerId").references(() => server.serverId, {
+		onDelete: "cascade",
+	}),
 });
 
 export const deploymentsRelations = relations(deployments, ({ one }) => ({
@@ -83,6 +87,12 @@ export const deploymentsRelations = relations(deployments, ({ one }) => ({
 	server: one(server, {
 		fields: [deployments.serverId],
 		references: [server.serverId],
+		relationName: "deploymentServer",
+	}),
+	buildServer: one(server, {
+		fields: [deployments.buildServerId],
+		references: [server.serverId],
+		relationName: "deploymentBuildServer",
 	}),
 	previewDeployment: one(previewDeployments, {
 		fields: [deployments.previewDeploymentId],
@@ -114,8 +124,8 @@ const schema = createInsertSchema(deployments, {
 	composeId: z.string(),
 	description: z.string().optional(),
 	previewDeploymentId: z.string(),
+	buildServerId: z.string(),
 });
-
 export const apiCreateDeployment = schema
 	.pick({
 		title: true,
@@ -199,44 +209,27 @@ export const apiCreateDeploymentVolumeBackup = schema
 		volumeBackupId: z.string().min(1),
 	});
 
-export const apiFindAllByApplication = schema
-	.pick({
-		applicationId: true,
-	})
-	.extend({
-		applicationId: z.string().min(1),
-	})
-	.required();
+export const apiFindAllByApplication = z.object({
+	applicationId: z.string().min(1),
+});
 
-export const apiFindAllByCompose = schema
-	.pick({
-		composeId: true,
-	})
-	.extend({
-		composeId: z.string().min(1),
-	})
-	.required();
+export const apiFindAllByCompose = z.object({
+	composeId: z.string().min(1),
+});
 
-export const apiFindAllByServer = schema
-	.pick({
-		serverId: true,
-	})
-	.extend({
-		serverId: z.string().min(1),
-	})
-	.required();
+export const apiFindAllByServer = z.object({
+	serverId: z.string().min(1),
+});
 
-export const apiFindAllByType = z
-	.object({
-		id: z.string().min(1),
-		type: z.enum([
-			"application",
-			"compose",
-			"server",
-			"schedule",
-			"previewDeployment",
-			"backup",
-			"volumeBackup",
-		]),
-	})
-	.required();
+export const apiFindAllByType = z.object({
+	id: z.string().min(1),
+	type: z.enum([
+		"application",
+		"compose",
+		"server",
+		"schedule",
+		"previewDeployment",
+		"backup",
+		"volumeBackup",
+	]),
+});

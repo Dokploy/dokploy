@@ -1,18 +1,18 @@
-import { findAdmin } from "@dokploy/server";
+import { findOwner } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { users_temp } from "@dokploy/server/db/schema";
+import { user } from "@dokploy/server/db/schema";
 import { eq } from "drizzle-orm";
 
 (async () => {
 	try {
-		const result = await findAdmin();
+		const result = await findOwner();
 
 		const update = await db
-			.update(users_temp)
+			.update(user)
 			.set({
 				twoFactorEnabled: false,
 			})
-			.where(eq(users_temp.id, result.userId));
+			.where(eq(user.id, result.userId));
 
 		if (update) {
 			console.log("2FA reset successful");

@@ -36,8 +36,8 @@ import { AddGitlabProvider } from "./gitlab/add-gitlab-provider";
 import { EditGitlabProvider } from "./gitlab/edit-gitlab-provider";
 
 export const ShowGitProviders = () => {
-	const { data, isLoading, refetch } = api.gitProvider.getAll.useQuery();
-	const { mutateAsync, isLoading: isRemoving } =
+	const { data, isPending, refetch } = api.gitProvider.getAll.useQuery();
+	const { mutateAsync, isPending: isRemoving } =
 		api.gitProvider.remove.useMutation();
 	const url = useUrl();
 
@@ -48,7 +48,7 @@ export const ShowGitProviders = () => {
 	) => {
 		const redirectUri = `${url}/api/providers/gitlab/callback?gitlabId=${gitlabId}`;
 		const scope = "api read_user read_repository";
-		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scopes=${encodeURIComponent(scope)}`;
 		return authUrl;
 	};
 
@@ -66,7 +66,7 @@ export const ShowGitProviders = () => {
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
-						{isLoading ? (
+						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
 								<Loader2 className="animate-spin size-4" />
@@ -157,7 +157,13 @@ export const ShowGitProviders = () => {
 																</div>
 															</div>
 
-															<div className="flex flex-row gap-1">
+															<div className="flex flex-row gap-1 items-center">
+																{isBitbucket &&
+																gitProvider.bitbucket?.appPassword &&
+																!gitProvider.bitbucket?.apiToken ? (
+																	<Badge variant="yellow">Deprecated</Badge>
+																) : null}
+
 																{!haveGithubRequirements && isGithub && (
 																	<div className="flex flex-row gap-1 items-center">
 																		<Badge

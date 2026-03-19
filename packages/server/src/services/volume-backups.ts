@@ -12,15 +12,79 @@ export const findVolumeBackupById = async (volumeBackupId: string) => {
 	const volumeBackup = await db.query.volumeBackups.findFirst({
 		where: eq(volumeBackups.volumeBackupId, volumeBackupId),
 		with: {
-			application: true,
-			compose: true,
+			application: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			postgres: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			mysql: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			mariadb: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			mongo: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			redis: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			compose: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			libsql: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
 			destination: true,
-			libsql: true,
-			mariadb: true,
-			mongo: true,
-			mysql: true,
-			postgres: true,
-			redis: true,
 		},
 	});
 
@@ -39,7 +103,7 @@ export const createVolumeBackup = async (
 ) => {
 	const newVolumeBackup = await db
 		.insert(volumeBackups)
-		.values(volumeBackup)
+		.values(volumeBackup as typeof volumeBackups.$inferInsert)
 		.returning()
 		.then((e) => e[0]);
 
@@ -58,7 +122,7 @@ export const updateVolumeBackup = async (
 ) => {
 	return await db
 		.update(volumeBackups)
-		.set(volumeBackup)
+		.set(volumeBackup as Partial<typeof volumeBackups.$inferInsert>)
 		.where(eq(volumeBackups.volumeBackupId, volumeBackupId))
 		.returning()
 		.then((e) => e[0]);

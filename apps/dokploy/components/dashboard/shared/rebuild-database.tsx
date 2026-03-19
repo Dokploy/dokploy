@@ -32,7 +32,7 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 		redis: () => api.redis.rebuild.useMutation(),
 	};
 
-	const { mutateAsync, isLoading } = mutationMap[type]();
+	const { mutateAsync, isPending } = mutationMap[type]();
 
 	const handleRebuild = async () => {
 		try {
@@ -73,7 +73,7 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 					<AlertDialog>
 						<AlertDialogTrigger asChild>
 							<Button
-								isLoading={isLoading}
+								isLoading={isPending}
 								variant="outline"
 								className="w-full border-destructive/50 hover:bg-destructive/10 hover:text-destructive text-destructive"
 							>
@@ -107,7 +107,7 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 									className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 									asChild
 								>
-									<Button isLoading={isLoading} type="submit">
+									<Button isLoading={isPending} type="submit">
 										Yes, rebuild database
 									</Button>
 								</AlertDialogAction>

@@ -104,6 +104,20 @@ export const removeDomain = async (
 	}
 };
 
+/**
+ * Converts an internationalized domain name (IDN) to ASCII punycode format.
+ * Traefik requires domain names in ASCII format, so non-ASCII characters
+ * must be converted (e.g., "тест.рф" → "xn--e1aybc.xn--p1ai").
+ */
+const toPunycode = (host: string): string => {
+	try {
+		return new URL(`http://${host}`).hostname;
+	} catch {
+		// If URL parsing fails, return the original host
+		return host;
+	}
+};
+
 export const createRouterConfig = async (
 	app: ApplicationNested,
 	domain: Domain,
@@ -114,8 +128,9 @@ export const createRouterConfig = async (
 
 	const { host, path, https, uniqueConfigKey, internalPath, stripPath } =
 		domain;
+	const punycodeHost = toPunycode(host);
 	const routerConfig: HttpRouter = {
-		rule: `Host(\`${host}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
+		rule: `Host(\`${punycodeHost}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
 		service: `${appName}-service-${uniqueConfigKey}`,
 		middlewares: [],
 		entryPoints: [entryPoint],
@@ -137,16 +152,13 @@ export const createRouterConfig = async (
 	}
 
 	if ((entryPoint === "websecure" && https) || !https) {
-		// redirects
-		for (const redirect of redirects) {
-			let middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
-			if (domain.domainType === "preview") {
-				middlewareName = `redirect-${appName.replace(
-					/^preview-(.+)-[^-]+$/,
-					"$1",
-				)}-${redirect.uniqueConfigKey}`;
+		// redirects - skip for preview deployments as wildcard subdomains
+		// should not inherit parent redirect rules (e.g., www-redirect)
+		if (domain.domainType !== "preview") {
+			for (const redirect of redirects) {
+				const middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
+				routerConfig.middlewares?.push(middlewareName);
 			}
-			routerConfig.middlewares?.push(middlewareName);
 		}
 
 		// security

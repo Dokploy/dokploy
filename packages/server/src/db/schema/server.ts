@@ -25,6 +25,7 @@ import { schedules } from "./schedule";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
+export const serverType = pgEnum("serverType", ["deploy", "build"]);
 
 export const server = pgTable("server", {
 	serverId: text("serverId")
@@ -45,6 +46,7 @@ export const server = pgTable("server", {
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
 	serverStatus: serverStatus("serverStatus").notNull().default("active"),
+	serverType: serverType("serverType").notNull().default("deploy"),
 	command: text("command").notNull().default(""),
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
@@ -98,31 +100,41 @@ export const server = pgTable("server", {
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({
-	applications: many(applications),
-	certificates: many(certificates),
-	compose: many(compose),
-	deployments: many(deployments),
-	libsql: many(libsql),
-	mariadb: many(mariadb),
-	mongo: many(mongo),
-	mysql: many(mysql),
-	organization: one(organization, {
-		fields: [server.organizationId],
-		references: [organization.id],
+	deployments: many(deployments, {
+		relationName: "deploymentServer",
 	}),
-	postgres: many(postgres),
-	redis: many(redis),
-	schedules: many(schedules),
+	buildDeployments: many(deployments, {
+		relationName: "deploymentBuildServer",
+	}),
 	sshKey: one(sshKeys, {
 		fields: [server.sshKeyId],
 		references: [sshKeys.sshKeyId],
 	}),
+	applications: many(applications, {
+		relationName: "applicationServer",
+	}),
+	buildApplications: many(applications, {
+		relationName: "applicationBuildServer",
+	}),
+	compose: many(compose),
+	redis: many(redis),
+	mariadb: many(mariadb),
+	mongo: many(mongo),
+	mysql: many(mysql),
+	postgres: many(postgres),
+	certificates: many(certificates),
+	organization: one(organization, {
+		fields: [server.organizationId],
+		references: [organization.id],
+	}),
+	schedules: many(schedules),
 }));
 
 const createSchema = createInsertSchema(server, {
 	serverId: z.string().min(1),
 	name: z.string().min(1),
 	description: z.string().optional(),
+	serverType: z.enum(["deploy", "build"]).optional(),
 });
 
 export const apiCreateServer = createSchema
@@ -133,14 +145,13 @@ export const apiCreateServer = createSchema
 		port: true,
 		username: true,
 		sshKeyId: true,
+		serverType: true,
 	})
 	.required();
 
-export const apiFindOneServer = createSchema
-	.pick({
-		serverId: true,
-	})
-	.required();
+export const apiFindOneServer = z.object({
+	serverId: z.string().min(1),
+});
 
 export const apiRemoveServer = createSchema
 	.pick({
@@ -157,6 +168,7 @@ export const apiUpdateServer = createSchema
 		port: true,
 		username: true,
 		sshKeyId: true,
+		serverType: true,
 	})
 	.required()
 	.extend({

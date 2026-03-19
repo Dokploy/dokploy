@@ -1,5 +1,5 @@
 import { FancyAnsi } from "fancy-ansi";
-import { escapeRegExp } from "lodash";
+import escapeRegExp from "lodash/escapeRegExp";
 import { Badge } from "@/components/ui/badge";
 import {
 	Tooltip,

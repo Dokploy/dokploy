@@ -7,7 +7,14 @@ import {
 import { cn } from "@/lib/utils";
 
 interface Props {
-	status: "running" | "error" | "done" | "idle" | undefined | null;
+	status:
+		| "running"
+		| "error"
+		| "done"
+		| "idle"
+		| "cancelled"
+		| undefined
+		| null;
 	className?: string;
 }
 
@@ -34,6 +41,14 @@ export const StatusTooltip = ({ status, className }: Props) => {
 							className={cn("size-3.5 rounded-full bg-green-500", className)}
 						/>
 					)}
+					{status === "cancelled" && (
+						<div
+							className={cn(
+								"size-3.5 rounded-full bg-muted-foreground",
+								className,
+							)}
+						/>
+					)}
 					{status === "running" && (
 						<div
 							className={cn("size-3.5 rounded-full bg-yellow-500", className)}
@@ -46,6 +61,7 @@ export const StatusTooltip = ({ status, className }: Props) => {
 						{status === "error" && "Error"}
 						{status === "done" && "Done"}
 						{status === "running" && "Running"}
+						{status === "cancelled" && "Cancelled"}
 					</span>
 				</TooltipContent>
 			</Tooltip>

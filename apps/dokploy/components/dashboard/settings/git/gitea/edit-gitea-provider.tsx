@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -17,6 +17,7 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -30,6 +31,10 @@ import { useUrl } from "@/utils/hooks/use-url";
 const formSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	giteaUrl: z.string().min(1, "Gitea URL is required"),
+	giteaInternalUrl: z
+		.union([z.string().url(), z.literal("")])
+		.optional()
+		.transform((v) => (v === "" ? undefined : v)),
 	clientId: z.string().min(1, "Client ID is required"),
 	clientSecret: z.string().min(1, "Client Secret is required"),
 });
@@ -46,8 +51,8 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 		isLoading,
 		refetch,
 	} = api.gitea.one.useQuery({ giteaId });
-	const { mutateAsync, isLoading: isUpdating } = api.gitea.update.useMutation();
-	const { mutateAsync: testConnection, isLoading: isTesting } =
+	const { mutateAsync, isPending: isUpdating } = api.gitea.update.useMutation();
+	const { mutateAsync: testConnection, isPending: isTesting } =
 		api.gitea.testConnection.useMutation();
 	const url = useUrl();
 	const utils = api.useUtils();
@@ -89,11 +94,12 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 		}
 	}, [router.query, router.isReady, refetch]);
 
-	const form = useForm<z.infer<typeof formSchema>>({
+	const form = useForm({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			name: "",
 			giteaUrl: "https://gitea.com",
+			giteaInternalUrl: "",
 			clientId: "",
 			clientSecret: "",
 		},
@@ -104,6 +110,7 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 			form.reset({
 				name: gitea.gitProvider?.name || "",
 				giteaUrl: gitea.giteaUrl || "https://gitea.com",
+				giteaInternalUrl: gitea.giteaInternalUrl || "",
 				clientId: gitea.clientId || "",
 				clientSecret: gitea.clientSecret || "",
 			});
@@ -116,6 +123,7 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 			gitProviderId: gitea?.gitProvider?.gitProviderId || "",
 			name: values.name,
 			giteaUrl: values.giteaUrl,
+			giteaInternalUrl: values.giteaInternalUrl ?? null,
 			clientId: values.clientId,
 			clientSecret: values.clientSecret,
 		})
@@ -220,6 +228,28 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 									<FormControl>
 										<Input placeholder="https://gitea.example.com" {...field} />
 									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="giteaInternalUrl"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Internal URL (Optional)</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="http://gitea:3000"
+											{...field}
+											value={field.value ?? ""}
+										/>
+									</FormControl>
+									<FormDescription>
+										Use when Gitea runs on the same instance as Dokploy. Used
+										for OAuth token exchange to reach Gitea via internal network
+										(e.g. Docker service name).
+									</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
