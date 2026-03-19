@@ -12,7 +12,6 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
