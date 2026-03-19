@@ -352,7 +352,7 @@ export const AdvanceBreadcrumb = () => {
 										placeholder="Find Project..."
 										value={projectSearch}
 										onValueChange={setProjectSearch}
-										className="w-full focus:ring-0"
+										className="w-full focus-visible:ring-0"
 									/>
 									<kbd className="pointer-events-none h-5 absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 flex">
 										Esc
@@ -488,7 +488,7 @@ export const AdvanceBreadcrumb = () => {
 											placeholder="Find Environment..."
 											value={environmentSearch}
 											onValueChange={setEnvironmentSearch}
-											className="w-full focus:ring-0"
+											className="w-full focus-visible:ring-0"
 										/>
 										<kbd className="pointer-events-none h-5 absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 flex">
 											Esc
@@ -561,7 +561,7 @@ export const AdvanceBreadcrumb = () => {
 												placeholder="Find Service..."
 												value={serviceSearch}
 												onValueChange={setServiceSearch}
-												className="w-full focus:ring-0"
+												className="w-full focus-visible:ring-0"
 											/>
 											<kbd className="pointer-events-none h-5 select-none absolute right-2 top-1/2 -translate-y-1/2 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 flex">
 												Esc
