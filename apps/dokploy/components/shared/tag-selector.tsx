@@ -1,6 +1,6 @@
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import * as React from "react";
-import { HandleTag } from "@/components/dashboard/settings/tags/tag-manager";
+import { HandleTag } from "@/components/dashboard/settings/tags/handle-tag";
 import { TagBadge } from "@/components/shared/tag-badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -103,7 +103,7 @@ export function TagSelector({
 				</PopoverTrigger>
 				<PopoverContent className="w-full p-0" align="start">
 					<Command>
-						<CommandInput placeholder="Search tags..." />
+						<CommandInput placeholder="Search tags..." className="focus-visible:ring-0" />
 						<CommandList>
 							<CommandEmpty>
 								<div className="flex flex-col items-center gap-2 py-1">

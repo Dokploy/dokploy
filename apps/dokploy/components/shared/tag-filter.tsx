@@ -1,6 +1,6 @@
 import { Tags } from "lucide-react";
 import * as React from "react";
-import { HandleTag } from "@/components/dashboard/settings/tags/tag-manager";
+import { HandleTag } from "@/components/dashboard/settings/tags/handle-tag";
 import { TagBadge } from "@/components/shared/tag-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,7 +75,7 @@ export function TagFilter({
 				<PopoverContent className="w-64 p-0" align="start">
 					<Command>
 						<div className="flex items-center border-b px-3">
-							<CommandInput placeholder="Search tags..." className="h-9" />
+							<CommandInput placeholder="Search tags..." className="h-9 focus-visible:ring-0" />
 							{selectedTags.length > 0 && (
 								<Button
 									variant="ghost"
