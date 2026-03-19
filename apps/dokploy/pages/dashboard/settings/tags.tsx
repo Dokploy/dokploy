@@ -38,21 +38,29 @@ export async function getServerSideProps(
 		transformer: superjson,
 	});
 
-	await helpers.settings.isCloud.prefetch();
+	try {
+		await helpers.user.get.prefetch();
+		await helpers.settings.isCloud.prefetch();
 
-	await helpers.user.get.prefetch();
+		const userPermissions = await helpers.user.getPermissions.fetch();
 
-	if (!user || user.role === "member") {
+		if (!userPermissions?.tag.read) {
+			return {
+				redirect: {
+					permanent: true,
+					destination: "/",
+				},
+			};
+		}
+
 		return {
-			redirect: {
-				permanent: true,
-				destination: "/",
+			props: {
+				trpcState: helpers.dehydrate(),
 			},
 		};
+	} catch {
+		return {
+			props: {},
+		};
 	}
-	return {
-		props: {
-			trpcState: helpers.dehydrate(),
-		},
-	};
 }
