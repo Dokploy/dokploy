@@ -69,7 +69,7 @@ export function TagSelector({
 						variant="outline"
 						aria-expanded={open}
 						className={cn(
-							"w-full justify-between min-h-10 h-auto",
+							"w-full justify-between min-h-10 h-auto bg-input",
 							disabled && "cursor-not-allowed opacity-50",
 						)}
 						disabled={disabled}
