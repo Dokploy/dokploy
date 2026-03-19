@@ -35,6 +35,7 @@ const ENTERPRISE_RESOURCES = [
 	"domain",
 	"destination",
 	"notification",
+	"tag",
 	"logs",
 	"monitoring",
 	"auditLog",
