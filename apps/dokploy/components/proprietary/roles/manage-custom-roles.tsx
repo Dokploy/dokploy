@@ -1,13 +1,20 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { Loader2, PlusIcon, ShieldCheck, TrashIcon, Users } from "lucide-react";
+import {
+	Loader2,
+	PlusIcon,
+	ShieldCheck,
+	Sparkles,
+	TrashIcon,
+	Users,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { DialogAction } from "@/components/shared/dialog-action";
 import { EnterpriseFeatureGate } from "@/components/proprietary/enterprise-feature-gate";
-import { Button } from "@/components/ui/button";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -25,11 +32,6 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@/components/ui/popover";
-import {
 	Form,
 	FormControl,
 	FormField,
@@ -38,6 +40,11 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
@@ -407,6 +414,114 @@ const ACTION_META: Record<
 /** Resources that should be hidden from the custom role editor (better-auth internals) */
 const HIDDEN_RESOURCES = ["organization", "invitation", "team", "ac"];
 
+/** Predefined role presets with sensible permission defaults */
+const ROLE_PRESETS: {
+	name: string;
+	label: string;
+	description: string;
+	permissions: Record<string, string[]>;
+}[] = [
+	{
+		name: "viewer",
+		label: "Viewer",
+		description: "Read-only access across all resources",
+		permissions: {
+			service: ["read"],
+			environment: ["read"],
+			docker: ["read"],
+			sshKeys: ["read"],
+			gitProviders: ["read"],
+			traefikFiles: ["read"],
+			api: ["read"],
+			volume: ["read"],
+			deployment: ["read"],
+			envVars: ["read"],
+			projectEnvVars: ["read"],
+			environmentEnvVars: ["read"],
+			server: ["read"],
+			registry: ["read"],
+			certificate: ["read"],
+			backup: ["read"],
+			volumeBackup: ["read"],
+			schedule: ["read"],
+			domain: ["read"],
+			destination: ["read"],
+			notification: ["read"],
+			member: ["read"],
+			logs: ["read"],
+			monitoring: ["read"],
+			auditLog: ["read"],
+		},
+	},
+	{
+		name: "developer",
+		label: "Developer",
+		description: "Deploy services, manage env vars, domains, and view logs",
+		permissions: {
+			project: ["create"],
+			service: ["create", "read"],
+			environment: ["create", "read"],
+			docker: ["read"],
+			gitProviders: ["read"],
+			api: ["read"],
+			volume: ["read", "create", "delete"],
+			deployment: ["read", "create", "cancel"],
+			envVars: ["read", "write"],
+			projectEnvVars: ["read"],
+			environmentEnvVars: ["read"],
+			domain: ["read", "create", "delete"],
+			schedule: ["read", "create", "update", "delete"],
+			logs: ["read"],
+			monitoring: ["read"],
+		},
+	},
+	{
+		name: "deployer",
+		label: "Deployer",
+		description: "Trigger and manage deployments only",
+		permissions: {
+			service: ["read"],
+			environment: ["read"],
+			deployment: ["read", "create", "cancel"],
+			logs: ["read"],
+			monitoring: ["read"],
+		},
+	},
+	{
+		name: "devops",
+		label: "DevOps",
+		description:
+			"Full infrastructure access: servers, registries, certs, backups, and deployments",
+		permissions: {
+			project: ["create", "delete"],
+			service: ["create", "read", "delete"],
+			environment: ["create", "read", "delete"],
+			docker: ["read"],
+			sshKeys: ["read", "create", "delete"],
+			gitProviders: ["read", "create", "delete"],
+			traefikFiles: ["read", "write"],
+			api: ["read"],
+			volume: ["read", "create", "delete"],
+			deployment: ["read", "create", "cancel"],
+			envVars: ["read", "write"],
+			projectEnvVars: ["read", "write"],
+			environmentEnvVars: ["read", "write"],
+			server: ["read", "create", "delete"],
+			registry: ["read", "create", "delete"],
+			certificate: ["read", "create", "delete"],
+			backup: ["read", "create", "delete", "restore"],
+			volumeBackup: ["read", "create", "update", "delete", "restore"],
+			schedule: ["read", "create", "update", "delete"],
+			domain: ["read", "create", "delete"],
+			destination: ["read", "create", "delete"],
+			notification: ["read", "create", "delete"],
+			logs: ["read"],
+			monitoring: ["read"],
+			auditLog: ["read"],
+		},
+	},
+];
+
 const createRoleSchema = z.object({
 	roleName: z
 		.string()
@@ -552,7 +667,7 @@ function HandleCustomRole({
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="max-h-[85vh] sm:max-w-5xl overflow-y-auto">
+			<DialogContent className="max-h-[85vh] sm:max-w-5xl overflow-y-auto space-y-2">
 				<DialogHeader>
 					<DialogTitle>
 						{isEdit ? "Edit Role" : "Create Custom Role"}
@@ -587,6 +702,32 @@ function HandleCustomRole({
 						/>
 					</form>
 				</Form>
+				{!isEdit && (
+					<div className="space-y-2 mt-4">
+						<p className="text-sm font-medium flex items-center gap-1.5">
+							<Sparkles className="size-3.5 text-muted-foreground" />
+							Start from a preset
+						</p>
+						<div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+							{ROLE_PRESETS.map((preset) => (
+								<button
+									key={preset.name}
+									type="button"
+									className="rounded-lg border p-3 text-left hover:bg-muted/50 transition-colors cursor-pointer space-y-1"
+									onClick={() => {
+										form.setValue("roleName", preset.name);
+										setPermissions({ ...preset.permissions });
+									}}
+								>
+									<p className="text-sm font-medium">{preset.label}</p>
+									<p className="text-xs text-muted-foreground leading-snug">
+										{preset.description}
+									</p>
+								</button>
+							))}
+						</div>
+					</div>
+				)}
 				<PermissionEditor
 					resources={visibleResources}
 					permissions={permissions}
@@ -843,7 +984,7 @@ function PermissionEditor({
 	onToggle: (resource: string, action: string) => void;
 }) {
 	return (
-		<div className="space-y-3">
+		<div className="space-y-3 mt-4">
 			<p className="text-sm font-medium">Permissions</p>
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 				{resources.map(([resource, actions]) => {

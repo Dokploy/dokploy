@@ -153,7 +153,7 @@ export const sendDatabaseBackupNotifications = async ({
 							? [
 									{
 										name: decorate("`⚠️`", "Error Message"),
-										value: `\`\`\`${errorMessage}\`\`\``,
+										value: `\`\`\`${errorMessage.length > 1010 ? `${errorMessage.substring(0, 1010)}...` : errorMessage}\`\`\``,
 									},
 								]
 							: []),
