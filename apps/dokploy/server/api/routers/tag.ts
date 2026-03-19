@@ -64,36 +64,34 @@ export const tagRouter = createTRPCRouter({
 		}
 	}),
 
-	one: protectedProcedure
-		.input(apiFindOneTag)
-		.query(async ({ input, ctx }) => {
-			try {
-				const tag = await db.query.tags.findFirst({
-					where: and(
-						eq(tags.tagId, input.tagId),
-						eq(tags.organizationId, ctx.session.activeOrganizationId),
-					),
-				});
+	one: protectedProcedure.input(apiFindOneTag).query(async ({ input, ctx }) => {
+		try {
+			const tag = await db.query.tags.findFirst({
+				where: and(
+					eq(tags.tagId, input.tagId),
+					eq(tags.organizationId, ctx.session.activeOrganizationId),
+				),
+			});
 
-				if (!tag) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Tag not found",
-					});
-				}
-
-				return tag;
-			} catch (error) {
-				if (error instanceof TRPCError) {
-					throw error;
-				}
+			if (!tag) {
 				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: `Error fetching tag: ${error instanceof Error ? error.message : error}`,
-					cause: error,
+					code: "NOT_FOUND",
+					message: "Tag not found",
 				});
 			}
-		}),
+
+			return tag;
+		} catch (error) {
+			if (error instanceof TRPCError) {
+				throw error;
+			}
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: `Error fetching tag: ${error instanceof Error ? error.message : error}`,
+				cause: error,
+			});
+		}
+	}),
 
 	update: withPermission("tag", "update")
 		.input(apiUpdateTag)
