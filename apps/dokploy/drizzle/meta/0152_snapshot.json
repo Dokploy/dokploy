@@ -1,6 +1,6 @@
 {
-  "id": "636b21c5-9739-45df-84c8-95f894ee7082",
-  "prevId": "e6eacbcd-0e09-4fa0-91be-730d3cc20d84",
+  "id": "68c71185-6e91-4b8d-8f91-795457e75ab2",
+  "prevId": "bfcffccc-2c73-4f23-a217-5afac257e26f",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -187,12 +187,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "refill_interval": {
           "name": "refill_interval",
           "type": "integer",
@@ -286,12 +280,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "apikey_user_id_user_id_fk": {
-          "name": "apikey_user_id_user_id_fk",
+        "apikey_reference_id_user_id_fk": {
+          "name": "apikey_reference_id_user_id_fk",
           "tableFrom": "apikey",
           "tableTo": "user",
           "columnsFrom": [
-            "user_id"
+            "reference_id"
           ],
           "columnsTo": [
             "id"
@@ -6936,6 +6930,139 @@
           "nullsNotDistinct": false,
           "columns": [
             "provider_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.project_tag": {
+      "name": "project_tag",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "projectId": {
+          "name": "projectId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tagId": {
+          "name": "tagId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "project_tag_projectId_project_projectId_fk": {
+          "name": "project_tag_projectId_project_projectId_fk",
+          "tableFrom": "project_tag",
+          "tableTo": "project",
+          "columnsFrom": [
+            "projectId"
+          ],
+          "columnsTo": [
+            "projectId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "project_tag_tagId_tag_tagId_fk": {
+          "name": "project_tag_tagId_tag_tagId_fk",
+          "tableFrom": "project_tag",
+          "tableTo": "tag",
+          "columnsFrom": [
+            "tagId"
+          ],
+          "columnsTo": [
+            "tagId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_project_tag": {
+          "name": "unique_project_tag",
+          "nullsNotDistinct": false,
+          "columns": [
+            "projectId",
+            "tagId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tag": {
+      "name": "tag",
+      "schema": "",
+      "columns": {
+        "tagId": {
+          "name": "tagId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "color": {
+          "name": "color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organizationId": {
+          "name": "organizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tag_organizationId_organization_id_fk": {
+          "name": "tag_organizationId_organization_id_fk",
+          "tableFrom": "tag",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organizationId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_org_tag_name": {
+          "name": "unique_org_tag_name",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organizationId",
+            "name"
           ]
         }
       },

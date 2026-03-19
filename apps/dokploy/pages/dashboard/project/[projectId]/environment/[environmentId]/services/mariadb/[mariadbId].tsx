@@ -23,7 +23,7 @@ import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { MariadbIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
+import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -78,22 +78,7 @@ const Mariadb = (
 	return (
 		<div className="pb-10">
 			<UseKeyboardNav forPage="mariadb" />
-			<BreadcrumbSidebar
-				list={[
-					{ name: "Projects", href: "/dashboard/projects" },
-					{
-						name: data?.environment?.project?.name || "",
-						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
-					},
-					{
-						name: data?.environment?.name || "",
-						dropdownItems: environmentDropdownItems,
-					},
-					{
-						name: data?.name || "",
-					},
-				]}
-			/>
+			<AdvanceBreadcrumb />
 			<div className="flex flex-col gap-4">
 				<Head>
 					<title>

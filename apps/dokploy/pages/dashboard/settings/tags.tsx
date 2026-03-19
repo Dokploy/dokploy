@@ -3,14 +3,14 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { TagManager } from "@/components/dashboard/settings/tags/tag-manager";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { ShowAuditLogs } from "@/components/proprietary/audit-logs/show-audit-logs";
 import { appRouter } from "@/server/api/root";
 
 const Page = () => {
 	return (
 		<div className="flex flex-col gap-4 w-full">
-			<ShowAuditLogs />
+			<TagManager />
 		</div>
 	);
 };
@@ -18,18 +18,13 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout metaName="Audit Logs">{page}</DashboardLayout>;
+	return <DashboardLayout>{page}</DashboardLayout>;
 };
-
-export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+export async function getServerSideProps(
+	ctx: GetServerSidePropsContext<{ serviceId: string }>,
+) {
 	const { req, res } = ctx;
 	const { user, session } = await validateRequest(req);
-
-	if (!user) {
-		return {
-			redirect: { destination: "/", permanent: true },
-		};
-	}
 
 	const helpers = createServerSideHelpers({
 		router: appRouter,
@@ -44,13 +39,16 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	});
 
 	try {
+		await helpers.user.get.prefetch();
+		await helpers.settings.isCloud.prefetch();
+
 		const userPermissions = await helpers.user.getPermissions.fetch();
 
-		if (!userPermissions?.auditLog.read) {
+		if (!userPermissions?.tag.read) {
 			return {
 				redirect: {
-					destination: "/dashboard/settings/profile",
-					permanent: false,
+					permanent: true,
+					destination: "/",
 				},
 			};
 		}
@@ -61,6 +59,8 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 			},
 		};
 	} catch {
-		return { props: {} };
+		return {
+			props: {},
+		};
 	}
 }

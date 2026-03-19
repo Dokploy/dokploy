@@ -1,6 +1,6 @@
 {
-  "id": "636b21c5-9739-45df-84c8-95f894ee7082",
-  "prevId": "e6eacbcd-0e09-4fa0-91be-730d3cc20d84",
+  "id": "bfcffccc-2c73-4f23-a217-5afac257e26f",
+  "prevId": "636b21c5-9739-45df-84c8-95f894ee7082",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -187,12 +187,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "refill_interval": {
           "name": "refill_interval",
           "type": "integer",
@@ -286,12 +280,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "apikey_user_id_user_id_fk": {
-          "name": "apikey_user_id_user_id_fk",
+        "apikey_reference_id_user_id_fk": {
+          "name": "apikey_reference_id_user_id_fk",
           "tableFrom": "apikey",
           "tableTo": "user",
           "columnsFrom": [
-            "user_id"
+            "reference_id"
           ],
           "columnsTo": [
             "id"

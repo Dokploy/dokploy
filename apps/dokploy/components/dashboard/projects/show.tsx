@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
+import { TagBadge } from "@/components/shared/tag-badge";
+import { TagFilter } from "@/components/shared/tag-filter";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -63,6 +65,7 @@ export const ShowProjects = () => {
 	const { data: auth } = api.user.get.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
+	const { data: availableTags } = api.tag.all.useQuery();
 
 	const [searchQuery, setSearchQuery] = useState(
 		router.isReady && typeof router.query.q === "string" ? router.query.q : "",
@@ -76,9 +79,30 @@ export const ShowProjects = () => {
 		return "createdAt-desc";
 	});
 
+	const [selectedTagIds, setSelectedTagIds] = useState<string[]>(() => {
+		if (typeof window !== "undefined") {
+			const saved = localStorage.getItem("projectsTagFilter");
+			return saved ? JSON.parse(saved) : [];
+		}
+		return [];
+	});
+
 	useEffect(() => {
 		localStorage.setItem("projectsSort", sortBy);
 	}, [sortBy]);
+
+	useEffect(() => {
+		localStorage.setItem("projectsTagFilter", JSON.stringify(selectedTagIds));
+	}, [selectedTagIds]);
+
+	useEffect(() => {
+		if (!availableTags) return;
+		const validIds = new Set(availableTags.map((t) => t.tagId));
+		setSelectedTagIds((prev) => {
+			const filtered = prev.filter((id) => validIds.has(id));
+			return filtered.length === prev.length ? prev : filtered;
+		});
+	}, [availableTags]);
 
 	useEffect(() => {
 		if (!router.isReady) return;
@@ -107,7 +131,7 @@ export const ShowProjects = () => {
 	const filteredProjects = useMemo(() => {
 		if (!data) return [];
 
-		const filtered = data.filter(
+		let filtered = data.filter(
 			(project) =>
 				project.name
 					.toLowerCase()
@@ -116,6 +140,15 @@ export const ShowProjects = () => {
 					?.toLowerCase()
 					.includes(debouncedSearchQuery.toLowerCase()),
 		);
+
+		// Filter by selected tags (OR logic: show projects with ANY selected tag)
+		if (selectedTagIds.length > 0) {
+			filtered = filtered.filter((project) =>
+				project.projectTags?.some((pt) =>
+					selectedTagIds.includes(pt.tag.tagId),
+				),
+			);
+		}
 
 		// Then sort the filtered results
 		const [field, direction] = sortBy.split("-");
@@ -162,18 +195,18 @@ export const ShowProjects = () => {
 			}
 			return direction === "asc" ? comparison : -comparison;
 		});
-	}, [data, debouncedSearchQuery, sortBy]);
+	}, [data, debouncedSearchQuery, sortBy, selectedTagIds]);
 
 	return (
 		<>
-			<BreadcrumbSidebar
-				list={[{ name: "Projects", href: "/dashboard/projects" }]}
-			/>
 			{!isCloud && (
 				<div className="absolute top-4 right-4">
 					<TimeBadge />
 				</div>
 			)}
+			<BreadcrumbSidebar
+				list={[{ name: "Projects", href: "/dashboard/projects" }]}
+			/>
 			<div className="w-full">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl  ">
 					<div className="rounded-xl bg-background shadow-md ">
@@ -213,29 +246,44 @@ export const ShowProjects = () => {
 
 											<Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
 										</div>
-										<div className="flex items-center gap-2 min-w-48 max-sm:w-full">
-											<ArrowUpDown className="size-4 text-muted-foreground" />
-											<Select value={sortBy} onValueChange={setSortBy}>
-												<SelectTrigger className="w-full">
-													<SelectValue placeholder="Sort by..." />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value="name-asc">Name (A-Z)</SelectItem>
-													<SelectItem value="name-desc">Name (Z-A)</SelectItem>
-													<SelectItem value="createdAt-desc">
-														Newest first
-													</SelectItem>
-													<SelectItem value="createdAt-asc">
-														Oldest first
-													</SelectItem>
-													<SelectItem value="services-desc">
-														Most services
-													</SelectItem>
-													<SelectItem value="services-asc">
-														Least services
-													</SelectItem>
-												</SelectContent>
-											</Select>
+										<div className="flex items-center gap-2">
+											<TagFilter
+												tags={
+													availableTags?.map((tag) => ({
+														id: tag.tagId,
+														name: tag.name,
+														color: tag.color || undefined,
+													})) || []
+												}
+												selectedTags={selectedTagIds}
+												onTagsChange={setSelectedTagIds}
+											/>
+											<div className="flex items-center gap-2 min-w-48 max-sm:w-full">
+												<ArrowUpDown className="size-4 text-muted-foreground" />
+												<Select value={sortBy} onValueChange={setSortBy}>
+													<SelectTrigger className="w-full">
+														<SelectValue placeholder="Sort by..." />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="name-asc">Name (A-Z)</SelectItem>
+														<SelectItem value="name-desc">
+															Name (Z-A)
+														</SelectItem>
+														<SelectItem value="createdAt-desc">
+															Newest first
+														</SelectItem>
+														<SelectItem value="createdAt-asc">
+															Oldest first
+														</SelectItem>
+														<SelectItem value="services-desc">
+															Most services
+														</SelectItem>
+														<SelectItem value="services-asc">
+															Least services
+														</SelectItem>
+													</SelectContent>
+												</Select>
+											</div>
 										</div>
 									</div>
 									{filteredProjects?.length === 0 && (
@@ -313,6 +361,19 @@ export const ShowProjects = () => {
 																		<span className="text-sm font-medium text-muted-foreground break-normal">
 																			{project.description}
 																		</span>
+
+																		{project.projectTags &&
+																			project.projectTags.length > 0 && (
+																				<div className="flex flex-wrap gap-1.5 mt-2">
+																					{project.projectTags.map((pt) => (
+																						<TagBadge
+																							key={pt.tag.tagId}
+																							name={pt.tag.name}
+																							color={pt.tag.color}
+																						/>
+																					))}
+																				</div>
+																			)}
 
 																		{hasNoEnvironments && (
 																			<div className="flex flex-row gap-2 items-center rounded-lg bg-yellow-50 p-2 mt-2 dark:bg-yellow-950">
@@ -434,7 +495,7 @@ export const ShowProjects = () => {
 																</CardTitle>
 															</CardHeader>
 															<CardFooter className="pt-4">
-																<div className="space-y-1 text-sm flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
+																<div className="space-y-1 text-xs flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
 																	<DateTooltip date={project.createdAt}>
 																		Created
 																	</DateTooltip>

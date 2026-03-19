@@ -2,6 +2,9 @@ import {
 	CLEANUP_CRON_JOB,
 	checkGPUStatus,
 	checkPortInUse,
+	checkPostgresHealth,
+	checkRedisHealth,
+	checkTraefikHealth,
 	cleanupAll,
 	cleanupAllBackground,
 	cleanupBuilders,
@@ -44,8 +47,8 @@ import {
 	writeTraefikConfigInPath,
 	writeTraefikSetup,
 } from "@dokploy/server";
-import { checkPermission } from "@dokploy/server/services/permission";
 import { db } from "@dokploy/server/db";
+import { checkPermission } from "@dokploy/server/services/permission";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";
 import { eq, sql } from "drizzle-orm";
@@ -653,6 +656,18 @@ export const settingsRouter = createTRPCRouter({
 					"github",
 					"gitlab",
 					"gitea",
+					"tag",
+					"patch",
+					"server",
+					"volumeBackups",
+					"environment",
+					"auditLog",
+					"customRole",
+					"whitelabeling",
+					"sso",
+					"licenseKey",
+					"organization",
+					"previewDeployment",
 				],
 			});
 
@@ -863,6 +878,23 @@ export const settingsRouter = createTRPCRouter({
 			console.error("Database connection error:", error);
 			throw error;
 		}
+	}),
+	checkInfrastructureHealth: adminProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return {
+				postgres: { status: "healthy" as const },
+				redis: { status: "healthy" as const },
+				traefik: { status: "healthy" as const },
+			};
+		}
+
+		const [postgres, redis, traefik] = await Promise.all([
+			checkPostgresHealth(),
+			checkRedisHealth(),
+			checkTraefikHealth(),
+		]);
+
+		return { postgres, redis, traefik };
 	}),
 	setupGPU: adminProcedure
 		.input(
