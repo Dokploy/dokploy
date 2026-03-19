@@ -76,27 +76,32 @@ const { handler, api } = betterAuth({
 		disabled: process.env.NODE_ENV === "production",
 	},
 	async trustedOrigins() {
-		if (IS_CLOUD) {
-			return getTrustedOrigins();
+		try {
+			if (IS_CLOUD) {
+				return await getTrustedOrigins();
+			}
+			const [trustedOrigins, settings] = await Promise.all([
+				getTrustedOrigins(),
+				getWebServerSettings(),
+			]);
+			if (!settings) return [];
+			const devOrigins =
+				process.env.NODE_ENV === "development"
+					? [
+							"http://localhost:3000",
+							"https://absolutely-handy-falcon.ngrok-free.app",
+						]
+					: [];
+			return [
+				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
+				...(settings?.host ? [`https://${settings?.host}`] : []),
+				...devOrigins,
+				...trustedOrigins,
+			];
+		} catch (error) {
+			console.error("Failed to resolve trusted origins:", error);
+			return [];
 		}
-		const [trustedOrigins, settings] = await Promise.all([
-			getTrustedOrigins(),
-			getWebServerSettings(),
-		]);
-		if (!settings) return [];
-		const devOrigins =
-			process.env.NODE_ENV === "development"
-				? [
-						"http://localhost:3000",
-						"https://absolutely-handy-falcon.ngrok-free.app",
-					]
-				: [];
-		return [
-			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
-			...(settings?.host ? [`https://${settings?.host}`] : []),
-			...devOrigins,
-			...trustedOrigins,
-		];
 	},
 	emailVerification: {
 		sendOnSignUp: true,
