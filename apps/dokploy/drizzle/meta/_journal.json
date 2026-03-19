@@ -1065,6 +1065,13 @@
       "when": 1773872561300,
       "tag": "0151_modern_sunfire",
       "breakpoints": true
+    },
+    {
+      "idx": 152,
+      "version": "7",
+      "when": 1773903778014,
+      "tag": "0152_odd_firelord",
+      "breakpoints": true
     }
   ]
 }

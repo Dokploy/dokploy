@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { TagBadge } from "@/components/shared/tag-badge";
 import { TagFilter } from "@/components/shared/tag-filter";
 import {
