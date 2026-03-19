@@ -465,7 +465,7 @@ export const userRouter = createTRPCRouter({
 					});
 				}
 
-				if (apiKeyToDelete.userId !== ctx.user.id) {
+				if (apiKeyToDelete.referenceId !== ctx.user.id) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to delete this API key",
