@@ -770,13 +770,6 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	dropDeployment: protectedProcedure
-		.meta({
-			openapi: {
-				path: "/drop-deployment",
-				method: "POST",
-				override: true,
-			},
-		})
 		.input(
 			zfd.formData({
 				applicationId: z.string(),
