@@ -526,7 +526,7 @@ export const AdvanceBreadcrumb = () => {
 					)}
 
 					{projectEnvironments && projectEnvironments.length === 1 && (
-						<p className="text-xs font-normal ml-1">
+						<p className="text-sm font-normal ml-1">
 							{currentEnvironment?.name || "production"}
 						</p>
 					)}
