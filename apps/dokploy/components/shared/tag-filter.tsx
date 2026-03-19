@@ -75,7 +75,10 @@ export function TagFilter({
 				<PopoverContent className="w-64 p-0" align="start">
 					<Command>
 						<div className="flex items-center border-b px-3">
-							<CommandInput placeholder="Search tags..." className="h-9 focus-visible:ring-0" />
+							<CommandInput
+								placeholder="Search tags..."
+								className="h-9 focus-visible:ring-0"
+							/>
 							{selectedTags.length > 0 && (
 								<Button
 									variant="ghost"

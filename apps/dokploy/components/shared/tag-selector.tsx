@@ -103,7 +103,10 @@ export function TagSelector({
 				</PopoverTrigger>
 				<PopoverContent className="w-full p-0" align="start">
 					<Command>
-						<CommandInput placeholder="Search tags..." className="focus-visible:ring-0" />
+						<CommandInput
+							placeholder="Search tags..."
+							className="focus-visible:ring-0"
+						/>
 						<CommandList>
 							<CommandEmpty>
 								<div className="flex flex-col items-center gap-2 py-1">

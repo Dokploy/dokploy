@@ -60,10 +60,7 @@ export const TagManager = () => {
 												>
 													<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border w-full">
 														<div className="flex items-center gap-3">
-															<TagBadge
-																name={tag.name}
-																color={tag.color}
-															/>
+															<TagBadge name={tag.name} color={tag.color} />
 															{tag.color && (
 																<span className="text-xs text-muted-foreground font-mono">
 																	{tag.color}
@@ -74,36 +71,35 @@ export const TagManager = () => {
 															{permissions?.tag.update && (
 																<HandleTag tagId={tag.tagId} />
 															)}
-															{permissions?.tag.delete && (<DialogAction
-																title="Delete Tag"
-																description={`Are you sure you want to delete the tag "${tag.name}"? This will remove the tag from all projects. This action cannot be undone.`}
-																type="destructive"
-																onClick={async () => {
-																	await deleteTag({
-																		tagId: tag.tagId,
-																	})
-																		.then(async () => {
-																			await utils.tag.all.invalidate();
-																			toast.success(
-																				"Tag deleted successfully",
-																			);
+															{permissions?.tag.delete && (
+																<DialogAction
+																	title="Delete Tag"
+																	description={`Are you sure you want to delete the tag "${tag.name}"? This will remove the tag from all projects. This action cannot be undone.`}
+																	type="destructive"
+																	onClick={async () => {
+																		await deleteTag({
+																			tagId: tag.tagId,
 																		})
-																		.catch(() => {
-																			toast.error(
-																				"Error deleting tag",
-																			);
-																		});
-																}}
-															>
-																<Button
-																	variant="ghost"
-																	size="icon"
-																	className="group hover:bg-red-500/10"
-																	isLoading={isRemoving}
+																			.then(async () => {
+																				await utils.tag.all.invalidate();
+																				toast.success(
+																					"Tag deleted successfully",
+																				);
+																			})
+																			.catch(() => {
+																				toast.error("Error deleting tag");
+																			});
+																	}}
 																>
-																	<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-																</Button>
-															</DialogAction>
+																	<Button
+																		variant="ghost"
+																		size="icon"
+																		className="group hover:bg-red-500/10"
+																		isLoading={isRemoving}
+																	>
+																		<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+																	</Button>
+																</DialogAction>
 															)}
 														</div>
 													</div>
