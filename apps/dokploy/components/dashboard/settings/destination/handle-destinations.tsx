@@ -37,16 +37,86 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { S3_PROVIDERS } from "./constants";
 
-const addDestination = z.object({
-	name: z.string().min(1, "Name is required"),
-	provider: z.string().min(1, "Provider is required"),
-	accessKeyId: z.string().min(1, "Access Key Id is required"),
-	secretAccessKey: z.string().min(1, "Secret Access Key is required"),
-	bucket: z.string().min(1, "Bucket is required"),
-	region: z.string(),
-	endpoint: z.string().min(1, "Endpoint is required"),
-	serverId: z.string().optional(),
-});
+const DESTINATION_TYPES = [
+	{ key: "s3", label: "S3 / S3-Compatible" },
+	{ key: "sftp", label: "SFTP" },
+	{ key: "ftp", label: "FTP" },
+] as const;
+
+type DestinationTypeKey = (typeof DESTINATION_TYPES)[number]["key"];
+
+/**
+ * Flat schema for the form – all fields are optional at the schema level; we
+ * apply conditional validation via superRefine based on the destinationType.
+ */
+const addDestination = z
+	.object({
+		name: z.string().min(1, "Name is required"),
+		destinationType: z.enum(["s3", "sftp", "ftp"] as const),
+		// S3
+		provider: z.string().optional(),
+		accessKeyId: z.string().optional(),
+		secretAccessKey: z.string().optional(),
+		bucket: z.string().optional(),
+		region: z.string().optional(),
+		endpoint: z.string().optional(),
+		// SFTP / FTP
+		host: z.string().optional(),
+		port: z.string().optional(),
+		username: z.string().optional(),
+		password: z.string().optional(),
+		/** Remote base path for SFTP/FTP destinations (maps to `bucket` column). */
+		remotePath: z.string().optional(),
+		// Cloud
+		serverId: z.string().optional(),
+	})
+	.superRefine((data, ctx) => {
+		if (data.destinationType === "s3") {
+			if (!data.accessKeyId)
+				ctx.addIssue({
+					code: "custom",
+					message: "Access Key is required",
+					path: ["accessKeyId"],
+				});
+			if (!data.secretAccessKey)
+				ctx.addIssue({
+					code: "custom",
+					message: "Secret Access Key is required",
+					path: ["secretAccessKey"],
+				});
+			if (!data.bucket)
+				ctx.addIssue({
+					code: "custom",
+					message: "Bucket is required",
+					path: ["bucket"],
+				});
+			if (!data.endpoint)
+				ctx.addIssue({
+					code: "custom",
+					message: "Endpoint is required",
+					path: ["endpoint"],
+				});
+		} else {
+			if (!data.host)
+				ctx.addIssue({
+					code: "custom",
+					message: "Host is required",
+					path: ["host"],
+				});
+			if (!data.username)
+				ctx.addIssue({
+					code: "custom",
+					message: "Username is required",
+					path: ["username"],
+				});
+			if (!data.password)
+				ctx.addIssue({
+					code: "custom",
+					message: "Password is required",
+					path: ["password"],
+				});
+		}
+	});
 
 type AddDestination = z.infer<typeof addDestination>;
 
@@ -60,9 +130,14 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
-	const { mutateAsync, isError, error, isPending } = destinationId
-		? api.destination.update.useMutation()
-		: api.destination.create.useMutation();
+	const { mutateAsync: createDestination, isPending: isCreating } =
+		api.destination.create.useMutation();
+	const { mutateAsync: updateDestination, isPending: isUpdating } =
+		api.destination.update.useMutation();
+
+	const isPending = isCreating || isUpdating;
+
+	const [formError, setFormError] = useState<string | null>(null);
 
 	const { data: destination } = api.destination.one.useQuery(
 		{
@@ -82,6 +157,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 
 	const form = useForm<AddDestination>({
 		defaultValues: {
+			destinationType: "s3",
 			provider: "",
 			accessKeyId: "",
 			bucket: "",
@@ -89,64 +165,139 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			region: "",
 			secretAccessKey: "",
 			endpoint: "",
+			host: "",
+			port: "",
+			username: "",
+			password: "",
+			remotePath: "",
 		},
 		resolver: zodResolver(addDestination),
 	});
+
+	const destinationType = form.watch("destinationType") as DestinationTypeKey;
+
 	useEffect(() => {
 		if (destination) {
+			const type =
+				(destination.destinationType as DestinationTypeKey | null) ?? "s3";
 			form.reset({
 				name: destination.name,
-				provider: destination.provider || "",
-				accessKeyId: destination.accessKey,
-				secretAccessKey: destination.secretAccessKey,
-				bucket: destination.bucket,
-				region: destination.region,
-				endpoint: destination.endpoint,
+				destinationType: type,
+				// S3
+				provider: destination.provider ?? "",
+				accessKeyId: destination.accessKey ?? "",
+				secretAccessKey: destination.secretAccessKey ?? "",
+				bucket: destination.bucket ?? "",
+				region: destination.region ?? "",
+				endpoint: destination.endpoint ?? "",
+				// SFTP / FTP
+				host: destination.host ?? "",
+				port: destination.port ?? "",
+				username: destination.username ?? "",
+				password: destination.password ?? "",
+				remotePath: type !== "s3" ? (destination.bucket ?? "") : "",
 			});
 		} else {
-			form.reset();
+			form.reset({
+				destinationType: "s3",
+				provider: "",
+				accessKeyId: "",
+				bucket: "",
+				name: "",
+				region: "",
+				secretAccessKey: "",
+				endpoint: "",
+				host: "",
+				port: "",
+				username: "",
+				password: "",
+				remotePath: "",
+			});
 		}
 	}, [form, form.reset, form.formState.isSubmitSuccessful, destination]);
 
+	const buildPayload = (data: AddDestination) => {
+		const common = { name: data.name };
+		if (data.destinationType === "s3") {
+			return {
+				...common,
+				destinationType: "s3" as const,
+				provider: data.provider ?? "",
+				accessKey: data.accessKeyId ?? "",
+				bucket: data.bucket ?? "",
+				endpoint: data.endpoint ?? "",
+				region: data.region ?? "",
+				secretAccessKey: data.secretAccessKey ?? "",
+				serverId: data.serverId,
+			};
+		}
+		if (data.destinationType === "sftp") {
+			return {
+				...common,
+				destinationType: "sftp" as const,
+				host: data.host ?? "",
+				port: data.port ?? "",
+				username: data.username ?? "",
+				password: data.password ?? "",
+				// remotePath maps to the `bucket` column for SFTP/FTP
+				bucket: data.remotePath ?? "",
+				serverId: data.serverId,
+			};
+		}
+		return {
+			...common,
+			destinationType: "ftp" as const,
+			host: data.host ?? "",
+			port: data.port ?? "",
+			username: data.username ?? "",
+			password: data.password ?? "",
+			// remotePath maps to the `bucket` column for FTP
+			bucket: data.remotePath ?? "",
+			serverId: data.serverId,
+		};
+	};
+
 	const onSubmit = async (data: AddDestination) => {
-		await mutateAsync({
-			provider: data.provider || "",
-			accessKey: data.accessKeyId,
-			bucket: data.bucket,
-			endpoint: data.endpoint,
-			name: data.name,
-			region: data.region,
-			secretAccessKey: data.secretAccessKey,
-			destinationId: destinationId || "",
-		})
-			.then(async () => {
-				toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
-				await utils.destination.all.invalidate();
-				if (destinationId) {
-					await utils.destination.one.invalidate({ destinationId });
-				}
-				setOpen(false);
-			})
-			.catch(() => {
-				toast.error(
-					`Error ${destinationId ? "Updating" : "Creating"} the Destination`,
-				);
-			});
+		setFormError(null);
+		try {
+			const payload = buildPayload(data);
+			if (destinationId) {
+				await updateDestination({ ...payload, destinationId });
+			} else {
+				await createDestination(payload);
+			}
+			toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
+			await utils.destination.all.invalidate();
+			if (destinationId) {
+				await utils.destination.one.invalidate({ destinationId });
+			}
+			setOpen(false);
+		} catch (e) {
+			const msg =
+				e instanceof Error
+					? e.message
+					: `Error ${destinationId ? "updating" : "creating"} the Destination`;
+			setFormError(msg);
+			toast.error(msg);
+		}
 	};
 
 	const handleTestConnection = async (serverId?: string) => {
-		const result = await form.trigger([
-			"provider",
-			"accessKeyId",
-			"secretAccessKey",
-			"bucket",
-			"endpoint",
-		]);
+		const type = form.getValues("destinationType");
+		const fieldsToValidate: (keyof AddDestination)[] =
+			type === "s3"
+				? ["provider", "accessKeyId", "secretAccessKey", "bucket", "endpoint"]
+				: ["host", "username", "password"];
+
+		const result = await form.trigger(fieldsToValidate);
 
 		if (!result) {
 			const errors = form.formState.errors;
 			const errorFields = Object.entries(errors)
-				.map(([field, error]) => `${field}: ${error?.message}`)
+				.map(
+					([field, error]) =>
+						`${field}: ${(error as { message?: string })?.message}`,
+				)
 				.filter(Boolean)
 				.join("\n");
 
@@ -161,34 +312,23 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			return;
 		}
 
-		const provider = form.getValues("provider");
-		const accessKey = form.getValues("accessKeyId");
-		const secretKey = form.getValues("secretAccessKey");
-		const bucket = form.getValues("bucket");
-		const endpoint = form.getValues("endpoint");
-		const region = form.getValues("region");
+		const name = form.getValues("name") || "Test";
+		const payload = buildPayload({ ...form.getValues(), name, serverId });
 
-		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
-
-		await testConnection({
-			provider,
-			accessKey,
-			bucket,
-			endpoint,
-			name: "Test",
-			region,
-			secretAccessKey: secretKey,
-			serverId,
-		})
+		await testConnection(payload)
 			.then(() => {
 				toast.success("Connection Success");
 			})
 			.catch((e) => {
-				toast.error("Error connecting to provider", {
-					description: `${e.message}\n\nTry manually: rclone ls ${connectionString}`,
+				toast.error("Error connecting to destination", {
+					description: e.message,
 				});
 			});
 	};
+
+	const isS3 = destinationType === "s3";
+	const isSftpOrFtp = destinationType === "sftp" || destinationType === "ftp";
+	const isError = !!formError || isErrorConnection;
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -219,9 +359,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 						guarantee secure and efficient storage.
 					</DialogDescription>
 				</DialogHeader>
-				{(isError || isErrorConnection) && (
+				{isError && (
 					<AlertBlock type="error" className="w-full">
-						{connectionError?.message || error?.message}
+						{connectionError?.message || formError}
 					</AlertBlock>
 				)}
 
@@ -239,42 +379,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									<FormItem>
 										<FormLabel>Name</FormLabel>
 										<FormControl>
-											<Input placeholder={"S3 Bucket"} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
-						<FormField
-							control={form.control}
-							name="provider"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Provider</FormLabel>
-										<FormControl>
-											<Select
-												onValueChange={field.onChange}
-												defaultValue={field.value}
-												value={field.value}
-											>
-												<FormControl>
-													<SelectTrigger>
-														<SelectValue placeholder="Select a S3 Provider" />
-													</SelectTrigger>
-												</FormControl>
-												<SelectContent>
-													{S3_PROVIDERS.map((s3Provider) => (
-														<SelectItem
-															key={s3Provider.key}
-															value={s3Provider.key}
-														>
-															{s3Provider.name}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
+											<Input placeholder={"My Backup Destination"} {...field} />
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -282,82 +387,239 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							}}
 						/>
 
+						{/* Destination Type selector */}
 						<FormField
 							control={form.control}
-							name="accessKeyId"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
-										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
-						<FormField
-							control={form.control}
-							name="secretAccessKey"
+							name="destinationType"
 							render={({ field }) => (
 								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
-									</div>
+									<FormLabel>Destination Type</FormLabel>
 									<FormControl>
-										<Input placeholder={"asd123asdasw"} {...field} />
+										<Select
+											onValueChange={field.onChange}
+											defaultValue={field.value}
+											value={field.value}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="Select a destination type" />
+											</SelectTrigger>
+											<SelectContent>
+												{DESTINATION_TYPES.map((dt) => (
+													<SelectItem key={dt.key} value={dt.key}>
+														{dt.label}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="bucket"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="region"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="endpoint"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
-									<FormControl>
-										<Input
-											placeholder={"https://us.bucket.aws/s3"}
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+
+						{/* ── S3-specific fields ─────────────────────────────────── */}
+						{isS3 && (
+							<>
+								<FormField
+									control={form.control}
+									name="provider"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Provider</FormLabel>
+												<FormControl>
+													<Select
+														onValueChange={field.onChange}
+														defaultValue={field.value}
+														value={field.value}
+													>
+														<SelectTrigger>
+															<SelectValue placeholder="Select a S3 Provider" />
+														</SelectTrigger>
+														<SelectContent>
+															{S3_PROVIDERS.map((s3Provider) => (
+																<SelectItem
+																	key={s3Provider.key}
+																	value={s3Provider.key}
+																>
+																	{s3Provider.name}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="accessKeyId"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Access Key Id</FormLabel>
+												<FormControl>
+													<Input placeholder={"xcas41dasde"} {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+								<FormField
+									control={form.control}
+									name="secretAccessKey"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Secret Access Key</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"asd123asdasw"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="bucket"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Bucket</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"dokploy-bucket"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="region"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Region</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"us-east-1"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="endpoint"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Endpoint</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={"https://us.bucket.aws/s3"}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
+
+						{/* ── SFTP / FTP fields ──────────────────────────────────── */}
+						{isSftpOrFtp && (
+							<>
+								<FormField
+									control={form.control}
+									name="host"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Host</FormLabel>
+											<FormControl>
+												<Input placeholder={"sftp.example.com"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="port"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												Port{" "}
+												<span className="text-muted-foreground">
+													(default: {destinationType === "sftp" ? "22" : "21"})
+												</span>
+											</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={destinationType === "sftp" ? "22" : "21"}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="username"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Username</FormLabel>
+											<FormControl>
+												<Input placeholder={"backup-user"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="password"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Password</FormLabel>
+											<FormControl>
+												<Input
+													type="password"
+													placeholder={"••••••••"}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="remotePath"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												Remote Path{" "}
+												<span className="text-muted-foreground">
+													(optional)
+												</span>
+											</FormLabel>
+											<FormControl>
+												<Input placeholder={"/backups"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
 					</form>
 
 					<DialogFooter

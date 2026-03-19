@@ -2,7 +2,11 @@ import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { findComposeById } from "@dokploy/server/services/compose";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
-import { getS3Credentials, normalizeS3Path } from "../backups/utils";
+import {
+	getRcloneDestinationPath,
+	getRcloneFlags,
+	normalizeS3Path,
+} from "../backups/utils";
 
 export const getVolumeServiceAppName = (
 	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
@@ -30,11 +34,14 @@ export const backupVolume = async (
 		volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
 	const { VOLUME_BACKUPS_PATH, VOLUME_BACKUP_LOCK_PATH } = paths(!!serverId);
 	const destination = volumeBackup.destination;
-	const s3AppName = getVolumeServiceAppName(volumeBackup);
+	const appName = getVolumeServiceAppName(volumeBackup);
 	const backupFileName = `${volumeName}-${new Date().toISOString()}.tar`;
-	const bucketDestination = `${s3AppName}/${normalizeS3Path(prefix || "")}${backupFileName}`;
-	const rcloneFlags = getS3Credentials(volumeBackup.destination);
-	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+	const bucketDestination = `${appName}/${normalizeS3Path(prefix || "")}${backupFileName}`;
+	const rcloneFlags = getRcloneFlags(volumeBackup.destination);
+	const rcloneDestination = getRcloneDestinationPath(
+		destination,
+		bucketDestination,
+	);
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
 
 	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
@@ -55,9 +62,9 @@ export const backupVolume = async (
   `;
 
 	const uploadCommand = `
-  echo "Starting upload to S3..."
+  echo "Starting upload..."
   ${rcloneCommand}
-  echo "Upload to S3 done ✅"
+  echo "Upload done ✅"
   echo "Cleaning up local backup file..."
   rm "${volumeBackupPath}/${backupFileName}"
   echo "Local backup file cleaned up ✅"

@@ -47,26 +47,69 @@ export const destinationRouter = createTRPCRouter({
 	testConnection: withPermission("destination", "create")
 		.input(apiCreateDestination)
 		.mutation(async ({ input }) => {
-			const { secretAccessKey, bucket, region, endpoint, accessKey, provider } =
-				input;
 			try {
-				const rcloneFlags = [
-					`--s3-access-key-id="${accessKey}"`,
-					`--s3-secret-access-key="${secretAccessKey}"`,
-					`--s3-region="${region}"`,
-					`--s3-endpoint="${endpoint}"`,
-					"--s3-no-check-bucket",
-					"--s3-force-path-style",
-					"--retries 1",
-					"--low-level-retries 1",
-					"--timeout 10s",
-					"--contimeout 5s",
-				];
-				if (provider) {
-					rcloneFlags.unshift(`--s3-provider="${provider}"`);
+				let rcloneCommand: string;
+
+				if (input.destinationType === "sftp") {
+					const { host, port, username, password } = input;
+					// rclone requires --sftp-pass to be obscured; use shell substitution
+					const obscuredPass = `$(rclone obscure '${password.replace(/'/g, "'\\''")}')`; 
+					const flags = [
+						`--sftp-host="${host}"`,
+						`--sftp-user="${username}"`,
+						`--sftp-port="${port || "22"}"`,
+						`--sftp-pass="${obscuredPass}"`,
+						"--retries 1",
+						"--low-level-retries 1",
+						"--timeout 10s",
+						"--contimeout 5s",
+					];
+					const remotePath = (input.bucket ?? "").replace(/^\/+|\/+$/g, "");
+					rcloneCommand = `rclone ls ${flags.join(" ")} ":sftp:${remotePath}"`;
+				} else if (input.destinationType === "ftp") {
+					const { host, port, username, password } = input;
+					// rclone requires --ftp-pass to be obscured; use shell substitution
+					const obscuredPass = `$(rclone obscure '${password.replace(/'/g, "'\\''")}')`; 
+					const flags = [
+						`--ftp-host="${host}"`,
+						`--ftp-user="${username}"`,
+						`--ftp-port="${port || "21"}"`,
+						"--ftp-disable-epsv",
+						`--ftp-pass="${obscuredPass}"`,
+						"--retries 1",
+						"--low-level-retries 1",
+						"--timeout 10s",
+						"--contimeout 5s",
+					];
+					const remotePath = (input.bucket ?? "").replace(/^\/+|\/+$/g, "");
+					rcloneCommand = `rclone ls ${flags.join(" ")} ":ftp:${remotePath}"`;
+				} else {
+					// S3
+					const {
+						secretAccessKey,
+						bucket,
+						region,
+						endpoint,
+						accessKey,
+						provider,
+					} = input;
+					const rcloneFlags = [
+						`--s3-access-key-id="${accessKey}"`,
+						`--s3-secret-access-key="${secretAccessKey}"`,
+						`--s3-region="${region ?? ""}"`,
+						`--s3-endpoint="${endpoint}"`,
+						"--s3-no-check-bucket",
+						"--s3-force-path-style",
+						"--retries 1",
+						"--low-level-retries 1",
+						"--timeout 10s",
+						"--contimeout 5s",
+					];
+					if (provider) {
+						rcloneFlags.unshift(`--s3-provider="${provider}"`);
+					}
+					rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} ":s3:${bucket}"`;
 				}
-				const rcloneDestination = `:s3:${bucket}`;
-				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
@@ -86,7 +129,7 @@ export const destinationRouter = createTRPCRouter({
 					message:
 						error instanceof Error
 							? error?.message
-							: "Error connecting to bucket",
+							: "Error connecting to destination",
 					cause: error,
 				});
 			}

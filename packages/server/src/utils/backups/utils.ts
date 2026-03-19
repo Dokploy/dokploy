@@ -58,23 +58,112 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
-export const getS3Credentials = (destination: Destination) => {
+/**
+ * Escape a value for safe use inside a double-quoted shell string.
+ * Escapes backslash, double-quote, dollar sign, and backtick.
+ */
+const escapeShellValue = (value: string): string =>
+	value.replace(/[\\"$`]/g, "\\$&");
+
+/**
+ * Wraps a plain-text password in a shell command substitution that calls
+ * `rclone obscure` at runtime.  rclone's --ftp-pass and --sftp-pass flags
+ * require an obscured (XOR-encoded) password, not plain text.  Using `$()`
+ * keeps the obscured form out of memory and avoids storing it anywhere.
+ * The password is single-quoted so all special characters are safe; only
+ * single-quote characters inside the password need escaping.
+ */
+const shellObscurePassword = (password: string): string => {
+	const escaped = password.replace(/'/g, "'\\''");
+	return `$(rclone obscure '${escaped}')`;
+};
+
+const DEFAULT_SFTP_PORT = "22";
+const DEFAULT_FTP_PORT = "21";
+
+/**
+ * Returns the rclone flags array for the given destination.
+ * Supports S3-compatible, SFTP, and FTP destination types.
+ *
+ * Note: SFTP/FTP passwords are wrapped in a $(rclone obscure '...') shell
+ * substitution because rclone requires obscured (not plain-text) passwords
+ * for those transports.  The returned flags must be used inside a shell
+ * command string (e.g. passed to child_process.exec).
+ */
+export const getRcloneFlags = (destination: Destination): string[] => {
+	const type = destination.destinationType ?? "s3";
+
+	if (type === "sftp") {
+		const flags = [
+			`--sftp-host="${escapeShellValue(destination.host ?? "")}"`,
+			`--sftp-user="${escapeShellValue(destination.username ?? "")}"`,
+			`--sftp-port="${escapeShellValue(destination.port || DEFAULT_SFTP_PORT)}"`,
+		];
+		if (destination.password) {
+			flags.push(`--sftp-pass="${shellObscurePassword(destination.password)}"`);
+		}
+		return flags;
+	}
+
+	if (type === "ftp") {
+		const flags = [
+			`--ftp-host="${escapeShellValue(destination.host ?? "")}"`,
+			`--ftp-user="${escapeShellValue(destination.username ?? "")}"`,
+			`--ftp-port="${escapeShellValue(destination.port || DEFAULT_FTP_PORT)}"`,
+			"--ftp-disable-epsv",
+		];
+		if (destination.password) {
+			flags.push(`--ftp-pass="${shellObscurePassword(destination.password)}"`);
+		}
+		return flags;
+	}
+
+	// Default: S3-compatible
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [
-		`--s3-access-key-id="${accessKey}"`,
-		`--s3-secret-access-key="${secretAccessKey}"`,
-		`--s3-region="${region}"`,
-		`--s3-endpoint="${endpoint}"`,
+		`--s3-access-key-id="${escapeShellValue(accessKey ?? "")}"`,
+		`--s3-secret-access-key="${escapeShellValue(secretAccessKey ?? "")}"`,
+		`--s3-region="${escapeShellValue(region ?? "")}"`,
+		`--s3-endpoint="${escapeShellValue(endpoint ?? "")}"`,
 		"--s3-no-check-bucket",
 		"--s3-force-path-style",
 	];
 
 	if (provider) {
-		rcloneFlags.unshift(`--s3-provider="${provider}"`);
+		rcloneFlags.unshift(`--s3-provider="${escapeShellValue(provider)}"`);
 	}
 
 	return rcloneFlags;
+};
+
+/**
+ * @deprecated Use {@link getRcloneFlags} instead.
+ */
+export const getS3Credentials = getRcloneFlags;
+
+/**
+ * Returns the rclone remote path for the given destination and file path.
+ *
+ * - S3:   `:s3:<bucket>/<filePath>`
+ * - SFTP: `:sftp:<remotePath>/<filePath>`
+ * - FTP:  `:ftp:<remotePath>/<filePath>`
+ */
+export const getRcloneDestinationPath = (
+	destination: Destination,
+	filePath: string,
+): string => {
+	const type = destination.destinationType ?? "s3";
+	const bucket = (destination.bucket ?? "").replace(/^\/+|\/+$/g, "");
+
+	if (type === "sftp") {
+		return `:sftp:${bucket}/${filePath}`;
+	}
+	if (type === "ftp") {
+		return `:ftp:${bucket}/${filePath}`;
+	}
+	// Default: S3
+	return `:s3:${bucket}/${filePath}`;
 };
 
 export const getPostgresBackupCommand = (
@@ -255,16 +344,16 @@ export const getBackupCommand = (
 	}
 
 	echo "[$(date)] ✅ backup completed successfully" >> ${logPath};
-	echo "[$(date)] Starting upload to S3..." >> ${logPath};
+	echo "[$(date)] Starting upload..." >> ${logPath};
 
 	# Run the upload command and capture the exit status
 	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
+		echo "[$(date)] ❌ Error: Upload failed" >> ${logPath};
 		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
 		exit 1;
 	}
 
-	echo "[$(date)] ✅ Upload to S3 completed successfully" >> ${logPath};
+	echo "[$(date)] ✅ Upload completed successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };
