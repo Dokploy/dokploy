@@ -23,8 +23,11 @@ import { mysqlRouter } from "./routers/mysql";
 import { notificationRouter } from "./routers/notification";
 import { organizationRouter } from "./routers/organization";
 import { patchRouter } from "./routers/patch";
+import { auditLogRouter } from "./routers/proprietary/audit-log";
+import { customRoleRouter } from "./routers/proprietary/custom-role";
 import { licenseKeyRouter } from "./routers/proprietary/license-key";
 import { ssoRouter } from "./routers/proprietary/sso";
+import { whitelabelingRouter } from "./routers/proprietary/whitelabeling";
 import { portRouter } from "./routers/port";
 import { postgresRouter } from "./routers/postgres";
 import { previewDeploymentRouter } from "./routers/preview-deployment";
@@ -87,6 +90,9 @@ export const appRouter = createTRPCRouter({
 	organization: organizationRouter,
 	licenseKey: licenseKeyRouter,
 	sso: ssoRouter,
+	whitelabeling: whitelabelingRouter,
+	customRole: customRoleRouter,
+	auditLog: auditLogRouter,
 	schedule: scheduleRouter,
 	rollback: rollbackRouter,
 	volumeBackups: volumeBackupsRouter,

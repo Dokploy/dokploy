@@ -413,17 +413,38 @@ export const checkPortInUse = async (
 	serverId?: string,
 ): Promise<{ isInUse: boolean; conflictingContainer?: string }> => {
 	try {
-		const command = `docker ps -a --format '{{.Names}}' | grep -v '^dokploy-traefik$' | while read name; do docker port "$name" 2>/dev/null | grep -q ':${port}' && echo "$name" && break; done || true`;
-		const { stdout } = serverId
-			? await execAsyncRemote(serverId, command)
-			: await execAsync(command);
+		// Check if port is in use by a Docker container
+		const dockerCommand = `docker ps -a --format '{{.Names}}' | grep -v '^dokploy-traefik$' | while read name; do docker port "$name" 2>/dev/null | grep -q ':${port}' && echo "$name" && break; done || true`;
+		const { stdout: dockerOut } = serverId
+			? await execAsyncRemote(serverId, dockerCommand)
+			: await execAsync(dockerCommand);
 
-		const container = stdout.trim();
+		const container = dockerOut.trim();
 
-		return {
-			isInUse: !!container,
-			conflictingContainer: container || undefined,
-		};
+		if (container) {
+			return {
+				isInUse: true,
+				conflictingContainer: `container "${container}"`,
+			};
+		}
+
+		// Check if port is in use by a host-level service (non-Docker)
+		// Dokploy runs inside a container, so we spawn an ephemeral container
+		// with --net=host to share the host's network stack and use nc -z to
+		// check if something is listening on the port
+		const hostCommand = `docker run --rm --net=host busybox sh -c 'nc -z 0.0.0.0 ${port} 2>/dev/null && echo in_use || echo free'`;
+		const { stdout: hostOut } = serverId
+			? await execAsyncRemote(serverId, hostCommand)
+			: await execAsync(hostCommand);
+
+		if (hostOut.includes("in_use")) {
+			return {
+				isInUse: true,
+				conflictingContainer: "a host-level service",
+			};
+		}
+
+		return { isInUse: false };
 	} catch (error) {
 		console.error("Error checking port availability:", error);
 		return { isInUse: false };

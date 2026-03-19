@@ -1,5 +1,6 @@
 export * from "./account";
 export * from "./ai";
+export * from "./audit-log";
 export * from "./application";
 export * from "./backups";
 export * from "./bitbucket";

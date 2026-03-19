@@ -16,6 +16,7 @@ export const ShowRegistry = () => {
 	const { mutateAsync, isPending: isRemoving } =
 		api.registry.remove.useMutation();
 	const { data, isPending, refetch } = api.registry.all.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	return (
 		<div className="w-full">
@@ -44,7 +45,7 @@ export const ShowRegistry = () => {
 										<span className="text-base text-muted-foreground text-center">
 											You don't have any registry configurations
 										</span>
-										<HandleRegistry />
+										{permissions?.registry.create && <HandleRegistry />}
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
@@ -73,45 +74,49 @@ export const ShowRegistry = () => {
 																registryId={registry.registryId}
 															/>
 
-															<DialogAction
-																title="Delete Registry"
-																description="Are you sure you want to delete this registry configuration?"
-																type="destructive"
-																onClick={async () => {
-																	await mutateAsync({
-																		registryId: registry.registryId,
-																	})
-																		.then(() => {
-																			toast.success(
-																				"Registry configuration deleted successfully",
-																			);
-																			refetch();
+															{permissions?.registry.delete && (
+																<DialogAction
+																	title="Delete Registry"
+																	description="Are you sure you want to delete this registry configuration?"
+																	type="destructive"
+																	onClick={async () => {
+																		await mutateAsync({
+																			registryId: registry.registryId,
 																		})
-																		.catch(() => {
-																			toast.error(
-																				"Error deleting registry configuration",
-																			);
-																		});
-																}}
-															>
-																<Button
-																	variant="ghost"
-																	size="icon"
-																	className="group hover:bg-red-500/10 "
-																	isLoading={isRemoving}
+																			.then(() => {
+																				toast.success(
+																					"Registry configuration deleted successfully",
+																				);
+																				refetch();
+																			})
+																			.catch(() => {
+																				toast.error(
+																					"Error deleting registry configuration",
+																				);
+																			});
+																	}}
 																>
-																	<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-																</Button>
-															</DialogAction>
+																	<Button
+																		variant="ghost"
+																		size="icon"
+																		className="group hover:bg-red-500/10 "
+																		isLoading={isRemoving}
+																	>
+																		<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+																	</Button>
+																</DialogAction>
+															)}
 														</div>
 													</div>
 												</div>
 											))}
 										</div>
 
-										<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
-											<HandleRegistry />
-										</div>
+										{permissions?.registry.create && (
+											<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
+												<HandleRegistry />
+											</div>
+										)}
 									</div>
 								)}
 							</>

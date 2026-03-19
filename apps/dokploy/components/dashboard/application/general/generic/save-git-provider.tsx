@@ -1,5 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { KeyRoundIcon, LockIcon, X } from "lucide-react";
+import { HelpCircle, KeyRoundIcon, LockIcon, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
@@ -228,10 +228,8 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 									<FormLabel>Watch Paths</FormLabel>
 									<TooltipProvider>
 										<Tooltip>
-											<TooltipTrigger>
-												<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
-													?
-												</div>
+											<TooltipTrigger asChild>
+												<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 											</TooltipTrigger>
 											<TooltipContent className="max-w-[300px]">
 												<p>

@@ -57,19 +57,13 @@ export const AdvancedEnvironmentSelector = ({
 	const [description, setDescription] = useState("");
 
 	// Get current user's permissions
-	const { data: currentUser } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	// Check if user can create environments
-	const canCreateEnvironments =
-		currentUser?.role === "owner" ||
-		currentUser?.role === "admin" ||
-		currentUser?.canCreateEnvironments === true;
+	const canCreateEnvironments = !!permissions?.environment.create;
 
 	// Check if user can delete environments
-	const canDeleteEnvironments =
-		currentUser?.role === "owner" ||
-		currentUser?.role === "admin" ||
-		currentUser?.canDeleteEnvironments === true;
+	const canDeleteEnvironments = !!permissions?.environment.delete;
 
 	const haveServices =
 		selectedEnvironment &&

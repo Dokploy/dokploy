@@ -191,6 +191,7 @@ export const apiUpdateMongo = createSchema
 	.partial()
 	.extend({
 		mongoId: z.string().min(1),
+		dockerImage: z.string().optional(),
 	})
 	.omit({ serverId: true });
 

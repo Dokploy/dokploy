@@ -12,7 +12,7 @@ import {
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { getS3Credentials, normalizeS3Path } from "../backups/utils";
 import { sendVolumeBackupNotifications } from "../notifications/volume-backup";
-import { backupVolume } from "./backup";
+import { backupVolume, getVolumeServiceAppName } from "./backup";
 
 // Helper functions to extract project info from volume backup
 const getProjectName = (
@@ -81,7 +81,8 @@ const cleanupOldVolumeBackups = async (
 
 	try {
 		const rcloneFlags = getS3Credentials(destination);
-		const backupFilesPath = `:s3:${destination.bucket}/${volumeBackup.appName}/${normalizeS3Path(prefix || "")}`;
+		const s3AppName = getVolumeServiceAppName(volumeBackup);
+		const backupFilesPath = `:s3:${destination.bucket}/${s3AppName}/${normalizeS3Path(prefix || "")}`;
 		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include \"${volumeName}-*.tar\" ${backupFilesPath}`;
 		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
 		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;

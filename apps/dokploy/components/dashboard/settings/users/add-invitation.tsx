@@ -32,7 +32,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 
 const addInvitation = z.object({
@@ -40,7 +39,7 @@ const addInvitation = z.object({
 		.string()
 		.min(1, "Email is required")
 		.email({ message: "Invalid email" }),
-	role: z.enum(["member", "admin"]),
+	role: z.string().min(1, "Role is required"),
 	notificationId: z.string().optional(),
 });
 
@@ -49,13 +48,14 @@ type AddInvitation = z.infer<typeof addInvitation>;
 export const AddInvitation = () => {
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
-	const [isLoading, setIsLoading] = useState(false);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: emailProviders } =
 		api.notification.getEmailProviders.useQuery();
+	const { mutateAsync: inviteMember, isPending: isInviting } =
+		api.organization.inviteMember.useMutation();
 	const { mutateAsync: sendInvitation } = api.user.sendInvitation.useMutation();
+	const { data: customRoles } = api.customRole.all.useQuery();
 	const [error, setError] = useState<string | null>(null);
-	const { data: activeOrganization } = api.organization.active.useQuery();
 
 	const form = useForm<AddInvitation>({
 		defaultValues: {
@@ -70,19 +70,15 @@ export const AddInvitation = () => {
 	}, [form, form.formState.isSubmitSuccessful, form.reset]);
 
 	const onSubmit = async (data: AddInvitation) => {
-		setIsLoading(true);
-		const result = await authClient.organization.inviteMember({
-			email: data.email.toLowerCase(),
-			role: data.role,
-			organizationId: activeOrganization?.id,
-		});
+		try {
+			const result = await inviteMember({
+				email: data.email.toLowerCase(),
+				role: data.role,
+			});
 
-		if (result.error) {
-			setError(result.error.message || "");
-		} else {
 			if (!isCloud && data.notificationId) {
 				await sendInvitation({
-					invitationId: result.data.id,
+					invitationId: result!.id,
 					notificationId: data.notificationId || "",
 				})
 					.then(() => {
@@ -96,10 +92,11 @@ export const AddInvitation = () => {
 			}
 			setError(null);
 			setOpen(false);
+		} catch (error: any) {
+			setError(error.message || "Failed to create invitation");
 		}
 
 		utils.organization.allInvitations.invalidate();
-		setIsLoading(false);
 	};
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -159,6 +156,11 @@ export const AddInvitation = () => {
 											<SelectContent>
 												<SelectItem value="member">Member</SelectItem>
 												<SelectItem value="admin">Admin</SelectItem>
+												{customRoles?.map((role) => (
+													<SelectItem key={role.role} value={role.role}>
+														{role.role}
+													</SelectItem>
+												))}
 											</SelectContent>
 										</Select>
 										<FormDescription>
@@ -212,7 +214,7 @@ export const AddInvitation = () => {
 						)}
 						<DialogFooter className="flex w-full flex-row">
 							<Button
-								isLoading={isLoading}
+								isLoading={isInviting}
 								form="hook-form-add-invitation"
 								type="submit"
 							>

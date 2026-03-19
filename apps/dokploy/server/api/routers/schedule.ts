@@ -16,12 +16,20 @@ import {
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
+import { audit } from "@/server/api/utils/audit";
 import { removeJob, schedule } from "@/server/utils/backup";
+import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 export const scheduleRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createScheduleSchema)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const serviceId = input.applicationId || input.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					schedule: ["create"],
+				});
+			}
 			const newSchedule = await createSchedule(input);
 
 			if (newSchedule?.enabled) {
@@ -36,12 +44,26 @@ export const scheduleRouter = createTRPCRouter({
 					scheduleJob(newSchedule);
 				}
 			}
+			await audit(ctx, {
+				action: "create",
+				resourceType: "schedule",
+				resourceId: newSchedule?.scheduleId,
+				resourceName: newSchedule?.name,
+			});
 			return newSchedule;
 		}),
 
 	update: protectedProcedure
 		.input(updateScheduleSchema)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const existingSchedule = await findScheduleById(input.scheduleId);
+			const serviceId =
+				existingSchedule.applicationId || existingSchedule.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					schedule: ["update"],
+				});
+			}
 			const updatedSchedule = await updateSchedule(input);
 
 			if (IS_CLOUD) {
@@ -67,24 +89,42 @@ export const scheduleRouter = createTRPCRouter({
 					removeScheduleJob(updatedSchedule.scheduleId);
 				}
 			}
+			await audit(ctx, {
+				action: "update",
+				resourceType: "schedule",
+				resourceId: updatedSchedule.scheduleId,
+				resourceName: updatedSchedule.name,
+			});
 			return updatedSchedule;
 		}),
 
 	delete: protectedProcedure
 		.input(z.object({ scheduleId: z.string() }))
-		.mutation(async ({ input }) => {
-			const schedule = await findScheduleById(input.scheduleId);
+		.mutation(async ({ input, ctx }) => {
+			const scheduleItem = await findScheduleById(input.scheduleId);
+			const serviceId = scheduleItem.applicationId || scheduleItem.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					schedule: ["delete"],
+				});
+			}
 			await deleteSchedule(input.scheduleId);
 
 			if (IS_CLOUD) {
 				await removeJob({
-					cronSchedule: schedule.cronExpression,
-					scheduleId: schedule.scheduleId,
+					cronSchedule: scheduleItem.cronExpression,
+					scheduleId: scheduleItem.scheduleId,
 					type: "schedule",
 				});
 			} else {
-				removeScheduleJob(schedule.scheduleId);
+				removeScheduleJob(scheduleItem.scheduleId);
 			}
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "schedule",
+				resourceId: scheduleItem.scheduleId,
+				resourceName: scheduleItem.name,
+			});
 			return true;
 		}),
 
@@ -100,7 +140,15 @@ export const scheduleRouter = createTRPCRouter({
 				]),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (
+				input.scheduleType === "application" ||
+				input.scheduleType === "compose"
+			) {
+				await checkServicePermissionAndAccess(ctx, input.id, {
+					schedule: ["read"],
+				});
+			}
 			const where = {
 				application: eq(schedules.applicationId, input.id),
 				compose: eq(schedules.composeId, input.id),
@@ -122,15 +170,34 @@ export const scheduleRouter = createTRPCRouter({
 
 	one: protectedProcedure
 		.input(z.object({ scheduleId: z.string() }))
-		.query(async ({ input }) => {
-			return await findScheduleById(input.scheduleId);
+		.query(async ({ input, ctx }) => {
+			const schedule = await findScheduleById(input.scheduleId);
+			const serviceId = schedule.applicationId || schedule.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					schedule: ["read"],
+				});
+			}
+			return schedule;
 		}),
 
 	runManually: protectedProcedure
 		.input(z.object({ scheduleId: z.string().min(1) }))
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const scheduleItem = await findScheduleById(input.scheduleId);
+			const serviceId = scheduleItem.applicationId || scheduleItem.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					schedule: ["create"],
+				});
+			}
 			try {
 				await runCommand(input.scheduleId);
+				await audit(ctx, {
+					action: "run",
+					resourceType: "schedule",
+					resourceId: input.scheduleId,
+				});
 				return true;
 			} catch (error) {
 				throw new TRPCError({
