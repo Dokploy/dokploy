@@ -38,7 +38,10 @@ type ModalState = "idle" | "checking" | "results" | "updating";
 const ServiceStatusItem = ({
 	name,
 	service,
-}: { name: string; service: ServiceStatus }) => (
+}: {
+	name: string;
+	service: ServiceStatus;
+}) => (
 	<div className="flex items-center gap-2">
 		{service.status === "healthy" ? (
 			<CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -47,9 +50,7 @@ const ServiceStatusItem = ({
 		)}
 		<span className="text-sm font-medium">{name}</span>
 		{service.status === "unhealthy" && service.message && (
-			<span className="text-xs text-muted-foreground">
-				— {service.message}
-			</span>
+			<span className="text-xs text-muted-foreground">— {service.message}</span>
 		)}
 	</div>
 );
@@ -153,9 +154,7 @@ export const UpdateWebServer = () => {
 						{modalState === "idle" && "Are you absolutely sure?"}
 						{modalState === "checking" && "Verifying Services..."}
 						{modalState === "results" &&
-							(allHealthy
-								? "Ready to Update"
-								: "Service Issues Detected")}
+							(allHealthy ? "Ready to Update" : "Service Issues Detected")}
 						{modalState === "updating" && "Server update in progress"}
 					</AlertDialogTitle>
 					<AlertDialogDescription asChild>
@@ -208,8 +207,7 @@ export const UpdateWebServer = () => {
 
 									{allHealthy && (
 										<span className="text-sm text-muted-foreground">
-											All services are running. You can proceed with the
-											update.
+											All services are running. You can proceed with the update.
 										</span>
 									)}
 								</div>
@@ -236,9 +234,7 @@ export const UpdateWebServer = () => {
 				</AlertDialogHeader>
 				{modalState === "idle" && (
 					<AlertDialogFooter>
-						<AlertDialogCancel onClick={handleClose}>
-							Cancel
-						</AlertDialogCancel>
+						<AlertDialogCancel onClick={handleClose}>Cancel</AlertDialogCancel>
 						<Button variant="secondary" onClick={handleVerify}>
 							<RefreshCw className="h-4 w-4" />
 							Verify Status
@@ -250,9 +246,7 @@ export const UpdateWebServer = () => {
 				)}
 				{modalState === "results" && (
 					<AlertDialogFooter>
-						<AlertDialogCancel onClick={handleClose}>
-							Cancel
-						</AlertDialogCancel>
+						<AlertDialogCancel onClick={handleClose}>Cancel</AlertDialogCancel>
 						<Button variant="secondary" onClick={handleVerify}>
 							<RefreshCw className="h-4 w-4" />
 							Re-check
