@@ -99,7 +99,7 @@ export const HandleTag = ({ tagId }: HandleTagProps) => {
 		await mutateAsync({
 			name: data.name,
 			color: data.color,
-			...(tagId && { tagId }),
+			tagId: tagId || "",
 		})
 			.then(async () => {
 				await utils.tag.all.invalidate();
