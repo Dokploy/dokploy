@@ -62,7 +62,7 @@ export const restoreComposeBackup = async (
 		const restoreCommand = getRestoreCommand({
 			appName: appName,
 			serviceName: backupInput.metadata?.serviceName,
-			type: backupInput.databaseType,
+			type: backupInput.databaseType as "postgres" | "mariadb" | "mysql" | "mongo",
 			credentials: {
 				database: backupInput.databaseName,
 				...credentials,

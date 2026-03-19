@@ -1,6 +1,7 @@
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateLibsql,
+	backups,
 	buildAppName,
 	libsql,
 } from "@dokploy/server/db/schema";
@@ -9,12 +10,13 @@ import { buildLibsql } from "@dokploy/server/utils/databases/libsql";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, getTableColumns } from "drizzle-orm";
+import type { z } from "zod";
 import { validUniqueServerAppName } from "./project";
 
 export type Libsql = typeof libsql.$inferSelect;
 
-export const createLibsql = async (input: typeof apiCreateLibsql._type) => {
+export const createLibsql = async (input: z.infer<typeof apiCreateLibsql>) => {
 	const appName = buildAppName("libsql", input.appName);
 
 	const valid = await validUniqueServerAppName(input.appName);
@@ -59,13 +61,12 @@ export const findLibsqlById = async (libsqlId: string) => {
 			},
 			mounts: true,
 			server: true,
-			bottomlessReplicationDestination: true,
-			// backups: {
-			// 	with: {
-			// 		destination: true,
-			// 		deployments: true,
-			// 	},
-			// },
+			backups: {
+				with: {
+					destination: true,
+					deployments: true,
+				},
+			},
 		},
 	});
 	if (!result) {
@@ -102,24 +103,24 @@ export const removeLibsqlById = async (libsqlId: string) => {
 	return result[0];
 };
 
-// export const findLibsqlByBackupId = async (backupId: string) => {
-// 	const result = await db
-// 		.select({
-// 			...getTableColumns(libsql),
-// 		})
-// 		.from(libsql)
-// 		.innerJoin(backups, eq(libsql.libsqlId, backups.libsqlId))
-// 		.where(eq(backups.backupId, backupId))
-// 		.limit(1);
-//
-// 	if (!result || !result[0]) {
-// 		throw new TRPCError({
-// 			code: "NOT_FOUND",
-// 			message: "Libsql not found",
-// 		});
-// 	}
-// 	return result[0];
-// };
+export const findLibsqlByBackupId = async (backupId: string) => {
+	const result = await db
+		.select({
+			...getTableColumns(libsql),
+		})
+		.from(libsql)
+		.innerJoin(backups, eq(libsql.libsqlId, backups.libsqlId))
+		.where(eq(backups.backupId, backupId))
+		.limit(1);
+
+	if (!result || !result[0]) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Libsql not found",
+		});
+	}
+	return result[0];
+};
 
 export const deployLibsql = async (
 	libsqlId: string,

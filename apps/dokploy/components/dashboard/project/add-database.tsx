@@ -56,7 +56,7 @@ import { api } from "@/utils/api";
 type DbType = z.infer<typeof mySchema>["type"];
 
 const dockerImageDefaultPlaceholder: Record<DbType, string> = {
-	libsql: "ghcr.io/tursodatabase/libsql-server:latest",
+	libsql: "ghcr.io/tursodatabase/libsql-server:v0.24.32",
 	mongo: "mongo:7",
 	mariadb: "mariadb:11",
 	mysql: "mysql:8",
@@ -104,7 +104,7 @@ const mySchema = z
 				type: z.literal("libsql"),
 				dockerImage: z
 					.string()
-					.default("ghcr.io/tursodatabase/libsql-server:latest"),
+					.default("ghcr.io/tursodatabase/libsql-server:v0.24.32"),
 				databaseUser: z.string().default("libsql"),
 				sqldNode: z.enum(["primary", "replica"]).default("primary"),
 				sqldPrimaryUrl: z.string().optional(),

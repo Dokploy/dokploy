@@ -40,7 +40,7 @@ import { RestoreBackup } from "./restore-backup";
 interface Props {
 	id: string;
 	databaseType?:
-		| Exclude<ServiceType, "application" | "redis" | "libsql">
+		| Exclude<ServiceType, "application" | "redis">
 		| "web-server";
 	backupType?: "database" | "compose";
 }
@@ -63,6 +63,8 @@ export const ShowBackups = ({
 						api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
 					postgres: () =>
 						api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+					libsql: () =>
+						api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
 					"web-server": () => api.user.getBackups.useQuery(),
 				}
 			: {
@@ -83,6 +85,7 @@ export const ShowBackups = ({
 					mongo: api.backup.manualBackupMongo.useMutation(),
 					mysql: api.backup.manualBackupMySql.useMutation(),
 					postgres: api.backup.manualBackupPostgres.useMutation(),
+					libsql: api.backup.manualBackupLibsql.useMutation(),
 					"web-server": api.backup.manualBackupWebServer.useMutation(),
 				}
 			: {

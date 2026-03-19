@@ -15,7 +15,6 @@ export type LibsqlNested = InferResultType<
 	{
 		mounts: true;
 		environment: { with: { project: true } };
-		bottomlessReplicationDestination: true;
 	}
 >;
 export const buildLibsql = async (libsql: LibsqlNested) => {
@@ -36,8 +35,6 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		command,
 		mounts,
 		enableNamespaces,
-		enableBottomlessReplication,
-		bottomlessReplicationDestination,
 	} = libsql;
 
 	const basicAuth = Buffer.from(
@@ -45,19 +42,9 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		"utf-8",
 	).toString("base64");
 
-	let defaultLibsqlEnv = `SQLD_NODE="${sqldNode}"\nSQLD_HTTP_AUTH="basic:${basicAuth}"${
+	const defaultLibsqlEnv = `SQLD_NODE="${sqldNode}"\nSQLD_HTTP_AUTH="basic:${basicAuth}"${
 		env ? `\n${env}` : ""
 	}${sqldNode === "replica" ? `\nSQLD_PRIMARY_URL="${sqldPrimaryUrl}"` : ""}`;
-
-	// Add bottomless replication environment variables if destination is configured
-	if (enableBottomlessReplication && bottomlessReplicationDestination) {
-		defaultLibsqlEnv += `\nLIBSQL_BOTTOMLESS_DATABASE_ID="${appName}"`;
-		defaultLibsqlEnv += `\nLIBSQL_BOTTOMLESS_BUCKET="${bottomlessReplicationDestination.bucket}"`;
-		defaultLibsqlEnv += `\nLIBSQL_BOTTOMLESS_ENDPOINT="${bottomlessReplicationDestination.endpoint}"`;
-		defaultLibsqlEnv += `\nLIBSQL_BOTTOMLESS_AWS_SECRET_ACCESS_KEY="${bottomlessReplicationDestination.secretAccessKey}"`;
-		defaultLibsqlEnv += `\nLIBSQL_BOTTOMLESS_AWS_ACCESS_KEY_ID="${bottomlessReplicationDestination.accessKey}"`;
-		defaultLibsqlEnv += `\nLIBSQL_BOTTOMLESS_AWS_DEFAULT_REGION="${bottomlessReplicationDestination.region}"`;
-	}
 
 	const {
 		HealthCheck,
@@ -92,16 +79,13 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 	if (enableNamespaces) {
 		finalCommand += " --enable-namespaces";
 	}
-	if (enableBottomlessReplication) {
-		finalCommand += " --enable-bottomless-replication";
-	}
 
 	const settings: CreateServiceOptions = {
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
 				HealthCheck,
-				Image: "ghcr.io/tursodatabase/libsql-server:latest",
+				Image: "ghcr.io/tursodatabase/libsql-server:v0.24.32",
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
 				...(finalCommand

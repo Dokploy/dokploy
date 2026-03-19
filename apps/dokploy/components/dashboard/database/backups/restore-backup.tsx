@@ -88,7 +88,7 @@ const RestoreBackupSchema = z
 			message: "Database name is required",
 		}),
 		databaseType: z
-			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"])
+			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server", "libsql"])
 			.optional(),
 		backupType: z.enum(["database", "compose"]).default("database"),
 		metadata: z
