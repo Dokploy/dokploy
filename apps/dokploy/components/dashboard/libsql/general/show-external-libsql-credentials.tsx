@@ -91,7 +91,7 @@ interface Props {
 export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 	const { data: ip } = api.settings.getIp.useQuery();
 	const { data, refetch } = api.libsql.one.useQuery({ libsqlId });
-	const { mutateAsync, isLoading } = api.libsql.saveExternalPorts.useMutation();
+	const { mutateAsync, isPending } = api.libsql.saveExternalPorts.useMutation();
 	const [connectionUrl, setConnectionUrl] = useState("");
 	const [connectionGRPCUrl, setGRPCConnectionUrl] = useState("");
 	const getIp = data?.server?.ipAddress || ip;
@@ -288,7 +288,7 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 								</div>
 
 								<div className="flex justify-end">
-									<Button type="submit" isLoading={isLoading}>
+									<Button type="submit" isLoading={isPending}>
 										Save
 									</Button>
 								</div>

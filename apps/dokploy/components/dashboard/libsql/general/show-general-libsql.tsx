@@ -28,13 +28,13 @@ export const ShowGeneralLibsql = ({ libsqlId }: Props) => {
 		{ enabled: !!libsqlId },
 	);
 
-	const { mutateAsync: reload, isLoading: isReloading } =
+	const { mutateAsync: reload, isPending: isReloading } =
 		api.libsql.reload.useMutation();
 
-	const { mutateAsync: start, isLoading: isStarting } =
+	const { mutateAsync: start, isPending: isStarting } =
 		api.libsql.start.useMutation();
 
-	const { mutateAsync: stop, isLoading: isStopping } =
+	const { mutateAsync: stop, isPending: isStopping } =
 		api.libsql.stop.useMutation();
 
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
