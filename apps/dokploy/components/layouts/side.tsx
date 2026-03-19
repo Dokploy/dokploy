@@ -24,6 +24,7 @@ import {
 	Loader2,
 	LogIn,
 	type LucideIcon,
+	Network,
 	Package,
 	Palette,
 	PieChart,
@@ -195,6 +196,20 @@ const MENU: Menu = {
 			// Only enabled for users with access to Docker in non-cloud environments
 			isEnabled: ({ permissions, isCloud }) =>
 				!!(permissions?.docker.read && !isCloud),
+		},
+		{
+			isSingle: true,
+			title: "Networks",
+			url: "/dashboard/networks",
+			icon: Network,
+			// Only enabled for admins and users with access to Docker in non-cloud environments
+			isEnabled: ({ auth, isCloud }) =>
+				!!(
+					(auth?.role === "owner" ||
+						auth?.role === "admin" ||
+						auth?.canAccessToDocker) &&
+					!isCloud
+				),
 		},
 		{
 			isSingle: true,
