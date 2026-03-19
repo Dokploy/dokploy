@@ -47,7 +47,7 @@ export const tagRouter = createTRPCRouter({
 			}
 		}),
 
-	all: withPermission("tag", "read").query(async ({ ctx }) => {
+	all: protectedProcedure.query(async ({ ctx }) => {
 		try {
 			const organizationTags = await db.query.tags.findMany({
 				where: eq(tags.organizationId, ctx.session.activeOrganizationId),
@@ -64,7 +64,7 @@ export const tagRouter = createTRPCRouter({
 		}
 	}),
 
-	one: withPermission("tag", "read")
+	one: protectedProcedure
 		.input(apiFindOneTag)
 		.query(async ({ input, ctx }) => {
 			try {

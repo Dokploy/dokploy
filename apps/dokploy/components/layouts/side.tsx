@@ -331,8 +331,7 @@ const MENU: Menu = {
 			title: "Tags",
 			url: "/dashboard/settings/tags",
 			icon: Tags,
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ permissions }) => !!permissions?.tag.read,
 		},
 		{
 			isSingle: true,
