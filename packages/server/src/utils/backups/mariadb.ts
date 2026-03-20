@@ -31,7 +31,7 @@ export const runMariadbBackup = async (
 		description: "MariaDB Backup",
 	});
 	try {
-		const { rcloneFlags, remotePrefix } = getDestinationCredentials(destination);
+		const { rcloneFlags, remotePrefix } = await getDestinationCredentials(destination);
 		const rcloneDestination = `${remotePrefix}${bucketDestination}`;
 		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 

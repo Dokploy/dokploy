@@ -2,6 +2,7 @@ import {
 	createDestintation,
 	execAsync,
 	execAsyncRemote,
+	execFileAsync,
 	findDestinationById,
 	IS_CLOUD,
 	removeDestinationById,
@@ -52,11 +53,15 @@ export const destinationRouter = createTRPCRouter({
 
 				if (input.destinationType === "ftp") {
 					const { ftpHost, ftpPort, ftpUser, ftpPassword, ftpBasePath } = input;
+					const { stdout: obscuredFtpPass } = await execFileAsync("rclone", [
+						"obscure",
+						ftpPassword || "",
+					]);
 					const rcloneFlags = [
 						`--ftp-host="${ftpHost}"`,
 						`--ftp-port="${ftpPort || 21}"`,
 						`--ftp-user="${ftpUser}"`,
-						`--ftp-pass="$(rclone obscure '${ftpPassword}')"`,
+						`--ftp-pass="${obscuredFtpPass.trim()}"`,
 						"--retries 1",
 						"--low-level-retries 1",
 						"--timeout 10s",
@@ -66,11 +71,15 @@ export const destinationRouter = createTRPCRouter({
 					rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}" --max-depth 1`;
 				} else if (input.destinationType === "sftp") {
 					const { ftpHost, ftpPort, ftpUser, ftpPassword, ftpBasePath } = input;
+					const { stdout: obscuredSftpPass } = await execFileAsync("rclone", [
+						"obscure",
+						ftpPassword || "",
+					]);
 					const rcloneFlags = [
 						`--sftp-host="${ftpHost}"`,
 						`--sftp-port="${ftpPort || 22}"`,
 						`--sftp-user="${ftpUser}"`,
-						`--sftp-pass="$(rclone obscure '${ftpPassword}')"`,
+						`--sftp-pass="${obscuredSftpPass.trim()}"`,
 						"--retries 1",
 						"--low-level-retries 1",
 						"--timeout 10s",

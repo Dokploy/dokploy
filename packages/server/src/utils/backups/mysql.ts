@@ -29,7 +29,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	});
 
 	try {
-		const { rcloneFlags, remotePrefix } = getDestinationCredentials(destination);
+		const { rcloneFlags, remotePrefix } = await getDestinationCredentials(destination);
 		const rcloneDestination = `${remotePrefix}${bucketDestination}`;
 
 		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;

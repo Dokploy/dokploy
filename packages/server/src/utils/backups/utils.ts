@@ -9,6 +9,7 @@ import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { runWebServerBackup } from "./web-server";
+import { execFileAsync } from "../process/execAsync";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const {
@@ -77,23 +78,31 @@ export const getS3Credentials = (destination: Destination) => {
 	return rcloneFlags;
 };
 
-export const getFtpCredentials = (destination: Destination) => {
+export const getFtpCredentials = async (destination: Destination) => {
 	const { ftpHost, ftpPort, ftpUser, ftpPassword } = destination;
+	const { stdout: obscuredPass } = await execFileAsync("rclone", [
+		"obscure",
+		ftpPassword || "",
+	]);
 	return [
 		`--ftp-host="${ftpHost}"`,
 		`--ftp-port="${ftpPort || 21}"`,
 		`--ftp-user="${ftpUser}"`,
-		`--ftp-pass="$(rclone obscure '${ftpPassword}')"`,
+		`--ftp-pass="${obscuredPass.trim()}"`,
 	];
 };
 
-export const getSftpCredentials = (destination: Destination) => {
+export const getSftpCredentials = async (destination: Destination) => {
 	const { ftpHost, ftpPort, ftpUser, ftpPassword } = destination;
+	const { stdout: obscuredPass } = await execFileAsync("rclone", [
+		"obscure",
+		ftpPassword || "",
+	]);
 	return [
 		`--sftp-host="${ftpHost}"`,
 		`--sftp-port="${ftpPort || 22}"`,
 		`--sftp-user="${ftpUser}"`,
-		`--sftp-pass="$(rclone obscure '${ftpPassword}')"`,
+		`--sftp-pass="${obscuredPass.trim()}"`,
 	];
 };
 
@@ -103,11 +112,11 @@ export const getSftpCredentials = (destination: Destination) => {
  * For FTP: { rcloneFlags: [...], remotePrefix: ":ftp:<basePath>/" }
  * For SFTP: { rcloneFlags: [...], remotePrefix: ":sftp:<basePath>/" }
  */
-export const getDestinationCredentials = (destination: Destination) => {
+export const getDestinationCredentials = async (destination: Destination) => {
 	const destinationType = destination.destinationType || "s3";
 	switch (destinationType) {
 		case "ftp": {
-			const rcloneFlags = getFtpCredentials(destination);
+			const rcloneFlags = await getFtpCredentials(destination);
 			const basePath = normalizeS3Path(destination.ftpBasePath || "");
 			return {
 				rcloneFlags,
@@ -115,7 +124,7 @@ export const getDestinationCredentials = (destination: Destination) => {
 			};
 		}
 		case "sftp": {
-			const rcloneFlags = getSftpCredentials(destination);
+			const rcloneFlags = await getSftpCredentials(destination);
 			const basePath = normalizeS3Path(destination.ftpBasePath || "");
 			return {
 				rcloneFlags,

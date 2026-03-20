@@ -306,7 +306,6 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 				toast.error("Please fill all required fields");
 				return;
 			}
-			const defaultPort = type === "sftp" ? 22 : 21;
 			const ftpPayload =
 				type === "ftp"
 					? ({

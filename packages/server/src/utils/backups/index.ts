@@ -134,7 +134,7 @@ export const keepLatestNBackups = async (
 
 	try {
 		const { rcloneFlags, remotePrefix } =
-			getDestinationCredentials(backup.destination);
+			await getDestinationCredentials(backup.destination);
 		const appName = getServiceAppName(backup);
 		const backupFilesPath = `${remotePrefix}${appName}/${normalizeS3Path(backup.prefix)}`;
 
