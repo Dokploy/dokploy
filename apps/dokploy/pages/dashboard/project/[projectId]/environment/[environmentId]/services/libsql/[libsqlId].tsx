@@ -23,7 +23,7 @@ import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { LibsqlIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
+import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -65,21 +65,8 @@ const Libsql = (
 	return (
 		<div className="pb-10">
 			<UseKeyboardNav forPage="libsql" />
-			<BreadcrumbSidebar
-				list={[
-					{ name: "Projects", href: "/dashboard/projects" },
-					{
-						name: data?.environment?.project?.name || "",
-					},
-					{
-						name: data?.environment?.name || "",
-						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
-					},
-					{
-						name: data?.name || "",
-					},
-				]}
-			/>
+			<AdvanceBreadcrumb />
+
 			<div className="flex flex-col gap-4">
 				<Head>
 					<title>
