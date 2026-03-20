@@ -1079,6 +1079,13 @@
       "when": 1774070400000,
       "tag": "0153_commit_hash_deployment",
       "breakpoints": true
+    },
+    {
+      "idx": 154,
+      "version": "7",
+      "when": 1774080000000,
+      "tag": "0154_compose_build_server",
+      "breakpoints": true
     }
   ]
 }

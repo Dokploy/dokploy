@@ -47,6 +47,12 @@ import { validUniqueServerAppName } from "./project";
 
 export type Compose = typeof compose.$inferSelect;
 
+const getComposeTargetServerId = (
+	compose: Pick<Compose, "buildServerId" | "serverId">,
+) => {
+	return compose.buildServerId || compose.serverId;
+};
+
 export const createCompose = async (
 	input: z.infer<typeof apiCreateCompose>,
 ) => {
@@ -130,6 +136,7 @@ export const findComposeById = async (composeId: string) => {
 			bitbucket: true,
 			gitea: true,
 			server: true,
+			buildServer: true,
 			backups: {
 				with: {
 					destination: true,
@@ -154,9 +161,14 @@ export const loadServices = async (
 	const compose = await findComposeById(composeId);
 
 	if (type === "fetch") {
-		const command = await cloneCompose(compose);
-		if (compose.serverId) {
-			await execAsyncRemote(compose.serverId, command);
+		const targetServerId = getComposeTargetServerId(compose);
+		const composeEntity = {
+			...compose,
+			serverId: targetServerId,
+		};
+		const command = await cloneCompose(composeEntity);
+		if (targetServerId) {
+			await execAsyncRemote(targetServerId, command);
 		} else {
 			await execAsync(command);
 		}
@@ -164,8 +176,12 @@ export const loadServices = async (
 
 	let composeData: ComposeSpecification | null;
 
-	if (compose.serverId) {
-		composeData = await loadDockerComposeRemote(compose);
+	const targetServerId = getComposeTargetServerId(compose);
+	if (targetServerId) {
+		composeData = await loadDockerComposeRemote({
+			...compose,
+			serverId: targetServerId,
+		});
 	} else {
 		composeData = await loadDockerCompose(compose);
 	}
@@ -218,6 +234,7 @@ export const deployCompose = async ({
 	commitHash?: string;
 }) => {
 	const compose = await findComposeById(composeId);
+	const targetServerId = getComposeTargetServerId(compose);
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.environment.projectId
@@ -232,6 +249,7 @@ export const deployCompose = async ({
 	try {
 		const entity = {
 			...compose,
+			serverId: targetServerId,
 			type: "compose" as const,
 		};
 		let command = "set -e;";
@@ -250,8 +268,8 @@ export const deployCompose = async ({
 		}
 
 		let commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-		if (compose.serverId) {
-			await execAsyncRemote(compose.serverId, commandWithLog);
+		if (targetServerId) {
+			await execAsyncRemote(targetServerId, commandWithLog);
 		} else {
 			await execAsync(commandWithLog);
 		}
@@ -261,21 +279,21 @@ export const deployCompose = async ({
 				command += getCheckoutCommitCommand({
 					appName: compose.appName,
 					type: "compose",
-					serverId: compose.serverId,
+					serverId: targetServerId,
 					commitHash,
 				});
 			}
 			command += await generateApplyPatchesCommand({
 				id: compose.composeId,
 				type: "compose",
-				serverId: compose.serverId,
+				serverId: targetServerId,
 			});
 		}
 
 		command += await getBuildComposeCommand(entity);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-		if (compose.serverId) {
-			await execAsyncRemote(compose.serverId, commandWithLog);
+		if (targetServerId) {
+			await execAsyncRemote(targetServerId, commandWithLog);
 		} else {
 			await execAsync(commandWithLog);
 		}
@@ -305,8 +323,8 @@ export const deployCompose = async ({
 		}
 
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
-		if (compose.serverId) {
-			await execAsyncRemote(compose.serverId, command);
+		if (targetServerId) {
+			await execAsyncRemote(targetServerId, command);
 		} else {
 			await execAsync(command);
 		}
@@ -328,6 +346,7 @@ export const deployCompose = async ({
 		if (compose.sourceType !== "raw") {
 			const commitInfo = await getGitCommitInfo({
 				...compose,
+				serverId: targetServerId,
 				type: "compose",
 			});
 			if (commitInfo) {
@@ -353,6 +372,7 @@ export const rebuildCompose = async ({
 	commitHash?: string;
 }) => {
 	const compose = await findComposeById(composeId);
+	const targetServerId = getComposeTargetServerId(compose);
 
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
@@ -364,26 +384,32 @@ export const rebuildCompose = async ({
 	try {
 		let command = "set -e;";
 		if (compose.sourceType === "raw") {
-			command += getCreateComposeFileCommand(compose);
+			command += getCreateComposeFileCommand({
+				...compose,
+				serverId: targetServerId,
+			});
 		} else if (commitHash) {
 			command += getCheckoutCommitCommand({
 				appName: compose.appName,
 				type: "compose",
-				serverId: compose.serverId,
+				serverId: targetServerId,
 				commitHash,
 			});
 		}
 
 		let commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-		if (compose.serverId) {
-			await execAsyncRemote(compose.serverId, commandWithLog);
+		if (targetServerId) {
+			await execAsyncRemote(targetServerId, commandWithLog);
 		} else {
 			await execAsync(commandWithLog);
 		}
-		command += await getBuildComposeCommand(compose);
+		command += await getBuildComposeCommand({
+			...compose,
+			serverId: targetServerId,
+		});
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-		if (compose.serverId) {
-			await execAsyncRemote(compose.serverId, commandWithLog);
+		if (targetServerId) {
+			await execAsyncRemote(targetServerId, commandWithLog);
 		} else {
 			await execAsync(commandWithLog);
 		}
@@ -403,8 +429,8 @@ export const rebuildCompose = async ({
 		}
 
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
-		if (compose.serverId) {
-			await execAsyncRemote(compose.serverId, command);
+		if (targetServerId) {
+			await execAsyncRemote(targetServerId, command);
 		} else {
 			await execAsync(command);
 		}
@@ -417,6 +443,7 @@ export const rebuildCompose = async ({
 		if (compose.sourceType !== "raw") {
 			const commitInfo = await getGitCommitInfo({
 				...compose,
+				serverId: targetServerId,
 				type: "compose",
 			});
 			if (commitInfo) {
@@ -437,7 +464,8 @@ export const removeCompose = async (
 	deleteVolumes: boolean,
 ) => {
 	try {
-		const { COMPOSE_PATH } = paths(!!compose.serverId);
+		const targetServerId = getComposeTargetServerId(compose);
+		const { COMPOSE_PATH } = paths(!!targetServerId);
 		const projectPath = join(COMPOSE_PATH, compose.appName);
 
 		if (compose.composeType === "stack") {
@@ -446,8 +474,8 @@ export const removeCompose = async (
 			docker stack rm ${compose.appName};
 			rm -rf ${projectPath}`;
 
-			if (compose.serverId) {
-				await execAsyncRemote(compose.serverId, command);
+			if (targetServerId) {
+				await execAsyncRemote(targetServerId, command);
 			} else {
 				await execAsync(command);
 			}
@@ -458,8 +486,8 @@ export const removeCompose = async (
 				deleteVolumes ? "--volumes" : ""
 			} && rm -rf ${projectPath}`;
 
-			if (compose.serverId) {
-				await execAsyncRemote(compose.serverId, command);
+			if (targetServerId) {
+				await execAsyncRemote(targetServerId, command);
 			} else {
 				await execAsync(command, {
 					cwd: projectPath,
@@ -475,17 +503,18 @@ export const removeCompose = async (
 
 export const startCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
+	const targetServerId = getComposeTargetServerId(compose);
 	try {
-		const { COMPOSE_PATH } = paths(!!compose.serverId);
+		const { COMPOSE_PATH } = paths(!!targetServerId);
 
 		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 		const path =
 			compose.sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
 		const baseCommand = `env -i PATH="$PATH" docker compose -p ${compose.appName} -f ${path} up -d`;
 		if (compose.composeType === "docker-compose") {
-			if (compose.serverId) {
+			if (targetServerId) {
 				await execAsyncRemote(
-					compose.serverId,
+					targetServerId,
 					`cd ${projectPath} && ${baseCommand}`,
 				);
 			} else {
@@ -510,12 +539,13 @@ export const startCompose = async (composeId: string) => {
 
 export const stopCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
+	const targetServerId = getComposeTargetServerId(compose);
 	try {
-		const { COMPOSE_PATH } = paths(!!compose.serverId);
+		const { COMPOSE_PATH } = paths(!!targetServerId);
 		if (compose.composeType === "docker-compose") {
-			if (compose.serverId) {
+			if (targetServerId) {
 				await execAsyncRemote(
-					compose.serverId,
+					targetServerId,
 					`cd ${join(COMPOSE_PATH, compose.appName)} && env -i PATH="$PATH" docker compose -p ${
 						compose.appName
 					} stop`,
@@ -531,9 +561,9 @@ export const stopCompose = async (composeId: string) => {
 		}
 
 		if (compose.composeType === "stack") {
-			if (compose.serverId) {
+			if (targetServerId) {
 				await execAsyncRemote(
-					compose.serverId,
+					targetServerId,
 					`docker stack rm ${compose.appName}`,
 				);
 			} else {

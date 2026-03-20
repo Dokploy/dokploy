@@ -180,6 +180,24 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+
+			if (input.buildServerId) {
+				const [compose, buildServer] = await Promise.all([
+					findComposeById(input.composeId),
+					findServerById(input.buildServerId),
+				]);
+
+				if (
+					compose.environment.project.organizationId !==
+					buildServer.organizationId
+				) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Build server does not belong to this organization",
+					});
+				}
+			}
+
 			const updated = await updateCompose(input.composeId, input);
 			await audit(ctx, {
 				action: "update",
@@ -255,7 +273,8 @@ export const composeRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const compose = await findComposeById(input.composeId);
-			await clearOldDeployments(compose.appName, compose.serverId);
+			const targetServerId = compose.buildServerId || compose.serverId;
+			await clearOldDeployments(compose.appName, targetServerId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "compose",
@@ -271,7 +290,8 @@ export const composeRouter = createTRPCRouter({
 				deployment: ["cancel"],
 			});
 			const compose = await findComposeById(input.composeId);
-			await killDockerBuild("compose", compose.serverId);
+			const targetServerId = compose.buildServerId || compose.serverId;
+			await killDockerBuild("compose", targetServerId);
 		}),
 
 	loadServices: protectedProcedure
@@ -308,10 +328,14 @@ export const composeRouter = createTRPCRouter({
 					service: ["create"],
 				});
 				const compose = await findComposeById(input.composeId);
+				const targetServerId = compose.buildServerId || compose.serverId;
 
-				const command = await cloneCompose(compose);
-				if (compose.serverId) {
-					await execAsyncRemote(compose.serverId, command);
+				const command = await cloneCompose({
+					...compose,
+					serverId: targetServerId,
+				});
+				if (targetServerId) {
+					await execAsyncRemote(targetServerId, command);
 				} else {
 					await execAsync(command);
 				}
@@ -381,6 +405,7 @@ export const composeRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const compose = await findComposeById(input.composeId);
+			const targetServerId = compose.buildServerId || compose.serverId;
 
 			const jobData: DeploymentJob = {
 				composeId: input.composeId,
@@ -389,11 +414,11 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				commitHash: input.commitHash,
-				server: !!compose.serverId,
+				server: !!targetServerId,
 			};
 
-			if (IS_CLOUD && compose.serverId) {
-				jobData.serverId = compose.serverId;
+			if (IS_CLOUD && targetServerId) {
+				jobData.serverId = targetServerId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
@@ -432,6 +457,7 @@ export const composeRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const compose = await findComposeById(input.composeId);
+			const targetServerId = compose.buildServerId || compose.serverId;
 			const jobData: DeploymentJob = {
 				composeId: input.composeId,
 				titleLog: input.title || "Rebuild deployment",
@@ -439,10 +465,10 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				commitHash: input.commitHash,
-				server: !!compose.serverId,
+				server: !!targetServerId,
 			};
-			if (IS_CLOUD && compose.serverId) {
-				jobData.serverId = compose.serverId;
+			if (IS_CLOUD && targetServerId) {
+				jobData.serverId = targetServerId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});

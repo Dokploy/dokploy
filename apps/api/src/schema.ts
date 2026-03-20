@@ -5,6 +5,10 @@ export const deployJobSchema = z.discriminatedUnion("applicationType", [
 		applicationId: z.string(),
 		titleLog: z.string().optional(),
 		descriptionLog: z.string().optional(),
+		commitHash: z
+			.string()
+			.regex(/^[a-fA-F0-9]{7,40}$/)
+			.optional(),
 		server: z.boolean().optional(),
 		type: z.enum(["deploy", "redeploy"]),
 		applicationType: z.literal("application"),
@@ -14,6 +18,10 @@ export const deployJobSchema = z.discriminatedUnion("applicationType", [
 		composeId: z.string(),
 		titleLog: z.string().optional(),
 		descriptionLog: z.string().optional(),
+		commitHash: z
+			.string()
+			.regex(/^[a-fA-F0-9]{7,40}$/)
+			.optional(),
 		server: z.boolean().optional(),
 		type: z.enum(["deploy", "redeploy"]),
 		applicationType: z.literal("compose"),

@@ -282,23 +282,25 @@ export const createDeploymentCompose = async (
 	>,
 ) => {
 	const compose = await findComposeById(deployment.composeId);
+	const targetServerId = compose.buildServerId || compose.serverId;
 	await removeLastTenDeployments(
 		deployment.composeId,
 		"compose",
-		compose.serverId,
+		targetServerId,
 	);
 	try {
-		const { LOGS_PATH } = paths(!!compose.serverId);
+		const { LOGS_PATH } = paths(!!targetServerId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${compose.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, compose.appName, fileName);
 
-		if (compose.serverId) {
-			const server = await findServerById(compose.serverId);
+		if (targetServerId) {
+			const server = await findServerById(targetServerId);
 
 			const command = `
 mkdir -p ${LOGS_PATH}/${compose.appName};
 echo "Initializing deployment\n" >> ${logFilePath};
+echo "Building on ${compose.buildServerId ? "Build Server" : "Dokploy Server"}" >> ${logFilePath};
 `;
 
 			await execAsyncRemote(server.serverId, command);
@@ -316,6 +318,9 @@ echo "Initializing deployment\n" >> ${logFilePath};
 				title: deployment.title || "Deployment",
 				description: deployment.description || "",
 				commitHash: deployment.commitHash ?? null,
+				...(compose.buildServerId && {
+					buildServerId: compose.buildServerId,
+				}),
 				status: "running",
 				logPath: logFilePath,
 				startedAt: new Date().toISOString(),

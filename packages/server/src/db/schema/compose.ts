@@ -108,6 +108,9 @@ export const compose = pgTable("compose", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	buildServerId: text("buildServerId").references(() => server.serverId, {
+		onDelete: "set null",
+	}),
 });
 
 export const composeRelations = relations(compose, ({ one, many }) => ({
@@ -141,6 +144,12 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 	server: one(server, {
 		fields: [compose.serverId],
 		references: [server.serverId],
+		relationName: "composeServer",
+	}),
+	buildServer: one(server, {
+		fields: [compose.buildServerId],
+		references: [server.serverId],
+		relationName: "composeBuildServer",
 	}),
 	backups: many(backups),
 	schedules: many(schedules),
@@ -161,6 +170,7 @@ const createSchema = createInsertSchema(compose, {
 	environmentId: z.string(),
 	customGitSSHKeyId: z.string().optional(),
 	command: z.string().optional(),
+	buildServerId: z.string().nullable().optional(),
 	composePath: z.string().min(1),
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
 	watchPaths: z.array(z.string()).optional(),
