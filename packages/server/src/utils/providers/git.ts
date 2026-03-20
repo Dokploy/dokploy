@@ -4,6 +4,7 @@ import {
 	findSSHKeyById,
 	updateSSHKeyById,
 } from "@dokploy/server/services/ssh-key";
+import { quote } from "shell-quote";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 
 interface CloneGitRepository {
@@ -168,7 +169,20 @@ export const getCheckoutCommitCommand = ({
 	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
-	return `echo "Checking out commit ${commitHash}"; if [ -d "${outputPath}/.git" ]; then git -C "${outputPath}" fetch --depth 1 origin ${commitHash} && git -C "${outputPath}" checkout ${commitHash}; else echo "Error: .git directory not found at ${outputPath}/.git. Cannot check out commit ${commitHash}."; exit 1; fi;`;
+	const gitDirectoryPath = join(outputPath, ".git");
+	const quotedOutputPath = quote([outputPath]);
+	const quotedGitDirectoryPath = quote([gitDirectoryPath]);
+	const quotedCommitHash = quote([commitHash]);
+	return [
+		`echo "Checking out commit" ${quotedCommitHash};`,
+		`if [ -d ${quotedGitDirectoryPath} ]; then`,
+		`git -C ${quotedOutputPath} fetch --depth 1 origin ${quotedCommitHash} &&`,
+		`git -C ${quotedOutputPath} checkout ${quotedCommitHash};`,
+		"else",
+		`echo "Error: .git directory not found at" ${quotedGitDirectoryPath} ". Cannot check out commit" ${quotedCommitHash};`,
+		"exit 1;",
+		"fi;",
+	].join(" ");
 };
 
 export const getGitCommitInfo = async ({
