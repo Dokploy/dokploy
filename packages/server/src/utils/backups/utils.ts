@@ -132,12 +132,24 @@ export const getComposeContainerCommand = (
 };
 
 const getContainerSearchCommand = (backup: BackupSchedule) => {
-	const { backupType, postgres, mysql, mariadb, mongo, libsql, compose, serviceName } =
-		backup;
+	const {
+		backupType,
+		postgres,
+		mysql,
+		mariadb,
+		mongo,
+		libsql,
+		compose,
+		serviceName,
+	} = backup;
 
 	if (backupType === "database") {
 		const appName =
-			postgres?.appName || mysql?.appName || mariadb?.appName || mongo?.appName || libsql?.appName;
+			postgres?.appName ||
+			mysql?.appName ||
+			mariadb?.appName ||
+			mongo?.appName ||
+			libsql?.appName;
 		return getServiceContainerCommand(appName || "");
 	}
 	if (backupType === "compose") {

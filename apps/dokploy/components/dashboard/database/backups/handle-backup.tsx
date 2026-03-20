@@ -65,7 +65,13 @@ import { ScheduleFormField } from "../../application/schedules/handle-schedules"
 
 type CacheType = "cache" | "fetch";
 
-type DatabaseType = "postgres" | "mariadb" | "mysql" | "mongo" | "web-server" | "libsql";
+type DatabaseType =
+	| "postgres"
+	| "mariadb"
+	| "mysql"
+	| "mongo"
+	| "web-server"
+	| "libsql";
 
 const Schema = z
 	.object({
@@ -209,7 +215,12 @@ export const HandleBackup = ({
 
 	const form = useForm({
 		defaultValues: {
-			database: databaseType === "web-server" ? "dokploy" : databaseType === "libsql" ? "iku.db" : "",
+			database:
+				databaseType === "web-server"
+					? "dokploy"
+					: databaseType === "libsql"
+						? "iku.db"
+						: "",
 			destinationId: "",
 			enabled: true,
 			prefix: "/",
@@ -284,14 +295,14 @@ export const HandleBackup = ({
 										mongoId: id,
 									}
 								: databaseType === "libsql"
-								? {
-										libsqlId: id,
-									}
-								: databaseType === "web-server"
 									? {
-											userId: id,
+											libsqlId: id,
 										}
-									: undefined;
+									: databaseType === "web-server"
+										? {
+												userId: id,
+											}
+										: undefined;
 
 		await createBackup({
 			destinationId: data.destinationId,

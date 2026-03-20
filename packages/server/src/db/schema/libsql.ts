@@ -107,7 +107,9 @@ const createSchema = createInsertSchema(libsql, {
 	sqldNode: z.enum(sqldNode.enumValues),
 	sqldPrimaryUrl: z.string().nullable(),
 	enableNamespaces: z.boolean().default(false),
-	dockerImage: z.string().default("ghcr.io/tursodatabase/libsql-server:v0.24.32"),
+	dockerImage: z
+		.string()
+		.default("ghcr.io/tursodatabase/libsql-server:v0.24.32"),
 	command: z.string().optional(),
 	env: z.string().optional(),
 	memoryReservation: z.string().optional(),

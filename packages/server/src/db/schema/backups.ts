@@ -76,12 +76,9 @@ export const backups = pgTable("backup", {
 	mongoId: text("mongoId").references((): AnyPgColumn => mongo.mongoId, {
 		onDelete: "cascade",
 	}),
-	libsqlId: text("libsqlId").references(
-		(): AnyPgColumn => libsql.libsqlId,
-		{
-			onDelete: "cascade",
-		},
-	),
+	libsqlId: text("libsqlId").references((): AnyPgColumn => libsql.libsqlId, {
+		onDelete: "cascade",
+	}),
 	userId: text("userId").references(() => user.id),
 	// Only for compose backups
 	metadata: jsonb("metadata").$type<
@@ -149,7 +146,14 @@ const createSchema = createInsertSchema(backups, {
 	database: z.string().min(1),
 	schedule: z.string(),
 	keepLatestCount: z.number().optional(),
-	databaseType: z.enum(["postgres", "mariadb", "mysql", "mongo", "web-server", "libsql"]),
+	databaseType: z.enum([
+		"postgres",
+		"mariadb",
+		"mysql",
+		"mongo",
+		"web-server",
+		"libsql",
+	]),
 	postgresId: z.string().optional(),
 	mariadbId: z.string().optional(),
 	mysqlId: z.string().optional(),
@@ -206,7 +210,14 @@ export const apiUpdateBackup = createSchema
 
 export const apiRestoreBackup = z.object({
 	databaseId: z.string(),
-	databaseType: z.enum(["postgres", "mysql", "mariadb", "mongo", "web-server", "libsql"]),
+	databaseType: z.enum([
+		"postgres",
+		"mysql",
+		"mariadb",
+		"mongo",
+		"web-server",
+		"libsql",
+	]),
 	backupType: z.enum(["database", "compose"]),
 	databaseName: z.string().min(1),
 	backupFile: z.string().min(1),

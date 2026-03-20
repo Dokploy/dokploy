@@ -41,9 +41,7 @@ export const restoreLibsqlBackup = async (
 	} catch (error) {
 		emit(
 			`Error: ${
-				error instanceof Error
-					? error.message
-					: "Error restoring libsql backup"
+				error instanceof Error ? error.message : "Error restoring libsql backup"
 			}`,
 		);
 		throw error;
