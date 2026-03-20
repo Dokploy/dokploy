@@ -10,6 +10,10 @@ import {
 	getBuildCommand,
 	mechanizeDockerContainer,
 } from "@dokploy/server/utils/builders";
+import {
+	createRollbackForDeploymentIfNeeded,
+	getReuseCommitImageCommand,
+} from "@dokploy/server/utils/cluster/upload";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
 import {
@@ -191,40 +195,62 @@ export const deployApplication = async ({
 		description: descriptionLog,
 		commitHash,
 	});
+	let reusedCommitImage = false;
 
 	try {
 		let command = "set -e;";
-		if (application.sourceType === "github") {
-			command += await cloneGithubRepository(applicationEntity);
-		} else if (application.sourceType === "gitlab") {
-			command += await cloneGitlabRepository(applicationEntity);
-		} else if (application.sourceType === "gitea") {
-			command += await cloneGiteaRepository(applicationEntity);
-		} else if (application.sourceType === "bitbucket") {
-			command += await cloneBitbucketRepository(applicationEntity);
-		} else if (application.sourceType === "git") {
-			command += await cloneGitRepository(applicationEntity);
-		} else if (application.sourceType === "docker") {
+		if (application.sourceType !== "docker") {
+			if (commitHash) {
+				const reuseCommand = getReuseCommitImageCommand(
+					applicationEntity,
+					commitHash,
+				);
+				const reuseResult = serverId
+					? await execAsyncRemote(serverId, reuseCommand)
+					: await execAsync(reuseCommand);
+				reusedCommitImage = reuseResult.stdout.includes(
+					"DOKPLOY_COMMIT_IMAGE_REUSED=1",
+				);
+			}
+
+			if (!reusedCommitImage) {
+				if (application.sourceType === "github") {
+					command += await cloneGithubRepository(applicationEntity);
+				} else if (application.sourceType === "gitlab") {
+					command += await cloneGitlabRepository(applicationEntity);
+				} else if (application.sourceType === "gitea") {
+					command += await cloneGiteaRepository(applicationEntity);
+				} else if (application.sourceType === "bitbucket") {
+					command += await cloneBitbucketRepository(applicationEntity);
+				} else if (application.sourceType === "git") {
+					command += await cloneGitRepository(applicationEntity);
+				}
+
+				if (commitHash) {
+					command += getCheckoutCommitCommand({
+						appName: application.appName,
+						type: "application",
+						serverId,
+						commitHash,
+					});
+				}
+				command += await generateApplyPatchesCommand({
+					id: application.applicationId,
+					type: "application",
+					serverId,
+				});
+			}
+		} else {
 			command += await buildRemoteDocker(application);
 		}
 
-		if (application.sourceType !== "docker") {
-			if (commitHash) {
-				command += getCheckoutCommitCommand({
-					appName: application.appName,
-					type: "application",
-					serverId,
-					commitHash,
-				});
-			}
-			command += await generateApplyPatchesCommand({
-				id: application.applicationId,
-				type: "application",
-				serverId,
-			});
+		if (!reusedCommitImage) {
+			command += await getBuildCommand(
+				application,
+				commitHash,
+				deployment.deploymentId,
+			);
 		}
-
-		command += await getBuildCommand(application);
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
@@ -246,6 +272,17 @@ export const deployApplication = async ({
 			domains: application.domains,
 			environmentName: application.environment.name,
 		});
+
+		if (reusedCommitImage && commitHash) {
+			await updateDeployment(deployment.deploymentId, {
+				description: `Commit: ${commitHash}`,
+				commitHash,
+			});
+			await createRollbackForDeploymentIfNeeded(
+				applicationEntity,
+				deployment.deploymentId,
+			);
+		}
 	} catch (error) {
 		let command = "";
 
@@ -278,7 +315,7 @@ export const deployApplication = async ({
 		throw error;
 	} finally {
 		// Only extract commit info for non-docker sources
-		if (application.sourceType !== "docker") {
+		if (application.sourceType !== "docker" && !reusedCommitImage) {
 			const commitInfo = await getGitCommitInfo({
 				appName: application.appName,
 				type: "application",
@@ -290,6 +327,10 @@ export const deployApplication = async ({
 					description: `Commit: ${commitInfo.hash}`,
 					commitHash: commitInfo.hash,
 				});
+				await createRollbackForDeploymentIfNeeded(
+					applicationEntity,
+					deployment.deploymentId,
+				);
 			}
 		}
 	}
@@ -317,19 +358,35 @@ export const rebuildApplication = async ({
 		description: descriptionLog,
 		commitHash,
 	});
+	let reusedCommitImage = false;
 
 	try {
 		let command = "set -e;";
 		if (commitHash && application.sourceType !== "docker") {
-			command += getCheckoutCommitCommand({
-				appName: application.appName,
-				type: "application",
-				serverId,
-				commitHash,
-			});
+			const reuseCommand = getReuseCommitImageCommand(application, commitHash);
+			const reuseResult = serverId
+				? await execAsyncRemote(serverId, reuseCommand)
+				: await execAsync(reuseCommand);
+			reusedCommitImage = reuseResult.stdout.includes(
+				"DOKPLOY_COMMIT_IMAGE_REUSED=1",
+			);
+			if (!reusedCommitImage) {
+				command += getCheckoutCommitCommand({
+					appName: application.appName,
+					type: "application",
+					serverId,
+					commitHash,
+				});
+			}
 		}
 		// Check case for docker only
-		command += await getBuildCommand(application);
+		if (!reusedCommitImage) {
+			command += await getBuildCommand(
+				application,
+				commitHash,
+				deployment.deploymentId,
+			);
+		}
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
 			await execAsyncRemote(serverId, commandWithLog);
@@ -349,6 +406,17 @@ export const rebuildApplication = async ({
 			domains: application.domains,
 			environmentName: application.environment.name,
 		});
+
+		if (reusedCommitImage && commitHash) {
+			await updateDeployment(deployment.deploymentId, {
+				description: `Commit: ${commitHash}`,
+				commitHash,
+			});
+			await createRollbackForDeploymentIfNeeded(
+				application,
+				deployment.deploymentId,
+			);
+		}
 	} catch (error) {
 		let command = "";
 
@@ -369,7 +437,7 @@ export const rebuildApplication = async ({
 		await updateApplicationStatus(applicationId, "error");
 		throw error;
 	} finally {
-		if (application.sourceType !== "docker") {
+		if (application.sourceType !== "docker" && !reusedCommitImage) {
 			const commitInfo = await getGitCommitInfo({
 				appName: application.appName,
 				type: "application",
@@ -381,6 +449,10 @@ export const rebuildApplication = async ({
 					description: `Commit: ${commitInfo.hash}`,
 					commitHash: commitInfo.hash,
 				});
+				await createRollbackForDeploymentIfNeeded(
+					application,
+					deployment.deploymentId,
+				);
 			}
 		}
 	}

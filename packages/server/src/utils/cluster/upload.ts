@@ -5,6 +5,8 @@ import type { ApplicationNested } from "../builders";
 
 export const uploadImageRemoteCommand = async (
 	application: ApplicationNested,
+	commitHash?: string,
+	deploymentId?: string,
 ) => {
 	const registry = application.registry;
 	const buildRegistry = application.buildRegistry;
@@ -26,6 +28,15 @@ export const uploadImageRemoteCommand = async (
 		if (registryTag) {
 			commands.push(`echo "📦 [Enabled Registry Swarm]"`);
 			commands.push(getRegistryCommands(registry, imageName, registryTag));
+			if (commitHash && isValidCommitHash(commitHash)) {
+				const commitRegistryTag = getRegistryTag(
+					registry,
+					`${appName}:${commitHash.toLowerCase()}`,
+				);
+				commands.push(
+					getRegistryCommands(registry, imageName, commitRegistryTag),
+				);
+			}
 		}
 	}
 	if (buildRegistry) {
@@ -41,20 +52,42 @@ export const uploadImageRemoteCommand = async (
 			commands.push(
 				`echo "📊 Check the Logs tab to see when the container starts running."`,
 			);
+			if (commitHash && isValidCommitHash(commitHash)) {
+				const commitBuildRegistryTag = getRegistryTag(
+					buildRegistry,
+					`${appName}:${commitHash.toLowerCase()}`,
+				);
+				commands.push(
+					getRegistryCommands(buildRegistry, imageName, commitBuildRegistryTag),
+				);
+			}
 		}
 	}
 
-	if (rollbackRegistry && application.rollbackActive) {
-		const deployment = await findAllDeploymentsByApplicationId(
-			application.applicationId,
+	if (
+		application.sourceType !== "docker" &&
+		commitHash &&
+		isValidCommitHash(commitHash)
+	) {
+		commands.push(
+			`docker tag ${imageName} ${application.appName}:${commitHash.toLowerCase()} || true`,
 		);
-		if (!deployment || !deployment[0]) {
+	}
+
+	if (rollbackRegistry && application.rollbackActive) {
+		let rollbackDeploymentId = deploymentId;
+		if (!rollbackDeploymentId) {
+			const deployment = await findAllDeploymentsByApplicationId(
+				application.applicationId,
+			);
+			rollbackDeploymentId = deployment?.[0]?.deploymentId;
+		}
+		if (!rollbackDeploymentId) {
 			throw new Error("Deployment not found");
 		}
-		const deploymentId = deployment[0].deploymentId;
 		const rollback = await createRollback({
 			appName: appName,
-			deploymentId: deploymentId,
+			deploymentId: rollbackDeploymentId,
 		});
 
 		const rollbackRegistryTag = getRegistryTag(
@@ -68,11 +101,26 @@ export const uploadImageRemoteCommand = async (
 			);
 		}
 	}
+
 	try {
 		return commands.join("\n");
 	} catch (error) {
 		throw error;
 	}
+};
+
+export const createRollbackForDeploymentIfNeeded = async (
+	application: ApplicationNested,
+	deploymentId: string,
+) => {
+	if (!application.rollbackRegistry || !application.rollbackActive) {
+		return;
+	}
+
+	await createRollback({
+		appName: application.appName,
+		deploymentId,
+	});
 };
 /**
  * Extract the repository name from imageName by taking the last part after '/'
@@ -133,4 +181,61 @@ docker push ${registryTag} || {
 }
 	echo "✅ Image Pushed" ;
 `;
+};
+
+const isValidCommitHash = (commitHash: string) =>
+	/^[a-fA-F0-9]{7,40}$/.test(commitHash);
+
+export const getReuseCommitImageCommand = (
+	application: ApplicationNested,
+	commitHash: string,
+) => {
+	if (!isValidCommitHash(commitHash) || application.sourceType === "docker") {
+		return "echo 'DOKPLOY_COMMIT_IMAGE_REUSED=0';";
+	}
+
+	const normalizedCommitHash = commitHash.toLowerCase();
+	const localLatestImage = `${application.appName}:latest`;
+	const localCommitImage = `${application.appName}:${normalizedCommitHash}`;
+	const registries = [application.registry, application.buildRegistry].filter(
+		(registry): registry is Registry => Boolean(registry),
+	);
+
+	const pullFromRegistries = registries
+		.map((registry, index) => {
+			const commitTag = getRegistryTag(registry, localCommitImage);
+			return [
+				`if [ "$reused_image" -eq 0 ]; then`,
+				`\techo "${registry.password}" | docker login ${registry.registryUrl} -u '${registry.username}' --password-stdin >/dev/null 2>&1 || true;`,
+				`\tif docker pull ${commitTag} >/dev/null 2>&1; then`,
+				`\t\tdocker tag ${commitTag} ${localLatestImage} >/dev/null 2>&1 && reused_image=1;`,
+				`\t\techo "✅ Reused image from registry source ${index + 1}";`,
+				"\tfi;",
+				"fi;",
+			].join(" ");
+		})
+		.join(" ");
+
+	const syncLatestToRuntimeRegistry = application.registry
+		? [
+				`if [ "$reused_image" -eq 1 ]; then`,
+				`\techo "${application.registry.password}" | docker login ${application.registry.registryUrl} -u '${application.registry.username}' --password-stdin >/dev/null 2>&1 || true;`,
+				`\tdocker tag ${localLatestImage} ${getRegistryTag(application.registry, localLatestImage)} >/dev/null 2>&1;`,
+				`\tdocker push ${getRegistryTag(application.registry, localLatestImage)} >/dev/null 2>&1 || true;`,
+				"fi;",
+			].join(" ")
+		: "";
+
+	return [
+		"set +e;",
+		"reused_image=0;",
+		`echo \"🔎 Checking image cache for commit ${normalizedCommitHash}\";`,
+		`if docker image inspect ${localCommitImage} >/dev/null 2>&1; then`,
+		`\tdocker tag ${localCommitImage} ${localLatestImage} >/dev/null 2>&1 && reused_image=1;`,
+		"fi;",
+		pullFromRegistries || 'echo "No registry configured for commit reuse";',
+		syncLatestToRuntimeRegistry,
+		'echo "DOKPLOY_COMMIT_IMAGE_REUSED=$reused_image";',
+		"set -e;",
+	].join(" ");
 };
