@@ -24,11 +24,11 @@ export const ShowDestinations = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Database className="size-6 text-muted-foreground self-center" />
-							S3 Destinations
+							Backup Destinations
 						</CardTitle>
 						<CardDescription>
 							Add your providers like AWS S3, Cloudflare R2, Wasabi,
-							DigitalOcean Spaces etc.
+							DigitalOcean Spaces, FTP, or SFTP servers.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -58,9 +58,14 @@ export const ShowDestinations = () => {
 												>
 													<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border  w-full">
 														<div className="flex flex-col gap-1">
-															<span className="text-sm">
-																{index + 1}. {destination.name}
-															</span>
+															<div className="flex items-center gap-2">
+																<span className="text-sm">
+																	{index + 1}. {destination.name}
+																</span>
+																<span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium uppercase">
+																	{destination.destinationType || "s3"}
+																</span>
+															</div>
 															<span className="text-xs text-muted-foreground">
 																Created at:{" "}
 																{new Date(

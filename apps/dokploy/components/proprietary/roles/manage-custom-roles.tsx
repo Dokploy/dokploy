@@ -134,9 +134,9 @@ const RESOURCE_META: Record<string, { label: string; description: string }> = {
 		description: "Manage custom domains assigned to services",
 	},
 	destination: {
-		label: "S3 Destinations",
+		label: "Backup Destinations",
 		description:
-			"Manage S3-compatible backup destinations (AWS, Cloudflare R2, etc.)",
+			"Manage backup destinations (S3-compatible, FTP, SFTP, etc.)",
 	},
 	notification: {
 		label: "Notifications",

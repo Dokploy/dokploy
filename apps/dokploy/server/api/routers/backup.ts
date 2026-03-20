@@ -27,7 +27,7 @@ import {
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
 import {
-	getS3Credentials,
+	getDestinationCredentials,
 	normalizeS3Path,
 } from "@dokploy/server/utils/backups/utils";
 import {
@@ -424,8 +424,9 @@ export const backupRouter = createTRPCRouter({
 		.query(async ({ input }) => {
 			try {
 				const destination = await findDestinationById(input.destinationId);
-				const rcloneFlags = getS3Credentials(destination);
-				const bucketPath = `:s3:${destination.bucket}`;
+				const { rcloneFlags, remotePrefix } =
+					getDestinationCredentials(destination);
+				const bucketPath = remotePrefix.replace(/\/$/, "");
 
 				const lastSlashIndex = input.search.lastIndexOf("/");
 				const baseDir =
@@ -440,13 +441,20 @@ export const backupRouter = createTRPCRouter({
 				const searchPath = baseDir ? `${bucketPath}/${baseDir}` : bucketPath;
 				const listCommand = `rclone lsjson ${rcloneFlags.join(" ")} "${searchPath}" --no-mimetype --no-modtime 2>/dev/null`;
 
+				const needsShell =
+					destination.destinationType === "ftp" ||
+					destination.destinationType === "sftp";
+
 				let stdout = "";
 
 				if (input.serverId) {
 					const result = await execAsyncRemote(input.serverId, listCommand);
 					stdout = result.stdout;
 				} else {
-					const result = await execAsync(listCommand);
+					const result = await execAsync(
+						listCommand,
+						needsShell ? { shell: "/bin/bash" } : undefined,
+					);
 					stdout = result.stdout;
 				}
 

@@ -350,7 +350,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "S3 Destinations",
+			title: "Backup Destinations",
 			url: "/dashboard/settings/destinations",
 			icon: Database,
 			isEnabled: ({ permissions }) => !!permissions?.destination.read,

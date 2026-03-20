@@ -10,7 +10,11 @@ import { startLogCleanup } from "../access-log/handler";
 import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path, scheduleBackup } from "./utils";
+import {
+	getDestinationCredentials,
+	normalizeS3Path,
+	scheduleBackup,
+} from "./utils";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
@@ -129,9 +133,10 @@ export const keepLatestNBackups = async (
 	if (!backup.keepLatestCount) return;
 
 	try {
-		const rcloneFlags = getS3Credentials(backup.destination);
+		const { rcloneFlags, remotePrefix } =
+			getDestinationCredentials(backup.destination);
 		const appName = getServiceAppName(backup);
-		const backupFilesPath = `:s3:${backup.destination.bucket}/${appName}/${normalizeS3Path(backup.prefix)}`;
+		const backupFilesPath = `${remotePrefix}${appName}/${normalizeS3Path(backup.prefix)}`;
 
 		// --include "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
 		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".sql.gz"}" ${backupFilesPath}`;
@@ -143,10 +148,13 @@ export const keepLatestNBackups = async (
 
 		const rcloneCommand = `${rcloneList} | ${sortAndPickUnwantedBackups} ${rcloneDelete}`;
 
+		const destinationType = backup.destination.destinationType || "s3";
+		const needsShell = destinationType === "ftp" || destinationType === "sftp";
+
 		if (serverId) {
 			await execAsyncRemote(serverId, rcloneCommand);
 		} else {
-			await execAsync(rcloneCommand);
+			await execAsync(rcloneCommand, needsShell ? { shell: "/bin/bash" } : undefined);
 		}
 	} catch (error) {
 		console.error(error);

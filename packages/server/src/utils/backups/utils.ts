@@ -77,6 +77,62 @@ export const getS3Credentials = (destination: Destination) => {
 	return rcloneFlags;
 };
 
+export const getFtpCredentials = (destination: Destination) => {
+	const { ftpHost, ftpPort, ftpUser, ftpPassword } = destination;
+	return [
+		`--ftp-host="${ftpHost}"`,
+		`--ftp-port="${ftpPort || 21}"`,
+		`--ftp-user="${ftpUser}"`,
+		`--ftp-pass="$(rclone obscure '${ftpPassword}')"`,
+	];
+};
+
+export const getSftpCredentials = (destination: Destination) => {
+	const { ftpHost, ftpPort, ftpUser, ftpPassword } = destination;
+	return [
+		`--sftp-host="${ftpHost}"`,
+		`--sftp-port="${ftpPort || 22}"`,
+		`--sftp-user="${ftpUser}"`,
+		`--sftp-pass="$(rclone obscure '${ftpPassword}')"`,
+	];
+};
+
+/**
+ * Returns rclone flags and remote prefix based on destination type.
+ * For S3: { rcloneFlags: [...], remotePrefix: ":s3:<bucket>/" }
+ * For FTP: { rcloneFlags: [...], remotePrefix: ":ftp:<basePath>/" }
+ * For SFTP: { rcloneFlags: [...], remotePrefix: ":sftp:<basePath>/" }
+ */
+export const getDestinationCredentials = (destination: Destination) => {
+	const destinationType = destination.destinationType || "s3";
+	switch (destinationType) {
+		case "ftp": {
+			const rcloneFlags = getFtpCredentials(destination);
+			const basePath = normalizeS3Path(destination.ftpBasePath || "");
+			return {
+				rcloneFlags,
+				remotePrefix: `:ftp:${basePath}`,
+			};
+		}
+		case "sftp": {
+			const rcloneFlags = getSftpCredentials(destination);
+			const basePath = normalizeS3Path(destination.ftpBasePath || "");
+			return {
+				rcloneFlags,
+				remotePrefix: `:sftp:${basePath}`,
+			};
+		}
+		case "s3":
+		default: {
+			const rcloneFlags = getS3Credentials(destination);
+			return {
+				rcloneFlags,
+				remotePrefix: `:s3:${destination.bucket}/`,
+			};
+		}
+	}
+};
+
 export const getPostgresBackupCommand = (
 	database: string,
 	databaseUser: string,
@@ -255,16 +311,16 @@ export const getBackupCommand = (
 	}
 
 	echo "[$(date)] ✅ backup completed successfully" >> ${logPath};
-	echo "[$(date)] Starting upload to S3..." >> ${logPath};
+	echo "[$(date)] Starting upload to destination..." >> ${logPath};
 
 	# Run the upload command and capture the exit status
 	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
+		echo "[$(date)] ❌ Error: Upload to destination failed" >> ${logPath};
 		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
 		exit 1;
 	}
 
-	echo "[$(date)] ✅ Upload to S3 completed successfully" >> ${logPath};
+	echo "[$(date)] ✅ Upload to destination completed successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };
