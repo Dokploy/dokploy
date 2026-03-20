@@ -162,8 +162,8 @@ export const ShowDeployments = ({
 			return deployment.commitHash.trim();
 		}
 		const description = deployment.description?.trim() || "";
-		const matched = description.match(/[a-fA-F0-9]{7,40}/);
-		return matched?.[0] || "";
+		const matched = description.match(/Commit:\s*([a-fA-F0-9]{7,40})/);
+		return matched?.[1] || "";
 	};
 	const selectedEnvironment = projectEnvironments?.find(
 		(environment) => environment.environmentId === targetEnvironmentId,
@@ -492,6 +492,12 @@ export const ShowDeployments = ({
 												commitHash && (
 													<DialogAction
 														title="Promote deployment"
+														onOpenChange={(open) => {
+															if (open) {
+																setTargetEnvironmentId("");
+																setTargetServiceId("");
+															}
+														}}
 														description={
 															<div className="space-y-3">
 																<p>

@@ -168,7 +168,7 @@ export const getCheckoutCommitCommand = ({
 	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
-	return `echo "Checking out commit ${commitHash}" && git -C ${outputPath} fetch --depth 1 origin ${commitHash} && git -C ${outputPath} checkout ${commitHash};`;
+	return `echo "Checking out commit ${commitHash}"; if [ -d "${outputPath}/.git" ]; then git -C "${outputPath}" fetch --depth 1 origin ${commitHash} && git -C "${outputPath}" checkout ${commitHash}; else echo "Error: .git directory not found at ${outputPath}/.git. Cannot check out commit ${commitHash}."; exit 1; fi;`;
 };
 
 export const getGitCommitInfo = async ({

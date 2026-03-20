@@ -809,9 +809,6 @@ const centralizedDeploymentsWith = {
 			server: {
 				columns: { serverId: true, name: true, serverType: true },
 			},
-			buildServer: {
-				columns: { serverId: true, name: true, serverType: true },
-			},
 		},
 	},
 	compose: {
@@ -831,9 +828,6 @@ const centralizedDeploymentsWith = {
 		},
 	},
 	server: {
-		columns: { serverId: true, name: true, serverType: true },
-	},
-	buildServer: {
 		columns: { serverId: true, name: true, serverType: true },
 	},
 } as const;
@@ -917,6 +911,28 @@ export const findAllDeploymentsCentralized = async (
 				: or(...conditions);
 
 	return db.query.deployments.findMany({
+		columns: {
+			deploymentId: true,
+			title: true,
+			description: true,
+			commitHash: true,
+			status: true,
+			logPath: true,
+			pid: true,
+			applicationId: true,
+			composeId: true,
+			serverId: true,
+			isPreviewDeployment: true,
+			previewDeploymentId: true,
+			createdAt: true,
+			startedAt: true,
+			finishedAt: true,
+			errorMessage: true,
+			scheduleId: true,
+			backupId: true,
+			rollbackId: true,
+			volumeBackupId: true,
+		},
 		where: whereClause,
 		orderBy: desc(deployments.createdAt),
 		with: centralizedDeploymentsWith,
