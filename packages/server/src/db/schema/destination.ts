@@ -27,6 +27,7 @@ export const destinations = pgTable("destination", {
 	ftpUser: text("ftpUser"),
 	ftpPassword: text("ftpPassword"),
 	ftpBasePath: text("ftpBasePath"),
+	sftpPrivateKey: text("sftpPrivateKey"),
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
@@ -59,6 +60,7 @@ const createSchema = createInsertSchema(destinations, {
 	ftpUser: z.string().optional(),
 	ftpPassword: z.string().optional(),
 	ftpBasePath: z.string().optional(),
+	sftpPrivateKey: z.string().optional(),
 });
 
 // S3 destination schema
@@ -106,7 +108,8 @@ const sftpDestinationSchema = z.object({
 	ftpHost: z.string().min(1, "SFTP Host is required"),
 	ftpPort: z.number().default(22),
 	ftpUser: z.string().min(1, "SFTP Username is required"),
-	ftpPassword: z.string().min(1, "SFTP Password is required"),
+	ftpPassword: z.string().optional(),
+	sftpPrivateKey: z.string().optional(),
 	ftpBasePath: z.string().optional(),
 	serverId: z.string().optional(),
 	// S3 fields not needed

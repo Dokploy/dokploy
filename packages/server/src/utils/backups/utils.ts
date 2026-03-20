@@ -78,6 +78,8 @@ export const getS3Credentials = (destination: Destination) => {
 	return rcloneFlags;
 };
 
+const shellEscape = (val: string) => `'${val.replace(/'/g, "'\\''")}'`;
+
 export const getFtpCredentials = async (destination: Destination) => {
 	const { ftpHost, ftpPort, ftpUser, ftpPassword } = destination;
 	const { stdout: obscuredPass } = await execFileAsync("rclone", [
@@ -85,10 +87,10 @@ export const getFtpCredentials = async (destination: Destination) => {
 		ftpPassword || "",
 	]);
 	return [
-		`--ftp-host="${ftpHost}"`,
-		`--ftp-port="${ftpPort || 21}"`,
-		`--ftp-user="${ftpUser}"`,
-		`--ftp-pass="${obscuredPass.trim()}"`,
+		`--ftp-host=${shellEscape(ftpHost || "")}`,
+		`--ftp-port=${ftpPort || 21}`,
+		`--ftp-user=${shellEscape(ftpUser || "")}`,
+		`--ftp-pass=${shellEscape(obscuredPass.trim())}`,
 	];
 };
 
@@ -99,10 +101,10 @@ export const getSftpCredentials = async (destination: Destination) => {
 		ftpPassword || "",
 	]);
 	return [
-		`--sftp-host="${ftpHost}"`,
-		`--sftp-port="${ftpPort || 22}"`,
-		`--sftp-user="${ftpUser}"`,
-		`--sftp-pass="${obscuredPass.trim()}"`,
+		`--sftp-host=${shellEscape(ftpHost || "")}`,
+		`--sftp-port=${ftpPort || 22}`,
+		`--sftp-user=${shellEscape(ftpUser || "")}`,
+		`--sftp-pass=${shellEscape(obscuredPass.trim())}`,
 	];
 };
 
