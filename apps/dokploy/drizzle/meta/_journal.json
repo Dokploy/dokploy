@@ -995,6 +995,83 @@
       "when": 1770490719123,
       "tag": "0141_plain_earthquake",
       "breakpoints": true
+    },
+    {
+      "idx": 142,
+      "version": "7",
+      "when": 1770615019498,
+      "tag": "0142_outstanding_tusk",
+      "breakpoints": true
+    },
+    {
+      "idx": 143,
+      "version": "7",
+      "when": 1770961667210,
+      "tag": "0143_brown_ultron",
+      "breakpoints": true
+    },
+    {
+      "idx": 144,
+      "version": "7",
+      "when": 1771297084611,
+      "tag": "0144_odd_gunslinger",
+      "breakpoints": true
+    },
+    {
+      "idx": 145,
+      "version": "7",
+      "when": 1771447229358,
+      "tag": "0145_remarkable_titania",
+      "breakpoints": true
+    },
+    {
+      "idx": 146,
+      "version": "7",
+      "when": 1771670009325,
+      "tag": "0146_bumpy_morg",
+      "breakpoints": true
+    },
+    {
+      "idx": 147,
+      "version": "7",
+      "when": 1771830695385,
+      "tag": "0147_right_lake",
+      "breakpoints": true
+    },
+    {
+      "idx": 148,
+      "version": "7",
+      "when": 1773129798212,
+      "tag": "0148_futuristic_bullseye",
+      "breakpoints": true
+    },
+    {
+      "idx": 149,
+      "version": "7",
+      "when": 1773637297592,
+      "tag": "0149_rare_radioactive_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 150,
+      "version": "7",
+      "when": 1773870095817,
+      "tag": "0150_nappy_blue_blade",
+      "breakpoints": true
+    },
+    {
+      "idx": 151,
+      "version": "7",
+      "when": 1773872561300,
+      "tag": "0151_modern_sunfire",
+      "breakpoints": true
+    },
+    {
+      "idx": 152,
+      "version": "7",
+      "when": 1773903778014,
+      "tag": "0152_odd_firelord",
+      "breakpoints": true
     }
   ]
 }

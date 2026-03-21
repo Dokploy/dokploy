@@ -125,6 +125,7 @@ const baseApp: ApplicationNested = {
 	username: null,
 	dockerContextPath: null,
 	stopGracePeriodSwarm: null,
+	ulimitsSwarm: null,
 };
 
 const baseDomain: Domain = {
@@ -273,4 +274,52 @@ test("CertificateType on websecure entrypoint", async () => {
 	);
 
 	expect(router.tls?.certResolver).toBe("letsencrypt");
+});
+
+/** IDN/Punycode */
+
+test("Internationalized domain name is converted to punycode", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, host: "тест.рф" },
+		"web",
+	);
+
+	// тест.рф in punycode is xn--e1aybc.xn--p1ai
+	expect(router.rule).toContain("Host(`xn--e1aybc.xn--p1ai`)");
+	expect(router.rule).not.toContain("тест.рф");
+});
+
+test("ASCII domain remains unchanged", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, host: "example.com" },
+		"web",
+	);
+
+	expect(router.rule).toContain("Host(`example.com`)");
+});
+
+test("Russian Cyrillic label with .ru TLD is converted to punycode", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, host: "сайт.ru" },
+		"web",
+	);
+
+	// сайт in punycode is xn--80aswg
+	expect(router.rule).toContain("Host(`xn--80aswg.ru`)");
+	expect(router.rule).not.toContain("сайт");
+});
+
+test("Subdomain with Russian IDN TLD converts non-ASCII part to punycode", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, host: "app.тест.рф" },
+		"web",
+	);
+
+	// app stays ASCII, тест.рф becomes xn--e1aybc.xn--p1ai
+	expect(router.rule).toContain("Host(`app.xn--e1aybc.xn--p1ai`)");
+	expect(router.rule).not.toContain("тест.рф");
 });

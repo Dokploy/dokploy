@@ -56,7 +56,7 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 	const [containerId, setContainerId] = useState<string | undefined>();
 	const [option, setOption] = useState<"swarm" | "native">("native");
 
-	const { data: services, isLoading: servicesLoading } =
+	const { data: services, isPending: servicesLoading } =
 		api.docker.getServiceContainersByAppName.useQuery(
 			{
 				appName,
@@ -67,7 +67,7 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 			},
 		);
 
-	const { data: containers, isLoading: containersLoading } =
+	const { data: containers, isPending: containersLoading } =
 		api.docker.getContainersByAppNameMatch.useQuery(
 			{
 				appName,
@@ -175,7 +175,7 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 					services?.find((c) => c.containerId === containerId)?.error && (
 						<div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive">
 							<span className="font-medium">Error: </span>
-							{services.find((c) => c.containerId === containerId)?.error}
+							{services?.find((c) => c.containerId === containerId)?.error}
 						</div>
 					)}
 				<DockerLogs

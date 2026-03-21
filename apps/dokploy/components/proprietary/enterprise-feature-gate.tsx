@@ -91,10 +91,10 @@ export function EnterpriseFeatureGate({
 	lockedProps,
 	fallback,
 }: EnterpriseFeatureGateProps) {
-	const { data: haveValidLicense, isLoading } =
+	const { data: haveValidLicense, isPending } =
 		api.licenseKey.haveValidLicenseKey.useQuery();
 
-	if (isLoading) {
+	if (isPending) {
 		if (fallback) return <>{fallback}</>;
 		return (
 			<div className="flex items-center gap-2 justify-center min-h-[25vh]">

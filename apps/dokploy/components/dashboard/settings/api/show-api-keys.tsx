@@ -17,7 +17,7 @@ import { AddApiKey } from "./add-api-key";
 
 export const ShowApiKeys = () => {
 	const { data, refetch } = api.user.get.useQuery();
-	const { mutateAsync: deleteApiKey, isLoading: isLoadingDelete } =
+	const { mutateAsync: deleteApiKey, isPending: isLoadingDelete } =
 		api.user.deleteApiKey.useMutation();
 
 	return (

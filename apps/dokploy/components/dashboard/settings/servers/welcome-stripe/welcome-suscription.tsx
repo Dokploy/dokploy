@@ -307,9 +307,9 @@ export const WelcomeSuscription = () => {
 										</div>
 
 										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-											{features.map((feature, index) => (
+											{features.map((feature) => (
 												<div
-													key={index}
+													key={feature.title}
 													className="flex flex-col items-start p-4 bg-card rounded-lg shadow-md hover:shadow-lg transition-shadow"
 												>
 													<div className="text-3xl mb-2">{feature.icon}</div>

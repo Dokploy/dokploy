@@ -14,6 +14,7 @@ import {
 	sendPushoverNotification,
 	sendResendNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -39,6 +40,7 @@ export const sendDockerCleanupNotifications = async (
 			custom: true,
 			lark: true,
 			pushover: true,
+			teams: true,
 		},
 	});
 
@@ -54,6 +56,7 @@ export const sendDockerCleanupNotifications = async (
 			custom,
 			lark,
 			pushover,
+			teams,
 		} = notification;
 		try {
 			if (email || resend) {
@@ -261,6 +264,16 @@ export const sendDockerCleanupNotifications = async (
 					"Docker Cleanup",
 					`Date: ${date.toLocaleString()}\nMessage: ${message}`,
 				);
+			}
+
+			if (teams) {
+				await sendTeamsNotification(teams, {
+					title: "✅ Docker Cleanup",
+					facts: [
+						{ name: "Date", value: format(date, "PP pp") },
+						{ name: "Message", value: message },
+					],
+				});
 			}
 		} catch (error) {
 			console.log(error);

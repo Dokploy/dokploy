@@ -89,11 +89,11 @@ export const ShowBackups = ({
 
 	const mutation = mutationMap[key as keyof typeof mutationMap];
 
-	const { mutateAsync: manualBackup, isLoading: isManualBackup } = mutation
+	const { mutateAsync: manualBackup, isPending: isManualBackup } = mutation
 		? mutation
 		: api.backup.manualBackupMongo.useMutation();
 
-	const { mutateAsync: deleteBackup, isLoading: isRemoving } =
+	const { mutateAsync: deleteBackup, isPending: isRemoving } =
 		api.backup.remove.useMutation();
 
 	return (

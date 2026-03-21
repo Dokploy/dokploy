@@ -1,4 +1,3 @@
-import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { UpdateServerIp } from "@/components/dashboard/settings/web-server/update-server-ip";
 import { Button } from "@/components/ui/button";
@@ -17,8 +16,7 @@ import { TerminalModal } from "../../web-server/terminal-modal";
 import { GPUSupportModal } from "../gpu-support-modal";
 
 export const ShowDokployActions = () => {
-	const { t } = useTranslation("settings");
-	const { mutateAsync: reloadServer, isLoading } =
+	const { mutateAsync: reloadServer, isPending } =
 		api.settings.reloadServer.useMutation();
 
 	const { mutateAsync: cleanRedis } = api.settings.cleanRedis.useMutation();
@@ -28,15 +26,13 @@ export const ShowDokployActions = () => {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild disabled={isLoading}>
-				<Button isLoading={isLoading} variant="outline">
-					{t("settings.server.webServer.server.label")}
+			<DropdownMenuTrigger asChild disabled={isPending}>
+				<Button isLoading={isPending} variant="outline">
+					Server
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="w-56" align="start">
-				<DropdownMenuLabel>
-					{t("settings.server.webServer.actions")}
-				</DropdownMenuLabel>
+				<DropdownMenuLabel>Actions</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
 					<DropdownMenuItem
@@ -51,17 +47,17 @@ export const ShowDokployActions = () => {
 						}}
 						className="cursor-pointer"
 					>
-						<span>{t("settings.server.webServer.reload")}</span>
+						<span>Reload</span>
 					</DropdownMenuItem>
 					<TerminalModal serverId="local">
-						<span>{t("settings.common.enterTerminal")}</span>
+						<span>Terminal</span>
 					</TerminalModal>
 					<ShowModalLogs appName="dokploy">
 						<DropdownMenuItem
 							className="cursor-pointer"
 							onSelect={(e) => e.preventDefault()}
 						>
-							{t("settings.server.webServer.watchLogs")}
+							View Logs
 						</DropdownMenuItem>
 					</ShowModalLogs>
 					<GPUSupportModal />
@@ -70,7 +66,7 @@ export const ShowDokployActions = () => {
 							className="cursor-pointer"
 							onSelect={(e) => e.preventDefault()}
 						>
-							{t("settings.server.webServer.updateServerIp")}
+							Update Server IP
 						</DropdownMenuItem>
 					</UpdateServerIp>
 

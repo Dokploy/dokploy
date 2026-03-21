@@ -1,5 +1,20 @@
 import { getPublicIpWithFallback, LICENSE_KEY_URL } from "@dokploy/server";
 
+const LICENSE_SERVER_UNREACHABLE =
+	"Could not reach the license server. Check your connection or try again later.";
+
+function isNetworkError(error: unknown): boolean {
+	if (error instanceof Error) {
+		if (error.message === "fetch failed") return true;
+		const cause = (error as Error & { cause?: { code?: string } }).cause;
+		const code = cause?.code;
+		return (
+			code === "ECONNREFUSED" || code === "ENOTFOUND" || code === "ETIMEDOUT"
+		);
+	}
+	return false;
+}
+
 export const validateLicenseKey = async (licenseKey: string) => {
 	try {
 		const ip = await getPublicIpWithFallback();
@@ -22,6 +37,9 @@ export const validateLicenseKey = async (licenseKey: string) => {
 		console.error(
 			error instanceof Error ? error.message : "Failed to validate license key",
 		);
+		if (isNetworkError(error)) {
+			throw new Error(LICENSE_SERVER_UNREACHABLE);
+		}
 		throw error;
 	}
 };
@@ -48,6 +66,9 @@ export const activateLicenseKey = async (licenseKey: string) => {
 		console.error(
 			error instanceof Error ? error.message : "Failed to activate license key",
 		);
+		if (isNetworkError(error)) {
+			throw new Error(LICENSE_SERVER_UNREACHABLE);
+		}
 		throw error;
 	}
 };
@@ -76,6 +97,9 @@ export const deactivateLicenseKey = async (licenseKey: string) => {
 				? error.message
 				: "Failed to deactivate license key",
 		);
+		if (isNetworkError(error)) {
+			throw new Error(LICENSE_SERVER_UNREACHABLE);
+		}
 		throw error;
 	}
 };

@@ -21,6 +21,13 @@ interface Props {
 }
 
 export const ShowVolumes = ({ id, type }: Props) => {
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canRead = permissions?.volume.read ?? false;
+	const canCreate = permissions?.volume.create ?? false;
+	const canDelete = permissions?.volume.delete ?? false;
+
+	if (!canRead) return null;
+
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -37,7 +44,7 @@ export const ShowVolumes = ({ id, type }: Props) => {
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
-	const { mutateAsync: deleteVolume, isLoading: isRemoving } =
+	const { mutateAsync: deleteVolume, isPending: isRemoving } =
 		api.mounts.remove.useMutation();
 	return (
 		<Card className="bg-background">
@@ -50,7 +57,7 @@ export const ShowVolumes = ({ id, type }: Props) => {
 					</CardDescription>
 				</div>
 
-				{data && data?.mounts.length > 0 && (
+				{canCreate && data && data?.mounts.length > 0 && (
 					<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
 						Add Volume
 					</AddVolumes>
@@ -63,9 +70,11 @@ export const ShowVolumes = ({ id, type }: Props) => {
 						<span className="text-base text-muted-foreground">
 							No volumes/mounts configured
 						</span>
-						<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
-							Add Volume
-						</AddVolumes>
+						{canCreate && (
+							<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
+								Add Volume
+							</AddVolumes>
+						)}
 					</div>
 				) : (
 					<div className="flex flex-col pt-2 gap-4">
@@ -130,38 +139,42 @@ export const ShowVolumes = ({ id, type }: Props) => {
 											</div>
 										</div>
 										<div className="flex flex-row gap-1">
-											<UpdateVolume
-												mountId={mount.mountId}
-												type={mount.type}
-												refetch={refetch}
-												serviceType={type}
-											/>
-											<DialogAction
-												title="Delete Volume"
-												description="Are you sure you want to delete this volume?"
-												type="destructive"
-												onClick={async () => {
-													await deleteVolume({
-														mountId: mount.mountId,
-													})
-														.then(() => {
-															refetch();
-															toast.success("Volume deleted successfully");
+											{canCreate && (
+												<UpdateVolume
+													mountId={mount.mountId}
+													type={mount.type}
+													refetch={refetch}
+													serviceType={type}
+												/>
+											)}
+											{canDelete && (
+												<DialogAction
+													title="Delete Volume"
+													description="Are you sure you want to delete this volume?"
+													type="destructive"
+													onClick={async () => {
+														await deleteVolume({
+															mountId: mount.mountId,
 														})
-														.catch(() => {
-															toast.error("Error deleting volume");
-														});
-												}}
-											>
-												<Button
-													variant="ghost"
-													size="icon"
-													className="group hover:bg-red-500/10"
-													isLoading={isRemoving}
+															.then(() => {
+																refetch();
+																toast.success("Volume deleted successfully");
+															})
+															.catch(() => {
+																toast.error("Error deleting volume");
+															});
+													}}
 												>
-													<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-												</Button>
-											</DialogAction>
+													<Button
+														variant="ghost"
+														size="icon"
+														className="group hover:bg-red-500/10"
+														isLoading={isRemoving}
+													>
+														<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+													</Button>
+												</DialogAction>
+											)}
 										</div>
 									</div>
 								</div>

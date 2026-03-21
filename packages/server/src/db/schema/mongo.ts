@@ -30,6 +30,8 @@ import {
 	RestartPolicySwarmSchema,
 	type ServiceModeSwarm,
 	ServiceModeSwarmSchema,
+	type UlimitsSwarm,
+	UlimitsSwarmSchema,
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
@@ -70,6 +72,7 @@ export const mongo = pgTable("mongo", {
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
+	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
 	replicas: integer("replicas").default(1).notNull(),
 	createdAt: text("createdAt")
 		.notNull()
@@ -138,6 +141,7 @@ const createSchema = createInsertSchema(mongo, {
 	networkSwarm: NetworkSwarmSchema.nullable(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
+	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 });
 
 export const apiCreateMongo = createSchema.pick({
@@ -152,11 +156,9 @@ export const apiCreateMongo = createSchema.pick({
 	replicaSets: true,
 });
 
-export const apiFindOneMongo = createSchema
-	.pick({
-		mongoId: true,
-	})
-	.required();
+export const apiFindOneMongo = z.object({
+	mongoId: z.string().min(1),
+});
 
 export const apiChangeMongoStatus = createSchema
 	.pick({
@@ -189,6 +191,7 @@ export const apiUpdateMongo = createSchema
 	.partial()
 	.extend({
 		mongoId: z.string().min(1),
+		dockerImage: z.string().optional(),
 	})
 	.omit({ serverId: true });
 

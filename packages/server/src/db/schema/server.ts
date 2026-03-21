@@ -133,6 +133,7 @@ const createSchema = createInsertSchema(server, {
 	serverId: z.string().min(1),
 	name: z.string().min(1),
 	description: z.string().optional(),
+	serverType: z.enum(["deploy", "build"]).optional(),
 });
 
 export const apiCreateServer = createSchema
@@ -147,11 +148,9 @@ export const apiCreateServer = createSchema
 	})
 	.required();
 
-export const apiFindOneServer = createSchema
-	.pick({
-		serverId: true,
-	})
-	.required();
+export const apiFindOneServer = z.object({
+	serverId: z.string().min(1),
+});
 
 export const apiRemoveServer = createSchema
 	.pick({

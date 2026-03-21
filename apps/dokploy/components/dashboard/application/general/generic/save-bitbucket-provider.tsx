@@ -1,5 +1,5 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown, X } from "lucide-react";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { CheckIcon, ChevronsUpDown, HelpCircle, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -74,10 +74,10 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 		api.bitbucket.bitbucketProviders.useQuery();
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
-	const { mutateAsync, isLoading: isSavingBitbucketProvider } =
+	const { mutateAsync, isPending: isSavingBitbucketProvider } =
 		api.application.saveBitbucketProvider.useMutation();
 
-	const form = useForm<BitbucketProvider>({
+	const form = useForm({
 		defaultValues: {
 			buildPath: "/",
 			repository: {
@@ -245,13 +245,13 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{isLoadingRepositories
-														? "Loading...."
-														: field.value.owner
-															? repositories?.find(
+													{!field.value.owner
+														? "Select repository"
+														: isLoadingRepositories
+															? "Loading...."
+															: (repositories?.find(
 																	(repo) => repo.name === field.value.repo,
-																)?.name
-															: "Select repository"}
+																)?.name ?? "Select repository")}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -263,11 +263,15 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 													placeholder="Search repository..."
 													className="h-9"
 												/>
-												{isLoadingRepositories && (
+												{!bitbucketId ? (
+													<span className="py-6 text-center text-sm text-muted-foreground">
+														Select a Bitbucket account first
+													</span>
+												) : isLoadingRepositories ? (
 													<span className="py-6 text-center text-sm">
 														Loading Repositories....
 													</span>
-												)}
+												) : null}
 												<CommandEmpty>No repositories found.</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>
@@ -329,7 +333,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{status === "loading" && fetchStatus === "fetching"
+													{status === "pending" && fetchStatus === "fetching"
 														? "Loading...."
 														: field.value
 															? branches?.find(
@@ -346,7 +350,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 													placeholder="Search branch..."
 													className="h-9"
 												/>
-												{status === "loading" && fetchStatus === "fetching" && (
+												{status === "pending" && fetchStatus === "fetching" && (
 													<span className="py-6 text-center text-sm text-muted-foreground">
 														Loading Branches....
 													</span>
@@ -412,10 +416,8 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 										<FormLabel>Watch Paths</FormLabel>
 										<TooltipProvider>
 											<Tooltip>
-												<TooltipTrigger>
-													<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
-														?
-													</div>
+												<TooltipTrigger asChild>
+													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 												</TooltipTrigger>
 												<TooltipContent>
 													<p>

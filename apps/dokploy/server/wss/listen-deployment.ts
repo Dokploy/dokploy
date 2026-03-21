@@ -1,9 +1,9 @@
 import { spawn } from "node:child_process";
 import type http from "node:http";
 import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
+import { readValidDirectory } from "@dokploy/server/wss/utils";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { readValidDirectory } from "./utils";
 
 export const setupDeploymentLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -34,14 +34,13 @@ export const setupDeploymentLogsWebSocketServer = (
 
 		// Generate unique connection ID for tracking
 		const connectionId = `deployment-logs-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-
 		if (!logPath) {
 			console.log(`[${connectionId}] logPath no provided`);
 			ws.close(4000, "logPath no provided");
 			return;
 		}
 
-		if (!readValidDirectory(logPath)) {
+		if (!readValidDirectory(logPath, serverId)) {
 			ws.close(4000, "Invalid log path");
 			return;
 		}

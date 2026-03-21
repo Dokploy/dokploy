@@ -508,6 +508,7 @@ export const generateConfigContainer = (
 		networkSwarm,
 		stopGracePeriodSwarm,
 		endpointSpecSwarm,
+		ulimitsSwarm,
 	} = application;
 
 	const sanitizedStopGracePeriodSwarm =
@@ -584,6 +585,10 @@ export const generateConfigContainer = (
 					})) || [],
 			},
 		}),
+		...(ulimitsSwarm &&
+			ulimitsSwarm.length > 0 && {
+				Ulimits: ulimitsSwarm,
+			}),
 	};
 };
 
@@ -734,5 +739,179 @@ export const getComposeContainer = async (
 		return container;
 	} catch (error) {
 		throw error;
+	}
+};
+
+type ServiceHealthStatus = {
+	status: "healthy" | "unhealthy";
+	message?: string;
+};
+
+const checkSwarmServiceRunning = async (
+	serviceName: string,
+): Promise<ServiceHealthStatus> => {
+	try {
+		const service = docker.getService(serviceName);
+		const info = await service.inspect();
+		const replicas = info.Spec?.Mode?.Replicated?.Replicas ?? 0;
+		if (replicas === 0) {
+			return {
+				status: "unhealthy",
+				message: "Service has 0 replicas configured",
+			};
+		}
+
+		// Check that at least one task is actually running
+		const tasks = await docker.listTasks({
+			filters: JSON.stringify({
+				service: [serviceName],
+				"desired-state": ["running"],
+			}),
+		});
+
+		const runningTask = tasks.find((t) => t.Status?.State === "running");
+
+		if (!runningTask) {
+			const latestTask = tasks[0];
+			const taskState = latestTask?.Status?.State ?? "unknown";
+			return {
+				status: "unhealthy",
+				message: `No running tasks (current state: ${taskState})`,
+			};
+		}
+
+		return { status: "healthy" };
+	} catch (error) {
+		return {
+			status: "unhealthy",
+			message: error instanceof Error ? error.message : "Service not found",
+		};
+	}
+};
+
+const getSwarmServiceContainerId = async (
+	serviceName: string,
+): Promise<string | null> => {
+	try {
+		const tasks = await docker.listTasks({
+			filters: JSON.stringify({
+				service: [serviceName],
+				"desired-state": ["running"],
+			}),
+		});
+
+		const runningTask = tasks.find((t) => t.Status?.State === "running");
+
+		return runningTask?.Status?.ContainerStatus?.ContainerID ?? null;
+	} catch {
+		return null;
+	}
+};
+
+export const checkPostgresHealth = async (): Promise<ServiceHealthStatus> => {
+	const serviceCheck = await checkSwarmServiceRunning("dokploy-postgres");
+	if (serviceCheck.status === "unhealthy") {
+		return serviceCheck;
+	}
+
+	// Verify PostgreSQL actually accepts connections
+	const containerId = await getSwarmServiceContainerId("dokploy-postgres");
+	if (!containerId) {
+		return { status: "unhealthy", message: "Could not find running container" };
+	}
+
+	try {
+		const exec = await docker.getContainer(containerId).exec({
+			Cmd: ["pg_isready", "-U", "dokploy"],
+			AttachStdout: true,
+			AttachStderr: true,
+		});
+		const stream = await exec.start({});
+
+		const output = await new Promise<string>((resolve) => {
+			let data = "";
+			stream.on("data", (chunk: Buffer) => {
+				data += chunk.toString();
+			});
+			stream.on("end", () => resolve(data));
+		});
+
+		const inspectResult = await exec.inspect();
+		if (inspectResult.ExitCode !== 0) {
+			return {
+				status: "unhealthy",
+				message: `PostgreSQL not ready: ${output.trim()}`,
+			};
+		}
+
+		return { status: "healthy" };
+	} catch (error) {
+		return {
+			status: "unhealthy",
+			message:
+				error instanceof Error ? error.message : "Failed to check PostgreSQL",
+		};
+	}
+};
+
+export const checkRedisHealth = async (): Promise<ServiceHealthStatus> => {
+	const serviceCheck = await checkSwarmServiceRunning("dokploy-redis");
+	if (serviceCheck.status === "unhealthy") {
+		return serviceCheck;
+	}
+
+	// Verify Redis actually responds to PING
+	const containerId = await getSwarmServiceContainerId("dokploy-redis");
+	if (!containerId) {
+		return { status: "unhealthy", message: "Could not find running container" };
+	}
+
+	try {
+		const exec = await docker.getContainer(containerId).exec({
+			Cmd: ["redis-cli", "ping"],
+			AttachStdout: true,
+			AttachStderr: true,
+		});
+		const stream = await exec.start({});
+
+		const output = await new Promise<string>((resolve) => {
+			let data = "";
+			stream.on("data", (chunk: Buffer) => {
+				data += chunk.toString();
+			});
+			stream.on("end", () => resolve(data));
+		});
+
+		if (!output.includes("PONG")) {
+			return {
+				status: "unhealthy",
+				message: `Redis did not respond with PONG: ${output.trim()}`,
+			};
+		}
+
+		return { status: "healthy" };
+	} catch (error) {
+		return {
+			status: "unhealthy",
+			message: error instanceof Error ? error.message : "Failed to check Redis",
+		};
+	}
+};
+
+export const checkTraefikHealth = async (): Promise<ServiceHealthStatus> => {
+	// Traefik can run as a standalone container or a swarm service
+	try {
+		const container = docker.getContainer("dokploy-traefik");
+		const info = await container.inspect();
+		if (!info.State.Running) {
+			return {
+				status: "unhealthy",
+				message: "Container is not running",
+			};
+		}
+		return { status: "healthy" };
+	} catch {
+		// Not a standalone container, check as swarm service
+		return checkSwarmServiceRunning("dokploy-traefik");
 	}
 };

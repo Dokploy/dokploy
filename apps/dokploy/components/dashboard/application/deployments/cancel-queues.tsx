@@ -1,4 +1,4 @@
-import { Paintbrush } from "lucide-react";
+import { Ban } from "lucide-react";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -20,7 +20,7 @@ interface Props {
 }
 
 export const CancelQueues = ({ id, type }: Props) => {
-	const { mutateAsync, isLoading } =
+	const { mutateAsync, isPending } =
 		type === "application"
 			? api.application.cleanQueues.useMutation()
 			: api.compose.cleanQueues.useMutation();
@@ -33,9 +33,9 @@ export const CancelQueues = ({ id, type }: Props) => {
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button variant="destructive" className="w-fit" isLoading={isLoading}>
+				<Button variant="destructive" className="w-fit" isLoading={isPending}>
 					Cancel Queues
-					<Paintbrush className="size-4" />
+					<Ban className="size-4" />
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
