@@ -1543,7 +1543,7 @@ const EnvironmentPage = (
 																				<CircuitBoard className="h-6 w-6" />
 																			)}
 																			{service.type === "libsql" && (
-																				<LibsqlIcon className="h-7 w-7" />
+																				<LibsqlIcon className="h-6 w-6" />
 																			)}
 																		</span>
 																	</div>

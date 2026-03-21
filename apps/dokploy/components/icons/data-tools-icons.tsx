@@ -160,8 +160,8 @@ export const LibsqlIcon = ({ className }: Props) => {
 	return (
 		<svg
 			aria-label="libsql"
-			height="35"
-			width="35"
+			height="1em"
+			width="1em"
 			viewBox="0 0 217.2 217.2"
 			className={className}
 		>
