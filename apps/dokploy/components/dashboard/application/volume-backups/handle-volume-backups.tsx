@@ -43,6 +43,24 @@ import { api } from "@/utils/api";
 import type { CacheType } from "../domains/handle-domain";
 import { ScheduleFormField } from "../schedules/handle-schedules";
 
+const validateFileNameFormat = (format: string | undefined): { valid: boolean; errors: string[] } => {
+	if (!format || !format.trim()) return { valid: true, errors: [] };
+
+	const usedVars = [...format.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).filter(Boolean);
+	const validVars = ["timestamp", "date", "time", "year", "month", "day", "hour", "minute", "epoch", "appName", "volumeName", "databaseType", "uuid", "shortUuid"];
+	const invalidVars = usedVars.filter(v => !validVars.includes(v));
+
+	if (invalidVars.length > 0) {
+		return { valid: false, errors: [`Invalid format variables: ${invalidVars.join(", ")}`] };
+	}
+
+	if (!format.includes("{")) {
+		return { valid: false, errors: ["FileNameFormat must contain at least one valid placeholder like {timestamp}"] };
+	}
+
+	return { valid: true, errors: [] };
+};
+
 const formSchema = z
 	.object({
 		name: z.string().min(1, "Name is required"),
@@ -55,6 +73,7 @@ const formSchema = z
 				"Invalid volume name. Use letters, numbers, '._-' and start with a letter/number.",
 			),
 		prefix: z.string(),
+		fileNameFormat: z.string().optional(),
 		keepLatestCount: z.coerce
 			.number()
 			.int()
@@ -123,6 +142,7 @@ export const HandleVolumeBackups = ({
 			cronExpression: "",
 			volumeName: "",
 			prefix: "",
+			fileNameFormat: "",
 			keepLatestCount: undefined,
 			turnOff: false,
 			enabled: true,
@@ -179,6 +199,7 @@ export const HandleVolumeBackups = ({
 				cronExpression: volumeBackup.cronExpression,
 				volumeName: volumeBackup.volumeName || "",
 				prefix: volumeBackup.prefix,
+				fileNameFormat: volumeBackup.fileNameFormat || "",
 				keepLatestCount: volumeBackup.keepLatestCount || undefined,
 				turnOff: volumeBackup.turnOff,
 				enabled: volumeBackup.enabled || false,
@@ -558,6 +579,30 @@ export const HandleVolumeBackups = ({
 									<FormMessage />
 								</FormItem>
 							)}
+						/>
+
+						<FormField
+							control={form.control}
+							name="fileNameFormat"
+							render={({ field }) => {
+								const validation = validateFileNameFormat(field.value);
+								return (
+									<FormItem>
+										<FormLabel>File Name Format</FormLabel>
+										<FormControl>
+											<Input
+												placeholder={"{volumeName}-{timestamp}"}
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Format for backup file name. Variables:{" "}
+											{"{timestamp}, {date}, {time}, {volumeName}, {appName}, {uuid}"}
+										</FormDescription>
+										<FormMessage>{validation.errors[0] || ""}</FormMessage>
+									</FormItem>
+								);
+							}}
 						/>
 
 						<FormField

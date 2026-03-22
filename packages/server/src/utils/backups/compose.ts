@@ -8,7 +8,12 @@ import { findEnvironmentById } from "@dokploy/server/services/environment";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	formatBackupFileName,
+	getBackupCommand,
+	getS3Credentials,
+	normalizeS3Path,
+} from "./utils";
 
 export const runComposeBackup = async (
 	compose: Compose,
@@ -19,7 +24,10 @@ export const runComposeBackup = async (
 	const project = await findProjectById(environment.projectId);
 	const { prefix, databaseType, serviceName } = backup;
 	const destination = backup.destination;
-	const backupFileName = `${new Date().toISOString()}.sql.gz`;
+	const backupFileName = `${formatBackupFileName(
+		backup.fileNameFormat ?? "{timestamp}",
+		{ appName, databaseType },
+	)}.sql.gz`;
 	const s3AppName = serviceName ? `${appName}_${serviceName}` : appName;
 	const bucketDestination = `${s3AppName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({

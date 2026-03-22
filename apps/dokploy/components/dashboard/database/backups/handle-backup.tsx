@@ -67,11 +67,31 @@ type CacheType = "cache" | "fetch";
 
 type DatabaseType = "postgres" | "mariadb" | "mysql" | "mongo" | "web-server";
 
+const validateFileNameFormat = (format: string): { valid: boolean; errors: string[] } => {
+	if (!format || !format.trim()) return { valid: true, errors: [] }; // Empty is allowed
+	
+	const usedVars = [...format.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).filter(Boolean);
+	const validVars = ["timestamp", "date", "time", "year", "month", "day", "hour", "minute", "epoch", "appName", "volumeName", "databaseType", "uuid", "shortUuid"];
+	const invalidVars = usedVars.filter(v => !validVars.includes(v));
+	
+	if (invalidVars.length > 0) {
+		return { valid: false, errors: [`Invalid format variables: ${invalidVars.join(", ")}`] };
+	}
+	
+	// Check that format contains at least one variable
+	if (!format.includes("{")) {
+		return { valid: false, errors: ["FileNameFormat must contain at least one valid placeholder like {timestamp}"] };
+	}
+	
+	return { valid: true, errors: [] };
+};
+
 const Schema = z
 	.object({
 		destinationId: z.string().min(1, "Destination required"),
 		schedule: z.string().min(1, "Schedule (Cron) required"),
 		prefix: z.string().min(1, "Prefix required"),
+		fileNameFormat: z.string().optional(),
 		enabled: z.boolean(),
 		database: z.string().min(1, "Database required"),
 		keepLatestCount: z.coerce.number().optional(),
@@ -213,6 +233,7 @@ export const HandleBackup = ({
 			destinationId: "",
 			enabled: true,
 			prefix: "/",
+			fileNameFormat: "",
 			schedule: "",
 			keepLatestCount: undefined,
 			serviceName: null,
@@ -250,6 +271,7 @@ export const HandleBackup = ({
 			destinationId: backup?.destinationId ?? "",
 			enabled: backup?.enabled ?? true,
 			prefix: backup?.prefix ?? "/",
+			fileNameFormat: backup?.fileNameFormat ?? "",
 			schedule: backup?.schedule ?? "",
 			keepLatestCount: backup?.keepLatestCount ?? undefined,
 			serviceName: backup?.serviceName ?? null,
@@ -290,6 +312,7 @@ export const HandleBackup = ({
 		await createBackup({
 			destinationId: data.destinationId,
 			prefix: data.prefix,
+			fileNameFormat: data.fileNameFormat,
 			schedule: data.schedule,
 			enabled: data.enabled,
 			database: data.database,
@@ -597,6 +620,26 @@ export const HandleBackup = ({
 											</FormDescription>
 
 											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+							<FormField
+								control={form.control}
+								name="fileNameFormat"
+								render={({ field }) => {
+									const validation = validateFileNameFormat(field.value);
+									return (
+										<FormItem>
+											<FormLabel>File Name Format</FormLabel>
+											<FormControl>
+												<Input placeholder="{timestamp}" {...field} />
+											</FormControl>
+											<FormDescription>
+												Format for backup file name. Variables:{" "}
+												{"{timestamp}, {date}, {time}, {appName}, {databaseType}, {uuid}"}
+											</FormDescription>
+											<FormMessage>{validation.errors[0] || ""}</FormMessage>
 										</FormItem>
 									);
 								}}

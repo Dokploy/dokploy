@@ -7,6 +7,7 @@ import {
 	type updateVolumeBackupSchema,
 	volumeBackups,
 } from "../db/schema";
+import { validateFileNameFormat } from "../utils/backups/utils";
 
 export const findVolumeBackupById = async (volumeBackupId: string) => {
 	const volumeBackup = await db.query.volumeBackups.findFirst({
@@ -92,6 +93,15 @@ export const findVolumeBackupById = async (volumeBackupId: string) => {
 export const createVolumeBackup = async (
 	volumeBackup: z.infer<typeof createVolumeBackupSchema>,
 ) => {
+	if (volumeBackup.fileNameFormat) {
+		const invalidVars = validateFileNameFormat(volumeBackup.fileNameFormat);
+		if (invalidVars.length > 0) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Invalid format variables in fileNameFormat: ${invalidVars.join(", ")}`,
+			});
+		}
+	}
 	const newVolumeBackup = await db
 		.insert(volumeBackups)
 		.values(volumeBackup as typeof volumeBackups.$inferInsert)
@@ -111,6 +121,15 @@ export const updateVolumeBackup = async (
 	volumeBackupId: string,
 	volumeBackup: z.infer<typeof updateVolumeBackupSchema>,
 ) => {
+	if (volumeBackup.fileNameFormat) {
+		const invalidVars = validateFileNameFormat(volumeBackup.fileNameFormat);
+		if (invalidVars.length > 0) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Invalid format variables in fileNameFormat: ${invalidVars.join(", ")}`,
+			});
+		}
+	}
 	return await db
 		.update(volumeBackups)
 		.set(volumeBackup as Partial<typeof volumeBackups.$inferInsert>)
