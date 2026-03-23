@@ -55,16 +55,16 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 	const [isEnvVisible, setIsEnvVisible] = useState(true);
 
 	const mutationMap = {
-		postgres: () => api.postgres.update.useMutation(),
-		redis: () => api.redis.update.useMutation(),
-		mysql: () => api.mysql.update.useMutation(),
-		mariadb: () => api.mariadb.update.useMutation(),
-		mongo: () => api.mongo.update.useMutation(),
-		compose: () => api.compose.update.useMutation(),
+		postgres: () => api.postgres.saveEnvironment.useMutation(),
+		redis: () => api.redis.saveEnvironment.useMutation(),
+		mysql: () => api.mysql.saveEnvironment.useMutation(),
+		mariadb: () => api.mariadb.saveEnvironment.useMutation(),
+		mongo: () => api.mongo.saveEnvironment.useMutation(),
+		compose: () => api.compose.saveEnvironment.useMutation(),
 	};
 	const { mutateAsync, isPending } = mutationMap[type]
 		? mutationMap[type]()
-		: api.mongo.update.useMutation();
+		: api.mongo.saveEnvironment.useMutation();
 
 	const form = useForm<EnvironmentSchema>({
 		defaultValues: {
@@ -86,15 +86,18 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 	}, [data, form]);
 
 	const onSubmit = async (formData: EnvironmentSchema) => {
-		mutateAsync({
-			mongoId: id || "",
-			postgresId: id || "",
-			redisId: id || "",
-			mysqlId: id || "",
-			mariadbId: id || "",
-			composeId: id || "",
-			env: formData.environment,
-		})
+		const payloadMap = {
+			postgres: { postgresId: id, env: formData.environment },
+			redis: { redisId: id, env: formData.environment },
+			mysql: { mysqlId: id, env: formData.environment },
+			mariadb: { mariadbId: id, env: formData.environment },
+			mongo: { mongoId: id, env: formData.environment },
+			compose: { composeId: id, env: formData.environment },
+		} as const;
+
+		(mutateAsync as (input: (typeof payloadMap)[typeof type]) => Promise<unknown>)(
+			payloadMap[type],
+		)
 			.then(async () => {
 				toast.success("Environments Added");
 				await refetch();

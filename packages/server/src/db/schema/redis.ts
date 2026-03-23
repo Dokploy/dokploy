@@ -180,7 +180,7 @@ export const apiUpdateRedis = createSchema
 		redisId: z.string().min(1),
 		dockerImage: z.string().optional(),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true, env: true });
 
 export const apiRebuildRedis = createSchema
 	.pick({

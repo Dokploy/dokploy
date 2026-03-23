@@ -193,7 +193,7 @@ export const apiUpdateMongo = createSchema
 		mongoId: z.string().min(1),
 		dockerImage: z.string().optional(),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true, env: true });
 
 export const apiResetMongo = createSchema
 	.pick({

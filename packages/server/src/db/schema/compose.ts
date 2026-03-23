@@ -223,7 +223,14 @@ export const apiUpdateCompose = createSchema
 		composeFile: z.string().optional(),
 		command: z.string().optional(),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true, env: true });
+
+export const apiSaveEnvironmentVariablesCompose = createSchema
+	.pick({
+		composeId: true,
+		env: true,
+	})
+	.required();
 
 export const apiRandomizeCompose = createSchema
 	.pick({
