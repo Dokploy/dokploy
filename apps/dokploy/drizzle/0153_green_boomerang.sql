@@ -1,4 +1,6 @@
 CREATE TYPE "public"."sqldNode" AS ENUM('primary', 'replica');--> statement-breakpoint
+ALTER TYPE "public"."databaseType" ADD VALUE 'libsql';--> statement-breakpoint
+ALTER TYPE "public"."serviceType" ADD VALUE 'libsql';--> statement-breakpoint
 CREATE TABLE "libsql" (
 	"libsqlId" text PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
@@ -9,8 +11,6 @@ CREATE TABLE "libsql" (
 	"sqldNode" "sqldNode" DEFAULT 'primary' NOT NULL,
 	"sqldPrimaryUrl" text,
 	"enableNamespaces" boolean DEFAULT false NOT NULL,
-	"enableBottomlessReplication" boolean DEFAULT false NOT NULL,
-	"bottomlessReplicationDestinationId" text,
 	"dockerImage" text NOT NULL,
 	"command" text,
 	"env" text,
@@ -37,13 +37,11 @@ CREATE TABLE "libsql" (
 	CONSTRAINT "libsql_appName_unique" UNIQUE("appName")
 );
 --> statement-breakpoint
+ALTER TABLE "backup" ADD COLUMN "libsqlId" text;--> statement-breakpoint
 ALTER TABLE "mount" ADD COLUMN "libsqlId" text;--> statement-breakpoint
 ALTER TABLE "volume_backup" ADD COLUMN "libsqlId" text;--> statement-breakpoint
-ALTER TABLE "libsql" ADD CONSTRAINT "libsql_bottomlessReplicationDestinationId_destination_destinationId_fk" FOREIGN KEY ("bottomlessReplicationDestinationId") REFERENCES "public"."destination"("destinationId") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "libsql" ADD CONSTRAINT "libsql_environmentId_environment_environmentId_fk" FOREIGN KEY ("environmentId") REFERENCES "public"."environment"("environmentId") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "libsql" ADD CONSTRAINT "libsql_serverId_server_serverId_fk" FOREIGN KEY ("serverId") REFERENCES "public"."server"("serverId") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "backup" ADD CONSTRAINT "backup_libsqlId_libsql_libsqlId_fk" FOREIGN KEY ("libsqlId") REFERENCES "public"."libsql"("libsqlId") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "mount" ADD CONSTRAINT "mount_libsqlId_libsql_libsqlId_fk" FOREIGN KEY ("libsqlId") REFERENCES "public"."libsql"("libsqlId") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "volume_backup" ADD CONSTRAINT "volume_backup_libsqlId_libsql_libsqlId_fk" FOREIGN KEY ("libsqlId") REFERENCES "public"."libsql"("libsqlId") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "mount" DROP COLUMN "serviceType";--> statement-breakpoint
-ALTER TABLE "volume_backup" DROP COLUMN "serviceType";--> statement-breakpoint
-DROP TYPE "public"."serviceType";
+ALTER TABLE "volume_backup" ADD CONSTRAINT "volume_backup_libsqlId_libsql_libsqlId_fk" FOREIGN KEY ("libsqlId") REFERENCES "public"."libsql"("libsqlId") ON DELETE cascade ON UPDATE no action;

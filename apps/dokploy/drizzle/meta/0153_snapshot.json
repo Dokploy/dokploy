@@ -1,5 +1,5 @@
 {
-  "id": "f040f17d-3acf-42ce-b49a-ae4c0d4b7300",
+  "id": "72bb48c9-d724-458b-bd91-3ae50e9afe0f",
   "prevId": "68c71185-6e91-4b8d-8f91-795457e75ab2",
   "version": "7",
   "dialect": "postgresql",
@@ -1961,6 +1961,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "libsqlId": {
+          "name": "libsqlId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "userId": {
           "name": "userId",
           "type": "text",
@@ -2050,6 +2056,19 @@
           ],
           "columnsTo": [
             "mongoId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "backup_libsqlId_libsql_libsqlId_fk": {
+          "name": "backup_libsqlId_libsql_libsqlId_fk",
+          "tableFrom": "backup",
+          "tableTo": "libsql",
+          "columnsFrom": [
+            "libsqlId"
+          ],
+          "columnsTo": [
+            "libsqlId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3624,19 +3643,6 @@
           "notNull": true,
           "default": false
         },
-        "enableBottomlessReplication": {
-          "name": "enableBottomlessReplication",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "bottomlessReplicationDestinationId": {
-          "name": "bottomlessReplicationDestinationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "dockerImage": {
           "name": "dockerImage",
           "type": "text",
@@ -3781,19 +3787,6 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "libsql_bottomlessReplicationDestinationId_destination_destinationId_fk": {
-          "name": "libsql_bottomlessReplicationDestinationId_destination_destinationId_fk",
-          "tableFrom": "libsql",
-          "tableTo": "destination",
-          "columnsFrom": [
-            "bottomlessReplicationDestinationId"
-          ],
-          "columnsTo": [
-            "destinationId"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
         "libsql_environmentId_environment_environmentId_fk": {
           "name": "libsql_environmentId_environment_environmentId_fk",
           "tableFrom": "libsql",
@@ -4368,6 +4361,14 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "serviceType": {
+          "name": "serviceType",
+          "type": "serviceType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'application'"
         },
         "mountPath": {
           "name": "mountPath",
@@ -7562,6 +7563,14 @@
           "primaryKey": false,
           "notNull": true
         },
+        "serviceType": {
+          "name": "serviceType",
+          "type": "serviceType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'application'"
+        },
         "appName": {
           "name": "appName",
           "type": "text",
@@ -7950,7 +7959,8 @@
         "mariadb",
         "mysql",
         "mongo",
-        "web-server"
+        "web-server",
+        "libsql"
       ]
     },
     "public.composeType": {
@@ -8009,6 +8019,20 @@
         "bind",
         "volume",
         "file"
+      ]
+    },
+    "public.serviceType": {
+      "name": "serviceType",
+      "schema": "public",
+      "values": [
+        "application",
+        "postgres",
+        "mysql",
+        "mariadb",
+        "mongo",
+        "redis",
+        "compose",
+        "libsql"
       ]
     },
     "public.notificationType": {

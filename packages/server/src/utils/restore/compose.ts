@@ -32,7 +32,7 @@ export const restoreComposeBackup = async (
 			rcloneCommand = `rclone copy ${rcloneFlags.join(" ")} "${backupPath}"`;
 		}
 
-		let credentials: DatabaseCredentials;
+		let credentials: DatabaseCredentials = {};
 
 		switch (backupInput.databaseType) {
 			case "postgres":

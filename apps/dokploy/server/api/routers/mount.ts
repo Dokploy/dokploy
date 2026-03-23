@@ -3,6 +3,7 @@ import {
 	deleteMount,
 	findApplicationById,
 	findComposeById,
+	findLibsqlById,
 	findMariadbById,
 	findMongoById,
 	findMountById,
@@ -13,7 +14,7 @@ import {
 	getServiceContainer,
 	updateMount,
 } from "@dokploy/server";
-import type { ServiceType } from "@dokploy/server/services/mount";
+import type { ServiceType } from "@dokploy/server/db/schema/mount";
 import {
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
@@ -62,6 +63,10 @@ async function getServiceOrganizationId(
 		case "compose": {
 			const compose = await findComposeById(serviceId);
 			return compose?.environment?.project?.organizationId ?? null;
+		}
+		case "libsql": {
+			const libsql = await findLibsqlById(serviceId);
+			return libsql?.environment?.project?.organizationId ?? null;
 		}
 		default:
 			return null;
@@ -169,7 +174,6 @@ export const mountRouter = createTRPCRouter({
 	listByServiceId: protectedProcedure
 		.input(apiFindMountByApplicationId)
 		.query(async ({ input, ctx }) => {
-			console.log("input", input);
 			await checkServiceAccess(ctx, input.serviceId, "read");
 			const organizationId = await getServiceOrganizationId(
 				input.serviceId,

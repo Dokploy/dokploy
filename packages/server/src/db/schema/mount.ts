@@ -12,6 +12,19 @@ import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
 
+export const serviceType = pgEnum("serviceType", [
+	"application",
+	"postgres",
+	"mysql",
+	"mariadb",
+	"mongo",
+	"redis",
+	"compose",
+	"libsql",
+]);
+
+export type ServiceType = (typeof serviceType.enumValues)[number];
+
 export const mountType = pgEnum("mountType", ["bind", "volume", "file"]);
 
 export const mounts = pgTable("mount", {
@@ -24,6 +37,7 @@ export const mounts = pgTable("mount", {
 	volumeName: text("volumeName"),
 	filePath: text("filePath"),
 	content: text("content"),
+	serviceType: serviceType("serviceType").notNull().default("application"),
 	mountPath: text("mountPath").notNull(),
 	applicationId: text("applicationId").references(
 		() => applications.applicationId,
@@ -96,6 +110,16 @@ const createSchema = createInsertSchema(mounts, {
 	mountPath: z.string().min(1),
 	mountId: z.string().optional(),
 	filePath: z.string().optional(),
+	serviceType: z.enum([
+		"application",
+		"postgres",
+		"mysql",
+		"mariadb",
+		"mongo",
+		"redis",
+		"compose",
+		"libsql",
+	]),
 });
 
 export const apiCreateMount = createSchema
@@ -106,19 +130,10 @@ export const apiCreateMount = createSchema
 		content: true,
 		mountPath: true,
 		filePath: true,
+		serviceType: true,
 	})
 	.extend({
 		serviceId: z.string().min(1),
-		serviceType: z.enum([
-			"application",
-			"postgres",
-			"mysql",
-			"mariadb",
-			"mongo",
-			"redis",
-			"compose",
-			"libsql",
-		]),
 	});
 
 export const apiFindOneMount = z.object({
@@ -134,19 +149,14 @@ export const apiRemoveMount = createSchema
 	// })
 	.required();
 
-export const apiFindMountByApplicationId = z.object({
-	serviceId: z.string().min(1),
-	serviceType: z.enum([
-		"application",
-		"postgres",
-		"mysql",
-		"mariadb",
-		"mongo",
-		"redis",
-		"compose",
-		"libsql",
-	]),
-});
+export const apiFindMountByApplicationId = createSchema
+	.pick({
+		serviceType: true,
+	})
+	.required()
+	.extend({
+		serviceId: z.string().min(1),
+	});
 
 export const apiUpdateMount = createSchema.partial().extend({
 	mountId: z.string().min(1),

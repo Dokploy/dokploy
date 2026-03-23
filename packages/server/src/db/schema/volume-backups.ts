@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import { boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
+import { serviceType } from "./mount";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -23,6 +24,7 @@ export const volumeBackups = pgTable("volume_backup", {
 	name: text("name").notNull(),
 	volumeName: text("volumeName").notNull(),
 	prefix: text("prefix").notNull(),
+	serviceType: serviceType("serviceType").notNull().default("application"),
 	appName: text("appName")
 		.notNull()
 		.$defaultFn(() => generateAppName("volumeBackup")),
