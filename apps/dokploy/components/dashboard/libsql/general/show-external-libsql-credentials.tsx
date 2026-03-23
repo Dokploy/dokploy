@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -26,64 +26,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
 
-const createDockerProviderSchema = (sqldNode?: string) =>
-	z
-		.object({
-			externalPort: z.preprocess((a) => {
-				if (a !== null) {
-					const parsed = Number.parseInt(z.string().parse(a), 10);
-					return Number.isNaN(parsed) ? null : parsed;
-				}
-				return null;
-			}, z
-				.number()
-				.gte(0, "Range must be 0 - 65535")
-				.lte(65535, "Range must be 0 - 65535")
-				.nullable()),
-			externalGRPCPort: z.preprocess((a) => {
-				if (a !== null) {
-					const parsed = Number.parseInt(z.string().parse(a), 10);
-					return Number.isNaN(parsed) ? null : parsed;
-				}
-				return null;
-			}, z
-				.number()
-				.gte(0, "Range must be 0 - 65535")
-				.lte(65535, "Range must be 0 - 65535")
-				.nullable()),
-			externalAdminPort: z.preprocess((a) => {
-				if (a !== null) {
-					const parsed = Number.parseInt(z.string().parse(a), 10);
-					return Number.isNaN(parsed) ? null : parsed;
-				}
-				return null;
-			}, z
-				.number()
-				.gte(0, "Range must be 0 - 65535")
-				.lte(65535, "Range must be 0 - 65535")
-				.nullable()),
-		})
-		.superRefine((data, ctx) => {
-			if (
-				data.externalPort === null &&
-				data.externalGRPCPort === null &&
-				data.externalAdminPort === null
-			) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message:
-						"Either externalPort, externalGRPCPort or externalAdminPort must be provided.",
-					path: ["externalPort", "externalGRPCPort", "externalAdminPort"],
-				});
-			}
-			if (sqldNode === "replica" && data.externalGRPCPort !== null) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "externalGRPCPort cannot be set when sqldNode is 'replica'",
-					path: ["externalGRPCPort"],
-				});
-			}
-		});
+const DockerProviderSchema = z.object({
+	externalPort: z.preprocess((a) => {
+		if (a === null || a === undefined || a === "") return null;
+		const parsed = Number.parseInt(String(a), 10);
+		return Number.isNaN(parsed) ? null : parsed;
+	}, z
+		.number()
+		.gte(0, "Range must be 0 - 65535")
+		.lte(65535, "Range must be 0 - 65535")
+		.nullable()),
+	externalGRPCPort: z.preprocess((a) => {
+		if (a === null || a === undefined || a === "") return null;
+		const parsed = Number.parseInt(String(a), 10);
+		return Number.isNaN(parsed) ? null : parsed;
+	}, z
+		.number()
+		.gte(0, "Range must be 0 - 65535")
+		.lte(65535, "Range must be 0 - 65535")
+		.nullable()),
+	externalAdminPort: z.preprocess((a) => {
+		if (a === null || a === undefined || a === "") return null;
+		const parsed = Number.parseInt(String(a), 10);
+		return Number.isNaN(parsed) ? null : parsed;
+	}, z
+		.number()
+		.gte(0, "Range must be 0 - 65535")
+		.lte(65535, "Range must be 0 - 65535")
+		.nullable()),
+});
+
+type DockerProvider = z.infer<typeof DockerProviderSchema>;
 
 interface Props {
 	libsqlId: string;
@@ -96,31 +69,18 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 	const [connectionGRPCUrl, setGRPCConnectionUrl] = useState("");
 	const getIp = data?.server?.ipAddress || ip;
 
-	const DockerProviderSchema = createDockerProviderSchema(data?.sqldNode);
-	type DockerProvider = z.infer<typeof DockerProviderSchema>;
-
-	const form = useForm<DockerProvider>({
+	const form = useForm({
 		defaultValues: {},
 		resolver: zodResolver(DockerProviderSchema),
 	});
 
 	useEffect(() => {
-		const fieldsToUpdate: Partial<DockerProvider> = {};
-
-		if (data?.externalPort !== undefined) {
-			fieldsToUpdate.externalPort = data.externalPort;
-		}
-
-		if (data?.externalGRPCPort !== undefined) {
-			fieldsToUpdate.externalGRPCPort = data.externalGRPCPort;
-		}
-
-		if (data?.externalAdminPort !== undefined) {
-			fieldsToUpdate.externalAdminPort = data.externalAdminPort;
-		}
-
-		if (Object.keys(fieldsToUpdate).length > 0) {
-			form.reset(fieldsToUpdate);
+		if (data) {
+			form.reset({
+				externalPort: data.externalPort,
+				externalGRPCPort: data.externalGRPCPort,
+				externalAdminPort: data.externalAdminPort,
+			});
 		}
 	}, [form.reset, data, form]);
 
@@ -135,168 +95,157 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 				toast.success("External port/ports updated");
 				await refetch();
 			})
-			.catch(() => {
-				toast.error("Error saving the external port/ports");
+			.catch((error: Error) => {
+				toast.error(error?.message || "Error saving the external port/ports");
 			});
 	};
 
 	useEffect(() => {
-		const buildConnectionUrl = () => {
-			const port = form.watch("externalPort") || data?.externalPort;
+		const port = form.watch("externalPort") || data?.externalPort;
+		setConnectionUrl(
+			`http://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${port}`,
+		);
 
-			return `http://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${port}`;
-		};
-
-		setConnectionUrl(buildConnectionUrl());
-
-		const buildGRPCConnectionUrl = () => {
-			if (data?.sqldNode === "replica") return "";
-			const port = form.watch("externalGRPCPort") || data?.externalGRPCPort;
-
-			return `http://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${port}`;
-		};
-
-		setGRPCConnectionUrl(buildGRPCConnectionUrl());
-	}, [
-		data?.appName,
-		data?.externalGRPCPort,
-		data?.databasePassword,
-		form,
-		data?.databaseUser,
-		getIp,
-	]);
+		if (data?.sqldNode !== "replica") {
+			const grpcPort =
+				form.watch("externalGRPCPort") || data?.externalGRPCPort;
+			setGRPCConnectionUrl(
+				`http://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${grpcPort}`,
+			);
+		}
+	}, [data?.externalGRPCPort, data?.databasePassword, form, data?.databaseUser, getIp]);
 
 	return (
-		<>
-			<div className="flex w-full flex-col gap-5 ">
-				<Card className="bg-background">
-					<CardHeader>
-						<CardTitle className="text-xl">External Credentials</CardTitle>
-						<CardDescription>
-							In order to make the database reachable through the internet, you
-							must set a port and ensure that the port is not being used by
-							another application or database
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="flex w-full flex-col gap-4">
-						{!getIp && (
-							<AlertBlock type="warning">
-								You need to set an IP address in your{" "}
-								<Link
-									href="/dashboard/settings/server"
-									className="text-primary"
-								>
-									{data?.serverId
-										? "Remote Servers -> Server -> Edit Server -> Update IP Address"
-										: "Web Server -> Server -> Update Server IP"}
-								</Link>{" "}
-								to fix the database url connection.
-							</AlertBlock>
-						)}
-						<Form {...form}>
-							<form
-								onSubmit={form.handleSubmit(onSubmit)}
-								className="flex flex-col gap-4"
+		<div className="flex w-full flex-col gap-5">
+			<Card className="bg-background">
+				<CardHeader>
+					<CardTitle className="text-xl">External Credentials</CardTitle>
+					<CardDescription>
+						In order to make the database reachable through the internet, you
+						must set a port and ensure that the port is not being used by
+						another application or database
+					</CardDescription>
+				</CardHeader>
+				<CardContent className="flex w-full flex-col gap-4">
+					{!getIp && (
+						<AlertBlock type="warning">
+							You need to set an IP address in your{" "}
+							<Link
+								href="/dashboard/settings/server"
+								className="text-primary"
 							>
-								<div className="grid md:grid-cols-2 gap-4 ">
-									<div className="md:col-span-2 space-y-4">
-										<FormField
-											control={form.control}
-											name="externalPort"
-											render={({ field }) => {
-												return (
-													<FormItem>
-														<FormLabel>External Port (Internet)</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="8080"
-																{...field}
-																value={field.value || ""}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												);
-											}}
-										/>
+								{data?.serverId
+									? "Remote Servers -> Server -> Edit Server -> Update IP Address"
+									: "Web Server -> Server -> Update Server IP"}
+							</Link>{" "}
+							to fix the database url connection.
+						</AlertBlock>
+					)}
+					<Form {...form}>
+						<form
+							onSubmit={form.handleSubmit(onSubmit)}
+							className="flex flex-col gap-4"
+						>
+							<div className="grid grid-cols-2 gap-4">
+								<div className="col-span-2 space-y-4">
+									<FormField
+										control={form.control}
+										name="externalPort"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>External Port (Internet)</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="8080"
+														{...field}
+														value={field.value as string}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							</div>
+							{!!data?.externalPort && (
+								<div className="grid w-full gap-8">
+									<div className="flex flex-col gap-3">
+										<Label>External Host</Label>
+										<ToggleVisibilityInput value={connectionUrl} disabled />
 									</div>
-									{!!data?.externalPort && (
-										<div className="md:col-span-2">
-											<Label>External Host</Label>
-											<ToggleVisibilityInput value={connectionUrl} disabled />
-										</div>
-									)}
-									<div className="md:col-span-2 space-y-4">
-										<FormField
-											control={form.control}
-											name="externalAdminPort"
-											render={({ field }) => {
-												return (
+								</div>
+							)}
+
+							<div className="grid grid-cols-2 gap-4">
+								<div className="col-span-2 space-y-4">
+									<FormField
+										control={form.control}
+										name="externalAdminPort"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>External Admin Port (Internet)</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="5000"
+														{...field}
+														value={field.value as string}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							</div>
+
+							{data?.sqldNode !== "replica" && (
+								<>
+									<div className="grid grid-cols-2 gap-4">
+										<div className="col-span-2 space-y-4">
+											<FormField
+												control={form.control}
+												name="externalGRPCPort"
+												render={({ field }) => (
 													<FormItem>
 														<FormLabel>
-															External Admin Port (Internet)
+															External GRPC Port (Internet)
 														</FormLabel>
 														<FormControl>
 															<Input
-																placeholder="5000"
+																placeholder="5001"
 																{...field}
-																value={field.value || ""}
+																value={field.value as string}
 															/>
 														</FormControl>
 														<FormMessage />
 													</FormItem>
-												);
-											}}
-										/>
+												)}
+											/>
+										</div>
 									</div>
-									{data?.sqldNode !== "replica" && (
-										<>
-											<div className="md:col-span-2 space-y-4">
-												<FormField
-													control={form.control}
-													name="externalGRPCPort"
-													render={({ field }) => {
-														return (
-															<FormItem>
-																<FormLabel>
-																	External GRPC Port (Internet)
-																</FormLabel>
-																<FormControl>
-																	<Input
-																		placeholder="5001"
-																		{...field}
-																		value={field.value || ""}
-																	/>
-																</FormControl>
-																<FormMessage />
-															</FormItem>
-														);
-													}}
+									{!!data?.externalGRPCPort && (
+										<div className="grid w-full gap-8">
+											<div className="flex flex-col gap-3">
+												<Label>External GRPC Host</Label>
+												<ToggleVisibilityInput
+													value={connectionGRPCUrl}
+													disabled
 												/>
 											</div>
-											{!!data?.externalGRPCPort && (
-												<div className="md:col-span-2">
-													<Label>External GRPC Host</Label>
-													<ToggleVisibilityInput
-														value={connectionGRPCUrl}
-														disabled
-													/>
-												</div>
-											)}
-										</>
+										</div>
 									)}
-								</div>
+								</>
+							)}
 
-								<div className="flex justify-end">
-									<Button type="submit" isLoading={isPending}>
-										Save
-									</Button>
-								</div>
-							</form>
-						</Form>
-					</CardContent>
-				</Card>
-			</div>
-		</>
+							<div className="flex justify-end">
+								<Button type="submit" isLoading={isPending}>
+									Save
+								</Button>
+							</div>
+						</form>
+					</Form>
+				</CardContent>
+			</Card>
+		</div>
 	);
 };

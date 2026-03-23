@@ -1,6 +1,5 @@
 import {
-	addNewService,
-	checkServiceAccess,
+	checkPortInUse,
 	createLibsql,
 	createMount,
 	deployLibsql,
@@ -17,11 +16,16 @@ import {
 	stopServiceRemote,
 	updateLibsqlById,
 } from "@dokploy/server";
+import {
+	addNewService,
+	checkServiceAccess,
+	checkServicePermissionAndAccess,
+} from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import { db } from "@/server/db";
 import {
 	apiChangeLibsqlStatus,
@@ -40,18 +44,10 @@ export const libsqlRouter = createTRPCRouter({
 		.input(apiCreateLibsql)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				// Get project from environment
 				const environment = await findEnvironmentById(input.environmentId);
 				const project = await findProjectById(environment.projectId);
 
-				if (ctx.user.role === "member") {
-					await checkServiceAccess(
-						ctx.user.id,
-						project.projectId,
-						ctx.session.activeOrganizationId,
-						"create",
-					);
-				}
+				await checkServiceAccess(ctx, project.projectId, "create");
 
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
@@ -69,13 +65,7 @@ export const libsqlRouter = createTRPCRouter({
 				const newLibsql = await createLibsql({
 					...input,
 				});
-				if (ctx.user.role === "member") {
-					await addNewService(
-						ctx.user.id,
-						newLibsql.libsqlId,
-						project.organizationId,
-					);
-				}
+				await addNewService(ctx, newLibsql.libsqlId);
 
 				await createMount({
 					serviceId: newLibsql.libsqlId,
@@ -85,25 +75,22 @@ export const libsqlRouter = createTRPCRouter({
 					type: "volume",
 				});
 
+				await audit(ctx, {
+					action: "create",
+					resourceType: "service",
+					resourceId: newLibsql.libsqlId,
+					resourceName: newLibsql.appName,
+				});
 				return true;
 			} catch (error) {
-				if (error instanceof TRPCError) {
-					throw error;
-				}
 				throw error;
 			}
 		}),
 	one: protectedProcedure
 		.input(apiFindOneLibsql)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.role === "member") {
-				await checkServiceAccess(
-					ctx.user.id,
-					input.libsqlId,
-					ctx.session.activeOrganizationId,
-					"access",
-				);
-			}
+			await checkServiceAccess(ctx, input.libsqlId, "read");
+
 			const libsql = await findLibsqlById(input.libsqlId);
 			if (
 				libsql.environment.project.organizationId !==
@@ -120,30 +107,34 @@ export const libsqlRouter = createTRPCRouter({
 	start: protectedProcedure
 		.input(apiFindOneLibsql)
 		.mutation(async ({ input, ctx }) => {
-			const service = await findLibsqlById(input.libsqlId);
-			if (
-				service.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to start this Libsql",
-				});
-			}
-			if (service.serverId) {
-				await startServiceRemote(service.serverId, service.appName);
+			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
+				deployment: ["create"],
+			});
+			const libsql = await findLibsqlById(input.libsqlId);
+
+			if (libsql.serverId) {
+				await startServiceRemote(libsql.serverId, libsql.appName);
 			} else {
-				await startService(service.appName);
+				await startService(libsql.appName);
 			}
 			await updateLibsqlById(input.libsqlId, {
 				applicationStatus: "done",
 			});
 
-			return service;
+			await audit(ctx, {
+				action: "start",
+				resourceType: "service",
+				resourceId: libsql.libsqlId,
+				resourceName: libsql.appName,
+			});
+			return libsql;
 		}),
 	stop: protectedProcedure
 		.input(apiFindOneLibsql)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
+				deployment: ["create"],
+			});
 			const libsql = await findLibsqlById(input.libsqlId);
 
 			if (libsql.serverId) {
@@ -155,49 +146,77 @@ export const libsqlRouter = createTRPCRouter({
 				applicationStatus: "idle",
 			});
 
+			await audit(ctx, {
+				action: "stop",
+				resourceType: "service",
+				resourceId: libsql.libsqlId,
+				resourceName: libsql.appName,
+			});
 			return libsql;
 		}),
 	saveExternalPorts: protectedProcedure
 		.input(apiSaveExternalPortsLibsql)
 		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
+				service: ["create"],
+			});
 			const libsql = await findLibsqlById(input.libsqlId);
-			if (
-				libsql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to save this external port",
-				});
-			}
+
 			if (libsql.sqldNode === "replica" && input.externalGRPCPort !== null) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "externalGRPCPort cannot be set when sqldNode is 'replica'",
 				});
 			}
+
+			const portsToCheck = [
+				{ port: input.externalPort, name: "externalPort", current: libsql.externalPort },
+				{ port: input.externalGRPCPort, name: "externalGRPCPort", current: libsql.externalGRPCPort },
+				{ port: input.externalAdminPort, name: "externalAdminPort", current: libsql.externalAdminPort },
+			];
+
+			for (const { port, name, current } of portsToCheck) {
+				if (port && port !== current) {
+					const portCheck = await checkPortInUse(
+						port,
+						libsql.serverId || undefined,
+					);
+					if (portCheck.isInUse) {
+						throw new TRPCError({
+							code: "CONFLICT",
+							message: `Port ${port} (${name}) is already in use by ${portCheck.conflictingContainer}`,
+						});
+					}
+				}
+			}
+
 			await updateLibsqlById(input.libsqlId, {
 				externalPort: input.externalPort,
 				externalGRPCPort: input.externalGRPCPort,
 				externalAdminPort: input.externalAdminPort,
 			});
 			await deployLibsql(input.libsqlId);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: libsql.libsqlId,
+				resourceName: libsql.appName,
+			});
 			return libsql;
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployLibsql)
 		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
+				deployment: ["create"],
+			});
 			const libsql = await findLibsqlById(input.libsqlId);
-			if (
-				libsql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to deploy this Libsql",
-				});
-			}
-
+			await audit(ctx, {
+				action: "deploy",
+				resourceType: "service",
+				resourceId: libsql.libsqlId,
+				resourceName: libsql.appName,
+			});
 			return deployLibsql(input.libsqlId);
 		}),
 	deployWithLogs: protectedProcedure
@@ -210,55 +229,54 @@ export const libsqlRouter = createTRPCRouter({
 			},
 		})
 		.input(apiDeployLibsql)
-		.subscription(async ({ input, ctx }) => {
-			const libsql = await findLibsqlById(input.libsqlId);
-			if (
-				libsql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to deploy this Libsql",
-				});
-			}
-
-			return observable<string>((emit) => {
-				deployLibsql(input.libsqlId, (log) => {
-					emit.next(log);
-				});
+		.subscription(async function* ({ input, ctx, signal }) {
+			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
+				deployment: ["create"],
 			});
+			const queue: string[] = [];
+			const done = false;
+
+			deployLibsql(input.libsqlId, (log) => {
+				queue.push(log);
+			});
+
+			while (!done || queue.length > 0) {
+				if (queue.length > 0) {
+					yield queue.shift()!;
+				} else {
+					await new Promise((r) => setTimeout(r, 50));
+				}
+
+				if (signal?.aborted) {
+					return;
+				}
+			}
 		}),
 	changeStatus: protectedProcedure
 		.input(apiChangeLibsqlStatus)
 		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
+				deployment: ["create"],
+			});
 			const libsql = await findLibsqlById(input.libsqlId);
-			if (
-				libsql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to change this Libsql status",
-				});
-			}
 			await updateLibsqlById(input.libsqlId, {
 				applicationStatus: input.applicationStatus,
+			});
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: libsql.libsqlId,
+				resourceName: libsql.appName,
 			});
 			return libsql;
 		}),
 	remove: protectedProcedure
 		.input(apiFindOneLibsql)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.role === "member") {
-				await checkServiceAccess(
-					ctx.user.id,
-					input.libsqlId,
-					ctx.session.activeOrganizationId,
-					"delete",
-				);
-			}
+			await checkServiceAccess(ctx, input.libsqlId, "delete");
 
 			const libsql = await findLibsqlById(input.libsqlId);
+
 			if (
 				libsql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
@@ -268,7 +286,12 @@ export const libsqlRouter = createTRPCRouter({
 					message: "You are not authorized to delete this Libsql",
 				});
 			}
-
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "service",
+				resourceId: libsql.libsqlId,
+				resourceName: libsql.appName,
+			});
 			const cleanupOperations = [
 				async () => await removeService(libsql?.appName, libsql.serverId),
 				async () => await removeLibsqlById(input.libsqlId),
@@ -285,16 +308,9 @@ export const libsqlRouter = createTRPCRouter({
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesLibsql)
 		.mutation(async ({ input, ctx }) => {
-			const libsql = await findLibsqlById(input.libsqlId);
-			if (
-				libsql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to save this environment",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
+				envVars: ["write"],
+			});
 			const service = await updateLibsqlById(input.libsqlId, {
 				env: input.env,
 			});
@@ -306,21 +322,20 @@ export const libsqlRouter = createTRPCRouter({
 				});
 			}
 
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: input.libsqlId,
+			});
 			return true;
 		}),
 	reload: protectedProcedure
 		.input(apiResetLibsql)
 		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
+				deployment: ["create"],
+			});
 			const libsql = await findLibsqlById(input.libsqlId);
-			if (
-				libsql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to reload this Libsql",
-				});
-			}
 			if (libsql.serverId) {
 				await stopServiceRemote(libsql.serverId, libsql.appName);
 			} else {
@@ -338,33 +353,38 @@ export const libsqlRouter = createTRPCRouter({
 			await updateLibsqlById(input.libsqlId, {
 				applicationStatus: "done",
 			});
+			await audit(ctx, {
+				action: "reload",
+				resourceType: "service",
+				resourceId: libsql.libsqlId,
+				resourceName: libsql.appName,
+			});
 			return true;
 		}),
 	update: protectedProcedure
 		.input(apiUpdateLibsql)
 		.mutation(async ({ input, ctx }) => {
 			const { libsqlId, ...rest } = input;
-			const libsql = await findLibsqlById(libsqlId);
-			if (
-				libsql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to update this Libsql",
-				});
-			}
-			const service = await updateLibsqlById(libsqlId, {
+			await checkServicePermissionAndAccess(ctx, libsqlId, {
+				service: ["create"],
+			});
+			const libsql = await updateLibsqlById(libsqlId, {
 				...rest,
 			});
 
-			if (!service) {
+			if (!libsql) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error updating Libsql",
+					message: "Error updating Libsql",
 				});
 			}
 
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: libsqlId,
+				resourceName: libsql.appName,
+			});
 			return true;
 		}),
 	move: protectedProcedure
@@ -375,31 +395,10 @@ export const libsqlRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			const libsql = await findLibsqlById(input.libsqlId);
-			if (
-				libsql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to move this libsql",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
+				service: ["create"],
+			});
 
-			const targetEnvironment = await findEnvironmentById(
-				input.targetEnvironmentId,
-			);
-			if (
-				targetEnvironment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to move to this environment",
-				});
-			}
-
-			// Update the libsql's projectId
 			const updatedLibsql = await db
 				.update(libsqlTable)
 				.set({
@@ -416,23 +415,27 @@ export const libsqlRouter = createTRPCRouter({
 				});
 			}
 
+			await audit(ctx, {
+				action: "move",
+				resourceType: "service",
+				resourceId: updatedLibsql.libsqlId,
+				resourceName: updatedLibsql.appName,
+			});
 			return updatedLibsql;
 		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildLibsql)
 		.mutation(async ({ input, ctx }) => {
-			const libsql = await findLibsqlById(input.libsqlId);
-			if (
-				libsql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to rebuild this MariaDB database",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
+				deployment: ["create"],
+			});
 
-			await rebuildDatabase(libsql.libsqlId, "libsql");
+			await rebuildDatabase(input.libsqlId, "libsql");
+			await audit(ctx, {
+				action: "rebuild",
+				resourceType: "service",
+				resourceId: input.libsqlId,
+			});
 			return true;
 		}),
 });

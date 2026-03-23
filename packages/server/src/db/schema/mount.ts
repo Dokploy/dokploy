@@ -96,15 +96,6 @@ const createSchema = createInsertSchema(mounts, {
 	mountPath: z.string().min(1),
 	mountId: z.string().optional(),
 	filePath: z.string().optional(),
-	serviceType: z.enum([
-		"application",
-		"postgres",
-		"mysql",
-		"mariadb",
-		"mongo",
-		"redis",
-		"compose",
-	]),
 });
 
 export const apiCreateMount = createSchema
@@ -118,6 +109,16 @@ export const apiCreateMount = createSchema
 	})
 	.extend({
 		serviceId: z.string().min(1),
+		serviceType: z.enum([
+			"application",
+			"postgres",
+			"mysql",
+			"mariadb",
+			"mongo",
+			"redis",
+			"compose",
+			"libsql",
+		]),
 	});
 
 export const apiFindOneMount = z.object({
@@ -133,23 +134,19 @@ export const apiRemoveMount = createSchema
 	// })
 	.required();
 
-export const apiFindMountByApplicationId = createSchema
-	.extend({
-		serviceId: z.string().min(1),
-		serviceType: z.enum([
-			"application",
-			"postgres",
-			"mysql",
-			"mariadb",
-			"mongo",
-			"redis",
-			"compose",
-		]),
-	})
-	.pick({
-		serviceId: true,
-		serviceType: true,
-	});
+export const apiFindMountByApplicationId = z.object({
+	serviceId: z.string().min(1),
+	serviceType: z.enum([
+		"application",
+		"postgres",
+		"mysql",
+		"mariadb",
+		"mongo",
+		"redis",
+		"compose",
+		"libsql",
+	]),
+});
 
 export const apiUpdateMount = createSchema.partial().extend({
 	mountId: z.string().min(1),
