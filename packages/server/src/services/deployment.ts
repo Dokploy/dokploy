@@ -615,8 +615,10 @@ export const removeDeployment = async (deploymentId: string) => {
 		const logPath = path.join(deployment.logPath);
 		if (logPath && logPath !== ".") {
 			const command = `rm -f ${logPath};`;
-			if (deployment.serverId) {
-				await execAsyncRemote(deployment.serverId, command);
+			const targetServerId =
+				deployment.buildServerId || deployment.serverId;
+			if (targetServerId) {
+				await execAsyncRemote(targetServerId, command);
 			} else {
 				await execAsync(command);
 			}
@@ -767,10 +769,11 @@ export const removeDeploymentsByPreviewDeploymentId = async (
 
 export const removeDeploymentsByComposeId = async (compose: Compose) => {
 	const { appName } = compose;
-	const { LOGS_PATH } = paths(!!compose.serverId);
+	const targetServerId = compose.buildServerId || compose.serverId;
+	const { LOGS_PATH } = paths(!!targetServerId);
 	const logsPath = path.join(LOGS_PATH, appName);
-	if (compose.serverId) {
-		await execAsyncRemote(compose.serverId, `rm -rf ${logsPath}`);
+	if (targetServerId) {
+		await execAsyncRemote(targetServerId, `rm -rf ${logsPath}`);
 	} else {
 		await removeDirectoryIfExistsContent(logsPath);
 	}
