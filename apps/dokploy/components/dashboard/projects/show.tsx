@@ -214,9 +214,9 @@ export const ShowProjects = () => {
 					},
 				]}
 			/>
-			<div className="w-full h-full">
-				<Card className="h-full bg-sidebar p-2.5 rounded-xl  ">
-					<div className="rounded-xl bg-background shadow-md h-full">
+		<div className="flex flex-1 flex-col w-full">
+			<Card className="flex flex-1 flex-col bg-sidebar p-2.5 rounded-xl">
+					<div className="flex flex-1 flex-col rounded-xl bg-background shadow-md">
 						<div className="flex justify-between gap-4 w-full items-center flex-wrap p-6">
 							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2">
@@ -234,7 +234,7 @@ export const ShowProjects = () => {
 							)}
 						</div>
 
-						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col h-full">
+						<CardContent className="flex flex-1 flex-col gap-4 space-y-2 py-8 border-t">
 							{isPending ? (
 								<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[60vh]">
 									<span>{t("dashboardProjects.loading")}</span>

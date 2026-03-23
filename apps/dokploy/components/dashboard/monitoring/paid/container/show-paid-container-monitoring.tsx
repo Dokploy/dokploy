@@ -112,7 +112,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 
 	if (queryError) {
 		return (
-			<div className="mt-5 flex min-h-[55vh] w-full items-center justify-center p-4">
+			<div className="mt-5 flex w-full items-center justify-center p-4 py-24">
 				<div className="max-w-xl text-center">
 					<p className="mb-2 text-base font-medium leading-none text-muted-foreground">
 						Error fetching metrics for{" "}

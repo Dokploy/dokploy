@@ -1,4 +1,5 @@
 import { FileIcon, Folder, Loader2, Workflow } from "lucide-react";
+import { useTranslations } from "next-intl";
 import React from "react";
 import { AlertBlock } from "@/components/shared/alert-block";
 import {
@@ -16,6 +17,7 @@ interface Props {
 	serverId?: string;
 }
 export const ShowTraefikSystem = ({ serverId }: Props) => {
+	const t = useTranslations("traefikSystem");
 	const [file, setFile] = React.useState<null | string>(null);
 
 	const {
@@ -33,22 +35,20 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 	);
 
 	return (
-		<div className="w-full">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl">
-				<div className="rounded-xl bg-background shadow-md ">
+		<div className="flex flex-1 flex-col w-full">
+			<Card className="flex flex-1 flex-col bg-sidebar p-2.5 rounded-xl">
+				<div className="flex flex-1 flex-col rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<FileIcon className="size-6 text-muted-foreground self-center" />
-							Traefik File System
+							{t("title")}
 						</CardTitle>
 						<CardDescription>
-							Manage all the files and directories in {"'/etc/dokploy/traefik'"}
-							.
+							{t("description")}
 						</CardDescription>
 
 						<AlertBlock type="warning">
-							Adding invalid configuration to existing files, can break your
-							Traefik instance, preventing access to your applications.
+							{t("warningAlert")}
 						</AlertBlock>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -60,18 +60,17 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 									</AlertBlock>
 								)}
 								{isLoading && (
-									<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
+									<div className="w-full flex-col gap-2 flex items-center justify-center py-24">
 										<span className="text-muted-foreground text-lg font-medium">
-											Loading...
+											{t("loading")}
 										</span>
 										<Loader2 className="animate-spin size-8 text-muted-foreground" />
 									</div>
 								)}
 								{directories?.length === 0 && (
-									<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
+									<div className="w-full flex-col gap-2 flex items-center justify-center py-24">
 										<span className="text-muted-foreground text-lg font-medium">
-											No directories or files detected in{" "}
-											{"'/etc/dokploy/traefik'"}
+											{t("noDirectories")}
 										</span>
 										<Folder className="size-8 text-muted-foreground" />
 									</div>
@@ -91,7 +90,7 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 											) : (
 												<div className="h-full w-full flex-col gap-2 flex items-center justify-center">
 													<span className="text-muted-foreground text-lg font-medium">
-														No file selected
+														{t("noFileSelected")}
 													</span>
 													<FileIcon className="size-8 text-muted-foreground" />
 												</div>

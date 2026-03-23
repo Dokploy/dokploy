@@ -133,7 +133,7 @@ export const ShowPaidMonitoring = ({
 
 	if (queryError) {
 		return (
-			<div className="flex min-h-[55vh] w-full items-center justify-center p-4">
+			<div className="flex w-full items-center justify-center p-4 py-24">
 				<div className="max-w-xl text-center">
 					<p className="mb-2 text-base font-medium leading-none text-muted-foreground">
 						Error fetching metrics{" "}

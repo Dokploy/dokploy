@@ -13,7 +13,6 @@ import {
 	type ReactNode,
 	useCallback,
 	useEffect,
-	useMemo,
 	useState,
 } from "react";
 import { SearchCommand } from "@/components/dashboard/search-command";
@@ -42,6 +41,7 @@ const MyApp = ({
 	const getLayout = Component.getLayout ?? ((page) => page);
 
 	const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
+	const [messages, setMessages] = useState<Record<string, unknown>>({});
 
 	useEffect(() => {
 		setLocaleState(resolveInitialLocale());
@@ -59,7 +59,22 @@ const MyApp = ({
 		[setLocaleState],
 	);
 
-	const messages = useMemo(() => getMessages(locale), [locale]);
+	useEffect(() => {
+		let isMounted = true;
+
+		const loadMessages = async () => {
+			const nextMessages = await getMessages(locale);
+			if (isMounted) {
+				setMessages(nextMessages);
+			}
+		};
+
+		void loadMessages();
+
+		return () => {
+			isMounted = false;
+		};
+	}, [locale]);
 
 	return (
 		<LocaleContext.Provider value={{ locale, setLocale }}>

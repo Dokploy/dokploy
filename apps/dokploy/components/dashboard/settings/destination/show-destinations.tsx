@@ -1,4 +1,5 @@
 import { Database, FolderUp, Loader2, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { api } from "@/utils/api";
 import { HandleDestinations } from "./handle-destinations";
 
 export const ShowDestinations = () => {
+	const t = useTranslations("settingsDestinations");
 	const { data, isPending, refetch } = api.destination.all.useQuery();
 	const { mutateAsync, isPending: isRemoving } =
 		api.destination.remove.useMutation();
@@ -24,17 +26,16 @@ export const ShowDestinations = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Database className="size-6 text-muted-foreground self-center" />
-							S3 Destinations
+							{t("title")}
 						</CardTitle>
 						<CardDescription>
-							Add your providers like AWS S3, Cloudflare R2, Wasabi,
-							DigitalOcean Spaces etc.
+							{t("description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -43,8 +44,7 @@ export const ShowDestinations = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<FolderUp className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground">
-											To create a backup it is required to set at least 1
-											provider.
+											{t("emptyState")}
 										</span>
 										{permissions?.destination.create && <HandleDestinations />}
 									</div>
@@ -62,7 +62,7 @@ export const ShowDestinations = () => {
 																{index + 1}. {destination.name}
 															</span>
 															<span className="text-xs text-muted-foreground">
-																Created at:{" "}
+																{t("createdAt")}{" "}
 																{new Date(
 																	destination.createdAt,
 																).toLocaleDateString()}
@@ -74,8 +74,8 @@ export const ShowDestinations = () => {
 															/>
 															{permissions?.destination.delete && (
 																<DialogAction
-																	title="Delete Destination"
-																	description="Are you sure you want to delete this destination?"
+																	title={t("deleteTitle")}
+																	description={t("deleteDescription")}
 																	type="destructive"
 																	onClick={async () => {
 																		await mutateAsync({
@@ -83,13 +83,13 @@ export const ShowDestinations = () => {
 																		})
 																			.then(() => {
 																				toast.success(
-																					"Destination deleted successfully",
+																					t("deletedSuccess"),
 																				);
 																				refetch();
 																			})
 																			.catch(() => {
 																				toast.error(
-																					"Error deleting destination",
+																					t("deleteError"),
 																				);
 																			});
 																	}}

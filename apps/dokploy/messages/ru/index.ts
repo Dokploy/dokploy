@@ -2,6 +2,7 @@ export { default as ruAcceptInvitationPageMessages } from "./accept-invitation-p
 export { default as ruBillingPageMessages } from "./billing-page.json";
 export { default as ruCommonMessages } from "./common.json";
 export { default as ruDashboardLayoutMessages } from "./dashboard-layout.json";
+export { default as ruDashboardPageMessages } from "./dashboard-page.json";
 export { default as ruDashboardProjectsPageMessages } from "./dashboard-projects-page.json";
 export { default as ruDatabasePageMessages } from "./database-page.json";
 export { default as ruDeploymentsPageMessages } from "./deployments-page.json";
@@ -17,3 +18,4 @@ export { default as ruResetPasswordPageMessages } from "./reset-password-page.js
 export { default as ruSendResetPasswordPageMessages } from "./send-reset-password-page.json";
 export { default as ruServiceDetailsPageMessages } from "./service-details-page.json";
 export { default as ruServerPageMessages } from "./server-page.json";
+export { default as ruSettingsPageMessages } from "./settings-page.json";

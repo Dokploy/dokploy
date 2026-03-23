@@ -6,6 +6,7 @@ import {
 	Settings,
 	WorkflowIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export default function SwarmMonitorCard({ serverId }: Props) {
+	const t = useTranslations("swarmMonitor");
 	const { data: nodes, isPending } = api.swarm.getNodes.useQuery({
 		serverId,
 	});
@@ -30,14 +32,11 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 	if (isPending) {
 		return (
 			<div className="w-full max-w-7xl mx-auto">
-				<div className="mb-6 border min-h-[55vh] flex rounded-lg h-full items-center justify-center  text-muted-foreground">
-					{/* <div className="flex items-center justify-center h-full text-muted-foreground"> */}
-
-					<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[55vh]">
-						<span>Loading...</span>
+				<div className="mb-6 border flex rounded-lg h-full items-center justify-center py-24 text-muted-foreground">
+					<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
+						<span>{t("loading")}</span>
 						<Loader2 className="animate-spin size-4" />
 					</div>
-					{/* </div> */}
 				</div>
 			</div>
 		);
@@ -46,9 +45,9 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 	if (!nodes) {
 		return (
 			<div className="w-full max-w-7xl mx-auto">
-				<div className="mb-6 border min-h-[55vh] flex justify-center items-center rounded-lg h-full">
+				<div className="mb-6 border flex justify-center items-center rounded-lg h-full py-24">
 					<div className="flex items-center justify-center h-full  text-destructive">
-						<span>Failed to load data</span>
+						<span>{t("failedToLoad")}</span>
 					</div>
 				</div>
 			</div>
@@ -76,10 +75,10 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 					<div className="space-y-1">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<WorkflowIcon className="size-6 text-muted-foreground self-center" />
-							Docker Swarm Overview
+							{t("title")}
 						</CardTitle>
 						<p className="text-sm text-muted-foreground">
-							Monitor and manage your Docker Swarm cluster
+							{t("description")}
 						</p>
 					</div>
 					{!serverId && (
@@ -89,7 +88,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 							}
 						>
 							<Settings className="mr-2 h-4 w-4" />
-							Manage Cluster
+							{t("manageCluster")}
 						</Button>
 					)}
 				</header>
@@ -97,7 +96,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 				<div className="grid gap-6 lg:grid-cols-3">
 					<Card className="bg-background">
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">Total Nodes</CardTitle>
+							<CardTitle className="text-sm font-medium">{t("totalNodes")}</CardTitle>
 							<div className="p-2 bg-emerald-600/20 text-emerald-600 rounded-md">
 								<Server className="h-4 w-4 text-muted-foreground dark:text-emerald-600" />
 							</div>
@@ -111,9 +110,9 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 							<div className="flex items-center gap-2">
 								<CardTitle className="text-sm font-medium">
-									Active Nodes
+									{t("activeNodes")}
 								</CardTitle>
-								<Badge variant="green">Online</Badge>
+								<Badge variant="green">{t("online")}</Badge>
 							</div>
 							<div className="p-2 bg-emerald-600/20 text-emerald-600 rounded-md">
 								<Activity className="h-4 w-4 text-muted-foreground dark:text-emerald-600" />
@@ -145,9 +144,9 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 							<div className="flex items-center gap-2">
 								<CardTitle className="text-sm font-medium">
-									Manager Nodes
+									{t("managerNodes")}
 								</CardTitle>
-								<Badge variant="green">Online</Badge>
+								<Badge variant="green">{t("online")}</Badge>
 							</div>
 							<div className="p-2 bg-emerald-600/20 text-emerald-600 rounded-md">
 								<Monitor className="h-4 w-4 text-muted-foreground dark:text-emerald-600" />

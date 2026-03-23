@@ -274,7 +274,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 												className="h-24 text-center"
 											>
 												{statsLogs?.data.length === 0 && (
-													<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
+													<div className="w-full flex-col gap-2 flex items-center justify-center py-24">
 														<span className="text-muted-foreground text-lg font-medium">
 															No results.
 														</span>

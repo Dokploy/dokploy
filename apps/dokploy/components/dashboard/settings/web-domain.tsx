@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { GlobeIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -65,6 +66,7 @@ const addServerDomain = z
 type AddServerDomain = z.infer<typeof addServerDomain>;
 
 export const WebDomain = () => {
+	const t = useTranslations("settingsWebDomain");
 	const { data, refetch } = api.settings.getWebServerSettings.useQuery();
 	const { mutateAsync, isPending } =
 		api.settings.assignDomainServer.useMutation();
@@ -102,10 +104,10 @@ export const WebDomain = () => {
 		})
 			.then(async () => {
 				await refetch();
-				toast.success("Domain Assigned");
+				toast.success(t("assignedSuccess"));
 			})
 			.catch(() => {
-				toast.error("Error assigning the domain");
+				toast.error(t("assignError"));
 			});
 	};
 
@@ -117,10 +119,10 @@ export const WebDomain = () => {
 						<div className="flex flex-col gap-1">
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<GlobeIcon className="size-6 text-muted-foreground self-center" />
-								Server Domain
+								{t("title")}
 							</CardTitle>
 							<CardDescription>
-								Add a domain to your server application.
+								{t("description")}
 							</CardDescription>
 						</div>
 					</CardHeader>
@@ -129,11 +131,9 @@ export const WebDomain = () => {
 						{hasChanged && (
 							<AlertBlock type="warning">
 								<div className="space-y-2">
-									<p className="font-medium">⚠️ Important: URL Change Impact</p>
+									<p className="font-medium">{t("urlChangeWarningTitle")}</p>
 									<p>
-										If you change the Dokploy Server URL make sure to update
-										your Github Apps to keep the auto-deploy working and preview
-										deployments working.
+										{t("urlChangeWarningDesc")}
 									</p>
 								</div>
 							</AlertBlock>
@@ -149,7 +149,7 @@ export const WebDomain = () => {
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Domain</FormLabel>
+												<FormLabel>{t("domainLabel")}</FormLabel>
 												<FormControl>
 													<Input
 														className="w-full"
@@ -169,7 +169,7 @@ export const WebDomain = () => {
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Let's Encrypt Email</FormLabel>
+												<FormLabel>{t("letsEncryptEmailLabel")}</FormLabel>
 												<FormControl>
 													<Input
 														className="w-full"
@@ -188,9 +188,9 @@ export const WebDomain = () => {
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm w-full col-span-2">
 											<div className="space-y-0.5">
-												<FormLabel>HTTPS</FormLabel>
+												<FormLabel>{t("httpsLabel")}</FormLabel>
 												<FormDescription>
-													Automatically provision SSL Certificate.
+													{t("httpsDescription")}
 												</FormDescription>
 												<FormMessage />
 											</div>
@@ -210,7 +210,7 @@ export const WebDomain = () => {
 										render={({ field }) => {
 											return (
 												<FormItem className="md:col-span-2">
-													<FormLabel>Certificate Provider</FormLabel>
+													<FormLabel>{t("certificateProviderLabel")}</FormLabel>
 													<Select
 														onValueChange={field.onChange}
 														value={field.value}
@@ -221,9 +221,9 @@ export const WebDomain = () => {
 															</SelectTrigger>
 														</FormControl>
 														<SelectContent>
-															<SelectItem value={"none"}>None</SelectItem>
+															<SelectItem value={"none"}>{t("certificateNone")}</SelectItem>
 															<SelectItem value={"letsencrypt"}>
-																Let's Encrypt
+																{t("certificateLetsEncrypt")}
 															</SelectItem>
 														</SelectContent>
 													</Select>
@@ -236,7 +236,7 @@ export const WebDomain = () => {
 
 								<div className="flex w-full justify-end col-span-2">
 									<Button isLoading={isPending} type="submit">
-										Save
+										{t("saveButton")}
 									</Button>
 								</div>
 							</form>

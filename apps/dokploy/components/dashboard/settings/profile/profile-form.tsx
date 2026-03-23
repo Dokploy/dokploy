@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2, Palette, User } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -35,8 +36,8 @@ import { Enable2FA } from "./enable-2fa";
 const profileSchema = z.object({
 	email: z
 		.string()
-		.email("Please enter a valid email address")
-		.min(1, "Email is required"),
+		.email()
+		.min(1),
 	password: z.string().nullable(),
 	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
@@ -63,6 +64,7 @@ const randomImages = [
 ];
 
 export const ProfileForm = () => {
+	const t = useTranslations("settingsProfile");
 	const { data, refetch, isPending } = api.user.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -133,7 +135,7 @@ export const ProfileForm = () => {
 				lastName: values.lastName || undefined,
 			});
 			await refetch();
-			toast.success("Profile Updated");
+			toast.success(t("updatedSuccess"));
 			form.reset({
 				email: values.email,
 				password: "",
@@ -143,7 +145,7 @@ export const ProfileForm = () => {
 				lastName: values.lastName || "",
 			});
 		} catch (error) {
-			toast.error("Error updating the profile");
+			toast.error(t("updateError"));
 		}
 	};
 
@@ -155,10 +157,10 @@ export const ProfileForm = () => {
 						<div>
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<User className="size-6 text-muted-foreground self-center" />
-								Account
+								{t("title")}
 							</CardTitle>
 							<CardDescription>
-								Change the details of your profile here.
+								{t("description")}
 							</CardDescription>
 						</div>
 
@@ -169,7 +171,7 @@ export const ProfileForm = () => {
 						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[35vh]">
-								<span>Loading...</span>
+								<span>{t("loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -185,9 +187,9 @@ export const ProfileForm = () => {
 												name="firstName"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>First Name</FormLabel>
+														<FormLabel>{t("firstNameLabel")}</FormLabel>
 														<FormControl>
-															<Input placeholder="John" {...field} />
+															<Input placeholder={t("firstNamePlaceholder")} {...field} />
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -198,9 +200,9 @@ export const ProfileForm = () => {
 												name="lastName"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Last Name</FormLabel>
+														<FormLabel>{t("lastNameLabel")}</FormLabel>
 														<FormControl>
-															<Input placeholder="Doe" {...field} />
+															<Input placeholder={t("lastNamePlaceholder")} {...field} />
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -211,9 +213,9 @@ export const ProfileForm = () => {
 												name="email"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Email</FormLabel>
+														<FormLabel>{t("emailLabel")}</FormLabel>
 														<FormControl>
-															<Input placeholder="Email" {...field} />
+															<Input placeholder={t("emailPlaceholder")} {...field} />
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -224,11 +226,11 @@ export const ProfileForm = () => {
 												name="currentPassword"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Current Password</FormLabel>
+														<FormLabel>{t("currentPasswordLabel")}</FormLabel>
 														<FormControl>
 															<Input
 																type="password"
-																placeholder="Current Password"
+																placeholder={t("currentPasswordPlaceholder")}
 																{...field}
 																value={field.value || ""}
 															/>
@@ -242,11 +244,11 @@ export const ProfileForm = () => {
 												name="password"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Password</FormLabel>
+														<FormLabel>{t("passwordLabel")}</FormLabel>
 														<FormControl>
 															<Input
 																type="password"
-																placeholder="Password"
+																placeholder={t("passwordPlaceholder")}
 																{...field}
 																value={field.value || ""}
 															/>
@@ -261,7 +263,7 @@ export const ProfileForm = () => {
 												name="image"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Avatar</FormLabel>
+														<FormLabel>{t("avatarLabel")}</FormLabel>
 														<FormControl>
 															<RadioGroup
 																onValueChange={(e) => {
@@ -339,7 +341,7 @@ export const ProfileForm = () => {
 																					// max file size 2mb
 																					if (file.size > 2 * 1024 * 1024) {
 																						toast.error(
-																							"Image size must be less than 2MB",
+																							t("imageTooLarge"),
 																						);
 																						return;
 																					}
@@ -422,13 +424,9 @@ export const ProfileForm = () => {
 													render={({ field }) => (
 														<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
 															<div className="space-y-0.5">
-																<FormLabel>Allow Impersonation</FormLabel>
+																<FormLabel>{t("allowImpersonationLabel")}</FormLabel>
 																<FormDescription>
-																	Enable this option to allow Dokploy Cloud
-																	administrators to temporarily access your
-																	account for troubleshooting and support
-																	purposes. This helps them quickly identify and
-																	resolve any issues you may encounter.
+																	{t("allowImpersonationDescription")}
 																</FormDescription>
 															</div>
 															<FormControl>
@@ -445,7 +443,7 @@ export const ProfileForm = () => {
 
 										<div className="flex items-center justify-end gap-2">
 											<Button type="submit" isLoading={isUpdating}>
-												Save
+												{t("saveButton")}
 											</Button>
 										</div>
 									</form>

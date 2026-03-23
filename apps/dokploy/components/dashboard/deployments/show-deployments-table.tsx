@@ -485,7 +485,7 @@ export function ShowDeploymentsTable() {
 			</div>
 			<div className="px-0">
 				{isLoading ? (
-					<div className="flex gap-4 w-full items-center justify-center min-h-[45vh] text-muted-foreground">
+					<div className="flex flex-1 gap-4 w-full items-center justify-center py-24 text-muted-foreground">
 						<Loader2 className="size-4 animate-spin" />
 						<span>Loading deployments...</span>
 					</div>
@@ -529,7 +529,7 @@ export function ShowDeploymentsTable() {
 												colSpan={columns.length}
 												className=" text-center"
 											>
-												<div className="flex flex-col min-h-[45vh] items-center justify-center gap-2 text-muted-foreground">
+												<div className="flex flex-col items-center justify-center gap-2 py-24 text-muted-foreground">
 													<Rocket className="size-8" />
 													<p className="font-medium">No deployments found</p>
 													<p className="text-sm">

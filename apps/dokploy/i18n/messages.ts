@@ -1,106 +1,20 @@
-import merge from "lodash/merge";
-import {
-	enAcceptInvitationPageMessages,
-	enBillingPageMessages,
-	enCommonMessages,
-	enDashboardLayoutMessages,
-	enDashboardProjectsPageMessages,
-	enDatabasePageMessages,
-	enDeploymentsPageMessages,
-	enErrorPageMessages,
-	enInvitationPageMessages,
-	enLoginPageMessages,
-	enMonitoringPageMessages,
-	enOnboardingPageMessages,
-	enProjectEnvironmentPageMessages,
-	enProjectPageMessages,
-	enRegisterPageMessages,
-	enResetPasswordPageMessages,
-	enSendResetPasswordPageMessages,
-	enServiceDetailsPageMessages,
-	enServerPageMessages,
-} from "@/messages/en";
-import {
-	ruAcceptInvitationPageMessages,
-	ruBillingPageMessages,
-	ruCommonMessages,
-	ruDashboardLayoutMessages,
-	ruDashboardProjectsPageMessages,
-	ruDatabasePageMessages,
-	ruDeploymentsPageMessages,
-	ruErrorPageMessages,
-	ruInvitationPageMessages,
-	ruLoginPageMessages,
-	ruMonitoringPageMessages,
-	ruOnboardingPageMessages,
-	ruProjectEnvironmentPageMessages,
-	ruProjectPageMessages,
-	ruRegisterPageMessages,
-	ruResetPasswordPageMessages,
-	ruSendResetPasswordPageMessages,
-	ruServiceDetailsPageMessages,
-	ruServerPageMessages,
-} from "@/messages/ru";
+import type { Locale } from './locale'
 
-import type { Locale } from "./locale";
+type MessageValue = string | Messages
 
 interface Messages {
-	[key: string]: unknown;
+	[key: string]: MessageValue
 }
 
-const buildMessages = (...parts: Messages[]): Messages => merge({}, ...parts);
+const mergeMessages = (source: Record<string, Messages>): Messages =>
+	Object.assign({}, ...Object.values(source))
 
-const EN_MESSAGE_PARTS: Messages[] = [
-	enCommonMessages,
-	enLoginPageMessages,
-	enDashboardLayoutMessages,
-	enDashboardProjectsPageMessages,
-	enProjectPageMessages,
-	enProjectEnvironmentPageMessages,
-	enServerPageMessages,
-	enSendResetPasswordPageMessages,
-	enServiceDetailsPageMessages,
-	enDeploymentsPageMessages,
-	enMonitoringPageMessages,
-	enDatabasePageMessages,
-	enBillingPageMessages,
-	enOnboardingPageMessages,
-	enRegisterPageMessages,
-	enInvitationPageMessages,
-	enAcceptInvitationPageMessages,
-	enResetPasswordPageMessages,
-	enErrorPageMessages,
-];
+export const getMessages = async (locale: Locale): Promise<Messages> => {
+	if (locale === 'ru') {
+		const ru = await import('@/messages/ru')
+		return mergeMessages(ru)
+	}
 
-const RU_MESSAGE_PARTS: Messages[] = [
-	ruCommonMessages,
-	ruLoginPageMessages,
-	ruDashboardLayoutMessages,
-	ruDashboardProjectsPageMessages,
-	ruProjectPageMessages,
-	ruProjectEnvironmentPageMessages,
-	ruServerPageMessages,
-	ruSendResetPasswordPageMessages,
-	ruServiceDetailsPageMessages,
-	ruDeploymentsPageMessages,
-	ruMonitoringPageMessages,
-	ruDatabasePageMessages,
-	ruBillingPageMessages,
-	ruOnboardingPageMessages,
-	ruRegisterPageMessages,
-	ruInvitationPageMessages,
-	ruAcceptInvitationPageMessages,
-	ruResetPasswordPageMessages,
-	ruErrorPageMessages,
-];
-
-const enMessages = buildMessages(...EN_MESSAGE_PARTS);
-const ruMessages = buildMessages(...RU_MESSAGE_PARTS);
-const messagesRuWithFallback = buildMessages(enMessages, ruMessages);
-
-const messages: Record<Locale, Messages> = {
-	ru: messagesRuWithFallback,
-	en: enMessages,
-};
-
-export const getMessages = (locale: Locale): Messages => messages[locale];
+	const en = await import('@/messages/en')
+	return mergeMessages(en)
+}

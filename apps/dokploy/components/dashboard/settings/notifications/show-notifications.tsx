@@ -1,4 +1,5 @@
 import { Bell, Loader2, Mail, PenBoxIcon, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
 	DiscordIcon,
@@ -23,6 +24,7 @@ import { api } from "@/utils/api";
 import { HandleNotifications } from "./handle-notifications";
 
 export const ShowNotifications = () => {
+	const t = useTranslations("settingsNotifications");
 	const { data, isPending, refetch } = api.notification.all.useQuery();
 	const { mutateAsync, isPending: isRemoving } =
 		api.notification.remove.useMutation();
@@ -35,17 +37,16 @@ export const ShowNotifications = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Bell className="size-6 text-muted-foreground self-center" />
-							Notifications
+							{t("title")}
 						</CardTitle>
 						<CardDescription>
-							Add your providers to receive notifications, like Discord, Slack,
-							Telegram, Teams, Email, Resend, Lark.
+							{t("description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -54,8 +55,7 @@ export const ShowNotifications = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<Bell />
 										<span className="text-base text-muted-foreground text-center">
-											To send notifications it is required to set at least 1
-											provider.
+											{t("emptyState")}
 										</span>
 										{permissions?.notification.create && (
 											<HandleNotifications />
@@ -131,8 +131,8 @@ export const ShowNotifications = () => {
 
 															{permissions?.notification.delete && (
 																<DialogAction
-																	title="Delete Notification"
-																	description="Are you sure you want to delete this notification?"
+																	title={t("deleteTitle")}
+																	description={t("deleteDescription")}
 																	type="destructive"
 																	onClick={async () => {
 																		await mutateAsync({
@@ -141,13 +141,13 @@ export const ShowNotifications = () => {
 																		})
 																			.then(() => {
 																				toast.success(
-																					"Notification deleted successfully",
+																					t("deletedSuccess"),
 																				);
 																				refetch();
 																			})
 																			.catch(() => {
 																				toast.error(
-																					"Error deleting notification",
+																					t("deleteError"),
 																				);
 																			});
 																	}}

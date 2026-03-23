@@ -146,9 +146,9 @@ export const ShowBilling = () => {
 	const safePercentage = Math.min(percentage, 100);
 
 	return (
-		<div className="w-full">
-			<Card className="bg-sidebar p-2.5 rounded-xl max-w-6xl mx-auto">
-				<div className="rounded-xl bg-background shadow-md">
+		<div className="flex flex-1 flex-col w-full">
+			<Card className="flex flex-1 flex-col bg-sidebar p-2.5 rounded-xl max-w-6xl mx-auto w-full">
+				<div className="flex flex-1 flex-col rounded-xl bg-background shadow-md">
 					<CardHeader>
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<CreditCard className="size-6 text-muted-foreground self-center" />

@@ -10,6 +10,7 @@ import {
 	type VisibilityState,
 } from "@tanstack/react-table";
 import { ChevronDown, Container } from "lucide-react";
+import { useTranslations } from "next-intl";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +46,7 @@ interface Props {
 }
 
 export const ShowContainers = ({ serverId }: Props) => {
+	const t = useTranslations("dockerContainers");
 	const { data, isPending } = api.docker.getContainers.useQuery({
 		serverId,
 	});
@@ -77,16 +79,16 @@ export const ShowContainers = ({ serverId }: Props) => {
 	});
 
 	return (
-		<div className="w-full">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl">
-				<div className="rounded-xl bg-background shadow-md ">
+		<div className="flex flex-1 flex-col w-full">
+			<Card className="flex flex-1 flex-col bg-sidebar p-2.5 rounded-xl">
+				<div className="flex flex-1 flex-col rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Container className="size-6 text-muted-foreground self-center" />
-							Docker Containers
+							{t("title")}
 						</CardTitle>
 						<CardDescription>
-							See all the containers of your dokploy server
+							{t("description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -94,7 +96,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 							<div className="flex flex-col gap-4  w-full overflow-auto">
 								<div className="flex items-center gap-2 max-sm:flex-wrap">
 									<Input
-										placeholder="Filter by name..."
+										placeholder={t("filterPlaceholder")}
 										value={
 											(table.getColumn("name")?.getFilterValue() as string) ??
 											""
@@ -112,7 +114,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 												variant="outline"
 												className="sm:ml-auto max-sm:w-full"
 											>
-												Columns <ChevronDown className="ml-2 h-4 w-4" />
+												{t("columns")} <ChevronDown className="ml-2 h-4 w-4" />
 											</Button>
 										</DropdownMenuTrigger>
 										<DropdownMenuContent align="end">
@@ -138,15 +140,15 @@ export const ShowContainers = ({ serverId }: Props) => {
 								</div>
 								<div className="rounded-md border">
 									{isPending ? (
-										<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
+										<div className="w-full flex-col gap-2 flex items-center justify-center py-24">
 											<span className="text-muted-foreground text-lg font-medium">
-												Loading...
+												{t("loading")}
 											</span>
 										</div>
 									) : data?.length === 0 ? (
-										<div className="flex-col gap-2 flex items-center justify-center h-[55vh]">
+										<div className="flex-col gap-2 flex items-center justify-center py-24">
 											<span className="text-muted-foreground text-lg font-medium">
-												No results.
+												{t("noResults")}
 											</span>
 										</div>
 									) : (
@@ -193,13 +195,13 @@ export const ShowContainers = ({ serverId }: Props) => {
 															className="h-24 text-center"
 														>
 															{isPending ? (
-																<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
+																<div className="w-full flex-col gap-2 flex items-center justify-center py-24">
 																	<span className="text-muted-foreground text-lg font-medium">
-																		Loading...
+																		{t("loading")}
 																	</span>
 																</div>
 															) : (
-																<>No results.</>
+																<>{t("noResults")}</>
 															)}
 														</TableCell>
 													</TableRow>
@@ -217,7 +219,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 												onClick={() => table.previousPage()}
 												disabled={!table.getCanPreviousPage()}
 											>
-												Previous
+												{t("previous")}
 											</Button>
 											<Button
 												variant="outline"
@@ -225,7 +227,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 												onClick={() => table.nextPage()}
 												disabled={!table.getCanNextPage()}
 											>
-												Next
+												{t("next")}
 											</Button>
 										</div>
 									</div>

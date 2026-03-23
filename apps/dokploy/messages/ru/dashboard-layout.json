@@ -5,7 +5,7 @@
     "deployments": "Деплои",
     "monitoring": "Мониторинг",
     "schedules": "Расписания",
-    "traefikFileSystem": "Файловая система Traefik",
+    "traefikFileSystem": "Файлы Traefik",
     "docker": "Docker",
     "swarm": "Swarm",
     "requests": "Запросы",

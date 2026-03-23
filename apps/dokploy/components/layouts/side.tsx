@@ -1196,7 +1196,7 @@ export default function Page({ children }: Props) {
 					</header>
 				)}
 
-				<div className="flex flex-col w-full p-4 pt-0  min-h-[calc(100svh-12rem)]">{children}</div>
+				<div className="flex flex-1 flex-col w-full p-4 pt-0">{children}</div>
 			</SidebarInset>
 		</SidebarProvider>
 	);

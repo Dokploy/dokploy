@@ -6,6 +6,7 @@ import {
 	InfoIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -41,6 +42,7 @@ export type LogEntry = NonNullable<
 >[0];
 
 export const ShowRequests = () => {
+	const t = useTranslations("requests");
 	const { data: isActive, refetch } =
 		api.settings.haveActivateRequests.useQuery();
 	const { mutateAsync: toggleRequests } =
@@ -98,21 +100,20 @@ export const ShowRequests = () => {
 						<CardHeader className="">
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<ArrowDownUp className="size-6 text-muted-foreground self-center" />
-								Requests
+								{t("title")}
 							</CardTitle>
 							<CardDescription>
-								See all the incoming requests that pass trough Traefik
+								{t("description")}
 							</CardDescription>
 
 							{shouldShowWarning && (
 								<AlertBlock type="warning">
-									When you activate, you need to reload traefik to apply the
-									changes, you can reload traefik in{" "}
+									{t("warningText")}{" "}
 									<Link
 										href="/dashboard/settings/server"
 										className="text-primary"
 									>
-										Settings
+										{t("settingsLink")}
 									</Link>
 								</AlertBlock>
 							)}
@@ -122,7 +123,7 @@ export const ShowRequests = () => {
 								<div className="flex-1 flex items-center gap-4">
 									<div className="flex items-center gap-2">
 										<Label htmlFor="cron" className="min-w-32">
-											Log Cleanup Schedule
+											{t("logCleanupLabel")}
 										</Label>
 										<TooltipProvider>
 											<Tooltip>
@@ -131,10 +132,7 @@ export const ShowRequests = () => {
 												</TooltipTrigger>
 												<TooltipContent>
 													<p className="max-w-80">
-														At the scheduled time, the cleanup job will keep
-														only the last 1000 entries in the access log file
-														and signal Traefik to reopen its log files. The
-														default schedule is daily at midnight (0 0 * * *).
+														{t("logCleanupTooltip")}
 													</p>
 												</TooltipContent>
 											</Tooltip>
@@ -143,7 +141,7 @@ export const ShowRequests = () => {
 									<div className="flex-1 flex gap-4">
 										<Input
 											id="cron"
-											placeholder="0 0 * * *"
+											placeholder={t("cronPlaceholder")}
 											value={cronExpression || ""}
 											onChange={(e) => setCronExpression(e.target.value)}
 											className="max-w-60"
@@ -153,35 +151,35 @@ export const ShowRequests = () => {
 											variant="outline"
 											onClick={async () => {
 												if (!cronExpression?.trim()) {
-													toast.error("Please enter a valid cron expression");
+													toast.error(t("cronRequired"));
 													return;
 												}
 												try {
 													await updateLogCleanup({
 														cronExpression: cronExpression,
 													});
-													toast.success("Log cleanup schedule updated");
+													toast.success(t("scheduleUpdated"));
 												} catch (error) {
 													toast.error(
-														`Failed to update log cleanup schedule: ${error instanceof Error ? error.message : "Unknown error"}`,
+														`${t("scheduleUpdateFailed")} ${error instanceof Error ? error.message : "Unknown error"}`,
 													);
 												}
 											}}
 										>
-											Update Schedule
+											{t("updateSchedule")}
 										</Button>
 									</div>
 								</div>
 								<DialogAction
-									title={isActive ? "Deactivate Requests" : "Activate Requests"}
-									description="You will also need to restart Traefik to apply the changes"
+									title={isActive ? t("deactivateTitle") : t("activateTitle")}
+									description={t("toggleDescription")}
 									type={isActive ? "destructive" : "default"}
 									onClick={async () => {
 										await toggleRequests({ enable: !isActive })
 											.then(() => {
 												refetch();
 												toast.success(
-													`Requests ${isActive ? "deactivated" : "activated"}`,
+													isActive ? t("deactivated") : t("activated"),
 												);
 											})
 											.catch((err) => {
@@ -189,7 +187,7 @@ export const ShowRequests = () => {
 											});
 									}}
 								>
-									<Button>{isActive ? "Deactivate" : "Activate"}</Button>
+									<Button>{isActive ? t("deactivate") : t("activate")}</Button>
 								</DialogAction>
 							</div>
 
@@ -201,7 +199,7 @@ export const ShowRequests = () => {
 											onClick={() => setDateRange(getDefaultDateRange())}
 											className="px-3"
 										>
-											Reset to Last 3 Days
+											{t("resetToLast3Days")}
 										</Button>
 										<Popover>
 											<PopoverTrigger asChild>
@@ -220,7 +218,7 @@ export const ShowRequests = () => {
 															format(dateRange.from, "LLL dd, y")
 														)
 													) : (
-														<span>Pick a date range</span>
+														<span>{t("pickDateRange")}</span>
 													)}
 												</Button>
 											</PopoverTrigger>
@@ -252,12 +250,10 @@ export const ShowRequests = () => {
 									<AlertCircle className="size-12 text-muted-foreground/50" />
 									<div className="text-center space-y-2">
 										<h3 className="text-lg font-medium">
-											Requests are not activated
+											{t("notActivatedTitle")}
 										</h3>
 										<p className="text-sm max-w-md">
-											Activate requests to see incoming traffic statistics and
-											monitor your application's usage. After activation, you'll
-											need to reload Traefik for the changes to take effect.
+											{t("notActivatedDesc")}
 										</p>
 									</div>
 								</div>

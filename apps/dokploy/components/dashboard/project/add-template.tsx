@@ -299,7 +299,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 								</div>
 							</div>
 						) : templates.length === 0 ? (
-							<div className="flex justify-center items-center w-full gap-2 min-h-[50vh]">
+							<div className="flex justify-center items-center w-full gap-2 py-24">
 								<SearchIcon className="text-muted-foreground size-6" />
 								<div className="text-xl font-medium text-muted-foreground">
 									No templates found

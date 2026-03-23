@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { Loader2, MoreHorizontal, Users } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -33,6 +34,7 @@ import { AddUserPermissions } from "./add-permissions";
 import { ChangeRole } from "./change-role";
 
 export const ShowUsers = () => {
+	const t = useTranslations("settingsUsers");
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isPending, refetch } = api.user.all.useQuery();
 	const { mutateAsync } = api.user.remove.useMutation();
@@ -57,16 +59,16 @@ export const ShowUsers = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Users className="size-6 text-muted-foreground self-center" />
-							Users
+							{t("title")}
 						</CardTitle>
 						<CardDescription>
-							Add your users to your Dokploy account.
+							{t("description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -75,34 +77,27 @@ export const ShowUsers = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<Users className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground">
-											Invite users to your Dokploy account
+											{t("emptyState")}
 										</span>
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
 										{hasCustomRolesWithoutLicense && (
 											<AlertBlock type="warning">
-												You have{" "}
-												{membersWithCustomRoles?.length === 1
-													? "1 user"
-													: `${membersWithCustomRoles?.length} users`}{" "}
-												assigned to custom roles. Custom roles will not work
-												without a valid Enterprise license. Please activate your
-												license or change these users to a free role (Admin or
-												Member).
+												{t("customRolesWarning", { count: membersWithCustomRoles?.length ?? 0 })}
 											</AlertBlock>
 										)}
 										<Table>
 											<TableHeader>
 												<TableRow>
-													<TableHead className="w-[100px]">Email</TableHead>
-													<TableHead className="text-center">Role</TableHead>
-													<TableHead className="text-center">2FA</TableHead>
+													<TableHead className="w-[100px]">{t("colEmail")}</TableHead>
+													<TableHead className="text-center">{t("colRole")}</TableHead>
+													<TableHead className="text-center">{t("col2fa")}</TableHead>
 
 													<TableHead className="text-center">
-														Created At
+														{t("colCreatedAt")}
 													</TableHead>
-													<TableHead className="text-right">Actions</TableHead>
+													<TableHead className="text-right">{t("colActions")}</TableHead>
 												</TableRow>
 											</TableHeader>
 											<TableBody>
@@ -158,7 +153,7 @@ export const ShowUsers = () => {
 																{member.user.email}
 																{member.user.id === session?.user?.id && (
 																	<span className="text-muted-foreground ml-1">
-																		(You)
+																		{t("youLabel")}
 																	</span>
 																)}
 															</TableCell>
@@ -175,8 +170,8 @@ export const ShowUsers = () => {
 															</TableCell>
 															<TableCell className="text-center">
 																{member.user.twoFactorEnabled
-																	? "Enabled"
-																	: "Disabled"}
+																	? t("twoFaEnabled")
+																	: t("twoFaDisabled")}
 															</TableCell>
 															<TableCell className="text-center">
 																<span className="text-sm text-muted-foreground">
@@ -193,14 +188,14 @@ export const ShowUsers = () => {
 																				className="h-8 w-8 p-0"
 																			>
 																				<span className="sr-only">
-																					Open menu
+																					{t("openMenu")}
 																				</span>
 																				<MoreHorizontal className="h-4 w-4" />
 																			</Button>
 																		</DropdownMenuTrigger>
 																		<DropdownMenuContent align="end">
 																			<DropdownMenuLabel>
-																				Actions
+																				{t("actionsLabel")}
 																			</DropdownMenuLabel>
 
 																			{canChangeRole && (
@@ -220,8 +215,8 @@ export const ShowUsers = () => {
 
 																			{canDelete && (
 																				<DialogAction
-																					title="Delete User"
-																					description="Are you sure you want to delete this user?"
+																					title={t("deleteUserTitle")}
+																					description={t("deleteUserDescription")}
 																					type="destructive"
 																					onClick={async () => {
 																						await mutateAsync({
@@ -229,14 +224,14 @@ export const ShowUsers = () => {
 																						})
 																							.then(() => {
 																								toast.success(
-																									"User deleted successfully",
+																									t("deleteUserSuccess"),
 																								);
 																								refetch();
 																							})
 																							.catch((err) => {
 																								toast.error(
 																									err?.message ||
-																										"Error deleting user",
+																										t("deleteUserError"),
 																								);
 																							});
 																					}}
@@ -245,15 +240,15 @@ export const ShowUsers = () => {
 																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
 																						onSelect={(e) => e.preventDefault()}
 																					>
-																						Delete User
+																						{t("deleteUserAction")}
 																					</DropdownMenuItem>
 																				</DialogAction>
 																			)}
 
 																			{canUnlink && (
 																				<DialogAction
-																					title="Unlink User"
-																					description="Are you sure you want to unlink this user?"
+																					title={t("unlinkUserTitle")}
+																					description={t("unlinkUserDescription")}
 																					type="destructive"
 																					onClick={async () => {
 																						if (!isCloud) {
@@ -270,13 +265,13 @@ export const ShowUsers = () => {
 																								})
 																									.then(() => {
 																										toast.success(
-																											"User deleted successfully",
+																											t("deleteUserSuccess"),
 																										);
 																										refetch();
 																									})
 																									.catch(() => {
 																										toast.error(
-																											"Error deleting user",
+																											t("deleteUserError"),
 																										);
 																									});
 																								return;
@@ -292,12 +287,12 @@ export const ShowUsers = () => {
 
 																						if (!error) {
 																							toast.success(
-																								"User unlinked successfully",
+																								t("unlinkUserSuccess"),
 																							);
 																							refetch();
 																						} else {
 																							toast.error(
-																								"Error unlinking user",
+																								t("unlinkUserError"),
 																							);
 																						}
 																					}}
@@ -306,7 +301,7 @@ export const ShowUsers = () => {
 																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
 																						onSelect={(e) => e.preventDefault()}
 																					>
-																						Unlink User
+																						{t("unlinkUserAction")}
 																					</DropdownMenuItem>
 																				</DialogAction>
 																			)}
@@ -319,7 +314,7 @@ export const ShowUsers = () => {
 																		disabled
 																	>
 																		<span className="sr-only">
-																			No actions available
+																			{t("noActions")}
 																		</span>
 																		<MoreHorizontal className="h-4 w-4 text-muted-foreground" />
 																	</Button>

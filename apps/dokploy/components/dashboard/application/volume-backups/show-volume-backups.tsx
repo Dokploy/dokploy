@@ -77,7 +77,7 @@ export const ShowVolumeBackups = ({
 	};
 
 	return (
-		<Card className="border px-6 shadow-none bg-transparent h-full min-h-[50vh]">
+		<Card className="border px-6 shadow-none bg-transparent h-full">
 			<CardHeader className="px-0">
 				<div className="flex justify-between items-center flex-wrap gap-2">
 					<div className="flex flex-col gap-2">
@@ -107,7 +107,7 @@ export const ShowVolumeBackups = ({
 			</CardHeader>
 			<CardContent className="px-0">
 				{isLoadingVolumeBackups ? (
-					<div className="flex gap-4 w-full items-center justify-center text-center mx-auto min-h-[45vh]">
+					<div className="flex gap-4 w-full items-center justify-center text-center mx-auto py-24">
 						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />
 						<span className="text-sm text-muted-foreground/70">
 							Loading volume backups...
