@@ -211,7 +211,12 @@ export const RestoreBackup = ({
 		defaultValues: {
 			destinationId: "",
 			backupFile: "",
-			databaseName: databaseType === "web-server" ? "dokploy" : databaseType === "libsql" ? "iku.db" : "",
+			databaseName:
+				databaseType === "web-server"
+					? "dokploy"
+					: databaseType === "libsql"
+						? "iku.db"
+						: "",
 			databaseType:
 				backupType === "compose" ? ("postgres" as DatabaseType) : databaseType,
 			backupType: backupType,
@@ -523,7 +528,10 @@ export const RestoreBackup = ({
 										<Input
 											placeholder="Enter database name"
 											{...field}
-											disabled={databaseType === "web-server" || databaseType === "libsql"}
+											disabled={
+												databaseType === "web-server" ||
+												databaseType === "libsql"
+											}
 										/>
 									</FormControl>
 									<FormMessage />

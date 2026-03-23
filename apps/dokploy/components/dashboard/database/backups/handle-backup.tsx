@@ -585,7 +585,10 @@ export const HandleBackup = ({
 											<FormLabel>Database</FormLabel>
 											<FormControl>
 												<Input
-													disabled={databaseType === "web-server" || databaseType === "libsql"}
+													disabled={
+														databaseType === "web-server" ||
+														databaseType === "libsql"
+													}
 													placeholder={"dokploy"}
 													{...field}
 												/>

@@ -170,9 +170,21 @@ export const libsqlRouter = createTRPCRouter({
 			}
 
 			const portsToCheck = [
-				{ port: input.externalPort, name: "externalPort", current: libsql.externalPort },
-				{ port: input.externalGRPCPort, name: "externalGRPCPort", current: libsql.externalGRPCPort },
-				{ port: input.externalAdminPort, name: "externalAdminPort", current: libsql.externalAdminPort },
+				{
+					port: input.externalPort,
+					name: "externalPort",
+					current: libsql.externalPort,
+				},
+				{
+					port: input.externalGRPCPort,
+					name: "externalGRPCPort",
+					current: libsql.externalGRPCPort,
+				},
+				{
+					port: input.externalAdminPort,
+					name: "externalAdminPort",
+					current: libsql.externalAdminPort,
+				},
 			];
 
 			for (const { port, name, current } of portsToCheck) {

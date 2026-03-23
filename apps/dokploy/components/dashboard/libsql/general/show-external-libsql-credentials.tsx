@@ -107,13 +107,18 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 		);
 
 		if (data?.sqldNode !== "replica") {
-			const grpcPort =
-				form.watch("externalGRPCPort") || data?.externalGRPCPort;
+			const grpcPort = form.watch("externalGRPCPort") || data?.externalGRPCPort;
 			setGRPCConnectionUrl(
 				`http://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${grpcPort}`,
 			);
 		}
-	}, [data?.externalGRPCPort, data?.databasePassword, form, data?.databaseUser, getIp]);
+	}, [
+		data?.externalGRPCPort,
+		data?.databasePassword,
+		form,
+		data?.databaseUser,
+		getIp,
+	]);
 
 	return (
 		<div className="flex w-full flex-col gap-5">
@@ -130,10 +135,7 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 					{!getIp && (
 						<AlertBlock type="warning">
 							You need to set an IP address in your{" "}
-							<Link
-								href="/dashboard/settings/server"
-								className="text-primary"
-							>
+							<Link href="/dashboard/settings/server" className="text-primary">
 								{data?.serverId
 									? "Remote Servers -> Server -> Edit Server -> Update IP Address"
 									: "Web Server -> Server -> Update Server IP"}
@@ -207,9 +209,7 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 												name="externalGRPCPort"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>
-															External GRPC Port (Internet)
-														</FormLabel>
+														<FormLabel>External GRPC Port (Internet)</FormLabel>
 														<FormControl>
 															<Input
 																placeholder="5001"
