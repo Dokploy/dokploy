@@ -1,124 +1,143 @@
-import type { Config } from "tailwindcss";
-import defaultTheme from "tailwindcss/defaultTheme";
+import type { Config } from 'tailwindcss'
+import defaultTheme from 'tailwindcss/defaultTheme'
 
 const config = {
-	darkMode: ["class"],
+	darkMode: ['class'],
 	content: [
-		"./pages/**/*.{ts,tsx}",
-		"./components/**/*.{ts,tsx}",
-		"./app/**/*.{ts,tsx}",
-		"./src/**/*.{ts,tsx}",
+		'./pages/**/*.{ts,tsx}',
+		'./components/**/*.{ts,tsx}',
+		'./app/**/*.{ts,tsx}',
+		'./src/**/*.{ts,tsx}',
 	],
-	prefix: "",
+	prefix: '',
 	theme: {
 		container: {
 			center: true,
-			padding: "2rem",
+			padding: '2rem',
 			screens: {
-				"2xl": "87.5rem",
+				'2xl': '87.5rem',
 			},
 		},
 		extend: {
 			fontFamily: {
-				sans: ["var(--font-inter)", ...defaultTheme.fontFamily.sans],
+				// 1. Geist вместо Inter — лучше читается в тёмных UI
+				sans: ['var(--font-geist)', ...defaultTheme.fontFamily.sans],
+				// 2. JetBrains Mono для кода, терминала, monospace-меток
+				mono: ['var(--font-jetbrains-mono)', ...defaultTheme.fontFamily.mono],
 			},
 			screens: {
-				"3xl": "1920px",
+				'3xl': '1920px',
 			},
 			maxWidth: {
-				"2xl": "40rem",
-				"8xl": "85rem",
-				"9xl": "95rem",
-				"10xl": "105rem",
+				'2xl': '40rem',
+				'8xl': '85rem',
+				'9xl': '95rem',
+				'10xl': '105rem',
 			},
 			colors: {
-				border: "hsl(var(--border))",
-				input: "hsl(var(--input))",
-				ring: "hsl(var(--ring))",
-				background: "hsl(var(--background))",
-				foreground: "hsl(var(--foreground))",
+				border: 'hsl(var(--border))',
+				input: 'hsl(var(--input))',
+				ring: 'hsl(var(--ring))',
+				background: 'hsl(var(--background))',
+				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: "hsl(var(--primary))",
-					foreground: "hsl(var(--primary-foreground))",
+					DEFAULT: 'hsl(var(--primary))',
+					foreground: 'hsl(var(--primary-foreground))',
 				},
 				secondary: {
-					DEFAULT: "hsl(var(--secondary))",
-					foreground: "hsl(var(--secondary-foreground))",
+					DEFAULT: 'hsl(var(--secondary))',
+					foreground: 'hsl(var(--secondary-foreground))',
 				},
 				destructive: {
-					DEFAULT: "hsl(var(--destructive))",
-					foreground: "hsl(var(--destructive-foreground))",
+					DEFAULT: 'hsl(var(--destructive))',
+					foreground: 'hsl(var(--destructive-foreground))',
 				},
 				muted: {
-					DEFAULT: "hsl(var(--muted))",
-					foreground: "hsl(var(--muted-foreground))",
+					DEFAULT: 'hsl(var(--muted))',
+					foreground: 'hsl(var(--muted-foreground))',
 				},
 				accent: {
-					DEFAULT: "hsl(var(--accent))",
-					foreground: "hsl(var(--accent-foreground))",
+					DEFAULT: 'hsl(var(--accent))',
+					foreground: 'hsl(var(--accent-foreground))',
 				},
 				popover: {
-					DEFAULT: "hsl(var(--popover))",
-					foreground: "hsl(var(--popover-foreground))",
+					DEFAULT: 'hsl(var(--popover))',
+					foreground: 'hsl(var(--popover-foreground))',
 				},
 				card: {
-					DEFAULT: "hsl(var(--card))",
-					foreground: "hsl(var(--card-foreground))",
+					DEFAULT: 'hsl(var(--card))',
+					foreground: 'hsl(var(--card-foreground))',
 				},
 				sidebar: {
-					DEFAULT: "hsl(var(--sidebar-background))",
-					foreground: "hsl(var(--sidebar-foreground))",
-					primary: "hsl(var(--sidebar-primary))",
-					"primary-foreground": "hsl(var(--sidebar-primary-foreground))",
-					accent: "hsl(var(--sidebar-accent))",
-					"accent-foreground": "hsl(var(--sidebar-accent-foreground))",
-					border: "hsl(var(--sidebar-border))",
-					ring: "hsl(var(--sidebar-ring))",
+					DEFAULT: 'hsl(var(--sidebar-background))',
+					foreground: 'hsl(var(--sidebar-foreground))',
+					primary: 'hsl(var(--sidebar-primary))',
+					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+					accent: 'hsl(var(--sidebar-accent))',
+					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+					border: 'hsl(var(--sidebar-border))',
+					ring: 'hsl(var(--sidebar-ring))',
+				},
+				// 3. Семантические цвета — success/warning/info
+				//    используются в статусах деплоя, мониторинге, алертах
+				success: {
+					DEFAULT: 'hsl(var(--primary))',          // изумрудный = success
+					foreground: 'hsl(var(--primary-foreground))',
+				},
+				warning: {
+					DEFAULT: 'hsl(35 80% 52%)',              // янтарный
+					foreground: 'hsl(35 80% 14%)',
+				},
+				info: {
+					DEFAULT: 'hsl(210 70% 52%)',             // синий
+					foreground: 'hsl(210 70% 94%)',
 				},
 			},
 			borderRadius: {
-				lg: "var(--radius)",
-				md: "calc(var(--radius) - 2px)",
-				sm: "calc(var(--radius) - 4px)",
+				// 4. Добавлен xl — для модалок и крупных карточек
+				xl: 'calc(var(--radius) + 4px)',
+				lg: 'var(--radius)',
+				md: 'calc(var(--radius) - 2px)',
+				sm: 'calc(var(--radius) - 4px)',
 			},
 			keyframes: {
-				"caret-blink": {
-					"0%,70%,100%": {
-						opacity: "1",
-					},
-					"20%,50%": {
-						opacity: "0",
-					},
+				'caret-blink': {
+					'0%,70%,100%': {opacity: '1'},
+					'20%,50%': {opacity: '0'},
 				},
-				"accordion-down": {
-					from: {
-						height: "0",
-					},
-					to: {
-						height: "var(--radix-accordion-content-height)",
-					},
+				'accordion-down': {
+					from: {height: '0'},
+					to: {height: 'var(--radix-accordion-content-height)'},
 				},
-				"accordion-up": {
-					from: {
-						height: "var(--radix-accordion-content-height)",
-					},
-					to: {
-						height: "0",
-					},
+				'accordion-up': {
+					from: {height: 'var(--radix-accordion-content-height)'},
+					to: {height: '0'},
+				},
+				// 5. Fade-in для появления карточек проектов
+				'fade-up': {
+					from: {opacity: '0', transform: 'translateY(8px)'},
+					to: {opacity: '1', transform: 'translateY(0)'},
+				},
+				// 6. Pulse для статус-точек (running / sleep)
+				'status-pulse': {
+					'0%,100%': {opacity: '1'},
+					'50%': {opacity: '0.35'},
 				},
 			},
 			animation: {
-				"caret-blink": "caret-blink 1.25s ease-out infinite",
-				"accordion-down": "accordion-down 0.2s ease-out",
-				"accordion-up": "accordion-up 0.2s ease-out",
+				'caret-blink': 'caret-blink 1.25s ease-out infinite',
+				'accordion-down': 'accordion-down 0.2s ease-out',
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-up': 'fade-up 0.25s ease-out both',
+				'status-pulse': 'status-pulse 2s ease infinite',
 			},
 		},
 	},
 	plugins: [
-		require("tailwindcss-animate"),
-		require("fancy-ansi/plugin"),
-		require("@tailwindcss/typography"),
+		require('tailwindcss-animate'),
+		require('fancy-ansi/plugin'),
+		require('@tailwindcss/typography'),
 	],
-} satisfies Config;
+} satisfies Config
 
-export default config;
+export default config

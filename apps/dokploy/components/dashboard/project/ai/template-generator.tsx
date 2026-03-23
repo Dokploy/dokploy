@@ -1,6 +1,7 @@
 import { defineStepper } from "@stepperize/react";
 import { Bot } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -95,6 +96,7 @@ interface Props {
 }
 
 export const TemplateGenerator = ({ environmentId }: Props) => {
+	const t = useTranslations("aiAssistant");
 	const [open, setOpen] = useState(false);
 	const stepper = useStepper();
 	const { data: aiSettings } = api.ai.getAll.useQuery();
@@ -102,6 +104,12 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 	const [templateInfo, setTemplateInfo] =
 		useState<TemplateInfo>(defaultTemplateInfo);
 	const utils = api.useUtils();
+
+	const stepTitles: Record<string, string> = {
+		needs: t("stepNeeds"),
+		variant: t("stepVariant"),
+		review: t("stepReview"),
+	};
 
 	const haveAtleasOneProviderEnabled = aiSettings?.some(
 		(ai) => ai.isEnabled === true,
@@ -136,15 +144,14 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 			configFiles: templateInfo?.details?.configFiles || [],
 		})
 			.then(async () => {
-				toast.success("Compose Created");
+				toast.success(t("createdSuccess"));
 				setOpen(false);
-				// Invalidate the project query to refresh the environment data
 				await utils.environment.one.invalidate({
 					environmentId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error creating the compose");
+				toast.error(t("createError"));
 			});
 	};
 
@@ -156,22 +163,22 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 					onSelect={(e) => e.preventDefault()}
 				>
 					<Bot className="size-4 text-muted-foreground" />
-					<span>AI Assistant</span>
+					<span>{t("menuItem")}</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl w-full  flex flex-col">
 				<DialogHeader>
-					<DialogTitle>AI Assistant</DialogTitle>
+					<DialogTitle>{t("dialogTitle")}</DialogTitle>
 					<DialogDescription>
-						Create a custom template based on your needs
+						{t("dialogDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				<div className="grid gap-4">
 					<div className="flex justify-between">
-						<h2 className="text-lg font-semibold">Steps</h2>
+						<h2 className="text-lg font-semibold">{t("stepsLabel")}</h2>
 						<div className="flex items-center gap-2">
 							<span className="text-sm text-muted-foreground">
-								Step {stepper.current.index + 1} of {steps.length}
+								{t("stepOf", { current: stepper.current.index + 1, total: steps.length })}
 							</span>
 							<div />
 						</div>
@@ -201,7 +208,7 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 											>
 												{index + 1}
 											</Button>
-											<span className="text-sm font-medium">{step.title}</span>
+											<span className="text-sm font-medium">{stepTitles[step.id] ?? step.title}</span>
 										</li>
 										{index < array.length - 1 && (
 											<Separator
@@ -222,14 +229,14 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 									{!haveAtleasOneProviderEnabled && (
 										<AlertBlock type="warning">
 											<div className="flex flex-col w-full">
-												<span>AI features are not enabled</span>
+												<span>{t("noProviderAlert")}</span>
 												<span>
-													To use AI-powered template generation, please{" "}
+													{t("noProviderDesc")}{" "}
 													<Link
 														href="/dashboard/settings/ai"
 														className="font-medium underline underline-offset-4"
 													>
-														enable AI in your settings
+														{t("enableAiLink")}
 													</Link>
 													.
 												</span>
@@ -246,7 +253,7 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 														htmlFor="user-needs"
 														className="text-sm font-medium"
 													>
-														Select AI Provider
+														{t("selectProviderLabel")}
 													</label>
 													<Select
 														value={templateInfo.aiId}
@@ -258,7 +265,7 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 														}
 													>
 														<SelectTrigger>
-															<SelectValue placeholder="Select an AI provider" />
+															<SelectValue placeholder={t("selectProviderPlaceholder")} />
 														</SelectTrigger>
 														<SelectContent>
 															{aiSettings.map((ai) => (
@@ -302,7 +309,7 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 								disabled={stepper.isFirst}
 								variant="secondary"
 							>
-								Back
+								{t("back")}
 							</Button>
 							<Button
 								disabled={isDisabled()}
@@ -320,15 +327,9 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 										return;
 									}
 									stepper.next();
-									// if (stepper.isLast) {
-									// 	// setIsOpen(false);
-									// 	// push("/dashboard/projects");
-									// } else {
-									// 	stepper.next();
-									// }
 								}}
 							>
-								{stepper.isLast ? "Create" : "Next"}
+								{stepper.isLast ? t("create") : t("next")}
 							</Button>
 						</div>
 					</div>

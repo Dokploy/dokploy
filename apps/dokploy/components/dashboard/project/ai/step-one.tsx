@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,13 +24,10 @@ const examples = [
 ];
 
 export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
-	// Get servers from the API
+	const t = useTranslations("aiAssistant");
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const hasServers = servers && servers.length > 0;
-	// Show dropdown logic based on cloud environment
-	// Cloud: show only if there are remote servers (no Dokploy option)
-	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
 	const shouldShowServerDropdown = hasServers;
 
 	const handleExampleClick = (example: string) => {
@@ -39,12 +37,12 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 		<div className="flex flex-col h-full gap-4">
 			<div className="">
 				<div className="space-y-4 ">
-					<h2 className="text-lg font-semibold">Step 1: Describe Your Needs</h2>
+					<h2 className="text-lg font-semibold">{t("step1Title")}</h2>
 					<div className="space-y-2">
-						<Label htmlFor="user-needs">Describe your template needs</Label>
+						<Label htmlFor="user-needs">{t("step1Label")}</Label>
 						<Textarea
 							id="user-needs"
-							placeholder="Describe the type of template you need, its purpose, and any specific features you'd like to include."
+							placeholder={t("step1Placeholder")}
 							value={templateInfo?.userInput}
 							onChange={(e) =>
 								setTemplateInfo({ ...templateInfo, userInput: e.target.value })
@@ -56,7 +54,7 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 					{shouldShowServerDropdown && (
 						<div className="space-y-2">
 							<Label htmlFor="server-deploy">
-								Select the server where you want to deploy (optional)
+								{t("selectServerLabel")}
 							</Label>
 							<Select
 								value={
@@ -82,7 +80,7 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 							>
 								<SelectTrigger className="w-full">
 									<SelectValue
-										placeholder={!isCloud ? "Dokploy" : "Select a Server"}
+										placeholder={!isCloud ? t("dokploy") : t("selectServerPlaceholder")}
 									/>
 								</SelectTrigger>
 								<SelectContent>
@@ -90,9 +88,9 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 										{!isCloud && (
 											<SelectItem value="dokploy">
 												<span className="flex items-center gap-2 justify-between w-full">
-													<span>Dokploy</span>
+													<span>{t("dokploy")}</span>
 													<span className="text-muted-foreground text-xs self-center">
-														Default
+														{t("defaultBadge")}
 													</span>
 												</span>
 											</SelectItem>
@@ -103,7 +101,7 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 											</SelectItem>
 										))}
 										<SelectLabel>
-											Servers ({servers?.length + (!isCloud ? 1 : 0)})
+											{t("serversLabel", { count: (servers?.length ?? 0) + (!isCloud ? 1 : 0) })}
 										</SelectLabel>
 									</SelectGroup>
 								</SelectContent>
@@ -112,7 +110,7 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 					)}
 
 					<div className="space-y-2">
-						<Label>Examples:</Label>
+						<Label>{t("examplesLabel")}</Label>
 						<div className="flex flex-wrap gap-2">
 							{examples.map((example, index) => (
 								<Button

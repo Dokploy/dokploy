@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Terminal } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -39,6 +40,7 @@ interface Props {
 }
 
 export const EnvironmentVariables = ({ environmentId, children }: Props) => {
+	const t = useTranslations("environmentVariables");
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canRead = permissions?.environmentEnvVars.read ?? false;
 	const canWrite = permissions?.environmentEnvVars.write ?? false;
@@ -76,11 +78,11 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 			environmentId: environmentId,
 		})
 			.then(() => {
-				toast.success("Environment variables updated successfully");
+				toast.success(t("updatedSuccess"));
 				utils.environment.one.invalidate({ environmentId });
 			})
 			.catch(() => {
-				toast.error("Error updating the environment variables");
+				toast.error(t("updateError"));
 			})
 			.finally(() => {});
 	};
@@ -113,22 +115,20 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 						onSelect={(e) => e.preventDefault()}
 					>
 						<Terminal className="size-4" />
-						<span>Environment Variables</span>
+						<span>{t("menuItem")}</span>
 					</DropdownMenuItem>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-6xl">
 				<DialogHeader>
-					<DialogTitle>Environment Variables</DialogTitle>
+					<DialogTitle>{t("dialogTitle")}</DialogTitle>
 					<DialogDescription>
-						Update the environment variables that are accessible to all services
-						in this environment.
+						{t("dialogDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<AlertBlock type="info">
-					Use this syntax to reference environment-level variables in your
-					service environments:{" "}
+					{t("infoAlert")}{" "}
 					<code>API_URL=${"{{environment.API_URL}}"}</code>
 				</AlertBlock>
 				<div className="grid gap-4">
@@ -143,7 +143,7 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 									name="env"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Environment variables</FormLabel>
+											<FormLabel>{t("envLabel")}</FormLabel>
 											<FormControl>
 												<CodeEditor
 													lineWrapping
@@ -168,7 +168,7 @@ API_KEY=your-api-key-here
 								{canWrite && (
 									<DialogFooter>
 										<Button isLoading={isPending} type="submit">
-											Update
+											{t("updateButton")}
 										</Button>
 									</DialogFooter>
 								)}
