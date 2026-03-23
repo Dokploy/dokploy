@@ -2,6 +2,7 @@ export { default as enAcceptInvitationPageMessages } from "./accept-invitation-p
 export { default as enBillingPageMessages } from "./billing-page.json";
 export { default as enCommonMessages } from "./common.json";
 export { default as enDashboardLayoutMessages } from "./dashboard-layout.json";
+export { default as enDashboardProjectsPageMessages } from "./dashboard-projects-page.json";
 export { default as enDatabasePageMessages } from "./database-page.json";
 export { default as enDeploymentsPageMessages } from "./deployments-page.json";
 export { default as enErrorPageMessages } from "./error-page.json";
@@ -10,7 +11,9 @@ export { default as enLoginPageMessages } from "./login-page.json";
 export { default as enMonitoringPageMessages } from "./monitoring-page.json";
 export { default as enOnboardingPageMessages } from "./onboarding-page.json";
 export { default as enProjectPageMessages } from "./project-page.json";
+export { default as enProjectEnvironmentPageMessages } from "./project-environment-page.json";
 export { default as enRegisterPageMessages } from "./register-page.json";
 export { default as enResetPasswordPageMessages } from "./reset-password-page.json";
 export { default as enSendResetPasswordPageMessages } from "./send-reset-password-page.json";
+export { default as enServiceDetailsPageMessages } from "./service-details-page.json";
 export { default as enServerPageMessages } from "./server-page.json";

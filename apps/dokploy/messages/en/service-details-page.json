@@ -1,0 +1,28 @@
+{
+  "serviceDetailsPage": {
+    "ipCopied": "IP Address Copied!",
+    "dokployServer": "Dokploy Server",
+    "inactiveTooltip": "You cannot deploy this application because the server is inactive, please upgrade your plan to add more servers.",
+    "inactiveDescription": "This service is hosted on the server {serverName}, but this server has been disabled because your current plan doesn't include enough servers. Please purchase more servers to regain access to this application.",
+    "goTo": "Go to",
+    "billing": "Billing",
+    "tabs": {
+      "general": "General",
+      "environment": "Environment",
+      "logs": "Logs",
+      "monitoring": "Monitoring",
+      "advanced": "Advanced",
+      "backups": "Backups",
+      "domains": "Domains",
+      "deployments": "Deployments",
+      "previewDeployments": "Preview Deployments",
+      "schedules": "Schedules",
+      "volumeBackups": "Volume Backups",
+      "patches": "Patches"
+    },
+    "databaseTitle": "Database",
+    "applicationTitle": "Application",
+    "composeTitle": "Compose"
+  }
+}
+

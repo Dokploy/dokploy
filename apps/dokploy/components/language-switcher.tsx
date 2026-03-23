@@ -29,7 +29,6 @@ export const LanguageSwitcher = ({ className }: Props) => {
 
 	return (
 		<label className={cn("flex items-center gap-2", className)}>
-			<span className="text-xs text-muted-foreground">{t("language.label")}</span>
 			<select
 				className={cn(
 					"rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground",

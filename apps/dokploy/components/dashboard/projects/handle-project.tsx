@@ -1,8 +1,9 @@
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 
 import { PlusIcon, SquarePen } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -31,36 +32,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
-const AddProjectSchema = z.object({
-	name: z
-		.string()
-		.min(1, "Project name is required")
-		.refine(
-			(name) => {
-				const trimmedName = name.trim();
-				const validNameRegex =
-					/^[\p{L}\p{N}_-][\p{L}\p{N}\s_.-]*[\p{L}\p{N}_-]$/u;
-				return validNameRegex.test(trimmedName);
-			},
-			{
-				message:
-					"Project name must start and end with a letter, number, hyphen or underscore. Spaces are allowed in between.",
-			},
-		)
-		.refine((name) => !/^\d/.test(name.trim()), {
-			message: "Project name cannot start with a number",
-		})
-		.transform((name) => name.trim()),
-	description: z.string().optional(),
-});
-
-type AddProject = z.infer<typeof AddProjectSchema>;
+interface AddProject {
+	name: string;
+	description?: string;
+}
 
 interface Props {
 	projectId?: string;
 }
 
 export const HandleProject = ({ projectId }: Props) => {
+	const t = useTranslations();
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
@@ -80,6 +62,31 @@ export const HandleProject = ({ projectId }: Props) => {
 
 	const { data: availableTags = [] } = api.tag.all.useQuery();
 	const bulkAssignMutation = api.tag.bulkAssign.useMutation();
+	const addProjectSchema = useMemo(
+		() =>
+			z.object({
+				name: z
+					.string()
+					.min(1, t("dashboardProjects.handleProject.nameRequired"))
+					.refine(
+						(name) => {
+							const trimmedName = name.trim();
+							const validNameRegex =
+								/^[\p{L}\p{N}_-][\p{L}\p{N}\s_.-]*[\p{L}\p{N}_-]$/u;
+							return validNameRegex.test(trimmedName);
+						},
+						{
+							message: t("dashboardProjects.handleProject.nameFormat"),
+						},
+					)
+					.refine((name) => !/^\d/.test(name.trim()), {
+						message: t("dashboardProjects.handleProject.nameStartsWithNumber"),
+					})
+					.transform((name) => name.trim()),
+				description: z.string().optional(),
+			}),
+		[t],
+	);
 
 	const router = useRouter();
 	const form = useForm<AddProject>({
@@ -87,7 +94,7 @@ export const HandleProject = ({ projectId }: Props) => {
 			description: "",
 			name: "",
 		},
-		resolver: standardSchemaResolver(AddProjectSchema),
+		resolver: standardSchemaResolver(addProjectSchema),
 	});
 
 	useEffect(() => {
@@ -123,12 +130,16 @@ export const HandleProject = ({ projectId }: Props) => {
 							tagIds: selectedTagIds,
 						});
 					} catch (error) {
-						toast.error("Failed to assign tags to project");
+						toast.error(t("dashboardProjects.handleProject.assignTagsError"));
 					}
 				}
 
 				await utils.project.all.invalidate();
-				toast.success(projectId ? "Project Updated" : "Project Created");
+				toast.success(
+					projectId
+						? t("dashboardProjects.handleProject.updatedSuccess")
+						: t("dashboardProjects.handleProject.createdSuccess"),
+				);
 				setIsOpen(false);
 				if (!projectId) {
 					const environmentIdToUse =
@@ -147,7 +158,9 @@ export const HandleProject = ({ projectId }: Props) => {
 			})
 			.catch(() => {
 				toast.error(
-					projectId ? "Error updating a project" : "Error creating a project",
+					projectId
+						? t("dashboardProjects.handleProject.updatedError")
+						: t("dashboardProjects.handleProject.createdError"),
 				);
 			});
 	};
@@ -161,19 +174,25 @@ export const HandleProject = ({ projectId }: Props) => {
 						onSelect={(e) => e.preventDefault()}
 					>
 						<SquarePen className="size-4" />
-						<span>Update</span>
+						<span>{t("dashboardProjects.handleProject.updateAction")}</span>
 					</DropdownMenuItem>
 				) : (
 					<Button>
 						<PlusIcon className="h-4 w-4" />
-						Create Project
+						{t("dashboardProjects.handleProject.createAction")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:m:max-w-lg ">
 				<DialogHeader>
-					<DialogTitle>{projectId ? "Update" : "Add a"} project</DialogTitle>
-					<DialogDescription>The home of something big!</DialogDescription>
+					<DialogTitle>
+						{projectId
+							? t("dashboardProjects.handleProject.dialogUpdateTitle")
+							: t("dashboardProjects.handleProject.dialogCreateTitle")}
+					</DialogTitle>
+					<DialogDescription>
+						{t("dashboardProjects.handleProject.dialogDescription")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<Form {...form}>
@@ -188,9 +207,12 @@ export const HandleProject = ({ projectId }: Props) => {
 								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Name</FormLabel>
+										<FormLabel>{t("dashboardProjects.handleProject.nameLabel")}</FormLabel>
 										<FormControl>
-											<Input placeholder="Vandelay Industries" {...field} />
+											<Input
+												placeholder={t("dashboardProjects.handleProject.namePlaceholder")}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -204,10 +226,14 @@ export const HandleProject = ({ projectId }: Props) => {
 							name="description"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Description</FormLabel>
+									<FormLabel>
+										{t("dashboardProjects.handleProject.descriptionLabel")}
+									</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="Description about your project..."
+											placeholder={t(
+												"dashboardProjects.handleProject.descriptionPlaceholder",
+											)}
 											className="resize-none"
 											{...field}
 										/>
@@ -219,7 +245,7 @@ export const HandleProject = ({ projectId }: Props) => {
 						/>
 
 						<div className="space-y-2">
-							<FormLabel>Tags</FormLabel>
+							<FormLabel>{t("dashboardProjects.handleProject.tagsLabel")}</FormLabel>
 							<TagSelector
 								tags={availableTags.map((tag) => ({
 									id: tag.tagId,
@@ -228,7 +254,7 @@ export const HandleProject = ({ projectId }: Props) => {
 								}))}
 								selectedTags={selectedTagIds}
 								onTagsChange={setSelectedTagIds}
-								placeholder="Select tags..."
+								placeholder={t("dashboardProjects.handleProject.tagsPlaceholder")}
 							/>
 						</div>
 					</form>
@@ -239,7 +265,9 @@ export const HandleProject = ({ projectId }: Props) => {
 							form="hook-form-add-project"
 							type="submit"
 						>
-							{projectId ? "Update" : "Create"}
+							{projectId
+								? t("dashboardProjects.handleProject.submitUpdate")
+								: t("dashboardProjects.handleProject.submitCreate")}
 						</Button>
 					</DialogFooter>
 				</Form>

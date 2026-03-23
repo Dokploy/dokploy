@@ -6,6 +6,7 @@ import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
 } from "next";
+import { useTranslations } from "next-intl";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -71,6 +72,7 @@ type TabState =
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const t = useTranslations();
 	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 	const { applicationId, activeTab } = props;
 	const router = useRouter();
@@ -111,7 +113,8 @@ const Service = (
 			<AdvanceBreadcrumb />
 			<Head>
 				<title>
-					Application: {data?.name} - {data?.environment.project.name} |{" "}
+					{t("serviceDetailsPage.applicationTitle")}: {data?.name} -{" "}
+					{data?.environment.project.name} |{" "}
 					{appName}
 				</title>
 			</Head>
@@ -145,7 +148,7 @@ const Service = (
 										onClick={() => {
 											if (data?.server?.ipAddress) {
 												copy(data.server.ipAddress);
-												toast.success("IP Address Copied!");
+												toast.success(t("serviceDetailsPage.ipCopied"));
 											}
 										}}
 										variant={
@@ -156,7 +159,7 @@ const Service = (
 													: "destructive"
 										}
 									>
-										{data?.server?.name || "Dokploy Server"}
+										{data?.server?.name || t("serviceDetailsPage.dokployServer")}
 									</Badge>
 									{data?.server?.serverStatus === "inactive" && (
 										<TooltipProvider delayDuration={0}>
@@ -172,9 +175,7 @@ const Service = (
 													side="top"
 												>
 													<span>
-														You cannot, deploy this application because the
-														server is inactive, please upgrade your plan to add
-														more servers.
+														{t("serviceDetailsPage.inactiveTooltip")}
 													</span>
 												</TooltipContent>
 											</Tooltip>
@@ -198,18 +199,17 @@ const Service = (
 									<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
 										<ServerOff className="size-10 text-muted-foreground self-center" />
 										<span className="text-center text-base text-muted-foreground">
-											This service is hosted on the server {data.server.name},
-											but this server has been disabled because your current
-											plan doesn't include enough servers. Please purchase more
-											servers to regain access to this application.
+											{t("serviceDetailsPage.inactiveDescription", {
+												serverName: data.server.name,
+											})}
 										</span>
 										<span className="text-center text-base text-muted-foreground">
-											Go to{" "}
+											{t("serviceDetailsPage.goTo")}{" "}
 											<Link
 												href="/dashboard/settings/billing"
 												className="text-primary"
 											>
-												Billing
+												{t("serviceDetailsPage.billing")}
 											</Link>
 										</span>
 									</div>
@@ -227,47 +227,59 @@ const Service = (
 								>
 									<div className="flex flex-row items-center justify-between w-full overflow-auto">
 										<TabsList className="flex gap-8 max-md:gap-4 justify-start">
-											<TabsTrigger value="general">General</TabsTrigger>
+											<TabsTrigger value="general">
+												{t("serviceDetailsPage.tabs.general")}
+											</TabsTrigger>
 											{permissions?.envVars.read && (
 												<TabsTrigger value="environment">
-													Environment
+													{t("serviceDetailsPage.tabs.environment")}
 												</TabsTrigger>
 											)}
 											{permissions?.domain.read && (
-												<TabsTrigger value="domains">Domains</TabsTrigger>
+												<TabsTrigger value="domains">
+													{t("serviceDetailsPage.tabs.domains")}
+												</TabsTrigger>
 											)}
 											{permissions?.deployment.read && (
 												<TabsTrigger value="deployments">
-													Deployments
+													{t("serviceDetailsPage.tabs.deployments")}
 												</TabsTrigger>
 											)}
 											{permissions?.deployment.read && (
 												<TabsTrigger value="preview-deployments">
-													Preview Deployments
+													{t("serviceDetailsPage.tabs.previewDeployments")}
 												</TabsTrigger>
 											)}
 											{permissions?.schedule.read && (
-												<TabsTrigger value="schedules">Schedules</TabsTrigger>
+												<TabsTrigger value="schedules">
+													{t("serviceDetailsPage.tabs.schedules")}
+												</TabsTrigger>
 											)}
 											{permissions?.volumeBackup.read && (
 												<TabsTrigger value="volume-backups">
-													Volume Backups
+													{t("serviceDetailsPage.tabs.volumeBackups")}
 												</TabsTrigger>
 											)}
 											{permissions?.logs.read && (
-												<TabsTrigger value="logs">Logs</TabsTrigger>
+												<TabsTrigger value="logs">
+													{t("serviceDetailsPage.tabs.logs")}
+												</TabsTrigger>
 											)}
 											{data?.sourceType !== "docker" && (
-												<TabsTrigger value="patches">Patches</TabsTrigger>
+												<TabsTrigger value="patches">
+													{t("serviceDetailsPage.tabs.patches")}
+												</TabsTrigger>
 											)}
 											{permissions?.monitoring.read &&
 												((data?.serverId && isCloud) || !data?.server) && (
 													<TabsTrigger value="monitoring">
-														Monitoring
+														{t("serviceDetailsPage.tabs.monitoring")}
 													</TabsTrigger>
 												)}
 											{permissions?.service.create && (
-												<TabsTrigger value="advanced">Advanced</TabsTrigger>
+												<TabsTrigger value="advanced">
+													{t("serviceDetailsPage.tabs.advanced")}
+												</TabsTrigger>
 											)}
 										</TabsList>
 									</div>

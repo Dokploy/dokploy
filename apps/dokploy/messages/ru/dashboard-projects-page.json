@@ -1,0 +1,65 @@
+{
+  "dashboardProjects": {
+    "breadcrumbTitle": "Проекты",
+    "title": "Проекты",
+    "description": "Создавайте и управляйте вашими проектами",
+    "loading": "Загрузка...",
+    "searchPlaceholder": "Фильтр проектов...",
+    "sortPlaceholder": "Сортировать по...",
+    "sort": {
+      "nameAsc": "Название (А-Я)",
+      "nameDesc": "Название (Я-А)",
+      "newestFirst": "Сначала новые",
+      "oldestFirst": "Сначала старые",
+      "mostServices": "Больше всего сервисов",
+      "leastServices": "Меньше всего сервисов"
+    },
+    "empty": "Проекты не найдены",
+    "noEnvironmentsWarning": "У вас есть доступ к этому проекту, но доступные environments отсутствуют",
+    "actions": "Действия",
+    "delete": "Удалить",
+    "deleteConfirmTitle": "Вы уверены, что хотите удалить этот проект?",
+    "activeServicesWarning": "У вас есть активные сервисы, сначала удалите их",
+    "deleteCannotUndo": "Это действие нельзя отменить",
+    "cancel": "Отмена",
+    "deletedSuccess": "Проект успешно удален",
+    "deleteError": "Ошибка при удалении проекта",
+    "created": "Создан",
+    "serviceSingle": "сервис",
+    "servicePlural": "сервисов",
+    "handleProject": {
+      "nameRequired": "Название проекта обязательно",
+      "nameFormat": "Название проекта должно начинаться и заканчиваться буквой, цифрой, дефисом или подчеркиванием. Пробелы внутри разрешены.",
+      "nameStartsWithNumber": "Название проекта не может начинаться с цифры",
+      "assignTagsError": "Не удалось назначить теги проекту",
+      "updatedSuccess": "Проект обновлен",
+      "createdSuccess": "Проект создан",
+      "updatedError": "Ошибка при обновлении проекта",
+      "createdError": "Ошибка при создании проекта",
+      "updateAction": "Обновить",
+      "createAction": "Создать проект",
+      "dialogUpdateTitle": "Обновить проект",
+      "dialogCreateTitle": "Добавить проект",
+      "dialogDescription": "Дом для чего-то большого!",
+      "nameLabel": "Название",
+      "namePlaceholder": "Vandelay Industries",
+      "descriptionLabel": "Описание",
+      "descriptionPlaceholder": "Описание вашего проекта...",
+      "tagsLabel": "Теги",
+      "tagsPlaceholder": "Выберите теги...",
+      "submitUpdate": "Обновить",
+      "submitCreate": "Создать"
+    },
+    "projectEnvironment": {
+      "menuLabel": "Окружение проекта",
+      "title": "Окружение проекта",
+      "description": "Обновите переменные окружения env, доступные всем сервисам этого проекта.",
+      "hint": "Используйте этот синтаксис, чтобы ссылаться на переменные уровня проекта в окружениях сервисов:",
+      "fieldLabel": "Переменные окружения",
+      "updatedSuccess": "Окружение проекта успешно обновлено",
+      "updateError": "Ошибка при обновлении окружения",
+      "submitUpdate": "Обновить"
+    }
+  }
+}
+

@@ -1,0 +1,28 @@
+{
+  "serviceDetailsPage": {
+    "ipCopied": "IP-адрес скопирован!",
+    "dokployServer": "Сервер Dokploy",
+    "inactiveTooltip": "Невозможно развернуть приложение: сервер неактивен. Обновите тариф, чтобы добавить больше серверов.",
+    "inactiveDescription": "Этот сервис размещён на сервере {serverName}, но сервер отключен, потому что в вашем текущем тарифе недостаточно серверов. Приобретите дополнительные серверы, чтобы восстановить доступ к приложению.",
+    "goTo": "Перейти в",
+    "billing": "Биллинг",
+    "tabs": {
+      "general": "Общее",
+      "environment": "Окружение",
+      "logs": "Логи",
+      "monitoring": "Мониторинг",
+      "advanced": "Расширенные",
+      "backups": "Резервные копии",
+      "domains": "Домены",
+      "deployments": "Деплои",
+      "previewDeployments": "Preview деплои",
+      "schedules": "Расписания",
+      "volumeBackups": "Резервные копии томов",
+      "patches": "Патчи"
+    },
+    "databaseTitle": "База данных",
+    "applicationTitle": "Приложение",
+    "composeTitle": "Compose"
+  }
+}
+

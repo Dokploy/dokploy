@@ -5,6 +5,7 @@ import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
 } from "next";
+import { useTranslations } from "next-intl";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -51,6 +52,7 @@ type TabState = "projects" | "monitoring" | "settings" | "advanced";
 const Redis = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const t = useTranslations();
 	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 	const { redisId, activeTab } = props;
 	const router = useRouter();
@@ -79,7 +81,8 @@ const Redis = (
 			<AdvanceBreadcrumb />
 			<Head>
 				<title>
-					Database: {data?.name} - {data?.environment?.project?.name} |{" "}
+					{t("serviceDetailsPage.databaseTitle")}: {data?.name} -{" "}
+					{data?.environment?.project?.name} |{" "}
 					{appName}
 				</title>
 			</Head>
@@ -117,7 +120,7 @@ const Redis = (
 													: "destructive"
 										}
 									>
-										{data?.server?.name || "Dokploy Server"}
+										{data?.server?.name || t("serviceDetailsPage.dokployServer")}
 									</Badge>
 									{data?.server?.serverStatus === "inactive" && (
 										<TooltipProvider delayDuration={0}>
@@ -133,9 +136,7 @@ const Redis = (
 													side="top"
 												>
 													<span>
-														You cannot, deploy this application because the
-														server is inactive, please upgrade your plan to add
-														more servers.
+														{t("serviceDetailsPage.inactiveTooltip")}
 													</span>
 												</TooltipContent>
 											</Tooltip>
@@ -159,18 +160,17 @@ const Redis = (
 									<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
 										<ServerOff className="size-10 text-muted-foreground self-center" />
 										<span className="text-center text-base text-muted-foreground">
-											This service is hosted on the server {data.server.name},
-											but this server has been disabled because your current
-											plan doesn't include enough servers. Please purchase more
-											servers to regain access to this application.
+											{t("serviceDetailsPage.inactiveDescription", {
+												serverName: data.server.name,
+											})}
 										</span>
 										<span className="text-center text-base text-muted-foreground">
-											Go to{" "}
+											{t("serviceDetailsPage.goTo")}{" "}
 											<Link
 												href="/dashboard/settings/billing"
 												className="text-primary"
 											>
-												Billing
+												{t("serviceDetailsPage.billing")}
 											</Link>
 										</span>
 									</div>
@@ -198,23 +198,29 @@ const Redis = (
 														: "md:grid-cols-5",
 											)}
 										>
-											<TabsTrigger value="general">General</TabsTrigger>
+											<TabsTrigger value="general">
+												{t("serviceDetailsPage.tabs.general")}
+											</TabsTrigger>
 											{permissions?.envVars.read && (
 												<TabsTrigger value="environment">
-													Environment
+													{t("serviceDetailsPage.tabs.environment")}
 												</TabsTrigger>
 											)}
 											{permissions?.logs.read && (
-												<TabsTrigger value="logs">Logs</TabsTrigger>
+												<TabsTrigger value="logs">
+													{t("serviceDetailsPage.tabs.logs")}
+												</TabsTrigger>
 											)}
 											{permissions?.monitoring.read &&
 												((data?.serverId && isCloud) || !data?.server) && (
 													<TabsTrigger value="monitoring">
-														Monitoring
+														{t("serviceDetailsPage.tabs.monitoring")}
 													</TabsTrigger>
 												)}
 											{permissions?.service.create && (
-												<TabsTrigger value="advanced">Advanced</TabsTrigger>
+												<TabsTrigger value="advanced">
+													{t("serviceDetailsPage.tabs.advanced")}
+												</TabsTrigger>
 											)}
 										</TabsList>
 									</div>

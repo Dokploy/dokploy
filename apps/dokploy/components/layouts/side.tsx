@@ -867,7 +867,7 @@ function SidebarLogo() {
 		</>
 	);
 }
-
+	
 export default function Page({ children }: Props) {
 	const t = useTranslations();
 	const [defaultOpen, setDefaultOpen] = useState<boolean | undefined>(
@@ -1160,11 +1160,11 @@ export default function Page({ children }: Props) {
 								{whitelabeling.footerText}
 							</div>
 						)}
-						{dokployVersion && (
+						{/* {dokployVersion && (
 							<div className="px-3 text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
 								Version {dokployVersion}
 							</div>
-						)}
+						)} */}
 					</SidebarMenu>
 				</SidebarFooter>
 				<SidebarRail />
@@ -1196,7 +1196,7 @@ export default function Page({ children }: Props) {
 					</header>
 				)}
 
-				<div className="flex flex-col w-full p-4 pt-0 h-full">{children}</div>
+				<div className="flex flex-col w-full p-4 pt-0  min-h-[calc(100svh-12rem)]">{children}</div>
 			</SidebarInset>
 		</SidebarProvider>
 	);

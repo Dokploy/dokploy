@@ -61,14 +61,14 @@ export const UserNav = () => {
 				align="end"
 				sideOffset={4}
 			>
-				<div className="flex items-center justify-between px-2 py-1.5">
+				<div className="flex flex-col px-2 py-1.5">
 					<DropdownMenuLabel className="flex flex-col">
 						{t("userNav.myAccount")}
 						<span className="text-xs font-normal text-muted-foreground">
 							{data?.user?.email}
 						</span>
 					</DropdownMenuLabel>
-					<div className="flex items-center gap-2">
+					<div className="flex justify-between gap-2">
 						<LanguageSwitcher className="hidden sm:flex" />
 						<ModeToggle />
 					</div>

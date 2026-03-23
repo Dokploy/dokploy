@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { FileIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -39,6 +40,7 @@ interface Props {
 }
 
 export const ProjectEnvironment = ({ projectId, children }: Props) => {
+	const t = useTranslations();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canRead = permissions?.projectEnvVars.read ?? false;
 	const canWrite = permissions?.projectEnvVars.write ?? false;
@@ -75,11 +77,11 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 			projectId: projectId,
 		})
 			.then(() => {
-				toast.success("Project env updated successfully");
+				toast.success(t("dashboardProjects.projectEnvironment.updatedSuccess"));
 				utils.project.all.invalidate();
 			})
 			.catch(() => {
-				toast.error("Error updating the env");
+				toast.error(t("dashboardProjects.projectEnvironment.updateError"));
 			})
 			.finally(() => {});
 	};
@@ -112,22 +114,21 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 						onSelect={(e) => e.preventDefault()}
 					>
 						<FileIcon className="size-4" />
-						<span>Project Environment</span>
+						<span>{t("dashboardProjects.projectEnvironment.menuLabel")}</span>
 					</DropdownMenuItem>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-6xl">
 				<DialogHeader>
-					<DialogTitle>Project Environment</DialogTitle>
+					<DialogTitle>{t("dashboardProjects.projectEnvironment.title")}</DialogTitle>
 					<DialogDescription>
-						Update the env Environment variables that are accessible to all
-						services of this project.
+						{t("dashboardProjects.projectEnvironment.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<AlertBlock type="info">
-					Use this syntax to reference project-level variables in your service
-					environments: <code>DATABASE_URL=${"{{project.DATABASE_URL}}"}</code>
+					{t("dashboardProjects.projectEnvironment.hint")}{" "}
+					<code>DATABASE_URL=${"{{project.DATABASE_URL}}"}</code>
 				</AlertBlock>
 				<div className="grid gap-4">
 					<div className="grid items-center gap-4">
@@ -141,7 +142,9 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 									name="env"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Environment variables</FormLabel>
+											<FormLabel>
+												{t("dashboardProjects.projectEnvironment.fieldLabel")}
+											</FormLabel>
 											<FormControl>
 												<CodeEditor
 													lineWrapping
@@ -165,7 +168,7 @@ PORT=3000
 								{canWrite && (
 									<DialogFooter>
 										<Button isLoading={isPending} type="submit">
-											Update
+											{t("dashboardProjects.projectEnvironment.submitUpdate")}
 										</Button>
 									</DialogFooter>
 								)}
