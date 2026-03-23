@@ -219,3 +219,46 @@ export const getGitCommitInfo = async ({
 	}
 	return result;
 };
+
+export const getGitHistory = async ({
+	appName,
+	type = "application",
+	serverId,
+	limit = 10,
+}: Props & { limit?: number }) => {
+	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
+	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const outputPath = join(basePath, appName, "code");
+	const quotedOutputPath = quote([outputPath]);
+	let stdoutResult = "";
+	try {
+		const gitCommand = `git -C ${quotedOutputPath} log -${limit} --pretty=format:"%H%x1f%s%x1f%an%x1f%ai"`;
+		if (serverId) {
+			const { stdout } = await execAsyncRemote(serverId, gitCommand);
+			stdoutResult = stdout.trim();
+		} else {
+			const { stdout } = await execAsync(gitCommand);
+			stdoutResult = stdout.trim();
+		}
+
+		if (!stdoutResult) {
+			return [];
+		}
+
+		return stdoutResult
+			.split("\n")
+			.filter(Boolean)
+			.map((line) => {
+				const parts = line.split("\x1f");
+				return {
+					hash: parts[0]?.trim() || "",
+					message: parts[1]?.trim() || "",
+					author: parts[2]?.trim() || "",
+					date: parts[3]?.trim() || "",
+				};
+			});
+	} catch (error) {
+		console.error(`Error getting git history for ${type} '${appName}': ${error}`);
+		return [];
+	}
+};
