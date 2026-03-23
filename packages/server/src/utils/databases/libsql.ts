@@ -148,10 +148,6 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
-			TaskTemplate: {
-				...settings.TaskTemplate,
-				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
-			},
 		});
 	} catch {
 		await docker.createService(settings);
