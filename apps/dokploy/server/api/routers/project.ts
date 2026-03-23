@@ -30,6 +30,7 @@ import {
 	IS_CLOUD,
 	updateProjectById,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import {
 	addNewEnvironment,
 	addNewProject,
@@ -37,17 +38,16 @@ import {
 	checkProjectAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { audit } from "@/server/api/utils/audit";
 import {
 	createTRPCRouter,
 	protectedProcedure,
 	withPermission,
 } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateProject,
 	apiFindOneProject,
@@ -233,12 +233,13 @@ export const projectRouter = createTRPCRouter({
 									applicationStatus: true,
 								},
 							},
-							compose: {
-								where: buildServiceFilter(compose.composeId, accessedServices),
-								with: { domains: true },
-							},
 							libsql: {
 								where: buildServiceFilter(libsql.libsqlId, accessedServices),
+								columns: {
+									libsqlId: true,
+									name: true,
+									applicationStatus: true,
+								},
 							},
 							mariadb: {
 								where: buildServiceFilter(mariadb.mariadbId, accessedServices),
@@ -351,12 +352,11 @@ export const projectRouter = createTRPCRouter({
 								composeStatus: true,
 							},
 						},
-						libsql: true,
-						mariadb: true,
-						mongo: true,
-						mysql: true,
-						postgres: true,
-						redis: true,
+						libsql: {
+							columns: {
+								libsqlId: true,
+							},
+						},
 					},
 					columns: {
 						name: true,
@@ -465,6 +465,17 @@ export const projectRouter = createTRPCRouter({
 									name: true,
 									createdAt: true,
 									composeStatus: true,
+									description: true,
+									serverId: true,
+								},
+							},
+							libsql: {
+								columns: {
+									libsqlId: true,
+									appName: true,
+									name: true,
+									createdAt: true,
+									applicationStatus: true,
 									description: true,
 									serverId: true,
 								},

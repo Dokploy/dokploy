@@ -46,7 +46,8 @@ export type Services = {
 		| "mysql"
 		| "mongo"
 		| "redis"
-		| "compose";
+		| "compose"
+		| "libsql";
 	description?: string | null;
 	id: string;
 	createdAt: string;
@@ -136,6 +137,18 @@ export const extractServices = (data: Environment | undefined) => {
 		serverId: item.serverId,
 	})) ?? []) as Services[];
 
+	const libsql: Services[] =
+		data?.libsql?.map((item) => ({
+			appName: item.appName,
+			name: item.name,
+			type: "libsql" as const,
+			id: item.libsqlId,
+			createdAt: item.createdAt,
+			status: item.applicationStatus,
+			description: item.description,
+			serverId: item.serverId,
+		})) || [];
+
 	applications.push(
 		...mysql,
 		...redis,
@@ -143,6 +156,7 @@ export const extractServices = (data: Environment | undefined) => {
 		...postgres,
 		...mariadb,
 		...compose,
+		...libsql,
 	);
 
 	applications.sort((a, b) => {
