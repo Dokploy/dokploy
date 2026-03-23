@@ -4,7 +4,6 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreateMount,
 	mounts,
-	type ServiceType,
 } from "@dokploy/server/db/schema";
 import {
 	createFile,
@@ -19,6 +18,16 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq, type SQL, sql } from "drizzle-orm";
 import type { z } from "zod";
+
+export type ServiceType =
+	| "application"
+	| "compose"
+	| "libsql"
+	| "mariadb"
+	| "mongo"
+	| "mysql"
+	| "postgres"
+	| "redis";
 
 export type Mount = typeof mounts.$inferSelect;
 
@@ -352,35 +361,35 @@ export const getBaseFilesPath = async (mountId: string) => {
 	let appName = "";
 	let directoryPath = "";
 
-	if (mount.serviceType === "application" && mount.application) {
+	if (mount.applicationId && mount.application) {
 		const { APPLICATIONS_PATH } = paths(!!mount.application.serverId);
 		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.application.appName;
-	} else if (mount.serviceType === "compose" && mount.compose) {
+	} else if (mount.composeId && mount.compose) {
 		const { COMPOSE_PATH } = paths(!!mount.compose.serverId);
 		appName = mount.compose.appName;
 		absoluteBasePath = path.resolve(COMPOSE_PATH);
-	} else if (mount.serviceType === "libsql" && mount.libsql) {
+	} else if (mount.libsqlId && mount.libsql) {
 		const { APPLICATIONS_PATH } = paths(!!mount.libsql.serverId);
 		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.libsql.appName;
-	} else if (mount.serviceType === "mariadb" && mount.mariadb) {
+	} else if (mount.mariadbId && mount.mariadb) {
 		const { APPLICATIONS_PATH } = paths(!!mount.mariadb.serverId);
 		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.mariadb.appName;
-	} else if (mount.serviceType === "mongo" && mount.mongo) {
+	} else if (mount.mongoId && mount.mongo) {
 		const { APPLICATIONS_PATH } = paths(!!mount.mongo.serverId);
 		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.mongo.appName;
-	} else if (mount.serviceType === "mysql" && mount.mysql) {
+	} else if (mount.mysqlId && mount.mysql) {
 		const { APPLICATIONS_PATH } = paths(!!mount.mysql.serverId);
 		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.mysql.appName;
-	} else if (mount.serviceType === "postgres" && mount.postgres) {
+	} else if (mount.postgresId && mount.postgres) {
 		const { APPLICATIONS_PATH } = paths(!!mount.postgres.serverId);
 		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.postgres.appName;
-	} else if (mount.serviceType === "redis" && mount.redis) {
+	} else if (mount.redisId && mount.redis) {
 		const { APPLICATIONS_PATH } = paths(!!mount.redis.serverId);
 		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.redis.appName;
@@ -392,28 +401,28 @@ export const getBaseFilesPath = async (mountId: string) => {
 
 type MountNested = Awaited<ReturnType<typeof findMountById>>;
 export const getServerId = async (mount: MountNested) => {
-	if (mount.serviceType === "application" && mount?.application?.serverId) {
+	if (mount.applicationId && mount?.application?.serverId) {
 		return mount.application.serverId;
 	}
-	if (mount.serviceType === "compose" && mount?.compose?.serverId) {
+	if (mount.composeId && mount?.compose?.serverId) {
 		return mount.compose.serverId;
 	}
-	if (mount.serviceType === "libsql" && mount?.libsql?.serverId) {
+	if (mount.libsqlId && mount?.libsql?.serverId) {
 		return mount.libsql.serverId;
 	}
-	if (mount.serviceType === "mariadb" && mount?.mariadb?.serverId) {
+	if (mount.mariadbId && mount?.mariadb?.serverId) {
 		return mount.mariadb.serverId;
 	}
-	if (mount.serviceType === "mongo" && mount?.mongo?.serverId) {
+	if (mount.mongoId && mount?.mongo?.serverId) {
 		return mount.mongo.serverId;
 	}
-	if (mount.serviceType === "mysql" && mount?.mysql?.serverId) {
+	if (mount.mysqlId && mount?.mysql?.serverId) {
 		return mount.mysql.serverId;
 	}
-	if (mount.serviceType === "postgres" && mount?.postgres?.serverId) {
+	if (mount.postgresId && mount?.postgres?.serverId) {
 		return mount.postgres.serverId;
 	}
-	if (mount.serviceType === "redis" && mount?.redis?.serverId) {
+	if (mount.redisId && mount?.redis?.serverId) {
 		return mount.redis.serverId;
 	}
 

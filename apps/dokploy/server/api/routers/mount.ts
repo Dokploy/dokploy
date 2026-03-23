@@ -13,13 +13,14 @@ import {
 	getServiceContainer,
 	updateMount,
 } from "@dokploy/server";
+import type { ServiceType } from "@dokploy/server/services/mount";
 import {
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 } from "@dokploy/server/services/permission";
-import type { ServiceType } from "@dokploy/server/db/schema/mount";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateMount,
 	apiFindMountByApplicationId,
@@ -28,7 +29,6 @@ import {
 	apiUpdateMount,
 } from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { audit } from "@/server/api/utils/audit";
 
 async function getServiceOrganizationId(
 	serviceId: string,
