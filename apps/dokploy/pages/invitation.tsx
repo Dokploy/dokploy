@@ -3,7 +3,8 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { type ReactElement, useEffect } from "react";
+import { useTranslations } from "next-intl";
+import { type ReactElement, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -25,49 +26,13 @@ import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
-const registerSchema = z
-	.object({
-		name: z.string().min(1, {
-			message: "First name is required",
-		}),
-		lastName: z.string().min(1, {
-			message: "Last name is required",
-		}),
-		email: z
-			.string()
-			.min(1, {
-				message: "Email is required",
-			})
-			.email({
-				message: "Email must be a valid email",
-			}),
-		password: z
-			.string()
-			.min(1, {
-				message: "Password is required",
-			})
-			.refine((password) => password === "" || password.length >= 8, {
-				message: "Password must be at least 8 characters",
-			}),
-		confirmPassword: z
-			.string()
-			.min(1, {
-				message: "Password is required",
-			})
-			.refine(
-				(confirmPassword) =>
-					confirmPassword === "" || confirmPassword.length >= 8,
-				{
-					message: "Password must be at least 8 characters",
-				},
-			),
-	})
-	.refine((data) => data.password === data.confirmPassword, {
-		message: "Passwords do not match",
-		path: ["confirmPassword"],
-	});
-
-type Register = z.infer<typeof registerSchema>;
+type InvitationForm = {
+	name: string;
+	lastName: string;
+	email: string;
+	password: string;
+	confirmPassword: string;
+};
 
 interface Props {
 	token: string;
@@ -82,6 +47,7 @@ const Invitation = ({
 	isCloud,
 	userAlreadyExists,
 }: Props) => {
+	const t = useTranslations();
 	const router = useRouter();
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const { data } = api.user.getUserByToken.useQuery(
@@ -94,7 +60,60 @@ const Invitation = ({
 		},
 	);
 
-	const form = useForm<Register>({
+	const registerSchema = useMemo(
+		() =>
+			z
+				.object({
+					name: z.string().min(1, {
+						message: t("invitation.validation.firstNameRequired"),
+					}),
+					lastName: z.string().min(1, {
+						message: t("invitation.validation.lastNameRequired"),
+					}),
+					email: z
+						.string()
+						.min(1, {
+							message: t("invitation.validation.emailRequired"),
+						})
+						.email({
+							message: t("invitation.validation.emailInvalid"),
+						}),
+					password: z
+						.string()
+						.min(1, {
+							message: t("invitation.validation.passwordRequired"),
+						})
+						.refine(
+							(password) =>
+								password === "" || password.length >= 8,
+							{
+								message: t("invitation.validation.passwordMin"),
+							},
+						),
+					confirmPassword: z
+						.string()
+						.min(1, {
+							message:
+								t("invitation.validation.confirmPasswordRequired"),
+						})
+						.refine(
+							(confirmPassword) =>
+								confirmPassword === "" ||
+								confirmPassword.length >= 8,
+							{
+								message:
+									t("invitation.validation.confirmPasswordMin"),
+							},
+						),
+				})
+				.refine((data) => data.password === data.confirmPassword, {
+					message: t("invitation.validation.passwordsDoNotMatch"),
+					path: ["confirmPassword"],
+				}),
+		[t],
+	);
+
+	const form = useForm<InvitationForm>({
 		defaultValues: {
 			name: "",
 			lastName: "",
@@ -115,7 +134,7 @@ const Invitation = ({
 		}
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
-	const onSubmit = async (values: Register) => {
+	const onSubmit = async (values: InvitationForm) => {
 		try {
 			const { error } = await authClient.signUp.email({
 				email: values.email,
@@ -138,10 +157,10 @@ const Invitation = ({
 				invitationId: token,
 			});
 
-			toast.success("Account created successfully");
+			toast.success(t("invitation.successToast"));
 			router.push("/dashboard/projects");
 		} catch {
-			toast.error("An error occurred while creating your account");
+			toast.error(t("invitation.genericErrorToast"));
 		}
 	};
 
@@ -160,28 +179,29 @@ const Invitation = ({
 								}
 							/>
 						</Link>
-						Invitation
+						{t("invitation.title")}
 					</CardTitle>
 					{userAlreadyExists ? (
 						<div className="flex flex-col gap-4 justify-center items-center">
 							<AlertBlock type="success">
 								<div className="flex flex-col gap-2">
-									<span className="font-medium">Valid Invitation!</span>
+									<span className="font-medium">
+										{t("invitation.alert.validTitle")}
+									</span>
 									<span className="text-sm text-green-600 dark:text-green-400">
-										We detected that you already have an account with this
-										email. Please sign in to accept the invitation.
+										{t("invitation.alert.message")}
 									</span>
 								</div>
 							</AlertBlock>
 
 							<Button asChild variant="default" className="w-full">
-								<Link href="/">Sign In</Link>
+								<Link href="/">{t("invitation.alert.signInButton")}</Link>
 							</Button>
 						</div>
 					) : (
 						<>
 							<CardDescription>
-								Fill the form below to create your account
+								{t("invitation.description")}
 							</CardDescription>
 							<div className="w-full">
 								<div className="p-3" />
@@ -207,9 +227,16 @@ const Invitation = ({
 													name="name"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>First Name</FormLabel>
+															<FormLabel>
+																{t("invitation.form.firstName")}
+															</FormLabel>
 															<FormControl>
-																<Input placeholder="John" {...field} />
+																<Input
+																	placeholder={t(
+																		"invitation.placeholders.firstName",
+																	)}
+																	{...field}
+																/>
 															</FormControl>
 															<FormMessage />
 														</FormItem>
@@ -220,9 +247,16 @@ const Invitation = ({
 													name="lastName"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>Last Name</FormLabel>
+															<FormLabel>
+																{t("invitation.form.lastName")}
+															</FormLabel>
 															<FormControl>
-																<Input placeholder="Doe" {...field} />
+																<Input
+																	placeholder={t(
+																		"invitation.placeholders.lastName",
+																	)}
+																	{...field}
+																/>
 															</FormControl>
 															<FormMessage />
 														</FormItem>
@@ -233,11 +267,15 @@ const Invitation = ({
 													name="email"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>Email</FormLabel>
+															<FormLabel>
+																{t("invitation.form.email")}
+															</FormLabel>
 															<FormControl>
 																<Input
 																	disabled
-																	placeholder="Email"
+																	placeholder={t(
+																		"invitation.placeholders.email",
+																	)}
 																	{...field}
 																/>
 															</FormControl>
@@ -250,11 +288,15 @@ const Invitation = ({
 													name="password"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>Password</FormLabel>
+															<FormLabel>
+																{t("invitation.form.password")}
+															</FormLabel>
 															<FormControl>
 																<Input
 																	type="password"
-																	placeholder="Password"
+																	placeholder={t(
+																		"invitation.placeholders.password",
+																	)}
 																	{...field}
 																/>
 															</FormControl>
@@ -268,11 +310,17 @@ const Invitation = ({
 													name="confirmPassword"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>Confirm Password</FormLabel>
+															<FormLabel>
+																{t(
+																	"invitation.form.confirmPassword",
+																)}
+															</FormLabel>
 															<FormControl>
 																<Input
 																	type="password"
-																	placeholder="Confirm Password"
+																	placeholder={t(
+																		"invitation.placeholders.confirmPassword",
+																	)}
 																	{...field}
 																/>
 															</FormControl>
@@ -286,7 +334,7 @@ const Invitation = ({
 													isLoading={form.formState.isSubmitting}
 													className="w-full"
 												>
-													Register
+													{t("invitation.button")}
 												</Button>
 											</div>
 
@@ -297,13 +345,13 @@ const Invitation = ({
 															className="hover:underline text-muted-foreground"
 															href="/"
 														>
-															Login
+															{t("invitation.nav.login")}
 														</Link>
 														<Link
 															className="hover:underline text-muted-foreground"
 															href="/send-reset-password"
 														>
-															Lost your password?
+															{t("auth.links.lostPassword")}
 														</Link>
 													</>
 												)}

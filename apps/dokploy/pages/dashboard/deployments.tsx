@@ -2,6 +2,7 @@ import { validateRequest } from "@dokploy/server/lib/auth";
 import { hasPermission } from "@dokploy/server/services/permission";
 import { Rocket } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/router";
 import type { ReactElement } from "react";
 import { ShowDeploymentsTable } from "@/components/dashboard/deployments/show-deployments-table";
@@ -23,6 +24,7 @@ function isValidTab(t: string): t is TabValue {
 }
 
 function DeploymentsPage() {
+	const t = useTranslations();
 	const router = useRouter();
 	const tab =
 		router.query.tab && isValidTab(router.query.tab as string)
@@ -40,24 +42,28 @@ function DeploymentsPage() {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-8xl mx-auto min-h-[45vh]">
+			<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto min-h-[45vh]">
 				<div className="rounded-xl bg-background shadow-md h-full">
 					<CardHeader>
 						<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 							<div>
 								<CardTitle className="text-xl font-bold flex items-center gap-2">
 									<Rocket className="size-5" />
-									Deployments
+									{t("deployments.title")}
 								</CardTitle>
 								<CardDescription>
-									All application and compose deployments in one place.
+									{t("deployments.description")}
 								</CardDescription>
 							</div>
 						</div>
 						<Tabs value={tab} onValueChange={setTab} className="w-full">
 							<TabsList className="mt-2">
-								<TabsTrigger value="deployments">Deployments</TabsTrigger>
-								<TabsTrigger value="queue">Queue</TabsTrigger>
+								<TabsTrigger value="deployments">
+									{t("deployments.tabs.deployments")}
+								</TabsTrigger>
+								<TabsTrigger value="queue">
+									{t("deployments.tabs.queue")}
+								</TabsTrigger>
 							</TabsList>
 							<TabsContent value="deployments" className="mt-0 pt-4">
 								<ShowDeploymentsTable />

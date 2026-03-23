@@ -1,0 +1,43 @@
+{
+  "invitation": {
+    "title": "Invitation",
+    "alert": {
+      "validTitle": "Valid Invitation!",
+      "message": "We detected that you already have an account with this email. Please sign in to accept the invitation.",
+      "signInButton": "Sign In"
+    },
+    "description": "Fill the form below to create your account",
+    "form": {
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password"
+    },
+    "placeholders": {
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password"
+    },
+    "button": "Register",
+    "successToast": "Account created successfully",
+    "genericErrorToast": "An error occurred while creating your account",
+    "nav": {
+      "login": "Login"
+    },
+    "validation": {
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Email must be a valid email",
+      "passwordRequired": "Password is required",
+      "passwordMin": "Password must be at least 8 characters",
+      "confirmPasswordRequired": "Password is required",
+      "confirmPasswordMin": "Password must be at least 8 characters",
+      "passwordsDoNotMatch": "Passwords do not match"
+    }
+  }
+}
+

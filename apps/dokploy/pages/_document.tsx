@@ -2,7 +2,7 @@ import { Head, Html, Main, NextScript } from "next/document";
 
 export default function Document() {
 	return (
-		<Html lang="en" className="font-sans">
+		<Html lang="ru" className="font-sans">
 			<Head>
 				<link rel="icon" href="/icon.svg" />
 			</Head>

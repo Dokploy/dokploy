@@ -1,0 +1,43 @@
+{
+  "invitation": {
+    "title": "Приглашение",
+    "alert": {
+      "validTitle": "Приглашение действительно!",
+      "message": "Мы обнаружили, что у вас уже есть аккаунт с этим email. Пожалуйста, войдите, чтобы принять приглашение.",
+      "signInButton": "Войти"
+    },
+    "description": "Заполните форму ниже, чтобы создать ваш аккаунт",
+    "form": {
+      "firstName": "Имя",
+      "lastName": "Фамилия",
+      "email": "Электронная почта",
+      "password": "Пароль",
+      "confirmPassword": "Подтверждение пароля"
+    },
+    "placeholders": {
+      "firstName": "Иван",
+      "lastName": "Петров",
+      "email": "Email",
+      "password": "Пароль",
+      "confirmPassword": "Подтверждение пароля"
+    },
+    "button": "Зарегистрироваться",
+    "successToast": "Аккаунт успешно создан",
+    "genericErrorToast": "Произошла ошибка при создании вашего аккаунта",
+    "nav": {
+      "login": "Вход"
+    },
+    "validation": {
+      "firstNameRequired": "Имя обязательно",
+      "lastNameRequired": "Фамилия обязательна",
+      "emailRequired": "Email обязателен",
+      "emailInvalid": "Email должен быть корректным",
+      "passwordRequired": "Пароль обязателен",
+      "passwordMin": "Пароль должен быть не короче 8 символов",
+      "confirmPasswordRequired": "Пароль обязателен",
+      "confirmPasswordMin": "Пароль должен быть не короче 8 символов",
+      "passwordsDoNotMatch": "Пароли не совпадают"
+    }
+  }
+}
+

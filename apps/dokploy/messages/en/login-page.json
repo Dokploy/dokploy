@@ -1,0 +1,44 @@
+{
+  "auth": {
+    "login": {
+      "title": "Log in",
+      "subtitle": "Enter your email and password to sign in",
+      "button": "Log in",
+      "passwordPlaceholder": "Enter your password",
+      "genericError": "An error occurred while logging in"
+    },
+    "register": "Register",
+    "logout": "Log out",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Log in",
+    "twoFactor": {
+      "codeLabel": "2FA code",
+      "description": "Enter a 6-digit code from your authenticator app",
+      "prompt": "Please enter your 2FA code",
+      "invalidCode": "Please enter a valid 6-digit code",
+      "back": "Back",
+      "verify": "Verify",
+      "genericError": "An error occurred while verifying the 2FA code",
+      "lostAuthenticator": "Lost access to your authenticator app?"
+    },
+    "backupCode": {
+      "invalid": "Please enter a valid backup code",
+      "modal": {
+        "title": "Enter Backup Code",
+        "description": "Enter one of your backup codes to access your account"
+      },
+      "label": "Backup Code",
+      "placeholder": "Enter your backup code",
+      "help": "Enter one of the backup codes you received when setting up 2FA",
+      "cancel": "Cancel",
+      "verify": "Verify",
+      "genericError": "An error occurred while verifying the backup code"
+    },
+    "loggedInSuccess": "Logged in successfully",
+    "links": {
+      "createAccount": "Create an account",
+      "lostPassword": "Lost your password?"
+    }
+  }
+}

@@ -3,7 +3,8 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { type ReactElement, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { type ReactElement, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -24,42 +25,52 @@ import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
-const loginSchema = z
-	.object({
-		password: z
-			.string()
-			.min(1, {
-				message: "Password is required",
-			})
-			.min(8, {
-				message: "Password must be at least 8 characters",
-			}),
-		confirmPassword: z
-			.string()
-			.min(1, {
-				message: "Password is required",
-			})
-			.min(8, {
-				message: "Password must be at least 8 characters",
-			}),
-	})
-	.refine((data) => data.password === data.confirmPassword, {
-		message: "Passwords do not match",
-		path: ["confirmPassword"],
-	});
-
-type Login = z.infer<typeof loginSchema>;
+type ResetPasswordForm = {
+	password: string;
+	confirmPassword: string;
+};
 
 interface Props {
 	tokenResetPassword: string;
 }
 export default function Home({ tokenResetPassword }: Props) {
+	const t = useTranslations();
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const [token, setToken] = useState<string | null>(tokenResetPassword);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
-	const form = useForm<Login>({
+
+	const loginSchema = useMemo(
+		() =>
+			z
+				.object({
+					password: z
+						.string()
+						.min(1, {
+							message: t("resetPassword.validation.passwordRequired"),
+						})
+						.min(8, {
+							message: t("resetPassword.validation.passwordMin"),
+						}),
+					confirmPassword: z
+						.string()
+						.min(1, {
+							message:
+								t("resetPassword.validation.passwordRequired"),
+						})
+						.min(8, {
+							message: t("resetPassword.validation.passwordMin"),
+						}),
+				})
+				.refine((data) => data.password === data.confirmPassword, {
+					message: t("resetPassword.validation.passwordsDoNotMatch"),
+					path: ["confirmPassword"],
+				}),
+		[t],
+	);
+
+	const form = useForm<ResetPasswordForm>({
 		defaultValues: {
 			password: "",
 			confirmPassword: "",
@@ -79,7 +90,7 @@ export default function Home({ tokenResetPassword }: Props) {
 		form.reset();
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
-	const onSubmit = async (values: Login) => {
+	const onSubmit = async (values: ResetPasswordForm) => {
 		setIsLoading(true);
 		const { error } = await authClient.resetPassword({
 			newPassword: values.password,
@@ -87,9 +98,9 @@ export default function Home({ tokenResetPassword }: Props) {
 		});
 
 		if (error) {
-			setError(error.message || "An error occurred");
+			setError(error.message || t("resetPassword.genericError"));
 		} else {
-			toast.success("Password reset successfully");
+			toast.success(t("resetPassword.toastSuccess"));
 			router.push("/");
 		}
 		setIsLoading(false);
@@ -108,11 +119,9 @@ export default function Home({ tokenResetPassword }: Props) {
 							}
 						/>
 					</Link>
-					Reset Password
+					{t("resetPassword.title")}
 				</CardTitle>
-				<CardDescription>
-					Enter your email to reset your password
-				</CardDescription>
+				<CardDescription>{t("resetPassword.description")}</CardDescription>
 
 				<div className="w-full">
 					<CardContent className="p-0">
@@ -132,11 +141,15 @@ export default function Home({ tokenResetPassword }: Props) {
 										name="password"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Password</FormLabel>
+												<FormLabel>
+													{t("resetPassword.form.passwordLabel")}
+												</FormLabel>
 												<FormControl>
 													<Input
 														type="password"
-														placeholder="Password"
+														placeholder={t(
+															"resetPassword.form.passwordPlaceholder",
+														)}
 														{...field}
 													/>
 												</FormControl>
@@ -149,11 +162,17 @@ export default function Home({ tokenResetPassword }: Props) {
 										name="confirmPassword"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Confirm Password</FormLabel>
+												<FormLabel>
+													{t(
+														"resetPassword.form.confirmPasswordLabel",
+													)}
+												</FormLabel>
 												<FormControl>
 													<Input
 														type="password"
-														placeholder="Password"
+														placeholder={t(
+															"resetPassword.form.confirmPasswordPlaceholder",
+														)}
 														{...field}
 													/>
 												</FormControl>
@@ -167,12 +186,12 @@ export default function Home({ tokenResetPassword }: Props) {
 										isLoading={isLoading}
 										className="w-full"
 									>
-										Confirm
+										{t("resetPassword.button")}
 									</Button>
 								</div>
 
 								<div className="text-center text-sm flex gap-2 text-muted-foreground">
-									<Link href="/">Sign in</Link>
+									<Link href="/">{t("auth.signIn")}</Link>
 								</div>
 							</form>
 						</Form>

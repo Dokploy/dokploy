@@ -1,0 +1,11 @@
+{
+  "deployments": {
+    "title": "Deployments",
+    "description": "All application and compose deployments in one place.",
+    "tabs": {
+      "deployments": "Deployments",
+      "queue": "Queue"
+    }
+  }
+}
+

@@ -1,0 +1,9 @@
+{
+  "billing": {
+    "plan": "Тарифный план",
+    "free": "Бесплатный",
+    "pro": "Pro",
+    "agency": "Agency",
+    "upgrade": "Улучшить план"
+  }
+}

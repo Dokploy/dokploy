@@ -3,7 +3,8 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { type ReactElement, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { type ReactElement, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -24,18 +25,9 @@ import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
-const loginSchema = z.object({
-	email: z
-		.string()
-		.min(1, {
-			message: "Email is required",
-		})
-		.email({
-			message: "Email must be a valid email",
-		}),
-});
-
-type Login = z.infer<typeof loginSchema>;
+type SendResetPasswordForm = {
+	email: string;
+};
 
 type AuthResponse = {
 	is2FAEnabled: boolean;
@@ -43,6 +35,7 @@ type AuthResponse = {
 };
 
 export default function Home() {
+	const t = useTranslations();
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const [temp, _setTemp] = useState<AuthResponse>({
 		is2FAEnabled: false,
@@ -52,7 +45,23 @@ export default function Home() {
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const _router = useRouter();
-	const form = useForm<Login>({
+
+	const loginSchema = useMemo(
+		() =>
+			z.object({
+				email: z
+					.string()
+					.min(1, {
+						message: t("sendResetPassword.validation.emailRequired"),
+					})
+					.email({
+						message: t("sendResetPassword.validation.emailInvalid"),
+					}),
+			}),
+		[t],
+	);
+
+	const form = useForm<SendResetPasswordForm>({
 		defaultValues: {
 			email: "",
 		},
@@ -63,17 +72,17 @@ export default function Home() {
 		form.reset();
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
-	const onSubmit = async (values: Login) => {
+	const onSubmit = async (values: SendResetPasswordForm) => {
 		setIsLoading(true);
 		const { error } = await authClient.requestPasswordReset({
 			email: values.email,
 			redirectTo: "/reset-password",
 		});
 		if (error) {
-			setError(error.message || "An error occurred");
+			setError(error.message || t("sendResetPassword.genericError"));
 			setIsLoading(false);
 		} else {
-			toast.success("Email sent", {
+			toast.success(t("sendResetPassword.toastSuccess"), {
 				duration: 2000,
 			});
 		}
@@ -92,10 +101,10 @@ export default function Home() {
 						{whitelabeling?.appName || "Dokploy"}
 					</span>
 				</Link>
-				<CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
-				<CardDescription>
-					Enter your email to reset your password
-				</CardDescription>
+				<CardTitle className="text-2xl font-bold">
+					{t("sendResetPassword.title")}
+				</CardTitle>
+				<CardDescription>{t("sendResetPassword.description")}</CardDescription>
 
 				<div className="mx-auto w-full max-w-lg bg-transparent ">
 					<CardContent className="p-0">
@@ -116,9 +125,16 @@ export default function Home() {
 											name="email"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Email</FormLabel>
+													<FormLabel>
+														{t("sendResetPassword.form.emailLabel")}
+													</FormLabel>
 													<FormControl>
-														<Input placeholder="Email" {...field} />
+														<Input
+															placeholder={t(
+																"sendResetPassword.form.emailPlaceholder",
+															)}
+															{...field}
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
@@ -130,7 +146,7 @@ export default function Home() {
 											isLoading={isLoading}
 											className="w-full"
 										>
-											Send Reset Link
+											{t("sendResetPassword.button")}
 										</Button>
 									</div>
 								</form>
@@ -143,7 +159,7 @@ export default function Home() {
 									className="hover:underline text-muted-foreground"
 									href="/"
 								>
-									Login
+									{t("sendResetPassword.loginLink")}
 								</Link>
 							</div>
 						</div>

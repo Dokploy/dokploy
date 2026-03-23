@@ -1,8 +1,10 @@
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 
 export const AcceptInvitation = () => {
+	const t = useTranslations();
 	const { query } = useRouter();
 
 	const invitationId = query["accept-invitation"];
@@ -18,10 +20,10 @@ export const AcceptInvitation = () => {
 					const result = await authClient.organization.acceptInvitation({
 						invitationId: invitationId as string,
 					});
-					console.log(result);
+					void result;
 				}}
 			>
-				Accept Invitation
+				{t("acceptInvitation.button")}
 			</Button>
 		</div>
 	);

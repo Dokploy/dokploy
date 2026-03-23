@@ -1,0 +1,10 @@
+{
+  "errorPage": {
+    "ariaGlobal": "Global",
+    "notFound": "Sorry, we couldn't find your page.",
+    "generic": "Oops, something went wrong.",
+    "goHome": "Go to homepage",
+    "submitLogInIssueOnGithub": "Submit Log in issue on Github"
+  }
+}
+

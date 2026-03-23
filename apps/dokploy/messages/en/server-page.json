@@ -1,0 +1,10 @@
+{
+  "server": {
+    "add": "Add server",
+    "connect": "Connect",
+    "status": {
+      "online": "Online",
+      "offline": "Offline"
+    }
+  }
+}

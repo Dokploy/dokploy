@@ -1,0 +1,41 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "projects": "Projects",
+    "deployments": "Deployments",
+    "monitoring": "Monitoring",
+    "schedules": "Schedules",
+    "traefikFileSystem": "Traefik File System",
+    "docker": "Docker",
+    "swarm": "Swarm",
+    "requests": "Requests",
+    "settings": {
+      "webServer": "Web Server",
+      "profile": "Profile",
+      "remoteServers": "Remote Servers",
+      "users": "Users",
+      "auditLogs": "Audit Logs",
+      "sshKeys": "SSH Keys",
+      "ai": "AI",
+      "tags": "Tags",
+      "git": "Git",
+      "registry": "Registry",
+      "destinations": "S3 Destinations",
+      "certificates": "Certificates",
+      "cluster": "Cluster",
+      "notifications": "Notifications",
+      "billing": "Billing",
+      "license": "License",
+      "sso": "SSO",
+      "whitelabeling": "Whitelabeling"
+    }
+  },
+  "userNav": {
+    "myAccount": "My Account",
+    "profile": "Profile"
+  },
+  "help": {
+    "documentation": "Documentation",
+    "support": "Support"
+  }
+}

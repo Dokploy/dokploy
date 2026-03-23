@@ -4,7 +4,8 @@ import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { type ReactElement, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { type ReactElement, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -27,49 +28,13 @@ import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
-const registerSchema = z
-	.object({
-		name: z.string().min(1, {
-			message: "First name is required",
-		}),
-		lastName: z.string().min(1, {
-			message: "Last name is required",
-		}),
-		email: z
-			.string()
-			.min(1, {
-				message: "Email is required",
-			})
-			.email({
-				message: "Email must be a valid email",
-			}),
-		password: z
-			.string()
-			.min(1, {
-				message: "Password is required",
-			})
-			.refine((password) => password === "" || password.length >= 8, {
-				message: "Password must be at least 8 characters",
-			}),
-		confirmPassword: z
-			.string()
-			.min(1, {
-				message: "Password is required",
-			})
-			.refine(
-				(confirmPassword) =>
-					confirmPassword === "" || confirmPassword.length >= 8,
-				{
-					message: "Password must be at least 8 characters",
-				},
-			),
-	})
-	.refine((data) => data.password === data.confirmPassword, {
-		message: "Passwords do not match",
-		path: ["confirmPassword"],
-	});
-
-type Register = z.infer<typeof registerSchema>;
+type RegisterForm = {
+	name: string;
+	lastName: string;
+	email: string;
+	password: string;
+	confirmPassword: string;
+};
 
 interface Props {
 	hasAdmin: boolean;
@@ -77,13 +42,69 @@ interface Props {
 }
 
 const Register = ({ isCloud }: Props) => {
+	const t = useTranslations();
 	const router = useRouter();
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const [isError, setIsError] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [data, setData] = useState<any>(null);
 
-	const form = useForm<Register>({
+	const registerSchema = useMemo(
+		() =>
+			z
+				.object({
+					name: z.string().min(1, {
+						message: t("register.validation.firstNameRequired"),
+					}),
+					lastName: z.string().min(1, {
+						message: t("register.validation.lastNameRequired"),
+					}),
+					email: z
+						.string()
+						.min(1, {
+							message: t("register.validation.emailRequired"),
+						})
+						.email({
+							message: t("register.validation.emailInvalid"),
+						}),
+					password: z
+						.string()
+						.min(1, {
+							message: t("register.validation.passwordRequired"),
+						})
+						.refine(
+							(password) =>
+								password === "" || password.length >= 8,
+							{
+								message: t("register.validation.passwordMin"),
+							},
+						),
+					confirmPassword: z
+						.string()
+						.min(1, {
+							message: t(
+								"register.validation.confirmPasswordRequired",
+							),
+						})
+						.refine(
+							(confirmPassword) =>
+								confirmPassword === "" ||
+								confirmPassword.length >= 8,
+							{
+								message: t(
+									"register.validation.confirmPasswordMin",
+								),
+							},
+						),
+				})
+				.refine((data) => data.password === data.confirmPassword, {
+					message: t("register.validation.passwordsDoNotMatch"),
+					path: ["confirmPassword"],
+				}),
+		[t],
+	);
+
+	const form = useForm<RegisterForm>({
 		defaultValues: {
 			name: "",
 			lastName: "",
@@ -98,7 +119,7 @@ const Register = ({ isCloud }: Props) => {
 		form.reset();
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
-	const onSubmit = async (values: Register) => {
+	const onSubmit = async (values: RegisterForm) => {
 		const { data, error } = await authClient.signUp.email({
 			email: values.email,
 			password: values.password,
@@ -108,11 +129,9 @@ const Register = ({ isCloud }: Props) => {
 
 		if (error) {
 			setIsError(true);
-			setError(error.message || "An error occurred");
+			setError(error.message || t("register.genericError"));
 		} else {
-			toast.success("User registered successfully", {
-				duration: 2000,
-			});
+			toast.success(t("register.toastSuccess"), { duration: 2000 });
 			if (!isCloud) {
 				router.push("/");
 			} else {
@@ -135,11 +154,14 @@ const Register = ({ isCloud }: Props) => {
 								}
 							/>
 						</Link>
-						{isCloud ? "Sign Up" : "Setup the server"}
+						{isCloud
+							? t("register.title.cloud")
+							: t("register.title.selfHosted")}
 					</CardTitle>
 					<CardDescription>
-						Enter your email and password to{" "}
-						{isCloud ? "create an account" : "setup the server"}
+						{isCloud
+							? t("register.description.cloud")
+							: t("register.description.selfHosted")}
 					</CardDescription>
 					<div className="mx-auto w-full max-w-lg bg-transparent">
 						{isError && (
@@ -152,10 +174,7 @@ const Register = ({ isCloud }: Props) => {
 						)}
 						{isCloud && data && (
 							<AlertBlock type="success" className="my-2">
-								<span>
-									Registered successfully, please check your inbox or spam
-									folder to confirm your account.
-								</span>
+								<span>{t("register.successAlert")}</span>
 							</AlertBlock>
 						)}
 						<CardContent className="p-0">
@@ -167,7 +186,7 @@ const Register = ({ isCloud }: Props) => {
 							)}
 							{isCloud && (
 								<p className="mb-4 text-center text-xs text-muted-foreground">
-									Or register with email
+									{t("register.orRegisterWithEmail")}
 								</p>
 							)}
 							<Form {...form}>
@@ -181,9 +200,16 @@ const Register = ({ isCloud }: Props) => {
 											name="name"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>First Name</FormLabel>
+													<FormLabel>
+														{t("register.form.firstName")}
+													</FormLabel>
 													<FormControl>
-														<Input placeholder="John" {...field} />
+														<Input
+															placeholder={t(
+																"register.placeholders.firstName",
+															)}
+															{...field}
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
@@ -194,9 +220,16 @@ const Register = ({ isCloud }: Props) => {
 											name="lastName"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Last Name</FormLabel>
+													<FormLabel>
+														{t("register.form.lastName")}
+													</FormLabel>
 													<FormControl>
-														<Input placeholder="Doe" {...field} />
+														<Input
+															placeholder={t(
+																"register.placeholders.lastName",
+															)}
+															{...field}
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
@@ -207,9 +240,14 @@ const Register = ({ isCloud }: Props) => {
 											name="email"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Email</FormLabel>
+													<FormLabel>{t("register.form.email")}</FormLabel>
 													<FormControl>
-														<Input placeholder="email@dokploy.com" {...field} />
+														<Input
+															placeholder={t(
+																"register.placeholders.email",
+															)}
+															{...field}
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
@@ -220,11 +258,15 @@ const Register = ({ isCloud }: Props) => {
 											name="password"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Password</FormLabel>
+													<FormLabel>
+														{t("register.form.password")}
+													</FormLabel>
 													<FormControl>
 														<Input
 															type="password"
-															placeholder="Password"
+															placeholder={t(
+																"register.placeholders.password",
+															)}
 															{...field}
 														/>
 													</FormControl>
@@ -238,11 +280,15 @@ const Register = ({ isCloud }: Props) => {
 											name="confirmPassword"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Confirm Password</FormLabel>
+													<FormLabel>
+														{t("register.form.confirmPassword")}
+													</FormLabel>
 													<FormControl>
 														<Input
 															type="password"
-															placeholder="Password"
+															placeholder={t(
+																"register.placeholders.password",
+															)}
 															{...field}
 														/>
 													</FormControl>
@@ -256,7 +302,7 @@ const Register = ({ isCloud }: Props) => {
 											isLoading={form.formState.isSubmitting}
 											className="w-full"
 										>
-											Register
+											{t("register.button")}
 										</Button>
 									</div>
 								</form>
@@ -264,21 +310,21 @@ const Register = ({ isCloud }: Props) => {
 							<div className="flex flex-row justify-between flex-wrap">
 								{isCloud && (
 									<div className="mt-4 text-center text-sm flex gap-2 text-muted-foreground">
-										Already have account?
+										{t("register.alreadyHaveAccount")}
 										<Link className="underline" href="/">
-											Sign in
+											{t("auth.signIn")}
 										</Link>
 									</div>
 								)}
 
 								<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2  text-muted-foreground">
-									Need help?
+									{t("register.needHelp")}
 									<Link
 										className="underline"
 										href="https://dokploy.com"
 										target="_blank"
 									>
-										Contact us
+										{t("register.contactUs")}
 									</Link>
 								</div>
 							</div>

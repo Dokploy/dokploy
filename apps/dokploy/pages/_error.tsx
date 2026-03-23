@@ -1,5 +1,6 @@
 import type { NextPageContext } from "next";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Logo } from "@/components/shared/logo";
 import { buttonVariants } from "@/components/ui/button";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
@@ -12,6 +13,7 @@ interface Props {
 export default function Custom404({ statusCode, error }: Props) {
 	const displayStatusCode = statusCode || 400;
 	const { config: whitelabeling } = useWhitelabelingPublic();
+	const t = useTranslations();
 	const appName = whitelabeling?.appName || "Dokploy";
 	const logoUrl = whitelabeling?.logoUrl || undefined;
 	const errorTitle = whitelabeling?.errorPageTitle;
@@ -21,7 +23,10 @@ export default function Custom404({ statusCode, error }: Props) {
 		<div className="h-screen">
 			<div className="max-w-[50rem] flex flex-col mx-auto size-full">
 				<header className="mb-auto flex justify-center z-50 w-full py-4">
-					<nav className="px-4 sm:px-6 lg:px-8" aria-label="Global">
+					<nav
+						className="px-4 sm:px-6 lg:px-8"
+						aria-label={t("errorPage.ariaGlobal")}
+					>
 						<Link href="/" className="flex flex-row items-center gap-2">
 							<Logo logoUrl={logoUrl} />
 							<span className="font-medium text-sm">{appName}</span>
@@ -37,8 +42,8 @@ export default function Custom404({ statusCode, error }: Props) {
 							{errorTitle
 								? errorTitle
 								: statusCode === 404
-									? "Sorry, we couldn't find your page."
-									: "Oops, something went wrong."}
+									? t("errorPage.notFound")
+									: t("errorPage.generic")}
 						</p>
 						{errorDescription && (
 							<p className="mt-2 text-muted-foreground text-sm">
@@ -73,7 +78,7 @@ export default function Custom404({ statusCode, error }: Props) {
 								>
 									<path d="m15 18-6-6 6-6" />
 								</svg>
-								Go to homepage
+								{t("errorPage.goHome")}
 							</Link>
 						</div>
 					</div>
@@ -90,7 +95,7 @@ export default function Custom404({ statusCode, error }: Props) {
 									target="_blank"
 									className="underline hover:text-primary transition-colors"
 								>
-									Submit Log in issue on Github
+									{t("errorPage.submitLogInIssueOnGithub")}
 								</Link>
 							)}
 						</p>

@@ -13,12 +13,15 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { useTranslations } from "next-intl";
+import { LanguageSwitcher } from "../language-switcher";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
 
 const _AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 
 export const UserNav = () => {
+	const t = useTranslations();
 	const router = useRouter();
 	const { data } = api.user.get.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
@@ -46,7 +49,7 @@ export const UserNav = () => {
 						</AvatarFallback>
 					</Avatar>
 					<div className="grid flex-1 text-left text-sm leading-tight">
-						<span className="truncate font-semibold">Account</span>
+						<span className="truncate font-semibold">{t("common.account")}</span>
 						<span className="truncate text-xs">{data?.user?.email}</span>
 					</div>
 					<ChevronsUpDown className="ml-auto size-4" />
@@ -60,12 +63,15 @@ export const UserNav = () => {
 			>
 				<div className="flex items-center justify-between px-2 py-1.5">
 					<DropdownMenuLabel className="flex flex-col">
-						My Account
+						{t("userNav.myAccount")}
 						<span className="text-xs font-normal text-muted-foreground">
 							{data?.user?.email}
 						</span>
 					</DropdownMenuLabel>
-					<ModeToggle />
+					<div className="flex items-center gap-2">
+						<LanguageSwitcher className="hidden sm:flex" />
+						<ModeToggle />
+					</div>
 				</div>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
@@ -75,7 +81,7 @@ export const UserNav = () => {
 							router.push("/dashboard/settings/profile");
 						}}
 					>
-						Profile
+						{t("dashboard.settings.profile")}
 					</DropdownMenuItem>
 					<DropdownMenuItem
 						className="cursor-pointer"
@@ -83,7 +89,7 @@ export const UserNav = () => {
 							router.push("/dashboard/projects");
 						}}
 					>
-						Projects
+						{t("dashboard.projects")}
 					</DropdownMenuItem>
 					{!isCloud ? (
 						<>
@@ -93,7 +99,7 @@ export const UserNav = () => {
 									router.push("/dashboard/monitoring");
 								}}
 							>
-								Monitoring
+								{t("dashboard.monitoring")}
 							</DropdownMenuItem>
 							{permissions?.traefikFiles.read && (
 								<DropdownMenuItem
@@ -102,7 +108,7 @@ export const UserNav = () => {
 										router.push("/dashboard/traefik");
 									}}
 								>
-									Traefik
+									{t("dashboard.traefikFileSystem")}
 								</DropdownMenuItem>
 							)}
 							{permissions?.docker.read && (
@@ -114,7 +120,7 @@ export const UserNav = () => {
 										});
 									}}
 								>
-									Docker
+									{t("dashboard.docker")}
 								</DropdownMenuItem>
 							)}
 						</>
@@ -126,7 +132,7 @@ export const UserNav = () => {
 									router.push("/dashboard/settings/servers");
 								}}
 							>
-								Servers
+									{t("dashboard.settings.remoteServers")}
 							</DropdownMenuItem>
 						)
 					)}
@@ -138,7 +144,7 @@ export const UserNav = () => {
 							router.push("/dashboard/settings/billing");
 						}}
 					>
-						Billing
+						{t("dashboard.settings.billing")}
 					</DropdownMenuItem>
 				)}
 				<DropdownMenuSeparator />
@@ -153,7 +159,7 @@ export const UserNav = () => {
 						// });
 					}}
 				>
-					Log out
+					{t("auth.logout")}
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
