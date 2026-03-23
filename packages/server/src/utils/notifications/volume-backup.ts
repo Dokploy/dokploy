@@ -37,7 +37,8 @@ export const sendVolumeBackupNotifications = async ({
 		| "mongodb"
 		| "mariadb"
 		| "redis"
-		| "compose";
+		| "compose"
+		| "libsql";
 	type: "error" | "success";
 	organizationId: string;
 	errorMessage?: string;
