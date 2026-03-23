@@ -47,6 +47,7 @@
 				--destructive-foreground: 0 0% 98%;
 
 				--border: 240 6% 90%;
+				--border-s: #3fb950; /* #1e1e22 */
 				--input: 240 6% 90%;
 				--ring: 148 55% 38%;
 
@@ -118,6 +119,7 @@
 				 * ring       изумрудный — фокус-кольцо
 				 */
 				--border: 240 3% 12%; /* #1e1e22 */
+				--border-s: #3fb950; /* #1e1e22 */
 				--input: 240 3% 7%; /* #111113 */
 				--ring: 148 55% 38%; /* #2d9a59 */
 
@@ -152,7 +154,12 @@
 
 		body {
 				@apply bg-background text-foreground;
+
+				font-family: 'Geist', 'Geist Fallback', serif;
+				--font-geist: 'Geist', 'Geist Fallback', serif;
+				--font-jetbrains-mono: 'JetBrains Mono ', ' JetBrains Mono Fallback ';
 		}
+
 
 		/* Scrollbar — тонкий, едва заметный */
 		::-webkit-scrollbar {
@@ -173,6 +180,7 @@
 				scrollbar-color: hsl(var(--border)) transparent;
 		}
 }
+
 
 .xterm-viewport {
 		border-radius: 0.75rem !important;

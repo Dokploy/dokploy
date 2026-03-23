@@ -1,30 +1,30 @@
-import { IS_CLOUD, isAdminPresent } from "@dokploy/server";
-import { validateRequest } from "@dokploy/server/lib/auth";
-import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { REGEXP_ONLY_DIGITS } from "input-otp";
-import type { GetServerSidePropsContext } from "next";
-import Link from "next/link";
-import { useTranslations } from "next-intl";
-import { useRouter } from "next/router";
-import { type ReactElement, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
-import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
-import { SignInWithGithub } from "@/components/proprietary/auth/sign-in-with-github";
-import { SignInWithGoogle } from "@/components/proprietary/auth/sign-in-with-google";
-import { SignInWithSSO } from "@/components/proprietary/sso/sign-in-with-sso";
-import { AlertBlock } from "@/components/shared/alert-block";
-import { Logo } from "@/components/shared/logo";
-import { Button } from "@/components/ui/button";
-import { CardContent, CardDescription } from "@/components/ui/card";
+import { IS_CLOUD, isAdminPresent } from '@dokploy/server'
+import { validateRequest } from '@dokploy/server/lib/auth'
+import { standardSchemaResolver as zodResolver } from '@hookform/resolvers/standard-schema'
+import { REGEXP_ONLY_DIGITS } from 'input-otp'
+import type { GetServerSidePropsContext } from 'next'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/router'
+import { type ReactElement, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { z } from 'zod'
+import { OnboardingLayout } from '@/components/layouts/onboarding-layout'
+import { SignInWithGithub } from '@/components/proprietary/auth/sign-in-with-github'
+import { SignInWithGoogle } from '@/components/proprietary/auth/sign-in-with-google'
+import { SignInWithSSO } from '@/components/proprietary/sso/sign-in-with-sso'
+import { AlertBlock } from '@/components/shared/alert-block'
+import { Logo } from '@/components/shared/logo'
+import { Button } from '@/components/ui/button'
+import { CardContent, CardDescription } from '@/components/ui/card'
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog'
 import {
 	Form,
 	FormControl,
@@ -32,145 +32,146 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
 	InputOTP,
 	InputOTPGroup,
 	InputOTPSlot,
-} from "@/components/ui/input-otp";
-import { Label } from "@/components/ui/label";
-import { authClient } from "@/lib/auth-client";
-import { api } from "@/utils/api";
-import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
+} from '@/components/ui/input-otp'
+import { Label } from '@/components/ui/label'
+import { authClient } from '@/lib/auth-client'
+import { api } from '@/utils/api'
+import { useWhitelabelingPublic } from '@/utils/hooks/use-whitelabeling'
 
 const LoginSchema = z.object({
 	email: z.string().email(),
 	password: z.string().min(8),
-});
+})
 
 const _TwoFactorSchema = z.object({
 	code: z.string().min(6),
-});
+})
 
 type LoginForm = z.infer<typeof LoginSchema>;
 
 interface Props {
 	IS_CLOUD: boolean;
 }
-export default function Home({ IS_CLOUD }: Props) {
-	const t = useTranslations();
-	const router = useRouter();
-	const { config: whitelabeling } = useWhitelabelingPublic();
-	const { data: showSignInWithSSO } = api.sso.showSignInWithSSO.useQuery();
-	const [isLoginLoading, setIsLoginLoading] = useState(false);
-	const [isTwoFactorLoading, setIsTwoFactorLoading] = useState(false);
-	const [isBackupCodeLoading, setIsBackupCodeLoading] = useState(false);
-	const [isTwoFactor, setIsTwoFactor] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-	const [twoFactorCode, setTwoFactorCode] = useState("");
-	const [isBackupCodeModalOpen, setIsBackupCodeModalOpen] = useState(false);
-	const [backupCode, setBackupCode] = useState("");
+
+export default function Home({IS_CLOUD}: Props) {
+	const t = useTranslations()
+	const router = useRouter()
+	const {config: whitelabeling} = useWhitelabelingPublic()
+	const {data: showSignInWithSSO} = api.sso.showSignInWithSSO.useQuery()
+	const [isLoginLoading, setIsLoginLoading] = useState(false)
+	const [isTwoFactorLoading, setIsTwoFactorLoading] = useState(false)
+	const [isBackupCodeLoading, setIsBackupCodeLoading] = useState(false)
+	const [isTwoFactor, setIsTwoFactor] = useState(false)
+	const [error, setError] = useState<string | null>(null)
+	const [twoFactorCode, setTwoFactorCode] = useState('')
+	const [isBackupCodeModalOpen, setIsBackupCodeModalOpen] = useState(false)
+	const [backupCode, setBackupCode] = useState('')
 	const loginForm = useForm<LoginForm>({
 		resolver: zodResolver(LoginSchema),
 		defaultValues: {
-			email: "",
-			password: "",
+			email: '',
+			password: '',
 		},
-	});
+	})
 
 	const onSubmit = async (values: LoginForm) => {
-		setIsLoginLoading(true);
+		setIsLoginLoading(true)
 		try {
-			const { data, error } = await authClient.signIn.email({
+			const {data, error} = await authClient.signIn.email({
 				email: values.email,
 				password: values.password,
-			});
+			})
 
 			if (error) {
-				toast.error(error.message);
-				setError(error.message || t("auth.login.genericError"));
-				return;
+				toast.error(error.message)
+				setError(error.message || t('auth.login.genericError'))
+				return
 			}
 
 			// @ts-ignore
 			if (data?.twoFactorRedirect as boolean) {
-				setTwoFactorCode("");
-				setIsTwoFactor(true);
-				toast.info(t("auth.twoFactor.prompt"));
-				return;
+				setTwoFactorCode('')
+				setIsTwoFactor(true)
+				toast.info(t('auth.twoFactor.prompt'))
+				return
 			}
 
-			toast.success(t("auth.loggedInSuccess"));
-			router.push("/dashboard/projects");
+			toast.success(t('auth.loggedInSuccess'))
+			router.push('/dashboard/projects')
 		} catch {
-			toast.error(t("auth.login.genericError"));
+			toast.error(t('auth.login.genericError'))
 		} finally {
-			setIsLoginLoading(false);
+			setIsLoginLoading(false)
 		}
-	};
+	}
 	const onTwoFactorSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
+		e.preventDefault()
 		if (twoFactorCode.length !== 6) {
-			toast.error(t("auth.twoFactor.invalidCode"));
-			return;
+			toast.error(t('auth.twoFactor.invalidCode'))
+			return
 		}
 
-		setIsTwoFactorLoading(true);
+		setIsTwoFactorLoading(true)
 		try {
-			const { error } = await authClient.twoFactor.verifyTotp({
-				code: twoFactorCode.replace(/\s/g, ""),
-			});
+			const {error} = await authClient.twoFactor.verifyTotp({
+				code: twoFactorCode.replace(/\s/g, ''),
+			})
 
 			if (error) {
-				toast.error(error.message);
-				setError(error.message || t("auth.twoFactor.genericError"));
-				return;
+				toast.error(error.message)
+				setError(error.message || t('auth.twoFactor.genericError'))
+				return
 			}
 
-			toast.success(t("auth.loggedInSuccess"));
-			router.push("/dashboard/projects");
+			toast.success(t('auth.loggedInSuccess'))
+			router.push('/dashboard/projects')
 		} catch {
-			toast.error(t("auth.twoFactor.genericError"));
+			toast.error(t('auth.twoFactor.genericError'))
 		} finally {
-			setIsTwoFactorLoading(false);
+			setIsTwoFactorLoading(false)
 		}
-	};
+	}
 
 	const onBackupCodeSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
+		e.preventDefault()
 		if (backupCode.length < 8) {
-			toast.error(t("auth.backupCode.invalid"));
-			return;
+			toast.error(t('auth.backupCode.invalid'))
+			return
 		}
 
-		setIsBackupCodeLoading(true);
+		setIsBackupCodeLoading(true)
 		try {
-			const { error } = await authClient.twoFactor.verifyBackupCode({
+			const {error} = await authClient.twoFactor.verifyBackupCode({
 				code: backupCode.trim(),
-			});
+			})
 
 			if (error) {
-				toast.error(error.message);
+				toast.error(error.message)
 				setError(
-					error.message || t("auth.backupCode.genericError"),
-				);
-				return;
+					error.message || t('auth.backupCode.genericError'),
+				)
+				return
 			}
 
-			toast.success(t("auth.loggedInSuccess"));
-			router.push("/dashboard/projects");
+			toast.success(t('auth.loggedInSuccess'))
+			router.push('/dashboard/projects')
 		} catch {
-			toast.error(t("auth.backupCode.genericError"));
+			toast.error(t('auth.backupCode.genericError'))
 		} finally {
-			setIsBackupCodeLoading(false);
+			setIsBackupCodeLoading(false)
 		}
-	};
+	}
 
 	const loginContent = (
 		<>
-			{IS_CLOUD && <SignInWithGithub />}
-			{IS_CLOUD && <SignInWithGoogle />}
+			{IS_CLOUD && <SignInWithGithub/>}
+			{IS_CLOUD && <SignInWithGoogle/>}
 			<Form {...loginForm}>
 				<form
 					onSubmit={loginForm.handleSubmit(onSubmit)}
@@ -180,40 +181,40 @@ export default function Home({ IS_CLOUD }: Props) {
 					<FormField
 						control={loginForm.control}
 						name="email"
-						render={({ field }) => (
+						render={({field}) => (
 							<FormItem>
-								<FormLabel>{t("auth.email")}</FormLabel>
+								<FormLabel>{t('auth.email')}</FormLabel>
 								<FormControl>
 									<Input placeholder="john@example.com" {...field} />
 								</FormControl>
-								<FormMessage />
+								<FormMessage/>
 							</FormItem>
 						)}
 					/>
 					<FormField
 						control={loginForm.control}
 						name="password"
-						render={({ field }) => (
+						render={({field}) => (
 							<FormItem>
-								<FormLabel>{t("auth.password")}</FormLabel>
+								<FormLabel>{t('auth.password')}</FormLabel>
 								<FormControl>
 									<Input
 										type="password"
-										placeholder={t("auth.login.passwordPlaceholder")}
+										placeholder={t('auth.login.passwordPlaceholder')}
 										{...field}
 									/>
 								</FormControl>
-								<FormMessage />
+								<FormMessage/>
 							</FormItem>
 						)}
 					/>
 					<Button className="w-full" type="submit" isLoading={isLoginLoading}>
-						{t("auth.login.button")}
+						{t('auth.login.button')}
 					</Button>
 				</form>
 			</Form>
 		</>
-	);
+	)
 
 	return (
 		<>
@@ -228,11 +229,11 @@ export default function Home({ IS_CLOUD }: Props) {
 								undefined
 							}
 						/>
-						{t("auth.signIn")}
+						{t('auth.signIn')}
 					</div>
 				</h1>
 				<p className="text-sm text-muted-foreground">
-					{t("auth.login.subtitle")}
+					{t('auth.login.subtitle')}
 				</p>
 			</div>
 			{error && (
@@ -258,7 +259,7 @@ export default function Home({ IS_CLOUD }: Props) {
 							autoComplete="off"
 						>
 							<div className="flex flex-col gap-2">
-								<Label>{t("auth.twoFactor.codeLabel")}</Label>
+								<Label>{t('auth.twoFactor.codeLabel')}</Label>
 								<InputOTP
 									value={twoFactorCode}
 									onChange={setTwoFactorCode}
@@ -267,21 +268,21 @@ export default function Home({ IS_CLOUD }: Props) {
 									autoFocus
 								>
 									<InputOTPGroup>
-										<InputOTPSlot index={0} className="border-border" />
-										<InputOTPSlot index={1} className="border-border" />
-										<InputOTPSlot index={2} className="border-border" />
-										<InputOTPSlot index={3} className="border-border" />
-										<InputOTPSlot index={4} className="border-border" />
-										<InputOTPSlot index={5} className="border-border" />
+										<InputOTPSlot index={0} className="border-border"/>
+										<InputOTPSlot index={1} className="border-border"/>
+										<InputOTPSlot index={2} className="border-border"/>
+										<InputOTPSlot index={3} className="border-border"/>
+										<InputOTPSlot index={4} className="border-border"/>
+										<InputOTPSlot index={5} className="border-border"/>
 									</InputOTPGroup>
 								</InputOTP>
-								<CardDescription>{t("auth.twoFactor.description")}</CardDescription>
+								<CardDescription>{t('auth.twoFactor.description')}</CardDescription>
 								<button
 									type="button"
 									onClick={() => setIsBackupCodeModalOpen(true)}
 									className="text-sm text-muted-foreground hover:underline self-start mt-2"
 								>
-									{t("auth.twoFactor.lostAuthenticator")}
+									{t('auth.twoFactor.lostAuthenticator')}
 								</button>
 							</div>
 
@@ -291,18 +292,18 @@ export default function Home({ IS_CLOUD }: Props) {
 									className="w-full"
 									type="button"
 									onClick={() => {
-										setIsTwoFactor(false);
-										setTwoFactorCode("");
+										setIsTwoFactor(false)
+										setTwoFactorCode('')
 									}}
 								>
-									{t("auth.twoFactor.back")}
+									{t('auth.twoFactor.back')}
 								</Button>
 								<Button
 									className="w-full"
 									type="submit"
 									isLoading={isTwoFactorLoading}
 								>
-									{t("auth.twoFactor.verify")}
+									{t('auth.twoFactor.verify')}
 								</Button>
 							</div>
 						</form>
@@ -313,23 +314,23 @@ export default function Home({ IS_CLOUD }: Props) {
 						>
 							<DialogContent>
 								<DialogHeader>
-									<DialogTitle>{t("auth.backupCode.modal.title")}</DialogTitle>
+									<DialogTitle>{t('auth.backupCode.modal.title')}</DialogTitle>
 									<DialogDescription>
-										{t("auth.backupCode.modal.description")}
+										{t('auth.backupCode.modal.description')}
 									</DialogDescription>
 								</DialogHeader>
 
 								<form onSubmit={onBackupCodeSubmit} className="space-y-4">
 									<div className="flex flex-col gap-2">
-										<Label>{t("auth.backupCode.label")}</Label>
+										<Label>{t('auth.backupCode.label')}</Label>
 										<Input
 											value={backupCode}
 											onChange={(e) => setBackupCode(e.target.value)}
-											placeholder={t("auth.backupCode.placeholder")}
+											placeholder={t('auth.backupCode.placeholder')}
 											className="font-mono"
 										/>
 										<CardDescription>
-											{t("auth.backupCode.help")}
+											{t('auth.backupCode.help')}
 										</CardDescription>
 									</div>
 
@@ -339,18 +340,18 @@ export default function Home({ IS_CLOUD }: Props) {
 											className="w-full"
 											type="button"
 											onClick={() => {
-												setIsBackupCodeModalOpen(false);
-												setBackupCode("");
+												setIsBackupCodeModalOpen(false)
+												setBackupCode('')
 											}}
 										>
-											{t("auth.backupCode.cancel")}
+											{t('auth.backupCode.cancel')}
 										</Button>
 										<Button
 											className="w-full"
 											type="submit"
 											isLoading={isBackupCodeLoading}
 										>
-											{t("auth.backupCode.verify")}
+											{t('auth.backupCode.verify')}
 										</Button>
 									</div>
 								</form>
@@ -366,7 +367,7 @@ export default function Home({ IS_CLOUD }: Props) {
 								className="hover:underline text-muted-foreground"
 								href="/register"
 							>
-								{t("auth.links.createAccount")}
+								{t('auth.links.createAccount')}
 							</Link>
 						)}
 					</div>
@@ -377,7 +378,7 @@ export default function Home({ IS_CLOUD }: Props) {
 								className="hover:underline text-muted-foreground"
 								href="/send-reset-password"
 							>
-								{t("auth.links.lostPassword")}
+								{t('auth.links.lostPassword')}
 							</Link>
 						) : (
 							<Link
@@ -385,65 +386,67 @@ export default function Home({ IS_CLOUD }: Props) {
 								href="https://docs.dokploy.com/docs/core/reset-password"
 								target="_blank"
 							>
-								{t("auth.links.lostPassword")}
+								{t('auth.links.lostPassword')}
 							</Link>
 						)}
 					</div>
 				</div>
-				<div className="p-2" />
+				<div className="p-2"/>
 			</CardContent>
 		</>
-	);
+	)
 }
 
 Home.getLayout = (page: ReactElement) => {
-	return <OnboardingLayout>{page}</OnboardingLayout>;
-};
+	return <OnboardingLayout>{page}</OnboardingLayout>
+}
+
 export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (IS_CLOUD) {
 		try {
-			const { user } = await validateRequest(context.req);
+			const {user} = await validateRequest(context.req)
 			if (user) {
 				return {
 					redirect: {
 						permanent: true,
-						destination: "/dashboard/projects",
+						destination: '/dashboard/projects',
 					},
-				};
+				}
 			}
-		} catch {}
+		} catch {
+		}
 
 		return {
 			props: {
 				IS_CLOUD: IS_CLOUD,
 			},
-		};
+		}
 	}
-	const hasAdmin = await isAdminPresent();
+	const hasAdmin = await isAdminPresent()
 
 	if (!hasAdmin) {
 		return {
 			redirect: {
 				permanent: true,
-				destination: "/register",
+				destination: '/register',
 			},
-		};
+		}
 	}
 
-	const { user } = await validateRequest(context.req);
+	const {user} = await validateRequest(context.req)
 
 	if (user) {
 		return {
 			redirect: {
 				permanent: true,
-				destination: "/dashboard/projects",
+				destination: '/dashboard/projects',
 			},
-		};
+		}
 	}
 
 	return {
 		props: {
 			hasAdmin,
 		},
-	};
+	}
 }

@@ -10,7 +10,7 @@ const buttonVariants = cva(
 		variants: {
 			variant: {
 				default:
-					'bg-primary text-primary-foreground hover:bg-primary/85 shadow-none  border border-primary/30',
+					'bg-primary text-primary-foreground hover:bg-primary/85 shadow-none border-2 border-[var(--border-s)] ',
 				destructive:
 					'bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25',
 				outline:
@@ -72,6 +72,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 					disabled={isLoading || props.disabled}
 					type={type}
 				>
+
 					{isLoading && <Loader2 className="animate-spin"/>}
 					<Slottable>{children}</Slottable>
 				</Comp>

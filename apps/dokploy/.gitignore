@@ -57,3 +57,4 @@ yarn-error.log*
 *.lockb
 *.rdb
 .idea
+.claude

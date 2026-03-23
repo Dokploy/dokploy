@@ -91,7 +91,7 @@ const MyApp = ({
 	return (
 		<LocaleContext.Provider value={{locale, setLocale}}>
 			<NextIntlClientProvider locale={locale} messages={messages}>
-				<div className={`${geist.variable} ${jetbrainsMono.variable} font-sans`}>
+				<div>
 					<Head>
 						<title>Dokploy</title>
 					</Head>

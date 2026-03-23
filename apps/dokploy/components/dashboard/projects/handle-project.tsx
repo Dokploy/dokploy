@@ -1,8 +1,9 @@
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 
-import { PlusIcon, SquarePen } from 'lucide-react'
+import { Loader2, PlusIcon, SquarePen } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/router'
+import * as React from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -167,7 +168,9 @@ export const HandleProject = ({projectId}: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
+
 			<DialogTrigger asChild>
+
 				{projectId ? (
 					<DropdownMenuItem
 						className="w-full cursor-pointer space-x-3"
