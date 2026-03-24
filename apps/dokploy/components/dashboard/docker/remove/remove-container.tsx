@@ -38,8 +38,8 @@ export const RemoveContainerDialog = ({ containerId, serverId }: Props) => {
 					<AlertDialogDescription>
 						This will permanently remove the container{" "}
 						<span className="font-semibold">{containerId}</span>. If the
-						container is running, it will be forcefully stopped and removed. This
-						action cannot be undone.
+						container is running, it will be forcefully stopped and removed.
+						This action cannot be undone.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
