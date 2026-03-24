@@ -3,6 +3,7 @@ import {
   Ban,
   CheckCircle2,
   Hammer,
+  History,
   RefreshCcw,
   Rocket,
   Terminal,
@@ -17,6 +18,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,
@@ -55,6 +61,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 
   const { mutateAsync: redeploy } = api.application.redeploy.useMutation();
   const [commitHash, setCommitHash] = useState("");
+  const [gitHistoryOpen, setGitHistoryOpen] = useState(false);
   const normalizedCommitHash = commitHash.trim().toLowerCase();
   const hasValidCommitHash = /^[a-f0-9]{7,40}$/.test(normalizedCommitHash);
   const configuredBranch = (() => {
@@ -190,6 +197,19 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
     isFetchingBitbucketBranches ||
     isFetchingGiteaBranches;
 
+  const hasGitSource =
+    data?.sourceType === "github" ||
+    data?.sourceType === "gitlab" ||
+    data?.sourceType === "bitbucket" ||
+    data?.sourceType === "gitea" ||
+    data?.sourceType === "git";
+
+  const { data: gitHistory, isFetching: isFetchingGitHistory } =
+    api.application.getGitHistory.useQuery(
+      { applicationId, limit: 10 },
+      { enabled: gitHistoryOpen && hasGitSource },
+    );
+
   return (
     <>
       <Card className="bg-background">
@@ -209,13 +229,78 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
                         Optional: Deploy a specific commit hash (7-40 hex
                         characters)
                       </p>
-                      <Input
-                        value={commitHash}
-                        onChange={(e) => {
-                          setCommitHash(e.target.value);
-                        }}
-                        placeholder="e.g. a1b2c3d4"
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          value={commitHash}
+                          onChange={(e) => {
+                            setCommitHash(e.target.value);
+                          }}
+                          placeholder="e.g. a1b2c3d4"
+                        />
+                        {hasGitSource && (
+                          <Popover
+                            open={gitHistoryOpen}
+                            onOpenChange={setGitHistoryOpen}
+                          >
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                type="button"
+                                title="View git history"
+                              >
+                                <History className="size-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-96 p-2"
+                              align="end"
+                              side="bottom"
+                            >
+                              <p className="text-xs font-medium mb-2 px-1">
+                                Recent commits
+                              </p>
+                              {isFetchingGitHistory ? (
+                                <p className="text-xs text-muted-foreground px-1 py-2">
+                                  Loading commits...
+                                </p>
+                              ) : !gitHistory || gitHistory.length === 0 ? (
+                                <p className="text-xs text-muted-foreground px-1 py-2">
+                                  No commits found. Deploy at least once to see
+                                  git history.
+                                </p>
+                              ) : (
+                                <div className="flex flex-col gap-0.5 max-h-64 overflow-y-auto">
+                                  {gitHistory.map((commit) => (
+                                    <button
+                                      key={commit.hash}
+                                      type="button"
+                                      className="flex flex-col gap-0.5 rounded px-2 py-1.5 text-left hover:bg-muted cursor-pointer"
+                                      onClick={() => {
+                                        setCommitHash(commit.hash);
+                                        setGitHistoryOpen(false);
+                                      }}
+                                    >
+                                      <span className="text-xs font-mono text-primary">
+                                        {commit.hash.slice(0, 12)}
+                                      </span>
+                                      <span className="text-xs truncate">
+                                        {commit.message}
+                                      </span>
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {commit.author} &middot;{" "}
+                                        {new Date(
+                                          commit.date,
+                                        ).toLocaleDateString()}
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      </div>
                       {commitHash.trim().length > 0 && (
                         <div className="space-y-2">
                           {!hasValidCommitHash ? (

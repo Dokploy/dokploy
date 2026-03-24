@@ -214,6 +214,8 @@ describe("deployApplication - Command Generation Tests", () => {
 				customGitUrl: "https://github.com/Dokploy/examples.git",
 				buildPath: "/astro",
 			}),
+			undefined,
+			expect.any(String),
 		);
 
 		expect(execProcess.execAsync).toHaveBeenCalledWith(
@@ -243,6 +245,8 @@ describe("deployApplication - Command Generation Tests", () => {
 			expect.objectContaining({
 				buildType: "railpack",
 			}),
+			undefined,
+			expect.any(String),
 		);
 
 		expect(execProcess.execAsync).toHaveBeenCalledWith(
