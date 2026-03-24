@@ -252,6 +252,8 @@ export const serverRouter = createTRPCRouter({
 					isDokployNetworkInstalled: boolean;
 					isSwarmInstalled: boolean;
 					isMainDirectoryInstalled: boolean;
+					privilegeMode: string;
+					dockerGroupMember: boolean;
 				};
 			} catch (error) {
 				throw new TRPCError({
