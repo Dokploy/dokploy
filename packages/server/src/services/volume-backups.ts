@@ -75,6 +75,15 @@ export const findVolumeBackupById = async (volumeBackupId: string) => {
 					},
 				},
 			},
+			libsql: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
 			destination: true,
 		},
 	});

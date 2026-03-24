@@ -30,7 +30,7 @@ export const sendDatabaseBackupNotifications = async ({
 }: {
 	projectName: string;
 	applicationName: string;
-	databaseType: "postgres" | "mysql" | "mongodb" | "mariadb";
+	databaseType: "postgres" | "mysql" | "mongodb" | "mariadb" | "libsql";
 	type: "error" | "success";
 	organizationId: string;
 	errorMessage?: string;
@@ -156,7 +156,7 @@ export const sendDatabaseBackupNotifications = async ({
 							? [
 									{
 										name: decorate("`⚠️`", "Error Message"),
-										value: `\`\`\`${errorMessage}\`\`\``,
+										value: `\`\`\`${errorMessage.length > 1010 ? `${errorMessage.substring(0, 1010)}...` : errorMessage}\`\`\``,
 									},
 								]
 							: []),

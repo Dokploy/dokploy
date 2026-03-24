@@ -5,8 +5,9 @@ import {
 	IS_CLOUD,
 	removePreviewDeployment,
 } from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
+import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { z } from "zod";
+import { audit } from "@/server/api/utils/audit";
 import { apiFindAllByApplication } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
@@ -17,53 +18,46 @@ export const previewDeploymentRouter = createTRPCRouter({
 	all: protectedProcedure
 		.input(apiFindAllByApplication)
 		.query(async ({ input, ctx }) => {
-			const application = await findApplicationById(input.applicationId);
-			if (
-				application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this application",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				deployment: ["read"],
+			});
 			return await findPreviewDeploymentsByApplicationId(input.applicationId);
 		}),
-	delete: protectedProcedure
-		.input(z.object({ previewDeploymentId: z.string() }))
-		.mutation(async ({ input, ctx }) => {
-			const previewDeployment = await findPreviewDeploymentById(
-				input.previewDeploymentId,
-			);
-			if (
-				previewDeployment.application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to delete this preview deployment",
-				});
-			}
-			await removePreviewDeployment(input.previewDeploymentId);
-			return true;
-		}),
+
 	one: protectedProcedure
 		.input(z.object({ previewDeploymentId: z.string() }))
 		.query(async ({ input, ctx }) => {
 			const previewDeployment = await findPreviewDeploymentById(
 				input.previewDeploymentId,
 			);
-			if (
-				previewDeployment.application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this preview deployment",
-				});
-			}
+			await checkServicePermissionAndAccess(
+				ctx,
+				previewDeployment.applicationId,
+				{ deployment: ["read"] },
+			);
 			return previewDeployment;
 		}),
+
+	delete: protectedProcedure
+		.input(z.object({ previewDeploymentId: z.string() }))
+		.mutation(async ({ input, ctx }) => {
+			const previewDeployment = await findPreviewDeploymentById(
+				input.previewDeploymentId,
+			);
+			await checkServicePermissionAndAccess(
+				ctx,
+				previewDeployment.applicationId,
+				{ deployment: ["cancel"] },
+			);
+			await removePreviewDeployment(input.previewDeploymentId);
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "previewDeployment",
+				resourceId: input.previewDeploymentId,
+			});
+			return true;
+		}),
+
 	redeploy: protectedProcedure
 		.input(
 			z.object({
@@ -76,15 +70,11 @@ export const previewDeploymentRouter = createTRPCRouter({
 			const previewDeployment = await findPreviewDeploymentById(
 				input.previewDeploymentId,
 			);
-			if (
-				previewDeployment.application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to redeploy this preview deployment",
-				});
-			}
+			await checkServicePermissionAndAccess(
+				ctx,
+				previewDeployment.applicationId,
+				{ deployment: ["create"] },
+			);
 			const application = await findApplicationById(
 				previewDeployment.applicationId,
 			);
@@ -103,6 +93,11 @@ export const previewDeploymentRouter = createTRPCRouter({
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
+				await audit(ctx, {
+					action: "redeploy",
+					resourceType: "previewDeployment",
+					resourceId: input.previewDeploymentId,
+				});
 				return true;
 			}
 			await myQueue.add(
@@ -113,6 +108,11 @@ export const previewDeploymentRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
+			await audit(ctx, {
+				action: "redeploy",
+				resourceType: "previewDeployment",
+				resourceId: input.previewDeploymentId,
+			});
 			return true;
 		}),
 });

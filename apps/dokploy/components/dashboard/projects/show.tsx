@@ -2,7 +2,6 @@ import {
 	AlertTriangle,
 	ArrowUpDown,
 	BookIcon,
-	ExternalLinkIcon,
 	FolderInput,
 	Loader2,
 	MoreHorizontalIcon,
@@ -16,7 +15,8 @@ import { toast } from "sonner";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { TagBadge } from "@/components/shared/tag-badge";
+import { TagFilter } from "@/components/shared/tag-filter";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -40,10 +40,8 @@ import {
 import {
 	DropdownMenu,
 	DropdownMenuContent,
-	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -53,7 +51,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { TimeBadge } from "@/components/ui/time-badge";
 import { api } from "@/utils/api";
 import { useDebounce } from "@/utils/hooks/use-debounce";
 import { HandleProject } from "./handle-project";
@@ -65,7 +62,9 @@ export const ShowProjects = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isPending } = api.project.all.useQuery();
 	const { data: auth } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
+	const { data: availableTags } = api.tag.all.useQuery();
 
 	const [searchQuery, setSearchQuery] = useState(
 		router.isReady && typeof router.query.q === "string" ? router.query.q : "",
@@ -79,9 +78,30 @@ export const ShowProjects = () => {
 		return "createdAt-desc";
 	});
 
+	const [selectedTagIds, setSelectedTagIds] = useState<string[]>(() => {
+		if (typeof window !== "undefined") {
+			const saved = localStorage.getItem("projectsTagFilter");
+			return saved ? JSON.parse(saved) : [];
+		}
+		return [];
+	});
+
 	useEffect(() => {
 		localStorage.setItem("projectsSort", sortBy);
 	}, [sortBy]);
+
+	useEffect(() => {
+		localStorage.setItem("projectsTagFilter", JSON.stringify(selectedTagIds));
+	}, [selectedTagIds]);
+
+	useEffect(() => {
+		if (!availableTags) return;
+		const validIds = new Set(availableTags.map((t) => t.tagId));
+		setSelectedTagIds((prev) => {
+			const filtered = prev.filter((id) => validIds.has(id));
+			return filtered.length === prev.length ? prev : filtered;
+		});
+	}, [availableTags]);
 
 	useEffect(() => {
 		if (!router.isReady) return;
@@ -110,7 +130,7 @@ export const ShowProjects = () => {
 	const filteredProjects = useMemo(() => {
 		if (!data) return [];
 
-		const filtered = data.filter(
+		let filtered = data.filter(
 			(project) =>
 				project.name
 					.toLowerCase()
@@ -119,6 +139,15 @@ export const ShowProjects = () => {
 					?.toLowerCase()
 					.includes(debouncedSearchQuery.toLowerCase()),
 		);
+
+		// Filter by selected tags (OR logic: show projects with ANY selected tag)
+		if (selectedTagIds.length > 0) {
+			filtered = filtered.filter((project) =>
+				project.projectTags?.some((pt) =>
+					selectedTagIds.includes(pt.tag.tagId),
+				),
+			);
+		}
 
 		// Then sort the filtered results
 		const [field, direction] = sortBy.split("-");
@@ -165,18 +194,13 @@ export const ShowProjects = () => {
 			}
 			return direction === "asc" ? comparison : -comparison;
 		});
-	}, [data, debouncedSearchQuery, sortBy]);
+	}, [data, debouncedSearchQuery, sortBy, selectedTagIds]);
 
 	return (
 		<>
 			<BreadcrumbSidebar
 				list={[{ name: "Projects", href: "/dashboard/projects" }]}
 			/>
-			{!isCloud && (
-				<div className="absolute top-4 right-4">
-					<TimeBadge />
-				</div>
-			)}
 			<div className="w-full">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl  ">
 					<div className="rounded-xl bg-background shadow-md ">
@@ -190,9 +214,7 @@ export const ShowProjects = () => {
 									Create and manage your projects
 								</CardDescription>
 							</CardHeader>
-							{(auth?.role === "owner" ||
-								auth?.role === "admin" ||
-								auth?.canCreateProjects) && (
+							{permissions?.project.create && (
 								<div className="">
 									<HandleProject />
 								</div>
@@ -218,29 +240,44 @@ export const ShowProjects = () => {
 
 											<Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
 										</div>
-										<div className="flex items-center gap-2 min-w-48 max-sm:w-full">
-											<ArrowUpDown className="size-4 text-muted-foreground" />
-											<Select value={sortBy} onValueChange={setSortBy}>
-												<SelectTrigger className="w-full">
-													<SelectValue placeholder="Sort by..." />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value="name-asc">Name (A-Z)</SelectItem>
-													<SelectItem value="name-desc">Name (Z-A)</SelectItem>
-													<SelectItem value="createdAt-desc">
-														Newest first
-													</SelectItem>
-													<SelectItem value="createdAt-asc">
-														Oldest first
-													</SelectItem>
-													<SelectItem value="services-desc">
-														Most services
-													</SelectItem>
-													<SelectItem value="services-asc">
-														Least services
-													</SelectItem>
-												</SelectContent>
-											</Select>
+										<div className="flex items-center gap-2">
+											<TagFilter
+												tags={
+													availableTags?.map((tag) => ({
+														id: tag.tagId,
+														name: tag.name,
+														color: tag.color || undefined,
+													})) || []
+												}
+												selectedTags={selectedTagIds}
+												onTagsChange={setSelectedTagIds}
+											/>
+											<div className="flex items-center gap-2 min-w-48 max-sm:w-full">
+												<ArrowUpDown className="size-4 text-muted-foreground" />
+												<Select value={sortBy} onValueChange={setSortBy}>
+													<SelectTrigger className="w-full">
+														<SelectValue placeholder="Sort by..." />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="name-asc">Name (A-Z)</SelectItem>
+														<SelectItem value="name-desc">
+															Name (Z-A)
+														</SelectItem>
+														<SelectItem value="createdAt-desc">
+															Newest first
+														</SelectItem>
+														<SelectItem value="createdAt-asc">
+															Oldest first
+														</SelectItem>
+														<SelectItem value="services-desc">
+															Most services
+														</SelectItem>
+														<SelectItem value="services-asc">
+															Least services
+														</SelectItem>
+													</SelectContent>
+												</Select>
+											</div>
 										</div>
 									</div>
 									{filteredProjects?.length === 0 && (
@@ -257,36 +294,29 @@ export const ShowProjects = () => {
 												.map(
 													(env) =>
 														env.applications.length === 0 &&
+														env.compose.length === 0 &&
+														env.libsql.length === 0 &&
 														env.mariadb.length === 0 &&
 														env.mongo.length === 0 &&
 														env.mysql.length === 0 &&
 														env.postgres.length === 0 &&
-														env.redis.length === 0 &&
-														env.applications.length === 0 &&
-														env.compose.length === 0,
+														env.redis.length === 0,
 												)
 												.every(Boolean);
 
 											const totalServices = project?.environments
 												.map(
 													(env) =>
+														env.applications.length +
+														env.compose.length +
+														env.libsql.length +
 														env.mariadb.length +
 														env.mongo.length +
 														env.mysql.length +
 														env.postgres.length +
-														env.redis.length +
-														env.applications.length +
-														env.compose.length,
+														env.redis.length,
 												)
 												.reduce((acc, curr) => acc + curr, 0);
-
-											const haveServicesWithDomains = project?.environments
-												.map(
-													(env) =>
-														env.applications.length > 0 ||
-														env.compose.length > 0,
-												)
-												.some(Boolean);
 
 											// Find default environment from accessible environments, or fall back to first accessible environment
 											const accessibleEnvironment =
@@ -313,122 +343,6 @@ export const ShowProjects = () => {
 														}}
 													>
 														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border">
-															{haveServicesWithDomains ? (
-																<DropdownMenu>
-																	<DropdownMenuTrigger asChild>
-																		<Button
-																			className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
-																			size="sm"
-																			variant="default"
-																		>
-																			<ExternalLinkIcon className="size-3.5" />
-																		</Button>
-																	</DropdownMenuTrigger>
-																	<DropdownMenuContent
-																		className="w-[200px] space-y-2 overflow-y-auto max-h-[400px]"
-																		onClick={(e) => e.stopPropagation()}
-																	>
-																		{project.environments.some(
-																			(env) => env.applications.length > 0,
-																		) && (
-																			<DropdownMenuGroup>
-																				<DropdownMenuLabel>
-																					Applications
-																				</DropdownMenuLabel>
-																				{project.environments.map((env) =>
-																					env.applications.map((app) => (
-																						<div key={app.applicationId}>
-																							<DropdownMenuSeparator />
-																							<DropdownMenuGroup>
-																								<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
-																									{app.name}
-																									<StatusTooltip
-																										status={
-																											app.applicationStatus
-																										}
-																									/>
-																								</DropdownMenuLabel>
-																								<DropdownMenuSeparator />
-																								{app.domains.map((domain) => (
-																									<DropdownMenuItem
-																										key={domain.domainId}
-																										asChild
-																									>
-																										<Link
-																											className="space-x-4 text-xs cursor-pointer justify-between"
-																											target="_blank"
-																											href={`${
-																												domain.https
-																													? "https"
-																													: "http"
-																											}://${domain.host}${
-																												domain.path
-																											}`}
-																										>
-																											<span className="truncate">
-																												{domain.host}
-																											</span>
-																											<ExternalLinkIcon className="size-4 shrink-0" />
-																										</Link>
-																									</DropdownMenuItem>
-																								))}
-																							</DropdownMenuGroup>
-																						</div>
-																					)),
-																				)}
-																			</DropdownMenuGroup>
-																		)}
-																		{project.environments.some(
-																			(env) => env.compose.length > 0,
-																		) && (
-																			<DropdownMenuGroup>
-																				<DropdownMenuLabel>
-																					Compose
-																				</DropdownMenuLabel>
-																				{project.environments.map((env) =>
-																					env.compose.map((comp) => (
-																						<div key={comp.composeId}>
-																							<DropdownMenuSeparator />
-																							<DropdownMenuGroup>
-																								<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
-																									{comp.name}
-																									<StatusTooltip
-																										status={comp.composeStatus}
-																									/>
-																								</DropdownMenuLabel>
-																								<DropdownMenuSeparator />
-																								{comp.domains.map((domain) => (
-																									<DropdownMenuItem
-																										key={domain.domainId}
-																										asChild
-																									>
-																										<Link
-																											className="space-x-4 text-xs cursor-pointer justify-between"
-																											target="_blank"
-																											href={`${
-																												domain.https
-																													? "https"
-																													: "http"
-																											}://${domain.host}${
-																												domain.path
-																											}`}
-																										>
-																											<span className="truncate">
-																												{domain.host}
-																											</span>
-																											<ExternalLinkIcon className="size-4 shrink-0" />
-																										</Link>
-																									</DropdownMenuItem>
-																								))}
-																							</DropdownMenuGroup>
-																						</div>
-																					)),
-																				)}
-																			</DropdownMenuGroup>
-																		)}
-																	</DropdownMenuContent>
-																</DropdownMenu>
-															) : null}
 															<CardHeader>
 																<CardTitle className="flex items-center justify-between gap-2 overflow-clip">
 																	<span className="flex flex-col gap-1.5 ">
@@ -442,6 +356,19 @@ export const ShowProjects = () => {
 																		<span className="text-sm font-medium text-muted-foreground break-normal">
 																			{project.description}
 																		</span>
+
+																		{project.projectTags &&
+																			project.projectTags.length > 0 && (
+																				<div className="flex flex-wrap gap-1.5 mt-2">
+																					{project.projectTags.map((pt) => (
+																						<TagBadge
+																							key={pt.tag.tagId}
+																							name={pt.tag.name}
+																							color={pt.tag.color}
+																						/>
+																					))}
+																				</div>
+																			)}
 
 																		{hasNoEnvironments && (
 																			<div className="flex flex-row gap-2 items-center rounded-lg bg-yellow-50 p-2 mt-2 dark:bg-yellow-950">
@@ -489,8 +416,7 @@ export const ShowProjects = () => {
 																				<div
 																					onClick={(e) => e.stopPropagation()}
 																				>
-																					{(auth?.role === "owner" ||
-																						auth?.canDeleteProjects) && (
+																					{permissions?.project.delete && (
 																						<AlertDialog>
 																							<AlertDialogTrigger className="w-full">
 																								<DropdownMenuItem
@@ -564,7 +490,7 @@ export const ShowProjects = () => {
 																</CardTitle>
 															</CardHeader>
 															<CardFooter className="pt-4">
-																<div className="space-y-1 text-sm flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
+																<div className="space-y-1 text-xs flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
 																	<DateTooltip date={project.createdAt}>
 																		Created
 																	</DateTooltip>

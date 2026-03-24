@@ -117,23 +117,43 @@ export const getDokployUrl = async () => {
 	return `http://${settings?.serverIp}:${process.env.PORT}`;
 };
 
-export const getTrustedOrigins = async () => {
-	const members = await db.query.member.findMany({
-		where: eq(member.role, "owner"),
-		with: {
-			user: true,
-		},
-	});
+const TRUSTED_ORIGINS_CACHE_TTL_MS = 30 * 60_000;
+let trustedOriginsCache: { data: string[]; expiresAt: number } | null = null;
 
-	if (members.length === 0) {
-		return [];
+export const getTrustedOrigins = async () => {
+	const runQuery = async () => {
+		const rows = await db
+			.select({ trustedOrigins: user.trustedOrigins })
+			.from(member)
+			.innerJoin(user, eq(member.userId, user.id))
+			.where(eq(member.role, "owner"));
+		return Array.from(new Set(rows.flatMap((r) => r.trustedOrigins ?? [])));
+	};
+
+	if (IS_CLOUD) {
+		const now = Date.now();
+		if (trustedOriginsCache && now < trustedOriginsCache.expiresAt) {
+			return trustedOriginsCache.data;
+		}
+		try {
+			const trustedOrigins = await runQuery();
+			trustedOriginsCache = {
+				data: trustedOrigins,
+				expiresAt: now + TRUSTED_ORIGINS_CACHE_TTL_MS,
+			};
+			return trustedOrigins;
+		} catch (error) {
+			console.error("Failed to fetch trusted origins:", error);
+			return trustedOriginsCache?.data ?? [];
+		}
 	}
 
-	const trustedOrigins = members.flatMap(
-		(member) => member.user.trustedOrigins || [],
-	);
-
-	return Array.from(new Set(trustedOrigins));
+	try {
+		return await runQuery();
+	} catch (error) {
+		console.error("Failed to fetch trusted origins:", error);
+		return [];
+	}
 };
 
 export const getTrustedProviders = async () => {

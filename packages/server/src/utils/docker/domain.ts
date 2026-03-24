@@ -63,7 +63,9 @@ export const loadDockerCompose = async (
 
 	if (existsSync(path)) {
 		const yamlStr = readFileSync(path, "utf8");
-		const parsedConfig = parse(yamlStr) as ComposeSpecification;
+		const parsedConfig = parse(yamlStr, {
+			maxAliasCount: 10000,
+		}) as ComposeSpecification;
 		return parsedConfig;
 	}
 	return null;
@@ -86,7 +88,9 @@ export const loadDockerComposeRemote = async (
 			return null;
 		}
 		if (!stdout) return null;
-		const parsedConfig = parse(stdout) as ComposeSpecification;
+		const parsedConfig = parse(stdout, {
+			maxAliasCount: 10000,
+		}) as ComposeSpecification;
 		return parsedConfig;
 	} catch {
 		return null;
@@ -106,10 +110,6 @@ export const writeDomainsToCompose = async (
 	compose: Compose,
 	domains: Domain[],
 ) => {
-	if (!domains.length) {
-		return "";
-	}
-
 	try {
 		const composeConverted = await addDomainToCompose(compose, domains);
 		const path = getComposePath(compose);
@@ -145,7 +145,7 @@ export const addDomainToCompose = async (
 		result = await loadDockerCompose(compose);
 	}
 
-	if (!result || domains.length === 0) {
+	if (!result) {
 		return null;
 	}
 

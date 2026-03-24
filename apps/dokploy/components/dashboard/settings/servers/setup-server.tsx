@@ -118,9 +118,10 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 					</div>
 				) : (
 					<div id="hook-form-add-gitlab" className="grid w-full gap-4">
-						<AlertBlock type="warning">
-							Using a root user is required to ensure everything works as
-							expected.
+						<AlertBlock type="info">
+							You can connect as root or as a non-root user with passwordless
+							sudo access. If using a non-root user, ensure passwordless sudo is
+							configured.
 						</AlertBlock>
 
 						<Tabs defaultValue="ssh-keys">

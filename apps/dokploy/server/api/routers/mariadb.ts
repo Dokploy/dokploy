@@ -1,7 +1,5 @@
 import {
-	addNewService,
 	checkPortInUse,
-	checkServiceAccess,
 	createMariadb,
 	createMount,
 	deployMariadb,
@@ -20,11 +18,18 @@ import {
 	updateMariadbById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import {
+	addNewService,
+	checkServiceAccess,
+	checkServicePermissionAndAccess,
+	findMemberByUserId,
+} from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiChangeMariaDBStatus,
 	apiCreateMariaDB,
@@ -35,7 +40,9 @@ import {
 	apiSaveEnvironmentVariablesMariaDB,
 	apiSaveExternalPortMariaDB,
 	apiUpdateMariaDB,
+	environments,
 	mariadb as mariadbTable,
+	projects,
 } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
 export const mariadbRouter = createTRPCRouter({
@@ -43,18 +50,10 @@ export const mariadbRouter = createTRPCRouter({
 		.input(apiCreateMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				// Get project from environment
 				const environment = await findEnvironmentById(input.environmentId);
 				const project = await findProjectById(environment.projectId);
 
-				if (ctx.user.role === "member") {
-					await checkServiceAccess(
-						ctx.user.id,
-						project.projectId,
-						ctx.session.activeOrganizationId,
-						"create",
-					);
-				}
+				await checkServiceAccess(ctx, project.projectId, "create");
 
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
@@ -72,13 +71,7 @@ export const mariadbRouter = createTRPCRouter({
 				const newMariadb = await createMariadb({
 					...input,
 				});
-				if (ctx.user.role === "member") {
-					await addNewService(
-						ctx.user.id,
-						newMariadb.mariadbId,
-						project.organizationId,
-					);
-				}
+				await addNewService(ctx, newMariadb.mariadbId);
 
 				await createMount({
 					serviceId: newMariadb.mariadbId,
@@ -88,6 +81,12 @@ export const mariadbRouter = createTRPCRouter({
 					type: "volume",
 				});
 
+				await audit(ctx, {
+					action: "create",
+					resourceType: "service",
+					resourceId: newMariadb.mariadbId,
+					resourceName: newMariadb.appName,
+				});
 				return newMariadb;
 			} catch (error) {
 				if (error instanceof TRPCError) {
@@ -99,14 +98,7 @@ export const mariadbRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneMariaDB)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.role === "member") {
-				await checkServiceAccess(
-					ctx.user.id,
-					input.mariadbId,
-					ctx.session.activeOrganizationId,
-					"access",
-				);
-			}
+			await checkServiceAccess(ctx, input.mariadbId, "read");
 			const mariadb = await findMariadbById(input.mariadbId);
 			if (
 				mariadb.environment.project.organizationId !==
@@ -123,16 +115,10 @@ export const mariadbRouter = createTRPCRouter({
 	start: protectedProcedure
 		.input(apiFindOneMariaDB)
 		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
+				deployment: ["create"],
+			});
 			const service = await findMariadbById(input.mariadbId);
-			if (
-				service.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to start this Mariadb",
-				});
-			}
 			if (service.serverId) {
 				await startServiceRemote(service.serverId, service.appName);
 			} else {
@@ -142,11 +128,20 @@ export const mariadbRouter = createTRPCRouter({
 				applicationStatus: "done",
 			});
 
+			await audit(ctx, {
+				action: "start",
+				resourceType: "service",
+				resourceId: service.mariadbId,
+				resourceName: service.appName,
+			});
 			return service;
 		}),
 	stop: protectedProcedure
 		.input(apiFindOneMariaDB)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
+				deployment: ["create"],
+			});
 			const mariadb = await findMariadbById(input.mariadbId);
 
 			if (mariadb.serverId) {
@@ -158,21 +153,21 @@ export const mariadbRouter = createTRPCRouter({
 				applicationStatus: "idle",
 			});
 
+			await audit(ctx, {
+				action: "stop",
+				resourceType: "service",
+				resourceId: mariadb.mariadbId,
+				resourceName: mariadb.appName,
+			});
 			return mariadb;
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMariaDB)
 		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
+				service: ["create"],
+			});
 			const mariadb = await findMariadbById(input.mariadbId);
-			if (
-				mariadb.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to save this external port",
-				});
-			}
 
 			if (input.externalPort) {
 				const portCheck = await checkPortInUse(
@@ -191,22 +186,28 @@ export const mariadbRouter = createTRPCRouter({
 				externalPort: input.externalPort,
 			});
 			await deployMariadb(input.mariadbId);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: mariadb.mariadbId,
+				resourceName: mariadb.appName,
+			});
 			return mariadb;
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployMariaDB)
 		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
+				deployment: ["create"],
+			});
 			const mariadb = await findMariadbById(input.mariadbId);
-			if (
-				mariadb.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to deploy this Mariadb",
-				});
-			}
 
+			await audit(ctx, {
+				action: "deploy",
+				resourceType: "service",
+				resourceId: mariadb.mariadbId,
+				resourceName: mariadb.appName,
+			});
 			return deployMariadb(input.mariadbId);
 		}),
 	deployWithLogs: protectedProcedure
@@ -220,16 +221,9 @@ export const mariadbRouter = createTRPCRouter({
 		})
 		.input(apiDeployMariaDB)
 		.subscription(async ({ input, ctx }) => {
-			const mariadb = await findMariadbById(input.mariadbId);
-			if (
-				mariadb.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to deploy this Mariadb",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
+				deployment: ["create"],
+			});
 
 			return observable<string>((emit) => {
 				deployMariadb(input.mariadbId, (log) => {
@@ -240,32 +234,25 @@ export const mariadbRouter = createTRPCRouter({
 	changeStatus: protectedProcedure
 		.input(apiChangeMariaDBStatus)
 		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
+				deployment: ["create"],
+			});
 			const mongo = await findMariadbById(input.mariadbId);
-			if (
-				mongo.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to change this Mariadb status",
-				});
-			}
 			await updateMariadbById(input.mariadbId, {
 				applicationStatus: input.applicationStatus,
+			});
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: mongo.mariadbId,
+				resourceName: mongo.appName,
 			});
 			return mongo;
 		}),
 	remove: protectedProcedure
 		.input(apiFindOneMariaDB)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.role === "member") {
-				await checkServiceAccess(
-					ctx.user.id,
-					input.mariadbId,
-					ctx.session.activeOrganizationId,
-					"delete",
-				);
-			}
+			await checkServiceAccess(ctx, input.mariadbId, "delete");
 
 			const mongo = await findMariadbById(input.mariadbId);
 			if (
@@ -278,6 +265,12 @@ export const mariadbRouter = createTRPCRouter({
 				});
 			}
 
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "service",
+				resourceId: mongo.mariadbId,
+				resourceName: mongo.appName,
+			});
 			const backups = await findBackupsByDbId(input.mariadbId, "mariadb");
 			const cleanupOperations = [
 				async () => await removeService(mongo?.appName, mongo.serverId),
@@ -296,16 +289,9 @@ export const mariadbRouter = createTRPCRouter({
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesMariaDB)
 		.mutation(async ({ input, ctx }) => {
-			const mariadb = await findMariadbById(input.mariadbId);
-			if (
-				mariadb.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to save this environment",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
+				envVars: ["write"],
+			});
 			const service = await updateMariadbById(input.mariadbId, {
 				env: input.env,
 			});
@@ -317,21 +303,20 @@ export const mariadbRouter = createTRPCRouter({
 				});
 			}
 
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: input.mariadbId,
+			});
 			return true;
 		}),
 	reload: protectedProcedure
 		.input(apiResetMariadb)
 		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
+				deployment: ["create"],
+			});
 			const mariadb = await findMariadbById(input.mariadbId);
-			if (
-				mariadb.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to reload this Mariadb",
-				});
-			}
 			if (mariadb.serverId) {
 				await stopServiceRemote(mariadb.serverId, mariadb.appName);
 			} else {
@@ -349,22 +334,21 @@ export const mariadbRouter = createTRPCRouter({
 			await updateMariadbById(input.mariadbId, {
 				applicationStatus: "done",
 			});
+			await audit(ctx, {
+				action: "reload",
+				resourceType: "service",
+				resourceId: mariadb.mariadbId,
+				resourceName: mariadb.appName,
+			});
 			return true;
 		}),
 	update: protectedProcedure
 		.input(apiUpdateMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			const { mariadbId, ...rest } = input;
-			const mariadb = await findMariadbById(mariadbId);
-			if (
-				mariadb.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to update this Mariadb",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, mariadbId, {
+				service: ["create"],
+			});
 			const service = await updateMariadbById(mariadbId, {
 				...rest,
 			});
@@ -376,6 +360,12 @@ export const mariadbRouter = createTRPCRouter({
 				});
 			}
 
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: mariadbId,
+				resourceName: service.appName,
+			});
 			return true;
 		}),
 	move: protectedProcedure
@@ -386,31 +376,10 @@ export const mariadbRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			const mariadb = await findMariadbById(input.mariadbId);
-			if (
-				mariadb.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to move this mariadb",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
+				service: ["create"],
+			});
 
-			const targetEnvironment = await findEnvironmentById(
-				input.targetEnvironmentId,
-			);
-			if (
-				targetEnvironment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to move to this environment",
-				});
-			}
-
-			// Update the mariadb's projectId
 			const updatedMariadb = await db
 				.update(mariadbTable)
 				.set({
@@ -427,23 +396,124 @@ export const mariadbRouter = createTRPCRouter({
 				});
 			}
 
+			await audit(ctx, {
+				action: "move",
+				resourceType: "service",
+				resourceId: updatedMariadb.mariadbId,
+				resourceName: updatedMariadb.appName,
+			});
 			return updatedMariadb;
 		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildMariadb)
 		.mutation(async ({ input, ctx }) => {
-			const mariadb = await findMariadbById(input.mariadbId);
-			if (
-				mariadb.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to rebuild this MariaDB database",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
+				deployment: ["create"],
+			});
 
-			await rebuildDatabase(mariadb.mariadbId, "mariadb");
+			await rebuildDatabase(input.mariadbId, "mariadb");
+			await audit(ctx, {
+				action: "rebuild",
+				resourceType: "service",
+				resourceId: input.mariadbId,
+			});
 			return true;
+		}),
+	search: protectedProcedure
+		.input(
+			z.object({
+				q: z.string().optional(),
+				name: z.string().optional(),
+				appName: z.string().optional(),
+				description: z.string().optional(),
+				projectId: z.string().optional(),
+				environmentId: z.string().optional(),
+				limit: z.number().min(1).max(100).default(20),
+				offset: z.number().min(0).default(0),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const baseConditions = [
+				eq(projects.organizationId, ctx.session.activeOrganizationId),
+			];
+			if (input.projectId) {
+				baseConditions.push(eq(environments.projectId, input.projectId));
+			}
+			if (input.environmentId) {
+				baseConditions.push(
+					eq(mariadbTable.environmentId, input.environmentId),
+				);
+			}
+			if (input.q?.trim()) {
+				const term = `%${input.q.trim()}%`;
+				baseConditions.push(
+					or(
+						ilike(mariadbTable.name, term),
+						ilike(mariadbTable.appName, term),
+						ilike(mariadbTable.description ?? "", term),
+					)!,
+				);
+			}
+			if (input.name?.trim()) {
+				baseConditions.push(ilike(mariadbTable.name, `%${input.name.trim()}%`));
+			}
+			if (input.appName?.trim()) {
+				baseConditions.push(
+					ilike(mariadbTable.appName, `%${input.appName.trim()}%`),
+				);
+			}
+			if (input.description?.trim()) {
+				baseConditions.push(
+					ilike(
+						mariadbTable.description ?? "",
+						`%${input.description.trim()}%`,
+					),
+				);
+			}
+			const { accessedServices } = await findMemberByUserId(
+				ctx.user.id,
+				ctx.session.activeOrganizationId,
+			);
+			if (accessedServices.length === 0) return { items: [], total: 0 };
+			baseConditions.push(
+				sql`${mariadbTable.mariadbId} IN (${sql.join(
+					accessedServices.map((id) => sql`${id}`),
+					sql`, `,
+				)})`,
+			);
+
+			const where = and(...baseConditions);
+			const [items, countResult] = await Promise.all([
+				db
+					.select({
+						mariadbId: mariadbTable.mariadbId,
+						name: mariadbTable.name,
+						appName: mariadbTable.appName,
+						description: mariadbTable.description,
+						environmentId: mariadbTable.environmentId,
+						applicationStatus: mariadbTable.applicationStatus,
+						createdAt: mariadbTable.createdAt,
+					})
+					.from(mariadbTable)
+					.innerJoin(
+						environments,
+						eq(mariadbTable.environmentId, environments.environmentId),
+					)
+					.innerJoin(projects, eq(environments.projectId, projects.projectId))
+					.where(where)
+					.orderBy(desc(mariadbTable.createdAt))
+					.limit(input.limit)
+					.offset(input.offset),
+				db
+					.select({ count: sql<number>`count(*)::int` })
+					.from(mariadbTable)
+					.innerJoin(
+						environments,
+						eq(mariadbTable.environmentId, environments.environmentId),
+					)
+					.innerJoin(projects, eq(environments.projectId, projects.projectId))
+					.where(where),
+			]);
+			return { items, total: countResult[0]?.count ?? 0 };
 		}),
 });

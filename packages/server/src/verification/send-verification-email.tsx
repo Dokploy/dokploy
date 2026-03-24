@@ -1,7 +1,4 @@
-import {
-	sendDiscordNotification,
-	sendEmailNotification,
-} from "../utils/notifications/utils";
+import { sendEmailNotification } from "../utils/notifications/utils";
 export const sendEmail = async ({
 	email,
 	subject,
@@ -25,27 +22,4 @@ export const sendEmail = async ({
 	);
 
 	return true;
-};
-
-export const sendDiscordNotificationWelcome = async (email: string) => {
-	await sendDiscordNotification(
-		{
-			webhookUrl: process.env.DISCORD_WEBHOOK_URL || "",
-		},
-		{
-			title: "New User Registered",
-			color: 0x00ff00,
-			fields: [
-				{
-					name: "Email",
-					value: email,
-					inline: true,
-				},
-			],
-			timestamp: new Date(),
-			footer: {
-				text: "Dokploy User Registration Notification",
-			},
-		},
-	);
 };

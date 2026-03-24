@@ -214,10 +214,13 @@ export const getGitlabBranches = async (input: {
 	const allBranches = [];
 	let page = 1;
 	const perPage = 100; // GitLab's max per page is 100
+	const baseUrl = (
+		gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
+	).replace(/\/+$/, "");
 
 	while (true) {
 		const branchesResponse = await fetch(
-			`${gitlabProvider.gitlabUrl}/api/v4/projects/${input.id}/repository/branches?page=${page}&per_page=${perPage}`,
+			`${baseUrl}/api/v4/projects/${input.id}/repository/branches?page=${page}&per_page=${perPage}`,
 			{
 				headers: {
 					Authorization: `Bearer ${gitlabProvider.accessToken}`,
@@ -292,10 +295,13 @@ export const validateGitlabProvider = async (gitlabProvider: Gitlab) => {
 		const allProjects = [];
 		let page = 1;
 		const perPage = 100; // GitLab's max per page is 100
+		const baseUrl = (
+			gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
+		).replace(/\/+$/, "");
 
 		while (true) {
 			const response = await fetch(
-				`${gitlabProvider.gitlabUrl}/api/v4/projects?membership=true&page=${page}&per_page=${perPage}`,
+				`${baseUrl}/api/v4/projects?membership=true&page=${page}&per_page=${perPage}`,
 				{
 					headers: {
 						Authorization: `Bearer ${gitlabProvider.accessToken}`,

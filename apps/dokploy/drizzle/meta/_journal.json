@@ -1037,6 +1037,48 @@
       "when": 1771830695385,
       "tag": "0147_right_lake",
       "breakpoints": true
+    },
+    {
+      "idx": 148,
+      "version": "7",
+      "when": 1773129798212,
+      "tag": "0148_futuristic_bullseye",
+      "breakpoints": true
+    },
+    {
+      "idx": 149,
+      "version": "7",
+      "when": 1773637297592,
+      "tag": "0149_rare_radioactive_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 150,
+      "version": "7",
+      "when": 1773870095817,
+      "tag": "0150_nappy_blue_blade",
+      "breakpoints": true
+    },
+    {
+      "idx": 151,
+      "version": "7",
+      "when": 1773872561300,
+      "tag": "0151_modern_sunfire",
+      "breakpoints": true
+    },
+    {
+      "idx": 152,
+      "version": "7",
+      "when": 1773903778014,
+      "tag": "0152_odd_firelord",
+      "breakpoints": true
+    },
+    {
+      "idx": 153,
+      "version": "7",
+      "when": 1774322599182,
+      "tag": "0153_motionless_mastermind",
+      "breakpoints": true
     }
   ]
 }

@@ -25,17 +25,17 @@ import {
 import { api } from "@/utils/api";
 
 export type Services = {
-	appName: string;
 	serverId?: string | null;
 	name: string;
 	type:
-		| "mariadb"
 		| "application"
-		| "postgres"
-		| "mysql"
+		| "compose"
+		| "libsql"
+		| "mariadb"
 		| "mongo"
-		| "redis"
-		| "compose";
+		| "mysql"
+		| "postgres"
+		| "redis";
 	description?: string | null;
 	id: string;
 	createdAt: string;

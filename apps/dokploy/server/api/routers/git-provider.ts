@@ -2,7 +2,12 @@ import { findGitProviderById, removeGitProvider } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	withPermission,
+} from "@/server/api/trpc";
 import { apiRemoveGitProvider, gitProvider } from "@/server/db/schema";
 
 export const gitProviderRouter = createTRPCRouter({
@@ -21,7 +26,7 @@ export const gitProviderRouter = createTRPCRouter({
 			),
 		});
 	}),
-	remove: protectedProcedure
+	remove: withPermission("gitProviders", "delete")
 		.input(apiRemoveGitProvider)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -33,6 +38,12 @@ export const gitProviderRouter = createTRPCRouter({
 						message: "You are not allowed to delete this Git provider",
 					});
 				}
+				await audit(ctx, {
+					action: "delete",
+					resourceType: "gitProvider",
+					resourceId: gitProvider.gitProviderId,
+					resourceName: gitProvider.name ?? gitProvider.gitProviderId,
+				});
 				return await removeGitProvider(input.gitProviderId);
 			} catch (error) {
 				const message =

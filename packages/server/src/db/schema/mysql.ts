@@ -199,6 +199,7 @@ export const apiUpdateMySql = createSchema
 	.partial()
 	.extend({
 		mysqlId: z.string().min(1),
+		dockerImage: z.string().optional(),
 	})
 	.omit({ serverId: true });
 
