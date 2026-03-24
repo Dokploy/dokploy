@@ -23,7 +23,14 @@ const hasStopGracePeriodSwarm = (
 
 interface StopGracePeriodFormProps {
 	id: string;
-	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application" | "libsql";
+	type:
+		| "postgres"
+		| "mariadb"
+		| "mongo"
+		| "mysql"
+		| "redis"
+		| "application"
+		| "libsql";
 }
 
 export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
@@ -39,8 +46,7 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 		application: () =>
 			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
 		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
-		libsql: () =>
-			api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
