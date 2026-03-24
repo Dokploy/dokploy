@@ -545,7 +545,9 @@ const EnvironmentPage = (
 				}
 				success++;
 			} catch {
-				toast.error(t("projectEnvironmentPage.errorStartingService", { serviceId }));
+				toast.error(
+					t("projectEnvironmentPage.errorStartingService", { serviceId }),
+				);
 			}
 		}
 		if (success > 0) {
@@ -594,7 +596,9 @@ const EnvironmentPage = (
 				}
 				success++;
 			} catch {
-				toast.error(t("projectEnvironmentPage.errorStoppingService", { serviceId }));
+				toast.error(
+					t("projectEnvironmentPage.errorStoppingService", { serviceId }),
+				);
 			}
 		}
 		if (success > 0) {
@@ -927,8 +931,7 @@ const EnvironmentPage = (
 			<Head>
 				<title>
 					{t("projectEnvironmentPage.pageTitle")}: {currentEnvironment.name} |{" "}
-					{projectData?.name} |{" "}
-					{appName}
+					{projectData?.name} | {appName}
 				</title>
 			</Head>
 			<div className="w-full">
@@ -1168,9 +1171,12 @@ const EnvironmentPage = (
 																{t("projectEnvironmentPage.moveServices")}
 															</DialogTitle>
 															<DialogDescription>
-																{t("projectEnvironmentPage.dialog.moveDescription", {
-																	count: selectedServices.length,
-																})}
+																{t(
+																	"projectEnvironmentPage.dialog.moveDescription",
+																	{
+																		count: selectedServices.length,
+																	},
+																)}
 															</DialogDescription>
 														</DialogHeader>
 														<div className="flex flex-col gap-4">
@@ -1178,7 +1184,9 @@ const EnvironmentPage = (
 																<div className="flex flex-col items-center justify-center gap-2 py-4">
 																	<FolderInput className="h-8 w-8 text-muted-foreground" />
 																	<p className="text-sm text-muted-foreground text-center">
-																		{t("projectEnvironmentPage.noOtherProjects")}
+																		{t(
+																			"projectEnvironmentPage.noOtherProjects",
+																		)}
 																	</p>
 																</div>
 															) : (
@@ -1189,7 +1197,9 @@ const EnvironmentPage = (
 																			htmlFor="target-project"
 																			className="text-sm font-medium"
 																		>
-																			{t("projectEnvironmentPage.targetProject")}
+																			{t(
+																				"projectEnvironmentPage.targetProject",
+																			)}
 																		</label>
 																		<Select
 																			value={selectedTargetProject}
@@ -1225,7 +1235,9 @@ const EnvironmentPage = (
 																				htmlFor="target-environment"
 																				className="text-sm font-medium"
 																			>
-																				{t("projectEnvironmentPage.targetEnvironment")}
+																				{t(
+																					"projectEnvironmentPage.targetEnvironment",
+																				)}
 																			</label>
 																			<Select
 																				value={selectedTargetEnvironment}
@@ -1359,16 +1371,20 @@ const EnvironmentPage = (
 																				htmlFor="deleteVolumes"
 																				className="text-sm font-medium"
 																			>
-																				{t("projectEnvironmentPage.deleteVolumes")}
+																				{t(
+																					"projectEnvironmentPage.deleteVolumes",
+																				)}
 																			</label>
 																		</div>
 																		<p className="text-xs text-muted-foreground">
 																			{t(
 																				"projectEnvironmentPage.volumeDeletionAvailable",
 																				{
-																					count: servicesWithVolumeSupport.length,
+																					count:
+																						servicesWithVolumeSupport.length,
 																					suffix:
-																						servicesWithVolumeSupport.length !== 1
+																						servicesWithVolumeSupport.length !==
+																						1
 																							? "s"
 																							: "",
 																				},
@@ -1419,7 +1435,9 @@ const EnvironmentPage = (
 										</div>
 										<Select value={sortBy} onValueChange={setSortBy}>
 											<SelectTrigger className="lg:w-[280px]">
-												<SelectValue placeholder={t("projectEnvironmentPage.sortBy")} />
+												<SelectValue
+													placeholder={t("projectEnvironmentPage.sortBy")}
+												/>
 											</SelectTrigger>
 											<SelectContent>
 												<SelectItem value="lastDeploy-desc">
@@ -1521,7 +1539,9 @@ const EnvironmentPage = (
 											>
 												<SelectTrigger className="lg:w-[200px]">
 													<SelectValue
-														placeholder={t("projectEnvironmentPage.filterByServer")}
+														placeholder={t(
+															"projectEnvironmentPage.filterByServer",
+														)}
 													/>
 												</SelectTrigger>
 												<SelectContent>
@@ -1532,7 +1552,9 @@ const EnvironmentPage = (
 														<SelectItem value="dokploy-server">
 															<div className="flex items-center gap-2">
 																<ServerIcon className="size-4" />
-																<span>{t("projectEnvironmentPage.dokployServer")}</span>
+																<span>
+																	{t("projectEnvironmentPage.dokployServer")}
+																</span>
 															</div>
 														</SelectItem>
 													)}

@@ -50,4 +50,3 @@ export const resolveInitialLocale = (): Locale => {
 		DEFAULT_LOCALE
 	);
 };
-

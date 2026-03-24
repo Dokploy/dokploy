@@ -83,8 +83,7 @@ const MySql = (
 				<Head>
 					<title>
 						{t("serviceDetailsPage.databaseTitle")}: {data?.name} -{" "}
-						{data?.environment?.project?.name} |
-						{appName}
+						{data?.environment?.project?.name} |{appName}
 					</title>
 				</Head>
 				<div className="w-full">
@@ -121,7 +120,8 @@ const MySql = (
 														: "destructive"
 											}
 										>
-											{data?.server?.name || t("serviceDetailsPage.dokployServer")}
+											{data?.server?.name ||
+												t("serviceDetailsPage.dokployServer")}
 										</Badge>
 										{data?.server?.serverStatus === "inactive" && (
 											<TooltipProvider delayDuration={0}>

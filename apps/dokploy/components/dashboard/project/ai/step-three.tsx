@@ -18,7 +18,9 @@ export const StepThree = ({ templateInfo }: StepProps) => {
 							</p>
 						</div>
 						<div>
-							<h3 className="text-sm font-semibold">{t("reviewDescription")}</h3>
+							<h3 className="text-sm font-semibold">
+								{t("reviewDescription")}
+							</h3>
 							<ReactMarkdown className="text-sm text-muted-foreground">
 								{templateInfo?.details?.description}
 							</ReactMarkdown>
@@ -30,7 +32,9 @@ export const StepThree = ({ templateInfo }: StepProps) => {
 							</p>
 						</div>
 						<div className="space-y-2">
-							<h3 className="text-sm font-semibold">{t("reviewDockerCompose")}</h3>
+							<h3 className="text-sm font-semibold">
+								{t("reviewDockerCompose")}
+							</h3>
 							<CodeEditor
 								lineWrapping
 								value={templateInfo?.details?.dockerCompose}
@@ -39,7 +43,9 @@ export const StepThree = ({ templateInfo }: StepProps) => {
 							/>
 						</div>
 						<div>
-							<h3 className="text-sm font-semibold">{t("reviewEnvVariables")}</h3>
+							<h3 className="text-sm font-semibold">
+								{t("reviewEnvVariables")}
+							</h3>
 							<ul className="list-disc pl-5">
 								{templateInfo?.details?.envVariables.map(
 									(
@@ -88,7 +94,9 @@ export const StepThree = ({ templateInfo }: StepProps) => {
 							</ul>
 						</div>
 						<div>
-							<h3 className="text-sm font-semibold">{t("reviewConfigFiles")}</h3>
+							<h3 className="text-sm font-semibold">
+								{t("reviewConfigFiles")}
+							</h3>
 							<ul className="list-disc pl-5">
 								{templateInfo?.details?.configFiles?.map((file, index) => (
 									<li key={index}>

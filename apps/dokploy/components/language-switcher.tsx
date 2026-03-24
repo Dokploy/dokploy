@@ -12,11 +12,14 @@ type Props = {
 	className?: string;
 };
 
-const LOCALE_OPTIONS: Array<{ locale: Locale; flag: string; labelKey: string }> =
-	[
-		{ locale: "ru", flag: "🇷🇺", labelKey: "language.ru" },
-		{ locale: "en", flag: "🇬🇧", labelKey: "language.en" },
-	];
+const LOCALE_OPTIONS: Array<{
+	locale: Locale;
+	flag: string;
+	labelKey: string;
+}> = [
+	{ locale: "ru", flag: "🇷🇺", labelKey: "language.ru" },
+	{ locale: "en", flag: "🇬🇧", labelKey: "language.en" },
+];
 
 export const LanguageSwitcher = ({ className }: Props) => {
 	const t = useTranslations();
@@ -45,4 +48,3 @@ export const LanguageSwitcher = ({ className }: Props) => {
 		</label>
 	);
 };
-

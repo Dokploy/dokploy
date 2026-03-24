@@ -31,13 +31,9 @@ export const ShowCertificates = () => {
 							<ShieldCheck className="size-6 text-muted-foreground self-center" />
 							{t("title")}
 						</CardTitle>
-						<CardDescription>
-							{t("description")}
-						</CardDescription>
+						<CardDescription>{t("description")}</CardDescription>
 
-						<AlertBlock type="warning">
-							{t("warningAlert")}
-						</AlertBlock>
+						<AlertBlock type="warning">{t("warningAlert")}</AlertBlock>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
@@ -80,7 +76,9 @@ export const ShowCertificates = () => {
 																		<div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/50">
 																			<Link className="size-3 text-muted-foreground" />
 																			<span className="text-xs text-muted-foreground">
-																				{t("chainLabel", { count: chainInfo.count })}
+																				{t("chainLabel", {
+																					count: chainInfo.count,
+																				})}
 																			</span>
 																		</div>
 																	)}
@@ -113,15 +111,11 @@ export const ShowCertificates = () => {
 																					certificate.certificateId,
 																			})
 																				.then(() => {
-																					toast.success(
-																						t("deletedSuccess"),
-																					);
+																					toast.success(t("deletedSuccess"));
 																					refetch();
 																				})
 																				.catch(() => {
-																					toast.error(
-																						t("deleteError"),
-																					);
+																					toast.error(t("deleteError"));
 																				});
 																		}}
 																	>

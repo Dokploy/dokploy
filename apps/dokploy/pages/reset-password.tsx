@@ -56,8 +56,7 @@ export default function Home({ tokenResetPassword }: Props) {
 					confirmPassword: z
 						.string()
 						.min(1, {
-							message:
-								t("resetPassword.validation.passwordRequired"),
+							message: t("resetPassword.validation.passwordRequired"),
 						})
 						.min(8, {
 							message: t("resetPassword.validation.passwordMin"),
@@ -163,9 +162,7 @@ export default function Home({ tokenResetPassword }: Props) {
 										render={({ field }) => (
 											<FormItem>
 												<FormLabel>
-													{t(
-														"resetPassword.form.confirmPasswordLabel",
-													)}
+													{t("resetPassword.form.confirmPasswordLabel")}
 												</FormLabel>
 												<FormControl>
 													<Input

@@ -87,9 +87,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 							<Container className="size-6 text-muted-foreground self-center" />
 							{t("title")}
 						</CardTitle>
-						<CardDescription>
-							{t("description")}
-						</CardDescription>
+						<CardDescription>{t("description")}</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						<div className="gap-4 pb-20 w-full">

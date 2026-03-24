@@ -148,7 +148,8 @@ const Service = (
 														: "destructive"
 											}
 										>
-											{data?.server?.name || t("serviceDetailsPage.dokployServer")}
+											{data?.server?.name ||
+												t("serviceDetailsPage.dokployServer")}
 										</Badge>
 										{data?.server?.serverStatus === "inactive" && (
 											<TooltipProvider>

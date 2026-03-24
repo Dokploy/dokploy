@@ -127,6 +127,7 @@ export const ShowBuildServer = ({ applicationId }: Props) => {
 					</div>
 				</div>
 			</CardHeader>
+
 			<CardContent className="flex flex-col gap-4">
 				<AlertBlock type="info">
 					Build servers offload the build process from your deployment servers.

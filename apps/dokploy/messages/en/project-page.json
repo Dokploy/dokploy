@@ -1,20 +1,20 @@
 {
-  "project": {
-    "create": "Create project",
-    "deploy": "Deploy",
-    "redeploy": "Redeploy",
-    "stop": "Stop",
-    "delete": "Delete project",
-    "logs": "Logs",
-    "settings": "Project settings",
-    "environment": "Environment variables",
-    "domains": "Domains",
-    "deployments": "Deployments",
-    "status": {
-      "running": "Running",
-      "stopped": "Stopped",
-      "deploying": "Deploying...",
-      "failed": "Failed"
-    }
-  }
+	"project": {
+		"create": "Create project",
+		"deploy": "Deploy",
+		"redeploy": "Redeploy",
+		"stop": "Stop",
+		"delete": "Delete project",
+		"logs": "Logs",
+		"settings": "Project settings",
+		"environment": "Environment variables",
+		"domains": "Domains",
+		"deployments": "Deployments",
+		"status": {
+			"running": "Running",
+			"stopped": "Stopped",
+			"deploying": "Deploying...",
+			"failed": "Failed"
+		}
+	}
 }

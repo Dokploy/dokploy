@@ -1,45 +1,44 @@
 {
-  "register": {
-    "title": {
-      "cloud": "Sign Up",
-      "selfHosted": "Setup the server"
-    },
-    "description": {
-      "cloud": "Enter your email and password to create an account",
-      "selfHosted": "Enter your email and password to set up the server"
-    },
-    "form": {
-      "firstName": "First Name",
-      "lastName": "Last Name",
-      "email": "Email",
-      "password": "Password",
-      "confirmPassword": "Confirm Password"
-    },
-    "placeholders": {
-      "firstName": "John",
-      "lastName": "Doe",
-      "email": "email@dokploy.com",
-      "password": "Password"
-    },
-    "button": "Register",
-    "orRegisterWithEmail": "Or register with email",
-    "alreadyHaveAccount": "Already have account?",
-    "needHelp": "Need help?",
-    "contactUs": "Contact us",
-    "genericError": "An error occurred",
-    "toastSuccess": "User registered successfully",
-    "successAlert": "Registered successfully, please check your inbox or spam folder to confirm your account.",
-    "validation": {
-      "firstNameRequired": "First name is required",
-      "lastNameRequired": "Last name is required",
-      "emailRequired": "Email is required",
-      "emailInvalid": "Email must be a valid email",
-      "passwordRequired": "Password is required",
-      "passwordMin": "Password must be at least 8 characters",
-      "confirmPasswordRequired": "Password is required",
-      "confirmPasswordMin": "Password must be at least 8 characters",
-      "passwordsDoNotMatch": "Passwords do not match"
-    }
-  }
+	"register": {
+		"title": {
+			"cloud": "Sign Up",
+			"selfHosted": "Setup the server"
+		},
+		"description": {
+			"cloud": "Enter your email and password to create an account",
+			"selfHosted": "Enter your email and password to set up the server"
+		},
+		"form": {
+			"firstName": "First Name",
+			"lastName": "Last Name",
+			"email": "Email",
+			"password": "Password",
+			"confirmPassword": "Confirm Password"
+		},
+		"placeholders": {
+			"firstName": "John",
+			"lastName": "Doe",
+			"email": "email@dokploy.com",
+			"password": "Password"
+		},
+		"button": "Register",
+		"orRegisterWithEmail": "Or register with email",
+		"alreadyHaveAccount": "Already have account?",
+		"needHelp": "Need help?",
+		"contactUs": "Contact us",
+		"genericError": "An error occurred",
+		"toastSuccess": "User registered successfully",
+		"successAlert": "Registered successfully, please check your inbox or spam folder to confirm your account.",
+		"validation": {
+			"firstNameRequired": "First name is required",
+			"lastNameRequired": "Last name is required",
+			"emailRequired": "Email is required",
+			"emailInvalid": "Email must be a valid email",
+			"passwordRequired": "Password is required",
+			"passwordMin": "Password must be at least 8 characters",
+			"confirmPasswordRequired": "Password is required",
+			"confirmPasswordMin": "Password must be at least 8 characters",
+			"passwordsDoNotMatch": "Passwords do not match"
+		}
+	}
 }
-

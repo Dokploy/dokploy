@@ -159,9 +159,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 						<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
 							<div>
 								<DialogTitle>{t("dialogTitle")}</DialogTitle>
-								<DialogDescription>
-									{t("dialogDescription")}
-								</DialogDescription>
+								<DialogDescription>{t("dialogDescription")}</DialogDescription>
 							</div>
 							<div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
 								<Input
@@ -424,7 +422,9 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 															{t("confirmTitle")}
 														</AlertDialogTitle>
 														<AlertDialogDescription>
-															{t("confirmDescription", { name: template?.name })}
+															{t("confirmDescription", {
+																name: template?.name,
+															})}
 														</AlertDialogDescription>
 
 														{shouldShowServerDropdown && (
@@ -433,7 +433,11 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																	<Tooltip>
 																		<TooltipTrigger asChild>
 																			<Label className="break-all w-fit flex flex-row gap-1 items-center pb-2 pt-3.5">
-																				{t("selectServerLabel", { optional: !isCloud ? t("selectServerOptional") : "" })}
+																				{t("selectServerLabel", {
+																					optional: !isCloud
+																						? t("selectServerOptional")
+																						: "",
+																				})}
 																				<HelpCircle className="size-4 text-muted-foreground" />
 																			</Label>
 																		</TooltipTrigger>
@@ -458,7 +462,9 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																	<SelectTrigger>
 																		<SelectValue
 																			placeholder={
-																				!isCloud ? t("dokploy") : t("selectServerPlaceholder")
+																				!isCloud
+																					? t("dokploy")
+																					: t("selectServerPlaceholder")
 																			}
 																		/>
 																	</SelectTrigger>
@@ -488,7 +494,11 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																				</SelectItem>
 																			))}
 																			<SelectLabel>
-																				{t("serversLabel", { count: (servers?.length ?? 0) + (!isCloud ? 1 : 0) })}
+																				{t("serversLabel", {
+																					count:
+																						(servers?.length ?? 0) +
+																						(!isCloud ? 1 : 0),
+																				})}
 																			</SelectLabel>
 																		</SelectGroup>
 																	</SelectContent>
@@ -517,10 +527,14 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																			environmentId,
 																		});
 																		setOpen(false);
-																		return t("templateCreated", { name: template.name });
+																		return t("templateCreated", {
+																			name: template.name,
+																		});
 																	},
 																	error: () => {
-																		return t("templateError", { name: template.name });
+																		return t("templateError", {
+																			name: template.name,
+																		});
 																	},
 																});
 															}}

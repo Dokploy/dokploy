@@ -82,8 +82,7 @@ const Redis = (
 			<Head>
 				<title>
 					{t("serviceDetailsPage.databaseTitle")}: {data?.name} -{" "}
-					{data?.environment?.project?.name} |{" "}
-					{appName}
+					{data?.environment?.project?.name} | {appName}
 				</title>
 			</Head>
 			<div className="w-full">
@@ -120,7 +119,8 @@ const Redis = (
 													: "destructive"
 										}
 									>
-										{data?.server?.name || t("serviceDetailsPage.dokployServer")}
+										{data?.server?.name ||
+											t("serviceDetailsPage.dokployServer")}
 									</Badge>
 									{data?.server?.serverStatus === "inactive" && (
 										<TooltipProvider delayDuration={0}>
@@ -135,9 +135,7 @@ const Redis = (
 													align="start"
 													side="top"
 												>
-													<span>
-														{t("serviceDetailsPage.inactiveTooltip")}
-													</span>
+													<span>{t("serviceDetailsPage.inactiveTooltip")}</span>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>

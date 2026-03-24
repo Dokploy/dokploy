@@ -1,9 +1,9 @@
 {
-  "database": {
-    "create": "Создать базу данных",
-    "postgres": "PostgreSQL",
-    "mysql": "MySQL",
-    "redis": "Redis",
-    "mongo": "MongoDB"
-  }
+	"database": {
+		"create": "Создать базу данных",
+		"postgres": "PostgreSQL",
+		"mysql": "MySQL",
+		"redis": "Redis",
+		"mongo": "MongoDB"
+	}
 }

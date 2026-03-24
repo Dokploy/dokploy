@@ -31,9 +31,7 @@ export const TagManager = () => {
 							<TagIcon className="size-6 text-muted-foreground self-center" />
 							{t("title")}
 						</CardTitle>
-						<CardDescription>
-							{t("description")}
-						</CardDescription>
+						<CardDescription>{t("description")}</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
@@ -83,9 +81,7 @@ export const TagManager = () => {
 																		})
 																			.then(async () => {
 																				await utils.tag.all.invalidate();
-																				toast.success(
-																					t("deletedSuccess"),
-																				);
+																				toast.success(t("deletedSuccess"));
 																			})
 																			.catch(() => {
 																				toast.error(t("deleteError"));

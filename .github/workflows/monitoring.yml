@@ -2,10 +2,10 @@ name: Dokploy Monitoring Build
 
 on:
   push:
-    branches: [main, canary]
+    branches: [ main, canary ]
 
 env:
-  IMAGE_NAME: dokploy/monitoring
+  IMAGE_NAME: kamik2k/monitoring
 
 jobs:
   docker-amd:
@@ -80,7 +80,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
 
   combine-manifests:
-    needs: [docker-amd, docker-arm]
+    needs: [ docker-amd, docker-arm ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

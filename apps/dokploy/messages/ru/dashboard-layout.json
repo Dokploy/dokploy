@@ -1,41 +1,41 @@
 {
-  "dashboard": {
-    "title": "Панель управления",
-    "projects": "Проекты",
-    "deployments": "Деплои",
-    "monitoring": "Мониторинг",
-    "schedules": "Расписания",
-    "traefikFileSystem": "Файлы Traefik",
-    "docker": "Docker",
-    "swarm": "Swarm",
-    "requests": "Запросы",
-    "settings": {
-      "webServer": "Веб-сервер",
-      "profile": "Профиль",
-      "remoteServers": "Удалённые серверы",
-      "users": "Пользователи",
-      "auditLogs": "Журналы аудита",
-      "sshKeys": "SSH-ключи",
-      "ai": "AI",
-      "tags": "Теги",
-      "git": "Git",
-      "registry": "Реестр",
-      "destinations": "S3 назначения",
-      "certificates": "Сертификаты",
-      "cluster": "Кластер",
-      "notifications": "Уведомления",
-      "billing": "Биллинг",
-      "license": "Лицензия",
-      "sso": "SSO",
-      "whitelabeling": "Whitelabeling"
-    }
-  },
-  "userNav": {
-    "myAccount": "Мой аккаунт",
-    "profile": "Профиль"
-  },
-  "help": {
-    "documentation": "Документация",
-    "support": "Поддержка"
-  }
+	"dashboard": {
+		"title": "Панель управления",
+		"projects": "Проекты",
+		"deployments": "Деплои",
+		"monitoring": "Мониторинг",
+		"schedules": "Расписания",
+		"traefikFileSystem": "Файлы Traefik",
+		"docker": "Docker",
+		"swarm": "Swarm",
+		"requests": "Запросы",
+		"settings": {
+			"webServer": "Веб-сервер",
+			"profile": "Профиль",
+			"remoteServers": "Удалённые серверы",
+			"users": "Пользователи",
+			"auditLogs": "Журналы аудита",
+			"sshKeys": "SSH-ключи",
+			"ai": "AI",
+			"tags": "Теги",
+			"git": "Git",
+			"registry": "Реестр",
+			"destinations": "S3 назначения",
+			"certificates": "Сертификаты",
+			"cluster": "Кластер",
+			"notifications": "Уведомления",
+			"billing": "Биллинг",
+			"license": "Лицензия",
+			"sso": "SSO",
+			"whitelabeling": "Whitelabeling"
+		}
+	},
+	"userNav": {
+		"myAccount": "Мой аккаунт",
+		"profile": "Профиль"
+	},
+	"help": {
+		"documentation": "Документация",
+		"support": "Поддержка"
+	}
 }

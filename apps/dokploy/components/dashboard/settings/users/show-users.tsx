@@ -61,9 +61,7 @@ export const ShowUsers = () => {
 							<Users className="size-6 text-muted-foreground self-center" />
 							{t("title")}
 						</CardTitle>
-						<CardDescription>
-							{t("description")}
-						</CardDescription>
+						<CardDescription>{t("description")}</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
@@ -84,20 +82,30 @@ export const ShowUsers = () => {
 									<div className="flex flex-col gap-4  min-h-[25vh]">
 										{hasCustomRolesWithoutLicense && (
 											<AlertBlock type="warning">
-												{t("customRolesWarning", { count: membersWithCustomRoles?.length ?? 0 })}
+												{t("customRolesWarning", {
+													count: membersWithCustomRoles?.length ?? 0,
+												})}
 											</AlertBlock>
 										)}
 										<Table>
 											<TableHeader>
 												<TableRow>
-													<TableHead className="w-[100px]">{t("colEmail")}</TableHead>
-													<TableHead className="text-center">{t("colRole")}</TableHead>
-													<TableHead className="text-center">{t("col2fa")}</TableHead>
+													<TableHead className="w-[100px]">
+														{t("colEmail")}
+													</TableHead>
+													<TableHead className="text-center">
+														{t("colRole")}
+													</TableHead>
+													<TableHead className="text-center">
+														{t("col2fa")}
+													</TableHead>
 
 													<TableHead className="text-center">
 														{t("colCreatedAt")}
 													</TableHead>
-													<TableHead className="text-right">{t("colActions")}</TableHead>
+													<TableHead className="text-right">
+														{t("colActions")}
+													</TableHead>
 												</TableRow>
 											</TableHeader>
 											<TableBody>
@@ -216,7 +224,9 @@ export const ShowUsers = () => {
 																			{canDelete && (
 																				<DialogAction
 																					title={t("deleteUserTitle")}
-																					description={t("deleteUserDescription")}
+																					description={t(
+																						"deleteUserDescription",
+																					)}
 																					type="destructive"
 																					onClick={async () => {
 																						await mutateAsync({
@@ -248,7 +258,9 @@ export const ShowUsers = () => {
 																			{canUnlink && (
 																				<DialogAction
 																					title={t("unlinkUserTitle")}
-																					description={t("unlinkUserDescription")}
+																					description={t(
+																						"unlinkUserDescription",
+																					)}
 																					type="destructive"
 																					onClick={async () => {
 																						if (!isCloud) {
@@ -291,9 +303,7 @@ export const ShowUsers = () => {
 																							);
 																							refetch();
 																						} else {
-																							toast.error(
-																								t("unlinkUserError"),
-																							);
+																							toast.error(t("unlinkUserError"));
 																						}
 																					}}
 																				>
