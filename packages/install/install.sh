@@ -211,8 +211,7 @@ install_deploybox() {
     # echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GITHUB_OWNER}" --password-stdin
 
     release_tag_env=""
-    # Заменяем [[ ... =~ ... ]] на универсальную проверку через case или grep
-    if echo "$VERSION_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+'; then
+    if [[ "$VERSION_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
         release_tag_env="-e RELEASE_TAG=latest"
     elif [ "$VERSION_TAG" != "latest" ]; then
         release_tag_env="-e RELEASE_TAG=$VERSION_TAG"
