@@ -62,6 +62,22 @@ pnpm install
 cp apps/dokploy/.env.example apps/dokploy/.env
 ```
 
+### Optional Docker Configuration
+
+Docker socket detection is automatic for local development. The system automatically detects and uses Docker sockets in the following order:
+
+- DOCKER_HOST environment variable (if set)
+- Rancher Desktop socket (~/.rd/docker.sock)
+- Standard Docker socket (/var/run/docker.sock)
+
+Contributors using Docker Desktop, Rancher Desktop, Colima, or other Docker alternatives can run `pnpm run dokploy:setup` without any additional configuration.
+
+The following environment variables are only needed for remote Docker host configurations:
+
+- **DOKPLOY_DOCKER_HOST**: Specify a remote Docker daemon host
+- **DOKPLOY_DOCKER_PORT**: Specify a remote Docker daemon port
+- **DOKPLOY_DOCKER_API_VERSION**: Specify which Docker API version to use (optional)
+
 ## Requirements
 
 - [Docker](/GUIDES.md#docker)
@@ -170,6 +186,11 @@ curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.39.1/pack-v0.
 - **Avoid Unfocused Changes:** Please avoid submitting Pull Requests that contain only minor changes such as whitespace adjustments, IDE-generated formatting, or removal of unused variables, unless these are part of a larger, clearly defined refactor or a dedicated "cleanup" Pull Request that addresses a specific `good first issue` or maintenance task.
 - **Issue Association:** For any significant change, it's highly recommended to open an issue first to discuss the proposed solution with the community and maintainers. This ensures alignment and avoids duplicated effort. If your PR resolves an existing issue, please link it in the description (e.g., `Fixes #123`, `Closes #456`).
 - **Large Features:** Pull Requests that introduce very large or broad features **will not be accepted** unless the idea is first outlined and discussed in a GitHub issue. Large features should be designed together with the Dokploy team so the project stays coherent and moves in the same direction. Open an issue to propose and align on the design before implementing.
+
+### Pull Request Guidelines
+
+- **Keep PRs small and focused.** Avoid very large PRs; prefer several smaller PRs (e.g., one template or one logical change per PR). This speeds up review and keeps the history clear.
+- **Test before submitting.** Any PR that has not been tested by the contributor will be closed. This keeps the PR queue tidy and ensures that only contributions that have been verified by their authors are considered.
 
 Thank you for your contribution!
 
