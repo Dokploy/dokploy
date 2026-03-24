@@ -6,12 +6,12 @@ import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-	
+
 interface Props {
 	id: string;
 	containerId?: string;
 	serverId?: string;
-}	
+}
 
 export const DockerTerminal: React.FC<Props> = ({
 	id,
