@@ -83,8 +83,6 @@ const getDockerConfig = (): Docker => {
 
 export const docker = getDockerConfig();
 
-console.log(docker);
-
 // When not set, use the legacy default so 2FA remains working for users who
 // enabled it before BETTER_AUTH_SECRET was introduced.
 export const BETTER_AUTH_SECRET =
