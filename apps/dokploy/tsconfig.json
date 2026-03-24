@@ -27,14 +27,16 @@
 		/* Path Aliases */
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["./*"],
+			"@/*": ["./src/*"],
 			"@dokploy/server/*": ["../../packages/server/src/*"]
 		}
 	},
 	"include": [
 		"next-env.d.ts",
-		"**/*.ts",
-		"**/*.tsx",
+		"esbuild.config.ts",
+		"tailwind.config.ts",
+		"src/**/*.ts",
+		"src/**/*.tsx",
 		"**/*.cjs",
 		"**/*.js",
 		".next/types/**/*.ts",
@@ -47,7 +49,7 @@
 		"config",
 		"dist",
 		"webpack.config.server.js",
-		"migration.ts",
-		"setup.ts"
+		"src/migration.ts",
+		"src/setup.ts"
 	]
 }

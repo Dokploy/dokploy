@@ -6,7 +6,7 @@ on:
       - canary
       - main
     paths:
-      - 'apps/dokploy/server/api/routers/**'
+      - 'apps/dokploy/src/server/api/routers/**'
       - 'packages/server/src/services/**'
       - 'packages/server/src/db/schema/**'
 

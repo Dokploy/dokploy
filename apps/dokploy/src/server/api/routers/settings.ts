@@ -71,7 +71,7 @@ import {
 } from "@/server/db/schema";
 import { cleanAllDeploymentQueue } from "@/server/queues/queueSetup";
 import { removeJob, schedule } from "@/server/utils/backup";
-import packageInfo from "../../../package.json";
+import packageInfo from "../../../../package.json";
 import { appRouter } from "../root";
 import {
 	adminProcedure,

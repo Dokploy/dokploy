@@ -109,7 +109,7 @@ async function generateOpenAPI() {
 		};
 
 		// Write to root of repo
-		const outputPath = resolve(__dirname, "../../../openapi.json");
+		const outputPath = resolve(__dirname, "../../../../openapi.json");
 		writeFileSync(
 			outputPath,
 			JSON.stringify(openApiDocument, null, 2),

@@ -8,9 +8,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const APP_ROOT = join(__dirname, "..");
-const MESSAGES_EN = join(APP_ROOT, "messages", "en");
-const MESSAGES_RU = join(APP_ROOT, "messages", "ru");
+const APP_ROOT = join(__dirname, "../..");
+const MESSAGES_EN = join(APP_ROOT, "src", "i18n", "locales", "en");
+const MESSAGES_RU = join(APP_ROOT, "src", "i18n", "locales", "ru");
 
 const SKIP_DIRS = new Set([
 	".next",

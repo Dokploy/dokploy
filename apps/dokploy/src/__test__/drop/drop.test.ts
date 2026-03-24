@@ -6,7 +6,7 @@ import { paths } from "@dokploy/server/constants";
 import AdmZip from "adm-zip";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-const OUTPUT_BASE = "./__test__/drop/zips/output";
+const OUTPUT_BASE = "./src/__test__/drop/zips/output";
 const { APPLICATIONS_PATH } = paths();
 vi.mock("@dokploy/server/constants", async (importOriginal) => {
 	const actual = await importOriginal();
@@ -339,7 +339,7 @@ describe("unzipDrop using real zip files", () => {
 		// const appName = "single-file";
 		try {
 			const outputPath = path.join(APPLICATIONS_PATH, baseApp.appName, "code");
-			const zip = new AdmZip("./__test__/drop/zips/single-file.zip");
+			const zip = new AdmZip("./src/__test__/drop/zips/single-file.zip");
 			const zipBuffer = zip.toBuffer() as Buffer<ArrayBuffer>;
 			const file = new File([zipBuffer], "single.zip");
 			await unzipDrop(file, baseApp);

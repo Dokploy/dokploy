@@ -4,7 +4,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
 	test: {
-		include: ["__test__/**/*.test.ts"], // Incluir solo los archivos de test en el directorio __test__
+		include: ["src/__test__/**/*.test.ts"],
 		exclude: ["**/node_modules/**", "**/dist/**", "**/.docker/**"],
 		pool: "forks",
 		setupFiles: [path.resolve(__dirname, "setup.ts")],
@@ -20,14 +20,14 @@ export default defineConfig({
 	},
 	plugins: [
 		tsconfigPaths({
-			projects: [path.resolve(__dirname, "../tsconfig.json")],
+			projects: [path.resolve(__dirname, "../../tsconfig.json")],
 		}),
 	],
 	resolve: {
 		alias: {
 			"@dokploy/server": path.resolve(
 				__dirname,
-				"../../../packages/server/src",
+				"../../../../packages/server/src",
 			),
 		},
 	},
