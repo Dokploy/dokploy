@@ -202,7 +202,7 @@ const databasesMap = {
 		label: "Redis",
 	},
 	libsql: {
-		icon: <LibsqlIcon />,
+		icon: <LibsqlIcon className="size-10" />,
 		label: "libSQL",
 	},
 };
