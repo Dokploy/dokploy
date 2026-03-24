@@ -75,6 +75,7 @@ export const initCronJobs = async () => {
 			mariadb: true,
 			mysql: true,
 			mongo: true,
+			libsql: true,
 			user: true,
 			compose: true,
 		},
@@ -116,7 +117,8 @@ const getServiceAppName = (backup: BackupSchedule): string => {
 		backup.postgres?.appName ||
 		backup.mysql?.appName ||
 		backup.mariadb?.appName ||
-		backup.mongo?.appName;
+		backup.mongo?.appName ||
+		backup.libsql?.appName;
 	return serviceAppName || backup.appName;
 };
 

@@ -34,7 +34,14 @@ export const updateConfigFormSchema = z.object({
 
 interface UpdateConfigFormProps {
 	id: string;
-	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
+	type:
+		| "postgres"
+		| "mariadb"
+		| "mongo"
+		| "mysql"
+		| "redis"
+		| "application"
+		| "libsql";
 }
 
 export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
@@ -50,6 +57,7 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 		application: () =>
 			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
 		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
@@ -62,6 +70,7 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 		mariadb: () => api.mariadb.update.useMutation(),
 		application: () => api.application.update.useMutation(),
 		mongo: () => api.mongo.update.useMutation(),
+		libsql: () => api.libsql.update.useMutation(),
 	};
 
 	const { mutateAsync } = mutationMap[type]
@@ -109,6 +118,7 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 				mysqlId: id || "",
 				mariadbId: id || "",
 				mongoId: id || "",
+				libsqlId: id || "",
 				updateConfigSwarm: (hasAnyValue ? formData : null) as any,
 			});
 

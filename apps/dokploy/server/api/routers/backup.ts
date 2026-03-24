@@ -3,6 +3,8 @@ import {
 	findBackupById,
 	findComposeByBackupId,
 	findComposeById,
+	findLibsqlByBackupId,
+	findLibsqlById,
 	findMariadbByBackupId,
 	findMariadbById,
 	findMongoByBackupId,
@@ -16,6 +18,7 @@ import {
 	keepLatestNBackups,
 	removeBackupById,
 	removeScheduleBackup,
+	runLibsqlBackup,
 	runMariadbBackup,
 	runMongoBackup,
 	runMySqlBackup,
@@ -36,6 +39,7 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import {
 	restoreComposeBackup,
+	restoreLibsqlBackup,
 	restoreMariadbBackup,
 	restoreMongoBackup,
 	restoreMySqlBackup,
@@ -82,6 +86,7 @@ export const backupRouter = createTRPCRouter({
 					input.mysqlId ||
 					input.mariadbId ||
 					input.mongoId ||
+					input.libsqlId ||
 					input.composeId;
 				if (serviceId) {
 					await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -103,6 +108,8 @@ export const backupRouter = createTRPCRouter({
 						serverId = backup.mongo.serverId;
 					} else if (databaseType === "mariadb" && backup.mariadb?.serverId) {
 						serverId = backup.mariadb.serverId;
+					} else if (databaseType === "libsql" && backup.libsql?.serverId) {
+						serverId = backup.libsql.serverId;
 					} else if (
 						backup.backupType === "compose" &&
 						backup.compose?.serverId
@@ -154,6 +161,7 @@ export const backupRouter = createTRPCRouter({
 				backup.mysqlId ||
 				backup.mariadbId ||
 				backup.mongoId ||
+				backup.libsqlId ||
 				backup.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -173,6 +181,7 @@ export const backupRouter = createTRPCRouter({
 					existing.mysqlId ||
 					existing.mariadbId ||
 					existing.mongoId ||
+					existing.libsqlId ||
 					existing.composeId;
 				if (serviceId) {
 					await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -229,6 +238,7 @@ export const backupRouter = createTRPCRouter({
 					backup.mysqlId ||
 					backup.mariadbId ||
 					backup.mongoId ||
+					backup.libsqlId ||
 					backup.composeId;
 				if (serviceId) {
 					await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -400,6 +410,33 @@ export const backupRouter = createTRPCRouter({
 				});
 			}
 		}),
+	manualBackupLibsql: protectedProcedure
+		.input(apiFindOneBackup)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const backup = await findBackupById(input.backupId);
+				if (backup.libsqlId) {
+					await checkServicePermissionAndAccess(ctx, backup.libsqlId, {
+						backup: ["create"],
+					});
+				}
+				const libsql = await findLibsqlByBackupId(backup.backupId);
+				await runLibsqlBackup(libsql, backup);
+				await keepLatestNBackups(backup, libsql?.serverId);
+				await audit(ctx, {
+					action: "run",
+					resourceType: "backup",
+					resourceId: backup.backupId,
+				});
+				return true;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error running manual Libsql backup ",
+					cause: error,
+				});
+			}
+		}),
 	manualBackupWebServer: withPermission("backup", "create")
 		.input(apiFindOneBackup)
 		.mutation(async ({ input, ctx }) => {
@@ -533,6 +570,12 @@ export const backupRouter = createTRPCRouter({
 				if (input.databaseType === "mongo") {
 					const mongo = await findMongoById(input.databaseId);
 					restoreMongoBackup(mongo, destination, input, (log) => {
+						queue.push(log);
+					});
+				}
+				if (input.databaseType === "libsql") {
+					const libsql = await findLibsqlById(input.databaseId);
+					restoreLibsqlBackup(libsql, destination, input, (log) => {
 						queue.push(log);
 					});
 				}
