@@ -238,6 +238,7 @@ export const backupRouter = createTRPCRouter({
 					backup.mysqlId ||
 					backup.mariadbId ||
 					backup.mongoId ||
+					backup.libsqlId ||
 					backup.composeId;
 				if (serviceId) {
 					await checkServicePermissionAndAccess(ctx, serviceId, {

@@ -30,6 +30,8 @@ CREATE TABLE "libsql" (
 	"modeSwarm" json,
 	"labelsSwarm" json,
 	"networkSwarm" json,
+	"stopGracePeriodSwarm" bigint,
+	"endpointSpecSwarm" json,
 	"replicas" integer DEFAULT 1 NOT NULL,
 	"createdAt" text NOT NULL,
 	"environmentId" text NOT NULL,

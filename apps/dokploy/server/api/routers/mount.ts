@@ -100,6 +100,7 @@ export const mountRouter = createTRPCRouter({
 				mount.mongoId ||
 				mount.mysqlId ||
 				mount.redisId ||
+				mount.libsqlId ||
 				mount.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -125,6 +126,7 @@ export const mountRouter = createTRPCRouter({
 				mount.mongoId ||
 				mount.mysqlId ||
 				mount.redisId ||
+				mount.libsqlId ||
 				mount.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -144,6 +146,7 @@ export const mountRouter = createTRPCRouter({
 				mount.mongoId ||
 				mount.mysqlId ||
 				mount.redisId ||
+				mount.libsqlId ||
 				mount.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {

@@ -8,6 +8,7 @@ import {
 	keepLatestNBackups,
 	runCommand,
 	runComposeBackup,
+	runLibsqlBackup,
 	runMariadbBackup,
 	runMongoBackup,
 	runMySqlBackup,
@@ -38,6 +39,7 @@ export const runJobs = async (job: QueueJob) => {
 				mysql,
 				mongo,
 				mariadb,
+				libsql,
 				compose,
 				backupType,
 			} = backup;
@@ -74,6 +76,14 @@ export const runJobs = async (job: QueueJob) => {
 						return;
 					}
 					await runMariadbBackup(mariadb, backup);
+					await keepLatestNBackups(backup, server.serverId);
+				} else if (databaseType === "libsql" && libsql) {
+					const server = await findServerById(libsql.serverId as string);
+					if (server.serverStatus === "inactive") {
+						logger.info("Server is inactive");
+						return;
+					}
+					await runLibsqlBackup(libsql, backup);
 					await keepLatestNBackups(backup, server.serverId);
 				}
 			} else if (backupType === "compose" && compose) {
@@ -141,6 +151,7 @@ export const initializeJobs = async () => {
 			mysql: true,
 			postgres: true,
 			mongo: true,
+			libsql: true,
 			compose: true,
 		},
 	});

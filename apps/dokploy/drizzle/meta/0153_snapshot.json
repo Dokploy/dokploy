@@ -1,5 +1,5 @@
 {
-  "id": "72bb48c9-d724-458b-bd91-3ae50e9afe0f",
+  "id": "2819200c-c7c0-474e-8d78-b96ee4785b2a",
   "prevId": "68c71185-6e91-4b8d-8f91-795457e75ab2",
   "version": "7",
   "dialect": "postgresql",
@@ -3755,6 +3755,18 @@
         },
         "networkSwarm": {
           "name": "networkSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stopGracePeriodSwarm": {
+          "name": "stopGracePeriodSwarm",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "endpointSpecSwarm": {
+          "name": "endpointSpecSwarm",
           "type": "json",
           "primaryKey": false,
           "notNull": false

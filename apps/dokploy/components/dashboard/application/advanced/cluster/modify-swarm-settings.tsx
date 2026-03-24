@@ -17,7 +17,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { api } from "@/utils/api";
 import {
 	EndpointSpecForm,
 	HealthCheckForm,
@@ -111,13 +110,6 @@ const menuItems: MenuItem[] = [
 	},
 ];
 
-const hasStopGracePeriodSwarm = (
-	value: unknown,
-): value is { stopGracePeriodSwarm: bigint | number | string | null } =>
-	typeof value === "object" &&
-	value !== null &&
-	"stopGracePeriodSwarm" in value;
-
 interface Props {
 	id: string;
 	type:
@@ -131,107 +123,6 @@ interface Props {
 }
 
 export const AddSwarmSettings = ({ id, type }: Props) => {
-	const queryMap = {
-		application: () =>
-			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
-		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
-		mariadb: () =>
-			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
-		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
-		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
-		postgres: () =>
-			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
-		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
-	};
-	const { data, refetch } = queryMap[type]
-		? queryMap[type]()
-		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
-
-	const mutationMap = {
-		application: () => api.application.update.useMutation(),
-		libsql: () => api.libsql.update.useMutation(),
-		mariadb: () => api.mariadb.update.useMutation(),
-		mongo: () => api.mongo.update.useMutation(),
-		mysql: () => api.mysql.update.useMutation(),
-		postgres: () => api.postgres.update.useMutation(),
-		redis: () => api.redis.update.useMutation(),
-	};
-
-	const { mutateAsync, isError, error, isLoading } = mutationMap[type]
-		? mutationMap[type]()
-		: api.mongo.update.useMutation();
-
-	const form = useForm<AddSwarmSettings>({
-		defaultValues: {
-			healthCheckSwarm: null,
-			restartPolicySwarm: null,
-			placementSwarm: null,
-			updateConfigSwarm: null,
-			rollbackConfigSwarm: null,
-			modeSwarm: null,
-			labelsSwarm: null,
-			networkSwarm: null,
-		},
-		resolver: zodResolver(addSwarmSettings),
-	});
-
-	useEffect(() => {
-		if (data) {
-			form.reset({
-				healthCheckSwarm: data.healthCheckSwarm
-					? JSON.stringify(data.healthCheckSwarm, null, 2)
-					: null,
-				restartPolicySwarm: data.restartPolicySwarm
-					? JSON.stringify(data.restartPolicySwarm, null, 2)
-					: null,
-				placementSwarm: data.placementSwarm
-					? JSON.stringify(data.placementSwarm, null, 2)
-					: null,
-				updateConfigSwarm: data.updateConfigSwarm
-					? JSON.stringify(data.updateConfigSwarm, null, 2)
-					: null,
-				rollbackConfigSwarm: data.rollbackConfigSwarm
-					? JSON.stringify(data.rollbackConfigSwarm, null, 2)
-					: null,
-				modeSwarm: data.modeSwarm
-					? JSON.stringify(data.modeSwarm, null, 2)
-					: null,
-				labelsSwarm: data.labelsSwarm
-					? JSON.stringify(data.labelsSwarm, null, 2)
-					: null,
-				networkSwarm: data.networkSwarm
-					? JSON.stringify(data.networkSwarm, null, 2)
-					: null,
-			});
-		}
-	}, [form, form.reset, data]);
-
-	const onSubmit = async (data: AddSwarmSettings) => {
-		await mutateAsync({
-			applicationId: id || "",
-			libsqlId: id || "",
-			mariadbId: id || "",
-			mongoId: id || "",
-			mysqlId: id || "",
-			postgresId: id || "",
-			redisId: id || "",
-			healthCheckSwarm: data.healthCheckSwarm,
-			restartPolicySwarm: data.restartPolicySwarm,
-			placementSwarm: data.placementSwarm,
-			updateConfigSwarm: data.updateConfigSwarm,
-			rollbackConfigSwarm: data.rollbackConfigSwarm,
-			modeSwarm: data.modeSwarm,
-			labelsSwarm: data.labelsSwarm,
-			networkSwarm: data.networkSwarm,
-		})
-			.then(async () => {
-				toast.success("Swarm settings updated");
-				refetch();
-			})
-			.catch(() => {
-				toast.error("Error updating the swarm settings");
-			});
-	};
 	const [activeMenu, setActiveMenu] = useState<string>("health-check");
 	const [open, setOpen] = useState(false);
 	return (
