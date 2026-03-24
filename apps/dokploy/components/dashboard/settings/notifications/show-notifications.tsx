@@ -122,7 +122,8 @@ export const ShowNotifications = () => {
 																	<TeamsIcon className="size-7 text-muted-foreground" />
 																</div>
 															)}
-															{notification.notificationType === "mattermost" && (
+															{notification.notificationType ===
+																"mattermost" && (
 																<div className="flex  items-center justify-center rounded-lg">
 																	<MattermostIcon className="size-7" />
 																</div>
