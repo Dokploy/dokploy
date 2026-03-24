@@ -33,6 +33,7 @@ export const findBackupById = async (backupId: string) => {
 			mysql: true,
 			mariadb: true,
 			mongo: true,
+			libsql: true,
 			destination: true,
 			compose: true,
 		},
@@ -72,7 +73,7 @@ export const removeBackupById = async (backupId: string) => {
 
 export const findBackupsByDbId = async (
 	id: string,
-	type: "postgres" | "mysql" | "mariadb" | "mongo",
+	type: "postgres" | "mysql" | "mariadb" | "mongo" | "libsql",
 ) => {
 	const result = await db.query.backups.findMany({
 		where: eq(backups[`${type}Id`], id),
@@ -81,6 +82,7 @@ export const findBackupsByDbId = async (
 			mysql: true,
 			mariadb: true,
 			mongo: true,
+			libsql: true,
 			destination: true,
 		},
 	});

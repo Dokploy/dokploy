@@ -15,6 +15,7 @@ import {
 	updateVolumeBackupSchema,
 	volumeBackups,
 } from "@dokploy/server/db/schema";
+import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import {
 	execAsyncRemote,
 	execAsyncStream,
@@ -25,7 +26,6 @@ import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
-import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
 export const volumeBackupsRouter = createTRPCRouter({
@@ -41,6 +41,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 					"mongo",
 					"redis",
 					"compose",
+					"libsql",
 				]),
 			}),
 		)
@@ -58,6 +59,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 					mongo: true,
 					redis: true,
 					compose: true,
+					libsql: true,
 				},
 				orderBy: [desc(volumeBackups.createdAt)],
 			});
@@ -72,6 +74,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 				input.mariadbId ||
 				input.mongoId ||
 				input.redisId ||
+				input.libsqlId ||
 				input.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -113,6 +116,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 				vb.mariadbId ||
 				vb.mongoId ||
 				vb.redisId ||
+				vb.libsqlId ||
 				vb.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -136,6 +140,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 				vb.mariadbId ||
 				vb.mongoId ||
 				vb.redisId ||
+				vb.libsqlId ||
 				vb.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -161,6 +166,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 				existingVb.mariadbId ||
 				existingVb.mongoId ||
 				existingVb.redisId ||
+				existingVb.libsqlId ||
 				existingVb.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -220,6 +226,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 				vb.mariadbId ||
 				vb.mongoId ||
 				vb.redisId ||
+				vb.libsqlId ||
 				vb.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {

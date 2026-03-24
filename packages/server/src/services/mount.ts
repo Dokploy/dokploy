@@ -32,8 +32,11 @@ export const createMount = async (input: z.infer<typeof apiCreateMount>) => {
 				...(input.serviceType === "application" && {
 					applicationId: serviceId,
 				}),
-				...(input.serviceType === "postgres" && {
-					postgresId: serviceId,
+				...(input.serviceType === "compose" && {
+					composeId: serviceId,
+				}),
+				...(input.serviceType === "libsql" && {
+					libsqlId: serviceId,
 				}),
 				...(input.serviceType === "mariadb" && {
 					mariadbId: serviceId,
@@ -44,11 +47,11 @@ export const createMount = async (input: z.infer<typeof apiCreateMount>) => {
 				...(input.serviceType === "mysql" && {
 					mysqlId: serviceId,
 				}),
+				...(input.serviceType === "postgres" && {
+					postgresId: serviceId,
+				}),
 				...(input.serviceType === "redis" && {
 					redisId: serviceId,
-				}),
-				...(input.serviceType === "compose" && {
-					composeId: serviceId,
 				}),
 			})
 			.returning()
@@ -115,7 +118,16 @@ export const findMountById = async (mountId: string) => {
 					},
 				},
 			},
-			postgres: {
+			compose: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			libsql: {
 				with: {
 					environment: {
 						with: {
@@ -151,7 +163,7 @@ export const findMountById = async (mountId: string) => {
 					},
 				},
 			},
-			redis: {
+			postgres: {
 				with: {
 					environment: {
 						with: {
@@ -160,7 +172,7 @@ export const findMountById = async (mountId: string) => {
 					},
 				},
 			},
-			compose: {
+			redis: {
 				with: {
 					environment: {
 						with: {
@@ -186,8 +198,11 @@ export const findMountOrganizationId = async (mountId: string) => {
 	if (mount.application) {
 		return mount.application.environment.project.organizationId;
 	}
-	if (mount.postgres) {
-		return mount.postgres.environment.project.organizationId;
+	if (mount.compose) {
+		return mount.compose.environment.project.organizationId;
+	}
+	if (mount.libsql) {
+		return mount.libsql.environment.project.organizationId;
 	}
 	if (mount.mariadb) {
 		return mount.mariadb.environment.project.organizationId;
@@ -198,13 +213,13 @@ export const findMountOrganizationId = async (mountId: string) => {
 	if (mount.mysql) {
 		return mount.mysql.environment.project.organizationId;
 	}
+	if (mount.postgres) {
+		return mount.postgres.environment.project.organizationId;
+	}
 	if (mount.redis) {
 		return mount.redis.environment.project.organizationId;
 	}
 
-	if (mount.compose) {
-		return mount.compose.environment.project.organizationId;
-	}
 	return null;
 };
 
@@ -248,8 +263,8 @@ export const findMountsByApplicationId = async (
 		case "application":
 			sqlChunks.push(eq(mounts.applicationId, serviceId));
 			break;
-		case "postgres":
-			sqlChunks.push(eq(mounts.postgresId, serviceId));
+		case "libsql":
+			sqlChunks.push(eq(mounts.libsqlId, serviceId));
 			break;
 		case "mariadb":
 			sqlChunks.push(eq(mounts.mariadbId, serviceId));
@@ -259,6 +274,9 @@ export const findMountsByApplicationId = async (
 			break;
 		case "mysql":
 			sqlChunks.push(eq(mounts.mysqlId, serviceId));
+			break;
+		case "postgres":
+			sqlChunks.push(eq(mounts.postgresId, serviceId));
 			break;
 		case "redis":
 			sqlChunks.push(eq(mounts.redisId, serviceId));
@@ -362,6 +380,10 @@ export const getBaseFilesPath = async (mountId: string) => {
 		const { COMPOSE_PATH } = paths(!!mount.compose.serverId);
 		appName = mount.compose.appName;
 		absoluteBasePath = path.resolve(COMPOSE_PATH);
+	} else if (mount.serviceType === "libsql" && mount.libsql) {
+		const { APPLICATIONS_PATH } = paths(!!mount.libsql.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
+		appName = mount.libsql.appName;
 	}
 	directoryPath = path.join(absoluteBasePath, appName, "files");
 
@@ -390,6 +412,9 @@ export const getServerId = async (mount: MountNested) => {
 	}
 	if (mount.serviceType === "compose" && mount?.compose?.serverId) {
 		return mount.compose.serverId;
+	}
+	if (mount.serviceType === "libsql" && mount?.libsql?.serverId) {
+		return mount.libsql.serverId;
 	}
 
 	return null;

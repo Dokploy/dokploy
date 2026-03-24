@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/router";
 import { type ComponentType, useEffect, useMemo, useState } from "react";
 import {
+	LibsqlIcon,
 	MariadbIcon,
 	MongodbIcon,
 	MysqlIcon,
@@ -58,6 +59,7 @@ type EnvironmentServiceCollections = {
 	mariadb: (NamedService & { mariadbId: string })[];
 	redis: (NamedService & { redisId: string })[];
 	mongo: (NamedService & { mongoId: string })[];
+	libsql: (NamedService & { libsqlId: string })[];
 };
 
 type ServiceCollections = Pick<
@@ -69,6 +71,7 @@ type ServiceCollections = Pick<
 	| "mariadb"
 	| "redis"
 	| "mongo"
+	| "libsql"
 >;
 
 const SERVICE_COLLECTION_KEYS = [
@@ -79,6 +82,7 @@ const SERVICE_COLLECTION_KEYS = [
 	"mariadb",
 	"redis",
 	"mongo",
+	"libsql",
 ] as const satisfies ReadonlyArray<keyof ServiceCollections>;
 
 const SERVICE_QUERY_KEYS = [
@@ -89,6 +93,7 @@ const SERVICE_QUERY_KEYS = [
 	"mariadbId",
 	"redisId",
 	"mongoId",
+	"libsqlId",
 ] as const;
 
 const SERVICE_ICONS: Record<
@@ -102,6 +107,7 @@ const SERVICE_ICONS: Record<
 	mariadb: MariadbIcon,
 	redis: RedisIcon,
 	mongo: MongodbIcon,
+	libsql: LibsqlIcon,
 };
 
 const getStringQueryParam = (value: string | string[] | undefined) =>
@@ -156,6 +162,7 @@ const extractServicesFromEnvironment = (
 		...mapServices(servicesByType.mariadb, (item) => item.mariadbId, "mariadb"),
 		...mapServices(servicesByType.redis, (item) => item.redisId, "redis"),
 		...mapServices(servicesByType.mongo, (item) => item.mongoId, "mongo"),
+		...mapServices(servicesByType.libsql, (item) => item.libsqlId, "libsql"),
 	];
 };
 

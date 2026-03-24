@@ -71,6 +71,7 @@ const formSchema = z
 			"mongo",
 			"mysql",
 			"redis",
+			"libsql",
 		]),
 		serviceName: z.string(),
 		destinationId: z.string().min(1, "Destination required"),

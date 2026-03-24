@@ -18,7 +18,8 @@ export const getVolumeServiceAppName = (
 		volumeBackup.mysql?.appName ||
 		volumeBackup.mariadb?.appName ||
 		volumeBackup.mongo?.appName ||
-		volumeBackup.redis?.appName;
+		volumeBackup.redis?.appName ||
+		volumeBackup.libsql?.appName;
 	return serviceAppName || volumeBackup.appName;
 };
 
