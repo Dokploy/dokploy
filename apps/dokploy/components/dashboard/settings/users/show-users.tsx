@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { Loader2, MoreHorizontal, Users } from "lucide-react";
 import { toast } from "sonner";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,6 @@ import {
 import {
 	Table,
 	TableBody,
-	TableCaption,
 	TableCell,
 	TableHead,
 	TableHeader,
@@ -30,12 +30,25 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { AddUserPermissions } from "./add-permissions";
+import { ChangeRole } from "./change-role";
 
 export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data, isLoading, refetch } = api.user.all.useQuery();
+	const { data, isPending, refetch } = api.user.all.useQuery();
 	const { mutateAsync } = api.user.remove.useMutation();
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const { data: hasValidLicense } =
+		api.licenseKey.haveValidLicenseKey.useQuery();
+
 	const utils = api.useUtils();
+	const { data: session } = api.user.session.useQuery();
+
+	const FREE_ROLES = ["owner", "admin", "member"];
+	const membersWithCustomRoles = data?.filter(
+		(member) => !FREE_ROLES.includes(member.role),
+	);
+	const hasCustomRolesWithoutLicense =
+		!hasValidLicense && (membersWithCustomRoles?.length ?? 0) > 0;
 
 	return (
 		<div className="w-full">
@@ -51,7 +64,7 @@ export const ShowUsers = () => {
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
-						{isLoading ? (
+						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
 								<Loader2 className="animate-spin size-4" />
@@ -67,8 +80,19 @@ export const ShowUsers = () => {
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
+										{hasCustomRolesWithoutLicense && (
+											<AlertBlock type="warning">
+												You have{" "}
+												{membersWithCustomRoles?.length === 1
+													? "1 user"
+													: `${membersWithCustomRoles?.length} users`}{" "}
+												assigned to custom roles. Custom roles will not work
+												without a valid Enterprise license. Please activate your
+												license or change these users to a free role (Admin or
+												Member).
+											</AlertBlock>
+										)}
 										<Table>
-											<TableCaption>See all users</TableCaption>
 											<TableHeader>
 												<TableRow>
 													<TableHead className="w-[100px]">Email</TableHead>
@@ -83,10 +107,60 @@ export const ShowUsers = () => {
 											</TableHeader>
 											<TableBody>
 												{data?.map((member) => {
+													const currentUserRole = data?.find(
+														(m) => m.user.id === session?.user?.id,
+													)?.role;
+
+													// Owner never has "Edit Permissions" (they're absolute owner)
+													// Other users can edit permissions if target is not themselves and target is a member/custom role
+													const isStaticAdminOrOwner =
+														member.role === "owner" || member.role === "admin";
+													const canEditPermissions =
+														!isStaticAdminOrOwner &&
+														member.user.id !== session?.user?.id;
+
+													// Can change role based on hierarchy:
+													// - Owner: Can change anyone's role (except themselves and other owners)
+													// - Admin: Can only change member/custom roles (not other admins or owners)
+													// - Owner role is intransferible
+													const canChangeRole =
+														member.role !== "owner" &&
+														member.user.id !== session?.user?.id &&
+														(currentUserRole === "owner" ||
+															(currentUserRole === "admin" &&
+																member.role !== "admin"));
+
+													const canDeleteMember =
+														permissions?.member.delete ?? false;
+
+													// Self-hosted: "Delete User" removes the user entirely
+													// Cloud: "Unlink User" removes from the organization only
+													const canRemove =
+														member.role !== "owner" &&
+														member.user.id !== session?.user?.id &&
+														(currentUserRole === "owner" ||
+															(currentUserRole === "admin" &&
+																member.role !== "admin") ||
+															(canDeleteMember && !isStaticAdminOrOwner));
+
+													const canDelete = canRemove && !isCloud;
+													const canUnlink = canRemove && !!isCloud;
+
+													const hasAnyAction =
+														canEditPermissions ||
+														canChangeRole ||
+														canDelete ||
+														canUnlink;
+
 													return (
 														<TableRow key={member.id}>
 															<TableCell className="w-[100px]">
 																{member.user.email}
+																{member.user.id === session?.user?.id && (
+																	<span className="text-muted-foreground ml-1">
+																		(You)
+																	</span>
+																)}
 															</TableCell>
 															<TableCell className="text-center">
 																<Badge
@@ -111,62 +185,72 @@ export const ShowUsers = () => {
 															</TableCell>
 
 															<TableCell className="text-right flex justify-end">
-																<DropdownMenu>
-																	<DropdownMenuTrigger asChild>
-																		<Button
-																			variant="ghost"
-																			className="h-8 w-8 p-0"
-																		>
-																			<span className="sr-only">Open menu</span>
-																			<MoreHorizontal className="h-4 w-4" />
-																		</Button>
-																	</DropdownMenuTrigger>
-																	<DropdownMenuContent align="end">
-																		<DropdownMenuLabel>
-																			Actions
-																		</DropdownMenuLabel>
+																{hasAnyAction ? (
+																	<DropdownMenu>
+																		<DropdownMenuTrigger asChild>
+																			<Button
+																				variant="ghost"
+																				className="h-8 w-8 p-0"
+																			>
+																				<span className="sr-only">
+																					Open menu
+																				</span>
+																				<MoreHorizontal className="h-4 w-4" />
+																			</Button>
+																		</DropdownMenuTrigger>
+																		<DropdownMenuContent align="end">
+																			<DropdownMenuLabel>
+																				Actions
+																			</DropdownMenuLabel>
 
-																		{member.role !== "owner" && (
-																			<AddUserPermissions
-																				userId={member.user.id}
-																			/>
-																		)}
+																			{canChangeRole && (
+																				<ChangeRole
+																					memberId={member.id}
+																					currentRole={member.role}
+																					userEmail={member.user.email}
+																				/>
+																			)}
 
-																		{member.role !== "owner" && (
-																			<>
-																				{!isCloud && (
-																					<DialogAction
-																						title="Delete User"
-																						description="Are you sure you want to delete this user?"
-																						type="destructive"
-																						onClick={async () => {
-																							await mutateAsync({
-																								userId: member.user.id,
+																			{canEditPermissions && (
+																				<AddUserPermissions
+																					userId={member.user.id}
+																					role={member.role}
+																				/>
+																			)}
+
+																			{canDelete && (
+																				<DialogAction
+																					title="Delete User"
+																					description="Are you sure you want to delete this user?"
+																					type="destructive"
+																					onClick={async () => {
+																						await mutateAsync({
+																							userId: member.user.id,
+																						})
+																							.then(() => {
+																								toast.success(
+																									"User deleted successfully",
+																								);
+																								refetch();
 																							})
-																								.then(() => {
-																									toast.success(
-																										"User deleted successfully",
-																									);
-																									refetch();
-																								})
-																								.catch(() => {
-																									toast.error(
-																										"Error deleting destination",
-																									);
-																								});
-																						}}
+																							.catch((err) => {
+																								toast.error(
+																									err?.message ||
+																										"Error deleting user",
+																								);
+																							});
+																					}}
+																				>
+																					<DropdownMenuItem
+																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																						onSelect={(e) => e.preventDefault()}
 																					>
-																						<DropdownMenuItem
-																							className="w-full cursor-pointer text-red-500 hover:!text-red-600"
-																							onSelect={(e) =>
-																								e.preventDefault()
-																							}
-																						>
-																							Delete User
-																						</DropdownMenuItem>
-																					</DialogAction>
-																				)}
+																						Delete User
+																					</DropdownMenuItem>
+																				</DialogAction>
+																			)}
 
+																			{canUnlink && (
 																				<DialogAction
 																					title="Unlink User"
 																					description="Are you sure you want to unlink this user?"
@@ -179,8 +263,6 @@ export const ShowUsers = () => {
 																										userId: member.user.id,
 																									},
 																								);
-
-																							console.log(orgCount);
 
 																							if (orgCount === 1) {
 																								await mutateAsync({
@@ -227,10 +309,21 @@ export const ShowUsers = () => {
 																						Unlink User
 																					</DropdownMenuItem>
 																				</DialogAction>
-																			</>
-																		)}
-																	</DropdownMenuContent>
-																</DropdownMenu>
+																			)}
+																		</DropdownMenuContent>
+																	</DropdownMenu>
+																) : (
+																	<Button
+																		variant="ghost"
+																		className="h-8 w-8 p-0"
+																		disabled
+																	>
+																		<span className="sr-only">
+																			No actions available
+																		</span>
+																		<MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+																	</Button>
+																)}
 															</TableCell>
 														</TableRow>
 													);

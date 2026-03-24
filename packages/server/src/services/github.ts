@@ -6,12 +6,13 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import type { z } from "zod";
 import { authGithub } from "../utils/providers/github";
 import { updatePreviewDeployment } from "./preview-deployment";
 
 export type Github = typeof github.$inferSelect;
 export const createGithub = async (
-	input: typeof apiCreateGithub._type,
+	input: z.infer<typeof apiCreateGithub>,
 	organizationId: string,
 	userId: string,
 ) => {

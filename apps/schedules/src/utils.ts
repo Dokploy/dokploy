@@ -1,7 +1,6 @@
 import {
-	cleanUpDockerBuilder,
-	cleanUpSystemPrune,
-	cleanUpUnusedImages,
+	CLEANUP_CRON_JOB,
+	cleanupAll,
 	findBackupById,
 	findScheduleById,
 	findServerById,
@@ -9,20 +8,22 @@ import {
 	keepLatestNBackups,
 	runCommand,
 	runComposeBackup,
+	runLibsqlBackup,
 	runMariadbBackup,
 	runMongoBackup,
 	runMySqlBackup,
 	runPostgresBackup,
 	runVolumeBackup,
 } from "@dokploy/server";
-import { db } from "@dokploy/server/dist/db";
 import {
+	and,
 	backups,
+	db,
+	eq,
 	schedules,
 	server,
 	volumeBackups,
-} from "@dokploy/server/dist/db/schema";
-import { and, eq } from "drizzle-orm";
+} from "@dokploy/server/db";
 import { logger } from "./logger.js";
 import { scheduleJob } from "./queue.js";
 import type { QueueJob } from "./schema.js";
@@ -38,6 +39,7 @@ export const runJobs = async (job: QueueJob) => {
 				mysql,
 				mongo,
 				mariadb,
+				libsql,
 				compose,
 				backupType,
 			} = backup;
@@ -75,6 +77,14 @@ export const runJobs = async (job: QueueJob) => {
 					}
 					await runMariadbBackup(mariadb, backup);
 					await keepLatestNBackups(backup, server.serverId);
+				} else if (databaseType === "libsql" && libsql) {
+					const server = await findServerById(libsql.serverId as string);
+					if (server.serverStatus === "inactive") {
+						logger.info("Server is inactive");
+						return;
+					}
+					await runLibsqlBackup(libsql, backup);
+					await keepLatestNBackups(backup, server.serverId);
 				}
 			} else if (backupType === "compose" && compose) {
 				const server = await findServerById(compose.serverId as string);
@@ -83,6 +93,7 @@ export const runJobs = async (job: QueueJob) => {
 					return;
 				}
 				await runComposeBackup(compose, backup);
+				await keepLatestNBackups(backup, server.serverId);
 			}
 		} else if (job.type === "server") {
 			const { serverId } = job;
@@ -91,9 +102,7 @@ export const runJobs = async (job: QueueJob) => {
 				logger.info("Server is inactive");
 				return;
 			}
-			await cleanUpUnusedImages(serverId);
-			await cleanUpDockerBuilder(serverId);
-			await cleanUpSystemPrune(serverId);
+			await cleanupAll(serverId);
 		} else if (job.type === "schedule") {
 			const { scheduleId } = job;
 			const schedule = await findScheduleById(scheduleId);
@@ -129,7 +138,7 @@ export const initializeJobs = async () => {
 		scheduleJob({
 			serverId,
 			type: "server",
-			cronSchedule: "0 0 * * *",
+			cronSchedule: CLEANUP_CRON_JOB,
 		});
 	}
 
@@ -142,6 +151,7 @@ export const initializeJobs = async () => {
 			mysql: true,
 			postgres: true,
 			mongo: true,
+			libsql: true,
 			compose: true,
 		},
 	});

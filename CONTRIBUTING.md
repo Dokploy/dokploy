@@ -2,7 +2,7 @@
 
 Hey, thanks for your interest in contributing to Dokploy! We appreciate your help and taking your time to contribute.
 
-Before you start, please first discuss the feature/bug you want to add with the owners and comunity via github issues.
+Before you start, please first discuss the feature/bug you want to add with the owners and community via github issues.
 
 We have a few guidelines to follow when contributing to this project:
 
@@ -11,6 +11,7 @@ We have a few guidelines to follow when contributing to this project:
 - [Development](#development)
 - [Build](#build)
 - [Pull Request](#pull-request)
+- [Important Considerations](#important-considerations-for-pull-requests)
 
 ## Commit Convention
 
@@ -52,7 +53,7 @@ feat: add new feature
 
 Before you start, please make the clone based on the `canary` branch, since the `main` branch is the source of truth and should always reflect the latest stable release, also the PRs will be merged to the `canary` branch.
 
-We use Node v20.16.0 and recommend this specific version. If you have nvm installed, you can run `nvm install 20.16.0 && nvm use` in the root directory.
+We use Node v24.4.0 and recommend this specific version. If you have nvm installed, you can run `nvm install 24.4.0 && nvm use` in the root directory.
 
 ```bash
 git clone https://github.com/dokploy/dokploy.git
@@ -155,7 +156,7 @@ curl -sSL https://railpack.com/install.sh | sh
 
 ```bash
 # Install Buildpacks
-curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v0.35.0-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
+curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.39.1/pack-v0.39.1-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
 ```
 
 ## Pull Request
@@ -169,11 +170,13 @@ curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v0.
 - If your pull request fixes an open issue, please reference the issue in the pull request description.
 - Once your pull request is merged, you will be automatically added as a contributor to the project.
 
-**Important Considerations for Pull Requests:**
+### Important Considerations for Pull Requests
 
+- **Testing is Mandatory:** All Pull Requests **must be tested** by the PR author before submission. You must verify that your changes work as expected in a local development environment (see [Setup](#setup)). **Pull Requests that have not been tested by their creator will be rejected.** This policy keeps the PR history clean and values contributors who submit verified, working code. Untested PRs are often recognizable by disproportionately large or scattered changes for simple tasks—please test first.
 - **Focus and Scope:** Each Pull Request should ideally address a single, well-defined problem or introduce one new feature. This greatly facilitates review and reduces the chances of introducing unintended side effects.
 - **Avoid Unfocused Changes:** Please avoid submitting Pull Requests that contain only minor changes such as whitespace adjustments, IDE-generated formatting, or removal of unused variables, unless these are part of a larger, clearly defined refactor or a dedicated "cleanup" Pull Request that addresses a specific `good first issue` or maintenance task.
 - **Issue Association:** For any significant change, it's highly recommended to open an issue first to discuss the proposed solution with the community and maintainers. This ensures alignment and avoids duplicated effort. If your PR resolves an existing issue, please link it in the description (e.g., `Fixes #123`, `Closes #456`).
+- **Large Features:** Pull Requests that introduce very large or broad features **will not be accepted** unless the idea is first outlined and discussed in a GitHub issue. Large features should be designed together with the Dokploy team so the project stays coherent and moves in the same direction. Open an issue to propose and align on the design before implementing.
 
 Thank you for your contribution!
 

@@ -1,7 +1,6 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, User } from "lucide-react";
-import { useTranslation } from "next-i18next";
-import { useEffect, useMemo, useState } from "react";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { Loader2, Palette, User } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -27,9 +26,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
+import { getAvatarType, isSolidColorAvatar } from "@/lib/avatar-utils";
 import { generateSHA256Hash, getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { Disable2FA } from "./disable-2fa";
+import { Configure2FA } from "./configure-2fa";
 import { Enable2FA } from "./enable-2fa";
 
 const profileSchema = z.object({
@@ -40,7 +40,8 @@ const profileSchema = z.object({
 	password: z.string().nullable(),
 	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
-	name: z.string().optional(),
+	firstName: z.string().optional(),
+	lastName: z.string().optional(),
 	allowImpersonation: z.boolean().optional().default(false),
 });
 
@@ -62,18 +63,17 @@ const randomImages = [
 ];
 
 export const ProfileForm = () => {
-	const _utils = api.useUtils();
-	const { data, refetch, isLoading } = api.user.get.useQuery();
+	const { data, refetch, isPending } = api.user.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	const {
 		mutateAsync,
-		isLoading: isUpdating,
+		isPending: isUpdating,
 		isError,
 		error,
 	} = api.user.update.useMutation();
-	const { t } = useTranslation("settings");
 	const [gravatarHash, setGravatarHash] = useState<string | null>(null);
+	const colorInputRef = useRef<HTMLInputElement>(null);
 
 	const availableAvatars = useMemo(() => {
 		if (gravatarHash === null) return randomImages;
@@ -82,14 +82,15 @@ export const ProfileForm = () => {
 		]);
 	}, [gravatarHash]);
 
-	const form = useForm<Profile>({
+	const form = useForm({
 		defaultValues: {
 			email: data?.user?.email || "",
 			password: "",
 			image: data?.user?.image || "",
 			currentPassword: "",
 			allowImpersonation: data?.user?.allowImpersonation || false,
-			name: data?.user?.name || "",
+			firstName: data?.user?.firstName || "",
+			lastName: data?.user?.lastName || "",
 		},
 		resolver: zodResolver(profileSchema),
 	});
@@ -103,7 +104,8 @@ export const ProfileForm = () => {
 					image: data?.user?.image || "",
 					currentPassword: form.getValues("currentPassword") || "",
 					allowImpersonation: data?.user?.allowImpersonation,
-					name: data?.user?.name || "",
+					firstName: data?.user?.firstName || "",
+					lastName: data?.user?.lastName || "",
 				},
 				{
 					keepValues: true,
@@ -120,28 +122,29 @@ export const ProfileForm = () => {
 	}, [form, data]);
 
 	const onSubmit = async (values: Profile) => {
-		await mutateAsync({
-			email: values.email.toLowerCase(),
-			password: values.password || undefined,
-			image: values.image,
-			currentPassword: values.currentPassword || undefined,
-			allowImpersonation: values.allowImpersonation,
-			name: values.name || undefined,
-		})
-			.then(async () => {
-				await refetch();
-				toast.success("Profile Updated");
-				form.reset({
-					email: values.email,
-					password: "",
-					image: values.image,
-					currentPassword: "",
-					name: values.name || "",
-				});
-			})
-			.catch(() => {
-				toast.error("Error updating the profile");
+		try {
+			await mutateAsync({
+				email: values.email.toLowerCase(),
+				password: values.password || undefined,
+				image: values.image,
+				currentPassword: values.currentPassword || undefined,
+				allowImpersonation: values.allowImpersonation,
+				firstName: values.firstName || undefined,
+				lastName: values.lastName || undefined,
 			});
+			await refetch();
+			toast.success("Profile Updated");
+			form.reset({
+				email: values.email,
+				password: "",
+				image: values.image,
+				currentPassword: "",
+				firstName: values.firstName || "",
+				lastName: values.lastName || "",
+			});
+		} catch (error) {
+			toast.error("Error updating the profile");
+		}
 	};
 
 	return (
@@ -152,18 +155,19 @@ export const ProfileForm = () => {
 						<div>
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<User className="size-6 text-muted-foreground self-center" />
-								{t("settings.profile.title")}
+								Account
 							</CardTitle>
 							<CardDescription>
-								{t("settings.profile.description")}
+								Change the details of your profile here.
 							</CardDescription>
 						</div>
-						{!data?.user.twoFactorEnabled ? <Enable2FA /> : <Disable2FA />}
+
+						{!data?.user.twoFactorEnabled ? <Enable2FA /> : <Configure2FA />}
 					</CardHeader>
 
 					<CardContent className="space-y-2 py-8 border-t">
 						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
-						{isLoading ? (
+						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[35vh]">
 								<span>Loading...</span>
 								<Loader2 className="animate-spin size-4" />
@@ -178,12 +182,25 @@ export const ProfileForm = () => {
 										<div className="space-y-4">
 											<FormField
 												control={form.control}
-												name="name"
+												name="firstName"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Name</FormLabel>
+														<FormLabel>First Name</FormLabel>
 														<FormControl>
-															<Input placeholder="Name" {...field} />
+															<Input placeholder="John" {...field} />
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name="lastName"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Last Name</FormLabel>
+														<FormControl>
+															<Input placeholder="Doe" {...field} />
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -194,12 +211,9 @@ export const ProfileForm = () => {
 												name="email"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>{t("settings.profile.email")}</FormLabel>
+														<FormLabel>Email</FormLabel>
 														<FormControl>
-															<Input
-																placeholder={t("settings.profile.email")}
-																{...field}
-															/>
+															<Input placeholder="Email" {...field} />
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -214,7 +228,7 @@ export const ProfileForm = () => {
 														<FormControl>
 															<Input
 																type="password"
-																placeholder={t("settings.profile.password")}
+																placeholder="Current Password"
 																{...field}
 																value={field.value || ""}
 															/>
@@ -228,13 +242,11 @@ export const ProfileForm = () => {
 												name="password"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>
-															{t("settings.profile.password")}
-														</FormLabel>
+														<FormLabel>Password</FormLabel>
 														<FormControl>
 															<Input
 																type="password"
-																placeholder={t("settings.profile.password")}
+																placeholder="Password"
 																{...field}
 																value={field.value || ""}
 															/>
@@ -249,24 +261,14 @@ export const ProfileForm = () => {
 												name="image"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>
-															{t("settings.profile.avatar")}
-														</FormLabel>
+														<FormLabel>Avatar</FormLabel>
 														<FormControl>
 															<RadioGroup
 																onValueChange={(e) => {
 																	field.onChange(e);
 																}}
-																defaultValue={
-																	field.value?.startsWith("data:")
-																		? "upload"
-																		: field.value
-																}
-																value={
-																	field.value?.startsWith("data:")
-																		? "upload"
-																		: field.value
-																}
+																defaultValue={getAvatarType(field.value)}
+																value={getAvatarType(field.value)}
 																className="flex flex-row flex-wrap gap-2 max-xl:justify-center"
 															>
 																<FormItem key="no-avatar">
@@ -281,7 +283,7 @@ export const ProfileForm = () => {
 																		<Avatar className="default-avatar h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-transform">
 																			<AvatarFallback className="rounded-lg">
 																				{getFallbackAvatarInitials(
-																					data?.user?.name,
+																					`${data?.user?.firstName} ${data?.user?.lastName}`.trim(),
 																				)}
 																			</AvatarFallback>
 																		</Avatar>
@@ -304,6 +306,7 @@ export const ProfileForm = () => {
 																			}
 																		>
 																			{field.value?.startsWith("data:") ? (
+																				// biome-ignore lint/performance/noImgElement: this is an justified use of img element
 																				<img
 																					src={field.value}
 																					alt="Custom avatar"
@@ -352,6 +355,40 @@ export const ProfileForm = () => {
 																		/>
 																	</FormLabel>
 																</FormItem>
+																<FormItem key="color-avatar">
+																	<FormLabel className="[&:has([data-state=checked])>.color-avatar]:border-primary [&:has([data-state=checked])>.color-avatar]:border-1 [&:has([data-state=checked])>.color-avatar]:p-px cursor-pointer relative">
+																		<FormControl>
+																			<RadioGroupItem
+																				value="color"
+																				className="sr-only"
+																			/>
+																		</FormControl>
+																		<div
+																			className="color-avatar h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-colors flex items-center justify-center overflow-hidden cursor-pointer"
+																			style={{
+																				backgroundColor: isSolidColorAvatar(
+																					field.value,
+																				)
+																					? field.value
+																					: undefined,
+																			}}
+																			onClick={() =>
+																				colorInputRef.current?.click()
+																			}
+																		>
+																			{!isSolidColorAvatar(field.value) && (
+																				<Palette className="h-5 w-5 text-muted-foreground" />
+																			)}
+																		</div>
+																		<input
+																			ref={colorInputRef}
+																			type="color"
+																			className="absolute opacity-0 pointer-events-none w-12 h-12 top-0 left-0"
+																			value={field.value}
+																			onChange={field.onChange}
+																		/>
+																	</FormLabel>
+																</FormItem>
 																{availableAvatars.map((image) => (
 																	<FormItem key={image}>
 																		<FormLabel className="[&:has([data-state=checked])>img]:border-primary [&:has([data-state=checked])>img]:border-1 [&:has([data-state=checked])>img]:p-px cursor-pointer">
@@ -362,6 +399,7 @@ export const ProfileForm = () => {
 																				/>
 																			</FormControl>
 
+																			{/* biome-ignore lint/performance/noImgElement: this is an justified use of img element */}
 																			<img
 																				key={image}
 																				src={image}
@@ -407,7 +445,7 @@ export const ProfileForm = () => {
 
 										<div className="flex items-center justify-end gap-2">
 											<Button type="submit" isLoading={isUpdating}>
-												{t("settings.common.save")}
+												Save
 											</Button>
 										</div>
 									</form>

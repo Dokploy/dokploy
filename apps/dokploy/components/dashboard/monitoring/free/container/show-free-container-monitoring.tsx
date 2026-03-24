@@ -10,7 +10,7 @@ import { DockerNetworkChart } from "./docker-network-chart";
 
 const defaultData = {
 	cpu: {
-		value: 0,
+		value: "0%",
 		time: "",
 	},
 	memory: {
@@ -46,7 +46,7 @@ interface Props {
 }
 export interface DockerStats {
 	cpu: {
-		value: number;
+		value: string;
 		time: string;
 	};
 	memory: {
@@ -183,12 +183,13 @@ export const ContainerFreeMonitoring = ({
 
 			setCurrentData(data);
 
+			const MAX_DATA_POINTS = 300;
 			setAcummulativeData((prevData) => ({
-				cpu: [...prevData.cpu, data.cpu],
-				memory: [...prevData.memory, data.memory],
-				block: [...prevData.block, data.block],
-				network: [...prevData.network, data.network],
-				disk: [...prevData.disk, data.disk],
+				cpu: [...prevData.cpu, data.cpu].slice(-MAX_DATA_POINTS),
+				memory: [...prevData.memory, data.memory].slice(-MAX_DATA_POINTS),
+				block: [...prevData.block, data.block].slice(-MAX_DATA_POINTS),
+				network: [...prevData.network, data.network].slice(-MAX_DATA_POINTS),
+				disk: [...prevData.disk, data.disk].slice(-MAX_DATA_POINTS),
 			}));
 		};
 
@@ -220,7 +221,13 @@ export const ContainerFreeMonitoring = ({
 							<span className="text-sm text-muted-foreground">
 								Used: {currentData.cpu.value}
 							</span>
-							<Progress value={currentData.cpu.value} className="w-[100%]" />
+							<Progress
+								value={Number.parseInt(
+									currentData.cpu.value.replace("%", ""),
+									10,
+								)}
+								className="w-[100%]"
+							/>
 							<DockerCpuChart acummulativeData={acummulativeData.cpu} />
 						</div>
 					</CardContent>

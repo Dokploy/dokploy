@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -46,7 +46,13 @@ export type CacheType = "fetch" | "cache";
 
 export const domain = z
 	.object({
-		host: z.string().min(1, { message: "Add a hostname" }),
+		host: z
+			.string()
+			.min(1, { message: "Add a hostname" })
+			.refine((val) => val === val.trim(), {
+				message: "Domain name cannot have leading or trailing spaces",
+			})
+			.transform((val) => val.trim()),
 		path: z.string().min(1).optional(),
 		internalPath: z.string().optional(),
 		stripPath: z.boolean().optional(),
@@ -153,11 +159,11 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 					},
 				);
 
-	const { mutateAsync, isError, error, isLoading } = domainId
+	const { mutateAsync, isError, error, isPending } = domainId
 		? api.domain.update.useMutation()
 		: api.domain.create.useMutation();
 
-	const { mutateAsync: generateDomain, isLoading: isLoadingGenerate } =
+	const { mutateAsync: generateDomain, isPending: isLoadingGenerate } =
 		api.domain.generateDomain.useMutation();
 
 	const { data: canGenerateTraefikMeDomains } =
@@ -202,6 +208,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const certificateType = form.watch("certificateType");
 	const https = form.watch("https");
 	const domainType = form.watch("domainType");
+	const host = form.watch("host");
+	const isTraefikMeDomain = host?.includes("traefik.me") || false;
 
 	useEffect(() => {
 		if (data) {
@@ -232,7 +240,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				domainType: type,
 			});
 		}
-	}, [form, data, isLoading, domainId]);
+	}, [form, data, isPending, domainId]);
 
 	// Separate effect for handling custom cert resolver validation
 	useEffect(() => {
@@ -298,6 +306,13 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 					<DialogDescription>{dictionary.dialogDescription}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+
+				{type === "compose" && (
+					<AlertBlock type="info" className="mb-4">
+						Whenever you make changes to domains, remember to redeploy your
+						compose to apply the changes.
+					</AlertBlock>
+				)}
 
 				<Form {...form}>
 					<form
@@ -489,6 +504,13 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 														to make your traefik.me domain work.
 													</AlertBlock>
 												)}
+											{isTraefikMeDomain && (
+												<AlertBlock type="info">
+													<strong>Note:</strong> traefik.me is a public HTTP
+													service and does not support SSL/HTTPS. HTTPS and
+													certificate options will not have any effect.
+												</AlertBlock>
+											)}
 											<FormLabel>Host</FormLabel>
 											<div className="flex gap-2">
 												<FormControl>
@@ -708,7 +730,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 					</form>
 
 					<DialogFooter>
-						<Button isLoading={isLoading} form="hook-form" type="submit">
+						<Button isLoading={isPending} form="hook-form" type="submit">
 							{dictionary.submit}
 						</Button>
 					</DialogFooter>

@@ -9,10 +9,10 @@ import {
 	removePreviewDeployment,
 	shouldDeploy,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/server/db";
 import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
@@ -128,7 +128,9 @@ export default async function handler(
 
 				if (IS_CLOUD && app.serverId) {
 					jobData.serverId = app.serverId;
-					await deploy(jobData);
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
 					continue;
 				}
 				await myQueue.add(
@@ -165,7 +167,9 @@ export default async function handler(
 
 				if (IS_CLOUD && composeApp.serverId) {
 					jobData.serverId = composeApp.serverId;
-					await deploy(jobData);
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
 					continue;
 				}
 
@@ -246,7 +250,9 @@ export default async function handler(
 
 				if (IS_CLOUD && app.serverId) {
 					jobData.serverId = app.serverId;
-					await deploy(jobData);
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
 					continue;
 				}
 				await myQueue.add(
@@ -291,7 +297,9 @@ export default async function handler(
 				}
 				if (IS_CLOUD && composeApp.serverId) {
 					jobData.serverId = composeApp.serverId;
-					await deploy(jobData);
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
 					continue;
 				}
 
@@ -347,6 +355,12 @@ export default async function handler(
 			action === "labeled" ||
 			action === "unlabeled"
 		) {
+			const shouldCreateDeployment =
+				action === "opened" ||
+				action === "synchronize" ||
+				action === "reopened" ||
+				action === "labeled";
+
 			const repository = githubBody?.repository?.name;
 			const deploymentHash = githubBody?.pull_request?.head?.sha;
 			const branch = githubBody?.pull_request?.base?.ref;
@@ -467,7 +481,7 @@ export default async function handler(
 				let previewDeploymentId =
 					previewDeploymentResult?.previewDeploymentId || "";
 
-				if (!previewDeploymentResult) {
+				if (!previewDeploymentResult && shouldCreateDeployment) {
 					const previewDeployment = await createPreviewDeployment({
 						applicationId: app.applicationId as string,
 						branch: prBranch,
@@ -489,19 +503,23 @@ export default async function handler(
 					previewDeploymentId,
 				};
 
-				if (IS_CLOUD && app.serverId) {
-					jobData.serverId = app.serverId;
-					await deploy(jobData);
-					continue;
+				if (previewDeploymentId) {
+					if (IS_CLOUD && app.serverId) {
+						jobData.serverId = app.serverId;
+						deploy(jobData).catch((error) => {
+							console.error("Background deployment failed:", error);
+						});
+						continue;
+					}
+					await myQueue.add(
+						"deployments",
+						{ ...jobData },
+						{
+							removeOnComplete: true,
+							removeOnFail: true,
+						},
+					);
 				}
-				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
-				);
 			}
 			return res.status(200).json({ message: "Apps Deployed" });
 		}

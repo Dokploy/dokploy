@@ -14,7 +14,7 @@ import {
 export type TemplateProps = {
 	projectName: string;
 	applicationName: string;
-	databaseType: "postgres" | "mysql" | "mongodb" | "mariadb";
+	databaseType: "postgres" | "mysql" | "mongodb" | "mariadb" | "libsql";
 	type: "error" | "success";
 	errorMessage?: string;
 	date: string;

@@ -37,7 +37,16 @@ export const generateRandomDomain = ({
 	const hash = randomBytes(3).toString("hex");
 	const slugIp = serverIp.replaceAll(".", "-").replaceAll(":", "-");
 
-	return `${projectName}-${hash}${slugIp === "" ? "" : `-${slugIp}`}.traefik.me`;
+	// Domain labels have a max length of 63 characters
+	// Reserve space for: hash (6) + separators (1-2) + ip section + dot + traefik.me (10)
+	// Approx: 6 + 2 + (variable ip length) + 11 = ~19-30 chars for other parts
+	const maxProjectNameLength = 40;
+	const truncatedProjectName =
+		projectName.length > maxProjectNameLength
+			? projectName.substring(0, maxProjectNameLength)
+			: projectName;
+
+	return `${truncatedProjectName}-${hash}${slugIp === "" ? "" : `-${slugIp}`}.traefik.me`;
 };
 
 export const generateHash = (length = 8): string => {

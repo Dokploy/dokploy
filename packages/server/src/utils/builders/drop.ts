@@ -3,6 +3,7 @@ import path, { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { Application } from "@dokploy/server/services/application";
 import { findServerById } from "@dokploy/server/services/server";
+import { readValidDirectory } from "@dokploy/server/wss/utils";
 import AdmZip from "adm-zip";
 import { Client, type SFTPWrapper } from "ssh2";
 import {
@@ -16,10 +17,13 @@ export const unzipDrop = async (zipFile: File, application: Application) => {
 
 	try {
 		const { appName } = application;
-		const { APPLICATIONS_PATH } = paths(!!application.serverId);
+		// Use buildServerId if set, otherwise fall back to serverId
+		// This ensures the code is extracted to the server where the build will run
+		const targetServerId = application.buildServerId || application.serverId;
+		const { APPLICATIONS_PATH } = paths(!!targetServerId);
 		const outputPath = join(APPLICATIONS_PATH, appName, "code");
-		if (application.serverId) {
-			await recreateDirectoryRemote(outputPath, application.serverId);
+		if (targetServerId) {
+			await recreateDirectoryRemote(outputPath, targetServerId);
 		} else {
 			await recreateDirectory(outputPath);
 		}
@@ -45,8 +49,8 @@ export const unzipDrop = async (zipFile: File, application: Application) => {
 			? rootEntries[0]?.entryName.split("/")[0]
 			: "";
 
-		if (application.serverId) {
-			sftp = await getSFTPConnection(application.serverId);
+		if (targetServerId) {
+			sftp = await getSFTPConnection(targetServerId);
 		}
 		for (const entry of zipEntries) {
 			let filePath = entry.entryName;
@@ -62,16 +66,24 @@ export const unzipDrop = async (zipFile: File, application: Application) => {
 			if (!filePath) continue;
 
 			const fullPath = path.join(outputPath, filePath).replace(/\\/g, "/");
+			if (!readValidDirectory(fullPath, application.serverId)) {
+				throw new Error(
+					`Path traversal detected: resolved path escapes output directory: ${filePath}`,
+				);
+			}
 
-			if (application.serverId) {
+			if (isDangerousNode(entry)) {
+				throw new Error(
+					`Dangerous node entries are not allowed: ${entry.entryName}`,
+				);
+			}
+
+			if (targetServerId) {
 				if (!entry.isDirectory) {
 					if (sftp === null) throw new Error("No SFTP connection available");
 					try {
 						const dirPath = path.dirname(fullPath);
-						await execAsyncRemote(
-							application.serverId,
-							`mkdir -p "${dirPath}"`,
-						);
+						await execAsyncRemote(targetServerId, `mkdir -p "${dirPath}"`);
 						await uploadFileToServer(sftp, entry.getData(), fullPath);
 					} catch (err) {
 						console.error(`Error uploading file ${fullPath}:`, err);
@@ -132,3 +144,14 @@ const uploadFileToServer = (
 		});
 	});
 };
+
+function isDangerousNode(entry: AdmZip.IZipEntry) {
+	const type = (entry.header.attr >> 16) & 0o170000;
+
+	return (
+		type === 0o120000 || // symlink
+		type === 0o060000 || // block device
+		type === 0o020000 || // char device
+		type === 0o010000 // fifo/pipe
+	);
+}

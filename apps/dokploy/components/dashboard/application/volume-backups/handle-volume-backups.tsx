@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { DatabaseZap, PenBoxIcon, PlusCircle, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -47,7 +47,13 @@ const formSchema = z
 	.object({
 		name: z.string().min(1, "Name is required"),
 		cronExpression: z.string().min(1, "Cron expression is required"),
-		volumeName: z.string().min(1, "Volume name is required"),
+		volumeName: z
+			.string()
+			.min(1, "Volume name is required")
+			.regex(
+				/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/,
+				"Invalid volume name. Use letters, numbers, '._-' and start with a letter/number.",
+			),
 		prefix: z.string(),
 		keepLatestCount: z.coerce
 			.number()
@@ -65,6 +71,7 @@ const formSchema = z
 			"mongo",
 			"mysql",
 			"redis",
+			"libsql",
 		]),
 		serviceName: z.string(),
 		destinationId: z.string().min(1, "Destination required"),
@@ -110,7 +117,7 @@ export const HandleVolumeBackups = ({
 	const [keepLatestCountInput, setKeepLatestCountInput] = useState("");
 
 	const utils = api.useUtils();
-	const form = useForm<z.infer<typeof formSchema>>({
+	const form = useForm({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			name: "",
@@ -189,7 +196,7 @@ export const HandleVolumeBackups = ({
 		}
 	}, [form, volumeBackup, volumeBackupId]);
 
-	const { mutateAsync, isLoading } = volumeBackupId
+	const { mutateAsync, isPending } = volumeBackupId
 		? api.volumeBackups.update.useMutation()
 		: api.volumeBackups.create.useMutation();
 
@@ -201,7 +208,7 @@ export const HandleVolumeBackups = ({
 
 		await mutateAsync({
 			...values,
-			keepLatestCount: preparedKeepLatestCount,
+			keepLatestCount: preparedKeepLatestCount ?? undefined,
 			destinationId: values.destinationId,
 			volumeBackupId: volumeBackupId || "",
 			serviceType: volumeBackupType,
@@ -624,7 +631,7 @@ export const HandleVolumeBackups = ({
 							)}
 						/>
 
-						<Button type="submit" isLoading={isLoading} className="w-full">
+						<Button type="submit" isLoading={isPending} className="w-full">
 							{volumeBackupId ? "Update" : "Create"} Volume Backup
 						</Button>
 					</form>
