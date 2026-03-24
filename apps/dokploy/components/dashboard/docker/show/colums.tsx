@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ShowContainerConfig } from "../config/show-container-config";
 import { ShowDockerModalLogs } from "../logs/show-docker-modal-logs";
+import { RemoveContainerDialog } from "../remove/remove-container";
 import { DockerTerminalModal } from "../terminal/docker-terminal-modal";
 import type { Container } from "./show-containers";
 
@@ -127,6 +128,7 @@ export const columns: ColumnDef<Container>[] = [
 						>
 							Terminal
 						</DockerTerminalModal>
+						<RemoveContainerDialog containerId={container.containerId} serverId={container.serverId} />
 					</DropdownMenuContent>
 				</DropdownMenu>
 			);
