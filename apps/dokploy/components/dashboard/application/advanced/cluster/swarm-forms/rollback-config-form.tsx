@@ -125,7 +125,9 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>{t("rollbackConfig.parallelism")}</FormLabel>
-							<FormDescription>{t("rollbackConfig.parallelismDesc")}</FormDescription>
+							<FormDescription>
+								{t("rollbackConfig.parallelismDesc")}
+							</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="1" {...field} />
 							</FormControl>
@@ -155,15 +157,21 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>{t("rollbackConfig.failureAction")}</FormLabel>
-							<FormDescription>{t("rollbackConfig.failureActionDesc")}</FormDescription>
+							<FormDescription>
+								{t("rollbackConfig.failureActionDesc")}
+							</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder={t("updateConfig.placeholderFailure")} />
+										<SelectValue
+											placeholder={t("updateConfig.placeholderFailure")}
+										/>
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									<SelectItem value="pause">{t("updateConfig.pause")}</SelectItem>
+									<SelectItem value="pause">
+										{t("updateConfig.pause")}
+									</SelectItem>
 									<SelectItem value="continue">
 										{t("updateConfig.continue")}
 									</SelectItem>
@@ -180,7 +188,9 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>{t("rollbackConfig.monitor")}</FormLabel>
-							<FormDescription>{t("rollbackConfig.monitorDesc")}</FormDescription>
+							<FormDescription>
+								{t("rollbackConfig.monitorDesc")}
+							</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
 							</FormControl>
@@ -195,7 +205,9 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>{t("rollbackConfig.maxFailureRatio")}</FormLabel>
-							<FormDescription>{t("rollbackConfig.maxFailureRatioDesc")}</FormDescription>
+							<FormDescription>
+								{t("rollbackConfig.maxFailureRatioDesc")}
+							</FormDescription>
 							<FormControl>
 								<Input type="number" step="0.01" placeholder="0.1" {...field} />
 							</FormControl>
@@ -214,7 +226,9 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder={t("updateConfig.placeholderOrder")} />
+										<SelectValue
+											placeholder={t("updateConfig.placeholderOrder")}
+										/>
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>

@@ -318,10 +318,7 @@ PORT=3000
 							)}
 						</div>
 						<DialogFooter>
-							<Button
-								isLoading={isPending}
-								type="submit"
-							>
+							<Button isLoading={isPending} type="submit">
 								{tCommon("save")}
 							</Button>
 						</DialogFooter>

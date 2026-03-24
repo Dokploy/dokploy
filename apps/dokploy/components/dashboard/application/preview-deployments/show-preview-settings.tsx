@@ -85,7 +85,10 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 	const t = useTranslations("applicationPreview");
 	const tCommon = useTranslations("common");
 	const previewLabelInputRef = useRef<HTMLInputElement>(null);
-	const previewSettingsSchema = useMemo(() => createPreviewSettingsSchema(t), [t]);
+	const previewSettingsSchema = useMemo(
+		() => createPreviewSettingsSchema(t),
+		[t],
+	);
 
 	const [isOpen, setIsOpen] = useState(false);
 	const [isEnabled, setIsEnabled] = useState(false);
@@ -173,7 +176,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				<DialogContent className="sm:max-w-5xl w-full">
 					<DialogHeader>
 						<DialogTitle>{t("settings.dialogTitle")}</DialogTitle>
-						<DialogDescription>{t("settings.dialogDescription")}</DialogDescription>
+						<DialogDescription>
+							{t("settings.dialogDescription")}
+						</DialogDescription>
 					</DialogHeader>
 					<div className="grid gap-4">
 						{isTraefikMeDomain && (
@@ -273,7 +278,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 													<FormControl>
 														<Input
 															ref={previewLabelInputRef}
-															placeholder={t("settings.previewLabelPlaceholder")}
+															placeholder={t(
+																"settings.previewLabelPlaceholder",
+															)}
 															onKeyDown={(e) => {
 																if (e.key === "Enter") {
 																	e.preventDefault();
@@ -351,7 +358,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											name="previewCertificateType"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>{t("settings.certificateProvider")}</FormLabel>
+													<FormLabel>
+														{t("settings.certificateProvider")}
+													</FormLabel>
 													<Select
 														onValueChange={field.onChange}
 														defaultValue={field.value || ""}
@@ -390,10 +399,14 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											name="previewCustomCertResolver"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>{t("settings.certificateProvider")}</FormLabel>
+													<FormLabel>
+														{t("settings.certificateProvider")}
+													</FormLabel>
 													<FormControl>
 														<Input
-															placeholder={t("settings.customResolverPlaceholder")}
+															placeholder={t(
+																"settings.customResolverPlaceholder",
+															)}
 															{...field}
 														/>
 													</FormControl>
@@ -509,18 +522,21 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 									<Secrets
 										name="buildSecrets"
 										title={t("settings.buildSecretsTitle")}
-										description={t.rich("settings.buildSecretsDescriptionRich", {
-											link: (chunks) => (
-												<a
-													className="text-primary"
-													href="https://docs.docker.com/build/building/secrets/"
-													target="_blank"
-													rel="noopener noreferrer"
-												>
-													{chunks}
-												</a>
-											),
-										})}
+										description={t.rich(
+											"settings.buildSecretsDescriptionRich",
+											{
+												link: (chunks) => (
+													<a
+														className="text-primary"
+														href="https://docs.docker.com/build/building/secrets/"
+														target="_blank"
+														rel="noopener noreferrer"
+													>
+														{chunks}
+													</a>
+												),
+											},
+										)}
 										placeholder={t("settings.buildPlaceholder")}
 									/>
 								)}

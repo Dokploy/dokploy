@@ -213,7 +213,9 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 																		deployment.previewDeploymentId,
 																})
 																	.then(() => {
-																		toast.success(t("list.toastRebuildSuccess"));
+																		toast.success(
+																			t("list.toastRebuildSuccess"),
+																		);
 																		refetchPreviewDeployments();
 																	})
 																	.catch(() => {

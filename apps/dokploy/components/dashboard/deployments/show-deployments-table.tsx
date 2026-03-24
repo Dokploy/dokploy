@@ -545,7 +545,9 @@ export function ShowDeploymentsTable() {
 											>
 												<div className="flex flex-col items-center justify-center gap-2 py-24 text-muted-foreground">
 													<Rocket className="size-8" />
-													<p className="font-medium">{t("noDeploymentsTitle")}</p>
+													<p className="font-medium">
+														{t("noDeploymentsTitle")}
+													</p>
 													<p className="text-sm">{t("noDeploymentsDesc")}</p>
 												</div>
 											</TableCell>

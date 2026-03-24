@@ -189,9 +189,13 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 																{sshKey.name}
 															</SelectItem>
 														))}
-														<SelectItem value="none">{t("git.none")}</SelectItem>
+														<SelectItem value="none">
+															{t("git.none")}
+														</SelectItem>
 														<SelectLabel>
-															{t("git.keysCount", { count: sshKeys?.length ?? 0 })}
+															{t("git.keysCount", {
+																count: sshKeys?.length ?? 0,
+															})}
 														</SelectLabel>
 													</SelectGroup>
 												</SelectContent>
@@ -237,9 +241,9 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 								<FormLabel>{t("shared.composePath")}</FormLabel>
 								<FormControl>
 									<Input
-									placeholder={t("shared.composePathPlaceholder")}
-									{...field}
-								/>
+										placeholder={t("shared.composePathPlaceholder")}
+										{...field}
+									/>
 								</FormControl>
 								<FormMessage />
 							</FormItem>

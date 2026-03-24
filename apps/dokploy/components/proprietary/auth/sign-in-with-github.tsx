@@ -24,7 +24,9 @@ export function SignInWithGithub() {
 		} catch (err) {
 			toast.error(tToast("signInGithubError"), {
 				description:
-					err instanceof Error ? err.message : tCommon("aiSettingsSaveUnknownError"),
+					err instanceof Error
+						? err.message
+						: tCommon("aiSettingsSaveUnknownError"),
 			});
 		} finally {
 			setIsLoading(false);

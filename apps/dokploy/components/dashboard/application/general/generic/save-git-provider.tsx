@@ -171,9 +171,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 												value={field.value}
 											>
 												<SelectTrigger>
-													<SelectValue
-														placeholder={t("git.selectKey")}
-													/>
+													<SelectValue placeholder={t("git.selectKey")} />
 												</SelectTrigger>
 												<SelectContent>
 													<SelectGroup>
@@ -185,9 +183,13 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 																{sshKey.name}
 															</SelectItem>
 														))}
-														<SelectItem value="none">{t("git.none")}</SelectItem>
+														<SelectItem value="none">
+															{t("git.none")}
+														</SelectItem>
 														<SelectLabel>
-															{t("git.keysCount", { count: sshKeys?.length ?? 0 })}
+															{t("git.keysCount", {
+																count: sshKeys?.length ?? 0,
+															})}
 														</SelectLabel>
 													</SelectGroup>
 												</SelectContent>

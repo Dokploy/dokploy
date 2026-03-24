@@ -70,7 +70,9 @@ export const DnsHelperModal = ({ domain, serverIp }: Props) => {
 								<div className="flex flex-col gap-2">
 									<div className="flex items-center justify-between gap-2 bg-muted p-3 rounded-md">
 										<div>
-											<p className="text-sm font-medium">{t("dnsHelper.typeA")}</p>
+											<p className="text-sm font-medium">
+												{t("dnsHelper.typeA")}
+											</p>
 											<p className="text-sm">
 												{t("dnsHelper.nameLabel", { subdomain })}
 											</p>

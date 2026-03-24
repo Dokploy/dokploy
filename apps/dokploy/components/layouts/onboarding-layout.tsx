@@ -14,8 +14,7 @@ export const OnboardingLayout = ({ children }: Props) => {
 	const t = useTranslations("layout");
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const appName = whitelabeling?.appName || t("defaultAppName");
-	const appDescription =
-		whitelabeling?.appDescription || t("defaultTagline");
+	const appDescription = whitelabeling?.appDescription || t("defaultTagline");
 	const logoUrl =
 		whitelabeling?.loginLogoUrl || whitelabeling?.logoUrl || undefined;
 

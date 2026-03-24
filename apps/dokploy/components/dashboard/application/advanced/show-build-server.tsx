@@ -185,7 +185,9 @@ export const ShowBuildServer = ({ applicationId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder={t("form.placeholderServer")} />
+												<SelectValue
+													placeholder={t("form.placeholderServer")}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>

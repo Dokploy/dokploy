@@ -71,7 +71,10 @@ interface Props {
 
 export const AddApplication = ({ environmentId, projectName }: Props) => {
 	const t = useTranslations("addApplication");
-	const addApplicationSchema = useMemo(() => createAddApplicationSchema(t), [t]);
+	const addApplicationSchema = useMemo(
+		() => createAddApplicationSchema(t),
+		[t],
+	);
 	const utils = api.useUtils();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const [visible, setVisible] = useState(false);

@@ -62,10 +62,9 @@ const createBitbucketProviderSchema = (
 			})
 			.required(),
 		branch: z.string().min(1, t("shared.branchRequired")),
-		bitbucketId: z.string().min(
-			1,
-			t("bitbucket.validation.bitbucketProviderRequired"),
-		),
+		bitbucketId: z
+			.string()
+			.min(1, t("bitbucket.validation.bitbucketProviderRequired")),
 		watchPaths: z.array(z.string()).optional(),
 		enableSubmodules: z.boolean().optional(),
 	});

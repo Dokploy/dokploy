@@ -209,7 +209,9 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>{t("healthCheck.startPeriod")}</FormLabel>
-							<FormDescription>{t("healthCheck.startPeriodDesc")}</FormDescription>
+							<FormDescription>
+								{t("healthCheck.startPeriodDesc")}
+							</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
 							</FormControl>

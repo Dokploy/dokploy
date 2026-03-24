@@ -89,9 +89,7 @@ export function AddOrganization({ organizationId }: Props) {
 		})
 			.then(() => {
 				form.reset();
-				toast.success(
-					organizationId ? t("toastUpdated") : t("toastCreated"),
-				);
+				toast.success(organizationId ? t("toastUpdated") : t("toastCreated"));
 				utils.organization.all.invalidate();
 				if (organizationId) {
 					utils.organization.one.invalidate({ organizationId });
@@ -166,7 +164,9 @@ export function AddOrganization({ organizationId }: Props) {
 							name="logo"
 							render={({ field }) => (
 								<FormItem className="gap-4">
-									<FormLabel className="text-right">{t("logoUrlLabel")}</FormLabel>
+									<FormLabel className="text-right">
+										{t("logoUrlLabel")}
+									</FormLabel>
 									<FormControl>
 										<Input
 											placeholder={t("logoPlaceholder")}

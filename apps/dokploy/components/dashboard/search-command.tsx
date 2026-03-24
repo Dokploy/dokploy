@@ -27,7 +27,8 @@ import {
 import { api, type RouterOutputs } from "@/utils/api";
 import { StatusTooltip } from "../shared/status-tooltip";
 
-type ProjectEnvironment = RouterOutputs["project"]["all"][number]["environments"][number];
+type ProjectEnvironment =
+	RouterOutputs["project"]["all"][number]["environments"][number];
 
 type SearchServices = Services & {
 	environmentId: string;

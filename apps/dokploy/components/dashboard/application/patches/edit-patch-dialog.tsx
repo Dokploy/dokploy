@@ -62,7 +62,11 @@ export const EditPatchDialog = ({
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
-				<Button variant="ghost" size="icon" title={t("editDialog.triggerTitle")}>
+				<Button
+					variant="ghost"
+					size="icon"
+					title={t("editDialog.triggerTitle")}
+				>
 					<Pencil className="h-4 w-4" />
 				</Button>
 			</DialogTrigger>

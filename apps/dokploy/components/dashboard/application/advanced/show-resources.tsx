@@ -386,7 +386,9 @@ export const ShowResources = ({ id, type }: Props) => {
 						<div className="space-y-4">
 							<div className="flex items-center justify-between">
 								<div className="flex items-center gap-2">
-									<FormLabel className="text-base">{t("ulimits.label")}</FormLabel>
+									<FormLabel className="text-base">
+										{t("ulimits.label")}
+									</FormLabel>
 									<TooltipProvider>
 										<Tooltip delayDuration={0}>
 											<TooltipTrigger>

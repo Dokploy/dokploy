@@ -208,14 +208,10 @@ export const HandleProject = ({ projectId }: Props) => {
 								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>
-											{t("handleProject.nameLabel")}
-										</FormLabel>
+										<FormLabel>{t("handleProject.nameLabel")}</FormLabel>
 										<FormControl>
 											<Input
-												placeholder={t(
-													"handleProject.namePlaceholder",
-												)}
+												placeholder={t("handleProject.namePlaceholder")}
 												{...field}
 											/>
 										</FormControl>
@@ -231,14 +227,10 @@ export const HandleProject = ({ projectId }: Props) => {
 							name="description"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>
-										{t("handleProject.descriptionLabel")}
-									</FormLabel>
+									<FormLabel>{t("handleProject.descriptionLabel")}</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder={t(
-												"handleProject.descriptionPlaceholder",
-											)}
+											placeholder={t("handleProject.descriptionPlaceholder")}
 											className="resize-none"
 											{...field}
 										/>
@@ -250,9 +242,7 @@ export const HandleProject = ({ projectId }: Props) => {
 						/>
 
 						<div className="space-y-2">
-							<FormLabel>
-								{t("handleProject.tagsLabel")}
-							</FormLabel>
+							<FormLabel>{t("handleProject.tagsLabel")}</FormLabel>
 							<TagSelector
 								tags={availableTags.map((tag) => ({
 									id: tag.tagId,
@@ -261,9 +251,7 @@ export const HandleProject = ({ projectId }: Props) => {
 								}))}
 								selectedTags={selectedTagIds}
 								onTagsChange={setSelectedTagIds}
-								placeholder={t(
-									"handleProject.tagsPlaceholder",
-								)}
+								placeholder={t("handleProject.tagsPlaceholder")}
 							/>
 						</div>
 					</form>

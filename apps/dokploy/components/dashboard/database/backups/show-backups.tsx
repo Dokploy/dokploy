@@ -315,9 +315,7 @@ export const ShowBackups = ({
 																					);
 																				})
 																				.catch(() => {
-																					toast.error(
-																						t("manualBackupError"),
-																					);
+																					toast.error(t("manualBackupError"));
 																				});
 																			setActiveManualBackup(undefined);
 																		}}

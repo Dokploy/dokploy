@@ -189,8 +189,7 @@ export const ShowDeployments = ({
 					{type === "application" && (
 						<ShowRollbackSettings applicationId={id}>
 							<Button variant="outline">
-								{t("list.configureRollbacks")}{" "}
-								<Settings className="size-4" />
+								{t("list.configureRollbacks")} <Settings className="size-4" />
 							</Button>
 						</ShowRollbackSettings>
 					)}
@@ -386,9 +385,7 @@ export const ShowDeployments = ({
 											{deployment.pid && deployment.status === "running" && (
 												<DialogAction
 													title={t("list.killProcess.dialogTitle")}
-													description={t(
-														"list.killProcess.dialogDescription",
-													)}
+													description={t("list.killProcess.dialogDescription")}
 													type="default"
 													onClick={async () => {
 														await killProcess({
@@ -433,9 +430,7 @@ export const ShowDeployments = ({
 															await removeDeployment({
 																deploymentId: deployment.deploymentId,
 															});
-															toast.success(
-																t("list.deleteDeployment.success"),
-															);
+															toast.success(t("list.deleteDeployment.success"));
 														} catch (error) {
 															toast.error(t("list.deleteDeployment.error"));
 														}

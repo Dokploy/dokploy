@@ -58,10 +58,9 @@ const createGitlabProviderSchema = (
 			.object({
 				repo: z.string().min(1, t("shared.repoRequired")),
 				owner: z.string().min(1, t("shared.ownerRequired")),
-				gitlabPathNamespace: z.string().min(
-					1,
-					t("gitlab.validation.pathNamespaceRequired"),
-				),
+				gitlabPathNamespace: z
+					.string()
+					.min(1, t("gitlab.validation.pathNamespaceRequired")),
 				id: z.number().nullable(),
 			})
 			.required(),

@@ -62,10 +62,9 @@ const createBitbucketComposeProviderSchema = (
 			})
 			.required(),
 		branch: z.string().min(1, t("shared.branchRequired")),
-		bitbucketId: z.string().min(
-			1,
-			t("bitbucket.validation.bitbucketProviderRequired"),
-		),
+		bitbucketId: z
+			.string()
+			.min(1, t("bitbucket.validation.bitbucketProviderRequired")),
 		watchPaths: z.array(z.string()).optional(),
 		enableSubmodules: z.boolean().optional(),
 	});
@@ -165,7 +164,8 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 		await mutateAsync({
 			bitbucketBranch: formData.branch,
 			bitbucketRepository: formData.repository.repo,
-			bitbucketRepositorySlug: formData.repository.slug || formData.repository.repo,
+			bitbucketRepositorySlug:
+				formData.repository.slug || formData.repository.repo,
 			bitbucketOwner: formData.repository.owner,
 			bitbucketId: formData.bitbucketId,
 			composePath: formData.composePath,

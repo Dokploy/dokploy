@@ -131,7 +131,9 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>{t("updateConfig.parallelism")}</FormLabel>
-							<FormDescription>{t("updateConfig.parallelismDesc")}</FormDescription>
+							<FormDescription>
+								{t("updateConfig.parallelismDesc")}
+							</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="1" {...field} />
 							</FormControl>
@@ -161,15 +163,21 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>{t("updateConfig.failureAction")}</FormLabel>
-							<FormDescription>{t("updateConfig.failureActionDesc")}</FormDescription>
+							<FormDescription>
+								{t("updateConfig.failureActionDesc")}
+							</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder={t("updateConfig.placeholderFailure")} />
+										<SelectValue
+											placeholder={t("updateConfig.placeholderFailure")}
+										/>
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									<SelectItem value="pause">{t("updateConfig.pause")}</SelectItem>
+									<SelectItem value="pause">
+										{t("updateConfig.pause")}
+									</SelectItem>
 									<SelectItem value="continue">
 										{t("updateConfig.continue")}
 									</SelectItem>
@@ -204,7 +212,9 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>{t("updateConfig.maxFailureRatio")}</FormLabel>
-							<FormDescription>{t("updateConfig.maxFailureRatioDesc")}</FormDescription>
+							<FormDescription>
+								{t("updateConfig.maxFailureRatioDesc")}
+							</FormDescription>
 							<FormControl>
 								<Input type="number" step="0.01" placeholder="0.1" {...field} />
 							</FormControl>
@@ -223,7 +233,9 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder={t("updateConfig.placeholderOrder")} />
+										<SelectValue
+											placeholder={t("updateConfig.placeholderOrder")}
+										/>
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
