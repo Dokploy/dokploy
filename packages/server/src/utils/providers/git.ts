@@ -230,9 +230,10 @@ export const getGitHistory = async ({
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const quotedOutputPath = quote([outputPath]);
+	const safeLimit = Math.floor(Math.max(1, Math.min(100, limit)));
 	let stdoutResult = "";
 	try {
-		const gitCommand = `git -C ${quotedOutputPath} log -${limit} --pretty=format:"%H%x1f%s%x1f%an%x1f%ai"`;
+		const gitCommand = `git -C ${quotedOutputPath} log -${safeLimit} --pretty=format:"%H%x1f%s%x1f%an%x1f%ai"`;
 		if (serverId) {
 			const { stdout } = await execAsyncRemote(serverId, gitCommand);
 			stdoutResult = stdout.trim();
