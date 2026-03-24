@@ -22,6 +22,7 @@ function SchedulesPage() {
 		</div>
 	);
 }
+
 export default SchedulesPage;
 
 SchedulesPage.getLayout = (page: ReactElement) => {
