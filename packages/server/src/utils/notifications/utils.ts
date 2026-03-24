@@ -217,8 +217,8 @@ export const sendMattermostNotification = async (
 		...(message.username?.trim() && { username: message.username }),
 		// Only include channel if it's provided and not empty
 		...(message.channel?.trim() && {
-				channel: `#${message.channel.replace("#", "")}`,
-			}),
+			channel: `#${message.channel.replace("#", "")}`,
+		}),
 	};
 
 	const response = await fetch(connection.webhookUrl, {
