@@ -371,6 +371,21 @@ export const containerRestart = async (containerId: string) => {
 	} catch {}
 };
 
+export const containerRemove = async (
+	containerId: string,
+	serverId?: string,
+) => {
+	const command = `docker rm -f ${containerId}`;
+	const { stderr } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (stderr) {
+		console.error(`Error: ${stderr}`);
+		throw new Error(stderr);
+	}
+};
+
 export const getSwarmNodes = async (serverId?: string) => {
 	try {
 		let stdout = "";
