@@ -1,12 +1,13 @@
-name: Dokploy Docker Build
+name: DeployBox Docker Build
 
 on:
   push:
-    branches: [main, canary, "fix/re-apply-database-migration-fix"]
+    branches: [ main, canary ]
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: dokploy/dokploy
+  # Замени YOUR_DOCKERHUB_USERNAME на свой логин Docker Hub
+  IMAGE_NAME: kamik2k/deploybox
 
 jobs:
   docker-amd:
@@ -24,16 +25,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set tag and version
+      - name: Set tag
         id: meta
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             TAG="latest"
-            VERSION=$(node -p "require('./apps/dokploy/package.json').version")
-          elif [ "${{ github.ref }}" = "refs/heads/canary" ]; then
-            TAG="canary"
           else
-            TAG="feature"
+            TAG="canary"
           fi
           echo "tags=${IMAGE_NAME}:${TAG}-amd64" >> $GITHUB_OUTPUT
 
@@ -49,6 +47,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+
   docker-arm:
     runs-on: ubuntu-24.04-arm
     steps:
@@ -64,17 +63,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set tag and version
+      - name: Set tag
         id: meta
         run: |
-          VERSION=$(node -p "require('./apps/dokploy/package.json').version")
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             TAG="latest"
-            VERSION=$(node -p "require('./apps/dokploy/package.json').version")
-          elif [ "${{ github.ref }}" = "refs/heads/canary" ]; then
-            TAG="canary"
           else
-            TAG="feature"
+            TAG="canary"
           fi
           echo "tags=${IMAGE_NAME}:${TAG}-arm64" >> $GITHUB_OUTPUT
 
@@ -92,7 +87,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
 
   combine-manifests:
-    needs: [docker-amd, docker-arm]
+    needs: [ docker-amd, docker-arm ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -111,31 +106,20 @@ jobs:
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             VERSION=$(node -p "require('./apps/dokploy/package.json').version")
-            TAG="latest"
-
-            docker buildx imagetools create -t ${IMAGE_NAME}:${TAG} \
-              ${IMAGE_NAME}:${TAG}-amd64 \
-              ${IMAGE_NAME}:${TAG}-arm64
-
+            docker buildx imagetools create -t ${IMAGE_NAME}:latest \
+              ${IMAGE_NAME}:latest-amd64 \
+              ${IMAGE_NAME}:latest-arm64
             docker buildx imagetools create -t ${IMAGE_NAME}:${VERSION} \
-              ${IMAGE_NAME}:${TAG}-amd64 \
-              ${IMAGE_NAME}:${TAG}-arm64
-
-          elif [ "${{ github.ref }}" = "refs/heads/canary" ]; then
-            TAG="canary"
-            docker buildx imagetools create -t ${IMAGE_NAME}:${TAG} \
-              ${IMAGE_NAME}:${TAG}-amd64 \
-              ${IMAGE_NAME}:${TAG}-arm64
-
+              ${IMAGE_NAME}:latest-amd64 \
+              ${IMAGE_NAME}:latest-arm64
           else
-            TAG="feature"
-            docker buildx imagetools create -t ${IMAGE_NAME}:${TAG} \
-              ${IMAGE_NAME}:${TAG}-amd64 \
-              ${IMAGE_NAME}:${TAG}-arm64
+            docker buildx imagetools create -t ${IMAGE_NAME}:canary \
+              ${IMAGE_NAME}:canary-amd64 \
+              ${IMAGE_NAME}:canary-arm64
           fi
 
   generate-release:
-    needs: [combine-manifests]
+    needs: [ combine-manifests ]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
