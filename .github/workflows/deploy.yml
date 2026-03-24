@@ -2,7 +2,7 @@ name: Build Docker images
 
 on:
   push:
-    branches: [main, canary]
+    branches: [ main, canary ]
   workflow_dispatch:
 
 jobs:
@@ -19,9 +19,9 @@ jobs:
           VERSION=$(jq -r .version apps/dokploy/package.json)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "tags=siumauricio/cloud:latest,siumauricio/cloud:${VERSION}" >> $GITHUB_OUTPUT
+            echo "tags=kamik2k/cloud:latest,kamik2k/cloud:${VERSION}" >> $GITHUB_OUTPUT
           else
-            echo "tags=siumauricio/cloud:canary" >> $GITHUB_OUTPUT
+            echo "tags=kamik2k/cloud:canary" >> $GITHUB_OUTPUT
           fi
 
       - name: Log in to Docker Hub
@@ -55,9 +55,9 @@ jobs:
         run: |
           VERSION=$(jq -r .version apps/dokploy/package.json)
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "tags=siumauricio/schedule:latest,siumauricio/schedule:${VERSION}" >> $GITHUB_OUTPUT
+            echo "tags=kamik2k/schedule:latest,kamik2k/schedule:${VERSION}" >> $GITHUB_OUTPUT
           else
-            echo "tags=siumauricio/schedule:canary" >> $GITHUB_OUTPUT
+            echo "tags=kamik2k/schedule:canary" >> $GITHUB_OUTPUT
           fi
 
       - name: Log in to Docker Hub
@@ -87,9 +87,9 @@ jobs:
         run: |
           VERSION=$(jq -r .version apps/dokploy/package.json)
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "tags=siumauricio/server:latest,siumauricio/server:${VERSION}" >> $GITHUB_OUTPUT
+            echo "tags=kamik2k/server:latest,kamik2k/server:${VERSION}" >> $GITHUB_OUTPUT
           else
-            echo "tags=siumauricio/server:canary" >> $GITHUB_OUTPUT
+            echo "tags=kamik2k/server:canary" >> $GITHUB_OUTPUT
           fi
 
       - name: Log in to Docker Hub
