@@ -1,9 +1,8 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import {
 	CheckIcon,
 	ChevronsUpDown,
 	DatabaseZap,
-	Info,
 	PenBoxIcon,
 	PlusIcon,
 	RefreshCw,
@@ -62,11 +61,17 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { commonCronExpressions } from "../../application/schedules/handle-schedules";
+import { ScheduleFormField } from "../../application/schedules/handle-schedules";
 
 type CacheType = "cache" | "fetch";
 
-type DatabaseType = "postgres" | "mariadb" | "mysql" | "mongo" | "web-server";
+type DatabaseType =
+	| "postgres"
+	| "mariadb"
+	| "mysql"
+	| "mongo"
+	| "web-server"
+	| "libsql";
 
 const Schema = z
 	.object({
@@ -78,7 +83,7 @@ const Schema = z
 		keepLatestCount: z.coerce.number().optional(),
 		serviceName: z.string().nullable(),
 		databaseType: z
-			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"])
+			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server", "libsql"])
 			.optional(),
 		backupType: z.enum(["database", "compose"]),
 		metadata: z
@@ -193,7 +198,7 @@ export const HandleBackup = ({
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 
-	const { data, isLoading } = api.destination.all.useQuery();
+	const { data, isPending } = api.destination.all.useQuery();
 	const { data: backup } = api.backup.one.useQuery(
 		{
 			backupId: backupId ?? "",
@@ -203,14 +208,19 @@ export const HandleBackup = ({
 		},
 	);
 	const [cacheType, setCacheType] = useState<CacheType>("cache");
-	const { mutateAsync: createBackup, isLoading: isCreatingPostgresBackup } =
+	const { mutateAsync: createBackup, isPending: isCreatingPostgresBackup } =
 		backupId
 			? api.backup.update.useMutation()
 			: api.backup.create.useMutation();
 
-	const form = useForm<z.infer<typeof Schema>>({
+	const form = useForm({
 		defaultValues: {
-			database: databaseType === "web-server" ? "dokploy" : "",
+			database:
+				databaseType === "web-server"
+					? "dokploy"
+					: databaseType === "libsql"
+						? "iku.db"
+						: "",
 			destinationId: "",
 			enabled: true,
 			prefix: "/",
@@ -247,7 +257,9 @@ export const HandleBackup = ({
 				? backup?.database
 				: databaseType === "web-server"
 					? "dokploy"
-					: "",
+					: databaseType === "libsql"
+						? "iku.db"
+						: "",
 			destinationId: backup?.destinationId ?? "",
 			enabled: backup?.enabled ?? true,
 			prefix: backup?.prefix ?? "/",
@@ -282,11 +294,15 @@ export const HandleBackup = ({
 								? {
 										mongoId: id,
 									}
-								: databaseType === "web-server"
+								: databaseType === "libsql"
 									? {
-											userId: id,
+											libsqlId: id,
 										}
-									: undefined;
+									: databaseType === "web-server"
+										? {
+												userId: id,
+											}
+										: undefined;
 
 		await createBackup({
 			destinationId: data.destinationId,
@@ -397,7 +413,7 @@ export const HandleBackup = ({
 															!field.value && "text-muted-foreground",
 														)}
 													>
-														{isLoading
+														{isPending
 															? "Loading...."
 															: field.value
 																? data?.find(
@@ -416,7 +432,7 @@ export const HandleBackup = ({
 														placeholder="Search Destination..."
 														className="h-9"
 													/>
-													{isLoading && (
+													{isPending && (
 														<span className="py-6 text-center text-sm">
 															Loading Destinations....
 														</span>
@@ -569,7 +585,10 @@ export const HandleBackup = ({
 											<FormLabel>Database</FormLabel>
 											<FormControl>
 												<Input
-													disabled={databaseType === "web-server"}
+													disabled={
+														databaseType === "web-server" ||
+														databaseType === "libsql"
+													}
 													placeholder={"dokploy"}
 													{...field}
 												/>
@@ -579,66 +598,9 @@ export const HandleBackup = ({
 									);
 								}}
 							/>
-							<FormField
-								control={form.control}
-								name="schedule"
-								render={({ field }) => {
-									return (
-										<FormItem>
-											<FormLabel className="flex items-center gap-2">
-												Schedule
-												<TooltipProvider>
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<Info className="w-4 h-4 text-muted-foreground cursor-help" />
-														</TooltipTrigger>
-														<TooltipContent>
-															<p>
-																Cron expression format: minute hour day month
-																weekday
-															</p>
-															<p>Example: 0 0 * * * (daily at midnight)</p>
-														</TooltipContent>
-													</Tooltip>
-												</TooltipProvider>
-											</FormLabel>
-											<div className="flex flex-col gap-2">
-												<Select
-													onValueChange={(value) => {
-														field.onChange(value);
-													}}
-												>
-													<FormControl>
-														<SelectTrigger>
-															<SelectValue placeholder="Select a predefined schedule" />
-														</SelectTrigger>
-													</FormControl>
-													<SelectContent>
-														{commonCronExpressions.map((expr) => (
-															<SelectItem key={expr.value} value={expr.value}>
-																{expr.label} ({expr.value})
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
-												<div className="relative">
-													<FormControl>
-														<Input
-															placeholder="Custom cron expression (e.g., 0 0 * * *)"
-															{...field}
-														/>
-													</FormControl>
-												</div>
-											</div>
-											<FormDescription>
-												Choose a predefined schedule or enter a custom cron
-												expression
-											</FormDescription>
-											<FormMessage />
-										</FormItem>
-									);
-								}}
-							/>
+
+							<ScheduleFormField name="schedule" formControl={form.control} />
+
 							<FormField
 								control={form.control}
 								name="prefix"
@@ -671,6 +633,7 @@ export const HandleBackup = ({
 													type="number"
 													placeholder={"keeps all the backups if left empty"}
 													{...field}
+													value={field.value as string}
 												/>
 											</FormControl>
 											<FormDescription>

@@ -1,5 +1,5 @@
 import type { ServiceType } from "@dokploy/server/db/schema";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import copy from "copy-to-clipboard";
 import { Copy, Trash2 } from "lucide-react";
 import { useRouter } from "next/router";
@@ -46,6 +46,8 @@ interface Props {
 }
 
 export const DeleteService = ({ id, type }: Props) => {
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canDelete = permissions?.service.delete ?? false;
 	const [isOpen, setIsOpen] = useState(false);
 
 	const queryMap = {
@@ -55,6 +57,7 @@ export const DeleteService = ({ id, type }: Props) => {
 		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
 		mariadb: () =>
 			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
 		application: () =>
 			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
 		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
@@ -70,11 +73,12 @@ export const DeleteService = ({ id, type }: Props) => {
 		redis: () => api.redis.remove.useMutation(),
 		mysql: () => api.mysql.remove.useMutation(),
 		mariadb: () => api.mariadb.remove.useMutation(),
+		libsql: () => api.libsql.remove.useMutation(),
 		application: () => api.application.delete.useMutation(),
 		mongo: () => api.mongo.remove.useMutation(),
 		compose: () => api.compose.delete.useMutation(),
 	};
-	const { mutateAsync, isLoading } = mutationMap[type]
+	const { mutateAsync, isPending } = mutationMap[type]
 		? mutationMap[type]()
 		: api.mongo.remove.useMutation();
 	const { push } = useRouter();
@@ -96,6 +100,7 @@ export const DeleteService = ({ id, type }: Props) => {
 				redisId: id || "",
 				mysqlId: id || "",
 				mariadbId: id || "",
+				libsqlId: id || "",
 				applicationId: id || "",
 				composeId: id || "",
 				deleteVolumes,
@@ -104,7 +109,7 @@ export const DeleteService = ({ id, type }: Props) => {
 					push(
 						`/dashboard/project/${result?.environment?.projectId}/environment/${result?.environment?.environmentId}`,
 					);
-					toast.success("deleted successfully");
+					toast.success("Service deleted successfully");
 					setIsOpen(false);
 				})
 				.catch(() => {
@@ -123,6 +128,8 @@ export const DeleteService = ({ id, type }: Props) => {
 			data?.applicationStatus === "running") ||
 		(data && "composeStatus" in data && data?.composeStatus === "running");
 
+	if (!canDelete) return null;
+
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
@@ -130,7 +137,7 @@ export const DeleteService = ({ id, type }: Props) => {
 					variant="ghost"
 					size="icon"
 					className="group hover:bg-red-500/10 "
-					isLoading={isLoading}
+					isLoading={isPending}
 				>
 					<Trash2 className="size-4 text-primary group-hover:text-red-500" />
 				</Button>
@@ -228,7 +235,7 @@ export const DeleteService = ({ id, type }: Props) => {
 					</Button>
 
 					<Button
-						isLoading={isLoading}
+						isLoading={isPending}
 						disabled={isDisabled}
 						form="hook-form-delete-compose"
 						type="submit"

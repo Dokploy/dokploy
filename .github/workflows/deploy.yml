@@ -13,6 +13,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Set tag and version
+        id: meta-cloud
+        run: |
+          VERSION=$(jq -r .version apps/dokploy/package.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "tags=siumauricio/cloud:latest,siumauricio/cloud:${VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "tags=siumauricio/cloud:canary" >> $GITHUB_OUTPUT
+          fi
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -25,8 +36,7 @@ jobs:
           context: .
           file: ./Dockerfile.cloud
           push: true
-          tags: |
-            siumauricio/cloud:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
+          tags: ${{ steps.meta-cloud.outputs.tags }}
           platforms: linux/amd64
           build-args: |
             NEXT_PUBLIC_UMAMI_HOST=${{ secrets.NEXT_PUBLIC_UMAMI_HOST }}
@@ -40,6 +50,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Set tag and version
+        id: meta-schedule
+        run: |
+          VERSION=$(jq -r .version apps/dokploy/package.json)
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "tags=siumauricio/schedule:latest,siumauricio/schedule:${VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "tags=siumauricio/schedule:canary" >> $GITHUB_OUTPUT
+          fi
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -52,8 +72,7 @@ jobs:
           context: .
           file: ./Dockerfile.schedule
           push: true
-          tags: |
-            siumauricio/schedule:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
+          tags: ${{ steps.meta-schedule.outputs.tags }}
           platforms: linux/amd64
 
   build-and-push-server-image:
@@ -62,6 +81,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Set tag and version
+        id: meta-server
+        run: |
+          VERSION=$(jq -r .version apps/dokploy/package.json)
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "tags=siumauricio/server:latest,siumauricio/server:${VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "tags=siumauricio/server:canary" >> $GITHUB_OUTPUT
+          fi
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -75,6 +104,5 @@ jobs:
           context: .
           file: ./Dockerfile.server
           push: true
-          tags: |
-            siumauricio/server:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
+          tags: ${{ steps.meta-server.outputs.tags }}
           platforms: linux/amd64

@@ -161,6 +161,50 @@ describe("helpers functions", () => {
 		});
 	});
 
+	describe("Empty string variables", () => {
+		it("should replace variables with empty string values correctly", () => {
+			const variables = {
+				smtp_username: "",
+				smtp_password: "",
+				non_empty: "value",
+			};
+
+			const result1 = processValue("${smtp_username}", variables, mockSchema);
+			expect(result1).toBe("");
+
+			const result2 = processValue("${smtp_password}", variables, mockSchema);
+			expect(result2).toBe("");
+
+			const result3 = processValue("${non_empty}", variables, mockSchema);
+			expect(result3).toBe("value");
+		});
+
+		it("should not replace undefined variables", () => {
+			const variables = {
+				defined_var: "",
+			};
+
+			const result = processValue("${undefined_var}", variables, mockSchema);
+			expect(result).toBe("${undefined_var}");
+		});
+
+		it("should handle mixed empty and non-empty variables in template", () => {
+			const variables = {
+				smtp_address: "smtp.example.com",
+				smtp_port: "2525",
+				smtp_username: "",
+				smtp_password: "",
+			};
+
+			const template =
+				"SMTP_ADDRESS=${smtp_address} SMTP_PORT=${smtp_port} SMTP_USERNAME=${smtp_username} SMTP_PASSWORD=${smtp_password}";
+			const result = processValue(template, variables, mockSchema);
+			expect(result).toBe(
+				"SMTP_ADDRESS=smtp.example.com SMTP_PORT=2525 SMTP_USERNAME= SMTP_PASSWORD=",
+			);
+		});
+	});
+
 	describe("${jwt}", () => {
 		it("should generate a JWT string", () => {
 			const jwt = processValue("${jwt}", {}, mockSchema);
@@ -227,6 +271,59 @@ describe("helpers functions", () => {
 			expect(jwt).toEqual(
 				"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MzU2ODk2MDAsImV4cCI6MTczNTY5MzIwMCwiaXNzIjoidGVzdC1pc3N1ZXIiLCJjdXN0b21wcm9wIjoiY3VzdG9tdmFsdWUifQ.m42U7PZSUSCf7gBOJrxJir0rQmyPq4rA59Dydr_QahI",
 			);
+		});
+
+		it("should handle JWT payload with newlines and whitespace by trimming them", () => {
+			const iat = Math.floor(new Date("2025-01-01T00:00:00Z").getTime() / 1000);
+			const expiry = iat + 3600;
+			const payloadWithNewlines = `{
+  "role": "anon",
+  "iss": "supabase",
+  "exp": ${expiry}
+}
+`;
+			const jwt = processValue(
+				"${jwt:secret:payload}",
+				{
+					secret: "mysecret",
+					payload: payloadWithNewlines,
+				},
+				mockSchema,
+			);
+			expect(jwt).toMatch(jwtMatchExp);
+			const parts = jwt.split(".") as JWTParts;
+			jwtCheckHeader(parts[0]);
+			const decodedPayload = jwtBase64Decode(parts[1]);
+			expect(decodedPayload).toHaveProperty("role");
+			expect(decodedPayload.role).toEqual("anon");
+			expect(decodedPayload).toHaveProperty("iss");
+			expect(decodedPayload.iss).toEqual("supabase");
+			expect(decodedPayload).toHaveProperty("exp");
+			expect(decodedPayload.exp).toEqual(expiry);
+		});
+
+		it("should handle JWT payload with leading and trailing whitespace", () => {
+			const iat = Math.floor(new Date("2025-01-01T00:00:00Z").getTime() / 1000);
+			const expiry = iat + 3600;
+			const payloadWithWhitespace = `   {"role": "service_role", "iss": "supabase", "exp": ${expiry}}   `;
+			const jwt = processValue(
+				"${jwt:secret:payload}",
+				{
+					secret: "mysecret",
+					payload: payloadWithWhitespace,
+				},
+				mockSchema,
+			);
+			expect(jwt).toMatch(jwtMatchExp);
+			const parts = jwt.split(".") as JWTParts;
+			jwtCheckHeader(parts[0]);
+			const decodedPayload = jwtBase64Decode(parts[1]);
+			expect(decodedPayload).toHaveProperty("role");
+			expect(decodedPayload.role).toEqual("service_role");
+			expect(decodedPayload).toHaveProperty("iss");
+			expect(decodedPayload.iss).toEqual("supabase");
+			expect(decodedPayload).toHaveProperty("exp");
+			expect(decodedPayload.exp).toEqual(expiry);
 		});
 	});
 });

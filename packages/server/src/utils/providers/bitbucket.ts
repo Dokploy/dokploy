@@ -1,4 +1,3 @@
-import { createWriteStream } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type {
@@ -9,12 +8,9 @@ import {
 	type Bitbucket,
 	findBitbucketById,
 } from "@dokploy/server/services/bitbucket";
-import type { Compose } from "@dokploy/server/services/compose";
 import type { InferResultType } from "@dokploy/server/types/with";
 import { TRPCError } from "@trpc/server";
-import { recreateDirectory } from "../filesystem/directory";
-import { execAsyncRemote } from "../process/execAsync";
-import { spawnAsync } from "../process/spawnAsync";
+import type { z } from "zod";
 
 export type ApplicationWithBitbucket = InferResultType<
 	"applications",
@@ -31,230 +27,106 @@ export const getBitbucketCloneUrl = (
 		apiToken?: string | null;
 		bitbucketUsername?: string | null;
 		appPassword?: string | null;
+		bitbucketEmail?: string | null;
+		bitbucketWorkspaceName?: string | null;
 	} | null,
 	repoClone: string,
 ) => {
 	if (!bitbucketProvider) {
 		throw new Error("Bitbucket provider is required");
 	}
-	return bitbucketProvider.apiToken
-		? `https://x-token-auth:${bitbucketProvider.apiToken}@${repoClone}`
-		: `https://${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}@${repoClone}`;
+
+	if (bitbucketProvider.apiToken) {
+		return `https://x-bitbucket-api-token-auth:${bitbucketProvider.apiToken}@${repoClone}`;
+	}
+
+	// For app passwords, use username:app_password format
+	if (!bitbucketProvider.bitbucketUsername || !bitbucketProvider.appPassword) {
+		throw new Error(
+			"Username and app password are required when not using API token",
+		);
+	}
+	return `https://${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}@${repoClone}`;
 };
 
 export const getBitbucketHeaders = (bitbucketProvider: Bitbucket) => {
 	if (bitbucketProvider.apiToken) {
-		// For API tokens, use HTTP Basic auth with email and token
-		// According to Bitbucket docs: email:token for API calls
-		const email =
-			bitbucketProvider.bitbucketEmail || bitbucketProvider.bitbucketUsername;
+		// According to Bitbucket official docs, for API calls with API tokens:
+		// "You will need both your Atlassian account email and an API token"
+		// Use: {atlassian_account_email}:{api_token}
+
+		if (!bitbucketProvider.bitbucketEmail) {
+			throw new Error(
+				"Atlassian account email is required when using API token for API calls",
+			);
+		}
+
 		return {
-			Authorization: `Basic ${Buffer.from(`${email}:${bitbucketProvider.apiToken}`).toString("base64")}`,
+			Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketEmail}:${bitbucketProvider.apiToken}`).toString("base64")}`,
 		};
 	}
 
 	// For app passwords, use HTTP Basic auth with username and app password
+	if (!bitbucketProvider.bitbucketUsername || !bitbucketProvider.appPassword) {
+		throw new Error(
+			"Username and app password are required when not using API token",
+		);
+	}
 	return {
 		Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
 	};
 };
 
-export const cloneBitbucketRepository = async (
-	entity: ApplicationWithBitbucket | ComposeWithBitbucket,
-	logPath: string,
-	isCompose = false,
-) => {
-	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths();
-	const writeStream = createWriteStream(logPath, { flags: "a" });
+interface CloneBitbucketRepository {
+	appName: string;
+	bitbucketRepository: string | null;
+	bitbucketRepositorySlug?: string | null;
+	bitbucketOwner: string | null;
+	bitbucketBranch: string | null;
+	bitbucketId: string | null;
+	enableSubmodules: boolean;
+	serverId: string | null;
+	type?: "application" | "compose";
+	outputPathOverride?: string;
+}
+
+export const cloneBitbucketRepository = async ({
+	type = "application",
+	...entity
+}: CloneBitbucketRepository) => {
+	let command = "set -e;";
 	const {
 		appName,
 		bitbucketRepository,
 		bitbucketOwner,
 		bitbucketBranch,
 		bitbucketId,
-		bitbucket,
 		enableSubmodules,
+		serverId,
+		outputPathOverride,
 	} = entity;
+	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
 
 	if (!bitbucketId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Bitbucket Provider not found",
-		});
+		command += `echo "Error: ❌ Bitbucket Provider not found"; exit 1;`;
+		return command;
 	}
+	const bitbucket = await findBitbucketById(bitbucketId);
 
-	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName, "code");
-	await recreateDirectory(outputPath);
-	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
+	if (!bitbucket) {
+		command += `echo "Error: ❌ Bitbucket Provider not found"; exit 1;`;
+		return command;
+	}
+	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
+	command += `rm -rf ${outputPath};`;
+	command += `mkdir -p ${outputPath};`;
+	const repoToUse = entity.bitbucketRepositorySlug || bitbucketRepository;
+	const repoclone = `bitbucket.org/${bitbucketOwner}/${repoToUse}.git`;
 	const cloneUrl = getBitbucketCloneUrl(bitbucket, repoclone);
-	try {
-		writeStream.write(`\nCloning Repo ${repoclone} to ${outputPath}: ✅\n`);
-		const cloneArgs = [
-			"clone",
-			"--branch",
-			bitbucketBranch!,
-			"--depth",
-			"1",
-			...(enableSubmodules ? ["--recurse-submodules"] : []),
-			cloneUrl,
-			outputPath,
-			"--progress",
-		];
-
-		await spawnAsync("git", cloneArgs, (data) => {
-			if (writeStream.writable) {
-				writeStream.write(data);
-			}
-		});
-		writeStream.write(`\nCloned ${repoclone} to ${outputPath}: ✅\n`);
-	} catch (error) {
-		writeStream.write(`ERROR Cloning: ${error}: ❌`);
-		throw error;
-	} finally {
-		writeStream.end();
-	}
-};
-
-export const cloneRawBitbucketRepository = async (entity: Compose) => {
-	const { COMPOSE_PATH } = paths();
-	const {
-		appName,
-		bitbucketRepository,
-		bitbucketOwner,
-		bitbucketBranch,
-		bitbucketId,
-		enableSubmodules,
-	} = entity;
-
-	if (!bitbucketId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Bitbucket Provider not found",
-		});
-	}
-
-	const bitbucketProvider = await findBitbucketById(bitbucketId);
-	const basePath = COMPOSE_PATH;
-	const outputPath = join(basePath, appName, "code");
-	await recreateDirectory(outputPath);
-	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
-	const cloneUrl = getBitbucketCloneUrl(bitbucketProvider, repoclone);
-
-	try {
-		const cloneArgs = [
-			"clone",
-			"--branch",
-			bitbucketBranch!,
-			"--depth",
-			"1",
-			...(enableSubmodules ? ["--recurse-submodules"] : []),
-			cloneUrl,
-			outputPath,
-			"--progress",
-		];
-
-		await spawnAsync("git", cloneArgs);
-	} catch (error) {
-		throw error;
-	}
-};
-
-export const cloneRawBitbucketRepositoryRemote = async (compose: Compose) => {
-	const { COMPOSE_PATH } = paths(true);
-	const {
-		appName,
-		bitbucketRepository,
-		bitbucketOwner,
-		bitbucketBranch,
-		bitbucketId,
-		serverId,
-		enableSubmodules,
-	} = compose;
-
-	if (!serverId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Server not found",
-		});
-	}
-	if (!bitbucketId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Bitbucket Provider not found",
-		});
-	}
-
-	const bitbucketProvider = await findBitbucketById(bitbucketId);
-	const basePath = COMPOSE_PATH;
-	const outputPath = join(basePath, appName, "code");
-	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
-	const cloneUrl = getBitbucketCloneUrl(bitbucketProvider, repoclone);
-
-	try {
-		const cloneCommand = `
-			rm -rf ${outputPath};
-			git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
-		`;
-		await execAsyncRemote(serverId, cloneCommand);
-	} catch (error) {
-		throw error;
-	}
-};
-
-export const getBitbucketCloneCommand = async (
-	entity: ApplicationWithBitbucket | ComposeWithBitbucket,
-	logPath: string,
-	isCompose = false,
-) => {
-	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(true);
-	const {
-		appName,
-		bitbucketRepository,
-		bitbucketOwner,
-		bitbucketBranch,
-		bitbucketId,
-		serverId,
-		enableSubmodules,
-	} = entity;
-
-	if (!serverId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Server not found",
-		});
-	}
-
-	if (!bitbucketId) {
-		const command = `
-			echo  "Error: ❌ Bitbucket Provider not found" >> ${logPath};
-			exit 1;
-		`;
-		await execAsyncRemote(serverId, command);
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Bitbucket Provider not found",
-		});
-	}
-
-	const bitbucketProvider = await findBitbucketById(bitbucketId);
-	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName, "code");
-	await recreateDirectory(outputPath);
-	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
-	const cloneUrl = getBitbucketCloneUrl(bitbucketProvider, repoclone);
-
-	const cloneCommand = `
-rm -rf ${outputPath};
-mkdir -p ${outputPath};
-if ! git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
-	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
-	exit 1;
-fi
-echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
-	`;
-
-	return cloneCommand;
+	command += `echo "Cloning Repo ${repoclone} to ${outputPath}: ✅";`;
+	command += `git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	return command;
 };
 
 export const getBitbucketRepositories = async (bitbucketId?: string) => {
@@ -270,6 +142,7 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 	let repositories: {
 		name: string;
 		url: string;
+		slug: string;
 		owner: { username: string };
 	}[] = [];
 
@@ -292,6 +165,7 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 			const mappedData = data.values.map((repo: any) => ({
 				name: repo.name,
 				url: repo.links.html.href,
+				slug: repo.slug,
 				owner: {
 					username: repo.workspace.slug,
 				},
@@ -306,7 +180,7 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 };
 
 export const getBitbucketBranches = async (
-	input: typeof apiFindBitbucketBranches._type,
+	input: z.infer<typeof apiFindBitbucketBranches>,
 ) => {
 	if (!input.bitbucketId) {
 		return [];
@@ -361,7 +235,7 @@ export const getBitbucketBranches = async (
 };
 
 export const testBitbucketConnection = async (
-	input: typeof apiBitbucketTestConnection._type,
+	input: z.infer<typeof apiBitbucketTestConnection>,
 ) => {
 	const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 

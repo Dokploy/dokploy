@@ -6,11 +6,12 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import type { z } from "zod";
 
 export type Gitea = typeof gitea.$inferSelect;
 
 export const createGitea = async (
-	input: typeof apiCreateGitea._type,
+	input: z.infer<typeof apiCreateGitea>,
 	organizationId: string,
 	userId: string,
 ) => {

@@ -1,5 +1,7 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import {
+	CheckIcon,
+	ChevronsUpDown,
 	DatabaseZap,
 	Info,
 	PenBoxIcon,
@@ -7,12 +9,20 @@ import {
 	RefreshCw,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { type Control, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@/components/ui/command";
 import {
 	Dialog,
 	DialogContent,
@@ -32,6 +42,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
 	Select,
 	SelectContent,
 	SelectItem,
@@ -48,6 +64,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import type { CacheType } from "../domains/handle-domain";
+import { getTimezoneLabel, TIMEZONES } from "./timezones";
 
 export const commonCronExpressions = [
 	{ label: "Every minute", value: "* * * * *" },
@@ -57,6 +74,7 @@ export const commonCronExpressions = [
 	{ label: "Every month on the 1st at midnight", value: "0 0 1 * *" },
 	{ label: "Every 15 minutes", value: "*/15 * * * *" },
 	{ label: "Every weekday at midnight", value: "0 0 * * 1-5" },
+	{ label: "Custom", value: "custom" },
 ];
 
 const formSchema = z
@@ -74,6 +92,7 @@ const formSchema = z
 			"dokploy-server",
 		]),
 		script: z.string(),
+		timezone: z.string().optional(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.scheduleType === "compose" && !data.serviceName) {
@@ -115,13 +134,94 @@ interface Props {
 	scheduleType?: "application" | "compose" | "server" | "dokploy-server";
 }
 
+export const ScheduleFormField = ({
+	name,
+	formControl,
+}: {
+	name: string;
+	formControl: Control<any>;
+}) => {
+	const [selectedOption, setSelectedOption] = useState("");
+
+	return (
+		<FormField
+			control={formControl}
+			name={name}
+			render={({ field }) => (
+				<FormItem>
+					<FormLabel className="flex items-center gap-2">
+						Schedule
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Info className="w-4 h-4 text-muted-foreground cursor-help" />
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>Cron expression format: minute hour day month weekday</p>
+									<p>Example: 0 0 * * * (daily at midnight)</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					</FormLabel>
+					<div className="flex flex-col gap-2">
+						<Select
+							value={selectedOption}
+							onValueChange={(value) => {
+								setSelectedOption(value);
+								field.onChange(value === "custom" ? "" : value);
+							}}
+						>
+							<FormControl>
+								<SelectTrigger>
+									<SelectValue placeholder="Select a predefined schedule" />
+								</SelectTrigger>
+							</FormControl>
+							<SelectContent>
+								{commonCronExpressions.map((expr) => (
+									<SelectItem key={expr.value} value={expr.value}>
+										{expr.label}
+										{expr.value !== "custom" && ` (${expr.value})`}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<div className="relative">
+							<FormControl>
+								<Input
+									placeholder="Custom cron expression (e.g., 0 0 * * *)"
+									{...field}
+									onChange={(e) => {
+										const value = e.target.value;
+										const commonExpression = commonCronExpressions.find(
+											(expression) => expression.value === value,
+										);
+										if (commonExpression) {
+											setSelectedOption(commonExpression.value);
+										} else {
+											setSelectedOption("custom");
+										}
+										field.onChange(e);
+									}}
+								/>
+							</FormControl>
+						</div>
+					</div>
+					<FormDescription>
+						Choose a predefined schedule or enter a custom cron expression
+					</FormDescription>
+					<FormMessage />
+				</FormItem>
+			)}
+		/>
+	);
+};
+
 export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [cacheType, setCacheType] = useState<CacheType>("cache");
-
 	const utils = api.useUtils();
-	const form = useForm<z.infer<typeof formSchema>>({
-		resolver: zodResolver(formSchema),
+	const form = useForm({
+		resolver: standardSchemaResolver(formSchema),
 		defaultValues: {
 			name: "",
 			cronExpression: "",
@@ -131,6 +231,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 			serviceName: "",
 			scheduleType: scheduleType || "application",
 			script: "",
+			timezone: undefined,
 		},
 	});
 
@@ -169,15 +270,16 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 				serviceName: schedule.serviceName || "",
 				scheduleType: schedule.scheduleType,
 				script: schedule.script || "",
+				timezone: schedule.timezone || undefined,
 			});
 		}
 	}, [form, schedule, scheduleId]);
 
-	const { mutateAsync, isLoading } = scheduleId
+	const { mutateAsync, isPending } = scheduleId
 		? api.schedule.update.useMutation()
 		: api.schedule.create.useMutation();
 
-	const onSubmit = async (values: z.infer<typeof formSchema>) => {
+	const onSubmit = async (values: z.output<typeof formSchema>) => {
 		if (!id && !scheduleId) return;
 
 		await mutateAsync({
@@ -377,13 +479,18 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 							)}
 						/>
 
+						<ScheduleFormField
+							name="cronExpression"
+							formControl={form.control}
+						/>
+
 						<FormField
 							control={form.control}
-							name="cronExpression"
+							name="timezone"
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel className="flex items-center gap-2">
-										Schedule
+										Timezone
 										<TooltipProvider>
 											<Tooltip>
 												<TooltipTrigger asChild>
@@ -391,45 +498,69 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 												</TooltipTrigger>
 												<TooltipContent>
 													<p>
-														Cron expression format: minute hour day month
-														weekday
+														Select a timezone for the schedule. If not
+														specified, UTC will be used.
 													</p>
-													<p>Example: 0 0 * * * (daily at midnight)</p>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
 									</FormLabel>
-									<div className="flex flex-col gap-2">
-										<Select
-											onValueChange={(value) => {
-												field.onChange(value);
-											}}
-										>
+									<Popover>
+										<PopoverTrigger asChild>
 											<FormControl>
-												<SelectTrigger>
-													<SelectValue placeholder="Select a predefined schedule" />
-												</SelectTrigger>
+												<Button
+													variant="outline"
+													className={cn(
+														"w-full justify-between !bg-input",
+														!field.value && "text-muted-foreground",
+													)}
+												>
+													{getTimezoneLabel(field.value)}
+													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+												</Button>
 											</FormControl>
-											<SelectContent>
-												{commonCronExpressions.map((expr) => (
-													<SelectItem key={expr.value} value={expr.value}>
-														{expr.label} ({expr.value})
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-										<div className="relative">
-											<FormControl>
-												<Input
-													placeholder="Custom cron expression (e.g., 0 0 * * *)"
-													{...field}
+										</PopoverTrigger>
+										<PopoverContent className="w-[400px] p-0" align="start">
+											<Command>
+												<CommandInput
+													placeholder="Search timezone..."
+													className="h-9"
 												/>
-											</FormControl>
-										</div>
-									</div>
+												<CommandList>
+													<CommandEmpty>No timezone found.</CommandEmpty>
+													<ScrollArea className="h-72">
+														{Object.entries(TIMEZONES).map(
+															([region, zones]) => (
+																<CommandGroup key={region} heading={region}>
+																	{zones.map((tz) => (
+																		<CommandItem
+																			key={tz.value}
+																			value={`${region} ${tz.label} ${tz.value}`}
+																			onSelect={() => {
+																				field.onChange(tz.value);
+																			}}
+																		>
+																			{tz.value}
+																			<CheckIcon
+																				className={cn(
+																					"ml-auto h-4 w-4",
+																					field.value === tz.value
+																						? "opacity-100"
+																						: "opacity-0",
+																				)}
+																			/>
+																		</CommandItem>
+																	))}
+																</CommandGroup>
+															),
+														)}
+													</ScrollArea>
+												</CommandList>
+											</Command>
+										</PopoverContent>
+									</Popover>
 									<FormDescription>
-										Choose a predefined schedule or enter a custom cron
-										expression
+										Optional: Choose a timezone for the schedule execution time
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -531,7 +662,7 @@ echo "Hello, world!"
 							)}
 						/>
 
-						<Button type="submit" isLoading={isLoading} className="w-full">
+						<Button type="submit" isLoading={isPending} className="w-full">
 							{scheduleId ? "Update" : "Create"} Schedule
 						</Button>
 					</form>

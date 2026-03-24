@@ -10,12 +10,13 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { audit } from "@/server/api/utils/audit";
+import { createTRPCRouter, withPermission } from "../trpc";
 
 export const containerIdRegex = /^[a-zA-Z0-9.\-_]+$/;
 
 export const dockerRouter = createTRPCRouter({
-	getContainers: protectedProcedure
+	getContainers: withPermission("docker", "read")
 		.input(
 			z.object({
 				serverId: z.string().optional(),
@@ -31,7 +32,7 @@ export const dockerRouter = createTRPCRouter({
 			return await getContainers(input.serverId);
 		}),
 
-	restartContainer: protectedProcedure
+	restartContainer: withPermission("docker", "read")
 		.input(
 			z.object({
 				containerId: z
@@ -40,11 +41,18 @@ export const dockerRouter = createTRPCRouter({
 					.regex(containerIdRegex, "Invalid container id."),
 			}),
 		)
-		.mutation(async ({ input }) => {
-			return await containerRestart(input.containerId);
+		.mutation(async ({ input, ctx }) => {
+			const result = await containerRestart(input.containerId);
+			await audit(ctx, {
+				action: "start",
+				resourceType: "docker",
+				resourceId: input.containerId,
+				resourceName: input.containerId,
+			});
+			return result;
 		}),
 
-	getConfig: protectedProcedure
+	getConfig: withPermission("docker", "read")
 		.input(
 			z.object({
 				containerId: z
@@ -64,12 +72,10 @@ export const dockerRouter = createTRPCRouter({
 			return await getConfig(input.containerId, input.serverId);
 		}),
 
-	getContainersByAppNameMatch: protectedProcedure
+	getContainersByAppNameMatch: withPermission("service", "read")
 		.input(
 			z.object({
-				appType: z
-					.union([z.literal("stack"), z.literal("docker-compose")])
-					.optional(),
+				appType: z.enum(["stack", "docker-compose"]).optional(),
 				appName: z.string().min(1).regex(containerIdRegex, "Invalid app name."),
 				serverId: z.string().optional(),
 			}),
@@ -88,7 +94,7 @@ export const dockerRouter = createTRPCRouter({
 			);
 		}),
 
-	getContainersByAppLabel: protectedProcedure
+	getContainersByAppLabel: withPermission("docker", "read")
 		.input(
 			z.object({
 				appName: z.string().min(1).regex(containerIdRegex, "Invalid app name."),
@@ -110,7 +116,7 @@ export const dockerRouter = createTRPCRouter({
 			);
 		}),
 
-	getStackContainersByAppName: protectedProcedure
+	getStackContainersByAppName: withPermission("docker", "read")
 		.input(
 			z.object({
 				appName: z.string().min(1).regex(containerIdRegex, "Invalid app name."),
@@ -127,7 +133,7 @@ export const dockerRouter = createTRPCRouter({
 			return await getStackContainersByAppName(input.appName, input.serverId);
 		}),
 
-	getServiceContainersByAppName: protectedProcedure
+	getServiceContainersByAppName: withPermission("docker", "read")
 		.input(
 			z.object({
 				appName: z.string().min(1).regex(containerIdRegex, "Invalid app name."),
