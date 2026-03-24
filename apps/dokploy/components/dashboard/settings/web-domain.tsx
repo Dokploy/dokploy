@@ -121,9 +121,7 @@ export const WebDomain = () => {
 								<GlobeIcon className="size-6 text-muted-foreground self-center" />
 								{t("title")}
 							</CardTitle>
-							<CardDescription>
-								{t("description")}
-							</CardDescription>
+							<CardDescription>{t("description")}</CardDescription>
 						</div>
 					</CardHeader>
 					<CardContent className="space-y-2 py-6 border-t">
@@ -132,9 +130,7 @@ export const WebDomain = () => {
 							<AlertBlock type="warning">
 								<div className="space-y-2">
 									<p className="font-medium">{t("urlChangeWarningTitle")}</p>
-									<p>
-										{t("urlChangeWarningDesc")}
-									</p>
+									<p>{t("urlChangeWarningDesc")}</p>
 								</div>
 							</AlertBlock>
 						)}
@@ -221,7 +217,9 @@ export const WebDomain = () => {
 															</SelectTrigger>
 														</FormControl>
 														<SelectContent>
-															<SelectItem value={"none"}>{t("certificateNone")}</SelectItem>
+															<SelectItem value={"none"}>
+																{t("certificateNone")}
+															</SelectItem>
 															<SelectItem value={"letsencrypt"}>
 																{t("certificateLetsEncrypt")}
 															</SelectItem>

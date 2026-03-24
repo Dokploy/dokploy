@@ -83,26 +83,19 @@ const Invitation = ({
 						.min(1, {
 							message: t("invitation.validation.passwordRequired"),
 						})
-						.refine(
-							(password) =>
-								password === "" || password.length >= 8,
-							{
-								message: t("invitation.validation.passwordMin"),
-							},
-						),
+						.refine((password) => password === "" || password.length >= 8, {
+							message: t("invitation.validation.passwordMin"),
+						}),
 					confirmPassword: z
 						.string()
 						.min(1, {
-							message:
-								t("invitation.validation.confirmPasswordRequired"),
+							message: t("invitation.validation.confirmPasswordRequired"),
 						})
 						.refine(
 							(confirmPassword) =>
-								confirmPassword === "" ||
-								confirmPassword.length >= 8,
+								confirmPassword === "" || confirmPassword.length >= 8,
 							{
-								message:
-									t("invitation.validation.confirmPasswordMin"),
+								message: t("invitation.validation.confirmPasswordMin"),
 							},
 						),
 				})
@@ -200,9 +193,7 @@ const Invitation = ({
 						</div>
 					) : (
 						<>
-							<CardDescription>
-								{t("invitation.description")}
-							</CardDescription>
+							<CardDescription>{t("invitation.description")}</CardDescription>
 							<div className="w-full">
 								<div className="p-3" />
 
@@ -311,9 +302,7 @@ const Invitation = ({
 													render={({ field }) => (
 														<FormItem>
 															<FormLabel>
-																{t(
-																	"invitation.form.confirmPassword",
-																)}
+																{t("invitation.form.confirmPassword")}
 															</FormLabel>
 															<FormControl>
 																<Input

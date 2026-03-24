@@ -283,9 +283,7 @@ export const AdvancedEnvironmentSelector = ({
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>{t("createTitle")}</DialogTitle>
-						<DialogDescription>
-							{t("createDescription")}
-						</DialogDescription>
+						<DialogDescription>{t("createDescription")}</DialogDescription>
 					</DialogHeader>
 
 					<div className="space-y-4">
@@ -334,9 +332,7 @@ export const AdvancedEnvironmentSelector = ({
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>{t("editTitle")}</DialogTitle>
-						<DialogDescription>
-							{t("editDescription")}
-						</DialogDescription>
+						<DialogDescription>{t("editDescription")}</DialogDescription>
 					</DialogHeader>
 
 					<div className="space-y-4">
@@ -387,14 +383,14 @@ export const AdvancedEnvironmentSelector = ({
 					<DialogHeader>
 						<DialogTitle>{t("deleteTitle")}</DialogTitle>
 						<DialogDescription>
-							{t("deleteDescription", { name: selectedEnvironment?.name ?? "" })}
+							{t("deleteDescription", {
+								name: selectedEnvironment?.name ?? "",
+							})}
 						</DialogDescription>
 					</DialogHeader>
 
 					{haveServices && (
-						<AlertBlock type="warning">
-							{t("hasServicesWarning")}
-						</AlertBlock>
+						<AlertBlock type="warning">{t("hasServicesWarning")}</AlertBlock>
 					)}
 
 					<DialogFooter>

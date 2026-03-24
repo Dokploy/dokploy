@@ -179,7 +179,9 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 		return (
 			<div className="flex flex-col items-center justify-center h-full space-y-4">
 				<Bot className="w-16 h-16 text-primary animate-pulse" />
-				<h2 className="text-2xl font-semibold animate-pulse">{t("errorTitle")}</h2>
+				<h2 className="text-2xl font-semibold animate-pulse">
+					{t("errorTitle")}
+				</h2>
 				<AlertBlock type="error">
 					{error?.message || t("errorGenerating")}
 				</AlertBlock>
@@ -193,9 +195,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 				<h2 className="text-2xl font-semibold animate-pulse">
 					{t("generatingTitle")}
 				</h2>
-				<p className="text-muted-foreground">
-					{t("generatingDesc")}
-				</p>
+				<p className="text-muted-foreground">{t("generatingDesc")}</p>
 				<pre className="whitespace-normal">{templateInfo.userInput}</pre>
 			</div>
 		);
@@ -253,7 +253,9 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 							<ScrollArea>
 								<Accordion type="single" collapsible className="w-full">
 									<AccordionItem value="description">
-										<AccordionTrigger>{t("descriptionAccordion")}</AccordionTrigger>
+										<AccordionTrigger>
+											{t("descriptionAccordion")}
+										</AccordionTrigger>
 										<AccordionContent>
 											<ScrollArea className="w-full rounded-md border p-4">
 												<ReactMarkdown className="text-muted-foreground text-sm">
@@ -263,7 +265,9 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 										</AccordionContent>
 									</AccordionItem>
 									<AccordionItem value="docker-compose">
-										<AccordionTrigger>{t("dockerComposeAccordion")}</AccordionTrigger>
+										<AccordionTrigger>
+											{t("dockerComposeAccordion")}
+										</AccordionTrigger>
 										<AccordionContent>
 											<CodeEditor
 												value={selectedVariant?.dockerCompose}
@@ -283,7 +287,9 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 										</AccordionContent>
 									</AccordionItem>
 									<AccordionItem value="env-variables">
-										<AccordionTrigger>{t("envVariablesAccordion")}</AccordionTrigger>
+										<AccordionTrigger>
+											{t("envVariablesAccordion")}
+										</AccordionTrigger>
 										<AccordionContent>
 											<ScrollArea className="w-full rounded-md border">
 												<div className="p-4 space-y-4">
@@ -414,7 +420,9 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 										</AccordionContent>
 									</AccordionItem>
 									<AccordionItem value="mounts">
-										<AccordionTrigger>{t("configFilesAccordion")}</AccordionTrigger>
+										<AccordionTrigger>
+											{t("configFilesAccordion")}
+										</AccordionTrigger>
 										<AccordionContent>
 											<ScrollArea className="w-full rounded-md border">
 												<div className="p-4 space-y-4">
@@ -436,7 +444,8 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 																					{config.filePath}
 																				</Label>
 																				<p className="text-xs text-muted-foreground">
-																					{t("configFileMountedAs")}{config.filePath}
+																					{t("configFileMountedAs")}
+																					{config.filePath}
 																				</p>
 																			</div>
 																		</div>

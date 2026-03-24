@@ -43,13 +43,9 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 							<FileIcon className="size-6 text-muted-foreground self-center" />
 							{t("title")}
 						</CardTitle>
-						<CardDescription>
-							{t("description")}
-						</CardDescription>
+						<CardDescription>{t("description")}</CardDescription>
 
-						<AlertBlock type="warning">
-							{t("warningAlert")}
-						</AlertBlock>
+						<AlertBlock type="warning">{t("warningAlert")}</AlertBlock>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						<div>

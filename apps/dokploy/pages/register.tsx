@@ -72,28 +72,19 @@ const Register = ({ isCloud }: Props) => {
 						.min(1, {
 							message: t("register.validation.passwordRequired"),
 						})
-						.refine(
-							(password) =>
-								password === "" || password.length >= 8,
-							{
-								message: t("register.validation.passwordMin"),
-							},
-						),
+						.refine((password) => password === "" || password.length >= 8, {
+							message: t("register.validation.passwordMin"),
+						}),
 					confirmPassword: z
 						.string()
 						.min(1, {
-							message: t(
-								"register.validation.confirmPasswordRequired",
-							),
+							message: t("register.validation.confirmPasswordRequired"),
 						})
 						.refine(
 							(confirmPassword) =>
-								confirmPassword === "" ||
-								confirmPassword.length >= 8,
+								confirmPassword === "" || confirmPassword.length >= 8,
 							{
-								message: t(
-									"register.validation.confirmPasswordMin",
-								),
+								message: t("register.validation.confirmPasswordMin"),
 							},
 						),
 				})
@@ -200,14 +191,10 @@ const Register = ({ isCloud }: Props) => {
 											name="name"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>
-														{t("register.form.firstName")}
-													</FormLabel>
+													<FormLabel>{t("register.form.firstName")}</FormLabel>
 													<FormControl>
 														<Input
-															placeholder={t(
-																"register.placeholders.firstName",
-															)}
+															placeholder={t("register.placeholders.firstName")}
 															{...field}
 														/>
 													</FormControl>
@@ -220,14 +207,10 @@ const Register = ({ isCloud }: Props) => {
 											name="lastName"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>
-														{t("register.form.lastName")}
-													</FormLabel>
+													<FormLabel>{t("register.form.lastName")}</FormLabel>
 													<FormControl>
 														<Input
-															placeholder={t(
-																"register.placeholders.lastName",
-															)}
+															placeholder={t("register.placeholders.lastName")}
 															{...field}
 														/>
 													</FormControl>
@@ -243,9 +226,7 @@ const Register = ({ isCloud }: Props) => {
 													<FormLabel>{t("register.form.email")}</FormLabel>
 													<FormControl>
 														<Input
-															placeholder={t(
-																"register.placeholders.email",
-															)}
+															placeholder={t("register.placeholders.email")}
 															{...field}
 														/>
 													</FormControl>
@@ -258,15 +239,11 @@ const Register = ({ isCloud }: Props) => {
 											name="password"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>
-														{t("register.form.password")}
-													</FormLabel>
+													<FormLabel>{t("register.form.password")}</FormLabel>
 													<FormControl>
 														<Input
 															type="password"
-															placeholder={t(
-																"register.placeholders.password",
-															)}
+															placeholder={t("register.placeholders.password")}
 															{...field}
 														/>
 													</FormControl>
@@ -286,9 +263,7 @@ const Register = ({ isCloud }: Props) => {
 													<FormControl>
 														<Input
 															type="password"
-															placeholder={t(
-																"register.placeholders.password",
-															)}
+															placeholder={t("register.placeholders.password")}
 															{...field}
 														/>
 													</FormControl>

@@ -53,9 +53,7 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 
 					{shouldShowServerDropdown && (
 						<div className="space-y-2">
-							<Label htmlFor="server-deploy">
-								{t("selectServerLabel")}
-							</Label>
+							<Label htmlFor="server-deploy">{t("selectServerLabel")}</Label>
 							<Select
 								value={
 									templateInfo.server?.serverId ||
@@ -80,7 +78,9 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 							>
 								<SelectTrigger className="w-full">
 									<SelectValue
-										placeholder={!isCloud ? t("dokploy") : t("selectServerPlaceholder")}
+										placeholder={
+											!isCloud ? t("dokploy") : t("selectServerPlaceholder")
+										}
 									/>
 								</SelectTrigger>
 								<SelectContent>
@@ -101,7 +101,9 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 											</SelectItem>
 										))}
 										<SelectLabel>
-											{t("serversLabel", { count: (servers?.length ?? 0) + (!isCloud ? 1 : 0) })}
+											{t("serversLabel", {
+												count: (servers?.length ?? 0) + (!isCloud ? 1 : 0),
+											})}
 										</SelectLabel>
 									</SelectGroup>
 								</SelectContent>

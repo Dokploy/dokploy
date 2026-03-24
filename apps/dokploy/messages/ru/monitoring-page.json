@@ -1,6 +1,5 @@
 {
-  "monitoring": {
-    "loading": "Загрузка..."
-  }
+	"monitoring": {
+		"loading": "Загрузка..."
+	}
 }
-

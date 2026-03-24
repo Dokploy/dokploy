@@ -85,8 +85,7 @@ const Mariadb = (
 				<Head>
 					<title>
 						{t("serviceDetailsPage.databaseTitle")}: {data?.name} -{" "}
-						{data?.environment?.project?.name} |
-						{appName}
+						{data?.environment?.project?.name} |{appName}
 					</title>
 				</Head>
 				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
@@ -122,7 +121,8 @@ const Mariadb = (
 													: "destructive"
 										}
 									>
-										{data?.server?.name || t("serviceDetailsPage.dokployServer")}
+										{data?.server?.name ||
+											t("serviceDetailsPage.dokployServer")}
 									</Badge>
 									{data?.server?.serverStatus === "inactive" && (
 										<TooltipProvider delayDuration={0}>
@@ -137,9 +137,7 @@ const Mariadb = (
 													align="start"
 													side="top"
 												>
-													<span>
-														{t("serviceDetailsPage.inactiveTooltip")}
-													</span>
+													<span>{t("serviceDetailsPage.inactiveTooltip")}</span>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>

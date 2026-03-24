@@ -1,45 +1,44 @@
 {
-  "register": {
-    "title": {
-      "cloud": "Регистрация",
-      "selfHosted": "Настройте сервер"
-    },
-    "description": {
-      "cloud": "Введите ваш email и пароль, чтобы создать аккаунт",
-      "selfHosted": "Введите ваш email и пароль, чтобы настроить сервер"
-    },
-    "form": {
-      "firstName": "Имя",
-      "lastName": "Фамилия",
-      "email": "Электронная почта",
-      "password": "Пароль",
-      "confirmPassword": "Подтверждение пароля"
-    },
-    "placeholders": {
-      "firstName": "Иван",
-      "lastName": "Петров",
-      "email": "email@dokploy.com",
-      "password": "Пароль"
-    },
-    "button": "Зарегистрироваться",
-    "orRegisterWithEmail": "Или зарегистрируйтесь по email",
-    "alreadyHaveAccount": "У вас уже есть аккаунт?",
-    "needHelp": "Нужна помощь?",
-    "contactUs": "Связаться с нами",
-    "genericError": "Произошла ошибка",
-    "toastSuccess": "Пользователь успешно зарегистрирован",
-    "successAlert": "Регистрация прошла успешно. Проверьте входящие или папку со спамом, чтобы подтвердить аккаунт.",
-    "validation": {
-      "firstNameRequired": "Имя обязательно",
-      "lastNameRequired": "Фамилия обязательна",
-      "emailRequired": "Email обязателен",
-      "emailInvalid": "Email должен быть корректным",
-      "passwordRequired": "Пароль обязателен",
-      "passwordMin": "Пароль должен быть не короче 8 символов",
-      "confirmPasswordRequired": "Пароль обязателен",
-      "confirmPasswordMin": "Пароль должен быть не короче 8 символов",
-      "passwordsDoNotMatch": "Пароли не совпадают"
-    }
-  }
+	"register": {
+		"title": {
+			"cloud": "Регистрация",
+			"selfHosted": "Настройте сервер"
+		},
+		"description": {
+			"cloud": "Введите ваш email и пароль, чтобы создать аккаунт",
+			"selfHosted": "Введите ваш email и пароль, чтобы настроить сервер"
+		},
+		"form": {
+			"firstName": "Имя",
+			"lastName": "Фамилия",
+			"email": "Электронная почта",
+			"password": "Пароль",
+			"confirmPassword": "Подтверждение пароля"
+		},
+		"placeholders": {
+			"firstName": "Иван",
+			"lastName": "Петров",
+			"email": "email@dokploy.com",
+			"password": "Пароль"
+		},
+		"button": "Зарегистрироваться",
+		"orRegisterWithEmail": "Или зарегистрируйтесь по email",
+		"alreadyHaveAccount": "У вас уже есть аккаунт?",
+		"needHelp": "Нужна помощь?",
+		"contactUs": "Связаться с нами",
+		"genericError": "Произошла ошибка",
+		"toastSuccess": "Пользователь успешно зарегистрирован",
+		"successAlert": "Регистрация прошла успешно. Проверьте входящие или папку со спамом, чтобы подтвердить аккаунт.",
+		"validation": {
+			"firstNameRequired": "Имя обязательно",
+			"lastNameRequired": "Фамилия обязательна",
+			"emailRequired": "Email обязателен",
+			"emailInvalid": "Email должен быть корректным",
+			"passwordRequired": "Пароль обязателен",
+			"passwordMin": "Пароль должен быть не короче 8 символов",
+			"confirmPasswordRequired": "Пароль обязателен",
+			"confirmPasswordMin": "Пароль должен быть не короче 8 символов",
+			"passwordsDoNotMatch": "Пароли не совпадают"
+		}
+	}
 }
-

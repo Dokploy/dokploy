@@ -461,16 +461,10 @@ function createMenuForAuthUser(opts: {
 
 	// Apply whitelabeling URL overrides to help items
 	const helpItems = filterEnabled(MENU.help).map((item) => {
-		if (
-			opts.whitelabeling?.docsUrl &&
-			item.name === "help.documentation"
-		) {
+		if (opts.whitelabeling?.docsUrl && item.name === "help.documentation") {
 			return { ...item, url: opts.whitelabeling.docsUrl };
 		}
-		if (
-			opts.whitelabeling?.supportUrl &&
-			item.name === "help.support"
-		) {
+		if (opts.whitelabeling?.supportUrl && item.name === "help.support") {
 			return { ...item, url: opts.whitelabeling.supportUrl };
 		}
 		return item;
@@ -867,7 +861,7 @@ function SidebarLogo() {
 		</>
 	);
 }
-	
+
 export default function Page({ children }: Props) {
 	const t = useTranslations();
 	const [defaultOpen, setDefaultOpen] = useState<boolean | undefined>(
@@ -1137,7 +1131,7 @@ export default function Page({ children }: Props) {
 											<span className="mr-2">
 												<item.icon className="h-4 w-4" />
 											</span>
-												<span>{t(item.name)}</span>
+											<span>{t(item.name)}</span>
 										</a>
 									</SidebarMenuButton>
 								</SidebarMenuItem>

@@ -84,21 +84,31 @@ export const ShowNodes = ({ serverId }: Props) => {
 						) : haveAtLeastOneRegistry ? (
 							<div className="grid md:grid-cols-1 gap-4">
 								<Table>
-									<TableCaption>
-										{t("tableCaption")}
-									</TableCaption>
+									<TableCaption>{t("tableCaption")}</TableCaption>
 									<TableHeader>
 										<TableRow>
-											<TableHead className="text-left">{t("colHostname")}</TableHead>
-											<TableHead className="text-right">{t("colStatus")}</TableHead>
-											<TableHead className="text-right">{t("colRole")}</TableHead>
-											<TableHead className="text-right">{t("colAvailability")}</TableHead>
+											<TableHead className="text-left">
+												{t("colHostname")}
+											</TableHead>
+											<TableHead className="text-right">
+												{t("colStatus")}
+											</TableHead>
+											<TableHead className="text-right">
+												{t("colRole")}
+											</TableHead>
+											<TableHead className="text-right">
+												{t("colAvailability")}
+											</TableHead>
 											<TableHead className="text-right">
 												{t("colEngineVersion")}
 											</TableHead>
-											<TableHead className="text-right">{t("colCreated")}</TableHead>
+											<TableHead className="text-right">
+												{t("colCreated")}
+											</TableHead>
 
-											<TableHead className="text-right">{t("colActions")}</TableHead>
+											<TableHead className="text-right">
+												{t("colActions")}
+											</TableHead>
 										</TableRow>
 									</TableHeader>
 									<TableBody>
@@ -139,12 +149,16 @@ export const ShowNodes = ({ serverId }: Props) => {
 														<DropdownMenu>
 															<DropdownMenuTrigger asChild>
 																<Button variant="ghost" className="h-8 w-8 p-0">
-																	<span className="sr-only">{t("openMenu")}</span>
+																	<span className="sr-only">
+																		{t("openMenu")}
+																	</span>
 																	<MoreHorizontal className="h-4 w-4" />
 																</Button>
 															</DropdownMenuTrigger>
 															<DropdownMenuContent align="end">
-																<DropdownMenuLabel>{t("actionsLabel")}</DropdownMenuLabel>
+																<DropdownMenuLabel>
+																	{t("actionsLabel")}
+																</DropdownMenuLabel>
 																<ShowNodeData data={node} />
 																{!node?.ManagerStatus?.Leader && (
 																	<DialogAction
@@ -158,9 +172,7 @@ export const ShowNodes = ({ serverId }: Props) => {
 																			})
 																				.then(() => {
 																					refetch();
-																					toast.success(
-																						t("deleteNodeSuccess"),
-																					);
+																					toast.success(t("deleteNodeSuccess"));
 																				})
 																				.catch(() => {
 																					toast.error(t("deleteNodeError"));
@@ -195,17 +207,13 @@ export const ShowNodes = ({ serverId }: Props) => {
 											<TooltipTrigger className="self-center">
 												<HelpCircle className="size-5 text-muted-foreground " />
 											</TooltipTrigger>
-											<TooltipContent>
-												{t("noRegistryTooltip")}
-											</TooltipContent>
+											<TooltipContent>{t("noRegistryTooltip")}</TooltipContent>
 										</Tooltip>
 									</TooltipProvider>
 								</div>
 
 								<ul className="list-disc list-inside text-sm text-muted-foreground border p-4 rounded-lg flex flex-col gap-1.5 mt-2.5">
-									<li>
-										{t("noRegistryDockerHub")}
-									</li>
+									<li>{t("noRegistryDockerHub")}</li>
 								</ul>
 							</div>
 						)}

@@ -34,10 +34,7 @@ import { Configure2FA } from "./configure-2fa";
 import { Enable2FA } from "./enable-2fa";
 
 const profileSchema = z.object({
-	email: z
-		.string()
-		.email()
-		.min(1),
+	email: z.string().email().min(1),
 	password: z.string().nullable(),
 	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
@@ -159,9 +156,7 @@ export const ProfileForm = () => {
 								<User className="size-6 text-muted-foreground self-center" />
 								{t("title")}
 							</CardTitle>
-							<CardDescription>
-								{t("description")}
-							</CardDescription>
+							<CardDescription>{t("description")}</CardDescription>
 						</div>
 
 						{!data?.user.twoFactorEnabled ? <Enable2FA /> : <Configure2FA />}
@@ -189,7 +184,10 @@ export const ProfileForm = () => {
 													<FormItem>
 														<FormLabel>{t("firstNameLabel")}</FormLabel>
 														<FormControl>
-															<Input placeholder={t("firstNamePlaceholder")} {...field} />
+															<Input
+																placeholder={t("firstNamePlaceholder")}
+																{...field}
+															/>
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -202,7 +200,10 @@ export const ProfileForm = () => {
 													<FormItem>
 														<FormLabel>{t("lastNameLabel")}</FormLabel>
 														<FormControl>
-															<Input placeholder={t("lastNamePlaceholder")} {...field} />
+															<Input
+																placeholder={t("lastNamePlaceholder")}
+																{...field}
+															/>
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -215,7 +216,10 @@ export const ProfileForm = () => {
 													<FormItem>
 														<FormLabel>{t("emailLabel")}</FormLabel>
 														<FormControl>
-															<Input placeholder={t("emailPlaceholder")} {...field} />
+															<Input
+																placeholder={t("emailPlaceholder")}
+																{...field}
+															/>
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -340,9 +344,7 @@ export const ProfileForm = () => {
 																				if (file) {
 																					// max file size 2mb
 																					if (file.size > 2 * 1024 * 1024) {
-																						toast.error(
-																							t("imageTooLarge"),
-																						);
+																						toast.error(t("imageTooLarge"));
 																						return;
 																					}
 																					const reader = new FileReader();
@@ -424,7 +426,9 @@ export const ProfileForm = () => {
 													render={({ field }) => (
 														<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
 															<div className="space-y-0.5">
-																<FormLabel>{t("allowImpersonationLabel")}</FormLabel>
+																<FormLabel>
+																	{t("allowImpersonationLabel")}
+																</FormLabel>
 																<FormDescription>
 																	{t("allowImpersonationDescription")}
 																</FormDescription>

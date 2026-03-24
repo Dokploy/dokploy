@@ -1,11 +1,10 @@
 {
-  "deployments": {
-    "title": "Деплои",
-    "description": "Все деплои приложений и compose в одном месте.",
-    "tabs": {
-      "deployments": "Деплои",
-      "queue": "Очередь"
-    }
-  }
+	"deployments": {
+		"title": "Деплои",
+		"description": "Все деплои приложений и compose в одном месте.",
+		"tabs": {
+			"deployments": "Деплои",
+			"queue": "Очередь"
+		}
+	}
 }
-
