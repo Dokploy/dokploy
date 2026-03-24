@@ -57,7 +57,9 @@ const MyApp = ({
 	const getLayout = Component.getLayout ?? ((page) => page);
 
 	const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
-	const [messages, setMessages] = useState<Record<string, unknown>>({});
+	const [messages, setMessages] = useState<Record<string, unknown>>(() =>
+		getMessages(DEFAULT_LOCALE),
+	);
 
 	useEffect(() => {
 		setLocaleState(resolveInitialLocale());

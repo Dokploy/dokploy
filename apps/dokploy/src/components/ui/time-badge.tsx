@@ -42,16 +42,21 @@ export function TimeBadge() {
 
 	const intlLocale = INTL_LOCALE_BY_APP[locale] ?? "en-US";
 
+	/** en-US даёт строку, которую `Date` стабильно парсит; ru-RU ломает парсинг и даёт NaN. */
 	const getUtcOffset = (timeZone: string) => {
 		const date = new Date();
 		const utcDate = new Date(
-			date.toLocaleString(intlLocale, { timeZone: "UTC" }),
+			date.toLocaleString("en-US", { timeZone: "UTC" }),
 		);
-		const tzDate = new Date(date.toLocaleString(intlLocale, { timeZone }));
-		const offset = (tzDate.getTime() - utcDate.getTime()) / (1000 * 60 * 60);
-		const sign = offset >= 0 ? "+" : "-";
-		const hours = Math.floor(Math.abs(offset));
-		const minutes = (Math.abs(offset) * 60) % 60;
+		const tzDate = new Date(date.toLocaleString("en-US", { timeZone }));
+		const offsetMs = tzDate.getTime() - utcDate.getTime();
+		if (!Number.isFinite(offsetMs)) {
+			return "UTC+00:00";
+		}
+		const offsetHours = offsetMs / (1000 * 60 * 60);
+		const sign = offsetHours >= 0 ? "+" : "-";
+		const hours = Math.floor(Math.abs(offsetHours));
+		const minutes = Math.round((Math.abs(offsetHours) * 60) % 60);
 		return `UTC${sign}${hours.toString().padStart(2, "0")}:${minutes
 			.toString()
 			.padStart(2, "0")}`;

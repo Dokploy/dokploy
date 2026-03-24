@@ -1176,7 +1176,7 @@ export default function Page({ children }: Props) {
 													href={activeItem?.url || "/"}
 													className="flex items-center gap-1.5"
 												>
-													{activeItem?.title}
+													{activeItem ? t(activeItem.title) : null}
 												</Link>
 											</BreadcrumbLink>
 										</BreadcrumbItem>

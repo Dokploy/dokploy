@@ -37,9 +37,9 @@ interface Props {
 }
 
 export const DashboardDocumentTitle = ({ pageTitleKey }: Props) => {
-	const tPage = useTranslations("dashboardPage");
+	const tRoot = useTranslations();
 	const tLayout = useTranslations("layout");
-	const segment = tPage(`pageTitles.${pageTitleKey}`);
+	const segment = tRoot(`pageTitles.${pageTitleKey}`);
 	const appName = tLayout("defaultAppName");
 
 	return (
