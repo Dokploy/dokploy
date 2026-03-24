@@ -169,7 +169,24 @@ export const findEnvironmentById = async (environmentId: string) => {
 					serverId: true,
 				},
 			},
-			libsql: true,
+			libsql: {
+				with: {
+					server: {
+						columns: {
+							name: true,
+							serverId: true,
+						},
+					},
+				},
+				columns: {
+					libsqlId: true,
+					name: true,
+					createdAt: true,
+					applicationStatus: true,
+					description: true,
+					serverId: true,
+				},
+			},
 			project: true,
 		},
 	});

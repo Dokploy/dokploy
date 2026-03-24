@@ -86,7 +86,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 			form.reset({
 				dockerImage: data.dockerImage,
 				command: data.command || "",
-				args: data.args?.map((arg) => ({ value: arg })) || [],
+				args: (data as any).args?.map((arg: string) => ({ value: arg })) || [],
 			});
 		}
 	}, [data, form]);

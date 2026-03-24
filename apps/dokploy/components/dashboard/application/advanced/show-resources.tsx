@@ -158,7 +158,7 @@ export const ShowResources = ({ id, type }: Props) => {
 				cpuReservation: data?.cpuReservation || undefined,
 				memoryLimit: data?.memoryLimit || undefined,
 				memoryReservation: data?.memoryReservation || undefined,
-				ulimitsSwarm: data?.ulimitsSwarm || [],
+				ulimitsSwarm: (data as any)?.ulimitsSwarm || [],
 			});
 		}
 	}, [data, form, form.reset]);

@@ -42,7 +42,7 @@ interface Props {
 
 export const UpdateLibsql = ({ libsqlId }: Props) => {
 	const utils = api.useUtils();
-	const { mutateAsync, error, isError, isLoading } =
+	const { mutateAsync, error, isError, isPending } =
 		api.libsql.update.useMutation();
 	const { data } = api.libsql.one.useQuery(
 		{
@@ -146,7 +146,7 @@ export const UpdateLibsql = ({ libsqlId }: Props) => {
 								/>
 								<DialogFooter>
 									<Button
-										isLoading={isLoading}
+										isLoading={isPending}
 										form="hook-form-update-libsql"
 										type="submit"
 									>
