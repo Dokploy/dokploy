@@ -1,4 +1,6 @@
 import type { Locale } from "./locale";
+import * as enMessages from "@/i18n/locales/en";
+import * as ruMessages from "@/i18n/locales/ru";
 
 type MessageValue = string | Messages;
 
@@ -9,12 +11,5 @@ interface Messages {
 const mergeMessages = (source: Record<string, Messages>): Messages =>
 	Object.assign({}, ...Object.values(source));
 
-export const getMessages = async (locale: Locale): Promise<Messages> => {
-	if (locale === "ru") {
-		const ru = await import("@/i18n/locales/ru");
-		return mergeMessages(ru);
-	}
-
-	const en = await import("@/i18n/locales/en");
-	return mergeMessages(en);
-};
+export const getMessages = (locale: Locale): Messages =>
+	mergeMessages(locale === "ru" ? ruMessages : enMessages);

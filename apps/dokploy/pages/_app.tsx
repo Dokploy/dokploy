@@ -78,14 +78,14 @@ const MyApp = ({
 	useEffect(() => {
 		let isMounted = true;
 
-		const loadMessages = async () => {
-			const nextMessages = await getMessages(locale);
+		const loadMessages = () => {
+			const nextMessages = getMessages(locale);
 			if (isMounted) {
 				setMessages(nextMessages);
 			}
 		};
 
-		void loadMessages();
+		loadMessages();
 
 		return () => {
 			isMounted = false;

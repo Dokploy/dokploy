@@ -35,7 +35,7 @@ export type DashboardPageTitleKey =
 interface Props {
 	pageTitleKey: DashboardPageTitleKey;
 }
-
+	
 export const DashboardDocumentTitle = ({ pageTitleKey }: Props) => {
 	const tPage = useTranslations("dashboardPage");
 	const tLayout = useTranslations("layout");
