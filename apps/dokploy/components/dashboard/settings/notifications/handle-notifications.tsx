@@ -6,6 +6,7 @@ import {
 	PlusIcon,
 	Trash2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -227,6 +228,7 @@ interface Props {
 }
 
 export const HandleNotifications = ({ notificationId }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -703,7 +705,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			});
 		} else if (data.type === "pushover") {
 			if (data.priority === 2 && (data.retry == null || data.expire == null)) {
-				toast.error("Retry and expire are required for emergency priority (2)");
+				toast.error(tToast("notificationsEmergencyPriority"));
 				return;
 			}
 			promise = pushoverMutation.mutateAsync({
@@ -1940,7 +1942,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											(data.retry == null || data.expire == null)
 										) {
 											throw new Error(
-												"Retry and expire are required for emergency priority (2)",
+												tToast("notificationsEmergencyPriority"),
 											);
 										}
 										await testPushoverConnection({
@@ -1951,10 +1953,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											expire: data.priority === 2 ? data.expire : undefined,
 										});
 									}
-									toast.success("Connection Success");
+									toast.success(tToast("connectionSuccess"));
 								} catch (error) {
 									toast.error(
-										`Error testing the provider: ${error instanceof Error ? error.message : "Unknown error"}`,
+										tToast("notificationTestProviderError", {
+											error:
+												error instanceof Error
+													? error.message
+													: tToast("aiSettingsSaveUnknownError"),
+										}),
 									);
 								}
 							}}

@@ -1,4 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -33,6 +34,7 @@ interface LabelsFormProps {
 }
 
 export const LabelsForm = ({ id, type }: LabelsFormProps) => {
+	const t = useTranslations("applicationAdvancedSwarmForms");
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -101,7 +103,6 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 					{} as Record<string, string>,
 				) || {};
 
-			// If no labels, send null to clear the database
 			const labelsToSend =
 				Object.keys(labelsObject).length > 0 ? labelsObject : null;
 
@@ -115,10 +116,10 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 				labelsSwarm: labelsToSend,
 			});
 
-			toast.success("Labels updated successfully");
+			toast.success(t("labels.toastSuccess"));
 			refetch();
 		} catch {
-			toast.error("Error updating labels");
+			toast.error(t("labels.toastError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -128,20 +129,21 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 		<Form {...form}>
 			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 				<div>
-					<FormLabel>Labels</FormLabel>
-					<FormDescription>
-						Add key-value labels to your service
-					</FormDescription>
+					<FormLabel>{t("labels.section")}</FormLabel>
+					<FormDescription>{t("labels.sectionDesc")}</FormDescription>
 					<div className="space-y-2 mt-2">
 						{fields.map((field, index) => (
 							<div key={field.id} className="flex gap-2">
 								<FormField
 									control={form.control}
 									name={`labels.${index}.key`}
-									render={({ field }) => (
+									render={({ field: keyField }) => (
 										<FormItem className="flex-1">
 											<FormControl>
-												<Input {...field} placeholder="com.example.app.name" />
+												<Input
+													{...keyField}
+													placeholder={t("labels.placeholderKey")}
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -150,10 +152,13 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 								<FormField
 									control={form.control}
 									name={`labels.${index}.value`}
-									render={({ field }) => (
+									render={({ field: valueField }) => (
 										<FormItem className="flex-1">
 											<FormControl>
-												<Input {...field} placeholder="my-app" />
+												<Input
+													{...valueField}
+													placeholder={t("labels.placeholderValue")}
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -165,7 +170,7 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 									size="sm"
 									onClick={() => remove(index)}
 								>
-									Remove
+									{t("labels.remove")}
 								</Button>
 							</div>
 						))}
@@ -175,7 +180,7 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 							size="sm"
 							onClick={() => append({ key: "", value: "" })}
 						>
-							Add Label
+							{t("labels.addLabel")}
 						</Button>
 					</div>
 				</div>
@@ -188,10 +193,10 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 							form.reset({ labels: [] });
 						}}
 					>
-						Clear
+						{t("actions.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Labels
+						{t("actions.saveLabels")}
 					</Button>
 				</div>
 			</form>

@@ -1,4 +1,5 @@
 import { Package, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const ShowVolumes = ({ id, type }: Props) => {
+	const t = useTranslations("applicationAdvancedVolumes.show");
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canRead = permissions?.volume.read ?? false;
 	const canCreate = permissions?.volume.create ?? false;
@@ -50,16 +52,13 @@ export const ShowVolumes = ({ id, type }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between flex-wrap gap-4">
 				<div>
-					<CardTitle className="text-xl">Volumes</CardTitle>
-					<CardDescription>
-						If you want to persist data in this service use the following config
-						to setup the volumes
-					</CardDescription>
+					<CardTitle className="text-xl">{t("title")}</CardTitle>
+					<CardDescription>{t("description")}</CardDescription>
 				</div>
 
 				{canCreate && data && data?.mounts.length > 0 && (
 					<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
-						Add Volume
+						{t("addVolume")}
 					</AddVolumes>
 				)}
 			</CardHeader>
@@ -67,21 +66,16 @@ export const ShowVolumes = ({ id, type }: Props) => {
 				{data?.mounts.length === 0 ? (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 						<Package className="size-8 text-muted-foreground" />
-						<span className="text-base text-muted-foreground">
-							No volumes/mounts configured
-						</span>
+						<span className="text-base text-muted-foreground">{t("empty")}</span>
 						{canCreate && (
 							<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
-								Add Volume
+								{t("addVolume")}
 							</AddVolumes>
 						)}
 					</div>
 				) : (
 					<div className="flex flex-col pt-2 gap-4">
-						<AlertBlock type="warning">
-							Please remember to click Redeploy after adding, editing, or
-							deleting a mount to apply the changes.
-						</AlertBlock>
+						<AlertBlock type="warning">{t("alertRedeploy")}</AlertBlock>
 						<div className="flex flex-col gap-6">
 							{data?.mounts.map((mount) => (
 								<div key={mount.mountId}>
@@ -89,17 +83,16 @@ export const ShowVolumes = ({ id, type }: Props) => {
 										key={mount.mountId}
 										className="flex w-full flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-10 border rounded-lg p-4"
 									>
-										{/* <Package className="size-8 self-center text-muted-foreground" /> */}
 										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 flex-col gap-4 sm:gap-8">
 											<div className="flex flex-col gap-1">
-												<span className="font-medium">Mount Type</span>
+												<span className="font-medium">{t("mountType")}</span>
 												<span className="text-sm text-muted-foreground">
 													{mount.type.toUpperCase()}
 												</span>
 											</div>
 											{mount.type === "volume" && (
 												<div className="flex flex-col gap-1">
-													<span className="font-medium">Volume Name</span>
+													<span className="font-medium">{t("volumeName")}</span>
 													<span className="text-sm text-muted-foreground">
 														{mount.volumeName}
 													</span>
@@ -108,7 +101,7 @@ export const ShowVolumes = ({ id, type }: Props) => {
 
 											{mount.type === "file" && (
 												<div className="flex flex-col gap-1">
-													<span className="font-medium">Content</span>
+													<span className="font-medium">{t("content")}</span>
 													<span className="text-sm text-muted-foreground line-clamp-[10] whitespace-break-spaces">
 														{mount.content}
 													</span>
@@ -116,7 +109,7 @@ export const ShowVolumes = ({ id, type }: Props) => {
 											)}
 											{mount.type === "bind" && (
 												<div className="flex flex-col gap-1">
-													<span className="font-medium">Host Path</span>
+													<span className="font-medium">{t("hostPath")}</span>
 													<span className="text-sm text-muted-foreground">
 														{mount.hostPath}
 													</span>
@@ -124,7 +117,7 @@ export const ShowVolumes = ({ id, type }: Props) => {
 											)}
 											{mount.type === "file" && (
 												<div className="flex flex-col gap-1">
-													<span className="font-medium">File Path</span>
+													<span className="font-medium">{t("filePath")}</span>
 													<span className="text-sm text-muted-foreground">
 														{mount.filePath}
 													</span>
@@ -132,7 +125,7 @@ export const ShowVolumes = ({ id, type }: Props) => {
 											)}
 
 											<div className="flex flex-col gap-1">
-												<span className="font-medium">Mount Path</span>
+												<span className="font-medium">{t("mountPath")}</span>
 												<span className="text-sm text-muted-foreground">
 													{mount.mountPath}
 												</span>
@@ -149,8 +142,8 @@ export const ShowVolumes = ({ id, type }: Props) => {
 											)}
 											{canDelete && (
 												<DialogAction
-													title="Delete Volume"
-													description="Are you sure you want to delete this volume?"
+													title={t("deleteTitle")}
+													description={t("deleteDescription")}
 													type="destructive"
 													onClick={async () => {
 														await deleteVolume({
@@ -158,10 +151,10 @@ export const ShowVolumes = ({ id, type }: Props) => {
 														})
 															.then(() => {
 																refetch();
-																toast.success("Volume deleted successfully");
+																toast.success(t("toastDeleteSuccess"));
 															})
 															.catch(() => {
-																toast.error("Error deleting volume");
+																toast.error(t("toastDeleteError"));
 															});
 													}}
 												>

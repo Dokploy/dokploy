@@ -1,0 +1,52 @@
+{
+	"applicationPatches": {
+		"show": {
+			"title": "Patches",
+			"description": "Патчи к коду применяются при сборке: после clone, до build.",
+			"createPatch": "Create Patch",
+			"emptyTitle": "Патчей пока нет",
+			"emptyDescription": "Добавьте патчи к файлам до каждой сборки. Создайте первый патч.",
+			"colFilePath": "File Path",
+			"colType": "Type",
+			"colEnabled": "Enabled",
+			"colActions": "Actions",
+			"toastToggleSuccess": "Патч обновлён",
+			"toastDeleteSuccess": "Патч удалён",
+			"deletePatchTitle": "Удалить патч"
+		},
+		"editor": {
+			"title": "Edit File",
+			"descriptionSelect": "Выберите файл в дереве",
+			"editing": "Editing: {path}",
+			"unmarkDeletion": "Снять пометку удаления",
+			"markForDeletion": "Пометить на удаление",
+			"savePatch": "Save Patch",
+			"toastSaveSuccess": "Патч сохранён",
+			"toastSaveError": "Не удалось сохранить патч",
+			"toastMarkDeletionSuccess": "Файл помечен на удаление",
+			"toastMarkDeletionError": "Не удалось пометить",
+			"toastCreateSuccess": "Файл создан",
+			"toastCreateError": "Не удалось создать файл",
+			"toastUnmarkSuccess": "Пометка снята",
+			"toastUnmarkError": "Не удалось снять пометку",
+			"newFileInRoot": "New file in root",
+			"noFilesFound": "Файлов нет",
+			"selectFileToEdit": "Выберите файл"
+		},
+		"createFile": {
+			"triggerTitle": "Создать файл",
+			"title": "Create file",
+			"descriptionInFolder": "Новый файл в {folder}/",
+			"descriptionRoot": "Новый файл в корне",
+			"filenameLabel": "Filename",
+			"filenamePlaceholder": "например .env.example",
+			"contentLabel": "Content"
+		},
+		"editDialog": {
+			"triggerTitle": "Редактировать патч",
+			"title": "Edit Patch",
+			"loading": "Загрузка патча...",
+			"editing": "Editing: {path}"
+		}
+	}
+}

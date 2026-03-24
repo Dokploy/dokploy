@@ -1,4 +1,5 @@
 import { Ban } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -20,6 +21,8 @@ interface Props {
 }
 
 export const CancelQueues = ({ id, type }: Props) => {
+	const t = useTranslations("applicationDeployments");
+	const tCommon = useTranslations("common");
 	const { mutateAsync, isPending } =
 		type === "application"
 			? api.application.cleanQueues.useMutation()
@@ -34,21 +37,19 @@ export const CancelQueues = ({ id, type }: Props) => {
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
 				<Button variant="destructive" className="w-fit" isLoading={isPending}>
-					Cancel Queues
+					{t("cancelQueues.trigger")}
 					<Ban className="size-4" />
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>
-						Are you sure to cancel the incoming deployments?
-					</AlertDialogTitle>
+					<AlertDialogTitle>{t("cancelQueues.title")}</AlertDialogTitle>
 					<AlertDialogDescription>
-						This will cancel all the incoming deployments
+						{t("cancelQueues.description")}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
 							await mutateAsync({
@@ -56,14 +57,14 @@ export const CancelQueues = ({ id, type }: Props) => {
 								composeId: id || "",
 							})
 								.then(() => {
-									toast.success("Queues are being cleaned");
+									toast.success(t("cancelQueues.success"));
 								})
 								.catch((err) => {
 									toast.error(err.message);
 								});
 						}}
 					>
-						Confirm
+						{tCommon("confirm")}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

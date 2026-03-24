@@ -2,6 +2,7 @@
 
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2, RotateCcw } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -160,6 +161,7 @@ const DEFAULT_CSS_TEMPLATE = `/* ============================================
 `;
 
 export function WhitelabelingSettings() {
+	const tToast = useTranslations("proprietaryToasts");
 	const utils = api.useUtils();
 	const {
 		data,
@@ -239,14 +241,14 @@ export function WhitelabelingSettings() {
 			},
 		})
 			.then(async () => {
-				toast.success("Whitelabeling settings updated");
+				toast.success(tToast("whitelabelingUpdated"));
 				await refetch();
 				await utils.whitelabeling.getPublic.invalidate();
 				await utils.whitelabeling.get.invalidate();
 			})
 			.catch((error) => {
 				toast.error(
-					error?.message || "Failed to update whitelabeling settings",
+					error?.message || tToast("whitelabelingUpdateFailed"),
 				);
 			});
 	};
@@ -254,13 +256,13 @@ export function WhitelabelingSettings() {
 	const handleReset = async () => {
 		await resetWhitelabeling()
 			.then(async () => {
-				toast.success("Whitelabeling settings reset to defaults");
+				toast.success(tToast("whitelabelingReset"));
 				await refetch();
 				await utils.whitelabeling.getPublic.invalidate();
 				await utils.whitelabeling.get.invalidate();
 			})
 			.catch((error) => {
-				toast.error(error?.message || "Failed to reset whitelabeling settings");
+				toast.error(error?.message || tToast("whitelabelingResetFailed"));
 			});
 	};
 

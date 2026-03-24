@@ -1,4 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -177,6 +178,7 @@ interface Props {
 }
 
 export const AddUserPermissions = ({ userId, role }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const isCustomRole = !!role && !["owner", "admin", "member"].includes(role);
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: projects } = api.project.allForPermissions.useQuery(undefined, {
@@ -255,12 +257,12 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 			canCreateEnvironments: data.canCreateEnvironments,
 		})
 			.then(async () => {
-				toast.success("Permissions updated");
+				toast.success(tToast("permissionsUpdated"));
 				refetch();
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating the permissions");
+				toast.error(tToast("permissionsUpdateError"));
 			});
 	};
 	return (

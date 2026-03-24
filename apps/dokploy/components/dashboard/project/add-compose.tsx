@@ -1,7 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CircuitBoard, HelpCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -45,25 +45,25 @@ import {
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 
-const AddComposeSchema = z.object({
-	composeType: z.enum(["docker-compose", "stack"]).optional(),
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	appName: z
-		.string()
-		.min(1, {
-			message: "App name is required",
-		})
-		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
-			message:
-				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
+const createAddComposeSchema = (t: (key: string) => string) =>
+	z.object({
+		composeType: z.enum(["docker-compose", "stack"]).optional(),
+		name: z.string().min(1, {
+			message: t("nameRequired"),
 		}),
-	description: z.string().optional(),
-	serverId: z.string().optional(),
-});
+		appName: z
+			.string()
+			.min(1, {
+				message: t("appNameRequired"),
+			})
+			.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
+				message: t("appNameFormat"),
+			}),
+		description: z.string().optional(),
+		serverId: z.string().optional(),
+	});
 
-type AddCompose = z.infer<typeof AddComposeSchema>;
+type AddCompose = z.infer<ReturnType<typeof createAddComposeSchema>>;
 
 interface Props {
 	environmentId: string;
@@ -72,6 +72,7 @@ interface Props {
 
 export const AddCompose = ({ environmentId, projectName }: Props) => {
 	const t = useTranslations("addCompose");
+	const addComposeSchema = useMemo(() => createAddComposeSchema(t), [t]);
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
@@ -90,7 +91,7 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 			composeType: "docker-compose",
 			appName: `${slug}-`,
 		},
-		resolver: zodResolver(AddComposeSchema),
+		resolver: zodResolver(addComposeSchema),
 	});
 
 	useEffect(() => {

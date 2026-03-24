@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { FileTerminal } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -39,6 +40,7 @@ const schema = z.object({
 type Schema = z.infer<typeof schema>;
 
 export const EditScript = ({ serverId }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: server } = api.server.one.useQuery(
 		{
@@ -83,10 +85,10 @@ export const EditScript = ({ serverId }: Props) => {
 				serverId,
 			})
 				.then((_data) => {
-					toast.success("Script modified successfully");
+					toast.success(tToast("scriptModifiedSuccess"));
 				})
 				.catch(() => {
-					toast.error("Error modifying the script");
+					toast.error(tToast("scriptModifyError"));
 				});
 		}
 	};

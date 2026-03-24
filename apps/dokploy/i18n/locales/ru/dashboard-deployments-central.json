@@ -1,0 +1,63 @@
+{
+	"deploymentsCentral": {
+		"table": {
+			"searchPlaceholder": "Поиск по имени, проекту, окружению, серверу...",
+			"statusPlaceholder": "Статус",
+			"typePlaceholder": "Тип",
+			"allStatuses": "Все статусы",
+			"running": "Выполняется",
+			"done": "Готово",
+			"error": "Ошибка",
+			"cancelled": "Отменено",
+			"allTypes": "Все типы",
+			"application": "Приложение",
+			"compose": "Compose",
+			"loading": "Загрузка деплоев...",
+			"noDeploymentsTitle": "Деплоев нет",
+			"noDeploymentsDesc": "Здесь появятся деплои приложений и compose.",
+			"rowsPerPage": "Строк на странице",
+			"showing": "Показано {from}–{to} из {total}",
+			"previous": "Назад",
+			"next": "Вперёд",
+			"columnService": "Сервис",
+			"columnProject": "Проект",
+			"columnEnvironment": "Окружение",
+			"columnServer": "Сервер",
+			"columnTitle": "Название",
+			"columnStatus": "Статус",
+			"columnCreated": "Создан",
+			"open": "Открыть",
+			"buildPrefix": "Сборка:"
+		},
+		"queue": {
+			"loading": "Загрузка очереди...",
+			"columnJobId": "ID задачи",
+			"columnLabel": "Метка",
+			"columnType": "Тип",
+			"columnState": "Состояние",
+			"columnAdded": "Добавлено",
+			"columnProcessed": "Обработано",
+			"columnFinished": "Завершено",
+			"columnError": "Ошибка",
+			"columnActions": "Действия",
+			"service": "Сервис",
+			"cancel": "Отмена",
+			"emptyTitle": "Очередь пуста",
+			"emptyDesc": "Задачи деплоя появятся здесь после постановки в очередь.",
+			"jobLabelApplication": "Приложение {shortId}…",
+			"jobLabelCompose": "Compose {shortId}…",
+			"jobLabelPreview": "Превью {shortId}…",
+			"jobLabelFallback": "{type} {id}",
+			"state": {
+				"pending": "Ожидание",
+				"waiting": "В очереди",
+				"active": "Активно",
+				"delayed": "Отложено",
+				"completed": "Завершено",
+				"failed": "Сбой",
+				"cancelled": "Отменено",
+				"paused": "Пауза"
+			}
+		}
+	}
+}

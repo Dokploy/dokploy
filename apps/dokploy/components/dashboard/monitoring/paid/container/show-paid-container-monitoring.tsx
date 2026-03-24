@@ -1,4 +1,5 @@
 import { Cpu, HardDrive, Loader2, MemoryStick, Network } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import {
@@ -14,23 +15,18 @@ import { ContainerCPUChart } from "./container-cpu-chart";
 import { ContainerMemoryChart } from "./container-memory-chart";
 import { ContainerNetworkChart } from "./container-network-chart";
 
-const REFRESH_INTERVALS = {
-	"5000": "5 Seconds",
-	"10000": "10 Seconds",
-	"20000": "20 Seconds",
-	"30000": "30 Seconds",
-} as const;
+const REFRESH_INTERVAL_KEYS = ["5000", "10000", "20000", "30000"] as const;
 
-const DATA_POINTS_OPTIONS = {
-	"50": "50 points",
-	"200": "200 points",
-	"500": "500 points",
-	"800": "800 points",
-	"1200": "1200 points",
-	"1600": "1600 points",
-	"2000": "2000 points",
-	all: "All points",
-} as const;
+const DATA_POINT_KEYS = [
+	"50",
+	"200",
+	"500",
+	"800",
+	"1200",
+	"1600",
+	"2000",
+	"all",
+] as const;
 
 interface ContainerMetric {
 	timestamp: string;
@@ -67,13 +63,17 @@ interface Props {
 }
 
 export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
+	const t = useTranslations("monitoringDashboard.paid");
+	const tDataPoints = useTranslations("monitoringDashboard.dataPoints");
+	const tRefresh = useTranslations("monitoringDashboard.refreshInterval");
 	const [historicalData, setHistoricalData] = useState<ContainerMetric[]>([]);
 	const [metrics, setMetrics] = useState<ContainerMetric>(
 		{} as ContainerMetric,
 	);
 	const [dataPoints, setDataPoints] =
-		useState<keyof typeof DATA_POINTS_OPTIONS>("50");
-	const [refreshInterval, setRefreshInterval] = useState<string>("5000");
+		useState<(typeof DATA_POINT_KEYS)[number]>("50");
+	const [refreshInterval, setRefreshInterval] =
+		useState<(typeof REFRESH_INTERVAL_KEYS)[number]>("5000");
 
 	const {
 		data,
@@ -88,7 +88,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 		},
 		{
 			refetchInterval:
-				dataPoints === "all" ? undefined : Number.parseInt(refreshInterval),
+				dataPoints === "all" ? undefined : Number.parseInt(refreshInterval, 10),
 			enabled: !!appName,
 		},
 	);
@@ -115,15 +115,17 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 			<div className="mt-5 flex w-full items-center justify-center p-4 py-24">
 				<div className="max-w-xl text-center">
 					<p className="mb-2 text-base font-medium leading-none text-muted-foreground">
-						Error fetching metrics for{" "}
+						{t("errorFetchForApp")}{" "}
 						<strong className="text-primary">{appName}</strong>
 					</p>
 					<p className="whitespace-pre-line text-sm text-destructive">
 						{queryError instanceof Error
 							? queryError.message
-							: "Failed to fetch metrics, Please check your monitoring Instance is Configured correctly."}
+							: t("fetchFallback")}
 					</p>
-					<p className="text-sm text-muted-foreground">URL: {baseUrl}</p>
+					<p className="text-sm text-muted-foreground">
+						{t("urlLabel")}: {baseUrl}
+					</p>
 				</div>
 			</div>
 		);
@@ -133,24 +135,26 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 		<>
 			<div className="flex items-center justify-between flex-wrap	 gap-2">
 				<h2 className="text-2xl font-bold tracking-tight">
-					Container Monitoring
+					{t("containerMonitoring")}
 				</h2>
 				<div className="flex items-center gap-4 flex-wrap">
 					<div>
-						<span className="text-sm text-muted-foreground">Data points:</span>
+						<span className="text-sm text-muted-foreground">
+							{t("dataPointsLabel")}
+						</span>
 						<Select
 							value={dataPoints}
-							onValueChange={(value: keyof typeof DATA_POINTS_OPTIONS) =>
+							onValueChange={(value: (typeof DATA_POINT_KEYS)[number]) =>
 								setDataPoints(value)
 							}
 						>
 							<SelectTrigger className="w-[180px]">
-								<SelectValue placeholder="Select points" />
+								<SelectValue placeholder={t("selectPointsPlaceholder")} />
 							</SelectTrigger>
 							<SelectContent>
-								{Object.entries(DATA_POINTS_OPTIONS).map(([value, label]) => (
+								{DATA_POINT_KEYS.map((value) => (
 									<SelectItem key={value} value={value}>
-										{label}
+										{tDataPoints(value)}
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -159,21 +163,21 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 
 					<div>
 						<span className="text-sm text-muted-foreground">
-							Refresh interval:
+							{t("refreshIntervalLabel")}
 						</span>
 						<Select
 							value={refreshInterval}
-							onValueChange={(value: keyof typeof REFRESH_INTERVALS) =>
+							onValueChange={(value: (typeof REFRESH_INTERVAL_KEYS)[number]) =>
 								setRefreshInterval(value)
 							}
 						>
 							<SelectTrigger className="w-[180px]">
-								<SelectValue placeholder="Select interval" />
+								<SelectValue placeholder={t("selectIntervalPlaceholder")} />
 							</SelectTrigger>
 							<SelectContent>
-								{Object.entries(REFRESH_INTERVALS).map(([value, label]) => (
+								{REFRESH_INTERVAL_KEYS.map((value) => (
 									<SelectItem key={value} value={value}>
-										{label}
+										{tRefresh(value)}
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -187,7 +191,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 				<Card className="p-6 bg-transparent">
 					<div className="flex items-center gap-2">
 						<Cpu className="h-4 w-4 text-muted-foreground" />
-						<h3 className="text-sm font-medium">CPU Usage</h3>
+						<h3 className="text-sm font-medium">{t("cpuUsage")}</h3>
 					</div>
 					<p className="mt-2 text-2xl font-bold">{metrics.CPU}%</p>
 				</Card>
@@ -195,7 +199,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 				<Card className="p-6 bg-transparent">
 					<div className="flex items-center gap-2">
 						<MemoryStick className="h-4 w-4 text-muted-foreground" />
-						<h3 className="text-sm font-medium">Memory Usage</h3>
+						<h3 className="text-sm font-medium">{t("memoryUsage")}</h3>
 					</div>
 					<p className="mt-2 text-2xl font-bold">
 						{metrics?.Memory?.percentage}%
@@ -209,7 +213,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 				<Card className="p-6 bg-transparent">
 					<div className="flex items-center gap-2">
 						<Network className="h-4 w-4 text-muted-foreground" />
-						<h3 className="text-sm font-medium">Network I/O</h3>
+						<h3 className="text-sm font-medium">{t("networkIo")}</h3>
 					</div>
 					<p className="mt-2 text-2xl font-bold">
 						{metrics?.Network?.input} {metrics?.Network?.inputUnit} /{" "}
@@ -220,7 +224,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 				<Card className="p-6 bg-transparent">
 					<div className="flex items-center gap-2">
 						<HardDrive className="h-4 w-4 text-muted-foreground" />
-						<h3 className="text-sm font-medium">Block I/O</h3>
+						<h3 className="text-sm font-medium">{t("blockIo")}</h3>
 					</div>
 					<p className="mt-2 text-2xl font-bold">
 						{metrics?.BlockIO?.read} {metrics?.BlockIO?.readUnit} /{" "}
@@ -231,16 +235,18 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 
 			{/* Container Information */}
 			<Card className="p-6 bg-transparent">
-				<h3 className="text-lg font-medium mb-4">Container Information</h3>
+				<h3 className="text-lg font-medium mb-4">{t("containerInfo")}</h3>
 				<div className="grid gap-4 md:grid-cols-2">
 					<div>
 						<h4 className="text-sm font-medium text-muted-foreground">
-							Container ID
+							{t("containerId")}
 						</h4>
 						<p className="mt-1">{metrics.ID}</p>
 					</div>
 					<div>
-						<h4 className="text-sm font-medium text-muted-foreground">Name</h4>
+						<h4 className="text-sm font-medium text-muted-foreground">
+							{t("name")}
+						</h4>
 						<p className="mt-1 truncate">{metrics.Name}</p>
 					</div>
 				</div>

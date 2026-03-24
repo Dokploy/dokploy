@@ -1,6 +1,7 @@
 "use client";
 
 import { Link2, Loader2, Unlink } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ function providerLabel(providerId: string): string {
 }
 
 export function LinkingAccount() {
+	const tToast = useTranslations("settingsExtraToasts");
 	const [accounts, setAccounts] = useState<AccountItem[]>([]);
 	const [accountsLoading, setAccountsLoading] = useState(true);
 	const [linkingProvider, setLinkingProvider] = useState<SocialProvider | null>(
@@ -71,13 +73,13 @@ export function LinkingAccount() {
 				callbackURL: LINKING_CALLBACK_URL,
 			});
 			if (error) {
-				toast.error(error.message ?? "Failed to link account");
+				toast.error(error.message ?? tToast("linkAccountFailed"));
 				setLinkingProvider(null);
 				return;
 			}
 		} catch (err) {
 			toast.error(
-				"Failed to link account",
+				tToast("linkAccountFailed"),
 				err instanceof Error ? { description: err.message } : undefined,
 			);
 			setLinkingProvider(null);
@@ -92,14 +94,14 @@ export function LinkingAccount() {
 				...(accountId && { accountId }),
 			});
 			if (error) {
-				toast.error(error.message ?? "Failed to unlink account");
+				toast.error(error.message ?? tToast("unlinkAccountFailed"));
 				return;
 			}
-			toast.success("Account unlinked");
+			toast.success(tToast("accountUnlinked"));
 			await fetchAccounts();
 		} catch (err) {
 			toast.error(
-				"Failed to unlink account",
+				tToast("unlinkAccountFailed"),
 				err instanceof Error ? { description: err.message } : undefined,
 			);
 		} finally {

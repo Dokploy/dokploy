@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -27,40 +28,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
-const mountSchema = z.object({
-	mountPath: z.string().min(1, "Mount path required"),
-});
-
-const mySchema = z.discriminatedUnion("type", [
-	z
-		.object({
-			type: z.literal("bind"),
-			hostPath: z.string().min(1, "Host path required"),
-		})
-		.merge(mountSchema),
-	z
-		.object({
-			type: z.literal("volume"),
-			volumeName: z
-				.string()
-				.min(1, "Volume name required")
-				.regex(
-					/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/,
-					"Invalid volume name. Use letters, numbers, '._-' and start with a letter/number.",
-				),
-		})
-		.merge(mountSchema),
-	z
-		.object({
-			type: z.literal("file"),
-			content: z.string().optional(),
-			filePath: z.string().min(1, "File path required"),
-		})
-		.merge(mountSchema),
-]);
-
-type UpdateMount = z.infer<typeof mySchema>;
-
 interface Props {
 	mountId: string;
 	type: "bind" | "volume" | "file";
@@ -82,6 +49,8 @@ export const UpdateVolume = ({
 	refetch,
 	serviceType,
 }: Props) => {
+	const t = useTranslations("applicationAdvancedVolumes.update");
+	const tCommon = useTranslations("common");
 	const [isOpen, setIsOpen] = useState(false);
 	const _utils = api.useUtils();
 	const { data } = api.mounts.one.useQuery(
@@ -95,6 +64,48 @@ export const UpdateVolume = ({
 
 	const { mutateAsync, isPending, error, isError } =
 		api.mounts.update.useMutation();
+
+	const mountSchema = useMemo(
+		() =>
+			z.object({
+				mountPath: z.string().min(1, t("validation.mountPath")),
+			}),
+		[t],
+	);
+
+	const mySchema = useMemo(
+		() =>
+			z.discriminatedUnion("type", [
+				z
+					.object({
+						type: z.literal("bind"),
+						hostPath: z.string().min(1, t("validation.hostPath")),
+					})
+					.merge(mountSchema),
+				z
+					.object({
+						type: z.literal("volume"),
+						volumeName: z
+							.string()
+							.min(1, t("validation.volumeName"))
+							.regex(
+								/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/,
+								t("validation.volumeNameInvalid"),
+							),
+					})
+					.merge(mountSchema),
+				z
+					.object({
+						type: z.literal("file"),
+						content: z.string().optional(),
+						filePath: z.string().min(1, t("validation.filePath")),
+					})
+					.merge(mountSchema),
+			]),
+		[t, mountSchema],
+	);
+
+	type UpdateMount = z.infer<typeof mySchema>;
 
 	const form = useForm<UpdateMount>({
 		defaultValues: {
@@ -132,49 +143,49 @@ export const UpdateVolume = ({
 		}
 	}, [form, form.reset, data]);
 
-	const onSubmit = async (data: UpdateMount) => {
-		if (data.type === "bind") {
+	const onSubmit = async (submitData: UpdateMount) => {
+		if (submitData.type === "bind") {
 			await mutateAsync({
-				hostPath: data.hostPath,
-				mountPath: data.mountPath,
-				type: data.type,
+				hostPath: submitData.hostPath,
+				mountPath: submitData.mountPath,
+				type: submitData.type,
 				mountId,
 			})
 				.then(() => {
-					toast.success("Mount Update");
+					toast.success(t("toast.success"));
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error updating the Bind mount");
+					toast.error(t("toast.errorBind"));
 				});
-		} else if (data.type === "volume") {
+		} else if (submitData.type === "volume") {
 			await mutateAsync({
-				volumeName: data.volumeName,
-				mountPath: data.mountPath,
-				type: data.type,
+				volumeName: submitData.volumeName,
+				mountPath: submitData.mountPath,
+				type: submitData.type,
 				mountId,
 			})
 				.then(() => {
-					toast.success("Mount Update");
+					toast.success(t("toast.success"));
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error updating the Volume mount");
+					toast.error(t("toast.errorVolume"));
 				});
-		} else if (data.type === "file") {
+		} else if (submitData.type === "file") {
 			await mutateAsync({
-				content: data.content,
-				mountPath: data.mountPath,
-				type: data.type,
-				filePath: data.filePath,
+				content: submitData.content,
+				mountPath: submitData.mountPath,
+				type: submitData.type,
+				filePath: submitData.filePath,
 				mountId,
 			})
 				.then(() => {
-					toast.success("Mount Update");
+					toast.success(t("toast.success"));
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error updating the File mount");
+					toast.error(t("toast.errorFile"));
 				});
 		}
 		refetch();
@@ -194,14 +205,12 @@ export const UpdateVolume = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-3xl">
 				<DialogHeader>
-					<DialogTitle>Update</DialogTitle>
-					<DialogDescription>Update the mount</DialogDescription>
+					<DialogTitle>{t("title")}</DialogTitle>
+					<DialogDescription>{t("description")}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				{type === "file" && (
-					<AlertBlock type="warning">
-						Updating the mount will recreate the file or directory.
-					</AlertBlock>
+					<AlertBlock type="warning">{t("alertFile")}</AlertBlock>
 				)}
 
 				<Form {...form}>
@@ -217,9 +226,9 @@ export const UpdateVolume = ({
 									name="hostPath"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Host Path</FormLabel>
+											<FormLabel>{t("hostPath")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Host Path" {...field} />
+												<Input placeholder={t("placeholderHost")} {...field} />
 											</FormControl>
 
 											<FormMessage />
@@ -233,10 +242,10 @@ export const UpdateVolume = ({
 									name="volumeName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Volume Name</FormLabel>
+											<FormLabel>{t("volumeName")}</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Volume Name"
+													placeholder={t("placeholderVolume")}
 													{...field}
 													value={field.value || ""}
 												/>
@@ -254,7 +263,7 @@ export const UpdateVolume = ({
 										name="content"
 										render={({ field }) => (
 											<FormItem className="max-w-full max-w-[45rem]">
-												<FormLabel>Content</FormLabel>
+												<FormLabel>{t("content")}</FormLabel>
 												<FormControl>
 													<FormControl>
 														<CodeEditor
@@ -277,11 +286,11 @@ PORT=3000
 										name="filePath"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>File Path</FormLabel>
+												<FormLabel>{t("filePath")}</FormLabel>
 												<FormControl>
 													<Input
 														disabled
-														placeholder="Name of the file"
+														placeholder={t("placeholderFileName")}
 														{...field}
 													/>
 												</FormControl>
@@ -297,9 +306,9 @@ PORT=3000
 									name="mountPath"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Mount Path (In the container)</FormLabel>
+											<FormLabel>{t("mountPath")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Mount Path" {...field} />
+												<Input placeholder={t("placeholderMount")} {...field} />
 											</FormControl>
 
 											<FormMessage />
@@ -311,10 +320,9 @@ PORT=3000
 						<DialogFooter>
 							<Button
 								isLoading={isPending}
-								// form="hook-form-update-volume"
 								type="submit"
 							>
-								Update
+								{tCommon("save")}
 							</Button>
 						</DialogFooter>
 					</form>

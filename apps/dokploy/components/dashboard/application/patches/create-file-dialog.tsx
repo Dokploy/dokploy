@@ -1,4 +1,5 @@
 import { FilePlus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,8 @@ export const CreateFileDialog = ({
 	onOpenChange,
 	alwaysVisible = false,
 }: Props) => {
+	const t = useTranslations("applicationPatches");
+	const tCommon = useTranslations("common");
 	const [filename, setFilename] = useState("");
 	const [content, setContent] = useState("");
 
@@ -47,7 +50,7 @@ export const CreateFileDialog = ({
 					size="icon"
 					type="button"
 					className={`h-6 w-6 ${alwaysVisible ? "" : "opacity-0 group-hover:opacity-100"}`}
-					title="Create file"
+					title={t("createFile.triggerTitle")}
 				>
 					<FilePlus className="h-3 w-3" />
 				</Button>
@@ -60,23 +63,25 @@ export const CreateFileDialog = ({
 					}}
 				>
 					<DialogHeader>
-						<DialogTitle>Create file</DialogTitle>
+						<DialogTitle>{t("createFile.title")}</DialogTitle>
 						<DialogDescription>
-							{folderPath ? `New file in ${folderPath}/` : "New file in root"}
+							{folderPath
+								? t("createFile.descriptionInFolder", { folder: folderPath })
+								: t("createFile.descriptionRoot")}
 						</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4 py-4">
 						<div className="space-y-2">
-							<Label htmlFor="filename">Filename</Label>
+							<Label htmlFor="filename">{t("createFile.filenameLabel")}</Label>
 							<Input
 								id="filename"
-								placeholder="e.g. .env.example"
+								placeholder={t("createFile.filenamePlaceholder")}
 								value={filename}
 								onChange={(e) => setFilename(e.target.value)}
 							/>
 						</div>
 						<div className="space-y-2">
-							<Label>Content</Label>
+							<Label>{t("createFile.contentLabel")}</Label>
 							<div className="h-[200px] rounded-md border">
 								<CodeEditor
 									value={content}
@@ -91,12 +96,12 @@ export const CreateFileDialog = ({
 					<DialogFooter>
 						<DialogClose asChild>
 							<Button variant="outline" type="button">
-								Cancel
+								{tCommon("cancel")}
 							</Button>
 						</DialogClose>
 						<DialogClose asChild>
 							<Button type="submit" disabled={!filename.trim()}>
-								Create
+								{tCommon("create")}
 							</Button>
 						</DialogClose>
 					</DialogFooter>

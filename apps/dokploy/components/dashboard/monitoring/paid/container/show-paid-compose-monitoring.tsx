@@ -1,4 +1,5 @@
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { badgeStateColor } from "@/components/dashboard/application/logs/show";
@@ -39,6 +40,8 @@ export const ComposePaidMonitoring = ({
 	baseUrl,
 	token,
 }: Props) => {
+	const t = useTranslations("monitoringDashboard.compose");
+	const tCommon = useTranslations("common");
 	const { data, isPending } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName: appName,
@@ -70,11 +73,11 @@ export const ComposePaidMonitoring = ({
 		<div>
 			<Card className="bg-background border-0">
 				<CardHeader>
-					<CardTitle className="text-xl">Monitoring</CardTitle>
-					<CardDescription>Watch the usage of your compose</CardDescription>
+					<CardTitle className="text-xl">{t("title")}</CardTitle>
+					<CardDescription>{t("description")}</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4">
-					<Label>Select a container to watch the monitoring</Label>
+					<Label>{t("selectLabel")}</Label>
 					<div className="flex flex-row gap-4">
 						<Select
 							onValueChange={(value) => {
@@ -89,11 +92,11 @@ export const ComposePaidMonitoring = ({
 							<SelectTrigger>
 								{isPending ? (
 									<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
-										<span>Loading...</span>
+										<span>{tCommon("loading")}</span>
 										<Loader2 className="animate-spin size-4" />
 									</div>
 								) : (
-									<SelectValue placeholder="Select a container" />
+									<SelectValue placeholder={t("selectPlaceholder")} />
 								)}
 							</SelectTrigger>
 							<SelectContent>
@@ -109,7 +112,9 @@ export const ComposePaidMonitoring = ({
 											</Badge>
 										</SelectItem>
 									))}
-									<SelectLabel>Containers ({data?.length})</SelectLabel>
+									<SelectLabel>
+										{t("containersGroup", { count: data?.length ?? 0 })}
+									</SelectLabel>
 								</SelectGroup>
 							</SelectContent>
 						</Select>
@@ -117,13 +122,15 @@ export const ComposePaidMonitoring = ({
 							isLoading={isRestarting}
 							onClick={async () => {
 								if (!containerId) return;
-								toast.success(`Restarting container ${containerAppName}`);
+								toast.success(
+									t("toastRestarting", { name: containerAppName ?? "" }),
+								);
 								await restart({ containerId }).then(() => {
-									toast.success("Container restarted");
+									toast.success(t("toastRestarted"));
 								});
 							}}
 						>
-							Restart
+							{t("restart")}
 						</Button>
 					</div>
 					<div className="flex flex-col gap-4">

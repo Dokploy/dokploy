@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -51,6 +52,7 @@ interface Props {
 }
 
 export const CreateServer = ({ stepper }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const { data: sshKeys } = api.sshKey.all.useQuery();
 	const [isOpen, _setIsOpen] = useState(false);
 	const { data: canCreateMoreServers, refetch } =
@@ -98,11 +100,11 @@ export const CreateServer = ({ stepper }: Props) => {
 			serverType: "deploy",
 		})
 			.then(async (_data) => {
-				toast.success("Server Created");
+				toast.success(tToast("serverCreated"));
 				stepper.next();
 			})
 			.catch(() => {
-				toast.error("Error creating a server");
+				toast.error(tToast("serverCreateError"));
 			});
 	};
 	return (

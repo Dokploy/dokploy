@@ -1,0 +1,65 @@
+{
+	"postgresDashboard": {
+		"update": {
+			"nameRequired": "Name is required",
+			"title": "Modify PostgreSQL",
+			"description": "Update the PostgreSQL data",
+			"nameLabel": "Name",
+			"namePlaceholder": "Vandelay Industries",
+			"descriptionLabel": "Description",
+			"descriptionPlaceholder": "Description about your project...",
+			"updateButton": "Update",
+			"toastSuccess": "PostgreSQL updated successfully",
+			"toastError": "Error updating PostgreSQL"
+		},
+		"general": {
+			"cardTitle": "Deploy settings",
+			"deployDialogTitle": "Deploy PostgreSQL",
+			"deployDialogDescription": "Are you sure you want to deploy this PostgreSQL?",
+			"deploy": "Deploy",
+			"deployTooltip": "Downloads and sets up the PostgreSQL database",
+			"reloadDialogTitle": "Reload PostgreSQL",
+			"reloadDialogDescription": "Are you sure you want to reload this PostgreSQL?",
+			"reload": "Reload",
+			"reloadTooltip": "Restart the PostgreSQL service without rebuilding",
+			"reloadToastSuccess": "PostgreSQL reloaded successfully",
+			"reloadToastError": "Error reloading PostgreSQL",
+			"startDialogTitle": "Start PostgreSQL",
+			"startDialogDescription": "Are you sure you want to start this PostgreSQL?",
+			"start": "Start",
+			"startTooltip": "Start the PostgreSQL database (requires a previous successful setup)",
+			"startToastSuccess": "PostgreSQL started successfully",
+			"startToastError": "Error starting PostgreSQL",
+			"stopDialogTitle": "Stop PostgreSQL",
+			"stopDialogDescription": "Are you sure you want to stop this PostgreSQL?",
+			"stop": "Stop",
+			"stopTooltip": "Stop the currently running PostgreSQL database",
+			"stopToastSuccess": "PostgreSQL stopped successfully",
+			"stopToastError": "Error stopping PostgreSQL",
+			"openTerminal": "Open terminal",
+			"openTerminalTooltip": "Open a terminal to the PostgreSQL container"
+		},
+		"internal": {
+			"cardTitle": "Internal credentials",
+			"user": "User",
+			"databaseName": "Database name",
+			"password": "Password",
+			"internalPort": "Internal port (container)",
+			"internalHost": "Internal host",
+			"internalConnectionUrl": "Internal connection URL"
+		},
+		"external": {
+			"cardTitle": "External credentials",
+			"cardDescription": "To make the database reachable over the internet, set a port and ensure it is not used by another application or database.",
+			"ipWarningPrefix": "You need to set an IP address in your",
+			"ipWarningSuffix": "to fix the database URL connection.",
+			"ipLinkRemote": "Remote servers → Server → Edit server → Update IP address",
+			"ipLinkWebServer": "Web server → Server → Update server IP",
+			"portRangeError": "Port must be between 0 and 65535",
+			"externalPortLabel": "External port (internet)",
+			"externalHost": "External host",
+			"toastPortSuccess": "External port updated",
+			"toastPortError": "Error saving the external port"
+		}
+	}
+}

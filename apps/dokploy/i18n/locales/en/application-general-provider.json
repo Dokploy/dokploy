@@ -1,0 +1,38 @@
+{
+	"applicationGeneralProvider": {
+		"title": "Provider",
+		"subtitle": "Select the source of your code",
+		"subtitleUnauthorized": "Repository connection through unauthorized provider",
+		"loadingProviders": "Loading providers...",
+		"disconnectSuccess": "Repository disconnected successfully",
+		"disconnectError": "Failed to disconnect repository: {message}",
+		"unknownError": "Unknown error",
+		"tabs": {
+			"github": "Github",
+			"gitlab": "Gitlab",
+			"bitbucket": "Bitbucket",
+			"gitea": "Gitea",
+			"docker": "Docker",
+			"git": "Git",
+			"raw": "Raw",
+			"drop": "Drop"
+		},
+		"configureRich": {
+			"github": "To deploy using GitHub, you need to configure your account first. Please, go to <link>Settings</link> to do so.",
+			"gitlab": "To deploy using GitLab, you need to configure your account first. Please, go to <link>Settings</link> to do so.",
+			"bitbucket": "To deploy using Bitbucket, you need to configure your account first. Please, go to <link>Settings</link> to do so.",
+			"gitea": "To deploy using Gitea, you need to configure your account first. Please, go to <link>Settings</link> to do so."
+		},
+		"unauthorized": {
+			"alert": "This application is connected to a {sourceType} repository through a git provider that you don't have access to. You can see basic repository information below, but cannot modify the configuration.",
+			"repositoryTitle": "{sourceType} Repository",
+			"owner": "Owner:",
+			"repository": "Repository:",
+			"branch": "Branch:",
+			"disconnectDialogTitle": "Disconnect Repository",
+			"disconnectDialogDescription": "Are you sure you want to disconnect this repository?",
+			"disconnectButton": "Disconnect Repository",
+			"disconnectHint": "Disconnecting will allow you to configure a new repository with your own git providers."
+		}
+	}
+}

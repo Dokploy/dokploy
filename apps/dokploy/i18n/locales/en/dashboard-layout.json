@@ -1,0 +1,88 @@
+{
+	"dashboard": {
+		"title": "Dashboard",
+		"projects": "Projects",
+		"deployments": "Deployments",
+		"monitoring": "Monitoring",
+		"schedules": "Schedules",
+		"traefikFileSystem": "Traefik File System",
+		"docker": "Docker",
+		"swarm": "Swarm",
+		"requests": "Requests",
+		"settings": {
+			"webServer": "Web Server",
+			"profile": "Profile",
+			"remoteServers": "Remote Servers",
+			"users": "Users",
+			"auditLogs": "Audit Logs",
+			"sshKeys": "SSH Keys",
+			"ai": "AI",
+			"tags": "Tags",
+			"git": "Git",
+			"registry": "Registry",
+			"destinations": "S3 Destinations",
+			"certificates": "Certificates",
+			"cluster": "Cluster",
+			"notifications": "Notifications",
+			"billing": "Billing",
+			"license": "License",
+			"sso": "SSO",
+			"whitelabeling": "Whitelabeling"
+		}
+	},
+	"userNav": {
+		"myAccount": "My Account",
+		"profile": "Profile"
+	},
+	"help": {
+		"documentation": "Documentation",
+		"support": "Support"
+	},
+	"sidebar": {
+		"selectOrganization": "Select organization",
+		"organizationsHeading": "Organizations",
+		"toastDefaultOrgUpdated": "Default organization updated",
+		"toastDefaultOrgError": "Error setting default organization",
+		"tooltipDefaultOrg": "Default organization",
+		"tooltipSetAsDefault": "Set as default",
+		"deleteOrgTitle": "Delete organization",
+		"deleteOrgDescription": "Are you sure you want to delete this organization?",
+		"toastOrgDeleted": "Organization deleted successfully",
+		"toastOrgDeleteError": "Error deleting organization",
+		"pendingInvitations": "Pending invitations",
+		"expiresLabel": "Expires",
+		"roleLabel": "Role",
+		"acceptInvitationTitle": "Accept invitation",
+		"acceptInvitationDescription": "Are you sure you want to accept this invitation?",
+		"toastAcceptInviteError": "Error accepting invitation",
+		"toastAcceptInviteSuccess": "Invitation accepted successfully",
+		"acceptInvitationButton": "Accept invitation",
+		"noPendingInvitations": "No pending invitations"
+	},
+	"advanceBreadcrumb": {
+		"projects": "Projects",
+		"selectProject": "Select project",
+		"findProjectPlaceholder": "Find project...",
+		"noProjectsFound": "No projects found.",
+		"envCount": "{count, plural, one {# env} other {# envs}}",
+		"serviceCount": "{count, plural, one {# service} other {# services}}",
+		"findEnvironmentPlaceholder": "Find environment...",
+		"noEnvironmentsFound": "No environments found.",
+		"productionFallback": "production",
+		"findServicePlaceholder": "Find service...",
+		"noServicesFound": "No services found.",
+		"escKey": "Esc",
+		"serviceTypeApplication": "Application",
+		"serviceTypeCompose": "Compose",
+		"serviceTypePostgres": "PostgreSQL",
+		"serviceTypeMysql": "MySQL",
+		"serviceTypeMariadb": "MariaDB",
+		"serviceTypeRedis": "Redis",
+		"serviceTypeMongo": "MongoDB"
+	},
+	"layoutUpdateServer": {
+		"updateAvailable": "Update available",
+		"checkForUpdates": "Check for updates",
+		"tooltipUpdateAvailable": "Update available"
+	}
+}

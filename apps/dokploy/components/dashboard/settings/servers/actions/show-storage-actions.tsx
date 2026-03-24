@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +16,7 @@ interface Props {
 	serverId?: string;
 }
 export const ShowStorageActions = ({ serverId }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const { mutateAsync: cleanAll, isPending: cleanAllIsLoading } =
 		api.settings.cleanAll.useMutation();
 
@@ -81,10 +83,10 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Cleaned images");
+									toast.success(tToast("imagesCleaned"));
 								})
 								.catch(() => {
-									toast.error("Error cleaning images");
+									toast.error(tToast("imagesCleanError"));
 								});
 						}}
 					>
@@ -97,10 +99,10 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Cleaned volumes");
+									toast.success(tToast("volumesCleaned"));
 								})
 								.catch(() => {
-									toast.error("Error cleaning volumes");
+									toast.error(tToast("volumesCleanError"));
 								});
 						}}
 					>
@@ -114,10 +116,10 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Stopped containers cleaned");
+									toast.success(tToast("stoppedContainersCleaned"));
 								})
 								.catch(() => {
-									toast.error("Error cleaning stopped containers");
+									toast.error(tToast("stoppedContainersCleanError"));
 								});
 						}}
 					>
@@ -131,10 +133,10 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Cleaned Patch Caches");
+									toast.success(tToast("patchCachesCleaned"));
 								})
 								.catch(() => {
-									toast.error("Error cleaning Patch Caches");
+									toast.error(tToast("patchCachesCleanError"));
 								});
 						}}
 					>
@@ -148,10 +150,10 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Cleaned Docker Builder");
+									toast.success(tToast("dockerBuilderCleaned"));
 								})
 								.catch(() => {
-									toast.error("Error cleaning Docker Builder");
+									toast.error(tToast("dockerBuilderCleanError"));
 								});
 						}}
 					>
@@ -163,10 +165,10 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 							onClick={async () => {
 								await cleanMonitoring()
 									.then(async () => {
-										toast.success("Cleaned Monitoring");
+										toast.success(tToast("monitoringCleaned"));
 									})
 									.catch(() => {
-										toast.error("Error cleaning Monitoring");
+										toast.error(tToast("monitoringCleanError"));
 									});
 							}}
 						>
@@ -181,10 +183,10 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Cleaning in progress... Please wait");
+									toast.success(tToast("cleaningAllInProgress"));
 								})
 								.catch(() => {
-									toast.error("Error cleaning all");
+									toast.error(tToast("cleaningAllError"));
 								});
 						}}
 					>

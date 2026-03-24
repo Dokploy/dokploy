@@ -1,4 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -39,6 +40,7 @@ interface NetworkFormProps {
 }
 
 export const NetworkForm = ({ id, type }: NetworkFormProps) => {
+	const t = useTranslations("applicationAdvancedSwarmForms");
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -122,7 +124,6 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 						};
 					}) || [];
 
-			// If no networks, send null to clear the database
 			const networksToSend = networksArray.length > 0 ? networksArray : null;
 
 			await mutateAsync({
@@ -135,10 +136,10 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 				networkSwarm: networksToSend,
 			});
 
-			toast.success("Network configuration updated successfully");
+			toast.success(t("network.toastSuccess"));
 			refetch();
 		} catch {
-			toast.error("Error updating network configuration");
+			toast.error(t("network.toastError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -148,25 +149,24 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 		<Form {...form}>
 			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 				<div>
-					<FormLabel>Networks</FormLabel>
-					<FormDescription>
-						Configure network attachments for your service
-					</FormDescription>
+					<FormLabel>{t("network.section")}</FormLabel>
+					<FormDescription>{t("network.sectionDesc")}</FormDescription>
 					<div className="space-y-2 mt-2">
 						{fields.map((field, index) => (
 							<div key={field.id} className="space-y-2 p-3 border rounded">
 								<FormField
 									control={form.control}
 									name={`networks.${index}.Target`}
-									render={({ field }) => (
+									render={({ field: targetField }) => (
 										<FormItem>
-											<FormLabel>Network Name</FormLabel>
+											<FormLabel>{t("network.networkName")}</FormLabel>
 											<FormControl>
-												<Input {...field} placeholder="my-network" />
+												<Input
+													{...targetField}
+													placeholder={t("network.placeholderNetwork")}
+												/>
 											</FormControl>
-											<FormDescription>
-												The name of the network to attach to
-											</FormDescription>
+											<FormDescription>{t("network.networkNameDesc")}</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}
@@ -174,81 +174,83 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 								<FormField
 									control={form.control}
 									name={`networks.${index}.Aliases`}
-									render={({ field }) => (
+									render={({ field: aliasesField }) => (
 										<FormItem>
-											<FormLabel>Aliases (optional)</FormLabel>
+											<FormLabel>{t("network.aliases")}</FormLabel>
 											<FormControl>
 												<Input
-													{...field}
-													placeholder="alias1, alias2, alias3"
+													{...aliasesField}
+													placeholder={t("network.aliasesPlaceholder")}
 												/>
 											</FormControl>
-											<FormDescription>
-												Comma-separated list of network aliases
-											</FormDescription>
+											<FormDescription>{t("network.aliasesDesc")}</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}
 								/>
 								<div className="space-y-2">
-									<FormLabel>Driver options (optional)</FormLabel>
-									<FormDescription>
-										e.g. com.docker.network.driver.mtu,
-										com.docker.network.driver.host_binding
-									</FormDescription>
-									{(
-										form.watch(`networks.${index}.DriverOptsEntries`) ?? []
-									).map((_, optIndex) => (
-										<div
-											key={optIndex}
-											className="flex gap-2 items-end flex-wrap"
-										>
-											<FormField
-												control={form.control}
-												name={`networks.${index}.DriverOptsEntries.${optIndex}.key`}
-												render={({ field }) => (
-													<FormItem className="flex-1 min-w-[140px]">
-														<FormControl>
-															<Input
-																{...field}
-																placeholder="com.docker.network.driver.mtu"
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-											<FormField
-												control={form.control}
-												name={`networks.${index}.DriverOptsEntries.${optIndex}.value`}
-												render={({ field }) => (
-													<FormItem className="flex-1 min-w-[100px]">
-														<FormControl>
-															<Input {...field} placeholder="1500" />
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-											<Button
-												type="button"
-												variant="ghost"
-												size="sm"
-												onClick={() => {
-													const entries =
-														form.getValues(
-															`networks.${index}.DriverOptsEntries`,
-														) ?? [];
-													form.setValue(
-														`networks.${index}.DriverOptsEntries`,
-														entries.filter((_, i) => i !== optIndex),
-													);
-												}}
+									<FormLabel>{t("network.driverOpts")}</FormLabel>
+									<FormDescription>{t("network.driverOptsDesc")}</FormDescription>
+									{(form.watch(`networks.${index}.DriverOptsEntries`) ?? []).map(
+										(_, optIndex) => (
+											<div
+												key={optIndex}
+												className="flex gap-2 items-end flex-wrap"
 											>
-												Remove
-											</Button>
-										</div>
-									))}
+												<FormField
+													control={form.control}
+													name={`networks.${index}.DriverOptsEntries.${optIndex}.key`}
+													render={({ field: keyField }) => (
+														<FormItem className="flex-1 min-w-[140px]">
+															<FormControl>
+																<Input
+																	{...keyField}
+																	placeholder={t(
+																		"network.placeholderDriverKey",
+																	)}
+																/>
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+												<FormField
+													control={form.control}
+													name={`networks.${index}.DriverOptsEntries.${optIndex}.value`}
+													render={({ field: valueField }) => (
+														<FormItem className="flex-1 min-w-[100px]">
+															<FormControl>
+																<Input
+																	{...valueField}
+																	placeholder={t(
+																		"network.placeholderDriverValue",
+																	)}
+																/>
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+												<Button
+													type="button"
+													variant="ghost"
+													size="sm"
+													onClick={() => {
+														const entries =
+															form.getValues(
+																`networks.${index}.DriverOptsEntries`,
+															) ?? [];
+														form.setValue(
+															`networks.${index}.DriverOptsEntries`,
+															entries.filter((_, i) => i !== optIndex),
+														);
+													}}
+												>
+													{t("network.remove")}
+												</Button>
+											</div>
+										),
+									)}
 									<Button
 										type="button"
 										variant="outline"
@@ -263,7 +265,7 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 											]);
 										}}
 									>
-										Add driver option
+										{t("network.addDriverOption")}
 									</Button>
 								</div>
 								<Button
@@ -272,7 +274,7 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 									size="sm"
 									onClick={() => remove(index)}
 								>
-									Remove Network
+									{t("network.removeNetwork")}
 								</Button>
 							</div>
 						))}
@@ -288,7 +290,7 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 								})
 							}
 						>
-							Add Network
+							{t("network.addNetwork")}
 						</Button>
 					</div>
 				</div>
@@ -301,10 +303,10 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 							form.reset({ networks: [] });
 						}}
 					>
-						Clear
+						{t("actions.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Networks
+						{t("actions.saveNetworks")}
 					</Button>
 				</div>
 			</form>

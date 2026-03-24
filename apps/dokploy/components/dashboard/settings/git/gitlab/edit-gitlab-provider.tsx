@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -48,6 +49,7 @@ interface Props {
 }
 
 export const EditGitlabProvider = ({ gitlabId }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const { data: gitlab, refetch } = api.gitlab.one.useQuery(
 		{
 			gitlabId,
@@ -93,12 +95,12 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
-				toast.success("Gitlab updated successfully");
+				toast.success(tToast("gitlabUpdated"));
 				setIsOpen(false);
 				refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating Gitlab");
+				toast.error(tToast("gitlabUpdateError"));
 			});
 	};
 
@@ -212,10 +214,20 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 												groupName: groupName || "",
 											})
 												.then(async (message) => {
-													toast.info(`Message: ${message}`);
+													toast.info(
+														tToast("providerTestConnectionMessage", {
+															message,
+														}),
+													);
 												})
-												.catch((error) => {
-													toast.error(`Error: ${error.message}`);
+												.catch((error: unknown) => {
+													const msg =
+														error instanceof Error ? error.message : "";
+													toast.error(
+														tToast("providerTestConnectionError", {
+															message: msg,
+														}),
+													);
 												});
 										}}
 									>

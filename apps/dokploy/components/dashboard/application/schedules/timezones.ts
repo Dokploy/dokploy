@@ -452,7 +452,10 @@ export const TIMEZONES: Record<
 };
 
 // Helper to get display label for a timezone value
-export function getTimezoneLabel(value: string | undefined): string {
-	if (!value) return "UTC (default)";
+export function getTimezoneLabel(
+	value: string | undefined,
+	emptyLabel: string,
+): string {
+	if (!value) return emptyLabel;
 	return value;
 }

@@ -1,0 +1,45 @@
+{
+	"applicationAdvancedPorts": {
+		"show": {
+			"title": "Ports",
+			"description": "The ports allows you to expose your application to the internet",
+			"addPort": "Add Port",
+			"empty": "No ports configured",
+			"alertRedeploy": "Please remember to click Redeploy after adding, editing, or deleting the ports to apply the changes.",
+			"publishedPort": "Published Port",
+			"publishedPortMode": "Published Port Mode",
+			"targetPort": "Target Port",
+			"protocol": "Protocol",
+			"deleteTitle": "Delete Port",
+			"deleteDescription": "Are you sure you want to delete this port?",
+			"toastDeleteSuccess": "Port deleted successfully",
+			"toastDeleteError": "Error deleting port"
+		},
+		"form": {
+			"title": "Ports",
+			"description": "Ports are used to expose your application to the internet.",
+			"publishedPort": "Published Port",
+			"publishedPortMode": "Published Port Mode",
+			"targetPort": "Target Port",
+			"protocol": "Protocol",
+			"placeholderPort": "1-65535",
+			"placeholderPublishMode": "Select a publish mode for the port",
+			"placeholderProtocol": "Select a protocol",
+			"ingress": "Ingress",
+			"host": "Host",
+			"tcp": "TCP",
+			"udp": "UDP",
+			"hostModeWarning": "Host Mode Limitation: When using Host publish mode, Docker Swarm has limitations that prevent proper container updates during deployments. Old containers may not be replaced automatically. Consider using Ingress mode instead, or be prepared to manually stop/start the application after deployments.",
+			"toast": {
+				"created": "Port created",
+				"updated": "Port updated",
+				"errorCreate": "Error creating the port",
+				"errorUpdate": "Error updating the port"
+			},
+			"actions": {
+				"create": "Create",
+				"update": "Update"
+			}
+		}
+	}
+}

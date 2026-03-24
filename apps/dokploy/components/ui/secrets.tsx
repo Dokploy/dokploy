@@ -1,4 +1,5 @@
 import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { type CSSProperties, type ReactNode, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { CodeEditor } from "@/components/shared/code-editor";
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export const Secrets = (props: Props) => {
+	const t = useTranslations("ui");
 	const [isVisible, setIsVisible] = useState(true);
 	const form = useFormContext<Record<string, string>>();
 
@@ -36,7 +38,7 @@ export const Secrets = (props: Props) => {
 				</div>
 
 				<Toggle
-					aria-label="Toggle bold"
+					aria-label={t("secretsToggleVisibility")}
 					pressed={isVisible}
 					onPressedChange={setIsVisible}
 				>

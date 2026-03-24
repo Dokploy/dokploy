@@ -1,0 +1,81 @@
+{
+	"applicationAdvancedVolumes": {
+		"show": {
+			"title": "Тома",
+			"description": "Чтобы сохранять данные сервиса, настройте volumes монтирования ниже",
+			"addVolume": "Добавить том",
+			"empty": "Тома и монтирования не настроены",
+			"alertRedeploy": "После добавления, изменения или удаления монтирования нажмите Redeploy.",
+			"mountType": "Тип монтирования",
+			"volumeName": "Имя тома",
+			"content": "Содержимое",
+			"hostPath": "Host Path",
+			"filePath": "File Path",
+			"mountPath": "Mount Path",
+			"deleteTitle": "Удалить том",
+			"deleteDescription": "Удалить это монтирование?",
+			"toastDeleteSuccess": "Том удалён",
+			"toastDeleteError": "Не удалось удалить том"
+		},
+		"add": {
+			"dialogTitle": "Volumes / Mounts",
+			"mountTypeLabel": "Тип монтирования",
+			"bindMount": "Bind Mount",
+			"volumeMount": "Volume Mount",
+			"fileMount": "File Mount",
+			"fillFields": "Заполните поля ниже.",
+			"hostPath": "Host Path",
+			"volumeName": "Имя тома",
+			"content": "Содержимое",
+			"filePath": "File Path",
+			"filePathPlaceholder": "Имя файла",
+			"mountPath": "Mount Path (в контейнере)",
+			"placeholderHost": "Host Path",
+			"placeholderVolume": "Имя тома",
+			"placeholderMount": "Mount Path",
+			"alertBind": "Путь на хосте должен существовать на машине.",
+			"clusterWarning": "Cluster Warning:",
+			"alertCluster": "При использовании кластера bind mount может ломать деплой, если путь нет на всех worker/manager. Распределите данные или используйте named volumes.",
+			"validation": {
+				"mountPath": "Укажите mount path",
+				"hostPath": "Укажите host path",
+				"volumeName": "Укажите имя тома",
+				"volumeNameInvalid": "Недопустимое имя тома: буквы, цифры, '._-', начало с буквы/цифры.",
+				"filePath": "Укажите file path"
+			},
+			"toast": {
+				"created": "Монтирование создано",
+				"errorBind": "Ошибка создания Bind mount",
+				"errorVolume": "Ошибка создания Volume mount",
+				"errorFile": "Ошибка создания File mount"
+			}
+		},
+		"update": {
+			"title": "Изменить",
+			"description": "Обновить монтирование",
+			"alertFile": "Изменение пересоздаст файл или каталог.",
+			"hostPath": "Host Path",
+			"volumeName": "Имя тома",
+			"content": "Содержимое",
+			"filePath": "File Path",
+			"mountPath": "Mount Path (в контейнере)",
+			"placeholderHost": "Host Path",
+			"placeholderVolume": "Имя тома",
+			"placeholderMount": "Mount Path",
+			"placeholderFileName": "Имя файла",
+			"validation": {
+				"mountPath": "Укажите mount path",
+				"hostPath": "Укажите host path",
+				"volumeName": "Укажите имя тома",
+				"volumeNameInvalid": "Недопустимое имя тома: буквы, цифры, '._-', начало с буквы/цифры.",
+				"filePath": "Укажите file path"
+			},
+			"toast": {
+				"success": "Монтирование обновлено",
+				"errorBind": "Ошибка обновления Bind mount",
+				"errorVolume": "Ошибка обновления Volume mount",
+				"errorFile": "Ошибка обновления File mount"
+			}
+		}
+	}
+}

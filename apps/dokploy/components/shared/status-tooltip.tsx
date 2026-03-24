@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import {
 	Tooltip,
 	TooltipContent,
@@ -19,6 +22,21 @@ interface Props {
 }
 
 export const StatusTooltip = ({ status, className }: Props) => {
+	const t = useTranslations("sharedStatus");
+
+	const statusLabel =
+		status === "idle"
+			? t("idle")
+			: status === "error"
+				? t("error")
+				: status === "done"
+					? t("done")
+					: status === "cancelled"
+						? t("cancelled")
+						: status === "running"
+							? t("running")
+							: null;
+
 	return (
 		<TooltipProvider delayDuration={0}>
 			<Tooltip>
@@ -56,13 +74,7 @@ export const StatusTooltip = ({ status, className }: Props) => {
 					)}
 				</TooltipTrigger>
 				<TooltipContent align="center">
-					<span>
-						{status === "idle" && "Idle"}
-						{status === "error" && "Error"}
-						{status === "done" && "Done"}
-						{status === "running" && "Running"}
-						{status === "cancelled" && "Cancelled"}
-					</span>
+					<span>{statusLabel}</span>
 				</TooltipContent>
 			</Tooltip>
 		</TooltipProvider>

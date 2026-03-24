@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { type CSSProperties, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -36,6 +37,8 @@ interface Props {
 }
 
 export const ShowEnvironment = ({ id, type }: Props) => {
+	const t = useTranslations("applicationEnvironmentService");
+	const tCommon = useTranslations("common");
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canWrite = permissions?.envVars.write ?? false;
 	const queryMap = {
@@ -96,11 +99,11 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 			env: formData.environment,
 		})
 			.then(async () => {
-				toast.success("Environments Added");
+				toast.success(t("toast.success"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error adding environment");
+				toast.error(t("toast.error"));
 			});
 	};
 
@@ -130,19 +133,17 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 			<Card className="bg-background">
 				<CardHeader className="flex flex-row w-full items-center justify-between">
 					<div>
-						<CardTitle className="text-xl">Environment Settings</CardTitle>
+						<CardTitle className="text-xl">{t("title")}</CardTitle>
 						<CardDescription>
-							You can add environment variables to your resource.
+							{t("description")}
 							{hasChanges && (
-								<span className="text-yellow-500 ml-2">
-									(You have unsaved changes)
-								</span>
+								<span className="text-yellow-500 ml-2">{t("unsavedHint")}</span>
 							)}
 						</CardDescription>
 					</div>
 
 					<Toggle
-						aria-label="Toggle bold"
+						aria-label={t("toggleVisibilityAria")}
 						pressed={isEnvVisible}
 						onPressedChange={setIsEnvVisible}
 					>
@@ -176,9 +177,7 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 												disabled={isEnvVisible}
 												className="font-mono"
 												wrapperClassName="compose-file-editor"
-												placeholder={`NODE_ENV=production
-PORT=3000
-														`}
+												placeholder={t("placeholderEditor")}
 												{...field}
 											/>
 										</FormControl>
@@ -195,7 +194,7 @@ PORT=3000
 											variant="outline"
 											onClick={handleCancel}
 										>
-											Cancel
+											{tCommon("cancel")}
 										</Button>
 									)}
 									<Button
@@ -204,7 +203,7 @@ PORT=3000
 										type="submit"
 										disabled={!hasChanges}
 									>
-										Save
+										{tCommon("save")}
 									</Button>
 								</div>
 							)}

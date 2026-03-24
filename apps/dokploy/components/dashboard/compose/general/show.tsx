@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export const ShowGeneralCompose = ({ composeId }: Props) => {
+	const t = useTranslations("composeGeneral");
 	const { data } = api.compose.one.useQuery(
 		{ composeId },
 		{
@@ -27,15 +29,15 @@ export const ShowGeneralCompose = ({ composeId }: Props) => {
 			<Card className="bg-background">
 				<CardHeader>
 					<div className="flex flex-row gap-2 justify-between flex-wrap">
-						<CardTitle className="text-xl">Deploy Settings</CardTitle>
+						<CardTitle className="text-xl">{t("deployCard.title")}</CardTitle>
 						<Badge>
-							{data?.composeType === "docker-compose" ? "Compose" : "Stack"}
+							{data?.composeType === "docker-compose"
+								? t("deployCard.badgeCompose")
+								: t("deployCard.badgeStack")}
 						</Badge>
 					</div>
 
-					<CardDescription>
-						Create a compose file to deploy your compose
-					</CardDescription>
+					<CardDescription>{t("deployCard.description")}</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4 flex-wrap">
 					<ComposeActions composeId={composeId} />

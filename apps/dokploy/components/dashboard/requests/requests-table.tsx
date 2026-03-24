@@ -20,6 +20,7 @@ import {
 	Server,
 	TrendingUpIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -48,37 +49,9 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api } from "@/utils/api";
-import { columns, getStatusColor } from "./columns";
+import { getRequestColumns, getStatusColor } from "./columns";
 import type { LogEntry } from "./show-requests";
 import { DataTableFacetedFilter } from "./status-request-filter";
-
-export const priorities = [
-	{
-		label: "100 - 199",
-		value: "info",
-		icon: InfoIcon,
-	},
-	{
-		label: "200 - 299",
-		value: "success",
-		icon: CheckCircle2Icon,
-	},
-	{
-		label: "300 - 399",
-		value: "redirect",
-		icon: TrendingUpIcon,
-	},
-	{
-		label: "400 - 499",
-		value: "client",
-		icon: Globe,
-	},
-	{
-		label: "500 - 599",
-		value: "server",
-		icon: Server,
-	},
-];
 
 export interface RequestsTableProps {
 	dateRange?: {
@@ -88,6 +61,7 @@ export interface RequestsTableProps {
 }
 
 export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
+	const t = useTranslations("requests");
 	const [statusFilter, setStatusFilter] = useState<string[]>([]);
 	const [search, setSearch] = useState("");
 	const [selectedRow, setSelectedRow] = useState<LogEntry>();
@@ -99,6 +73,39 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 		pageIndex: 0,
 		pageSize: 10,
 	});
+
+	const requestColumns = useMemo(() => getRequestColumns(t), [t]);
+
+	const priorityOptions = useMemo(
+		() => [
+			{
+				label: t("statusRange_100_199"),
+				value: "info",
+				icon: InfoIcon,
+			},
+			{
+				label: t("statusRange_200_299"),
+				value: "success",
+				icon: CheckCircle2Icon,
+			},
+			{
+				label: t("statusRange_300_399"),
+				value: "redirect",
+				icon: TrendingUpIcon,
+			},
+			{
+				label: t("statusRange_400_499"),
+				value: "client",
+				icon: Globe,
+			},
+			{
+				label: t("statusRange_500_599"),
+				value: "server",
+				icon: Server,
+			},
+		],
+		[t],
+	);
 
 	const { data: statsLogs } = api.settings.readStatsLogs.useQuery(
 		{
@@ -127,7 +134,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 
 	const table = useReactTable({
 		data: statsLogs?.data ?? [],
-		columns,
+		columns: requestColumns,
 		onPaginationChange: setPagination,
 		onSortingChange: setSorting,
 		pageCount: pageCount,
@@ -147,7 +154,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 		},
 	});
 
-	const formatValue = (key: string, value: any) => {
+	const formatValue = (key: string, value: unknown) => {
 		if (typeof value === "object" && value !== null) {
 			return JSON.stringify(value, null, 2);
 		}
@@ -163,19 +170,22 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 			return `${(ms / 1000).toFixed(2)} s`;
 		}
 		if (key === "level") {
-			return <Badge variant="secondary">{value}</Badge>;
+			return <Badge variant="secondary">{String(value)}</Badge>;
 		}
 		if (key === "RequestMethod") {
-			return <Badge variant="outline">{value}</Badge>;
+			return <Badge variant="outline">{String(value)}</Badge>;
 		}
 		if (key === "DownstreamStatus" || key === "OriginStatus") {
 			const num = Number(value);
 			if (num === 0) {
-				return <Badge variant="secondary">N/A</Badge>;
+				return <Badge variant="secondary">{t("na")}</Badge>;
 			}
-			return <Badge variant={getStatusColor(num)}>{value}</Badge>;
+			return <Badge variant={getStatusColor(num)}>{String(value)}</Badge>;
 		}
-		return value;
+		if (value === null || value === undefined) {
+			return null;
+		}
+		return String(value);
 	};
 
 	return (
@@ -185,7 +195,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 					<div className="flex flex-col gap-4  w-full overflow-auto">
 						<div className="flex items-center gap-2 max-sm:flex-wrap">
 							<Input
-								placeholder="Filter by name..."
+								placeholder={t("tableFilterPlaceholder")}
 								value={search}
 								onChange={(event) => setSearch(event.target.value)}
 								className="md:max-w-sm"
@@ -193,8 +203,8 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 							<DataTableFacetedFilter
 								value={statusFilter}
 								setValue={setStatusFilter}
-								title="Status"
-								options={priorities}
+								title={t("statusFilterTitle")}
+								options={priorityOptions}
 							/>
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
@@ -202,7 +212,8 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 										variant="outline"
 										className="sm:ml-auto max-sm:w-full"
 									>
-										Columns <ChevronDown className="ml-2 h-4 w-4" />
+										{t("columnsButton")}{" "}
+										<ChevronDown className="ml-2 h-4 w-4" />
 									</Button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align="end">
@@ -270,13 +281,13 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 									) : (
 										<TableRow>
 											<TableCell
-												colSpan={columns.length}
+												colSpan={requestColumns.length}
 												className="h-24 text-center"
 											>
-												{statsLogs?.data.length === 0 && (
+												{statsLogs?.data?.length === 0 && (
 													<div className="w-full flex-col gap-2 flex items-center justify-center py-24">
 														<span className="text-muted-foreground text-lg font-medium">
-															No results.
+															{t("tableNoResults")}
 														</span>
 													</div>
 												)}
@@ -289,17 +300,18 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 						<div className="flex items-center justify-end space-x-2 py-4">
 							{statsLogs?.totalCount && (
 								<span className="text-muted-foreground text-sm">
-									Showing{" "}
+									{t("paginationShowing")}{" "}
 									{Math.min(
 										pagination.pageIndex * pagination.pageSize + 1,
 										statsLogs.totalCount,
 									)}{" "}
-									to{" "}
+									{t("paginationTo")}{" "}
 									{Math.min(
 										(pagination.pageIndex + 1) * pagination.pageSize,
 										statsLogs.totalCount,
 									)}{" "}
-									of {statsLogs.totalCount} entries
+									{t("paginationOf")} {statsLogs.totalCount}{" "}
+									{t("paginationEntries")}
 								</span>
 							)}
 							<div className="space-x-2 flex flex-wrap">
@@ -309,7 +321,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 									onClick={() => table.previousPage()}
 									disabled={!table.getCanPreviousPage()}
 								>
-									Previous
+									{t("tablePrevious")}
 								</Button>
 								<Button
 									variant="outline"
@@ -317,7 +329,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 									onClick={() => table.nextPage()}
 									disabled={!table.getCanNextPage()}
 								>
-									Next
+									{t("tableNext")}
 								</Button>
 							</div>
 						</div>
@@ -330,10 +342,8 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 			>
 				<SheetContent className="sm:max-w-[740px]  flex flex-col">
 					<SheetHeader>
-						<SheetTitle>Request log</SheetTitle>
-						<SheetDescription>
-							Details of the request log entry.
-						</SheetDescription>
+						<SheetTitle>{t("sheetTitle")}</SheetTitle>
+						<SheetDescription>{t("sheetDescription")}</SheetDescription>
 					</SheetHeader>
 					<ScrollArea className="flex-grow mt-4 pr-4">
 						<div className="border rounded-md">
@@ -345,11 +355,11 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 											<TableCell className="truncate break-words break-before-all whitespace-pre-wrap">
 												{key === "RequestAddr" ? (
 													<div className="flex items-center gap-2 bg-muted p-1 rounded">
-														<span>{value}</span>
+														<span>{String(value)}</span>
 														<Copy
 															onClick={() => {
-																copy(value);
-																toast.success("Copied to clipboard");
+																copy(String(value));
+																toast.success(t("copiedToast"));
 															}}
 															className="h-4 w-4 text-muted-foreground cursor-pointer"
 														/>
@@ -386,7 +396,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 							}}
 						>
 							<Download className="h-4 w-4" />
-							Download as JSON
+							{t("downloadJson")}
 						</Button>
 					</div>
 				</SheetContent>

@@ -1,0 +1,39 @@
+{
+	"applicationAdvancedSecurity": {
+		"show": {
+			"title": "Security",
+			"description": "Add basic auth to your application",
+			"addSecurity": "Add Security",
+			"empty": "No security configured",
+			"username": "Username",
+			"password": "Password",
+			"deleteTitle": "Delete Security",
+			"deleteDescription": "Are you sure you want to delete this security?",
+			"toastDeleteSuccess": "Security deleted successfully",
+			"toastDeleteError": "Error deleting security"
+		},
+		"form": {
+			"title": "Security",
+			"descriptionAdd": "Add security to your application",
+			"descriptionUpdate": "Update security to your application",
+			"username": "Username",
+			"password": "Password",
+			"placeholderUsername": "test1",
+			"placeholderPassword": "test",
+			"validation": {
+				"username": "Username is required",
+				"password": "Password is required"
+			},
+			"toast": {
+				"created": "Security created",
+				"updated": "Security updated",
+				"errorCreate": "Error creating security",
+				"errorUpdate": "Error updating the security"
+			},
+			"actions": {
+				"create": "Create",
+				"update": "Update"
+			}
+		}
+	}
+}

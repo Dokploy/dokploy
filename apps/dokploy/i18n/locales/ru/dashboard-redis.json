@@ -1,0 +1,64 @@
+{
+	"redisDashboard": {
+		"update": {
+			"nameRequired": "Укажите имя",
+			"title": "Изменить Redis",
+			"description": "Обновите данные Redis",
+			"nameLabel": "Имя",
+			"namePlaceholder": "Vandelay Industries",
+			"descriptionLabel": "Описание",
+			"descriptionPlaceholder": "Описание проекта...",
+			"updateButton": "Обновить",
+			"toastSuccess": "Redis успешно обновлён",
+			"toastError": "Не удалось обновить Redis"
+		},
+		"general": {
+			"cardTitle": "Настройки деплоя",
+			"deployDialogTitle": "Деплой Redis",
+			"deployDialogDescription": "Развернуть этот Redis?",
+			"deploy": "Деплой",
+			"deployTooltip": "Скачивает и настраивает Redis",
+			"reloadDialogTitle": "Перезагрузка Redis",
+			"reloadDialogDescription": "Перезагрузить этот Redis?",
+			"reload": "Перезагрузить",
+			"reloadTooltip": "Перезапуск Redis без пересборки",
+			"reloadToastSuccess": "Redis перезагружен",
+			"reloadToastError": "Не удалось перезагрузить Redis",
+			"startDialogTitle": "Запуск Redis",
+			"startDialogDescription": "Запустить этот Redis?",
+			"start": "Запустить",
+			"startTooltip": "Запуск Redis (нужна успешная предыдущая установка)",
+			"startToastSuccess": "Redis запущен",
+			"startToastError": "Не удалось запустить Redis",
+			"stopDialogTitle": "Остановка Redis",
+			"stopDialogDescription": "Остановить этот Redis?",
+			"stop": "Остановить",
+			"stopTooltip": "Остановить текущий экземпляр Redis",
+			"stopToastSuccess": "Redis остановлен",
+			"stopToastError": "Не удалось остановить Redis",
+			"openTerminal": "Открыть терминал",
+			"openTerminalTooltip": "Терминал в контейнере Redis"
+		},
+		"internal": {
+			"cardTitle": "Внутренние учётные данные",
+			"user": "Пользователь",
+			"password": "Пароль",
+			"internalPort": "Внутренний порт (контейнер)",
+			"internalHost": "Внутренний хост",
+			"internalConnectionUrl": "Внутренний URL подключения"
+		},
+		"external": {
+			"cardTitle": "Внешние учётные данные",
+			"cardDescription": "Чтобы Redis был доступен из интернета, задайте порт и убедитесь, что он не занят другим приложением или БД.",
+			"ipWarningPrefix": "Укажите IP-адрес в разделе",
+			"ipWarningSuffix": ", чтобы исправить URL подключения.",
+			"ipLinkRemote": "Удалённые серверы → Сервер → Изменить → IP-адрес",
+			"ipLinkWebServer": "Веб-сервер → Сервер → Обновить IP",
+			"portRangeError": "Порт должен быть от 0 до 65535",
+			"externalPortLabel": "Внешний порт (интернет)",
+			"externalHost": "Внешний хост",
+			"toastPortSuccess": "Внешний порт обновлён",
+			"toastPortError": "Не удалось сохранить внешний порт"
+		}
+	}
+}

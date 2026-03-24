@@ -1,0 +1,13 @@
+{
+	"applicationEnvironmentService": {
+		"title": "Environment Settings",
+		"description": "You can add environment variables to your resource.",
+		"unsavedHint": "(You have unsaved changes)",
+		"placeholderEditor": "NODE_ENV=production\nPORT=3000\n",
+		"toggleVisibilityAria": "Toggle environment visibility",
+		"toast": {
+			"success": "Environments Added",
+			"error": "Error adding environment"
+		}
+	}
+}

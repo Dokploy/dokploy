@@ -1,4 +1,5 @@
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +31,8 @@ export const DockerTerminalModal = ({
 	containerId,
 	serverId,
 }: Props) => {
+	const t = useTranslations("dockerTerminal");
+	const tCommon = useTranslations("common");
 	const [mainDialogOpen, setMainDialogOpen] = useState(false);
 	const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
@@ -64,10 +67,8 @@ export const DockerTerminalModal = ({
 				onEscapeKeyDown={(event) => event.preventDefault()}
 			>
 				<DialogHeader>
-					<DialogTitle>Docker Terminal</DialogTitle>
-					<DialogDescription>
-						Easy way to access to docker container
-					</DialogDescription>
+					<DialogTitle>{t("title")}</DialogTitle>
+					<DialogDescription>{t("description")}</DialogDescription>
 				</DialogHeader>
 
 				<Terminal
@@ -78,18 +79,14 @@ export const DockerTerminalModal = ({
 				<Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
 					<DialogContent onEscapeKeyDown={(event) => event.preventDefault()}>
 						<DialogHeader>
-							<DialogTitle>
-								Are you sure you want to close the terminal?
-							</DialogTitle>
-							<DialogDescription>
-								By clicking the confirm button, the terminal will be closed.
-							</DialogDescription>
+							<DialogTitle>{t("closeConfirmTitle")}</DialogTitle>
+							<DialogDescription>{t("closeConfirmDescription")}</DialogDescription>
 						</DialogHeader>
 						<DialogFooter>
 							<Button variant="outline" onClick={handleCancel}>
-								Cancel
+								{tCommon("cancel")}
 							</Button>
-							<Button onClick={handleConfirm}>Confirm</Button>
+							<Button onClick={handleConfirm}>{tCommon("confirm")}</Button>
 						</DialogFooter>
 					</DialogContent>
 				</Dialog>

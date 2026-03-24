@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon, PlusIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -55,6 +56,7 @@ interface Props {
 }
 
 export const HandleDestinations = ({ destinationId }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data: servers } = api.server.withSSHKey.useQuery();
@@ -120,7 +122,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			destinationId: destinationId || "",
 		})
 			.then(async () => {
-				toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
+				toast.success(
+					destinationId
+						? tToast("destinationUpdatedSuccess")
+						: tToast("destinationCreatedSuccess"),
+				);
 				await utils.destination.all.invalidate();
 				if (destinationId) {
 					await utils.destination.one.invalidate({ destinationId });
@@ -129,7 +135,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			})
 			.catch(() => {
 				toast.error(
-					`Error ${destinationId ? "Updating" : "Creating"} the Destination`,
+					destinationId
+						? tToast("destinationUpdateError")
+						: tToast("destinationCreateError"),
 				);
 			});
 	};
@@ -150,14 +158,14 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 				.filter(Boolean)
 				.join("\n");
 
-			toast.error("Please fill all required fields", {
+			toast.error(tToast("fillRequiredFields"), {
 				description: errorFields,
 			});
 			return;
 		}
 
 		if (isCloud && !serverId) {
-			toast.error("Please select a server");
+			toast.error(tToast("selectServer"));
 			return;
 		}
 
@@ -181,10 +189,10 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			serverId,
 		})
 			.then(() => {
-				toast.success("Connection Success");
+				toast.success(tToast("connectionSuccess"));
 			})
 			.catch((e) => {
-				toast.error("Error connecting to provider", {
+				toast.error(tToast("providerConnectError"), {
 					description: `${e.message}\n\nTry manually: rclone ls ${connectionString}`,
 				});
 			});

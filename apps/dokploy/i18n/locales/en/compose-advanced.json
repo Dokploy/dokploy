@@ -1,0 +1,32 @@
+{
+	"composeAdvanced": {
+		"command": {
+			"title": "Run Command",
+			"description": "Override a custom command to the compose file",
+			"warning": "Modifying the default command may affect deployment stability, impacting logs and monitoring. Proceed carefully and test thoroughly. By default, the command starts with <strong>docker</strong>.",
+			"fieldLabel": "Command",
+			"placeholder": "Custom command",
+			"defaultCommand": "Default Command ({command})",
+			"save": "Save",
+			"toastSuccess": "Command Updated",
+			"toastError": "Error updating the command"
+		},
+		"isolation": {
+			"title": "Enable Isolated Deployment",
+			"descriptionIntro": "Configure isolated deployment to the compose file.",
+			"descriptionBody": "This feature creates an isolated environment for your deployment by adding unique prefixes to all resources. It establishes a dedicated network based on your compose file's name, ensuring your services run in isolation. This prevents conflicts when running multiple instances of the same template or services with identical names.",
+			"resourcesHeading": "Resources that will be isolated:",
+			"resourceNetworks": "Docker networks",
+			"switchLabel": "Enable Isolated Deployment ({appName})",
+			"switchDescription": "Enable isolated deployment to the compose file.",
+			"save": "Save",
+			"previewButton": "Preview Compose",
+			"dialogTitle": "Isolated Deployment Preview",
+			"dialogDescription": "Preview of the compose file with isolated deployment configuration",
+			"generating": "Generating compose preview...",
+			"toastSuccess": "Compose updated",
+			"toastError": "Error updating the compose",
+			"toastPreviewError": "Error generating preview"
+		}
+	}
+}

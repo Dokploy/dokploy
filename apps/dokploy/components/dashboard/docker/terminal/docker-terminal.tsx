@@ -1,9 +1,10 @@
 import { Terminal } from "@xterm/xterm";
+import { useTranslations } from "next-intl";
+import { useTheme } from "next-themes";
 import React, { useEffect, useRef } from "react";
 import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
-import { AttachAddon } from "@xterm/addon-attach";
-import { useTheme } from "next-themes";
+import { AttachAddon } from "xterm/addon-attach";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Props {
@@ -17,6 +18,7 @@ export const DockerTerminal: React.FC<Props> = ({
 	containerId,
 	serverId,
 }) => {
+	const t = useTranslations("dockerTerminal");
 	const termRef = useRef(null);
 	const [activeWay, setActiveWay] = React.useState<string | undefined>("bash");
 	const { resolvedTheme } = useTheme();
@@ -52,18 +54,18 @@ export const DockerTerminal: React.FC<Props> = ({
 		return () => {
 			ws.readyState === WebSocket.OPEN && ws.close();
 		};
-	}, [containerId, activeWay, id]);
+	}, [containerId, activeWay, id, resolvedTheme]);
 
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="flex flex-col gap-2  mt-4">
 				<span>
-					Select way to connect to <b>{containerId}</b>
+					{t("connectPrompt", { containerId: containerId ?? "" })}
 				</span>
 				<Tabs value={activeWay} onValueChange={setActiveWay}>
 					<TabsList>
-						<TabsTrigger value="bash">Bash</TabsTrigger>
-						<TabsTrigger value="sh">/bin/sh</TabsTrigger>
+						<TabsTrigger value="bash">{t("tabBash")}</TabsTrigger>
+						<TabsTrigger value="sh">{t("tabSh")}</TabsTrigger>
 					</TabsList>
 				</Tabs>
 			</div>

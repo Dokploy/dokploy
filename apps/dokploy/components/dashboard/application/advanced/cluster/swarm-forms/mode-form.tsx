@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ interface ModeFormProps {
 }
 
 export const ModeForm = ({ id, type }: ModeFormProps) => {
+	const t = useTranslations("applicationAdvancedSwarmForms");
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -86,7 +88,6 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 	const onSubmit = async (formData: any) => {
 		setIsLoading(true);
 		try {
-			// If no type is selected, send null to clear the database
 			if (!formData.type) {
 				await mutateAsync({
 					applicationId: id || "",
@@ -97,7 +98,7 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 					mongoId: id || "",
 					modeSwarm: null,
 				});
-				toast.success("Mode updated successfully");
+				toast.success(t("mode.toastSuccess"));
 				refetch();
 				setIsLoading(false);
 				return;
@@ -125,10 +126,10 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 				modeSwarm: modeData,
 			});
 
-			toast.success("Mode updated successfully");
+			toast.success(t("mode.toastSuccess"));
 			refetch();
 		} catch {
-			toast.error("Error updating mode");
+			toast.error(t("mode.toastError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -142,14 +143,12 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 					name="type"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Mode Type</FormLabel>
-							<FormDescription>
-								Choose between replicated or global service mode
-							</FormDescription>
+							<FormLabel>{t("mode.modeType")}</FormLabel>
+							<FormDescription>{t("mode.modeTypeDesc")}</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder="Select mode type" />
+										<SelectValue placeholder={t("mode.placeholderMode")} />
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
@@ -168,8 +167,8 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 						name="Replicas"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Replicas</FormLabel>
-								<FormDescription>Number of replicas to run</FormDescription>
+								<FormLabel>{t("mode.replicas")}</FormLabel>
+								<FormDescription>{t("mode.replicasDesc")}</FormDescription>
 								<FormControl>
 									<Input type="number" placeholder="1" {...field} />
 								</FormControl>
@@ -190,10 +189,10 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 							});
 						}}
 					>
-						Clear
+						{t("actions.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Mode
+						{t("actions.saveMode")}
 					</Button>
 				</div>
 			</form>

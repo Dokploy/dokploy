@@ -1,0 +1,13 @@
+{
+	"composeLogs": {
+		"title": "Logs",
+		"description": "Watch the logs of the application in real time",
+		"selectContainerLabel": "Select a container to view logs",
+		"loading": "Loading...",
+		"selectPlaceholder": "Select a container",
+		"containersLabel": "Containers ({count})",
+		"native": "Native",
+		"swarm": "Swarm",
+		"errorPrefix": "Error: "
+	}
+}

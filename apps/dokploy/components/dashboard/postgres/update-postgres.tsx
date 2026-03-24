@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { PenBox } from "lucide-react";
-import { useEffect, useState } from "react";
+import { PenBoxIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -27,20 +28,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
-const updatePostgresSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	description: z.string().optional(),
-});
-
-type UpdatePostgres = z.infer<typeof updatePostgresSchema>;
+type UpdatePostgres = {
+	name: string;
+	description?: string;
+};
 
 interface Props {
 	postgresId: string;
 }
 
 export const UpdatePostgres = ({ postgresId }: Props) => {
+	const t = useTranslations("postgresDashboard.update");
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isPending } =
@@ -52,6 +50,16 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 		{
 			enabled: !!postgresId,
 		},
+	);
+	const updatePostgresSchema = useMemo(
+		() =>
+			z.object({
+				name: z.string().min(1, {
+					message: t("nameRequired"),
+				}),
+				description: z.string().optional(),
+			}),
+		[t],
 	);
 	const form = useForm<UpdatePostgres>({
 		defaultValues: {
@@ -76,14 +84,14 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Postgres updated successfully");
+				toast.success(t("toastSuccess"));
 				utils.postgres.one.invalidate({
 					postgresId: postgresId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating Postgres");
+				toast.error(t("toastError"));
 			})
 			.finally(() => {});
 	};
@@ -94,15 +102,15 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 				<Button
 					variant="ghost"
 					size="icon"
-					className="group hover:bg-blue-500/10 focus-visible:ring-2 focus-visible:ring-offset-2"
+					className="group hover:bg-blue-500/10 "
 				>
-					<PenBox className="size-3.5 text-primary group-hover:text-blue-500" />
+					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify Postgres</DialogTitle>
-					<DialogDescription>Update the Postgres data</DialogDescription>
+					<DialogTitle>{t("title")}</DialogTitle>
+					<DialogDescription>{t("description")}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -119,9 +127,9 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("nameLabel")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Vandelay Industries" {...field} />
+												<Input placeholder={t("namePlaceholder")} {...field} />
 											</FormControl>
 
 											<FormMessage />
@@ -133,10 +141,10 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>{t("descriptionLabel")}</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t("descriptionPlaceholder")}
 													className="resize-none"
 													{...field}
 												/>
@@ -151,9 +159,8 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 										isLoading={isPending}
 										form="hook-form-update-postgres"
 										type="submit"
-										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 									>
-										Update
+										{t("updateButton")}
 									</Button>
 								</DialogFooter>
 							</form>

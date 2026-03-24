@@ -1,4 +1,5 @@
 import { AlertCircle, GitBranch, Unlink } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
 	BitbucketIcon,
 	GiteaIcon,
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export const UnauthorizedGitProvider = ({ service, onDisconnect }: Props) => {
+	const t = useTranslations("applicationGeneralProvider");
 	const getProviderIcon = (sourceType: string) => {
 		switch (sourceType) {
 			case "github":
@@ -81,10 +83,7 @@ export const UnauthorizedGitProvider = ({ service, onDisconnect }: Props) => {
 			<Alert>
 				<AlertCircle className="h-4 w-4" />
 				<AlertDescription>
-					This application is connected to a {service.sourceType} repository
-					through a git provider that you don't have access to. You can see
-					basic repository information below, but cannot modify the
-					configuration.
+					{t("unauthorized.alert", { sourceType: service.sourceType })}
 				</AlertDescription>
 			</Alert>
 
@@ -93,7 +92,9 @@ export const UnauthorizedGitProvider = ({ service, onDisconnect }: Props) => {
 					<CardTitle className="flex items-center gap-2">
 						{getProviderIcon(service.sourceType)}
 						<span className="capitalize text-sm font-medium">
-							{service.sourceType} Repository
+							{t("unauthorized.repositoryTitle", {
+								sourceType: service.sourceType,
+							})}
 						</span>
 					</CardTitle>
 				</CardHeader>
@@ -101,7 +102,7 @@ export const UnauthorizedGitProvider = ({ service, onDisconnect }: Props) => {
 					{owner && (
 						<div>
 							<span className="text-sm font-medium text-muted-foreground">
-								Owner:
+								{t("unauthorized.owner")}
 							</span>
 							<p className="text-sm">{owner}</p>
 						</div>
@@ -109,7 +110,7 @@ export const UnauthorizedGitProvider = ({ service, onDisconnect }: Props) => {
 					{repo && (
 						<div>
 							<span className="text-sm font-medium text-muted-foreground">
-								Repository:
+								{t("unauthorized.repository")}
 							</span>
 							<p className="text-sm">{repo}</p>
 						</div>
@@ -117,7 +118,7 @@ export const UnauthorizedGitProvider = ({ service, onDisconnect }: Props) => {
 					{branch && (
 						<div>
 							<span className="text-sm font-medium text-muted-foreground">
-								Branch:
+								{t("unauthorized.branch")}
 							</span>
 							<p className="text-sm">{branch}</p>
 						</div>
@@ -125,8 +126,8 @@ export const UnauthorizedGitProvider = ({ service, onDisconnect }: Props) => {
 
 					<div className="pt-4 border-t">
 						<DialogAction
-							title="Disconnect Repository"
-							description="Are you sure you want to disconnect this repository?"
+							title={t("unauthorized.disconnectDialogTitle")}
+							description={t("unauthorized.disconnectDialogDescription")}
 							type="default"
 							onClick={async () => {
 								onDisconnect();
@@ -134,12 +135,11 @@ export const UnauthorizedGitProvider = ({ service, onDisconnect }: Props) => {
 						>
 							<Button variant="secondary" className="w-full">
 								<Unlink className="size-4 mr-2" />
-								Disconnect Repository
+								{t("unauthorized.disconnectButton")}
 							</Button>
 						</DialogAction>
 						<p className="text-xs text-muted-foreground mt-2">
-							Disconnecting will allow you to configure a new repository with
-							your own git providers.
+							{t("unauthorized.disconnectHint")}
 						</p>
 					</div>
 				</CardContent>

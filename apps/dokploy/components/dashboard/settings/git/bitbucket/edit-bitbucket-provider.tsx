@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -46,6 +47,7 @@ interface Props {
 }
 
 export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const { data: bitbucket } = api.bitbucket.one.useQuery(
 		{
 			bitbucketId,
@@ -101,11 +103,11 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
-				toast.success("Bitbucket updated successfully");
+				toast.success(tToast("bitbucketUpdated"));
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating Bitbucket");
+				toast.error(tToast("bitbucketUpdateError"));
 			});
 	};
 
@@ -268,10 +270,20 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 												appPassword: appPassword,
 											})
 												.then(async (message) => {
-													toast.info(`Message: ${message}`);
+													toast.info(
+														tToast("providerTestConnectionMessage", {
+															message,
+														}),
+													);
 												})
-												.catch((error) => {
-													toast.error(`Error: ${error.message}`);
+												.catch((error: unknown) => {
+													const msg =
+														error instanceof Error ? error.message : "";
+													toast.error(
+														tToast("providerTestConnectionError", {
+															message: msg,
+														}),
+													);
 												});
 										}}
 									>

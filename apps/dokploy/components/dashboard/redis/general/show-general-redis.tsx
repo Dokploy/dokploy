@@ -1,5 +1,6 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const ShowGeneralRedis = ({ redisId }: Props) => {
+	const t = useTranslations("redisDashboard.general");
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canDeploy = permissions?.deployment.create ?? false;
 	const { data, refetch } = api.redis.one.useQuery(
@@ -58,8 +60,7 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 				const parsedLogs = parseLogs(log);
 				setFilteredLogs((prev) => [...prev, ...parsedLogs]);
 			},
-			onError(error) {
-				console.error("Deployment logs error:", error);
+			onError() {
 				setIsDeploying(false);
 			},
 		},
@@ -70,14 +71,14 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 			<div className="flex w-full flex-col gap-5 ">
 				<Card className="bg-background">
 					<CardHeader>
-						<CardTitle className="text-xl">Deploy Settings</CardTitle>
+						<CardTitle className="text-xl">{t("cardTitle")}</CardTitle>
 					</CardHeader>
 					<CardContent className="flex flex-row gap-4 flex-wrap">
 						<TooltipProvider delayDuration={0}>
 							{canDeploy && (
 								<DialogAction
-									title="Deploy Redis"
-									description="Are you sure you want to deploy this redis?"
+									title={t("deployDialogTitle")}
+									description={t("deployDialogDescription")}
 									type="default"
 									onClick={async () => {
 										setIsDeploying(true);
@@ -94,12 +95,12 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<Rocket className="size-4 mr-1" />
-													Deploy
+													{t("deploy")}
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
-													<p>Downloads and sets up the Redis database</p>
+													<p>{t("deployTooltip")}</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -108,8 +109,8 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 							)}
 							{canDeploy && (
 								<DialogAction
-									title="Reload Redis"
-									description="Are you sure you want to reload this redis?"
+									title={t("reloadDialogTitle")}
+									description={t("reloadDialogDescription")}
 									type="default"
 									onClick={async () => {
 										await reload({
@@ -117,11 +118,11 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 											appName: data?.appName || "",
 										})
 											.then(() => {
-												toast.success("Redis reloaded successfully");
+												toast.success(t("reloadToastSuccess"));
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error reloading Redis");
+												toast.error(t("reloadToastError"));
 											});
 									}}
 								>
@@ -134,12 +135,12 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<RefreshCcw className="size-4 mr-1" />
-													Reload
+													{t("reload")}
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
-													<p>Restart the Redis service without rebuilding</p>
+													<p>{t("reloadTooltip")}</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -149,19 +150,19 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 							{canDeploy &&
 								(data?.applicationStatus === "idle" ? (
 									<DialogAction
-										title="Start Redis"
-										description="Are you sure you want to start this redis?"
+										title={t("startDialogTitle")}
+										description={t("startDialogDescription")}
 										type="default"
 										onClick={async () => {
 											await start({
 												redisId: redisId,
 											})
 												.then(() => {
-													toast.success("Redis started successfully");
+													toast.success(t("startToastSuccess"));
 													refetch();
 												})
 												.catch(() => {
-													toast.error("Error starting Redis");
+													toast.error(t("startToastError"));
 												});
 										}}
 									>
@@ -174,15 +175,12 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 												<TooltipTrigger asChild>
 													<div className="flex items-center">
 														<CheckCircle2 className="size-4 mr-1" />
-														Start
+														{t("start")}
 													</div>
 												</TooltipTrigger>
 												<TooltipPrimitive.Portal>
 													<TooltipContent sideOffset={5} className="z-[60]">
-														<p>
-															Start the Redis database (requires a previous
-															successful setup)
-														</p>
+														<p>{t("startTooltip")}</p>
 													</TooltipContent>
 												</TooltipPrimitive.Portal>
 											</Tooltip>
@@ -190,18 +188,18 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 									</DialogAction>
 								) : (
 									<DialogAction
-										title="Stop Redis"
-										description="Are you sure you want to stop this redis?"
+										title={t("stopDialogTitle")}
+										description={t("stopDialogDescription")}
 										onClick={async () => {
 											await stop({
 												redisId: redisId,
 											})
 												.then(() => {
-													toast.success("Redis stopped successfully");
+													toast.success(t("stopToastSuccess"));
 													refetch();
 												})
 												.catch(() => {
-													toast.error("Error stopping Redis");
+													toast.error(t("stopToastError"));
 												});
 										}}
 									>
@@ -214,12 +212,12 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 												<TooltipTrigger asChild>
 													<div className="flex items-center">
 														<Ban className="size-4 mr-1" />
-														Stop
+														{t("stop")}
 													</div>
 												</TooltipTrigger>
 												<TooltipPrimitive.Portal>
 													<TooltipContent sideOffset={5} className="z-[60]">
-														<p>Stop the currently running Redis database</p>
+														<p>{t("stopTooltip")}</p>
 													</TooltipContent>
 												</TooltipPrimitive.Portal>
 											</Tooltip>
@@ -239,12 +237,12 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 									<TooltipTrigger asChild>
 										<div className="flex items-center">
 											<Terminal className="size-4 mr-1" />
-											Open Terminal
+											{t("openTerminal")}
 										</div>
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
 										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>Open a terminal to the Redis container</p>
+											<p>{t("openTerminalTooltip")}</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>
 								</Tooltip>

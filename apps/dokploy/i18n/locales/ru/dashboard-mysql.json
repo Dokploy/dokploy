@@ -1,0 +1,66 @@
+{
+	"mysqlDashboard": {
+		"update": {
+			"nameRequired": "Укажите имя",
+			"title": "Изменить MySQL",
+			"description": "Обновите данные MySQL",
+			"nameLabel": "Имя",
+			"namePlaceholder": "Vandelay Industries",
+			"descriptionLabel": "Описание",
+			"descriptionPlaceholder": "Описание проекта...",
+			"updateButton": "Обновить",
+			"toastSuccess": "MySQL успешно обновлён",
+			"toastError": "Не удалось обновить MySQL"
+		},
+		"general": {
+			"cardTitle": "Настройки деплоя",
+			"deployDialogTitle": "Деплой MySQL",
+			"deployDialogDescription": "Развернуть эту базу MySQL?",
+			"deploy": "Деплой",
+			"deployTooltip": "Скачивает и настраивает MySQL",
+			"reloadDialogTitle": "Перезагрузка MySQL",
+			"reloadDialogDescription": "Перезагрузить эту MySQL?",
+			"reload": "Перезагрузить",
+			"reloadTooltip": "Перезапуск MySQL без пересборки",
+			"reloadToastSuccess": "MySQL перезагружена",
+			"reloadToastError": "Не удалось перезагрузить MySQL",
+			"startDialogTitle": "Запуск MySQL",
+			"startDialogDescription": "Запустить эту MySQL?",
+			"start": "Запустить",
+			"startTooltip": "Запуск MySQL (нужна успешная предыдущая установка)",
+			"startToastSuccess": "MySQL запущена",
+			"startToastError": "Не удалось запустить MySQL",
+			"stopDialogTitle": "Остановка MySQL",
+			"stopDialogDescription": "Остановить эту MySQL?",
+			"stop": "Остановить",
+			"stopTooltip": "Остановить текущий экземпляр MySQL",
+			"stopToastSuccess": "MySQL остановлена",
+			"stopToastError": "Не удалось остановить MySQL",
+			"openTerminal": "Открыть терминал",
+			"openTerminalTooltip": "Терминал в контейнере MySQL"
+		},
+		"internal": {
+			"cardTitle": "Внутренние учётные данные",
+			"user": "Пользователь",
+			"databaseName": "Имя БД",
+			"password": "Пароль",
+			"rootPassword": "Root-пароль",
+			"internalPort": "Внутренний порт (контейнер)",
+			"internalHost": "Внутренний хост",
+			"internalConnectionUrl": "Внутренний URL подключения"
+		},
+		"external": {
+			"cardTitle": "Внешние учётные данные",
+			"cardDescription": "Чтобы база была доступна из интернета, задайте порт и убедитесь, что он не занят другим приложением или БД.",
+			"ipWarningPrefix": "Укажите IP-адрес в разделе",
+			"ipWarningSuffix": ", чтобы исправить URL подключения к БД.",
+			"ipLinkRemote": "Удалённые серверы → Сервер → Изменить → IP-адрес",
+			"ipLinkWebServer": "Веб-сервер → Сервер → Обновить IP",
+			"portRangeError": "Порт должен быть от 0 до 65535",
+			"externalPortLabel": "Внешний порт (интернет)",
+			"externalHost": "Внешний хост",
+			"toastPortSuccess": "Внешний порт обновлён",
+			"toastPortError": "Не удалось сохранить внешний порт"
+		}
+	}
+}

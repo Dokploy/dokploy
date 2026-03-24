@@ -374,8 +374,9 @@ const EnvironmentPage = (
 			{ projectId: selectedTargetProject },
 			{ enabled: !!selectedTargetProject },
 		);
+	const tLayout = useTranslations("layout");
 	const { config: whitelabeling } = useWhitelabeling();
-	const appName = whitelabeling?.appName || "Dokploy";
+	const appName = whitelabeling?.appName ?? tLayout("defaultAppName");
 
 	const emptyServices =
 		!currentEnvironment ||

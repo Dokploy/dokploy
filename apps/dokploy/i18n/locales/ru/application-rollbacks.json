@@ -1,0 +1,21 @@
+{
+	"applicationRollbacks": {
+		"dialogTitle": "Настройки откатов",
+		"dialogDescription": "Как работают rollbacks для этого приложения",
+		"storageAlert": "Включённые rollbacks увеличивают использование хранилища. Ручная очистка кэша может удалить образы откатов и сделать их недоступными.",
+		"enableRollbacks": "Включить rollbacks",
+		"enableRollbacksDescription": "Разрешить откат к предыдущим деплоям",
+		"rollbackRegistry": "Registry для rollbacks",
+		"selectRegistryPlaceholder": "Выберите registry",
+		"registryNone": "Нет",
+		"registriesLabel": "Registries ({count})",
+		"noRegistriesDescriptionRich": "Нет доступных registry. Сначала <link>настройте registry</link>, чтобы включить rollbacks.",
+		"registryDescription": "Registry, в котором будут храниться образы для откатов.",
+		"validation": {
+			"registryRequiredWhenEnabled": "При включённых rollbacks нужно выбрать registry"
+		},
+		"toastSuccess": "Настройки rollbacks сохранены",
+		"toastError": "Не удалось обновить настройки rollbacks",
+		"saveSettings": "Сохранить настройки"
+	}
+}

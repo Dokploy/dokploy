@@ -1,4 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ interface Props {
 }
 
 export const EditTraefikEnv = ({ children, serverId }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const [canEdit, setCanEdit] = useState(true);
 
 	const { data } = api.settings.readTraefikEnv.useQuery({
@@ -52,7 +54,7 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 		isExecuting: isHealthCheckExecuting,
 	} = useHealthCheckAfterMutation({
 		initialDelay: 5000,
-		successMessage: "Traefik Env Updated",
+		successMessage: tToast("traefikEnvUpdated"),
 	});
 
 	const form = useForm<Schema>({
@@ -80,7 +82,7 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 				}),
 			);
 		} catch {
-			toast.error("Error updating the Traefik env");
+			toast.error(tToast("traefikEnvUpdateError"));
 		}
 	};
 

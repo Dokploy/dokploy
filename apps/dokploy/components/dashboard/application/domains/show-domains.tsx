@@ -11,6 +11,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -50,6 +51,7 @@ interface Props {
 }
 
 export const ShowDomains = ({ id, type }: Props) => {
+	const t = useTranslations("applicationDomains");
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canCreateDomain = permissions?.domain.create ?? false;
 	const canDeleteDomain = permissions?.domain.delete ?? false;
@@ -134,7 +136,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 				[host]: {
 					isLoading: false,
 					isValid: false,
-					error: error.message || "Failed to validate domain",
+					error: error.message || t("show.validateFailed"),
 				},
 			}));
 		}
@@ -145,17 +147,15 @@ export const ShowDomains = ({ id, type }: Props) => {
 			<Card className="bg-background">
 				<CardHeader className="flex flex-row items-center flex-wrap gap-4 justify-between">
 					<div className="flex flex-col gap-1">
-						<CardTitle className="text-xl">Domains</CardTitle>
-						<CardDescription>
-							Domains are used to access to the application
-						</CardDescription>
+						<CardTitle className="text-xl">{t("show.title")}</CardTitle>
+						<CardDescription>{t("show.description")}</CardDescription>
 					</div>
 
 					<div className="flex flex-row gap-4 flex-wrap">
 						{canCreateDomain && data && data?.length > 0 && (
 							<AddDomain id={id} type={type}>
 								<Button>
-									<GlobeIcon className="size-4" /> Add Domain
+									<GlobeIcon className="size-4" /> {t("show.addDomain")}
 								</Button>
 							</AddDomain>
 						)}
@@ -166,21 +166,20 @@ export const ShowDomains = ({ id, type }: Props) => {
 						<div className="flex w-full flex-row gap-4 min-h-[40vh] justify-center items-center">
 							<Loader2 className="size-5 animate-spin text-muted-foreground" />
 							<span className="text-base text-muted-foreground">
-								Loading domains...
+								{t("show.loading")}
 							</span>
 						</div>
 					) : data?.length === 0 ? (
 						<div className="flex w-full flex-col items-center justify-center gap-3 min-h-[40vh]">
 							<GlobeIcon className="size-8 text-muted-foreground" />
 							<span className="text-base text-muted-foreground">
-								To access the application it is required to set at least 1
-								domain
+								{t("show.empty")}
 							</span>
 							{canCreateDomain && (
 								<div className="flex flex-row gap-4 flex-wrap">
 									<AddDomain id={id} type={type}>
 										<Button>
-											<GlobeIcon className="size-4" /> Add Domain
+											<GlobeIcon className="size-4" /> {t("show.addDomain")}
 										</Button>
 									</AddDomain>
 								</div>
@@ -236,8 +235,8 @@ export const ShowDomains = ({ id, type }: Props) => {
 														)}
 														{canDeleteDomain && (
 															<DialogAction
-																title="Delete Domain"
-																description="Are you sure you want to delete this domain?"
+																title={t("show.deleteTitle")}
+																description={t("show.deleteDescription")}
 																type="destructive"
 																onClick={async () => {
 																	await deleteDomain({
@@ -245,12 +244,10 @@ export const ShowDomains = ({ id, type }: Props) => {
 																	})
 																		.then((_data) => {
 																			refetch();
-																			toast.success(
-																				"Domain deleted successfully",
-																			);
+																			toast.success(t("show.deleteSuccess"));
 																		})
 																		.catch(() => {
-																			toast.error("Error deleting domain");
+																			toast.error(t("show.deleteError"));
 																		});
 																}}
 															>
@@ -284,11 +281,13 @@ export const ShowDomains = ({ id, type }: Props) => {
 															<TooltipTrigger asChild>
 																<Badge variant="secondary">
 																	<InfoIcon className="size-3 mr-1" />
-																	Path: {item.path || "/"}
+																	{t("show.pathBadge", {
+																		path: item.path || "/",
+																	})}
 																</Badge>
 															</TooltipTrigger>
 															<TooltipContent>
-																<p>URL path for this service</p>
+																<p>{t("show.pathTooltip")}</p>
 															</TooltipContent>
 														</Tooltip>
 													</TooltipProvider>
@@ -298,11 +297,13 @@ export const ShowDomains = ({ id, type }: Props) => {
 															<TooltipTrigger asChild>
 																<Badge variant="secondary">
 																	<InfoIcon className="size-3 mr-1" />
-																	Port: {item.port}
+																	{t("show.portBadge", {
+																		port: item.port ?? "",
+																	})}
 																</Badge>
 															</TooltipTrigger>
 															<TooltipContent>
-																<p>Container port exposed</p>
+																<p>{t("show.portTooltip")}</p>
 															</TooltipContent>
 														</Tooltip>
 													</TooltipProvider>
@@ -319,8 +320,8 @@ export const ShowDomains = ({ id, type }: Props) => {
 															<TooltipContent>
 																<p>
 																	{item.https
-																		? "Secure HTTPS connection"
-																		: "Standard HTTP connection"}
+																		? t("show.httpsTooltip")
+																		: t("show.httpTooltip")}
 																</p>
 															</TooltipContent>
 														</Tooltip>
@@ -331,11 +332,13 @@ export const ShowDomains = ({ id, type }: Props) => {
 															<Tooltip>
 																<TooltipTrigger asChild>
 																	<Badge variant="outline">
-																		Cert: {item.certificateType}
+																		{t("show.certBadge", {
+																			type: item.certificateType,
+																		})}
 																	</Badge>
 																</TooltipTrigger>
 																<TooltipContent>
-																	<p>SSL Certificate Provider</p>
+																	<p>{t("show.certTooltip")}</p>
 																</TooltipContent>
 															</Tooltip>
 														</TooltipProvider>
@@ -360,15 +363,18 @@ export const ShowDomains = ({ id, type }: Props) => {
 																	{validationState?.isLoading ? (
 																		<>
 																			<Loader2 className="size-3 mr-1 animate-spin" />
-																			Checking DNS...
+																			{t("show.dnsChecking")}
 																		</>
 																	) : validationState?.isValid ? (
 																		<>
 																			<CheckCircle2 className="size-3 mr-1" />
 																			{validationState.message &&
 																			validationState.cdnProvider
-																				? `Behind ${validationState.cdnProvider}`
-																				: "DNS Valid"}
+																				? t("show.dnsBehindCdn", {
+																						provider:
+																							validationState.cdnProvider,
+																					})
+																				: t("show.dnsValid")}
 																		</>
 																	) : validationState?.error ? (
 																		<>
@@ -378,7 +384,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 																	) : (
 																		<>
 																			<RefreshCw className="size-3 mr-1" />
-																			Validate DNS
+																			{t("show.dnsValidate")}
 																		</>
 																	)}
 																</Badge>
@@ -387,12 +393,12 @@ export const ShowDomains = ({ id, type }: Props) => {
 																{validationState?.error ? (
 																	<div className="flex flex-col gap-1">
 																		<p className="font-medium text-red-500">
-																			Error:
+																			{t("show.dnsErrorLabel")}
 																		</p>
 																		<p>{validationState.error}</p>
 																	</div>
 																) : (
-																	"Click to validate DNS configuration"
+																	t("show.dnsTooltipHint")
 																)}
 															</TooltipContent>
 														</Tooltip>

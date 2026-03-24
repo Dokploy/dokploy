@@ -1,6 +1,7 @@
 "use client";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Check, ChevronDown, PenBoxIcon, PlusIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -56,6 +57,7 @@ interface Props {
 }
 
 export const HandleAi = ({ aiId }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
 	const [modelPopoverOpen, setModelPopoverOpen] = useState(false);
@@ -123,12 +125,15 @@ export const HandleAi = ({ aiId }: Props) => {
 			});
 
 			utils.ai.getAll.invalidate();
-			toast.success("AI settings saved successfully");
+			toast.success(tToast("aiSettingsSaved"));
 			refetch();
 			setOpen(false);
 		} catch (error) {
-			toast.error("Failed to save AI settings", {
-				description: error instanceof Error ? error.message : "Unknown error",
+			toast.error(tToast("aiSettingsSaveFailed"), {
+				description:
+					error instanceof Error
+						? error.message
+						: tToast("aiSettingsSaveUnknownError"),
 			});
 		}
 	};

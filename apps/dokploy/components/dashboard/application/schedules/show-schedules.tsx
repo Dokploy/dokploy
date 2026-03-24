@@ -35,7 +35,7 @@ interface Props {
 }
 
 export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
-	const t = useTranslations("scheduledTasks");
+	const t = useTranslations("applicationSchedules");
 	const [runningSchedules, setRunningSchedules] = useState<Set<string>>(
 		new Set(),
 	);

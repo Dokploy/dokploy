@@ -2,6 +2,7 @@
 
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2, LogIn } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -33,6 +34,7 @@ interface SignInWithSSOProps {
 }
 
 export function SignInWithSSO({ children }: SignInWithSSOProps) {
+	const tToast = useTranslations("proprietaryToasts");
 	const [expanded, setExpanded] = useState(false);
 
 	const form = useForm<SSOEmailForm>({
@@ -47,7 +49,7 @@ export function SignInWithSSO({ children }: SignInWithSSOProps) {
 				callbackURL: "/dashboard/projects",
 			});
 			if (error) {
-				toast.error(error.message ?? "Failed to sign in with SSO");
+				toast.error(error.message ?? tToast("signInSsoFailed"));
 				return;
 			}
 			if (data?.url) {
@@ -55,7 +57,7 @@ export function SignInWithSSO({ children }: SignInWithSSOProps) {
 			}
 		} catch (err) {
 			toast.error(
-				err instanceof Error ? err.message : "Failed to sign in with SSO",
+				err instanceof Error ? err.message : tToast("signInSsoFailed"),
 			);
 		}
 	};

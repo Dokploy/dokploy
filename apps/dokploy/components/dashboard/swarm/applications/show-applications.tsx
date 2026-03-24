@@ -1,4 +1,6 @@
 import { Layers, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -9,7 +11,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
-import { type ApplicationList, columns } from "./columns";
+import { type ApplicationList, getSwarmApplicationColumns } from "./columns";
 import { DataTable } from "./data-table";
 
 interface Props {
@@ -17,8 +19,11 @@ interface Props {
 }
 
 export const ShowNodeApplications = ({ serverId }: Props) => {
+	const t = useTranslations("swarmApplications");
 	const { data: NodeApps, isPending: NodeAppsLoading } =
 		api.swarm.getNodeApps.useQuery({ serverId });
+
+	const columns = useMemo(() => getSwarmApplicationColumns(t), [t]);
 
 	let applicationList: string[] = [];
 
@@ -44,7 +49,7 @@ export const ShowNodeApplications = ({ serverId }: Props) => {
 	if (!NodeApps || !NodeAppDetails) {
 		return (
 			<span className="text-sm w-full flex text-center justify-center items-center">
-				No data found
+				{t("noData")}
 			</span>
 		);
 	}
@@ -59,10 +64,10 @@ export const ShowNodeApplications = ({ serverId }: Props) => {
 			return [
 				{
 					...app,
-					CurrentState: "N/A",
-					DesiredState: "N/A",
+					CurrentState: t("na"),
+					DesiredState: t("na"),
 					Error: "",
-					Node: "N/A",
+					Node: t("na"),
 					Ports: app.Ports,
 				},
 			];
@@ -84,15 +89,13 @@ export const ShowNodeApplications = ({ serverId }: Props) => {
 			<DialogTrigger asChild>
 				<Button variant="outline" size="sm" className="w-full">
 					<Layers className="h-4 w-4 mr-2" />
-					Services
+					{t("servicesButton")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className={"sm:max-w-10xl"}>
 				<DialogHeader>
-					<DialogTitle>Node Applications</DialogTitle>
-					<DialogDescription>
-						See in detail the applications running on this node
-					</DialogDescription>
+					<DialogTitle>{t("dialogTitle")}</DialogTitle>
+					<DialogDescription>{t("dialogDescription")}</DialogDescription>
 				</DialogHeader>
 				<div className="max-h-[80vh]">
 					<DataTable columns={columns} data={combinedData ?? []} />

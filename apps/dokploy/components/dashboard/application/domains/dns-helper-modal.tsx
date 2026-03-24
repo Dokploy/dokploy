@@ -1,4 +1,6 @@
 import { Copy, HelpCircle, Server } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useMemo } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -21,10 +23,21 @@ interface Props {
 }
 
 export const DnsHelperModal = ({ domain, serverIp }: Props) => {
+	const t = useTranslations("applicationDomains");
+
+	const visitUrl = useMemo(
+		() =>
+			`${domain.https ? "https" : "http"}://${domain.host}${domain.path || "/"}`,
+		[domain.https, domain.host, domain.path],
+	);
+
 	const copyToClipboard = (text: string) => {
 		navigator.clipboard.writeText(text);
-		toast.success("Copied to clipboard!");
+		toast.success(t("dnsHelper.copiedToast"));
 	};
+
+	const subdomain = domain.host.split(".")[0] ?? domain.host;
+	const valueDisplay = serverIp || t("dnsHelper.serverIpPlaceholder");
 
 	return (
 		<Dialog>
@@ -37,37 +50,32 @@ export const DnsHelperModal = ({ domain, serverIp }: Props) => {
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<Server className="size-5" />
-						DNS Configuration Guide
+						{t("dnsHelper.title")}
 					</DialogTitle>
 					<DialogDescription>
-						Follow these steps to configure your DNS records for {domain.host}
+						{t("dnsHelper.description", { host: domain.host })}
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="flex flex-col gap-4">
-					<AlertBlock type="info">
-						To make your domain accessible, you need to configure your DNS
-						records with your domain provider (e.g., Cloudflare, GoDaddy,
-						NameCheap).
-					</AlertBlock>
+					<AlertBlock type="info">{t("dnsHelper.intro")}</AlertBlock>
 
 					<div className="flex flex-col gap-6">
 						<div className="rounded-lg border p-4">
-							<h3 className="font-medium mb-2">1. Add A Record</h3>
+							<h3 className="font-medium mb-2">{t("dnsHelper.step1Title")}</h3>
 							<div className="flex flex-col gap-3">
 								<p className="text-sm text-muted-foreground">
-									Create an A record that points your domain to the server's IP
-									address:
+									{t("dnsHelper.step1Body")}
 								</p>
 								<div className="flex flex-col gap-2">
 									<div className="flex items-center justify-between gap-2 bg-muted p-3 rounded-md">
 										<div>
-											<p className="text-sm font-medium">Type: A</p>
+											<p className="text-sm font-medium">{t("dnsHelper.typeA")}</p>
 											<p className="text-sm">
-												Name: @ or {domain.host.split(".")[0]}
+												{t("dnsHelper.nameLabel", { subdomain })}
 											</p>
 											<p className="text-sm">
-												Value: {serverIp || "Your server IP"}
+												{t("dnsHelper.valueLabel", { ip: valueDisplay })}
 											</p>
 										</div>
 										<Button
@@ -84,20 +92,15 @@ export const DnsHelperModal = ({ domain, serverIp }: Props) => {
 						</div>
 
 						<div className="rounded-lg border p-4">
-							<h3 className="font-medium mb-2">2. Verify Configuration</h3>
+							<h3 className="font-medium mb-2">{t("dnsHelper.step2Title")}</h3>
 							<div className="flex flex-col gap-3">
 								<p className="text-sm text-muted-foreground">
-									After configuring your DNS records:
+									{t("dnsHelper.step2Intro")}
 								</p>
 								<ul className="list-disc list-inside space-y-1 text-sm">
-									<li>Wait for DNS propagation (usually 15-30 minutes)</li>
-									<li>
-										Test your domain by visiting:{" "}
-										{domain.https ? "https://" : "http://"}
-										{domain.host}
-										{domain.path || "/"}
-									</li>
-									<li>Use a DNS lookup tool to verify your records</li>
+									<li>{t("dnsHelper.step2Wait")}</li>
+									<li>{t("dnsHelper.step2Visit", { url: visitUrl })}</li>
+									<li>{t("dnsHelper.step2Lookup")}</li>
 								</ul>
 							</div>
 						</div>

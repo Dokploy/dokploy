@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+import { useMemo } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
 	Card,
@@ -37,18 +39,22 @@ interface FormattedMetric {
 	outputUnit: string;
 }
 
-const chartConfig = {
-	input: {
-		label: "Input",
-		color: "hsl(var(--chart-3))",
-	},
-	output: {
-		label: "Output",
-		color: "hsl(var(--chart-4))",
-	},
-} satisfies ChartConfig;
-
 export const ContainerNetworkChart = ({ data }: Props) => {
+	const t = useTranslations("monitoringDashboard.chartLabels");
+	const chartConfig = useMemo(
+		() =>
+			({
+				input: {
+					label: t("input"),
+					color: "hsl(var(--chart-3))",
+				},
+				output: {
+					label: t("output"),
+					color: "hsl(var(--chart-4))",
+				},
+			}) satisfies ChartConfig,
+		[t],
+	);
 	const formattedData: FormattedMetric[] = data.map((metric) => ({
 		timestamp: metric.timestamp,
 		input: metric.Network.input,
@@ -67,11 +73,14 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 	return (
 		<Card className="bg-transparent">
 			<CardHeader className="border-b py-5">
-				<CardTitle>Network I/O</CardTitle>
+				<CardTitle>{t("networkIoTitle")}</CardTitle>
 				<CardDescription>
-					Input: {latestData.input}
-					{latestData.inputUnit} / Output: {latestData.output}
-					{latestData.outputUnit}
+					{t("networkInputOutput", {
+						input: String(latestData.input),
+						inputUnit: latestData.inputUnit,
+						output: String(latestData.output),
+						outputUnit: latestData.outputUnit,
+					})}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
@@ -120,13 +129,13 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 							cursor={false}
 							content={({ active, payload, label }) => {
 								if (active && payload && payload.length) {
-									const data = payload?.[0]?.payload;
+									const row = payload?.[0]?.payload;
 									return (
 										<div className="rounded-lg border bg-background p-2 shadow-sm">
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Time
+														{t("time")}
 													</span>
 													<span className="font-bold">
 														{formatTimestamp(label)}
@@ -134,20 +143,20 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 												</div>
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Input
+														{t("input")}
 													</span>
 													<span className="font-bold">
-														{data.input}
-														{data.inputUnit}
+														{row.input}
+														{row.inputUnit}
 													</span>
 												</div>
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Output
+														{t("output")}
 													</span>
 													<span className="font-bold">
-														{data.output}
-														{data.outputUnit}
+														{row.output}
+														{row.outputUnit}
 													</span>
 												</div>
 											</div>
@@ -158,7 +167,7 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 							}}
 						/>
 						<Area
-							name="Input"
+							name={t("input")}
 							dataKey="input"
 							type="monotone"
 							fill="url(#fillInput)"
@@ -166,7 +175,7 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 							strokeWidth={2}
 						/>
 						<Area
-							name="Output"
+							name={t("output")}
 							dataKey="output"
 							type="monotone"
 							fill="url(#fillOutput)"

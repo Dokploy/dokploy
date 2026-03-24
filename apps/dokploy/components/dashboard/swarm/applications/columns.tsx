@@ -24,7 +24,11 @@ export interface ApplicationList {
 	serverId: string;
 }
 
-export const columns: ColumnDef<ApplicationList>[] = [
+type SwarmApplicationsTranslator = (key: string) => string;
+
+export const getSwarmApplicationColumns = (
+	t: SwarmApplicationsTranslator,
+): ColumnDef<ApplicationList>[] => [
 	{
 		accessorKey: "ID",
 		accessorFn: (row) => row.ID,
@@ -34,7 +38,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					ID
+					{t("column_id")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -52,7 +56,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Name
+					{t("column_name")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -70,7 +74,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Image
+					{t("column_image")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -88,7 +92,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Mode
+					{t("column_mode")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -106,7 +110,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Current State
+					{t("column_currentState")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -144,7 +148,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Desired State
+					{t("column_desiredState")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -163,7 +167,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Replicas
+					{t("column_replicas")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -182,7 +186,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Ports
+					{t("column_ports")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -200,7 +204,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Errors
+					{t("column_errors")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -213,7 +217,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 		accessorKey: "Logs",
 		accessorFn: (row) => row.Error,
 		header: () => {
-			return <span>Logs</span>;
+			return <span>{t("column_logs")}</span>;
 		},
 		cell: ({ row }) => {
 			return (
@@ -221,17 +225,17 @@ export const columns: ColumnDef<ApplicationList>[] = [
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button variant="ghost" className="h-8 w-8 p-0">
-								<span className="sr-only">Open menu</span>
+								<span className="sr-only">{t("openMenu")}</span>
 								<MoreHorizontal className="h-4 w-4" />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							<DropdownMenuLabel>Actions</DropdownMenuLabel>
+							<DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
 							<ShowDockerModalStackLogs
 								containerId={row.original.ID}
 								serverId={row.original.serverId}
 							>
-								View Logs
+								{t("viewLogs")}
 							</ShowDockerModalStackLogs>
 						</DropdownMenuContent>
 					</DropdownMenu>

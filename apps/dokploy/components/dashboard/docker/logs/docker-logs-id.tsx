@@ -7,7 +7,8 @@ import {
 	Pause,
 	Play,
 } from "lucide-react";
-import React, { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
+import React, { useEffect, useMemo, useRef } from "react";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,34 +25,22 @@ interface Props {
 	runType: "swarm" | "native";
 }
 
-export const priorities = [
-	{
-		label: "Info",
-		value: "info",
-	},
-	{
-		label: "Success",
-		value: "success",
-	},
-	{
-		label: "Warning",
-		value: "warning",
-	},
-	{
-		label: "Debug",
-		value: "debug",
-	},
-	{
-		label: "Error",
-		value: "error",
-	},
-];
-
 export const DockerLogsId: React.FC<Props> = ({
 	containerId,
 	serverId,
 	runType,
 }) => {
+	const t = useTranslations("dockerLogs");
+	const priorities = useMemo(
+		() => [
+			{ label: t("priority_info"), value: "info" },
+			{ label: t("priority_success"), value: "success" },
+			{ label: t("priority_warning"), value: "warning" },
+			{ label: t("priority_debug"), value: "debug" },
+			{ label: t("priority_error"), value: "error" },
+		],
+		[t],
+	);
 	const { data } = api.docker.getConfig.useQuery(
 		{
 			containerId,
@@ -95,11 +84,11 @@ export const DockerLogsId: React.FC<Props> = ({
 		setSearch(e.target.value || "");
 	};
 
-	const handleLines = (lines: number) => {
+	const handleLines = (nextLines: number) => {
 		setRawLogs("");
 		setFilteredLogs([]);
 		setMessageBuffer([]);
-		setLines(lines);
+		setLines(nextLines);
 	};
 
 	const handleSince = (value: TimeFilter) => {
@@ -111,7 +100,6 @@ export const DockerLogsId: React.FC<Props> = ({
 
 	const handlePauseResume = () => {
 		if (isPaused) {
-			// Resume: Apply all buffered messages
 			if (messageBuffer.length > 0) {
 				const bufferedContent = messageBuffer.join("");
 				setRawLogs((prev) => {
@@ -139,7 +127,6 @@ export const DockerLogsId: React.FC<Props> = ({
 		setRawLogs("");
 		setFilteredLogs([]);
 		setMessageBuffer([]);
-		// Reset pause state when container changes
 		setIsPaused(false);
 		isPausedRef.current = false;
 
@@ -167,7 +154,7 @@ export const DockerLogsId: React.FC<Props> = ({
 				if (isCurrentConnection) {
 					setIsLoading(false);
 				}
-			}, 2000); // Wait 2 seconds for data before showing "No logs found"
+			}, 2000);
 		};
 
 		ws.onopen = () => {
@@ -182,10 +169,8 @@ export const DockerLogsId: React.FC<Props> = ({
 			if (!isCurrentConnection) return;
 
 			if (isPausedRef.current) {
-				// When paused, buffer the messages instead of displaying them
 				setMessageBuffer((prev) => [...prev, e.data]);
 			} else {
-				// When not paused, display messages normally
 				setRawLogs((prev) => {
 					const updated = prev + e.data;
 					const splitLines = updated.split("\n");
@@ -200,16 +185,14 @@ export const DockerLogsId: React.FC<Props> = ({
 			if (noDataTimeout) clearTimeout(noDataTimeout);
 		};
 
-		ws.onerror = (error) => {
+		ws.onerror = () => {
 			if (!isCurrentConnection) return;
-			console.error("WebSocket error:", error);
 			setIsLoading(false);
 			if (noDataTimeout) clearTimeout(noDataTimeout);
 		};
 
-		ws.onclose = (e) => {
+		ws.onclose = () => {
 			if (!isCurrentConnection) return;
-			console.log("WebSocket closed:", e.reason);
 			setIsLoading(false);
 			if (noDataTimeout) clearTimeout(noDataTimeout);
 		};
@@ -221,20 +204,20 @@ export const DockerLogsId: React.FC<Props> = ({
 				ws.close();
 			}
 		};
-	}, [containerId, serverId, lines, search, since]);
+	}, [containerId, serverId, lines, search, since, runType]);
 
 	const handleDownload = () => {
 		const logContent = filteredLogs
 			.map(
 				({ timestamp, message }: { timestamp: Date | null; message: string }) =>
-					`${timestamp?.toISOString() || "No timestamp"} ${message}`,
+					`${timestamp?.toISOString() || t("noTimestamp")} ${message}`,
 			)
 			.join("\n");
 
 		const blob = new Blob([logContent], { type: "text/plain" });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement("a");
-		const appName = data.Name.replace("/", "") || "app";
+		const appName = data?.Name.replace("/", "") || "app";
 		const isoDate = new Date().toISOString();
 		a.href = url;
 		a.download = `${appName}-${isoDate.slice(0, 10).replace(/-/g, "")}_${isoDate
@@ -257,7 +240,7 @@ export const DockerLogsId: React.FC<Props> = ({
 					message: string;
 				}) =>
 					showTimestamp
-						? `${timestamp?.toISOString() || "No timestamp"} ${message}`
+						? `${timestamp?.toISOString() || t("noTimestamp")} ${message}`
 						: message,
 			)
 			.join("\n");
@@ -281,7 +264,6 @@ export const DockerLogsId: React.FC<Props> = ({
 		});
 	};
 
-	// Sync isPausedRef with isPaused state
 	useEffect(() => {
 		isPausedRef.current = isPaused;
 	}, [isPaused]);
@@ -324,13 +306,14 @@ export const DockerLogsId: React.FC<Props> = ({
 							<StatusLogsFilter
 								value={typeFilter}
 								setValue={setTypeFilter}
-								title="Log type"
+								title={t("logType")}
+								allLabel={t("allTypes")}
 								options={priorities}
 							/>
 
 							<Input
 								type="search"
-								placeholder="Search logs..."
+								placeholder={t("searchPlaceholder")}
 								value={search}
 								onChange={handleSearch}
 								className="inline-flex h-9 text-sm placeholder-gray-400 w-full sm:w-auto"
@@ -343,14 +326,14 @@ export const DockerLogsId: React.FC<Props> = ({
 								size="sm"
 								className="h-9"
 								onClick={handlePauseResume}
-								title={isPaused ? "Resume logs" : "Pause logs"}
+								title={isPaused ? t("resumeLogsTitle") : t("pauseLogsTitle")}
 							>
 								{isPaused ? (
 									<Play className="mr-2 h-4 w-4" />
 								) : (
 									<Pause className="mr-2 h-4 w-4" />
 								)}
-								{isPaused ? "Resume" : "Pause"}
+								{isPaused ? t("resume") : t("pause")}
 							</Button>
 							<Button
 								variant="outline"
@@ -358,14 +341,14 @@ export const DockerLogsId: React.FC<Props> = ({
 								className="h-9"
 								onClick={handleCopy}
 								disabled={filteredLogs.length === 0}
-								title="Copy logs to clipboard"
+								title={t("copyTitle")}
 							>
 								{copied ? (
 									<Check className="mr-2 h-4 w-4" />
 								) : (
 									<Copy className="mr-2 h-4 w-4" />
 								)}
-								Copy
+								{t("copy")}
 							</Button>
 							<Button
 								variant="outline"
@@ -375,7 +358,7 @@ export const DockerLogsId: React.FC<Props> = ({
 								disabled={filteredLogs.length === 0 || !data?.Name}
 							>
 								<DownloadIcon className="mr-2 h-4 w-4" />
-								Download logs
+								{t("downloadLogs")}
 							</Button>
 						</div>
 					</div>
@@ -384,10 +367,12 @@ export const DockerLogsId: React.FC<Props> = ({
 							<div className="flex items-center gap-2">
 								<Pause className="h-4 w-4" />
 								<span>
-									Logs paused
+									{t("logsPaused")}
 									{messageBuffer.length > 0 && (
 										<span className="ml-1 font-medium">
-											({messageBuffer.length} messages buffered)
+											{t("messagesBuffered", {
+												count: messageBuffer.length,
+											})}
 										</span>
 									)}
 								</span>
@@ -397,7 +382,7 @@ export const DockerLogsId: React.FC<Props> = ({
 					<div
 						ref={scrollRef}
 						onScroll={handleScroll}
-						className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
+						className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-muted/30 dark:bg-muted/20 rounded custom-logs-scrollbar"
 					>
 						{filteredLogs.length > 0 ? (
 							filteredLogs.map((filteredLog: LogLine, index: number) => (
@@ -414,7 +399,7 @@ export const DockerLogsId: React.FC<Props> = ({
 							</div>
 						) : (
 							<div className="flex justify-center items-center h-full text-muted-foreground">
-								No logs found
+								{t("noLogsFound")}
 							</div>
 						)}
 					</div>

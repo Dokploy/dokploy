@@ -2,8 +2,9 @@ import type { ServiceType } from "@dokploy/server/db/schema";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import copy from "copy-to-clipboard";
 import { Copy, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -31,14 +32,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
-const deleteComposeSchema = z.object({
-	projectName: z.string().min(1, {
-		message: "Compose name is required",
-	}),
-	deleteVolumes: z.boolean(),
-});
+const createDeleteServiceSchema = (
+	t: ReturnType<typeof useTranslations<"deleteService">>,
+) =>
+	z.object({
+		projectName: z.string().min(1, {
+			message: t("validation.nameRequired"),
+		}),
+		deleteVolumes: z.boolean(),
+	});
 
-type DeleteCompose = z.infer<typeof deleteComposeSchema>;
+type DeleteServiceForm = z.infer<ReturnType<typeof createDeleteServiceSchema>>;
 
 interface Props {
 	id: string;
@@ -46,6 +50,10 @@ interface Props {
 }
 
 export const DeleteService = ({ id, type }: Props) => {
+	const t = useTranslations("deleteService");
+	const tCommon = useTranslations("common");
+	const deleteServiceSchema = useMemo(() => createDeleteServiceSchema(t), [t]);
+
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canDelete = permissions?.service.delete ?? false;
 	const [isOpen, setIsOpen] = useState(false);
@@ -80,15 +88,15 @@ export const DeleteService = ({ id, type }: Props) => {
 		? mutationMap[type]()
 		: api.mongo.remove.useMutation();
 	const { push } = useRouter();
-	const form = useForm<DeleteCompose>({
+	const form = useForm<DeleteServiceForm>({
 		defaultValues: {
 			projectName: "",
 			deleteVolumes: false,
 		},
-		resolver: zodResolver(deleteComposeSchema),
+		resolver: zodResolver(deleteServiceSchema),
 	});
 
-	const onSubmit = async (formData: DeleteCompose) => {
+	const onSubmit = async (formData: DeleteServiceForm) => {
 		const expectedName = `${data?.name}/${data?.appName}`;
 		if (formData.projectName === expectedName) {
 			const { deleteVolumes } = formData;
@@ -106,15 +114,15 @@ export const DeleteService = ({ id, type }: Props) => {
 					push(
 						`/dashboard/project/${result?.environment?.projectId}/environment/${result?.environment?.environmentId}`,
 					);
-					toast.success("Service deleted successfully");
+					toast.success(t("toastSuccess"));
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error deleting the service");
+					toast.error(t("toastError"));
 				});
 		} else {
 			form.setError("projectName", {
-				message: `Project name must match "${expectedName}"`,
+				message: t("validation.mismatch", { expected: expectedName }),
 			});
 		}
 	};
@@ -141,12 +149,8 @@ export const DeleteService = ({ id, type }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Are you absolutely sure?</DialogTitle>
-					<DialogDescription>
-						This action cannot be undone. This will permanently delete the
-						service. If you are sure please enter the service name to delete
-						this service.
-					</DialogDescription>
+					<DialogTitle>{t("dialogTitle")}</DialogTitle>
+					<DialogDescription>{t("dialogDescription")}</DialogDescription>
 				</DialogHeader>
 				<div className="grid gap-4">
 					<Form {...form}>
@@ -160,30 +164,27 @@ export const DeleteService = ({ id, type }: Props) => {
 								name="projectName"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel className="flex items-center gap-2">
-											<span>
-												To confirm, type{" "}
-												<Badge
-													className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer"
-													variant="outline"
-													onClick={() => {
-														if (data?.name && data?.appName) {
-															copy(`${data.name}/${data.appName}`);
-															toast.success("Copied to clipboard. Be careful!");
-														}
-													}}
-												>
-													{data?.name}/{data?.appName}&nbsp;
-													<Copy className="h-4 w-4 ml-1 text-muted-foreground" />
-												</Badge>{" "}
-												in the box below:
-											</span>
+										<FormLabel className="flex items-center gap-2 flex-wrap">
+											{t.rich("confirmRich", {
+												badge: () => (
+													<Badge
+														className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer"
+														variant="outline"
+														onClick={() => {
+															if (data?.name && data?.appName) {
+																copy(`${data.name}/${data.appName}`);
+																toast.success(t("toastCopy"));
+															}
+														}}
+													>
+														{data?.name}/{data?.appName}&nbsp;
+														<Copy className="h-4 w-4 ml-1 text-muted-foreground" />
+													</Badge>
+												),
+											})}
 										</FormLabel>
 										<FormControl>
-											<Input
-												placeholder="Enter compose name to confirm"
-												{...field}
-											/>
+											<Input placeholder={t("placeholder")} {...field} />
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -204,7 +205,7 @@ export const DeleteService = ({ id, type }: Props) => {
 												</FormControl>
 
 												<FormLabel className="ml-2">
-													Delete volumes associated with this compose
+													{t("deleteVolumesLabel")}
 												</FormLabel>
 											</div>
 											<FormMessage />
@@ -217,8 +218,7 @@ export const DeleteService = ({ id, type }: Props) => {
 				</div>
 				{isDisabled && (
 					<AlertBlock type="warning" className="w-full mt-5">
-						Cannot delete the service while it is running. Please wait for the
-						build to finish and then try again.
+						{t("runningWarning")}
 					</AlertBlock>
 				)}
 				<DialogFooter>
@@ -228,7 +228,7 @@ export const DeleteService = ({ id, type }: Props) => {
 							setIsOpen(false);
 						}}
 					>
-						Cancel
+						{tCommon("cancel")}
 					</Button>
 
 					<Button
@@ -238,7 +238,7 @@ export const DeleteService = ({ id, type }: Props) => {
 						type="submit"
 						variant="destructive"
 					>
-						Confirm
+						{tCommon("confirm")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

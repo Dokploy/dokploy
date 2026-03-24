@@ -9,6 +9,7 @@ import {
 	X,
 } from "lucide-react";
 import { useRouter } from "next/router";
+import { useTranslations } from "next-intl";
 import { type ComponentType, useEffect, useMemo, useState } from "react";
 import {
 	MariadbIcon,
@@ -104,6 +105,25 @@ const SERVICE_ICONS: Record<
 	mongo: MongodbIcon,
 };
 
+const SERVICE_TYPE_LABEL_KEY: Record<
+	ServiceType,
+	| "serviceTypeApplication"
+	| "serviceTypeCompose"
+	| "serviceTypePostgres"
+	| "serviceTypeMysql"
+	| "serviceTypeMariadb"
+	| "serviceTypeRedis"
+	| "serviceTypeMongo"
+> = {
+	application: "serviceTypeApplication",
+	compose: "serviceTypeCompose",
+	postgres: "serviceTypePostgres",
+	mysql: "serviceTypeMysql",
+	mariadb: "serviceTypeMariadb",
+	redis: "serviceTypeRedis",
+	mongo: "serviceTypeMongo",
+};
+
 const getStringQueryParam = (value: string | string[] | undefined) =>
 	typeof value === "string" ? value : null;
 
@@ -176,6 +196,7 @@ const getTargetEnvironmentId = (
 };
 
 export const AdvanceBreadcrumb = () => {
+	const t = useTranslations("advanceBreadcrumb");
 	const router = useRouter();
 	const { query } = router;
 
@@ -312,7 +333,7 @@ export const AdvanceBreadcrumb = () => {
 					<Separator orientation="vertical" className="mr-2 h-4" />
 					<div className="flex items-center gap-2">
 						<FolderInput className="size-4 text-muted-foreground" />
-						<span className="font-medium">Projects</span>
+						<span className="font-medium">{t("projects")}</span>
 					</div>
 				</div>
 			</header>
@@ -349,17 +370,17 @@ export const AdvanceBreadcrumb = () => {
 							<Command shouldFilter={false}>
 								<div className="relative">
 									<CommandInput
-										placeholder="Find Project..."
+										placeholder={t("findProjectPlaceholder")}
 										value={projectSearch}
 										onValueChange={setProjectSearch}
 										className="w-full focus-visible:ring-0"
 									/>
 									<kbd className="pointer-events-none h-5 absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 flex">
-										Esc
+										{t("escKey")}
 									</kbd>
 								</div>
 								<CommandList>
-									<CommandEmpty>No projects found.</CommandEmpty>
+									<CommandEmpty>{t("noProjectsFound")}</CommandEmpty>
 									<CommandGroup>
 										<ScrollArea className="h-[300px]">
 											{filteredProjects.map((project) => {
@@ -395,12 +416,13 @@ export const AdvanceBreadcrumb = () => {
 																		{project.name}
 																	</span>
 																	<span className="text-muted-foreground">
-																		{project.environments.length} env
-																		{project.environments.length !== 1
-																			? "s"
-																			: ""}{" "}
-																		· {totalServices} service
-																		{totalServices !== 1 ? "s" : ""}
+																		{t("envCount", {
+																			count: project.environments.length,
+																		})}{" "}
+																		·{" "}
+																		{t("serviceCount", {
+																			count: totalServices,
+																		})}
 																	</span>
 																</div>
 															</div>
@@ -440,8 +462,9 @@ export const AdvanceBreadcrumb = () => {
 																			<div className="flex items-center gap-2">
 																				<p className="text-xs">{env.name}</p>
 																				<span className="text-xs text-muted-foreground">
-																					{envServices} service
-																					{envServices !== 1 ? "s" : ""}
+																					{t("serviceCount", {
+																						count: envServices,
+																					})}
 																				</span>
 																			</div>
 																			{isEnvSelected && (
@@ -472,7 +495,7 @@ export const AdvanceBreadcrumb = () => {
 									className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
 								>
 									<span className="font-medium max-w-[150px] truncate">
-										{currentEnvironment?.name || "production"}
+										{currentEnvironment?.name || t("productionFallback")}
 									</span>
 									<ChevronDown className="size-4 text-muted-foreground" />
 								</Button>
@@ -485,17 +508,17 @@ export const AdvanceBreadcrumb = () => {
 								<Command shouldFilter={false}>
 									<div className="relative">
 										<CommandInput
-											placeholder="Find Environment..."
+											placeholder={t("findEnvironmentPlaceholder")}
 											value={environmentSearch}
 											onValueChange={setEnvironmentSearch}
 											className="w-full focus-visible:ring-0"
 										/>
 										<kbd className="pointer-events-none h-5 absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 flex">
-											Esc
+											{t("escKey")}
 										</kbd>
 									</div>
 									<CommandList>
-										<CommandEmpty>No environments found.</CommandEmpty>
+										<CommandEmpty>{t("noEnvironmentsFound")}</CommandEmpty>
 										<CommandGroup>
 											<ScrollArea className="h-[300px]">
 												{filteredEnvironments.map((env) => {
@@ -527,7 +550,7 @@ export const AdvanceBreadcrumb = () => {
 
 					{projectEnvironments && projectEnvironments.length === 1 && (
 						<p className="text-sm font-normal ml-1">
-							{currentEnvironment?.name || "production"}
+							{currentEnvironment?.name || t("productionFallback")}
 						</p>
 					)}
 
@@ -558,17 +581,17 @@ export const AdvanceBreadcrumb = () => {
 									<Command shouldFilter={false}>
 										<div className="relative">
 											<CommandInput
-												placeholder="Find Service..."
+												placeholder={t("findServicePlaceholder")}
 												value={serviceSearch}
 												onValueChange={setServiceSearch}
 												className="w-full focus-visible:ring-0"
 											/>
 											<kbd className="pointer-events-none h-5 select-none absolute right-2 top-1/2 -translate-y-1/2 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 flex">
-												Esc
+												{t("escKey")}
 											</kbd>
 										</div>
 										<CommandList>
-											<CommandEmpty>No services found.</CommandEmpty>
+											<CommandEmpty>{t("noServicesFound")}</CommandEmpty>
 											<CommandGroup>
 												<ScrollArea className="h-[300px]">
 													{filteredServices.map((service) => {
@@ -588,8 +611,8 @@ export const AdvanceBreadcrumb = () => {
 																		<span className="font-medium">
 																			{service.name}
 																		</span>
-																		<span className="text-xs text-muted-foreground capitalize">
-																			{service.type}
+																		<span className="text-xs text-muted-foreground">
+																			{t(SERVICE_TYPE_LABEL_KEY[service.type])}
 																		</span>
 																	</div>
 																</div>

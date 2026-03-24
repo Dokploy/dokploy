@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import {
 	Area,
 	AreaChart,
@@ -21,19 +23,24 @@ export interface RequestDistributionChartProps {
 	};
 }
 
-const chartConfig = {
-	views: {
-		label: "Page Views",
-	},
-	count: {
-		label: "Count",
-		color: "hsl(var(--chart-1))",
-	},
-} satisfies ChartConfig;
-
 export const RequestDistributionChart = ({
 	dateRange,
 }: RequestDistributionChartProps) => {
+	const t = useTranslations("requests");
+	const chartConfig = useMemo(
+		() =>
+			({
+				views: {
+					label: t("chartViews"),
+				},
+				count: {
+					label: t("chartCount"),
+					color: "hsl(var(--chart-1))",
+				},
+			}) satisfies ChartConfig,
+		[t],
+	);
+
 	const { data: stats } = api.settings.readStats.useQuery(
 		{
 			dateRange: dateRange

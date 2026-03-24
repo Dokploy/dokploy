@@ -1,5 +1,6 @@
 import copy from "copy-to-clipboard";
 import { CopyIcon, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CardContent } from "@/components/ui/card";
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export const AddWorker = ({ serverId }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const { data, isPending, error, isError } = api.cluster.addWorker.useQuery({
 		serverId,
 	});
@@ -41,7 +43,7 @@ export const AddWorker = ({ serverId }: Props) => {
 									copy(
 										`curl https://get.docker.com | sh -s -- --version ${data?.version}`,
 									);
-									toast.success("Copied to clipboard");
+									toast.success(tToast("copiedToClipboard"));
 								}}
 							>
 								<CopyIcon className="h-4 w-4 cursor-pointer" />
@@ -62,7 +64,7 @@ export const AddWorker = ({ serverId }: Props) => {
 								className="self-start"
 								onClick={() => {
 									copy(data?.command || "");
-									toast.success("Copied to clipboard");
+									toast.success(tToast("copiedToClipboard"));
 								}}
 							>
 								<CopyIcon className="h-4 w-4 cursor-pointer" />

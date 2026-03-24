@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { HelpCircle, Plus, Settings2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -43,41 +44,49 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 
-const schema = z
-	.object({
-		env: z.string(),
-		buildArgs: z.string(),
-		buildSecrets: z.string(),
-		wildcardDomain: z.string(),
-		port: z.number(),
-		previewLimit: z.number(),
-		previewLabels: z.array(z.string()).optional(),
-		previewHttps: z.boolean(),
-		previewPath: z.string(),
-		previewCertificateType: z.enum(["letsencrypt", "none", "custom"]),
-		previewCustomCertResolver: z.string().optional(),
-		previewRequireCollaboratorPermissions: z.boolean(),
-	})
-	.superRefine((input, ctx) => {
-		if (
-			input.previewCertificateType === "custom" &&
-			!input.previewCustomCertResolver
-		) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["previewCustomCertResolver"],
-				message: "Required",
-			});
-		}
-	});
+const createPreviewSettingsSchema = (
+	t: ReturnType<typeof useTranslations<"applicationPreview">>,
+) =>
+	z
+		.object({
+			env: z.string(),
+			buildArgs: z.string(),
+			buildSecrets: z.string(),
+			wildcardDomain: z.string(),
+			port: z.number(),
+			previewLimit: z.number(),
+			previewLabels: z.array(z.string()).optional(),
+			previewHttps: z.boolean(),
+			previewPath: z.string(),
+			previewCertificateType: z.enum(["letsencrypt", "none", "custom"]),
+			previewCustomCertResolver: z.string().optional(),
+			previewRequireCollaboratorPermissions: z.boolean(),
+		})
+		.superRefine((input, ctx) => {
+			if (
+				input.previewCertificateType === "custom" &&
+				!input.previewCustomCertResolver
+			) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["previewCustomCertResolver"],
+					message: t("settings.validation.customCertResolverRequired"),
+				});
+			}
+		});
 
-type Schema = z.infer<typeof schema>;
+type Schema = z.infer<ReturnType<typeof createPreviewSettingsSchema>>;
 
 interface Props {
 	applicationId: string;
 }
 
 export const ShowPreviewSettings = ({ applicationId }: Props) => {
+	const t = useTranslations("applicationPreview");
+	const tCommon = useTranslations("common");
+	const previewLabelInputRef = useRef<HTMLInputElement>(null);
+	const previewSettingsSchema = useMemo(() => createPreviewSettingsSchema(t), [t]);
+
 	const [isOpen, setIsOpen] = useState(false);
 	const [isEnabled, setIsEnabled] = useState(false);
 	const { mutateAsync: updateApplication, isPending } =
@@ -97,7 +106,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewCertificateType: "none",
 			previewRequireCollaboratorPermissions: true,
 		},
-		resolver: zodResolver(schema),
+		resolver: zodResolver(previewSettingsSchema),
 	});
 
 	const previewHttps = form.watch("previewHttps");
@@ -126,7 +135,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 					data.previewRequireCollaboratorPermissions ?? true,
 			});
 		}
-	}, [data]);
+	}, [data, form]);
 
 	const onSubmit = async (formData: Schema) => {
 		updateApplication({
@@ -146,9 +155,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				formData.previewRequireCollaboratorPermissions,
 		})
 			.then(() => {
-				toast.success("Preview Deployments settings updated");
+				toast.success(t("settings.toastSuccess"));
 			})
-			.catch((error) => {
+			.catch((error: Error) => {
 				toast.error(error.message);
 			});
 	};
@@ -158,24 +167,20 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				<DialogTrigger asChild>
 					<Button variant="outline">
 						<Settings2 className="size-4" />
-						Configure
+						{t("settings.configure")}
 					</Button>
 				</DialogTrigger>
 				<DialogContent className="sm:max-w-5xl w-full">
 					<DialogHeader>
-						<DialogTitle>Preview Deployment Settings</DialogTitle>
-						<DialogDescription>
-							Adjust the settings for preview deployments of this application,
-							including environment variables, build options, and deployment
-							rules.
-						</DialogDescription>
+						<DialogTitle>{t("settings.dialogTitle")}</DialogTitle>
+						<DialogDescription>{t("settings.dialogDescription")}</DialogDescription>
 					</DialogHeader>
 					<div className="grid gap-4">
 						{isTraefikMeDomain && (
 							<AlertBlock type="info">
-								<strong>Note:</strong> traefik.me is a public HTTP service and
-								does not support SSL/HTTPS. HTTPS and certificate options will
-								not have any effect.
+								{t.rich("shared.traefikMeNote", {
+									strong: (chunks) => <strong>{chunks}</strong>,
+								})}
 							</AlertBlock>
 						)}
 						<Form {...form}>
@@ -190,9 +195,12 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										name="wildcardDomain"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Wildcard Domain</FormLabel>
+												<FormLabel>{t("settings.wildcardDomain")}</FormLabel>
 												<FormControl>
-													<Input placeholder="*.traefik.me" {...field} />
+													<Input
+														placeholder={t("settings.wildcardPlaceholder")}
+														{...field}
+													/>
 												</FormControl>
 												<FormMessage />
 											</FormItem>
@@ -203,7 +211,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										name="previewPath"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Preview Path</FormLabel>
+												<FormLabel>{t("settings.previewPath")}</FormLabel>
 												<FormControl>
 													<Input placeholder="/" {...field} />
 												</FormControl>
@@ -216,7 +224,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										name="port"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Port</FormLabel>
+												<FormLabel>{t("settings.port")}</FormLabel>
 												<FormControl>
 													<NumberInput placeholder="3000" {...field} />
 												</FormControl>
@@ -230,19 +238,14 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										render={({ field }) => (
 											<FormItem className="md:col-span-2">
 												<div className="flex items-center gap-2">
-													<FormLabel>Preview Labels</FormLabel>
+													<FormLabel>{t("settings.previewLabels")}</FormLabel>
 													<TooltipProvider>
 														<Tooltip>
 															<TooltipTrigger asChild>
 																<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 															</TooltipTrigger>
 															<TooltipContent>
-																<p>
-																	Add a labels that will trigger a preview
-																	deployment for a pull request. If no labels
-																	are specified, all pull requests will trigger
-																	a preview deployment.
-																</p>
+																<p>{t("settings.previewLabelsTooltip")}</p>
 															</TooltipContent>
 														</Tooltip>
 													</TooltipProvider>
@@ -269,7 +272,8 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 												<div className="flex gap-2">
 													<FormControl>
 														<Input
-															placeholder="Enter a label (e.g. enhancements, needs-review)"
+															ref={previewLabelInputRef}
+															placeholder={t("settings.previewLabelPlaceholder")}
 															onKeyDown={(e) => {
 																if (e.key === "Enter") {
 																	e.preventDefault();
@@ -291,9 +295,8 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 														variant="outline"
 														size="icon"
 														onClick={() => {
-															const input = document.querySelector(
-																'input[placeholder*="Enter a label"]',
-															) as HTMLInputElement;
+															const input = previewLabelInputRef.current;
+															if (!input) return;
 															const label = input.value.trim();
 															if (label) {
 																field.onChange([...(field.value || []), label]);
@@ -313,7 +316,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										name="previewLimit"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Preview Limit</FormLabel>
+												<FormLabel>{t("settings.previewLimit")}</FormLabel>
 												<FormControl>
 													<NumberInput placeholder="3000" {...field} />
 												</FormControl>
@@ -327,9 +330,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										render={({ field }) => (
 											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
 												<div className="space-y-0.5">
-													<FormLabel>HTTPS</FormLabel>
+													<FormLabel>{t("settings.https")}</FormLabel>
 													<FormDescription>
-														Automatically provision SSL Certificate.
+														{t("settings.httpsDescription")}
 													</FormDescription>
 													<FormMessage />
 												</div>
@@ -348,23 +351,31 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											name="previewCertificateType"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Certificate Provider</FormLabel>
+													<FormLabel>{t("settings.certificateProvider")}</FormLabel>
 													<Select
 														onValueChange={field.onChange}
 														defaultValue={field.value || ""}
 													>
 														<FormControl>
 															<SelectTrigger>
-																<SelectValue placeholder="Select a certificate provider" />
+																<SelectValue
+																	placeholder={t(
+																		"settings.selectCertificateProvider",
+																	)}
+																/>
 															</SelectTrigger>
 														</FormControl>
 
 														<SelectContent>
-															<SelectItem value="none">None</SelectItem>
-															<SelectItem value={"letsencrypt"}>
-																Let's Encrypt
+															<SelectItem value="none">
+																{t("settings.certNone")}
 															</SelectItem>
-															<SelectItem value={"custom"}>Custom</SelectItem>
+															<SelectItem value={"letsencrypt"}>
+																{t("settings.certLetsencrypt")}
+															</SelectItem>
+															<SelectItem value={"custom"}>
+																{t("settings.certCustom")}
+															</SelectItem>
 														</SelectContent>
 													</Select>
 													<FormMessage />
@@ -379,10 +390,10 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											name="previewCustomCertResolver"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Certificate Provider</FormLabel>
+													<FormLabel>{t("settings.certificateProvider")}</FormLabel>
 													<FormControl>
 														<Input
-															placeholder="my-custom-resolver"
+															placeholder={t("settings.customResolverPlaceholder")}
 															{...field}
 														/>
 													</FormControl>
@@ -396,11 +407,10 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 									<div className="flex flex-row items-center justify-between rounded-lg border p-4 col-span-2">
 										<div className="space-y-0.5">
 											<FormLabel className="text-base">
-												Enable preview deployments
+												{t("settings.enablePreviewTitle")}
 											</FormLabel>
 											<FormDescription>
-												Enable or disable preview deployments for this
-												application.
+												{t("settings.enablePreviewDescription")}
 											</FormDescription>
 										</div>
 										<Switch
@@ -414,11 +424,11 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 														refetch();
 														toast.success(
 															checked
-																? "Preview deployments enabled"
-																: "Preview deployments disabled",
+																? t("settings.toastPreviewEnabled")
+																: t("settings.toastPreviewDisabled"),
 														);
 													})
-													.catch((error) => {
+													.catch((error: Error) => {
 														toast.error(error.message);
 													});
 											}}
@@ -434,15 +444,14 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm col-span-2">
 												<div className="space-y-0.5">
 													<FormLabel>
-														Require Collaborator Permissions
+														{t("settings.requireCollaboratorTitle")}
 													</FormLabel>
 													<FormDescription>
-														Require collaborator permissions to preview
-														deployments, valid roles are:
-														<ul>
-															<li>Admin</li>
-															<li>Maintain</li>
-															<li>Write</li>
+														{t("settings.requireCollaboratorDescription")}
+														<ul className="list-disc pl-4 mt-1">
+															<li>{t("settings.roleAdmin")}</li>
+															<li>{t("settings.roleMaintain")}</li>
+															<li>{t("settings.roleWrite")}</li>
 														</ul>
 													</FormDescription>
 												</div>
@@ -465,8 +474,8 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											<FormControl>
 												<Secrets
 													name="env"
-													title="Environment Settings"
-													description="You can add environment variables to your resource."
+													title={t("settings.envTitle")}
+													description={t("settings.envDescription")}
 													placeholder={[
 														"NODE_ENV=production",
 														"PORT=3000",
@@ -480,46 +489,39 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 								{data?.buildType === "dockerfile" && (
 									<Secrets
 										name="buildArgs"
-										title="Build-time Arguments"
-										description={
-											<span>
-												Arguments are available only at build-time. See
-												documentation&nbsp;
+										title={t("settings.buildArgsTitle")}
+										description={t.rich("settings.buildArgsDescriptionRich", {
+											link: (chunks) => (
 												<a
 													className="text-primary"
 													href="https://docs.docker.com/build/building/variables/"
 													target="_blank"
 													rel="noopener noreferrer"
 												>
-													here
+													{chunks}
 												</a>
-												.
-											</span>
-										}
-										placeholder="NPM_TOKEN=xyz"
+											),
+										})}
+										placeholder={t("settings.buildPlaceholder")}
 									/>
 								)}
 								{data?.buildType === "dockerfile" && (
 									<Secrets
 										name="buildSecrets"
-										title="Build-time Secrets"
-										description={
-											<span>
-												Secrets are specially designed for sensitive information
-												and are only available at build-time. See
-												documentation&nbsp;
+										title={t("settings.buildSecretsTitle")}
+										description={t.rich("settings.buildSecretsDescriptionRich", {
+											link: (chunks) => (
 												<a
 													className="text-primary"
 													href="https://docs.docker.com/build/building/secrets/"
 													target="_blank"
 													rel="noopener noreferrer"
 												>
-													here
+													{chunks}
 												</a>
-												.
-											</span>
-										}
-										placeholder="NPM_TOKEN=xyz"
+											),
+										})}
+										placeholder={t("settings.buildPlaceholder")}
 									/>
 								)}
 							</form>
@@ -532,19 +534,18 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 								setIsOpen(false);
 							}}
 						>
-							Cancel
+							{tCommon("cancel")}
 						</Button>
 						<Button
 							isLoading={isPending}
 							form="hook-form-delete-application"
 							type="submit"
 						>
-							Save
+							{tCommon("save")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
-			{/* */}
 		</div>
 	);
 };

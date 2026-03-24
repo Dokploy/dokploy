@@ -1,4 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -36,6 +37,7 @@ interface RestartPolicyFormProps {
 }
 
 export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
+	const t = useTranslations("applicationAdvancedSwarmForms");
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -92,7 +94,6 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 	) => {
 		setIsLoading(true);
 		try {
-			// Check if all values are empty, if so, send null to clear the database
 			const hasAnyValue = Object.values(formData).some(
 				(value) => value !== undefined && value !== null && value !== "",
 			);
@@ -107,10 +108,10 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 				restartPolicySwarm: hasAnyValue ? formData : null,
 			});
 
-			toast.success("Restart policy updated successfully");
+			toast.success(t("restartPolicy.toastSuccess"));
 			refetch();
 		} catch {
-			toast.error("Error updating restart policy");
+			toast.error(t("restartPolicy.toastError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -124,18 +125,20 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 					name="Condition"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Condition</FormLabel>
-							<FormDescription>When to restart the container</FormDescription>
+							<FormLabel>{t("restartPolicy.condition")}</FormLabel>
+							<FormDescription>{t("restartPolicy.conditionDesc")}</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder="Select restart condition" />
+										<SelectValue placeholder={t("restartPolicy.placeholderCondition")} />
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									<SelectItem value="none">None</SelectItem>
-									<SelectItem value="on-failure">On Failure</SelectItem>
-									<SelectItem value="any">Any</SelectItem>
+									<SelectItem value="none">{t("restartPolicy.none")}</SelectItem>
+									<SelectItem value="on-failure">
+										{t("restartPolicy.onFailure")}
+									</SelectItem>
+									<SelectItem value="any">{t("restartPolicy.any")}</SelectItem>
 								</SelectContent>
 							</Select>
 							<FormMessage />
@@ -148,10 +151,8 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 					name="Delay"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Delay (nanoseconds)</FormLabel>
-							<FormDescription>
-								Wait time between restart attempts
-							</FormDescription>
+							<FormLabel>{t("restartPolicy.delay")}</FormLabel>
+							<FormDescription>{t("restartPolicy.delayDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
 							</FormControl>
@@ -165,10 +166,8 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 					name="MaxAttempts"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Max Attempts</FormLabel>
-							<FormDescription>
-								Maximum number of restart attempts
-							</FormDescription>
+							<FormLabel>{t("restartPolicy.maxAttempts")}</FormLabel>
+							<FormDescription>{t("restartPolicy.maxAttemptsDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="3" {...field} />
 							</FormControl>
@@ -182,10 +181,8 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 					name="Window"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Window (nanoseconds)</FormLabel>
-							<FormDescription>
-								Time window to evaluate restart policy
-							</FormDescription>
+							<FormLabel>{t("restartPolicy.window")}</FormLabel>
+							<FormDescription>{t("restartPolicy.windowDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
 							</FormControl>
@@ -207,10 +204,10 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 							});
 						}}
 					>
-						Clear
+						{t("actions.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Restart Policy
+						{t("actions.saveRestartPolicy")}
 					</Button>
 				</div>
 			</form>

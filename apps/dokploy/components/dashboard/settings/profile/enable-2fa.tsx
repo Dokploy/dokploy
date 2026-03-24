@@ -2,6 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import copy from "copy-to-clipboard";
 import { CopyIcon, DownloadIcon, Fingerprint, QrCode } from "lucide-react";
 import QRCode from "qrcode";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -82,6 +83,7 @@ ${BACKUP_CODES_PLACEHOLDER}
 `;
 
 export const Enable2FA = () => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const utils = api.useUtils();
 	const [data, setData] = useState<TwoFactorSetupData | null>(null);
 	const [backupCodes, setBackupCodes] = useState<string[]>([]);
@@ -100,7 +102,7 @@ export const Enable2FA = () => {
 
 			if (result.error) {
 				if (result.error.code === "INVALID_TWO_FACTOR_AUTHENTICATION") {
-					toast.error("Invalid verification code");
+					toast.error(tToast("twoFaInvalidCode"));
 					return;
 				}
 
@@ -111,20 +113,23 @@ export const Enable2FA = () => {
 				throw new Error("No response received from server");
 			}
 
-			toast.success("2FA configured successfully");
+			toast.success(tToast("twoFaConfiguredSuccess"));
 			utils.user.get.invalidate();
 			setIsDialogOpen(false);
 		} catch (error) {
 			if (error instanceof Error) {
 				const errorMessage =
 					error.message === "Failed to fetch"
-						? "Connection error. Please check your internet connection."
+						? tToast("twoFaConnectionError")
 						: error.message;
 
 				toast.error(errorMessage);
 			} else {
-				toast.error("Error verifying 2FA code", {
-					description: error instanceof Error ? error.message : "Unknown error",
+				toast.error(tToast("twoFaVerifyError"), {
+					description:
+						error instanceof Error
+							? error.message
+							: tToast("aiSettingsSaveUnknownError"),
 				});
 			}
 		}
@@ -189,17 +194,17 @@ export const Enable2FA = () => {
 				});
 
 				setStep("verify");
-				toast.success("Scan the QR code with your authenticator app");
+				toast.success(tToast("twoFaScanQrHint"));
 			} else {
 				throw new Error("No TOTP URI received from server");
 			}
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Error setting up 2FA",
+				error instanceof Error ? error.message : tToast("twoFaSetupError"),
 			);
 			passwordForm.setError("password", {
 				message:
-					error instanceof Error ? error.message : "Error setting up 2FA",
+					error instanceof Error ? error.message : tToast("twoFaSetupError"),
 			});
 		} finally {
 			setIsPasswordLoading(false);
@@ -208,7 +213,7 @@ export const Enable2FA = () => {
 
 	const handleDownloadBackupCodes = () => {
 		if (!backupCodes || backupCodes.length === 0) {
-			toast.error("No backup codes to download.");
+			toast.error(tToast("noBackupCodes"));
 			return;
 		}
 
@@ -251,7 +256,7 @@ export const Enable2FA = () => {
 			.replace(BACKUP_CODES_PLACEHOLDER, backupCodesFormatted);
 
 		copy(backupCodesText);
-		toast.success("Backup codes copied to clipboard");
+		toast.success(tToast("backupCodesCopied"));
 	};
 
 	return (

@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -118,6 +119,7 @@ export const ContainerFreeMonitoring = ({
 	appName,
 	appType = "application",
 }: Props) => {
+	const t = useTranslations("monitoringDashboard.freeContainer");
 	const { data } = api.application.readAppMonitoring.useQuery(
 		{ appName },
 		{
@@ -193,9 +195,7 @@ export const ContainerFreeMonitoring = ({
 			}));
 		};
 
-		ws.onclose = (e) => {
-			console.log(e.reason);
-		};
+		ws.onclose = () => {};
 
 		return () => ws.close();
 	}, [appName]);
@@ -204,22 +204,24 @@ export const ContainerFreeMonitoring = ({
 		<div className="rounded-xl bg-background flex flex-col gap-4">
 			<header className="flex items-center justify-between">
 				<div className="space-y-1">
-					<h1 className="text-2xl font-semibold tracking-tight">Monitoring</h1>
-					<p className="text-sm text-muted-foreground">
-						Watch the usage of your server in the current app
-					</p>
+					<h1 className="text-2xl font-semibold tracking-tight">
+						{t("title")}
+					</h1>
+					<p className="text-sm text-muted-foreground">{t("subtitle")}</p>
 				</div>
 			</header>
 
 			<div className="grid gap-6 lg:grid-cols-2">
 				<Card className="bg-background">
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">CPU Usage</CardTitle>
+						<CardTitle className="text-sm font-medium">
+							{t("cpuUsage")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">
 							<span className="text-sm text-muted-foreground">
-								Used: {currentData.cpu.value}
+								{t("used")}: {currentData.cpu.value}
 							</span>
 							<Progress
 								value={Number.parseInt(
@@ -234,12 +236,15 @@ export const ContainerFreeMonitoring = ({
 				</Card>
 				<Card className="bg-background">
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">Memory Usage</CardTitle>
+						<CardTitle className="text-sm font-medium">
+							{t("memoryUsage")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">
 							<span className="text-sm text-muted-foreground">
-								{`Used:  ${currentData.memory.value.used} / Limit: ${currentData.memory.value.total} `}
+								{t("used")}: {currentData.memory.value.used} / {t("limit")}:{" "}
+								{currentData.memory.value.total}{" "}
 							</span>
 							<Progress
 								value={
@@ -265,12 +270,15 @@ export const ContainerFreeMonitoring = ({
 				{appName === "dokploy" && (
 					<Card className="bg-background">
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">Disk Space</CardTitle>
+							<CardTitle className="text-sm font-medium">
+								{t("diskSpace")}
+							</CardTitle>
 						</CardHeader>
 						<CardContent>
 							<div className="flex flex-col gap-2 w-full">
 								<span className="text-sm text-muted-foreground">
-									{`Used:  ${currentData.disk.value.diskUsage} GB / Limit: ${currentData.disk.value.diskTotal} GB`}
+									{t("used")}: {currentData.disk.value.diskUsage} GB /{" "}
+									{t("limit")}: {currentData.disk.value.diskTotal} GB
 								</span>
 								<Progress
 									value={currentData.disk.value.diskUsedPercentage}
@@ -287,12 +295,15 @@ export const ContainerFreeMonitoring = ({
 
 				<Card className="bg-background">
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">Block I/O</CardTitle>
+						<CardTitle className="text-sm font-medium">
+							{t("blockIo")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">
 							<span className="text-sm text-muted-foreground">
-								{`Read:  ${currentData.block.value.readMb}  / Write: ${currentData.block.value.writeMb} `}
+								{t("read")}: {currentData.block.value.readMb} / {t("write")}:{" "}
+								{currentData.block.value.writeMb}{" "}
 							</span>
 							<DockerBlockChart acummulativeData={acummulativeData.block} />
 						</div>
@@ -300,12 +311,15 @@ export const ContainerFreeMonitoring = ({
 				</Card>
 				<Card className="bg-background">
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">Network I/O</CardTitle>
+						<CardTitle className="text-sm font-medium">
+							{t("networkIo")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">
 							<span className="text-sm text-muted-foreground">
-								{`In MB: ${currentData.network.value.inputMb}  / Out MB: ${currentData.network.value.outputMb} `}
+								{t("inMb")}: {currentData.network.value.inputMb} / {t("outMb")}:{" "}
+								{currentData.network.value.outputMb}{" "}
 							</span>
 							<DockerNetworkChart acummulativeData={acummulativeData.network} />
 						</div>

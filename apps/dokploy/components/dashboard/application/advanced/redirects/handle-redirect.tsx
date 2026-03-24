@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon, PlusIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -37,44 +38,6 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
-const AddRedirectchema = z.object({
-	regex: z.string().min(1, "Regex required"),
-	permanent: z.boolean().default(false),
-	replacement: z.string().min(1, "Replacement required"),
-});
-
-type AddRedirect = z.infer<typeof AddRedirectchema>;
-
-// Default presets
-const redirectPresets = [
-	// {
-	// 	label: "Allow www & non-www.",
-	// 	redirect: {
-	// 		regex: "",
-	// 		permanent: false,
-	// 		replacement: "",
-	// 	},
-	// },
-	{
-		id: "to-www",
-		label: "Redirect to www",
-		redirect: {
-			regex: "^https?://(?:www.)?(.+)",
-			permanent: true,
-			replacement: "https://www.${1}",
-		},
-	},
-	{
-		id: "to-non-www",
-		label: "Redirect to non-www",
-		redirect: {
-			regex: "^https?://www.(.+)",
-			permanent: true,
-			replacement: "https://${1}",
-		},
-	},
-];
-
 interface Props {
 	applicationId: string;
 	redirectId?: string;
@@ -86,8 +49,45 @@ export const HandleRedirect = ({
 	redirectId,
 	children = <PlusIcon className="w-4 h-4" />,
 }: Props) => {
+	const t = useTranslations("applicationAdvancedRedirects.form");
 	const [isOpen, setIsOpen] = useState(false);
 	const [presetSelected, setPresetSelected] = useState("");
+
+	const redirectPresets = useMemo(
+		() => [
+			{
+				id: "to-www",
+				label: t("presetToWww"),
+				redirect: {
+					regex: "^https?://(?:www.)?(.+)",
+					permanent: true,
+					replacement: "https://www.${1}",
+				},
+			},
+			{
+				id: "to-non-www",
+				label: t("presetToNonWww"),
+				redirect: {
+					regex: "^https?://www.(.+)",
+					permanent: true,
+					replacement: "https://${1}",
+				},
+			},
+		],
+		[t],
+	);
+
+	const addRedirectSchema = useMemo(
+		() =>
+			z.object({
+				regex: z.string().min(1, t("validation.regex")),
+				permanent: z.boolean().default(false),
+				replacement: z.string().min(1, t("validation.replacement")),
+			}),
+		[t],
+	);
+
+	type AddRedirect = z.infer<typeof addRedirectSchema>;
 
 	const { data, refetch } = api.redirects.one.useQuery(
 		{
@@ -110,7 +110,7 @@ export const HandleRedirect = ({
 			regex: "",
 			replacement: "",
 		},
-		resolver: zodResolver(AddRedirectchema),
+		resolver: zodResolver(addRedirectSchema),
 	});
 
 	useEffect(() => {
@@ -121,14 +121,14 @@ export const HandleRedirect = ({
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
-	const onSubmit = async (data: AddRedirect) => {
+	const onSubmit = async (submitData: AddRedirect) => {
 		await mutateAsync({
 			applicationId,
-			...data,
+			...submitData,
 			redirectId: redirectId || "",
 		})
 			.then(async () => {
-				toast.success(redirectId ? "Redirect Updated" : "Redirect Created");
+				toast.success(redirectId ? t("toast.updated") : t("toast.created"));
 				await utils.application.one.invalidate({
 					applicationId,
 				});
@@ -140,18 +140,13 @@ export const HandleRedirect = ({
 			})
 			.catch(() => {
 				toast.error(
-					redirectId
-						? "Error updating the redirect"
-						: "Error creating the redirect",
+					redirectId ? t("toast.errorUpdate") : t("toast.errorCreate"),
 				);
 			});
 	};
 
 	const onDialogToggle = (open: boolean) => {
 		setIsOpen(open);
-		// commented for the moment because not reseting the form if accidentally closed the dialog can be considered as a feature instead of a bug
-		// setPresetSelected("");
-		// form.reset();
 	};
 
 	const onPresetSelect = (presetId: string) => {
@@ -181,22 +176,20 @@ export const HandleRedirect = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Redirects</DialogTitle>
-					<DialogDescription>
-						Redirects are used to redirect requests to another url.
-					</DialogDescription>
+					<DialogTitle>{t("title")}</DialogTitle>
+					<DialogDescription>{t("description")}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 				<div className="md:col-span-2">
-					<Label>Presets</Label>
+					<Label>{t("presets")}</Label>
 					<Select onValueChange={onPresetSelect} value={presetSelected}>
 						<SelectTrigger>
-							<SelectValue placeholder="No preset selected" />
+							<SelectValue placeholder={t("noPreset")} />
 						</SelectTrigger>
 						<SelectContent>
 							{redirectPresets.map((preset) => (
-								<SelectItem key={preset.label} value={preset.id}>
+								<SelectItem key={preset.id} value={preset.id}>
 									{preset.label}
 								</SelectItem>
 							))}
@@ -218,7 +211,7 @@ export const HandleRedirect = ({
 								name="regex"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Regex</FormLabel>
+										<FormLabel>{t("regex")}</FormLabel>
 										<FormControl>
 											<Input placeholder="^http://localhost/(.*)" {...field} />
 										</FormControl>
@@ -232,7 +225,7 @@ export const HandleRedirect = ({
 								name="replacement"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Replacement</FormLabel>
+										<FormLabel>{t("replacement")}</FormLabel>
 										<FormControl>
 											<Input placeholder="http://mydomain/$${1}" {...field} />
 										</FormControl>
@@ -248,11 +241,8 @@ export const HandleRedirect = ({
 								render={({ field }) => (
 									<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
 										<div className="space-y-0.5">
-											<FormLabel>Permanent</FormLabel>
-											<FormDescription>
-												Set the permanent option to true to apply a permanent
-												redirection.
-											</FormDescription>
+											<FormLabel>{t("permanent")}</FormLabel>
+											<FormDescription>{t("permanentDesc")}</FormDescription>
 										</div>
 										<FormControl>
 											<Switch
@@ -272,7 +262,7 @@ export const HandleRedirect = ({
 							form="hook-form-add-redirect"
 							type="submit"
 						>
-							{redirectId ? "Update" : "Create"}
+							{redirectId ? t("actions.update") : t("actions.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

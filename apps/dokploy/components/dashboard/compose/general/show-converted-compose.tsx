@@ -1,4 +1,5 @@
 import { Loader2, Puzzle, RefreshCw } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export const ShowConvertedCompose = ({ composeId }: Props) => {
+	const t = useTranslations("composeGeneral");
 	const [isOpen, setIsOpen] = useState(false);
 	const {
 		data: compose,
@@ -49,22 +51,20 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 			<DialogTrigger asChild>
 				<Button className="max-lg:w-full" variant="outline">
 					<Puzzle className="h-4 w-4" />
-					Preview Compose
+					{t("showConverted.trigger")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-6xl max-h-[50rem]">
 				<DialogHeader>
-					<DialogTitle>Converted Compose</DialogTitle>
+					<DialogTitle>{t("showConverted.dialogTitle")}</DialogTitle>
 					<DialogDescription>
-						Preview your docker-compose file with added domains. Note: At least
-						one domain must be specified for this conversion to take effect.
+						{t("showConverted.dialogDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 				<AlertBlock type="info" className="mb-4">
-					Preview your docker-compose file with added domains. Note: At least
-					one domain must be specified for this conversion to take effect.
+					{t("showConverted.alertInfo")}
 				</AlertBlock>
 				{isPending ? (
 					<div className="flex flex-row items-center justify-center min-h-[25rem] border p-4 rounded-md">
@@ -87,16 +87,17 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 									mutateAsync({ composeId })
 										.then(() => {
 											refetch();
-											toast.success("Fetched source type");
+											toast.success(t("showConverted.toastFetchSuccess"));
 										})
-										.catch((err) => {
-											toast.error("Error fetching source type", {
+										.catch((err: Error) => {
+											toast.error(t("showConverted.toastFetchError"), {
 												description: err.message,
 											});
 										});
 								}}
 							>
-								Refresh <RefreshCw className="ml-2 h-4 w-4" />
+								{t("showConverted.refresh")}{" "}
+								<RefreshCw className="ml-2 h-4 w-4" />
 							</Button>
 						</div>
 

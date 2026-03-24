@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon } from "lucide-react";
 import { useRouter } from "next/router";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ interface Props {
 }
 
 export const EditGiteaProvider = ({ giteaId }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const {
@@ -63,8 +65,8 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 		if (!router.isReady) return;
 
 		if (connected) {
-			toast.success("Successfully connected to Gitea", {
-				description: "Your Gitea provider has been authorized.",
+			toast.success(tToast("giteaConnectedSuccess"), {
+				description: tToast("giteaOAuthAuthorizedDescription"),
 				id: "gitea-connection-success",
 			});
 			refetch();
@@ -79,7 +81,7 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 		}
 
 		if (error) {
-			toast.error("Gitea Connection Failed", {
+			toast.error(tToast("giteaConnectionFailed"), {
 				description: decodeURIComponent(error as string),
 				id: "gitea-connection-error",
 			});
@@ -92,7 +94,7 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 				{ shallow: true },
 			);
 		}
-	}, [router.query, router.isReady, refetch]);
+	}, [router.query, router.isReady, refetch, router, tToast]);
 
 	const form = useForm({
 		resolver: zodResolver(formSchema),
@@ -129,19 +131,19 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
-				toast.success("Gitea provider updated successfully");
+				toast.success(tToast("giteaProviderUpdated"));
 				await refetch();
 				setOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating Gitea provider");
+				toast.error(tToast("giteaProviderUpdateError"));
 			});
 	};
 
 	const handleTestConnection = async () => {
 		try {
 			const result = await testConnection({ giteaId });
-			toast.success("Gitea Connection Verified", {
+			toast.success(tToast("giteaVerified"), {
 				description: result,
 			});
 		} catch (error: any) {
@@ -155,13 +157,13 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 					typeof url === "string" ? url : (url as any).url || "",
 				);
 
-			toast.error("Gitea Not Connected", {
+			toast.error(tToast("giteaNotConnected"), {
 				description:
-					error.message || "Please complete the OAuth authorization process.",
+					error.message || tToast("giteaNotConnectedDescription"),
 				action:
 					authUrl && authUrl !== "#"
 						? {
-								label: "Authorize Now",
+								label: tToast("giteaAuthorizeNow"),
 								onClick: () => window.open(authUrl, "_blank"),
 							}
 						: undefined,

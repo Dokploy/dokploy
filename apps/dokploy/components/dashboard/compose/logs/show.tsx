@@ -1,5 +1,6 @@
 import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { badgeStateColor } from "@/components/dashboard/application/logs/show";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ export const ShowDockerLogsCompose = ({
 	appType,
 	serverId,
 }: Props) => {
+	const t = useTranslations("composeLogs");
 	const { data, isPending } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName,
@@ -63,23 +65,21 @@ export const ShowDockerLogsCompose = ({
 	return (
 		<Card className="bg-background">
 			<CardHeader>
-				<CardTitle className="text-xl">Logs</CardTitle>
-				<CardDescription>
-					Watch the logs of the application in real time
-				</CardDescription>
+				<CardTitle className="text-xl">{t("title")}</CardTitle>
+				<CardDescription>{t("description")}</CardDescription>
 			</CardHeader>
 
 			<CardContent className="flex flex-col gap-4">
-				<Label>Select a container to view logs</Label>
+				<Label>{t("selectContainerLabel")}</Label>
 				<Select onValueChange={setContainerId} value={containerId}>
 					<SelectTrigger>
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
-								<span>Loading...</span>
+								<span>{t("loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
-							<SelectValue placeholder="Select a container" />
+							<SelectValue placeholder={t("selectPlaceholder")} />
 						)}
 					</SelectTrigger>
 					<SelectContent>
@@ -96,7 +96,9 @@ export const ShowDockerLogsCompose = ({
 									{container.status ? ` ${container.status}` : ""}
 								</SelectItem>
 							))}
-							<SelectLabel>Containers ({data?.length})</SelectLabel>
+							<SelectLabel>
+								{t("containersLabel", { count: data?.length ?? 0 })}
+							</SelectLabel>
 						</SelectGroup>
 					</SelectContent>
 				</Select>

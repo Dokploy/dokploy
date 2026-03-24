@@ -1,0 +1,72 @@
+{
+	"applicationGeneralMain": {
+		"deployCardTitle": "Deploy Settings",
+		"deploy": {
+			"dialogTitle": "Deploy Application",
+			"dialogDescription": "Are you sure you want to deploy this application?",
+			"button": "Deploy",
+			"tooltip": "Downloads the source code and performs a complete build",
+			"toastSuccess": "Application deployed successfully",
+			"toastError": "Error deploying application"
+		},
+		"reload": {
+			"dialogTitle": "Reload Application",
+			"dialogDescription": "Are you sure you want to reload this application?",
+			"button": "Reload",
+			"tooltip": "Reload the application without rebuilding it",
+			"toastSuccess": "Application reloaded successfully",
+			"toastError": "Error reloading application"
+		},
+		"rebuild": {
+			"dialogTitle": "Rebuild Application",
+			"dialogDescription": "Are you sure you want to rebuild this application?",
+			"button": "Rebuild",
+			"tooltip": "Only rebuilds the application without downloading new code",
+			"toastSuccess": "Application rebuilt successfully",
+			"toastError": "Error rebuilding application"
+		},
+		"start": {
+			"dialogTitle": "Start Application",
+			"dialogDescription": "Are you sure you want to start this application?",
+			"button": "Start",
+			"tooltip": "Start the application (requires a previous successful build)",
+			"toastSuccess": "Application started successfully",
+			"toastError": "Error starting application"
+		},
+		"stop": {
+			"dialogTitle": "Stop Application",
+			"dialogDescription": "Are you sure you want to stop this application?",
+			"button": "Stop",
+			"tooltip": "Stop the currently running application",
+			"toastSuccess": "Application stopped successfully",
+			"toastError": "Error stopping application"
+		},
+		"openTerminal": "Open Terminal",
+		"autodeploy": {
+			"label": "Autodeploy",
+			"ariaLabel": "Toggle autodeploy",
+			"toastSuccess": "Auto Deploy Updated",
+			"toastError": "Error updating Auto Deploy"
+		},
+		"cleanCache": {
+			"label": "Clean Cache",
+			"ariaLabel": "Toggle clean cache",
+			"toastSuccess": "Clean Cache Updated",
+			"toastError": "Error updating Clean Cache"
+		},
+		"editApplication": {
+			"dialogTitle": "Modify Application",
+			"dialogDescription": "Update the application data",
+			"nameLabel": "Name",
+			"namePlaceholder": "Vandelay Industries",
+			"descriptionLabel": "Description",
+			"descriptionPlaceholder": "Description about your project...",
+			"submit": "Update",
+			"toastSuccess": "Application updated successfully",
+			"toastError": "Error updating the Application",
+			"validation": {
+				"nameRequired": "Name is required"
+			}
+		}
+	}
+}

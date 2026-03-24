@@ -8,8 +8,14 @@ import {
 	PlusCircle,
 	RefreshCw,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { type Control, useForm } from "react-hook-form";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
+import {
+	type Control,
+	type FieldValues,
+	type Path,
+	useForm,
+} from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -66,67 +72,74 @@ import { api } from "@/utils/api";
 import type { CacheType } from "../domains/handle-domain";
 import { getTimezoneLabel, TIMEZONES } from "./timezones";
 
-export const commonCronExpressions = [
-	{ label: "Every minute", value: "* * * * *" },
-	{ label: "Every hour", value: "0 * * * *" },
-	{ label: "Every day at midnight", value: "0 0 * * *" },
-	{ label: "Every Sunday at midnight", value: "0 0 * * 0" },
-	{ label: "Every month on the 1st at midnight", value: "0 0 1 * *" },
-	{ label: "Every 15 minutes", value: "*/15 * * * *" },
-	{ label: "Every weekday at midnight", value: "0 0 * * 1-5" },
-	{ label: "Custom", value: "custom" },
-];
+const CRON_PRESET_DEFS = [
+	{ value: "* * * * *", presetKey: "everyMinute" },
+	{ value: "0 * * * *", presetKey: "everyHour" },
+	{ value: "0 0 * * *", presetKey: "everyDayMidnight" },
+	{ value: "0 0 * * 0", presetKey: "everySundayMidnight" },
+	{ value: "0 0 1 * *", presetKey: "monthlyFirstMidnight" },
+	{ value: "*/15 * * * *", presetKey: "every15Minutes" },
+	{ value: "0 0 * * 1-5", presetKey: "weekdayMidnight" },
+	{ value: "custom", presetKey: "custom" },
+] as const;
 
-const formSchema = z
-	.object({
-		name: z.string().min(1, "Name is required"),
-		cronExpression: z.string().min(1, "Cron expression is required"),
-		shellType: z.enum(["bash", "sh"]).default("bash"),
+type CronPresetKey = (typeof CRON_PRESET_DEFS)[number]["presetKey"];
+
+const createScheduleFormSchema = (
+	t: ReturnType<typeof useTranslations<"applicationSchedules">>,
+) =>
+	z
+		.object({
+			name: z.string().min(1, t("forms.validation.nameRequired")),
+			cronExpression: z.string().min(1, t("forms.validation.cronRequired")),
+		shellType: z.enum(["bash", "sh"]),
 		command: z.string(),
-		enabled: z.boolean().default(true),
-		serviceName: z.string(),
-		scheduleType: z.enum([
-			"application",
-			"compose",
-			"server",
-			"dokploy-server",
-		]),
-		script: z.string(),
-		timezone: z.string().optional(),
-	})
-	.superRefine((data, ctx) => {
-		if (data.scheduleType === "compose" && !data.serviceName) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message: "Service name is required",
-				path: ["serviceName"],
-			});
-		}
+		enabled: z.boolean(),
+			serviceName: z.string(),
+			scheduleType: z.enum([
+				"application",
+				"compose",
+				"server",
+				"dokploy-server",
+			]),
+			script: z.string(),
+			timezone: z.string().optional(),
+		})
+		.superRefine((data, ctx) => {
+			if (data.scheduleType === "compose" && !data.serviceName) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: t("forms.validation.serviceNameRequired"),
+					path: ["serviceName"],
+				});
+			}
 
-		if (
-			(data.scheduleType === "dokploy-server" ||
-				data.scheduleType === "server") &&
-			!data.script
-		) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message: "Script is required",
-				path: ["script"],
-			});
-		}
+			if (
+				(data.scheduleType === "dokploy-server" ||
+					data.scheduleType === "server") &&
+				!data.script
+			) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: t("forms.validation.scriptRequired"),
+					path: ["script"],
+				});
+			}
 
-		if (
-			(data.scheduleType === "application" ||
-				data.scheduleType === "compose") &&
-			!data.command
-		) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message: "Command is required",
-				path: ["command"],
-			});
-		}
-	});
+			if (
+				(data.scheduleType === "application" ||
+					data.scheduleType === "compose") &&
+				!data.command
+			) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: t("forms.validation.commandRequired"),
+					path: ["command"],
+				});
+			}
+		});
+
+type ScheduleFormValues = z.infer<ReturnType<typeof createScheduleFormSchema>>;
 
 interface Props {
 	id?: string;
@@ -134,14 +147,29 @@ interface Props {
 	scheduleType?: "application" | "compose" | "server" | "dokploy-server";
 }
 
-export const ScheduleFormField = ({
+export const ScheduleFormField = <T extends FieldValues>({
 	name,
 	formControl,
 }: {
-	name: string;
-	formControl: Control<any>;
+	name: Path<T>;
+	formControl: Control<T>;
 }) => {
+	const t = useTranslations("applicationSchedules");
 	const [selectedOption, setSelectedOption] = useState("");
+
+	const presetLabels = useMemo(
+		(): Record<CronPresetKey, string> => ({
+			everyMinute: t("forms.presets.everyMinute"),
+			everyHour: t("forms.presets.everyHour"),
+			everyDayMidnight: t("forms.presets.everyDayMidnight"),
+			everySundayMidnight: t("forms.presets.everySundayMidnight"),
+			monthlyFirstMidnight: t("forms.presets.monthlyFirstMidnight"),
+			every15Minutes: t("forms.presets.every15Minutes"),
+			weekdayMidnight: t("forms.presets.weekdayMidnight"),
+			custom: t("forms.presets.custom"),
+		}),
+		[t],
+	);
 
 	return (
 		<FormField
@@ -150,15 +178,15 @@ export const ScheduleFormField = ({
 			render={({ field }) => (
 				<FormItem>
 					<FormLabel className="flex items-center gap-2">
-						Schedule
+						{t("forms.scheduleLabel")}
 						<TooltipProvider>
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<Info className="w-4 h-4 text-muted-foreground cursor-help" />
 								</TooltipTrigger>
 								<TooltipContent>
-									<p>Cron expression format: minute hour day month weekday</p>
-									<p>Example: 0 0 * * * (daily at midnight)</p>
+									<p>{t("forms.scheduleTooltipLine1")}</p>
+									<p>{t("forms.scheduleTooltipLine2")}</p>
 								</TooltipContent>
 							</Tooltip>
 						</TooltipProvider>
@@ -173,13 +201,15 @@ export const ScheduleFormField = ({
 						>
 							<FormControl>
 								<SelectTrigger>
-									<SelectValue placeholder="Select a predefined schedule" />
+									<SelectValue
+										placeholder={t("forms.selectPresetPlaceholder")}
+									/>
 								</SelectTrigger>
 							</FormControl>
 							<SelectContent>
-								{commonCronExpressions.map((expr) => (
+								{CRON_PRESET_DEFS.map((expr) => (
 									<SelectItem key={expr.value} value={expr.value}>
-										{expr.label}
+										{presetLabels[expr.presetKey]}
 										{expr.value !== "custom" && ` (${expr.value})`}
 									</SelectItem>
 								))}
@@ -188,11 +218,11 @@ export const ScheduleFormField = ({
 						<div className="relative">
 							<FormControl>
 								<Input
-									placeholder="Custom cron expression (e.g., 0 0 * * *)"
+									placeholder={t("forms.customCronPlaceholder")}
 									{...field}
 									onChange={(e) => {
 										const value = e.target.value;
-										const commonExpression = commonCronExpressions.find(
+										const commonExpression = CRON_PRESET_DEFS.find(
 											(expression) => expression.value === value,
 										);
 										if (commonExpression) {
@@ -206,9 +236,7 @@ export const ScheduleFormField = ({
 							</FormControl>
 						</div>
 					</div>
-					<FormDescription>
-						Choose a predefined schedule or enter a custom cron expression
-					</FormDescription>
+					<FormDescription>{t("forms.scheduleDescription")}</FormDescription>
 					<FormMessage />
 				</FormItem>
 			)}
@@ -217,11 +245,14 @@ export const ScheduleFormField = ({
 };
 
 export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
+	const t = useTranslations("applicationSchedules");
+	const scheduleFormSchema = useMemo(() => createScheduleFormSchema(t), [t]);
+
 	const [isOpen, setIsOpen] = useState(false);
 	const [cacheType, setCacheType] = useState<CacheType>("cache");
 	const utils = api.useUtils();
-	const form = useForm({
-		resolver: standardSchemaResolver(formSchema),
+	const form = useForm<ScheduleFormValues>({
+		resolver: standardSchemaResolver(scheduleFormSchema),
 		defaultValues: {
 			name: "",
 			cronExpression: "",
@@ -279,7 +310,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 		? api.schedule.update.useMutation()
 		: api.schedule.create.useMutation();
 
-	const onSubmit = async (values: z.output<typeof formSchema>) => {
+	const onSubmit = async (values: ScheduleFormValues) => {
 		if (!id && !scheduleId) return;
 
 		await mutateAsync({
@@ -300,7 +331,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 		})
 			.then(() => {
 				toast.success(
-					`Schedule ${scheduleId ? "updated" : "created"} successfully`,
+					scheduleId ? t("forms.toastUpdated") : t("forms.toastCreated"),
 				);
 				utils.schedule.list.invalidate({
 					id,
@@ -308,9 +339,9 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 				});
 				setIsOpen(false);
 			})
-			.catch((error) => {
+			.catch((error: unknown) => {
 				toast.error(
-					error instanceof Error ? error.message : "An unknown error occurred",
+					error instanceof Error ? error.message : t("forms.toastUnknownError"),
 				);
 			});
 	};
@@ -329,7 +360,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 				) : (
 					<Button>
 						<PlusCircle className="w-4 h-4 mr-2" />
-						Add Schedule
+						{t("forms.addSchedule")}
 					</Button>
 				)}
 			</DialogTrigger>
@@ -341,10 +372,13 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 				)}
 			>
 				<DialogHeader>
-					<DialogTitle>{scheduleId ? "Edit" : "Create"} Schedule</DialogTitle>
+					<DialogTitle>
+						{scheduleId ? t("forms.dialogTitleEdit") : t("forms.dialogTitleCreate")}
+					</DialogTitle>
 					<DialogDescription>
-						{scheduleId ? "Manage" : "Create"} a schedule to run a task at a
-						specific time or interval.
+						{scheduleId
+							? t("forms.dialogDescriptionEdit")
+							: t("forms.dialogDescriptionCreate")}
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
@@ -364,7 +398,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 									name="serviceName"
 									render={({ field }) => (
 										<FormItem className="w-full">
-											<FormLabel>Service Name</FormLabel>
+											<FormLabel>{t("forms.serviceName")}</FormLabel>
 											<div className="flex gap-2">
 												<Select
 													onValueChange={field.onChange}
@@ -372,7 +406,9 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 												>
 													<FormControl>
 														<SelectTrigger>
-															<SelectValue placeholder="Select a service name" />
+															<SelectValue
+																placeholder={t("forms.selectServicePlaceholder")}
+															/>
 														</SelectTrigger>
 													</FormControl>
 
@@ -386,7 +422,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 															</SelectItem>
 														))}
 														<SelectItem value="none" disabled>
-															Empty
+															{t("forms.serviceEmpty")}
 														</SelectItem>
 													</SelectContent>
 												</Select>
@@ -413,10 +449,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 															sideOffset={5}
 															className="max-w-[10rem]"
 														>
-															<p>
-																Fetch: Will clone the repository and load the
-																services
-															</p>
+															<p>{t("forms.fetchTooltip")}</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
@@ -443,11 +476,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 															sideOffset={5}
 															className="max-w-[10rem]"
 														>
-															<p>
-																Cache: If you previously deployed this compose,
-																it will read the services from the last
-																deployment/fetch from the repository
-															</p>
+															<p>{t("forms.cacheTooltip")}</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
@@ -466,14 +495,15 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel className="flex items-center gap-2">
-										Task Name
+										{t("forms.taskName")}
 									</FormLabel>
 									<FormControl>
-										<Input placeholder="Daily Database Backup" {...field} />
+										<Input
+											placeholder={t("forms.taskNamePlaceholder")}
+											{...field}
+										/>
 									</FormControl>
-									<FormDescription>
-										A descriptive name for your scheduled task
-									</FormDescription>
+									<FormDescription>{t("forms.taskNameDescription")}</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -490,17 +520,14 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel className="flex items-center gap-2">
-										Timezone
+										{t("forms.timezoneLabel")}
 										<TooltipProvider>
 											<Tooltip>
 												<TooltipTrigger asChild>
 													<Info className="w-4 h-4 text-muted-foreground cursor-help" />
 												</TooltipTrigger>
 												<TooltipContent>
-													<p>
-														Select a timezone for the schedule. If not
-														specified, UTC will be used.
-													</p>
+													<p>{t("forms.timezoneTooltip")}</p>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
@@ -515,7 +542,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{getTimezoneLabel(field.value)}
+													{getTimezoneLabel(field.value, t("forms.utcDefault"))}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
@@ -523,11 +550,11 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 										<PopoverContent className="w-[400px] p-0" align="start">
 											<Command>
 												<CommandInput
-													placeholder="Search timezone..."
+													placeholder={t("forms.timezoneSearchPlaceholder")}
 													className="h-9"
 												/>
 												<CommandList>
-													<CommandEmpty>No timezone found.</CommandEmpty>
+													<CommandEmpty>{t("forms.timezoneEmpty")}</CommandEmpty>
 													<ScrollArea className="h-72">
 														{Object.entries(TIMEZONES).map(
 															([region, zones]) => (
@@ -559,9 +586,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 											</Command>
 										</PopoverContent>
 									</Popover>
-									<FormDescription>
-										Optional: Choose a timezone for the schedule execution time
-									</FormDescription>
+									<FormDescription>{t("forms.timezoneDescription")}</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -576,7 +601,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel className="flex items-center gap-2">
-												Shell Type
+												{t("forms.shellType")}
 											</FormLabel>
 											<Select
 												onValueChange={field.onChange}
@@ -584,7 +609,9 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select shell type" />
+														<SelectValue
+															placeholder={t("forms.selectShellPlaceholder")}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
@@ -592,9 +619,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 													<SelectItem value="sh">Sh</SelectItem>
 												</SelectContent>
 											</Select>
-											<FormDescription>
-												Choose the shell to execute your command
-											</FormDescription>
+											<FormDescription>{t("forms.shellDescription")}</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}
@@ -605,14 +630,15 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel className="flex items-center gap-2">
-												Command
+												{t("forms.command")}
 											</FormLabel>
 											<FormControl>
-												<Input placeholder="npm run backup" {...field} />
+												<Input
+													placeholder={t("forms.commandPlaceholder")}
+													{...field}
+												/>
 											</FormControl>
-											<FormDescription>
-												The command to execute in your container
-											</FormDescription>
+											<FormDescription>{t("forms.commandDescription")}</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}
@@ -627,7 +653,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 								name="script"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Script</FormLabel>
+										<FormLabel>{t("forms.script")}</FormLabel>
 										<FormControl>
 											<FormControl>
 												<CodeEditor
@@ -656,14 +682,14 @@ echo "Hello, world!"
 											checked={field.value}
 											onCheckedChange={field.onChange}
 										/>
-										Enabled
+										{t("forms.enabledLabel")}
 									</FormLabel>
 								</FormItem>
 							)}
 						/>
 
 						<Button type="submit" isLoading={isPending} className="w-full">
-							{scheduleId ? "Update" : "Create"} Schedule
+							{scheduleId ? t("forms.submitUpdate") : t("forms.submitCreate")}
 						</Button>
 					</form>
 				</Form>

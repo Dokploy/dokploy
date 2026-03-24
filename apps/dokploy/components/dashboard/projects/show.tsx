@@ -59,7 +59,7 @@ import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
 
 export const ShowProjects = () => {
-	const t = useTranslations();
+	const t = useTranslations("dashboardProjects");
 	const utils = api.useUtils();
 	const router = useRouter();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -204,7 +204,7 @@ export const ShowProjects = () => {
 			<BreadcrumbSidebar
 				list={[
 					{
-						name: t("dashboardProjects.breadcrumbTitle"),
+						name: t("breadcrumbTitle"),
 						href: "/dashboard/projects",
 					},
 				]}
@@ -216,10 +216,10 @@ export const ShowProjects = () => {
 							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
-									{t("dashboardProjects.title")}
+									{t("title")}
 								</CardTitle>
 								<CardDescription>
-									{t("dashboardProjects.description")}
+									{t("description")}
 								</CardDescription>
 							</CardHeader>
 							{permissions?.project.create && (
@@ -232,7 +232,7 @@ export const ShowProjects = () => {
 						<CardContent className="flex flex-1 flex-col gap-4 space-y-2 py-8 border-t">
 							{isPending ? (
 								<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[60vh]">
-									<span>{t("dashboardProjects.loading")}</span>
+									<span>{t("loading")}</span>
 									<Loader2 className="animate-spin size-4" />
 								</div>
 							) : (
@@ -240,7 +240,7 @@ export const ShowProjects = () => {
 									<div className="flex max-sm:flex-col gap-4 items-center w-full">
 										<div className="flex-1 relative max-sm:w-full">
 											<FocusShortcutInput
-												placeholder={t("dashboardProjects.searchPlaceholder")}
+												placeholder={t("searchPlaceholder")}
 												value={searchQuery}
 												onChange={(e) => setSearchQuery(e.target.value)}
 												className="pr-10"
@@ -266,28 +266,28 @@ export const ShowProjects = () => {
 													<SelectTrigger className="w-full">
 														<SelectValue
 															placeholder={t(
-																"dashboardProjects.sortPlaceholder",
+																"sortPlaceholder",
 															)}
 														/>
 													</SelectTrigger>
 													<SelectContent>
 														<SelectItem value="name-asc">
-															{t("dashboardProjects.sort.nameAsc")}
+															{t("sort.nameAsc")}
 														</SelectItem>
 														<SelectItem value="name-desc">
-															{t("dashboardProjects.sort.nameDesc")}
+															{t("sort.nameDesc")}
 														</SelectItem>
 														<SelectItem value="createdAt-desc">
-															{t("dashboardProjects.sort.newestFirst")}
+															{t("sort.newestFirst")}
 														</SelectItem>
 														<SelectItem value="createdAt-asc">
-															{t("dashboardProjects.sort.oldestFirst")}
+															{t("sort.oldestFirst")}
 														</SelectItem>
 														<SelectItem value="services-desc">
-															{t("dashboardProjects.sort.mostServices")}
+															{t("sort.mostServices")}
 														</SelectItem>
 														<SelectItem value="services-asc">
-															{t("dashboardProjects.sort.leastServices")}
+															{t("sort.leastServices")}
 														</SelectItem>
 													</SelectContent>
 												</Select>
@@ -298,7 +298,7 @@ export const ShowProjects = () => {
 										<div className="mt-6 flex h-[50vh] w-full flex-col items-center justify-center space-y-4">
 											<FolderInput className="size-8 self-center text-muted-foreground" />
 											<span className="text-center font-medium text-muted-foreground">
-												{t("dashboardProjects.empty")}
+												{t("empty")}
 											</span>
 										</div>
 									)}
@@ -388,7 +388,7 @@ export const ShowProjects = () => {
 																				<AlertTriangle className="size-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
 																				<span className="text-xs text-yellow-600 dark:text-yellow-400">
 																					{t(
-																						"dashboardProjects.noEnvironmentsWarning",
+																						"noEnvironmentsWarning",
 																					)}
 																				</span>
 																			</div>
@@ -410,7 +410,7 @@ export const ShowProjects = () => {
 																				onClick={(e) => e.stopPropagation()}
 																			>
 																				<DropdownMenuLabel className="font-normal">
-																					{t("dashboardProjects.actions")}
+																					{t("actions")}
 																				</DropdownMenuLabel>
 																				<div
 																					onClick={(e) => e.stopPropagation()}
@@ -442,7 +442,7 @@ export const ShowProjects = () => {
 																									<TrashIcon className="size-4" />
 																									<span>
 																										{t(
-																											"dashboardProjects.delete",
+																											"delete",
 																										)}
 																									</span>
 																								</DropdownMenuItem>
@@ -451,7 +451,7 @@ export const ShowProjects = () => {
 																								<AlertDialogHeader>
 																									<AlertDialogTitle>
 																										{t(
-																											"dashboardProjects.deleteConfirmTitle",
+																											"deleteConfirmTitle",
 																										)}
 																									</AlertDialogTitle>
 																									{!emptyServices ? (
@@ -459,14 +459,14 @@ export const ShowProjects = () => {
 																											<AlertTriangle className="text-yellow-600 dark:text-yellow-400" />
 																											<span className="text-sm text-yellow-600 dark:text-yellow-400">
 																												{t(
-																													"dashboardProjects.activeServicesWarning",
+																													"activeServicesWarning",
 																												)}
 																											</span>
 																										</div>
 																									) : (
 																										<AlertDialogDescription>
 																											{t(
-																												"dashboardProjects.deleteCannotUndo",
+																												"deleteCannotUndo",
 																											)}
 																										</AlertDialogDescription>
 																									)}
@@ -474,7 +474,7 @@ export const ShowProjects = () => {
 																								<AlertDialogFooter>
 																									<AlertDialogCancel>
 																										{t(
-																											"dashboardProjects.cancel",
+																											"cancel",
 																										)}
 																									</AlertDialogCancel>
 																									<AlertDialogAction
@@ -487,14 +487,14 @@ export const ShowProjects = () => {
 																												.then(() => {
 																													toast.success(
 																														t(
-																															"dashboardProjects.deletedSuccess",
+																															"deletedSuccess",
 																														),
 																													);
 																												})
 																												.catch(() => {
 																													toast.error(
 																														t(
-																															"dashboardProjects.deleteError",
+																															"deleteError",
 																														),
 																													);
 																												})
@@ -504,7 +504,7 @@ export const ShowProjects = () => {
 																										}}
 																									>
 																										{t(
-																											"dashboardProjects.delete",
+																											"delete",
 																										)}
 																									</AlertDialogAction>
 																								</AlertDialogFooter>
@@ -520,13 +520,13 @@ export const ShowProjects = () => {
 															<CardFooter className="pt-4">
 																<div className="space-y-1 text-xs flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
 																	<DateTooltip date={project.createdAt}>
-																		{t("dashboardProjects.created")}
+																		{t("created")}
 																	</DateTooltip>
 																	<span>
 																		{totalServices}{" "}
 																		{totalServices === 1
-																			? t("dashboardProjects.serviceSingle")
-																			: t("dashboardProjects.servicePlural")}
+																			? t("serviceSingle")
+																			: t("servicePlural")}
 																	</span>
 																</div>
 															</CardFooter>

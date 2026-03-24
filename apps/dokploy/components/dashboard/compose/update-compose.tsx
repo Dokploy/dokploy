@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -27,20 +28,26 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
-const updateComposeSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	description: z.string().optional(),
-});
+const createUpdateComposeSchema = (
+	t: ReturnType<typeof useTranslations<"composeGeneral">>,
+) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("editCompose.validation.nameRequired"),
+		}),
+		description: z.string().optional(),
+	});
 
-type UpdateCompose = z.infer<typeof updateComposeSchema>;
+type UpdateComposeForm = z.infer<ReturnType<typeof createUpdateComposeSchema>>;
 
 interface Props {
 	composeId: string;
 }
 
 export const UpdateCompose = ({ composeId }: Props) => {
+	const t = useTranslations("composeGeneral");
+	const updateComposeSchema = useMemo(() => createUpdateComposeSchema(t), [t]);
+
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isPending } =
@@ -53,7 +60,7 @@ export const UpdateCompose = ({ composeId }: Props) => {
 			enabled: !!composeId,
 		},
 	);
-	const form = useForm<UpdateCompose>({
+	const form = useForm<UpdateComposeForm>({
 		defaultValues: {
 			description: data?.description ?? "",
 			name: data?.name ?? "",
@@ -69,23 +76,22 @@ export const UpdateCompose = ({ composeId }: Props) => {
 		}
 	}, [data, form, form.reset]);
 
-	const onSubmit = async (formData: UpdateCompose) => {
+	const onSubmit = async (formData: UpdateComposeForm) => {
 		await mutateAsync({
 			name: formData.name,
 			composeId: composeId,
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Compose updated successfully");
+				toast.success(t("editCompose.toastSuccess"));
 				utils.compose.one.invalidate({
 					composeId: composeId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating the Compose");
-			})
-			.finally(() => {});
+				toast.error(t("editCompose.toastError"));
+			});
 	};
 
 	return (
@@ -101,8 +107,10 @@ export const UpdateCompose = ({ composeId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify Compose</DialogTitle>
-					<DialogDescription>Update the compose data</DialogDescription>
+					<DialogTitle>{t("editCompose.dialogTitle")}</DialogTitle>
+					<DialogDescription>
+						{t("editCompose.dialogDescription")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -119,9 +127,12 @@ export const UpdateCompose = ({ composeId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("editCompose.nameLabel")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Vandelay Industries" {...field} />
+												<Input
+													placeholder={t("editCompose.namePlaceholder")}
+													{...field}
+												/>
 											</FormControl>
 
 											<FormMessage />
@@ -133,10 +144,10 @@ export const UpdateCompose = ({ composeId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>{t("editCompose.descriptionLabel")}</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t("editCompose.descriptionPlaceholder")}
 													className="resize-none"
 													{...field}
 												/>
@@ -152,7 +163,7 @@ export const UpdateCompose = ({ composeId }: Props) => {
 										form="hook-form-update-compose"
 										type="submit"
 									>
-										Update
+										{t("editCompose.submit")}
 									</Button>
 								</DialogFooter>
 							</form>

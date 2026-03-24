@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Eye, EyeOff, LayoutDashboardIcon, RefreshCw } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -80,6 +81,7 @@ const Schema = z.object({
 type Schema = z.infer<typeof Schema>;
 
 export const SetupMonitoring = ({ serverId }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const { data: serverData } = serverId
 		? api.server.one.useQuery(
 				{
@@ -227,10 +229,10 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 			metricsConfig: values.metricsConfig,
 		})
 			.then(() => {
-				toast.success("Server updated successfully");
+				toast.success(tToast("serverUpdatedSuccess"));
 			})
 			.catch(() => {
-				toast.error("Error updating the server");
+				toast.error(tToast("serverUpdateError"));
 			});
 	};
 
@@ -594,7 +596,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 															"metricsConfig.server.token",
 															newToken,
 														);
-														toast.success("Token generated successfully");
+														toast.success(tToast("tokenGeneratedSuccess"));
 													}}
 													title="Generate new token"
 												>

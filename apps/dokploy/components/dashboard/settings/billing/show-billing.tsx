@@ -10,6 +10,7 @@ import {
 	PlusIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -78,6 +79,7 @@ const navigationItems = [
 ];
 
 export const ShowBilling = () => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const router = useRouter();
 	const { data: servers } = api.server.count.useQuery();
 	const { data: admin } = api.user.get.useQuery();
@@ -365,9 +367,9 @@ export const ShowBilling = () => {
 															await utils.stripe.getProducts.invalidate();
 															await utils.user.get.invalidate();
 															setUpgradeTier(null);
-															toast.success("Plan upgraded successfully");
+															toast.success(tToast("planUpgradedSuccess"));
 														} catch {
-															toast.error("Error upgrading plan");
+															toast.error(tToast("planUpgradeError"));
 														}
 													}}
 												>
@@ -597,10 +599,10 @@ export const ShowBilling = () => {
 															await utils.user.get.invalidate();
 															setUpgradeTier(null);
 															toast.success(
-																"Subscription updated successfully",
+																tToast("subscriptionUpdatedSuccess"),
 															);
 														} catch {
-															toast.error("Error updating subscription");
+															toast.error(tToast("subscriptionUpdateError"));
 														}
 													}}
 												>

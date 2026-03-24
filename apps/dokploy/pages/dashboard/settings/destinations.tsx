@@ -18,7 +18,9 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout metaName="S3 Destinations">{page}</DashboardLayout>;
+	return (
+		<DashboardLayout pageTitleKey="destinations">{page}</DashboardLayout>
+	);
 };
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,

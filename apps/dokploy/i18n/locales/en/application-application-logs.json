@@ -1,0 +1,13 @@
+{
+	"applicationApplicationLogs": {
+		"title": "Logs",
+		"description": "Watch the logs of the application in real time",
+		"selectContainerLabel": "Select a container to view logs",
+		"modeNative": "Native",
+		"modeSwarm": "Swarm",
+		"loading": "Loading...",
+		"selectPlaceholder": "Select a container",
+		"containersGroup": "Containers ({count})",
+		"errorPrefix": "Error: "
+	}
+}

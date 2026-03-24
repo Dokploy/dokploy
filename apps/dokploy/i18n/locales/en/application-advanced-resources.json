@@ -1,0 +1,61 @@
+{
+	"applicationAdvancedResources": {
+		"title": "Resources",
+		"description": "If you want to decrease or increase the resources to a specific application or database",
+		"alertRedeploy": "Please remember to click Redeploy after modify the resources to apply the changes.",
+		"memoryLimit": "Memory Limit",
+		"memoryReservation": "Memory Reservation",
+		"cpuLimit": "CPU Limit",
+		"cpuReservation": "CPU Reservation",
+		"tooltip": {
+			"memoryLimit": "Memory hard limit in bytes. Example: 1GB = 1073741824 bytes. Use +/- buttons to adjust by 256 MB.",
+			"memoryReservation": "Memory soft limit in bytes. Example: 256MB = 268435456 bytes. Use +/- buttons to adjust by 256 MB.",
+			"cpuLimit": "CPU quota in units of 10^-9 CPUs. Example: 2 CPUs = 2000000000. Use +/- buttons to adjust by 0.25 CPU.",
+			"cpuReservation": "CPU shares (relative weight). Example: 1 CPU = 1000000000. Use +/- buttons to adjust by 0.25 CPU.",
+			"ulimits": "Set resource limits for the container. Each ulimit has a soft limit (warning threshold) and hard limit (maximum allowed). Use -1 for unlimited."
+		},
+		"placeholder": {
+			"memoryLimit": "1073741824 (1GB in bytes)",
+			"memoryReservation": "268435456 (256MB in bytes)",
+			"cpuLimit": "2000000000 (2 CPUs)",
+			"cpuReservation": "1000000000 (1 CPU)"
+		},
+		"units": {
+			"cpu": "CPU",
+			"gb": "GB",
+			"mb": "MB"
+		},
+		"ulimits": {
+			"label": "Ulimits",
+			"add": "Add Ulimit",
+			"type": "Type",
+			"softLimit": "Soft Limit",
+			"hardLimit": "Hard Limit",
+			"selectPlaceholder": "Select ulimit",
+			"emptyHint": "No ulimits configured. Click \"Add Ulimit\" to set resource limits."
+		},
+		"ulimitPresets": {
+			"nofile": "nofile (Open Files)",
+			"nproc": "nproc (Processes)",
+			"memlock": "memlock (Locked Memory)",
+			"stack": "stack (Stack Size)",
+			"core": "core (Core File Size)",
+			"cpu": "cpu (CPU Time)",
+			"data": "data (Data Segment)",
+			"fsize": "fsize (File Size)",
+			"locks": "locks (File Locks)",
+			"msgqueue": "msgqueue (Message Queues)",
+			"nice": "nice (Nice Priority)",
+			"rtprio": "rtprio (Real-time Priority)",
+			"sigpending": "sigpending (Pending Signals)"
+		},
+		"validation": {
+			"nameRequired": "Name is required",
+			"minMinusOne": "Must be >= -1"
+		},
+		"toast": {
+			"success": "Resources updated",
+			"error": "Error updating the resources"
+		}
+	}
+}

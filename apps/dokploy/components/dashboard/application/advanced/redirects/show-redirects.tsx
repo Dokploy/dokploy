@@ -1,4 +1,5 @@
 import { Split, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export const ShowRedirects = ({ applicationId }: Props) => {
+	const t = useTranslations("applicationAdvancedRedirects.show");
 	const { data, refetch } = api.application.one.useQuery(
 		{
 			applicationId,
@@ -33,16 +35,13 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between flex-wrap gap-4">
 				<div>
-					<CardTitle className="text-xl">Redirects</CardTitle>
-					<CardDescription>
-						If you want to redirect requests to this application use the
-						following config to setup the redirects
-					</CardDescription>
+					<CardTitle className="text-xl">{t("title")}</CardTitle>
+					<CardDescription>{t("description")}</CardDescription>
 				</div>
 
 				{data && data?.redirects.length > 0 && (
 					<HandleRedirect applicationId={applicationId}>
-						Add Redirect
+						{t("addRedirect")}
 					</HandleRedirect>
 				)}
 			</CardHeader>
@@ -50,11 +49,9 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 				{data?.redirects.length === 0 ? (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 						<Split className="size-8 text-muted-foreground" />
-						<span className="text-base text-muted-foreground">
-							No redirects configured
-						</span>
+						<span className="text-base text-muted-foreground">{t("empty")}</span>
 						<HandleRedirect applicationId={applicationId}>
-							Add Redirect
+							{t("addRedirect")}
 						</HandleRedirect>
 					</div>
 				) : (
@@ -65,21 +62,21 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 									<div className="flex w-full flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-10 border rounded-lg p-4">
 										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 flex-col gap-4 sm:gap-8">
 											<div className="flex flex-col gap-1">
-												<span className="font-medium">Regex</span>
+												<span className="font-medium">{t("regex")}</span>
 												<span className="text-sm text-muted-foreground">
 													{redirect.regex}
 												</span>
 											</div>
 											<div className="flex flex-col gap-1">
-												<span className="font-medium">Replacement</span>
+												<span className="font-medium">{t("replacement")}</span>
 												<span className="text-sm text-muted-foreground">
 													{redirect.replacement}
 												</span>
 											</div>
 											<div className="flex flex-col gap-1">
-												<span className="font-medium">Permanent</span>
+												<span className="font-medium">{t("permanent")}</span>
 												<span className="text-sm text-muted-foreground">
-													{redirect.permanent ? "Yes" : "No"}
+													{redirect.permanent ? t("yes") : t("no")}
 												</span>
 											</div>
 										</div>
@@ -90,8 +87,8 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 											/>
 
 											<DialogAction
-												title="Delete Redirect"
-												description="Are you sure you want to delete this redirect?"
+												title={t("deleteTitle")}
+												description={t("deleteDescription")}
 												type="destructive"
 												onClick={async () => {
 													await deleteRedirect({
@@ -102,10 +99,10 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 															utils.application.readTraefikConfig.invalidate({
 																applicationId,
 															});
-															toast.success("Redirect deleted successfully");
+															toast.success(t("toastDeleteSuccess"));
 														})
 														.catch(() => {
-															toast.error("Error deleting redirect");
+															toast.error(t("toastDeleteError"));
 														});
 												}}
 											>

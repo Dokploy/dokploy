@@ -1,4 +1,5 @@
 import { Tags } from "lucide-react";
+import { useTranslations } from "next-intl";
 import * as React from "react";
 import { HandleTag } from "@/components/dashboard/settings/tags/handle-tag";
 import { TagBadge } from "@/components/shared/tag-badge";
@@ -39,6 +40,7 @@ export function TagFilter({
 	onTagsChange,
 	className,
 }: TagFilterProps) {
+	const t = useTranslations("tagPicker");
 	const [open, setOpen] = React.useState(false);
 
 	const handleTagToggle = (tagId: string) => {
@@ -76,7 +78,7 @@ export function TagFilter({
 					<Command>
 						<div className="flex items-center border-b px-3">
 							<CommandInput
-								placeholder="Search tags..."
+								placeholder={t("searchPlaceholder")}
 								className="h-9 focus-visible:ring-0"
 							/>
 							{selectedTags.length > 0 && (
@@ -86,7 +88,7 @@ export function TagFilter({
 									onClick={handleClearAll}
 									className="h-8 px-2 text-xs"
 								>
-									Clear
+									{t("clear")}
 								</Button>
 							)}
 						</div>
@@ -94,7 +96,7 @@ export function TagFilter({
 							<CommandEmpty>
 								<div className="flex flex-col items-center gap-2 py-1">
 									<span className="text-sm text-muted-foreground">
-										No tags found.
+										{t("noTagsFound")}
 									</span>
 									<HandleTag />
 								</div>

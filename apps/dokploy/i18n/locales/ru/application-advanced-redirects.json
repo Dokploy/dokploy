@@ -1,0 +1,45 @@
+{
+	"applicationAdvancedRedirects": {
+		"show": {
+			"title": "Редиректы",
+			"description": "Чтобы перенаправлять запросы к приложению, настройте редиректы ниже",
+			"addRedirect": "Добавить редирект",
+			"empty": "Редиректы не настроены",
+			"regex": "Regex",
+			"replacement": "Replacement",
+			"permanent": "Permanent",
+			"yes": "Да",
+			"no": "Нет",
+			"deleteTitle": "Удалить редирект",
+			"deleteDescription": "Удалить этот редирект?",
+			"toastDeleteSuccess": "Редирект удалён",
+			"toastDeleteError": "Не удалось удалить редирект"
+		},
+		"form": {
+			"title": "Редиректы",
+			"description": "Редиректы перенаправляют запросы на другой URL.",
+			"presets": "Пресеты",
+			"noPreset": "Пресет не выбран",
+			"presetToWww": "Редирект на www",
+			"presetToNonWww": "Редирект на non-www",
+			"regex": "Regex",
+			"replacement": "Replacement",
+			"permanent": "Permanent",
+			"permanentDesc": "Включите permanent для постоянного редиректа (301).",
+			"validation": {
+				"regex": "Укажите regex",
+				"replacement": "Укажите replacement"
+			},
+			"toast": {
+				"created": "Редирект создан",
+				"updated": "Редирект обновлён",
+				"errorCreate": "Не удалось создать редирект",
+				"errorUpdate": "Не удалось обновить редирект"
+			},
+			"actions": {
+				"create": "Создать",
+				"update": "Обновить"
+			}
+		}
+	}
+}

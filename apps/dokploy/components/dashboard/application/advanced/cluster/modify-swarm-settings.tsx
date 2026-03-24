@@ -1,5 +1,6 @@
 import { Settings } from "lucide-react";
-import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { useMemo, useState } from "react";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,92 +31,18 @@ import {
 	UpdateConfigForm,
 } from "./swarm-forms";
 
-type MenuItem = {
-	id: string;
-	label: string;
-	description: string;
-	docDescription: string;
-};
-
-const menuItems: MenuItem[] = [
-	{
-		id: "health-check",
-		label: "Health Check",
-		description: "Configure health check settings",
-		docDescription:
-			"Configure HEALTHCHECK to test a container's health. Determines if a container is healthy by running a command inside the container. Test, Interval, Timeout, StartPeriod, and Retries control health monitoring.",
-	},
-	{
-		id: "restart-policy",
-		label: "Restart Policy",
-		description: "Configure restart policy",
-		docDescription:
-			"Configure the restart policy for containers in the service. Condition (none, on-failure, any), Delay (nanoseconds between restarts), MaxAttempts, and Window control restart behavior.",
-	},
-	{
-		id: "placement",
-		label: "Placement",
-		description: "Configure placement constraints",
-		docDescription:
-			"Control which nodes service tasks can be scheduled on. Constraints (node.id==xyz), Preferences (spread.node.labels.zone), MaxReplicas, and Platforms specify task placement rules.",
-	},
-	{
-		id: "update-config",
-		label: "Update Config",
-		description: "Configure update strategy",
-		docDescription:
-			"Configure how the service should be updated. Parallelism (tasks updated simultaneously), Delay, FailureAction (pause, continue, rollback), Monitor, MaxFailureRatio, and Order (stop-first, start-first) control updates.",
-	},
-	{
-		id: "rollback-config",
-		label: "Rollback Config",
-		description: "Configure rollback strategy",
-		docDescription:
-			"Configure automated rollback on update failure. Uses same parameters as UpdateConfig: Parallelism, Delay, FailureAction, Monitor, MaxFailureRatio, and Order.",
-	},
-	{
-		id: "mode",
-		label: "Mode",
-		description: "Configure service mode",
-		docDescription:
-			"Set service mode to either 'Replicated' with a specified number of tasks (Replicas), or 'Global' (one task per node).",
-	},
-	{
-		id: "network",
-		label: "Network",
-		description: "Configure network attachments",
-		docDescription:
-			"Attach the service to one or more networks. Specify the network name (Target) and optional network aliases for service discovery.",
-	},
-	{
-		id: "labels",
-		label: "Labels",
-		description: "Configure service labels",
-		docDescription:
-			"Add metadata to services using labels. Labels are key-value pairs (e.g., com.example.foo=bar) for organizing and filtering services.",
-	},
-	{
-		id: "stop-grace-period",
-		label: "Stop Grace Period",
-		description: "Configure stop grace period",
-		docDescription:
-			"Time to wait before forcefully killing a container. Specified in nanoseconds (e.g., 10000000000 = 10 seconds). Allows containers to shutdown gracefully.",
-	},
-	{
-		id: "endpoint-spec",
-		label: "Endpoint Spec",
-		description: "Configure endpoint specification",
-		docDescription:
-			"Configure endpoint mode for service discovery. Mode 'vip' (virtual IP - default) uses a single virtual IP. Mode 'dnsrr' (DNS round-robin) returns DNS entries for all tasks.",
-	},
-];
-
-const hasStopGracePeriodSwarm = (
-	value: unknown,
-): value is { stopGracePeriodSwarm: bigint | number | string | null } =>
-	typeof value === "object" &&
-	value !== null &&
-	"stopGracePeriodSwarm" in value;
+const MENU_CONFIG = [
+	{ id: "health-check", nsKey: "healthCheck" },
+	{ id: "restart-policy", nsKey: "restartPolicy" },
+	{ id: "placement", nsKey: "placement" },
+	{ id: "update-config", nsKey: "updateConfig" },
+	{ id: "rollback-config", nsKey: "rollbackConfig" },
+	{ id: "mode", nsKey: "mode" },
+	{ id: "network", nsKey: "network" },
+	{ id: "labels", nsKey: "labels" },
+	{ id: "stop-grace-period", nsKey: "stopGracePeriod" },
+	{ id: "endpoint-spec", nsKey: "endpointSpec" },
+] as const;
 
 interface Props {
 	id: string;
@@ -123,32 +50,39 @@ interface Props {
 }
 
 export const AddSwarmSettings = ({ id, type }: Props) => {
+	const t = useTranslations("applicationAdvancedSwarmForms");
 	const [activeMenu, setActiveMenu] = useState<string>("health-check");
 	const [open, setOpen] = useState(false);
+
+	const menuItems = useMemo(
+		() =>
+			MENU_CONFIG.map(({ id: menuId, nsKey }) => ({
+				id: menuId,
+				label: t(`menu.${nsKey}.label`),
+				description: t(`menu.${nsKey}.description`),
+				docDescription: t(`menu.${nsKey}.doc`),
+			})),
+		[t],
+	);
+
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				<Button variant="secondary" className="cursor-pointer w-fit">
 					<Settings className="size-4 text-muted-foreground" />
-					Swarm Settings
+					{t("modify.button")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-6xl max-h-[85vh]">
 				<DialogHeader>
-					<DialogTitle>Swarm Settings</DialogTitle>
-					<DialogDescription>
-						Configure swarm settings for your service.
-					</DialogDescription>
+					<DialogTitle>{t("modify.title")}</DialogTitle>
+					<DialogDescription>{t("modify.description")}</DialogDescription>
 				</DialogHeader>
 				<div>
-					<AlertBlock type="info">
-						Changing settings such as placements may cause the logs/monitoring,
-						backups and other features to be unavailable.
-					</AlertBlock>
+					<AlertBlock type="info">{t("modify.alert")}</AlertBlock>
 				</div>
 
 				<div className="flex gap-4 h-[60vh] py-4">
-					{/* Left Column - Menu */}
 					<div className="w-64 flex-shrink-0 border-r pr-4 overflow-y-auto">
 						<nav className="space-y-1">
 							<TooltipProvider>
@@ -180,7 +114,6 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 						</nav>
 					</div>
 
-					{/* Right Column - Form */}
 					<div className="flex-1 overflow-y-auto">
 						{activeMenu === "health-check" && (
 							<HealthCheckForm id={id} type={type} />

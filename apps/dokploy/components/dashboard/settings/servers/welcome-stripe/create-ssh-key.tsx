@@ -1,6 +1,7 @@
 import copy from "copy-to-clipboard";
 import { CopyIcon, ExternalLinkIcon, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CodeEditor } from "@/components/shared/code-editor";
@@ -10,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { api } from "@/utils/api";
 
 export const CreateSSHKey = () => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const { data, refetch } = api.sshKey.all.useQuery();
 	const generateMutation = api.sshKey.generate.useMutation();
 	const { mutateAsync, isPending } = api.sshKey.create.useMutation();
@@ -127,7 +129,7 @@ export const CreateSSHKey = () => {
 															copy(
 																`echo "${cloudSSHKey?.publicKey}" >> ~/.ssh/authorized_keys`,
 															);
-															toast.success("Copied to clipboard");
+															toast.success(tToast("copiedToClipboard"));
 														}}
 													>
 														<CopyIcon className="size-4" />
@@ -158,7 +160,7 @@ export const CreateSSHKey = () => {
 															copy(
 																cloudSSHKey?.publicKey || "Generate a SSH Key",
 															);
-															toast.success("SSH Copied to clipboard");
+															toast.success(tToast("sshCopiedToClipboard"));
 														}}
 													>
 														<CopyIcon className="size-4 text-muted-foreground" />

@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+import { useMemo } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
 	Card,
@@ -16,24 +18,33 @@ import {
 import { formatTimestamp } from "@/lib/utils";
 
 interface CPUChartProps {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	data: any[];
 }
 
-const chartConfig = {
-	cpu: {
-		label: "CPU",
-		color: "hsl(var(--chart-1))",
-	},
-} satisfies ChartConfig;
-
 export function CPUChart({ data }: CPUChartProps) {
+	const t = useTranslations("monitoringDashboard.chartLabels");
+	const chartConfig = useMemo(
+		() =>
+			({
+				cpu: {
+					label: t("cpu"),
+					color: "hsl(var(--chart-1))",
+				},
+			}) satisfies ChartConfig,
+		[t],
+	);
 	const latestData = data[data.length - 1] || {};
 
 	return (
 		<Card className="bg-transparent">
 			<CardHeader className="border-b py-5">
-				<CardTitle>CPU</CardTitle>
-				<CardDescription>CPU Usage: {latestData.cpu}%</CardDescription>
+				<CardTitle>{t("cpu")}</CardTitle>
+				<CardDescription>
+					{t("cpuUsagePercent", {
+						value: String(latestData.cpu ?? 0),
+					})}
+				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
 				<ChartContainer
@@ -69,13 +80,13 @@ export function CPUChart({ data }: CPUChartProps) {
 							cursor={false}
 							content={({ active, payload, label }) => {
 								if (active && payload && payload.length) {
-									const data = payload?.[0]?.payload;
+									const row = payload?.[0]?.payload as { cpu?: number };
 									return (
 										<div className="rounded-lg border bg-background p-2 shadow-sm">
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Time
+														{t("time")}
 													</span>
 													<span className="font-bold">
 														{formatTimestamp(label)}
@@ -83,9 +94,9 @@ export function CPUChart({ data }: CPUChartProps) {
 												</div>
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														CPU
+														{t("cpu")}
 													</span>
-													<span className="font-bold">{data.cpu}%</span>
+													<span className="font-bold">{row.cpu}%</span>
 												</div>
 											</div>
 										</div>
@@ -95,7 +106,7 @@ export function CPUChart({ data }: CPUChartProps) {
 							}}
 						/>
 						<Area
-							name="CPU"
+							name={t("cpu")}
 							dataKey="cpu"
 							type="monotone"
 							fill="url(#fillCPU)"

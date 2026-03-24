@@ -1,5 +1,6 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -21,6 +22,8 @@ interface Props {
 }
 
 export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
+	const t = useTranslations("mariadbDashboard.general");
+	const tToast = useTranslations("settingsExtraToasts");
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canDeploy = permissions?.deployment.create ?? false;
 	const { data, refetch } = api.mariadb.one.useQuery(
@@ -59,8 +62,7 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 				const parsedLogs = parseLogs(log);
 				setFilteredLogs((prev) => [...prev, ...parsedLogs]);
 			},
-			onError(error) {
-				console.error("Deployment logs error:", error);
+			onError() {
 				setIsDeploying(false);
 			},
 		},
@@ -77,8 +79,8 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 						{canDeploy && (
 							<TooltipProvider delayDuration={0}>
 								<DialogAction
-									title="Deploy Mariadb"
-									description="Are you sure you want to deploy this mariadb?"
+									title={t("deployDialogTitle")}
+									description={t("deployDialogDescription")}
 									type="default"
 									onClick={async () => {
 										setIsDeploying(true);
@@ -95,12 +97,12 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<Rocket className="size-4 mr-1" />
-													Deploy
+													{t("deploy")}
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
-													<p>Downloads and sets up the MariaDB database</p>
+													<p>{t("deployTooltip")}</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -111,8 +113,8 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 						{canDeploy && (
 							<TooltipProvider delayDuration={0}>
 								<DialogAction
-									title="Reload Mariadb"
-									description="Are you sure you want to reload this mariadb?"
+									title={t("reloadDialogTitle")}
+									description={t("reloadDialogDescription")}
 									type="default"
 									onClick={async () => {
 										await reload({
@@ -120,11 +122,11 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 											appName: data?.appName || "",
 										})
 											.then(() => {
-												toast.success("Mariadb reloaded successfully");
+												toast.success(t("reloadToastSuccess"));
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error reloading Mariadb");
+												toast.error(t("reloadToastError"));
 											});
 									}}
 								>
@@ -137,12 +139,12 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<RefreshCcw className="size-4 mr-1" />
-													Reload
+													{t("reload")}
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
-													<p>Restart the MariaDB service without rebuilding</p>
+													<p>{t("reloadTooltip")}</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -154,19 +156,19 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 							(data?.applicationStatus === "idle" ? (
 								<TooltipProvider delayDuration={0}>
 									<DialogAction
-										title="Start Mariadb"
-										description="Are you sure you want to start this mariadb?"
+										title={t("startDialogTitle")}
+										description={t("startDialogDescription")}
 										type="default"
 										onClick={async () => {
 											await start({
 												mariadbId: mariadbId,
 											})
 												.then(() => {
-													toast.success("Mariadb started successfully");
+													toast.success(tToast("mariadbStartedSuccess"));
 													refetch();
 												})
 												.catch(() => {
-													toast.error("Error starting Mariadb");
+													toast.error(tToast("mariadbStartError"));
 												});
 										}}
 									>
@@ -179,15 +181,12 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 												<TooltipTrigger asChild>
 													<div className="flex items-center">
 														<CheckCircle2 className="size-4 mr-1" />
-														Start
+														{t("start")}
 													</div>
 												</TooltipTrigger>
 												<TooltipPrimitive.Portal>
 													<TooltipContent sideOffset={5} className="z-[60]">
-														<p>
-															Start the MariaDB database (requires a previous
-															successful setup)
-														</p>
+														<p>{t("startTooltip")}</p>
 													</TooltipContent>
 												</TooltipPrimitive.Portal>
 											</Tooltip>
@@ -197,18 +196,18 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 							) : (
 								<TooltipProvider delayDuration={0}>
 									<DialogAction
-										title="Stop Mariadb"
-										description="Are you sure you want to stop this mariadb?"
+										title={t("stopDialogTitle")}
+										description={t("stopDialogDescription")}
 										onClick={async () => {
 											await stop({
 												mariadbId: mariadbId,
 											})
 												.then(() => {
-													toast.success("Mariadb stopped successfully");
+													toast.success(t("stopToastSuccess"));
 													refetch();
 												})
 												.catch(() => {
-													toast.error("Error stopping Mariadb");
+													toast.error(t("stopToastError"));
 												});
 										}}
 									>
@@ -221,12 +220,12 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 												<TooltipTrigger asChild>
 													<div className="flex items-center">
 														<Ban className="size-4 mr-1" />
-														Stop
+														{t("stop")}
 													</div>
 												</TooltipTrigger>
 												<TooltipPrimitive.Portal>
 													<TooltipContent sideOffset={5} className="z-[60]">
-														<p>Stop the currently running MariaDB database</p>
+														<p>{t("stopTooltip")}</p>
 													</TooltipContent>
 												</TooltipPrimitive.Portal>
 											</Tooltip>
@@ -246,12 +245,12 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 									<TooltipTrigger asChild>
 										<div className="flex items-center">
 											<Terminal className="size-4 mr-1" />
-											Open Terminal
+											{t("openTerminal")}
 										</div>
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
 										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>Open a terminal to the MariaDB container</p>
+											<p>{t("openTerminalTooltip")}</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>
 								</Tooltip>

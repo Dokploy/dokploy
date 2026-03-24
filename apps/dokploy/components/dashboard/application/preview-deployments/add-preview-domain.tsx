@@ -1,9 +1,10 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Dices } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import type z from "zod";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,10 +40,51 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { domain } from "@/server/db/validations/domain";
 import { api } from "@/utils/api";
 
-type Domain = z.infer<typeof domain>;
+const createPreviewDomainSchema = (
+	t: ReturnType<typeof useTranslations<"applicationPreview">>,
+) =>
+	z
+		.object({
+			host: z
+				.string()
+				.min(1, { message: t("domain.validation.hostnameRequired") })
+				.refine((val) => val === val.trim(), {
+					message: t("domain.validation.hostTrim"),
+				})
+				.transform((val) => val.trim()),
+			path: z.string().min(1).optional(),
+			port: z
+				.number()
+				.min(1, { message: t("domain.validation.portMin") })
+				.max(65535, { message: t("domain.validation.portMax") })
+				.optional(),
+			https: z.boolean().optional(),
+			certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
+			customCertResolver: z.string().optional(),
+		})
+		.superRefine((input, ctx) => {
+			if (input.https && !input.certificateType) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["certificateType"],
+					message: t("domain.validation.required"),
+				});
+			}
+
+			if (input.certificateType === "custom" && !input.customCertResolver) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["customCertResolver"],
+					message: t("domain.validation.required"),
+				});
+			}
+		});
+
+type PreviewDomainForm = z.infer<
+	ReturnType<typeof createPreviewDomainSchema>
+>;
 
 interface Props {
 	previewDeploymentId: string;
@@ -55,6 +97,9 @@ export const AddPreviewDomain = ({
 	domainId = "",
 	children,
 }: Props) => {
+	const t = useTranslations("applicationPreview");
+	const previewDomainSchema = useMemo(() => createPreviewDomainSchema(t), [t]);
+
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data, refetch } = api.domain.one.useQuery(
@@ -82,8 +127,8 @@ export const AddPreviewDomain = ({
 	const { mutateAsync: generateDomain, isPending: isLoadingGenerate } =
 		api.domain.generateDomain.useMutation();
 
-	const form = useForm<Domain>({
-		resolver: zodResolver(domain),
+	const form = useForm<PreviewDomainForm>({
+		resolver: zodResolver(previewDomainSchema),
 	});
 
 	const host = form.watch("host");
@@ -93,7 +138,6 @@ export const AddPreviewDomain = ({
 		if (data) {
 			form.reset({
 				...data,
-				/* Convert null to undefined */
 				path: data?.path || undefined,
 				port: data?.port || undefined,
 				customCertResolver: data?.customCertResolver || undefined,
@@ -103,25 +147,18 @@ export const AddPreviewDomain = ({
 		if (!domainId) {
 			form.reset({});
 		}
-	}, [form, form.reset, data, isPending]);
+	}, [form, form.reset, data, isPending, domainId]);
 
-	const dictionary = {
-		success: domainId ? "Domain Updated" : "Domain Created",
-		error: domainId ? "Error updating the domain" : "Error creating the domain",
-		submit: domainId ? "Update" : "Create",
-		dialogDescription: domainId
-			? "In this section you can edit a domain"
-			: "In this section you can add domains",
-	};
-
-	const onSubmit = async (data: Domain) => {
+	const onSubmit = async (formData: PreviewDomainForm) => {
 		await mutateAsync({
 			domainId,
 			previewDeploymentId,
-			...data,
+			...formData,
 		})
 			.then(async () => {
-				toast.success(dictionary.success);
+				toast.success(
+					domainId ? t("domain.toastUpdateSuccess") : t("domain.toastCreateSuccess"),
+				);
 				await utils.previewDeployment.all.invalidate({
 					applicationId: previewDeployment?.applicationId,
 				});
@@ -132,7 +169,9 @@ export const AddPreviewDomain = ({
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error(dictionary.error);
+				toast.error(
+					domainId ? t("domain.toastUpdateError") : t("domain.toastCreateError"),
+				);
 			});
 	};
 	return (
@@ -142,8 +181,12 @@ export const AddPreviewDomain = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Domain</DialogTitle>
-					<DialogDescription>{dictionary.dialogDescription}</DialogDescription>
+					<DialogTitle>{t("domain.dialogTitle")}</DialogTitle>
+					<DialogDescription>
+						{domainId
+							? t("domain.dialogEditDescription")
+							: t("domain.dialogCreateDescription")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -162,15 +205,18 @@ export const AddPreviewDomain = ({
 										<FormItem>
 											{isTraefikMeDomain && (
 												<AlertBlock type="info">
-													<strong>Note:</strong> traefik.me is a public HTTP
-													service and does not support SSL/HTTPS. HTTPS and
-													certificate options will not have any effect.
+													{t.rich("shared.traefikMeNote", {
+														strong: (chunks) => <strong>{chunks}</strong>,
+													})}
 												</AlertBlock>
 											)}
-											<FormLabel>Host</FormLabel>
+											<FormLabel>{t("domain.host")}</FormLabel>
 											<div className="flex gap-2">
 												<FormControl>
-													<Input placeholder="api.dokploy.com" {...field} />
+													<Input
+														placeholder={t("domain.hostPlaceholder")}
+														{...field}
+													/>
 												</FormControl>
 												<TooltipProvider delayDuration={0}>
 													<Tooltip>
@@ -189,7 +235,7 @@ export const AddPreviewDomain = ({
 																		.then((domain) => {
 																			field.onChange(domain);
 																		})
-																		.catch((err) => {
+																		.catch((err: Error) => {
 																			toast.error(err.message);
 																		});
 																}}
@@ -202,7 +248,7 @@ export const AddPreviewDomain = ({
 															sideOffset={5}
 															className="max-w-[10rem]"
 														>
-															<p>Generate traefik.me domain</p>
+															<p>{t("domain.generateDomainTooltip")}</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
@@ -219,7 +265,7 @@ export const AddPreviewDomain = ({
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Path</FormLabel>
+												<FormLabel>{t("domain.path")}</FormLabel>
 												<FormControl>
 													<Input placeholder={"/"} {...field} />
 												</FormControl>
@@ -235,7 +281,7 @@ export const AddPreviewDomain = ({
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Container Port</FormLabel>
+												<FormLabel>{t("domain.containerPort")}</FormLabel>
 												<FormControl>
 													<NumberInput placeholder={"3000"} {...field} />
 												</FormControl>
@@ -251,9 +297,9 @@ export const AddPreviewDomain = ({
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
 											<div className="space-y-0.5">
-												<FormLabel>HTTPS</FormLabel>
+												<FormLabel>{t("domain.https")}</FormLabel>
 												<FormDescription>
-													Automatically provision SSL Certificate.
+													{t("domain.httpsDescription")}
 												</FormDescription>
 												<FormMessage />
 											</div>
@@ -273,21 +319,27 @@ export const AddPreviewDomain = ({
 										name="certificateType"
 										render={({ field }) => (
 											<FormItem className="col-span-2">
-												<FormLabel>Certificate Provider</FormLabel>
+												<FormLabel>{t("domain.certificateProvider")}</FormLabel>
 												<Select
 													onValueChange={field.onChange}
 													defaultValue={field.value || ""}
 												>
 													<FormControl>
 														<SelectTrigger>
-															<SelectValue placeholder="Select a certificate provider" />
+															<SelectValue
+																placeholder={t(
+																	"domain.selectCertificateProvider",
+																)}
+															/>
 														</SelectTrigger>
 													</FormControl>
 
 													<SelectContent>
-														<SelectItem value="none">None</SelectItem>
+														<SelectItem value="none">
+															{t("domain.certNone")}
+														</SelectItem>
 														<SelectItem value={"letsencrypt"}>
-															Let's Encrypt
+															{t("domain.certLetsencrypt")}
 														</SelectItem>
 													</SelectContent>
 												</Select>
@@ -302,7 +354,7 @@ export const AddPreviewDomain = ({
 
 					<DialogFooter>
 						<Button isLoading={isPending} form="hook-form" type="submit">
-							{dictionary.submit}
+							{domainId ? t("domain.submitUpdate") : t("domain.submitCreate")}
 						</Button>
 					</DialogFooter>
 				</Form>

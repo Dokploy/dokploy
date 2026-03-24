@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { HelpCircle, PlusIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -58,6 +59,7 @@ const addCertificate = z.object({
 type AddCertificate = z.infer<typeof addCertificate>;
 
 export const AddCertificate = () => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 
@@ -94,12 +96,12 @@ export const AddCertificate = () => {
 			organizationId: "",
 		})
 			.then(async () => {
-				toast.success("Certificate Created");
+				toast.success(tToast("certificateCreated"));
 				await utils.certificates.all.invalidate();
 				setOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error creating the Certificate");
+				toast.error(tToast("certificateCreateError"));
 			});
 	};
 	return (

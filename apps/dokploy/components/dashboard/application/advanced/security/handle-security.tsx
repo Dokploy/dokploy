@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon, PlusIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -26,13 +27,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
-const AddSecuritychema = z.object({
-	username: z.string().min(1, "Username is required"),
-	password: z.string().min(1, "Password is required"),
-});
-
-type AddSecurity = z.infer<typeof AddSecuritychema>;
-
 interface Props {
 	applicationId: string;
 	securityId?: string;
@@ -44,6 +38,7 @@ export const HandleSecurity = ({
 	securityId,
 	children = <PlusIcon className="h-4 w-4" />,
 }: Props) => {
+	const t = useTranslations("applicationAdvancedSecurity.form");
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const { data, refetch } = api.security.one.useQuery(
@@ -59,12 +54,23 @@ export const HandleSecurity = ({
 		? api.security.update.useMutation()
 		: api.security.create.useMutation();
 
+	const addSecuritySchema = useMemo(
+		() =>
+			z.object({
+				username: z.string().min(1, t("validation.username")),
+				password: z.string().min(1, t("validation.password")),
+			}),
+		[t],
+	);
+
+	type AddSecurity = z.infer<typeof addSecuritySchema>;
+
 	const form = useForm<AddSecurity>({
 		defaultValues: {
 			username: "",
 			password: "",
 		},
-		resolver: zodResolver(AddSecuritychema),
+		resolver: zodResolver(addSecuritySchema),
 	});
 
 	useEffect(() => {
@@ -74,14 +80,14 @@ export const HandleSecurity = ({
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
-	const onSubmit = async (data: AddSecurity) => {
+	const onSubmit = async (submitData: AddSecurity) => {
 		await mutateAsync({
 			applicationId,
-			...data,
+			...submitData,
 			securityId: securityId || "",
 		})
 			.then(async () => {
-				toast.success(securityId ? "Security Updated" : "Security Created");
+				toast.success(securityId ? t("toast.updated") : t("toast.created"));
 				await utils.application.one.invalidate({
 					applicationId,
 				});
@@ -93,9 +99,7 @@ export const HandleSecurity = ({
 			})
 			.catch(() => {
 				toast.error(
-					securityId
-						? "Error updating the security"
-						: "Error creating security",
+					securityId ? t("toast.errorUpdate") : t("toast.errorCreate"),
 				);
 			});
 	};
@@ -117,9 +121,9 @@ export const HandleSecurity = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Security</DialogTitle>
+					<DialogTitle>{t("title")}</DialogTitle>
 					<DialogDescription>
-						{securityId ? "Update" : "Add"} security to your application
+						{securityId ? t("descriptionUpdate") : t("descriptionAdd")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -136,9 +140,9 @@ export const HandleSecurity = ({
 								name="username"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Username</FormLabel>
+										<FormLabel>{t("username")}</FormLabel>
 										<FormControl>
-											<Input placeholder="test1" {...field} />
+											<Input placeholder={t("placeholderUsername")} {...field} />
 										</FormControl>
 
 										<FormMessage />
@@ -150,9 +154,13 @@ export const HandleSecurity = ({
 								name="password"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Password</FormLabel>
+										<FormLabel>{t("password")}</FormLabel>
 										<FormControl>
-											<Input placeholder="test" type="password" {...field} />
+											<Input
+												placeholder={t("placeholderPassword")}
+												type="password"
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -168,7 +176,7 @@ export const HandleSecurity = ({
 							form="hook-form-add-security"
 							type="submit"
 						>
-							{securityId ? "Update" : "Create"}
+							{securityId ? t("actions.update") : t("actions.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

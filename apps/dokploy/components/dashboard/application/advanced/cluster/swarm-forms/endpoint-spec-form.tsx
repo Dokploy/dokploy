@@ -1,4 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -32,6 +33,7 @@ interface EndpointSpecFormProps {
 }
 
 export const EndpointSpecForm = ({ id, type }: EndpointSpecFormProps) => {
+	const t = useTranslations("applicationAdvancedSwarmForms");
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -81,7 +83,6 @@ export const EndpointSpecForm = ({ id, type }: EndpointSpecFormProps) => {
 	const onSubmit = async (formData: z.infer<typeof endpointSpecFormSchema>) => {
 		setIsLoading(true);
 		try {
-			// Check if all values are empty, if so, send null to clear the database
 			const hasAnyValue =
 				formData.Mode !== undefined &&
 				formData.Mode !== null &&
@@ -97,10 +98,10 @@ export const EndpointSpecForm = ({ id, type }: EndpointSpecFormProps) => {
 				endpointSpecSwarm: hasAnyValue ? formData : null,
 			});
 
-			toast.success("Endpoint spec updated successfully");
+			toast.success(t("endpoint.toastSuccess"));
 			refetch();
 		} catch {
-			toast.error("Error updating endpoint spec");
+			toast.error(t("endpoint.toastError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -114,17 +115,17 @@ export const EndpointSpecForm = ({ id, type }: EndpointSpecFormProps) => {
 					name="Mode"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Mode</FormLabel>
-							<FormDescription>Endpoint mode (vip or dnsrr)</FormDescription>
+							<FormLabel>{t("endpoint.mode")}</FormLabel>
+							<FormDescription>{t("endpoint.modeDesc")}</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder="Select endpoint mode" />
+										<SelectValue placeholder={t("endpoint.placeholderMode")} />
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									<SelectItem value="vip">VIP (Virtual IP)</SelectItem>
-									<SelectItem value="dnsrr">DNS Round Robin</SelectItem>
+									<SelectItem value="vip">{t("endpoint.vip")}</SelectItem>
+									<SelectItem value="dnsrr">{t("endpoint.dnsrr")}</SelectItem>
 								</SelectContent>
 							</Select>
 							<FormMessage />
@@ -142,10 +143,10 @@ export const EndpointSpecForm = ({ id, type }: EndpointSpecFormProps) => {
 							});
 						}}
 					>
-						Clear
+						{t("actions.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Endpoint Spec
+						{t("actions.saveEndpoint")}
 					</Button>
 				</div>
 			</form>

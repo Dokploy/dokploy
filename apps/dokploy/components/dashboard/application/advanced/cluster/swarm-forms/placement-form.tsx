@@ -1,4 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ interface PlacementFormProps {
 }
 
 export const PlacementForm = ({ id, type }: PlacementFormProps) => {
+	const t = useTranslations("applicationAdvancedSwarmForms");
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -100,7 +102,6 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 	const onSubmit = async (formData: z.infer<typeof placementFormSchema>) => {
 		setIsLoading(true);
 		try {
-			// Check if all values are empty, if so, send null to clear the database
 			const hasAnyValue =
 				(formData.Constraints && formData.Constraints.length > 0) ||
 				(formData.Preferences && formData.Preferences.length > 0) ||
@@ -124,10 +125,10 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 					: null,
 			});
 
-			toast.success("Placement updated successfully");
+			toast.success(t("placement.toastSuccess"));
 			refetch();
 		} catch {
-			toast.error("Error updating placement");
+			toast.error(t("placement.toastError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -196,17 +197,15 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 		<Form {...form}>
 			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 				<div>
-					<FormLabel>Constraints</FormLabel>
-					<FormDescription>
-						Placement constraints (e.g., "node.role==manager")
-					</FormDescription>
+					<FormLabel>{t("placement.constraints")}</FormLabel>
+					<FormDescription>{t("placement.constraintsDesc")}</FormDescription>
 					<div className="space-y-2 mt-2">
 						{constraints.map((constraint: string, index: number) => (
 							<div key={index} className="flex gap-2">
 								<Input
 									value={constraint}
 									onChange={(e) => updateConstraint(index, e.target.value)}
-									placeholder="node.role==manager"
+									placeholder={t("placement.placeholderConstraint")}
 								/>
 								<Button
 									type="button"
@@ -214,7 +213,7 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 									size="sm"
 									onClick={() => removeConstraint(index)}
 								>
-									Remove
+									{t("placement.remove")}
 								</Button>
 							</div>
 						))}
@@ -224,24 +223,21 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 							size="sm"
 							onClick={addConstraint}
 						>
-							Add Constraint
+							{t("placement.addConstraint")}
 						</Button>
 					</div>
 				</div>
 
 				<div>
-					<FormLabel>Preferences</FormLabel>
-					<FormDescription>
-						Spread preferences for task distribution (e.g.,
-						"node.labels.region")
-					</FormDescription>
+					<FormLabel>{t("placement.preferences")}</FormLabel>
+					<FormDescription>{t("placement.preferencesDesc")}</FormDescription>
 					<div className="space-y-2 mt-2">
 						{preferences.map((pref: any, index: number) => (
 							<div key={index} className="flex gap-2">
 								<Input
 									value={pref.SpreadDescriptor}
 									onChange={(e) => updatePreference(index, e.target.value)}
-									placeholder="node.labels.region"
+									placeholder={t("placement.placeholderPref")}
 								/>
 								<Button
 									type="button"
@@ -249,7 +245,7 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 									size="sm"
 									onClick={() => removePreference(index)}
 								>
-									Remove
+									{t("placement.remove")}
 								</Button>
 							</div>
 						))}
@@ -259,7 +255,7 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 							size="sm"
 							onClick={addPreference}
 						>
-							Add Preference
+							{t("placement.addPreference")}
 						</Button>
 					</div>
 				</div>
@@ -269,10 +265,8 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 					name="MaxReplicas"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Max Replicas</FormLabel>
-							<FormDescription>
-								Maximum number of replicas per node
-							</FormDescription>
+							<FormLabel>{t("placement.maxReplicas")}</FormLabel>
+							<FormDescription>{t("placement.maxReplicasDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10" {...field} />
 							</FormControl>
@@ -282,10 +276,8 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 				/>
 
 				<div>
-					<FormLabel>Platforms</FormLabel>
-					<FormDescription>
-						Target platforms for task scheduling
-					</FormDescription>
+					<FormLabel>{t("placement.platforms")}</FormLabel>
+					<FormDescription>{t("placement.platformsDesc")}</FormDescription>
 					<div className="space-y-2 mt-2">
 						{platforms.map((platform: any, index: number) => (
 							<div key={index} className="flex gap-2">
@@ -294,12 +286,12 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 									onChange={(e) =>
 										updatePlatform(index, "Architecture", e.target.value)
 									}
-									placeholder="amd64"
+									placeholder={t("placement.placeholderArch")}
 								/>
 								<Input
 									value={platform.OS}
 									onChange={(e) => updatePlatform(index, "OS", e.target.value)}
-									placeholder="linux"
+									placeholder={t("placement.placeholderOs")}
 								/>
 								<Button
 									type="button"
@@ -307,7 +299,7 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 									size="sm"
 									onClick={() => removePlatform(index)}
 								>
-									Remove
+									{t("placement.remove")}
 								</Button>
 							</div>
 						))}
@@ -317,7 +309,7 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 							size="sm"
 							onClick={addPlatform}
 						>
-							Add Platform
+							{t("placement.addPlatform")}
 						</Button>
 					</div>
 				</div>
@@ -335,10 +327,10 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 							});
 						}}
 					>
-						Clear
+						{t("actions.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Placement
+						{t("actions.savePlacement")}
 					</Button>
 				</div>
 			</form>

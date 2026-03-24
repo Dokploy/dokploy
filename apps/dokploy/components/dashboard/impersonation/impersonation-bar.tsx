@@ -17,6 +17,7 @@ import {
 	UserIcon,
 	XIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Logo } from "@/components/shared/logo";
@@ -50,6 +51,7 @@ import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
 type User = typeof authClient.$Infer.Session.user;
 
 export const ImpersonationBar = () => {
+	const t = useTranslations("impersonationBar");
 	const { config: whitelabeling } = useWhitelabeling();
 	const [users, setUsers] = useState<User[]>([]);
 	const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -86,9 +88,8 @@ export const ImpersonationBar = () => {
 				// @ts-ignore
 				setUsers(filteredUsers || []);
 			}
-		} catch (error) {
-			console.error("Error fetching users:", error);
-			toast.error("Error loading users");
+		} catch {
+			toast.error(t("toastLoadUsersError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -104,13 +105,16 @@ export const ImpersonationBar = () => {
 			setIsImpersonating(true);
 			setOpen(false);
 
-			toast.success("Successfully impersonating user", {
-				description: `You are now viewing as ${`${selectedUser.name} ${selectedUser.lastName}`.trim() || selectedUser.email}`,
+			toast.success(t("toastImpersonateSuccess"), {
+				description: t("toastImpersonateSuccessDesc", {
+					name:
+						`${selectedUser.name} ${selectedUser.lastName}`.trim() ||
+						selectedUser.email,
+				}),
 			});
 			window.location.reload();
-		} catch (error) {
-			console.error("Error impersonating user:", error);
-			toast.error("Error impersonating user");
+		} catch {
+			toast.error(t("toastImpersonateError"));
 		}
 	};
 
@@ -120,11 +124,10 @@ export const ImpersonationBar = () => {
 			setIsImpersonating(false);
 			setSelectedUser(null);
 			setShowBar(false);
-			toast.success("Stopped impersonating user");
+			toast.success(t("toastStopSuccess"));
 			window.location.reload();
-		} catch (error) {
-			console.error("Error stopping impersonation:", error);
-			toast.error("Error stopping impersonation");
+		} catch {
+			toast.error(t("toastStopError"));
 		}
 	};
 
@@ -137,8 +140,8 @@ export const ImpersonationBar = () => {
 					setShowBar(true);
 					// setSelectedUser(data);
 				}
-			} catch (error) {
-				console.error("Error checking impersonation status:", error);
+			} catch {
+				// Session check failed silently
 			}
 		};
 
@@ -171,7 +174,7 @@ export const ImpersonationBar = () => {
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent>
-						{isImpersonating ? "Impersonation Controls" : "User Impersonation"}
+						{isImpersonating ? t("tooltipControls") : t("tooltipUserImpersonation")}
 					</TooltipContent>
 				</Tooltip>
 
@@ -211,7 +214,7 @@ export const ImpersonationBar = () => {
 											) : (
 												<>
 													<UserIcon className="mr-2 h-4 w-4" />
-													<span>Select user to impersonate</span>
+													<span>{t("selectUserPlaceholder")}</span>
 												</>
 											)}
 											<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -228,13 +231,13 @@ export const ImpersonationBar = () => {
 											/>
 											{isLoading ? (
 												<div className="py-6 text-center text-sm">
-													Loading users...
+													{t("loadingUsers")}
 												</div>
 											) : (
 												<>
-													<CommandEmpty>No users found.</CommandEmpty>
+													<CommandEmpty>{t("noUsersFound")}</CommandEmpty>
 													<CommandList>
-														<CommandGroup heading="All Users">
+														<CommandGroup heading={t("commandHeading")}>
 															{users.map((user) => (
 																<CommandItem
 																	key={user.id}
@@ -280,7 +283,7 @@ export const ImpersonationBar = () => {
 									className="gap-2"
 								>
 									<Shield className="h-4 w-4" />
-									Impersonate
+									{t("impersonate")}
 								</Button>
 							</div>
 						) : (
@@ -307,7 +310,7 @@ export const ImpersonationBar = () => {
 												className="gap-1 py-1 text-yellow-500 bg-yellow-50/20"
 											>
 												<Shield className="h-3 w-3" />
-												Impersonating
+												{t("badgeImpersonating")}
 											</Badge>
 											<span className="font-medium">
 												{`${data?.user?.firstName} ${data?.user?.lastName}`.trim() ||
@@ -322,7 +325,7 @@ export const ImpersonationBar = () => {
 											<span className="flex items-center gap-1">
 												<Key className="h-3 w-3" />
 												<span className="flex items-center gap-1">
-													ID: {data?.user?.id?.slice(0, 8)}
+													{t("idPrefix")} {data?.user?.id?.slice(0, 8)}
 													<Button
 														variant="ghost"
 														size="icon"
@@ -330,7 +333,7 @@ export const ImpersonationBar = () => {
 														onClick={() => {
 															if (data?.id) {
 																copy(data.id);
-																toast.success("ID copied to clipboard");
+																toast.success(t("toastIdCopied"));
 															}
 														}}
 													>
@@ -341,7 +344,7 @@ export const ImpersonationBar = () => {
 											<span className="flex items-center gap-1">
 												<Building2 className="h-3 w-3" />
 												<span className="flex items-center gap-1">
-													Org: {data?.organizationId?.slice(0, 8)}
+													{t("orgPrefix")} {data?.organizationId?.slice(0, 8)}
 													<Button
 														variant="ghost"
 														size="icon"
@@ -349,9 +352,7 @@ export const ImpersonationBar = () => {
 														onClick={() => {
 															if (data?.organizationId) {
 																copy(data.organizationId);
-																toast.success(
-																	"Organization ID copied to clipboard",
-																);
+																toast.success(t("toastOrgIdCopied"));
 															}
 														}}
 													>
@@ -363,7 +364,7 @@ export const ImpersonationBar = () => {
 												<span className="flex items-center gap-1">
 													<CreditCard className="h-3 w-3" />
 													<span className="flex items-center gap-1">
-														Customer:
+														{t("customerPrefix")}
 														{data?.user?.stripeCustomerId?.slice(0, 8)}
 														<Button
 															variant="ghost"
@@ -371,9 +372,7 @@ export const ImpersonationBar = () => {
 															className="h-4 w-4 hover:bg-muted/50"
 															onClick={() => {
 																copy(data?.user?.stripeCustomerId || "");
-																toast.success(
-																	"Stripe Customer ID copied to clipboard",
-																);
+																toast.success(t("toastStripeCustomerCopied"));
 															}}
 														>
 															<Copy className="h-3 w-3" />
@@ -385,16 +384,15 @@ export const ImpersonationBar = () => {
 												<span className="flex items-center gap-1">
 													<CreditCard className="h-3 w-3" />
 													<span className="flex items-center gap-1">
-														Sub: {data?.user?.stripeSubscriptionId?.slice(0, 8)}
+														{t("subPrefix")}{" "}
+														{data?.user?.stripeSubscriptionId?.slice(0, 8)}
 														<Button
 															variant="ghost"
 															size="icon"
 															className="h-4 w-4 hover:bg-muted/50"
 															onClick={() => {
 																copy(data.user.stripeSubscriptionId || "");
-																toast.success(
-																	"Stripe Subscription ID copied to clipboard",
-																);
+																toast.success(t("toastStripeSubCopied"));
 															}}
 														>
 															<Copy className="h-3 w-3" />
@@ -405,14 +403,19 @@ export const ImpersonationBar = () => {
 											{data?.user?.serversQuantity !== undefined && (
 												<span className="flex items-center gap-1">
 													<Server className="h-3 w-3" />
-													<span>Servers: {data.user.serversQuantity}</span>
+													<span>
+														{t("serversLabel", {
+															count: data.user.serversQuantity,
+														})}
+													</span>
 												</span>
 											)}
 											{data?.createdAt && (
 												<span className="flex items-center gap-1">
 													<Calendar className="h-3 w-3" />
-													Created:{" "}
-													{format(new Date(data.createdAt), "MMM d, yyyy")}
+													{t("createdLabel", {
+														date: format(new Date(data.createdAt), "MMM d, yyyy"),
+													})}
 												</span>
 											)}
 											<Tooltip>
@@ -434,16 +437,15 @@ export const ImpersonationBar = () => {
 															}
 															className="text-[10px] px-1 py-0"
 														>
-															2FA{" "}
-															{data?.user?.twoFactorEnabled
-																? "Enabled"
-																: "Disabled"}
+															{t("twoFaBadge", {
+																state: data?.user?.twoFactorEnabled
+																	? t("twoFaEnabled")
+																	: t("twoFaDisabled"),
+															})}
 														</Badge>
 													</span>
 												</TooltipTrigger>
-												<TooltipContent>
-													Two-Factor Authentication Status
-												</TooltipContent>
+												<TooltipContent>{t("twoFaTooltip")}</TooltipContent>
 											</Tooltip>
 										</div>
 									</div>
@@ -455,7 +457,7 @@ export const ImpersonationBar = () => {
 									size="sm"
 								>
 									<XIcon className="w-4 h-4" />
-									Stop Impersonating
+									{t("stopImpersonating")}
 								</Button>
 							</div>
 						)}

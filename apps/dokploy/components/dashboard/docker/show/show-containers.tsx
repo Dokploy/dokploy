@@ -36,7 +36,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api, type RouterOutputs } from "@/utils/api";
-import { columns } from "./colums";
+import { useDockerContainerTable } from "./colums";
 export type Container = NonNullable<
 	RouterOutputs["docker"]["getContainers"]
 >[0];
@@ -47,6 +47,7 @@ interface Props {
 
 export const ShowContainers = ({ serverId }: Props) => {
 	const t = useTranslations("dockerContainers");
+	const { columns, columnLabels } = useDockerContainerTable();
 	const { data, isPending } = api.docker.getContainers.useQuery({
 		serverId,
 	});
@@ -129,7 +130,9 @@ export const ShowContainers = ({ serverId }: Props) => {
 																column.toggleVisibility(!!value)
 															}
 														>
-															{column.id}
+															{columnLabels[
+																column.id as keyof typeof columnLabels
+															] ?? column.id}
 														</DropdownMenuCheckboxItem>
 													);
 												})}

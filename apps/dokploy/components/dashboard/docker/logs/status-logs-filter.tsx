@@ -20,6 +20,7 @@ interface StatusLogsFilterProps {
 	value?: string[];
 	setValue?: (value: string[]) => void;
 	title?: string;
+	allLabel?: string;
 	options: {
 		label: string;
 		value: string;
@@ -31,6 +32,7 @@ export function StatusLogsFilter({
 	value = [],
 	setValue,
 	title,
+	allLabel = "All",
 	options,
 }: StatusLogsFilterProps) {
 	const selectedValues = new Set(value as string[]);
@@ -40,7 +42,7 @@ export function StatusLogsFilter({
 		if (allSelected) {
 			return (
 				<Badge variant="blank" className="rounded-sm px-1 font-normal">
-					All
+					{allLabel}
 				</Badge>
 			);
 		}
@@ -111,7 +113,7 @@ export function StatusLogsFilter({
 								>
 									<CheckIcon className={cn("h-4 w-4")} />
 								</div>
-								<Badge variant="blank">All</Badge>
+								<Badge variant="blank">{allLabel}</Badge>
 							</CommandItem>
 							{options.map((option) => {
 								const isSelected = selectedValues.has(option.value);

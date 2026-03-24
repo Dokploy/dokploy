@@ -1,0 +1,118 @@
+{
+	"applicationGeneralForms": {
+		"shared": {
+			"providerSaved": "Провайдер сохранён",
+			"pathRequired": "Path is required",
+			"repoRequired": "Repo is required",
+			"ownerRequired": "Owner is required",
+			"branchRequired": "Branch is required",
+			"repositoryRequired": "Нужен repository",
+			"viewRepository": "View Repository",
+			"selectRepository": "Выберите repository",
+			"selectBranch": "Выберите branch",
+			"loadingShort": "Загрузка...",
+			"loadingRepos": "Загрузка репозиториев...",
+			"loadingBranches": "Загрузка веток...",
+			"selectGithubAccountFirst": "Сначала выберите GitHub account",
+			"selectGitlabAccountFirst": "Сначала выберите GitLab account",
+			"selectBitbucketAccountFirst": "Сначала выберите Bitbucket account",
+			"selectGiteaAccountFirst": "Сначала выберите Gitea account",
+			"selectRepositoryFirst": "Выберите repository",
+			"searchRepository": "Поиск repository...",
+			"searchBranch": "Поиск branch...",
+			"noRepositoriesFound": "No repositories found.",
+			"noBranchFound": "No branch found.",
+			"buildPath": "Build Path",
+			"composePath": "Путь к Compose",
+			"composePathPlaceholder": "docker-compose.yml",
+			"branch": "Branch",
+			"repository": "Repository",
+			"watchPaths": "Watch Paths",
+			"watchPathsPlaceholder": "Путь (например src/**, dist/*.js)",
+			"watchPathsTooltip": "Пути для отслеживания изменений; при изменении — новый deploy.",
+			"watchPathsTooltipGit": "Пути для отслеживания; новый deploy при изменении. Работает при ручном webhook.",
+			"enableSubmodules": "Enable Submodules",
+			"add": "Добавить",
+			"triggerType": "Trigger Type",
+			"triggerTypeTooltip": "Когда деплоить: push в branch или новый tag.",
+			"selectTriggerType": "Тип триггера",
+			"onPush": "On Push",
+			"onTag": "On Tag"
+		},
+		"docker": {
+			"validation": {
+				"imageRequired": "Docker image is required"
+			},
+			"toastSuccess": "Docker provider сохранён",
+			"toastError": "Не удалось сохранить Docker provider",
+			"dockerImage": "Docker Image",
+			"dockerImagePlaceholder": "node:16",
+			"registryUrl": "Registry URL",
+			"registryPlaceholder": "Registry URL",
+			"username": "Username",
+			"password": "Password"
+		},
+		"dragDrop": {
+			"toastSuccess": "Deployment сохранён",
+			"toastError": "Не удалось сохранить deployment",
+			"buildPath": "Build Path",
+			"buildPathPlaceholder": "Build Path",
+			"zipFile": "Zip file",
+			"dropMessage": "Перетащите файлы или нажмите",
+			"deploy": "Deploy"
+		},
+		"git": {
+			"validation": {
+				"pathRequired": "Path is required",
+				"repoUrlRequired": "Repository URL is required",
+				"branchRequired": "Branch required"
+			},
+			"toastSuccess": "Git provider сохранён",
+			"toastError": "Не удалось сохранить Git provider",
+			"repositoryUrl": "Repository URL",
+			"repositoryUrlPlaceholder": "Repository URL",
+			"sshKey": "SSH Key",
+			"selectKey": "Выберите ключ",
+			"none": "None",
+			"keysCount": "Keys ({count})",
+			"addSshKey": "Add SSH Key",
+			"branch": "Branch",
+			"branchPlaceholder": "Branch",
+			"buildPath": "Build Path",
+			"watchPaths": "Watch Paths"
+		},
+		"github": {
+			"validation": {
+				"githubProviderRequired": "Github Provider is required"
+			},
+			"toastError": "Не удалось сохранить Github provider",
+			"githubAccount": "Github Account",
+			"selectGithubAccount": "Select a Github Account"
+		},
+		"gitlab": {
+			"validation": {
+				"pathNamespaceRequired": "Path namespace is required",
+				"gitlabProviderRequired": "Gitlab Provider is required"
+			},
+			"toastError": "Не удалось сохранить GitLab provider",
+			"gitlabAccount": "Gitlab Account",
+			"selectGitlabAccount": "Select a Gitlab Account"
+		},
+		"bitbucket": {
+			"validation": {
+				"bitbucketProviderRequired": "Bitbucket Provider is required"
+			},
+			"toastError": "Не удалось сохранить Bitbucket provider",
+			"bitbucketAccount": "Bitbucket Account",
+			"selectBitbucketAccount": "Select a Bitbucket Account"
+		},
+		"gitea": {
+			"validation": {
+				"giteaProviderRequired": "Gitea Provider is required"
+			},
+			"toastError": "Не удалось сохранить Gitea provider",
+			"giteaAccount": "Gitea Account",
+			"selectGiteaAccount": "Select a Gitea Account"
+		}
+	}
+}

@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -27,20 +28,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
-const updateMongoSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	description: z.string().optional(),
-});
-
-type UpdateMongo = z.infer<typeof updateMongoSchema>;
+type UpdateMongo = {
+	name: string;
+	description?: string;
+};
 
 interface Props {
 	mongoId: string;
 }
 
 export const UpdateMongo = ({ mongoId }: Props) => {
+	const t = useTranslations("mongoDashboard.update");
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isPending } =
@@ -52,6 +50,16 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 		{
 			enabled: !!mongoId,
 		},
+	);
+	const updateMongoSchema = useMemo(
+		() =>
+			z.object({
+				name: z.string().min(1, {
+					message: t("nameRequired"),
+				}),
+				description: z.string().optional(),
+			}),
+		[t],
 	);
 	const form = useForm<UpdateMongo>({
 		defaultValues: {
@@ -76,14 +84,14 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Mongo updated successfully");
+				toast.success(t("toastSuccess"));
 				utils.mongo.one.invalidate({
 					mongoId: mongoId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating mongo database");
+				toast.error(t("toastError"));
 			})
 			.finally(() => {});
 	};
@@ -101,8 +109,8 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify MongoDB</DialogTitle>
-					<DialogDescription>Update the MongoDB data</DialogDescription>
+					<DialogTitle>{t("title")}</DialogTitle>
+					<DialogDescription>{t("description")}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -119,9 +127,9 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("nameLabel")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Vandelay Industries" {...field} />
+												<Input placeholder={t("namePlaceholder")} {...field} />
 											</FormControl>
 
 											<FormMessage />
@@ -133,10 +141,10 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>{t("descriptionLabel")}</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t("descriptionPlaceholder")}
 													className="resize-none"
 													{...field}
 												/>
@@ -152,7 +160,7 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 										form="hook-form-update-mongo"
 										type="submit"
 									>
-										Update
+										{t("updateButton")}
 									</Button>
 								</DialogFooter>
 							</form>

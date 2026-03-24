@@ -1,4 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ const AddRedirectSchema = z.object({
 type AddCommand = z.infer<typeof AddRedirectSchema>;
 
 export const AddCommandCompose = ({ composeId }: Props) => {
+	const t = useTranslations("composeAdvanced");
 	const { data } = api.compose.one.useQuery(
 		{
 			composeId,
@@ -75,14 +77,14 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 			command: data?.command,
 		})
 			.then(async () => {
-				toast.success("Command Updated");
+				toast.success(t("command.toastSuccess"));
 				refetch();
 				await utils.compose.one.invalidate({
 					composeId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating the command");
+				toast.error(t("command.toastError"));
 			});
 	};
 
@@ -90,10 +92,8 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between">
 				<div>
-					<CardTitle className="text-xl">Run Command</CardTitle>
-					<CardDescription>
-						Override a custom command to the compose file
-					</CardDescription>
+					<CardTitle className="text-xl">{t("command.title")}</CardTitle>
+					<CardDescription>{t("command.description")}</CardDescription>
 				</div>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
@@ -103,10 +103,9 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 						className="grid w-full gap-4"
 					>
 						<AlertBlock type="warning">
-							Modifying the default command may affect deployment stability,
-							impacting logs and monitoring. Proceed carefully and test
-							thoroughly. By default, the command starts with{" "}
-							<strong>docker</strong>.
+							{t.rich("command.warning", {
+								strong: (chunks) => <strong>{chunks}</strong>,
+							})}
 						</AlertBlock>
 						<div className="flex flex-col gap-4">
 							<FormField
@@ -114,13 +113,15 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 								name="command"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Command</FormLabel>
+										<FormLabel>{t("fieldLabel")}</FormLabel>
 										<FormControl>
-											<Input placeholder="Custom command" {...field} />
+											<Input placeholder={t("placeholder")} {...field} />
 										</FormControl>
 
 										<FormDescription>
-											Default Command ({defaultCommand})
+											{t("defaultCommand", {
+												command: defaultCommand ?? "",
+											})}
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -129,7 +130,7 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 						</div>
 						<div className="flex justify-end">
 							<Button isLoading={isPending} type="submit" className="w-fit">
-								Save
+								{t("command.save")}
 							</Button>
 						</div>
 					</form>

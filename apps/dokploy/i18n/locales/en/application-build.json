@@ -1,0 +1,52 @@
+{
+	"applicationBuild": {
+		"title": "Build Type",
+		"subtitle": "Select the way of building your code",
+		"alertRich": "Builders can consume significant memory and CPU resources (recommended: 4+ GB RAM and 2+ CPU cores). For production environments, please review our <guide>Production Guide</guide> for best practices and optimization recommendations. Builders are suitable for development and prototyping purposes when you have sufficient resources available.",
+		"buildTypeLabel": "Build Type",
+		"buildTypes": {
+			"dockerfile": "Dockerfile",
+			"railpack": "Railpack",
+			"nixpacks": "Nixpacks",
+			"heroku_buildpacks": "Heroku Buildpacks",
+			"paketo_buildpacks": "Paketo Buildpacks",
+			"static": "Static"
+		},
+		"badgeNew": "New",
+		"badgeLatest": "Latest",
+		"heroku": {
+			"label": "Heroku Version (Optional)",
+			"placeholder": "Heroku Version (Default: 24)"
+		},
+		"dockerfile": {
+			"dockerFileLabel": "Docker File",
+			"dockerFilePlaceholder": "Path of your docker file (default: Dockerfile)",
+			"contextPathLabel": "Docker Context Path",
+			"contextPathPlaceholder": "Path of your docker context (default: .)",
+			"buildStageLabel": "Docker Build Stage",
+			"buildStageDesc": "Allows you to target a specific stage in a Multi-stage Dockerfile. If empty, Docker defaults to build the last defined stage.",
+			"buildStagePlaceholder": "E.g. production"
+		},
+		"nixpacks": {
+			"publishDirLabel": "Publish Directory",
+			"publishDirDesc": "Allows you to serve a single directory via NGINX after the build phase. Useful if the final build assets should be served as a static site.",
+			"publishDirPlaceholder": "Publish Directory"
+		},
+		"static": {
+			"spaLabel": "Single Page Application (SPA)"
+		},
+		"railpack": {
+			"versionLabel": "Railpack Version",
+			"placeholderManual": "Enter custom version (e.g., 0.15.4)",
+			"usePredefined": "Use predefined versions",
+			"selectPlaceholder": "Select Railpack version",
+			"manualOption": "✏️ Manual (Custom Version)",
+			"descRich": "Select a Railpack version or choose manual to enter a custom version. <releases>View releases</releases>",
+			"versionPrefix": "v"
+		},
+		"toast": {
+			"success": "Build type saved",
+			"error": "Error saving the build type"
+		}
+	}
+}

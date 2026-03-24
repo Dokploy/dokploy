@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ const Schema = z.object({
 type Schema = z.infer<typeof Schema>;
 
 export const AddBitbucketProvider = () => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const { mutateAsync, error, isError } = api.bitbucket.create.useMutation();
@@ -71,11 +73,11 @@ export const AddBitbucketProvider = () => {
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
-				toast.success("Bitbucket configured successfully");
+				toast.success(tToast("bitbucketConfigured"));
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error configuring Bitbucket");
+				toast.error(tToast("bitbucketConfigureError"));
 			});
 	};
 

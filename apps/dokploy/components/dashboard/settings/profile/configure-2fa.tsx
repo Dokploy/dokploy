@@ -7,6 +7,7 @@ import {
 	RefreshCw,
 	ShieldOff,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -59,6 +60,7 @@ type PasswordForm = z.infer<typeof PasswordSchema>;
 type Step = "password" | "actions" | "backup-codes";
 
 export const Configure2FA = () => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const utils = api.useUtils();
 	const { data: currentUser } = api.user.get.useQuery();
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -107,7 +109,7 @@ export const Configure2FA = () => {
 			form.setError("password", {
 				message: error instanceof Error ? error.message : "Incorrect password",
 			});
-			toast.error("Incorrect password");
+			toast.error(tToast("twoFaIncorrectPassword"));
 		} finally {
 			setIsRegenerating(false);
 		}
@@ -128,13 +130,13 @@ export const Configure2FA = () => {
 			if (result.data?.backupCodes) {
 				setBackupCodes(result.data.backupCodes);
 				setStep("backup-codes");
-				toast.success("Backup codes regenerated successfully");
+				toast.success(tToast("backupCodesRegeneratedSuccess"));
 			}
 		} catch (error) {
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to regenerate backup codes",
+					: tToast("backupCodesRegenerateFailed"),
 			);
 		} finally {
 			setIsRegenerating(false);
@@ -153,12 +155,12 @@ export const Configure2FA = () => {
 				return;
 			}
 
-			toast.success("2FA disabled successfully");
+			toast.success(tToast("twoFaDisabledSuccess"));
 			utils.user.get.invalidate();
 			setIsDialogOpen(false);
 			setShowDisableConfirm(false);
 		} catch (error) {
-			toast.error("Failed to disable 2FA. Please try again.");
+			toast.error(tToast("twoFaDisableFailed"));
 		} finally {
 			setIsDisabling(false);
 		}
@@ -174,7 +176,7 @@ export const Configure2FA = () => {
 
 	const handleDownloadBackupCodes = () => {
 		if (!backupCodes || backupCodes.length === 0) {
-			toast.error("No backup codes to download.");
+			toast.error(tToast("noBackupCodes"));
 			return;
 		}
 
@@ -217,7 +219,7 @@ export const Configure2FA = () => {
 			.replace(BACKUP_CODES_PLACEHOLDER, backupCodesFormatted);
 
 		copy(backupCodesText);
-		toast.success("Backup codes copied to clipboard");
+		toast.success(tToast("backupCodesCopied"));
 	};
 
 	return (

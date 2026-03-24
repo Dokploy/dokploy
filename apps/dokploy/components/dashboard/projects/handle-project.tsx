@@ -43,7 +43,7 @@ interface Props {
 }
 
 export const HandleProject = ({ projectId }: Props) => {
-	const t = useTranslations();
+	const t = useTranslations("dashboardProjects");
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
@@ -68,7 +68,7 @@ export const HandleProject = ({ projectId }: Props) => {
 			z.object({
 				name: z
 					.string()
-					.min(1, t("dashboardProjects.handleProject.nameRequired"))
+					.min(1, t("handleProject.nameRequired"))
 					.refine(
 						(name) => {
 							const trimmedName = name.trim();
@@ -77,11 +77,11 @@ export const HandleProject = ({ projectId }: Props) => {
 							return validNameRegex.test(trimmedName);
 						},
 						{
-							message: t("dashboardProjects.handleProject.nameFormat"),
+							message: t("handleProject.nameFormat"),
 						},
 					)
 					.refine((name) => !/^\d/.test(name.trim()), {
-						message: t("dashboardProjects.handleProject.nameStartsWithNumber"),
+						message: t("handleProject.nameStartsWithNumber"),
 					})
 					.transform((name) => name.trim()),
 				description: z.string().optional(),
@@ -131,15 +131,15 @@ export const HandleProject = ({ projectId }: Props) => {
 							tagIds: selectedTagIds,
 						});
 					} catch (error) {
-						toast.error(t("dashboardProjects.handleProject.assignTagsError"));
+						toast.error(t("handleProject.assignTagsError"));
 					}
 				}
 
 				await utils.project.all.invalidate();
 				toast.success(
 					projectId
-						? t("dashboardProjects.handleProject.updatedSuccess")
-						: t("dashboardProjects.handleProject.createdSuccess"),
+						? t("handleProject.updatedSuccess")
+						: t("handleProject.createdSuccess"),
 				);
 				setIsOpen(false);
 				if (!projectId) {
@@ -160,8 +160,8 @@ export const HandleProject = ({ projectId }: Props) => {
 			.catch(() => {
 				toast.error(
 					projectId
-						? t("dashboardProjects.handleProject.updatedError")
-						: t("dashboardProjects.handleProject.createdError"),
+						? t("handleProject.updatedError")
+						: t("handleProject.createdError"),
 				);
 			});
 	};
@@ -175,12 +175,12 @@ export const HandleProject = ({ projectId }: Props) => {
 						onSelect={(e) => e.preventDefault()}
 					>
 						<SquarePen className="size-4" />
-						<span>{t("dashboardProjects.handleProject.updateAction")}</span>
+						<span>{t("handleProject.updateAction")}</span>
 					</DropdownMenuItem>
 				) : (
 					<Button>
 						<PlusIcon className="h-4 w-4" />
-						{t("dashboardProjects.handleProject.createAction")}
+						{t("handleProject.createAction")}
 					</Button>
 				)}
 			</DialogTrigger>
@@ -188,11 +188,11 @@ export const HandleProject = ({ projectId }: Props) => {
 				<DialogHeader>
 					<DialogTitle>
 						{projectId
-							? t("dashboardProjects.handleProject.dialogUpdateTitle")
-							: t("dashboardProjects.handleProject.dialogCreateTitle")}
+							? t("handleProject.dialogUpdateTitle")
+							: t("handleProject.dialogCreateTitle")}
 					</DialogTitle>
 					<DialogDescription>
-						{t("dashboardProjects.handleProject.dialogDescription")}
+						{t("handleProject.dialogDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -209,12 +209,12 @@ export const HandleProject = ({ projectId }: Props) => {
 								render={({ field }) => (
 									<FormItem>
 										<FormLabel>
-											{t("dashboardProjects.handleProject.nameLabel")}
+											{t("handleProject.nameLabel")}
 										</FormLabel>
 										<FormControl>
 											<Input
 												placeholder={t(
-													"dashboardProjects.handleProject.namePlaceholder",
+													"handleProject.namePlaceholder",
 												)}
 												{...field}
 											/>
@@ -232,12 +232,12 @@ export const HandleProject = ({ projectId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>
-										{t("dashboardProjects.handleProject.descriptionLabel")}
+										{t("handleProject.descriptionLabel")}
 									</FormLabel>
 									<FormControl>
 										<Textarea
 											placeholder={t(
-												"dashboardProjects.handleProject.descriptionPlaceholder",
+												"handleProject.descriptionPlaceholder",
 											)}
 											className="resize-none"
 											{...field}
@@ -251,7 +251,7 @@ export const HandleProject = ({ projectId }: Props) => {
 
 						<div className="space-y-2">
 							<FormLabel>
-								{t("dashboardProjects.handleProject.tagsLabel")}
+								{t("handleProject.tagsLabel")}
 							</FormLabel>
 							<TagSelector
 								tags={availableTags.map((tag) => ({
@@ -262,7 +262,7 @@ export const HandleProject = ({ projectId }: Props) => {
 								selectedTags={selectedTagIds}
 								onTagsChange={setSelectedTagIds}
 								placeholder={t(
-									"dashboardProjects.handleProject.tagsPlaceholder",
+									"handleProject.tagsPlaceholder",
 								)}
 							/>
 						</div>
@@ -275,8 +275,8 @@ export const HandleProject = ({ projectId }: Props) => {
 							type="submit"
 						>
 							{projectId
-								? t("dashboardProjects.handleProject.submitUpdate")
-								: t("dashboardProjects.handleProject.submitCreate")}
+								? t("handleProject.submitUpdate")
+								: t("handleProject.submitCreate")}
 						</Button>
 					</DialogFooter>
 				</Form>

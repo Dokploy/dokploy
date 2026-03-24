@@ -1,4 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -46,6 +47,7 @@ interface Props {
 }
 
 export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 
@@ -77,12 +79,12 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 			role: data.role,
 		})
 			.then(async () => {
-				toast.success("Role updated successfully");
+				toast.success(tToast("roleUpdatedSuccess"));
 				await utils.user.all.invalidate();
 				setIsOpen(false);
 			})
 			.catch((error) => {
-				toast.error(error?.message || "Error updating role");
+				toast.error(error?.message || tToast("roleUpdateError"));
 			});
 	};
 

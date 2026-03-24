@@ -1,0 +1,21 @@
+{
+	"applicationAdvancedCluster": {
+		"title": "Cluster Settings",
+		"description": "Modify swarm settings for the service.",
+		"alertRedeploy": "Please remember to click Redeploy after modify the cluster settings to apply the changes.",
+		"replicas": "Replicas",
+		"placeholderReplicas": "1",
+		"selectRegistry": "Select a registry",
+		"placeholderRegistry": "Select a registry",
+		"none": "None",
+		"registriesCount": "Registries ({count})",
+		"emptyRegistryRich": "To use a cluster feature, you need to configure at least a registry first. Please, go to <link>Settings</link> to do so.",
+		"validation": {
+			"replicasMin": "Replicas must be at least 1"
+		},
+		"toast": {
+			"success": "Cluster settings updated",
+			"error": "Error updating cluster settings"
+		}
+	}
+}

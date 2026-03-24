@@ -1,4 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ interface RollbackConfigFormProps {
 }
 
 export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
+	const t = useTranslations("applicationAdvancedSwarmForms");
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -91,7 +93,6 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 	) => {
 		setIsLoading(true);
 		try {
-			// Check if all values are empty, if so, send null to clear the database
 			const hasAnyValue = Object.values(formData).some(
 				(value) => value !== undefined && value !== null && value !== "",
 			);
@@ -106,10 +107,10 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 				rollbackConfigSwarm: (hasAnyValue ? formData : null) as any,
 			});
 
-			toast.success("Rollback config updated successfully");
+			toast.success(t("rollbackConfig.toastSuccess"));
 			refetch();
 		} catch {
-			toast.error("Error updating rollback config");
+			toast.error(t("rollbackConfig.toastError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -123,10 +124,8 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					name="Parallelism"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Parallelism</FormLabel>
-							<FormDescription>
-								Number of tasks to rollback simultaneously
-							</FormDescription>
+							<FormLabel>{t("rollbackConfig.parallelism")}</FormLabel>
+							<FormDescription>{t("rollbackConfig.parallelismDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="1" {...field} />
 							</FormControl>
@@ -140,8 +139,8 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					name="Delay"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Delay (nanoseconds)</FormLabel>
-							<FormDescription>Delay between task rollbacks</FormDescription>
+							<FormLabel>{t("rollbackConfig.delay")}</FormLabel>
+							<FormDescription>{t("rollbackConfig.delayDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
 							</FormControl>
@@ -155,17 +154,19 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					name="FailureAction"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Failure Action</FormLabel>
-							<FormDescription>Action on rollback failure</FormDescription>
+							<FormLabel>{t("rollbackConfig.failureAction")}</FormLabel>
+							<FormDescription>{t("rollbackConfig.failureActionDesc")}</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder="Select failure action" />
+										<SelectValue placeholder={t("updateConfig.placeholderFailure")} />
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									<SelectItem value="pause">Pause</SelectItem>
-									<SelectItem value="continue">Continue</SelectItem>
+									<SelectItem value="pause">{t("updateConfig.pause")}</SelectItem>
+									<SelectItem value="continue">
+										{t("updateConfig.continue")}
+									</SelectItem>
 								</SelectContent>
 							</Select>
 							<FormMessage />
@@ -178,10 +179,8 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					name="Monitor"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Monitor (nanoseconds)</FormLabel>
-							<FormDescription>
-								Duration to monitor for failure after rollback
-							</FormDescription>
+							<FormLabel>{t("rollbackConfig.monitor")}</FormLabel>
+							<FormDescription>{t("rollbackConfig.monitorDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
 							</FormControl>
@@ -195,10 +194,8 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					name="MaxFailureRatio"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Max Failure Ratio</FormLabel>
-							<FormDescription>
-								Maximum failure ratio tolerated (0-1)
-							</FormDescription>
+							<FormLabel>{t("rollbackConfig.maxFailureRatio")}</FormLabel>
+							<FormDescription>{t("rollbackConfig.maxFailureRatioDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" step="0.01" placeholder="0.1" {...field} />
 							</FormControl>
@@ -212,17 +209,21 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 					name="Order"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Order</FormLabel>
-							<FormDescription>Rollback order strategy</FormDescription>
+							<FormLabel>{t("rollbackConfig.order")}</FormLabel>
+							<FormDescription>{t("rollbackConfig.orderDesc")}</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder="Select order" />
+										<SelectValue placeholder={t("updateConfig.placeholderOrder")} />
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									<SelectItem value="stop-first">Stop First</SelectItem>
-									<SelectItem value="start-first">Start First</SelectItem>
+									<SelectItem value="stop-first">
+										{t("updateConfig.stopFirst")}
+									</SelectItem>
+									<SelectItem value="start-first">
+										{t("updateConfig.startFirst")}
+									</SelectItem>
 								</SelectContent>
 							</Select>
 							<FormMessage />
@@ -245,10 +246,10 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 							});
 						}}
 					>
-						Clear
+						{t("actions.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Rollback Config
+						{t("actions.saveRollbackConfig")}
 					</Button>
 				</div>
 			</form>

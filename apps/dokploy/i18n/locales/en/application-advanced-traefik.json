@@ -1,0 +1,23 @@
+{
+	"applicationAdvancedTraefik": {
+		"show": {
+			"title": "Traefik",
+			"description": "Modify the traefik config, in rare cases you may need to add specific config, be careful because modifying incorrectly can break traefik and your application",
+			"empty": "No traefik config detected",
+			"editorFallback": "Empty"
+		},
+		"update": {
+			"modify": "Modify",
+			"title": "Update traefik config",
+			"description": "Update the traefik config",
+			"label": "Traefik config",
+			"skipYaml": "Skip YAML validation (for Go templating)",
+			"skipYamlHint": "Check to save configs with Go templating (e.g. <code>{{range}}</code>).",
+			"yamlUnexpectedError": "An unexpected error occurred while processing the YAML.",
+			"invalidYaml": "Invalid YAML",
+			"toastSuccess": "Traefik config updated",
+			"toastError": "Error updating the Traefik config",
+			"actionUpdate": "Update"
+		}
+	}
+}

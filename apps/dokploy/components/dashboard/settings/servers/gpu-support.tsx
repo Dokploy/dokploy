@@ -1,4 +1,5 @@
 import { CheckCircle2, Cpu, Loader2, RefreshCw, XCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -18,6 +19,7 @@ interface GPUSupportProps {
 }
 
 export function GPUSupport({ serverId }: GPUSupportProps) {
+	const tToast = useTranslations("settingsExtraToasts");
 	const [isLoading, setIsLoading] = useState(false);
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const utils = api.useContext();
@@ -38,15 +40,12 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 			setIsLoading(true);
 		},
 		onSuccess: async () => {
-			toast.success("GPU support enabled successfully");
+			toast.success(tToast("gpuSupportEnabled"));
 			setIsLoading(false);
 			await utils.settings.checkGPUStatus.invalidate({ serverId });
 		},
 		onError: (error) => {
-			toast.error(
-				error.message ||
-					"Failed to enable GPU support. Please check server logs.",
-			);
+			toast.error(error.message || tToast("gpuEnableFailed"));
 			setIsLoading(false);
 		},
 	});
@@ -57,7 +56,7 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 			await utils.settings.checkGPUStatus.invalidate({ serverId });
 			await refetch();
 		} catch {
-			toast.error("Failed to refresh GPU status");
+			toast.error(tToast("gpuRefreshFailed"));
 		} finally {
 			setIsRefreshing(false);
 		}
@@ -68,7 +67,7 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 
 	const handleEnableGPU = async () => {
 		if (serverId === undefined) {
-			toast.error("No server selected");
+			toast.error(tToast("noServerSelected"));
 			return;
 		}
 

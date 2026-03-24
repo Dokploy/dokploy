@@ -1,6 +1,7 @@
 import copy from "copy-to-clipboard";
 import { CopyIcon, ExternalLinkIcon, ServerIcon, Settings } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -39,6 +40,7 @@ interface Props {
 }
 
 export const SetupServer = ({ serverId, asButton = false }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: server } = api.server.one.useQuery(
 		{
@@ -176,7 +178,7 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 														copy(
 															server?.sshKey?.publicKey || "Generate a SSH Key",
 														);
-														toast.success("SSH Copied to clipboard");
+														toast.success(tToast("sshCopiedToClipboard"));
 													}}
 												>
 													<CopyIcon className="size-4 text-muted-foreground" />
@@ -213,7 +215,7 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 														copy(
 															`ssh ${server?.username}@${server?.ipAddress}`,
 														);
-														toast.success("Copied to clipboard");
+														toast.success(tToast("copiedToClipboard"));
 													}}
 												>
 													<CopyIcon className="size-4" />
@@ -236,7 +238,7 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 															copy(
 																`echo "${server?.sshKey?.publicKey}" >> ~/.ssh/authorized_keys`,
 															);
-															toast.success("Copied to clipboard");
+															toast.success(tToast("copiedToClipboard"));
 														}}
 													>
 														<CopyIcon className="size-4" />

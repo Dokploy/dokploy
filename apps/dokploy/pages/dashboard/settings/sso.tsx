@@ -1,6 +1,7 @@
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
+import { useTranslations } from "next-intl";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -10,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { appRouter } from "@/server/api/root";
 
 const Page = () => {
+	const t = useTranslations("enterpriseSettings");
 	return (
 		<div className="w-full">
 			<div className="h-full rounded-xl max-w-5xl mx-auto flex flex-col gap-4">
@@ -18,10 +20,9 @@ const Page = () => {
 						<div className="p-6">
 							<EnterpriseFeatureGate
 								lockedProps={{
-									title: "Enterprise SSO",
-									description:
-										"Single sign-on (SSO) with OIDC and SAML is part of Dokploy Enterprise. Add a valid license to configure it.",
-									ctaLabel: "Go to License",
+									title: t("ssoLockedTitle"),
+									description: t("ssoLockedDescription"),
+									ctaLabel: t("goToLicense"),
 								}}
 							>
 								<SSOSettings />
@@ -37,7 +38,7 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout metaName="SSO">{page}</DashboardLayout>;
+	return <DashboardLayout pageTitleKey="sso">{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {

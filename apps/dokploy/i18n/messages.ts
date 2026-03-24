@@ -11,10 +11,10 @@ const mergeMessages = (source: Record<string, Messages>): Messages =>
 
 export const getMessages = async (locale: Locale): Promise<Messages> => {
 	if (locale === "ru") {
-		const ru = await import("@/messages/ru");
+		const ru = await import("@/i18n/locales/ru");
 		return mergeMessages(ru);
 	}
 
-	const en = await import("@/messages/en");
+	const en = await import("@/i18n/locales/en");
 	return mergeMessages(en);
 };

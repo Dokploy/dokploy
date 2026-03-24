@@ -1,0 +1,14 @@
+{
+	"traefikFileEditor": {
+		"invalidYaml": "Invalid YAML",
+		"toastSuccess": "Traefik config updated",
+		"toastError": "Error updating the Traefik config",
+		"loading": "Loading...",
+		"label": "Traefik config",
+		"unlock": "Unlock",
+		"lock": "Lock",
+		"skipYamlLabel": "Skip YAML validation (for Go templating)",
+		"skipYamlHint": "Traefik supports Go templating in dynamic configs (see placeholder below). Configs using templates will fail standard YAML validation. Check this to save without validation.",
+		"update": "Update"
+	}
+}

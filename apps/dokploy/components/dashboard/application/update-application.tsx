@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -27,20 +28,31 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
-const updateApplicationSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	description: z.string().optional(),
-});
+const createUpdateApplicationSchema = (
+	t: ReturnType<typeof useTranslations<"applicationGeneralMain">>,
+) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("editApplication.validation.nameRequired"),
+		}),
+		description: z.string().optional(),
+	});
 
-type UpdateApplication = z.infer<typeof updateApplicationSchema>;
+type UpdateApplicationForm = z.infer<
+	ReturnType<typeof createUpdateApplicationSchema>
+>;
 
 interface Props {
 	applicationId: string;
 }
 
 export const UpdateApplication = ({ applicationId }: Props) => {
+	const t = useTranslations("applicationGeneralMain");
+	const updateApplicationSchema = useMemo(
+		() => createUpdateApplicationSchema(t),
+		[t],
+	);
+
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isPending } =
@@ -53,7 +65,7 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 			enabled: !!applicationId,
 		},
 	);
-	const form = useForm<UpdateApplication>({
+	const form = useForm<UpdateApplicationForm>({
 		defaultValues: {
 			description: data?.description ?? "",
 			name: data?.name ?? "",
@@ -69,23 +81,22 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 		}
 	}, [data, form, form.reset]);
 
-	const onSubmit = async (formData: UpdateApplication) => {
+	const onSubmit = async (formData: UpdateApplicationForm) => {
 		await mutateAsync({
 			name: formData.name,
 			applicationId: applicationId,
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Application updated successfully");
+				toast.success(t("editApplication.toastSuccess"));
 				utils.application.one.invalidate({
 					applicationId: applicationId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating the Application");
-			})
-			.finally(() => {});
+				toast.error(t("editApplication.toastError"));
+			});
 	};
 
 	return (
@@ -101,8 +112,10 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify Application</DialogTitle>
-					<DialogDescription>Update the application data</DialogDescription>
+					<DialogTitle>{t("editApplication.dialogTitle")}</DialogTitle>
+					<DialogDescription>
+						{t("editApplication.dialogDescription")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -119,9 +132,12 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("editApplication.nameLabel")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Vandelay Industries" {...field} />
+												<Input
+													placeholder={t("editApplication.namePlaceholder")}
+													{...field}
+												/>
 											</FormControl>
 
 											<FormMessage />
@@ -133,10 +149,14 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>
+												{t("editApplication.descriptionLabel")}
+											</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t(
+														"editApplication.descriptionPlaceholder",
+													)}
 													className="resize-none"
 													{...field}
 												/>
@@ -152,7 +172,7 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 										form="hook-form-update-application"
 										type="submit"
 									>
-										Update
+										{t("editApplication.submit")}
 									</Button>
 								</DialogFooter>
 							</form>

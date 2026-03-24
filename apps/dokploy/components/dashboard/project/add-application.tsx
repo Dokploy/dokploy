@@ -1,7 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Folder, HelpCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -45,24 +45,24 @@ import {
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 
-const AddTemplateSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	appName: z
-		.string()
-		.min(1, {
-			message: "App name is required",
-		})
-		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
-			message:
-				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
+const createAddApplicationSchema = (t: (key: string) => string) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("nameRequired"),
 		}),
-	description: z.string().optional(),
-	serverId: z.string().optional(),
-});
+		appName: z
+			.string()
+			.min(1, {
+				message: t("appNameRequired"),
+			})
+			.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
+				message: t("appNameFormat"),
+			}),
+		description: z.string().optional(),
+		serverId: z.string().optional(),
+	});
 
-type AddTemplate = z.infer<typeof AddTemplateSchema>;
+type AddTemplate = z.infer<ReturnType<typeof createAddApplicationSchema>>;
 
 interface Props {
 	environmentId: string;
@@ -71,6 +71,7 @@ interface Props {
 
 export const AddApplication = ({ environmentId, projectName }: Props) => {
 	const t = useTranslations("addApplication");
+	const addApplicationSchema = useMemo(() => createAddApplicationSchema(t), [t]);
 	const utils = api.useUtils();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const [visible, setVisible] = useState(false);
@@ -89,7 +90,7 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 			appName: `${slug}-`,
 			description: "",
 		},
-		resolver: zodResolver(AddTemplateSchema),
+		resolver: zodResolver(addApplicationSchema),
 	});
 
 	const onSubmit = async (data: AddTemplate) => {

@@ -1,5 +1,6 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -18,6 +19,7 @@ interface Props {
 	composeId: string;
 }
 export const ComposeActions = ({ composeId }: Props) => {
+	const t = useTranslations("composeGeneral");
 	const router = useRouter();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canDeploy = permissions?.deployment.create ?? false;
@@ -40,22 +42,22 @@ export const ComposeActions = ({ composeId }: Props) => {
 			<TooltipProvider delayDuration={0} disableHoverableContent={false}>
 				{canDeploy && (
 					<DialogAction
-						title="Deploy Compose"
-						description="Are you sure you want to deploy this compose?"
+						title={t("actions.deploy.dialogTitle")}
+						description={t("actions.deploy.dialogDescription")}
 						type="default"
 						onClick={async () => {
 							await deploy({
 								composeId: composeId,
 							})
 								.then(() => {
-									toast.success("Compose deployed successfully");
+									toast.success(t("actions.deploy.toastSuccess"));
 									refetch();
 									router.push(
 										`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/compose/${composeId}?tab=deployments`,
 									);
 								})
 								.catch(() => {
-									toast.error("Error deploying compose");
+									toast.error(t("actions.deploy.toastError"));
 								});
 						}}
 					>
@@ -68,14 +70,12 @@ export const ComposeActions = ({ composeId }: Props) => {
 								<TooltipTrigger asChild>
 									<div className="flex items-center">
 										<Rocket className="size-4 mr-1" />
-										Deploy
+										{t("actions.deploy.button")}
 									</div>
 								</TooltipTrigger>
 								<TooltipPrimitive.Portal>
 									<TooltipContent sideOffset={5} className="z-[60]">
-										<p>
-											Downloads the source code and performs a complete build
-										</p>
+										<p>{t("actions.deploy.tooltip")}</p>
 									</TooltipContent>
 								</TooltipPrimitive.Portal>
 							</Tooltip>
@@ -84,19 +84,19 @@ export const ComposeActions = ({ composeId }: Props) => {
 				)}
 				{canDeploy && (
 					<DialogAction
-						title="Reload Compose"
-						description="Are you sure you want to reload this compose?"
+						title={t("actions.reload.dialogTitle")}
+						description={t("actions.reload.dialogDescription")}
 						type="default"
 						onClick={async () => {
 							await redeploy({
 								composeId: composeId,
 							})
 								.then(() => {
-									toast.success("Compose reloaded successfully");
+									toast.success(t("actions.reload.toastSuccess"));
 									refetch();
 								})
 								.catch(() => {
-									toast.error("Error reloading compose");
+									toast.error(t("actions.reload.toastError"));
 								});
 						}}
 					>
@@ -109,12 +109,12 @@ export const ComposeActions = ({ composeId }: Props) => {
 								<TooltipTrigger asChild>
 									<div className="flex items-center">
 										<RefreshCcw className="size-4 mr-1" />
-										Reload
+										{t("actions.reload.button")}
 									</div>
 								</TooltipTrigger>
 								<TooltipPrimitive.Portal>
 									<TooltipContent sideOffset={5} className="z-[60]">
-										<p>Reload the compose without rebuilding it</p>
+										<p>{t("actions.reload.tooltip")}</p>
 									</TooltipContent>
 								</TooltipPrimitive.Portal>
 							</Tooltip>
@@ -125,19 +125,19 @@ export const ComposeActions = ({ composeId }: Props) => {
 					(data?.composeType === "docker-compose" &&
 					data?.composeStatus === "idle" ? (
 						<DialogAction
-							title="Start Compose"
-							description="Are you sure you want to start this compose?"
+							title={t("actions.start.dialogTitle")}
+							description={t("actions.start.dialogDescription")}
 							type="default"
 							onClick={async () => {
 								await start({
 									composeId: composeId,
 								})
 									.then(() => {
-										toast.success("Compose started successfully");
+										toast.success(t("actions.start.toastSuccess"));
 										refetch();
 									})
 									.catch(() => {
-										toast.error("Error starting compose");
+										toast.error(t("actions.start.toastError"));
 									});
 							}}
 						>
@@ -150,14 +150,12 @@ export const ComposeActions = ({ composeId }: Props) => {
 									<TooltipTrigger asChild>
 										<div className="flex items-center">
 											<CheckCircle2 className="size-4 mr-1" />
-											Start
+											{t("actions.start.button")}
 										</div>
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
 										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>
-												Start the compose (requires a previous successful build)
-											</p>
+											<p>{t("actions.start.tooltip")}</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>
 								</Tooltip>
@@ -165,18 +163,18 @@ export const ComposeActions = ({ composeId }: Props) => {
 						</DialogAction>
 					) : (
 						<DialogAction
-							title="Stop Compose"
-							description="Are you sure you want to stop this compose?"
+							title={t("actions.stop.dialogTitle")}
+							description={t("actions.stop.dialogDescription")}
 							onClick={async () => {
 								await stop({
 									composeId: composeId,
 								})
 									.then(() => {
-										toast.success("Compose stopped successfully");
+										toast.success(t("actions.stop.toastSuccess"));
 										refetch();
 									})
 									.catch(() => {
-										toast.error("Error stopping compose");
+										toast.error(t("actions.stop.toastError"));
 									});
 							}}
 						>
@@ -189,12 +187,12 @@ export const ComposeActions = ({ composeId }: Props) => {
 									<TooltipTrigger asChild>
 										<div className="flex items-center">
 											<Ban className="size-4 mr-1" />
-											Stop
+											{t("actions.stop.button")}
 										</div>
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
 										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>Stop the currently running compose</p>
+											<p>{t("actions.stop.tooltip")}</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>
 								</Tooltip>
@@ -212,14 +210,16 @@ export const ComposeActions = ({ composeId }: Props) => {
 					className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 				>
 					<Terminal className="size-4 mr-1" />
-					Open Terminal
+					{t("actions.openTerminal")}
 				</Button>
 			</DockerTerminalModal>
 			{canUpdateService && (
 				<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
-					<span className="text-sm font-medium">Autodeploy</span>
+					<span className="text-sm font-medium">
+						{t("actions.autodeploy.label")}
+					</span>
 					<Switch
-						aria-label="Toggle autodeploy"
+						aria-label={t("actions.autodeploy.ariaLabel")}
 						checked={data?.autoDeploy || false}
 						onCheckedChange={async (enabled) => {
 							await update({
@@ -227,11 +227,11 @@ export const ComposeActions = ({ composeId }: Props) => {
 								autoDeploy: enabled,
 							})
 								.then(async () => {
-									toast.success("Auto Deploy Updated");
+									toast.success(t("actions.autodeploy.toastSuccess"));
 									await refetch();
 								})
 								.catch(() => {
-									toast.error("Error updating Auto Deploy");
+									toast.error(t("actions.autodeploy.toastError"));
 								});
 						}}
 						className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"

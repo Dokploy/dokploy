@@ -1,4 +1,5 @@
 import { Paintbrush } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -20,6 +21,8 @@ interface Props {
 }
 
 export const ClearDeployments = ({ id, type }: Props) => {
+	const t = useTranslations("applicationDeployments");
+	const tCommon = useTranslations("common");
 	const utils = api.useUtils();
 	const { mutateAsync, isPending } =
 		type === "application"
@@ -30,22 +33,19 @@ export const ClearDeployments = ({ id, type }: Props) => {
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
 				<Button variant="outline" className="w-fit" isLoading={isPending}>
-					Clear deployments
+					{t("clearDeployments.trigger")}
 					<Paintbrush className="size-4" />
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>
-						Are you sure you want to clear old deployments?
-					</AlertDialogTitle>
+					<AlertDialogTitle>{t("clearDeployments.title")}</AlertDialogTitle>
 					<AlertDialogDescription>
-						This will delete all old deployment records and logs, keeping only
-						the active deployment (the most recent successful one).
+						{t("clearDeployments.description")}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
 							await mutateAsync({
@@ -53,7 +53,7 @@ export const ClearDeployments = ({ id, type }: Props) => {
 								composeId: id || "",
 							})
 								.then(async () => {
-									toast.success("Old deployments cleared successfully");
+									toast.success(t("clearDeployments.success"));
 									await utils.deployment.allByType.invalidate({
 										id,
 										type: type as "application" | "compose",
@@ -64,7 +64,7 @@ export const ClearDeployments = ({ id, type }: Props) => {
 								});
 						}}
 					>
-						Confirm
+						{tCommon("confirm")}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

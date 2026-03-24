@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { DownloadIcon, PenBoxIcon, PlusIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ interface Props {
 }
 
 export const HandleSSHKeys = ({ sshKeyId }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const utils = api.useUtils();
 
 	const [isOpen, setIsOpen] = useState(false);
@@ -84,8 +86,8 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 			.then(async () => {
 				toast.success(
 					sshKeyId
-						? "SSH key updated successfully"
-						: "SSH key created successfully",
+						? tToast("sshKeyUpdatedSuccess")
+						: tToast("sshKeyCreatedSuccess"),
 				);
 				await utils.sshKey.all.invalidate();
 				form.reset();
@@ -94,8 +96,8 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 			.catch(() => {
 				toast.error(
 					sshKeyId
-						? "Error updating the SSH key"
-						: "Error creating the SSH key",
+						? tToast("sshKeyUpdateError")
+						: tToast("sshKeyCreateError"),
 				);
 			});
 	};
@@ -104,12 +106,12 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 		generateMutation
 			.mutateAsync(type)
 			.then(async (data) => {
-				toast.success("SSH Key Generated");
+				toast.success(tToast("sshKeyGenerated"));
 				form.setValue("privateKey", data.privateKey);
 				form.setValue("publicKey", data.publicKey);
 			})
 			.catch(() => {
-				toast.error("Error generating the SSH Key");
+				toast.error(tToast("sshKeyGenerateError"));
 			});
 
 	const downloadKey = (content: string, keyType: "private" | "public") => {

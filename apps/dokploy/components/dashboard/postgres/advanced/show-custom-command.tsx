@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Plus, Trash2 } from "lucide-react";
-import { useEffect } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -18,25 +19,20 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import type { ServiceType } from "../../application/advanced/show-resources";
 
-const addDockerImage = z.object({
-	dockerImage: z.string().min(1, "Docker image is required"),
-	command: z.string(),
-	args: z
-		.array(
-			z.object({
-				value: z.string().min(1, "Argument cannot be empty"),
-			}),
-		)
-		.optional(),
-});
-
 interface Props {
 	id: string;
 	type: Exclude<ServiceType, "application">;
 }
 
-type AddDockerImage = z.infer<typeof addDockerImage>;
+type AddDockerImage = {
+	dockerImage: string;
+	command: string;
+	args?: { value: string }[];
+};
+
 export const ShowCustomCommand = ({ id, type }: Props) => {
+	const t = useTranslations("serviceCustomCommand");
+	const tCommon = useTranslations("common");
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -65,13 +61,29 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 		? mutationMap[type]()
 		: api.mongo.update.useMutation();
 
+	const addDockerImageSchema = useMemo(
+		() =>
+			z.object({
+				dockerImage: z.string().min(1, t("dockerImageRequired")),
+				command: z.string(),
+				args: z
+					.array(
+						z.object({
+							value: z.string().min(1, t("argumentEmpty")),
+						}),
+					)
+					.optional(),
+			}),
+		[t],
+	);
+
 	const form = useForm<AddDockerImage>({
 		defaultValues: {
 			dockerImage: "",
 			command: "",
 			args: [],
 		},
-		resolver: zodResolver(addDockerImage),
+		resolver: zodResolver(addDockerImageSchema),
 	});
 
 	const { fields, append, remove } = useFieldArray({
@@ -101,11 +113,11 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 			args: formData?.args?.map((arg) => arg.value).filter(Boolean),
 		})
 			.then(async () => {
-				toast.success("Custom Command Updated");
+				toast.success(t("toastSuccess"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating the custom command");
+				toast.error(t("toastError"));
 			});
 	};
 	return (
@@ -113,7 +125,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 			<div className="flex w-full flex-col gap-5 ">
 				<Card className="bg-background">
 					<CardHeader>
-						<CardTitle className="text-xl">Advanced Settings</CardTitle>
+						<CardTitle className="text-xl">{t("title")}</CardTitle>
 					</CardHeader>
 					<CardContent className="flex flex-col gap-4">
 						<Form {...form}>
@@ -127,7 +139,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 										name="dockerImage"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Docker Image</FormLabel>
+												<FormLabel>{t("dockerImage")}</FormLabel>
 												<FormControl>
 													<Input placeholder="postgres:18" {...field} />
 												</FormControl>
@@ -142,7 +154,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 									name="command"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Command</FormLabel>
+											<FormLabel>{t("command")}</FormLabel>
 											<FormControl>
 												<Input placeholder="/bin/sh" {...field} />
 											</FormControl>
@@ -154,7 +166,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 
 								<div className="space-y-2">
 									<div className="flex items-center justify-between">
-										<FormLabel>Arguments (Args)</FormLabel>
+										<FormLabel>{t("argsLabel")}</FormLabel>
 										<Button
 											type="button"
 											variant="outline"
@@ -162,13 +174,13 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 											onClick={() => append({ value: "" })}
 										>
 											<Plus className="h-4 w-4 mr-1" />
-											Add Argument
+											{t("addArgument")}
 										</Button>
 									</div>
 
 									{fields.length === 0 && (
 										<p className="text-sm text-muted-foreground">
-											No arguments added yet. Click "Add Argument" to add one.
+											{t("noArgsHint")}
 										</p>
 									)}
 
@@ -177,17 +189,17 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 											key={field.id}
 											control={form.control}
 											name={`args.${index}.value`}
-											render={({ field }) => (
+											render={({ field: argField }) => (
 												<FormItem>
 													<div className="flex gap-2">
 														<FormControl>
 															<Input
 																placeholder={
 																	index === 0
-																		? "-c"
-																		: "redis-server --port 6379"
+																		? t("argPlaceholderFirst")
+																		: t("argPlaceholderOther")
 																}
-																{...field}
+																{...argField}
 															/>
 														</FormControl>
 														<Button
@@ -208,7 +220,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 
 								<div className="flex w-full justify-end">
 									<Button isLoading={form.formState.isSubmitting} type="submit">
-										Save
+										{tCommon("save")}
 									</Button>
 								</div>
 							</form>

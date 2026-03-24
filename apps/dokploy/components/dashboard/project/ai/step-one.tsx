@@ -15,13 +15,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
-const examples = [
-	"Make a personal blog",
-	"Add a photo studio portfolio",
-	"Create a personal ad blocker",
-	"Build a social media dashboard",
-	"Sendgrid service opensource analogue",
-];
+const EXAMPLE_KEYS = [
+	"example1",
+	"example2",
+	"example3",
+	"example4",
+	"example5",
+] as const;
 
 export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 	const t = useTranslations("aiAssistant");
@@ -114,14 +114,14 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 					<div className="space-y-2">
 						<Label>{t("examplesLabel")}</Label>
 						<div className="flex flex-wrap gap-2">
-							{examples.map((example, index) => (
+							{EXAMPLE_KEYS.map((key) => (
 								<Button
-									key={index}
+									key={key}
 									variant="outline"
 									size="sm"
-									onClick={() => handleExampleClick(example)}
+									onClick={() => handleExampleClick(t(key))}
 								>
-									{example}
+									{t(key)}
 								</Button>
 							))}
 						</div>

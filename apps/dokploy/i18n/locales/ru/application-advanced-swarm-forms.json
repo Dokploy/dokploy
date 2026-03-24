@@ -1,0 +1,223 @@
+{
+	"applicationAdvancedSwarmForms": {
+		"modify": {
+			"button": "Swarm Settings",
+			"title": "Swarm Settings",
+			"description": "Настройте параметры Swarm для сервиса.",
+			"alert": "Изменение placement и др. может сделать недоступными логи, мониторинг, бэкапы и другие функции."
+		},
+		"menu": {
+			"healthCheck": {
+				"label": "Health Check",
+				"description": "Настройка проверки здоровья",
+				"doc": "HEALTHCHECK проверяет состояние контейнера командой внутри него. Test, Interval, Timeout, StartPeriod и Retries задают мониторинг."
+			},
+			"restartPolicy": {
+				"label": "Restart Policy",
+				"description": "Политика перезапуска",
+				"doc": "Политика перезапуска контейнеров сервиса: Condition (none, on-failure, any), Delay (наносекунды), MaxAttempts, Window."
+			},
+			"placement": {
+				"label": "Placement",
+				"description": "Ограничения размещения",
+				"doc": "На каких узлах могут быть задачи: Constraints (node.id==xyz), Preferences (spread.node.labels.zone), MaxReplicas, Platforms."
+			},
+			"updateConfig": {
+				"label": "Update Config",
+				"description": "Стратегия обновления",
+				"doc": "Как обновляется сервис: Parallelism, Delay, FailureAction (pause, continue, rollback), Monitor, MaxFailureRatio, Order (stop-first, start-first)."
+			},
+			"rollbackConfig": {
+				"label": "Rollback Config",
+				"description": "Стратегия отката",
+				"doc": "Автооткат при ошибке обновления; те же поля, что UpdateConfig: Parallelism, Delay, FailureAction, Monitor, MaxFailureRatio, Order."
+			},
+			"mode": {
+				"label": "Mode",
+				"description": "Режим сервиса",
+				"doc": "Режим Replicated с числом Replicas или Global (по задаче на узел)."
+			},
+			"network": {
+				"label": "Network",
+				"description": "Подключения к сетям",
+				"doc": "Подключите сервис к сетям: имя сети (Target) и при необходимости aliases для service discovery."
+			},
+			"labels": {
+				"label": "Labels",
+				"description": "Метки сервиса",
+				"doc": "Метаданные в виде пар ключ-значение (например com.example.foo=bar) для фильтрации и организации."
+			},
+			"stopGracePeriod": {
+				"label": "Stop Grace Period",
+				"description": "Период graceful shutdown",
+				"doc": "Время ожидания перед принудительным завершением, в наносекундах (например 10000000000 = 10 с)."
+			},
+			"endpointSpec": {
+				"label": "Endpoint Spec",
+				"description": "Спецификация endpoint",
+				"doc": "Режим endpoint для service discovery: vip (virtual IP по умолчанию) или dnsrr (DNS round-robin по всем задачам)."
+			}
+		},
+		"actions": {
+			"clear": "Сбросить",
+			"saveMode": "Сохранить режим",
+			"saveHealthCheck": "Сохранить Health Check",
+			"saveRestartPolicy": "Сохранить Restart Policy",
+			"savePlacement": "Сохранить Placement",
+			"saveUpdateConfig": "Сохранить Update Config",
+			"saveRollbackConfig": "Сохранить Rollback Config",
+			"saveNetworks": "Сохранить сети",
+			"saveLabels": "Сохранить Labels",
+			"saveStopGrace": "Сохранить Stop Grace Period",
+			"saveEndpoint": "Сохранить Endpoint Spec"
+		},
+		"mode": {
+			"modeType": "Тип режима",
+			"modeTypeDesc": "Replicated или Global",
+			"placeholderMode": "Выберите тип режима",
+			"replicas": "Replicas",
+			"replicasDesc": "Число реплик",
+			"toastSuccess": "Режим обновлён",
+			"toastError": "Не удалось обновить режим"
+		},
+		"healthCheck": {
+			"testCommands": "Test Commands",
+			"testCommandsDesc": "Команда проверки (например [\"CMD-SHELL\", \"curl -f http://localhost:3000/health\"])",
+			"placeholderCmd0": "CMD-SHELL",
+			"placeholderCmd1": "curl -f http://localhost:3000/health",
+			"remove": "Удалить",
+			"addCommand": "Добавить команду",
+			"interval": "Interval (наносекунды)",
+			"intervalDesc": "Интервал между проверками (например 10000000000 = 10 с)",
+			"timeout": "Timeout (наносекунды)",
+			"timeoutDesc": "Максимальное время ожидания ответа health check",
+			"startPeriod": "Start Period (наносекунды)",
+			"startPeriodDesc": "Период до начала проверок",
+			"retries": "Retries",
+			"retriesDesc": "Сколько подряд неудач считать контейнер unhealthy",
+			"toastSuccess": "Health check обновлён",
+			"toastError": "Не удалось обновить health check"
+		},
+		"restartPolicy": {
+			"condition": "Condition",
+			"conditionDesc": "Когда перезапускать контейнер",
+			"placeholderCondition": "Выберите условие",
+			"none": "None",
+			"onFailure": "On Failure",
+			"any": "Any",
+			"delay": "Delay (наносекунды)",
+			"delayDesc": "Пауза между попытками перезапуска",
+			"maxAttempts": "Max Attempts",
+			"maxAttemptsDesc": "Максимум попыток перезапуска",
+			"window": "Window (наносекунды)",
+			"windowDesc": "Окно оценки политики перезапуска",
+			"toastSuccess": "Restart policy обновлена",
+			"toastError": "Не удалось обновить restart policy"
+		},
+		"placement": {
+			"constraints": "Constraints",
+			"constraintsDesc": "Ограничения размещения (например \"node.role==manager\")",
+			"placeholderConstraint": "node.role==manager",
+			"preferences": "Preferences",
+			"preferencesDesc": "Предпочтения распределения (например \"node.labels.region\")",
+			"placeholderPref": "node.labels.region",
+			"maxReplicas": "Max Replicas",
+			"maxReplicasDesc": "Максимум реплик на узел",
+			"platforms": "Platforms",
+			"platformsDesc": "Целевые платформы для планирования",
+			"placeholderArch": "amd64",
+			"placeholderOs": "linux",
+			"remove": "Удалить",
+			"addConstraint": "Добавить constraint",
+			"addPreference": "Добавить preference",
+			"addPlatform": "Добавить platform",
+			"toastSuccess": "Placement обновлён",
+			"toastError": "Не удалось обновить placement"
+		},
+		"updateConfig": {
+			"parallelism": "Parallelism",
+			"parallelismDesc": "Сколько задач обновлять одновременно",
+			"delay": "Delay (наносекунды)",
+			"delayDesc": "Пауза между обновлениями задач",
+			"failureAction": "Failure Action",
+			"failureActionDesc": "Действие при ошибке обновления",
+			"placeholderFailure": "Выберите действие",
+			"pause": "Pause",
+			"continue": "Continue",
+			"rollback": "Rollback",
+			"monitor": "Monitor (наносекунды)",
+			"monitorDesc": "Длительность мониторинга после обновления",
+			"maxFailureRatio": "Max Failure Ratio",
+			"maxFailureRatioDesc": "Допустимая доля сбоев (0–1)",
+			"order": "Order",
+			"orderDesc": "Порядок обновления",
+			"placeholderOrder": "Выберите порядок",
+			"stopFirst": "Stop First",
+			"startFirst": "Start First",
+			"toastSuccess": "Update Config обновлён",
+			"toastError": "Не удалось обновить Update Config"
+		},
+		"rollbackConfig": {
+			"parallelism": "Parallelism",
+			"parallelismDesc": "Сколько задач откатывать одновременно",
+			"delay": "Delay (наносекунды)",
+			"delayDesc": "Пауза между откатами",
+			"failureAction": "Failure Action",
+			"failureActionDesc": "Действие при ошибке отката",
+			"monitor": "Monitor (наносекунды)",
+			"monitorDesc": "Мониторинг после отката",
+			"maxFailureRatio": "Max Failure Ratio",
+			"maxFailureRatioDesc": "Допустимая доля сбоев (0–1)",
+			"order": "Order",
+			"orderDesc": "Порядок отката",
+			"toastSuccess": "Rollback Config обновлён",
+			"toastError": "Не удалось обновить Rollback Config"
+		},
+		"network": {
+			"section": "Networks",
+			"sectionDesc": "Подключения сервиса к сетям",
+			"networkName": "Имя сети",
+			"networkNameDesc": "Имя сети (Target)",
+			"placeholderNetwork": "my-network",
+			"aliases": "Aliases (необязательно)",
+			"aliasesDesc": "Список aliases через запятую",
+			"aliasesPlaceholder": "alias1, alias2, alias3",
+			"driverOpts": "Driver options (необязательно)",
+			"driverOptsDesc": "например com.docker.network.driver.mtu, com.docker.network.driver.host_binding",
+			"placeholderDriverKey": "com.docker.network.driver.mtu",
+			"placeholderDriverValue": "1500",
+			"remove": "Удалить",
+			"addDriverOption": "Добавить driver option",
+			"removeNetwork": "Удалить сеть",
+			"addNetwork": "Добавить сеть",
+			"toastSuccess": "Конфигурация сетей обновлена",
+			"toastError": "Не удалось обновить сети"
+		},
+		"labels": {
+			"section": "Labels",
+			"sectionDesc": "Пары ключ–значение для сервиса",
+			"placeholderKey": "com.example.app.name",
+			"placeholderValue": "my-app",
+			"remove": "Удалить",
+			"addLabel": "Добавить label",
+			"toastSuccess": "Labels обновлены",
+			"toastError": "Не удалось обновить labels"
+		},
+		"stopGrace": {
+			"label": "Stop Grace Period (наносекунды)",
+			"desc": "Время ожидания перед принудительным завершением контейнера",
+			"examples": "Примеры: 30000000000 (30 с), 120000000000 (2 мин)",
+			"toastSuccess": "Stop grace period обновлён",
+			"toastError": "Не удалось обновить stop grace period"
+		},
+		"endpoint": {
+			"mode": "Mode",
+			"modeDesc": "Режим endpoint: vip или dnsrr",
+			"placeholderMode": "Выберите режим endpoint",
+			"vip": "VIP (Virtual IP)",
+			"dnsrr": "DNS Round Robin",
+			"toastSuccess": "Endpoint spec обновлён",
+			"toastError": "Не удалось обновить endpoint spec"
+		}
+	}
+}

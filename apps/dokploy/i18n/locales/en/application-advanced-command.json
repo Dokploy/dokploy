@@ -1,0 +1,19 @@
+{
+	"applicationAdvancedCommand": {
+		"title": "Run Command",
+		"description": "Run a custom command in the container after the application initialized",
+		"command": "Command",
+		"argsLabel": "Arguments (Args)",
+		"addArgument": "Add Argument",
+		"noArgsHint": "No arguments added yet. Click \"Add Argument\" to add one.",
+		"placeholderArg0": "-c",
+		"placeholderArgN": "echo Hello World",
+		"validation": {
+			"argEmpty": "Argument cannot be empty"
+		},
+		"toast": {
+			"success": "Command updated",
+			"error": "Error updating the command"
+		}
+	}
+}

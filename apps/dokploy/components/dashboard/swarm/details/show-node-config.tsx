@@ -1,4 +1,5 @@
 import { Settings } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export const ShowNodeConfig = ({ nodeId, serverId }: Props) => {
+	const t = useTranslations("swarmNodeCard");
 	const { data } = api.swarm.getNodeInfo.useQuery({
 		nodeId,
 		serverId,
@@ -26,20 +28,17 @@ export const ShowNodeConfig = ({ nodeId, serverId }: Props) => {
 			<DialogTrigger asChild>
 				<Button variant="outline" size="sm" className="w-full">
 					<Settings className="h-4 w-4 mr-2" />
-					Config
+					{t("configButton")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className={"sm:max-w-5xl"}>
 				<DialogHeader>
-					<DialogTitle>Node Config</DialogTitle>
-					<DialogDescription>
-						See in detail the metadata of this node
-					</DialogDescription>
+					<DialogTitle>{t("configTitle")}</DialogTitle>
+					<DialogDescription>{t("configDescription")}</DialogDescription>
 				</DialogHeader>
 				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-[59rem] bg-card max-h-[70vh] overflow-auto ">
 					<code>
 						<pre className="whitespace-pre-wrap break-words items-center justify-center">
-							{/* {JSON.stringify(data, null, 2)} */}
 							<CodeEditor
 								language="json"
 								lineWrapping={false}

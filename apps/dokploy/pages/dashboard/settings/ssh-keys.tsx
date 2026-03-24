@@ -18,7 +18,7 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout metaName="SSH Keys">{page}</DashboardLayout>;
+	return <DashboardLayout pageTitleKey="sshKeys">{page}</DashboardLayout>;
 };
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,

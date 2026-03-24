@@ -7,6 +7,7 @@ import {
 	TrashIcon,
 	Users,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -588,6 +589,7 @@ function HandleCustomRole({
 	initialPermissions,
 	onSuccess,
 }: HandleCustomRoleProps) {
+	const tToast = useTranslations("proprietaryToasts");
 	const [open, setOpen] = useState(false);
 	const [permissions, setPermissions] = useState<Record<string, string[]>>({});
 	const { data: statements } = api.customRole.getStatements.useQuery();
@@ -638,17 +640,21 @@ function HandleCustomRole({
 					newRoleName: newName,
 					permissions,
 				});
-				toast.success(`Role "${newName ?? roleName}" updated`);
+				toast.success(
+					tToast("customRoleUpdated", { name: newName ?? roleName ?? "" }),
+				);
 			} else {
 				await createRole({ roleName: data.roleName, permissions });
-				toast.success(`Role "${data.roleName}" created`);
+				toast.success(tToast("customRoleCreated", { name: data.roleName }));
 			}
 			if (!isEdit) {
 				setOpen(false);
 			}
 			onSuccess();
 		} catch (error) {
-			let message = `Error ${isEdit ? "updating" : "creating"} role`;
+			let message = isEdit
+				? tToast("customRoleUpdateFailed")
+				: tToast("customRoleCreateFailed");
 			if (error instanceof Error) {
 				try {
 					const parsed = JSON.parse(error.message);
@@ -760,6 +766,7 @@ function HandleCustomRole({
 }
 
 const CustomRolesContent = () => {
+	const tToast = useTranslations("proprietaryToasts");
 	const {
 		data: customRoles,
 		isPending,
@@ -770,10 +777,10 @@ const CustomRolesContent = () => {
 	const handleDelete = async (roleName: string) => {
 		try {
 			await deleteRole({ roleName });
-			toast.success(`Role "${roleName}" deleted`);
+			toast.success(tToast("customRoleDeleted", { name: roleName }));
 			refetch();
 		} catch (error) {
-			let message = "Error deleting role";
+			let message = tToast("customRoleDeleteFailed");
 			if (error instanceof Error) {
 				try {
 					const parsed = JSON.parse(error.message);

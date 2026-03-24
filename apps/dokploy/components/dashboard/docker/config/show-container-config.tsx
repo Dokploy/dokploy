@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { CodeEditor } from "@/components/shared/code-editor";
 import {
 	Dialog,
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export const ShowContainerConfig = ({ containerId, serverId }: Props) => {
+	const t = useTranslations("dockerContainerConfig");
 	const { data } = api.docker.getConfig.useQuery(
 		{
 			containerId,
@@ -32,15 +34,13 @@ export const ShowContainerConfig = ({ containerId, serverId }: Props) => {
 					className="w-full cursor-pointer"
 					onSelect={(e) => e.preventDefault()}
 				>
-					View Config
+					{t("menuItem")}
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className={"w-full md:w-[70vw] min-w-[70vw]"}>
 				<DialogHeader>
-					<DialogTitle>Container Config</DialogTitle>
-					<DialogDescription>
-						See in detail the config of this container
-					</DialogDescription>
+					<DialogTitle>{t("title")}</DialogTitle>
+					<DialogDescription>{t("description")}</DialogDescription>
 				</DialogHeader>
 				<div className="text-wrap rounded-lg border p-4 overflow-y-auto text-sm bg-card max-h-[80vh]">
 					<code>

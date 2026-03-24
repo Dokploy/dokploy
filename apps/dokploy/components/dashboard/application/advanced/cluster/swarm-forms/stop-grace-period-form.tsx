@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ interface StopGracePeriodFormProps {
 }
 
 export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
+	const t = useTranslations("applicationAdvancedSwarmForms");
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -91,10 +93,10 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 				stopGracePeriodSwarm: formData.value,
 			});
 
-			toast.success("Stop grace period updated successfully");
+			toast.success(t("stopGrace.toastSuccess"));
 			refetch();
 		} catch {
-			toast.error("Error updating stop grace period");
+			toast.error(t("stopGrace.toastError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -108,11 +110,11 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 					name="value"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Stop Grace Period (nanoseconds)</FormLabel>
+							<FormLabel>{t("stopGrace.label")}</FormLabel>
 							<FormDescription>
-								Time to wait before forcefully killing the container
+								{t("stopGrace.desc")}
 								<br />
-								Examples: 30000000000 (30s), 120000000000 (2m)
+								{t("stopGrace.examples")}
 							</FormDescription>
 							<FormControl>
 								<Input
@@ -146,10 +148,10 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 							});
 						}}
 					>
-						Clear
+						{t("actions.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Stop Grace Period
+						{t("actions.saveStopGrace")}
 					</Button>
 				</div>
 			</form>

@@ -1,0 +1,65 @@
+{
+	"postgresDashboard": {
+		"update": {
+			"nameRequired": "Укажите имя",
+			"title": "Изменить PostgreSQL",
+			"description": "Обновите данные PostgreSQL",
+			"nameLabel": "Имя",
+			"namePlaceholder": "Vandelay Industries",
+			"descriptionLabel": "Описание",
+			"descriptionPlaceholder": "Описание проекта...",
+			"updateButton": "Обновить",
+			"toastSuccess": "PostgreSQL успешно обновлён",
+			"toastError": "Не удалось обновить PostgreSQL"
+		},
+		"general": {
+			"cardTitle": "Настройки деплоя",
+			"deployDialogTitle": "Деплой PostgreSQL",
+			"deployDialogDescription": "Развернуть эту базу PostgreSQL?",
+			"deploy": "Деплой",
+			"deployTooltip": "Скачивает и настраивает PostgreSQL",
+			"reloadDialogTitle": "Перезагрузка PostgreSQL",
+			"reloadDialogDescription": "Перезагрузить эту PostgreSQL?",
+			"reload": "Перезагрузить",
+			"reloadTooltip": "Перезапуск PostgreSQL без пересборки",
+			"reloadToastSuccess": "PostgreSQL перезагружена",
+			"reloadToastError": "Не удалось перезагрузить PostgreSQL",
+			"startDialogTitle": "Запуск PostgreSQL",
+			"startDialogDescription": "Запустить эту PostgreSQL?",
+			"start": "Запустить",
+			"startTooltip": "Запуск PostgreSQL (нужна успешная предыдущая установка)",
+			"startToastSuccess": "PostgreSQL запущена",
+			"startToastError": "Не удалось запустить PostgreSQL",
+			"stopDialogTitle": "Остановка PostgreSQL",
+			"stopDialogDescription": "Остановить эту PostgreSQL?",
+			"stop": "Остановить",
+			"stopTooltip": "Остановить текущий экземпляр PostgreSQL",
+			"stopToastSuccess": "PostgreSQL остановлена",
+			"stopToastError": "Не удалось остановить PostgreSQL",
+			"openTerminal": "Открыть терминал",
+			"openTerminalTooltip": "Терминал в контейнере PostgreSQL"
+		},
+		"internal": {
+			"cardTitle": "Внутренние учётные данные",
+			"user": "Пользователь",
+			"databaseName": "Имя БД",
+			"password": "Пароль",
+			"internalPort": "Внутренний порт (контейнер)",
+			"internalHost": "Внутренний хост",
+			"internalConnectionUrl": "Внутренний URL подключения"
+		},
+		"external": {
+			"cardTitle": "Внешние учётные данные",
+			"cardDescription": "Чтобы база была доступна из интернета, задайте порт и убедитесь, что он не занят другим приложением или БД.",
+			"ipWarningPrefix": "Укажите IP-адрес в разделе",
+			"ipWarningSuffix": ", чтобы исправить URL подключения к БД.",
+			"ipLinkRemote": "Удалённые серверы → Сервер → Изменить → IP-адрес",
+			"ipLinkWebServer": "Веб-сервер → Сервер → Обновить IP",
+			"portRangeError": "Порт должен быть от 0 до 65535",
+			"externalPortLabel": "Внешний порт (интернет)",
+			"externalHost": "Внешний хост",
+			"toastPortSuccess": "Внешний порт обновлён",
+			"toastPortError": "Не удалось сохранить внешний порт"
+		}
+	}
+}

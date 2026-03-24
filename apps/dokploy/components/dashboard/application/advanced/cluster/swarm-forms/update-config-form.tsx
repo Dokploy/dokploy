@@ -1,4 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ interface UpdateConfigFormProps {
 }
 
 export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
+	const t = useTranslations("applicationAdvancedSwarmForms");
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -97,7 +99,6 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 	const onSubmit = async (formData: z.infer<typeof updateConfigFormSchema>) => {
 		setIsLoading(true);
 		try {
-			// Check if all values are empty, if so, send null to clear the database
 			const hasAnyValue = Object.values(formData).some(
 				(value) => value !== undefined && value !== null && value !== "",
 			);
@@ -112,10 +113,10 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 				updateConfigSwarm: (hasAnyValue ? formData : null) as any,
 			});
 
-			toast.success("Update config updated successfully");
+			toast.success(t("updateConfig.toastSuccess"));
 			refetch();
 		} catch {
-			toast.error("Error updating update config");
+			toast.error(t("updateConfig.toastError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -129,10 +130,8 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 					name="Parallelism"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Parallelism</FormLabel>
-							<FormDescription>
-								Number of tasks to update simultaneously
-							</FormDescription>
+							<FormLabel>{t("updateConfig.parallelism")}</FormLabel>
+							<FormDescription>{t("updateConfig.parallelismDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="1" {...field} />
 							</FormControl>
@@ -146,8 +145,8 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 					name="Delay"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Delay (nanoseconds)</FormLabel>
-							<FormDescription>Delay between task updates</FormDescription>
+							<FormLabel>{t("updateConfig.delay")}</FormLabel>
+							<FormDescription>{t("updateConfig.delayDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
 							</FormControl>
@@ -161,18 +160,22 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 					name="FailureAction"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Failure Action</FormLabel>
-							<FormDescription>Action on update failure</FormDescription>
+							<FormLabel>{t("updateConfig.failureAction")}</FormLabel>
+							<FormDescription>{t("updateConfig.failureActionDesc")}</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder="Select failure action" />
+										<SelectValue placeholder={t("updateConfig.placeholderFailure")} />
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									<SelectItem value="pause">Pause</SelectItem>
-									<SelectItem value="continue">Continue</SelectItem>
-									<SelectItem value="rollback">Rollback</SelectItem>
+									<SelectItem value="pause">{t("updateConfig.pause")}</SelectItem>
+									<SelectItem value="continue">
+										{t("updateConfig.continue")}
+									</SelectItem>
+									<SelectItem value="rollback">
+										{t("updateConfig.rollback")}
+									</SelectItem>
 								</SelectContent>
 							</Select>
 							<FormMessage />
@@ -185,10 +188,8 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 					name="Monitor"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Monitor (nanoseconds)</FormLabel>
-							<FormDescription>
-								Duration to monitor for failure after update
-							</FormDescription>
+							<FormLabel>{t("updateConfig.monitor")}</FormLabel>
+							<FormDescription>{t("updateConfig.monitorDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
 							</FormControl>
@@ -202,10 +203,8 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 					name="MaxFailureRatio"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Max Failure Ratio</FormLabel>
-							<FormDescription>
-								Maximum failure ratio tolerated (0-1)
-							</FormDescription>
+							<FormLabel>{t("updateConfig.maxFailureRatio")}</FormLabel>
+							<FormDescription>{t("updateConfig.maxFailureRatioDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" step="0.01" placeholder="0.1" {...field} />
 							</FormControl>
@@ -219,17 +218,21 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 					name="Order"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Order</FormLabel>
-							<FormDescription>Update order strategy</FormDescription>
+							<FormLabel>{t("updateConfig.order")}</FormLabel>
+							<FormDescription>{t("updateConfig.orderDesc")}</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder="Select order" />
+										<SelectValue placeholder={t("updateConfig.placeholderOrder")} />
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									<SelectItem value="stop-first">Stop First</SelectItem>
-									<SelectItem value="start-first">Start First</SelectItem>
+									<SelectItem value="stop-first">
+										{t("updateConfig.stopFirst")}
+									</SelectItem>
+									<SelectItem value="start-first">
+										{t("updateConfig.startFirst")}
+									</SelectItem>
 								</SelectContent>
 							</Select>
 							<FormMessage />
@@ -252,10 +255,10 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 							});
 						}}
 					>
-						Clear
+						{t("actions.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Update Config
+						{t("actions.saveUpdateConfig")}
 					</Button>
 				</div>
 			</form>

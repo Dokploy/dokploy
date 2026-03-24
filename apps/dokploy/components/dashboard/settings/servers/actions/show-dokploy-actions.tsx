@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { UpdateServerIp } from "@/components/dashboard/settings/web-server/update-server-ip";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { TerminalModal } from "../../web-server/terminal-modal";
 import { GPUSupportModal } from "../gpu-support-modal";
 
 export const ShowDokployActions = () => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const { mutateAsync: reloadServer, isPending } =
 		api.settings.reloadServer.useMutation();
 
@@ -39,10 +41,10 @@ export const ShowDokployActions = () => {
 						onClick={async () => {
 							await reloadServer()
 								.then(async () => {
-									toast.success("Server Reloaded");
+									toast.success(tToast("serverReloaded"));
 								})
 								.catch(() => {
-									toast.success("Server Reloaded");
+									toast.error(tToast("serverReloadError"));
 								});
 						}}
 						className="cursor-pointer"
@@ -75,10 +77,10 @@ export const ShowDokployActions = () => {
 						onClick={async () => {
 							await cleanRedis()
 								.then(async () => {
-									toast.success("Redis cleaned");
+									toast.success(tToast("redisCleaned"));
 								})
 								.catch(() => {
-									toast.error("Error cleaning Redis");
+									toast.error(tToast("redisCleanError"));
 								});
 						}}
 					>
@@ -90,10 +92,10 @@ export const ShowDokployActions = () => {
 						onClick={async () => {
 							await cleanAllDeploymentQueue()
 								.then(() => {
-									toast.success("Deployment queue cleaned");
+									toast.success(tToast("deploymentQueueCleaned"));
 								})
 								.catch(() => {
-									toast.error("Error cleaning deployment queue");
+									toast.error(tToast("deploymentQueueCleanError"));
 								});
 						}}
 					>
@@ -105,10 +107,10 @@ export const ShowDokployActions = () => {
 						onClick={async () => {
 							await reloadRedis()
 								.then(async () => {
-									toast.success("Redis reloaded");
+									toast.success(tToast("redisReloaded"));
 								})
 								.catch(() => {
-									toast.error("Error reloading Redis");
+									toast.error(tToast("redisReloadError"));
 								});
 						}}
 					>

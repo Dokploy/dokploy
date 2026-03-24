@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { useTranslations } from "next-intl";
 import {
 	Area,
 	AreaChart,
@@ -15,10 +16,11 @@ interface Props {
 }
 
 export const DockerNetworkChart = ({ acummulativeData }: Props) => {
+	const t = useTranslations("monitoringDashboard.freeCharts");
 	const transformedData = acummulativeData.map((item, index) => {
 		return {
 			time: item.time,
-			name: `Point ${index + 1}`,
+			name: t("dataPoint", { n: index + 1 }),
 			inMB: item.value.inputMb,
 			outMB: item.value.outputMb,
 		};
@@ -44,7 +46,7 @@ export const DockerNetworkChart = ({ acummulativeData }: Props) => {
 					<YAxis stroke="#A1A1AA" />
 					<CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
 					{/* @ts-ignore */}
-					<Tooltip content={<CustomTooltip />} />
+					<Tooltip content={<DockerNetworkTooltip />} />
 					<Legend />
 					<Area
 						type="monotone"
@@ -52,7 +54,7 @@ export const DockerNetworkChart = ({ acummulativeData }: Props) => {
 						stroke="#8884d8"
 						fillOpacity={1}
 						fill="url(#colorUv)"
-						name="In MB"
+						name={t("legendInMb")}
 					/>
 					<Area
 						type="monotone"
@@ -60,7 +62,7 @@ export const DockerNetworkChart = ({ acummulativeData }: Props) => {
 						stroke="#82ca9d"
 						fillOpacity={1}
 						fill="url(#colorUv)"
-						name="Out MB"
+						name={t("legendOutMb")}
 					/>
 				</AreaChart>
 			</ResponsiveContainer>
@@ -82,15 +84,19 @@ interface CustomTooltipProps {
 	}[];
 }
 
-const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+const DockerNetworkTooltip = ({ active, payload }: CustomTooltipProps) => {
+	const t = useTranslations("monitoringDashboard.freeCharts");
 	if (active && payload && payload.length && payload[0]) {
 		return (
 			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
 				{payload[0].payload.time && (
-					<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
+					<p>
+						{t("tooltipDate")}:{" "}
+						{format(new Date(payload[0].payload.time), "PPpp")}
+					</p>
 				)}
-				<p>{`In  Usage: ${payload[0].payload.inMB} `}</p>
-				<p>{`Out  Usage: ${payload[0].payload.outMB} `}</p>
+				<p>{t("inUsage", { value: payload[0].payload.inMB })}</p>
+				<p>{t("outUsage", { value: payload[0].payload.outMB })}</p>
 			</div>
 		);
 	}

@@ -1,0 +1,13 @@
+{
+	"composeLogs": {
+		"title": "Логи",
+		"description": "Логи приложения в реальном времени",
+		"selectContainerLabel": "Выберите контейнер для просмотра логов",
+		"loading": "Загрузка...",
+		"selectPlaceholder": "Выберите контейнер",
+		"containersLabel": "Контейнеры ({count})",
+		"native": "Native",
+		"swarm": "Swarm",
+		"errorPrefix": "Ошибка: "
+	}
+}

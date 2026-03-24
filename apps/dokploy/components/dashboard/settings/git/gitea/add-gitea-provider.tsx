@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -59,6 +60,7 @@ const Schema = z.object({
 type Schema = z.infer<typeof Schema>;
 
 export const AddGiteaProvider = () => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const [isOpen, setIsOpen] = useState(false);
 
 	const urlObj = useUrl();
@@ -108,7 +110,7 @@ export const AddGiteaProvider = () => {
 
 			// Check if we have a giteaId from the response
 			if (!result || !result.giteaId) {
-				toast.error("Failed to get Gitea ID from response");
+				toast.error(tToast("giteaIdMissing"));
 				return;
 			}
 
@@ -124,18 +126,18 @@ export const AddGiteaProvider = () => {
 			if (authUrl !== "#") {
 				window.open(authUrl, "_blank");
 			} else {
-				toast.error("Configuration Incomplete", {
-					description: "Please fill in Client ID and Gitea URL first.",
+				toast.error(tToast("giteaConfigIncomplete"), {
+					description: tToast("giteaConfigIncompleteDescription"),
 				});
 			}
 
-			toast.success("Gitea provider created successfully");
+			toast.success(tToast("giteaProviderCreatedSuccess"));
 			setIsOpen(false);
 		} catch (error: unknown) {
 			if (error instanceof Error) {
-				toast.error(`Error configuring Gitea: ${error.message}`);
+				toast.error(tToast("giteaConfigureError", { error: error.message }));
 			} else {
-				toast.error("An unknown error occurred.");
+				toast.error(tToast("giteaUnknownError"));
 			}
 		}
 	};

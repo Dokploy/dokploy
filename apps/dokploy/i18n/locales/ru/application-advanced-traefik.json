@@ -1,0 +1,23 @@
+{
+	"applicationAdvancedTraefik": {
+		"show": {
+			"title": "Traefik",
+			"description": "Редактирование конфига Traefik; в редких случаях нужна особая настройка — ошибки могут сломать Traefik и приложение",
+			"empty": "Конфиг Traefik не найден",
+			"editorFallback": "Пусто"
+		},
+		"update": {
+			"modify": "Изменить",
+			"title": "Обновить конфиг Traefik",
+			"description": "Обновить конфиг Traefik",
+			"label": "Конфиг Traefik",
+			"skipYaml": "Пропустить проверку YAML (для Go templates)",
+			"skipYamlHint": "Включите, чтобы сохранять конфиги с Go templating (например {{range}}).",
+			"yamlUnexpectedError": "Неожиданная ошибка при разборе YAML.",
+			"invalidYaml": "Некорректный YAML",
+			"toastSuccess": "Конфиг Traefik обновлён",
+			"toastError": "Не удалось обновить конфиг Traefik",
+			"actionUpdate": "Обновить"
+		}
+	}
+}

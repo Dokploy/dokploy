@@ -2,6 +2,7 @@
 
 import type { inferRouterOutputs } from "@trpc/server";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ArrowRight, ListTodo, Loader2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,10 @@ function formatTs(ts?: number): string {
 	return d.toLocaleString();
 }
 
-function getJobLabel(row: QueueRow): string {
+function getJobLabel(
+	row: QueueRow,
+	t: (key: string, values?: Record<string, string | number>) => string,
+): string {
 	const d = row.data as {
 		applicationType?: string;
 		applicationId?: string;
@@ -58,15 +62,25 @@ function getJobLabel(row: QueueRow): string {
 	const type = d.applicationType ?? "job";
 	const title = d.titleLog ?? "";
 	if (title) return title;
-	if (d.applicationId) return `Application ${d.applicationId.slice(0, 8)}…`;
-	if (d.composeId) return `Compose ${d.composeId.slice(0, 8)}…`;
-	if (d.previewDeploymentId)
-		return `Preview ${d.previewDeploymentId.slice(0, 8)}…`;
-	return `${type} ${String(row.id)}`;
+	if (d.applicationId) {
+		return t("jobLabelApplication", {
+			shortId: d.applicationId.slice(0, 8),
+		});
+	}
+	if (d.composeId) {
+		return t("jobLabelCompose", { shortId: d.composeId.slice(0, 8) });
+	}
+	if (d.previewDeploymentId) {
+		return t("jobLabelPreview", {
+			shortId: d.previewDeploymentId.slice(0, 8),
+		});
+	}
+	return t("jobLabelFallback", { type, id: String(row.id) });
 }
 
 export function ShowQueueTable(props: { embedded?: boolean }) {
 	const { embedded: _embedded = false } = props;
+	const t = useTranslations("deploymentsCentral.queue");
 	const { data: queueList, isLoading } = api.deployment.queueList.useQuery(
 		undefined,
 		{ refetchInterval: 3000 },
@@ -87,27 +101,38 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 	});
 	const isCancelling = isCancellingApp || isCancellingCompose;
 
+	const queueStateLabels: Record<string, string> = {
+		pending: t("state.pending"),
+		waiting: t("state.waiting"),
+		active: t("state.active"),
+		delayed: t("state.delayed"),
+		completed: t("state.completed"),
+		failed: t("state.failed"),
+		cancelled: t("state.cancelled"),
+		paused: t("state.paused"),
+	};
+
 	return (
 		<div className="px-0">
 			{isLoading ? (
 				<div className="flex gap-4 w-full items-center justify-center min-h-[30vh] text-muted-foreground">
 					<Loader2 className="size-4 animate-spin" />
-					<span>Loading queue...</span>
+					<span>{t("loading")}</span>
 				</div>
 			) : (
 				<div className="rounded-md border overflow-x-auto">
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Job ID</TableHead>
-								<TableHead>Label</TableHead>
-								<TableHead>Type</TableHead>
-								<TableHead>State</TableHead>
-								<TableHead>Added</TableHead>
-								<TableHead>Processed</TableHead>
-								<TableHead>Finished</TableHead>
-								<TableHead>Error</TableHead>
-								<TableHead className="w-[100px]">Actions</TableHead>
+								<TableHead>{t("columnJobId")}</TableHead>
+								<TableHead>{t("columnLabel")}</TableHead>
+								<TableHead>{t("columnType")}</TableHead>
+								<TableHead>{t("columnState")}</TableHead>
+								<TableHead>{t("columnAdded")}</TableHead>
+								<TableHead>{t("columnProcessed")}</TableHead>
+								<TableHead>{t("columnFinished")}</TableHead>
+								<TableHead>{t("columnError")}</TableHead>
+								<TableHead className="w-[100px]">{t("columnActions")}</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -123,12 +148,12 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 												{String(row.id)}
 											</TableCell>
 											<TableCell className="max-w-[200px] truncate">
-												{getJobLabel(row)}
+												{getJobLabel(row, t)}
 											</TableCell>
 											<TableCell>{appType ?? row.name ?? "—"}</TableCell>
 											<TableCell>
 												<Badge variant={stateVariants[row.state] ?? "outline"}>
-													{row.state}
+													{queueStateLabels[row.state] ?? row.state}
 												</Badge>
 											</TableCell>
 											<TableCell className="text-muted-foreground text-xs">
@@ -149,7 +174,7 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 														<Button variant="ghost" size="sm" asChild>
 															<Link href={pathInfo!.href!}>
 																<ArrowRight className="size-4 mr-1" />
-																Service
+																{t("service")}
 															</Link>
 														</Button>
 													) : (
@@ -187,7 +212,7 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 																}}
 															>
 																<XCircle className="size-4 mr-1" />
-																Cancel
+																{t("cancel")}
 															</Button>
 														)}
 												</div>
@@ -200,10 +225,8 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 									<TableCell colSpan={9} className="text-center py-12">
 										<div className="flex flex-col items-center justify-center gap-2 text-muted-foreground min-h-[30vh]">
 											<ListTodo className="size-8" />
-											<p className="font-medium">Queue is empty</p>
-											<p className="text-sm">
-												Deployment jobs will appear here when they are queued.
-											</p>
+											<p className="font-medium">{t("emptyTitle")}</p>
+											<p className="text-sm">{t("emptyDesc")}</p>
 										</div>
 									</TableCell>
 								</TableRow>

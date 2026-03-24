@@ -1,0 +1,103 @@
+{
+	"composeGeneral": {
+		"editCompose": {
+			"dialogTitle": "Изменить Compose",
+			"dialogDescription": "Обновите данные compose",
+			"nameLabel": "Имя",
+			"namePlaceholder": "Vandelay Industries",
+			"descriptionLabel": "Описание",
+			"descriptionPlaceholder": "Описание проекта...",
+			"submit": "Обновить",
+			"toastSuccess": "Compose успешно обновлён",
+			"toastError": "Ошибка при обновлении Compose",
+			"validation": {
+				"nameRequired": "Укажите имя"
+			}
+		},
+		"deployCard": {
+			"title": "Настройки деплоя",
+			"description": "Создайте compose-файл для деплоя",
+			"badgeCompose": "Compose",
+			"badgeStack": "Stack"
+		},
+		"actions": {
+			"deploy": {
+				"dialogTitle": "Деплой Compose",
+				"dialogDescription": "Деплоить этот compose?",
+				"button": "Deploy",
+				"tooltip": "Скачивает исходный код и выполняет полную сборку",
+				"toastSuccess": "Compose успешно задеплоен",
+				"toastError": "Ошибка деплоя compose"
+			},
+			"reload": {
+				"dialogTitle": "Перезагрузить Compose",
+				"dialogDescription": "Перезагрузить этот compose?",
+				"button": "Reload",
+				"tooltip": "Перезагрузить compose без пересборки",
+				"toastSuccess": "Compose успешно перезагружен",
+				"toastError": "Ошибка перезагрузки compose"
+			},
+			"start": {
+				"dialogTitle": "Запустить Compose",
+				"dialogDescription": "Запустить этот compose?",
+				"button": "Start",
+				"tooltip": "Запустить compose (нужна успешная сборка)",
+				"toastSuccess": "Compose успешно запущен",
+				"toastError": "Ошибка запуска compose"
+			},
+			"stop": {
+				"dialogTitle": "Остановить Compose",
+				"dialogDescription": "Остановить этот compose?",
+				"button": "Stop",
+				"tooltip": "Остановить запущенный compose",
+				"toastSuccess": "Compose успешно остановлен",
+				"toastError": "Ошибка остановки compose"
+			},
+			"openTerminal": "Открыть терминал",
+			"autodeploy": {
+				"label": "Autodeploy",
+				"ariaLabel": "Включить autodeploy",
+				"toastSuccess": "Auto Deploy обновлён",
+				"toastError": "Ошибка обновления Auto Deploy"
+			}
+		},
+		"composeFileEditor": {
+			"title": "Compose-файл",
+			"description": "Настройте Docker Compose для этого сервиса.",
+			"unsavedHint": "(есть несохранённые изменения)",
+			"save": "Сохранить",
+			"toastSuccess": "Конфиг Compose обновлён",
+			"toastError": "Ошибка обновления конфига Compose",
+			"invalidYaml": "Некорректный YAML"
+		},
+		"randomize": {
+			"title": "Randomize Compose (эксперимент)",
+			"description": "Используйте, если нужно задеплоить тот же compose и есть конфликты (volumes, networks и т.д.).",
+			"intro": "Будет рандомизирован compose-файл: к свойствам добавится суффикс, чтобы избежать конфликтов",
+			"listVolumes": "volumes",
+			"listNetworks": "networks",
+			"listServices": "services",
+			"listConfigs": "configs",
+			"listSecrets": "secrets",
+			"envInfo": "При включении в compose будет добавлена переменная окружения `COMPOSE_PREFIX` для использования в файле.",
+			"suffixLabel": "Суффикс",
+			"suffixPlaceholder": "Суффикс (необязательно, например prod)",
+			"applyRandomizeLabel": "Применить randomize",
+			"applyRandomizeDescription": "Применить randomize к compose-файлу.",
+			"save": "Сохранить",
+			"randomButton": "Random",
+			"toastUpdateSuccess": "Compose обновлён",
+			"toastRandomizeError": "Ошибка randomize compose"
+		},
+		"showConverted": {
+			"trigger": "Предпросмотр Compose",
+			"dialogTitle": "Сконвертированный Compose",
+			"dialogDescription": "Предпросмотр docker-compose с добавленными доменами. Нужен хотя бы один домен.",
+			"alertInfo": "Предпросмотр docker-compose с добавленными доменами. Нужен хотя бы один домен.",
+			"emptyState": "Нет данных конвертированного compose.",
+			"refresh": "Обновить",
+			"toastFetchSuccess": "Тип источника получен",
+			"toastFetchError": "Ошибка получения типа источника"
+		}
+	}
+}

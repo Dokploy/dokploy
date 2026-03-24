@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { useTranslations } from "next-intl";
 import {
 	Area,
 	AreaChart,
@@ -16,10 +17,11 @@ interface Props {
 }
 
 export const DockerDiskChart = ({ acummulativeData, diskTotal }: Props) => {
+	const t = useTranslations("monitoringDashboard.freeCharts");
 	const transformedData = acummulativeData.map((item, index) => {
 		return {
 			time: item.time,
-			name: `Point ${index + 1}`,
+			name: t("dataPoint", { n: index + 1 }),
 			usedGb: +item.value.diskUsage,
 			totalGb: +item.value.diskTotal,
 			freeGb: item.value.diskFree,
@@ -51,7 +53,7 @@ export const DockerDiskChart = ({ acummulativeData, diskTotal }: Props) => {
 					<YAxis stroke="#A1A1AA" domain={[0, diskTotal]} />
 					<CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
 					{/* @ts-ignore */}
-					<Tooltip content={<CustomTooltip />} />
+					<Tooltip content={<DockerDiskTooltip />} />
 					<Legend />
 					<Area
 						type="monotone"
@@ -59,7 +61,7 @@ export const DockerDiskChart = ({ acummulativeData, diskTotal }: Props) => {
 						stroke="#6C28D9"
 						fillOpacity={1}
 						fill="url(#colorUsed)"
-						name="Used GB"
+						name={t("legendUsedGb")}
 					/>
 					<Area
 						type="monotone"
@@ -67,7 +69,7 @@ export const DockerDiskChart = ({ acummulativeData, diskTotal }: Props) => {
 						stroke="#8884d8"
 						fillOpacity={1}
 						fill="url(#colorFree)"
-						name="Free GB"
+						name={t("legendFreeGb")}
 					/>
 				</AreaChart>
 			</ResponsiveContainer>
@@ -89,14 +91,18 @@ interface CustomTooltipProps {
 	}[];
 }
 
-const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+const DockerDiskTooltip = ({ active, payload }: CustomTooltipProps) => {
+	const t = useTranslations("monitoringDashboard.freeCharts");
 	if (active && payload && payload.length && payload[0]) {
 		return (
 			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
-				<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
-				<p>{`Disk usage: ${payload[0].payload.usedGb} GB`}</p>
-				<p>{`Disk free: ${payload[0].payload.freeGb} GB`}</p>
-				<p>{`Total disk: ${payload[0].payload.totalGb} GB`}</p>
+				<p>
+					{t("tooltipDate")}:{" "}
+					{format(new Date(payload[0].payload.time), "PPpp")}
+				</p>
+				<p>{t("diskUsage", { value: payload[0].payload.usedGb })}</p>
+				<p>{t("diskFree", { value: payload[0].payload.freeGb })}</p>
+				<p>{t("totalDisk", { value: payload[0].payload.totalGb })}</p>
 			</div>
 		);
 	}

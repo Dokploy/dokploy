@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { AlertTriangle, PenBoxIcon, PlusIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -83,6 +84,7 @@ interface Props {
 }
 
 export const HandleRegistry = ({ registryId }: Props) => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 
@@ -461,13 +463,13 @@ export const HandleRegistry = ({ registryId }: Props) => {
 											})
 												.then((data) => {
 													if (data) {
-														toast.success("Registry Tested Successfully");
+														toast.success(tToast("registryTestSuccess"));
 													} else {
-														toast.error("Registry Test Failed");
+														toast.error(tToast("registryTestFailed"));
 													}
 												})
 												.catch(() => {
-													toast.error("Error testing the registry");
+													toast.error(tToast("registryTestError"));
 												});
 											return;
 										}
@@ -513,13 +515,13 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										})
 											.then((data) => {
 												if (data) {
-													toast.success("Registry Tested Successfully");
+													toast.success(tToast("registryTestSuccess"));
 												} else {
-													toast.error("Registry Test Failed");
+													toast.error(tToast("registryTestFailed"));
 												}
 											})
 											.catch(() => {
-												toast.error("Error testing the registry");
+												toast.error(tToast("registryTestError"));
 											});
 									}}
 								>

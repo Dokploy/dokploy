@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { InfoIcon, Plus, Trash2 } from "lucide-react";
-import { useEffect } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -47,47 +48,6 @@ const MEMORY_STEP_MB = 256;
 const formatNumber = (value: number, decimals = 2): string =>
 	Number.isInteger(value) ? String(value) : value.toFixed(decimals);
 
-const cpuConverter = createConverter(1_000_000_000, (cpu) =>
-	cpu <= 0 ? "" : `${formatNumber(cpu)} CPU`,
-);
-
-const memoryConverter = createConverter(1024 * 1024, (mb) => {
-	if (mb <= 0) return "";
-	return mb >= 1024
-		? `${formatNumber(mb / 1024)} GB`
-		: `${formatNumber(mb)} MB`;
-});
-
-const ulimitSchema = z.object({
-	Name: z.string().min(1, "Name is required"),
-	Soft: z.coerce.number().int().min(-1, "Must be >= -1"),
-	Hard: z.coerce.number().int().min(-1, "Must be >= -1"),
-});
-
-const addResourcesSchema = z.object({
-	memoryReservation: z.string().optional(),
-	cpuLimit: z.string().optional(),
-	memoryLimit: z.string().optional(),
-	cpuReservation: z.string().optional(),
-	ulimitsSwarm: z.array(ulimitSchema).optional(),
-});
-
-const ULIMIT_PRESETS = [
-	{ value: "nofile", label: "nofile (Open Files)" },
-	{ value: "nproc", label: "nproc (Processes)" },
-	{ value: "memlock", label: "memlock (Locked Memory)" },
-	{ value: "stack", label: "stack (Stack Size)" },
-	{ value: "core", label: "core (Core File Size)" },
-	{ value: "cpu", label: "cpu (CPU Time)" },
-	{ value: "data", label: "data (Data Segment)" },
-	{ value: "fsize", label: "fsize (File Size)" },
-	{ value: "locks", label: "locks (File Locks)" },
-	{ value: "msgqueue", label: "msgqueue (Message Queues)" },
-	{ value: "nice", label: "nice (Nice Priority)" },
-	{ value: "rtprio", label: "rtprio (Real-time Priority)" },
-	{ value: "sigpending", label: "sigpending (Pending Signals)" },
-];
-
 export type ServiceType =
 	| "postgres"
 	| "mongo"
@@ -101,9 +61,86 @@ interface Props {
 	type: ServiceType | "application";
 }
 
-type AddResources = z.infer<typeof addResourcesSchema>;
+const ULIMIT_VALUES = [
+	"nofile",
+	"nproc",
+	"memlock",
+	"stack",
+	"core",
+	"cpu",
+	"data",
+	"fsize",
+	"locks",
+	"msgqueue",
+	"nice",
+	"rtprio",
+	"sigpending",
+] as const;
 
 export const ShowResources = ({ id, type }: Props) => {
+	const t = useTranslations("applicationAdvancedResources");
+	const tCommon = useTranslations("common");
+
+	const addResourcesSchema = useMemo(() => {
+		const ulimitSchema = z.object({
+			Name: z.string().min(1, t("validation.nameRequired")),
+			Soft: z.coerce.number().int().min(-1, t("validation.minMinusOne")),
+			Hard: z.coerce.number().int().min(-1, t("validation.minMinusOne")),
+		});
+		return z.object({
+			memoryReservation: z.string().optional(),
+			cpuLimit: z.string().optional(),
+			memoryLimit: z.string().optional(),
+			cpuReservation: z.string().optional(),
+			ulimitsSwarm: z.array(ulimitSchema).optional(),
+		});
+	}, [t]);
+
+	type AddResources = z.infer<typeof addResourcesSchema>;
+
+	const cpuConverter = useMemo(
+		() =>
+			createConverter(1_000_000_000, (cpu) =>
+				cpu <= 0 ? "" : `${formatNumber(cpu)} ${t("units.cpu")}`,
+			),
+		[t],
+	);
+
+	const memoryConverter = useMemo(
+		() =>
+			createConverter(1024 * 1024, (mb) => {
+				if (mb <= 0) return "";
+				return mb >= 1024
+					? `${formatNumber(mb / 1024)} ${t("units.gb")}`
+					: `${formatNumber(mb)} ${t("units.mb")}`;
+			}),
+		[t],
+	);
+
+	const ulimitPresets = useMemo(
+		() =>
+			ULIMIT_VALUES.map((value) => ({
+				value,
+				label: t(
+					`ulimitPresets.${value}` as
+						| "ulimitPresets.nofile"
+						| "ulimitPresets.nproc"
+						| "ulimitPresets.memlock"
+						| "ulimitPresets.stack"
+						| "ulimitPresets.core"
+						| "ulimitPresets.cpu"
+						| "ulimitPresets.data"
+						| "ulimitPresets.fsize"
+						| "ulimitPresets.locks"
+						| "ulimitPresets.msgqueue"
+						| "ulimitPresets.nice"
+						| "ulimitPresets.rtprio"
+						| "ulimitPresets.sigpending",
+				),
+			})),
+		[t],
+	);
+
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -178,28 +215,22 @@ export const ShowResources = ({ id, type }: Props) => {
 					: null,
 		})
 			.then(async () => {
-				toast.success("Resources Updated");
+				toast.success(t("toast.success"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating the resources");
+				toast.error(t("toast.error"));
 			});
 	};
 
 	return (
 		<Card className="bg-background">
 			<CardHeader>
-				<CardTitle className="text-xl">Resources</CardTitle>
-				<CardDescription>
-					If you want to decrease or increase the resources to a specific.
-					application or database
-				</CardDescription>
+				<CardTitle className="text-xl">{t("title")}</CardTitle>
+				<CardDescription>{t("description")}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
-				<AlertBlock type="info">
-					Please remember to click Redeploy after modify the resources to apply
-					the changes.
-				</AlertBlock>
+				<AlertBlock type="info">{t("alertRedeploy")}</AlertBlock>
 				<Form {...form}>
 					<form
 						id="hook-form"
@@ -217,18 +248,14 @@ export const ShowResources = ({ id, type }: Props) => {
 												className="flex items-center gap-2"
 												onClick={(e) => e.preventDefault()}
 											>
-												<FormLabel>Memory Limit</FormLabel>
+												<FormLabel>{t("memoryLimit")}</FormLabel>
 												<TooltipProvider>
 													<Tooltip delayDuration={0}>
 														<TooltipTrigger>
 															<InfoIcon className="h-4 w-4 text-muted-foreground" />
 														</TooltipTrigger>
 														<TooltipContent>
-															<p>
-																Memory hard limit in bytes. Example: 1GB =
-																1073741824 bytes. Use +/- buttons to adjust by
-																256 MB.
-															</p>
+															<p>{t("tooltip.memoryLimit")}</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
@@ -237,7 +264,7 @@ export const ShowResources = ({ id, type }: Props) => {
 												<NumberInputWithSteps
 													value={field.value}
 													onChange={field.onChange}
-													placeholder="1073741824 (1GB in bytes)"
+													placeholder={t("placeholder.memoryLimit")}
 													step={MEMORY_STEP_MB}
 													converter={memoryConverter}
 												/>
@@ -256,18 +283,14 @@ export const ShowResources = ({ id, type }: Props) => {
 											className="flex items-center gap-2"
 											onClick={(e) => e.preventDefault()}
 										>
-											<FormLabel>Memory Reservation</FormLabel>
+											<FormLabel>{t("memoryReservation")}</FormLabel>
 											<TooltipProvider>
 												<Tooltip delayDuration={0}>
 													<TooltipTrigger>
 														<InfoIcon className="h-4 w-4 text-muted-foreground" />
 													</TooltipTrigger>
 													<TooltipContent>
-														<p>
-															Memory soft limit in bytes. Example: 256MB =
-															268435456 bytes. Use +/- buttons to adjust by 256
-															MB.
-														</p>
+														<p>{t("tooltip.memoryReservation")}</p>
 													</TooltipContent>
 												</Tooltip>
 											</TooltipProvider>
@@ -276,7 +299,7 @@ export const ShowResources = ({ id, type }: Props) => {
 											<NumberInputWithSteps
 												value={field.value}
 												onChange={field.onChange}
-												placeholder="268435456 (256MB in bytes)"
+												placeholder={t("placeholder.memoryReservation")}
 												step={MEMORY_STEP_MB}
 												converter={memoryConverter}
 											/>
@@ -296,18 +319,14 @@ export const ShowResources = ({ id, type }: Props) => {
 												className="flex items-center gap-2"
 												onClick={(e) => e.preventDefault()}
 											>
-												<FormLabel>CPU Limit</FormLabel>
+												<FormLabel>{t("cpuLimit")}</FormLabel>
 												<TooltipProvider>
 													<Tooltip delayDuration={0}>
 														<TooltipTrigger>
 															<InfoIcon className="h-4 w-4 text-muted-foreground" />
 														</TooltipTrigger>
 														<TooltipContent>
-															<p>
-																CPU quota in units of 10^-9 CPUs. Example: 2
-																CPUs = 2000000000. Use +/- buttons to adjust by
-																0.25 CPU.
-															</p>
+															<p>{t("tooltip.cpuLimit")}</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
@@ -316,7 +335,7 @@ export const ShowResources = ({ id, type }: Props) => {
 												<NumberInputWithSteps
 													value={field.value}
 													onChange={field.onChange}
-													placeholder="2000000000 (2 CPUs)"
+													placeholder={t("placeholder.cpuLimit")}
 													step={CPU_STEP}
 													converter={cpuConverter}
 												/>
@@ -336,18 +355,14 @@ export const ShowResources = ({ id, type }: Props) => {
 												className="flex items-center gap-2"
 												onClick={(e) => e.preventDefault()}
 											>
-												<FormLabel>CPU Reservation</FormLabel>
+												<FormLabel>{t("cpuReservation")}</FormLabel>
 												<TooltipProvider>
 													<Tooltip delayDuration={0}>
 														<TooltipTrigger>
 															<InfoIcon className="h-4 w-4 text-muted-foreground" />
 														</TooltipTrigger>
 														<TooltipContent>
-															<p>
-																CPU shares (relative weight). Example: 1 CPU =
-																1000000000. Use +/- buttons to adjust by 0.25
-																CPU.
-															</p>
+															<p>{t("tooltip.cpuReservation")}</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
@@ -356,7 +371,7 @@ export const ShowResources = ({ id, type }: Props) => {
 												<NumberInputWithSteps
 													value={field.value}
 													onChange={field.onChange}
-													placeholder="1000000000 (1 CPU)"
+													placeholder={t("placeholder.cpuReservation")}
 													step={CPU_STEP}
 													converter={cpuConverter}
 												/>
@@ -368,22 +383,17 @@ export const ShowResources = ({ id, type }: Props) => {
 							/>
 						</div>
 
-						{/* Ulimits Section */}
 						<div className="space-y-4">
 							<div className="flex items-center justify-between">
 								<div className="flex items-center gap-2">
-									<FormLabel className="text-base">Ulimits</FormLabel>
+									<FormLabel className="text-base">{t("ulimits.label")}</FormLabel>
 									<TooltipProvider>
 										<Tooltip delayDuration={0}>
 											<TooltipTrigger>
 												<InfoIcon className="h-4 w-4 text-muted-foreground" />
 											</TooltipTrigger>
 											<TooltipContent className="max-w-xs">
-												<p>
-													Set resource limits for the container. Each ulimit has
-													a soft limit (warning threshold) and hard limit
-													(maximum allowed). Use -1 for unlimited.
-												</p>
+												<p>{t("tooltip.ulimits")}</p>
 											</TooltipContent>
 										</Tooltip>
 									</TooltipProvider>
@@ -397,7 +407,7 @@ export const ShowResources = ({ id, type }: Props) => {
 									}
 								>
 									<Plus className="h-4 w-4 mr-1" />
-									Add Ulimit
+									{t("ulimits.add")}
 								</Button>
 							</div>
 
@@ -411,20 +421,24 @@ export const ShowResources = ({ id, type }: Props) => {
 											<FormField
 												control={form.control}
 												name={`ulimitsSwarm.${index}.Name`}
-												render={({ field }) => (
+												render={({ field: nameField }) => (
 													<FormItem className="flex-1">
-														<FormLabel className="text-xs">Type</FormLabel>
+														<FormLabel className="text-xs">
+															{t("ulimits.type")}
+														</FormLabel>
 														<Select
-															onValueChange={field.onChange}
-															value={field.value}
+															onValueChange={nameField.onChange}
+															value={nameField.value}
 														>
 															<FormControl>
 																<SelectTrigger>
-																	<SelectValue placeholder="Select ulimit" />
+																	<SelectValue
+																		placeholder={t("ulimits.selectPlaceholder")}
+																	/>
 																</SelectTrigger>
 															</FormControl>
 															<SelectContent>
-																{ULIMIT_PRESETS.map((preset) => (
+																{ulimitPresets.map((preset) => (
 																	<SelectItem
 																		key={preset.value}
 																		value={preset.value}
@@ -441,24 +455,24 @@ export const ShowResources = ({ id, type }: Props) => {
 											<FormField
 												control={form.control}
 												name={`ulimitsSwarm.${index}.Soft`}
-												render={({ field }) => (
+												render={({ field: softField }) => (
 													<FormItem className="w-32">
 														<FormLabel className="text-xs">
-															Soft Limit
+															{t("ulimits.softLimit")}
 														</FormLabel>
 														<FormControl>
 															<Input
 																type="number"
 																min={-1}
 																placeholder="65535"
-																{...field}
+																{...softField}
 																value={
-																	typeof field.value === "number"
-																		? field.value
+																	typeof softField.value === "number"
+																		? softField.value
 																		: ""
 																}
 																onChange={(e) =>
-																	field.onChange(Number(e.target.value))
+																	softField.onChange(Number(e.target.value))
 																}
 															/>
 														</FormControl>
@@ -469,24 +483,24 @@ export const ShowResources = ({ id, type }: Props) => {
 											<FormField
 												control={form.control}
 												name={`ulimitsSwarm.${index}.Hard`}
-												render={({ field }) => (
+												render={({ field: hardField }) => (
 													<FormItem className="w-32">
 														<FormLabel className="text-xs">
-															Hard Limit
+															{t("ulimits.hardLimit")}
 														</FormLabel>
 														<FormControl>
 															<Input
 																type="number"
 																min={-1}
 																placeholder="65535"
-																{...field}
+																{...hardField}
 																value={
-																	typeof field.value === "number"
-																		? field.value
+																	typeof hardField.value === "number"
+																		? hardField.value
 																		: ""
 																}
 																onChange={(e) =>
-																	field.onChange(Number(e.target.value))
+																	hardField.onChange(Number(e.target.value))
 																}
 															/>
 														</FormControl>
@@ -510,15 +524,14 @@ export const ShowResources = ({ id, type }: Props) => {
 
 							{fields.length === 0 && (
 								<p className="text-sm text-muted-foreground">
-									No ulimits configured. Click &quot;Add Ulimit&quot; to set
-									resource limits.
+									{t("ulimits.emptyHint")}
 								</p>
 							)}
 						</div>
 
 						<div className="flex w-full justify-end">
 							<Button isLoading={isPending} type="submit">
-								Save
+								{tCommon("save")}
 							</Button>
 						</div>
 					</form>

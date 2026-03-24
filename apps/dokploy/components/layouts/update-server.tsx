@@ -1,5 +1,6 @@
 import type { IUpdateData } from "@dokploy/server/index";
 import { Download } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/utils/api";
 import UpdateServer from "../dashboard/settings/web-server/update-server";
@@ -14,6 +15,7 @@ import {
 const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 
 export const UpdateServerButton = () => {
+	const t = useTranslations("layoutUpdateServer");
 	const [updateData, setUpdateData] = useState<IUpdateData>({
 		latestVersion: null,
 		updateAvailable: false,
@@ -55,8 +57,8 @@ export const UpdateServerButton = () => {
 					clearUpdatesInterval();
 					setUpdateData(fetchedUpdateData);
 				}
-			} catch (error) {
-				console.error("Error auto-checking for updates:", error);
+			} catch {
+				// Auto-check failed; next interval will retry
 			}
 		};
 
@@ -91,11 +93,11 @@ export const UpdateServerButton = () => {
 								<Download className="h-4 w-4 flex-shrink-0" />
 								{updateData ? (
 									<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
-										Update Available
+										{t("updateAvailable")}
 									</span>
 								) : (
 									<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
-										Check for updates
+										{t("checkForUpdates")}
 									</span>
 								)}
 								{updateData && (
@@ -108,7 +110,7 @@ export const UpdateServerButton = () => {
 						</TooltipTrigger>
 						{updateData && (
 							<TooltipContent side="right" sideOffset={10}>
-								<p>Update Available</p>
+								<p>{t("tooltipUpdateAvailable")}</p>
 							</TooltipContent>
 						)}
 					</Tooltip>

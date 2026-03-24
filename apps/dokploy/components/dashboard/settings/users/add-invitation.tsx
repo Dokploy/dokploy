@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PlusIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -46,6 +47,7 @@ const addInvitation = z.object({
 type AddInvitation = z.infer<typeof addInvitation>;
 
 export const AddInvitation = () => {
+	const tToast = useTranslations("settingsExtraToasts");
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -82,13 +84,13 @@ export const AddInvitation = () => {
 					notificationId: data.notificationId || "",
 				})
 					.then(() => {
-						toast.success("Invitation created and email sent");
+						toast.success(tToast("invitationCreatedEmail"));
 					})
 					.catch((error: any) => {
 						toast.error(error.message);
 					});
 			} else {
-				toast.success("Invitation created");
+				toast.success(tToast("invitationCreated"));
 			}
 			setError(null);
 			setOpen(false);

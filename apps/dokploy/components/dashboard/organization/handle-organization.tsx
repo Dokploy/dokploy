@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -26,14 +27,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
-const organizationSchema = z.object({
-	name: z.string().min(1, {
-		message: "Organization name is required",
-	}),
-	logo: z.string().optional(),
-});
-
-type OrganizationFormValues = z.infer<typeof organizationSchema>;
+type OrganizationFormValues = {
+	name: string;
+	logo?: string;
+};
 
 interface Props {
 	organizationId?: string;
@@ -41,6 +38,7 @@ interface Props {
 }
 
 export function AddOrganization({ organizationId }: Props) {
+	const t = useTranslations("organizationDialog");
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data: organization } = api.organization.one.useQuery(
@@ -54,6 +52,17 @@ export function AddOrganization({ organizationId }: Props) {
 	const { mutateAsync, isPending } = organizationId
 		? api.organization.update.useMutation()
 		: api.organization.create.useMutation();
+
+	const organizationSchema = useMemo(
+		() =>
+			z.object({
+				name: z.string().min(1, {
+					message: t("nameRequired"),
+				}),
+				logo: z.string().optional(),
+			}),
+		[t],
+	);
 
 	const form = useForm<OrganizationFormValues>({
 		resolver: zodResolver(organizationSchema),
@@ -81,7 +90,7 @@ export function AddOrganization({ organizationId }: Props) {
 			.then(() => {
 				form.reset();
 				toast.success(
-					`Organization ${organizationId ? "updated" : "created"} successfully`,
+					organizationId ? t("toastUpdated") : t("toastCreated"),
 				);
 				utils.organization.all.invalidate();
 				if (organizationId) {
@@ -90,10 +99,9 @@ export function AddOrganization({ organizationId }: Props) {
 				}
 				setOpen(false);
 			})
-			.catch((error) => {
-				console.error(error);
+			.catch(() => {
 				toast.error(
-					`Failed to ${organizationId ? "update" : "create"} organization`,
+					organizationId ? t("toastErrorUpdate") : t("toastErrorCreate"),
 				);
 			});
 	};
@@ -117,7 +125,7 @@ export function AddOrganization({ organizationId }: Props) {
 							<Plus className="size-4" />
 						</div>
 						<div className="font-medium text-muted-foreground">
-							Add organization
+							{t("addOrganization")}
 						</div>
 					</DropdownMenuItem>
 				)}
@@ -125,12 +133,10 @@ export function AddOrganization({ organizationId }: Props) {
 			<DialogContent className="sm:max-w-[425px]">
 				<DialogHeader>
 					<DialogTitle>
-						{organizationId ? "Update organization" : "Add organization"}
+						{organizationId ? t("updateTitle") : t("addTitle")}
 					</DialogTitle>
 					<DialogDescription>
-						{organizationId
-							? "Update the organization name and logo"
-							: "Create a new organization to manage your projects."}
+						{organizationId ? t("updateDescription") : t("addDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
@@ -143,10 +149,10 @@ export function AddOrganization({ organizationId }: Props) {
 							name="name"
 							render={({ field }) => (
 								<FormItem className="tems-center gap-4">
-									<FormLabel className="text-right">Name</FormLabel>
+									<FormLabel className="text-right">{t("nameLabel")}</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="Organization name"
+											placeholder={t("namePlaceholder")}
 											{...field}
 											className="col-span-3"
 										/>
@@ -160,10 +166,10 @@ export function AddOrganization({ organizationId }: Props) {
 							name="logo"
 							render={({ field }) => (
 								<FormItem className="gap-4">
-									<FormLabel className="text-right">Logo URL</FormLabel>
+									<FormLabel className="text-right">{t("logoUrlLabel")}</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="https://example.com/logo.png"
+											placeholder={t("logoPlaceholder")}
 											{...field}
 											value={field.value || ""}
 											className="col-span-3"
@@ -175,7 +181,7 @@ export function AddOrganization({ organizationId }: Props) {
 						/>
 						<DialogFooter>
 							<Button type="submit" isLoading={isPending}>
-								{organizationId ? "Update organization" : "Create organization"}
+								{organizationId ? t("submitUpdate") : t("submitCreate")}
 							</Button>
 						</DialogFooter>
 					</form>

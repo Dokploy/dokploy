@@ -1,4 +1,6 @@
 import { HardDrive } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useMemo } from "react";
 import {
 	Label,
 	PolarGrid,
@@ -18,12 +20,24 @@ import {
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
 
 interface RadialChartProps {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	data: any;
 }
 
 export function DiskChart({ data }: RadialChartProps) {
-	const diskUsed = Number.parseFloat(data.diskUsed || 0);
-	const totalDiskGB = Number.parseFloat(data.totalDisk || 0);
+	const t = useTranslations("monitoringDashboard.chartLabels");
+	const chartConfig = useMemo(
+		() =>
+			({
+				disk: {
+					label: t("disk"),
+					color: "hsl(var(--chart-2))",
+				},
+			}) satisfies ChartConfig,
+		[t],
+	);
+	const diskUsed = Number.parseFloat(String(data.diskUsed || 0));
+	const totalDiskGB = Number.parseFloat(String(data.totalDisk || 0));
 	const usedDiskGB = (totalDiskGB * diskUsed) / 100;
 
 	const chartData = [
@@ -33,20 +47,13 @@ export function DiskChart({ data }: RadialChartProps) {
 		},
 	];
 
-	const chartConfig = {
-		disk: {
-			label: "Disk",
-			color: "hsl(var(--chart-2))",
-		},
-	} satisfies ChartConfig;
-
 	const endAngle = (diskUsed * 360) / 100;
 
 	return (
 		<Card className="flex flex-col bg-transparent">
 			<CardHeader className="items-center border-b pb-5">
-				<CardTitle>Disk</CardTitle>
-				<CardDescription>Storage Space</CardDescription>
+				<CardTitle>{t("disk")}</CardTitle>
+				<CardDescription>{t("storageSpace")}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex-1 pb-0">
 				<ChartContainer
@@ -96,7 +103,7 @@ export function DiskChart({ data }: RadialChartProps) {
 													y={(viewBox.cy || 0) + 24}
 													className="fill-muted-foreground text-sm"
 												>
-													Used
+													{t("diskUsedCenter")}
 												</tspan>
 											</text>
 										);
@@ -109,10 +116,11 @@ export function DiskChart({ data }: RadialChartProps) {
 			</CardContent>
 			<CardFooter className="flex-col gap-2 text-sm">
 				<div className="flex items-center gap-2 font-medium leading-none">
-					<HardDrive className="h-4 w-4" /> {usedDiskGB.toFixed(1)} GB used
+					<HardDrive className="h-4 w-4" />{" "}
+					{t("diskGbUsed", { value: usedDiskGB.toFixed(1) })}
 				</div>
 				<div className="leading-none text-muted-foreground">
-					Of {totalDiskGB.toFixed(1)} GB total
+					{t("diskGbTotal", { value: totalDiskGB.toFixed(1) })}
 				</div>
 			</CardFooter>
 		</Card>

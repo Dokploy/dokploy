@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { TrashIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export const SaveDragNDrop = ({ applicationId }: Props) => {
+	const t = useTranslations("applicationGeneralForms");
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync, isPending } =
@@ -52,11 +54,11 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 
 		await mutateAsync(formData)
 			.then(async () => {
-				toast.success("Deployment saved");
+				toast.success(t("dragDrop.toastSuccess"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the deployment");
+				toast.error(t("dragDrop.toastError"));
 			});
 	};
 
@@ -73,9 +75,12 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 							name="dropBuildPath"
 							render={({ field }) => (
 								<FormItem className="w-full ">
-									<FormLabel>Build Path</FormLabel>
+									<FormLabel>{t("dragDrop.buildPath")}</FormLabel>
 									<FormControl>
-										<Input {...field} placeholder="Build Path" />
+										<Input
+											{...field}
+											placeholder={t("dragDrop.buildPathPlaceholder")}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -86,11 +91,11 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 							name="zip"
 							render={({ field }) => (
 								<FormItem className="w-full ">
-									<FormLabel>Zip file</FormLabel>
+									<FormLabel>{t("dragDrop.zipFile")}</FormLabel>
 									<FormControl>
 										<Dropzone
 											{...field}
-											dropMessage="Drop files or click here"
+											dropMessage={t("dragDrop.dropMessage")}
 											accept=".zip"
 											onChange={(e) => {
 												if (e instanceof FileList) {
@@ -132,7 +137,7 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 						isLoading={isPending}
 						disabled={!zip || isPending}
 					>
-						Deploy{" "}
+						{t("dragDrop.deploy")}{" "}
 					</Button>
 				</div>
 			</form>

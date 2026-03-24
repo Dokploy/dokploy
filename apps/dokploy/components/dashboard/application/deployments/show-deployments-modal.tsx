@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -20,13 +21,6 @@ interface Props {
 	children?: React.ReactNode;
 }
 
-export const formatDuration = (seconds: number) => {
-	if (seconds < 60) return `${seconds}s`;
-	const minutes = Math.floor(seconds / 60);
-	const remainingSeconds = seconds % 60;
-	return `${minutes}m ${remainingSeconds}s`;
-};
-
 export const ShowDeploymentsModal = ({
 	id,
 	type,
@@ -34,6 +28,7 @@ export const ShowDeploymentsModal = ({
 	refreshToken,
 	children,
 }: Props) => {
+	const t = useTranslations("applicationDeployments");
 	const [activeLog, setActiveLog] = useState<
 		RouterOutputs["deployment"]["all"][number] | null
 	>(null);
@@ -45,7 +40,7 @@ export const ShowDeploymentsModal = ({
 					children
 				) : (
 					<Button className="sm:w-auto w-full" size="sm" variant="outline">
-						View Logs
+						{t("modal.viewLogs")}
 					</Button>
 				)}
 			</DialogTrigger>

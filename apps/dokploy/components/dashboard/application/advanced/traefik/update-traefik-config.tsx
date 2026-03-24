@@ -1,4 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -54,12 +55,13 @@ export const validateAndFormatYAML = (yamlText: string) => {
 		return {
 			valid: false,
 			formattedYaml: yamlText,
-			error: "An unexpected error occurred while processing the YAML.",
+			error: "unexpected",
 		};
 	}
 };
 
 export const UpdateTraefikConfig = ({ applicationId }: Props) => {
+	const t = useTranslations("applicationAdvancedTraefik.update");
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canWrite = permissions?.traefikFiles.write ?? false;
 	const [open, setOpen] = useState(false);
@@ -89,13 +91,19 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 		}
 	}, [data]);
 
-	const onSubmit = async (data: UpdateTraefikConfig) => {
+	const onSubmit = async (submitData: UpdateTraefikConfig) => {
 		if (!skipYamlValidation) {
-			const { valid, error } = validateAndFormatYAML(data.traefikConfig);
+			const { valid, error: yamlError } = validateAndFormatYAML(
+				submitData.traefikConfig,
+			);
 			if (!valid) {
+				const message =
+					yamlError === "unexpected"
+						? t("yamlUnexpectedError")
+						: (yamlError as string) || t("invalidYaml");
 				form.setError("traefikConfig", {
 					type: "manual",
-					message: (error as string) || "Invalid YAML",
+					message,
 				});
 				return;
 			}
@@ -103,25 +111,25 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 		form.clearErrors("traefikConfig");
 		await mutateAsync({
 			applicationId,
-			traefikConfig: data.traefikConfig,
+			traefikConfig: submitData.traefikConfig,
 		})
 			.then(async () => {
-				toast.success("Traefik config Updated");
+				toast.success(t("toastSuccess"));
 				refetch();
 				setOpen(false);
 				form.reset();
 			})
 			.catch(() => {
-				toast.error("Error updating the Traefik config");
+				toast.error(t("toastError"));
 			});
 	};
 
 	return (
 		<Dialog
 			open={open}
-			onOpenChange={(open) => {
-				setOpen(open);
-				if (!open) {
+			onOpenChange={(nextOpen) => {
+				setOpen(nextOpen);
+				if (!nextOpen) {
 					form.reset();
 					setSkipYamlValidation(false);
 				}
@@ -129,13 +137,13 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 		>
 			{canWrite && (
 				<DialogTrigger asChild>
-					<Button isLoading={isPending}>Modify</Button>
+					<Button isLoading={isPending}>{t("modify")}</Button>
 				</DialogTrigger>
 			)}
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
-					<DialogTitle>Update traefik config</DialogTitle>
-					<DialogDescription>Update the traefik config</DialogDescription>
+					<DialogTitle>{t("title")}</DialogTitle>
+					<DialogDescription>{t("description")}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -151,7 +159,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 								name="traefikConfig"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Traefik config</FormLabel>
+										<FormLabel>{t("label")}</FormLabel>
 										<FormControl>
 											<CodeEditor
 												lineWrapping
@@ -193,12 +201,11 @@ routers:
 									htmlFor="skip-yaml-validation-app"
 									className="text-sm font-normal cursor-pointer"
 								>
-									Skip YAML validation (for Go templating)
+									{t("skipYaml")}
 								</Label>
 							</div>
 							<p className="text-sm text-muted-foreground">
-								Check to save configs with Go templating (e.g.{" "}
-								<code className="text-xs">{"{{range}}"}</code>).
+								{t("skipYamlHint")}
 							</p>
 						</div>
 						<Button
@@ -206,7 +213,7 @@ routers:
 							form="hook-form-update-traefik-config"
 							type="submit"
 						>
-							Update
+							{t("actionUpdate")}
 						</Button>
 					</DialogFooter>
 				</Form>

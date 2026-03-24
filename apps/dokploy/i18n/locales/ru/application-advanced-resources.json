@@ -1,0 +1,61 @@
+{
+	"applicationAdvancedResources": {
+		"title": "Ресурсы",
+		"description": "Уменьшите или увеличьте ресурсы для конкретного приложения или базы данных",
+		"alertRedeploy": "После изменения ресурсов нажмите Redeploy, чтобы применить изменения.",
+		"memoryLimit": "Лимит памяти",
+		"memoryReservation": "Резерв памяти",
+		"cpuLimit": "Лимит CPU",
+		"cpuReservation": "Резерв CPU",
+		"tooltip": {
+			"memoryLimit": "Жёсткий лимит памяти в байтах. Пример: 1GB = 1073741824 байт. Кнопки +/- меняют шаг 256 MB.",
+			"memoryReservation": "Мягкий лимит памяти в байтах. Пример: 256MB = 268435456 байт. Кнопки +/- меняют шаг 256 MB.",
+			"cpuLimit": "Квота CPU в наноядрах (10^-9 CPU). Пример: 2 CPU = 2000000000. Кнопки +/- меняют шаг 0.25 CPU.",
+			"cpuReservation": "Доли CPU (относительный вес). Пример: 1 CPU = 1000000000. Кнопки +/- меняют шаг 0.25 CPU.",
+			"ulimits": "Ограничения ресурсов контейнера. У каждого ulimit есть soft limit (порог предупреждения) и hard limit (максимум). -1 — без ограничения."
+		},
+		"placeholder": {
+			"memoryLimit": "1073741824 (1GB в байтах)",
+			"memoryReservation": "268435456 (256MB в байтах)",
+			"cpuLimit": "2000000000 (2 CPU)",
+			"cpuReservation": "1000000000 (1 CPU)"
+		},
+		"units": {
+			"cpu": "CPU",
+			"gb": "GB",
+			"mb": "MB"
+		},
+		"ulimits": {
+			"label": "Ulimits",
+			"add": "Добавить ulimit",
+			"type": "Тип",
+			"softLimit": "Soft limit",
+			"hardLimit": "Hard limit",
+			"selectPlaceholder": "Выберите ulimit",
+			"emptyHint": "Ulimits не заданы. Нажмите «Добавить ulimit», чтобы задать ограничения."
+		},
+		"ulimitPresets": {
+			"nofile": "nofile (открытые файлы)",
+			"nproc": "nproc (процессы)",
+			"memlock": "memlock (заблокированная память)",
+			"stack": "stack (размер стека)",
+			"core": "core (размер core-файла)",
+			"cpu": "cpu (CPU time)",
+			"data": "data (сегмент данных)",
+			"fsize": "fsize (размер файла)",
+			"locks": "locks (блокировки файлов)",
+			"msgqueue": "msgqueue (очереди сообщений)",
+			"nice": "nice (приоритет nice)",
+			"rtprio": "rtprio (приоритет real-time)",
+			"sigpending": "sigpending (ожидающие сигналы)"
+		},
+		"validation": {
+			"nameRequired": "Укажите имя",
+			"minMinusOne": "Должно быть >= -1"
+		},
+		"toast": {
+			"success": "Ресурсы обновлены",
+			"error": "Не удалось обновить ресурсы"
+		}
+	}
+}

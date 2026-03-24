@@ -27,7 +27,7 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout metaName="License">{page}</DashboardLayout>;
+	return <DashboardLayout pageTitleKey="license">{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(

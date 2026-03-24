@@ -1,0 +1,223 @@
+{
+	"applicationAdvancedSwarmForms": {
+		"modify": {
+			"button": "Swarm Settings",
+			"title": "Swarm Settings",
+			"description": "Configure swarm settings for your service.",
+			"alert": "Changing settings such as placements may cause the logs/monitoring, backups and other features to be unavailable."
+		},
+		"menu": {
+			"healthCheck": {
+				"label": "Health Check",
+				"description": "Configure health check settings",
+				"doc": "Configure HEALTHCHECK to test a container's health. Determines if a container is healthy by running a command inside the container. Test, Interval, Timeout, StartPeriod, and Retries control health monitoring."
+			},
+			"restartPolicy": {
+				"label": "Restart Policy",
+				"description": "Configure restart policy",
+				"doc": "Configure the restart policy for containers in the service. Condition (none, on-failure, any), Delay (nanoseconds between restarts), MaxAttempts, and Window control restart behavior."
+			},
+			"placement": {
+				"label": "Placement",
+				"description": "Configure placement constraints",
+				"doc": "Control which nodes service tasks can be scheduled on. Constraints (node.id==xyz), Preferences (spread.node.labels.zone), MaxReplicas, and Platforms specify task placement rules."
+			},
+			"updateConfig": {
+				"label": "Update Config",
+				"description": "Configure update strategy",
+				"doc": "Configure how the service should be updated. Parallelism (tasks updated simultaneously), Delay, FailureAction (pause, continue, rollback), Monitor, MaxFailureRatio, and Order (stop-first, start-first) control updates."
+			},
+			"rollbackConfig": {
+				"label": "Rollback Config",
+				"description": "Configure rollback strategy",
+				"doc": "Configure automated rollback on update failure. Uses same parameters as UpdateConfig: Parallelism, Delay, FailureAction, Monitor, MaxFailureRatio, and Order."
+			},
+			"mode": {
+				"label": "Mode",
+				"description": "Configure service mode",
+				"doc": "Set service mode to either 'Replicated' with a specified number of tasks (Replicas), or 'Global' (one task per node)."
+			},
+			"network": {
+				"label": "Network",
+				"description": "Configure network attachments",
+				"doc": "Attach the service to one or more networks. Specify the network name (Target) and optional network aliases for service discovery."
+			},
+			"labels": {
+				"label": "Labels",
+				"description": "Configure service labels",
+				"doc": "Add metadata to services using labels. Labels are key-value pairs (e.g., com.example.foo=bar) for organizing and filtering services."
+			},
+			"stopGracePeriod": {
+				"label": "Stop Grace Period",
+				"description": "Configure stop grace period",
+				"doc": "Time to wait before forcefully killing a container. Specified in nanoseconds (e.g., 10000000000 = 10 seconds). Allows containers to shutdown gracefully."
+			},
+			"endpointSpec": {
+				"label": "Endpoint Spec",
+				"description": "Configure endpoint specification",
+				"doc": "Configure endpoint mode for service discovery. Mode 'vip' (virtual IP - default) uses a single virtual IP. Mode 'dnsrr' (DNS round-robin) returns DNS entries for all tasks."
+			}
+		},
+		"actions": {
+			"clear": "Clear",
+			"saveMode": "Save Mode",
+			"saveHealthCheck": "Save Health Check",
+			"saveRestartPolicy": "Save Restart Policy",
+			"savePlacement": "Save Placement",
+			"saveUpdateConfig": "Save Update Config",
+			"saveRollbackConfig": "Save Rollback Config",
+			"saveNetworks": "Save Networks",
+			"saveLabels": "Save Labels",
+			"saveStopGrace": "Save Stop Grace Period",
+			"saveEndpoint": "Save Endpoint Spec"
+		},
+		"mode": {
+			"modeType": "Mode Type",
+			"modeTypeDesc": "Choose between replicated or global service mode",
+			"placeholderMode": "Select mode type",
+			"replicas": "Replicas",
+			"replicasDesc": "Number of replicas to run",
+			"toastSuccess": "Mode updated successfully",
+			"toastError": "Error updating mode"
+		},
+		"healthCheck": {
+			"testCommands": "Test Commands",
+			"testCommandsDesc": "Command to run for health check (e.g., [\"CMD-SHELL\", \"curl -f http://localhost:3000/health\"])",
+			"placeholderCmd0": "CMD-SHELL",
+			"placeholderCmd1": "curl -f http://localhost:3000/health",
+			"remove": "Remove",
+			"addCommand": "Add Command",
+			"interval": "Interval (nanoseconds)",
+			"intervalDesc": "Time between health checks (e.g., 10000000000 for 10 seconds)",
+			"timeout": "Timeout (nanoseconds)",
+			"timeoutDesc": "Maximum time to wait for health check response",
+			"startPeriod": "Start Period (nanoseconds)",
+			"startPeriodDesc": "Initial grace period before health checks begin",
+			"retries": "Retries",
+			"retriesDesc": "Number of consecutive failures needed to consider container unhealthy",
+			"toastSuccess": "Health check updated successfully",
+			"toastError": "Error updating health check"
+		},
+		"restartPolicy": {
+			"condition": "Condition",
+			"conditionDesc": "When to restart the container",
+			"placeholderCondition": "Select restart condition",
+			"none": "None",
+			"onFailure": "On Failure",
+			"any": "Any",
+			"delay": "Delay (nanoseconds)",
+			"delayDesc": "Wait time between restart attempts",
+			"maxAttempts": "Max Attempts",
+			"maxAttemptsDesc": "Maximum number of restart attempts",
+			"window": "Window (nanoseconds)",
+			"windowDesc": "Time window to evaluate restart policy",
+			"toastSuccess": "Restart policy updated successfully",
+			"toastError": "Error updating restart policy"
+		},
+		"placement": {
+			"constraints": "Constraints",
+			"constraintsDesc": "Placement constraints (e.g., \"node.role==manager\")",
+			"placeholderConstraint": "node.role==manager",
+			"preferences": "Preferences",
+			"preferencesDesc": "Spread preferences for task distribution (e.g., \"node.labels.region\")",
+			"placeholderPref": "node.labels.region",
+			"maxReplicas": "Max Replicas",
+			"maxReplicasDesc": "Maximum number of replicas per node",
+			"platforms": "Platforms",
+			"platformsDesc": "Target platforms for task scheduling",
+			"placeholderArch": "amd64",
+			"placeholderOs": "linux",
+			"remove": "Remove",
+			"addConstraint": "Add Constraint",
+			"addPreference": "Add Preference",
+			"addPlatform": "Add Platform",
+			"toastSuccess": "Placement updated successfully",
+			"toastError": "Error updating placement"
+		},
+		"updateConfig": {
+			"parallelism": "Parallelism",
+			"parallelismDesc": "Number of tasks to update simultaneously",
+			"delay": "Delay (nanoseconds)",
+			"delayDesc": "Delay between task updates",
+			"failureAction": "Failure Action",
+			"failureActionDesc": "Action on update failure",
+			"placeholderFailure": "Select failure action",
+			"pause": "Pause",
+			"continue": "Continue",
+			"rollback": "Rollback",
+			"monitor": "Monitor (nanoseconds)",
+			"monitorDesc": "Duration to monitor for failure after update",
+			"maxFailureRatio": "Max Failure Ratio",
+			"maxFailureRatioDesc": "Maximum failure ratio tolerated (0-1)",
+			"order": "Order",
+			"orderDesc": "Update order strategy",
+			"placeholderOrder": "Select order",
+			"stopFirst": "Stop First",
+			"startFirst": "Start First",
+			"toastSuccess": "Update config updated successfully",
+			"toastError": "Error updating update config"
+		},
+		"rollbackConfig": {
+			"parallelism": "Parallelism",
+			"parallelismDesc": "Number of tasks to rollback simultaneously",
+			"delay": "Delay (nanoseconds)",
+			"delayDesc": "Delay between task rollbacks",
+			"failureAction": "Failure Action",
+			"failureActionDesc": "Action on rollback failure",
+			"monitor": "Monitor (nanoseconds)",
+			"monitorDesc": "Duration to monitor for failure after rollback",
+			"maxFailureRatio": "Max Failure Ratio",
+			"maxFailureRatioDesc": "Maximum failure ratio tolerated (0-1)",
+			"order": "Order",
+			"orderDesc": "Rollback order strategy",
+			"toastSuccess": "Rollback config updated successfully",
+			"toastError": "Error updating rollback config"
+		},
+		"network": {
+			"section": "Networks",
+			"sectionDesc": "Configure network attachments for your service",
+			"networkName": "Network Name",
+			"networkNameDesc": "The name of the network to attach to",
+			"placeholderNetwork": "my-network",
+			"aliases": "Aliases (optional)",
+			"aliasesDesc": "Comma-separated list of network aliases",
+			"aliasesPlaceholder": "alias1, alias2, alias3",
+			"driverOpts": "Driver options (optional)",
+			"driverOptsDesc": "e.g. com.docker.network.driver.mtu, com.docker.network.driver.host_binding",
+			"placeholderDriverKey": "com.docker.network.driver.mtu",
+			"placeholderDriverValue": "1500",
+			"remove": "Remove",
+			"addDriverOption": "Add driver option",
+			"removeNetwork": "Remove Network",
+			"addNetwork": "Add Network",
+			"toastSuccess": "Network configuration updated successfully",
+			"toastError": "Error updating network configuration"
+		},
+		"labels": {
+			"section": "Labels",
+			"sectionDesc": "Add key-value labels to your service",
+			"placeholderKey": "com.example.app.name",
+			"placeholderValue": "my-app",
+			"remove": "Remove",
+			"addLabel": "Add Label",
+			"toastSuccess": "Labels updated successfully",
+			"toastError": "Error updating labels"
+		},
+		"stopGrace": {
+			"label": "Stop Grace Period (nanoseconds)",
+			"desc": "Time to wait before forcefully killing the container",
+			"examples": "Examples: 30000000000 (30s), 120000000000 (2m)",
+			"toastSuccess": "Stop grace period updated successfully",
+			"toastError": "Error updating stop grace period"
+		},
+		"endpoint": {
+			"mode": "Mode",
+			"modeDesc": "Endpoint mode (vip or dnsrr)",
+			"placeholderMode": "Select endpoint mode",
+			"vip": "VIP (Virtual IP)",
+			"dnsrr": "DNS Round Robin",
+			"toastSuccess": "Endpoint spec updated successfully",
+			"toastError": "Error updating endpoint spec"
+		}
+	}
+}

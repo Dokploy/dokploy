@@ -1,0 +1,40 @@
+{
+	"sharedStatus": {
+		"idle": "Idle",
+		"error": "Error",
+		"done": "Done",
+		"running": "Running",
+		"cancelled": "Cancelled"
+	},
+	"drawerLogs": {
+		"title": "Deployment logs",
+		"description": "Live output from the deployment process."
+	},
+	"sharedDialog": {
+		"defaultTitle": "Are you absolutely sure?",
+		"defaultDescription": "This action cannot be undone.",
+		"cancel": "Cancel",
+		"confirm": "Confirm"
+	},
+	"tagPicker": {
+		"tags": "Tags",
+		"searchPlaceholder": "Search tags...",
+		"clear": "Clear",
+		"noTagsFound": "No tags found.",
+		"removeTagAria": "Remove {name}",
+		"selectPlaceholder": "Select tags..."
+	},
+	"ui": {
+		"close": "Close",
+		"toggleSidebar": "Toggle sidebar",
+		"toggleTheme": "Toggle theme",
+		"breadcrumbNav": "Breadcrumb",
+		"breadcrumbMore": "More",
+		"generatePassword": "Generate password",
+		"secretsToggleVisibility": "Toggle secret visibility",
+		"showPassword": "Show password",
+		"hidePassword": "Hide password",
+		"timeBadgeServerTime": "Server time:",
+		"fileTreeEmptyFolder": "No items"
+	}
+}

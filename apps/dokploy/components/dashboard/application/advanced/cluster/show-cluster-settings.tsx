@@ -1,7 +1,8 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Server } from "lucide-react";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -40,14 +41,21 @@ interface Props {
 	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
 }
 
-const AddRedirectchema = z.object({
-	replicas: z.number().min(1, "Replicas must be at least 1"),
-	registryId: z.string().optional(),
-});
-
-type AddCommand = z.infer<typeof AddRedirectchema>;
-
 export const ShowClusterSettings = ({ id, type }: Props) => {
+	const t = useTranslations("applicationAdvancedCluster");
+	const tCommon = useTranslations("common");
+
+	const clusterSchema = useMemo(
+		() =>
+			z.object({
+				replicas: z.number().min(1, t("validation.replicasMin")),
+				registryId: z.string().optional(),
+			}),
+		[t],
+	);
+
+	type AddCommand = z.infer<typeof clusterSchema>;
+
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -86,7 +94,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 				: {}),
 			replicas: data?.replicas || 1,
 		},
-		resolver: zodResolver(AddRedirectchema),
+		resolver: zodResolver(clusterSchema),
 	});
 
 	useEffect(() => {
@@ -102,7 +110,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 		}
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data?.command]);
 
-	const onSubmit = async (data: AddCommand) => {
+	const onSubmit = async (submitData: AddCommand) => {
 		await mutateAsync({
 			applicationId: id || "",
 			postgresId: id || "",
@@ -113,19 +121,19 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 			...(type === "application"
 				? {
 						registryId:
-							data?.registryId === "none" || !data?.registryId
+							submitData?.registryId === "none" || !submitData?.registryId
 								? null
-								: data?.registryId,
+								: submitData?.registryId,
 					}
 				: {}),
-			replicas: data?.replicas,
+			replicas: submitData?.replicas,
 		})
 			.then(async () => {
-				toast.success("Command Updated");
+				toast.success(t("toast.success"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating the command");
+				toast.error(t("toast.error"));
 			});
 	};
 
@@ -133,18 +141,13 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between">
 				<div>
-					<CardTitle className="text-xl">Cluster Settings</CardTitle>
-					<CardDescription>
-						Modify swarm settings for the service.
-					</CardDescription>
+					<CardTitle className="text-xl">{t("title")}</CardTitle>
+					<CardDescription>{t("description")}</CardDescription>
 				</div>
 				<AddSwarmSettings id={id} type={type} />
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
-				<AlertBlock type="info">
-					Please remember to click Redeploy after modify the cluster settings to
-					apply the changes.
-				</AlertBlock>
+				<AlertBlock type="info">{t("alertRedeploy")}</AlertBlock>
 				<Form {...form}>
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}
@@ -156,10 +159,10 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 								name="replicas"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Replicas</FormLabel>
+										<FormLabel>{t("replicas")}</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="1"
+												placeholder={t("placeholderReplicas")}
 												{...field}
 												onChange={(e) => {
 													const value = e.target.value;
@@ -183,15 +186,16 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 										<div className="flex flex-col items-center gap-3">
 											<Server className="size-8 text-muted-foreground" />
 											<span className="text-base text-muted-foreground">
-												To use a cluster feature, you need to configure at least
-												a registry first. Please, go to{" "}
-												<Link
-													href="/dashboard/settings/cluster"
-													className="text-foreground"
-												>
-													Settings
-												</Link>{" "}
-												to do so.
+												{t.rich("emptyRegistryRich", {
+													link: (chunks) => (
+														<Link
+															href="/dashboard/settings/cluster"
+															className="text-foreground"
+														>
+															{chunks}
+														</Link>
+													),
+												})}
 											</span>
 										</div>
 									</div>
@@ -202,13 +206,15 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 											name="registryId"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Select a registry</FormLabel>
+													<FormLabel>{t("selectRegistry")}</FormLabel>
 													<Select
 														onValueChange={field.onChange}
 														defaultValue={field.value}
 													>
 														<SelectTrigger>
-															<SelectValue placeholder="Select a registry" />
+															<SelectValue
+																placeholder={t("placeholderRegistry")}
+															/>
 														</SelectTrigger>
 														<SelectContent>
 															<SelectGroup>
@@ -220,9 +226,11 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 																		{registry.registryName}
 																	</SelectItem>
 																))}
-																<SelectItem value={"none"}>None</SelectItem>
+																<SelectItem value={"none"}>{t("none")}</SelectItem>
 																<SelectLabel>
-																	Registries ({registries?.length})
+																	{t("registriesCount", {
+																		count: registries?.length ?? 0,
+																	})}
 																</SelectLabel>
 															</SelectGroup>
 														</SelectContent>
@@ -237,7 +245,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 
 						<div className="flex justify-end">
 							<Button isLoading={isPending} type="submit" className="w-fit">
-								Save
+								{tCommon("save")}
 							</Button>
 						</div>
 					</form>

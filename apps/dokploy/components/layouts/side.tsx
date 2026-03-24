@@ -540,6 +540,7 @@ function LogoWrapper() {
 }
 
 function SidebarLogo() {
+	const t = useTranslations("sidebar");
 	const { state } = useSidebar();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.get.useQuery();
@@ -622,7 +623,7 @@ function SidebarLogo() {
 											)}
 										>
 											<p className="text-sm font-medium leading-none">
-												{activeOrganization?.name ?? "Select Organization"}
+												{activeOrganization?.name ?? t("selectOrganization")}
 											</p>
 										</div>
 									</div>
@@ -638,7 +639,7 @@ function SidebarLogo() {
 								sideOffset={4}
 							>
 								<DropdownMenuLabel className="text-xs text-muted-foreground shrink-0">
-									Organizations
+									{t("organizationsHeading")}
 								</DropdownMenuLabel>
 								<div className="overflow-y-auto overflow-x-hidden min-h-0 -mx-1 px-1">
 									{organizations?.map((org) => {
@@ -693,19 +694,19 @@ function SidebarLogo() {
 															})
 																.then(() => {
 																	refetch();
-																	toast.success("Default organization updated");
+																	toast.success(t("toastDefaultOrgUpdated"));
 																})
 																.catch((error) => {
 																	toast.error(
 																		error?.message ||
-																			"Error setting default organization",
+																			t("toastDefaultOrgError"),
 																	);
 																});
 														}}
 														title={
 															isDefault
-																? "Default organization"
-																: "Set as default"
+																? t("tooltipDefaultOrg")
+																: t("tooltipSetAsDefault")
 														}
 													>
 														{isDefault ? (
@@ -726,8 +727,8 @@ function SidebarLogo() {
 														<>
 															<AddOrganization organizationId={org.id} />
 															<DialogAction
-																title="Delete Organization"
-																description="Are you sure you want to delete this organization?"
+																title={t("deleteOrgTitle")}
+																description={t("deleteOrgDescription")}
 																type="destructive"
 																onClick={async () => {
 																	await deleteOrganization({
@@ -736,13 +737,13 @@ function SidebarLogo() {
 																		.then(() => {
 																			refetch();
 																			toast.success(
-																				"Organization deleted successfully",
+																				t("toastOrgDeleted"),
 																			);
 																		})
 																		.catch((error) => {
 																			toast.error(
 																				error?.message ||
-																					"Error deleting organization",
+																					t("toastOrgDeleteError"),
 																			);
 																		});
 																}}
@@ -800,7 +801,7 @@ function SidebarLogo() {
 								side={"right"}
 								className="w-80"
 							>
-								<DropdownMenuLabel>Pending Invitations</DropdownMenuLabel>
+								<DropdownMenuLabel>{t("pendingInvitations")}</DropdownMenuLabel>
 								<div className="flex flex-col gap-2">
 									{invitations && invitations.length > 0 ? (
 										invitations.map((invitation) => (
@@ -813,16 +814,16 @@ function SidebarLogo() {
 														{invitation?.organization?.name}
 													</div>
 													<div className="text-xs text-muted-foreground">
-														Expires:{" "}
+														{t("expiresLabel")}:{" "}
 														{new Date(invitation.expiresAt).toLocaleString()}
 													</div>
 													<div className="text-xs text-muted-foreground">
-														Role: {invitation.role}
+														{t("roleLabel")}: {invitation.role}
 													</div>
 												</DropdownMenuItem>
 												<DialogAction
-													title="Accept Invitation"
-													description="Are you sure you want to accept this invitation?"
+													title={t("acceptInvitationTitle")}
+													description={t("acceptInvitationDescription")}
 													type="default"
 													onClick={async () => {
 														const { error } =
@@ -832,24 +833,24 @@ function SidebarLogo() {
 
 														if (error) {
 															toast.error(
-																error.message || "Error accepting invitation",
+																error.message || t("toastAcceptInviteError"),
 															);
 														} else {
-															toast.success("Invitation accepted successfully");
+															toast.success(t("toastAcceptInviteSuccess"));
 															await refetchInvitations();
 															await refetch();
 														}
 													}}
 												>
 													<Button size="sm" variant="secondary">
-														Accept Invitation
+														{t("acceptInvitationButton")}
 													</Button>
 												</DialogAction>
 											</div>
 										))
 									) : (
 										<DropdownMenuItem disabled>
-											No pending invitations
+											{t("noPendingInvitations")}
 										</DropdownMenuItem>
 									)}
 								</div>

@@ -2,6 +2,7 @@
 
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Plus, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { FieldArrayPath } from "react-hook-form";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
@@ -98,6 +99,7 @@ export function RegisterOidcDialog({
 	providerId,
 	children,
 }: RegisterOidcDialogProps) {
+	const tToast = useTranslations("proprietaryToasts");
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
 
@@ -204,15 +206,15 @@ export function RegisterOidcDialog({
 
 			toast.success(
 				isEdit
-					? "OIDC provider updated successfully"
-					: "OIDC provider registered successfully",
+					? tToast("oidcProviderUpdated")
+					: tToast("oidcProviderRegistered"),
 			);
 			form.reset(formDefaultValues);
 			setOpen(false);
 			await utils.sso.listProviders.invalidate();
 		} catch (err) {
 			toast.error(
-				err instanceof Error ? err.message : "Failed to register SSO provider",
+				err instanceof Error ? err.message : tToast("oidcRegisterFailed"),
 			);
 		}
 	};

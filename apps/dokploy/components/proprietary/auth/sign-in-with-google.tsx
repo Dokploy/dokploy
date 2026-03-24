@@ -1,11 +1,14 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 
 export function SignInWithGoogle() {
+	const tToast = useTranslations("proprietaryToasts");
+	const tCommon = useTranslations("settingsExtraToasts");
 	const [isLoading, setIsLoading] = useState(false);
 
 	const handleClick = async () => {
@@ -19,8 +22,9 @@ export function SignInWithGoogle() {
 				return;
 			}
 		} catch (err) {
-			toast.error("An error occurred while signing in with Google", {
-				description: err instanceof Error ? err.message : "Unknown error",
+			toast.error(tToast("signInGoogleError"), {
+				description:
+					err instanceof Error ? err.message : tCommon("aiSettingsSaveUnknownError"),
 			});
 		} finally {
 			setIsLoading(false);

@@ -1,0 +1,81 @@
+{
+	"applicationAdvancedVolumes": {
+		"show": {
+			"title": "Volumes",
+			"description": "If you want to persist data in this service use the following config to setup the volumes",
+			"addVolume": "Add Volume",
+			"empty": "No volumes/mounts configured",
+			"alertRedeploy": "Please remember to click Redeploy after adding, editing, or deleting a mount to apply the changes.",
+			"mountType": "Mount Type",
+			"volumeName": "Volume Name",
+			"content": "Content",
+			"hostPath": "Host Path",
+			"filePath": "File Path",
+			"mountPath": "Mount Path",
+			"deleteTitle": "Delete Volume",
+			"deleteDescription": "Are you sure you want to delete this volume?",
+			"toastDeleteSuccess": "Volume deleted successfully",
+			"toastDeleteError": "Error deleting volume"
+		},
+		"add": {
+			"dialogTitle": "Volumes / Mounts",
+			"mountTypeLabel": "Select the Mount Type",
+			"bindMount": "Bind Mount",
+			"volumeMount": "Volume Mount",
+			"fileMount": "File Mount",
+			"fillFields": "Fill the next fields.",
+			"hostPath": "Host Path",
+			"volumeName": "Volume Name",
+			"content": "Content",
+			"filePath": "File Path",
+			"filePathPlaceholder": "Name of the file",
+			"mountPath": "Mount Path (In the container)",
+			"placeholderHost": "Host Path",
+			"placeholderVolume": "Volume Name",
+			"placeholderMount": "Mount Path",
+			"alertBind": "Make sure the host path is a valid path and exists in the host machine.",
+			"clusterWarning": "Cluster Warning:",
+			"alertCluster": "If you're using cluster features, bind mounts may cause deployment failures since the path must exist on all worker/manager nodes. Consider using external tools to distribute the folder across nodes or use named volumes instead.",
+			"validation": {
+				"mountPath": "Mount path required",
+				"hostPath": "Host path required",
+				"volumeName": "Volume name required",
+				"volumeNameInvalid": "Invalid volume name. Use letters, numbers, '._-' and start with a letter/number.",
+				"filePath": "File path required"
+			},
+			"toast": {
+				"created": "Mount created",
+				"errorBind": "Error creating the Bind mount",
+				"errorVolume": "Error creating the Volume mount",
+				"errorFile": "Error creating the File mount"
+			}
+		},
+		"update": {
+			"title": "Update",
+			"description": "Update the mount",
+			"alertFile": "Updating the mount will recreate the file or directory.",
+			"hostPath": "Host Path",
+			"volumeName": "Volume Name",
+			"content": "Content",
+			"filePath": "File Path",
+			"mountPath": "Mount Path (In the container)",
+			"placeholderHost": "Host Path",
+			"placeholderVolume": "Volume Name",
+			"placeholderMount": "Mount Path",
+			"placeholderFileName": "Name of the file",
+			"validation": {
+				"mountPath": "Mount path required",
+				"hostPath": "Host path required",
+				"volumeName": "Volume name required",
+				"volumeNameInvalid": "Invalid volume name. Use letters, numbers, '._-' and start with a letter/number.",
+				"filePath": "File path required"
+			},
+			"toast": {
+				"success": "Mount updated",
+				"errorBind": "Error updating the Bind mount",
+				"errorVolume": "Error updating the Volume mount",
+				"errorFile": "Error updating the File mount"
+			}
+		}
+	}
+}

@@ -1,4 +1,5 @@
 import { Loader2, Pencil } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CodeEditor } from "@/components/shared/code-editor";
@@ -28,6 +29,8 @@ export const EditPatchDialog = ({
 	type,
 	onSuccess,
 }: Props) => {
+	const t = useTranslations("applicationPatches");
+	const tCommon = useTranslations("common");
 	const { data: patch, isPending: isPatchLoading } = api.patch.one.useQuery(
 		{ patchId },
 		{ enabled: !!patchId },
@@ -47,7 +50,7 @@ export const EditPatchDialog = ({
 		updatePatch
 			.mutateAsync({ patchId, content })
 			.then(() => {
-				toast.success("Patch saved");
+				toast.success(t("editor.toastSaveSuccess"));
 				utils.patch.byEntityId.invalidate({ id: entityId, type });
 				onSuccess?.();
 			})
@@ -59,15 +62,17 @@ export const EditPatchDialog = ({
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
-				<Button variant="ghost" size="icon" title="Edit patch">
+				<Button variant="ghost" size="icon" title={t("editDialog.triggerTitle")}>
 					<Pencil className="h-4 w-4" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl max-h-[85vh] flex flex-col p-0">
 				<DialogHeader className="px-6 pt-6 pb-4">
-					<DialogTitle>Edit Patch</DialogTitle>
+					<DialogTitle>{t("editDialog.title")}</DialogTitle>
 					<DialogDescription>
-						{patch ? `Editing: ${patch.filePath}` : "Loading patch..."}
+						{patch
+							? t("editDialog.editing", { path: patch.filePath })
+							: t("editDialog.loading")}
 					</DialogDescription>
 				</DialogHeader>
 				{isPatchLoading ? (
@@ -87,13 +92,13 @@ export const EditPatchDialog = ({
 				)}
 				<DialogFooter className="px-6 ">
 					<DialogClose asChild>
-						<Button variant="outline">Cancel</Button>
+						<Button variant="outline">{tCommon("cancel")}</Button>
 					</DialogClose>
 					<Button onClick={handleSave} isLoading={updatePatch.isPending}>
 						{updatePatch.isPending && (
 							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 						)}
-						Save
+						{tCommon("save")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

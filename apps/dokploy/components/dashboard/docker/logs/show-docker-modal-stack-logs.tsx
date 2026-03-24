@@ -1,5 +1,6 @@
 import dynamic from "next/dynamic";
 import type React from "react";
+import { useTranslations } from "next-intl";
 import {
 	Dialog,
 	DialogContent,
@@ -30,6 +31,7 @@ export const ShowDockerModalStackLogs = ({
 	children,
 	serverId,
 }: Props) => {
+	const t = useTranslations("dockerLogs");
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
@@ -42,8 +44,10 @@ export const ShowDockerModalStackLogs = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-7xl">
 				<DialogHeader>
-					<DialogTitle>View Logs</DialogTitle>
-					<DialogDescription>View the logs for {containerId}</DialogDescription>
+					<DialogTitle>{t("modalTitle")}</DialogTitle>
+					<DialogDescription>
+						{t("modalDescription", { containerId })}
+					</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-4 pt-2.5">
 					<DockerLogsId

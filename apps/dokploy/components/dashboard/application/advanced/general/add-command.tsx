@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Plus, Trash2 } from "lucide-react";
-import { useEffect } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -27,20 +28,27 @@ interface Props {
 	applicationId: string;
 }
 
-const AddRedirectSchema = z.object({
-	command: z.string(),
-	args: z
-		.array(
-			z.object({
-				value: z.string().min(1, "Argument cannot be empty"),
-			}),
-		)
-		.optional(),
-});
-
-type AddCommand = z.infer<typeof AddRedirectSchema>;
-
 export const AddCommand = ({ applicationId }: Props) => {
+	const t = useTranslations("applicationAdvancedCommand");
+	const tCommon = useTranslations("common");
+
+	const addCommandSchema = useMemo(
+		() =>
+			z.object({
+				command: z.string(),
+				args: z
+					.array(
+						z.object({
+							value: z.string().min(1, t("validation.argEmpty")),
+						}),
+					)
+					.optional(),
+			}),
+		[t],
+	);
+
+	type AddCommand = z.infer<typeof addCommandSchema>;
+
 	const { data } = api.application.one.useQuery(
 		{
 			applicationId,
@@ -57,7 +65,7 @@ export const AddCommand = ({ applicationId }: Props) => {
 			command: "",
 			args: [],
 		},
-		resolver: zodResolver(AddRedirectSchema),
+		resolver: zodResolver(addCommandSchema),
 	});
 
 	const { fields, append, remove } = useFieldArray({
@@ -74,20 +82,20 @@ export const AddCommand = ({ applicationId }: Props) => {
 		}
 	}, [data, form]);
 
-	const onSubmit = async (data: AddCommand) => {
+	const onSubmit = async (submitData: AddCommand) => {
 		await mutateAsync({
 			applicationId,
-			command: data?.command,
-			args: data?.args?.map((arg) => arg.value).filter(Boolean),
+			command: submitData?.command,
+			args: submitData?.args?.map((arg) => arg.value).filter(Boolean),
 		})
 			.then(async () => {
-				toast.success("Command Updated");
+				toast.success(t("toast.success"));
 				await utils.application.one.invalidate({
 					applicationId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating the command");
+				toast.error(t("toast.error"));
 			});
 	};
 
@@ -95,11 +103,8 @@ export const AddCommand = ({ applicationId }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between">
 				<div>
-					<CardTitle className="text-xl">Run Command</CardTitle>
-					<CardDescription>
-						Run a custom command in the container after the application
-						initialized
-					</CardDescription>
+					<CardTitle className="text-xl">{t("title")}</CardTitle>
+					<CardDescription>{t("description")}</CardDescription>
 				</div>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
@@ -114,7 +119,7 @@ export const AddCommand = ({ applicationId }: Props) => {
 								name="command"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Command</FormLabel>
+										<FormLabel>{t("command")}</FormLabel>
 										<FormControl>
 											<Input placeholder="/bin/sh" {...field} />
 										</FormControl>
@@ -126,7 +131,7 @@ export const AddCommand = ({ applicationId }: Props) => {
 
 							<div className="space-y-2">
 								<div className="flex items-center justify-between">
-									<FormLabel>Arguments (Args)</FormLabel>
+									<FormLabel>{t("argsLabel")}</FormLabel>
 									<Button
 										type="button"
 										variant="outline"
@@ -134,13 +139,13 @@ export const AddCommand = ({ applicationId }: Props) => {
 										onClick={() => append({ value: "" })}
 									>
 										<Plus className="h-4 w-4 mr-1" />
-										Add Argument
+										{t("addArgument")}
 									</Button>
 								</div>
 
 								{fields.length === 0 && (
 									<p className="text-sm text-muted-foreground">
-										No arguments added yet. Click "Add Argument" to add one.
+										{t("noArgsHint")}
 									</p>
 								)}
 
@@ -149,15 +154,17 @@ export const AddCommand = ({ applicationId }: Props) => {
 										key={field.id}
 										control={form.control}
 										name={`args.${index}.value`}
-										render={({ field }) => (
+										render={({ field: argField }) => (
 											<FormItem>
 												<div className="flex gap-2">
 													<FormControl>
 														<Input
 															placeholder={
-																index === 0 ? "-c" : "echo Hello World"
+																index === 0
+																	? t("placeholderArg0")
+																	: t("placeholderArgN")
 															}
-															{...field}
+															{...argField}
 														/>
 													</FormControl>
 													<Button
@@ -178,7 +185,7 @@ export const AddCommand = ({ applicationId }: Props) => {
 						</div>
 						<div className="flex justify-end">
 							<Button isLoading={isPending} type="submit" className="w-fit">
-								Save
+								{tCommon("save")}
 							</Button>
 						</div>
 					</form>

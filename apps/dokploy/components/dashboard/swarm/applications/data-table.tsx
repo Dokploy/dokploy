@@ -14,6 +14,7 @@ import {
 	type VisibilityState,
 } from "@tanstack/react-table";
 import { ChevronDown } from "lucide-react";
+import { useTranslations } from "next-intl";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +41,7 @@ export function DataTable<TData, TValue>({
 	columns,
 	data,
 }: DataTableProps<TData, TValue>) {
+	const t = useTranslations("swarmApplications");
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
 		[],
@@ -48,8 +50,8 @@ export function DataTable<TData, TValue>({
 		React.useState<VisibilityState>({});
 	const [rowSelection, setRowSelection] = React.useState({});
 	const [_pagination, _setPagination] = React.useState({
-		pageIndex: 0, //initial page index
-		pageSize: 8, //default page size
+		pageIndex: 0,
+		pageSize: 8,
 	});
 
 	const table = useReactTable({
@@ -73,10 +75,10 @@ export function DataTable<TData, TValue>({
 
 	return (
 		<div className="mt-6 grid gap-4 pb-20 w-full">
-			<div className="flex flex-col gap-4  </div>w-full overflow-auto">
+			<div className="flex flex-col gap-4 w-full overflow-auto">
 				<div className="flex items-center gap-2 max-sm:flex-wrap">
 					<Input
-						placeholder="Filter by name..."
+						placeholder={t("filterPlaceholder")}
 						value={(table.getColumn("Name")?.getFilterValue() as string) ?? ""}
 						onChange={(event) =>
 							table.getColumn("Name")?.setFilterValue(event.target.value)
@@ -86,7 +88,8 @@ export function DataTable<TData, TValue>({
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button variant="outline" className="sm:ml-auto max-sm:w-full">
-								Columns <ChevronDown className="ml-2 h-4 w-4" />
+								{t("columnsButton")}{" "}
+								<ChevronDown className="ml-2 h-4 w-4" />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
@@ -152,16 +155,7 @@ export function DataTable<TData, TValue>({
 									colSpan={columns.length}
 									className="h-24 text-center"
 								>
-									No results.
-									{/* {isPending ? (
-                    <div className="w-full flex-col gap-2 flex items-center justify-center py-24">
-                      <span className="text-muted-foreground text-lg font-medium">
-                        Loading...
-                      </span>
-                    </div>
-                  ) : (
-                    <>No results.</>
-                  )} */}
+									{t("tableNoResults")}
 								</TableCell>
 							</TableRow>
 						)}
@@ -177,7 +171,7 @@ export function DataTable<TData, TValue>({
 								onClick={() => table.previousPage()}
 								disabled={!table.getCanPreviousPage()}
 							>
-								Previous
+								{t("tablePrevious")}
 							</Button>
 							<Button
 								variant="outline"
@@ -185,7 +179,7 @@ export function DataTable<TData, TValue>({
 								onClick={() => table.nextPage()}
 								disabled={!table.getCanNextPage()}
 							>
-								Next
+								{t("tableNext")}
 							</Button>
 						</div>
 					</div>

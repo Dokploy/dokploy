@@ -1,7 +1,8 @@
 import { Command as CommandPrimitive } from "cmdk";
 import debounce from "lodash/debounce";
+import { useTranslations } from "next-intl";
 import { CheckIcon, Hash } from "lucide-react";
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,14 +13,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
-const lineCountOptions = [
-	{ label: "100 lines", value: 100 },
-	{ label: "300 lines", value: 300 },
-	{ label: "500 lines", value: 500 },
-	{ label: "1000 lines", value: 1000 },
-	{ label: "5000 lines", value: 5000 },
-] as const;
-
 interface LineCountFilterProps {
 	value: number;
 	onValueChange: (value: number) => void;
@@ -29,11 +22,24 @@ interface LineCountFilterProps {
 export function LineCountFilter({
 	value,
 	onValueChange,
-	title = "Limit to",
+	title,
 }: LineCountFilterProps) {
+	const t = useTranslations("dockerLogs");
+	const resolvedTitle = title ?? t("limitTo");
 	const [open, setOpen] = React.useState(false);
 	const [inputValue, setInputValue] = React.useState("");
 	const pendingValueRef = useRef<number | null>(null);
+
+	const lineCountOptions = useMemo(
+		() => [
+			{ value: 100, label: t("linePreset_100") },
+			{ value: 300, label: t("linePreset_300") },
+			{ value: 500, label: t("linePreset_500") },
+			{ value: 1000, label: t("linePreset_1000") },
+			{ value: 5000, label: t("linePreset_5000") },
+		],
+		[t],
+	);
 
 	const isPresetValue = lineCountOptions.some(
 		(option) => option.value === value,
@@ -52,8 +58,7 @@ export function LineCountFilter({
 	const handleInputChange = (input: string) => {
 		setInputValue(input);
 
-		// Extract numbers from input and convert
-		const numValue = Number.parseInt(input.replace(/[^0-9]/g, ""));
+		const numValue = Number.parseInt(input.replace(/[^0-9]/g, ""), 10);
 		if (!Number.isNaN(numValue)) {
 			pendingValueRef.current = numValue;
 			debouncedValueChange(numValue);
@@ -61,17 +66,19 @@ export function LineCountFilter({
 	};
 
 	const handleSelect = (selectedValue: string) => {
-		const preset = lineCountOptions.find((opt) => opt.label === selectedValue);
-		if (preset) {
-			if (preset.value !== value) {
-				onValueChange(preset.value);
+		const preset = lineCountOptions
+			.map((o) => o.value)
+			.find((v) => String(v) === selectedValue);
+		if (preset !== undefined) {
+			if (preset !== value) {
+				onValueChange(preset);
 			}
 			setInputValue("");
 			setOpen(false);
 			return;
 		}
 
-		const numValue = Number.parseInt(selectedValue);
+		const numValue = Number.parseInt(selectedValue, 10);
 		if (
 			!Number.isNaN(numValue) &&
 			numValue > 0 &&
@@ -92,7 +99,7 @@ export function LineCountFilter({
 
 	const displayValue = isPresetValue
 		? lineCountOptions.find((option) => option.value === value)?.label
-		: `${value} lines`;
+		: t("linesCount", { count: value });
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
@@ -102,7 +109,7 @@ export function LineCountFilter({
 					size="sm"
 					className="h-9 bg-input text-sm placeholder-gray-400 w-full sm:w-auto"
 				>
-					{title}
+					{resolvedTitle}
 					<Separator orientation="vertical" className="mx-2 h-4" />
 					<div className="space-x-1 flex">
 						<Badge variant="blank" className="rounded-sm px-1 font-normal">
@@ -116,7 +123,7 @@ export function LineCountFilter({
 					<div className="flex items-center border-b px-3">
 						<Hash className="mr-2 h-4 w-4 shrink-0 opacity-50" />
 						<CommandPrimitive.Input
-							placeholder="Number of lines"
+							placeholder={t("numberOfLinesPlaceholder")}
 							value={inputValue}
 							onValueChange={handleInputChange}
 							className="flex h-9 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
@@ -125,6 +132,7 @@ export function LineCountFilter({
 									e.preventDefault();
 									const numValue = Number.parseInt(
 										inputValue.replace(/[^0-9]/g, ""),
+										10,
 									);
 									if (
 										!Number.isNaN(numValue) &&
@@ -132,7 +140,7 @@ export function LineCountFilter({
 										numValue !== value &&
 										numValue !== pendingValueRef.current
 									) {
-										handleSelect(inputValue);
+										handleSelect(String(numValue));
 									}
 								}
 							}}
@@ -145,7 +153,7 @@ export function LineCountFilter({
 								return (
 									<CommandPrimitive.Item
 										key={option.value}
-										onSelect={() => handleSelect(option.label)}
+										onSelect={() => handleSelect(String(option.value))}
 										className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 aria-selected:bg-accent aria-selected:text-accent-foreground"
 									>
 										<div

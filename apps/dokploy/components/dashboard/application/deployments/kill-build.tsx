@@ -1,4 +1,5 @@
 import { Scissors } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -20,6 +21,8 @@ interface Props {
 }
 
 export const KillBuild = ({ id, type }: Props) => {
+	const t = useTranslations("applicationDeployments");
+	const tCommon = useTranslations("common");
 	const { mutateAsync, isPending } =
 		type === "application"
 			? api.application.killBuild.useMutation()
@@ -29,19 +32,19 @@ export const KillBuild = ({ id, type }: Props) => {
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
 				<Button variant="outline" className="w-fit" isLoading={isPending}>
-					Kill Build
+					{t("killBuild.trigger")}
 					<Scissors className="size-4" />
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Are you sure to kill the build?</AlertDialogTitle>
+					<AlertDialogTitle>{t("killBuild.title")}</AlertDialogTitle>
 					<AlertDialogDescription>
-						This will kill the build process
+						{t("killBuild.description")}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
 							await mutateAsync({
@@ -49,14 +52,14 @@ export const KillBuild = ({ id, type }: Props) => {
 								composeId: id || "",
 							})
 								.then(() => {
-									toast.success("Build killed successfully");
+									toast.success(t("killBuild.success"));
 								})
 								.catch((err) => {
 									toast.error(err.message);
 								});
 						}}
 					>
-						Confirm
+						{tCommon("confirm")}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

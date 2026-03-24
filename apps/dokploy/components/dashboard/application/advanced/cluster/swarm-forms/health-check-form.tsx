@@ -1,4 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -30,6 +31,7 @@ interface HealthCheckFormProps {
 }
 
 export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
+	const t = useTranslations("applicationAdvancedSwarmForms");
 	const [isLoading, setIsLoading] = useState(false);
 
 	const queryMap = {
@@ -89,7 +91,6 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 	const onSubmit = async (formData: z.infer<typeof healthCheckFormSchema>) => {
 		setIsLoading(true);
 		try {
-			// Check if all values are empty, if so, send null to clear the database
 			const hasAnyValue =
 				(formData.Test && formData.Test.length > 0) ||
 				formData.Interval !== undefined ||
@@ -107,10 +108,10 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 				healthCheckSwarm: hasAnyValue ? formData : null,
 			});
 
-			toast.success("Health check updated successfully");
+			toast.success(t("healthCheck.toastSuccess"));
 			refetch();
 		} catch {
-			toast.error("Error updating health check");
+			toast.error(t("healthCheck.toastError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -137,11 +138,8 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 		<Form {...form}>
 			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 				<div>
-					<FormLabel>Test Commands</FormLabel>
-					<FormDescription>
-						Command to run for health check (e.g., ["CMD-SHELL", "curl -f
-						http://localhost:3000/health"])
-					</FormDescription>
+					<FormLabel>{t("healthCheck.testCommands")}</FormLabel>
+					<FormDescription>{t("healthCheck.testCommandsDesc")}</FormDescription>
 					<div className="space-y-2 mt-2">
 						{testCommands.map((cmd: string, index: number) => (
 							<div key={index} className="flex gap-2">
@@ -150,8 +148,8 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 									onChange={(e) => updateTestCommand(index, e.target.value)}
 									placeholder={
 										index === 0
-											? "CMD-SHELL"
-											: "curl -f http://localhost:3000/health"
+											? t("healthCheck.placeholderCmd0")
+											: t("healthCheck.placeholderCmd1")
 									}
 								/>
 								<Button
@@ -160,7 +158,7 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 									size="sm"
 									onClick={() => removeTestCommand(index)}
 								>
-									Remove
+									{t("healthCheck.remove")}
 								</Button>
 							</div>
 						))}
@@ -170,7 +168,7 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 							size="sm"
 							onClick={addTestCommand}
 						>
-							Add Command
+							{t("healthCheck.addCommand")}
 						</Button>
 					</div>
 				</div>
@@ -180,10 +178,8 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 					name="Interval"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Interval (nanoseconds)</FormLabel>
-							<FormDescription>
-								Time between health checks (e.g., 10000000000 for 10 seconds)
-							</FormDescription>
+							<FormLabel>{t("healthCheck.interval")}</FormLabel>
+							<FormDescription>{t("healthCheck.intervalDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
 							</FormControl>
@@ -197,10 +193,8 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 					name="Timeout"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Timeout (nanoseconds)</FormLabel>
-							<FormDescription>
-								Maximum time to wait for health check response
-							</FormDescription>
+							<FormLabel>{t("healthCheck.timeout")}</FormLabel>
+							<FormDescription>{t("healthCheck.timeoutDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
 							</FormControl>
@@ -214,10 +208,8 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 					name="StartPeriod"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Start Period (nanoseconds)</FormLabel>
-							<FormDescription>
-								Initial grace period before health checks begin
-							</FormDescription>
+							<FormLabel>{t("healthCheck.startPeriod")}</FormLabel>
+							<FormDescription>{t("healthCheck.startPeriodDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10000000000" {...field} />
 							</FormControl>
@@ -231,11 +223,8 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 					name="Retries"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Retries</FormLabel>
-							<FormDescription>
-								Number of consecutive failures needed to consider container
-								unhealthy
-							</FormDescription>
+							<FormLabel>{t("healthCheck.retries")}</FormLabel>
+							<FormDescription>{t("healthCheck.retriesDesc")}</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="3" {...field} />
 							</FormControl>
@@ -258,10 +247,10 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 							});
 						}}
 					>
-						Clear
+						{t("actions.clear")}
 					</Button>
 					<Button type="submit" isLoading={isLoading}>
-						Save Health Check
+						{t("actions.saveHealthCheck")}
 					</Button>
 				</div>
 			</form>

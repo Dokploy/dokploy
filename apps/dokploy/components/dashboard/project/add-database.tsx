@@ -1,7 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { AlertTriangle, Database, HelpCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -53,7 +53,7 @@ import {
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 
-type DbType = z.infer<typeof mySchema>["type"];
+type DbType = "postgres" | "mongo" | "redis" | "mysql" | "mariadb";
 
 const dockerImageDefaultPlaceholder: Record<DbType, string> = {
 	mongo: "mongo:7",
@@ -73,103 +73,84 @@ const databasesUserDefaultPlaceholder: Record<
 	postgres: "postgres",
 };
 
-const baseDatabaseSchema = z.object({
-	name: z.string().min(1, "Name required"),
-	appName: z
-		.string()
-		.min(1, {
-			message: "App name is required",
-		})
-		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
-			message:
-				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
-		}),
-	databasePassword: z
-		.string()
-		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-			message:
-				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-		}),
-	dockerImage: z.string(),
-	description: z.string().nullable(),
-	serverId: z.string().nullable(),
-});
-
-const mySchema = z.discriminatedUnion("type", [
-	z
-		.object({
-			type: z.literal("postgres"),
-			databaseName: z.string().default("postgres"),
-			databaseUser: z.string().default("postgres"),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("mongo"),
-			databaseUser: z.string().default("mongo"),
-			replicaSets: z.boolean().default(false),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("redis"),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("mysql"),
-			databaseRootPassword: z
-				.string()
-				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-					message:
-						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-				})
-				.optional(),
-			databaseUser: z.string().default("mysql"),
-			databaseName: z.string().default("mysql"),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("mariadb"),
-			dockerImage: z.string().default("mariadb:4"),
-			databaseRootPassword: z
-				.string()
-				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-					message:
-						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-				})
-				.optional(),
-			databaseUser: z.string().default("mariadb"),
-			databaseName: z.string().default("mariadb"),
-		})
-		.merge(baseDatabaseSchema),
-]);
-
-const databasesMap = {
-	postgres: {
-		icon: <PostgresqlIcon />,
-		label: "PostgreSQL",
-	},
-	mongo: {
-		icon: <MongodbIcon />,
-		label: "MongoDB",
-	},
-	mariadb: {
-		icon: <MariadbIcon />,
-		label: "MariaDB",
-	},
-	mysql: {
-		icon: <MysqlIcon />,
-		label: "MySQL",
-	},
-	redis: {
-		icon: <RedisIcon />,
-		label: "Redis",
-	},
+const DATABASE_RADIO_ICONS: Record<DbType, ReactNode> = {
+	postgres: <PostgresqlIcon />,
+	mongo: <MongodbIcon />,
+	mariadb: <MariadbIcon />,
+	mysql: <MysqlIcon />,
+	redis: <RedisIcon />,
 };
 
-type AddDatabase = z.infer<typeof mySchema>;
+const createDatabaseSchema = (t: (key: string) => string) => {
+	const pwdInvalid = z.string().regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+		message: t("databasePasswordInvalid"),
+	});
+	const baseDatabaseSchema = z.object({
+		name: z.string().min(1, { message: t("nameRequired") }),
+		appName: z
+			.string()
+			.min(1, {
+				message: t("appNameRequired"),
+			})
+			.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
+				message: t("appNameFormat"),
+			}),
+		databasePassword: pwdInvalid,
+		dockerImage: z.string(),
+		description: z.string().nullable(),
+		serverId: z.string().nullable(),
+	});
+	return z.discriminatedUnion("type", [
+		z
+			.object({
+				type: z.literal("postgres"),
+				databaseName: z.string().default("postgres"),
+				databaseUser: z.string().default("postgres"),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("mongo"),
+				databaseUser: z.string().default("mongo"),
+				replicaSets: z.boolean().default(false),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("redis"),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("mysql"),
+				databaseRootPassword: z
+					.string()
+					.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+						message: t("databasePasswordInvalid"),
+					})
+					.optional(),
+				databaseUser: z.string().default("mysql"),
+				databaseName: z.string().default("mysql"),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("mariadb"),
+				dockerImage: z.string().default("mariadb:4"),
+				databaseRootPassword: z
+					.string()
+					.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+						message: t("databasePasswordInvalid"),
+					})
+					.optional(),
+				databaseUser: z.string().default("mariadb"),
+				databaseName: z.string().default("mariadb"),
+			})
+			.merge(baseDatabaseSchema),
+	]);
+};
+
+type AddDatabase = z.infer<ReturnType<typeof createDatabaseSchema>>;
 
 interface Props {
 	environmentId: string;
@@ -178,6 +159,7 @@ interface Props {
 
 export const AddDatabase = ({ environmentId, projectName }: Props) => {
 	const t = useTranslations("addDatabase");
+	const databaseSchema = useMemo(() => createDatabaseSchema(t), [t]);
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
@@ -206,9 +188,36 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 			databaseUser: "",
 			serverId: null,
 		},
-		resolver: zodResolver(mySchema),
+		resolver: zodResolver(databaseSchema),
 	});
 	const type = form.watch("type");
+
+	const databasesMap = useMemo(
+		() => ({
+			postgres: {
+				icon: DATABASE_RADIO_ICONS.postgres,
+				label: t("postgresLabel"),
+			},
+			mongo: {
+				icon: DATABASE_RADIO_ICONS.mongo,
+				label: t("mongoLabel"),
+			},
+			mariadb: {
+				icon: DATABASE_RADIO_ICONS.mariadb,
+				label: t("mariadbLabel"),
+			},
+			mysql: {
+				icon: DATABASE_RADIO_ICONS.mysql,
+				label: t("mysqlLabel"),
+			},
+			redis: {
+				icon: DATABASE_RADIO_ICONS.redis,
+				label: t("redisLabel"),
+			},
+		}),
+		[t],
+	);
+
 	const activeMutation = {
 		postgres: postgresMutation,
 		mongo: mongoMutation,

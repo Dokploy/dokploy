@@ -1,4 +1,5 @@
 import { Check, ChevronsUpDown, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import * as React from "react";
 import { HandleTag } from "@/components/dashboard/settings/tags/handle-tag";
 import { TagBadge } from "@/components/shared/tag-badge";
@@ -38,10 +39,12 @@ export function TagSelector({
 	tags,
 	selectedTags,
 	onTagsChange,
-	placeholder = "Select tags...",
+	placeholder,
 	className,
 	disabled = false,
 }: TagSelectorProps) {
+	const t = useTranslations("tagPicker");
+	const resolvedPlaceholder = placeholder ?? t("selectPlaceholder");
 	const [open, setOpen] = React.useState(false);
 
 	const handleTagToggle = (tagId: string) => {
@@ -90,12 +93,16 @@ export function TagSelector({
 											disabled={disabled}
 										>
 											<X className="h-3 w-3 hover:opacity-70" />
-											<span className="sr-only">Remove {tag.name}</span>
+											<span className="sr-only">
+												{t("removeTagAria", { name: tag.name })}
+											</span>
 										</button>
 									</TagBadge>
 								))
 							) : (
-								<span className="text-muted-foreground">{placeholder}</span>
+								<span className="text-muted-foreground">
+									{resolvedPlaceholder}
+								</span>
 							)}
 						</div>
 						<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -104,14 +111,14 @@ export function TagSelector({
 				<PopoverContent className="w-full p-0" align="start">
 					<Command>
 						<CommandInput
-							placeholder="Search tags..."
+							placeholder={t("searchPlaceholder")}
 							className="focus-visible:ring-0"
 						/>
 						<CommandList>
 							<CommandEmpty>
 								<div className="flex flex-col items-center gap-2 py-1">
 									<span className="text-sm text-muted-foreground">
-										No tags found.
+										{t("noTagsFound")}
 									</span>
 									<HandleTag />
 								</div>

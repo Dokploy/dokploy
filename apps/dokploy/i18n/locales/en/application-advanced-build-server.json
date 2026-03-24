@@ -1,0 +1,30 @@
+{
+	"applicationAdvancedBuildServer": {
+		"title": "Build Server",
+		"description": "Configure a dedicated server for building your application.",
+		"alerts": {
+			"infoOffload": "Build servers offload the build process from your deployment servers. Select a build server and registry to use for building your application.",
+			"infoImportantRich": "📊 <imp>Important:</imp> Once the build finishes, you'll need to wait a few seconds for the deployment server to download the image. These download logs will <not>NOT</not> appear in the build deployment logs. Check the <logs>Logs</logs> tab to see when the container starts running.",
+			"infoNoteRich": "<note>Note:</note> Build Server and Build Registry must be configured together. You can either select both or set both to None.",
+			"registryRequiredRich": "You need to add at least one registry to use build servers. Please go to <link>Settings</link> to add a registry."
+		},
+		"form": {
+			"buildServer": "Build Server",
+			"buildRegistry": "Build Registry",
+			"placeholderServer": "Select a build server",
+			"placeholderRegistry": "Select a registry",
+			"none": "None",
+			"buildServersCount": "Build Servers ({count})",
+			"registriesCount": "Registries ({count})",
+			"descServer": "Select a build server to handle the build process for this application.",
+			"descRegistry": "Select a registry to store the built images from the build server."
+		},
+		"validation": {
+			"bothOrNone": "Both Build Server and Build Registry must be selected together, or both set to None"
+		},
+		"toast": {
+			"success": "Build Server settings updated",
+			"error": "Error updating build server settings"
+		}
+	}
+}

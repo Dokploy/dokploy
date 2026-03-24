@@ -2,6 +2,7 @@
 
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Plus, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import {
 	type FieldArrayPath,
@@ -103,6 +104,7 @@ export function RegisterSamlDialog({
 	providerId,
 	children,
 }: RegisterSamlDialogProps) {
+	const tToast = useTranslations("proprietaryToasts");
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
 
@@ -201,15 +203,15 @@ export function RegisterSamlDialog({
 
 			toast.success(
 				isEdit
-					? "SAML provider updated successfully"
-					: "SAML provider registered successfully",
+					? tToast("samlProviderUpdated")
+					: tToast("samlProviderRegistered"),
 			);
 			form.reset(formDefaultValues);
 			setOpen(false);
 			await utils.sso.listProviders.invalidate();
 		} catch (err) {
 			toast.error(
-				err instanceof Error ? err.message : "Failed to register SAML provider",
+				err instanceof Error ? err.message : tToast("samlRegisterFailed"),
 			);
 		}
 	};

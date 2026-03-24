@@ -67,8 +67,9 @@ const Postgresql = (
 	const { data: environments } = api.environment.byProjectId.useQuery({
 		projectId: data?.environment?.projectId || "",
 	});
+	const tLayout = useTranslations("layout");
 	const { config: whitelabeling } = useWhitelabeling();
-	const appName = whitelabeling?.appName || "Dokploy";
+	const appName = whitelabeling?.appName ?? tLayout("defaultAppName");
 	const environmentDropdownItems =
 		environments?.map((env) => ({
 			name: env.name,

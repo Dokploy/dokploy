@@ -1,0 +1,28 @@
+{
+	"applicationEnvironment": {
+		"env": {
+			"title": "Переменные окружения",
+			"description": "Можно задать переменные окружения для ресурса.",
+			"unsavedHint": "(есть несохранённые изменения)",
+			"placeholder": "NODE_ENV=production\nPORT=3000"
+		},
+		"buildArgs": {
+			"title": "Build-time Arguments",
+			"descRich": "Доступны только на этапе сборки. Документация: <link>здесь</link>.",
+			"placeholder": "NPM_TOKEN=xyz"
+		},
+		"buildSecrets": {
+			"title": "Build-time Secrets",
+			"descRich": "Для чувствительных данных, только на этапе сборки. Документация: <link>здесь</link>.",
+			"placeholder": "NPM_TOKEN=xyz"
+		},
+		"createEnvFile": {
+			"label": "Создавать .env файл",
+			"description": "Если включено, в каталоге Dockerfile при сборке будет создан .env. Отключите, если файл не нужен."
+		},
+		"toast": {
+			"success": "Окружение сохранено",
+			"error": "Не удалось сохранить окружение"
+		}
+	}
+}

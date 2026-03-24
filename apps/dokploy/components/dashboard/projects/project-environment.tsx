@@ -40,7 +40,7 @@ interface Props {
 }
 
 export const ProjectEnvironment = ({ projectId, children }: Props) => {
-	const t = useTranslations();
+	const t = useTranslations("dashboardProjects");
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canRead = permissions?.projectEnvVars.read ?? false;
 	const canWrite = permissions?.projectEnvVars.write ?? false;
@@ -77,11 +77,11 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 			projectId: projectId,
 		})
 			.then(() => {
-				toast.success(t("dashboardProjects.projectEnvironment.updatedSuccess"));
+				toast.success(t("projectEnvironment.updatedSuccess"));
 				utils.project.all.invalidate();
 			})
 			.catch(() => {
-				toast.error(t("dashboardProjects.projectEnvironment.updateError"));
+				toast.error(t("projectEnvironment.updateError"));
 			})
 			.finally(() => {});
 	};
@@ -114,22 +114,22 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 						onSelect={(e) => e.preventDefault()}
 					>
 						<FileIcon className="size-4" />
-						<span>{t("dashboardProjects.projectEnvironment.menuLabel")}</span>
+						<span>{t("projectEnvironment.menuLabel")}</span>
 					</DropdownMenuItem>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-6xl">
 				<DialogHeader>
 					<DialogTitle>
-						{t("dashboardProjects.projectEnvironment.title")}
+						{t("projectEnvironment.title")}
 					</DialogTitle>
 					<DialogDescription>
-						{t("dashboardProjects.projectEnvironment.description")}
+						{t("projectEnvironment.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<AlertBlock type="info">
-					{t("dashboardProjects.projectEnvironment.hint")}{" "}
+					{t("projectEnvironment.hint")}{" "}
 					<code>DATABASE_URL=${"{{project.DATABASE_URL}}"}</code>
 				</AlertBlock>
 				<div className="grid gap-4">
@@ -145,7 +145,7 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel>
-												{t("dashboardProjects.projectEnvironment.fieldLabel")}
+												{t("projectEnvironment.fieldLabel")}
 											</FormLabel>
 											<FormControl>
 												<CodeEditor
@@ -170,7 +170,7 @@ PORT=3000
 								{canWrite && (
 									<DialogFooter>
 										<Button isLoading={isPending} type="submit">
-											{t("dashboardProjects.projectEnvironment.submitUpdate")}
+											{t("projectEnvironment.submitUpdate")}
 										</Button>
 									</DialogFooter>
 								)}

@@ -1,5 +1,6 @@
 import { Key, Loader2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -10,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
 export function LicenseKeySettings() {
+	const tToast = useTranslations("proprietaryToasts");
 	const utils = api.useUtils();
 	const { data, isPending } = api.licenseKey.getEnterpriseSettings.useQuery();
 	const { mutateAsync: updateEnterpriseSettings, isPending: isSaving } =
@@ -64,10 +66,10 @@ export function LicenseKeySettings() {
 													enableEnterpriseFeatures: next,
 												});
 												await utils.licenseKey.getEnterpriseSettings.invalidate();
-												toast.success("Enterprise features updated");
+												toast.success(tToast("enterpriseFeaturesUpdated"));
 											} catch (error) {
 												console.error(error);
-												toast.error("Failed to update enterprise features");
+												toast.error(tToast("enterpriseFeaturesUpdateFailed"));
 											}
 										}}
 									/>
@@ -114,13 +116,13 @@ export function LicenseKeySettings() {
 													await utils.licenseKey.getEnterpriseSettings.invalidate();
 													await utils.licenseKey.haveValidLicenseKey.invalidate();
 													setLicenseKey("");
-													toast.success("License key deactivated");
+													toast.success(tToast("licenseKeyDeactivated"));
 												} catch (error) {
 													console.error(error);
 													toast.error(
 														error instanceof Error
 															? error.message
-															: "Failed to deactivate license key",
+															: tToast("licenseKeyDeactivateFailed"),
 													);
 												}
 											}}
@@ -146,16 +148,16 @@ export function LicenseKeySettings() {
 												try {
 													const valid = await validateLicenseKey();
 													if (valid) {
-														toast.success("License key is valid");
+														toast.success(tToast("licenseKeyValid"));
 													} else {
-														toast.error("License key is invalid");
+														toast.error(tToast("licenseKeyInvalid"));
 													}
 												} catch (error) {
 													console.error(error);
 													toast.error(
 														error instanceof Error
 															? error.message
-															: "Failed to validate license key",
+															: tToast("licenseKeyValidateFailed"),
 													);
 												}
 											}}
@@ -178,13 +180,13 @@ export function LicenseKeySettings() {
 													await activateLicenseKey({ licenseKey });
 													await utils.licenseKey.getEnterpriseSettings.invalidate();
 													await utils.licenseKey.haveValidLicenseKey.invalidate();
-													toast.success("License key activated");
+													toast.success(tToast("licenseKeyActivated"));
 												} catch (error) {
 													console.error(error);
 													toast.error(
 														error instanceof Error
 															? error.message
-															: "Failed to activate license key",
+															: tToast("licenseKeyActivateFailed"),
 													);
 												}
 											}}
@@ -217,10 +219,10 @@ export function LicenseKeySettings() {
 											enableEnterpriseFeatures: true,
 										});
 										await utils.licenseKey.getEnterpriseSettings.invalidate();
-										toast.success("Enterprise features enabled");
+										toast.success(tToast("enterpriseFeaturesEnabled"));
 									} catch (error) {
 										console.error(error);
-										toast.error("Failed to enable enterprise features");
+										toast.error(tToast("enterpriseFeaturesEnableFailed"));
 									}
 								}}
 								isLoading={isSaving}

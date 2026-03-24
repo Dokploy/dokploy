@@ -1,5 +1,6 @@
 import copy from "copy-to-clipboard";
 import { Check, Copy, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export const ShowDeployment = ({
 	serverId,
 	errorMessage,
 }: Props) => {
+	const t = useTranslations("applicationDeployments");
 	const [data, setData] = useState("");
 	const [showExtraLogs, setShowExtraLogs] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
@@ -143,12 +145,14 @@ export const ShowDeployment = ({
 		>
 			<DialogContent className={"sm:max-w-5xl"}>
 				<DialogHeader>
-					<DialogTitle>Deployment</DialogTitle>
+					<DialogTitle>{t("deployment.title")}</DialogTitle>
 					<DialogDescription className="flex items-center gap-2">
 						<span className="flex items-center gap-2">
-							See all the details of this deployment |{" "}
+							{t("deployment.detailIntro")} |{" "}
 							<Badge variant="blank" className="text-xs">
-								{filteredLogs.length} lines
+								{t("deployment.lineCount", {
+									count: filteredLogs.length,
+								})}
 							</Badge>
 						</span>
 
@@ -179,7 +183,7 @@ export const ShowDeployment = ({
 									htmlFor="show-extra-logs"
 									className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
 								>
-									Show Extra Logs
+									{t("deployment.showExtraLogs")}
 								</label>
 							</div>
 						)}

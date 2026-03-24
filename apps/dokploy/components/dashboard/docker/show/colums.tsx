@@ -1,5 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +15,27 @@ import { ShowDockerModalLogs } from "../logs/show-docker-modal-logs";
 import { DockerTerminalModal } from "../terminal/docker-terminal-modal";
 import type { Container } from "./show-containers";
 
-export const columns: ColumnDef<Container>[] = [
+type DockerContainersTranslator = (key: string) => string;
+
+export const useDockerContainerTable = () => {
+	const t = useTranslations("dockerContainers");
+	const columns = useMemo(() => getColumns(t), [t]);
+	const columnLabels = useMemo(
+		() => ({
+			name: t("column_name"),
+			state: t("column_state"),
+			status: t("column_status"),
+			image: t("column_image"),
+			actions: t("column_actions"),
+		}),
+		[t],
+	);
+	return { columns, columnLabels };
+};
+
+export const getColumns = (
+	t: DockerContainersTranslator,
+): ColumnDef<Container>[] => [
 	{
 		accessorKey: "name",
 		header: ({ column }) => {
@@ -22,7 +44,7 @@ export const columns: ColumnDef<Container>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Name
+					{t("column_name")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -39,7 +61,7 @@ export const columns: ColumnDef<Container>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					State
+					{t("column_state")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -71,7 +93,7 @@ export const columns: ColumnDef<Container>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Status
+					{t("column_status")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -88,7 +110,7 @@ export const columns: ColumnDef<Container>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Image
+					{t("column_image")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -105,17 +127,17 @@ export const columns: ColumnDef<Container>[] = [
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<Button variant="ghost" className="h-8 w-8 p-0">
-							<span className="sr-only">Open menu</span>
+							<span className="sr-only">{t("openMenu")}</span>
 							<MoreHorizontal className="h-4 w-4" />
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
-						<DropdownMenuLabel>Actions</DropdownMenuLabel>
+						<DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
 						<ShowDockerModalLogs
 							containerId={container.containerId}
 							serverId={container.serverId}
 						>
-							View Logs
+							{t("viewLogs")}
 						</ShowDockerModalLogs>
 						<ShowContainerConfig
 							containerId={container.containerId}
@@ -125,7 +147,7 @@ export const columns: ColumnDef<Container>[] = [
 							containerId={container.containerId}
 							serverId={container.serverId || ""}
 						>
-							Terminal
+							{t("terminal")}
 						</DockerTerminalModal>
 					</DropdownMenuContent>
 				</DropdownMenu>

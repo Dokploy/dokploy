@@ -1,0 +1,63 @@
+{
+	"deploymentsCentral": {
+		"table": {
+			"searchPlaceholder": "Search by name, project, environment, server...",
+			"statusPlaceholder": "Status",
+			"typePlaceholder": "Type",
+			"allStatuses": "All statuses",
+			"running": "Running",
+			"done": "Done",
+			"error": "Error",
+			"cancelled": "Cancelled",
+			"allTypes": "All types",
+			"application": "Application",
+			"compose": "Compose",
+			"loading": "Loading deployments...",
+			"noDeploymentsTitle": "No deployments found",
+			"noDeploymentsDesc": "Deployments from applications and compose will appear here.",
+			"rowsPerPage": "Rows per page",
+			"showing": "Showing {from} to {to} of {total} entries",
+			"previous": "Previous",
+			"next": "Next",
+			"columnService": "Service",
+			"columnProject": "Project",
+			"columnEnvironment": "Environment",
+			"columnServer": "Server",
+			"columnTitle": "Title",
+			"columnStatus": "Status",
+			"columnCreated": "Created",
+			"open": "Open",
+			"buildPrefix": "Build:"
+		},
+		"queue": {
+			"loading": "Loading queue...",
+			"columnJobId": "Job ID",
+			"columnLabel": "Label",
+			"columnType": "Type",
+			"columnState": "State",
+			"columnAdded": "Added",
+			"columnProcessed": "Processed",
+			"columnFinished": "Finished",
+			"columnError": "Error",
+			"columnActions": "Actions",
+			"service": "Service",
+			"cancel": "Cancel",
+			"emptyTitle": "Queue is empty",
+			"emptyDesc": "Deployment jobs will appear here when they are queued.",
+			"jobLabelApplication": "Application {shortId}…",
+			"jobLabelCompose": "Compose {shortId}…",
+			"jobLabelPreview": "Preview {shortId}…",
+			"jobLabelFallback": "{type} {id}",
+			"state": {
+				"pending": "Pending",
+				"waiting": "Waiting",
+				"active": "Active",
+				"delayed": "Delayed",
+				"completed": "Completed",
+				"failed": "Failed",
+				"cancelled": "Cancelled",
+				"paused": "Paused"
+			}
+		}
+	}
+}

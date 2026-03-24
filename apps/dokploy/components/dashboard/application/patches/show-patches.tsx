@@ -1,4 +1,5 @@
 import { File, FilePlus2, Loader2, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export const ShowPatches = ({ id, type }: Props) => {
+	const t = useTranslations("applicationPatches");
 	const [selectedFile, setSelectedFile] = useState<string | null>(null);
 	const [repoPath, setRepoPath] = useState<string | null>(null);
 	const [isLoadingRepo, setIsLoadingRepo] = useState(false);
@@ -86,17 +88,14 @@ export const ShowPatches = ({ id, type }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row items-center justify-between">
 				<div>
-					<CardTitle>Patches</CardTitle>
-					<CardDescription>
-						Apply code patches to your repository during build. Patches are
-						applied after cloning the repository and before building.
-					</CardDescription>
+					<CardTitle>{t("show.title")}</CardTitle>
+					<CardDescription>{t("show.description")}</CardDescription>
 				</div>
 				{patches && patches?.length > 0 && (
 					<Button onClick={handleOpenEditor} disabled={isLoadingRepo}>
 						{isLoadingRepo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 						<FilePlus2 className="mr-2 h-4 w-4" />
-						Create Patch
+						{t("show.createPatch")}
 					</Button>
 				)}
 			</CardHeader>
@@ -111,10 +110,9 @@ export const ShowPatches = ({ id, type }: Props) => {
 							<FilePlus2 className="h-10 w-10 text-muted-foreground" />
 						</div>
 						<div className="space-y-1 text-center">
-							<p className="text-sm font-medium">No patches yet</p>
+							<p className="text-sm font-medium">{t("show.emptyTitle")}</p>
 							<p className="max-w-sm text-sm text-muted-foreground">
-								Add file patches to modify your repo before each build—configs,
-								env, or code. Create your first patch to get started.
+								{t("show.emptyDescription")}
 							</p>
 						</div>
 						<Button onClick={handleOpenEditor} disabled={isLoadingRepo}>
@@ -122,17 +120,21 @@ export const ShowPatches = ({ id, type }: Props) => {
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 							)}
 							<FilePlus2 className="mr-2 h-4 w-4" />
-							Create Patch
+							{t("show.createPatch")}
 						</Button>
 					</div>
 				) : (
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>File Path</TableHead>
-								<TableHead className="w-[80px]">Type</TableHead>
-								<TableHead className="w-[100px]">Enabled</TableHead>
-								<TableHead className="w-[100px]">Actions</TableHead>
+								<TableHead>{t("show.colFilePath")}</TableHead>
+								<TableHead className="w-[80px]">{t("show.colType")}</TableHead>
+								<TableHead className="w-[100px]">
+									{t("show.colEnabled")}
+								</TableHead>
+								<TableHead className="w-[100px]">
+									{t("show.colActions")}
+								</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -168,7 +170,7 @@ export const ShowPatches = ({ id, type }: Props) => {
 														enabled: checked,
 													})
 													.then(() => {
-														toast.success("Patch updated");
+														toast.success(t("show.toastToggleSuccess"));
 														utils.patch.byEntityId.invalidate({
 															id,
 															type,
@@ -198,7 +200,7 @@ export const ShowPatches = ({ id, type }: Props) => {
 												onClick={() => {
 													mutateAsync({ patchId: patch.patchId })
 														.then(() => {
-															toast.success("Patch deleted");
+															toast.success(t("show.toastDeleteSuccess"));
 															utils.patch.byEntityId.invalidate({
 																id,
 																type,
@@ -208,7 +210,7 @@ export const ShowPatches = ({ id, type }: Props) => {
 															toast.error(err.message);
 														});
 												}}
-												title="Delete patch"
+												title={t("show.deletePatchTitle")}
 											>
 												<Trash2 className="h-4 w-4 text-destructive" />
 											</Button>

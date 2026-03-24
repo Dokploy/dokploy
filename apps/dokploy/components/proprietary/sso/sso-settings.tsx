@@ -9,6 +9,7 @@ import {
 	Shield,
 	Trash2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -74,6 +75,7 @@ function parseSamlConfig(
 }
 
 export const SSOSettings = () => {
+	const tToast = useTranslations("proprietaryToasts");
 	const utils = api.useUtils();
 	const [detailsProvider, setDetailsProvider] =
 		useState<ProviderForDetails | null>(null);
@@ -102,12 +104,12 @@ export const SSOSettings = () => {
 		if (!value) return;
 		try {
 			await addTrustedOrigin({ origin: value });
-			toast.success("Trusted origin added");
+			toast.success(tToast("trustedOriginAdded"));
 			setNewOriginInput("");
 			await utils.sso.getTrustedOrigins.invalidate();
 		} catch (err) {
 			toast.error(
-				err instanceof Error ? err.message : "Failed to add trusted origin",
+				err instanceof Error ? err.message : tToast("trustedOriginAddFailed"),
 			);
 		}
 	};
@@ -115,12 +117,12 @@ export const SSOSettings = () => {
 	const handleRemoveOrigin = async (origin: string) => {
 		try {
 			await removeTrustedOrigin({ origin });
-			toast.success("Trusted origin removed");
+			toast.success(tToast("trustedOriginRemoved"));
 			if (editingOrigin === origin) setEditingOrigin(null);
 			await utils.sso.getTrustedOrigins.invalidate();
 		} catch (err) {
 			toast.error(
-				err instanceof Error ? err.message : "Failed to remove trusted origin",
+				err instanceof Error ? err.message : tToast("trustedOriginRemoveFailed"),
 			);
 		}
 	};
@@ -140,13 +142,13 @@ export const SSOSettings = () => {
 				oldOrigin: editingOrigin,
 				newOrigin: editingValue.trim(),
 			});
-			toast.success("Trusted origin updated");
+			toast.success(tToast("trustedOriginUpdated"));
 			setEditingOrigin(null);
 			setEditingValue("");
 			await utils.sso.getTrustedOrigins.invalidate();
 		} catch (err) {
 			toast.error(
-				err instanceof Error ? err.message : "Failed to update trusted origin",
+				err instanceof Error ? err.message : tToast("trustedOriginUpdateFailed"),
 			);
 		}
 	};
@@ -290,13 +292,13 @@ export const SSOSettings = () => {
 															await deleteProvider({
 																providerId: provider.providerId,
 															});
-															toast.success("Provider removed");
+															toast.success(tToast("ssoProviderRemoved"));
 															await utils.sso.listProviders.invalidate();
 														} catch (err) {
 															toast.error(
 																err instanceof Error
 																	? err.message
-																	: "Failed to remove provider",
+																	: tToast("ssoProviderRemoveFailed"),
 															);
 														}
 													}}

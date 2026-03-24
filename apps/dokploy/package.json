@@ -36,7 +36,8 @@
 		"docker:push:canary": "./docker/push.sh canary",
 		"version": "echo $(node -p \"require('./package.json').version\")",
 		"test": "vitest --config __test__/vitest.config.ts",
-		"generate:openapi": "tsx -r dotenv/config scripts/generate-openapi.ts"
+		"generate:openapi": "tsx -r dotenv/config scripts/generate-openapi.ts",
+		"check-translations": "tsx scripts/check-translations.ts"
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "^3.0.44",

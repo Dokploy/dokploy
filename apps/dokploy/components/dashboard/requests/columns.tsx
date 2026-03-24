@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { LogEntry } from "./show-requests";
 
+type RequestsTranslator = (key: string) => string;
+
 export const getStatusColor = (status: number) => {
 	if (status === 0) {
 		return "secondary";
@@ -24,11 +26,11 @@ export const getStatusColor = (status: number) => {
 	return "destructive";
 };
 
-const formatStatusLabel = (status: number) => {
+const formatStatusLabel = (status: number, naLabel: string) => {
 	if (status === 0) {
-		return "N/A";
+		return naLabel;
 	}
-	return status;
+	return String(status);
 };
 
 const formatDuration = (nanos: number) => {
@@ -42,11 +44,13 @@ const formatDuration = (nanos: number) => {
 	return `${(ms / 1000).toFixed(2)} s`;
 };
 
-export const columns: ColumnDef<LogEntry>[] = [
+export const getRequestColumns = (
+	t: RequestsTranslator,
+): ColumnDef<LogEntry>[] => [
 	{
 		accessorKey: "level",
 		header: () => {
-			return <Button variant="ghost">Level</Button>;
+			return <Button variant="ghost">{t("tableColumnLevel")}</Button>;
 		},
 		cell: ({ row }) => {
 			return <div>{row.original.level}</div>;
@@ -60,7 +64,7 @@ export const columns: ColumnDef<LogEntry>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Message
+					{t("tableColumnMessage")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -80,12 +84,15 @@ export const columns: ColumnDef<LogEntry>[] = [
 					</div>
 					<div className="flex flex-row gap-3 w-full">
 						<Badge variant={getStatusColor(log.OriginStatus)}>
-							Status: {formatStatusLabel(log.OriginStatus)}
+							{t("badgeStatus")}:{" "}
+							{formatStatusLabel(log.OriginStatus, t("na"))}
 						</Badge>
 						<Badge variant={"secondary"}>
-							Exec Time: {formatDuration(log.Duration)}
+							{t("badgeExecTime")}: {formatDuration(log.Duration)}
 						</Badge>
-						<Badge variant={"secondary"}>IP: {log.ClientAddr}</Badge>
+						<Badge variant={"secondary"}>
+							{t("badgeIp")}: {log.ClientAddr}
+						</Badge>
 					</div>
 				</div>
 			);
@@ -99,7 +106,7 @@ export const columns: ColumnDef<LogEntry>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Time
+					{t("tableColumnTime")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
