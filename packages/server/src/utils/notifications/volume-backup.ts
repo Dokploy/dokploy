@@ -225,7 +225,9 @@ export const sendVolumeBackupNotifications = async ({
 				const errorMsg = isError
 					? `\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`
 					: "";
-				const sizeInfo = backupSize ? `\n<b>Backup Size:</b> ${backupSize}` : "";
+				const sizeInfo = backupSize
+					? `\n<b>Backup Size:</b> ${backupSize}`
+					: "";
 
 				const messageText = `<b>${statusEmoji} Volume Backup ${typeStatus}</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Volume Name:</b> ${volumeName}\n<b>Service Type:</b> ${serviceType}${sizeInfo}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;
 
@@ -449,7 +451,10 @@ export const sendVolumeBackupNotifications = async ({
 					{ name: "Volume Name", value: volumeName },
 					{ name: "Service Type", value: serviceType },
 					{ name: "Date", value: format(date, "PP pp") },
-					{ name: "Status", value: type === "success" ? "Successful" : "Failed" },
+					{
+						name: "Status",
+						value: type === "success" ? "Successful" : "Failed",
+					},
 				];
 				if (backupSize) {
 					facts.push({ name: "Backup Size", value: backupSize });

@@ -266,8 +266,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		api.notification.testGotifyConnection.useMutation();
 	const { mutateAsync: testNtfyConnection, isPending: isLoadingNtfy } =
 		api.notification.testNtfyConnection.useMutation();
-	const { mutateAsync: testMattermostConnection, isPending: isLoadingMattermost } =
-		api.notification.testMattermostConnection.useMutation();
+	const {
+		mutateAsync: testMattermostConnection,
+		isPending: isLoadingMattermost,
+	} = api.notification.testMattermostConnection.useMutation();
 	const { mutateAsync: testLarkConnection, isPending: isLoadingLark } =
 		api.notification.testLarkConnection.useMutation();
 	const { mutateAsync: testTeamsConnection, isPending: isLoadingTeams } =

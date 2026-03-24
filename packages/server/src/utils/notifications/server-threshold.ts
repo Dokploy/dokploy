@@ -51,8 +51,16 @@ export const sendServerThresholdNotifications = async (
 	const typeColor = 0xff0000; // Rojo para indicar alerta
 
 	for (const notification of notificationList) {
-		const { discord, telegram, slack, mattermost, custom, lark, pushover, teams } =
-			notification;
+		const {
+			discord,
+			telegram,
+			slack,
+			mattermost,
+			custom,
+			lark,
+			pushover,
+			teams,
+		} = notification;
 
 		try {
 			if (discord) {
