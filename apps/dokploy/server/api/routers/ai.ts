@@ -71,8 +71,8 @@ export const aiRouter = createTRPCRouter({
 						case "openai": return "gpt-3.5-turbo";
 						case "anthropic": return "claude-3-haiku-20240307";
 						case "perplexity": return "sonar";
-						case "zai": return "glm-4-flash";
-						case "minimax": return "MiniMax-M2.5";
+						case "zai": return "glm-4.7";
+						case "minimax": return "MiniMax-M2.7";
 						case "gemini": return "gemini-pro";
 						case "mistral": return "mistral-tiny";
 						case "cohere": return "command-r";
@@ -187,37 +187,13 @@ export const aiRouter = createTRPCRouter({
 						// Z.AI doesn't have a /models endpoint, return hardcoded list
 						return [
 							{
-								id: "glm-4-plus",
+								id: "glm-5",
 								object: "model",
 								created: Date.now(),
 								owned_by: "zai",
 							},
 							{
-								id: "glm-4-flash",
-								object: "model",
-								created: Date.now(),
-								owned_by: "zai",
-							},
-							{
-								id: "glm-4",
-								object: "model",
-								created: Date.now(),
-								owned_by: "zai",
-							},
-							{
-								id: "glm-4-air",
-								object: "model",
-								created: Date.now(),
-								owned_by: "zai",
-							},
-							{
-								id: "glm-4-air-long",
-								object: "model",
-								created: Date.now(),
-								owned_by: "zai",
-							},
-							{
-								id: "glm-3-turbo",
+								id: "glm-4.7",
 								object: "model",
 								created: Date.now(),
 								owned_by: "zai",
@@ -227,31 +203,7 @@ export const aiRouter = createTRPCRouter({
 						// MiniMax doesn't have a /models endpoint, return hardcoded list
 						return [
 							{
-								id: "MiniMax-M2.5",
-								object: "model",
-								created: Date.now(),
-								owned_by: "minimax",
-							},
-							{
-								id: "MiniMax-M2.5-highspeed",
-								object: "model",
-								created: Date.now(),
-								owned_by: "minimax",
-							},
-							{
-								id: "MiniMax-M2.1",
-								object: "model",
-								created: Date.now(),
-								owned_by: "minimax",
-							},
-							{
-								id: "MiniMax-M2.1-highspeed",
-								object: "model",
-								created: Date.now(),
-								owned_by: "minimax",
-							},
-							{
-								id: "MiniMax-M2",
+								id: "MiniMax-M2.7",
 								object: "model",
 								created: Date.now(),
 								owned_by: "minimax",
