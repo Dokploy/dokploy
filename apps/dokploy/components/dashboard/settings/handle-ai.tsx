@@ -40,6 +40,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { TestConnection } from "./test-connection";
 
 const Schema = z.object({
 	name: z.string().min(1, { message: "Name is required" }),
@@ -247,107 +248,102 @@ export const HandleAi = ({ aiId }: Props) => {
 							/>
 						)}
 
-						{isLoadingServerModels && (
-							<span className="text-sm text-muted-foreground">
-								Loading models...
-							</span>
-						)}
+						<FormField
+							control={form.control}
+							name="model"
+							render={({ field }) => {
+								const selectedModel = models?.find(
+									(m) => m.id === field.value,
+								);
+								const filteredModels = models?.filter((model) =>
+									model.id.toLowerCase().includes(modelSearch.toLowerCase()),
+								);
 
-						{!isLoadingServerModels && !models?.length && (
-							<span className="text-sm text-muted-foreground">
-								No models available
-							</span>
-						)}
+								// Ensure selected model is always in the filtered list
+								const displayModels =
+									field.value &&
+									filteredModels &&
+									!filteredModels.find((m) => m.id === field.value) &&
+									selectedModel
+										? [selectedModel, ...filteredModels]
+										: filteredModels || [];
 
-						{!isLoadingServerModels && models && models.length > 0 && (
-							<FormField
-								control={form.control}
-								name="model"
-								render={({ field }) => {
-									const selectedModel = models.find(
-										(m) => m.id === field.value,
-									);
-									const filteredModels = models.filter((model) =>
-										model.id.toLowerCase().includes(modelSearch.toLowerCase()),
-									);
-
-									// Ensure selected model is always in the filtered list
-									const displayModels =
-										field.value &&
-										!filteredModels.find((m) => m.id === field.value) &&
-										selectedModel
-											? [selectedModel, ...filteredModels]
-											: filteredModels;
-
-									return (
-										<FormItem>
-											<FormLabel>Model</FormLabel>
-											<Popover
-												open={modelPopoverOpen}
-												onOpenChange={setModelPopoverOpen}
-											>
-												<PopoverTrigger asChild>
-													<FormControl>
-														<Button
-															variant="outline"
-															className={cn(
-																"w-full justify-between",
-																!field.value && "text-muted-foreground",
-															)}
-														>
-															{field.value
-																? (selectedModel?.id ?? field.value)
-																: "Select a model"}
-															<ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-														</Button>
-													</FormControl>
-												</PopoverTrigger>
-												<PopoverContent className="w-[400px] p-0" align="start">
-													<Command>
-														<CommandInput
-															placeholder="Search models..."
-															value={modelSearch}
-															onValueChange={setModelSearch}
-														/>
-														<CommandList>
-															<CommandEmpty>No models found.</CommandEmpty>
-															{displayModels.map((model) => {
-																const isSelected = field.value === model.id;
-																return (
-																	<CommandItem
-																		key={model.id}
-																		value={model.id}
-																		onSelect={() => {
-																			field.onChange(model.id);
-																			setModelPopoverOpen(false);
-																			setModelSearch("");
-																		}}
-																	>
-																		<Check
-																			className={cn(
-																				"mr-2 h-4 w-4",
-																				isSelected
-																					? "opacity-100"
-																					: "opacity-0",
-																			)}
-																		/>
-																		{model.id}
-																	</CommandItem>
-																);
-															})}
-														</CommandList>
-													</Command>
-												</PopoverContent>
-											</Popover>
-											<FormDescription>
-												Select an AI model to use
-											</FormDescription>
-											<FormMessage />
-										</FormItem>
-									);
-								}}
-							/>
-						)}
+								return (
+									<FormItem>
+										<FormLabel>Model</FormLabel>
+										<div className="flex gap-2">
+											{!isLoadingServerModels && models && models.length > 0 && (
+												<Popover
+													open={modelPopoverOpen}
+													onOpenChange={setModelPopoverOpen}
+												>
+													<PopoverTrigger asChild>
+														<FormControl>
+															<Button
+																variant="outline"
+																className={cn(
+																	"w-[60px] shrink-0 justify-center",
+																)}
+																type="button"
+															>
+																<ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+															</Button>
+														</FormControl>
+													</PopoverTrigger>
+													<PopoverContent className="w-[400px] p-0" align="start">
+														<Command>
+															<CommandInput
+																placeholder="Search models..."
+																value={modelSearch}
+																onValueChange={setModelSearch}
+															/>
+															<CommandList>
+																<CommandEmpty>No models found.</CommandEmpty>
+																{displayModels.map((model) => {
+																	const isSelected = field.value === model.id;
+																	return (
+																		<CommandItem
+																			key={model.id}
+																			value={model.id}
+																			onSelect={() => {
+																				field.onChange(model.id);
+																				setModelPopoverOpen(false);
+																				setModelSearch("");
+																			}}
+																		>
+																			<Check
+																				className={cn(
+																					"mr-2 h-4 w-4",
+																					isSelected ? "opacity-100" : "opacity-0",
+																				)}
+																			/>
+																			{model.id}
+																		</CommandItem>
+																	);
+																})}
+															</CommandList>
+														</Command>
+													</PopoverContent>
+												</Popover>
+											)}
+											<FormControl>
+												<Input
+													placeholder="gpt-4o or custom model name"
+													{...field}
+													value={field.value}
+												/>
+											</FormControl>
+										</div>
+										<FormDescription>
+											{!isLoadingServerModels && models && models.length > 0
+												? "Click the arrow to select from available models or type a custom model name"
+												: "Enter the model name to use"}
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								);
+							}}
+						/>
 
 						<FormField
 							control={form.control}
@@ -372,7 +368,12 @@ export const HandleAi = ({ aiId }: Props) => {
 							)}
 						/>
 
-						<div className="flex justify-end  gap-2 pt-4">
+						<div className="flex justify-end gap-2 pt-4">
+							<TestConnection
+								apiUrl={apiUrl}
+								apiKey={apiKey}
+								model={form.watch("model")}
+							/>
 							<Button type="submit" isLoading={isPending}>
 								{aiId ? "Update" : "Create"}
 							</Button>

@@ -51,6 +51,87 @@ export const aiRouter = createTRPCRouter({
 			return aiSetting;
 		}),
 
+	testConnection: protectedProcedure
+		.input(
+			z.object({
+				apiUrl: z.string().min(1),
+				apiKey: z.string(),
+				model: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			try {
+				const providerName = getProviderName(input.apiUrl);
+				const headers = getProviderHeaders(input.apiUrl, input.apiKey);
+
+				// Test with a minimal completion request
+				const testModel = input.model || (() => {
+					// Default test models per provider if none specified
+					switch (providerName) {
+						case "openai": return "gpt-3.5-turbo";
+						case "anthropic": return "claude-3-haiku-20240307";
+						case "perplexity": return "sonar";
+						case "zai": return "glm-4-flash";
+						case "minimax": return "MiniMax-M2.5";
+						case "gemini": return "gemini-pro";
+						case "mistral": return "mistral-tiny";
+						case "cohere": return "command-r";
+						case "deepinfra": return "meta-llama/Meta-Llama-3-8B";
+						default: return "gpt-3.5-turbo";
+					}
+				})();
+
+				// Anthropic-style API
+				if (providerName === "anthropic" || providerName === "minimax") {
+					const response = await fetch(`${input.apiUrl}/v1/messages`, {
+						method: "POST",
+						headers: {
+							...headers,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({
+							model: testModel,
+							max_tokens: 10,
+							messages: [{ role: "user", content: "test" }],
+						}),
+					});
+
+					if (!response.ok) {
+						const errorText = await response.text();
+						throw new Error(`API test failed: ${errorText}`);
+					}
+
+					return { success: true, message: "Connection successful!" };
+				}
+
+				// OpenAI-style API (most providers)
+				const response = await fetch(`${input.apiUrl}/chat/completions`, {
+					method: "POST",
+					headers: {
+						...headers,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						model: testModel,
+						max_tokens: 10,
+						messages: [{ role: "user", content: "test" }],
+					}),
+				});
+
+				if (!response.ok) {
+					const errorText = await response.text();
+					throw new Error(`API test failed: ${errorText}`);
+				}
+
+				return { success: true, message: "Connection successful!" };
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: error instanceof Error ? error?.message : `Error: ${error}`,
+				});
+			}
+		}),
+
 	getModels: protectedProcedure
 		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string() }))
 		.query(async ({ input }) => {
