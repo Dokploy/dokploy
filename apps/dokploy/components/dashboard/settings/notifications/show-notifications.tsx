@@ -4,6 +4,7 @@ import {
 	DiscordIcon,
 	GotifyIcon,
 	LarkIcon,
+	MattermostIcon,
 	NtfyIcon,
 	ResendIcon,
 	SlackIcon,
@@ -119,6 +120,11 @@ export const ShowNotifications = () => {
 															{notification.notificationType === "teams" && (
 																<div className="flex  items-center justify-center rounded-lg">
 																	<TeamsIcon className="size-7 text-muted-foreground" />
+																</div>
+															)}
+															{notification.notificationType === "mattermost" && (
+																<div className="flex  items-center justify-center rounded-lg">
+																	<MattermostIcon className="size-7" />
 																</div>
 															)}
 
