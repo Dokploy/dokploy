@@ -73,9 +73,7 @@ export const ShowServers = () => {
 							<ServerIcon className="size-6 text-muted-foreground self-center" />
 							{t("title")}
 						</CardTitle>
-						<CardDescription>
-							{t("description")}
-						</CardDescription>
+						<CardDescription>{t("description")}</CardDescription>
 
 						{isCloud && (
 							<span
@@ -261,7 +259,9 @@ export const ShowServers = () => {
 																			{t("sshKeyLabel")}
 																		</span>
 																		<span className="font-medium">
-																			{server.sshKeyId ? t("sshKeyYes") : t("sshKeyNo")}
+																			{server.sshKeyId
+																				? t("sshKeyYes")
+																				: t("sshKeyNo")}
 																		</span>
 																	</div>
 																	<div className="flex items-center gap-2 text-sm pt-2 border-t">
@@ -374,9 +374,13 @@ export const ShowServers = () => {
 																											t("deleteServerDesc")
 																										) : (
 																											<div className="flex flex-col gap-2">
-																												{t("cannotDeleteServer")}
+																												{t(
+																													"cannotDeleteServer",
+																												)}
 																												<AlertBlock type="warning">
-																													{t("activeServicesWarning")}
+																													{t(
+																														"activeServicesWarning",
+																													)}
 																												</AlertBlock>
 																											</div>
 																										)
@@ -388,7 +392,9 @@ export const ShowServers = () => {
 																											.then(() => {
 																												refetch();
 																												toast.success(
-																													t("deletedSuccess", { name: server.name }),
+																													t("deletedSuccess", {
+																														name: server.name,
+																													}),
 																												);
 																											})
 																											.catch((err) => {

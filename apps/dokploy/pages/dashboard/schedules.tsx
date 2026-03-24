@@ -9,7 +9,7 @@ import { api } from "@/utils/api";
 
 function SchedulesPage() {
 	const { data: user } = api.user.get.useQuery();
-	
+
 	return (
 		<div className="w-full">
 			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-8xl mx-auto min-h-[45vh]">
@@ -23,7 +23,6 @@ function SchedulesPage() {
 		</div>
 	);
 }
-
 
 export default SchedulesPage;
 

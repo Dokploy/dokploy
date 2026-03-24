@@ -32,9 +32,7 @@ export const ShowApiKeys = () => {
 								<KeyIcon className="size-5" />
 								{t("title")}
 							</CardTitle>
-							<CardDescription>
-								{t("description")}
-							</CardDescription>
+							<CardDescription>{t("description")}</CardDescription>
 						</div>
 						<div className="flex flex-row gap-2 max-sm:flex-wrap items-end">
 							<span className="text-sm font-medium text-muted-foreground">

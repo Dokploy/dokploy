@@ -420,7 +420,9 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 													<SelectTrigger>
 														<SelectValue
 															placeholder={
-																!isCloud ? t("dokploy") : t("selectServerPlaceholder")
+																!isCloud
+																	? t("dokploy")
+																	: t("selectServerPlaceholder")
 															}
 														/>
 													</SelectTrigger>
@@ -445,7 +447,10 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 																</SelectItem>
 															))}
 															<SelectLabel>
-																{t("serversLabel", { count: (servers?.length ?? 0) + (!isCloud ? 1 : 0) })}
+																{t("serversLabel", {
+																	count:
+																		(servers?.length ?? 0) + (!isCloud ? 1 : 0),
+																})}
 															</SelectLabel>
 														</SelectGroup>
 													</SelectContent>
@@ -474,7 +479,10 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 												</TooltipProvider>
 											</FormLabel>
 											<FormControl>
-												<Input placeholder={t("appNamePlaceholder")} {...field} />
+												<Input
+													placeholder={t("appNamePlaceholder")}
+													{...field}
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -510,7 +518,10 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 											<FormItem>
 												<FormLabel>{t("databaseNameLabel")}</FormLabel>
 												<FormControl>
-													<Input placeholder={t("databaseNamePlaceholder")} {...field} />
+													<Input
+														placeholder={t("databaseNamePlaceholder")}
+														{...field}
+													/>
 												</FormControl>
 
 												<FormMessage />

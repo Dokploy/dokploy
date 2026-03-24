@@ -18,64 +18,64 @@
 */
 
 @layer base {
-		:root {
-				--terminal-paste: rgba(0, 0, 0, 0.2);
+	:root {
+		--terminal-paste: rgba(0, 0, 0, 0.2);
 
-				/* ── Light mode ── */
-				--background: 0 0% 99%;
-				--foreground: 240 6% 10%;
+		/* ── Light mode ── */
+		--background: 0 0% 99%;
+		--foreground: 240 6% 10%;
 
-				--card: 0 0% 100%;
-				--card-foreground: 240 6% 10%;
+		--card: 0 0% 100%;
+		--card-foreground: 240 6% 10%;
 
-				--popover: 0 0% 100%;
-				--popover-foreground: 240 6% 10%;
+		--popover: 0 0% 100%;
+		--popover-foreground: 240 6% 10%;
 
-				--primary: 148 55% 38%; /* изумрудный */
-				--primary-foreground: 148 60% 94%;
+		--primary: 148 55% 38%; /* изумрудный */
+		--primary-foreground: 148 60% 94%;
 
-				--secondary: 240 5% 96%;
-				--secondary-foreground: 240 6% 10%;
+		--secondary: 240 5% 96%;
+		--secondary-foreground: 240 6% 10%;
 
-				--muted: 240 5% 96%;
-				--muted-foreground: 240 4% 46%;
+		--muted: 240 5% 96%;
+		--muted-foreground: 240 4% 46%;
 
-				--accent: 240 5% 96%;
-				--accent-foreground: 240 6% 10%;
+		--accent: 240 5% 96%;
+		--accent-foreground: 240 6% 10%;
 
-				--destructive: 4 72% 47%;
-				--destructive-foreground: 0 0% 98%;
+		--destructive: 4 72% 47%;
+		--destructive-foreground: 0 0% 98%;
 
-				--border: 240 6% 90%;
-				--border-s: #3fb950; /* #1e1e22 */
-				--input: 240 6% 90%;
-				--ring: 148 55% 38%;
+		--border: 240 6% 90%;
+		--border-s: #3fb950; /* #1e1e22 */
+		--input: 240 6% 90%;
+		--ring: 148 55% 38%;
 
-				--radius: 0.5rem;
-				--overlay: rgba(0, 0, 0, 0.2);
+		--radius: 0.5rem;
+		--overlay: rgba(0, 0, 0, 0.2);
 
-				/* charts */
-				--chart-1: 148 55% 38%;
-				--chart-2: 210 70% 52%;
-				--chart-3: 35 80% 52%;
-				--chart-4: 280 60% 58%;
-				--chart-5: 4 72% 47%;
+		/* charts */
+		--chart-1: 148 55% 38%;
+		--chart-2: 210 70% 52%;
+		--chart-3: 35 80% 52%;
+		--chart-4: 280 60% 58%;
+		--chart-5: 4 72% 47%;
 
-				/* sidebar */
-				--sidebar-background: 0 0% 98%;
-				--sidebar-foreground: 240 5% 26%;
-				--sidebar-primary: 148 55% 38%;
-				--sidebar-primary-foreground: 148 60% 94%;
-				--sidebar-accent: 240 5% 95%;
-				--sidebar-accent-foreground: 240 6% 10%;
-				--sidebar-border: 220 13% 91%;
-				--sidebar-ring: 148 55% 38%;
-		}
+		/* sidebar */
+		--sidebar-background: 0 0% 98%;
+		--sidebar-foreground: 240 5% 26%;
+		--sidebar-primary: 148 55% 38%;
+		--sidebar-primary-foreground: 148 60% 94%;
+		--sidebar-accent: 240 5% 95%;
+		--sidebar-accent-foreground: 240 6% 10%;
+		--sidebar-border: 220 13% 91%;
+		--sidebar-ring: 148 55% 38%;
+	}
 
-		.dark {
-				--terminal-paste: rgba(255, 255, 255, 0.15);
+	.dark {
+		--terminal-paste: rgba(255, 255, 255, 0.15);
 
-				/*
+		/*
 				 * ── Pushkin Dark backgrounds ──
 				 *
 				 * base        #09090b  — почти чёрный, тёплый уголь
@@ -84,235 +84,233 @@
 				 * muted       #1e1e22  — приглушённый слой
 				 * accent      #252529  — ховер-состояния
 				 */
-				--background: 240 4% 4%; /* #09090b */
-				--foreground: 40 14% 96%; /* #f4f0e8 — тёплый белый */
+		--background: 240 4% 4%; /* #09090b */
+		--foreground: 40 14% 96%; /* #f4f0e8 — тёплый белый */
 
-				--card: 240 3% 7%; /* #111113 */
-				--card-foreground: 40 14% 96%;
+		--card: 240 3% 7%; /* #111113 */
+		--card-foreground: 40 14% 96%;
 
-				--popover: 240 4% 9%; /* #17171a */
-				--popover-foreground: 40 14% 96%;
+		--popover: 240 4% 9%; /* #17171a */
+		--popover-foreground: 40 14% 96%;
 
-				/*
+		/*
 				 * primary = изумрудный акцент
 				 * #2d9a59 — кнопки, ссылки, активные состояния
 				 * #d4f5e2 — текст на зелёном фоне
 				 */
-				--primary: 148 55% 38%; /* #2d9a59 */
-				--primary-foreground: 148 60% 94%; /* #d4f5e2 */
+		--primary: 148 55% 38%; /* #2d9a59 */
+		--primary-foreground: 148 60% 94%; /* #d4f5e2 */
 
-				--secondary: 240 3% 10%; /* #1e1e22 */
-				--secondary-foreground: 40 14% 96%;
+		--secondary: 240 3% 10%; /* #1e1e22 */
+		--secondary-foreground: 40 14% 96%;
 
-				--muted: 240 3% 10%; /* #1e1e22 */
-				--muted-foreground: 240 4% 65%; /* #a8a5a0 */
+		--muted: 240 3% 10%; /* #1e1e22 */
+		--muted-foreground: 240 4% 65%; /* #a8a5a0 */
 
-				--accent: 240 3% 14%; /* #252529 */
-				--accent-foreground: 40 14% 96%;
+		--accent: 240 3% 14%; /* #252529 */
+		--accent-foreground: 40 14% 96%;
 
-				--destructive: 4 72% 47%; /* #c0392b */
-				--destructive-foreground: 0 0% 98%;
+		--destructive: 4 72% 47%; /* #c0392b */
+		--destructive-foreground: 0 0% 98%;
 
-				/*
+		/*
 				 * border     #1e1e22  — едва заметная граница (0.5px)
 				 * input      #111113  — фон полей ввода
 				 * ring       изумрудный — фокус-кольцо
 				 */
-				--border: 240 3% 12%; /* #1e1e22 */
-				--border-s: #3fb950; /* #1e1e22 */
-				--input: 240 3% 7%; /* #111113 */
-				--ring: 148 55% 38%; /* #2d9a59 */
+		--border: 240 3% 12%; /* #1e1e22 */
+		--border-s: #3fb950; /* #1e1e22 */
+		--input: 240 3% 7%; /* #111113 */
+		--ring: 148 55% 38%; /* #2d9a59 */
 
-				--overlay: rgba(0, 0, 0, 0.55);
+		--overlay: rgba(0, 0, 0, 0.55);
 
-				/* charts */
-				--chart-1: 148 55% 38%; /* изумрудный */
-				--chart-2: 210 70% 52%; /* синий */
-				--chart-3: 35 80% 52%; /* янтарный */
-				--chart-4: 280 60% 58%; /* фиолетовый */
-				--chart-5: 4 72% 47%; /* красный */
+		/* charts */
+		--chart-1: 148 55% 38%; /* изумрудный */
+		--chart-2: 210 70% 52%; /* синий */
+		--chart-3: 35 80% 52%; /* янтарный */
+		--chart-4: 280 60% 58%; /* фиолетовый */
+		--chart-5: 4 72% 47%; /* красный */
 
-				/*
+		/*
 				 * sidebar — чуть темнее карточки, почти сливается с базой
 				 * активный пункт подсвечивается изумрудным бордером слева
 				 */
-				--sidebar-background: 240 4% 6%; /* #0f0f11 */
-				--sidebar-foreground: 40 8% 80%;
-				--sidebar-primary: 148 55% 38%;
-				--sidebar-primary-foreground: 148 60% 94%;
-				--sidebar-accent: 240 3% 10%;
-				--sidebar-accent-foreground: 40 14% 96%;
-				--sidebar-border: 240 3% 12%;
-				--sidebar-ring: 148 55% 38%;
-		}
+		--sidebar-background: 240 4% 6%; /* #0f0f11 */
+		--sidebar-foreground: 40 8% 80%;
+		--sidebar-primary: 148 55% 38%;
+		--sidebar-primary-foreground: 148 60% 94%;
+		--sidebar-accent: 240 3% 10%;
+		--sidebar-accent-foreground: 40 14% 96%;
+		--sidebar-border: 240 3% 12%;
+		--sidebar-ring: 148 55% 38%;
+	}
 }
 
 @layer base {
-		* {
-				@apply border-border;
-		}
+	* {
+		@apply border-border;
+	}
 
-		body {
-				@apply bg-background text-foreground;
+	body {
+		@apply bg-background text-foreground;
 
-				font-family: 'Geist', 'Geist Fallback', serif;
-				--font-geist: 'Geist', 'Geist Fallback', serif;
-				--font-jetbrains-mono: 'JetBrains Mono ', ' JetBrains Mono Fallback ';
-		}
+		font-family: "Geist", "Geist Fallback", serif;
+		--font-geist: "Geist", "Geist Fallback", serif;
+		--font-jetbrains-mono: "JetBrains Mono ", " JetBrains Mono Fallback ";
+	}
 
+	/* Scrollbar — тонкий, едва заметный */
+	::-webkit-scrollbar {
+		width: 0.25rem;
+	}
 
-		/* Scrollbar — тонкий, едва заметный */
-		::-webkit-scrollbar {
-				width: 0.25rem;
-		}
+	::-webkit-scrollbar-track {
+		background: transparent;
+	}
 
-		::-webkit-scrollbar-track {
-				background: transparent;
-		}
+	::-webkit-scrollbar-thumb {
+		background: hsl(var(--border));
+		border-radius: 0.25rem;
+	}
 
-		::-webkit-scrollbar-thumb {
-				background: hsl(var(--border));
-				border-radius: 0.25rem;
-		}
-
-		* {
-				scrollbar-width: thin;
-				scrollbar-color: hsl(var(--border)) transparent;
-		}
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: hsl(var(--border)) transparent;
+	}
 }
 
-
 .xterm-viewport {
-		border-radius: 0.75rem !important;
+	border-radius: 0.75rem !important;
 }
 
 .xterm .xterm-viewport {
-		overflow-y: auto !important;
+	overflow-y: auto !important;
 }
 
 .xterm .xterm-screen {
-		overflow: hidden;
+	overflow: hidden;
 }
 
 @layer utilities {
-		.no-scrollbar::-webkit-scrollbar {
-				display: none;
-		}
+	.no-scrollbar::-webkit-scrollbar {
+		display: none;
+	}
 
-		.no-scrollbar {
-				-ms-overflow-style: none;
-				scrollbar-width: none;
-		}
+	.no-scrollbar {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
 
-		/* Docker logs scrollbar */
-		.custom-logs-scrollbar {
-				scrollbar-width: thin;
-				scrollbar-color: hsl(var(--muted-foreground)) transparent;
-		}
+	/* Docker logs scrollbar */
+	.custom-logs-scrollbar {
+		scrollbar-width: thin;
+		scrollbar-color: hsl(var(--muted-foreground)) transparent;
+	}
 
-		.custom-logs-scrollbar::-webkit-scrollbar {
-				width: 6px;
-				height: 6px;
-		}
+	.custom-logs-scrollbar::-webkit-scrollbar {
+		width: 6px;
+		height: 6px;
+	}
 
-		.custom-logs-scrollbar::-webkit-scrollbar-track {
-				background: transparent;
-		}
+	.custom-logs-scrollbar::-webkit-scrollbar-track {
+		background: transparent;
+	}
 
-		.custom-logs-scrollbar::-webkit-scrollbar-thumb {
-				background-color: hsl(var(--muted-foreground) / 0.3);
-				border-radius: 20px;
-		}
+	.custom-logs-scrollbar::-webkit-scrollbar-thumb {
+		background-color: hsl(var(--muted-foreground) / 0.3);
+		border-radius: 20px;
+	}
 
-		.custom-logs-scrollbar::-webkit-scrollbar-thumb:hover {
-				background-color: hsl(var(--muted-foreground) / 0.5);
-		}
+	.custom-logs-scrollbar::-webkit-scrollbar-thumb:hover {
+		background-color: hsl(var(--muted-foreground) / 0.5);
+	}
 }
 
 /* CodeMirror */
 .cm-editor {
-		@apply w-full h-full rounded-md overflow-hidden border border-solid border-border outline-none;
+	@apply w-full h-full rounded-md overflow-hidden border border-solid border-border outline-none;
 }
 
 .cm-editor .cm-scroller {
-		font-family: inherit;
-		line-height: inherit;
+	font-family: inherit;
+	line-height: inherit;
 }
 
 .cm-editor.cm-focused {
-		@apply outline-none;
+	@apply outline-none;
 }
 
 .cm-editor .cm-activeLine:has(.cm-placeholder) {
-		background-color: transparent;
+	background-color: transparent;
 }
 
 .compose-file-editor .cm-editor {
-		@apply min-h-[25rem];
+	@apply min-h-[25rem];
 }
 
 .cm-content,
 .cm-lineWrapping {
-		@apply font-mono;
+	@apply font-mono;
 }
 
 /* Heartbeat animation */
 @keyframes heartbeat {
-		0% {
-				transform: scale(1);
-				opacity: 0.7;
-		}
-		25% {
-				transform: scale(1.1);
-				opacity: 1;
-		}
-		50% {
-				transform: scale(1);
-				opacity: 0.7;
-		}
-		75% {
-				transform: scale(1.1);
-				opacity: 1;
-		}
-		100% {
-				transform: scale(1);
-				opacity: 0.7;
-		}
+	0% {
+		transform: scale(1);
+		opacity: 0.7;
+	}
+	25% {
+		transform: scale(1.1);
+		opacity: 1;
+	}
+	50% {
+		transform: scale(1);
+		opacity: 0.7;
+	}
+	75% {
+		transform: scale(1.1);
+		opacity: 1;
+	}
+	100% {
+		transform: scale(1);
+		opacity: 0.7;
+	}
 }
 
 .animate-heartbeat {
-		animation: heartbeat 2.5s infinite;
+	animation: heartbeat 2.5s infinite;
 }
 
 /* HubSpot */
 #hubspot-messages-iframe-container,
 #hubspot-messages-iframe-container * {
-		background-color: transparent !important;
-		color-scheme: light !important;
+	background-color: transparent !important;
+	color-scheme: light !important;
 }
 
 #hubspot-messages-iframe-container .hs-shadow-container {
-		display: none !important;
+	display: none !important;
 }
 
 #hubspot-conversations-iframe {
-		color-scheme: light !important;
+	color-scheme: light !important;
 }
 
 /* Terminal paste highlight */
 .xterm-bg-257.xterm-fg-257 {
-		background-color: var(--terminal-paste) !important;
-		color: currentColor !important;
+	background-color: var(--terminal-paste) !important;
+	color: currentColor !important;
 }
 
 /* Swagger force light */
 @media (prefers-color-scheme: dark) {
-		.swagger-ui {
-				background-color: white;
-		}
+	.swagger-ui {
+		background-color: white;
+	}
 
-		.swagger-ui .info {
-				margin: 0px !important;
-				padding-top: 1rem !important;
-		}
+	.swagger-ui .info {
+		margin: 0px !important;
+		padding-top: 1rem !important;
+	}
 }

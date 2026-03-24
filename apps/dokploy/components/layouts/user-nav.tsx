@@ -49,7 +49,9 @@ export const UserNav = () => {
 						</AvatarFallback>
 					</Avatar>
 					<div className="grid flex-1 text-left text-sm leading-tight">
-						<span className="truncate font-semibold">{t("common.account")}</span>
+						<span className="truncate font-semibold">
+							{t("common.account")}
+						</span>
 						<span className="truncate text-xs">{data?.user?.email}</span>
 					</div>
 					<ChevronsUpDown className="ml-auto size-4" />
@@ -132,7 +134,7 @@ export const UserNav = () => {
 									router.push("/dashboard/settings/servers");
 								}}
 							>
-									{t("dashboard.settings.remoteServers")}
+								{t("dashboard.settings.remoteServers")}
 							</DropdownMenuItem>
 						)
 					)}

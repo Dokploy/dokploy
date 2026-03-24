@@ -20,4 +20,3 @@ export const useLocaleContext = (): LocaleContextValue => {
 };
 
 export { LocaleContext };
-

@@ -39,9 +39,7 @@ export const ShowNotifications = () => {
 							<Bell className="size-6 text-muted-foreground self-center" />
 							{t("title")}
 						</CardTitle>
-						<CardDescription>
-							{t("description")}
-						</CardDescription>
+						<CardDescription>{t("description")}</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
@@ -140,15 +138,11 @@ export const ShowNotifications = () => {
 																				notification.notificationId,
 																		})
 																			.then(() => {
-																				toast.success(
-																					t("deletedSuccess"),
-																				);
+																				toast.success(t("deletedSuccess"));
 																				refetch();
 																			})
 																			.catch(() => {
-																				toast.error(
-																					t("deleteError"),
-																				);
+																				toast.error(t("deleteError"));
 																			});
 																	}}
 																>

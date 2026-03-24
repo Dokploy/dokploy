@@ -63,9 +63,7 @@ export const ShowGitProviders = () => {
 							<GitBranch className="size-6 text-muted-foreground self-center" />
 							{t("title")}
 						</CardTitle>
-						<CardDescription>
-							{t("description")}
-						</CardDescription>
+						<CardDescription>{t("description")}</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
@@ -163,7 +161,9 @@ export const ShowGitProviders = () => {
 																{isBitbucket &&
 																gitProvider.bitbucket?.appPassword &&
 																!gitProvider.bitbucket?.apiToken ? (
-																	<Badge variant="yellow">{t("deprecated")}</Badge>
+																	<Badge variant="yellow">
+																		{t("deprecated")}
+																	</Badge>
 																) : null}
 
 																{!haveGithubRequirements && isGithub && (
@@ -259,15 +259,11 @@ export const ShowGitProviders = () => {
 																			gitProviderId: gitProvider.gitProviderId,
 																		})
 																			.then(() => {
-																				toast.success(
-																					t("deletedSuccess"),
-																				);
+																				toast.success(t("deletedSuccess"));
 																				refetch();
 																			})
 																			.catch(() => {
-																				toast.error(
-																					t("deleteError"),
-																				);
+																				toast.error(t("deleteError"));
 																			});
 																	}}
 																>

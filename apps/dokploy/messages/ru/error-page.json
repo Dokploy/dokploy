@@ -1,10 +1,9 @@
 {
-  "errorPage": {
-    "ariaGlobal": "Глобальные",
-    "notFound": "Извините, мы не смогли найти вашу страницу.",
-    "generic": "Упс, что-то пошло не так.",
-    "goHome": "Перейти на главную",
-    "submitLogInIssueOnGithub": "Сообщить о проблеме входа на GitHub"
-  }
+	"errorPage": {
+		"ariaGlobal": "Глобальные",
+		"notFound": "Извините, мы не смогли найти вашу страницу.",
+		"generic": "Упс, что-то пошло не так.",
+		"goHome": "Перейти на главную",
+		"submitLogInIssueOnGithub": "Сообщить о проблеме входа на GitHub"
+	}
 }
-

@@ -169,16 +169,17 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 			<DialogContent className="sm:max-w-4xl w-full  flex flex-col">
 				<DialogHeader>
 					<DialogTitle>{t("dialogTitle")}</DialogTitle>
-					<DialogDescription>
-						{t("dialogDescription")}
-					</DialogDescription>
+					<DialogDescription>{t("dialogDescription")}</DialogDescription>
 				</DialogHeader>
 				<div className="grid gap-4">
 					<div className="flex justify-between">
 						<h2 className="text-lg font-semibold">{t("stepsLabel")}</h2>
 						<div className="flex items-center gap-2">
 							<span className="text-sm text-muted-foreground">
-								{t("stepOf", { current: stepper.current.index + 1, total: steps.length })}
+								{t("stepOf", {
+									current: stepper.current.index + 1,
+									total: steps.length,
+								})}
 							</span>
 							<div />
 						</div>
@@ -208,7 +209,9 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 											>
 												{index + 1}
 											</Button>
-											<span className="text-sm font-medium">{stepTitles[step.id] ?? step.title}</span>
+											<span className="text-sm font-medium">
+												{stepTitles[step.id] ?? step.title}
+											</span>
 										</li>
 										{index < array.length - 1 && (
 											<Separator
@@ -265,7 +268,9 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 														}
 													>
 														<SelectTrigger>
-															<SelectValue placeholder={t("selectProviderPlaceholder")} />
+															<SelectValue
+																placeholder={t("selectProviderPlaceholder")}
+															/>
 														</SelectTrigger>
 														<SelectContent>
 															{aiSettings.map((ai) => (

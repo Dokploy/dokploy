@@ -44,8 +44,8 @@ function DeploymentsPage() {
 		<div className="flex flex-1 flex-col w-full">
 			<Card className="flex flex-1 flex-col bg-sidebar p-2.5 rounded-xl">
 				<div className="flex flex-1 flex-col rounded-xl bg-background shadow-md">
-				<CardHeader className="flex flex-1 flex-col">
-					<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+					<CardHeader className="flex flex-1 flex-col">
+						<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 							<div>
 								<CardTitle className="text-xl font-bold flex items-center gap-2">
 									<Rocket className="size-5" />
@@ -56,7 +56,11 @@ function DeploymentsPage() {
 								</CardDescription>
 							</div>
 						</div>
-						<Tabs value={tab} onValueChange={setTab} className="flex flex-1 flex-col w-full">
+						<Tabs
+							value={tab}
+							onValueChange={setTab}
+							className="flex flex-1 flex-col w-full"
+						>
 							<TabsList className="mt-2">
 								<TabsTrigger value="deployments">
 									{t("deployments.tabs.deployments")}
@@ -65,11 +69,17 @@ function DeploymentsPage() {
 									{t("deployments.tabs.queue")}
 								</TabsTrigger>
 							</TabsList>
-						<TabsContent value="deployments" className="flex flex-1 flex-col mt-0 pt-4">
-							<ShowDeploymentsTable />
-						</TabsContent>
-						<TabsContent value="queue" className="flex flex-1 flex-col mt-0 pt-4">
-							<ShowQueueTable />
+							<TabsContent
+								value="deployments"
+								className="flex flex-1 flex-col mt-0 pt-4"
+							>
+								<ShowDeploymentsTable />
+							</TabsContent>
+							<TabsContent
+								value="queue"
+								className="flex flex-1 flex-col mt-0 pt-4"
+							>
+								<ShowQueueTable />
 							</TabsContent>
 						</Tabs>
 					</CardHeader>

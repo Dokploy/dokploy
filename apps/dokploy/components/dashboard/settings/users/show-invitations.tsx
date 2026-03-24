@@ -49,9 +49,7 @@ export const ShowInvitations = () => {
 							<Mail className="size-6 text-muted-foreground self-center" />
 							{t("title")}
 						</CardTitle>
-						<CardDescription>
-							{t("description")}
-						</CardDescription>
+						<CardDescription>{t("description")}</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
@@ -75,13 +73,21 @@ export const ShowInvitations = () => {
 											<TableCaption>{t("tableCaption")}</TableCaption>
 											<TableHeader>
 												<TableRow>
-													<TableHead className="w-[100px]">{t("colEmail")}</TableHead>
-													<TableHead className="text-center">{t("colRole")}</TableHead>
-													<TableHead className="text-center">{t("colStatus")}</TableHead>
+													<TableHead className="w-[100px]">
+														{t("colEmail")}
+													</TableHead>
+													<TableHead className="text-center">
+														{t("colRole")}
+													</TableHead>
+													<TableHead className="text-center">
+														{t("colStatus")}
+													</TableHead>
 													<TableHead className="text-center">
 														{t("colExpiresAt")}
 													</TableHead>
-													<TableHead className="text-right">{t("colActions")}</TableHead>
+													<TableHead className="text-right">
+														{t("colActions")}
+													</TableHead>
 												</TableRow>
 											</TableHeader>
 											<TableBody>
@@ -134,7 +140,9 @@ export const ShowInvitations = () => {
 																			variant="ghost"
 																			className="h-8 w-8 p-0"
 																		>
-																			<span className="sr-only">{t("openMenu")}</span>
+																			<span className="sr-only">
+																				{t("openMenu")}
+																			</span>
 																			<MoreHorizontal className="h-4 w-4" />
 																		</Button>
 																	</DropdownMenuTrigger>

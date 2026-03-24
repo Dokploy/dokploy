@@ -122,14 +122,11 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 			<DialogContent className="sm:max-w-6xl">
 				<DialogHeader>
 					<DialogTitle>{t("dialogTitle")}</DialogTitle>
-					<DialogDescription>
-						{t("dialogDescription")}
-					</DialogDescription>
+					<DialogDescription>{t("dialogDescription")}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<AlertBlock type="info">
-					{t("infoAlert")}{" "}
-					<code>API_URL=${"{{environment.API_URL}}"}</code>
+					{t("infoAlert")} <code>API_URL=${"{{environment.API_URL}}"}</code>
 				</AlertBlock>
 				<div className="grid gap-4">
 					<div className="grid items-center gap-4">

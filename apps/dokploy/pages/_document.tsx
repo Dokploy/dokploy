@@ -1,15 +1,15 @@
-import { Head, Html, Main, NextScript } from 'next/document'
+import { Head, Html, Main, NextScript } from "next/document";
 
 export default function Document() {
 	return (
 		<Html lang="ru" className="font-sans">
 			<Head>
-				<link rel="icon" href="/icon.svg"/>
+				<link rel="icon" href="/icon.svg" />
 			</Head>
 			<body className="flex h-full w-full flex-col font-sans">
-			<Main/>
-			<NextScript/>
+				<Main />
+				<NextScript />
 			</body>
 		</Html>
-	)
+	);
 }

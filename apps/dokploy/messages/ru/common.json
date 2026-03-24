@@ -1,20 +1,20 @@
 {
-  "common": {
-    "save": "Сохранить",
-    "cancel": "Отмена",
-    "delete": "Удалить",
-    "create": "Создать",
-    "settings": "Настройки",
-    "loading": "Загрузка...",
-    "error": "Ошибка",
-    "success": "Успешно",
-    "home": "Главная",
-    "help": "Помощь",
-    "account": "Аккаунт"
-  },
-  "language": {
-    "label": "Язык",
-    "ru": "Русский",
-    "en": "English"
-  }
+	"common": {
+		"save": "Сохранить",
+		"cancel": "Отмена",
+		"delete": "Удалить",
+		"create": "Создать",
+		"settings": "Настройки",
+		"loading": "Загрузка...",
+		"error": "Ошибка",
+		"success": "Успешно",
+		"home": "Главная",
+		"help": "Помощь",
+		"account": "Аккаунт"
+	},
+	"language": {
+		"label": "Язык",
+		"ru": "Русский",
+		"en": "English"
+	}
 }

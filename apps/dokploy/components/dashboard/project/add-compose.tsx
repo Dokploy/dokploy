@@ -133,9 +133,7 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 			<DialogContent className="sm:max-w-xl">
 				<DialogHeader>
 					<DialogTitle>{t("dialogTitle")}</DialogTitle>
-					<DialogDescription>
-						{t("dialogDescription")}
-					</DialogDescription>
+					<DialogDescription>{t("dialogDescription")}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -179,7 +177,11 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 											<Tooltip>
 												<TooltipTrigger asChild>
 													<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-														{t("selectServerLabel", { optional: !isCloud ? t("selectServerOptional") : "" })}
+														{t("selectServerLabel", {
+															optional: !isCloud
+																? t("selectServerOptional")
+																: "",
+														})}
 														<HelpCircle className="size-4 text-muted-foreground" />
 													</FormLabel>
 												</TooltipTrigger>
@@ -201,7 +203,11 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 										>
 											<SelectTrigger>
 												<SelectValue
-													placeholder={!isCloud ? t("dokploy") : t("selectServerPlaceholder")}
+													placeholder={
+														!isCloud
+															? t("dokploy")
+															: t("selectServerPlaceholder")
+													}
 												/>
 											</SelectTrigger>
 											<SelectContent>
@@ -230,7 +236,10 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 														</SelectItem>
 													))}
 													<SelectLabel>
-														{t("serversLabel", { count: (servers?.length ?? 0) + (!isCloud ? 1 : 0) })}
+														{t("serversLabel", {
+															count:
+																(servers?.length ?? 0) + (!isCloud ? 1 : 0),
+														})}
 													</SelectLabel>
 												</SelectGroup>
 											</SelectContent>
@@ -265,7 +274,9 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder={t("composeTypePlaceholder")} />
+												<SelectValue
+													placeholder={t("composeTypePlaceholder")}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>

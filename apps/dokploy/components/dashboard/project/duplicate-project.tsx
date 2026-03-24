@@ -168,9 +168,7 @@ export const DuplicateProject = ({
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>{t("dialogTitle")}</DialogTitle>
-					<DialogDescription>
-						{t("dialogDescription")}
-					</DialogDescription>
+					<DialogDescription>{t("dialogDescription")}</DialogDescription>
 				</DialogHeader>
 
 				<div className="grid gap-4 py-4">
@@ -248,7 +246,9 @@ export const DuplicateProject = ({
 											}}
 										>
 											<SelectTrigger>
-												<SelectValue placeholder={t("targetProjectPlaceholder")} />
+												<SelectValue
+													placeholder={t("targetProjectPlaceholder")}
+												/>
 											</SelectTrigger>
 											<SelectContent>
 												{allProjects
@@ -273,7 +273,9 @@ export const DuplicateProject = ({
 												onValueChange={setSelectedTargetEnvironment}
 											>
 												<SelectTrigger>
-													<SelectValue placeholder={t("targetEnvironmentPlaceholder")} />
+													<SelectValue
+														placeholder={t("targetEnvironmentPlaceholder")}
+													/>
 												</SelectTrigger>
 												<SelectContent>
 													{selectedProjectEnvironments?.map((env) => (

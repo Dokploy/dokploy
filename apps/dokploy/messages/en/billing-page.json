@@ -1,9 +1,9 @@
 {
-  "billing": {
-    "plan": "Plan",
-    "free": "Free",
-    "pro": "Pro",
-    "agency": "Agency",
-    "upgrade": "Upgrade plan"
-  }
+	"billing": {
+		"plan": "Plan",
+		"free": "Free",
+		"pro": "Pro",
+		"agency": "Agency",
+		"upgrade": "Upgrade plan"
+	}
 }

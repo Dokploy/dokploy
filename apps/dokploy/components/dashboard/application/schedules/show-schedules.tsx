@@ -82,9 +82,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 						<CardTitle className="text-xl font-bold flex items-center gap-2">
 							{t("title")}
 						</CardTitle>
-						<CardDescription>
-							{t("description")}
-						</CardDescription>
+						<CardDescription>{t("description")}</CardDescription>
 					</div>
 					{schedules && schedules.length > 0 && (
 						<HandleSchedules id={id} scheduleType={scheduleType} />
