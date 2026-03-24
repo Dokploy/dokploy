@@ -494,7 +494,7 @@ export const apiCreateMattermost = notificationsSchema
 		serverThreshold: true,
 	})
 	.extend({
-		webhookUrl: z.string().min(1),
+		webhookUrl: z.string().url(),
 		channel: z.string().optional(),
 		username: z.string().optional(),
 	})

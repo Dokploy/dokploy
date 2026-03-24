@@ -211,26 +211,26 @@ export const sendMattermostNotification = async (
 	connection: typeof mattermost.$inferInsert,
 	message: any,
 ) => {
-	try {
-		const payload = {
-			...message,
-			// Only include username if it's provided and not empty
-			...(message.username &&
-				message.username.trim() && { username: message.username }),
-			// Only include channel if it's provided and not empty
-			...(message.channel &&
-				message.channel.trim() && {
-					channel: `#${message.channel.replace("#", "")}`,
-				}),
-		};
+	const payload = {
+		...message,
+		// Only include username if it's provided and not empty
+		...(message.username?.trim() && { username: message.username }),
+		// Only include channel if it's provided and not empty
+		...(message.channel?.trim() && {
+				channel: `#${message.channel.replace("#", "")}`,
+			}),
+	};
 
-		await fetch(connection.webhookUrl, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(payload),
-		});
-	} catch (err) {
-		console.log(err);
+	const response = await fetch(connection.webhookUrl, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(payload),
+	});
+
+	if (!response.ok) {
+		throw new Error(
+			`Failed to send Mattermost notification: ${response.statusText}`,
+		);
 	}
 };
 

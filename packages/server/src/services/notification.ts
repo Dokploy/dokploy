@@ -1020,7 +1020,7 @@ export const updateNotificationById = async (
 };
 
 export const createMattermostNotification = async (
-	input: typeof apiCreateMattermost._type,
+	input: z.infer<typeof apiCreateMattermost>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -1070,7 +1070,7 @@ export const createMattermostNotification = async (
 };
 
 export const updateMattermostNotification = async (
-	input: typeof apiUpdateMattermost._type,
+	input: z.infer<typeof apiUpdateMattermost>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
