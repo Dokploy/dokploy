@@ -166,7 +166,9 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 													placeholder={t("network.placeholderNetwork")}
 												/>
 											</FormControl>
-											<FormDescription>{t("network.networkNameDesc")}</FormDescription>
+											<FormDescription>
+												{t("network.networkNameDesc")}
+											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}
@@ -183,74 +185,76 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 													placeholder={t("network.aliasesPlaceholder")}
 												/>
 											</FormControl>
-											<FormDescription>{t("network.aliasesDesc")}</FormDescription>
+											<FormDescription>
+												{t("network.aliasesDesc")}
+											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}
 								/>
 								<div className="space-y-2">
 									<FormLabel>{t("network.driverOpts")}</FormLabel>
-									<FormDescription>{t("network.driverOptsDesc")}</FormDescription>
-									{(form.watch(`networks.${index}.DriverOptsEntries`) ?? []).map(
-										(_, optIndex) => (
-											<div
-												key={optIndex}
-												className="flex gap-2 items-end flex-wrap"
-											>
-												<FormField
-													control={form.control}
-													name={`networks.${index}.DriverOptsEntries.${optIndex}.key`}
-													render={({ field: keyField }) => (
-														<FormItem className="flex-1 min-w-[140px]">
-															<FormControl>
-																<Input
-																	{...keyField}
-																	placeholder={t(
-																		"network.placeholderDriverKey",
-																	)}
-																/>
-															</FormControl>
-															<FormMessage />
-														</FormItem>
-													)}
-												/>
-												<FormField
-													control={form.control}
-													name={`networks.${index}.DriverOptsEntries.${optIndex}.value`}
-													render={({ field: valueField }) => (
-														<FormItem className="flex-1 min-w-[100px]">
-															<FormControl>
-																<Input
-																	{...valueField}
-																	placeholder={t(
-																		"network.placeholderDriverValue",
-																	)}
-																/>
-															</FormControl>
-															<FormMessage />
-														</FormItem>
-													)}
-												/>
-												<Button
-													type="button"
-													variant="ghost"
-													size="sm"
-													onClick={() => {
-														const entries =
-															form.getValues(
-																`networks.${index}.DriverOptsEntries`,
-															) ?? [];
-														form.setValue(
+									<FormDescription>
+										{t("network.driverOptsDesc")}
+									</FormDescription>
+									{(
+										form.watch(`networks.${index}.DriverOptsEntries`) ?? []
+									).map((_, optIndex) => (
+										<div
+											key={optIndex}
+											className="flex gap-2 items-end flex-wrap"
+										>
+											<FormField
+												control={form.control}
+												name={`networks.${index}.DriverOptsEntries.${optIndex}.key`}
+												render={({ field: keyField }) => (
+													<FormItem className="flex-1 min-w-[140px]">
+														<FormControl>
+															<Input
+																{...keyField}
+																placeholder={t("network.placeholderDriverKey")}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name={`networks.${index}.DriverOptsEntries.${optIndex}.value`}
+												render={({ field: valueField }) => (
+													<FormItem className="flex-1 min-w-[100px]">
+														<FormControl>
+															<Input
+																{...valueField}
+																placeholder={t(
+																	"network.placeholderDriverValue",
+																)}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<Button
+												type="button"
+												variant="ghost"
+												size="sm"
+												onClick={() => {
+													const entries =
+														form.getValues(
 															`networks.${index}.DriverOptsEntries`,
-															entries.filter((_, i) => i !== optIndex),
-														);
-													}}
-												>
-													{t("network.remove")}
-												</Button>
-											</div>
-										),
-									)}
+														) ?? [];
+													form.setValue(
+														`networks.${index}.DriverOptsEntries`,
+														entries.filter((_, i) => i !== optIndex),
+													);
+												}}
+											>
+												{t("network.remove")}
+											</Button>
+										</div>
+									))}
 									<Button
 										type="button"
 										variant="outline"

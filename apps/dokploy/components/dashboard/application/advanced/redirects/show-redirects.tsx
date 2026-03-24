@@ -49,7 +49,9 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 				{data?.redirects.length === 0 ? (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 						<Split className="size-8 text-muted-foreground" />
-						<span className="text-base text-muted-foreground">{t("empty")}</span>
+						<span className="text-base text-muted-foreground">
+							{t("empty")}
+						</span>
 						<HandleRedirect applicationId={applicationId}>
 							{t("addRedirect")}
 						</HandleRedirect>

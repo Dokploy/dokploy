@@ -698,8 +698,7 @@ function SidebarLogo() {
 																})
 																.catch((error) => {
 																	toast.error(
-																		error?.message ||
-																			t("toastDefaultOrgError"),
+																		error?.message || t("toastDefaultOrgError"),
 																	);
 																});
 														}}
@@ -736,9 +735,7 @@ function SidebarLogo() {
 																	})
 																		.then(() => {
 																			refetch();
-																			toast.success(
-																				t("toastOrgDeleted"),
-																			);
+																			toast.success(t("toastOrgDeleted"));
 																		})
 																		.catch((error) => {
 																			toast.error(

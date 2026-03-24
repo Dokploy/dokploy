@@ -28,9 +28,7 @@ const createDockerProviderSchema = (
 		registryURL: z.string().optional(),
 	});
 
-type DockerProvider = z.infer<
-	ReturnType<typeof createDockerProviderSchema>
->;
+type DockerProvider = z.infer<ReturnType<typeof createDockerProviderSchema>>;
 
 interface Props {
 	applicationId: string;
@@ -39,7 +37,10 @@ interface Props {
 export const SaveDockerProvider = ({ applicationId }: Props) => {
 	const t = useTranslations("applicationGeneralForms");
 	const tCommon = useTranslations("common");
-	const dockerProviderSchema = useMemo(() => createDockerProviderSchema(t), [t]);
+	const dockerProviderSchema = useMemo(
+		() => createDockerProviderSchema(t),
+		[t],
+	);
 
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 

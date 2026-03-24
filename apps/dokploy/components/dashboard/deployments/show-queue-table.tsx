@@ -132,7 +132,9 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 								<TableHead>{t("columnProcessed")}</TableHead>
 								<TableHead>{t("columnFinished")}</TableHead>
 								<TableHead>{t("columnError")}</TableHead>
-								<TableHead className="w-[100px]">{t("columnActions")}</TableHead>
+								<TableHead className="w-[100px]">
+									{t("columnActions")}
+								</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>

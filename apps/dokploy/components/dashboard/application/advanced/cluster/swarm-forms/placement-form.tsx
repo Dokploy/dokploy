@@ -266,7 +266,9 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>{t("placement.maxReplicas")}</FormLabel>
-							<FormDescription>{t("placement.maxReplicasDesc")}</FormDescription>
+							<FormDescription>
+								{t("placement.maxReplicasDesc")}
+							</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="10" {...field} />
 							</FormControl>

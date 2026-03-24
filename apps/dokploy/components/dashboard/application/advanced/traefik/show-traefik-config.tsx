@@ -46,7 +46,9 @@ export const ShowTraefikConfig = ({ applicationId }: Props) => {
 				) : !data ? (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 						<File className="size-8 text-muted-foreground" />
-						<span className="text-base text-muted-foreground">{t("empty")}</span>
+						<span className="text-base text-muted-foreground">
+							{t("empty")}
+						</span>
 					</div>
 				) : (
 					<div className="flex flex-col pt-2 relative">

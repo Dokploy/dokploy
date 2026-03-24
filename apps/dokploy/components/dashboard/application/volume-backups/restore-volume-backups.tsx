@@ -168,7 +168,9 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 						<RotateCcw className="mr-2 size-4" />
 						{t("restore.dialogTitle")}
 					</DialogTitle>
-					<DialogDescription>{t("restore.dialogDescription")}</DialogDescription>
+					<DialogDescription>
+						{t("restore.dialogDescription")}
+					</DialogDescription>
 					<AlertBlock>{t("restore.alertBlock")}</AlertBlock>
 				</DialogHeader>
 
@@ -206,10 +208,14 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 										<PopoverContent className="p-0" align="start">
 											<Command>
 												<CommandInput
-													placeholder={t("restore.searchDestinationsPlaceholder")}
+													placeholder={t(
+														"restore.searchDestinationsPlaceholder",
+													)}
 													className="h-9"
 												/>
-												<CommandEmpty>{t("restore.noDestinations")}</CommandEmpty>
+												<CommandEmpty>
+													{t("restore.noDestinations")}
+												</CommandEmpty>
 												<ScrollArea className="h-64">
 													<CommandGroup>
 														{destinations.map((destination) => (
@@ -277,7 +283,8 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 													)}
 												>
 													<span className="truncate text-left flex-1 w-52">
-														{field.value || t("restore.selectBackupPlaceholder")}
+														{field.value ||
+															t("restore.selectBackupPlaceholder")}
 													</span>
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>

@@ -59,9 +59,7 @@ export const DockerTerminal: React.FC<Props> = ({
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="flex flex-col gap-2  mt-4">
-				<span>
-					{t("connectPrompt", { containerId: containerId ?? "" })}
-				</span>
+				<span>{t("connectPrompt", { containerId: containerId ?? "" })}</span>
 				<Tabs value={activeWay} onValueChange={setActiveWay}>
 					<TabsList>
 						<TabsTrigger value="bash">{t("tabBash")}</TabsTrigger>

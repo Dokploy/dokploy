@@ -84,8 +84,7 @@ export const getRequestColumns = (
 					</div>
 					<div className="flex flex-row gap-3 w-full">
 						<Badge variant={getStatusColor(log.OriginStatus)}>
-							{t("badgeStatus")}:{" "}
-							{formatStatusLabel(log.OriginStatus, t("na"))}
+							{t("badgeStatus")}: {formatStatusLabel(log.OriginStatus, t("na"))}
 						</Badge>
 						<Badge variant={"secondary"}>
 							{t("badgeExecTime")}: {formatDuration(log.Duration)}

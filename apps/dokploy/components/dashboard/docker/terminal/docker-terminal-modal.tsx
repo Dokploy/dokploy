@@ -80,7 +80,9 @@ export const DockerTerminalModal = ({
 					<DialogContent onEscapeKeyDown={(event) => event.preventDefault()}>
 						<DialogHeader>
 							<DialogTitle>{t("closeConfirmTitle")}</DialogTitle>
-							<DialogDescription>{t("closeConfirmDescription")}</DialogDescription>
+							<DialogDescription>
+								{t("closeConfirmDescription")}
+							</DialogDescription>
 						</DialogHeader>
 						<DialogFooter>
 							<Button variant="outline" onClick={handleCancel}>

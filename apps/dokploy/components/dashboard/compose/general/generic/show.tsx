@@ -55,8 +55,7 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 		} catch (error) {
 			toast.error(
 				t("disconnectError", {
-					message:
-						error instanceof Error ? error.message : t("unknownError"),
+					message: error instanceof Error ? error.message : t("unknownError"),
 				}),
 			);
 		}

@@ -66,7 +66,10 @@ interface Props {
 
 export const ShowRollbackSettings = ({ applicationId, children }: Props) => {
 	const t = useTranslations("applicationRollbacks");
-	const rollbackSettingsSchema = useMemo(() => createRollbackSettingsSchema(t), [t]);
+	const rollbackSettingsSchema = useMemo(
+		() => createRollbackSettingsSchema(t),
+		[t],
+	);
 
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: application, refetch } = api.application.one.useQuery(
@@ -209,7 +212,9 @@ export const ShowRollbackSettings = ({ applicationId, children }: Props) => {
 												})}
 											</FormDescription>
 										) : (
-											<FormDescription>{t("registryDescription")}</FormDescription>
+											<FormDescription>
+												{t("registryDescription")}
+											</FormDescription>
 										)}
 										<FormMessage />
 									</FormItem>

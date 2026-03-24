@@ -24,7 +24,9 @@ export function SignInWithGoogle() {
 		} catch (err) {
 			toast.error(tToast("signInGoogleError"), {
 				description:
-					err instanceof Error ? err.message : tCommon("aiSettingsSaveUnknownError"),
+					err instanceof Error
+						? err.message
+						: tCommon("aiSettingsSaveUnknownError"),
 			});
 		} finally {
 			setIsLoading(false);

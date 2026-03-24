@@ -48,8 +48,7 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 			await utils.invalidate();
 		} catch (error) {
 			toast.error(t("toastError"), {
-				description:
-					error instanceof Error ? error.message : t("unknownError"),
+				description: error instanceof Error ? error.message : t("unknownError"),
 			});
 		}
 	};

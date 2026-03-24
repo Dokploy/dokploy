@@ -158,8 +158,7 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 				);
 
 			toast.error(tToast("giteaNotConnected"), {
-				description:
-					error.message || tToast("giteaNotConnectedDescription"),
+				description: error.message || tToast("giteaNotConnectedDescription"),
 				action:
 					authUrl && authUrl !== "#"
 						? {

@@ -142,7 +142,10 @@ export const HandleSecurity = ({
 									<FormItem>
 										<FormLabel>{t("username")}</FormLabel>
 										<FormControl>
-											<Input placeholder={t("placeholderUsername")} {...field} />
+											<Input
+												placeholder={t("placeholderUsername")}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />

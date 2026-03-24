@@ -287,7 +287,10 @@ export const AddVolumes = ({
 											<FormItem>
 												<FormLabel>{t("hostPath")}</FormLabel>
 												<FormControl>
-													<Input placeholder={t("placeholderHost")} {...field} />
+													<Input
+														placeholder={t("placeholderHost")}
+														{...field}
+													/>
 												</FormControl>
 
 												<FormMessage />
@@ -367,7 +370,10 @@ PORT=3000
 											<FormItem>
 												<FormLabel>{t("mountPath")}</FormLabel>
 												<FormControl>
-													<Input placeholder={t("placeholderMount")} {...field} />
+													<Input
+														placeholder={t("placeholderMount")}
+														{...field}
+													/>
 												</FormControl>
 
 												<FormMessage />

@@ -1941,9 +1941,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											data.priority === 2 &&
 											(data.retry == null || data.expire == null)
 										) {
-											throw new Error(
-												tToast("notificationsEmergencyPriority"),
-											);
+											throw new Error(tToast("notificationsEmergencyPriority"));
 										}
 										await testPushoverConnection({
 											userKey: data.userKey,

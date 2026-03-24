@@ -122,7 +122,9 @@ export const SSOSettings = () => {
 			await utils.sso.getTrustedOrigins.invalidate();
 		} catch (err) {
 			toast.error(
-				err instanceof Error ? err.message : tToast("trustedOriginRemoveFailed"),
+				err instanceof Error
+					? err.message
+					: tToast("trustedOriginRemoveFailed"),
 			);
 		}
 	};
@@ -148,7 +150,9 @@ export const SSOSettings = () => {
 			await utils.sso.getTrustedOrigins.invalidate();
 		} catch (err) {
 			toast.error(
-				err instanceof Error ? err.message : tToast("trustedOriginUpdateFailed"),
+				err instanceof Error
+					? err.message
+					: tToast("trustedOriginUpdateFailed"),
 			);
 		}
 	};

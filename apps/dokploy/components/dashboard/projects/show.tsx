@@ -218,9 +218,7 @@ export const ShowProjects = () => {
 									<FolderInput className="size-6 text-muted-foreground self-center" />
 									{t("title")}
 								</CardTitle>
-								<CardDescription>
-									{t("description")}
-								</CardDescription>
+								<CardDescription>{t("description")}</CardDescription>
 							</CardHeader>
 							{permissions?.project.create && (
 								<div className="">
@@ -264,11 +262,7 @@ export const ShowProjects = () => {
 												<ArrowUpDown className="size-4 text-muted-foreground" />
 												<Select value={sortBy} onValueChange={setSortBy}>
 													<SelectTrigger className="w-full">
-														<SelectValue
-															placeholder={t(
-																"sortPlaceholder",
-															)}
-														/>
+														<SelectValue placeholder={t("sortPlaceholder")} />
 													</SelectTrigger>
 													<SelectContent>
 														<SelectItem value="name-asc">
@@ -387,9 +381,7 @@ export const ShowProjects = () => {
 																			<div className="flex flex-row gap-2 items-center rounded-lg bg-yellow-50 p-2 mt-2 dark:bg-yellow-950">
 																				<AlertTriangle className="size-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
 																				<span className="text-xs text-yellow-600 dark:text-yellow-400">
-																					{t(
-																						"noEnvironmentsWarning",
-																					)}
+																					{t("noEnvironmentsWarning")}
 																				</span>
 																			</div>
 																		)}
@@ -440,19 +432,13 @@ export const ShowProjects = () => {
 																									}
 																								>
 																									<TrashIcon className="size-4" />
-																									<span>
-																										{t(
-																											"delete",
-																										)}
-																									</span>
+																									<span>{t("delete")}</span>
 																								</DropdownMenuItem>
 																							</AlertDialogTrigger>
 																							<AlertDialogContent>
 																								<AlertDialogHeader>
 																									<AlertDialogTitle>
-																										{t(
-																											"deleteConfirmTitle",
-																										)}
+																										{t("deleteConfirmTitle")}
 																									</AlertDialogTitle>
 																									{!emptyServices ? (
 																										<div className="flex flex-row gap-4 rounded-lg bg-yellow-50 p-2 dark:bg-yellow-950">
@@ -465,17 +451,13 @@ export const ShowProjects = () => {
 																										</div>
 																									) : (
 																										<AlertDialogDescription>
-																											{t(
-																												"deleteCannotUndo",
-																											)}
+																											{t("deleteCannotUndo")}
 																										</AlertDialogDescription>
 																									)}
 																								</AlertDialogHeader>
 																								<AlertDialogFooter>
 																									<AlertDialogCancel>
-																										{t(
-																											"cancel",
-																										)}
+																										{t("cancel")}
 																									</AlertDialogCancel>
 																									<AlertDialogAction
 																										disabled={!emptyServices}
@@ -486,16 +468,12 @@ export const ShowProjects = () => {
 																											})
 																												.then(() => {
 																													toast.success(
-																														t(
-																															"deletedSuccess",
-																														),
+																														t("deletedSuccess"),
 																													);
 																												})
 																												.catch(() => {
 																													toast.error(
-																														t(
-																															"deleteError",
-																														),
+																														t("deleteError"),
 																													);
 																												})
 																												.finally(() => {
@@ -503,9 +481,7 @@ export const ShowProjects = () => {
 																												});
 																										}}
 																									>
-																										{t(
-																											"delete",
-																										)}
+																										{t("delete")}
 																									</AlertDialogAction>
 																								</AlertDialogFooter>
 																							</AlertDialogContent>

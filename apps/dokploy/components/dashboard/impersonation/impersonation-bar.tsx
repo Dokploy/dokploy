@@ -174,7 +174,9 @@ export const ImpersonationBar = () => {
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent>
-						{isImpersonating ? t("tooltipControls") : t("tooltipUserImpersonation")}
+						{isImpersonating
+							? t("tooltipControls")
+							: t("tooltipUserImpersonation")}
 					</TooltipContent>
 				</Tooltip>
 
@@ -414,7 +416,10 @@ export const ImpersonationBar = () => {
 												<span className="flex items-center gap-1">
 													<Calendar className="h-3 w-3" />
 													{t("createdLabel", {
-														date: format(new Date(data.createdAt), "MMM d, yyyy"),
+														date: format(
+															new Date(data.createdAt),
+															"MMM d, yyyy",
+														),
 													})}
 												</span>
 											)}

@@ -177,7 +177,6 @@ const createBackupSchema = (tVal: (key: string) => string) =>
 			}
 		});
 
-
 interface Props {
 	id?: string;
 	backupId?: string;
@@ -310,16 +309,12 @@ export const HandleBackup = ({
 			metadata: data.metadata,
 		})
 			.then(async () => {
-				toast.success(
-					backupId ? t("toastUpdated") : t("toastCreated"),
-				);
+				toast.success(backupId ? t("toastUpdated") : t("toastCreated"));
 				refetch();
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error(
-					backupId ? t("toastErrorUpdate") : t("toastErrorCreate"),
-				);
+				toast.error(backupId ? t("toastErrorUpdate") : t("toastErrorCreate"));
 			});
 	};
 
@@ -434,7 +429,9 @@ export const HandleBackup = ({
 															{t("loadingDestinations")}
 														</span>
 													)}
-													<CommandEmpty>{t("noDestinationsFound")}</CommandEmpty>
+													<CommandEmpty>
+														{t("noDestinationsFound")}
+													</CommandEmpty>
 													<ScrollArea className="h-64">
 														<CommandGroup>
 															{data?.map((destination) => (
@@ -485,7 +482,9 @@ export const HandleBackup = ({
 														<FormControl>
 															<SelectTrigger>
 																<SelectValue
-																	placeholder={t("selectServiceNamePlaceholder")}
+																	placeholder={t(
+																		"selectServiceNamePlaceholder",
+																	)}
 																/>
 															</SelectTrigger>
 														</FormControl>
@@ -600,7 +599,9 @@ export const HandleBackup = ({
 											<FormControl>
 												<Input placeholder={"dokploy/"} {...field} />
 											</FormControl>
-											<FormDescription>{t("prefixDescription")}</FormDescription>
+											<FormDescription>
+												{t("prefixDescription")}
+											</FormDescription>
 
 											<FormMessage />
 										</FormItem>
@@ -637,7 +638,9 @@ export const HandleBackup = ({
 									<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 ">
 										<div className="space-y-0.5">
 											<FormLabel>{t("enabled")}</FormLabel>
-											<FormDescription>{t("enabledDescription")}</FormDescription>
+											<FormDescription>
+												{t("enabledDescription")}
+											</FormDescription>
 										</div>
 										<FormControl>
 											<Switch
@@ -707,15 +710,15 @@ export const HandleBackup = ({
 												control={form.control}
 												name="metadata.mongo.databaseUser"
 												render={({ field }) => (
-												<FormItem>
-													<FormLabel>{t("databaseUser")}</FormLabel>
-													<FormControl>
-														<Input placeholder="mongo" {...field} />
-													</FormControl>
-													<FormMessage />
-												</FormItem>
-											)}
-										/>
+													<FormItem>
+														<FormLabel>{t("databaseUser")}</FormLabel>
+														<FormControl>
+															<Input placeholder="mongo" {...field} />
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
 											<FormField
 												control={form.control}
 												name="metadata.mongo.databasePassword"

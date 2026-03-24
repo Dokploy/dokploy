@@ -92,9 +92,7 @@ function DeploymentsPage() {
 export default DeploymentsPage;
 
 DeploymentsPage.getLayout = (page: ReactElement) => {
-	return (
-		<DashboardLayout pageTitleKey="deployments">{page}</DashboardLayout>
-	);
+	return <DashboardLayout pageTitleKey="deployments">{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {

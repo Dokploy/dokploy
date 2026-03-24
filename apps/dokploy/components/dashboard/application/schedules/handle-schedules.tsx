@@ -92,9 +92,9 @@ const createScheduleFormSchema = (
 		.object({
 			name: z.string().min(1, t("forms.validation.nameRequired")),
 			cronExpression: z.string().min(1, t("forms.validation.cronRequired")),
-		shellType: z.enum(["bash", "sh"]),
-		command: z.string(),
-		enabled: z.boolean(),
+			shellType: z.enum(["bash", "sh"]),
+			command: z.string(),
+			enabled: z.boolean(),
 			serviceName: z.string(),
 			scheduleType: z.enum([
 				"application",
@@ -373,7 +373,9 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 			>
 				<DialogHeader>
 					<DialogTitle>
-						{scheduleId ? t("forms.dialogTitleEdit") : t("forms.dialogTitleCreate")}
+						{scheduleId
+							? t("forms.dialogTitleEdit")
+							: t("forms.dialogTitleCreate")}
 					</DialogTitle>
 					<DialogDescription>
 						{scheduleId
@@ -407,7 +409,9 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 													<FormControl>
 														<SelectTrigger>
 															<SelectValue
-																placeholder={t("forms.selectServicePlaceholder")}
+																placeholder={t(
+																	"forms.selectServicePlaceholder",
+																)}
 															/>
 														</SelectTrigger>
 													</FormControl>
@@ -503,7 +507,9 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 											{...field}
 										/>
 									</FormControl>
-									<FormDescription>{t("forms.taskNameDescription")}</FormDescription>
+									<FormDescription>
+										{t("forms.taskNameDescription")}
+									</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -554,7 +560,9 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 													className="h-9"
 												/>
 												<CommandList>
-													<CommandEmpty>{t("forms.timezoneEmpty")}</CommandEmpty>
+													<CommandEmpty>
+														{t("forms.timezoneEmpty")}
+													</CommandEmpty>
 													<ScrollArea className="h-72">
 														{Object.entries(TIMEZONES).map(
 															([region, zones]) => (
@@ -586,7 +594,9 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 											</Command>
 										</PopoverContent>
 									</Popover>
-									<FormDescription>{t("forms.timezoneDescription")}</FormDescription>
+									<FormDescription>
+										{t("forms.timezoneDescription")}
+									</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -619,7 +629,9 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 													<SelectItem value="sh">Sh</SelectItem>
 												</SelectContent>
 											</Select>
-											<FormDescription>{t("forms.shellDescription")}</FormDescription>
+											<FormDescription>
+												{t("forms.shellDescription")}
+											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}
@@ -638,7 +650,9 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 													{...field}
 												/>
 											</FormControl>
-											<FormDescription>{t("forms.commandDescription")}</FormDescription>
+											<FormDescription>
+												{t("forms.commandDescription")}
+											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}

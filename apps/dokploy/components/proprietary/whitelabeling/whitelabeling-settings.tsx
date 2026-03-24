@@ -247,9 +247,7 @@ export function WhitelabelingSettings() {
 				await utils.whitelabeling.get.invalidate();
 			})
 			.catch((error) => {
-				toast.error(
-					error?.message || tToast("whitelabelingUpdateFailed"),
-				);
+				toast.error(error?.message || tToast("whitelabelingUpdateFailed"));
 			});
 	};
 

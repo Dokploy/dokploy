@@ -51,7 +51,9 @@ export const ShowSecurity = ({ applicationId }: Props) => {
 				{data?.security.length === 0 ? (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 						<LockKeyhole className="size-8 text-muted-foreground" />
-						<span className="text-base text-muted-foreground">{t("empty")}</span>
+						<span className="text-base text-muted-foreground">
+							{t("empty")}
+						</span>
 						<HandleSecurity applicationId={applicationId}>
 							{t("addSecurity")}
 						</HandleSecurity>

@@ -155,7 +155,9 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 								render={({ field }) => (
 									<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
 										<div className="space-y-0.5">
-											<FormLabel>{t("randomize.applyRandomizeLabel")}</FormLabel>
+											<FormLabel>
+												{t("randomize.applyRandomizeLabel")}
+											</FormLabel>
 											<FormDescription>
 												{t("randomize.applyRandomizeDescription")}
 											</FormDescription>

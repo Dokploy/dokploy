@@ -38,9 +38,7 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return (
-		<DashboardLayout pageTitleKey="whitelabeling">{page}</DashboardLayout>
-	);
+	return <DashboardLayout pageTitleKey="whitelabeling">{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {

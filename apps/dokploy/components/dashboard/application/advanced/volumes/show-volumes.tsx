@@ -66,7 +66,9 @@ export const ShowVolumes = ({ id, type }: Props) => {
 				{data?.mounts.length === 0 ? (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 						<Package className="size-8 text-muted-foreground" />
-						<span className="text-base text-muted-foreground">{t("empty")}</span>
+						<span className="text-base text-muted-foreground">
+							{t("empty")}
+						</span>
 						{canCreate && (
 							<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
 								{t("addVolume")}

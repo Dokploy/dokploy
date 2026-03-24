@@ -95,9 +95,7 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 			})
 			.catch(() => {
 				toast.error(
-					sshKeyId
-						? tToast("sshKeyUpdateError")
-						: tToast("sshKeyCreateError"),
+					sshKeyId ? tToast("sshKeyUpdateError") : tToast("sshKeyCreateError"),
 				);
 			});
 	};

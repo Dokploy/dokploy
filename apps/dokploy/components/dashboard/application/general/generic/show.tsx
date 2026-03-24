@@ -66,8 +66,7 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 		} catch (error) {
 			toast.error(
 				t("disconnectError", {
-					message:
-						error instanceof Error ? error.message : t("unknownError"),
+					message: error instanceof Error ? error.message : t("unknownError"),
 				}),
 			);
 		}

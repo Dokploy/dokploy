@@ -82,9 +82,11 @@ const DATABASE_RADIO_ICONS: Record<DbType, ReactNode> = {
 };
 
 const createDatabaseSchema = (t: (key: string) => string) => {
-	const pwdInvalid = z.string().regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-		message: t("databasePasswordInvalid"),
-	});
+	const pwdInvalid = z
+		.string()
+		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+			message: t("databasePasswordInvalid"),
+		});
 	const baseDatabaseSchema = z.object({
 		name: z.string().min(1, { message: t("nameRequired") }),
 		appName: z

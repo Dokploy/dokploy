@@ -226,7 +226,9 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 																		{registry.registryName}
 																	</SelectItem>
 																))}
-																<SelectItem value={"none"}>{t("none")}</SelectItem>
+																<SelectItem value={"none"}>
+																	{t("none")}
+																</SelectItem>
 																<SelectLabel>
 																	{t("registriesCount", {
 																		count: registries?.length ?? 0,

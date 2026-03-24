@@ -37,9 +37,7 @@ export const DialogAction = ({
 			<AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>
-						{title ?? t("defaultTitle")}
-					</AlertDialogTitle>
+					<AlertDialogTitle>{title ?? t("defaultTitle")}</AlertDialogTitle>
 					<AlertDialogDescription>
 						{description ?? t("defaultDescription")}
 					</AlertDialogDescription>

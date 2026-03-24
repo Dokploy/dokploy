@@ -120,9 +120,7 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-6xl">
 				<DialogHeader>
-					<DialogTitle>
-						{t("projectEnvironment.title")}
-					</DialogTitle>
+					<DialogTitle>{t("projectEnvironment.title")}</DialogTitle>
 					<DialogDescription>
 						{t("projectEnvironment.description")}
 					</DialogDescription>

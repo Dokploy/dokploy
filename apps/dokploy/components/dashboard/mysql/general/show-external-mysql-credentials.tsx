@@ -35,11 +35,7 @@ const createDockerProviderSchema = (portRangeError: string) =>
 				return Number.isNaN(parsed) ? null : parsed;
 			}
 			return null;
-		}, z
-			.number()
-			.gte(0, portRangeError)
-			.lte(65535, portRangeError)
-			.nullable()),
+		}, z.number().gte(0, portRangeError).lte(65535, portRangeError).nullable()),
 	});
 
 type DockerProvider = z.infer<ReturnType<typeof createDockerProviderSchema>>;
@@ -120,9 +116,7 @@ export const ShowExternalMysqlCredentials = ({ mysqlId }: Props) => {
 									href="/dashboard/settings/server"
 									className="text-primary"
 								>
-									{data?.serverId
-										? t("ipLinkRemote")
-										: t("ipLinkWebServer")}
+									{data?.serverId ? t("ipLinkRemote") : t("ipLinkWebServer")}
 								</Link>{" "}
 								{t("ipWarningSuffix")}
 							</AlertBlock>

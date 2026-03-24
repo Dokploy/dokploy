@@ -180,8 +180,7 @@ routers:
 							</Label>
 						</div>
 						<p className="text-sm text-muted-foreground -mt-2">
-							{t("skipYamlHint")}{" "}
-							<code className="text-xs">{"{{range}}"}</code>
+							{t("skipYamlHint")} <code className="text-xs">{"{{range}}"}</code>
 						</p>
 						<div className="flex justify-end">
 							<Button

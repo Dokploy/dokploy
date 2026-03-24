@@ -126,15 +126,21 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>{t("restartPolicy.condition")}</FormLabel>
-							<FormDescription>{t("restartPolicy.conditionDesc")}</FormDescription>
+							<FormDescription>
+								{t("restartPolicy.conditionDesc")}
+							</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder={t("restartPolicy.placeholderCondition")} />
+										<SelectValue
+											placeholder={t("restartPolicy.placeholderCondition")}
+										/>
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									<SelectItem value="none">{t("restartPolicy.none")}</SelectItem>
+									<SelectItem value="none">
+										{t("restartPolicy.none")}
+									</SelectItem>
 									<SelectItem value="on-failure">
 										{t("restartPolicy.onFailure")}
 									</SelectItem>
@@ -167,7 +173,9 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>{t("restartPolicy.maxAttempts")}</FormLabel>
-							<FormDescription>{t("restartPolicy.maxAttemptsDesc")}</FormDescription>
+							<FormDescription>
+								{t("restartPolicy.maxAttemptsDesc")}
+							</FormDescription>
 							<FormControl>
 								<Input type="number" placeholder="3" {...field} />
 							</FormControl>

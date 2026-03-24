@@ -82,9 +82,7 @@ const createPreviewDomainSchema = (
 			}
 		});
 
-type PreviewDomainForm = z.infer<
-	ReturnType<typeof createPreviewDomainSchema>
->;
+type PreviewDomainForm = z.infer<ReturnType<typeof createPreviewDomainSchema>>;
 
 interface Props {
 	previewDeploymentId: string;
@@ -157,7 +155,9 @@ export const AddPreviewDomain = ({
 		})
 			.then(async () => {
 				toast.success(
-					domainId ? t("domain.toastUpdateSuccess") : t("domain.toastCreateSuccess"),
+					domainId
+						? t("domain.toastUpdateSuccess")
+						: t("domain.toastCreateSuccess"),
 				);
 				await utils.previewDeployment.all.invalidate({
 					applicationId: previewDeployment?.applicationId,
@@ -170,7 +170,9 @@ export const AddPreviewDomain = ({
 			})
 			.catch(() => {
 				toast.error(
-					domainId ? t("domain.toastUpdateError") : t("domain.toastCreateError"),
+					domainId
+						? t("domain.toastUpdateError")
+						: t("domain.toastCreateError"),
 				);
 			});
 	};

@@ -181,11 +181,15 @@ export const HandlePorts = ({
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder={t("placeholderPublishMode")} />
+														<SelectValue
+															placeholder={t("placeholderPublishMode")}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
-													<SelectItem value={"ingress"}>{t("ingress")}</SelectItem>
+													<SelectItem value={"ingress"}>
+														{t("ingress")}
+													</SelectItem>
 													<SelectItem value={"host"}>{t("host")}</SelectItem>
 												</SelectContent>
 											</Select>
@@ -236,7 +240,9 @@ export const HandlePorts = ({
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder={t("placeholderProtocol")} />
+														<SelectValue
+															placeholder={t("placeholderProtocol")}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
