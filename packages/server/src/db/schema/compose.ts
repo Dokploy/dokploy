@@ -80,6 +80,7 @@ export const compose = pgTable("compose", {
 	suffix: text("suffix").notNull().default(""),
 	randomize: boolean("randomize").notNull().default(false),
 	isolatedDeployment: boolean("isolatedDeployment").notNull().default(false),
+	isolatedNetworkMtu: integer("isolatedNetworkMtu"),
 	// Keep this for backward compatibility since we will not add the prefix anymore to volumes
 	isolatedDeploymentsVolume: boolean("isolatedDeploymentsVolume")
 		.notNull()
