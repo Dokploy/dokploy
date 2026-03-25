@@ -123,12 +123,16 @@ const createSchema = createInsertSchema(mounts, {
 			"mongo",
 			"redis",
 			"compose",
+			"libsql",
 		])
 		.default("application"),
 	// Optional ownership and permissions
 	uid: z.number().int().optional(),
 	gid: z.number().int().optional(),
-	mode: z.string().optional(),
+	mode: z
+		.string()
+		.regex(/^[0-7]{3,4}$/, "Mode must be an octal value like 755 or 0644")
+		.optional(),
 });
 
 export const apiCreateMount = createSchema
