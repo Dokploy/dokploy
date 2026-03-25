@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
 import { compose } from "./compose";
+import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
@@ -19,7 +20,10 @@ export const serviceType = pgEnum("serviceType", [
 	"mongo",
 	"redis",
 	"compose",
+	"libsql",
 ]);
+
+export type ServiceType = (typeof serviceType.enumValues)[number];
 
 export const mountType = pgEnum("mountType", ["bind", "volume", "file"]);
 
@@ -43,7 +47,10 @@ export const mounts = pgTable("mount", {
 		() => applications.applicationId,
 		{ onDelete: "cascade" },
 	),
-	postgresId: text("postgresId").references(() => postgres.postgresId, {
+	composeId: text("composeId").references(() => compose.composeId, {
+		onDelete: "cascade",
+	}),
+	libsqlId: text("libsqlId").references(() => libsql.libsqlId, {
 		onDelete: "cascade",
 	}),
 	mariadbId: text("mariadbId").references(() => mariadb.mariadbId, {
@@ -55,10 +62,10 @@ export const mounts = pgTable("mount", {
 	mysqlId: text("mysqlId").references(() => mysql.mysqlId, {
 		onDelete: "cascade",
 	}),
-	redisId: text("redisId").references(() => redis.redisId, {
+	postgresId: text("postgresId").references(() => postgres.postgresId, {
 		onDelete: "cascade",
 	}),
-	composeId: text("composeId").references(() => compose.composeId, {
+	redisId: text("redisId").references(() => redis.redisId, {
 		onDelete: "cascade",
 	}),
 });
@@ -68,9 +75,13 @@ export const MountssRelations = relations(mounts, ({ one }) => ({
 		fields: [mounts.applicationId],
 		references: [applications.applicationId],
 	}),
-	postgres: one(postgres, {
-		fields: [mounts.postgresId],
-		references: [postgres.postgresId],
+	compose: one(compose, {
+		fields: [mounts.composeId],
+		references: [compose.composeId],
+	}),
+	libsql: one(libsql, {
+		fields: [mounts.libsqlId],
+		references: [libsql.libsqlId],
 	}),
 	mariadb: one(mariadb, {
 		fields: [mounts.mariadbId],
@@ -84,13 +95,13 @@ export const MountssRelations = relations(mounts, ({ one }) => ({
 		fields: [mounts.mysqlId],
 		references: [mysql.mysqlId],
 	}),
+	postgres: one(postgres, {
+		fields: [mounts.postgresId],
+		references: [postgres.postgresId],
+	}),
 	redis: one(redis, {
 		fields: [mounts.redisId],
 		references: [redis.redisId],
-	}),
-	compose: one(compose, {
-		fields: [mounts.composeId],
-		references: [compose.composeId],
 	}),
 }));
 
@@ -103,26 +114,21 @@ const createSchema = createInsertSchema(mounts, {
 	mountPath: z.string().min(1),
 	mountId: z.string().optional(),
 	filePath: z.string().optional(),
-	serviceType: z
-		.enum([
-			"application",
-			"postgres",
-			"mysql",
-			"mariadb",
-			"mongo",
-			"redis",
-			"compose",
-		])
-		.default("application"),
+	serviceType: z.enum([
+		"application",
+		"postgres",
+		"mysql",
+		"mariadb",
+		"mongo",
+		"redis",
+		"compose",
+		"libsql",
+	]),
 	// Optional ownership and permissions
 	uid: z.number().int().optional(),
 	gid: z.number().int().optional(),
 	mode: z.string().optional(),
 });
-
-export type ServiceType = NonNullable<
-	z.infer<typeof createSchema>["serviceType"]
->;
 
 export const apiCreateMount = createSchema
 	.pick({
@@ -131,8 +137,8 @@ export const apiCreateMount = createSchema
 		volumeName: true,
 		content: true,
 		mountPath: true,
-		serviceType: true,
 		filePath: true,
+		serviceType: true,
 		uid: true,
 		gid: true,
 		mode: true,
@@ -141,11 +147,9 @@ export const apiCreateMount = createSchema
 		serviceId: z.string().min(1),
 	});
 
-export const apiFindOneMount = createSchema
-	.pick({
-		mountId: true,
-	})
-	.required();
+export const apiFindOneMount = z.object({
+	mountId: z.string().min(1),
+});
 
 export const apiRemoveMount = createSchema
 	.pick({
@@ -157,14 +161,13 @@ export const apiRemoveMount = createSchema
 	.required();
 
 export const apiFindMountByApplicationId = createSchema
-	.extend({
-		serviceId: z.string().min(1),
-	})
 	.pick({
-		serviceId: true,
 		serviceType: true,
 	})
-	.required();
+	.required()
+	.extend({
+		serviceId: z.string().min(1),
+	});
 
 export const apiUpdateMount = createSchema.partial().extend({
 	mountId: z.string().min(1),

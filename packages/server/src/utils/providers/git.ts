@@ -4,6 +4,7 @@ import {
 	findSSHKeyById,
 	updateSSHKeyById,
 } from "@dokploy/server/services/ssh-key";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
 
 interface CloneGitRepository {
 	appName: string;
@@ -13,6 +14,7 @@ interface CloneGitRepository {
 	enableSubmodules?: boolean;
 	serverId: string | null;
 	type?: "application" | "compose";
+	outputPathOverride?: string;
 }
 
 export const cloneGitRepository = async ({
@@ -27,6 +29,7 @@ export const cloneGitRepository = async ({
 		customGitSSHKeyId,
 		enableSubmodules,
 		serverId,
+		outputPathOverride,
 	} = entity;
 	const { SSH_PATH, COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
 
@@ -46,7 +49,7 @@ export const cloneGitRepository = async ({
 			`;
 	}
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName, "code");
+	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
 
 	if (!isHttpOrHttps(customGitUrl)) {
@@ -144,4 +147,45 @@ const sanitizeRepoPathSSH = (input: string) => {
 			}${this.repo}.git`;
 		},
 	};
+};
+
+interface Props {
+	appName: string;
+	type?: "application" | "compose";
+	serverId: string | null;
+}
+
+export const getGitCommitInfo = async ({
+	appName,
+	type = "application",
+	serverId,
+}: Props) => {
+	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
+	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const outputPath = join(basePath, appName, "code");
+	let stdoutResult = "";
+	const result = {
+		message: "",
+		hash: "",
+	};
+	try {
+		const gitCommand = `git -C ${outputPath} log -1 --pretty=format:"%H---DELIMITER---%B"`;
+		if (serverId) {
+			const { stdout } = await execAsyncRemote(serverId, gitCommand);
+			stdoutResult = stdout.trim();
+		} else {
+			const { stdout } = await execAsync(gitCommand);
+			stdoutResult = stdout.trim();
+		}
+
+		const parts = stdoutResult.split("---DELIMITER---");
+		if (parts && parts.length === 2) {
+			result.hash = parts[0]?.trim() || "";
+			result.message = parts[1]?.trim() || "";
+		}
+	} catch (error) {
+		console.error(`Error getting git commit info: ${error}`);
+		return null;
+	}
+	return result;
 };

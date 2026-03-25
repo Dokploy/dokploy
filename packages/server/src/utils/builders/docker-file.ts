@@ -1,7 +1,8 @@
 import {
 	getEnviromentVariablesObject,
-	prepareEnvironmentVariables,
+	prepareEnvironmentVariablesForShell,
 } from "@dokploy/server/utils/docker/utils";
+import { quote } from "shell-quote";
 import {
 	getBuildAppDirectory,
 	getDockerContextPath,
@@ -18,6 +19,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 		buildSecrets,
 		dockerBuildStage,
 		cleanCache,
+		createEnvFile,
 	} = application;
 	const dockerFilePath = getBuildAppDirectory(application);
 
@@ -40,14 +42,14 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			commandArgs.push("--no-cache");
 		}
 
-		const args = prepareEnvironmentVariables(
+		const args = prepareEnvironmentVariablesForShell(
 			buildArgs,
 			application.environment.project.env,
 			application.environment.env,
 		);
 
 		for (const arg of args) {
-			commandArgs.push("--build-arg", `'${arg}'`);
+			commandArgs.push("--build-arg", arg);
 		}
 
 		const secrets = getEnviromentVariablesObject(
@@ -57,28 +59,29 @@ export const getDockerCommand = (application: ApplicationNested) => {
 		);
 
 		const joinedSecrets = Object.entries(secrets)
-			.map(([key, value]) => `${key}='${value.replace(/'/g, "'\"'\"'")}'`)
+			.map(([key, value]) => `${key}=${quote([value])}`)
 			.join(" ");
-
-		for (const key in secrets) {
-			// Although buildx is smart enough to know we may be referring to an environment variable name,
-			// we still make sure it doesn't fall back to `type=file`.
-			// See: https://docs.docker.com/reference/cli/docker/buildx/build/#secret
-			commandArgs.push("--secret", `type=env,id=${key}`);
-		}
 
 		/*
 			Do not generate an environment file when publishDirectory is specified,
 			as it could be publicly exposed.
+			Also respect the createEnvFile flag.
 		*/
 		let command = "";
-		if (!publishDirectory) {
+		if (!publishDirectory && createEnvFile) {
 			command += createEnvFileCommand(
 				dockerFilePath,
 				env,
 				application.environment.project.env,
 				application.environment.env,
 			);
+		}
+
+		for (const key in secrets) {
+			// Although buildx is smart enough to know we may be referring to an environment variable name,
+			// we still make sure it doesn't fall back to `type=file`.
+			// See: https://docs.docker.com/reference/cli/docker/buildx/build/#secret
+			commandArgs.push("--secret", `type=env,id=${key}`);
 		}
 
 		command += `

@@ -2,7 +2,8 @@ import { dirname, join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { InferResultType } from "@dokploy/server/types/with";
 import boxen from "boxen";
-import { writeDomainsToComposeRemote } from "../docker/domain";
+import { quote } from "shell-quote";
+import { writeDomainsToCompose } from "../docker/domain";
 import {
 	encodeBase64,
 	getEnviromentVariablesObject,
@@ -22,7 +23,7 @@ export const getBuildComposeCommand = async (compose: ComposeNested) => {
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 	const exportEnvCommand = getExportEnvCommand(compose);
 
-	const newCompose = await writeDomainsToComposeRemote(compose, domains);
+	const newCompose = await writeDomainsToCompose(compose, domains);
 	const logContent = `
 App Name: ${appName}
 Build Compose 🐳
@@ -52,9 +53,8 @@ Compose Type: ${composeType} ✅`;
 	
 		cd "${projectPath}";
 
-        ${exportEnvCommand}
-		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create --attachable ${compose.appName}` : ""}
-		docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
+		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create ${compose.composeType === "stack" ? "--driver overlay" : ""} --attachable ${compose.appName}` : ""}
+		env -i PATH="$PATH" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
 	
 		echo "Docker Compose Deployed: ✅";
@@ -65,7 +65,6 @@ Compose Type: ${composeType} ✅`;
 	`;
 
 	return bashCommand;
-	// return await execAsyncRemote(compose.serverId, bashCommand);
 };
 
 const sanitizeCommand = (command: string) => {
@@ -91,7 +90,7 @@ export const createCommand = (compose: ComposeNested) => {
 	if (composeType === "docker-compose") {
 		command = `compose -p ${appName} -f ${path} up -d --build --remove-orphans`;
 	} else if (composeType === "stack") {
-		command = `stack deploy -c ${path} ${appName} --prune`;
+		command = `stack deploy -c ${path} ${appName} --prune --with-registry-auth`;
 	}
 
 	return command;
@@ -135,10 +134,11 @@ const getExportEnvCommand = (compose: ComposeNested) => {
 	const envVars = getEnviromentVariablesObject(
 		compose.env,
 		compose.environment.project.env,
+		compose.environment.env,
 	);
 	const exports = Object.entries(envVars)
-		.map(([key, value]) => `export ${key}=${JSON.stringify(value)}`)
-		.join("\n");
+		.map(([key, value]) => `${key}=${quote([value])}`)
+		.join(" ");
 
-	return exports ? `\n# Export environment variables\n${exports}\n` : "";
+	return exports ? `${exports}` : "";
 };

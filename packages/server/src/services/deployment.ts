@@ -10,13 +10,21 @@ import {
 	type apiCreateDeploymentSchedule,
 	type apiCreateDeploymentServer,
 	type apiCreateDeploymentVolumeBackup,
+	applications,
+	compose,
 	deployments,
+	environments,
+	projects,
 } from "@dokploy/server/db/schema";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
-import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and, inArray, or, sql } from "drizzle-orm";
+import type { z } from "zod";
 import {
 	type Application,
 	findApplicationById,
@@ -33,6 +41,41 @@ import { removeRollbackById } from "./rollbacks";
 import { findScheduleById } from "./schedule";
 import { findServerById, type Server } from "./server";
 import { findVolumeBackupById } from "./volume-backups";
+
+export type ServicePath = { href: string | null; label: string };
+
+export async function resolveServicePath(
+	orgId: string,
+	data: Record<string, unknown>,
+): Promise<ServicePath> {
+	try {
+		const applicationId = data?.applicationId as string | undefined;
+		const composeId = data?.composeId as string | undefined;
+		if (applicationId) {
+			const app = await findApplicationById(applicationId);
+			if (app.environment.project.organizationId !== orgId) {
+				return { href: null, label: "Application" };
+			}
+			return {
+				href: `/dashboard/project/${app.environment.project.projectId}/environment/${app.environment.environmentId}/services/application/${app.applicationId}`,
+				label: "Application",
+			};
+		}
+		if (composeId) {
+			const comp = await findComposeById(composeId);
+			if (comp.environment.project.organizationId !== orgId) {
+				return { href: null, label: "Compose" };
+			}
+			return {
+				href: `/dashboard/project/${comp.environment.project.projectId}/environment/${comp.environment.environmentId}/services/compose/${comp.composeId}`,
+				label: "Compose",
+			};
+		}
+	} catch {
+		// not found or unauthorized
+	}
+	return { href: null, label: "—" };
+}
 
 export type Deployment = typeof deployments.$inferSelect;
 
@@ -69,18 +112,18 @@ export const findDeploymentByApplicationId = async (applicationId: string) => {
 
 export const createDeployment = async (
 	deployment: Omit<
-		typeof apiCreateDeployment._type,
+		z.infer<typeof apiCreateDeployment>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
 	const application = await findApplicationById(deployment.applicationId);
+	await removeLastTenDeployments(
+		deployment.applicationId,
+		"application",
+		application.serverId,
+	);
 	try {
-		await removeLastTenDeployments(
-			deployment.applicationId,
-			"application",
-			application.serverId,
-		);
-		const serverId = application.serverId;
+		const serverId = application.buildServerId || application.serverId;
 
 		const { LOGS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
@@ -93,6 +136,7 @@ export const createDeployment = async (
 			const command = `
 				mkdir -p ${LOGS_PATH}/${application.appName};
             	echo "Initializing deployment" >> ${logFilePath};
+			    echo "Building on ${serverId ? "Build Server" : "Dokploy Server"}" >> ${logFilePath};
 			`;
 
 			await execAsyncRemote(server.serverId, command);
@@ -112,6 +156,9 @@ export const createDeployment = async (
 				logPath: logFilePath,
 				description: deployment.description || "",
 				startedAt: new Date().toISOString(),
+				...(application.buildServerId && {
+					buildServerId: application.buildServerId,
+				}),
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
@@ -146,20 +193,19 @@ export const createDeployment = async (
 
 export const createDeploymentPreview = async (
 	deployment: Omit<
-		typeof apiCreateDeploymentPreview._type,
+		z.infer<typeof apiCreateDeploymentPreview>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
 	const previewDeployment = await findPreviewDeploymentById(
 		deployment.previewDeploymentId,
 	);
+	await removeLastTenDeployments(
+		deployment.previewDeploymentId,
+		"previewDeployment",
+		previewDeployment?.application?.serverId,
+	);
 	try {
-		await removeLastTenDeployments(
-			deployment.previewDeploymentId,
-			"previewDeployment",
-			previewDeployment?.application?.serverId,
-		);
-
 		const appName = `${previewDeployment.appName}`;
 		const { LOGS_PATH } = paths(!!previewDeployment?.application?.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
@@ -229,17 +275,17 @@ export const createDeploymentPreview = async (
 
 export const createDeploymentCompose = async (
 	deployment: Omit<
-		typeof apiCreateDeploymentCompose._type,
+		z.infer<typeof apiCreateDeploymentCompose>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
 	const compose = await findComposeById(deployment.composeId);
+	await removeLastTenDeployments(
+		deployment.composeId,
+		"compose",
+		compose.serverId,
+	);
 	try {
-		await removeLastTenDeployments(
-			deployment.composeId,
-			"compose",
-			compose.serverId,
-		);
 		const { LOGS_PATH } = paths(!!compose.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${compose.appName}-${formattedDateTime}.log`;
@@ -306,7 +352,7 @@ echo "Initializing deployment\n" >> ${logFilePath};
 
 export const createDeploymentBackup = async (
 	deployment: Omit<
-		typeof apiCreateDeploymentBackup._type,
+		z.infer<typeof apiCreateDeploymentBackup>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
@@ -322,8 +368,8 @@ export const createDeploymentBackup = async (
 	} else if (backup.backupType === "compose") {
 		serverId = backup.compose?.serverId;
 	}
+	await removeLastTenDeployments(deployment.backupId, "backup", serverId);
 	try {
-		await removeLastTenDeployments(deployment.backupId, "backup", serverId);
 		const { LOGS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${backup.appName}-${formattedDateTime}.log`;
@@ -386,18 +432,18 @@ echo "Initializing backup\n" >> ${logFilePath};
 
 export const createDeploymentSchedule = async (
 	deployment: Omit<
-		typeof apiCreateDeploymentSchedule._type,
+		z.infer<typeof apiCreateDeploymentSchedule>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
 	const schedule = await findScheduleById(deployment.scheduleId);
 
+	const serverId =
+		schedule.application?.serverId ||
+		schedule.compose?.serverId ||
+		schedule.server?.serverId;
+	await removeLastTenDeployments(deployment.scheduleId, "schedule", serverId);
 	try {
-		const serverId =
-			schedule.application?.serverId ||
-			schedule.compose?.serverId ||
-			schedule.server?.serverId;
-		await removeLastTenDeployments(deployment.scheduleId, "schedule", serverId);
 		const { SCHEDULES_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${schedule.appName}-${formattedDateTime}.log`;
@@ -462,20 +508,20 @@ export const createDeploymentSchedule = async (
 
 export const createDeploymentVolumeBackup = async (
 	deployment: Omit<
-		typeof apiCreateDeploymentVolumeBackup._type,
+		z.infer<typeof apiCreateDeploymentVolumeBackup>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
 	const volumeBackup = await findVolumeBackupById(deployment.volumeBackupId);
 
+	const serverId =
+		volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
+	await removeLastTenDeployments(
+		deployment.volumeBackupId,
+		"volumeBackup",
+		serverId,
+	);
 	try {
-		const serverId =
-			volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
-		await removeLastTenDeployments(
-			deployment.volumeBackupId,
-			"volumeBackup",
-			serverId,
-		);
 		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${volumeBackup.appName}-${formattedDateTime}.log`;
@@ -550,11 +596,27 @@ export const removeDeployment = async (deploymentId: string) => {
 		const deployment = await db
 			.delete(deployments)
 			.where(eq(deployments.deploymentId, deploymentId))
-			.returning();
-		return deployment[0];
+			.returning()
+			.then((result) => result[0]);
+
+		if (!deployment) {
+			return null;
+		}
+
+		const logPath = path.join(deployment.logPath);
+		if (logPath && logPath !== ".") {
+			const command = `rm -f ${logPath};`;
+			if (deployment.serverId) {
+				await execAsyncRemote(deployment.serverId, command);
+			} else {
+				await execAsync(command);
+			}
+		}
+
+		return deployment;
 	} catch (error) {
 		const message =
-			error instanceof Error ? error.message : "Error creating the deployment";
+			error instanceof Error ? error.message : "Error removing the deployment";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message,
@@ -622,34 +684,49 @@ const removeLastTenDeployments = async (
 		if (serverId) {
 			let command = "";
 			for (const oldDeployment of deploymentsToDelete) {
-				const logPath = path.join(oldDeployment.logPath);
-				if (oldDeployment.rollbackId) {
-					await removeRollbackById(oldDeployment.rollbackId);
-				}
+				try {
+					const logPath = path.join(oldDeployment.logPath);
+					if (oldDeployment.rollbackId) {
+						await removeRollbackById(oldDeployment.rollbackId);
+					}
 
-				if (logPath !== ".") {
-					command += `
-					rm -rf ${logPath};
-					`;
+					if (logPath && logPath !== ".") {
+						command += `rm -rf ${logPath};`;
+					}
+					await removeDeployment(oldDeployment.deploymentId);
+				} catch (err) {
+					console.error(
+						`Failed to remove deployment ${oldDeployment.deploymentId} during cleanup:`,
+						err,
+					);
 				}
-				await removeDeployment(oldDeployment.deploymentId);
 			}
 
-			await execAsyncRemote(serverId, command);
+			if (command) {
+				await execAsyncRemote(serverId, command);
+			}
 		} else {
 			for (const oldDeployment of deploymentsToDelete) {
-				if (oldDeployment.rollbackId) {
-					await removeRollbackById(oldDeployment.rollbackId);
+				try {
+					if (oldDeployment.rollbackId) {
+						await removeRollbackById(oldDeployment.rollbackId);
+					}
+					const logPath = path.join(oldDeployment.logPath);
+					if (
+						logPath &&
+						logPath !== "." &&
+						existsSync(logPath) &&
+						!oldDeployment.errorMessage
+					) {
+						await fsPromises.unlink(logPath);
+					}
+					await removeDeployment(oldDeployment.deploymentId);
+				} catch (err) {
+					console.error(
+						`Failed to remove deployment ${oldDeployment.deploymentId} during cleanup:`,
+						err,
+					);
 				}
-				const logPath = path.join(oldDeployment.logPath);
-				if (
-					existsSync(logPath) &&
-					!oldDeployment.errorMessage &&
-					logPath !== "."
-				) {
-					await fsPromises.unlink(logPath);
-				}
-				await removeDeployment(oldDeployment.deploymentId);
 			}
 		}
 	}
@@ -713,6 +790,135 @@ export const findAllDeploymentsByComposeId = async (composeId: string) => {
 	return deploymentsList;
 };
 
+const centralizedDeploymentsWith = {
+	application: {
+		columns: { applicationId: true, name: true, appName: true },
+		with: {
+			environment: {
+				columns: { environmentId: true, name: true },
+				with: {
+					project: {
+						columns: { projectId: true, name: true },
+					},
+				},
+			},
+			server: {
+				columns: { serverId: true, name: true, serverType: true },
+			},
+			buildServer: {
+				columns: { serverId: true, name: true, serverType: true },
+			},
+		},
+	},
+	compose: {
+		columns: { composeId: true, name: true, appName: true },
+		with: {
+			environment: {
+				columns: { environmentId: true, name: true },
+				with: {
+					project: {
+						columns: { projectId: true, name: true },
+					},
+				},
+			},
+			server: {
+				columns: { serverId: true, name: true, serverType: true },
+			},
+		},
+	},
+	server: {
+		columns: { serverId: true, name: true, serverType: true },
+	},
+	buildServer: {
+		columns: { serverId: true, name: true, serverType: true },
+	},
+} as const;
+
+async function getApplicationIdsInOrg(
+	orgId: string,
+	accessedServices: string[] | null,
+): Promise<string[]> {
+	const rows = await db
+		.select({ applicationId: applications.applicationId })
+		.from(applications)
+		.innerJoin(
+			environments,
+			eq(applications.environmentId, environments.environmentId),
+		)
+		.innerJoin(projects, eq(environments.projectId, projects.projectId))
+		.where(
+			accessedServices !== null
+				? and(
+						eq(projects.organizationId, orgId),
+						inArray(applications.applicationId, accessedServices),
+					)
+				: eq(projects.organizationId, orgId),
+		);
+	return rows.map((r) => r.applicationId);
+}
+
+async function getComposeIdsInOrg(
+	orgId: string,
+	accessedServices: string[] | null,
+): Promise<string[]> {
+	const rows = await db
+		.select({ composeId: compose.composeId })
+		.from(compose)
+		.innerJoin(
+			environments,
+			eq(compose.environmentId, environments.environmentId),
+		)
+		.innerJoin(projects, eq(environments.projectId, projects.projectId))
+		.where(
+			accessedServices !== null
+				? and(
+						eq(projects.organizationId, orgId),
+						inArray(compose.composeId, accessedServices),
+					)
+				: eq(projects.organizationId, orgId),
+		);
+	return rows.map((r) => r.composeId);
+}
+
+/**
+ * All deployments for applications and compose in the org.
+ * Pass accessedServices for members (only those services), null for owner/admin.
+ */
+export const findAllDeploymentsCentralized = async (
+	orgId: string,
+	accessedServices: string[] | null,
+) => {
+	if (accessedServices !== null && accessedServices.length === 0) {
+		return [];
+	}
+
+	const [appIds, compIds] = await Promise.all([
+		getApplicationIdsInOrg(orgId, accessedServices),
+		getComposeIdsInOrg(orgId, accessedServices),
+	]);
+
+	if (appIds.length === 0 && compIds.length === 0) {
+		return [];
+	}
+
+	const conditions = [
+		...(appIds.length > 0 ? [inArray(deployments.applicationId, appIds)] : []),
+		...(compIds.length > 0 ? [inArray(deployments.composeId, compIds)] : []),
+	];
+	const whereClause =
+		conditions.length === 0
+			? sql`1 = 0`
+			: conditions.length === 1
+				? conditions[0]
+				: or(...conditions);
+
+	return db.query.deployments.findMany({
+		where: whereClause,
+		orderBy: desc(deployments.createdAt),
+		with: centralizedDeploymentsWith,
+	});
+};
+
 export const updateDeployment = async (
 	deploymentId: string,
 	deploymentData: Partial<Deployment>,
@@ -749,7 +955,7 @@ export const updateDeploymentStatus = async (
 
 export const createServerDeployment = async (
 	deployment: Omit<
-		typeof apiCreateDeploymentServer._type,
+		z.infer<typeof apiCreateDeploymentServer>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
@@ -826,4 +1032,20 @@ export const findAllDeploymentsByServerId = async (serverId: string) => {
 		orderBy: desc(deployments.createdAt),
 	});
 	return deploymentsList;
+};
+
+export const clearOldDeployments = async (
+	appName: string,
+	serverId: string | null,
+) => {
+	const { LOGS_PATH } = paths(!!serverId);
+	const folder = path.join(LOGS_PATH, appName);
+	const command = `
+		rm -rf ${folder};
+	`;
+	if (serverId) {
+		await execAsyncRemote(serverId, command);
+	} else {
+		await execAsync(command);
+	}
 };

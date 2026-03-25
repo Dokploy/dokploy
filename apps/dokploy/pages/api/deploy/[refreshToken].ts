@@ -4,9 +4,9 @@ import {
 	IS_CLOUD,
 	shouldDeploy,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/server/db";
 import { applications } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
@@ -81,41 +81,34 @@ export default async function handler(
 				return;
 			}
 
-			if (!webhookImageName) {
-				res.status(301).json({
-					message: "Webhook Docker Image Name Not Found",
-				});
-				return;
-			}
+			// If webhook provides image information, validate it matches the configured image
+			// If webhook doesn't provide image information, fall back to using the configured image (backward compatibility)
+			if (webhookImageName) {
+				// Validate image name matches
+				if (webhookImageName !== applicationImageName) {
+					res.status(301).json({
+						message: `Application Image Name (${applicationImageName}) doesn't match request event payload Image Name (${webhookImageName}).`,
+					});
+					return;
+				}
 
-			// Validate image name matches
-			if (webhookImageName !== applicationImageName) {
-				res.status(301).json({
-					message: `Application Image Name (${applicationImageName}) doesn't match request event payload Image Name (${webhookImageName}).`,
-				});
-				return;
-			}
+				if (!applicationDockerTag) {
+					res.status(301).json({
+						message: "Application Docker Tag Not Found",
+					});
+					return;
+				}
 
-			if (!applicationDockerTag) {
-				res.status(301).json({
-					message: "Application Docker Tag Not Found",
-				});
-				return;
+				if (webhookDockerTag) {
+					if (webhookDockerTag !== applicationDockerTag) {
+						res.status(301).json({
+							message: `Application Image Tag (${applicationDockerTag}) doesn't match request event payload Image Tag (${webhookDockerTag}).`,
+						});
+						return;
+					}
+				}
 			}
-
-			if (!webhookDockerTag) {
-				res.status(301).json({
-					message: "Webhook Docker Tag Not Found",
-				});
-				return;
-			}
-
-			if (webhookDockerTag !== applicationDockerTag) {
-				res.status(301).json({
-					message: `Application Image Tag (${applicationDockerTag}) doesn't match request event payload Image Tag (${webhookDockerTag}).`,
-				});
-				return;
-			}
+			// If webhook doesn't provide image info, we'll use the configured image (old behavior)
 		} else if (sourceType === "github") {
 			const normalizedCommits = req.body?.commits?.flatMap(
 				(commit: any) => commit.modified,
@@ -156,6 +149,10 @@ export default async function handler(
 					(commit: any) => commit.modified,
 				);
 			} else if (provider === "gitea") {
+				normalizedCommits = req.body?.commits?.flatMap(
+					(commit: any) => commit.modified,
+				);
+			} else if (provider === "soft-serve") {
 				normalizedCommits = req.body?.commits?.flatMap(
 					(commit: any) => commit.modified,
 				);
@@ -202,7 +199,9 @@ export default async function handler(
 			const commitedPaths = await extractCommitedPaths(
 				req.body,
 				application.bitbucket,
-				application.bitbucketRepository || "",
+				application.bitbucketRepositorySlug ||
+					application.bitbucketRepository ||
+					"",
 			);
 
 			const shouldDeployPaths = shouldDeploy(
@@ -249,17 +248,19 @@ export default async function handler(
 
 			if (IS_CLOUD && application.serverId) {
 				jobData.serverId = application.serverId;
-				await deploy(jobData);
-				return true;
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
+			} else {
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
 		} catch (error) {
 			res.status(400).json({ message: "Error deploying Application", error });
 			return;
@@ -442,6 +443,13 @@ export const extractCommitMessage = (headers: any, body: any) => {
 			: "NEW COMMIT";
 	}
 
+	// Soft Serve
+	if (headers["x-softserve-event"]) {
+		return body.commits && body.commits.length > 0
+			? body.commits[0].message
+			: "NEW COMMIT";
+	}
+
 	if (headers["user-agent"]?.includes("Go-http-client")) {
 		if (body.push_data && body.repository) {
 			return `DockerHub image pushed: ${body.repository.repo_name}:${body.push_data.tag} by ${body.push_data.pusher}`;
@@ -479,6 +487,11 @@ export const extractHash = (headers: any, body: any) => {
 		return body.after || "NEW COMMIT";
 	}
 
+	// Soft Serve
+	if (headers["x-softserve-event"]) {
+		return body.after || "NEW COMMIT";
+	}
+
 	return "";
 };
 
@@ -487,7 +500,10 @@ export const extractBranchName = (headers: any, body: any) => {
 		return body?.ref?.replace("refs/heads/", "");
 	}
 
-	if (headers["x-gitlab-event"]) {
+	if (
+		headers["x-gitlab-event"] ||
+		headers["x-softserve-event"]?.includes("push")
+	) {
 		return body?.ref ? body?.ref.replace("refs/heads/", "") : null;
 	}
 
@@ -513,6 +529,10 @@ export const getProviderByHeader = (headers: any) => {
 
 	if (headers["x-event-key"]?.includes("repo:push")) {
 		return "bitbucket";
+	}
+
+	if (headers["x-softserve-event"]) {
+		return "soft-serve";
 	}
 
 	return null;

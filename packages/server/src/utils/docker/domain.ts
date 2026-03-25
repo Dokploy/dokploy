@@ -63,7 +63,9 @@ export const loadDockerCompose = async (
 
 	if (existsSync(path)) {
 		const yamlStr = readFileSync(path, "utf8");
-		const parsedConfig = parse(yamlStr) as ComposeSpecification;
+		const parsedConfig = parse(yamlStr, {
+			maxAliasCount: 10000,
+		}) as ComposeSpecification;
 		return parsedConfig;
 	}
 	return null;
@@ -86,7 +88,9 @@ export const loadDockerComposeRemote = async (
 			return null;
 		}
 		if (!stdout) return null;
-		const parsedConfig = parse(stdout) as ComposeSpecification;
+		const parsedConfig = parse(stdout, {
+			maxAliasCount: 10000,
+		}) as ComposeSpecification;
 		return parsedConfig;
 	} catch {
 		return null;
@@ -102,14 +106,10 @@ export const readComposeFile = async (compose: Compose) => {
 	return null;
 };
 
-export const writeDomainsToComposeRemote = async (
+export const writeDomainsToCompose = async (
 	compose: Compose,
 	domains: Domain[],
 ) => {
-	if (!domains.length) {
-		return "";
-	}
-
 	try {
 		const composeConverted = await addDomainToCompose(compose, domains);
 		const path = getComposePath(compose);
@@ -120,14 +120,13 @@ echo "❌ Error: Compose file not found";
 exit 1;
 			`;
 		}
-		if (compose.serverId) {
-			const composeString = stringify(composeConverted, { lineWidth: 1000 });
-			const encodedContent = encodeBase64(composeString);
-			return `echo "${encodedContent}" | base64 -d > "${path}";`;
-		}
+
+		const composeString = stringify(composeConverted, { lineWidth: 1000 });
+		const encodedContent = encodeBase64(composeString);
+		return `echo "${encodedContent}" | base64 -d > "${path}";`;
 	} catch (error) {
 		// @ts-ignore
-		return `echo "❌ Has occured an error: ${error?.message || error}";
+		return `echo "❌ Has occurred an error: ${error?.message || error}";
 exit 1;
 		`;
 	}
@@ -146,7 +145,7 @@ export const addDomainToCompose = async (
 		result = await loadDockerCompose(compose);
 	}
 
-	if (!result || domains.length === 0) {
+	if (!result) {
 		return null;
 	}
 
@@ -165,10 +164,12 @@ export const addDomainToCompose = async (
 	for (const domain of domains) {
 		const { serviceName, https } = domain;
 		if (!serviceName) {
-			throw new Error("Service name not found");
+			throw new Error(`Domain "${domain.host}" is missing a service name`);
 		}
 		if (!result?.services?.[serviceName]) {
-			throw new Error(`The service ${serviceName} not found in the compose`);
+			throw new Error(
+				`Domain "${domain.host}" is attached to service "${serviceName}" which does not exist in the compose`,
+			);
 		}
 
 		const httpLabels = createDomainLabels(appName, domain, "web");
@@ -331,6 +332,7 @@ export const addDokployNetworkToService = (
 ) => {
 	let networks = networkService;
 	const network = "dokploy-network";
+	const defaultNetwork = "default";
 	if (!networks) {
 		networks = [];
 	}
@@ -339,9 +341,15 @@ export const addDokployNetworkToService = (
 		if (!networks.includes(network)) {
 			networks.push(network);
 		}
+		if (!networks.includes(defaultNetwork)) {
+			networks.push(defaultNetwork);
+		}
 	} else if (networks && typeof networks === "object") {
 		if (!(network in networks)) {
 			networks[network] = {};
+		}
+		if (!(defaultNetwork in networks)) {
+			networks[defaultNetwork] = {};
 		}
 	}
 

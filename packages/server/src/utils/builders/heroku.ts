@@ -1,4 +1,4 @@
-import { prepareEnvironmentVariables } from "../docker/utils";
+import { prepareEnvironmentVariablesForShell } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
 
@@ -6,7 +6,7 @@ export const getHerokuCommand = (application: ApplicationNested) => {
 	const { env, appName, cleanCache } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
-	const envVariables = prepareEnvironmentVariables(
+	const envVariables = prepareEnvironmentVariablesForShell(
 		env,
 		application.environment.project.env,
 		application.environment.env,
@@ -26,7 +26,7 @@ export const getHerokuCommand = (application: ApplicationNested) => {
 	}
 
 	for (const env of envVariables) {
-		args.push("--env", `'${env}'`);
+		args.push("--env", env);
 	}
 
 	const command = `pack ${args.join(" ")}`;

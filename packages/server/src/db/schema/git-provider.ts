@@ -1,6 +1,5 @@
 import { relations } from "drizzle-orm";
 import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
@@ -62,10 +61,6 @@ export const gitProviderRelations = relations(gitProvider, ({ one }) => ({
 	}),
 }));
 
-const createSchema = createInsertSchema(gitProvider);
-
-export const apiRemoveGitProvider = createSchema
-	.extend({
-		gitProviderId: z.string().min(1),
-	})
-	.pick({ gitProviderId: true });
+export const apiRemoveGitProvider = z.object({
+	gitProviderId: z.string().min(1),
+});

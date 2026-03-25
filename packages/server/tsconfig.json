@@ -34,6 +34,7 @@
 		"dokploy",
 		"config",
 		"dist",
+		".next",
 		"webpack.config.server.js",
 		"migration.ts",
 		"setup.ts"
