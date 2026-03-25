@@ -68,7 +68,7 @@ const mySchema = z.discriminatedUnion("buildType", [
 	}),
 	z.object({
 		buildType: z.literal(BuildType.railpack),
-		railpackVersion: z.string().nullable().default("0.15.4"),
+		railpackVersion: z.string().nullable().default(null),
 	}),
 	z.object({
 		buildType: z.literal(BuildType.static),
@@ -176,12 +176,18 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 	}, [data, form]);
 
 	useEffect(() => {
-		if (data?.railpackVersion && railpackVersions) {
-			if (!railpackVersions.includes(data.railpackVersion)) {
+		if (railpackVersions?.length) {
+			if (
+				data?.railpackVersion &&
+				!railpackVersions.includes(data.railpackVersion)
+			) {
 				setIsManualRailpackVersion(true);
 			}
+			if (!form.getValues("railpackVersion")) {
+				form.setValue("railpackVersion", railpackVersions[0]);
+			}
 		}
-	}, [railpackVersions, data?.railpackVersion]);
+	}, [railpackVersions, data?.railpackVersion, form]);
 
 	// Hide builder section when Docker provider is selected
 	if (data?.sourceType === "docker") {
@@ -208,7 +214,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 				data.buildType === BuildType.static ? data.isStaticSpa : null,
 			railpackVersion:
 				data.buildType === BuildType.railpack
-					? data.railpackVersion || railpackVersions?.[0] || ""
+					? (data.railpackVersion || railpackVersions?.[0] || "").replace(/^v/, "")
 					: null,
 		})
 			.then(async () => {
