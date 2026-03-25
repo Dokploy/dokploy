@@ -160,7 +160,6 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			enabled: buildType === BuildType.railpack,
 			staleTime: 1000 * 60 * 60 * 24, // 24 hours
 		});
-	const railpackVersion = form.watch("railpackVersion");
 	const [isManualRailpackVersion, setIsManualRailpackVersion] = useState(false);
 
 	useEffect(() => {
