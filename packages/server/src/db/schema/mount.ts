@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import { integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -37,6 +37,10 @@ export const mounts = pgTable("mount", {
 	volumeName: text("volumeName"),
 	filePath: text("filePath"),
 	content: text("content"),
+	// Optional ownership and permissions
+	uid: integer("uid"),
+	gid: integer("gid"),
+	mode: text("mode"),
 	serviceType: serviceType("serviceType").notNull().default("application"),
 	mountPath: text("mountPath").notNull(),
 	applicationId: text("applicationId").references(
@@ -120,6 +124,13 @@ const createSchema = createInsertSchema(mounts, {
 		"compose",
 		"libsql",
 	]),
+	// Optional ownership and permissions
+	uid: z.number().int().optional(),
+	gid: z.number().int().optional(),
+	mode: z
+		.string()
+		.regex(/^[0-7]{3,4}$/, "Mode must be an octal value like 755 or 0644")
+		.optional(),
 });
 
 export const apiCreateMount = createSchema
@@ -131,6 +142,9 @@ export const apiCreateMount = createSchema
 		mountPath: true,
 		filePath: true,
 		serviceType: true,
+		uid: true,
+		gid: true,
+		mode: true,
 	})
 	.extend({
 		serviceId: z.string().min(1),
