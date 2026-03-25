@@ -1079,4 +1079,19 @@ export const applicationRouter = createTRPCRouter({
 				total: countResult[0]?.count ?? 0,
 			};
 		}),
+
+	getRailpackVersions: protectedProcedure.query(async () => {
+		const res = await fetch(
+			"https://api.github.com/repos/railwayapp/railpack/releases",
+			{ headers: { Accept: "application/vnd.github+json" } },
+		);
+		if (!res.ok) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Failed to fetch Railpack versions from GitHub",
+			});
+		}
+		const releases = (await res.json()) as Array<{ tag_name: string }>;
+		return releases.map((r) => r.tag_name.replace(/^v/, ""));
+	}),
 });

@@ -29,29 +29,6 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 
-// Railpack versions from https://github.com/railwayapp/railpack/releases
-export const RAILPACK_VERSIONS = [
-	"0.15.4",
-	"0.15.3",
-	"0.15.2",
-	"0.15.1",
-	"0.15.0",
-	"0.14.0",
-	"0.13.0",
-	"0.12.0",
-	"0.11.0",
-	"0.10.0",
-	"0.9.2",
-	"0.9.1",
-	"0.9.0",
-	"0.8.0",
-	"0.7.0",
-	"0.6.0",
-	"0.5.0",
-	"0.4.0",
-	"0.3.0",
-	"0.2.2",
-] as const;
 
 export enum BuildType {
 	dockerfile = "dockerfile",
@@ -169,7 +146,6 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 		{ applicationId },
 		{ enabled: !!applicationId },
 	);
-
 	const form = useForm({
 		defaultValues: {
 			buildType: BuildType.nixpacks,
@@ -178,6 +154,12 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 	});
 
 	const buildType = form.watch("buildType");
+
+	const { data: railpackVersions, isLoading: isLoadingRailpackVersions } =
+		api.application.getRailpackVersions.useQuery(undefined, {
+			enabled: buildType === BuildType.railpack,
+			staleTime: 1000 * 60 * 60 * 24, // 24 hours
+		});
 	const railpackVersion = form.watch("railpackVersion");
 	const [isManualRailpackVersion, setIsManualRailpackVersion] = useState(false);
 
@@ -191,16 +173,16 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			};
 
 			form.reset(resetData(typedData));
+		}
+	}, [data, form]);
 
-			// Check if railpack version is manual (not in the predefined list)
-			if (
-				data.railpackVersion &&
-				!RAILPACK_VERSIONS.includes(data.railpackVersion as any)
-			) {
+	useEffect(() => {
+		if (data?.railpackVersion && railpackVersions) {
+			if (!railpackVersions.includes(data.railpackVersion)) {
 				setIsManualRailpackVersion(true);
 			}
 		}
-	}, [data, form]);
+	}, [railpackVersions, data?.railpackVersion]);
 
 	// Hide builder section when Docker provider is selected
 	if (data?.sourceType === "docker") {
@@ -227,7 +209,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 				data.buildType === BuildType.static ? data.isStaticSpa : null,
 			railpackVersion:
 				data.buildType === BuildType.railpack
-					? data.railpackVersion || "0.15.4"
+					? data.railpackVersion || railpackVersions?.[0] || ""
 					: null,
 		})
 			.then(async () => {
@@ -465,7 +447,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 															size="sm"
 															onClick={() => {
 																setIsManualRailpackVersion(false);
-																field.onChange("0.15.4");
+																field.onChange(railpackVersions?.[0] ?? "");
 															}}
 														>
 															Use predefined versions
@@ -481,10 +463,14 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 																field.onChange(value);
 															}
 														}}
-														value={field.value ?? "0.15.4"}
+														value={field.value ?? railpackVersions?.[0] ?? ""}
 													>
-														<SelectTrigger>
-															<SelectValue placeholder="Select Railpack version" />
+														<SelectTrigger disabled={isLoadingRailpackVersions}>
+															{isLoadingRailpackVersions ? (
+																<span className="text-muted-foreground">Loading versions...</span>
+															) : (
+																<SelectValue placeholder="Select Railpack version" />
+															)}
 														</SelectTrigger>
 														<SelectContent>
 															<SelectItem value="manual">
@@ -492,10 +478,10 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 																	✏️ Manual (Custom Version)
 																</span>
 															</SelectItem>
-															{RAILPACK_VERSIONS.map((version) => (
+															{railpackVersions?.map((version) => (
 																<SelectItem key={version} value={version}>
 																	v{version}
-																	{version === "0.15.4" && (
+																	{version === railpackVersions?.[0] && (
 																		<Badge
 																			variant="secondary"
 																			className="ml-2 px-1 text-xs"
