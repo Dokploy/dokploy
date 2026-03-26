@@ -45,9 +45,7 @@ export function TimeBadge() {
 	/** en-US даёт строку, которую `Date` стабильно парсит; ru-RU ломает парсинг и даёт NaN. */
 	const getUtcOffset = (timeZone: string) => {
 		const date = new Date();
-		const utcDate = new Date(
-			date.toLocaleString("en-US", { timeZone: "UTC" }),
-		);
+		const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
 		const tzDate = new Date(date.toLocaleString("en-US", { timeZone }));
 		const offsetMs = tzDate.getTime() - utcDate.getTime();
 		if (!Number.isFinite(offsetMs)) {
