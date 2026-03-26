@@ -6,9 +6,18 @@ import { payment as paymentTable } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq, desc } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
+import { addDays } from "date-fns";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+
+const PERIOD_DAYS = 30;
+
+const findPlanByAmount = (amountKopek: number): PlanKey => {
+	if (amountKopek === PLANS.agency.price) return "agency";
+	if (amountKopek === PLANS.pro.price) return "pro";
+	return "pro";
+};
 
 export const billingRouter = createTRPCRouter({
 	getPlans: protectedProcedure.query(() => {
@@ -72,6 +81,73 @@ export const billingRouter = createTRPCRouter({
 
 			return { paymentUrl };
 		}),
+
+	syncCheckoutStatus: protectedProcedure.mutation(async ({ ctx }) => {
+		const latestPending = await db.query.payment.findFirst({
+			where: eq(paymentTable.userId, ctx.user.ownerId),
+			orderBy: desc(paymentTable.createdAt),
+		});
+
+		if (!latestPending || latestPending.status !== "pending") {
+			return { status: "idle" as const };
+		}
+
+		const paymentId = latestPending.tinkoffPaymentId;
+		if (!paymentId) {
+			return { status: "pending" as const };
+		}
+
+		const state = await payment.status(paymentId);
+		const now = new Date();
+
+		if (state.status === "AUTHORIZED" || state.status === "CONFIRMED") {
+			if (state.status === "AUTHORIZED") {
+				await payment.confirm(paymentId);
+			}
+
+			const plan = findPlanByAmount(latestPending.amount);
+
+			await db
+				.update(paymentTable)
+				.set({ status: "succeeded" })
+				.where(eq(paymentTable.id, latestPending.id));
+
+			await db
+				.insert(subscriptionTable)
+				.values({
+					userId: latestPending.userId,
+					plan,
+					status: "active",
+					tinkoffCustomerKey: latestPending.userId,
+					currentPeriodEnd: addDays(now, PERIOD_DAYS),
+					cancelAtPeriodEnd: false,
+					updatedAt: now,
+				})
+				.onConflictDoUpdate({
+					target: subscriptionTable.userId,
+					set: {
+						plan,
+						status: "active",
+						currentPeriodEnd: addDays(now, PERIOD_DAYS),
+						cancelAtPeriodEnd: false,
+						updatedAt: now,
+					},
+				});
+
+			return { status: "confirmed" as const };
+		}
+
+		if (state.status === "REJECTED" || state.status === "CANCELED") {
+			await db
+				.update(paymentTable)
+				.set({ status: "failed" })
+				.where(eq(paymentTable.id, latestPending.id));
+
+			return { status: "failed" as const };
+		}
+
+		return { status: "pending" as const };
+	}),
 
 	cancelSubscription: protectedProcedure.mutation(async ({ ctx }) => {
 		const existing = await db.query.subscription.findFirst({

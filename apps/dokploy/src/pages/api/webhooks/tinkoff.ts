@@ -3,7 +3,6 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { addDays } from "date-fns";
 import { PLANS, type PlanKey } from "@dokploy/server/billing/plans";
 import { payment as tinkoffPaymentClient } from "@dokploy/server/billing/payment";
-import { logger } from "@dokploy/server/lib/logger";
 import { db } from "@dokploy/server/db";
 import { payment, subscription } from "@dokploy/server/db/schema";
 import { eq } from "drizzle-orm";
@@ -45,7 +44,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 	const tokenOk = tinkoffPaymentClient.verifyWebhook(body);
 	if (!tokenOk) {
-		logger.warn({ keys: Object.keys(body) }, "Tinkoff webhook invalid token");
 		res.status(400).send("OK");
 		return;
 	}
@@ -61,7 +59,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 	});
 
 	if (!current) {
-		logger.warn({ paymentId }, "Tinkoff webhook: payment not found");
 		res.status(200).send("OK");
 		return;
 	}
@@ -74,7 +71,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 	const state = await tinkoffPaymentClient.status(paymentId);
 	const status = state.status;
 
-	if (status === "CONFIRMED") {
+	if (status === "AUTHORIZED" || status === "CONFIRMED") {
+		if (status === "AUTHORIZED") {
+			await tinkoffPaymentClient.confirm(paymentId);
+		}
+
 		const planKey = findPlanKeyByAmount(current.amount);
 		const now = new Date();
 

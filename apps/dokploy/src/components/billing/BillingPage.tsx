@@ -38,16 +38,30 @@ export const BillingPage = () => {
 		api.billing.getPayments.useQuery();
 	const { mutateAsync: cancelSubscription, isPending: isCancelLoading } =
 		api.billing.cancelSubscription.useMutation();
+	const { mutateAsync: syncCheckoutStatus } =
+		api.billing.syncCheckoutStatus.useMutation();
 
 	useEffect(() => {
 		if (!router.isReady) return;
 		const status = router.query.status;
 		if (status !== "success" && status !== "fail") return;
 
-		void Promise.all([
-			utils.billing.getSubscription.invalidate(),
-			utils.billing.getPayments.invalidate(),
-		]);
+		const syncAndRefresh = async () => {
+			if (status === "success") {
+				try {
+					await syncCheckoutStatus();
+				} catch {
+					// keep UX resilient: we'll still refresh and show a generic success/fail toast
+				}
+			}
+
+			await Promise.all([
+				utils.billing.getSubscription.invalidate(),
+				utils.billing.getPayments.invalidate(),
+			]);
+		};
+
+		void syncAndRefresh();
 
 		if (paymentReturnToastShown.current) return;
 		paymentReturnToastShown.current = true;
@@ -68,7 +82,7 @@ export const BillingPage = () => {
 		} else {
 			toast.error(t("paymentReturn.fail"));
 		}
-	}, [router.isReady, router.query.status, t, utils]);
+	}, [router.isReady, router.query.status, syncCheckoutStatus, t, utils]);
 
 	const handleCancel = async () => {
 		await cancelSubscription();
