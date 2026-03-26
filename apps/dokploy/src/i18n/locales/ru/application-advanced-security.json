@@ -1,0 +1,39 @@
+{
+	"applicationAdvancedSecurity": {
+		"show": {
+			"title": "Безопасность",
+			"description": "Basic auth для приложения",
+			"addSecurity": "Добавить basic auth",
+			"empty": "Basic auth не настроен",
+			"username": "Имя пользователя",
+			"password": "Пароль",
+			"deleteTitle": "Удалить запись",
+			"deleteDescription": "Удалить эту запись basic auth?",
+			"toastDeleteSuccess": "Запись удалена",
+			"toastDeleteError": "Не удалось удалить запись"
+		},
+		"form": {
+			"title": "Безопасность",
+			"descriptionAdd": "Добавить basic auth к приложению",
+			"descriptionUpdate": "Обновить basic auth приложения",
+			"username": "Имя пользователя",
+			"password": "Пароль",
+			"placeholderUsername": "test1",
+			"placeholderPassword": "test",
+			"validation": {
+				"username": "Укажите имя пользователя",
+				"password": "Укажите пароль"
+			},
+			"toast": {
+				"created": "Запись создана",
+				"updated": "Запись обновлена",
+				"errorCreate": "Не удалось создать запись",
+				"errorUpdate": "Не удалось обновить запись"
+			},
+			"actions": {
+				"create": "Создать",
+				"update": "Обновить"
+			}
+		}
+	}
+}

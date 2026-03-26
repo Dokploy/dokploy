@@ -1,0 +1,88 @@
+{
+	"dashboard": {
+		"title": "Панель управления",
+		"projects": "Проекты",
+		"deployments": "Деплои",
+		"monitoring": "Мониторинг",
+		"schedules": "Расписания",
+		"traefikFileSystem": "Файлы Traefik",
+		"docker": "Docker",
+		"swarm": "Swarm",
+		"requests": "Запросы",
+		"settings": {
+			"webServer": "Веб-сервер",
+			"profile": "Профиль",
+			"remoteServers": "Удалённые серверы",
+			"users": "Пользователи",
+			"auditLogs": "Журналы аудита",
+			"sshKeys": "SSH-ключи",
+			"ai": "AI",
+			"tags": "Теги",
+			"git": "Git",
+			"registry": "Реестр",
+			"destinations": "S3 назначения",
+			"certificates": "Сертификаты",
+			"cluster": "Кластер",
+			"notifications": "Уведомления",
+			"billing": "Биллинг",
+			"license": "Лицензия",
+			"sso": "SSO",
+			"whitelabeling": "Whitelabeling"
+		}
+	},
+	"userNav": {
+		"myAccount": "Мой аккаунт",
+		"profile": "Профиль"
+	},
+	"help": {
+		"documentation": "Документация",
+		"support": "Поддержка"
+	},
+	"sidebar": {
+		"selectOrganization": "Выберите организацию",
+		"organizationsHeading": "Организации",
+		"toastDefaultOrgUpdated": "Организация по умолчанию обновлена",
+		"toastDefaultOrgError": "Не удалось задать организацию по умолчанию",
+		"tooltipDefaultOrg": "Организация по умолчанию",
+		"tooltipSetAsDefault": "Сделать по умолчанию",
+		"deleteOrgTitle": "Удалить организацию",
+		"deleteOrgDescription": "Удалить эту организацию?",
+		"toastOrgDeleted": "Организация удалена",
+		"toastOrgDeleteError": "Не удалось удалить организацию",
+		"pendingInvitations": "Приглашения",
+		"expiresLabel": "Истекает",
+		"roleLabel": "Роль",
+		"acceptInvitationTitle": "Принять приглашение",
+		"acceptInvitationDescription": "Принять это приглашение?",
+		"toastAcceptInviteError": "Не удалось принять приглашение",
+		"toastAcceptInviteSuccess": "Приглашение принято",
+		"acceptInvitationButton": "Принять приглашение",
+		"noPendingInvitations": "Нет приглашений"
+	},
+	"advanceBreadcrumb": {
+		"projects": "Проекты",
+		"selectProject": "Выберите проект",
+		"findProjectPlaceholder": "Поиск проекта...",
+		"noProjectsFound": "Проекты не найдены.",
+		"envCount": "{count, plural, one {# окружение} few {# окружения} many {# окружений} other {# окружений}}",
+		"serviceCount": "{count, plural, one {# сервис} few {# сервиса} many {# сервисов} other {# сервисов}}",
+		"findEnvironmentPlaceholder": "Поиск окружения...",
+		"noEnvironmentsFound": "Окружения не найдены.",
+		"productionFallback": "production",
+		"findServicePlaceholder": "Поиск сервиса...",
+		"noServicesFound": "Сервисы не найдены.",
+		"escKey": "Esc",
+		"serviceTypeApplication": "Приложение",
+		"serviceTypeCompose": "Compose",
+		"serviceTypePostgres": "PostgreSQL",
+		"serviceTypeMysql": "MySQL",
+		"serviceTypeMariadb": "MariaDB",
+		"serviceTypeRedis": "Redis",
+		"serviceTypeMongo": "MongoDB"
+	},
+	"layoutUpdateServer": {
+		"updateAvailable": "Доступно обновление",
+		"checkForUpdates": "Проверить обновления",
+		"tooltipUpdateAvailable": "Доступно обновление"
+	}
+}

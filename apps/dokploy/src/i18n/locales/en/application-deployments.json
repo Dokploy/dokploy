@@ -1,0 +1,90 @@
+{
+	"applicationDeployments": {
+		"typeLabels": {
+			"application": "application",
+			"compose": "compose",
+			"schedule": "schedule",
+			"server": "server",
+			"backup": "backup",
+			"previewDeployment": "preview deployment",
+			"volumeBackup": "volume backup"
+		},
+		"list": {
+			"title": "Deployments",
+			"description": "See the last 10 deployments for this {type}",
+			"configureRollbacks": "Configure Rollbacks",
+			"stuckTitle": "Build appears to be stuck",
+			"stuckBody": "Hey! Looks like the build has been running for more than 10 minutes. Would you like to cancel this deployment?",
+			"cancelDeployment": "Cancel Deployment",
+			"cancelDeploymentToast": "Deployment cancellation requested",
+			"cancelDeploymentError": "Failed to cancel deployment",
+			"webhookIntro": "If you want to re-deploy this application use this URL in the config of your git provider or docker",
+			"webhookLabel": "Webhook URL:",
+			"copyWebhookAria": "Copy webhook URL to clipboard",
+			"copiedToast": "Copied to clipboard.",
+			"loading": "Loading deployments...",
+			"empty": "No deployments found",
+			"showMore": "Show more",
+			"showLess": "Show less",
+			"expandCommitAria": "Expand commit message",
+			"collapseCommitAria": "Collapse commit message",
+			"durationSeconds": "{seconds}s",
+			"durationMinutes": "{minutes}m {seconds}s",
+			"view": "View",
+			"killProcess": {
+				"dialogTitle": "Kill Process",
+				"dialogDescription": "Are you sure you want to kill the process?",
+				"button": "Kill Process",
+				"success": "Process killed successfully",
+				"error": "Error killing process"
+			},
+			"deleteDeployment": {
+				"dialogTitle": "Delete Deployment",
+				"dialogDescription": "Are you sure you want to delete this deployment? This action cannot be undone.",
+				"success": "Deployment deleted successfully",
+				"error": "Error deleting deployment"
+			},
+			"rollback": {
+				"dialogTitle": "Rollback to this deployment",
+				"confirmQuestion": "Are you sure you want to rollback to this deployment?",
+				"infoAlert": "Please wait a few seconds while the image is pulled from the registry. Your application should be running shortly.",
+				"button": "Rollback",
+				"success": "Rollback initiated successfully",
+				"error": "Error initiating rollback"
+			}
+		},
+		"deployment": {
+			"title": "Deployment",
+			"detailIntro": "See all the details of this deployment",
+			"lineCount": "{count} lines",
+			"showExtraLogs": "Show Extra Logs"
+		},
+		"cancelQueues": {
+			"trigger": "Cancel Queues",
+			"title": "Are you sure to cancel the incoming deployments?",
+			"description": "This will cancel all the incoming deployments",
+			"success": "Queues are being cleaned"
+		},
+		"clearDeployments": {
+			"trigger": "Clear deployments",
+			"title": "Are you sure you want to clear old deployments?",
+			"description": "This will delete all old deployment records and logs, keeping only the active deployment (the most recent successful one).",
+			"success": "Old deployments cleared successfully"
+		},
+		"killBuild": {
+			"trigger": "Kill Build",
+			"title": "Are you sure to kill the build?",
+			"description": "This will kill the build process",
+			"success": "Build killed successfully"
+		},
+		"refreshToken": {
+			"title": "Are you absolutely sure?",
+			"description": "This action cannot be undone. This will change the refresh token and other tokens will be invalidated.",
+			"success": "Refresh updated",
+			"error": "Error updating the refresh token"
+		},
+		"modal": {
+			"viewLogs": "View Logs"
+		}
+	}
+}

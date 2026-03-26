@@ -1,0 +1,66 @@
+{
+	"mariadbDashboard": {
+		"update": {
+			"nameRequired": "Укажите имя",
+			"title": "Изменить MariaDB",
+			"description": "Обновите данные MariaDB",
+			"nameLabel": "Имя",
+			"namePlaceholder": "Vandelay Industries",
+			"descriptionLabel": "Описание",
+			"descriptionPlaceholder": "Описание проекта...",
+			"updateButton": "Обновить",
+			"toastSuccess": "MariaDB успешно обновлён",
+			"toastError": "Не удалось обновить MariaDB"
+		},
+		"general": {
+			"cardTitle": "Настройки деплоя",
+			"deployDialogTitle": "Деплой MariaDB",
+			"deployDialogDescription": "Развернуть эту базу MariaDB?",
+			"deploy": "Деплой",
+			"deployTooltip": "Скачивает и настраивает MariaDB",
+			"reloadDialogTitle": "Перезагрузка MariaDB",
+			"reloadDialogDescription": "Перезагрузить эту MariaDB?",
+			"reload": "Перезагрузить",
+			"reloadTooltip": "Перезапуск MariaDB без пересборки",
+			"reloadToastSuccess": "MariaDB перезагружена",
+			"reloadToastError": "Не удалось перезагрузить MariaDB",
+			"startDialogTitle": "Запуск MariaDB",
+			"startDialogDescription": "Запустить эту MariaDB?",
+			"start": "Запустить",
+			"startTooltip": "Запуск MariaDB (нужна успешная предыдущая установка)",
+			"startToastSuccess": "MariaDB запущена",
+			"startToastError": "Не удалось запустить MariaDB",
+			"stopDialogTitle": "Остановка MariaDB",
+			"stopDialogDescription": "Остановить эту MariaDB?",
+			"stop": "Остановить",
+			"stopTooltip": "Остановить текущий экземпляр MariaDB",
+			"stopToastSuccess": "MariaDB остановлена",
+			"stopToastError": "Не удалось остановить MariaDB",
+			"openTerminal": "Открыть терминал",
+			"openTerminalTooltip": "Терминал в контейнере MariaDB"
+		},
+		"internal": {
+			"cardTitle": "Внутренние учётные данные",
+			"user": "Пользователь",
+			"databaseName": "Имя БД",
+			"password": "Пароль",
+			"rootPassword": "Root-пароль",
+			"internalPort": "Внутренний порт (контейнер)",
+			"internalHost": "Внутренний хост",
+			"internalConnectionUrl": "Внутренний URL подключения"
+		},
+		"external": {
+			"cardTitle": "Внешние учётные данные",
+			"cardDescription": "Чтобы база была доступна из интернета, задайте порт и убедитесь, что он не занят другим приложением или БД.",
+			"ipWarningPrefix": "Укажите IP-адрес в разделе",
+			"ipWarningSuffix": ", чтобы исправить URL подключения к БД.",
+			"ipLinkRemote": "Удалённые серверы → Сервер → Изменить → IP-адрес",
+			"ipLinkWebServer": "Веб-сервер → Сервер → Обновить IP",
+			"portRangeError": "Порт должен быть от 0 до 65535",
+			"externalPortLabel": "Внешний порт (интернет)",
+			"externalHost": "Внешний хост",
+			"toastPortSuccess": "Внешний порт обновлён",
+			"toastPortError": "Не удалось сохранить внешний порт"
+		}
+	}
+}

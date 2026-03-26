@@ -1,0 +1,45 @@
+{
+	"applicationAdvancedPorts": {
+		"show": {
+			"title": "Порты",
+			"description": "Порты открывают приложение в интернет",
+			"addPort": "Добавить порт",
+			"empty": "Порты не настроены",
+			"alertRedeploy": "После добавления, изменения или удаления портов нажмите Redeploy.",
+			"publishedPort": "Published Port",
+			"publishedPortMode": "Published Port Mode",
+			"targetPort": "Target Port",
+			"protocol": "Protocol",
+			"deleteTitle": "Удалить порт",
+			"deleteDescription": "Удалить этот порт?",
+			"toastDeleteSuccess": "Порт удалён",
+			"toastDeleteError": "Не удалось удалить порт"
+		},
+		"form": {
+			"title": "Порты",
+			"description": "Порты открывают приложение в интернет.",
+			"publishedPort": "Published Port",
+			"publishedPortMode": "Published Port Mode",
+			"targetPort": "Target Port",
+			"protocol": "Protocol",
+			"placeholderPort": "1-65535",
+			"placeholderPublishMode": "Режим публикации порта",
+			"placeholderProtocol": "Протокол",
+			"ingress": "Ingress",
+			"host": "Host",
+			"tcp": "TCP",
+			"udp": "UDP",
+			"hostModeWarning": "Ограничение Host mode: в Docker Swarm при Host publish mode обновления контейнеров могут работать некорректно; старые контейнеры могут не замениться. Предпочтительнее Ingress mode или ручной stop/start после деплоя.",
+			"toast": {
+				"created": "Порт создан",
+				"updated": "Порт обновлён",
+				"errorCreate": "Не удалось создать порт",
+				"errorUpdate": "Не удалось обновить порт"
+			},
+			"actions": {
+				"create": "Создать",
+				"update": "Обновить"
+			}
+		}
+	}
+}

@@ -1,0 +1,64 @@
+{
+	"redisDashboard": {
+		"update": {
+			"nameRequired": "Name is required",
+			"title": "Modify Redis",
+			"description": "Update the Redis data",
+			"nameLabel": "Name",
+			"namePlaceholder": "Vandelay Industries",
+			"descriptionLabel": "Description",
+			"descriptionPlaceholder": "Description about your project...",
+			"updateButton": "Update",
+			"toastSuccess": "Redis updated successfully",
+			"toastError": "Error updating Redis"
+		},
+		"general": {
+			"cardTitle": "Deploy settings",
+			"deployDialogTitle": "Deploy Redis",
+			"deployDialogDescription": "Are you sure you want to deploy this Redis?",
+			"deploy": "Deploy",
+			"deployTooltip": "Downloads and sets up the Redis instance",
+			"reloadDialogTitle": "Reload Redis",
+			"reloadDialogDescription": "Are you sure you want to reload this Redis?",
+			"reload": "Reload",
+			"reloadTooltip": "Restart the Redis service without rebuilding",
+			"reloadToastSuccess": "Redis reloaded successfully",
+			"reloadToastError": "Error reloading Redis",
+			"startDialogTitle": "Start Redis",
+			"startDialogDescription": "Are you sure you want to start this Redis?",
+			"start": "Start",
+			"startTooltip": "Start Redis (requires a previous successful setup)",
+			"startToastSuccess": "Redis started successfully",
+			"startToastError": "Error starting Redis",
+			"stopDialogTitle": "Stop Redis",
+			"stopDialogDescription": "Are you sure you want to stop this Redis?",
+			"stop": "Stop",
+			"stopTooltip": "Stop the currently running Redis instance",
+			"stopToastSuccess": "Redis stopped successfully",
+			"stopToastError": "Error stopping Redis",
+			"openTerminal": "Open terminal",
+			"openTerminalTooltip": "Open a terminal to the Redis container"
+		},
+		"internal": {
+			"cardTitle": "Internal credentials",
+			"user": "User",
+			"password": "Password",
+			"internalPort": "Internal port (container)",
+			"internalHost": "Internal host",
+			"internalConnectionUrl": "Internal connection URL"
+		},
+		"external": {
+			"cardTitle": "External credentials",
+			"cardDescription": "To make Redis reachable over the internet, set a port and ensure it is not used by another application or database.",
+			"ipWarningPrefix": "You need to set an IP address in your",
+			"ipWarningSuffix": "to fix the connection URL.",
+			"ipLinkRemote": "Remote servers → Server → Edit server → Update IP address",
+			"ipLinkWebServer": "Web server → Server → Update server IP",
+			"portRangeError": "Port must be between 0 and 65535",
+			"externalPortLabel": "External port (internet)",
+			"externalHost": "External host",
+			"toastPortSuccess": "External port updated",
+			"toastPortError": "Error saving the external port"
+		}
+	}
+}

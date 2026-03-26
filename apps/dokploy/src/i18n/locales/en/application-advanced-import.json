@@ -1,0 +1,29 @@
+{
+	"applicationAdvancedImport": {
+		"title": "Import",
+		"description": "Import your Template configuration",
+		"warning": "Warning: Importing a template will remove all existing environment variables, mounts, and domains from this service.",
+		"labelBase64": "Configuration (Base64)",
+		"placeholderBase64": "Enter your Base64 configuration here...",
+		"load": "Load",
+		"dialogTitle": "Template Information",
+		"dialogDescription": "Review the template information before importing",
+		"warningDialog": "Warning: This will remove all existing environment variables, mounts, and domains from this service.",
+		"dockerCompose": "Docker Compose",
+		"domains": "Domains",
+		"portLabel": "Port:",
+		"hostLabel": "Host:",
+		"pathLabel": "Path:",
+		"envVars": "Environment Variables",
+		"mounts": "Mounts",
+		"import": "Import",
+		"mountDialogTitle": "Mount File Content",
+		"close": "Close",
+		"toast": {
+			"base64Required": "Please enter a base64 template",
+			"importSuccess": "Template imported successfully",
+			"importError": "Error importing template",
+			"processError": "Error processing template"
+		}
+	}
+}

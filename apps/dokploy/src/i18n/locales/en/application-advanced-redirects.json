@@ -1,0 +1,45 @@
+{
+	"applicationAdvancedRedirects": {
+		"show": {
+			"title": "Redirects",
+			"description": "If you want to redirect requests to this application use the following config to setup the redirects",
+			"addRedirect": "Add Redirect",
+			"empty": "No redirects configured",
+			"regex": "Regex",
+			"replacement": "Replacement",
+			"permanent": "Permanent",
+			"yes": "Yes",
+			"no": "No",
+			"deleteTitle": "Delete Redirect",
+			"deleteDescription": "Are you sure you want to delete this redirect?",
+			"toastDeleteSuccess": "Redirect deleted successfully",
+			"toastDeleteError": "Error deleting redirect"
+		},
+		"form": {
+			"title": "Redirects",
+			"description": "Redirects are used to redirect requests to another url.",
+			"presets": "Presets",
+			"noPreset": "No preset selected",
+			"presetToWww": "Redirect to www",
+			"presetToNonWww": "Redirect to non-www",
+			"regex": "Regex",
+			"replacement": "Replacement",
+			"permanent": "Permanent",
+			"permanentDesc": "Set the permanent option to true to apply a permanent redirection.",
+			"validation": {
+				"regex": "Regex required",
+				"replacement": "Replacement required"
+			},
+			"toast": {
+				"created": "Redirect created",
+				"updated": "Redirect updated",
+				"errorCreate": "Error creating the redirect",
+				"errorUpdate": "Error updating the redirect"
+			},
+			"actions": {
+				"create": "Create",
+				"update": "Update"
+			}
+		}
+	}
+}

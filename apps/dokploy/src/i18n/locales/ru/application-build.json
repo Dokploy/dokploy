@@ -1,0 +1,52 @@
+{
+	"applicationBuild": {
+		"title": "Тип сборки",
+		"subtitle": "Выберите способ сборки кода",
+		"alertRich": "Сборщики могут потреблять много памяти и CPU (рекомендуется: от 4 GB RAM и от 2 ядер CPU). Для production изучите <guide>Production Guide</guide> — практики и оптимизация. Сборщики подходят для разработки и прототипирования при достаточных ресурсах.",
+		"buildTypeLabel": "Тип сборки",
+		"buildTypes": {
+			"dockerfile": "Dockerfile",
+			"railpack": "Railpack",
+			"nixpacks": "Nixpacks",
+			"heroku_buildpacks": "Heroku Buildpacks",
+			"paketo_buildpacks": "Paketo Buildpacks",
+			"static": "Static"
+		},
+		"badgeNew": "New",
+		"badgeLatest": "Latest",
+		"heroku": {
+			"label": "Версия Heroku (необязательно)",
+			"placeholder": "Версия Heroku (по умолчанию: 24)"
+		},
+		"dockerfile": {
+			"dockerFileLabel": "Docker File",
+			"dockerFilePlaceholder": "Путь к Dockerfile (по умолчанию: Dockerfile)",
+			"contextPathLabel": "Docker Context Path",
+			"contextPathPlaceholder": "Путь к контексту Docker (по умолчанию: .)",
+			"buildStageLabel": "Docker Build Stage",
+			"buildStageDesc": "Целевая стадия в Multi-stage Dockerfile. Если пусто, Docker собирает последнюю стадию.",
+			"buildStagePlaceholder": "Например production"
+		},
+		"nixpacks": {
+			"publishDirLabel": "Publish Directory",
+			"publishDirDesc": "Отдача одного каталога через NGINX после сборки. Удобно, если итог — статический сайт.",
+			"publishDirPlaceholder": "Publish Directory"
+		},
+		"static": {
+			"spaLabel": "Single Page Application (SPA)"
+		},
+		"railpack": {
+			"versionLabel": "Версия Railpack",
+			"placeholderManual": "Укажите версию (например 0.15.4)",
+			"usePredefined": "Использовать список версий",
+			"selectPlaceholder": "Версия Railpack",
+			"manualOption": "✏️ Вручную (своя версия)",
+			"descRich": "Выберите версию Railpack или введите свою вручную. <releases>См. релизы</releases>",
+			"versionPrefix": "v"
+		},
+		"toast": {
+			"success": "Тип сборки сохранён",
+			"error": "Не удалось сохранить тип сборки"
+		}
+	}
+}

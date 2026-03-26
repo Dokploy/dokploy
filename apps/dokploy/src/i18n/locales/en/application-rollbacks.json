@@ -1,0 +1,21 @@
+{
+	"applicationRollbacks": {
+		"dialogTitle": "Rollback Settings",
+		"dialogDescription": "Configure how rollbacks work for this application",
+		"storageAlert": "Having rollbacks enabled increases storage usage. Be careful with this option. Note that manually cleaning the cache may delete rollback images, making them unavailable for future rollbacks.",
+		"enableRollbacks": "Enable Rollbacks",
+		"enableRollbacksDescription": "Allow rolling back to previous deployments",
+		"rollbackRegistry": "Rollback Registry",
+		"selectRegistryPlaceholder": "Select a registry",
+		"registryNone": "None",
+		"registriesLabel": "Registries ({count})",
+		"noRegistriesDescriptionRich": "No registries available. Please <link>configure a registry</link> first to enable rollbacks.",
+		"registryDescription": "Select a registry where rollback images will be stored.",
+		"validation": {
+			"registryRequiredWhenEnabled": "Registry is required when rollbacks are enabled"
+		},
+		"toastSuccess": "Rollback settings updated",
+		"toastError": "Failed to update rollback settings",
+		"saveSettings": "Save Settings"
+	}
+}

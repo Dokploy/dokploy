@@ -1,0 +1,19 @@
+{
+	"applicationAdvancedCommand": {
+		"title": "Команда при запуске",
+		"description": "Выполнить произвольную команду в контейнере после инициализации приложения",
+		"command": "Команда",
+		"argsLabel": "Аргументы (Args)",
+		"addArgument": "Добавить аргумент",
+		"noArgsHint": "Аргументов пока нет. Нажмите «Добавить аргумент», чтобы добавить.",
+		"placeholderArg0": "-c",
+		"placeholderArgN": "echo Hello World",
+		"validation": {
+			"argEmpty": "Аргумент не может быть пустым"
+		},
+		"toast": {
+			"success": "Команда обновлена",
+			"error": "Не удалось обновить команду"
+		}
+	}
+}

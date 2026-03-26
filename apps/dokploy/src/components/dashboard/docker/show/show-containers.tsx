@@ -1,0 +1,243 @@
+import {
+	type ColumnFiltersState,
+	flexRender,
+	getCoreRowModel,
+	getFilteredRowModel,
+	getPaginationRowModel,
+	getSortedRowModel,
+	type SortingState,
+	useReactTable,
+	type VisibilityState,
+} from "@tanstack/react-table";
+import { ChevronDown, Container } from "lucide-react";
+import { useTranslations } from "next-intl";
+import * as React from "react";
+import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import {
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
+import { api, type RouterOutputs } from "@/utils/api";
+import { useDockerContainerTable } from "./colums";
+export type Container = NonNullable<
+	RouterOutputs["docker"]["getContainers"]
+>[0];
+
+interface Props {
+	serverId?: string;
+}
+
+export const ShowContainers = ({ serverId }: Props) => {
+	const t = useTranslations("dockerContainers");
+	const { columns, columnLabels } = useDockerContainerTable();
+	const { data, isPending } = api.docker.getContainers.useQuery({
+		serverId,
+	});
+
+	const [sorting, setSorting] = React.useState<SortingState>([]);
+	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+		[],
+	);
+	const [columnVisibility, setColumnVisibility] =
+		React.useState<VisibilityState>({});
+	const [rowSelection, setRowSelection] = React.useState({});
+
+	const table = useReactTable({
+		data: data ?? [],
+		columns,
+		onSortingChange: setSorting,
+		onColumnFiltersChange: setColumnFilters,
+		getCoreRowModel: getCoreRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+		getSortedRowModel: getSortedRowModel(),
+		getFilteredRowModel: getFilteredRowModel(),
+		onColumnVisibilityChange: setColumnVisibility,
+		onRowSelectionChange: setRowSelection,
+		state: {
+			sorting,
+			columnFilters,
+			columnVisibility,
+			rowSelection,
+		},
+	});
+
+	return (
+		<div className="flex flex-1 flex-col w-full">
+			<Card className="flex flex-1 flex-col bg-sidebar p-2.5 rounded-xl">
+				<div className="flex flex-1 flex-col rounded-xl bg-background shadow-md ">
+					<CardHeader className="">
+						<CardTitle className="text-xl flex flex-row gap-2">
+							<Container className="size-6 text-muted-foreground self-center" />
+							{t("title")}
+						</CardTitle>
+						<CardDescription>{t("description")}</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-2 py-8 border-t">
+						<div className="gap-4 pb-20 w-full">
+							<div className="flex flex-col gap-4  w-full overflow-auto">
+								<div className="flex items-center gap-2 max-sm:flex-wrap">
+									<Input
+										placeholder={t("filterPlaceholder")}
+										value={
+											(table.getColumn("name")?.getFilterValue() as string) ??
+											""
+										}
+										onChange={(event) =>
+											table
+												.getColumn("name")
+												?.setFilterValue(event.target.value)
+										}
+										className="md:max-w-sm"
+									/>
+									<DropdownMenu>
+										<DropdownMenuTrigger asChild>
+											<Button
+												variant="outline"
+												className="sm:ml-auto max-sm:w-full"
+											>
+												{t("columns")} <ChevronDown className="ml-2 h-4 w-4" />
+											</Button>
+										</DropdownMenuTrigger>
+										<DropdownMenuContent align="end">
+											{table
+												.getAllColumns()
+												.filter((column) => column.getCanHide())
+												.map((column) => {
+													return (
+														<DropdownMenuCheckboxItem
+															key={column.id}
+															className="capitalize"
+															checked={column.getIsVisible()}
+															onCheckedChange={(value) =>
+																column.toggleVisibility(!!value)
+															}
+														>
+															{columnLabels[
+																column.id as keyof typeof columnLabels
+															] ?? column.id}
+														</DropdownMenuCheckboxItem>
+													);
+												})}
+										</DropdownMenuContent>
+									</DropdownMenu>
+								</div>
+								<div className="rounded-md border">
+									{isPending ? (
+										<div className="w-full flex-col gap-2 flex items-center justify-center py-24">
+											<span className="text-muted-foreground text-lg font-medium">
+												{t("loading")}
+											</span>
+										</div>
+									) : data?.length === 0 ? (
+										<div className="flex-col gap-2 flex items-center justify-center py-24">
+											<span className="text-muted-foreground text-lg font-medium">
+												{t("noResults")}
+											</span>
+										</div>
+									) : (
+										<Table>
+											<TableHeader>
+												{table.getHeaderGroups().map((headerGroup) => (
+													<TableRow key={headerGroup.id}>
+														{headerGroup.headers.map((header) => {
+															return (
+																<TableHead key={header.id}>
+																	{header.isPlaceholder
+																		? null
+																		: flexRender(
+																				header.column.columnDef.header,
+																				header.getContext(),
+																			)}
+																</TableHead>
+															);
+														})}
+													</TableRow>
+												))}
+											</TableHeader>
+											<TableBody>
+												{table?.getRowModel()?.rows?.length ? (
+													table.getRowModel().rows.map((row) => (
+														<TableRow
+															key={row.id}
+															data-state={row.getIsSelected() && "selected"}
+														>
+															{row.getVisibleCells().map((cell) => (
+																<TableCell key={cell.id}>
+																	{flexRender(
+																		cell.column.columnDef.cell,
+																		cell.getContext(),
+																	)}
+																</TableCell>
+															))}
+														</TableRow>
+													))
+												) : (
+													<TableRow>
+														<TableCell
+															colSpan={columns.length}
+															className="h-24 text-center"
+														>
+															{isPending ? (
+																<div className="w-full flex-col gap-2 flex items-center justify-center py-24">
+																	<span className="text-muted-foreground text-lg font-medium">
+																		{t("loading")}
+																	</span>
+																</div>
+															) : (
+																<>{t("noResults")}</>
+															)}
+														</TableCell>
+													</TableRow>
+												)}
+											</TableBody>
+										</Table>
+									)}
+								</div>
+								{data && data?.length > 0 && (
+									<div className="flex items-center justify-end space-x-2 py-4">
+										<div className="space-x-2 flex flex-wrap">
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => table.previousPage()}
+												disabled={!table.getCanPreviousPage()}
+											>
+												{t("previous")}
+											</Button>
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => table.nextPage()}
+												disabled={!table.getCanNextPage()}
+											>
+												{t("next")}
+											</Button>
+										</div>
+									</div>
+								)}
+							</div>
+						</div>
+					</CardContent>
+				</div>
+			</Card>
+		</div>
+	);
+};

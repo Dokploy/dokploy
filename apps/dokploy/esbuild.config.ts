@@ -23,11 +23,11 @@ try {
 	esbuild
 		.build({
 			entryPoints: {
-				server: "server/server.ts",
-				migration: "migration.ts",
-				"wait-for-postgres": "wait-for-postgres.ts",
-				"reset-password": "reset-password.ts",
-				"reset-2fa": "reset-2fa.ts",
+				server: "src/server/server.ts",
+				migration: "src/migration.ts",
+				"wait-for-postgres": "src/wait-for-postgres.ts",
+				"reset-password": "src/reset-password.ts",
+				"reset-2fa": "src/reset-2fa.ts",
 			},
 			bundle: true,
 			platform: "node",

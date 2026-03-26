@@ -1,0 +1,38 @@
+{
+	"applicationGeneralProvider": {
+		"title": "Provider",
+		"subtitle": "Источник кода",
+		"subtitleUnauthorized": "Репозиторий через провайдер без доступа",
+		"loadingProviders": "Загрузка провайдеров...",
+		"disconnectSuccess": "Репозиторий отключён",
+		"disconnectError": "Не удалось отключить репозиторий: {message}",
+		"unknownError": "Неизвестная ошибка",
+		"tabs": {
+			"github": "Github",
+			"gitlab": "Gitlab",
+			"bitbucket": "Bitbucket",
+			"gitea": "Gitea",
+			"docker": "Docker",
+			"git": "Git",
+			"raw": "Raw",
+			"drop": "Drop"
+		},
+		"configureRich": {
+			"github": "Для деплоя через GitHub сначала настройте аккаунт: <link>Settings</link>.",
+			"gitlab": "Для деплоя через GitLab сначала настройте аккаунт: <link>Settings</link>.",
+			"bitbucket": "Для деплоя через Bitbucket сначала настройте аккаунт: <link>Settings</link>.",
+			"gitea": "Для деплоя через Gitea сначала настройте аккаунт: <link>Settings</link>."
+		},
+		"unauthorized": {
+			"alert": "Приложение привязано к репозиторию {sourceType} через провайдер, к которому у вас нет доступа. Ниже — базовая информация, конфигурацию менять нельзя.",
+			"repositoryTitle": "{sourceType} Repository",
+			"owner": "Owner:",
+			"repository": "Repository:",
+			"branch": "Branch:",
+			"disconnectDialogTitle": "Disconnect Repository",
+			"disconnectDialogDescription": "Отключить этот репозиторий?",
+			"disconnectButton": "Disconnect Repository",
+			"disconnectHint": "После отключения можно настроить новый репозиторий со своими git-провайдерами."
+		}
+	}
+}

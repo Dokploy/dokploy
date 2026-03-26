@@ -1,0 +1,52 @@
+{
+	"applicationPatches": {
+		"show": {
+			"title": "Patches",
+			"description": "Apply code patches to your repository during build. Patches are applied after cloning the repository and before building.",
+			"createPatch": "Create Patch",
+			"emptyTitle": "No patches yet",
+			"emptyDescription": "Add file patches to modify your repo before each build—configs, env, or code. Create your first patch to get started.",
+			"colFilePath": "File Path",
+			"colType": "Type",
+			"colEnabled": "Enabled",
+			"colActions": "Actions",
+			"toastToggleSuccess": "Patch updated",
+			"toastDeleteSuccess": "Patch deleted",
+			"deletePatchTitle": "Delete patch"
+		},
+		"editor": {
+			"title": "Edit File",
+			"descriptionSelect": "Select a file from the tree to edit",
+			"editing": "Editing: {path}",
+			"unmarkDeletion": "Unmark deletion",
+			"markForDeletion": "Mark for deletion",
+			"savePatch": "Save Patch",
+			"toastSaveSuccess": "Patch saved",
+			"toastSaveError": "Failed to save patch",
+			"toastMarkDeletionSuccess": "File marked for deletion",
+			"toastMarkDeletionError": "Failed to mark file for deletion",
+			"toastCreateSuccess": "File created",
+			"toastCreateError": "Failed to create file",
+			"toastUnmarkSuccess": "Deletion unmarked",
+			"toastUnmarkError": "Failed to unmark deletion",
+			"newFileInRoot": "New file in root",
+			"noFilesFound": "No files found",
+			"selectFileToEdit": "Select a file to edit"
+		},
+		"createFile": {
+			"triggerTitle": "Create file",
+			"title": "Create file",
+			"descriptionInFolder": "New file in {folder}/",
+			"descriptionRoot": "New file in root",
+			"filenameLabel": "Filename",
+			"filenamePlaceholder": "e.g. .env.example",
+			"contentLabel": "Content"
+		},
+		"editDialog": {
+			"triggerTitle": "Edit patch",
+			"title": "Edit Patch",
+			"loading": "Loading patch...",
+			"editing": "Editing: {path}"
+		}
+	}
+}

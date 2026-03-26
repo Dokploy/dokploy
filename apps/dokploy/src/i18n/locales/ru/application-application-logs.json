@@ -1,0 +1,13 @@
+{
+	"applicationApplicationLogs": {
+		"title": "Logs",
+		"description": "Логи приложения в реальном времени",
+		"selectContainerLabel": "Выберите контейнер",
+		"modeNative": "Нативный",
+		"modeSwarm": "Swarm",
+		"loading": "Загрузка...",
+		"selectPlaceholder": "Выберите контейнер",
+		"containersGroup": "Контейнеры ({count})",
+		"errorPrefix": "Ошибка: "
+	}
+}

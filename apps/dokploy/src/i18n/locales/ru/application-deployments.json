@@ -1,0 +1,90 @@
+{
+	"applicationDeployments": {
+		"typeLabels": {
+			"application": "application",
+			"compose": "compose",
+			"schedule": "schedule",
+			"server": "server",
+			"backup": "backup",
+			"previewDeployment": "preview deployment",
+			"volumeBackup": "volume backup"
+		},
+		"list": {
+			"title": "Деплои",
+			"description": "Последние 10 деплоев для: {type}",
+			"configureRollbacks": "Настроить откаты",
+			"stuckTitle": "Сборка, похоже, зависла",
+			"stuckBody": "Сборка идёт больше 10 минут. Отменить этот деплой?",
+			"cancelDeployment": "Отменить деплой",
+			"cancelDeploymentToast": "Запрошена отмена деплоя",
+			"cancelDeploymentError": "Не удалось отменить деплой",
+			"webhookIntro": "Для повторного деплоя укажите этот URL в настройках git или Docker",
+			"webhookLabel": "Webhook URL:",
+			"copyWebhookAria": "Скопировать webhook URL",
+			"copiedToast": "Скопировано в буфер.",
+			"loading": "Загрузка деплоев...",
+			"empty": "Деплоев нет",
+			"showMore": "Ещё",
+			"showLess": "Свернуть",
+			"expandCommitAria": "Развернуть сообщение коммита",
+			"collapseCommitAria": "Свернуть сообщение коммита",
+			"durationSeconds": "{seconds} с",
+			"durationMinutes": "{minutes} мин {seconds} с",
+			"view": "Логи",
+			"killProcess": {
+				"dialogTitle": "Завершить процесс",
+				"dialogDescription": "Завершить процесс деплоя?",
+				"button": "Kill Process",
+				"success": "Процесс завершён",
+				"error": "Не удалось завершить процесс"
+			},
+			"deleteDeployment": {
+				"dialogTitle": "Удалить деплой",
+				"dialogDescription": "Удалить этот деплой? Действие необратимо.",
+				"success": "Деплой удалён",
+				"error": "Не удалось удалить деплой"
+			},
+			"rollback": {
+				"dialogTitle": "Откат к этому деплою",
+				"confirmQuestion": "Откатиться к этому деплою?",
+				"infoAlert": "Подождите несколько секунд, пока образ подтянется из registry. Приложение скоро поднимется.",
+				"button": "Rollback",
+				"success": "Откат запущен",
+				"error": "Не удалось запустить откат"
+			}
+		},
+		"deployment": {
+			"title": "Деплой",
+			"detailIntro": "Детали деплоя",
+			"lineCount": "{count} строк",
+			"showExtraLogs": "Дополнительные логи"
+		},
+		"cancelQueues": {
+			"trigger": "Cancel Queues",
+			"title": "Отменить входящие деплои?",
+			"description": "Будут отменены все ожидающие деплои",
+			"success": "Очередь очищается"
+		},
+		"clearDeployments": {
+			"trigger": "Очистить деплои",
+			"title": "Удалить старые деплои?",
+			"description": "Удалятся записи и логи старых деплоев, останется только активный (последний успешный).",
+			"success": "Старые деплои очищены"
+		},
+		"killBuild": {
+			"trigger": "Kill Build",
+			"title": "Прервать сборку?",
+			"description": "Будет завершён процесс сборки",
+			"success": "Сборка прервана"
+		},
+		"refreshToken": {
+			"title": "Вы уверены?",
+			"description": "Действие необратимо: refresh token изменится, старые токены перестанут работать.",
+			"success": "Токен обновлён",
+			"error": "Не удалось обновить refresh token"
+		},
+		"modal": {
+			"viewLogs": "Логи"
+		}
+	}
+}

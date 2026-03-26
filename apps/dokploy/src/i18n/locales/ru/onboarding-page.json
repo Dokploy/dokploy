@@ -1,0 +1,12 @@
+{
+	"onboarding": {
+		"welcome": "Добро пожаловать в DeployBox",
+		"step1": "Подключите сервер",
+		"step2": "Создайте первый проект",
+		"step3": "Запустите деплой"
+	},
+	"layout": {
+		"defaultAppName": "Dokploy",
+		"defaultTagline": "«Открытая альтернатива Netlify, Vercel, Heroku»"
+	}
+}

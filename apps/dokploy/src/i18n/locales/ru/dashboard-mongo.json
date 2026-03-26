@@ -1,0 +1,64 @@
+{
+	"mongoDashboard": {
+		"update": {
+			"nameRequired": "Укажите имя",
+			"title": "Изменить MongoDB",
+			"description": "Обновите данные MongoDB",
+			"nameLabel": "Имя",
+			"namePlaceholder": "Vandelay Industries",
+			"descriptionLabel": "Описание",
+			"descriptionPlaceholder": "Описание проекта...",
+			"updateButton": "Обновить",
+			"toastSuccess": "MongoDB успешно обновлён",
+			"toastError": "Не удалось обновить MongoDB"
+		},
+		"general": {
+			"cardTitle": "Настройки деплоя",
+			"deployDialogTitle": "Деплой MongoDB",
+			"deployDialogDescription": "Развернуть эту базу MongoDB?",
+			"deploy": "Деплой",
+			"deployTooltip": "Скачивает и настраивает MongoDB",
+			"reloadDialogTitle": "Перезагрузка MongoDB",
+			"reloadDialogDescription": "Перезагрузить эту MongoDB?",
+			"reload": "Перезагрузить",
+			"reloadTooltip": "Перезапуск MongoDB без пересборки",
+			"reloadToastSuccess": "MongoDB перезагружена",
+			"reloadToastError": "Не удалось перезагрузить MongoDB",
+			"startDialogTitle": "Запуск MongoDB",
+			"startDialogDescription": "Запустить эту MongoDB?",
+			"start": "Запустить",
+			"startTooltip": "Запуск MongoDB (нужна успешная предыдущая установка)",
+			"startToastSuccess": "MongoDB запущена",
+			"startToastError": "Не удалось запустить MongoDB",
+			"stopDialogTitle": "Остановка MongoDB",
+			"stopDialogDescription": "Остановить эту MongoDB?",
+			"stop": "Остановить",
+			"stopTooltip": "Остановить текущий экземпляр MongoDB",
+			"stopToastSuccess": "MongoDB остановлена",
+			"stopToastError": "Не удалось остановить MongoDB",
+			"openTerminal": "Открыть терминал",
+			"openTerminalTooltip": "Терминал в контейнере MongoDB"
+		},
+		"internal": {
+			"cardTitle": "Внутренние учётные данные",
+			"user": "Пользователь",
+			"password": "Пароль",
+			"internalPort": "Внутренний порт (контейнер)",
+			"internalHost": "Внутренний хост",
+			"internalConnectionUrl": "Внутренний URL подключения"
+		},
+		"external": {
+			"cardTitle": "Внешние учётные данные",
+			"cardDescription": "Чтобы база была доступна из интернета, задайте порт и убедитесь, что он не занят другим приложением или БД.",
+			"ipWarningPrefix": "Укажите IP-адрес в разделе",
+			"ipWarningSuffix": ", чтобы исправить URL подключения к БД.",
+			"ipLinkRemote": "Удалённые серверы → Сервер → Изменить → IP-адрес",
+			"ipLinkWebServer": "Веб-сервер → Сервер → Обновить IP",
+			"portRangeError": "Порт должен быть от 0 до 65535",
+			"externalPortLabel": "Внешний порт (интернет)",
+			"externalHost": "Внешний хост",
+			"toastPortSuccess": "Внешний порт обновлён",
+			"toastPortError": "Не удалось сохранить внешний порт"
+		}
+	}
+}

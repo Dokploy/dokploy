@@ -1,0 +1,40 @@
+{
+	"sharedStatus": {
+		"idle": "Ожидание",
+		"error": "Ошибка",
+		"done": "Готово",
+		"running": "Запуск",
+		"cancelled": "Отменено"
+	},
+	"drawerLogs": {
+		"title": "Логи деплоя",
+		"description": "Вывод процесса деплоя в реальном времени."
+	},
+	"sharedDialog": {
+		"defaultTitle": "Вы уверены?",
+		"defaultDescription": "Это действие нельзя отменить.",
+		"cancel": "Отмена",
+		"confirm": "Подтвердить"
+	},
+	"tagPicker": {
+		"tags": "Теги",
+		"searchPlaceholder": "Поиск тегов...",
+		"clear": "Сбросить",
+		"noTagsFound": "Теги не найдены.",
+		"removeTagAria": "Удалить {name}",
+		"selectPlaceholder": "Выберите теги..."
+	},
+	"ui": {
+		"close": "Закрыть",
+		"toggleSidebar": "Переключить боковую панель",
+		"toggleTheme": "Переключить тему",
+		"breadcrumbNav": "Хлебные крошки",
+		"breadcrumbMore": "Ещё",
+		"generatePassword": "Сгенерировать пароль",
+		"secretsToggleVisibility": "Показать или скрыть секрет",
+		"showPassword": "Показать пароль",
+		"hidePassword": "Скрыть пароль",
+		"timeBadgeServerTime": "Время сервера:",
+		"fileTreeEmptyFolder": "Нет элементов"
+	}
+}

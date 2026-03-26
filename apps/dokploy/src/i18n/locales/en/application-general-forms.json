@@ -1,0 +1,118 @@
+{
+	"applicationGeneralForms": {
+		"shared": {
+			"providerSaved": "Service Provider Saved",
+			"pathRequired": "Path is required",
+			"repoRequired": "Repo is required",
+			"ownerRequired": "Owner is required",
+			"branchRequired": "Branch is required",
+			"repositoryRequired": "Repository is required",
+			"viewRepository": "View Repository",
+			"selectRepository": "Select repository",
+			"selectBranch": "Select branch",
+			"loadingShort": "Loading....",
+			"loadingRepos": "Loading Repositories....",
+			"loadingBranches": "Loading Branches....",
+			"selectGithubAccountFirst": "Select a GitHub account first",
+			"selectGitlabAccountFirst": "Select a GitLab account first",
+			"selectBitbucketAccountFirst": "Select a Bitbucket account first",
+			"selectGiteaAccountFirst": "Select a Gitea account first",
+			"selectRepositoryFirst": "Select a repository",
+			"searchRepository": "Search repository...",
+			"searchBranch": "Search branch...",
+			"noRepositoriesFound": "No repositories found.",
+			"noBranchFound": "No branch found.",
+			"buildPath": "Build Path",
+			"composePath": "Compose Path",
+			"composePathPlaceholder": "docker-compose.yml",
+			"branch": "Branch",
+			"repository": "Repository",
+			"watchPaths": "Watch Paths",
+			"watchPathsPlaceholder": "Enter a path to watch (e.g., src/**, dist/*.js)",
+			"watchPathsTooltip": "Add paths to watch for changes. When files in these paths change, a new deployment will be triggered.",
+			"watchPathsTooltipGit": "Add paths to watch for changes. When files in these paths change, a new deployment will be triggered. This will work only when manual webhook is setup.",
+			"enableSubmodules": "Enable Submodules",
+			"add": "Add",
+			"triggerType": "Trigger Type",
+			"triggerTypeTooltip": "Choose when to trigger deployments: on push to the selected branch or when a new tag is created.",
+			"selectTriggerType": "Select a trigger type",
+			"onPush": "On Push",
+			"onTag": "On Tag"
+		},
+		"docker": {
+			"validation": {
+				"imageRequired": "Docker image is required"
+			},
+			"toastSuccess": "Docker Provider Saved",
+			"toastError": "Error saving the Docker provider",
+			"dockerImage": "Docker Image",
+			"dockerImagePlaceholder": "node:16",
+			"registryUrl": "Registry URL",
+			"registryPlaceholder": "Registry URL",
+			"username": "Username",
+			"password": "Password"
+		},
+		"dragDrop": {
+			"toastSuccess": "Deployment saved",
+			"toastError": "Error saving the deployment",
+			"buildPath": "Build Path",
+			"buildPathPlaceholder": "Build Path",
+			"zipFile": "Zip file",
+			"dropMessage": "Drop files or click here",
+			"deploy": "Deploy"
+		},
+		"git": {
+			"validation": {
+				"pathRequired": "Path is required",
+				"repoUrlRequired": "Repository URL is required",
+				"branchRequired": "Branch required"
+			},
+			"toastSuccess": "Git Provider Saved",
+			"toastError": "Error saving the Git provider",
+			"repositoryUrl": "Repository URL",
+			"repositoryUrlPlaceholder": "Repository URL",
+			"sshKey": "SSH Key",
+			"selectKey": "Select a key",
+			"none": "None",
+			"keysCount": "Keys ({count})",
+			"addSshKey": "Add SSH Key",
+			"branch": "Branch",
+			"branchPlaceholder": "Branch",
+			"buildPath": "Build Path",
+			"watchPaths": "Watch Paths"
+		},
+		"github": {
+			"validation": {
+				"githubProviderRequired": "Github Provider is required"
+			},
+			"toastError": "Error saving the github provider",
+			"githubAccount": "Github Account",
+			"selectGithubAccount": "Select a Github Account"
+		},
+		"gitlab": {
+			"validation": {
+				"pathNamespaceRequired": "Path namespace is required",
+				"gitlabProviderRequired": "Gitlab Provider is required"
+			},
+			"toastError": "Error saving the gitlab provider",
+			"gitlabAccount": "Gitlab Account",
+			"selectGitlabAccount": "Select a Gitlab Account"
+		},
+		"bitbucket": {
+			"validation": {
+				"bitbucketProviderRequired": "Bitbucket Provider is required"
+			},
+			"toastError": "Error saving the Bitbucket provider",
+			"bitbucketAccount": "Bitbucket Account",
+			"selectBitbucketAccount": "Select a Bitbucket Account"
+		},
+		"gitea": {
+			"validation": {
+				"giteaProviderRequired": "Gitea Provider is required"
+			},
+			"toastError": "Error saving the Gitea provider",
+			"giteaAccount": "Gitea Account",
+			"selectGiteaAccount": "Select a Gitea Account"
+		}
+	}
+}

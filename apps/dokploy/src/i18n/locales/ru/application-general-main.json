@@ -1,0 +1,72 @@
+{
+	"applicationGeneralMain": {
+		"deployCardTitle": "Настройки деплоя",
+		"deploy": {
+			"dialogTitle": "Deploy Application",
+			"dialogDescription": "Запустить деплой этого приложения?",
+			"button": "Deploy",
+			"tooltip": "Скачивает исходники и выполняет полную сборку",
+			"toastSuccess": "Деплой запущен",
+			"toastError": "Не удалось задеплоить"
+		},
+		"reload": {
+			"dialogTitle": "Reload Application",
+			"dialogDescription": "Перезагрузить приложение?",
+			"button": "Reload",
+			"tooltip": "Перезапуск без пересборки",
+			"toastSuccess": "Приложение перезагружено",
+			"toastError": "Не удалось перезагрузить"
+		},
+		"rebuild": {
+			"dialogTitle": "Rebuild Application",
+			"dialogDescription": "Пересобрать приложение?",
+			"button": "Rebuild",
+			"tooltip": "Только пересборка без скачивания нового кода",
+			"toastSuccess": "Пересборка выполнена",
+			"toastError": "Не удалось пересобрать"
+		},
+		"start": {
+			"dialogTitle": "Start Application",
+			"dialogDescription": "Запустить приложение?",
+			"button": "Start",
+			"tooltip": "Запуск (нужна успешная сборка)",
+			"toastSuccess": "Приложение запущено",
+			"toastError": "Не удалось запустить"
+		},
+		"stop": {
+			"dialogTitle": "Stop Application",
+			"dialogDescription": "Остановить приложение?",
+			"button": "Stop",
+			"tooltip": "Остановить текущий процесс",
+			"toastSuccess": "Приложение остановлено",
+			"toastError": "Не удалось остановить"
+		},
+		"openTerminal": "Open Terminal",
+		"autodeploy": {
+			"label": "Autodeploy",
+			"ariaLabel": "Autodeploy",
+			"toastSuccess": "Autodeploy обновлён",
+			"toastError": "Не удалось обновить Autodeploy"
+		},
+		"cleanCache": {
+			"label": "Clean Cache",
+			"ariaLabel": "Clean Cache",
+			"toastSuccess": "Clean Cache обновлено",
+			"toastError": "Не удалось обновить Clean Cache"
+		},
+		"editApplication": {
+			"dialogTitle": "Изменить приложение",
+			"dialogDescription": "Обновите данные приложения",
+			"nameLabel": "Имя",
+			"namePlaceholder": "Vandelay Industries",
+			"descriptionLabel": "Описание",
+			"descriptionPlaceholder": "Описание проекта...",
+			"submit": "Обновить",
+			"toastSuccess": "Приложение обновлено",
+			"toastError": "Не удалось обновить приложение",
+			"validation": {
+				"nameRequired": "Укажите имя"
+			}
+		}
+	}
+}

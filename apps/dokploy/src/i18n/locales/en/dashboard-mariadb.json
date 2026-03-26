@@ -1,0 +1,66 @@
+{
+	"mariadbDashboard": {
+		"update": {
+			"nameRequired": "Name is required",
+			"title": "Modify MariaDB",
+			"description": "Update the MariaDB data",
+			"nameLabel": "Name",
+			"namePlaceholder": "Vandelay Industries",
+			"descriptionLabel": "Description",
+			"descriptionPlaceholder": "Description about your project...",
+			"updateButton": "Update",
+			"toastSuccess": "MariaDB updated successfully",
+			"toastError": "Error updating MariaDB"
+		},
+		"general": {
+			"cardTitle": "Deploy settings",
+			"deployDialogTitle": "Deploy MariaDB",
+			"deployDialogDescription": "Are you sure you want to deploy this MariaDB?",
+			"deploy": "Deploy",
+			"deployTooltip": "Downloads and sets up the MariaDB database",
+			"reloadDialogTitle": "Reload MariaDB",
+			"reloadDialogDescription": "Are you sure you want to reload this MariaDB?",
+			"reload": "Reload",
+			"reloadTooltip": "Restart the MariaDB service without rebuilding",
+			"reloadToastSuccess": "MariaDB reloaded successfully",
+			"reloadToastError": "Error reloading MariaDB",
+			"startDialogTitle": "Start MariaDB",
+			"startDialogDescription": "Are you sure you want to start this MariaDB?",
+			"start": "Start",
+			"startTooltip": "Start the MariaDB database (requires a previous successful setup)",
+			"startToastSuccess": "MariaDB started successfully",
+			"startToastError": "Error starting MariaDB",
+			"stopDialogTitle": "Stop MariaDB",
+			"stopDialogDescription": "Are you sure you want to stop this MariaDB?",
+			"stop": "Stop",
+			"stopTooltip": "Stop the currently running MariaDB database",
+			"stopToastSuccess": "MariaDB stopped successfully",
+			"stopToastError": "Error stopping MariaDB",
+			"openTerminal": "Open terminal",
+			"openTerminalTooltip": "Open a terminal to the MariaDB container"
+		},
+		"internal": {
+			"cardTitle": "Internal credentials",
+			"user": "User",
+			"databaseName": "Database name",
+			"password": "Password",
+			"rootPassword": "Root password",
+			"internalPort": "Internal port (container)",
+			"internalHost": "Internal host",
+			"internalConnectionUrl": "Internal connection URL"
+		},
+		"external": {
+			"cardTitle": "External credentials",
+			"cardDescription": "To make the database reachable over the internet, set a port and ensure it is not used by another application or database.",
+			"ipWarningPrefix": "You need to set an IP address in your",
+			"ipWarningSuffix": "to fix the database URL connection.",
+			"ipLinkRemote": "Remote servers → Server → Edit server → Update IP address",
+			"ipLinkWebServer": "Web server → Server → Update server IP",
+			"portRangeError": "Port must be between 0 and 65535",
+			"externalPortLabel": "External port (internet)",
+			"externalHost": "External host",
+			"toastPortSuccess": "External port updated",
+			"toastPortError": "Error saving the external port"
+		}
+	}
+}

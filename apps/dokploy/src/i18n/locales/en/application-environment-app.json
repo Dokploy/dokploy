@@ -1,0 +1,28 @@
+{
+	"applicationEnvironment": {
+		"env": {
+			"title": "Environment Settings",
+			"description": "You can add environment variables to your resource.",
+			"unsavedHint": "(You have unsaved changes)",
+			"placeholder": "NODE_ENV=production\nPORT=3000"
+		},
+		"buildArgs": {
+			"title": "Build-time Arguments",
+			"descRich": "Arguments are available only at build-time. See documentation <link>here</link>.",
+			"placeholder": "NPM_TOKEN=xyz"
+		},
+		"buildSecrets": {
+			"title": "Build-time Secrets",
+			"descRich": "Secrets are specially designed for sensitive information and are only available at build-time. See documentation <link>here</link>.",
+			"placeholder": "NPM_TOKEN=xyz"
+		},
+		"createEnvFile": {
+			"label": "Create Environment File",
+			"description": "When enabled, an .env file will be created in the same directory as your Dockerfile during the build process. Disable this if you don't want to generate an environment file."
+		},
+		"toast": {
+			"success": "Environments Added",
+			"error": "Error adding environment"
+		}
+	}
+}

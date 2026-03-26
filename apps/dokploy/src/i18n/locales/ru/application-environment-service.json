@@ -1,0 +1,13 @@
+{
+	"applicationEnvironmentService": {
+		"title": "Переменные окружения",
+		"description": "Можно задать переменные окружения для ресурса.",
+		"unsavedHint": "(есть несохранённые изменения)",
+		"placeholderEditor": "NODE_ENV=production\nPORT=3000\n",
+		"toggleVisibilityAria": "Показать или скрыть значения",
+		"toast": {
+			"success": "Окружение сохранено",
+			"error": "Не удалось сохранить окружение"
+		}
+	}
+}

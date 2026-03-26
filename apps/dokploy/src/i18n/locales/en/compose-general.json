@@ -1,0 +1,103 @@
+{
+	"composeGeneral": {
+		"editCompose": {
+			"dialogTitle": "Modify Compose",
+			"dialogDescription": "Update the compose data",
+			"nameLabel": "Name",
+			"namePlaceholder": "Vandelay Industries",
+			"descriptionLabel": "Description",
+			"descriptionPlaceholder": "Description about your project...",
+			"submit": "Update",
+			"toastSuccess": "Compose updated successfully",
+			"toastError": "Error updating the Compose",
+			"validation": {
+				"nameRequired": "Name is required"
+			}
+		},
+		"deployCard": {
+			"title": "Deploy Settings",
+			"description": "Create a compose file to deploy your compose",
+			"badgeCompose": "Compose",
+			"badgeStack": "Stack"
+		},
+		"actions": {
+			"deploy": {
+				"dialogTitle": "Deploy Compose",
+				"dialogDescription": "Are you sure you want to deploy this compose?",
+				"button": "Deploy",
+				"tooltip": "Downloads the source code and performs a complete build",
+				"toastSuccess": "Compose deployed successfully",
+				"toastError": "Error deploying compose"
+			},
+			"reload": {
+				"dialogTitle": "Reload Compose",
+				"dialogDescription": "Are you sure you want to reload this compose?",
+				"button": "Reload",
+				"tooltip": "Reload the compose without rebuilding it",
+				"toastSuccess": "Compose reloaded successfully",
+				"toastError": "Error reloading compose"
+			},
+			"start": {
+				"dialogTitle": "Start Compose",
+				"dialogDescription": "Are you sure you want to start this compose?",
+				"button": "Start",
+				"tooltip": "Start the compose (requires a previous successful build)",
+				"toastSuccess": "Compose started successfully",
+				"toastError": "Error starting compose"
+			},
+			"stop": {
+				"dialogTitle": "Stop Compose",
+				"dialogDescription": "Are you sure you want to stop this compose?",
+				"button": "Stop",
+				"tooltip": "Stop the currently running compose",
+				"toastSuccess": "Compose stopped successfully",
+				"toastError": "Error stopping compose"
+			},
+			"openTerminal": "Open Terminal",
+			"autodeploy": {
+				"label": "Autodeploy",
+				"ariaLabel": "Toggle autodeploy",
+				"toastSuccess": "Auto Deploy Updated",
+				"toastError": "Error updating Auto Deploy"
+			}
+		},
+		"composeFileEditor": {
+			"title": "Compose File",
+			"description": "Configure your Docker Compose file for this service.",
+			"unsavedHint": "(You have unsaved changes)",
+			"save": "Save",
+			"toastSuccess": "Compose config Updated",
+			"toastError": "Error updating the Compose config",
+			"invalidYaml": "Invalid YAML"
+		},
+		"randomize": {
+			"title": "Randomize Compose (Experimental)",
+			"description": "Use this in case you want to deploy the same compose file and you have conflicts with some property like volumes, networks, etc.",
+			"intro": "This will randomize the compose file and will add a suffix to the property to avoid conflicts",
+			"listVolumes": "volumes",
+			"listNetworks": "networks",
+			"listServices": "services",
+			"listConfigs": "configs",
+			"listSecrets": "secrets",
+			"envInfo": "When you activate this option, we will include a env `COMPOSE_PREFIX` variable to the compose file so you can use it in your compose file.",
+			"suffixLabel": "Suffix",
+			"suffixPlaceholder": "Enter a suffix (Optional, example: prod)",
+			"applyRandomizeLabel": "Apply Randomize",
+			"applyRandomizeDescription": "Apply randomize to the compose file.",
+			"save": "Save",
+			"randomButton": "Random",
+			"toastUpdateSuccess": "Compose updated",
+			"toastRandomizeError": "Error randomizing the compose"
+		},
+		"showConverted": {
+			"trigger": "Preview Compose",
+			"dialogTitle": "Converted Compose",
+			"dialogDescription": "Preview your docker-compose file with added domains. Note: At least one domain must be specified for this conversion to take effect.",
+			"alertInfo": "Preview your docker-compose file with added domains. Note: At least one domain must be specified for this conversion to take effect.",
+			"emptyState": "No converted compose data available.",
+			"refresh": "Refresh",
+			"toastFetchSuccess": "Fetched source type",
+			"toastFetchError": "Error fetching source type"
+		}
+	}
+}

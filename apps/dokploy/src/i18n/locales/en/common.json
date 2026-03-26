@@ -1,0 +1,21 @@
+{
+	"common": {
+		"save": "Save",
+		"cancel": "Cancel",
+		"confirm": "Confirm",
+		"delete": "Delete",
+		"create": "Create",
+		"settings": "Settings",
+		"loading": "Loading...",
+		"error": "Error",
+		"success": "Success",
+		"home": "Home",
+		"help": "Help",
+		"account": "Account"
+	},
+	"language": {
+		"label": "Language",
+		"ru": "Russian",
+		"en": "English"
+	}
+}

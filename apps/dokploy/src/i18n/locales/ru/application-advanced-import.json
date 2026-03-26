@@ -1,0 +1,29 @@
+{
+	"applicationAdvancedImport": {
+		"title": "Импорт",
+		"description": "Импорт конфигурации шаблона",
+		"warning": "Внимание: импорт шаблона удалит текущие переменные окружения, монтирования и домены этого сервиса.",
+		"labelBase64": "Конфигурация (Base64)",
+		"placeholderBase64": "Вставьте Base64 конфигурации...",
+		"load": "Загрузить",
+		"dialogTitle": "Информация о шаблоне",
+		"dialogDescription": "Проверьте данные перед импортом",
+		"warningDialog": "Внимание: будут удалены текущие переменные окружения, монтирования и домены этого сервиса.",
+		"dockerCompose": "Docker Compose",
+		"domains": "Домены",
+		"portLabel": "Порт:",
+		"hostLabel": "Host:",
+		"pathLabel": "Path:",
+		"envVars": "Переменные окружения",
+		"mounts": "Монтирования",
+		"import": "Импорт",
+		"mountDialogTitle": "Содержимое файла монтирования",
+		"close": "Закрыть",
+		"toast": {
+			"base64Required": "Введите Base64 шаблона",
+			"importSuccess": "Шаблон импортирован",
+			"importError": "Ошибка импорта шаблона",
+			"processError": "Ошибка обработки шаблона"
+		}
+	}
+}

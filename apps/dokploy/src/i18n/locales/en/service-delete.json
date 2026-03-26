@@ -1,0 +1,17 @@
+{
+	"deleteService": {
+		"dialogTitle": "Are you absolutely sure?",
+		"dialogDescription": "This action cannot be undone. This will permanently delete the service. If you are sure please enter the service name to delete this service.",
+		"confirmRich": "To confirm, type <badge></badge> in the box below:",
+		"placeholder": "Enter service name to confirm",
+		"toastCopy": "Copied to clipboard. Be careful!",
+		"deleteVolumesLabel": "Delete volumes associated with this compose",
+		"runningWarning": "Cannot delete the service while it is running. Please wait for the build to finish and then try again.",
+		"toastSuccess": "Service deleted successfully",
+		"toastError": "Error deleting the service",
+		"validation": {
+			"nameRequired": "Service name is required",
+			"mismatch": "Project name must match \"{expected}\""
+		}
+	}
+}

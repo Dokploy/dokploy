@@ -1,0 +1,21 @@
+{
+	"applicationAdvancedCluster": {
+		"title": "Настройки кластера",
+		"description": "Измените параметры Swarm для сервиса.",
+		"alertRedeploy": "После изменения настроек кластера нажмите Redeploy, чтобы применить изменения.",
+		"replicas": "Replicas",
+		"placeholderReplicas": "1",
+		"selectRegistry": "Выберите registry",
+		"placeholderRegistry": "Выберите registry",
+		"none": "Нет",
+		"registriesCount": "Registries ({count})",
+		"emptyRegistryRich": "Для функций кластера нужен хотя бы один registry. Перейдите в <link>Настройки</link>.",
+		"validation": {
+			"replicasMin": "Replicas должно быть не меньше 1"
+		},
+		"toast": {
+			"success": "Настройки кластера обновлены",
+			"error": "Не удалось обновить настройки кластера"
+		}
+	}
+}

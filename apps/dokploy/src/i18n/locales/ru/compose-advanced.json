@@ -1,0 +1,32 @@
+{
+	"composeAdvanced": {
+		"command": {
+			"title": "Команда запуска",
+			"description": "Переопределить команду в compose-файле",
+			"warning": "Изменение команды по умолчанию может повлиять на стабильность деплоя, логи и мониторинг. Действуйте осторожно и тестируйте. По умолчанию команда начинается с <strong>docker</strong>.",
+			"fieldLabel": "Команда",
+			"placeholder": "Своя команда",
+			"defaultCommand": "Команда по умолчанию ({command})",
+			"save": "Сохранить",
+			"toastSuccess": "Команда обновлена",
+			"toastError": "Ошибка обновления команды"
+		},
+		"isolation": {
+			"title": "Изолированный деплой",
+			"descriptionIntro": "Настройка изолированного деплоя в compose-файле.",
+			"descriptionBody": "Создаётся изолированная среда: уникальные префиксы для ресурсов и отдельная сеть по имени compose. Сервисы не конфликтуют при нескольких экземплярах одного шаблона или одинаковых имён.",
+			"resourcesHeading": "Изолируемые ресурсы:",
+			"resourceNetworks": "Docker networks",
+			"switchLabel": "Изолированный деплой ({appName})",
+			"switchDescription": "Включить изолированный деплой в compose-файле.",
+			"save": "Сохранить",
+			"previewButton": "Предпросмотр Compose",
+			"dialogTitle": "Предпросмотр изолированного деплоя",
+			"dialogDescription": "Предпросмотр compose с конфигурацией изолированного деплоя",
+			"generating": "Генерация предпросмотра compose...",
+			"toastSuccess": "Compose обновлён",
+			"toastError": "Ошибка обновления compose",
+			"toastPreviewError": "Ошибка генерации предпросмотра"
+		}
+	}
+}

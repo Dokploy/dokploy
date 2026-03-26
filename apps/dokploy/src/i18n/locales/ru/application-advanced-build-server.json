@@ -1,0 +1,30 @@
+{
+	"applicationAdvancedBuildServer": {
+		"title": "Build Server",
+		"description": "Настройте выделенный сервер для сборки приложения.",
+		"alerts": {
+			"infoOffload": "Build Server переносит процесс сборки с серверов деплоя. Выберите build server и registry для сборки приложения.",
+			"infoImportantRich": "📊 <imp>Важно:</imp> После окончания сборки подождите несколько секунд, пока сервер деплоя скачает образ. Эти логи скачивания <not>НЕ</not> попадут в логи деплоя сборки. Откройте вкладку <logs>Logs</logs>, чтобы увидеть запуск контейнера.",
+			"infoNoteRich": "<note>Примечание:</note> Build Server и Build Registry нужно настраивать вместе: либо выберите оба, либо установите оба в None.",
+			"registryRequiredRich": "Чтобы использовать build servers, добавьте хотя бы один registry. Перейдите в <link>Настройки</link>, чтобы добавить registry."
+		},
+		"form": {
+			"buildServer": "Build Server",
+			"buildRegistry": "Build Registry",
+			"placeholderServer": "Выберите build server",
+			"placeholderRegistry": "Выберите registry",
+			"none": "Нет",
+			"buildServersCount": "Build Servers ({count})",
+			"registriesCount": "Registries ({count})",
+			"descServer": "Выберите build server для процесса сборки этого приложения.",
+			"descRegistry": "Выберите registry для хранения собранных образов с build server."
+		},
+		"validation": {
+			"bothOrNone": "Нужно выбрать и Build Server, и Build Registry вместе, либо установить оба в None"
+		},
+		"toast": {
+			"success": "Настройки Build Server обновлены",
+			"error": "Не удалось обновить настройки build server"
+		}
+	}
+}
