@@ -107,13 +107,14 @@ type EnabledOpts = {
 	permissions?: PermissionsOutput;
 	isCloud: boolean;
 };
+type EnabledRule = boolean | ((opts: EnabledOpts) => boolean);
 
 type SingleNavItem = {
 	isSingle?: true;
 	title: string;
 	url: string;
 	icon?: LucideIcon;
-	isEnabled?: (opts: EnabledOpts) => boolean;
+	isEnabled?: EnabledRule;
 };
 
 // NavItem type
@@ -127,7 +128,7 @@ type NavItem =
 			title: string;
 			icon: LucideIcon;
 			items: SingleNavItem[];
-			isEnabled?: (opts: EnabledOpts) => boolean;
+			isEnabled?: EnabledRule;
 	  };
 
 // ExternalLink type
@@ -136,7 +137,7 @@ type ExternalLink = {
 	name: string;
 	url: string;
 	icon: React.ComponentType<{ className?: string }>;
-	isEnabled?: (opts: EnabledOpts) => boolean;
+	isEnabled?: EnabledRule;
 };
 
 // Menu type
@@ -175,62 +176,34 @@ const MENU: Menu = {
 			isEnabled: ({ isCloud, permissions }) =>
 				!isCloud && !!permissions?.monitoring.read,
 		},
-
-		// Legacy unused menu, adjusted to the new structure
-		// {
-		// 	isSingle: true,
-		// 	title: "Projects",
-		// 	url: "/dashboard/projects",
-		// 	icon: Folder,
-		// },
-		// {
-		// 	isSingle: true,
-		// 	title: "Monitoring",
-		// 	icon: BarChartHorizontalBigIcon,
-		// 	url: "/dashboard/settings/monitoring",
-		// },
-		// {
-		//   isSingle: false,
-		//   title: "Settings",
-		//   icon: Settings2,
-		//   items: [
-		//     {
-		//       title: "Profile",
-		//       url: "/dashboard/settings/profile",
-		//     },
-		//     {
-		//       title: "Users",
-		//       url: "/dashboard/settings/users",
-		//     },
-		//     {
-		//       title: "SSH Key",
-		//       url: "/dashboard/settings/ssh-keys",
-		//     },
-		//     {
-		//       title: "Git",
-		//       url: "/dashboard/settings/git-providers",
-		//     },
-		//   ],
-		// },
-		// {
-		//   isSingle: false,
-		//   title: "Integrations",
-		//   icon: BlocksIcon,
-		//   items: [
-		//     {
-		//       title: "S3 Destinations",
-		//       url: "/dashboard/settings/destinations",
-		//     },
-		//     {
-		//       title: "Registry",
-		//       url: "/dashboard/settings/registry",
-		//     },
-		//     {
-		//       title: "Notifications",
-		//       url: "/dashboard/settings/notifications",
-		//     },
-		//   ],
-		// },
+		{
+			isSingle: true,
+			title: "dashboard.schedules",
+			url: "/dashboard/schedules",
+			icon: Clock,
+			isEnabled: false,
+		},
+		{
+			isSingle: true,
+			title: "dashboard.traefikFileSystem",
+			url: "/dashboard/traefik",
+			icon: GalleryVerticalEnd,
+			isEnabled: false,
+		},
+		{
+			isSingle: true,
+			title: "dashboard.docker",
+			url: "/dashboard/docker",
+			icon: BlocksIcon,
+			isEnabled: false,
+		},
+		{
+			isSingle: true,
+			title: "dashboard.requests",
+			url: "/dashboard/requests",
+			icon: Forward,
+			isEnabled: false,
+		},
 	],
 
 	settings: [
@@ -295,6 +268,83 @@ const MENU: Menu = {
 			// Only enabled for owners in cloud environments
 			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && isCloud),
 		},
+		{
+			isSingle: true,
+			title: "dashboard.settings.users",
+			icon: Users,
+			url: "/dashboard/settings/users",
+			isEnabled: false,
+		},
+		{
+			isSingle: true,
+			title: "dashboard.settings.auditLogs",
+			icon: ClipboardList,
+			url: "/dashboard/settings/audit-logs",
+			isEnabled: false,
+		},
+		{
+			isSingle: true,
+			title: "dashboard.settings.ai",
+			icon: BotIcon,
+			url: "/dashboard/settings/ai",
+			isEnabled: false,
+		},
+		{
+			isSingle: true,
+			title: "dashboard.settings.tags",
+			url: "/dashboard/settings/tags",
+			icon: Tags,
+			isEnabled: false,
+		},
+		{
+			isSingle: true,
+			title: "dashboard.settings.registry",
+			url: "/dashboard/settings/registry",
+			icon: Package,
+			isEnabled: false,
+		},
+		{
+			isSingle: true,
+			title: "dashboard.settings.s3Destinations",
+			url: "/dashboard/settings/destinations",
+			icon: Database,
+			isEnabled: false,
+		},
+		{
+			isSingle: true,
+			title: "dashboard.settings.certificates",
+			url: "/dashboard/settings/certificates",
+			icon: ShieldCheck,
+			isEnabled: false,
+		},
+		{
+			isSingle: true,
+			title: "dashboard.settings.cluster",
+			url: "/dashboard/settings/cluster",
+			icon: Boxes,
+			isEnabled: false,
+		},
+		{
+			isSingle: true,
+			title: "dashboard.settings.license",
+			url: "/dashboard/settings/license",
+			icon: KeyRound,
+			isEnabled: false,
+		},
+		{
+			isSingle: true,
+			title: "dashboard.settings.sso",
+			url: "/dashboard/settings/sso",
+			icon: LogIn,
+			isEnabled: false,
+		},
+		{
+			isSingle: true,
+			title: "dashboard.settings.whitelabeling",
+			url: "/dashboard/settings/whitelabeling",
+			icon: Palette,
+			isEnabled: false,
+		},
 	],
 
 	help: [
@@ -304,7 +354,7 @@ const MENU: Menu = {
 			icon: BookOpen,
 		},
 		{
-			name: "help.support",
+			name: "help.support",	
 			url: "https://t.me/double_cumboy",
 			icon: MessageCircle,
 		},
@@ -326,19 +376,19 @@ function createMenuForAuthUser(opts: {
 }): Menu {
 	const filterEnabled = <
 		T extends {
-			isEnabled?: (o: EnabledOpts) => boolean;
+			isEnabled?: EnabledRule;
 		},
 	>(
 		items: readonly T[],
 	): T[] =>
 		items.filter((item) =>
-			!item.isEnabled
-				? true
-				: item.isEnabled({
+			typeof item.isEnabled === "function"
+				? item.isEnabled({
 						auth: opts.auth,
 						permissions: opts.permissions,
 						isCloud: opts.isCloud,
-					}),
+					})
+				: (item.isEnabled ?? true),
 		) as T[];
 
 	// Apply whitelabeling URL overrides to help items
