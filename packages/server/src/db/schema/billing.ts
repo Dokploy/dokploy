@@ -9,7 +9,10 @@ export const subscription = pgTable("subscription", {
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
-	userId: text("userId").notNull().unique(),
+	userId: text("userId")
+		.notNull()
+		.unique()
+		.references(() => user.id, { onDelete: "cascade", onUpdate: "no action" }),
 	plan: text("plan").notNull(),
 	status: text("status").notNull(),
 	rebillId: text("rebillId"),
@@ -25,7 +28,9 @@ export const payment = pgTable("payment", {
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
-	userId: text("userId").notNull(),
+	userId: text("userId")
+		.notNull()
+		.references(() => user.id, { onDelete: "cascade", onUpdate: "no action" }),
 	tinkoffPaymentId: text("tinkoffPaymentId"),
 	orderId: text("orderId").notNull().unique(),
 	amount: integer("amount").notNull(),

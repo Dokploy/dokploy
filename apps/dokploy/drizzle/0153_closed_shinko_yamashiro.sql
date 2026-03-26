@@ -24,3 +24,6 @@ CREATE TABLE "subscription" (
 	"updatedAt" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "subscription_userId_unique" UNIQUE("userId")
 );
+--> statement-breakpoint
+ALTER TABLE "payment" ADD CONSTRAINT "payment_userId_user_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "subscription" ADD CONSTRAINT "subscription_userId_user_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;
