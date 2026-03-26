@@ -22,7 +22,9 @@ const normalizeBody = (body: unknown): Record<string, string> => {
 	if (!isRecord(body)) return {};
 	const result: Record<string, string> = {};
 	for (const [k, v] of Object.entries(body)) {
-		if (typeof v === "string") result[k] = v;
+		if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+			result[k] = String(v);
+		}
 	}
 	return result;
 };
