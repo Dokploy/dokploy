@@ -9,7 +9,7 @@
 
 # ── Настройки образа ──────────────────────────────────────────────────────────
 # Замени YOUR_GITHUB_USERNAME на свой username/org в GitHub
-GITHUB_OWNER="MkinG2k0"
+GITHUB_OWNER="mking2k0"
 IMAGE_NAME="ghcr.io/${GITHUB_OWNER}/dokploy"
 GITHUB_REPO="${GITHUB_OWNER}/dokploy"
 # ─────────────────────────────────────────────────────────────────────────────
