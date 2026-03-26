@@ -57,9 +57,10 @@ export const UpdateServer = ({
 	const [isOpenInternal, setIsOpenInternal] = useState(false);
 
 	const handleCheckUpdates = async () => {
-		try {
+		try {	
 			const updateData = await getUpdateData();
-			const versionToUpdate = updateData.latestVersion || "";
+		
+			const versionToUpdate = updateData.latestVersion || "";	
 			setHasCheckedUpdate(true);
 			setIsUpdateAvailable(updateData.updateAvailable);
 			setLatestVersion(versionToUpdate);

@@ -50,7 +50,7 @@ export const getUpdateData = async (
 ): Promise<IUpdateData> => {
 	try {
 		const baseUrl =
-			"https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
+			"https://hub.docker.com/v2/repositories/kamik2k/deploybox/tags";
 		let url: string | null = `${baseUrl}?page_size=100`;
 		let allResults: { digest: string; name: string }[] = [];
 
