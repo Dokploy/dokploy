@@ -49,7 +49,6 @@ import { ShowMonitoringModal } from "./show-monitoring-modal";
 import { ShowSchedulesModal } from "./show-schedules-modal";
 import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
-import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
 
 export const ShowServers = () => {
 	const t = useTranslations("settingsServers");
@@ -59,13 +58,10 @@ export const ShowServers = () => {
 	const { mutateAsync } = api.server.remove.useMutation();
 	const { data: sshKeys } = api.sshKey.all.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data: canCreateMoreServers } =
-		api.stripe.canCreateMoreServers.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	return (
 		<div className="w-full">
-			{query?.success && isCloud && <WelcomeSuscription />}
 			<Card className="h-full  p-2.5 rounded-xl  max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
@@ -79,7 +75,7 @@ export const ShowServers = () => {
 							<span
 								className="bg-gradient-to-r cursor-pointer from-blue-600 via-green-500 to-indigo-400 inline-block text-transparent bg-clip-text text-sm"
 								onClick={() => {
-									router.push("/dashboard/settings/servers?success=true");
+									router.push("/dashboard/settings/servers");
 								}}
 							>
 								{t("resetOnboarding")}

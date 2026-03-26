@@ -3,6 +3,7 @@ import { adminRouter } from "./routers/admin";
 import { aiRouter } from "./routers/ai";
 import { applicationRouter } from "./routers/application";
 import { backupRouter } from "./routers/backup";
+import { billingRouter } from "./routers/billing";
 import { bitbucketRouter } from "./routers/bitbucket";
 import { certificateRouter } from "./routers/certificate";
 import { clusterRouter } from "./routers/cluster";
@@ -41,7 +42,6 @@ import { securityRouter } from "./routers/security";
 import { serverRouter } from "./routers/server";
 import { settingsRouter } from "./routers/settings";
 import { sshRouter } from "./routers/ssh-key";
-import { stripeRouter } from "./routers/stripe";
 import { swarmRouter } from "./routers/swarm";
 import { tagRouter } from "./routers/tag";
 import { userRouter } from "./routers/user";
@@ -67,6 +67,7 @@ export const appRouter = createTRPCRouter({
 	domain: domainRouter,
 	destination: destinationRouter,
 	backup: backupRouter,
+	billing: billingRouter,
 	deployment: deploymentRouter,
 	previewDeployment: previewDeploymentRouter,
 	mounts: mountRouter,
@@ -85,7 +86,6 @@ export const appRouter = createTRPCRouter({
 	gitlab: gitlabRouter,
 	github: githubRouter,
 	server: serverRouter,
-	stripe: stripeRouter,
 	swarm: swarmRouter,
 	ai: aiRouter,
 	organization: organizationRouter,

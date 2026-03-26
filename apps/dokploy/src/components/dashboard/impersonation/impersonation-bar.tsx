@@ -362,46 +362,6 @@ export const ImpersonationBar = () => {
 													</Button>
 												</span>
 											</span>
-											{data?.user?.stripeCustomerId && (
-												<span className="flex items-center gap-1">
-													<CreditCard className="h-3 w-3" />
-													<span className="flex items-center gap-1">
-														{t("customerPrefix")}
-														{data?.user?.stripeCustomerId?.slice(0, 8)}
-														<Button
-															variant="ghost"
-															size="icon"
-															className="h-4 w-4 hover:bg-muted/50"
-															onClick={() => {
-																copy(data?.user?.stripeCustomerId || "");
-																toast.success(t("toastStripeCustomerCopied"));
-															}}
-														>
-															<Copy className="h-3 w-3" />
-														</Button>
-													</span>
-												</span>
-											)}
-											{data?.user?.stripeSubscriptionId && (
-												<span className="flex items-center gap-1">
-													<CreditCard className="h-3 w-3" />
-													<span className="flex items-center gap-1">
-														{t("subPrefix")}{" "}
-														{data?.user?.stripeSubscriptionId?.slice(0, 8)}
-														<Button
-															variant="ghost"
-															size="icon"
-															className="h-4 w-4 hover:bg-muted/50"
-															onClick={() => {
-																copy(data.user.stripeSubscriptionId || "");
-																toast.success(t("toastStripeSubCopied"));
-															}}
-														>
-															<Copy className="h-3 w-3" />
-														</Button>
-													</span>
-												</span>
-											)}
 											{data?.user?.serversQuantity !== undefined && (
 												<span className="flex items-center gap-1">
 													<Server className="h-3 w-3" />

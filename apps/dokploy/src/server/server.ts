@@ -7,6 +7,7 @@ import {
 	initCancelDeployments,
 	initCronJobs,
 	initEnterpriseBackupCronJobs,
+	initChargeSubscriptionsCronJobs,
 	initializeNetwork,
 	initSchedules,
 	initVolumeBackupsCronJobs,
@@ -39,8 +40,15 @@ if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 
 const app = next({ dev, turbopack: process.env.TURBOPACK === "1" });
 const handle = app.getRequestHandler();
-void app.prepare().then(async () => {
+void (async () => {
 	try {
+		if (dev && process.env.SKIP_DEV_MIGRATIONS !== "1") {
+			const { runDevMigrations } = await import("./run-dev-migrations");
+			await runDevMigrations();
+		}
+
+		await app.prepare();
+
 		console.log("Running DokployVersion: ", packageInfo.version);
 		const server = http.createServer((req, res) => {
 			handle(req, res);
@@ -69,6 +77,9 @@ void app.prepare().then(async () => {
 		server.listen(PORT, HOST);
 		console.log(`Server Started on: http://${HOST}:${PORT}`);
 		await initEnterpriseBackupCronJobs();
+		if (IS_CLOUD) {
+			await initChargeSubscriptionsCronJobs();
+		}
 
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");
@@ -78,4 +89,4 @@ void app.prepare().then(async () => {
 	} catch (e) {
 		console.error("Main Server Error", e);
 	}
-});
+})();

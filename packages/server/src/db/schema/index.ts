@@ -3,6 +3,7 @@ export * from "./ai";
 export * from "./audit-log";
 export * from "./application";
 export * from "./backups";
+export * from "./billing";
 export * from "./bitbucket";
 export * from "./certificate";
 export * from "./compose";

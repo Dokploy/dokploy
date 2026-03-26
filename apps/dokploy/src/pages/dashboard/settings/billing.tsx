@@ -4,12 +4,12 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
-import { ShowBilling } from "@/components/dashboard/settings/billing/show-billing";
+import { BillingPage } from "@/components/billing/BillingPage";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
 
 const Page = () => {
-	return <ShowBilling />;
+	return <BillingPage />;
 };
 
 export default Page;

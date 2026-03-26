@@ -229,7 +229,7 @@ export default function Home({ IS_CLOUD }: Props) {
 						/>
 						{t("auth.signIn")}
 					</div>
-				</h1>
+				</h1>	
 				<p className="text-sm text-muted-foreground">
 					{t("auth.login.subtitle")}
 				</p>

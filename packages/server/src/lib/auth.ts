@@ -24,6 +24,10 @@ import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
+import { logger } from "./logger";
+
+const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
+const HAS_SMTP_SERVER = Boolean(process.env.SMTP_SERVER?.trim());
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -107,15 +111,21 @@ const { handler, api } = betterAuth({
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
 		sendVerificationEmail: async ({ user, url }) => {
-			if (IS_CLOUD) {
-				await sendEmail({
-					email: user.email,
-					subject: "Verify your email",
-					text: `
+			if (!IS_CLOUD) return;
+			if (IS_DEVELOPMENT && !HAS_SMTP_SERVER) {
+				logger.warn(
+					{ email: user.email, verifyUrl: url },
+					"IS_CLOUD dev: SMTP_SERVER not set; skipping verification email. Open verifyUrl to verify the account.",
+				);
+				return;
+			}
+			await sendEmail({
+				email: user.email,
+				subject: "Verify your email",
+				text: `
 				<p>Click the link to verify your email: <a href="${url}">Verify Email</a></p>
 				`,
-				});
-			}
+			});
 		},
 	},
 	emailAndPassword: {

@@ -14,6 +14,7 @@ import { authClient } from "@/lib/auth-client";
 import { getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { useTranslations } from "next-intl";
+import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
 import { LanguageSwitcher } from "../language-switcher";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
@@ -52,7 +53,10 @@ export const UserNav = () => {
 						<span className="truncate font-semibold">
 							{t("common.account")}
 						</span>
-						<span className="truncate text-xs">{data?.user?.email}</span>
+						<span className="truncate text-xs flex flex-row gap-2 items-center">
+							{data?.user?.email}
+							{isCloud ? <SubscriptionBadge /> : null}
+						</span>
 					</div>
 					<ChevronsUpDown className="ml-auto size-4" />
 				</SidebarMenuButton>

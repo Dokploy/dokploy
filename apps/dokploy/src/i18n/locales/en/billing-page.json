@@ -4,6 +4,35 @@
 		"free": "Free",
 		"pro": "Pro",
 		"agency": "Agency",
-		"upgrade": "Upgrade plan"
+		"upgrade": "Upgrade plan",
+		"subscriptionTitle": "Subscription",
+		"plansTitle": "Plans",
+		"historyTitle": "Payment history",
+		"statusLabel": "Status",
+		"planLabel": "Plan",
+		"nextCharge": "Next renewal",
+		"nextChargeNotApplicable": "No automatic renewal",
+		"cancelSubscription": "Cancel subscription",
+		"cancelScheduled": "Cancels at period end",
+		"cancelScheduledHint": "Cancellation is already scheduled; access continues until the next renewal date.",
+		"cancelDisabledNoPaid": "There is no paid subscription to cancel.",
+		"loadingPayments": "Loading…",
+		"noPayments": "No payments yet.",
+		"subscriptionStatus": {
+			"freeTier": "Free tier",
+			"active": "Active",
+			"past_due": "Payment overdue",
+			"canceled": "Canceled"
+		},
+		"paymentStatus": {
+			"pending": "Pending",
+			"succeeded": "Paid",
+			"failed": "Failed",
+			"canceled": "Canceled"
+		},
+		"tableDate": "Date",
+		"tableAmount": "Amount",
+		"tableStatus": "Status",
+		"tableOrderId": "Order ID"
 	}
 }

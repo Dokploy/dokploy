@@ -4,6 +4,35 @@
 		"free": "Бесплатный",
 		"pro": "Pro",
 		"agency": "Agency",
-		"upgrade": "Улучшить план"
+		"upgrade": "Улучшить план",
+		"subscriptionTitle": "Подписка",
+		"plansTitle": "Планы",
+		"historyTitle": "История платежей",
+		"statusLabel": "Статус",
+		"planLabel": "Тариф",
+		"nextCharge": "Следующее списание",
+		"nextChargeNotApplicable": "Автосписаний нет",
+		"cancelSubscription": "Отменить подписку",
+		"cancelScheduled": "Отмена в конце периода",
+		"cancelScheduledHint": "Подписка уже помечена на отключение и закончится в дату следующего списания.",
+		"cancelDisabledNoPaid": "Платной подписки нет — отменять нечего.",
+		"loadingPayments": "Загрузка…",
+		"noPayments": "Платежей пока нет.",
+		"subscriptionStatus": {
+			"freeTier": "Бесплатный тариф",
+			"active": "Активна",
+			"past_due": "Просрочен платёж",
+			"canceled": "Отменена"
+		},
+		"paymentStatus": {
+			"pending": "В обработке",
+			"succeeded": "Оплачен",
+			"failed": "Отклонён",
+			"canceled": "Отменён"
+		},
+		"tableDate": "Дата",
+		"tableAmount": "Сумма",
+		"tableStatus": "Статус",
+		"tableOrderId": "Номер заказа"
 	}
 }

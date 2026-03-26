@@ -18,9 +18,8 @@ import {
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
-import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
-import { updateServersBasedOnQuantity } from "@/pages/api/stripe/webhook";
 import { audit } from "@/server/api/utils/audit";
 import {
 	createTRPCRouter,
@@ -501,3 +500,42 @@ export const serverRouter = createTRPCRouter({
 			}
 		}),
 });
+
+const findServersByUserIdSorted = async (userId: string) => {
+	const organizations = await db.query.organization.findMany({
+		where: eq(organization.ownerId, userId),
+	});
+
+	const servers = [];
+	for (const org of organizations) {
+		const serversByOrg = await db.query.server.findMany({
+			where: eq(server.organizationId, org.id),
+			orderBy: asc(server.createdAt),
+		});
+		servers.push(...serversByOrg);
+	}
+
+	return servers;
+};
+
+const setServerStatus = async (serverId: string, serverStatus: "active" | "inactive") => {
+	await db
+		.update(server)
+		.set({ serverStatus })
+		.where(eq(server.serverId, serverId));
+};
+
+const updateServersBasedOnQuantity = async (
+	userId: string,
+	newServersQuantity: number,
+) => {
+	const servers = await findServersByUserIdSorted(userId);
+
+	for (const [index, srv] of servers.entries()) {
+		const shouldBeActive = index < newServersQuantity;
+		const desiredStatus = shouldBeActive ? "active" : "inactive";
+		if (srv.serverStatus !== desiredStatus) {
+			await setServerStatus(srv.serverId, desiredStatus);
+		}
+	}
+};

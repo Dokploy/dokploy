@@ -64,8 +64,7 @@ interface Props {
 export const HandleServers = ({ serverId, asButton = false }: Props) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const { data: canCreateMoreServers, refetch } =
-		api.stripe.canCreateMoreServers.useQuery();
+	const canCreateMoreServers = true;
 
 	const { data, refetch: refetchServer } = api.server.one.useQuery(
 		{
@@ -106,7 +105,6 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
 	useEffect(() => {
-		refetch();
 	}, [isOpen]);
 
 	const onSubmit = async (data: Schema) => {

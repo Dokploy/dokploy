@@ -22,8 +22,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm --filter=@dokploy/server 
 # ARG NEXT_PUBLIC_UMAMI_WEBSITE_ID
 # ENV NEXT_PUBLIC_UMAMI_WEBSITE_ID=$NEXT_PUBLIC_UMAMI_WEBSITE_ID
 
-ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+## Stripe removed (migrated to T‑Kasса)
 
 ENV NODE_ENV=production
 RUN pnpm --filter=@dokploy/server build
@@ -33,6 +32,7 @@ RUN pnpm --filter=./apps/dokploy --prod deploy --legacy /prod/dokploy
 
 RUN cp -R /usr/src/app/apps/dokploy/.next /prod/dokploy/.next
 RUN cp -R /usr/src/app/apps/dokploy/dist /prod/dokploy/dist
+RUN cp -R /usr/src/app/apps/dokploy/drizzle /prod/dokploy/drizzle
 
 FROM base AS dokploy
 WORKDIR /app

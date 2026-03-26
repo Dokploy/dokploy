@@ -1,5 +1,4 @@
 import { Download, ExternalLink, FileText, Loader2 } from "lucide-react";
-import type Stripe from "stripe";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,50 +9,20 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { api } from "@/utils/api";
-
-const formatDate = (timestamp: number | null) => {
-	if (!timestamp) return "-";
-	return new Date(timestamp * 1000).toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-	});
-};
-
-const formatAmount = (amount: number, currency: string) => {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: currency.toUpperCase(),
-	}).format(amount / 100);
-};
-
-const getStatusBadge = (status: Stripe.Invoice.Status | null) => {
-	const statusConfig: Record<
-		Stripe.Invoice.Status,
-		{ label: string; variant: "default" | "secondary" | "destructive" }
-	> = {
-		paid: { label: "Paid", variant: "default" },
-		open: { label: "Open", variant: "secondary" },
-		draft: { label: "Draft", variant: "secondary" },
-		void: { label: "Void", variant: "destructive" },
-		uncollectible: { label: "Uncollectible", variant: "destructive" },
-	};
-
-	if (!status) {
-		return <Badge variant="secondary">Unknown</Badge>;
-	}
-
-	const config = statusConfig[status] || {
-		label: status,
-		variant: "secondary" as const,
-	};
-
-	return <Badge variant={config.variant}>{config.label}</Badge>;
-};
 
 export const ShowInvoices = () => {
-	const { data: invoices, isPending } = api.stripe.getInvoices.useQuery();
+	const isPending = false;
+	const invoices: Array<{
+		id: string;
+		number?: string | null;
+		created?: number | null;
+		dueDate?: number | null;
+		amountDue?: number | null;
+		currency?: string | null;
+		status?: string | null;
+		hostedInvoiceUrl?: string | null;
+		invoicePdf?: string | null;
+	}> = [];
 
 	return (
 		<div className="space-y-4">
@@ -83,12 +52,14 @@ export const ShowInvoices = () => {
 									<TableCell className="font-medium">
 										{invoice.number || invoice.id.slice(0, 12)}
 									</TableCell>
-									<TableCell>{formatDate(invoice.created)}</TableCell>
-									<TableCell>{formatDate(invoice.dueDate)}</TableCell>
+									<TableCell>-</TableCell>
+									<TableCell>-</TableCell>
 									<TableCell>
-										{formatAmount(invoice.amountDue, invoice.currency)}
+										-
 									</TableCell>
-									<TableCell>{getStatusBadge(invoice.status)}</TableCell>
+									<TableCell>
+										<Badge variant="secondary">-</Badge>
+									</TableCell>
 									<TableCell className="text-right">
 										<div className="flex justify-end gap-2">
 											{invoice.hostedInvoiceUrl && (
@@ -126,9 +97,11 @@ export const ShowInvoices = () => {
 			) : (
 				<div className="flex flex-col items-center justify-center min-h-[20vh] gap-2">
 					<FileText className="size-12 text-muted-foreground" />
-					<p className="text-base text-muted-foreground">No invoices found</p>
+					<p className="text-base text-muted-foreground">
+						Инвойсы Stripe отключены
+					</p>
 					<p className="text-sm text-muted-foreground">
-						Your invoices will appear here once you have a subscription
+						История платежей будет доступна в новом биллинге.
 					</p>
 				</div>
 			)}

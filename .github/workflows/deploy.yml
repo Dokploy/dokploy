@@ -41,7 +41,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_UMAMI_HOST=${{ secrets.NEXT_PUBLIC_UMAMI_HOST }}
             NEXT_PUBLIC_UMAMI_WEBSITE_ID=${{ secrets.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
-            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+            # Stripe removed (migrated to T‑Kasса)
 
   build-and-push-schedule-image:
     runs-on: ubuntu-latest
