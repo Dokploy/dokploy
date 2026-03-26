@@ -59,18 +59,16 @@ export const BillingPage = () => {
 					window.location.hostname === "127.0.0.1");
 			if (isLocalHost) {
 				toast.info(
-					"Локально Т‑Касса не вызовет вебхук — подписка не обновится, пока нет публичного URL (ngrok и т.п.).",
+					t("paymentReturn.localNoWebhook"),
 					{ duration: 10_000 },
 				);
 			} else {
-				toast.success(
-					"Платёж принят. Подписка обновится после подтверждения Т‑Кассы (обычно до минуты).",
-				);
+				toast.success(t("paymentReturn.success"));
 			}
 		} else {
-			toast.error("Оплата не завершена.");
+			toast.error(t("paymentReturn.fail"));
 		}
-	}, [router.isReady, router.query.status, utils]);
+	}, [router.isReady, router.query.status, t, utils]);
 
 	const handleCancel = async () => {
 		await cancelSubscription();

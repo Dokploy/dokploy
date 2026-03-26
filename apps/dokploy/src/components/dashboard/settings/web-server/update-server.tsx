@@ -9,6 +9,7 @@ import {
 	Stars,
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ export const UpdateServer = ({
 	isOpen: isOpenProp,
 	onOpenChange: onOpenChangeProp,
 }: Props) => {
+	const t = useTranslations("layoutUpdateServer");
 	const [hasCheckedUpdate, setHasCheckedUpdate] = useState(!!updateData);
 	const [isUpdateAvailable, setIsUpdateAvailable] = useState(
 		!!updateData?.updateAvailable,
@@ -64,18 +66,15 @@ export const UpdateServer = ({
 
 			if (updateData.updateAvailable) {
 				toast.success(versionToUpdate, {
-					description: "New version available!",
+					description: t("toastNewVersionAvailable"),
 				});
 			} else {
-				toast.info("No updates available");
+				toast.info(t("toastNoUpdatesAvailable"));
 			}
-		} catch (error) {
-			console.error("Error checking for updates:", error);
+		} catch {
 			setHasCheckedUpdate(true);
 			setIsUpdateAvailable(false);
-			toast.error(
-				"An error occurred while checking for updates, please try again.",
-			);
+			toast.error(t("toastCheckUpdatesError"));
 		}
 	};
 
@@ -102,11 +101,11 @@ export const UpdateServer = ({
 									<Download className="h-4 w-4 flex-shrink-0" />
 									{updateData ? (
 										<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
-											Update Available
+											{t("updateAvailable")}
 										</span>
 									) : (
 										<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
-											Check for updates
+											{t("checkForUpdates")}
 										</span>
 									)}
 									{updateData && (
@@ -119,7 +118,7 @@ export const UpdateServer = ({
 							</TooltipTrigger>
 							{updateData && (
 								<TooltipContent side="right" sideOffset={10}>
-									<p>Update Available</p>
+									<p>{t("tooltipUpdateAvailable")}</p>
 								</TooltipContent>
 							)}
 						</Tooltip>
@@ -129,7 +128,7 @@ export const UpdateServer = ({
 			<DialogContent className="max-w-lg">
 				<div className="flex items-center justify-between mb-8">
 					<DialogTitle className="text-2xl font-semibold">
-						Web Server Update
+							{t("dialogTitle")}
 					</DialogTitle>
 					{dokployVersion && (
 						<div className="flex items-center gap-1.5 rounded-full px-3 py-1 mr-2 bg-muted">
@@ -147,11 +146,10 @@ export const UpdateServer = ({
 				{!hasCheckedUpdate && (
 					<div className="mb-8">
 						<p className="text text-muted-foreground">
-							Check for new releases and update Dokploy.
+							{t("introLine1")}
 							<br />
 							<br />
-							We recommend checking for updates regularly to ensure you have the
-							latest features and security improvements.
+							{t("introLine2")}
 						</p>
 					</div>
 				)}
@@ -163,7 +161,7 @@ export const UpdateServer = ({
 							<div className="flex items-center gap-1.5">
 								<Download className="h-4 w-4 text-emerald-400" />
 								<span className="text font-medium text-emerald-400 ">
-									New version available:
+									{t("newVersionAvailableLabel")}
 								</span>
 							</div>
 							<span className="text font-semibold text-emerald-300">
@@ -173,21 +171,19 @@ export const UpdateServer = ({
 
 						<div className="space-y-4 text-muted-foreground">
 							<p className="text">
-								A new version of the server software is available. Consider
-								updating if you:
+								{t("updateReasonIntro")}
 							</p>
 							<ul className="space-y-3">
 								<li className="flex items-start gap-2">
 									<Stars className="h-5 w-5 mt-0.5 text-[#5B9DFF]" />
 									<span className="text">
-										Want to access the latest features and improvements
+										{t("updateReasonItem1")}
 									</span>
 								</li>
 								<li className="flex items-start gap-2">
 									<Bug className="h-5 w-5 mt-0.5 text-[#5B9DFF]" />
 									<span className="text">
-										Are experiencing issues that may be resolved in the new
-										version
+										{t("updateReasonItem2")}
 									</span>
 								</li>
 							</ul>
@@ -204,11 +200,10 @@ export const UpdateServer = ({
 							</div>
 							<div className="text-center space-y-2">
 								<h3 className="text-lg font-medium">
-									You are using the latest version
+									{t("upToDateTitle")}
 								</h3>
 								<p className="text text-muted-foreground">
-									Your server is up to date with all the latest features and
-									security improvements.
+									{t("upToDateDescription")}
 								</p>
 							</div>
 						</div>
@@ -222,10 +217,9 @@ export const UpdateServer = ({
 								<RefreshCcw className="h-8 w-8 animate-spin" />
 							</div>
 							<div className="text-center space-y-2">
-								<h3 className="text-lg font-medium">Checking for updates...</h3>
+								<h3 className="text-lg font-medium">{t("checkingTitle")}</h3>
 								<p className="text text-muted-foreground">
-									Please wait while we pull the latest version information from
-									Docker Hub.
+									{t("checkingDescription")}
 								</p>
 							</div>
 						</div>
@@ -237,15 +231,15 @@ export const UpdateServer = ({
 						<div className="flex gap-2">
 							<Info className="h-5 w-5 flex-shrink-0 text-[#5B9DFF]" />
 							<div className="text-[#5B9DFF]">
-								We recommend reviewing the{" "}
+								{t("releaseNotesIntro")}{" "}
 								<Link
 									href="https://github.com/Dokploy/dokploy/releases"
 									target="_blank"
 									className="text-white underline hover:text-zinc-200"
 								>
-									release notes
+									{t("releaseNotesLink")}
 								</Link>{" "}
-								for any breaking changes before updating.
+								{t("releaseNotesOutro")}
 							</div>
 						</div>
 					</div>
@@ -258,7 +252,7 @@ export const UpdateServer = ({
 				<div className="space-y-4 flex items-center justify-end mt-4	">
 					<div className="flex items-center gap-2">
 						<Button variant="outline" onClick={() => onOpenChange?.(false)}>
-							Cancel
+							{t("cancel")}
 						</Button>
 						{isUpdateAvailable ? (
 							<UpdateWebServer />
@@ -271,12 +265,12 @@ export const UpdateServer = ({
 								{isPending ? (
 									<>
 										<RefreshCcw className="h-4 w-4 animate-spin" />
-										Checking for updates
+										{t("checkingInline")}
 									</>
 								) : (
 									<>
 										<RefreshCcw className="h-4 w-4" />
-										Check for updates
+										{t("checkForUpdates")}
 									</>
 								)}
 							</Button>

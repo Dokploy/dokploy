@@ -10,7 +10,7 @@
 		"swarm": "Swarm",
 		"requests": "Запросы",
 		"settings": {
-			"webServer": "Веб-сервер",
+			"webServer": "Домены",
 			"profile": "Профиль",
 			"remoteServers": "Удалённые серверы",
 			"users": "Пользователи",
@@ -41,6 +41,12 @@
 	"sidebar": {
 		"selectOrganization": "Выберите организацию",
 		"organizationsHeading": "Организации",
+		"plan": {
+			"free": "Free plan",
+			"pro": "Pro plan",
+			"agency": "Agency plan",
+			"unknown": "{plan} plan"
+		},
 		"toastDefaultOrgUpdated": "Организация по умолчанию обновлена",
 		"toastDefaultOrgError": "Не удалось задать организацию по умолчанию",
 		"tooltipDefaultOrg": "Организация по умолчанию",
@@ -83,6 +89,25 @@
 	"layoutUpdateServer": {
 		"updateAvailable": "Доступно обновление",
 		"checkForUpdates": "Проверить обновления",
-		"tooltipUpdateAvailable": "Доступно обновление"
+		"tooltipUpdateAvailable": "Доступно обновление",
+		"toastNewVersionAvailable": "Доступна новая версия!",
+		"toastNoUpdatesAvailable": "Обновлений нет",
+		"toastCheckUpdatesError": "Не удалось проверить обновления. Попробуйте ещё раз.",
+		"dialogTitle": "Обновление веб‑сервера",
+		"introLine1": "Проверьте новые релизы и обновите Dokploy.",
+		"introLine2": "Рекомендуем регулярно проверять обновления, чтобы получать новые возможности и исправления безопасности.",
+		"newVersionAvailableLabel": "Доступна новая версия:",
+		"updateReasonIntro": "Доступна новая версия серверного ПО. Обновление стоит сделать, если вы:",
+		"updateReasonItem1": "Хотите получить новые функции и улучшения",
+		"updateReasonItem2": "Столкнулись с проблемами, которые могут быть исправлены в новой версии",
+		"upToDateTitle": "У вас установлена последняя версия",
+		"upToDateDescription": "Сервер обновлён и содержит все актуальные функции и улучшения безопасности.",
+		"checkingTitle": "Проверяем обновления...",
+		"checkingDescription": "Подождите, пока мы получим информацию о последней версии из Docker Hub.",
+		"releaseNotesIntro": "Перед обновлением рекомендуем посмотреть",
+		"releaseNotesLink": "заметки о релизе",
+		"releaseNotesOutro": "на предмет несовместимых изменений.",
+		"cancel": "Отмена",
+		"checkingInline": "Проверяем обновления"
 	}
 }

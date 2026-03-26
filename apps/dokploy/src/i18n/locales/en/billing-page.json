@@ -16,6 +16,19 @@
 		"cancelScheduled": "Cancels at period end",
 		"cancelScheduledHint": "Cancellation is already scheduled; access continues until the next renewal date.",
 		"cancelDisabledNoPaid": "There is no paid subscription to cancel.",
+		"loadingPlans": "Loading plans…",
+		"loadingPlansError": "Failed to load plans.",
+		"currentPlan": "Current plan",
+		"cancelSubscriptionFirst": "Cancel your subscription first",
+		"selectPlan": "Select plan",
+		"active": "Active",
+		"current": "Current",
+		"perMonth": "/ mo",
+		"paymentReturn": {
+			"localNoWebhook": "Locally, T‑Kassa won’t call the webhook — the subscription won’t update until you have a public URL (ngrok, etc.).",
+			"success": "Payment received. The subscription will update after T‑Kassa confirmation (usually within a minute).",
+			"fail": "Payment not completed."
+		},
 		"loadingPayments": "Loading…",
 		"noPayments": "No payments yet.",
 		"subscriptionStatus": {

@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 
+import { useTranslations } from "next-intl";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +40,7 @@ const hasUncanceledPaidSubscription = (
 	);
 
 export const PricingPlans = () => {
+	const t = useTranslations("billing");
 	const { data: plans, isPending: isPlansLoading, error: plansError } =
 		api.billing.getPlans.useQuery();
 	const { data: subscription } = api.billing.getSubscription.useQuery();
@@ -57,14 +60,14 @@ export const PricingPlans = () => {
 
 	if (isPlansLoading) {
 		return (
-			<div className="text-sm text-muted-foreground">Загрузка планов…</div>
+			<div className="text-sm text-muted-foreground">{t("loadingPlans")}</div>
 		);
 	}
 
 	if (plansError || !plans) {
 		return (
 			<div className="text-sm text-muted-foreground">
-				Не удалось загрузить планы.
+				{t("loadingPlansError")}
 			</div>
 		);
 	}
@@ -87,11 +90,11 @@ export const PricingPlans = () => {
 					(key === "free" && paidSubscriptionOpen);
 
 				const buttonLabel = (() => {
-					if (isCurrent) return "Текущий план";
+					if (isCurrent) return t("currentPlan");
 					if (key === "free" && paidSubscriptionOpen) {
-						return "Сначала отмените подписку";
+						return t("cancelSubscriptionFirst");
 					}
-					return "Выбрать план";
+					return t("selectPlan");
 				})();
 
 				return (
@@ -101,9 +104,9 @@ export const PricingPlans = () => {
 					>
 						<CardHeader className="flex flex-row items-center justify-between">
 							<CardTitle className="text-base">{plan.name}</CardTitle>
-							{isPaidActive ? <Badge>Активен</Badge> : null}
+							{isPaidActive ? <Badge>{t("active")}</Badge> : null}
 							{isCurrent && !isPaidActive ? (
-								<Badge variant="secondary">Текущий</Badge>
+								<Badge variant="secondary">{t("current")}</Badge>
 							) : null}
 						</CardHeader>
 						<CardContent className="flex flex-1 flex-col gap-4">
@@ -111,7 +114,7 @@ export const PricingPlans = () => {
 								{plan.priceMonthly}₽
 								<span className="text-sm font-normal text-muted-foreground">
 									{" "}
-									/ мес
+									{t("perMonth")}
 								</span>
 							</div>
 							<ul className="text-sm text-muted-foreground space-y-1">

@@ -16,6 +16,19 @@
 		"cancelScheduled": "Отмена в конце периода",
 		"cancelScheduledHint": "Подписка уже помечена на отключение и закончится в дату следующего списания.",
 		"cancelDisabledNoPaid": "Платной подписки нет — отменять нечего.",
+		"loadingPlans": "Загрузка планов…",
+		"loadingPlansError": "Не удалось загрузить планы.",
+		"currentPlan": "Текущий план",
+		"cancelSubscriptionFirst": "Сначала отмените подписку",
+		"selectPlan": "Выбрать план",
+		"active": "Активен",
+		"current": "Текущий",
+		"perMonth": "/ мес",
+		"paymentReturn": {
+			"localNoWebhook": "Локально Т‑Касса не вызовет вебхук — подписка не обновится, пока нет публичного URL (ngrok и т.п.).",
+			"success": "Платёж принят. Подписка обновится после подтверждения Т‑Кассы (обычно до минуты).",
+			"fail": "Оплата не завершена."
+		},
 		"loadingPayments": "Загрузка…",
 		"noPayments": "Платежей пока нет.",
 		"subscriptionStatus": {

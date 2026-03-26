@@ -41,6 +41,12 @@
 	"sidebar": {
 		"selectOrganization": "Select organization",
 		"organizationsHeading": "Organizations",
+		"plan": {
+			"free": "Free plan",
+			"pro": "Pro plan",
+			"agency": "Agency plan",
+			"unknown": "{plan} plan"
+		},
 		"toastDefaultOrgUpdated": "Default organization updated",
 		"toastDefaultOrgError": "Error setting default organization",
 		"tooltipDefaultOrg": "Default organization",
@@ -83,6 +89,25 @@
 	"layoutUpdateServer": {
 		"updateAvailable": "Update available",
 		"checkForUpdates": "Check for updates",
-		"tooltipUpdateAvailable": "Update available"
+		"tooltipUpdateAvailable": "Update available",
+		"toastNewVersionAvailable": "New version available!",
+		"toastNoUpdatesAvailable": "No updates available",
+		"toastCheckUpdatesError": "An error occurred while checking for updates, please try again.",
+		"dialogTitle": "Web Server Update",
+		"introLine1": "Check for new releases and update Dokploy.",
+		"introLine2": "We recommend checking for updates regularly to ensure you have the latest features and security improvements.",
+		"newVersionAvailableLabel": "New version available:",
+		"updateReasonIntro": "A new version of the server software is available. Consider updating if you:",
+		"updateReasonItem1": "Want to access the latest features and improvements",
+		"updateReasonItem2": "Are experiencing issues that may be resolved in the new version",
+		"upToDateTitle": "You are using the latest version",
+		"upToDateDescription": "Your server is up to date with all the latest features and security improvements.",
+		"checkingTitle": "Checking for updates...",
+		"checkingDescription": "Please wait while we pull the latest version information from Docker Hub.",
+		"releaseNotesIntro": "We recommend reviewing the",
+		"releaseNotesLink": "release notes",
+		"releaseNotesOutro": "for any breaking changes before updating.",
+		"cancel": "Cancel",
+		"checkingInline": "Checking for updates"
 	}
 }
