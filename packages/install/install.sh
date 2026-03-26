@@ -10,7 +10,7 @@
 # ── Настройки образа ──────────────────────────────────────────────────────────
 # Замени YOUR_GITHUB_USERNAME на свой username/org в GitHub
 GITHUB_OWNER="mking2k0"
-IMAGE_NAME="ghcr.io/${GITHUB_OWNER}/dokploy"
+IMAGE_NAME="kamik2k/deploybox"
 GITHUB_REPO="${GITHUB_OWNER}/dokploy"
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -25,18 +25,8 @@ detect_version() {
     local version="${DEPLOYBOX_VERSION}"
 
     if [ -z "$version" ]; then
-        echo "Определяем последнюю версию DeployBox..." >&2
-
-        version=$(curl -fsSL -o /dev/null -w '%{url_effective}\n' \
-            "https://github.com/${GITHUB_REPO}/releases/latest" 2>/dev/null | \
-            sed 's#.*/tag/##')
-
-        if [ -z "$version" ]; then
-            echo "Предупреждение: не удалось определить версию, используем latest" >&2
-            version="latest"
-        else
-            echo "Найдена версия: $version" >&2
-        fi
+        # Берём latest тег с Docker Hub
+        version="latest"
     fi
 
     echo "$version"
