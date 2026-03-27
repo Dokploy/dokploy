@@ -1,16 +1,19 @@
 import { relations } from "drizzle-orm";
 import {
 	boolean,
+	index,
 	integer,
 	jsonb,
 	pgEnum,
 	pgTable,
 	text,
+	unique,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
+import { projects } from "./project";
 
 export const notificationType = pgEnum("notificationType", [
 	"slack",
@@ -41,6 +44,10 @@ export const notifications = pgTable("notification", {
 	dokployBackup: boolean("dokployBackup").notNull().default(false),
 	dockerCleanup: boolean("dockerCleanup").notNull().default(false),
 	serverThreshold: boolean("serverThreshold").notNull().default(false),
+	// When true, project-level events (deploys, builds, backups) are only sent
+	// for the projects linked in notification_to_project. Kept as an explicit flag
+	// so deleting the last linked project never widens the scope to every project.
+	scopedToProjects: boolean("scopedToProjects").notNull().default(false),
 	notificationType: notificationType("notificationType").notNull(),
 	createdAt: text("createdAt")
 		.notNull()
@@ -206,60 +213,102 @@ export const teams = pgTable("teams", {
 	webhookUrl: text("webhookUrl").notNull(),
 });
 
-export const notificationsRelations = relations(notifications, ({ one }) => ({
-	slack: one(slack, {
-		fields: [notifications.slackId],
-		references: [slack.slackId],
+export const notificationToProject = pgTable(
+	"notification_to_project",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => nanoid()),
+		notificationId: text("notificationId")
+			.notNull()
+			.references(() => notifications.notificationId, { onDelete: "cascade" }),
+		projectId: text("projectId")
+			.notNull()
+			.references(() => projects.projectId, { onDelete: "cascade" }),
+	},
+	(table) => [
+		unique("unique_notification_project").on(
+			table.notificationId,
+			table.projectId,
+		),
+		index("notification_to_project_projectId_idx").on(table.projectId),
+	],
+);
+
+const projectIdsSchema = z.array(z.string().min(1));
+
+export const notificationToProjectRelations = relations(
+	notificationToProject,
+	({ one }) => ({
+		notification: one(notifications, {
+			fields: [notificationToProject.notificationId],
+			references: [notifications.notificationId],
+		}),
+		project: one(projects, {
+			fields: [notificationToProject.projectId],
+			references: [projects.projectId],
+		}),
 	}),
-	telegram: one(telegram, {
-		fields: [notifications.telegramId],
-		references: [telegram.telegramId],
+);
+
+export const notificationsRelations = relations(
+	notifications,
+	({ one, many }) => ({
+		notificationToProjects: many(notificationToProject),
+		slack: one(slack, {
+			fields: [notifications.slackId],
+			references: [slack.slackId],
+		}),
+		telegram: one(telegram, {
+			fields: [notifications.telegramId],
+			references: [telegram.telegramId],
+		}),
+		discord: one(discord, {
+			fields: [notifications.discordId],
+			references: [discord.discordId],
+		}),
+		email: one(email, {
+			fields: [notifications.emailId],
+			references: [email.emailId],
+		}),
+		resend: one(resend, {
+			fields: [notifications.resendId],
+			references: [resend.resendId],
+		}),
+		gotify: one(gotify, {
+			fields: [notifications.gotifyId],
+			references: [gotify.gotifyId],
+		}),
+		ntfy: one(ntfy, {
+			fields: [notifications.ntfyId],
+			references: [ntfy.ntfyId],
+		}),
+		mattermost: one(mattermost, {
+			fields: [notifications.mattermostId],
+			references: [mattermost.mattermostId],
+		}),
+		custom: one(custom, {
+			fields: [notifications.customId],
+			references: [custom.customId],
+		}),
+		lark: one(lark, {
+			fields: [notifications.larkId],
+			references: [lark.larkId],
+		}),
+		pushover: one(pushover, {
+			fields: [notifications.pushoverId],
+			references: [pushover.pushoverId],
+		}),
+		teams: one(teams, {
+			fields: [notifications.teamsId],
+			references: [teams.teamsId],
+		}),
+		organization: one(organization, {
+			fields: [notifications.organizationId],
+			references: [organization.id],
+		}),
 	}),
-	discord: one(discord, {
-		fields: [notifications.discordId],
-		references: [discord.discordId],
-	}),
-	email: one(email, {
-		fields: [notifications.emailId],
-		references: [email.emailId],
-	}),
-	resend: one(resend, {
-		fields: [notifications.resendId],
-		references: [resend.resendId],
-	}),
-	gotify: one(gotify, {
-		fields: [notifications.gotifyId],
-		references: [gotify.gotifyId],
-	}),
-	ntfy: one(ntfy, {
-		fields: [notifications.ntfyId],
-		references: [ntfy.ntfyId],
-	}),
-	mattermost: one(mattermost, {
-		fields: [notifications.mattermostId],
-		references: [mattermost.mattermostId],
-	}),
-	custom: one(custom, {
-		fields: [notifications.customId],
-		references: [custom.customId],
-	}),
-	lark: one(lark, {
-		fields: [notifications.larkId],
-		references: [lark.larkId],
-	}),
-	pushover: one(pushover, {
-		fields: [notifications.pushoverId],
-		references: [pushover.pushoverId],
-	}),
-	teams: one(teams, {
-		fields: [notifications.teamsId],
-		references: [teams.teamsId],
-	}),
-	organization: one(organization, {
-		fields: [notifications.organizationId],
-		references: [organization.id],
-	}),
-}));
+);
 
 export const notificationsSchema = createInsertSchema(notifications);
 
@@ -278,6 +327,7 @@ export const apiCreateSlack = notificationsSchema
 	.extend({
 		webhookUrl: z.string().min(1),
 		channel: z.string(),
+		projectIds: projectIdsSchema.optional().default([]),
 	})
 	.required();
 
@@ -285,6 +335,7 @@ export const apiUpdateSlack = apiCreateSlack.partial().extend({
 	notificationId: z.string().min(1),
 	slackId: z.string(),
 	organizationId: z.string().optional(),
+	projectIds: projectIdsSchema.optional(),
 });
 
 export const apiTestSlackConnection = apiCreateSlack.pick({
@@ -308,6 +359,7 @@ export const apiCreateTelegram = notificationsSchema
 		botToken: z.string().min(1),
 		chatId: z.string().min(1),
 		messageThreadId: z.string(),
+		projectIds: projectIdsSchema.optional().default([]),
 	})
 	.required();
 
@@ -315,6 +367,7 @@ export const apiUpdateTelegram = apiCreateTelegram.partial().extend({
 	notificationId: z.string().min(1),
 	telegramId: z.string().min(1),
 	organizationId: z.string().optional(),
+	projectIds: projectIdsSchema.optional(),
 });
 
 export const apiTestTelegramConnection = apiCreateTelegram.pick({
@@ -338,6 +391,7 @@ export const apiCreateDiscord = notificationsSchema
 	.extend({
 		webhookUrl: z.string().min(1),
 		decoration: z.boolean(),
+		projectIds: projectIdsSchema.optional().default([]),
 	})
 	.required();
 
@@ -345,6 +399,7 @@ export const apiUpdateDiscord = apiCreateDiscord.partial().extend({
 	notificationId: z.string().min(1),
 	discordId: z.string().min(1),
 	organizationId: z.string().optional(),
+	projectIds: projectIdsSchema.optional(),
 });
 
 export const apiTestDiscordConnection = apiCreateDiscord
@@ -374,6 +429,7 @@ export const apiCreateEmail = notificationsSchema
 		password: z.string().min(1),
 		fromAddress: z.string().min(1),
 		toAddresses: z.array(z.string()).min(1),
+		projectIds: projectIdsSchema.optional().default([]),
 	})
 	.required();
 
@@ -381,6 +437,7 @@ export const apiUpdateEmail = apiCreateEmail.partial().extend({
 	notificationId: z.string().min(1),
 	emailId: z.string().min(1),
 	organizationId: z.string().optional(),
+	projectIds: projectIdsSchema.optional(),
 });
 
 export const apiTestEmailConnection = apiCreateEmail.pick({
@@ -408,6 +465,7 @@ export const apiCreateResend = notificationsSchema
 		apiKey: z.string().min(1),
 		fromAddress: z.string().min(1),
 		toAddresses: z.array(z.string()).min(1),
+		projectIds: projectIdsSchema.optional().default([]),
 	})
 	.required();
 
@@ -415,6 +473,7 @@ export const apiUpdateResend = apiCreateResend.partial().extend({
 	notificationId: z.string().min(1),
 	resendId: z.string().min(1),
 	organizationId: z.string().optional(),
+	projectIds: projectIdsSchema.optional(),
 });
 
 export const apiTestResendConnection = apiCreateResend.pick({
@@ -440,6 +499,7 @@ export const apiCreateGotify = notificationsSchema
 		appToken: z.string().min(1),
 		priority: z.number().min(1),
 		decoration: z.boolean(),
+		projectIds: projectIdsSchema.optional().default([]),
 	})
 	.required();
 
@@ -447,6 +507,7 @@ export const apiUpdateGotify = apiCreateGotify.partial().extend({
 	notificationId: z.string().min(1),
 	gotifyId: z.string().min(1),
 	organizationId: z.string().optional(),
+	projectIds: projectIdsSchema.optional(),
 });
 
 export const apiTestGotifyConnection = apiCreateGotify
@@ -476,6 +537,7 @@ export const apiCreateNtfy = notificationsSchema
 		topic: z.string().min(1),
 		accessToken: z.string().optional(),
 		priority: z.number().min(1),
+		projectIds: projectIdsSchema.optional().default([]),
 	})
 	.required();
 
@@ -483,6 +545,7 @@ export const apiUpdateNtfy = apiCreateNtfy.partial().extend({
 	notificationId: z.string().min(1),
 	ntfyId: z.string().min(1),
 	organizationId: z.string().optional(),
+	projectIds: projectIdsSchema.optional(),
 });
 
 export const apiTestNtfyConnection = apiCreateNtfy.pick({
@@ -508,6 +571,7 @@ export const apiCreateMattermost = notificationsSchema
 		webhookUrl: z.string().url(),
 		channel: z.string().optional(),
 		username: z.string().optional(),
+		projectIds: projectIdsSchema.optional().default([]),
 	})
 	.required({
 		name: true,
@@ -526,6 +590,7 @@ export const apiUpdateMattermost = apiCreateMattermost.partial().extend({
 	notificationId: z.string().min(1),
 	mattermostId: z.string().min(1),
 	organizationId: z.string().optional(),
+	projectIds: projectIdsSchema.optional(),
 });
 
 export const apiTestMattermostConnection = apiCreateMattermost
@@ -558,12 +623,14 @@ export const apiCreateCustom = notificationsSchema
 	.extend({
 		endpoint: z.string().min(1),
 		headers: z.record(z.string(), z.string()).optional(),
+		projectIds: projectIdsSchema.optional().default([]),
 	});
 
 export const apiUpdateCustom = apiCreateCustom.partial().extend({
 	notificationId: z.string().min(1),
 	customId: z.string().min(1),
 	organizationId: z.string().optional(),
+	projectIds: projectIdsSchema.optional(),
 });
 
 export const apiTestCustomConnection = z.object({
@@ -585,6 +652,7 @@ export const apiCreateLark = notificationsSchema
 	})
 	.extend({
 		webhookUrl: z.string().min(1),
+		projectIds: projectIdsSchema.optional().default([]),
 	})
 	.required();
 
@@ -592,6 +660,7 @@ export const apiUpdateLark = apiCreateLark.partial().extend({
 	notificationId: z.string().min(1),
 	larkId: z.string().min(1),
 	organizationId: z.string().optional(),
+	projectIds: projectIdsSchema.optional(),
 });
 
 export const apiTestLarkConnection = apiCreateLark.pick({
@@ -612,6 +681,7 @@ export const apiCreateTeams = notificationsSchema
 	})
 	.extend({
 		webhookUrl: z.string().min(1),
+		projectIds: projectIdsSchema.optional().default([]),
 	})
 	.required();
 
@@ -619,6 +689,7 @@ export const apiUpdateTeams = apiCreateTeams.partial().extend({
 	notificationId: z.string().min(1),
 	teamsId: z.string().min(1),
 	organizationId: z.string().optional(),
+	projectIds: projectIdsSchema.optional(),
 });
 
 export const apiTestTeamsConnection = apiCreateTeams.pick({
@@ -643,6 +714,7 @@ export const apiCreatePushover = notificationsSchema
 		priority: z.number().min(-2).max(2).default(0),
 		retry: z.number().min(30).nullish(),
 		expire: z.number().min(1).max(10800).nullish(),
+		projectIds: projectIdsSchema.optional().default([]),
 	})
 	.refine(
 		(data) =>
@@ -671,6 +743,7 @@ export const apiUpdatePushover = z.object({
 	appDeploy: z.boolean().optional(),
 	dockerCleanup: z.boolean().optional(),
 	serverThreshold: z.boolean().optional(),
+	projectIds: projectIdsSchema.optional(),
 });
 
 export const apiTestPushoverConnection = z

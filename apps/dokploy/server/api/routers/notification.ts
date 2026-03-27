@@ -42,8 +42,9 @@ import {
 	updateTelegramNotification,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { findMemberByUserId } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
 	createTRPCRouter,
@@ -90,6 +91,7 @@ import {
 	apiUpdateTeams,
 	apiUpdateTelegram,
 	notifications,
+	projects,
 	server,
 } from "@/server/db/schema";
 
@@ -484,11 +486,44 @@ export const notificationRouter = createTRPCRouter({
 				lark: true,
 				pushover: true,
 				teams: true,
+				notificationToProjects: {
+					columns: { projectId: true },
+					with: {
+						project: { columns: { projectId: true, name: true } },
+					},
+				},
 			},
 			orderBy: desc(notifications.createdAt),
 			where: eq(notifications.organizationId, ctx.session.activeOrganizationId),
 		});
 	}),
+	projectOptions: withPermission("notification", "read").query(
+		async ({ ctx }) => {
+			const organizationId = ctx.session.activeOrganizationId;
+			const isPrivileged =
+				ctx.user.role === "owner" || ctx.user.role === "admin";
+
+			let accessedProjects: string[] = [];
+			if (!isPrivileged) {
+				({ accessedProjects } = await findMemberByUserId(
+					ctx.user.id,
+					organizationId,
+				));
+				if (accessedProjects.length === 0) return [];
+			}
+
+			return await db.query.projects.findMany({
+				columns: { projectId: true, name: true },
+				where: and(
+					eq(projects.organizationId, organizationId),
+					isPrivileged
+						? undefined
+						: inArray(projects.projectId, accessedProjects),
+				),
+				orderBy: asc(projects.name),
+			});
+		},
+	),
 	receiveNotification: publicProcedure
 		.input(
 			z.object({

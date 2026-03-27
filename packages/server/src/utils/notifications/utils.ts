@@ -15,6 +15,30 @@ import type {
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
 
+interface ProjectScopedNotification {
+	scopedToProjects: boolean;
+	notificationToProjects: { projectId: string }[];
+}
+
+/**
+ * Keeps notifications that should fire for an event of the given project.
+ * Org-wide notifications always match; project-scoped ones only match their
+ * linked projects, and never match events without a project.
+ */
+export const filterNotificationsByProject = <
+	T extends ProjectScopedNotification,
+>(
+	notificationList: T[],
+	projectId?: string | null,
+): T[] =>
+	notificationList.filter((notification) => {
+		if (!notification.scopedToProjects) return true;
+		if (!projectId) return false;
+		return notification.notificationToProjects.some(
+			(link) => link.projectId === projectId,
+		);
+	});
+
 export const sendEmailNotification = async (
 	connection: typeof email.$inferInsert,
 	subject: string,
