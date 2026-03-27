@@ -7,7 +7,7 @@ body:
       value: |
         Before opening a new issue, please do a search of existing issues.
 
-        If you need help with your own project, you can start a discussion in the [Q&A Section](https://github.com/Dokploy/dokploy/discussions).
+        If you need help with your own project, you can start a discussion in the [Q&A Section](https://github.com/MkinG2k0/dokploy/discussions).
   - type: textarea
     attributes:
       label: To Reproduce

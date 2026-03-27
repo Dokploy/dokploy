@@ -49,7 +49,7 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
 ### Contributors 🤝
 
-<a href="https://github.com/dokploy/dokploy/graphs/contributors">
+<a href="https://github.com/MkinG2k0/dokploy/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=dokploy/dokploy" alt="Contributors" />
 </a>
 

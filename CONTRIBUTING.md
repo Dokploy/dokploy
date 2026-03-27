@@ -6,12 +6,22 @@ Before you start, please first discuss the feature/bug you want to add with the 
 
 We have a few guidelines to follow when contributing to this project:
 
-- [Commit Convention](#commit-convention)
-- [Setup](#setup)
-- [Development](#development)
-- [Build](#build)
-- [Pull Request](#pull-request)
-- [Important Considerations](#important-considerations-for-pull-requests)
+- [Contributing](#contributing)
+  - [Commit Convention](#commit-convention)
+    - [Commit Message Format](#commit-message-format)
+      - [Type](#type)
+  - [Setup](#setup)
+  - [Requirements](#requirements)
+    - [Setup](#setup-1)
+  - [Build](#build)
+  - [Docker](#docker)
+  - [Password Reset](#password-reset)
+  - [Application deploy](#application-deploy)
+  - [Pull Request](#pull-request)
+    - [Important Considerations for Pull Requests](#important-considerations-for-pull-requests)
+  - [Templates](#templates)
+    - [Recommendations](#recommendations)
+  - [Docs \& Website](#docs--website)
 
 ## Commit Convention
 
@@ -56,7 +66,7 @@ Before you start, please make the clone based on the `canary` branch, since the 
 We use Node v24.4.0 and recommend this specific version. If you have nvm installed, you can run `nvm install 24.4.0 && nvm use` in the root directory.
 
 ```bash
-git clone https://github.com/dokploy/dokploy.git
+git clone https://github.com/MkinG2k0/dokploy.git
 cd dokploy
 pnpm install
 cp apps/dokploy/.env.example apps/dokploy/.env

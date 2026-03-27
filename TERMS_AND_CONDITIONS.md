@@ -2,7 +2,7 @@
 
 **Dokploy core** is a free and open-source solution intended as an alternative to established cloud platforms like Vercel and Netlify.
 
-The Dokploy team endeavors to mitigate potential defects and issues through stringent testing and adherence to principles of clean coding. Dokploy is provided "AS IS" without any warranties, express or implied. Refer to the [License](https://github.com/Dokploy/Dokploy/blob/main/LICENSE) for details on permissions and restrictions.
+The Dokploy team endeavors to mitigate potential defects and issues through stringent testing and adherence to principles of clean coding. Dokploy is provided "AS IS" without any warranties, express or implied. Refer to the [License](https://github.com/MkinG2k0/dokploy/blob/main/LICENSE) for details on permissions and restrictions.
 
 
 ### Description of Service:
