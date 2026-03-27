@@ -66,7 +66,7 @@ export const billingRouter = createTRPCRouter({
 				orderId,
 				description: `DeployBox ${plan.name}`,
 				userId: ctx.user.ownerId,
-				recurrent: true,
+				// recurrent: true,
 			});
 
 			await db.insert(paymentTable).values({
@@ -97,7 +97,7 @@ export const billingRouter = createTRPCRouter({
 			return { status: "pending" as const };
 		}
 
-		const state = await payment.status(paymentId);
+		const state = await payment.status(paymentId);	
 		const now = new Date();
 
 		if (state.status === "AUTHORIZED" || state.status === "CONFIRMED") {

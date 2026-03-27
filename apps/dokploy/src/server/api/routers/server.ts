@@ -14,18 +14,18 @@ import {
 	serverValidate,
 	setupMonitoring,
 	updateServerById,
-} from "@dokploy/server";
-import { db } from "@dokploy/server/db";
-import { TRPCError } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
-import { and, asc, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
-import { z } from "zod";
-import { audit } from "@/server/api/utils/audit";
+} from '@dokploy/server'
+import { db } from '@dokploy/server/db'
+import { TRPCError } from '@trpc/server'
+import { observable } from '@trpc/server/observable'
+import { and, asc, desc, eq, getTableColumns, isNotNull, sql } from 'drizzle-orm'
+import { z } from 'zod'
+import { audit } from '@/server/api/utils/audit'
 import {
 	createTRPCRouter,
 	protectedProcedure,
 	withPermission,
-} from "@/server/api/trpc";
+} from '@/server/api/trpc'
 import {
 	apiCreateServer,
 	apiFindOneServer,
@@ -41,62 +41,62 @@ import {
 	postgres,
 	redis,
 	server,
-} from "@/server/db/schema";
+} from '@/server/db/schema'
 
 export const serverRouter = createTRPCRouter({
-	create: withPermission("server", "create")
+	create: withPermission('server', 'create')
 		.input(apiCreateServer)
-		.mutation(async ({ ctx, input }) => {
+		.mutation(async ({ctx, input}) => {
 			try {
-				const user = await findUserById(ctx.user.ownerId);
-				const servers = await findServersByUserId(user.id);
+				const user = await findUserById(ctx.user.ownerId)
+				const servers = await findServersByUserId(user.id)
 				if (IS_CLOUD && servers.length >= user.serversQuantity) {
 					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "You cannot create more servers",
-					});
+						code: 'BAD_REQUEST',
+						message: 'You cannot create more servers',
+					})
 				}
 				const project = await createServer(
 					input,
 					ctx.session.activeOrganizationId,
-				);
+				)
 				await audit(ctx, {
-					action: "create",
-					resourceType: "server",
+					action: 'create',
+					resourceType: 'server',
 					resourceId: project.serverId,
 					resourceName: project.name,
-				});
-				return project;
+				})
+				return project
 			} catch (error) {
 				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error creating the server",
+					code: 'BAD_REQUEST',
+					message: 'Error creating the server',
 					cause: error,
-				});
+				})
 			}
 		}),
 
-	one: withPermission("server", "read")
+	one: withPermission('server', 'read')
 		.input(apiFindOneServer)
-		.query(async ({ input, ctx }) => {
-			const server = await findServerById(input.serverId);
+		.query(async ({input, ctx}) => {
+			const server = await findServerById(input.serverId)
 			if (server.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this server",
-				});
+					code: 'UNAUTHORIZED',
+					message: 'You are not authorized to access this server',
+				})
 			}
 
-			return server;
+			return server
 		}),
-	getDefaultCommand: withPermission("server", "read")
+	getDefaultCommand: withPermission('server', 'read')
 		.input(apiFindOneServer)
-		.query(async ({ input }) => {
-			const server = await findServerById(input.serverId);
-			const isBuildServer = server.serverType === "build";
-			return defaultCommand(isBuildServer);
+		.query(async ({input}) => {
+			const server = await findServerById(input.serverId)
+			const isBuildServer = server.serverType === 'build'
+			return defaultCommand(isBuildServer)
 		}),
-	all: withPermission("server", "read").query(async ({ ctx }) => {
+	all: withPermission('server', 'read').query(async ({ctx}) => {
 		const result = await db
 			.select({
 				...getTableColumns(server),
@@ -112,121 +112,121 @@ export const serverRouter = createTRPCRouter({
 			.leftJoin(postgres, eq(postgres.serverId, server.serverId))
 			.where(eq(server.organizationId, ctx.session.activeOrganizationId))
 			.orderBy(desc(server.createdAt))
-			.groupBy(server.serverId);
+			.groupBy(server.serverId)
 
-		return result;
+		return result
 	}),
-	count: protectedProcedure.query(async ({ ctx }) => {
+	count: protectedProcedure.query(async ({ctx}) => {
 		const organizations = await db.query.organization.findMany({
 			where: eq(organization.ownerId, ctx.user.id),
 			with: {
 				servers: true,
 			},
-		});
+		})
 
-		const servers = organizations.flatMap((org) => org.servers);
+		const servers = organizations.flatMap((org) => org.servers)
 
-		return servers.length ?? 0;
+		return servers.length ?? 0
 	}),
-	withSSHKey: withPermission("server", "read").query(async ({ ctx }) => {
+	withSSHKey: withPermission('server', 'read').query(async ({ctx}) => {
 		const result = await db.query.server.findMany({
 			orderBy: desc(server.createdAt),
 			where: IS_CLOUD
 				? and(
-						isNotNull(server.sshKeyId),
-						eq(server.organizationId, ctx.session.activeOrganizationId),
-						eq(server.serverStatus, "active"),
-						eq(server.serverType, "deploy"),
-					)
+					isNotNull(server.sshKeyId),
+					eq(server.organizationId, ctx.session.activeOrganizationId),
+					eq(server.serverStatus, 'active'),
+					eq(server.serverType, 'deploy'),
+				)
 				: and(
-						isNotNull(server.sshKeyId),
-						eq(server.organizationId, ctx.session.activeOrganizationId),
-						eq(server.serverType, "deploy"),
-					),
-		});
-		return result;
+					isNotNull(server.sshKeyId),
+					eq(server.organizationId, ctx.session.activeOrganizationId),
+					eq(server.serverType, 'deploy'),
+				),
+		})
+		return result
 	}),
-	buildServers: withPermission("server", "read").query(async ({ ctx }) => {
+	buildServers: withPermission('server', 'read').query(async ({ctx}) => {
 		const result = await db.query.server.findMany({
 			orderBy: desc(server.createdAt),
 			where: IS_CLOUD
 				? and(
-						isNotNull(server.sshKeyId),
-						eq(server.organizationId, ctx.session.activeOrganizationId),
-						eq(server.serverStatus, "active"),
-						eq(server.serverType, "build"),
-					)
+					isNotNull(server.sshKeyId),
+					eq(server.organizationId, ctx.session.activeOrganizationId),
+					eq(server.serverStatus, 'active'),
+					eq(server.serverType, 'build'),
+				)
 				: and(
-						isNotNull(server.sshKeyId),
-						eq(server.organizationId, ctx.session.activeOrganizationId),
-						eq(server.serverType, "build"),
-					),
-		});
-		return result;
+					isNotNull(server.sshKeyId),
+					eq(server.organizationId, ctx.session.activeOrganizationId),
+					eq(server.serverType, 'build'),
+				),
+		})
+		return result
 	}),
-	setup: withPermission("server", "create")
+	setup: withPermission('server', 'create')
 		.input(apiFindOneServer)
-		.mutation(async ({ input, ctx }) => {
+		.mutation(async ({input, ctx}) => {
 			try {
-				const server = await findServerById(input.serverId);
+				const server = await findServerById(input.serverId)
 				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to setup this server",
-					});
+						code: 'UNAUTHORIZED',
+						message: 'You are not authorized to setup this server',
+					})
 				}
-				const currentServer = await serverSetup(input.serverId);
+				const currentServer = await serverSetup(input.serverId)
 				await audit(ctx, {
-					action: "update",
-					resourceType: "server",
+					action: 'update',
+					resourceType: 'server',
 					resourceId: input.serverId,
 					resourceName: server.name,
-				});
-				return currentServer;
+				})
+				return currentServer
 			} catch (error) {
-				throw error;
+				throw error
 			}
 		}),
-	setupWithLogs: withPermission("server", "create")
+	setupWithLogs: withPermission('server', 'create')
 		.meta({
 			openapi: {
-				path: "/deploy/server-with-logs",
-				method: "POST",
+				path: '/deploy/server-with-logs',
+				method: 'POST',
 				override: true,
 				enabled: false,
 			},
 		})
 		.input(apiFindOneServer)
-		.subscription(async ({ input, ctx }) => {
+		.subscription(async ({input, ctx}) => {
 			try {
-				const server = await findServerById(input.serverId);
+				const server = await findServerById(input.serverId)
 				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to setup this server",
-					});
+						code: 'UNAUTHORIZED',
+						message: 'You are not authorized to setup this server',
+					})
 				}
 				return observable<string>((emit) => {
 					serverSetup(input.serverId, (log) => {
-						emit.next(log);
-					});
-				});
+						emit.next(log)
+					})
+				})
 			} catch (error) {
-				throw error;
+				throw error
 			}
 		}),
-	validate: withPermission("server", "read")
+	validate: withPermission('server', 'read')
 		.input(apiFindOneServer)
-		.query(async ({ input, ctx }) => {
+		.query(async ({input, ctx}) => {
 			try {
-				const server = await findServerById(input.serverId);
+				const server = await findServerById(input.serverId)
 				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to validate this server",
-					});
+						code: 'UNAUTHORIZED',
+						message: 'You are not authorized to validate this server',
+					})
 				}
-				const response = await serverValidate(input.serverId);
+				const response = await serverValidate(input.serverId)
 				return response as unknown as {
 					docker: {
 						enabled: boolean;
@@ -251,28 +251,28 @@ export const serverRouter = createTRPCRouter({
 					isDokployNetworkInstalled: boolean;
 					isSwarmInstalled: boolean;
 					isMainDirectoryInstalled: boolean;
-				};
+				}
 			} catch (error) {
 				throw new TRPCError({
-					code: "BAD_REQUEST",
+					code: 'BAD_REQUEST',
 					message: error instanceof Error ? error?.message : `Error: ${error}`,
 					cause: error as Error,
-				});
+				})
 			}
 		}),
 
-	security: withPermission("server", "read")
+	security: withPermission('server', 'read')
 		.input(apiFindOneServer)
-		.query(async ({ input, ctx }) => {
+		.query(async ({input, ctx}) => {
 			try {
-				const server = await findServerById(input.serverId);
+				const server = await findServerById(input.serverId)
 				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to validate this server",
-					});
+						code: 'UNAUTHORIZED',
+						message: 'You are not authorized to validate this server',
+					})
 				}
-				const response = await serverAudit(input.serverId);
+				const response = await serverAudit(input.serverId)
 				return response as unknown as {
 					ufw: {
 						installed: boolean;
@@ -302,31 +302,31 @@ export const serverRouter = createTRPCRouter({
 						sshEnabled: string;
 						sshMode: string;
 					};
-				};
+				}
 			} catch (error) {
 				throw new TRPCError({
-					code: "BAD_REQUEST",
+					code: 'BAD_REQUEST',
 					message: error instanceof Error ? error?.message : `Error: ${error}`,
 					cause: error as Error,
-				});
+				})
 			}
 		}),
-	setupMonitoring: withPermission("server", "create")
+	setupMonitoring: withPermission('server', 'create')
 		.input(apiUpdateServerMonitoring)
-		.mutation(async ({ input, ctx }) => {
+		.mutation(async ({input, ctx}) => {
 			try {
-				const server = await findServerById(input.serverId);
+				const server = await findServerById(input.serverId)
 				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to setup this server",
-					});
+						code: 'UNAUTHORIZED',
+						message: 'You are not authorized to setup this server',
+					})
 				}
 
 				await updateServerById(input.serverId, {
 					metricsConfig: {
 						server: {
-							type: "Remote",
+							type: 'Remote',
 							refreshRate: input.metricsConfig.server.refreshRate,
 							retentionDays: input.metricsConfig.server.retentionDays,
 							port: input.metricsConfig.server.port,
@@ -346,102 +346,102 @@ export const serverRouter = createTRPCRouter({
 							},
 						},
 					},
-				});
-				const currentServer = await setupMonitoring(input.serverId);
+				})
+				const currentServer = await setupMonitoring(input.serverId)
 				await audit(ctx, {
-					action: "update",
-					resourceType: "server",
+					action: 'update',
+					resourceType: 'server',
 					resourceId: input.serverId,
 					resourceName: server.name,
-				});
-				return currentServer;
+				})
+				return currentServer
 			} catch (error) {
-				throw error;
+				throw error
 			}
 		}),
-	remove: withPermission("server", "delete")
+	remove: withPermission('server', 'delete')
 		.input(apiRemoveServer)
-		.mutation(async ({ input, ctx }) => {
+		.mutation(async ({input, ctx}) => {
 			try {
-				const activeServers = await haveActiveServices(input.serverId);
+				const activeServers = await haveActiveServices(input.serverId)
 
 				if (activeServers) {
 					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Server has active services, please delete them first",
-					});
+						code: 'BAD_REQUEST',
+						message: 'Server has active services, please delete them first',
+					})
 				}
-				const currentServer = await findServerById(input.serverId);
+				const currentServer = await findServerById(input.serverId)
 				await audit(ctx, {
-					action: "delete",
-					resourceType: "server",
+					action: 'delete',
+					resourceType: 'server',
 					resourceId: currentServer.serverId,
 					resourceName: currentServer.name,
-				});
-				await removeDeploymentsByServerId(currentServer);
-				await deleteServer(input.serverId);
+				})
+				await removeDeploymentsByServerId(currentServer)
+				await deleteServer(input.serverId)
 
 				if (IS_CLOUD) {
-					const admin = await findUserById(ctx.user.ownerId);
+					const admin = await findUserById(ctx.user.ownerId)
 
-					await updateServersBasedOnQuantity(admin.id, admin.serversQuantity);
+					await updateServersBasedOnQuantity(admin.id, admin.serversQuantity)
 				}
 
-				return currentServer;
+				return currentServer
 			} catch (error) {
-				throw error;
+				throw error
 			}
 		}),
-	update: withPermission("server", "create")
+	update: withPermission('server', 'create')
 		.input(apiUpdateServer)
-		.mutation(async ({ input, ctx }) => {
+		.mutation(async ({input, ctx}) => {
 			try {
-				const server = await findServerById(input.serverId);
+				const server = await findServerById(input.serverId)
 				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to update this server",
-					});
+						code: 'UNAUTHORIZED',
+						message: 'You are not authorized to update this server',
+					})
 				}
 
-				if (server.serverStatus === "inactive") {
+				if (server.serverStatus === 'inactive') {
 					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Server is inactive",
-					});
+						code: 'NOT_FOUND',
+						message: 'Server is inactive',
+					})
 				}
 				const currentServer = await updateServerById(input.serverId, {
 					...input,
-				});
+				})
 
 				await audit(ctx, {
-					action: "update",
-					resourceType: "server",
+					action: 'update',
+					resourceType: 'server',
 					resourceId: input.serverId,
 					resourceName: server.name,
-				});
-				return currentServer;
+				})
+				return currentServer
 			} catch (error) {
-				throw error;
+				throw error
 			}
 		}),
 	publicIp: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
-			return "";
+			return ''
 		}
-		const ip = await getPublicIpWithFallback();
-		return ip;
+		const ip = await getPublicIpWithFallback()
+		return ip
 	}),
 	getServerTime: protectedProcedure.query(() => {
 		if (IS_CLOUD) {
-			return null;
+			return null
 		}
 		return {
 			time: new Date(),
 			timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-		};
+		}
 	}),
-	getServerMetrics: withPermission("monitoring", "read")
+	getServerMetrics: withPermission('monitoring', 'read')
 		.input(
 			z.object({
 				url: z.string(),
@@ -449,31 +449,31 @@ export const serverRouter = createTRPCRouter({
 				dataPoints: z.string(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({input}) => {
 			try {
-				const url = new URL(input.url);
-				url.searchParams.append("limit", input.dataPoints);
+				const url = new URL(input.url)
+				url.searchParams.append('limit', input.dataPoints)
 				const response = await fetch(url.toString(), {
 					headers: {
 						Authorization: `Bearer ${input.token}`,
 					},
-				});
+				})
 				if (!response.ok) {
 					throw new Error(
 						`Error ${response.status}: ${response.statusText}. Ensure the container is running and this service is included in the monitoring configuration.`,
-					);
+					)
 				}
 
-				const data = await response.json();
+				const data = await response.json()
 				if (!Array.isArray(data) || data.length === 0) {
 					throw new Error(
 						[
-							"No monitoring data available. This could be because:",
-							"",
-							"1. You don't have setup the monitoring service, you can do in web server section.",
-							"2. If you already have setup the monitoring service, wait a few minutes and refresh the page.",
-						].join("\n"),
-					);
+							'No monitoring data available. This could be because:',
+							'',
+							'1. You don\'t have setup the monitoring service, you can do in web server section.',
+							'2. If you already have setup the monitoring service, wait a few minutes and refresh the page.',
+						].join('\n'),
+					)
 				}
 				return data as {
 					cpu: string;
@@ -494,48 +494,48 @@ export const serverRouter = createTRPCRouter({
 					networkIn: string;
 					networkOut: string;
 					timestamp: string;
-				}[];
+				}[]
 			} catch (error) {
-				throw error;
+				throw error
 			}
 		}),
-});
+})
 
 const findServersByUserIdSorted = async (userId: string) => {
 	const organizations = await db.query.organization.findMany({
 		where: eq(organization.ownerId, userId),
-	});
+	})
 
-	const servers = [];
+	const servers = []
 	for (const org of organizations) {
 		const serversByOrg = await db.query.server.findMany({
 			where: eq(server.organizationId, org.id),
 			orderBy: asc(server.createdAt),
-		});
-		servers.push(...serversByOrg);
+		})
+		servers.push(...serversByOrg)
 	}
 
-	return servers;
-};
+	return servers
+}
 
-const setServerStatus = async (serverId: string, serverStatus: "active" | "inactive") => {
+const setServerStatus = async (serverId: string, serverStatus: 'active' | 'inactive') => {
 	await db
 		.update(server)
-		.set({ serverStatus })
-		.where(eq(server.serverId, serverId));
-};
+		.set({serverStatus})
+		.where(eq(server.serverId, serverId))
+}
 
 const updateServersBasedOnQuantity = async (
 	userId: string,
 	newServersQuantity: number,
 ) => {
-	const servers = await findServersByUserIdSorted(userId);
+	const servers = await findServersByUserIdSorted(userId)
 
 	for (const [index, srv] of servers.entries()) {
-		const shouldBeActive = index < newServersQuantity;
-		const desiredStatus = shouldBeActive ? "active" : "inactive";
+		const shouldBeActive = index < newServersQuantity
+		const desiredStatus = shouldBeActive ? 'active' : 'inactive'
 		if (srv.serverStatus !== desiredStatus) {
-			await setServerStatus(srv.serverId, desiredStatus);
+			await setServerStatus(srv.serverId, desiredStatus)
 		}
 	}
-};
+}

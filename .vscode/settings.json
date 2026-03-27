@@ -4,5 +4,11 @@
 	"editor.codeActionsOnSave": {
 		"source.fixAll.biome": "explicit",
 		"source.organizeImports.biome": "explicit"
-	}
+	},
+		"search.exclude": {
+		  "**/.next/**": true,
+		  "**/node_modules/**": true,
+		  "**/turbopack/**": true,
+		  "apps/dokploy/drizzle/**": true
+		}
 }

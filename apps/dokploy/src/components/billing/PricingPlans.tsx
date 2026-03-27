@@ -3,7 +3,6 @@ import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
-import { TBankWidgetTestButton } from "@/components/billing/TBankWidgetTestButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,17 +55,13 @@ export const PricingPlans = () => {
 	const handleSelectPlan = async (plan: "free" | "pro" | "agency") => {
 		try {
 			const result = await createCheckout({ plan });
-			
+
 			if (result.paymentUrl) {
 				window.location.href = result.paymentUrl;
 			}
 		} catch {
 			toast.error(t("checkoutStartError"));
 		}
-	};
-
-	const handleCreateCheckoutForWidget = async (plan: "pro" | "agency") => {
-		return await createCheckout({ plan });
 	};
 
 	if (isPlansLoading) {
@@ -140,13 +135,6 @@ export const PricingPlans = () => {
 							>
 								{buttonLabel}
 							</Button>
-							{(key === "pro" || key === "agency") && !isCurrent ? (
-								<TBankWidgetTestButton
-									plan={key}
-									disabled={isCheckoutLoading}
-									onCreateCheckout={handleCreateCheckoutForWidget}
-								/>
-							) : null}
 						</CardContent>
 					</Card>
 				);

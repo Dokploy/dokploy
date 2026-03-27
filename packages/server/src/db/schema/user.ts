@@ -64,7 +64,7 @@ export const user = pgTable("user", {
 		.default(false),
 	stripeCustomerId: text("stripeCustomerId"),
 	stripeSubscriptionId: text("stripeSubscriptionId"),
-	serversQuantity: integer("serversQuantity").notNull().default(0),
+	serversQuantity: integer("serversQuantity").notNull().default(1),
 	trustedOrigins: text("trustedOrigins").array(),
 });
 

@@ -6,6 +6,9 @@
 /** @type {import("next").NextConfig} */
 const nextConfig = {
 	reactStrictMode: true,
+	logging: {
+		incomingRequests: false,
+	},
 	typescript: {
 		ignoreBuildErrors: true,
 	},
