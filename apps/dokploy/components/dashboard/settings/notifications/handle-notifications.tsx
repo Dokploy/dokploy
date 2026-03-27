@@ -23,6 +23,7 @@ import {
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -59,6 +60,7 @@ const notificationBaseSchema = z.object({
 	dokployRestart: z.boolean().default(false),
 	dockerCleanup: z.boolean().default(false),
 	serverThreshold: z.boolean().default(false),
+	projectIds: z.array(z.string()).optional().default([]),
 });
 
 export const notificationSchema = z.discriminatedUnion("type", [
@@ -245,6 +247,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: projects } = api.notification.projectOptions.useQuery();
 
 	const { data: notification } = api.notification.one.useQuery(
 		{
@@ -324,6 +327,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			webhookUrl: "",
 			channel: "",
 			name: "",
+			projectIds: [],
 		},
 		resolver: zodResolver(notificationSchema),
 	});
@@ -351,6 +355,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 
 	useEffect(() => {
 		if (notification) {
+			const existingProjectIds = notification.notificationToProjects.map(
+				(link) => link.projectId,
+			);
 			if (notification.notificationType === "slack") {
 				form.reset({
 					appBuildError: notification.appBuildError,
@@ -365,6 +372,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					type: notification.notificationType,
 					serverThreshold: notification.serverThreshold,
+					projectIds: existingProjectIds,
 				});
 			} else if (notification.notificationType === "telegram") {
 				form.reset({
@@ -381,6 +389,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					projectIds: existingProjectIds,
 				});
 			} else if (notification.notificationType === "discord") {
 				form.reset({
@@ -396,6 +405,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					projectIds: existingProjectIds,
 				});
 			} else if (notification.notificationType === "email") {
 				form.reset({
@@ -415,6 +425,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					projectIds: existingProjectIds,
 				});
 			} else if (notification.notificationType === "resend") {
 				form.reset({
@@ -431,6 +442,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					projectIds: existingProjectIds,
 				});
 			} else if (notification.notificationType === "gotify") {
 				form.reset({
@@ -448,6 +460,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					projectIds: existingProjectIds,
 				});
 			} else if (notification.notificationType === "ntfy") {
 				form.reset({
@@ -465,6 +478,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					projectIds: existingProjectIds,
 				});
 			} else if (notification.notificationType === "mattermost") {
 				form.reset({
@@ -481,6 +495,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					projectIds: existingProjectIds,
 				});
 			} else if (notification.notificationType === "lark") {
 				form.reset({
@@ -495,6 +510,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dockerCleanup: notification.dockerCleanup,
 					volumeBackup: notification.volumeBackup,
 					serverThreshold: notification.serverThreshold,
+					projectIds: existingProjectIds,
 				});
 			} else if (notification.notificationType === "teams") {
 				form.reset({
@@ -509,6 +525,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					projectIds: existingProjectIds,
 				});
 			} else if (notification.notificationType === "custom") {
 				form.reset({
@@ -531,6 +548,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					volumeBackup: notification.volumeBackup,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					projectIds: existingProjectIds,
 				});
 			} else if (notification.notificationType === "pushover") {
 				form.reset({
@@ -549,6 +567,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					projectIds: existingProjectIds,
 				});
 			}
 		} else {
@@ -581,6 +600,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			volumeBackup,
 			dockerCleanup,
 			serverThreshold,
+			projectIds,
 		} = data;
 		let promise: Promise<unknown> | null = null;
 		if (data.type === "slack") {
@@ -596,6 +616,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				slackId: notification?.slackId || "",
+				projectIds,
 				notificationId: notificationId || "",
 				serverThreshold: serverThreshold,
 			});
@@ -614,6 +635,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				telegramId: notification?.telegramId || "",
+				projectIds,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "discord") {
@@ -630,6 +652,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				discordId: notification?.discordId || "",
+				projectIds,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "email") {
@@ -650,6 +673,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				emailId: notification?.emailId || "",
+				projectIds,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "resend") {
@@ -667,6 +691,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				resendId: notification?.resendId || "",
+				projectIds,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "gotify") {
@@ -686,6 +711,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				gotifyId: notification?.gotifyId || "",
+				projectIds,
 			});
 		} else if (data.type === "ntfy") {
 			promise = ntfyMutation.mutateAsync({
@@ -704,6 +730,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
+				projectIds,
 			});
 		} else if (data.type === "mattermost") {
 			promise = mattermostMutation.mutateAsync({
@@ -720,6 +747,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				mattermostId: notification?.mattermostId || "",
+				projectIds,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "lark") {
@@ -735,6 +763,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				larkId: notification?.larkId || "",
+				projectIds,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "teams") {
@@ -750,6 +779,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				teamsId: notification?.teamsId || "",
+				projectIds,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "custom") {
@@ -779,6 +809,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				customId: notification?.customId || "",
+				projectIds,
 			});
 		} else if (data.type === "pushover") {
 			if (data.priority === 2 && (data.retry == null || data.expire == null)) {
@@ -802,6 +833,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				pushoverId: notification?.pushoverId || "",
+				projectIds,
 			});
 		}
 
@@ -1818,6 +1850,74 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								)}
 							</div>
 						</div>
+						<div className="flex flex-col gap-4">
+							<FormField
+								control={form.control}
+								name="projectIds"
+								render={({ field }) => {
+									const selected = field.value ?? [];
+									const visibleIds = new Set(
+										projects?.map((project) => project.projectId),
+									);
+									const hiddenCount = selected.filter(
+										(id) => !visibleIds.has(id),
+									).length;
+									return (
+										<FormItem>
+											<FormLabel className="text-lg font-semibold leading-none tracking-tight">
+												Limit to Projects
+											</FormLabel>
+											<FormDescription>
+												Applies to App Deploy, App Build Error, Database Backup
+												and Volume Backup. Leave empty to notify for every
+												project. Server-level actions (Dokploy Restart, Docker
+												Cleanup, Server Threshold, Dokploy Backup) are not
+												affected.
+											</FormDescription>
+											{projects && projects.length > 0 ? (
+												<div className="grid md:grid-cols-2 gap-2 mt-2 max-h-60 overflow-y-auto">
+													{projects.map((project) => (
+														<label
+															key={project.projectId}
+															htmlFor={`notification-project-${project.projectId}`}
+															className="flex items-center gap-2 rounded-lg border p-3 cursor-pointer hover:bg-accent"
+														>
+															<Checkbox
+																id={`notification-project-${project.projectId}`}
+																checked={selected.includes(project.projectId)}
+																onCheckedChange={(checked) => {
+																	field.onChange(
+																		checked
+																			? [...selected, project.projectId]
+																			: selected.filter(
+																					(id) => id !== project.projectId,
+																				),
+																	);
+																}}
+															/>
+															<span className="text-sm truncate">
+																{project.name}
+															</span>
+														</label>
+													))}
+												</div>
+											) : (
+												<p className="text-sm text-muted-foreground">
+													No projects found.
+												</p>
+											)}
+											{hiddenCount > 0 && (
+												<p className="text-sm text-muted-foreground">
+													Also linked to {hiddenCount} project
+													{hiddenCount > 1 ? "s" : ""} you don't have access to.
+												</p>
+											)}
+										</FormItem>
+									);
+								}}
+							/>
+						</div>
+
 						<div className="flex flex-col gap-4">
 							<FormLabel className="text-lg font-semibold leading-none tracking-tight">
 								Select the actions.

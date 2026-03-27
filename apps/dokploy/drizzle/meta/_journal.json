@@ -1457,6 +1457,13 @@
       "when": 1795484082013,
       "tag": "0207_sensitive_action_verification",
       "breakpoints": true
+    },
+    {
+      "idx": 208,
+      "version": "7",
+      "when": 1795620010694,
+      "tag": "0208_notification_to_project",
+      "breakpoints": true
     }
   ]
 }

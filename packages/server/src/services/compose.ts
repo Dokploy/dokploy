@@ -324,6 +324,7 @@ export const deployCompose = async ({
 			organizationId: compose.environment.project.organizationId,
 			domains: compose.domains,
 			environmentName: compose.environment.name,
+			projectId: compose.environment.project.projectId,
 		});
 	} catch (error) {
 		const errorMessage = await getBuildErrorMessage(
@@ -343,6 +344,7 @@ export const deployCompose = async ({
 			errorMessage,
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
+			projectId: compose.environment.project.projectId,
 		});
 		throw error;
 	} finally {

@@ -243,6 +243,7 @@ export const deployApplication = async ({
 			organizationId: application.environment.project.organizationId,
 			domains: application.domains,
 			environmentName: application.environment.name,
+			projectId: application.environment.project.projectId,
 		});
 	} catch (error) {
 		const errorMessage = await getBuildErrorMessage(
@@ -261,6 +262,7 @@ export const deployApplication = async ({
 			errorMessage,
 			buildLink,
 			organizationId: application.environment.project.organizationId,
+			projectId: application.environment.project.projectId,
 		});
 
 		throw error;
@@ -324,6 +326,7 @@ export const rebuildApplication = async ({
 			organizationId: application.environment.project.organizationId,
 			domains: application.domains,
 			environmentName: application.environment.name,
+			projectId: application.environment.project.projectId,
 		});
 	} catch (error) {
 		await writeDeploymentErrorLog(deployment, serverId, error);
