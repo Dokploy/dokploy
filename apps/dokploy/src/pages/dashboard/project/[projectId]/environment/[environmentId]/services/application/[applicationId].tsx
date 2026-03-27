@@ -113,10 +113,7 @@ const Service = (
 			<UseKeyboardNav forPage="application" />
 			<AdvanceBreadcrumb />
 			<Head>
-				<title>
-					{t("serviceDetailsPage.applicationTitle")}: {data?.name} -{" "}
-					{data?.environment.project.name} | {appName}
-				</title>
+				<title>{`${t("serviceDetailsPage.applicationTitle")}: ${data?.name} - ${data?.environment.project.name} | ${appName}`}</title>
 			</Head>
 			<div className="w-full">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">

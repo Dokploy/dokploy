@@ -229,6 +229,8 @@
 		"online": "Online"
 	},
 	"searchCommand": {
+		"dialogTitle": "Command palette",
+		"dialogDescription": "Search and navigate through projects, services, and application sections.",
 		"inputPlaceholder": "Search projects or settings",
 		"empty": "No projects added yet. Click on Create project.",
 		"headingProjects": "Projects",

@@ -35,7 +35,6 @@ import {
 	Star,
 	Tags,
 	Trash2,
-	User,
 	Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -207,12 +206,6 @@ const MENU: Menu = {
 	],
 
 	settings: [
-		{
-			isSingle: true,
-			title: "dashboard.settings.profile",
-			url: "/dashboard/settings/profile",
-			icon: User,
-		},
 		{
 			isSingle: true,
 			title: "dashboard.settings.remoteServers",

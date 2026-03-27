@@ -10,5 +10,11 @@
 		  "**/node_modules/**": true,
 		  "**/turbopack/**": true,
 		  "apps/dokploy/drizzle/**": true
+		},
+		"[typescript]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[typescriptreact]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
 		}
 }

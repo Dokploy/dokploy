@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from "next-intl";
 import type { NextPage } from "next";
 import type { AppProps } from "next/app";
 import { JetBrains_Mono, Geist } from "next/font/google";
+import dynamic from "next/dynamic";
 import Head from "next/head";
 import { ThemeProvider } from "next-themes";
 import NextTopLoader from "nextjs-toploader";
@@ -15,7 +16,6 @@ import {
 	useEffect,
 	useState,
 } from "react";
-import { SearchCommand } from "@/components/dashboard/search-command";
 import { WhitelabelingProvider } from "@/components/proprietary/whitelabeling/whitelabeling-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/utils/api";
@@ -27,6 +27,14 @@ import {
 	resolveInitialLocale,
 } from "@/i18n/locale";
 import { getMessages } from "@/i18n/messages";
+
+const SearchCommand = dynamic(
+	() =>
+		import("@/components/dashboard/search-command").then(
+			(module) => module.SearchCommand,
+		),
+	{ ssr: false },
+);
 
 const geist = Geist({
 	subsets: ["latin"],

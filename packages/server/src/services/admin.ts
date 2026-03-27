@@ -10,6 +10,7 @@ import { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { IS_CLOUD } from '../constants'
 import { getWebServerSettings } from './web-server-settings'
+import { Plan, PlanFeatures, PlanName, PLANS } from '../billing/plans'
 
 type UserRecord = typeof user.$inferSelect
 type SubscriptionRecord = typeof subscription.$inferSelect
@@ -19,10 +20,8 @@ type Feature = { availableServer: number }
 type ModFieldSub = {
 	active: boolean
 }
-
-type Subscription = SubscriptionRecord & ModFieldSub & {
-	access: Feature
-}
+ 
+type Subscription = SubscriptionRecord & ModFieldSub & PlanFeatures
 
 type Project = {
 	isCreateProjects: boolean,
@@ -30,19 +29,7 @@ type Project = {
 	projects: Array<ProjectRecord>,
 }
 
-type Plan = 'free' | 'pro' | 'agency'
 
-const accessPlan: Record<Plan, Feature> = {
-	'free': {
-		availableServer: 1,
-	},
-	'pro': {
-		availableServer: 10,
-	},
-	'agency': {
-		availableServer: 50,
-	},
-}
 
 const getSubscription = async (userId: string): Promise<Subscription> => {
 	const subscriptionData = await db.query.subscription.findFirst({
@@ -56,12 +43,12 @@ const getSubscription = async (userId: string): Promise<Subscription> => {
 		})
 	}
 
-	const access = accessPlan[subscriptionData.plan as Plan]
+	const access = PLANS[subscriptionData.plan as PlanName].features
 
 	return {
 		...subscriptionData,
 		active: subscriptionData.status === 'active',
-		access,
+		...access,
 	}
 }
 
@@ -70,7 +57,7 @@ const getAvailableCrateProject = async (userId: string, sub: Subscription): Prom
 		where: eq(projects.organizationId, userId),
 	})
 
-	const isCreateProjects = sub.access.availableServer > projectsData.length
+	const isCreateProjects = sub.availableServer > projectsData.length
 
 	return {
 		isCreateProjects,

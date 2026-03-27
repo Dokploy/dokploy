@@ -1,5 +1,3 @@
-"use client";
-
 import { BookIcon, CircuitBoard, GlobeIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/router";

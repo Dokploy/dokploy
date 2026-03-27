@@ -1,8 +1,22 @@
 import { relations } from "drizzle-orm";
-import { boolean, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	jsonb,
+	pgEnum,
+	pgTable,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 
 import { user } from "./user";
+
+export const subscriptionPlanEnum = pgEnum("subscription_plan", [
+	"free",
+	"pro",
+	"agency",
+]);
 
 export const subscription = pgTable("subscription", {
 	id: text("id")
@@ -13,7 +27,7 @@ export const subscription = pgTable("subscription", {
 		.notNull()
 		.unique()
 		.references(() => user.id, { onDelete: "cascade", onUpdate: "no action" }),
-	plan: text("plan").notNull(),
+	plan: subscriptionPlanEnum("plan").notNull(),
 	status: text("status").notNull(),
 	rebillId: text("rebillId"),
 	tinkoffCustomerKey: text("tinkoffCustomerKey"),
@@ -22,6 +36,8 @@ export const subscription = pgTable("subscription", {
 	createdAt: timestamp("createdAt").notNull().defaultNow(),
 	updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
+
+export const paymentTypeEnum = pgEnum("payment_type", ["subscription", "one_time"]);
 
 export const payment = pgTable("payment", {
 	id: text("id")
@@ -35,6 +51,13 @@ export const payment = pgTable("payment", {
 	orderId: text("orderId").notNull().unique(),
 	amount: integer("amount").notNull(),
 	currency: text("currency").notNull().default("RUB"),
+	type: paymentTypeEnum("type").notNull().default("subscription"),
+	subscriptionId: text("subscriptionId").references(() => subscription.id, {
+		onDelete: "set null",
+		onUpdate: "no action",
+	}),
+	serviceCode: text("serviceCode"),
+	metadata: jsonb("metadata"),
 	status: text("status").notNull(),
 	description: text("description"),
 	createdAt: timestamp("createdAt").notNull().defaultNow(),
@@ -46,5 +69,9 @@ export const subscriptionRelations = relations(subscription, ({ one }) => ({
 
 export const paymentRelations = relations(payment, ({ one }) => ({
 	user: one(user, { fields: [payment.userId], references: [user.id] }),
+	subscription: one(subscription, {
+		fields: [payment.subscriptionId],
+		references: [subscription.id],
+	}),
 }));
 

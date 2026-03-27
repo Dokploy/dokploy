@@ -84,10 +84,7 @@ const Mariadb = (
 			<AdvanceBreadcrumb />
 			<div className="flex flex-col gap-4">
 				<Head>
-					<title>
-						{t("serviceDetailsPage.databaseTitle")}: {data?.name} -{" "}
-						{data?.environment?.project?.name} |{appName}
-					</title>
+					<title>{`${t("serviceDetailsPage.databaseTitle")}: ${data?.name} - ${data?.environment?.project?.name} | ${appName}`}</title>
 				</Head>
 				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">

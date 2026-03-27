@@ -930,10 +930,7 @@ const EnvironmentPage = (
 		<div>
 			<AdvanceBreadcrumb />
 			<Head>
-				<title>
-					{t("projectEnvironmentPage.pageTitle")}: {currentEnvironment.name} |{" "}
-					{projectData?.name} | {appName}
-				</title>
+				<title>{`${t("projectEnvironmentPage.pageTitle")}: ${currentEnvironment.name} | ${projectData?.name} | ${appName}`}</title>
 			</Head>
 			<div className="w-full">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl">

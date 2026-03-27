@@ -13,6 +13,8 @@
 		"nextCharge": "Next renewal",
 		"nextChargeNotApplicable": "No automatic renewal",
 		"cancelSubscription": "Cancel subscription",
+		"cancelSuccess": "Your subscription will be canceled at the end of the current period.",
+		"cancelError": "Failed to cancel subscription. Please try again.",
 		"cancelScheduled": "Cancels at period end",
 		"cancelScheduledHint": "Cancellation is already scheduled; access continues until the next renewal date.",
 		"cancelDisabledNoPaid": "There is no paid subscription to cancel.",

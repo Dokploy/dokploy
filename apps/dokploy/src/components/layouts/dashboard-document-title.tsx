@@ -44,9 +44,7 @@ export const DashboardDocumentTitle = ({ pageTitleKey }: Props) => {
 
 	return (
 		<Head>
-			<title>
-				{segment} | {appName}
-			</title>
+			<title>{`${segment} | ${appName}`}</title>
 		</Head>
 	);
 };

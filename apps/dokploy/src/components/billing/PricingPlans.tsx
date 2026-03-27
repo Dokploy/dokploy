@@ -53,16 +53,11 @@ export const PricingPlans = () => {
 	}, [plans]);
 
 	const handleSelectPlan = async (plan: "free" | "pro" | "agency") => {
-		try {
-			const result = await createCheckout({ plan });
+		const {paymentUrl} = await createCheckout({ plan });
 
-			if (result.paymentUrl) {
-				window.location.href = result.paymentUrl;
-			}
-		} catch {
-			toast.error(t("checkoutStartError"));
-		}
-	};
+		window.location.href = paymentUrl;
+
+	}; 
 
 	if (isPlansLoading) {
 		return (
@@ -124,7 +119,7 @@ export const PricingPlans = () => {
 								</span>
 							</div>
 							<ul className="text-sm text-muted-foreground space-y-1">
-								{plan.features.map((feature) => (
+								{plan.features.description.map((feature) => (
 									<li key={feature}>{feature}</li>
 								))}
 							</ul>
