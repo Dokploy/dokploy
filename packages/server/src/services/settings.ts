@@ -1,8 +1,8 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
-	execAsync,
-	execAsyncRemote,
+  execAsync,
+  execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { and, eq } from "drizzle-orm";
 
@@ -10,147 +10,147 @@ import semver from "semver";
 import { db } from "../db";
 import { compose } from "../db/schema";
 import {
-	initializeStandaloneTraefik,
-	initializeTraefikService,
-	type TraefikOptions,
+  initializeStandaloneTraefik,
+  initializeTraefikService,
+  type TraefikOptions,
 } from "../setup/traefik-setup";
 export interface IUpdateData {
-	latestVersion: string | null;
-	updateAvailable: boolean;
+  latestVersion: string | null;
+  updateAvailable: boolean;
 }
 
 export const DEFAULT_UPDATE_DATA: IUpdateData = {
-	latestVersion: null,
-	updateAvailable: false,
+  latestVersion: null,
+  updateAvailable: false,
 };
 
 /** Returns current Dokploy docker image tag or `latest` by default. */
 export const getDokployImageTag = () => {
-	return process.env.RELEASE_TAG || "latest";
+  return process.env.RELEASE_TAG || "latest";
 };
 
 /** Returns Dokploy docker service image digest */
 export const getServiceImageDigest = async () => {
-	const { stdout } = await execAsync(
-		"docker service inspect dokploy --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'",
-	);
+  const { stdout } = await execAsync(
+    "docker service inspect dokploy --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'",
+  );
 
-	const currentDigest = stdout.trim().split("@")[1];
+  const currentDigest = stdout.trim().split("@")[1];
 
-	if (!currentDigest) {
-		throw new Error("Could not get current service image digest");
-	}
+  if (!currentDigest) {
+    throw new Error("Could not get current service image digest");
+  }
 
-	return currentDigest;
+  return currentDigest;
 };
 
 /** Returns latest version number and information whether server update is available by comparing current image's digest against digest for provided image tag via Docker hub API. */
 export const getUpdateData = async (
-	currentVersion: string,
+  currentVersion: string,
 ): Promise<IUpdateData> => {
-	try {
-		const baseUrl =
-			"https://hub.docker.com/v2/repositories/kamik2k/deploybox/tags";
-		let url: string | null = `${baseUrl}?page_size=100`;
-		let allResults: { digest: string; name: string }[] = [];
+  try {
+    const baseUrl =
+      "https://hub.docker.com/v2/repositories/kamik2k/deploybox/tags";
+    let url: string | null = `${baseUrl}?page_size=100`;
+    let allResults: { digest: string; name: string }[] = [];
 
-		// Fetch all tags from Docker Hub
-		while (url) {
-			const response = await fetch(url, {
-				method: "GET",
-				headers: { "Content-Type": "application/json" },
-			});
+    // Fetch all tags from Docker Hub
+    while (url) {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
 
-			const data = (await response.json()) as {
-				next: string | null;
-				results: { digest: string; name: string }[];
-			};
+      const data = (await response.json()) as {
+        next: string | null;
+        results: { digest: string; name: string }[];
+      };
 
-			allResults = allResults.concat(data.results);
-			url = data?.next;
-		}
+      allResults = allResults.concat(data.results);
+      url = data?.next;
+    }
 
-		const currentImageTag = getDokployImageTag();
+    const currentImageTag = getDokployImageTag();
 
-		// Special handling for canary and feature branches
-		// For development versions (canary/feature), don't perform update checks
-		// These are unstable versions that change frequently, and users on these
-		// branches are expected to manually manage updates
-		if (currentImageTag === "canary" || currentImageTag === "feature") {
-			const currentDigest = await getServiceImageDigest();
-			const latestDigest = allResults.find(
-				(t) => t.name === currentImageTag,
-			)?.digest;
-			if (!latestDigest) {
-				return DEFAULT_UPDATE_DATA;
-			}
-			if (currentDigest !== latestDigest) {
-				return {
-					latestVersion: currentImageTag,
-					updateAvailable: true,
-				};
-			}
-			return {
-				latestVersion: currentImageTag,
-				updateAvailable: false,
-			};
-		}
+    // Special handling for canary and feature branches
+    // For development versions (canary/feature), don't perform update checks
+    // These are unstable versions that change frequently, and users on these
+    // branches are expected to manually manage updates
+    if (currentImageTag === "canary" || currentImageTag === "feature") {
+      const currentDigest = await getServiceImageDigest();
+      const latestDigest = allResults.find(
+        (t) => t.name === currentImageTag,
+      )?.digest;
+      if (!latestDigest) {
+        return DEFAULT_UPDATE_DATA;
+      }
+      if (currentDigest !== latestDigest) {
+        return {
+          latestVersion: currentImageTag,
+          updateAvailable: true,
+        };
+      }
+      return {
+        latestVersion: currentImageTag,
+        updateAvailable: false,
+      };
+    }
 
-		// For stable versions, use semver comparison
-		// Find the "latest" tag and get its digest
-		const latestTag = allResults.find((t) => t.name === "latest");
+    // For stable versions, use semver comparison
+    // Find the "latest" tag and get its digest
+    const latestTag = allResults.find((t) => t.name === "latest");
 
-		if (!latestTag) {
-			return DEFAULT_UPDATE_DATA;
-		}
+    if (!latestTag) {
+      return DEFAULT_UPDATE_DATA;
+    }
 
-		// Find the versioned tag (v0.x.x) that has the same digest as "latest"
-		const latestVersionTag = allResults.find(
-			(t) => t.digest === latestTag.digest && t.name.startsWith("v"),
-		);
+    // Find the versioned tag (v0.x.x) that has the same digest as "latest"
+    const latestVersionTag = allResults.find(
+      (t) => t.digest === latestTag.digest && t.name.startsWith("v"),
+    );
 
-		if (!latestVersionTag) {
-			return DEFAULT_UPDATE_DATA;
-		}
+    if (!latestVersionTag) {
+      return DEFAULT_UPDATE_DATA;
+    }
 
-		const latestVersion = latestVersionTag.name;
+    const latestVersion = latestVersionTag.name;
 
-		// Use semver to compare versions for stable releases
-		const cleanedCurrent = semver.clean(currentVersion);
-		const cleanedLatest = semver.clean(latestVersion);
+    // Use semver to compare versions for stable releases
+    const cleanedCurrent = semver.clean(currentVersion);
+    const cleanedLatest = semver.clean(latestVersion);
 
-		if (!cleanedCurrent || !cleanedLatest) {
-			return DEFAULT_UPDATE_DATA;
-		}
+    if (!cleanedCurrent || !cleanedLatest) {
+      return DEFAULT_UPDATE_DATA;
+    }
 
-		// Check if the latest version is greater than the current version
-		const updateAvailable = semver.gt(cleanedLatest, cleanedCurrent);
+    // Check if the latest version is greater than the current version
+    const updateAvailable = semver.gt(cleanedLatest, cleanedCurrent);
 
-		return {
-			latestVersion,
-			updateAvailable,
-		};
-	} catch (error) {
-		console.error("Error fetching update data:", error);
-		return DEFAULT_UPDATE_DATA;
-	}
+    return {
+      latestVersion,
+      updateAvailable,
+    };
+  } catch (error) {
+    console.error("Error fetching update data:", error);
+    return DEFAULT_UPDATE_DATA;
+  }
 };
 
 interface TreeDataItem {
-	id: string;
-	name: string;
-	type: "file" | "directory";
-	children?: TreeDataItem[];
+  id: string;
+  name: string;
+  type: "file" | "directory";
+  children?: TreeDataItem[];
 }
 
 export const readDirectory = async (
-	dirPath: string,
-	serverId?: string,
+  dirPath: string,
+  serverId?: string,
 ): Promise<TreeDataItem[]> => {
-	if (serverId) {
-		const { stdout } = await execAsyncRemote(
-			serverId,
-			`
+  if (serverId) {
+    const { stdout } = await execAsyncRemote(
+      serverId,
+      `
 process_items() {
     local parent_dir="$1"
     local __resultvar=$2
@@ -197,60 +197,60 @@ process_items "$root_dir" json_output
 
 echo "$json_output"
 			`,
-		);
-		const result = JSON.parse(stdout);
-		return result;
-	}
+    );
+    const result = JSON.parse(stdout);
+    return result;
+  }
 
-	const stack = [dirPath];
-	const result: TreeDataItem[] = [];
-	const parentMap: Record<string, TreeDataItem[]> = {};
+  const stack = [dirPath];
+  const result: TreeDataItem[] = [];
+  const parentMap: Record<string, TreeDataItem[]> = {};
 
-	while (stack.length > 0) {
-		const currentPath = stack.pop();
-		if (!currentPath) continue;
+  while (stack.length > 0) {
+    const currentPath = stack.pop();
+    if (!currentPath) continue;
 
-		const items = readdirSync(currentPath, { withFileTypes: true });
-		const currentDirectoryResult: TreeDataItem[] = [];
+    const items = readdirSync(currentPath, { withFileTypes: true });
+    const currentDirectoryResult: TreeDataItem[] = [];
 
-		for (const item of items) {
-			const fullPath = join(currentPath, item.name);
-			if (item.isDirectory()) {
-				stack.push(fullPath);
-				const directoryItem: TreeDataItem = {
-					id: fullPath,
-					name: item.name,
-					type: "directory",
-					children: [],
-				};
-				currentDirectoryResult.push(directoryItem);
-				parentMap[fullPath] = directoryItem.children as TreeDataItem[];
-			} else {
-				const fileItem: TreeDataItem = {
-					id: fullPath,
-					name: item.name,
-					type: "file",
-				};
-				currentDirectoryResult.push(fileItem);
-			}
-		}
+    for (const item of items) {
+      const fullPath = join(currentPath, item.name);
+      if (item.isDirectory()) {
+        stack.push(fullPath);
+        const directoryItem: TreeDataItem = {
+          id: fullPath,
+          name: item.name,
+          type: "directory",
+          children: [],
+        };
+        currentDirectoryResult.push(directoryItem);
+        parentMap[fullPath] = directoryItem.children as TreeDataItem[];
+      } else {
+        const fileItem: TreeDataItem = {
+          id: fullPath,
+          name: item.name,
+          type: "file",
+        };
+        currentDirectoryResult.push(fileItem);
+      }
+    }
 
-		if (parentMap[currentPath]) {
-			parentMap[currentPath].push(...currentDirectoryResult);
-		} else {
-			result.push(...currentDirectoryResult);
-		}
-	}
-	return result;
+    if (parentMap[currentPath]) {
+      parentMap[currentPath].push(...currentDirectoryResult);
+    } else {
+      result.push(...currentDirectoryResult);
+    }
+  }
+  return result;
 };
 
 export const getDockerResourceType = async (
-	resourceName: string,
-	serverId?: string,
+  resourceName: string,
+  serverId?: string,
 ) => {
-	try {
-		let result = "";
-		const command = `
+  try {
+    let result = "";
+    const command = `
 RESOURCE_NAME="${resourceName}"
 if docker service inspect "$RESOURCE_NAME" >/dev/null 2>&1; then
 	echo "service"
@@ -260,243 +260,243 @@ else
 	echo "unknown"
 fi`;
 
-		if (serverId) {
-			const { stdout } = await execAsyncRemote(serverId, command);
-			result = stdout.trim();
-		} else {
-			const { stdout } = await execAsync(command);
-			result = stdout.trim();
-		}
-		if (result === "service") {
-			return "service";
-		}
-		if (result === "standalone") {
-			return "standalone";
-		}
-		return "unknown";
-	} catch (error) {
-		console.error(error);
-		return "unknown";
-	}
+    if (serverId) {
+      const { stdout } = await execAsyncRemote(serverId, command);
+      result = stdout.trim();
+    } else {
+      const { stdout } = await execAsync(command);
+      result = stdout.trim();
+    }
+    if (result === "service") {
+      return "service";
+    }
+    if (result === "standalone") {
+      return "standalone";
+    }
+    return "unknown";
+  } catch (error) {
+    console.error(error);
+    return "unknown";
+  }
 };
 
 export const reloadDockerResource = async (
-	resourceName: string,
-	serverId?: string,
-	version?: string,
+  resourceName: string,
+  serverId?: string,
+  version?: string,
 ) => {
-	const resourceType = await getDockerResourceType(resourceName, serverId);
-	let command = "";
-	if (resourceType === "service") {
-		if (resourceName === "dokploy") {
-			const currentImageTag = getDokployImageTag();
-			let imageTag = version;
-			if (currentImageTag === "canary" || currentImageTag === "feature") {
-				imageTag = currentImageTag;
-			}
+  const resourceType = await getDockerResourceType(resourceName, serverId);
+  let command = "";
+  if (resourceType === "service") {
+    if (resourceName === "dokploy") {
+      const currentImageTag = getDokployImageTag();
+      let imageTag = version;
+      if (currentImageTag === "canary" || currentImageTag === "feature") {
+        imageTag = currentImageTag;
+      }
 
-			command = `docker service update --force --image dokploy/dokploy:${imageTag} ${resourceName}`;
-		} else {
-			command = `docker service update --force ${resourceName}`;
-		}
-	} else if (resourceType === "standalone") {
-		command = `docker restart ${resourceName}`;
-	} else {
-		throw new Error("Resource type not found");
-	}
-	if (serverId) {
-		await execAsyncRemote(serverId, command);
-	} else {
-		await execAsync(command);
-	}
+      command = `docker service update --force --image kamik2k/deploybox:${imageTag} ${resourceName}`;
+    } else {
+      command = `docker service update --force ${resourceName}`;
+    }
+  } else if (resourceType === "standalone") {
+    command = `docker restart ${resourceName}`;
+  } else {
+    throw new Error("Resource type not found");
+  }
+  if (serverId) {
+    await execAsyncRemote(serverId, command);
+  } else {
+    await execAsync(command);
+  }
 };
 
 export const readEnvironmentVariables = async (
-	resourceName: string,
-	serverId?: string,
+  resourceName: string,
+  serverId?: string,
 ) => {
-	const resourceType = await getDockerResourceType(resourceName, serverId);
-	let command = "";
-	if (resourceType === "service") {
-		command = `docker service inspect ${resourceName} --format '{{json .Spec.TaskTemplate.ContainerSpec.Env}}'`;
-	} else if (resourceType === "standalone") {
-		command = `docker container inspect ${resourceName} --format '{{json .Config.Env}}'`;
-	}
-	let result = "";
-	if (serverId) {
-		const { stdout } = await execAsyncRemote(serverId, command);
-		result = stdout.trim();
-	} else {
-		const { stdout } = await execAsync(command);
-		result = stdout.trim();
-	}
-	if (result === "null") {
-		return "";
-	}
-	return JSON.parse(result)?.join("\n");
+  const resourceType = await getDockerResourceType(resourceName, serverId);
+  let command = "";
+  if (resourceType === "service") {
+    command = `docker service inspect ${resourceName} --format '{{json .Spec.TaskTemplate.ContainerSpec.Env}}'`;
+  } else if (resourceType === "standalone") {
+    command = `docker container inspect ${resourceName} --format '{{json .Config.Env}}'`;
+  }
+  let result = "";
+  if (serverId) {
+    const { stdout } = await execAsyncRemote(serverId, command);
+    result = stdout.trim();
+  } else {
+    const { stdout } = await execAsync(command);
+    result = stdout.trim();
+  }
+  if (result === "null") {
+    return "";
+  }
+  return JSON.parse(result)?.join("\n");
 };
 
 export const readPorts = async (
-	resourceName: string,
-	serverId?: string,
+  resourceName: string,
+  serverId?: string,
 ): Promise<
-	{ targetPort: number; publishedPort: number; protocol?: string }[]
+  { targetPort: number; publishedPort: number; protocol?: string }[]
 > => {
-	const resourceType = await getDockerResourceType(resourceName, serverId);
-	let command = "";
-	if (resourceType === "service") {
-		command = `docker service inspect ${resourceName} --format '{{json .Spec.EndpointSpec.Ports}}'`;
-	} else if (resourceType === "standalone") {
-		command = `docker container inspect ${resourceName} --format '{{json .NetworkSettings.Ports}}'`;
-	} else {
-		throw new Error("Resource type not found");
-	}
-	let result = "";
-	if (serverId) {
-		const { stdout } = await execAsyncRemote(serverId, command);
-		result = stdout.trim();
-	} else {
-		const { stdout } = await execAsync(command);
-		result = stdout.trim();
-	}
+  const resourceType = await getDockerResourceType(resourceName, serverId);
+  let command = "";
+  if (resourceType === "service") {
+    command = `docker service inspect ${resourceName} --format '{{json .Spec.EndpointSpec.Ports}}'`;
+  } else if (resourceType === "standalone") {
+    command = `docker container inspect ${resourceName} --format '{{json .NetworkSettings.Ports}}'`;
+  } else {
+    throw new Error("Resource type not found");
+  }
+  let result = "";
+  if (serverId) {
+    const { stdout } = await execAsyncRemote(serverId, command);
+    result = stdout.trim();
+  } else {
+    const { stdout } = await execAsync(command);
+    result = stdout.trim();
+  }
 
-	if (result === "null") {
-		return [];
-	}
+  if (result === "null") {
+    return [];
+  }
 
-	const parsedResult = JSON.parse(result);
+  const parsedResult = JSON.parse(result);
 
-	if (resourceType === "service") {
-		return parsedResult
-			.map((port: any) => ({
-				targetPort: port.TargetPort,
-				publishedPort: port.PublishedPort,
-				protocol: port.Protocol,
-			}))
-			.filter((port: any) => port.targetPort !== 80 && port.targetPort !== 443);
-	}
-	const ports: {
-		targetPort: number;
-		publishedPort: number;
-		protocol?: string;
-	}[] = [];
-	const seenPorts = new Set<string>();
-	for (const key in parsedResult) {
-		if (Object.hasOwn(parsedResult, key)) {
-			const containerPortMapppings = parsedResult[key];
-			const protocol = key.split("/")[1];
-			const targetPort = Number.parseInt(key.split("/")[0] ?? "0", 10);
+  if (resourceType === "service") {
+    return parsedResult
+      .map((port: any) => ({
+        targetPort: port.TargetPort,
+        publishedPort: port.PublishedPort,
+        protocol: port.Protocol,
+      }))
+      .filter((port: any) => port.targetPort !== 80 && port.targetPort !== 443);
+  }
+  const ports: {
+    targetPort: number;
+    publishedPort: number;
+    protocol?: string;
+  }[] = [];
+  const seenPorts = new Set<string>();
+  for (const key in parsedResult) {
+    if (Object.hasOwn(parsedResult, key)) {
+      const containerPortMapppings = parsedResult[key];
+      const protocol = key.split("/")[1];
+      const targetPort = Number.parseInt(key.split("/")[0] ?? "0", 10);
 
-			// Take only the first mapping to avoid duplicates (IPv4 and IPv6)
-			const firstMapping = containerPortMapppings[0];
-			if (firstMapping) {
-				const publishedPort = Number.parseInt(firstMapping.HostPort, 10);
-				const portKey = `${targetPort}-${publishedPort}-${protocol}`;
-				if (!seenPorts.has(portKey)) {
-					seenPorts.add(portKey);
-					ports.push({
-						targetPort: targetPort,
-						publishedPort: publishedPort,
-						protocol: protocol,
-					});
-				}
-			}
-		}
-	}
-	return ports.filter(
-		(port: any) => port.targetPort !== 80 && port.targetPort !== 443,
-	);
+      // Take only the first mapping to avoid duplicates (IPv4 and IPv6)
+      const firstMapping = containerPortMapppings[0];
+      if (firstMapping) {
+        const publishedPort = Number.parseInt(firstMapping.HostPort, 10);
+        const portKey = `${targetPort}-${publishedPort}-${protocol}`;
+        if (!seenPorts.has(portKey)) {
+          seenPorts.add(portKey);
+          ports.push({
+            targetPort: targetPort,
+            publishedPort: publishedPort,
+            protocol: protocol,
+          });
+        }
+      }
+    }
+  }
+  return ports.filter(
+    (port: any) => port.targetPort !== 80 && port.targetPort !== 443,
+  );
 };
 
 export const checkPortInUse = async (
-	port: number,
-	serverId?: string,
+  port: number,
+  serverId?: string,
 ): Promise<{ isInUse: boolean; conflictingContainer?: string }> => {
-	try {
-		// Check if port is in use by a Docker container
-		const dockerCommand = `docker ps -a --format '{{.Names}}' | grep -v '^dokploy-traefik$' | while read name; do docker port "$name" 2>/dev/null | grep -q ':${port}' && echo "$name" && break; done || true`;
-		const { stdout: dockerOut } = serverId
-			? await execAsyncRemote(serverId, dockerCommand)
-			: await execAsync(dockerCommand);
+  try {
+    // Check if port is in use by a Docker container
+    const dockerCommand = `docker ps -a --format '{{.Names}}' | grep -v '^dokploy-traefik$' | while read name; do docker port "$name" 2>/dev/null | grep -q ':${port}' && echo "$name" && break; done || true`;
+    const { stdout: dockerOut } = serverId
+      ? await execAsyncRemote(serverId, dockerCommand)
+      : await execAsync(dockerCommand);
 
-		const container = dockerOut.trim();
+    const container = dockerOut.trim();
 
-		if (container) {
-			return {
-				isInUse: true,
-				conflictingContainer: `container "${container}"`,
-			};
-		}
+    if (container) {
+      return {
+        isInUse: true,
+        conflictingContainer: `container "${container}"`,
+      };
+    }
 
-		// Check if port is in use by a host-level service (non-Docker)
-		// Dokploy runs inside a container, so we spawn an ephemeral container
-		// with --net=host to share the host's network stack and use nc -z to
-		// check if something is listening on the port
-		const hostCommand = `docker run --rm --net=host busybox sh -c 'nc -z 0.0.0.0 ${port} 2>/dev/null && echo in_use || echo free'`;
-		const { stdout: hostOut } = serverId
-			? await execAsyncRemote(serverId, hostCommand)
-			: await execAsync(hostCommand);
+    // Check if port is in use by a host-level service (non-Docker)
+    // Dokploy runs inside a container, so we spawn an ephemeral container
+    // with --net=host to share the host's network stack and use nc -z to
+    // check if something is listening on the port
+    const hostCommand = `docker run --rm --net=host busybox sh -c 'nc -z 0.0.0.0 ${port} 2>/dev/null && echo in_use || echo free'`;
+    const { stdout: hostOut } = serverId
+      ? await execAsyncRemote(serverId, hostCommand)
+      : await execAsync(hostCommand);
 
-		if (hostOut.includes("in_use")) {
-			return {
-				isInUse: true,
-				conflictingContainer: "a host-level service",
-			};
-		}
+    if (hostOut.includes("in_use")) {
+      return {
+        isInUse: true,
+        conflictingContainer: "a host-level service",
+      };
+    }
 
-		return { isInUse: false };
-	} catch (error) {
-		console.error("Error checking port availability:", error);
-		return { isInUse: false };
-	}
+    return { isInUse: false };
+  } catch (error) {
+    console.error("Error checking port availability:", error);
+    return { isInUse: false };
+  }
 };
 
 export const writeTraefikSetup = async (input: TraefikOptions) => {
-	const resourceType = await getDockerResourceType(
-		"dokploy-traefik",
-		input.serverId,
-	);
+  const resourceType = await getDockerResourceType(
+    "dokploy-traefik",
+    input.serverId,
+  );
 
-	if (resourceType === "service") {
-		await initializeTraefikService({
-			env: input.env,
-			additionalPorts: input.additionalPorts,
-			serverId: input.serverId,
-		});
-		await reconnectServicesToTraefik(input.serverId);
-	} else if (resourceType === "standalone") {
-		await initializeStandaloneTraefik({
-			env: input.env,
-			additionalPorts: input.additionalPorts,
-			serverId: input.serverId,
-		});
+  if (resourceType === "service") {
+    await initializeTraefikService({
+      env: input.env,
+      additionalPorts: input.additionalPorts,
+      serverId: input.serverId,
+    });
+    await reconnectServicesToTraefik(input.serverId);
+  } else if (resourceType === "standalone") {
+    await initializeStandaloneTraefik({
+      env: input.env,
+      additionalPorts: input.additionalPorts,
+      serverId: input.serverId,
+    });
 
-		await reconnectServicesToTraefik(input.serverId);
-	} else {
-		throw new Error("Traefik resource type not found");
-	}
+    await reconnectServicesToTraefik(input.serverId);
+  } else {
+    throw new Error("Traefik resource type not found");
+  }
 };
 
 export const reconnectServicesToTraefik = async (serverId?: string) => {
-	const composeResult = await db.query.compose.findMany({
-		where: and(
-			...(serverId ? [eq(compose.serverId, serverId)] : []),
-			eq(compose.isolatedDeployment, true),
-		),
-	});
+  const composeResult = await db.query.compose.findMany({
+    where: and(
+      ...(serverId ? [eq(compose.serverId, serverId)] : []),
+      eq(compose.isolatedDeployment, true),
+    ),
+  });
 
-	if (!composeResult) {
-		return;
-	}
-	let commands = "";
+  if (!composeResult) {
+    return;
+  }
+  let commands = "";
 
-	for (const compose of composeResult) {
-		commands += `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1\n`;
-	}
+  for (const compose of composeResult) {
+    commands += `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1\n`;
+  }
 
-	if (serverId) {
-		await execAsyncRemote(serverId, commands);
-	} else {
-		await execAsync(commands);
-	}
+  if (serverId) {
+    await execAsyncRemote(serverId, commands);
+  } else {
+    await execAsync(commands);
+  }
 };
