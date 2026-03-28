@@ -347,7 +347,7 @@ export const ShowProjects = () => {
 															}
 														}}
 													>
-														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border">
+														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-primary/10">
 															<CardHeader>
 																<CardTitle className="flex items-center justify-between gap-2 overflow-clip">
 																	<span className="flex flex-col gap-1.5 ">

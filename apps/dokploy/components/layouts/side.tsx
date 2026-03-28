@@ -959,18 +959,18 @@ export default function Page({ children }: Props) {
 												<SidebarMenuButton
 													asChild
 													tooltip={item.title}
-													className={cn(isActive && "bg-border")}
+													className={cn(isActive && "bg-primary/10", "hover:bg-primary/10 transition-colors group/item")}
 												>
 													<Link
 														href={item.url}
-														className="flex w-full items-center gap-2"
+														className="flex w-full items-center gap-2 "
 													>
 														{item.icon && (
 															<item.icon
-																className={cn(isActive && "text-primary")}
+																className={cn(isActive && "text-primary", "group-hover/item:text-primary transition-colors")}
 															/>
 														)}
-														<span>{item.title}</span>
+														<span className={cn(isActive && "text-primary", "group-hover/item:text-primary transition-colors")}>{item.title}</span>
 													</Link>
 												</SidebarMenuButton>
 											) : (
