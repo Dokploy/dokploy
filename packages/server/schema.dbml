@@ -36,6 +36,7 @@ enum databaseType {
   mysql
   mongo
   "web-server"
+  libsql
 }
 
 enum deploymentStatus {
@@ -72,6 +73,7 @@ enum notificationType {
   resend
   gotify
   ntfy
+  mattermost
   pushover
   custom
   lark
@@ -124,6 +126,7 @@ enum serviceType {
   mongo
   redis
   compose
+  libsql
 }
 
 enum shellType {
@@ -148,6 +151,11 @@ enum sourceTypeCompose {
   bitbucket
   gitea
   raw
+}
+
+enum sqldNode {
+  primary
+  replica
 }
 
 enum triggerType {
@@ -193,7 +201,8 @@ table apikey {
   start text
   prefix text
   key text [not null]
-  user_id text [not null]
+  config_id text [not null, default: 'default']
+  reference_id text [not null]
   refill_interval integer
   refill_amount integer
   last_refill_at timestamp
@@ -349,6 +358,7 @@ table backup {
   mariadbId text
   mysqlId text
   mongoId text
+  libsqlId text
   userId text
   metadata jsonb
 }
@@ -584,6 +594,43 @@ table lark {
   webhookUrl text [not null]
 }
 
+table libsql {
+  libsqlId text [pk, not null]
+  name text [not null]
+  appName text [not null, unique]
+  description text
+  databaseUser text [not null]
+  databasePassword text [not null]
+  sqldNode sqldNode [not null, default: 'primary']
+  sqldPrimaryUrl text
+  enableNamespaces boolean [not null, default: false]
+  dockerImage text [not null]
+  command text
+  env text
+  memoryReservation text
+  memoryLimit text
+  cpuReservation text
+  cpuLimit text
+  externalPort integer
+  externalGRPCPort integer
+  externalAdminPort integer
+  applicationStatus applicationStatus [not null, default: 'idle']
+  healthCheckSwarm json
+  restartPolicySwarm json
+  placementSwarm json
+  updateConfigSwarm json
+  rollbackConfigSwarm json
+  modeSwarm json
+  labelsSwarm json
+  networkSwarm json
+  stopGracePeriodSwarm bigint
+  endpointSpecSwarm json
+  replicas integer [not null, default: 1]
+  createdAt text [not null]
+  environmentId text [not null]
+  serverId text
+}
+
 table mariadb {
   mariadbId text [pk, not null]
   name text [not null]
@@ -618,6 +665,13 @@ table mariadb {
   createdAt text [not null]
   environmentId text [not null]
   serverId text
+}
+
+table mattermost {
+  mattermostId text [pk, not null]
+  webhookUrl text [not null]
+  channel text
+  username text
 }
 
 table member {
@@ -689,12 +743,13 @@ table mount {
   serviceType serviceType [not null, default: 'application']
   mountPath text [not null]
   applicationId text
-  postgresId text
+  composeId text
+  libsqlId text
   mariadbId text
   mongoId text
   mysqlId text
+  postgresId text
   redisId text
-  composeId text
 }
 
 table mysql {
@@ -752,6 +807,7 @@ table notification {
   resendId text
   gotifyId text
   ntfyId text
+  mattermostId text
   customId text
   larkId text
   pushoverId text
@@ -866,6 +922,16 @@ table preview_deployments {
   domainId text
   createdAt text [not null]
   expiresAt text
+}
+
+table project_tag {
+  id text [pk, not null]
+  projectId text [not null]
+  tagId text [not null]
+
+  indexes {
+    (projectId, tagId) [name: 'unique_project_tag', unique]
+  }
 }
 
 table project {
@@ -1048,6 +1114,18 @@ table sso_provider {
   created_at timestamp [not null, default: `now()`]
 }
 
+table tag {
+  tagId text [pk, not null]
+  name text [not null]
+  color text
+  createdAt text [not null]
+  organizationId text [not null]
+
+  indexes {
+    (organizationId, name) [name: 'unique_org_tag_name', unique]
+  }
+}
+
 table teams {
   teamsId text [pk, not null]
   webhookUrl text [not null]
@@ -1122,6 +1200,7 @@ table volume_backup {
   mongoId text
   mysqlId text
   redisId text
+  libsqlId text
   composeId text
   createdAt text [not null]
   destinationId text [not null]
@@ -1148,7 +1227,9 @@ table webServerSettings {
 
 ref: mount.applicationId > application.applicationId
 
-ref: mount.postgresId > postgres.postgresId
+ref: mount.composeId > compose.composeId
+
+ref: mount.libsqlId > libsql.libsqlId
 
 ref: mount.mariadbId > mariadb.mariadbId
 
@@ -1156,15 +1237,15 @@ ref: mount.mongoId > mongo.mongoId
 
 ref: mount.mysqlId > mysql.mysqlId
 
-ref: mount.redisId > redis.redisId
+ref: mount.postgresId > postgres.postgresId
 
-ref: mount.composeId > compose.composeId
+ref: mount.redisId > redis.redisId
 
 ref: user.id - account.user_id
 
 ref: ai.organizationId - organization.id
 
-ref: apikey.user_id > user.id
+ref: apikey.reference_id > user.id
 
 ref: application.environmentId > environment.environmentId
 
@@ -1201,6 +1282,8 @@ ref: backup.mariadbId > mariadb.mariadbId
 ref: backup.mysqlId > mysql.mysqlId
 
 ref: backup.mongoId > mongo.mongoId
+
+ref: backup.libsqlId > libsql.libsqlId
 
 ref: backup.userId > user.id
 
@@ -1266,6 +1349,10 @@ ref: git_provider.userId - user.id
 
 ref: invitation.organization_id - organization.id
 
+ref: libsql.environmentId > environment.environmentId
+
+ref: libsql.serverId > server.serverId
+
 ref: mariadb.environmentId > environment.environmentId
 
 ref: mariadb.serverId > server.serverId
@@ -1296,6 +1383,8 @@ ref: notification.gotifyId - gotify.gotifyId
 
 ref: notification.ntfyId - ntfy.ntfyId
 
+ref: notification.mattermostId - mattermost.mattermostId
+
 ref: notification.customId - custom.customId
 
 ref: notification.larkId - lark.larkId
@@ -1324,6 +1413,10 @@ ref: preview_deployments.applicationId > application.applicationId
 
 ref: project.organizationId > organization.id
 
+ref: project_tag.projectId > project.projectId
+
+ref: project_tag.tagId > tag.tagId
+
 ref: redirect.applicationId > application.applicationId
 
 ref: redis.environmentId > environment.environmentId
@@ -1350,6 +1443,8 @@ ref: sso_provider.organization_id > organization.id
 
 ref: sso_provider.user_id > user.id
 
+ref: tag.organizationId - organization.id
+
 ref: volume_backup.applicationId - application.applicationId
 
 ref: volume_backup.postgresId - postgres.postgresId
@@ -1361,6 +1456,8 @@ ref: volume_backup.mongoId - mongo.mongoId
 ref: volume_backup.mysqlId - mysql.mysqlId
 
 ref: volume_backup.redisId - redis.redisId
+
+ref: volume_backup.libsqlId - libsql.libsqlId
 
 ref: volume_backup.composeId - compose.composeId
 
