@@ -38,6 +38,12 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import {
+	CardsLayout,
+	getDefaultLayout,
+	LayoutSwitcher,
+	type Layout,
+} from "@/components/ui/cards-layout";
+import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
@@ -57,6 +63,7 @@ import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
 
 export const ShowProjects = () => {
+	const [layout, setLayout] = useState<Layout>(() => getDefaultLayout());
 	const utils = api.useUtils();
 	const router = useRouter();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -279,6 +286,7 @@ export const ShowProjects = () => {
 												</Select>
 											</div>
 										</div>
+										<LayoutSwitcher layout={layout} setLayout={setLayout} />
 									</div>
 									{filteredProjects?.length === 0 && (
 										<div className="mt-6 flex h-[50vh] w-full flex-col items-center justify-center space-y-4">
@@ -288,7 +296,7 @@ export const ShowProjects = () => {
 											</span>
 										</div>
 									)}
-									<div className="w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 flex-wrap gap-5">
+									<CardsLayout layout={layout}>
 										{filteredProjects?.map((project) => {
 											const emptyServices = project?.environments
 												.map(
@@ -326,10 +334,7 @@ export const ShowProjects = () => {
 											const hasNoEnvironments = !accessibleEnvironment;
 
 											return (
-												<div
-													key={project.projectId}
-													className="w-full lg:max-w-md"
-												>
+												<div key={project.projectId} className="w-full">
 													<Link
 														href={
 															hasNoEnvironments
@@ -507,7 +512,7 @@ export const ShowProjects = () => {
 												</div>
 											);
 										})}
-									</div>
+									</CardsLayout>
 								</>
 							)}
 						</CardContent>
