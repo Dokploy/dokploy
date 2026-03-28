@@ -4,8 +4,5 @@
 	"editor.codeActionsOnSave": {
 		"source.fixAll.biome": "explicit",
 		"source.organizeImports.biome": "explicit"
-	},
-	"[typescriptreact]": {
-		"editor.defaultFormatter": "biomejs.biome"
 	}
 }
