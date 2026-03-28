@@ -75,6 +75,7 @@ export const initCronJobs = async () => {
 			mariadb: true,
 			mysql: true,
 			mongo: true,
+			libsql: true,
 			user: true,
 			compose: true,
 		},
@@ -116,7 +117,8 @@ const getServiceAppName = (backup: BackupSchedule): string => {
 		backup.postgres?.appName ||
 		backup.mysql?.appName ||
 		backup.mariadb?.appName ||
-		backup.mongo?.appName;
+		backup.mongo?.appName ||
+		backup.libsql?.appName;
 	return serviceAppName || backup.appName;
 };
 
@@ -133,8 +135,8 @@ export const keepLatestNBackups = async (
 		const appName = getServiceAppName(backup);
 		const backupFilesPath = `:s3:${backup.destination.bucket}/${appName}/${normalizeS3Path(backup.prefix)}`;
 
-		// --include "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
-		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".sql.gz"}" ${backupFilesPath}`;
+		// --include "*.bson.gz" or "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
+		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" ${backupFilesPath}`;
 		// when we pipe the above command with this one, we only get the list of files we want to delete
 		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
 		// this command deletes the files

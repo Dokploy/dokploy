@@ -1,4 +1,5 @@
 import {
+	containerRemove,
 	containerRestart,
 	findServerById,
 	getConfig,
@@ -50,6 +51,32 @@ export const dockerRouter = createTRPCRouter({
 				resourceName: input.containerId,
 			});
 			return result;
+		}),
+
+	removeContainer: withPermission("docker", "read")
+		.input(
+			z.object({
+				containerId: z
+					.string()
+					.min(1)
+					.regex(containerIdRegex, "Invalid container id."),
+				serverId: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			await containerRemove(input.containerId, input.serverId);
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "docker",
+				resourceId: input.containerId,
+				resourceName: input.containerId,
+			});
 		}),
 
 	getConfig: withPermission("docker", "read")

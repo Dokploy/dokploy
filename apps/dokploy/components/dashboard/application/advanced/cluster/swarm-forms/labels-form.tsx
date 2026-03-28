@@ -29,7 +29,14 @@ export const labelsFormSchema = z.object({
 
 interface LabelsFormProps {
 	id: string;
-	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
+	type:
+		| "postgres"
+		| "mariadb"
+		| "mongo"
+		| "mysql"
+		| "redis"
+		| "application"
+		| "libsql";
 }
 
 export const LabelsForm = ({ id, type }: LabelsFormProps) => {
@@ -45,6 +52,7 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 		application: () =>
 			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
 		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
@@ -57,6 +65,7 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 		mariadb: () => api.mariadb.update.useMutation(),
 		application: () => api.application.update.useMutation(),
 		mongo: () => api.mongo.update.useMutation(),
+		libsql: () => api.libsql.update.useMutation(),
 	};
 
 	const { mutateAsync } = mutationMap[type]
@@ -112,6 +121,7 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 				mysqlId: id || "",
 				mariadbId: id || "",
 				mongoId: id || "",
+				libsqlId: id || "",
 				labelsSwarm: labelsToSend,
 			});
 

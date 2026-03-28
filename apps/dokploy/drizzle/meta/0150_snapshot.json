@@ -1,5 +1,5 @@
 {
-  "id": "cd1376ee-1c27-47a4-9aca-0452ca77c5e4",
+  "id": "636b21c5-9739-45df-84c8-95f894ee7082",
   "prevId": "e6eacbcd-0e09-4fa0-91be-730d3cc20d84",
   "version": "7",
   "dialect": "postgresql",
@@ -174,11 +174,24 @@
           "primaryKey": false,
           "notNull": true
         },
+        "config_id": {
+          "name": "config_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'default'"
+        },
+        "reference_id": {
+          "name": "reference_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "user_id": {
           "name": "user_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "refill_interval": {
           "name": "refill_interval",
@@ -1596,7 +1609,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "default": "'0.19.0'"
+          "default": "'0.15.4'"
         },
         "herokuVersion": {
           "name": "herokuVersion",

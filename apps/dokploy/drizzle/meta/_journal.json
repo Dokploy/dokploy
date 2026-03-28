@@ -1055,8 +1055,36 @@
     {
       "idx": 150,
       "version": "7",
-      "when": 1773802983138,
-      "tag": "0150_tricky_psynapse",
+      "when": 1773870095817,
+      "tag": "0150_nappy_blue_blade",
+      "breakpoints": true
+    },
+    {
+      "idx": 151,
+      "version": "7",
+      "when": 1773872561300,
+      "tag": "0151_modern_sunfire",
+      "breakpoints": true
+    },
+    {
+      "idx": 152,
+      "version": "7",
+      "when": 1773903778014,
+      "tag": "0152_odd_firelord",
+      "breakpoints": true
+    },
+    {
+      "idx": 153,
+      "version": "7",
+      "when": 1774322599182,
+      "tag": "0153_motionless_mastermind",
+      "breakpoints": true
+    },
+    {
+      "idx": 154,
+      "version": "7",
+      "when": 1774337356154,
+      "tag": "0154_careful_eternals",
       "breakpoints": true
     }
   ]

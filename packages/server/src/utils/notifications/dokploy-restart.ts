@@ -10,6 +10,7 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
 	sendResendNotification,
@@ -32,6 +33,7 @@ export const sendDokployRestartNotifications = async () => {
 				resend: true,
 				gotify: true,
 				ntfy: true,
+				mattermost: true,
 				custom: true,
 				lark: true,
 				pushover: true,
@@ -48,6 +50,7 @@ export const sendDokployRestartNotifications = async () => {
 				slack,
 				gotify,
 				ntfy,
+				mattermost,
 				custom,
 				lark,
 				pushover,
@@ -155,6 +158,14 @@ export const sendDokployRestartNotifications = async () => {
 								],
 							},
 						],
+					});
+				}
+
+				if (mattermost) {
+					await sendMattermostNotification(mattermost, {
+						text: `**✅ Dokploy Server Restarted**\n\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}`,
+						channel: mattermost.channel,
+						username: mattermost.username || "Dokploy",
 					});
 				}
 

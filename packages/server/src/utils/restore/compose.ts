@@ -32,7 +32,7 @@ export const restoreComposeBackup = async (
 			rcloneCommand = `rclone copy ${rcloneFlags.join(" ")} "${backupPath}"`;
 		}
 
-		let credentials: DatabaseCredentials;
+		let credentials: DatabaseCredentials = {};
 
 		switch (backupInput.databaseType) {
 			case "postgres":
@@ -62,7 +62,11 @@ export const restoreComposeBackup = async (
 		const restoreCommand = getRestoreCommand({
 			appName: appName,
 			serviceName: backupInput.metadata?.serviceName,
-			type: backupInput.databaseType,
+			type: backupInput.databaseType as
+				| "postgres"
+				| "mariadb"
+				| "mysql"
+				| "mongo",
 			credentials: {
 				database: backupInput.databaseName,
 				...credentials,
