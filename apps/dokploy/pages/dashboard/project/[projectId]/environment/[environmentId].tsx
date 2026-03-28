@@ -112,13 +112,13 @@ export type Services = {
 	serverName?: string | null;
 	name: string;
 	type:
-	| "mariadb"
-	| "application"
-	| "postgres"
-	| "mysql"
-	| "mongo"
-	| "redis"
-	| "compose";
+		| "mariadb"
+		| "application"
+		| "postgres"
+		| "mysql"
+		| "mongo"
+		| "redis"
+		| "compose";
 	description?: string | null;
 	id: string;
 	createdAt: string;
@@ -144,8 +144,8 @@ export const extractServicesFromEnvironment = (
 				for (const deployment of deployments) {
 					const deployDate = new Date(
 						deployment.finishedAt ||
-						deployment.startedAt ||
-						deployment.createdAt,
+							deployment.startedAt ||
+							deployment.createdAt,
 					);
 					if (!lastDeployDate || deployDate > lastDeployDate) {
 						lastDeployDate = deployDate;
@@ -234,8 +234,8 @@ export const extractServicesFromEnvironment = (
 				for (const deployment of deployments) {
 					const deployDate = new Date(
 						deployment.finishedAt ||
-						deployment.startedAt ||
-						deployment.createdAt,
+							deployment.startedAt ||
+							deployment.createdAt,
 					);
 					if (!lastDeployDate || deployDate > lastDeployDate) {
 						lastDeployDate = deployDate;
@@ -967,8 +967,8 @@ const EnvironmentPage = (
 												className={cn(
 													"data-[state=checked]:bg-primary",
 													selectedServices.length > 0 &&
-													selectedServices.length < filteredServices.length &&
-													"bg-primary/50",
+														selectedServices.length < filteredServices.length &&
+														"bg-primary/50",
 												)}
 												onCheckedChange={handleSelectAll}
 											/>
@@ -1053,17 +1053,17 @@ const EnvironmentPage = (
 																	</p>
 																	{selectedServicesWithRunningStatus.length >
 																		0 && (
-																			<AlertBlock type="warning">
-																				Warning:{" "}
-																				{selectedServicesWithRunningStatus.length}{" "}
-																				of the selected services are currently
-																				running. Please stop these services first
-																				before deleting:{" "}
-																				{selectedServicesWithRunningStatus
-																					.map((s) => s.name)
-																					.join(", ")}
-																			</AlertBlock>
-																		)}
+																		<AlertBlock type="warning">
+																			Warning:{" "}
+																			{selectedServicesWithRunningStatus.length}{" "}
+																			of the selected services are currently
+																			running. Please stop these services first
+																			before deleting:{" "}
+																			{selectedServicesWithRunningStatus
+																				.map((s) => s.name)
+																				.join(", ")}
+																		</AlertBlock>
+																	)}
 																</div>
 															}
 															type="destructive"
@@ -1420,37 +1420,37 @@ const EnvironmentPage = (
 										</Popover>
 										{(availableServers.length > 0 ||
 											hasServicesWithoutServer) && (
-												<Select
-													value={selectedServerId || "all"}
-													onValueChange={setSelectedServerId}
-												>
-													<SelectTrigger className="lg:w-[200px]">
-														<SelectValue placeholder="Filter by server..." />
-													</SelectTrigger>
-													<SelectContent>
-														<SelectItem value="all">All servers</SelectItem>
-														{hasServicesWithoutServer && (
-															<SelectItem value="dokploy-server">
-																<div className="flex items-center gap-2">
-																	<ServerIcon className="size-4" />
-																	<span>Dokploy server</span>
-																</div>
-															</SelectItem>
-														)}
-														{availableServers.map((server) => (
-															<SelectItem
-																key={server.serverId}
-																value={server.serverId}
-															>
-																<div className="flex items-center gap-2">
-																	<ServerIcon className="size-4" />
-																	<span>{server.serverName}</span>
-																</div>
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
-											)}
+											<Select
+												value={selectedServerId || "all"}
+												onValueChange={setSelectedServerId}
+											>
+												<SelectTrigger className="lg:w-[200px]">
+													<SelectValue placeholder="Filter by server..." />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="all">All servers</SelectItem>
+													{hasServicesWithoutServer && (
+														<SelectItem value="dokploy-server">
+															<div className="flex items-center gap-2">
+																<ServerIcon className="size-4" />
+																<span>Dokploy server</span>
+															</div>
+														</SelectItem>
+													)}
+													{availableServers.map((server) => (
+														<SelectItem
+															key={server.serverId}
+															value={server.serverId}
+														>
+															<div className="flex items-center gap-2">
+																<ServerIcon className="size-4" />
+																<span>{server.serverName}</span>
+															</div>
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										)}
 										<LayoutSwitcher layout={layout} setLayout={setLayout} />
 									</div>
 								</div>

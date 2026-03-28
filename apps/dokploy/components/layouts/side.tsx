@@ -959,7 +959,10 @@ export default function Page({ children }: Props) {
 												<SidebarMenuButton
 													asChild
 													tooltip={item.title}
-													className={cn(isActive && "bg-primary/10", "hover:bg-primary/10 transition-colors group/item")}
+													className={cn(
+														isActive && "bg-primary/10",
+														"hover:bg-primary/10 transition-colors group/item",
+													)}
 												>
 													<Link
 														href={item.url}
@@ -967,10 +970,20 @@ export default function Page({ children }: Props) {
 													>
 														{item.icon && (
 															<item.icon
-																className={cn(isActive && "text-primary", "group-hover/item:text-primary transition-colors")}
+																className={cn(
+																	isActive && "text-primary",
+																	"group-hover/item:text-primary transition-colors",
+																)}
 															/>
 														)}
-														<span className={cn(isActive && "text-primary", "group-hover/item:text-primary transition-colors")}>{item.title}</span>
+														<span
+															className={cn(
+																isActive && "text-primary",
+																"group-hover/item:text-primary transition-colors",
+															)}
+														>
+															{item.title}
+														</span>
 													</Link>
 												</SidebarMenuButton>
 											) : (
