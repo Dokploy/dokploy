@@ -89,16 +89,27 @@ export function getDefaultLayout(): Layout {
  * @returns JSX.Element
  */
 const CardsLayout = React.forwardRef<HTMLDivElement, CardsLayoutProps>(
-			<div
-				className={cn(
-					layout === Layout.GRID
-						? "gap-5 pb-10 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3"
-						: "flex flex-col gap-4 w-full",
-					className,
-				)}
-				ref={ref}
-				{...props}
-			>
+	({ layout, className, children, ...props }, ref) => {
+		useEffect(() => {
+			localStorage.setItem("servicesLayout", layout);
+		}, [layout]);
+		return (
+			<section className="flex flex-col gap-4">
+				<div
+					className={cn(
+						layout === Layout.GRID
+							? "gap-5 pb-10 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3"
+							: "flex flex-col gap-4 w-full",
+						className,
+					)}
+					ref={ref}
+					{...props}
+				>
+					{children}
+				</div>
+			</section>
+		);
+	},
 );
 
 CardsLayout.displayName = "CardsLayout";
