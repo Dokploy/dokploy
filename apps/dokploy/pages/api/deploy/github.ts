@@ -6,6 +6,7 @@ import {
 	findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId,
 	IS_CLOUD,
+	normalizeChangedFilesFromCommits,
 	removePreviewDeployment,
 	shouldDeploy,
 } from "@dokploy/server";
@@ -213,8 +214,8 @@ export default async function handler(
 			const deploymentTitle = extractCommitMessage(req.headers, req.body);
 			const deploymentHash = extractHash(req.headers, req.body);
 			const owner = githubBody?.repository?.owner?.name;
-			const normalizedCommits = githubBody?.commits?.flatMap(
-				(commit: any) => commit.modified,
+			const normalizedCommits = normalizeChangedFilesFromCommits(
+				githubBody?.commits,
 			);
 
 			const apps = await db.query.applications.findMany({
