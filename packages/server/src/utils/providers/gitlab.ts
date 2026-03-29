@@ -346,15 +346,26 @@ export const hasExistingSecurityMRNote = async (
 		gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
 	).replace(/\/+$/, "");
 
-	const response = await fetch(
-		`${baseUrl}/api/v4/projects/${projectId}/merge_requests/${mrIid}/notes`,
-		{ headers: { Authorization: `Bearer ${gitlabProvider.accessToken}` } },
-	);
-	if (!response.ok) {
-		return false;
+	let page = 1;
+	while (true) {
+		const response = await fetch(
+			`${baseUrl}/api/v4/projects/${projectId}/merge_requests/${mrIid}/notes?per_page=100&page=${page}`,
+			{ headers: { Authorization: `Bearer ${gitlabProvider.accessToken}` } },
+		);
+		if (!response.ok) {
+			return false;
+		}
+		const notes: { id: number; body: string }[] = await response.json();
+		if (notes.some((note) => note.body.includes(SECURITY_SENTINEL))) {
+			return true;
+		}
+		const nextPage = response.headers.get("x-next-page");
+		if (!nextPage) {
+			break;
+		}
+		page = Number(nextPage);
 	}
-	const notes: { id: number; body: string }[] = await response.json();
-	return notes.some((note) => note.body.includes(SECURITY_SENTINEL));
+	return false;
 };
 
 export const createMergeRequestNote = async (

@@ -234,7 +234,11 @@ describe("hasExistingSecurityMRNote", () => {
 	it("returns false when there are no notes", async () => {
 		vi.stubGlobal(
 			"fetch",
-			vi.fn().mockResolvedValue({ ok: true, json: async () => [] }),
+			vi.fn().mockResolvedValue({
+				ok: true,
+				json: async () => [],
+				headers: { get: () => null },
+			}),
 		);
 
 		const result = await hasExistingSecurityMRNote(FAKE_GITLAB_ID, 123, 42);
@@ -251,6 +255,7 @@ describe("hasExistingSecurityMRNote", () => {
 					{ id: 1, body: "Looks good!" },
 					{ id: 2, body: "Please fix tests." },
 				],
+				headers: { get: () => null },
 			}),
 		);
 
@@ -271,6 +276,7 @@ describe("hasExistingSecurityMRNote", () => {
 						body: "### 🚨 Preview Deployment Blocked - Security Protection",
 					},
 				],
+				headers: { get: () => null },
 			}),
 		);
 

@@ -337,7 +337,7 @@ describe("GitLab webhook handler — Merge Request Hook open/update", () => {
 			hasWriteAccess: true,
 			accessLevel: 30,
 		});
-		// 4 existing deployments with previewLimit = 3 → over limit
+		// Exactly 3 existing deployments with previewLimit = 3 → at limit (boundary check for >=)
 		const appAtLimit = {
 			...FAKE_APP,
 			previewLimit: 3,
@@ -345,7 +345,6 @@ describe("GitLab webhook handler — Merge Request Hook open/update", () => {
 				{ previewDeploymentId: "p1" },
 				{ previewDeploymentId: "p2" },
 				{ previewDeploymentId: "p3" },
-				{ previewDeploymentId: "p4" },
 			],
 		};
 		vi.mocked(db.query.applications.findMany).mockResolvedValue([
@@ -360,16 +359,17 @@ describe("GitLab webhook handler — Merge Request Hook open/update", () => {
 		expect(myQueue.add).not.toHaveBeenCalled();
 	});
 
-	it("reports security note with the blocked app's access level, not a later app's level", async () => {
-		// Two apps: first blocked (access_level=20), second allowed (access_level=30)
-		// The security note for the first app must report access_level=20, not 30
-		vi.mocked(checkGitlabMemberPermissions)
-			.mockResolvedValueOnce({ hasWriteAccess: false, accessLevel: 20 })
-			.mockResolvedValueOnce({ hasWriteAccess: true, accessLevel: 30 });
+	it("blocks all apps and posts one security note when MR author lacks permissions", async () => {
+		// Permission check is hoisted — one call covers all apps for the same MR author.
+		// If access is denied, every app in the list is blocked (access is per-author, not per-app).
+		vi.mocked(checkGitlabMemberPermissions).mockResolvedValue({
+			hasWriteAccess: false,
+			accessLevel: 20,
+		});
 
 		const twoApps = [
-			{ ...FAKE_APP, applicationId: "app-1", name: "Blocked App" },
-			{ ...FAKE_APP, applicationId: "app-2", name: "Allowed App" },
+			{ ...FAKE_APP, applicationId: "app-1", name: "App One" },
+			{ ...FAKE_APP, applicationId: "app-2", name: "App Two" },
 		];
 		vi.mocked(db.query.applications.findMany).mockResolvedValue(
 			twoApps as any,
@@ -380,10 +380,12 @@ describe("GitLab webhook handler — Merge Request Hook open/update", () => {
 
 		await handler(req, res);
 
-		// Security note should be created exactly once (for the blocked app)
+		// Permission checked exactly once (hoisted before the app loop)
+		expect(checkGitlabMemberPermissions).toHaveBeenCalledTimes(1);
+		// Security note posted once, reporting the blocked access level
 		expect(createSecurityBlockedMRNote).toHaveBeenCalledTimes(1);
-		// The second app should still get a job
-		expect(myQueue.add).toHaveBeenCalledTimes(1);
+		// Both apps blocked — no jobs queued
+		expect(myQueue.add).not.toHaveBeenCalled();
 	});
 });
 

@@ -147,6 +147,8 @@ export default async function handler(
 				),
 			});
 
+			let deployedCount = 0;
+
 			for (const app of apps) {
 				const jobData: DeploymentJob = {
 					applicationId: app.applicationId as string,
@@ -161,6 +163,7 @@ export default async function handler(
 					continue;
 				}
 
+				deployedCount++;
 				if (IS_CLOUD && app.serverId) {
 					jobData.serverId = app.serverId;
 					deploy(jobData).catch((error) => {
@@ -199,6 +202,7 @@ export default async function handler(
 					continue;
 				}
 
+				deployedCount++;
 				if (IS_CLOUD && composeApp.serverId) {
 					jobData.serverId = composeApp.serverId;
 					deploy(jobData).catch((error) => {
@@ -212,12 +216,11 @@ export default async function handler(
 				});
 			}
 
-			const totalApps = apps.length + composeApps.length;
 			res.status(200).json({
 				message:
-					totalApps === 0
+					deployedCount === 0
 						? "No apps to deploy"
-						: `Deployed ${totalApps} apps`,
+						: `Deployed ${deployedCount} apps`,
 			});
 		} catch (error) {
 			res.status(400).json({ message: "Error deploying application", error });
@@ -334,14 +337,18 @@ export default async function handler(
 			}
 
 			if (blocked) {
-				await createSecurityBlockedMRNote(
-					gitlabProvider.gitlabId,
-					projectId,
-					mrIid,
-					mrAuthor,
-					pathNamespace,
-					blockedAccessLevel,
-				);
+				try {
+					await createSecurityBlockedMRNote(
+						gitlabProvider.gitlabId,
+						projectId,
+						mrIid,
+						mrAuthor,
+						pathNamespace,
+						blockedAccessLevel,
+					);
+				} catch (error) {
+					console.error("Error creating security blocked MR note:", error);
+				}
 			}
 
 			for (const app of secureApps) {
@@ -357,7 +364,7 @@ export default async function handler(
 
 				// Preview limit
 				const previewLimit = app.previewLimit ?? 0;
-				if (app.previewDeployments.length > previewLimit) {
+				if (app.previewDeployments.length >= previewLimit) {
 					continue;
 				}
 
