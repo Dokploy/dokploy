@@ -17,6 +17,10 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # Deploy only the dokploy app
 
 ENV NODE_ENV=production
+# Build-time only: use localhost to prevent slow DNS timeouts during Next.js static generation.
+# These are NOT baked into the bundle (excluded in esbuild.config.ts) and do NOT persist to the final image stage.
+ENV DATABASE_URL="postgres://dokploy:build@127.0.0.1:5432/dokploy"
+ENV REDIS_HOST="127.0.0.1"
 RUN pnpm --filter=@dokploy/server build
 RUN pnpm --filter=./apps/dokploy run build
 

@@ -5,10 +5,22 @@ const result = dotenv.config({ path: ".env.production" });
 
 function prepareDefine(config: DotenvParseOutput | undefined) {
 	const define = {};
+	// These environment variables must resolve at runtime, not build time
+	const runtimeEnvVars = new Set([
+		"DATABASE_URL",
+		"REDIS_URL",
+		"REDIS_HOST",
+		"REDIS_PORT",
+		"REDIS_PASSWORD",
+		"POSTGRES_PASSWORD_FILE",
+		"POSTGRES_USER",
+		"POSTGRES_DB",
+		"POSTGRES_HOST",
+		"POSTGRES_PORT",
+	]);
 	// @ts-ignore
 	for (const [key, value] of Object.entries(config)) {
-		// Skip DATABASE_URL to allow runtime environment variable override
-		if (key === "DATABASE_URL") {
+		if (runtimeEnvVars.has(key)) {
 			continue;
 		}
 		// @ts-ignore

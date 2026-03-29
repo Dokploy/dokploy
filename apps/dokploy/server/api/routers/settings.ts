@@ -20,6 +20,7 @@ import {
 	getUpdateData,
 	getWebServerSettings,
 	IS_CLOUD,
+	isExternalRedis,
 	parseRawConfig,
 	paths,
 	prepareEnvironmentVariables,
@@ -105,6 +106,10 @@ export const settingsRouter = createTRPCRouter({
 			return true;
 		}
 
+		if (isExternalRedis()) {
+			throw new Error("Cannot flush external Redis from Dokploy. Please use your Redis provider's management tools.");
+		}
+
 		const { stdout: containerId } = await execAsync(
 			`docker ps --filter "name=dokploy-redis" --filter "status=running" -q | head -n 1`,
 		);
@@ -127,6 +132,11 @@ export const settingsRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			return true;
 		}
+
+		if (isExternalRedis()) {
+			throw new Error("Cannot reload external Redis from Dokploy. Please use your Redis provider's management tools.");
+		}
+
 		await reloadDockerResource("dokploy-redis");
 		await audit(ctx, {
 			action: "reload",
