@@ -275,6 +275,13 @@ export const checkGitlabMemberPermissions = async (
 		`${baseUrl}/api/v4/users?username=${encodeURIComponent(username)}`,
 		{ headers: { Authorization: `Bearer ${gitlabProvider.accessToken}` } },
 	);
+
+	if (!userResponse.ok) {
+		throw new Error(
+			`Failed to resolve GitLab user: ${userResponse.statusText}`,
+		);
+	}
+
 	const users = await userResponse.json();
 	const userId = users[0]?.id;
 
