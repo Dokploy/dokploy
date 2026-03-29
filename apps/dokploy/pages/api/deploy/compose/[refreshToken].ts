@@ -8,8 +8,8 @@ import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import {
 	extractBranchName,
-	extractCommittedPaths,
 	extractCommitMessage,
+	extractCommittedPaths,
 	extractHash,
 	getProviderByHeader,
 } from "../[refreshToken]";
