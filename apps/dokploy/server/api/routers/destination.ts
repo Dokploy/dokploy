@@ -1,5 +1,5 @@
 import {
-	createDestintation,
+	createDestination,
 	execAsync,
 	execAsyncRemote,
 	findDestinationById,
@@ -25,7 +25,7 @@ export const destinationRouter = createTRPCRouter({
 		.input(apiCreateDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const result = await createDestintation(
+				const result = await createDestination(
 					input,
 					ctx.session.activeOrganizationId,
 				);

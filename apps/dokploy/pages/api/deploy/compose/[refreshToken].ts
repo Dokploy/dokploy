@@ -8,7 +8,7 @@ import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import {
 	extractBranchName,
-	extractCommitedPaths,
+	extractCommittedPaths,
 	extractCommitMessage,
 	extractHash,
 	getProviderByHeader,
@@ -97,7 +97,7 @@ export default async function handler(
 				return;
 			}
 
-			const commitedPaths = await extractCommitedPaths(
+			const committedPaths = await extractCommittedPaths(
 				req.body,
 				composeResult.bitbucket,
 				composeResult.bitbucketRepositorySlug ||
@@ -107,7 +107,7 @@ export default async function handler(
 
 			const shouldDeployPaths = shouldDeploy(
 				composeResult.watchPaths,
-				commitedPaths,
+				committedPaths,
 			);
 
 			if (!shouldDeployPaths) {

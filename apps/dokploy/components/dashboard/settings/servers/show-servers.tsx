@@ -48,7 +48,7 @@ import { ShowMonitoringModal } from "./show-monitoring-modal";
 import { ShowSchedulesModal } from "./show-schedules-modal";
 import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
-import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
+import { Welcomesubscription } from "./welcome-stripe/welcome-subscription";
 
 export const ShowServers = () => {
 	const router = useRouter();
@@ -63,7 +63,7 @@ export const ShowServers = () => {
 
 	return (
 		<div className="w-full">
-			{query?.success && isCloud && <WelcomeSuscription />}
+			{query?.success && isCloud && <Welcomesubscription />}
 			<Card className="h-full  p-2.5 rounded-xl  max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
