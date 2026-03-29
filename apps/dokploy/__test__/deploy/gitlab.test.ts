@@ -416,6 +416,30 @@ describe("GitLab webhook handler — Push Hook", () => {
 		expect(res.status).toHaveBeenCalledWith(200);
 	});
 
+	it("skips app when watchPaths is set and none of the modified files match", async () => {
+		const appWithWatchPaths = {
+			...FAKE_APP,
+			watchPaths: ["src/**"],
+		};
+		// First call (applications) returns app with watchPaths; second (compose) returns []
+		vi.mocked(db.query.applications.findMany).mockResolvedValueOnce([
+			appWithWatchPaths as any,
+		]);
+		vi.mocked(db.query.applications.findMany).mockResolvedValueOnce([] as any);
+
+		// Push only touches docs/ — does not match src/**
+		const pushPayload = {
+			...makePushPayload(),
+			commits: [{ added: ["docs/readme.md"], modified: [], removed: [] }],
+		};
+		const req = makeReq("Push Hook", pushPayload);
+		const res = makeRes();
+
+		await handler(req, res);
+
+		expect(myQueue.add).not.toHaveBeenCalled();
+	});
+
 	it("returns 200 with no-ops message when no apps match the push", async () => {
 		vi.mocked(db.query.applications.findMany).mockResolvedValue([]);
 		vi.mocked(db.query.compose.findMany).mockResolvedValue([]);

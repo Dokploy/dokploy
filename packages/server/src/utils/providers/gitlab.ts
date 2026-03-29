@@ -278,6 +278,10 @@ export const checkGitlabMemberPermissions = async (
 	const users = await userResponse.json();
 	const userId = users[0]?.id;
 
+	if (!userId) {
+		return { hasWriteAccess: false, accessLevel: null };
+	}
+
 	// Check project membership
 	const memberResponse = await fetch(
 		`${baseUrl}/api/v4/projects/${projectId}/members/all/${userId}`,
