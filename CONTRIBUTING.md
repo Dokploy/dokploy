@@ -132,6 +132,21 @@ If you want to test the webhooks on development mode using localtunnel, make sur
 pnpm dlx localtunnel --port 3000
 ```
 
+### Testing GitLab Webhooks
+
+To test GitLab webhook functionality locally:
+
+1. Configure a GitLab provider in Dokploy with a webhook secret
+2. Set up the webhook in your GitLab project (Settings → Webhooks):
+   - **Webhook URL:** Your localtunnel URL + `/api/deploy/gitlab`
+   - **Secret token:** Paste the webhook secret from your Dokploy GitLab provider
+   - **Enable events:** Push events and Merge request events
+
+The GitLab webhook endpoint (`/api/deploy/gitlab`) authenticates requests via the `X-Gitlab-Token` header matched against the provider's `webhookSecret`. The endpoint handles:
+
+- **Push Hooks** — deploys matching applications and compose stacks; respects `watchPaths` filtering using commit file lists (added/modified/removed)
+- **Merge Request Hooks** — creates or rebuilds preview deployments on `open/update/reopen/labeled` events; tears down preview deployments on `close/merge` events
+
 If you run into permission issues of docker run the following command
 
 ```bash
