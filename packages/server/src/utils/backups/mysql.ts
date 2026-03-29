@@ -8,7 +8,7 @@ import type { MySql } from "@dokploy/server/services/mysql";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import { getBackupCommand, getRcloneConfig, normalizeS3Path } from "./utils";
 
 export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	const { environmentId, name, appName } = mysql;
@@ -17,7 +17,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	const { prefix } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${new Date().toISOString()}.sql.gz`;
-	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
+	const filePath = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
 		title: "MySQL Backup",
@@ -25,15 +25,16 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	});
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+		const rclone = getRcloneConfig(destination);
+		const rcloneDestination = rclone.remotePath(filePath);
 
-		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		const rcloneCommand = `rclone rcat ${rclone.flags.join(" ")} "${rcloneDestination}"`;
 
 		const backupCommand = getBackupCommand(
 			backup,
 			rcloneCommand,
 			deployment.logPath,
+			rclone.preamble,
 		);
 
 		if (mysql.serverId) {

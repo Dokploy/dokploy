@@ -3,7 +3,7 @@ import {
 	findApplicationById,
 	findComposeById,
 	findDestinationById,
-	getS3Credentials,
+	getRcloneConfig,
 	paths,
 } from "../..";
 
@@ -18,12 +18,11 @@ export const restoreVolume = async (
 	const destination = await findDestinationById(destinationId);
 	const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeName);
-	const rcloneFlags = getS3Credentials(destination);
-	const bucketPath = `:s3:${destination.bucket}`;
-	const backupPath = `${bucketPath}/${backupFileName}`;
+	const rclone = getRcloneConfig(destination);
+	const backupPath = rclone.remotePath(backupFileName);
 
-	// Command to download backup file from S3
-	const downloadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${backupPath}" "${volumeBackupPath}/${backupFileName}"`;
+	// Command to download backup file from remote destination
+	const downloadCommand = `${rclone.preamble ? `${rclone.preamble}; ` : ""}rclone copyto ${rclone.flags.join(" ")} "${backupPath}" "${volumeBackupPath}/${backupFileName}"`;
 
 	// Base restore command that creates the volume and restores data
 	const baseRestoreCommand = `
