@@ -130,8 +130,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			region: data.region,
 			secretAccessKey: data.secretAccessKey,
 			destinationId: destinationId || "",
-			additionalFlags:
-				data.additionalFlags?.map((f) => f.value) ?? [],
+			additionalFlags: data.additionalFlags?.map((f) => f.value) ?? [],
 		})
 			.then(async () => {
 				toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
