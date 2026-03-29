@@ -433,18 +433,37 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										render={({ field }) => (
 											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm col-span-2">
 												<div className="space-y-0.5">
-													<FormLabel>
-														Require Collaborator Permissions
-													</FormLabel>
-													<FormDescription>
-														Require collaborator permissions to preview
-														deployments, valid roles are:
-														<ul>
-															<li>Admin</li>
-															<li>Maintain</li>
-															<li>Write</li>
-														</ul>
-													</FormDescription>
+													{data?.sourceType === "gitlab" ? (
+														<>
+															<FormLabel>
+																Require Member Access
+															</FormLabel>
+															<FormDescription>
+																Require a minimum GitLab access level to
+																trigger preview deployments. Valid roles are:
+																<ul>
+																	<li>Owner</li>
+																	<li>Maintainer</li>
+																	<li>Developer</li>
+																</ul>
+															</FormDescription>
+														</>
+													) : (
+														<>
+															<FormLabel>
+																Require Collaborator Permissions
+															</FormLabel>
+															<FormDescription>
+																Require collaborator permissions to preview
+																deployments, valid roles are:
+																<ul>
+																	<li>Admin</li>
+																	<li>Maintain</li>
+																	<li>Write</li>
+																</ul>
+															</FormDescription>
+														</>
+													)}
 												</div>
 												<FormControl>
 													<Switch
