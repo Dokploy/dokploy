@@ -55,9 +55,7 @@ export const gitlabRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const result = await findGitlabById(input.gitlabId);
 			if (
-				result.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId ||
-				result.gitProvider.userId !== ctx.session.userId
+				result.gitProvider.organizationId !== ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
 			}

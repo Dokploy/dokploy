@@ -140,6 +140,21 @@ describe("checkGitlabMemberPermissions", () => {
 		expect(result).toEqual({ hasWriteAccess: false, accessLevel: null });
 	});
 
+	it("throws when the user lookup API call fails (non-ok response)", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValueOnce({
+				ok: false,
+				status: 503,
+				statusText: "Service Unavailable",
+			}),
+		);
+
+		await expect(
+			checkGitlabMemberPermissions(FAKE_GITLAB_ID, 123, "anyuser"),
+		).rejects.toThrow("Failed to resolve GitLab user");
+	});
+
 	it("returns hasWriteAccess=false when the username lookup returns no users", async () => {
 		// GitLab /users?username=ghost returns [] when user does not exist
 		vi.stubGlobal(
