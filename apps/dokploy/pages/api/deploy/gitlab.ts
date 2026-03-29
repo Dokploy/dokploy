@@ -43,6 +43,13 @@ export default async function handler(
 			const branchName = body?.ref?.replace("refs/heads/", "");
 			const deploymentHash = body?.checkout_sha;
 			const pathNamespace = body?.project?.path_with_namespace;
+			const modifiedFiles: string[] = (body?.commits ?? []).flatMap(
+				(commit: any) => [
+					...(commit.added ?? []),
+					...(commit.modified ?? []),
+					...(commit.removed ?? []),
+				],
+			);
 
 			const apps = await db.query.applications.findMany({
 				where: and(
@@ -64,9 +71,7 @@ export default async function handler(
 					server: !!app.serverId,
 				};
 
-				const shouldDeployPaths = shouldDeploy(app.watchPaths, []);
-
-				if (!shouldDeployPaths) {
+				if (!shouldDeploy(app.watchPaths, modifiedFiles)) {
 					continue;
 				}
 
@@ -102,6 +107,10 @@ export default async function handler(
 					applicationType: "compose",
 					server: !!composeApp.serverId,
 				};
+
+				if (!shouldDeploy(composeApp.watchPaths, modifiedFiles)) {
+					continue;
+				}
 
 				if (IS_CLOUD && composeApp.serverId) {
 					jobData.serverId = composeApp.serverId;
