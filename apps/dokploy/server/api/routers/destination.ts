@@ -169,7 +169,14 @@ export const destinationRouter = createTRPCRouter({
 				});
 				return result;
 			} catch (error) {
-				throw error;
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? error?.message
+							: "Error connecting to bucket",
+					cause: error,
+				});
 			}
 		}),
 });

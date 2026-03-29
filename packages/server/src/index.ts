@@ -1,6 +1,7 @@
 export * from "./auth/random-password";
 export * from "./constants/index";
 export * from "./db/constants";
+export * from "./db/validations/destination";
 export * from "./db/validations/domain";
 export * from "./db/validations/index";
 export * from "./lib/auth";

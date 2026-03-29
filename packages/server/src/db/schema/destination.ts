@@ -3,6 +3,10 @@ import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import {
+	ADDITIONAL_FLAG_ERROR,
+	ADDITIONAL_FLAG_REGEX,
+} from "../validations/destination";
 import { organization } from "./account";
 import { backups } from "./backups";
 
@@ -45,7 +49,9 @@ const createSchema = createInsertSchema(destinations, {
 	endpoint: z.string(),
 	secretAccessKey: z.string(),
 	region: z.string(),
-	additionalFlags: z.array(z.string()).default([]),
+	additionalFlags: z
+		.array(z.string().regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR))
+		.default([]),
 });
 
 export const apiCreateDestination = createSchema

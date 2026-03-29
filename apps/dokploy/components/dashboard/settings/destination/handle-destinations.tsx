@@ -35,6 +35,10 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import {
+	ADDITIONAL_FLAG_ERROR,
+	ADDITIONAL_FLAG_REGEX,
+} from "@dokploy/server/db/validations/destination";
 import { S3_PROVIDERS } from "./constants";
 
 const addDestination = z.object({
@@ -47,7 +51,14 @@ const addDestination = z.object({
 	endpoint: z.string().min(1, "Endpoint is required"),
 	serverId: z.string().optional(),
 	additionalFlags: z
-		.array(z.object({ value: z.string().min(1, "Flag cannot be empty") }))
+		.array(
+			z.object({
+				value: z
+					.string()
+					.min(1, "Flag cannot be empty")
+					.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR),
+			}),
+		)
 		.optional(),
 });
 
@@ -140,9 +151,12 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 				}
 				setOpen(false);
 			})
-			.catch(() => {
+			.catch((e) => {
 				toast.error(
 					`Error ${destinationId ? "Updating" : "Creating"} the Destination`,
+					{
+						description: e.message,
+					},
 				);
 			});
 	};
@@ -154,6 +168,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			"secretAccessKey",
 			"bucket",
 			"endpoint",
+			"additionalFlags",
 		]);
 
 		if (!result) {
