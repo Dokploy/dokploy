@@ -409,11 +409,11 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			// Owner role is intransferible - cannot change to or from owner
+			// Owner role is nontransferable - cannot change to or from owner
 			if (target.role === "owner" || input.role === "owner") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "The owner role is intransferible",
+					message: "The owner role is nontransferable",
 				});
 			}
 

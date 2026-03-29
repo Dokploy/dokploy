@@ -37,13 +37,13 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
-const AddRedirectchema = z.object({
+const AddRedirectSchema = z.object({
 	regex: z.string().min(1, "Regex required"),
 	permanent: z.boolean().default(false),
 	replacement: z.string().min(1, "Replacement required"),
 });
 
-type AddRedirect = z.infer<typeof AddRedirectchema>;
+type AddRedirect = z.infer<typeof AddRedirectSchema>;
 
 // Default presets
 const redirectPresets = [
@@ -110,7 +110,7 @@ export const HandleRedirect = ({
 			regex: "",
 			replacement: "",
 		},
-		resolver: zodResolver(AddRedirectchema),
+		resolver: zodResolver(AddRedirectSchema),
 	});
 
 	useEffect(() => {

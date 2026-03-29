@@ -51,7 +51,7 @@ export const { useStepper, steps, Scoped } = defineStepper(
 	{ id: "complete", title: "Complete", description: "Checkout complete" },
 );
 
-export const Welcomesubscription = () => {
+export const WelcomeSubscription = () => {
 	const [showConfetti, setShowConfetti] = useState(false);
 	const stepper = useStepper();
 	const [isOpen, setIsOpen] = useState(true);
