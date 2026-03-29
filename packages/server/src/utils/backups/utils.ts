@@ -79,6 +79,10 @@ export const getS3Credentials = (destination: Destination) => {
 		rcloneFlags.unshift(`--s3-provider="${provider}"`);
 	}
 
+	if (destination.additionalFlags?.length) {
+		rcloneFlags.push(...destination.additionalFlags);
+	}
+
 	return rcloneFlags;
 };
 

@@ -18,6 +18,7 @@ export const destinations = pgTable("destination", {
 	bucket: text("bucket").notNull(),
 	region: text("region").notNull(),
 	endpoint: text("endpoint").notNull(),
+	additionalFlags: text("additionalFlags").array(),
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
@@ -44,6 +45,7 @@ const createSchema = createInsertSchema(destinations, {
 	endpoint: z.string(),
 	secretAccessKey: z.string(),
 	region: z.string(),
+	additionalFlags: z.array(z.string()).default([]),
 });
 
 export const apiCreateDestination = createSchema
@@ -55,6 +57,7 @@ export const apiCreateDestination = createSchema
 		region: true,
 		endpoint: true,
 		secretAccessKey: true,
+		additionalFlags: true,
 	})
 	.required()
 	.extend({
@@ -81,6 +84,7 @@ export const apiUpdateDestination = createSchema
 		secretAccessKey: true,
 		destinationId: true,
 		provider: true,
+		additionalFlags: true,
 	})
 	.required()
 	.extend({

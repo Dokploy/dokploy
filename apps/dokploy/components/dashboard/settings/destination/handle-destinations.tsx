@@ -24,6 +24,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
 	Select,
 	SelectContent,
@@ -46,6 +47,7 @@ const addDestination = z.object({
 	region: z.string(),
 	endpoint: z.string().min(1, "Endpoint is required"),
 	serverId: z.string().optional(),
+	additionalFlags: z.array(z.string()).optional(),
 });
 
 type AddDestination = z.infer<typeof addDestination>;
@@ -89,6 +91,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			region: "",
 			secretAccessKey: "",
 			endpoint: "",
+			additionalFlags: [],
 		},
 		resolver: zodResolver(addDestination),
 	});
@@ -102,6 +105,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 				bucket: destination.bucket,
 				region: destination.region,
 				endpoint: destination.endpoint,
+				additionalFlags: destination.additionalFlags ?? [],
 			});
 		} else {
 			form.reset();
@@ -118,6 +122,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			region: data.region,
 			secretAccessKey: data.secretAccessKey,
 			destinationId: destinationId || "",
+			additionalFlags: data.additionalFlags ?? [],
 		})
 			.then(async () => {
 				toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
@@ -179,6 +184,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			region,
 			secretAccessKey: secretKey,
 			serverId,
+			additionalFlags: form.getValues("additionalFlags") ?? [],
 		})
 			.then(() => {
 				toast.success("Connection Success");
@@ -352,6 +358,33 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 										<Input
 											placeholder={"https://us.bucket.aws/s3"}
 											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="additionalFlags"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Additional Flags (Optional)</FormLabel>
+									<FormControl>
+										<Textarea
+											placeholder={
+												"--s3-sign-accept-encoding=false\n--s3-chunk-size=50M"
+											}
+											className="h-20"
+											value={(field.value || []).join("\n")}
+											onChange={(e) =>
+												field.onChange(
+													e.target.value
+														.split("\n")
+														.map((f) => f.trim())
+														.filter((f) => f.length > 0),
+												)
+											}
 										/>
 									</FormControl>
 									<FormMessage />
