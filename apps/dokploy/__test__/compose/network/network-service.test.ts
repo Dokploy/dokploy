@@ -1,7 +1,7 @@
 import type { ComposeSpecification } from "@dokploy/server";
 import {
-  addSuffixToServiceNetworks,
-  generateRandomHash,
+	addSuffixToServiceNetworks,
+	generateRandomHash,
 } from "@dokploy/server";
 import { expect, test } from "vitest";
 import { parse } from "yaml";
@@ -23,30 +23,30 @@ services:
 `;
 
 test("Add suffix to networks in services", () => {
-  const composeData = parse(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile) as ComposeSpecification;
 
-  const suffix = generateRandomHash();
+	const suffix = generateRandomHash();
 
-  if (!composeData?.services) {
-    return;
-  }
-  const services = addSuffixToServiceNetworks(composeData.services, suffix);
-  const actualComposeData = { ...composeData, services };
+	if (!composeData?.services) {
+		return;
+	}
+	const services = addSuffixToServiceNetworks(composeData.services, suffix);
+	const actualComposeData = { ...composeData, services };
 
-  expect(actualComposeData?.services?.web?.networks).toContain(
-    `frontend-${suffix}`,
-  );
+	expect(actualComposeData?.services?.web?.networks).toContain(
+		`frontend-${suffix}`,
+	);
 
-  expect(actualComposeData?.services?.api?.networks).toContain(
-    `backend-${suffix}`,
-  );
+	expect(actualComposeData?.services?.api?.networks).toContain(
+		`backend-${suffix}`,
+	);
 
-  const apiNetworks = actualComposeData?.services?.api?.networks;
+	const apiNetworks = actualComposeData?.services?.api?.networks;
 
-  expect(apiNetworks).toBeDefined();
-  expect(actualComposeData?.services?.api?.networks).toContain(
-    `backend-${suffix}`,
-  );
+	expect(apiNetworks).toBeDefined();
+	expect(actualComposeData?.services?.api?.networks).toContain(
+		`backend-${suffix}`,
+	);
 });
 
 // Caso 2: Objeto con aliases
@@ -67,29 +67,29 @@ networks:
 `;
 
 test("Add suffix to networks in services with aliases", () => {
-  const composeData = parse(composeFile2) as ComposeSpecification;
+	const composeData = parse(composeFile2) as ComposeSpecification;
 
-  const suffix = generateRandomHash();
+	const suffix = generateRandomHash();
 
-  if (!composeData?.services) {
-    return;
-  }
-  const services = addSuffixToServiceNetworks(composeData.services, suffix);
-  const actualComposeData = { ...composeData, services };
+	if (!composeData?.services) {
+		return;
+	}
+	const services = addSuffixToServiceNetworks(composeData.services, suffix);
+	const actualComposeData = { ...composeData, services };
 
-  expect(actualComposeData.services?.api?.networks).toHaveProperty(
-    `frontend-${suffix}`,
-  );
+	expect(actualComposeData.services?.api?.networks).toHaveProperty(
+		`frontend-${suffix}`,
+	);
 
-  const networkConfig = actualComposeData?.services?.api?.networks as {
-    [key: string]: { aliases?: string[] };
-  };
-  expect(networkConfig[`frontend-${suffix}`]).toBeDefined();
-  expect(networkConfig[`frontend-${suffix}`]?.aliases).toContain("api");
+	const networkConfig = actualComposeData?.services?.api?.networks as {
+		[key: string]: { aliases?: string[] };
+	};
+	expect(networkConfig[`frontend-${suffix}`]).toBeDefined();
+	expect(networkConfig[`frontend-${suffix}`]?.aliases).toContain("api");
 
-  expect(actualComposeData.services?.api?.networks).not.toHaveProperty(
-    "frontend-ash",
-  );
+	expect(actualComposeData.services?.api?.networks).not.toHaveProperty(
+		"frontend-ash",
+	);
 });
 
 const composeFile3 = `
@@ -107,19 +107,19 @@ networks:
 `;
 
 test("Add suffix to networks in services (Object with simple networks)", () => {
-  const composeData = parse(composeFile3) as ComposeSpecification;
+	const composeData = parse(composeFile3) as ComposeSpecification;
 
-  const suffix = generateRandomHash();
+	const suffix = generateRandomHash();
 
-  if (!composeData?.services) {
-    return;
-  }
-  const services = addSuffixToServiceNetworks(composeData.services, suffix);
-  const actualComposeData = { ...composeData, services };
+	if (!composeData?.services) {
+		return;
+	}
+	const services = addSuffixToServiceNetworks(composeData.services, suffix);
+	const actualComposeData = { ...composeData, services };
 
-  expect(actualComposeData.services?.redis?.networks).toHaveProperty(
-    `backend-${suffix}`,
-  );
+	expect(actualComposeData.services?.redis?.networks).toHaveProperty(
+		`backend-${suffix}`,
+	);
 });
 
 const composeFileCombined = `
@@ -153,36 +153,36 @@ networks:
 `;
 
 test("Add suffix to networks in services (combined case)", () => {
-  const composeData = parse(composeFileCombined) as ComposeSpecification;
+	const composeData = parse(composeFileCombined) as ComposeSpecification;
 
-  const suffix = generateRandomHash();
+	const suffix = generateRandomHash();
 
-  if (!composeData?.services) {
-    return;
-  }
-  const services = addSuffixToServiceNetworks(composeData.services, suffix);
-  const actualComposeData = { ...composeData, services };
+	if (!composeData?.services) {
+		return;
+	}
+	const services = addSuffixToServiceNetworks(composeData.services, suffix);
+	const actualComposeData = { ...composeData, services };
 
-  // Caso 1: ListOfStrings
-  expect(actualComposeData.services?.web?.networks).toContain(
-    `frontend-${suffix}`,
-  );
-  expect(actualComposeData.services?.web?.networks).toContain(
-    `backend-${suffix}`,
-  );
+	// Caso 1: ListOfStrings
+	expect(actualComposeData.services?.web?.networks).toContain(
+		`frontend-${suffix}`,
+	);
+	expect(actualComposeData.services?.web?.networks).toContain(
+		`backend-${suffix}`,
+	);
 
-  // Caso 2: Objeto con aliases
-  const apiNetworks = actualComposeData.services?.api?.networks as {
-    [key: string]: unknown;
-  };
-  expect(apiNetworks).toHaveProperty(`frontend-${suffix}`);
-  expect(apiNetworks[`frontend-${suffix}`]).toBeDefined();
-  expect(apiNetworks).not.toHaveProperty("frontend");
+	// Caso 2: Objeto con aliases
+	const apiNetworks = actualComposeData.services?.api?.networks as {
+		[key: string]: unknown;
+	};
+	expect(apiNetworks).toHaveProperty(`frontend-${suffix}`);
+	expect(apiNetworks[`frontend-${suffix}`]).toBeDefined();
+	expect(apiNetworks).not.toHaveProperty("frontend");
 
-  // Caso 3: Objeto con redes simples
-  const redisNetworks = actualComposeData.services?.redis?.networks;
-  expect(redisNetworks).toHaveProperty(`backend-${suffix}`);
-  expect(redisNetworks).not.toHaveProperty("backend");
+	// Caso 3: Objeto con redes simples
+	const redisNetworks = actualComposeData.services?.redis?.networks;
+	expect(redisNetworks).toHaveProperty(`backend-${suffix}`);
+	expect(redisNetworks).not.toHaveProperty("backend");
 });
 
 const composeFile7 = `
@@ -196,18 +196,18 @@ services:
 `;
 
 test("It shouldn't add suffix to dokploy-network in services", () => {
-  const composeData = parse(composeFile7) as ComposeSpecification;
+	const composeData = parse(composeFile7) as ComposeSpecification;
 
-  const suffix = generateRandomHash();
+	const suffix = generateRandomHash();
 
-  if (!composeData?.services) {
-    return;
-  }
-  const networks = addSuffixToServiceNetworks(composeData.services, suffix);
-  const service = networks.web;
+	if (!composeData?.services) {
+		return;
+	}
+	const networks = addSuffixToServiceNetworks(composeData.services, suffix);
+	const service = networks.web;
 
-  expect(service).toBeDefined();
-  expect(service?.networks).toContain("dokploy-network");
+	expect(service).toBeDefined();
+	expect(service?.networks).toContain("dokploy-network");
 });
 
 const composeFile8 = `
@@ -245,31 +245,31 @@ services:
 `;
 
 test("It shouldn't add suffix to dokploy-network in services multiples cases", () => {
-  const composeData = parse(composeFile8) as ComposeSpecification;
+	const composeData = parse(composeFile8) as ComposeSpecification;
 
-  const suffix = generateRandomHash();
+	const suffix = generateRandomHash();
 
-  if (!composeData?.services) {
-    return;
-  }
-  const networks = addSuffixToServiceNetworks(composeData.services, suffix);
-  const service = networks.web;
-  const api = networks.api;
-  const redis = networks.redis;
-  const db = networks.db;
+	if (!composeData?.services) {
+		return;
+	}
+	const networks = addSuffixToServiceNetworks(composeData.services, suffix);
+	const service = networks.web;
+	const api = networks.api;
+	const redis = networks.redis;
+	const db = networks.db;
 
-  const dbNetworks = db?.networks as {
-    [key: string]: unknown;
-  };
+	const dbNetworks = db?.networks as {
+		[key: string]: unknown;
+	};
 
-  const apiNetworks = api?.networks as {
-    [key: string]: unknown;
-  };
+	const apiNetworks = api?.networks as {
+		[key: string]: unknown;
+	};
 
-  expect(service).toBeDefined();
-  expect(service?.networks).toContain("dokploy-network");
+	expect(service).toBeDefined();
+	expect(service?.networks).toContain("dokploy-network");
 
-  expect(redis?.networks).toHaveProperty("dokploy-network");
-  expect(dbNetworks["dokploy-network"]).toBeDefined();
-  expect(apiNetworks["dokploy-network"]).toBeDefined();
+	expect(redis?.networks).toHaveProperty("dokploy-network");
+	expect(dbNetworks["dokploy-network"]).toBeDefined();
+	expect(apiNetworks["dokploy-network"]).toBeDefined();
 });
