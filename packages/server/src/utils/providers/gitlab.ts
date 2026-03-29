@@ -350,6 +350,9 @@ export const hasExistingSecurityMRNote = async (
 		`${baseUrl}/api/v4/projects/${projectId}/merge_requests/${mrIid}/notes`,
 		{ headers: { Authorization: `Bearer ${gitlabProvider.accessToken}` } },
 	);
+	if (!response.ok) {
+		return false;
+	}
 	const notes: { id: number; body: string }[] = await response.json();
 	return notes.some((note) => note.body.includes(SECURITY_SENTINEL));
 };

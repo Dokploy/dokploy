@@ -65,7 +65,7 @@ export const findGitlabById = async (gitlabId: string) => {
 
 export const findGitlabByWebhookSecret = async (
 	webhookSecret: string,
-): Promise<(typeof gitlab.$inferSelect & { gitProvider: any }) | null> => {
+) => {
 	const result = await db.query.gitlab.findFirst({
 		where: eq(gitlab.webhookSecret, webhookSecret),
 		with: {

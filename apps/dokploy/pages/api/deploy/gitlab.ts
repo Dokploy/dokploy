@@ -38,7 +38,92 @@ export default async function handler(
 	const event = req.headers["x-gitlab-event"] as string;
 	const body = req.body;
 
-	if (event === "Push Hook" || event === "Tag Push Hook") {
+	if (event === "Tag Push Hook") {
+		try {
+			const tagName = body?.ref?.replace("refs/tags/", "");
+			const deploymentHash = body?.checkout_sha;
+			const pathNamespace = body?.project?.path_with_namespace;
+
+			const apps = await db.query.applications.findMany({
+				where: and(
+					eq(applications.sourceType, "gitlab"),
+					eq(applications.autoDeploy, true),
+					eq(applications.triggerType, "tag"),
+					eq(applications.gitlabPathNamespace, pathNamespace),
+					eq(applications.gitlabId, gitlabProvider.gitlabId),
+				),
+			});
+
+			for (const app of apps) {
+				const jobData: DeploymentJob = {
+					applicationId: app.applicationId as string,
+					titleLog: `Tag created: ${tagName}`,
+					descriptionLog: `Hash: ${deploymentHash}`,
+					type: "deploy",
+					applicationType: "application",
+					server: !!app.serverId,
+				};
+
+				if (IS_CLOUD && app.serverId) {
+					jobData.serverId = app.serverId;
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
+					continue;
+				}
+				await myQueue.add("deployments", { ...jobData }, {
+					removeOnComplete: true,
+					removeOnFail: true,
+				});
+			}
+
+			const composeApps = await db.query.compose.findMany({
+				where: and(
+					eq(compose.sourceType, "gitlab"),
+					eq(compose.autoDeploy, true),
+					eq(compose.triggerType, "tag"),
+					eq(compose.gitlabPathNamespace, pathNamespace),
+					eq(compose.gitlabId, gitlabProvider.gitlabId),
+				),
+			});
+
+			for (const composeApp of composeApps) {
+				const jobData: DeploymentJob = {
+					composeId: composeApp.composeId as string,
+					titleLog: `Tag created: ${tagName}`,
+					descriptionLog: `Hash: ${deploymentHash}`,
+					type: "deploy",
+					applicationType: "compose",
+					server: !!composeApp.serverId,
+				};
+
+				if (IS_CLOUD && composeApp.serverId) {
+					jobData.serverId = composeApp.serverId;
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
+					continue;
+				}
+				await myQueue.add("deployments", { ...jobData }, {
+					removeOnComplete: true,
+					removeOnFail: true,
+				});
+			}
+
+			const totalApps = apps.length + composeApps.length;
+			res.status(200).json({
+				message:
+					totalApps === 0
+						? "No apps configured to deploy on tag"
+						: `Deployed ${totalApps} apps based on tag ${tagName}`,
+			});
+		} catch (error) {
+			res.status(400).json({ message: "Error deploying application", error });
+		}
+		return;
+	}
+
+	if (event === "Push Hook") {
 		try {
 			const branchName = body?.ref?.replace("refs/heads/", "");
 			const deploymentHash = body?.checkout_sha;
@@ -55,6 +140,7 @@ export default async function handler(
 				where: and(
 					eq(applications.sourceType, "gitlab"),
 					eq(applications.autoDeploy, true),
+					eq(applications.triggerType, "push"),
 					eq(applications.gitlabPathNamespace, pathNamespace),
 					eq(applications.gitlabBranch, branchName),
 					eq(applications.gitlabId, gitlabProvider.gitlabId),
@@ -92,6 +178,7 @@ export default async function handler(
 				where: and(
 					eq(compose.sourceType, "gitlab"),
 					eq(compose.autoDeploy, true),
+					eq(compose.triggerType, "push"),
 					eq(compose.gitlabPathNamespace, pathNamespace),
 					eq(compose.gitlabBranch, branchName),
 					eq(compose.gitlabId, gitlabProvider.gitlabId),
@@ -126,7 +213,12 @@ export default async function handler(
 			}
 
 			const totalApps = apps.length + composeApps.length;
-			res.status(200).json({ message: totalApps === 0 ? "No apps to deploy" : `Deployed ${totalApps} apps` });
+			res.status(200).json({
+				message:
+					totalApps === 0
+						? "No apps to deploy"
+						: `Deployed ${totalApps} apps`,
+			});
 		} catch (error) {
 			res.status(400).json({ message: "Error deploying application", error });
 		}
@@ -173,15 +265,8 @@ export default async function handler(
 			action === "open" ||
 			action === "update" ||
 			action === "reopen" ||
-			action === "labeled" ||
-			action === "unlabeled"
+			action === "labeled"
 		) {
-			const shouldCreateDeployment =
-				action === "open" ||
-				action === "update" ||
-				action === "reopen" ||
-				action === "labeled";
-
 			const targetBranch = body?.object_attributes?.target_branch as string;
 			const sourceBranch = body?.object_attributes?.source_branch as string;
 			const mrTitle = body?.object_attributes?.title as string;
@@ -202,36 +287,46 @@ export default async function handler(
 				},
 			});
 
-			// Security: check member permissions per app
+			// Permission check is per-MR-author, not per-app — check once before the loop
+			const requiresPermissionCheck = apps.some(
+				(app) => app.previewRequireCollaboratorPermissions !== false,
+			);
+			let permissionResult: Awaited<
+				ReturnType<typeof checkGitlabMemberPermissions>
+			> | null = null;
+			let permissionError: unknown = null;
+
+			if (requiresPermissionCheck) {
+				try {
+					permissionResult = await checkGitlabMemberPermissions(
+						gitlabProvider.gitlabId,
+						projectId,
+						mrAuthor,
+					);
+				} catch (error) {
+					permissionError = error;
+					console.error("Error validating MR author permissions:", error);
+				}
+			}
+
 			const secureApps: typeof apps = [];
 			let blockedAccessLevel: number | null = null;
 			let blocked = false;
 
 			for (const app of apps) {
 				if (app.previewRequireCollaboratorPermissions !== false) {
-					try {
-						const { hasWriteAccess, accessLevel } =
-							await checkGitlabMemberPermissions(
-								gitlabProvider.gitlabId,
-								projectId,
-								mrAuthor,
-							);
-
-						if (!hasWriteAccess) {
-							console.warn(
-								`🚨 SECURITY: Blocked preview deployment for ${app.name} from ${mrAuthor}. Access level: ${accessLevel}`,
-							);
-							if (!blocked) {
-								blockedAccessLevel = accessLevel;
-								blocked = true;
-							}
-							continue;
-						}
-					} catch (error) {
-						console.error(
-							`Error validating MR author permissions for ${app.name}:`,
-							error,
+					if (permissionError) {
+						continue;
+					}
+					const { hasWriteAccess, accessLevel } = permissionResult!;
+					if (!hasWriteAccess) {
+						console.warn(
+							`🚨 SECURITY: Blocked preview deployment for ${app.name} from ${mrAuthor}. Access level: ${accessLevel}`,
 						);
+						if (!blocked) {
+							blockedAccessLevel = accessLevel;
+							blocked = true;
+						}
 						continue;
 					}
 				}
@@ -275,7 +370,7 @@ export default async function handler(
 				let previewDeploymentId =
 					existingDeployment?.previewDeploymentId ?? "";
 
-				if (!existingDeployment && shouldCreateDeployment) {
+				if (!existingDeployment) {
 					const newDeployment = await createPreviewDeployment({
 						applicationId: app.applicationId as string,
 						branch: sourceBranch,
