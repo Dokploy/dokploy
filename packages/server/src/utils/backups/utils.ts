@@ -82,6 +82,101 @@ export const getS3Credentials = (destination: Destination) => {
 	return rcloneFlags;
 };
 
+export interface RcloneConfig {
+	/** Shell preamble (variable assignments) to inject before rclone, e.g. password obscuring */
+	preamble: string;
+	/** rclone flags array */
+	flags: string[];
+	/** Generate the full rclone remote path for a given file path */
+	remotePath: (filePath: string) => string;
+}
+
+/**
+ * Returns rclone config (preamble, flags, remote path) for any destination type.
+ * Centralises credential building so all backup/restore callers stay DRY.
+ */
+export const getRcloneConfig = (destination: Destination): RcloneConfig => {
+	const type = destination.destinationType ?? "s3";
+
+	if (type === "sftp") {
+		const cfg = destination.providerConfig as {
+			host: string;
+			port?: string;
+			user: string;
+			password: string;
+			remotePath?: string;
+		};
+		const port = cfg?.port ?? "22";
+		const remotePath = cfg?.remotePath ?? "/";
+		return {
+			preamble: `RCLONE_SFTP_PASS=$(rclone obscure "${cfg?.password ?? ""}")`,
+			flags: [
+				`--sftp-host="${cfg?.host ?? ""}"`,
+				`--sftp-user="${cfg?.user ?? ""}"`,
+				`--sftp-pass="$RCLONE_SFTP_PASS"`,
+				`--sftp-port="${port}"`,
+			],
+			remotePath: (filePath: string) =>
+				`:sftp:${remotePath.replace(/\/$/, "")}/${filePath}`,
+		};
+	}
+
+	if (type === "ftp") {
+		const cfg = destination.providerConfig as {
+			host: string;
+			port?: string;
+			user: string;
+			password: string;
+			remotePath?: string;
+			explicitTls?: boolean;
+		};
+		const port = cfg?.port ?? "21";
+		const remotePath = cfg?.remotePath ?? "/";
+		const flags = [
+			`--ftp-host="${cfg?.host ?? ""}"`,
+			`--ftp-user="${cfg?.user ?? ""}"`,
+			`--ftp-pass="$RCLONE_FTP_PASS"`,
+			`--ftp-port="${port}"`,
+		];
+		if (cfg?.explicitTls) {
+			flags.push("--ftp-explicit-tls");
+		}
+		return {
+			preamble: `RCLONE_FTP_PASS=$(rclone obscure "${cfg?.password ?? ""}")`,
+			flags,
+			remotePath: (filePath: string) =>
+				`:ftp:${remotePath.replace(/\/$/, "")}/${filePath}`,
+		};
+	}
+
+	if (type === "gdrive") {
+		const cfg = destination.providerConfig as {
+			serviceAccountKey: string;
+			rootFolderId?: string;
+		};
+		const rootFolderId = cfg?.rootFolderId ?? "";
+		return {
+			preamble: "",
+			flags: [
+				`--drive-service-account-credentials="${(cfg?.serviceAccountKey ?? "").replace(/"/g, '\\"')}"`,
+			],
+			remotePath: (filePath: string) =>
+				rootFolderId
+					? `:drive,root_folder_id=${rootFolderId}:${filePath}`
+					: `:drive:${filePath}`,
+		};
+	}
+
+	// Default: S3 / S3-compatible
+	const s3Flags = getS3Credentials(destination);
+	return {
+		preamble: "",
+		flags: s3Flags,
+		remotePath: (filePath: string) =>
+			`:s3:${destination.bucket}/${filePath}`,
+	};
+};
+
 export const getPostgresBackupCommand = (
 	database: string,
 	databaseUser: string,
@@ -247,9 +342,13 @@ export const getBackupCommand = (
 	backup: BackupSchedule,
 	rcloneCommand: string,
 	logPath: string,
+	rclonePreamble = "",
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
+	const destinationType = backup.destination?.destinationType ?? "s3";
+	const uploadLabel =
+		destinationType === "s3" ? "S3" : destinationType.toUpperCase();
 
 	logger.info(
 		{
@@ -263,6 +362,7 @@ export const getBackupCommand = (
 
 	return `
 	set -eo pipefail;
+	${rclonePreamble}
 	echo "[$(date)] Starting backup process..." >> ${logPath};
 	echo "[$(date)] Executing backup command..." >> ${logPath};
 	CONTAINER_ID=$(${containerSearch})
@@ -282,16 +382,16 @@ export const getBackupCommand = (
 	}
 
 	echo "[$(date)] ✅ backup completed successfully" >> ${logPath};
-	echo "[$(date)] Starting upload to S3..." >> ${logPath};
+	echo "[$(date)] Starting upload to ${uploadLabel}..." >> ${logPath};
 
 	# Run the upload command and capture the exit status
 	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
+		echo "[$(date)] ❌ Error: Upload to ${uploadLabel} failed" >> ${logPath};
 		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
 		exit 1;
 	}
 
-	echo "[$(date)] ✅ Upload to S3 completed successfully" >> ${logPath};
+	echo "[$(date)] ✅ Upload to ${uploadLabel} completed successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };

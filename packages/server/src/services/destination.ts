@@ -13,12 +13,25 @@ export const createDestintation = async (
 	input: z.infer<typeof apiCreateDestination>,
 	organizationId: string,
 ) => {
+	const insertData =
+		input.destinationType === "s3"
+			? { ...input, organizationId }
+			: {
+					name: input.name,
+					destinationType: input.destinationType,
+					providerConfig: input.providerConfig,
+					organizationId,
+					// S3 fields default to empty string for non-S3 types
+					accessKey: "",
+					secretAccessKey: "",
+					bucket: "",
+					region: "",
+					endpoint: "",
+				};
+
 	const newDestination = await db
 		.insert(destinations)
-		.values({
-			...input,
-			organizationId: organizationId,
-		})
+		.values(insertData as typeof destinations.$inferInsert)
 		.returning()
 		.then((value) => value[0]);
 
