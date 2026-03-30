@@ -1,1 +1,0 @@
-ALTER TABLE "domain" ADD COLUMN "customEntrypoint" text;
