@@ -1881,6 +1881,20 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												<FormLabel>Dokploy Backup</FormLabel>
 												<FormDescription>
 													Trigger the action when a dokploy backup is created.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
 									name="volumeBackup"
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
