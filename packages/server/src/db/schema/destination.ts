@@ -16,13 +16,21 @@ export const destinations = pgTable("destination", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	name: text("name").notNull(),
+	destinationType: text("destinationType").default("s3").notNull(),
+	// S3 fields
 	provider: text("provider"),
-	accessKey: text("accessKey").notNull(),
-	secretAccessKey: text("secretAccessKey").notNull(),
-	bucket: text("bucket").notNull(),
-	region: text("region").notNull(),
-	endpoint: text("endpoint").notNull(),
+	accessKey: text("accessKey"),
+	secretAccessKey: text("secretAccessKey"),
+	bucket: text("bucket"),
+	region: text("region"),
+	endpoint: text("endpoint"),
 	additionalFlags: text("additionalFlags").array(),
+	// SFTP/FTP fields
+	host: text("host"),
+	port: text("port"),
+	username: text("username"),
+	password: text("password"),
+	remotePath: text("remotePath"),
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
@@ -40,59 +48,78 @@ export const destinationsRelations = relations(
 	}),
 );
 
-const createSchema = createInsertSchema(destinations, {
-	destinationId: z.string(),
-	name: z.string().min(1),
-	provider: z.string(),
-	accessKey: z.string(),
-	bucket: z.string(),
-	endpoint: z.string(),
-	secretAccessKey: z.string(),
-	region: z.string(),
+// Discriminated union for destination creation based on type
+const s3ConfigSchema = z.object({
+	provider: z.string().optional(),
+	accessKey: z.string().min(1, "Access key is required for S3"),
+	secretAccessKey: z.string().min(1, "Secret access key is required for S3"),
+	bucket: z.string().min(1, "Bucket is required for S3"),
+	region: z.string().min(1, "Region is required for S3"),
+	endpoint: z.string().min(1, "Endpoint is required for S3"),
 	additionalFlags: z
 		.array(z.string().regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR))
 		.default([]),
 });
 
-export const apiCreateDestination = createSchema
-	.pick({
-		name: true,
-		provider: true,
-		accessKey: true,
-		bucket: true,
-		region: true,
-		endpoint: true,
-		secretAccessKey: true,
-		additionalFlags: true,
-	})
-	.required()
-	.extend({
+const sftpConfigSchema = z.object({
+	host: z.string().min(1, "Host is required for SFTP"),
+	port: z.string().default("22"),
+	username: z.string().min(1, "Username is required for SFTP"),
+	password: z.string().min(1, "Password is required for SFTP"),
+	remotePath: z.string().min(1, "Remote path is required for SFTP"),
+});
+
+const ftpConfigSchema = z.object({
+	host: z.string().min(1, "Host is required for FTP"),
+	port: z.string().default("21"),
+	username: z.string().min(1, "Username is required for FTP"),
+	password: z.string().min(1, "Password is required for FTP"),
+	remotePath: z.string().min(1, "Remote path is required for FTP"),
+});
+
+export const apiCreateDestination = z.discriminatedUnion("destinationType", [
+	z.object({
+		name: z.string().min(1),
+		destinationType: z.literal("s3"),
 		serverId: z.string().optional(),
-	});
+	}).and(s3ConfigSchema),
+	z.object({
+		name: z.string().min(1),
+		destinationType: z.literal("sftp"),
+		serverId: z.string().optional(),
+	}).and(sftpConfigSchema),
+	z.object({
+		name: z.string().min(1),
+		destinationType: z.literal("ftp"),
+		serverId: z.string().optional(),
+	}).and(ftpConfigSchema),
+]).default({ name: "", destinationType: "s3", accessKey: "", secretAccessKey: "", bucket: "", region: "", endpoint: "" });
 
 export const apiFindOneDestination = z.object({
 	destinationId: z.string().min(1),
 });
 
-export const apiRemoveDestination = createSchema
-	.pick({
-		destinationId: true,
-	})
-	.required();
+export const apiRemoveDestination = z.object({
+	destinationId: z.string().min(1),
+});
 
-export const apiUpdateDestination = createSchema
-	.pick({
-		name: true,
-		accessKey: true,
-		bucket: true,
-		region: true,
-		endpoint: true,
-		secretAccessKey: true,
-		destinationId: true,
-		provider: true,
-		additionalFlags: true,
-	})
-	.required()
-	.extend({
+export const apiUpdateDestination = z.discriminatedUnion("destinationType", [
+	z.object({
+		destinationId: z.string().min(1),
+		name: z.string().min(1),
+		destinationType: z.literal("s3"),
 		serverId: z.string().optional(),
-	});
+	}).and(s3ConfigSchema),
+	z.object({
+		destinationId: z.string().min(1),
+		name: z.string().min(1),
+		destinationType: z.literal("sftp"),
+		serverId: z.string().optional(),
+	}).and(sftpConfigSchema),
+	z.object({
+		destinationId: z.string().min(1),
+		name: z.string().min(1),
+		destinationType: z.literal("ftp"),
+		serverId: z.string().optional(),
+	}).and(ftpConfigSchema),
+]);

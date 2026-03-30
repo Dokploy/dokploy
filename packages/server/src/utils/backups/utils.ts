@@ -63,27 +63,109 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
-export const getS3Credentials = (destination: Destination) => {
+/**
+ * Escape a value for safe use inside a double-quoted shell string.
+ * Escapes backslash, double-quote, dollar sign, and backtick.
+ */
+const escapeShellValue = (value: string): string =>
+	value.replace(/[\\\"$`]/g, "\\$&");
+
+export interface RcloneConfig {
+	/** Shell preamble to set environment variables (for passwords) */
+	preamble: string;
+	/** Rclone command-line flags */
+	flags: string[];
+	/** Remote path for rclone (e.g., :s3:bucket or :sftp:/path) */
+	remotePath: string;
+}
+
+const DEFAULT_SFTP_PORT = "22";
+const DEFAULT_FTP_PORT = "21";
+
+/**
+ * Returns rclone configuration for the given destination.
+ * Supports S3-compatible, SFTP, and FTP destination types.
+ *
+ * SECURITY: Passwords are passed via environment variables to prevent
+ * shell injection attacks. The preamble should be prepended to any
+ * shell command that uses these flags.
+ */
+export const getRcloneConfig = (destination: Destination): RcloneConfig => {
+	const type = destination.destinationType ?? "s3";
+
+	if (type === "sftp") {
+		const preamble = destination.password
+			? `export RCLONE_SFTP_PASS="$(rclone obscure '${destination.password.replace(/'/g, "'\\''")}')"; `
+			: "";
+
+		const flags = [
+			`--sftp-host="${escapeShellValue(destination.host ?? "")}"`,
+			`--sftp-port="${escapeShellValue(destination.port || DEFAULT_SFTP_PORT)}"`,
+			`--sftp-user="${escapeShellValue(destination.username ?? "")}"`,
+		];
+
+		if (destination.password) {
+			flags.push(`--sftp-pass="$RCLONE_SFTP_PASS"`);
+		}
+
+		const remotePath = `:sftp:${destination.remotePath ?? ""}`;
+
+		return { preamble, flags, remotePath };
+	}
+
+	if (type === "ftp") {
+		const preamble = destination.password
+			? `export RCLONE_FTP_PASS="$(rclone obscure '${destination.password.replace(/'/g, "'\\''")}')"; `
+			: "";
+
+		const flags = [
+			`--ftp-host="${escapeShellValue(destination.host ?? "")}"`,
+			`--ftp-port="${escapeShellValue(destination.port || DEFAULT_FTP_PORT)}"`,
+			`--ftp-user="${escapeShellValue(destination.username ?? "")}"`,
+			"--ftp-disable-epsv",
+		];
+
+		if (destination.password) {
+			flags.push(`--ftp-pass="$RCLONE_FTP_PASS"`);
+		}
+
+		const remotePath = `:ftp:${destination.remotePath ?? ""}`;
+
+		return { preamble, flags, remotePath };
+	}
+
+	// Default: S3-compatible
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
-	const rcloneFlags = [
-		`--s3-access-key-id="${accessKey}"`,
-		`--s3-secret-access-key="${secretAccessKey}"`,
-		`--s3-region="${region}"`,
-		`--s3-endpoint="${endpoint}"`,
+	const flags = [
+		`--s3-access-key-id="${escapeShellValue(accessKey ?? "")}"`,
+		`--s3-secret-access-key="${escapeShellValue(secretAccessKey ?? "")}"`,
+		`--s3-region="${escapeShellValue(region ?? "")}"`,
+		`--s3-endpoint="${escapeShellValue(endpoint ?? "")}"`,
 		"--s3-no-check-bucket",
 		"--s3-force-path-style",
 	];
 
 	if (provider) {
-		rcloneFlags.unshift(`--s3-provider="${provider}"`);
+		flags.unshift(`--s3-provider="${escapeShellValue(provider)}"`);
 	}
 
 	if (destination.additionalFlags?.length) {
-		rcloneFlags.push(...destination.additionalFlags);
+		flags.push(...destination.additionalFlags);
 	}
 
-	return rcloneFlags;
+	const bucket = (destination.bucket ?? "").replace(/^\/+|\/+$/g, "");
+	const remotePath = `:s3:${bucket}`;
+
+	return { preamble: "", flags, remotePath };
+};
+
+/**
+ * @deprecated Use getRcloneConfig instead for full support.
+ * Returns only the flags array for backward compatibility.
+ */
+export const getS3Credentials = (destination: Destination): string[] => {
+	return getRcloneConfig(destination).flags;
 };
 
 export const getPostgresBackupCommand = (

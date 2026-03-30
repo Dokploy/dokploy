@@ -7,6 +7,7 @@ import {
 	removeDestinationById,
 	updateDestinationById,
 } from "@dokploy/server";
+import { getRcloneConfig } from "@dokploy/server/utils/backups/utils";
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
@@ -47,36 +48,51 @@ export const destinationRouter = createTRPCRouter({
 	testConnection: withPermission("destination", "create")
 		.input(apiCreateDestination)
 		.mutation(async ({ input }) => {
-			const {
-				secretAccessKey,
-				bucket,
-				region,
-				endpoint,
-				accessKey,
-				provider,
-				additionalFlags,
-			} = input;
 			try {
-				const rcloneFlags = [
-					`--s3-access-key-id="${accessKey}"`,
-					`--s3-secret-access-key="${secretAccessKey}"`,
-					`--s3-region="${region}"`,
-					`--s3-endpoint="${endpoint}"`,
-					"--s3-no-check-bucket",
-					"--s3-force-path-style",
+				// Build a temporary destination object from input
+				const tempDestination = {
+					...input,
+					destinationId: "temp",
+					createdAt: new Date(),
+					organizationId: "temp",
+					destinationType: input.destinationType,
+					// Map input fields based on type
+					...(input.destinationType === "s3" ? {
+						accessKey: input.accessKey,
+						secretAccessKey: input.secretAccessKey,
+						bucket: input.bucket,
+						region: input.region,
+						endpoint: input.endpoint,
+						provider: input.provider,
+						additionalFlags: input.additionalFlags,
+					} : {}),
+					...(input.destinationType === "sftp" ? {
+						host: input.host,
+						port: input.port,
+						username: input.username,
+						password: input.password,
+						remotePath: input.remotePath,
+					} : {}),
+					...(input.destinationType === "ftp" ? {
+						host: input.host,
+						port: input.port,
+						username: input.username,
+						password: input.password,
+						remotePath: input.remotePath,
+					} : {}),
+				} as any;
+
+				const { preamble, flags, remotePath } = getRcloneConfig(tempDestination);
+				
+				const testFlags = [
+					...flags,
 					"--retries 1",
 					"--low-level-retries 1",
 					"--timeout 10s",
 					"--contimeout 5s",
 				];
-				if (provider) {
-					rcloneFlags.unshift(`--s3-provider="${provider}"`);
-				}
-				if (additionalFlags?.length) {
-					rcloneFlags.push(...additionalFlags);
-				}
-				const rcloneDestination = `:s3:${bucket}`;
-				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+
+				const rcloneCommand = `${preamble}rclone ls ${testFlags.join(" ")} "${remotePath}"`;
 
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
@@ -96,7 +112,7 @@ export const destinationRouter = createTRPCRouter({
 					message:
 						error instanceof Error
 							? error?.message
-							: "Error connecting to bucket",
+							: "Error connecting to destination",
 					cause: error,
 				});
 			}

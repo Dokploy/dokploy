@@ -8,7 +8,7 @@ import type { Libsql } from "@dokploy/server/services/libsql";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import { getBackupCommand, getRcloneConfig, normalizeS3Path } from "./utils";
 
 export const runLibsqlBackup = async (
 	libsql: Libsql,
@@ -28,10 +28,9 @@ export const runLibsqlBackup = async (
 	const backupFileName = `${new Date().toISOString()}.sql.gz`;
 	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-
-		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		const { preamble, flags, remotePath } = getRcloneConfig(destination);
+		const rcloneDestination = `${remotePath}/${bucketDestination}`;
+		const rcloneCommand = `${preamble}rclone rcat ${flags.join(" ")} "${rcloneDestination}"`;
 
 		const backupCommand = getBackupCommand(
 			backup,
