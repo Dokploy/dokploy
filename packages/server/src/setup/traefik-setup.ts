@@ -298,7 +298,7 @@ export const getDefaultTraefikConfig = () => {
 			},
 		},
 		api: {
-			insecure: true,
+			insecure: false,
 		},
 		...(process.env.NODE_ENV === "production" && {
 			certificatesResolvers: {
@@ -354,7 +354,7 @@ export const getDefaultServerTraefikConfig = () => {
 			},
 		},
 		api: {
-			insecure: true,
+			insecure: false,
 		},
 		certificatesResolvers: {
 			letsencrypt: {
