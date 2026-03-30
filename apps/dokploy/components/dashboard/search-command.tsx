@@ -23,7 +23,6 @@ import {
 	CommandList,
 	CommandSeparator,
 } from "@/components/ui/command";
-import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { StatusTooltip } from "../shared/status-tooltip";
 
@@ -56,7 +55,7 @@ export const SearchCommand = () => {
 	const router = useRouter();
 	const [open, setOpen] = React.useState(false);
 	const [search, setSearch] = React.useState("");
-	const { data: session } = authClient.useSession();
+	const { data: session } = api.user.session.useQuery();
 	const { data } = api.project.all.useQuery(undefined, {
 		enabled: !!session,
 	});
@@ -89,24 +88,26 @@ export const SearchCommand = () => {
 					<CommandGroup heading={"Projects"}>
 						<CommandList>
 							{data?.map((project) => {
-								const productionEnvironment = project.environments.find(
-									(environment) => environment.name === "production",
-								);
+								// Find default environment from accessible environments, or fall back to first accessible environment
+								const defaultEnvironment =
+									project.environments.find(
+										(environment) => environment.isDefault,
+									) || project?.environments?.[0];
 
-								if (!productionEnvironment) return null;
+								if (!defaultEnvironment) return null;
 
 								return (
 									<CommandItem
 										key={project.projectId}
 										onSelect={() => {
 											router.push(
-												`/dashboard/project/${project.projectId}/environment/${productionEnvironment!.environmentId}`,
+												`/dashboard/project/${project.projectId}/environment/${defaultEnvironment.environmentId}`,
 											);
 											setOpen(false);
 										}}
 									>
 										<BookIcon className="size-4 text-muted-foreground mr-2" />
-										{project.name} / {productionEnvironment!.name}
+										{project.name} / {defaultEnvironment.name}
 									</CommandItem>
 								);
 							})}
@@ -171,6 +172,14 @@ export const SearchCommand = () => {
 							}}
 						>
 							Projects
+						</CommandItem>
+						<CommandItem
+							onSelect={() => {
+								router.push("/dashboard/deployments");
+								setOpen(false);
+							}}
+						>
+							Deployments
 						</CommandItem>
 						{!isCloud && (
 							<>

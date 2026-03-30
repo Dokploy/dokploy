@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PlusIcon } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
@@ -34,13 +34,13 @@ interface Props {
 	serviceId: string;
 	serviceType:
 		| "application"
-		| "postgres"
-		| "redis"
-		| "mongo"
-		| "redis"
-		| "mysql"
+		| "compose"
+		| "libsql"
 		| "mariadb"
-		| "compose";
+		| "mongo"
+		| "mysql"
+		| "postgres"
+		| "redis";
 	refetch: () => void;
 	children?: React.ReactNode;
 }
@@ -59,7 +59,13 @@ const mySchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("volume"),
-			volumeName: z.string().min(1, "Volume name required"),
+			volumeName: z
+				.string()
+				.min(1, "Volume name required")
+				.regex(
+					/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/,
+					"Invalid volume name. Use letters, numbers, '._-' and start with a letter/number.",
+				),
 		})
 		.merge(mountSchema),
 	z

@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Folder, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -81,7 +81,7 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
 	const shouldShowServerDropdown = hasServers;
 
-	const { mutateAsync, isLoading, error, isError } =
+	const { mutateAsync, isPending, error, isError } =
 		api.application.create.useMutation();
 
 	const form = useForm<AddTemplate>({
@@ -150,8 +150,8 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 											placeholder="Frontend"
 											{...field}
 											onChange={(e) => {
-												const val = e.target.value?.trim() || "";
-												const serviceName = slugify(val);
+												const val = e.target.value || "";
+												const serviceName = slugify(val.trim());
 												form.setValue("appName", `${slug}-${serviceName}`);
 												field.onChange(val);
 											}}
@@ -283,7 +283,7 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 					</form>
 
 					<DialogFooter>
-						<Button isLoading={isLoading} form="hook-form" type="submit">
+						<Button isLoading={isPending} form="hook-form" type="submit">
 							Create
 						</Button>
 					</DialogFooter>

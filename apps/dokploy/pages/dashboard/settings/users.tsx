@@ -3,16 +3,24 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { ManageCustomRoles } from "@/components/proprietary/roles/manage-custom-roles";
 import { ShowInvitations } from "@/components/dashboard/settings/users/show-invitations";
 import { ShowUsers } from "@/components/dashboard/settings/users/show-users";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
+import { api } from "@/utils/api";
 
 const Page = () => {
+	const { data: auth } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const isOwnerOrAdmin = auth?.role === "owner" || auth?.role === "admin";
+	const canCreateMembers = permissions?.member.create ?? false;
+
 	return (
 		<div className="flex flex-col gap-4 w-full">
 			<ShowUsers />
-			<ShowInvitations />
+			{canCreateMembers && <ShowInvitations />}
+			{isOwnerOrAdmin && <ManageCustomRoles />}
 		</div>
 	);
 };
@@ -28,7 +36,7 @@ export async function getServerSideProps(
 	const { req, res } = ctx;
 	const { user, session } = await validateRequest(req);
 
-	if (!user || user.role === "member") {
+	if (!user) {
 		return {
 			redirect: {
 				permanent: true,
@@ -48,12 +56,30 @@ export async function getServerSideProps(
 		},
 		transformer: superjson,
 	});
-	await helpers.user.get.prefetch();
-	await helpers.settings.isCloud.prefetch();
 
-	return {
-		props: {
-			trpcState: helpers.dehydrate(),
-		},
-	};
+	try {
+		await helpers.user.get.prefetch();
+		await helpers.settings.isCloud.prefetch();
+
+		const userPermissions = await helpers.user.getPermissions.fetch();
+
+		if (!userPermissions?.member.read) {
+			return {
+				redirect: {
+					permanent: true,
+					destination: "/",
+				},
+			};
+		}
+
+		return {
+			props: {
+				trpcState: helpers.dehydrate(),
+			},
+		};
+	} catch {
+		return {
+			props: {},
+		};
+	}
 }

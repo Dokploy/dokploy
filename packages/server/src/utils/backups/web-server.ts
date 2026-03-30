@@ -41,7 +41,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 		const { BASE_PATH } = paths();
 		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-backup-"));
 		const backupFileName = `webserver-backup-${timestamp}.zip`;
-		const s3Path = `:s3:${destination.bucket}/${normalizeS3Path(backup.prefix)}${backupFileName}`;
+		const s3Path = `:s3:${destination.bucket}/${backup.appName}/${normalizeS3Path(backup.prefix)}${backupFileName}`;
 
 		try {
 			await execAsync(`mkdir -p ${tempDir}/filesystem`);
@@ -77,7 +77,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			await execAsync(cleanupCommand);
 
 			await execAsync(
-				`rsync -a --ignore-errors ${BASE_PATH}/ ${tempDir}/filesystem/`,
+				`rsync -a --ignore-errors --no-specials --no-devices --exclude='volume-backups/' ${BASE_PATH}/ ${tempDir}/filesystem/`,
 			);
 
 			writeStream.write("Copied filesystem to temp directory\n");
