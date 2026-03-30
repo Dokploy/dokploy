@@ -124,11 +124,11 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 		);
 		writeStream.end();
 		await sendDokployBackupNotifications({
-					type: "error",
-					// @ts-ignore
-					errorMessage: error?.message || "Error message not provided",
-					backupSize: formatBytes(computedBackupSize),
-				});
+			type: "error",
+			// @ts-ignore
+			errorMessage: error?.message || "Error message not provided",
+			backupSize: formatBytes(computedBackupSize),
+		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		throw error;
 	}

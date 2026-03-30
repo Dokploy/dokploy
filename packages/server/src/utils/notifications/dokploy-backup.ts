@@ -51,11 +51,7 @@ export const sendDokployBackupNotifications = async ({
 					backupSize,
 				}),
 			).catch();
-			await sendEmailNotification(
-				email,
-				"Dokploy instance backup",
-				template,
-			);
+			await sendEmailNotification(email, "Dokploy instance backup", template);
 		}
 
 		if (discord) {
