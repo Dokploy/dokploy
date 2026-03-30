@@ -53,7 +53,7 @@ Compose Type: ${composeType} ✅`;
 	
 		cd "${projectPath}";
 
-		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create --attachable ${compose.appName}` : ""}
+		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create ${compose.composeType === "stack" ? "--driver overlay" : ""} --attachable ${compose.appName}` : ""}
 		env -i PATH="$PATH" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
 	
@@ -90,7 +90,7 @@ export const createCommand = (compose: ComposeNested) => {
 	if (composeType === "docker-compose") {
 		command = `compose -p ${appName} -f ${path} up -d --build --remove-orphans`;
 	} else if (composeType === "stack") {
-		command = `stack deploy -c ${path} ${appName} --prune`;
+		command = `stack deploy -c ${path} ${appName} --prune --with-registry-auth`;
 	}
 
 	return command;
@@ -134,6 +134,7 @@ const getExportEnvCommand = (compose: ComposeNested) => {
 	const envVars = getEnviromentVariablesObject(
 		compose.env,
 		compose.environment.project.env,
+		compose.environment.env,
 	);
 	const exports = Object.entries(envVars)
 		.map(([key, value]) => `${key}=${quote([value])}`)

@@ -2,13 +2,16 @@ import {
 	ChevronDown,
 	ChevronUp,
 	Clock,
+	Copy,
 	Loader2,
 	RefreshCcw,
 	RocketIcon,
 	Settings,
+	Trash2,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import copy from "copy-to-clipboard";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -25,6 +28,7 @@ import {
 import { api, type RouterOutputs } from "@/utils/api";
 import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
 import { CancelQueues } from "./cancel-queues";
+import { ClearDeployments } from "./clear-deployments";
 import { KillBuild } from "./kill-build";
 import { RefreshToken } from "./refresh-token";
 import { ShowDeployment } from "./show-deployment";
@@ -59,7 +63,7 @@ export const ShowDeployments = ({
 	const [activeLog, setActiveLog] = useState<
 		RouterOutputs["deployment"]["all"][number] | null
 	>(null);
-	const { data: deployments, isLoading: isLoadingDeployments } =
+	const { data: deployments, isPending: isLoadingDeployments } =
 		api.deployment.allByType.useQuery(
 			{
 				id,
@@ -73,24 +77,32 @@ export const ShowDeployments = ({
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
-	const { mutateAsync: rollback, isLoading: isRollingBack } =
+	const { mutateAsync: rollback, isPending: isRollingBack } =
 		api.rollback.rollback.useMutation();
-	const { mutateAsync: killProcess, isLoading: isKillingProcess } =
+	const { mutateAsync: killProcess, isPending: isKillingProcess } =
 		api.deployment.killProcess.useMutation();
+	const { mutateAsync: removeDeployment, isPending: isRemovingDeployment } =
+		api.deployment.removeDeployment.useMutation();
 
 	// Cancel deployment mutations
 	const {
 		mutateAsync: cancelApplicationDeployment,
-		isLoading: isCancellingApp,
+		isPending: isCancellingApp,
 	} = api.application.cancelDeployment.useMutation();
 	const {
 		mutateAsync: cancelComposeDeployment,
-		isLoading: isCancellingCompose,
+		isPending: isCancellingCompose,
 	} = api.compose.cancelDeployment.useMutation();
 
 	const [url, setUrl] = React.useState("");
 	const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
 		new Set(),
+	);
+
+	const webhookUrl = useMemo(
+		() =>
+			`${url}/api/deploy${type === "compose" ? "/compose" : ""}/${refreshToken}`,
+		[url, refreshToken, type],
 	);
 
 	const MAX_DESCRIPTION_LENGTH = 200;
@@ -144,6 +156,9 @@ export const ShowDeployments = ({
 					</CardDescription>
 				</div>
 				<div className="flex flex-row items-center flex-wrap gap-2">
+					{(type === "application" || type === "compose") && (
+						<ClearDeployments id={id} type={type} />
+					)}
 					{(type === "application" || type === "compose") && (
 						<KillBuild id={id} type={type} />
 					)}
@@ -217,11 +232,27 @@ export const ShowDeployments = ({
 						<div className="flex flex-row items-center gap-2 flex-wrap">
 							<span>Webhook URL: </span>
 							<div className="flex flex-row items-center gap-2">
-								<span className="break-all text-muted-foreground">
-									{`${url}/api/deploy${
-										type === "compose" ? "/compose" : ""
-									}/${refreshToken}`}
-								</span>
+								<Badge
+									role="button"
+									tabIndex={0}
+									aria-label="Copy webhook URL to clipboard"
+									className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all"
+									variant="outline"
+									onKeyDown={(event) => {
+										if (event.key === "Enter" || event.key === " ") {
+											event.preventDefault();
+											copy(webhookUrl);
+											toast.success("Copied to clipboard.");
+										}
+									}}
+									onClick={() => {
+										copy(webhookUrl);
+										toast.success("Copied to clipboard.");
+									}}
+								>
+									{webhookUrl}
+									<Copy className="h-4 w-4 ml-2" />
+								</Badge>
 								{(type === "application" || type === "compose") && (
 									<RefreshToken id={id} type={type} />
 								)}
@@ -252,13 +283,15 @@ export const ShowDeployments = ({
 							const isExpanded = expandedDescriptions.has(
 								deployment.deploymentId,
 							);
+							const canDelete =
+								deployment.status === "done" || deployment.status === "error";
 
 							return (
 								<div
 									key={deployment.deploymentId}
-									className="flex items-center justify-between rounded-lg border p-4 gap-2"
+									className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
 								>
-									<div className="flex flex-col">
+									<div className="flex flex-1 flex-col min-w-0">
 										<span className="flex items-center gap-4 font-medium capitalize text-foreground">
 											{index + 1}. {deployment.status}
 											<StatusTooltip
@@ -313,8 +346,8 @@ export const ShowDeployments = ({
 											)}
 										</div>
 									</div>
-									<div className="flex flex-col items-end gap-2 max-w-[300px] w-full justify-start">
-										<div className="text-sm capitalize text-muted-foreground flex items-center gap-2">
+									<div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:max-w-[300px] sm:items-end sm:justify-start">
+										<div className="text-sm capitalize text-muted-foreground flex flex-wrap items-center gap-2">
 											<DateTooltip date={deployment.createdAt} />
 											{deployment.startedAt && deployment.finishedAt && (
 												<Badge
@@ -333,7 +366,7 @@ export const ShowDeployments = ({
 											)}
 										</div>
 
-										<div className="flex flex-row items-center gap-2">
+										<div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
 											{deployment.pid && deployment.status === "running" && (
 												<DialogAction
 													title="Kill Process"
@@ -355,6 +388,7 @@ export const ShowDeployments = ({
 														variant="destructive"
 														size="sm"
 														isLoading={isKillingProcess}
+														className="w-full sm:w-auto"
 													>
 														Kill Process
 													</Button>
@@ -364,9 +398,37 @@ export const ShowDeployments = ({
 												onClick={() => {
 													setActiveLog(deployment);
 												}}
+												className="w-full sm:w-auto"
 											>
 												View
 											</Button>
+
+											{canDelete && (
+												<DialogAction
+													title="Delete Deployment"
+													description="Are you sure you want to delete this deployment? This action cannot be undone."
+													type="default"
+													onClick={async () => {
+														try {
+															await removeDeployment({
+																deploymentId: deployment.deploymentId,
+															});
+															toast.success("Deployment deleted successfully");
+														} catch (error) {
+															toast.error("Error deleting deployment");
+														}
+													}}
+												>
+													<Button
+														variant="destructive"
+														size="sm"
+														isLoading={isRemovingDeployment}
+													>
+														Delete
+														<Trash2 className="size-4" />
+													</Button>
+												</DialogAction>
+											)}
 
 											{deployment?.rollback &&
 												deployment.status === "done" &&
@@ -405,6 +467,7 @@ export const ShowDeployments = ({
 															variant="secondary"
 															size="sm"
 															isLoading={isRollingBack}
+															className="w-full sm:w-auto"
 														>
 															<RefreshCcw className="size-4 text-primary group-hover:text-red-500" />
 															Rollback

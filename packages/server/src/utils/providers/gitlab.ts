@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { apiGitlabTestConnection } from "@dokploy/server/db/schema";
+import type { z } from "zod";
 import {
 	findGitlabById,
 	type Gitlab,
@@ -21,7 +22,9 @@ export const refreshGitlabToken = async (gitlabProviderId: string) => {
 		return;
 	}
 
-	const response = await fetch(`${gitlabProvider.gitlabUrl}/oauth/token`, {
+	// Use internal URL for token refresh when GitLab is on same instance as Dokploy
+	const baseUrl = gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl;
+	const response = await fetch(`${baseUrl}/oauth/token`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/x-www-form-urlencoded",
@@ -105,6 +108,7 @@ interface CloneGitlabRepository {
 	enableSubmodules: boolean;
 	serverId: string | null;
 	type?: "application" | "compose";
+	outputPathOverride?: string;
 }
 
 export const cloneGitlabRepository = async ({
@@ -119,6 +123,7 @@ export const cloneGitlabRepository = async ({
 		gitlabPathNamespace,
 		enableSubmodules,
 		serverId,
+		outputPathOverride,
 	} = entity;
 	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
 
@@ -139,7 +144,7 @@ export const cloneGitlabRepository = async ({
 	}
 
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName, "code");
+	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
 	const repoClone = getGitlabRepoClone(gitlab, gitlabPathNamespace);
@@ -167,7 +172,7 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 		if (groupName) {
 			return groupName
 				.split(",")
-				.some((name) =>
+				.some((name: string) =>
 					full_path.toLowerCase().startsWith(name.trim().toLowerCase()),
 				);
 		}
@@ -209,10 +214,13 @@ export const getGitlabBranches = async (input: {
 	const allBranches = [];
 	let page = 1;
 	const perPage = 100; // GitLab's max per page is 100
+	const baseUrl = (
+		gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
+	).replace(/\/+$/, "");
 
 	while (true) {
 		const branchesResponse = await fetch(
-			`${gitlabProvider.gitlabUrl}/api/v4/projects/${input.id}/repository/branches?page=${page}&per_page=${perPage}`,
+			`${baseUrl}/api/v4/projects/${input.id}/repository/branches?page=${page}&per_page=${perPage}`,
 			{
 				headers: {
 					Authorization: `Bearer ${gitlabProvider.accessToken}`,
@@ -252,7 +260,7 @@ export const getGitlabBranches = async (input: {
 };
 
 export const testGitlabConnection = async (
-	input: typeof apiGitlabTestConnection._type,
+	input: z.infer<typeof apiGitlabTestConnection>,
 ) => {
 	const { gitlabId, groupName } = input;
 
@@ -272,7 +280,7 @@ export const testGitlabConnection = async (
 		if (groupName) {
 			return groupName
 				.split(",")
-				.some((name) =>
+				.some((name: string) =>
 					full_path.toLowerCase().startsWith(name.trim().toLowerCase()),
 				);
 		}
@@ -287,10 +295,13 @@ export const validateGitlabProvider = async (gitlabProvider: Gitlab) => {
 		const allProjects = [];
 		let page = 1;
 		const perPage = 100; // GitLab's max per page is 100
+		const baseUrl = (
+			gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
+		).replace(/\/+$/, "");
 
 		while (true) {
 			const response = await fetch(
-				`${gitlabProvider.gitlabUrl}/api/v4/projects?membership=true&page=${page}&per_page=${perPage}`,
+				`${baseUrl}/api/v4/projects?membership=true&page=${page}&per_page=${perPage}`,
 				{
 					headers: {
 						Authorization: `Bearer ${gitlabProvider.accessToken}`,

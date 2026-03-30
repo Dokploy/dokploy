@@ -8,6 +8,7 @@ interface Props {
 export const Logo = ({ className = "size-14", logoUrl }: Props) => {
 	if (logoUrl) {
 		return (
+			// biome-ignore lint/performance/noImgElement: this is for dynamic logo loading
 			<img
 				src={logoUrl}
 				alt="Organization Logo"

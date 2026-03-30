@@ -14,6 +14,7 @@ interface CloneGitRepository {
 	enableSubmodules?: boolean;
 	serverId: string | null;
 	type?: "application" | "compose";
+	outputPathOverride?: string;
 }
 
 export const cloneGitRepository = async ({
@@ -28,6 +29,7 @@ export const cloneGitRepository = async ({
 		customGitSSHKeyId,
 		enableSubmodules,
 		serverId,
+		outputPathOverride,
 	} = entity;
 	const { SSH_PATH, COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
 
@@ -47,7 +49,7 @@ export const cloneGitRepository = async ({
 			`;
 	}
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName, "code");
+	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
 
 	if (!isHttpOrHttps(customGitUrl)) {

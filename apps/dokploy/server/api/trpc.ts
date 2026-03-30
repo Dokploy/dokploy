@@ -7,20 +7,21 @@
  * need to use are documented accordingly near the end.
  */
 
+// import { getServerAuthSession } from "@/server/auth";
+import { db } from "@dokploy/server/db";
+import { hasValidLicense } from "@dokploy/server/index";
+import type { statements } from "@dokploy/server/lib/access-control";
 import { validateRequest } from "@dokploy/server/lib/auth";
+import { checkPermission } from "@dokploy/server/services/permission";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
-import {
-	experimental_createMemoryUploadHandler,
-	experimental_isMultipartFormDataRequest,
-	experimental_parseMultipartFormData,
-} from "@trpc/server/adapters/node-http/content-type/form-data";
 import type { Session, User } from "better-auth";
 import superjson from "superjson";
 import { ZodError } from "zod";
-// import { getServerAuthSession } from "@/server/auth";
-import { db } from "@/server/db";
+
+type Resource = keyof typeof statements;
+type ActionOf<R extends Resource> = (typeof statements)[R][number];
 
 /**
  * 1. CONTEXT
@@ -31,7 +32,14 @@ import { db } from "@/server/db";
  */
 
 interface CreateContextOptions {
-	user: (User & { role: "member" | "admin" | "owner"; ownerId: string }) | null;
+	user:
+		| (User & {
+				role: "member" | "admin" | "owner";
+				ownerId: string;
+				enableEnterpriseFeatures: boolean;
+				isValidEnterpriseLicense: boolean;
+		  })
+		| null;
 	session:
 		| (Session & { activeOrganizationId: string; impersonatedBy?: string })
 		| null;
@@ -164,24 +172,6 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
 	});
 });
 
-export const uploadProcedure = async (opts: any) => {
-	if (!experimental_isMultipartFormDataRequest(opts.ctx.req)) {
-		return opts.next();
-	}
-
-	const formData = await experimental_parseMultipartFormData(
-		opts.ctx.req,
-		experimental_createMemoryUploadHandler({
-			// 2GB
-			maxPartSize: 1024 * 1024 * 1024 * 2,
-		}),
-	);
-
-	return opts.next({
-		rawInput: formData,
-	});
-};
-
 export const cliProcedure = t.procedure.use(({ ctx, next }) => {
 	if (
 		!ctx.session ||
@@ -217,3 +207,59 @@ export const adminProcedure = t.procedure.use(({ ctx, next }) => {
 		},
 	});
 });
+
+/**
+ * Requires admin/owner role AND enterprise enabled with a license key in DB.
+ * Does NOT call the license server on every request; full validation (haveValidLicenseKey)
+ * is used in the UI gate and when activating/validating keys.
+ */
+export const enterpriseProcedure = t.procedure.use(async ({ ctx, next }) => {
+	if (
+		!ctx.session ||
+		!ctx.user ||
+		(ctx.user.role !== "owner" && ctx.user.role !== "admin")
+	) {
+		throw new TRPCError({ code: "UNAUTHORIZED" });
+	}
+
+	const hasValidLicenseResult = await hasValidLicense(
+		ctx.session.activeOrganizationId,
+	);
+
+	if (!hasValidLicenseResult) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Valid enterprise license required",
+		});
+	}
+
+	return next({
+		ctx: {
+			session: ctx.session,
+			user: ctx.user,
+		},
+	});
+});
+
+/**
+ * Permission-checked procedure factory.
+ *
+ * Verifies the caller has the required resource+action permission before the
+ * handler runs. Works for all role types:
+ * - owner / admin  → always granted (static roles, no license needed)
+ * - member         → legacy boolean fields (no license needed)
+ * - custom role    → enterprise license verified automatically inside resolveRole
+ *
+ * Usage:
+ *   create: withPermission("project", "create")
+ *     .input(...)
+ *     .mutation(async ({ ctx, input }) => { ... })
+ */
+export const withPermission = <R extends Resource>(
+	resource: R,
+	action: ActionOf<R>,
+) =>
+	protectedProcedure.use(async ({ ctx, next }) => {
+		await checkPermission(ctx, { [resource]: [action] } as any);
+		return next();
+	});

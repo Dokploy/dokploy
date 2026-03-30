@@ -1,6 +1,6 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import copy from "copy-to-clipboard";
-import _ from "lodash";
+import debounce from "lodash/debounce";
 import {
 	CheckIcon,
 	ChevronsUpDown,
@@ -78,29 +78,17 @@ interface Props {
 
 const RestoreBackupSchema = z
 	.object({
-		destinationId: z
-			.string({
-				required_error: "Please select a destination",
-			})
-			.min(1, {
-				message: "Destination is required",
-			}),
-		backupFile: z
-			.string({
-				required_error: "Please select a backup file",
-			})
-			.min(1, {
-				message: "Backup file is required",
-			}),
-		databaseName: z
-			.string({
-				required_error: "Please enter a database name",
-			})
-			.min(1, {
-				message: "Database name is required",
-			}),
+		destinationId: z.string().min(1, {
+			message: "Destination is required",
+		}),
+		backupFile: z.string().min(1, {
+			message: "Backup file is required",
+		}),
+		databaseName: z.string().min(1, {
+			message: "Database name is required",
+		}),
 		databaseType: z
-			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"])
+			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server", "libsql"])
 			.optional(),
 		backupType: z.enum(["database", "compose"]).default("database"),
 		metadata: z
@@ -219,11 +207,16 @@ export const RestoreBackup = ({
 
 	const { data: destinations = [] } = api.destination.all.useQuery();
 
-	const form = useForm<z.infer<typeof RestoreBackupSchema>>({
+	const form = useForm({
 		defaultValues: {
 			destinationId: "",
 			backupFile: "",
-			databaseName: databaseType === "web-server" ? "dokploy" : "",
+			databaseName:
+				databaseType === "web-server"
+					? "dokploy"
+					: databaseType === "libsql"
+						? "iku.db"
+						: "",
 			databaseType:
 				backupType === "compose" ? ("postgres" as DatabaseType) : databaseType,
 			backupType: backupType,
@@ -236,7 +229,7 @@ export const RestoreBackup = ({
 	const currentDatabaseType = form.watch("databaseType");
 	const metadata = form.watch("metadata");
 
-	const debouncedSetSearch = _.debounce((value: string) => {
+	const debouncedSetSearch = debounce((value: string) => {
 		setDebouncedSearchTerm(value);
 	}, 350);
 
@@ -245,7 +238,7 @@ export const RestoreBackup = ({
 		debouncedSetSearch(value);
 	};
 
-	const { data: files = [], isLoading } = api.backup.listBackupFiles.useQuery(
+	const { data: files = [], isPending } = api.backup.listBackupFiles.useQuery(
 		{
 			destinationId: destionationId,
 			search: debouncedSearchTerm,
@@ -454,7 +447,7 @@ export const RestoreBackup = ({
 													onValueChange={handleSearchChange}
 													className="h-9"
 												/>
-												{isLoading ? (
+												{isPending ? (
 													<div className="py-6 text-center text-sm">
 														Loading backup files...
 													</div>
@@ -535,7 +528,10 @@ export const RestoreBackup = ({
 										<Input
 											placeholder="Enter database name"
 											{...field}
-											disabled={databaseType === "web-server"}
+											disabled={
+												databaseType === "web-server" ||
+												databaseType === "libsql"
+											}
 										/>
 									</FormControl>
 									<FormMessage />

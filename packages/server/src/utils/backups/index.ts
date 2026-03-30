@@ -1,7 +1,8 @@
-import path from "node:path";
+import { CLEANUP_CRON_JOB } from "@dokploy/server/constants";
 import { member } from "@dokploy/server/db/schema";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { getAllServers } from "@dokploy/server/services/server";
+import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { eq } from "drizzle-orm";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
@@ -9,7 +10,7 @@ import { startLogCleanup } from "../access-log/handler";
 import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials, scheduleBackup } from "./utils";
+import { getS3Credentials, normalizeS3Path, scheduleBackup } from "./utils";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
@@ -25,16 +26,22 @@ export const initCronJobs = async () => {
 		return;
 	}
 
-	if (admin?.user?.enableDockerCleanup) {
-		scheduleJob("docker-cleanup", "0 0 * * *", async () => {
-			console.log(
-				`Docker Cleanup ${new Date().toLocaleString()}]  Running docker cleanup`,
-			);
+	const webServerSettings = await getWebServerSettings();
 
-			await cleanupAll();
+	if (webServerSettings?.enableDockerCleanup) {
+		try {
+			scheduleJob("docker-cleanup", CLEANUP_CRON_JOB, async () => {
+				console.log(
+					`Docker Cleanup ${new Date().toLocaleString()}]  Running docker cleanup`,
+				);
 
-			await sendDockerCleanupNotifications(admin.user.id);
-		});
+				await cleanupAll();
+
+				await sendDockerCleanupNotifications(admin.user.id);
+			});
+		} catch (error) {
+			console.error("[Backup] Docker Cleanup Error", error);
+		}
 	}
 
 	const servers = await getAllServers();
@@ -42,18 +49,22 @@ export const initCronJobs = async () => {
 	for (const server of servers) {
 		const { serverId, enableDockerCleanup, name } = server;
 		if (enableDockerCleanup) {
-			scheduleJob(serverId, "0 0 * * *", async () => {
-				console.log(
-					`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${name}`,
-				);
+			try {
+				scheduleJob(serverId, CLEANUP_CRON_JOB, async () => {
+					console.log(
+						`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${name}`,
+					);
 
-				await cleanupAll(serverId);
+					await cleanupAll(serverId);
 
-				await sendDockerCleanupNotifications(
-					admin.user.id,
-					`Docker cleanup for Server ${name} (${serverId})`,
-				);
-			});
+					await sendDockerCleanupNotifications(
+						admin.user.id,
+						`Docker cleanup for Server ${name} (${serverId})`,
+					);
+				});
+			} catch (error) {
+				console.error(`[Backup] ${error}`);
+			}
 		}
 	}
 
@@ -64,6 +75,7 @@ export const initCronJobs = async () => {
 			mariadb: true,
 			mysql: true,
 			mongo: true,
+			libsql: true,
 			user: true,
 			compose: true,
 		},
@@ -82,10 +94,32 @@ export const initCronJobs = async () => {
 		}
 	}
 
-	if (admin?.user?.logCleanupCron) {
-		console.log("Starting log requests cleanup", admin.user.logCleanupCron);
-		await startLogCleanup(admin.user.logCleanupCron);
+	if (webServerSettings?.logCleanupCron) {
+		try {
+			console.log(
+				"Starting log requests cleanup",
+				webServerSettings.logCleanupCron,
+			);
+			await startLogCleanup(webServerSettings.logCleanupCron);
+		} catch (error) {
+			console.error("[Backup] Log Cleanup Error", error);
+		}
 	}
+};
+
+const getServiceAppName = (backup: BackupSchedule): string => {
+	if (backup.compose?.appName) {
+		return backup.serviceName
+			? `${backup.compose.appName}_${backup.serviceName}`
+			: backup.compose.appName;
+	}
+	const serviceAppName =
+		backup.postgres?.appName ||
+		backup.mysql?.appName ||
+		backup.mariadb?.appName ||
+		backup.mongo?.appName ||
+		backup.libsql?.appName;
+	return serviceAppName || backup.appName;
 };
 
 export const keepLatestNBackups = async (
@@ -98,18 +132,16 @@ export const keepLatestNBackups = async (
 
 	try {
 		const rcloneFlags = getS3Credentials(backup.destination);
-		const backupFilesPath = path.join(
-			`:s3:${backup.destination.bucket}`,
-			backup.prefix,
-		);
+		const appName = getServiceAppName(backup);
+		const backupFilesPath = `:s3:${backup.destination.bucket}/${appName}/${normalizeS3Path(backup.prefix)}`;
 
-		// --include "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
-		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".sql.gz"}" ${backupFilesPath}`;
+		// --include "*.bson.gz" or "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
+		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" ${backupFilesPath}`;
 		// when we pipe the above command with this one, we only get the list of files we want to delete
 		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
 		// this command deletes the files
-		// to test the deletion before actually deleting we can add --dry-run before ${backupFilesPath}/{}
-		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}/{}`;
+		// to test the deletion before actually deleting we can add --dry-run before ${backupFilesPath}{}
+		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
 
 		const rcloneCommand = `${rcloneList} | ${sortAndPickUnwantedBackups} ${rcloneDelete}`;
 
