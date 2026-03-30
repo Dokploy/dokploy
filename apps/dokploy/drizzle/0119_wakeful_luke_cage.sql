@@ -1,1 +1,0 @@
-ALTER TABLE "notification" ADD COLUMN "dokployBackup" boolean DEFAULT false NOT NULL;
