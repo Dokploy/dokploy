@@ -1,15 +1,39 @@
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import { Route } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import { ShowTraefikSystem } from "@/components/dashboard/file-system/show-traefik-system";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
 
 const Dashboard = () => {
-	return <ShowTraefikSystem />;
+	return (
+		<>
+			<BreadcrumbSidebar
+				list={[{ name: "Traefik", href: "/dashboard/traefik" }]}
+			/>
+			<div className="w-full">
+				<div className="flex justify-between gap-4 w-full items-center flex-wrap">
+					<div className="flex flex-col gap-1.5">
+						<h2 className="text-2xl font-semibold tracking-tight flex flex-row gap-2">
+							<Route className="size-6 text-muted-foreground self-center" />
+							Traefik File System
+						</h2>
+						<p className="text-sm text-muted-foreground">
+							Manage all the files and directories in /etc/dokploy/traefik.
+						</p>
+					</div>
+				</div>
+				<div className="pt-6">
+					<ShowTraefikSystem />
+				</div>
+			</div>
+		</>
+	);
 };
 
 export default Dashboard;

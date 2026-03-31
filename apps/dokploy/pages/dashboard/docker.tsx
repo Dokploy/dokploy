@@ -1,15 +1,39 @@
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import { Container } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import { ShowContainers } from "@/components/dashboard/docker/show/show-containers";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
 
 const Dashboard = () => {
-	return <ShowContainers />;
+	return (
+		<>
+			<BreadcrumbSidebar
+				list={[{ name: "Docker", href: "/dashboard/docker" }]}
+			/>
+			<div className="w-full">
+				<div className="flex justify-between gap-4 w-full items-center flex-wrap">
+					<div className="flex flex-col gap-1.5">
+						<h2 className="text-2xl font-semibold tracking-tight flex flex-row gap-2">
+							<Container className="size-6 text-muted-foreground self-center" />
+							Docker Containers
+						</h2>
+						<p className="text-sm text-muted-foreground">
+							See all the containers of your dokploy server
+						</p>
+					</div>
+				</div>
+				<div className="pt-6">
+					<ShowContainers />
+				</div>
+			</div>
+		</>
+	);
 };
 
 export default Dashboard;

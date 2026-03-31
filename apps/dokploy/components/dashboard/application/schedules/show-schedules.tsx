@@ -12,13 +12,6 @@ import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
@@ -73,23 +66,8 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 	};
 
 	return (
-		<Card className="border px-6 shadow-none bg-transparent h-full min-h-[50vh]">
-			<CardHeader className="px-0">
-				<div className="flex justify-between items-center gap-y-2 flex-wrap">
-					<div className="flex flex-col gap-2">
-						<CardTitle className="text-xl font-bold flex items-center gap-2">
-							Scheduled Tasks
-						</CardTitle>
-						<CardDescription>
-							Schedule tasks to run automatically at specified intervals.
-						</CardDescription>
-					</div>
-					{schedules && schedules.length > 0 && (
-						<HandleSchedules id={id} scheduleType={scheduleType} />
-					)}
-				</div>
-			</CardHeader>
-			<CardContent className="px-0">
+		<div className="h-full min-h-[50vh]">
+			<div>
 				{isLoadingSchedules ? (
 					<div className="flex gap-4 w-full items-center justify-center text-center mx-auto min-h-[45vh]">
 						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />
@@ -240,7 +218,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 						<HandleSchedules id={id} scheduleType={scheduleType} />
 					</div>
 				)}
-			</CardContent>
-		</Card>
+			</div>
+		</div>
 	);
 };

@@ -12,13 +12,6 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -93,31 +86,19 @@ export const ShowRequests = () => {
 	return (
 		<>
 			<div className="w-full">
-				<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-8xl mx-auto">
-					<div className="rounded-xl bg-background shadow-md ">
-						<CardHeader className="">
-							<CardTitle className="text-xl flex flex-row gap-2">
-								<ArrowDownUp className="size-6 text-muted-foreground self-center" />
-								Requests
-							</CardTitle>
-							<CardDescription>
-								See all the incoming requests that pass trough Traefik
-							</CardDescription>
-
-							{shouldShowWarning && (
-								<AlertBlock type="warning">
-									When you activate, you need to reload traefik to apply the
-									changes, you can reload traefik in{" "}
-									<Link
-										href="/dashboard/settings/server"
-										className="text-primary"
-									>
-										Settings
-									</Link>
-								</AlertBlock>
-							)}
-						</CardHeader>
-						<CardContent className="space-y-2 py-8 border-t">
+						{shouldShowWarning && (
+							<AlertBlock type="warning">
+								When you activate, you need to reload traefik to apply the
+								changes, you can reload traefik in{" "}
+								<Link
+									href="/dashboard/settings/server"
+									className="text-primary"
+								>
+									Settings
+								</Link>
+							</AlertBlock>
+						)}
+						<div className="space-y-2 pt-4">
 							<div className="flex w-full gap-4 justify-end items-center">
 								<div className="flex-1 flex items-center gap-4">
 									<div className="flex items-center gap-2">
@@ -262,9 +243,7 @@ export const ShowRequests = () => {
 									</div>
 								</div>
 							)}
-						</CardContent>
-					</div>
-				</Card>
+						</div>
 			</div>
 		</>
 	);

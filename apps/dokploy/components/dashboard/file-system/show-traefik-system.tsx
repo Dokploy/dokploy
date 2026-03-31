@@ -1,13 +1,6 @@
 import { FileIcon, Folder, Loader2, Workflow } from "lucide-react";
 import React from "react";
 import { AlertBlock } from "@/components/shared/alert-block";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
 import { Tree } from "@/components/ui/file-tree";
 import { api } from "@/utils/api";
 import { ShowTraefikFile } from "./show-traefik-file";
@@ -34,24 +27,11 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl">
-				<div className="rounded-xl bg-background shadow-md ">
-					<CardHeader className="">
-						<CardTitle className="text-xl flex flex-row gap-2">
-							<FileIcon className="size-6 text-muted-foreground self-center" />
-							Traefik File System
-						</CardTitle>
-						<CardDescription>
-							Manage all the files and directories in {"'/etc/dokploy/traefik'"}
-							.
-						</CardDescription>
-
-						<AlertBlock type="warning">
-							Adding invalid configuration to existing files, can break your
-							Traefik instance, preventing access to your applications.
-						</AlertBlock>
-					</CardHeader>
-					<CardContent className="space-y-2 py-8 border-t">
+					<AlertBlock type="warning">
+						Adding invalid configuration to existing files, can break your
+						Traefik instance, preventing access to your applications.
+					</AlertBlock>
+					<div className="space-y-2 pt-4">
 						<div>
 							<div className="flex flex-col lg:flex-row gap-4 md:gap-10 w-full">
 								{isError && (
@@ -101,9 +81,7 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 								)}
 							</div>
 						</div>
-					</CardContent>
-				</div>
-			</Card>
+					</div>
 		</div>
 	);
 };

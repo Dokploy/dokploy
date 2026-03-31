@@ -29,7 +29,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 
 	if (isPending) {
 		return (
-			<div className="w-full max-w-7xl mx-auto">
+			<div className="w-full">
 				<div className="mb-6 border min-h-[55vh] flex rounded-lg h-full items-center justify-center  text-muted-foreground">
 					{/* <div className="flex items-center justify-center h-full text-muted-foreground"> */}
 
@@ -45,7 +45,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 
 	if (!nodes) {
 		return (
-			<div className="w-full max-w-7xl mx-auto">
+			<div className="w-full">
 				<div className="mb-6 border min-h-[55vh] flex justify-center items-center rounded-lg h-full">
 					<div className="flex items-center justify-center h-full  text-destructive">
 						<span>Failed to load data</span>
@@ -70,29 +70,19 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 	);
 
 	return (
-		<Card className="h-full bg-sidebar  p-2.5 rounded-xl mx-auto w-full">
-			<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-4">
-				<header className="flex items-center flex-wrap gap-4 justify-between">
-					<div className="space-y-1">
-						<CardTitle className="text-xl flex flex-row gap-2">
-							<WorkflowIcon className="size-6 text-muted-foreground self-center" />
-							Docker Swarm Overview
-						</CardTitle>
-						<p className="text-sm text-muted-foreground">
-							Monitor and manage your Docker Swarm cluster
-						</p>
-					</div>
-					{!serverId && (
-						<Button
-							onClick={() =>
-								window.location.replace("/dashboard/settings/cluster")
-							}
-						>
-							<Settings className="mr-2 h-4 w-4" />
-							Manage Cluster
-						</Button>
-					)}
-				</header>
+		<div className="flex flex-col gap-4">
+			{!serverId && (
+				<div className="flex justify-end">
+					<Button
+						onClick={() =>
+							window.location.replace("/dashboard/settings/cluster")
+						}
+					>
+						<Settings className="mr-2 h-4 w-4" />
+						Manage Cluster
+					</Button>
+				</div>
+			)}
 
 				<div className="grid gap-6 lg:grid-cols-3">
 					<Card className="bg-background">
@@ -103,7 +93,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 							</div>
 						</CardHeader>
 						<CardContent>
-							<div className="text-2xl font-bold">{totalNodes}</div>
+							<div className="text-2xl font-semibold">{totalNodes}</div>
 						</CardContent>
 					</Card>
 
@@ -123,7 +113,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 							<TooltipProvider>
 								<Tooltip>
 									<TooltipTrigger>
-										<div className="text-2xl font-bold">
+										<div className="text-2xl font-semibold">
 											{activeNodesCount} / {totalNodes}
 										</div>
 									</TooltipTrigger>
@@ -157,7 +147,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 							<TooltipProvider>
 								<Tooltip>
 									<TooltipTrigger>
-										<div className="text-2xl font-bold">
+										<div className="text-2xl font-semibold">
 											{managerNodesCount} / {totalNodes}
 										</div>
 									</TooltipTrigger>
@@ -181,7 +171,6 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 						<NodeCard key={node.ID} node={node} serverId={serverId} />
 					))}
 				</div>
-			</div>
-		</Card>
+		</div>
 	);
 }

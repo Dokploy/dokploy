@@ -9,16 +9,9 @@ import {
 	useReactTable,
 	type VisibilityState,
 } from "@tanstack/react-table";
-import { ChevronDown, Container } from "lucide-react";
+import { ChevronDown, Container, Search } from "lucide-react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
 import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
@@ -77,44 +70,27 @@ export const ShowContainers = ({ serverId }: Props) => {
 	});
 
 	return (
-		<div className="w-full">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl">
-				<div className="rounded-xl bg-background shadow-md ">
-					<CardHeader className="">
-						<CardTitle className="text-xl flex flex-row gap-2">
-							<Container className="size-6 text-muted-foreground self-center" />
-							Docker Containers
-						</CardTitle>
-						<CardDescription>
-							See all the containers of your dokploy server
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-2 py-8 border-t">
-						<div className="gap-4 pb-20 w-full">
-							<div className="flex flex-col gap-4  w-full overflow-auto">
-								<div className="flex items-center gap-2 max-sm:flex-wrap">
-									<Input
-										placeholder="Filter by name..."
-										value={
-											(table.getColumn("name")?.getFilterValue() as string) ??
-											""
-										}
-										onChange={(event) =>
-											table
-												.getColumn("name")
-												?.setFilterValue(event.target.value)
-										}
-										className="md:max-w-sm"
-									/>
-									<DropdownMenu>
-										<DropdownMenuTrigger asChild>
-											<Button
-												variant="outline"
-												className="sm:ml-auto max-sm:w-full"
-											>
-												Columns <ChevronDown className="ml-2 h-4 w-4" />
-											</Button>
-										</DropdownMenuTrigger>
+		<div className="space-y-4">
+			<div className="flex flex-wrap items-center gap-2">
+				<div className="flex items-center flex-1 min-w-[200px] h-10 rounded-xl border border-input bg-transparent px-3 gap-2 focus-within:ring-1 focus-within:ring-ring transition-colors">
+					<Search className="size-4 text-muted-foreground shrink-0" />
+					<input
+						placeholder="Filter by name..."
+						value={
+							(table.getColumn("name")?.getFilterValue() as string) ?? ""
+						}
+						onChange={(event) =>
+							table.getColumn("name")?.setFilterValue(event.target.value)
+						}
+						className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+					/>
+				</div>
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button variant="outline">
+							Columns <ChevronDown className="ml-2 h-4 w-4" />
+						</Button>
+					</DropdownMenuTrigger>
 										<DropdownMenuContent align="end">
 											{table
 												.getAllColumns()
@@ -134,9 +110,9 @@ export const ShowContainers = ({ serverId }: Props) => {
 													);
 												})}
 										</DropdownMenuContent>
-									</DropdownMenu>
-								</div>
-								<div className="rounded-md border">
+					</DropdownMenu>
+			</div>
+			<div className="rounded-lg border">
 									{isPending ? (
 										<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 											<span className="text-muted-foreground text-lg font-medium">
@@ -230,11 +206,6 @@ export const ShowContainers = ({ serverId }: Props) => {
 										</div>
 									</div>
 								)}
-							</div>
-						</div>
-					</CardContent>
-				</div>
-			</Card>
 		</div>
 	);
 };
