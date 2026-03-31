@@ -3,13 +3,6 @@ import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { AddCertificate } from "./add-certificate";
 import { getCertificateChainInfo, getExpirationStatus } from "./utils";
@@ -22,25 +15,24 @@ export const ShowCertificates = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
-				<div className="rounded-xl bg-background shadow-md ">
-					<CardHeader className="">
-						<CardTitle className="text-xl flex flex-row gap-2">
-							<ShieldCheck className="size-6 text-muted-foreground self-center" />
-							Certificates
-						</CardTitle>
-						<CardDescription>
-							Create certificates in the Traefik directory
-						</CardDescription>
+			<div>
+				<div>
+					<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+						<ShieldCheck className="size-5 text-muted-foreground" />
+						Certificates
+					</h2>
+					<p className="text-sm text-muted-foreground mt-1">
+						Create certificates in the Traefik directory
+					</p>
 
-						<AlertBlock type="warning">
-							Certificates are created in the Traefik directory. Traefik uses
-							these certificates to secure your applications. Using invalid
-							certificates can break your Traefik instance, preventing access to
-							your applications.
-						</AlertBlock>
-					</CardHeader>
-					<CardContent className="space-y-2 py-8 border-t">
+					<div className="mt-4" />
+					<AlertBlock type="warning">
+						Certificates are created in the Traefik directory. Traefik uses
+						these certificates to secure your applications. Using invalid
+						certificates can break your Traefik instance, preventing access to
+						your applications.
+					</AlertBlock>
+					<div className="space-y-2 pt-6">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
@@ -69,7 +61,7 @@ export const ShowCertificates = () => {
 												return (
 													<div
 														key={certificate.certificateId}
-														className="flex items-center justify-between bg-sidebar p-1 w-full rounded-lg"
+														className="flex items-center justify-between p-1 w-full rounded-lg"
 													>
 														<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border  w-full">
 															<div className="flex items-center justify-between">
@@ -152,9 +144,9 @@ export const ShowCertificates = () => {
 								)}
 							</>
 						)}
-					</CardContent>
+					</div>
 				</div>
-			</Card>
+			</div>
 		</div>
 	);
 };

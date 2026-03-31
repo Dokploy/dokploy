@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
-	CardDescription,
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
@@ -64,29 +63,27 @@ export const ShowServers = () => {
 	return (
 		<div className="w-full">
 			{query?.success && isCloud && <WelcomeSuscription />}
-			<Card className="h-full  p-2.5 rounded-xl  max-w-5xl mx-auto">
-				<div className="rounded-xl bg-background shadow-md ">
-					<CardHeader className="">
-						<CardTitle className="text-xl flex flex-row gap-2">
-							<ServerIcon className="size-6 text-muted-foreground self-center" />
-							Servers
-						</CardTitle>
-						<CardDescription>
-							Add servers to deploy your applications remotely.
-						</CardDescription>
+			<div>
+				<div>
+					<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+						<ServerIcon className="size-5 text-muted-foreground" />
+						Servers
+					</h2>
+					<p className="text-sm text-muted-foreground mt-1">
+						Add servers to deploy your applications remotely.
+					</p>
 
-						{isCloud && (
-							<span
-								className="bg-gradient-to-r cursor-pointer from-blue-600 via-green-500 to-indigo-400 inline-block text-transparent bg-clip-text text-sm"
-								onClick={() => {
-									router.push("/dashboard/settings/servers?success=true");
-								}}
-							>
-								Reset Onboarding
-							</span>
-						)}
-					</CardHeader>
-					<CardContent className="space-y-2 py-8 border-t">
+					{isCloud && (
+						<span
+							className="bg-gradient-to-r cursor-pointer from-blue-600 via-green-500 to-indigo-400 inline-block text-transparent bg-clip-text text-sm"
+							onClick={() => {
+								router.push("/dashboard/settings/servers?success=true");
+							}}
+						>
+							Reset Onboarding
+						</span>
+					)}
+					<div className="space-y-2 pt-6">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
@@ -128,7 +125,7 @@ export const ShowServers = () => {
 														return (
 															<Card
 																key={server.serverId}
-																className="relative hover:shadow-lg transition-shadow flex flex-col bg-transparent"
+																className="relative transition-colors hover:bg-accent/50 flex flex-col bg-transparent"
 															>
 																<CardHeader className="pb-3">
 																	<div className="flex items-start justify-between">
@@ -452,9 +449,9 @@ export const ShowServers = () => {
 								)}
 							</>
 						)}
-					</CardContent>
+					</div>
 				</div>
-			</Card>
+			</div>
 		</div>
 	);
 };

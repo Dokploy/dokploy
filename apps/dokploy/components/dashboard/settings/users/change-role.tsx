@@ -88,7 +88,7 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger className="" asChild>
+			<DialogTrigger asChild>
 				<DropdownMenuItem
 					className="w-full cursor-pointer"
 					onSelect={(e) => e.preventDefault()}

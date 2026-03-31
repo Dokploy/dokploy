@@ -7,13 +7,6 @@ import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import {
 	Form,
 	FormControl,
 	FormDescription,
@@ -111,20 +104,18 @@ export const WebDomain = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
-				<div className="rounded-xl bg-background shadow-md ">
-					<CardHeader className="flex flex-row gap-2 flex-wrap justify-between items-center">
-						<div className="flex flex-col gap-1">
-							<CardTitle className="text-xl flex flex-row gap-2">
-								<GlobeIcon className="size-6 text-muted-foreground self-center" />
-								Server Domain
-							</CardTitle>
-							<CardDescription>
-								Add a domain to your server application.
-							</CardDescription>
-						</div>
-					</CardHeader>
-					<CardContent className="space-y-2 py-6 border-t">
+			<div className="flex flex-row gap-2 flex-wrap justify-between items-center">
+				<div className="flex flex-col gap-1.5">
+					<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+						<GlobeIcon className="size-5 text-muted-foreground" />
+						Server Domain
+					</h2>
+					<p className="text-sm text-muted-foreground">
+						Add a domain to your server application.
+					</p>
+				</div>
+			</div>
+			<div className="pt-6">
 						{/* Warning for GitHub webhook URL changes */}
 						{hasChanged && (
 							<AlertBlock type="warning">
@@ -241,9 +232,7 @@ export const WebDomain = () => {
 								</div>
 							</form>
 						</Form>
-					</CardContent>
-				</div>
-			</Card>
+					</div>
 		</div>
 	);
 };

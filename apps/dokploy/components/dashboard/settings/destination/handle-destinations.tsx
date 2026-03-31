@@ -222,7 +222,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
-			<DialogTrigger className="" asChild>
+			<DialogTrigger asChild>
 				{destinationId ? (
 					<Button
 						variant="ghost"

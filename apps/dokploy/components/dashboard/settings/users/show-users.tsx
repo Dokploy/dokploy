@@ -6,13 +6,6 @@ import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
@@ -52,18 +45,16 @@ export const ShowUsers = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
-				<div className="rounded-xl bg-background shadow-md ">
-					<CardHeader className="">
-						<CardTitle className="text-xl flex flex-row gap-2">
-							<Users className="size-6 text-muted-foreground self-center" />
-							Users
-						</CardTitle>
-						<CardDescription>
-							Add your users to your Dokploy account.
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-2 py-8 border-t">
+			<div>
+				<div>
+					<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+						<Users className="size-5 text-muted-foreground" />
+						Users
+					</h2>
+					<p className="text-sm text-muted-foreground mt-1">
+						Add your users to your Dokploy account.
+					</p>
+					<div className="space-y-2 pt-6">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
@@ -334,9 +325,9 @@ export const ShowUsers = () => {
 								)}
 							</>
 						)}
-					</CardContent>
+					</div>
 				</div>
-			</Card>
+			</div>
 		</div>
 	);
 };

@@ -11,13 +11,6 @@ import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
@@ -58,23 +51,23 @@ export const ShowNodes = ({ serverId }: Props) => {
 	const haveAtLeastOneRegistry = !!(registry && registry?.length > 0);
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
-				<div className="rounded-xl bg-background shadow-md ">
-					<CardHeader className="flex flex-row gap-2 justify-between w-full items-center flex-wrap">
+			<div>
+				<div>
+					<div className="flex flex-row gap-2 justify-between w-full items-center flex-wrap">
 						<div className="flex flex-col gap-2">
-							<CardTitle className="text-xl flex flex-row gap-2">
-								<Boxes className="size-6 text-muted-foreground self-center" />
+							<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+								<Boxes className="size-5 text-muted-foreground" />
 								Cluster
-							</CardTitle>
-							<CardDescription>Add nodes to your cluster</CardDescription>
+							</h2>
+							<p className="text-sm text-muted-foreground mt-1">Add nodes to your cluster</p>
 						</div>
 						{haveAtLeastOneRegistry && (
 							<div className="flex flex-row gap-2">
 								<AddNode serverId={serverId} />
 							</div>
 						)}
-					</CardHeader>
-					<CardContent className="space-y-2 py-8 border-t min-h-[35vh]">
+					</div>
+					<div className="space-y-2 pt-6 min-h-[35vh]">
 						{isPending ? (
 							<div className="flex items-center justify-center w-full h-[40vh]">
 								<Loader2 className="size-8 animate-spin text-muted-foreground" />
@@ -209,9 +202,9 @@ export const ShowNodes = ({ serverId }: Props) => {
 								</ul>
 							</div>
 						)}
-					</CardContent>
+					</div>
 				</div>
-			</Card>
+			</div>
 		</div>
 	);
 };

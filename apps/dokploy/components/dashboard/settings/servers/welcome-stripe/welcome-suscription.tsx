@@ -310,9 +310,9 @@ export const WelcomeSuscription = () => {
 											{features.map((feature) => (
 												<div
 													key={feature.title}
-													className="flex flex-col items-start p-4 bg-card rounded-lg shadow-md hover:shadow-lg transition-shadow"
+													className="flex flex-col items-start p-4 bg-card rounded-lg border transition-colors hover:bg-accent/50"
 												>
-													<div className="text-3xl mb-2">{feature.icon}</div>
+													<div className="text-2xl mb-2">{feature.icon}</div>
 													<h3 className="text-lg font-medium mb-1">
 														{feature.title}
 													</h3>

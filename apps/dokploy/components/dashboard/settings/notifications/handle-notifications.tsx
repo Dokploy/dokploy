@@ -802,7 +802,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	};
 	return (
 		<Dialog open={visible} onOpenChange={setVisible}>
-			<DialogTrigger className="" asChild>
+			<DialogTrigger asChild>
 				{notificationId ? (
 					<Button
 						variant="ghost"
@@ -1799,7 +1799,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									name="appDeploy"
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
-											<div className="">
+											<div >
 												<FormLabel>App Deploy</FormLabel>
 												<FormDescription>
 													Trigger the action when a app is deployed.

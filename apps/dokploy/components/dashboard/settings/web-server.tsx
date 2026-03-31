@@ -1,11 +1,4 @@
 import { ServerIcon } from "lucide-react";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { ShowDokployActions } from "./servers/actions/show-dokploy-actions";
 import { ShowStorageActions } from "./servers/actions/show-storage-actions";
@@ -21,25 +14,14 @@ export const WebServer = () => {
 
 	return (
 		<div className="w-full">
-			{/* <Card className={cn("rounded-lg w-full bg-transparent p-0", className)}></Card> */}
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
-				<div className="rounded-xl bg-background shadow-md ">
-					<CardHeader className="">
-						<CardTitle className="text-xl flex flex-row gap-2">
-							<ServerIcon className="size-6 text-muted-foreground self-center" />
-							Web Server
-						</CardTitle>
-						<CardDescription>Reload or clean the web server.</CardDescription>
-					</CardHeader>
-					{/* <CardHeader>
-						<CardTitle className="text-xl">
-							Web Server
-						</CardTitle>
-						<CardDescription>
-							Reload or clean the web server.
-						</CardDescription>
-					</CardHeader> */}
-					<CardContent className="space-y-6 py-6 border-t">
+			<div className="flex flex-col gap-1.5">
+				<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+					<ServerIcon className="size-5 text-muted-foreground" />
+					Web Server
+				</h2>
+				<p className="text-sm text-muted-foreground">Reload or clean the web server.</p>
+			</div>
+			<div className="space-y-6 pt-6">
 						<div className="grid md:grid-cols-2 gap-4">
 							<ShowDokployActions />
 							<ShowTraefikActions />
@@ -58,9 +40,7 @@ export const WebServer = () => {
 
 							<ToggleDockerCleanup />
 						</div>
-					</CardContent>
-				</div>
-			</Card>
+					</div>
 		</div>
 	);
 };
