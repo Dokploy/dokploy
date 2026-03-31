@@ -546,15 +546,15 @@ export const ManageCustomRoles = () => {
 		<div>
 			<div>
 				<div>
-					<CardTitle className="text-xl flex flex-row gap-2">
-						<ShieldCheck className="size-6 text-muted-foreground self-center" />
+					<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+						<ShieldCheck className="size-5 text-muted-foreground" />
 						Custom Roles
-					</CardTitle>
-					<CardDescription>
+					</h2>
+					<p className="text-sm text-muted-foreground mt-1">
 						Create and manage custom roles with fine-grained permissions
-					</CardDescription>
+					</p>
 				</div>
-				<div className="border-t pt-6">
+				<div className="pt-6">
 					<EnterpriseFeatureGate
 						lockedProps={{
 							title: "Custom Roles",
