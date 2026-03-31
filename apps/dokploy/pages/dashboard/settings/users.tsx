@@ -9,7 +9,10 @@ import { AddInvitation } from "@/components/dashboard/settings/users/add-invitat
 import { ShowInvitations } from "@/components/dashboard/settings/users/show-invitations";
 import { ShowUsers } from "@/components/dashboard/settings/users/show-users";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { HandleCustomRole, ManageCustomRoles } from "@/components/proprietary/roles/manage-custom-roles";
+import {
+	HandleCustomRole,
+	ManageCustomRoles,
+} from "@/components/proprietary/roles/manage-custom-roles";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
@@ -65,9 +68,7 @@ const Page = () => {
 					{canCreateMembers && (
 						<TabsTrigger value="invitations">Invitations</TabsTrigger>
 					)}
-					{isOwnerOrAdmin && (
-						<TabsTrigger value="roles">Roles</TabsTrigger>
-					)}
+					{isOwnerOrAdmin && <TabsTrigger value="roles">Roles</TabsTrigger>}
 				</TabsList>
 				<TabsContent value="users">
 					<ShowUsers />

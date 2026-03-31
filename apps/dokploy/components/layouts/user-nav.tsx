@@ -61,7 +61,10 @@ export const UserNav = ({ compact }: { compact?: boolean }) => {
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
 				{compact ? (
-					<button type="button" className="flex items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring">
+					<button
+						type="button"
+						className="flex items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					>
 						{avatarEl}
 					</button>
 				) : (

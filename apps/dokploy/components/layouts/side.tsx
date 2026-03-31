@@ -415,7 +415,6 @@ const MENU: Menu = {
 		},
 	],
 
-
 	help: [
 		{
 			name: "Documentation",

@@ -780,7 +780,6 @@ const CustomRolesContent = () => {
 
 	return (
 		<div className="space-y-4">
-
 			{customRoles?.length === 0 ? (
 				<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center text-center py-8">
 					<div className="rounded-full bg-muted p-4">
