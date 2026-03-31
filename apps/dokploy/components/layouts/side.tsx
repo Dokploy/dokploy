@@ -89,6 +89,7 @@ import { DialogAction } from "../shared/dialog-action";
 import { Logo } from "../shared/logo";
 import { Button } from "../ui/button";
 import { TimeBadge } from "../ui/time-badge";
+import { NotificationBell } from "./notification-bell";
 import { UpdateServerButton } from "./update-server";
 import { UserNav } from "./user-nav";
 
@@ -589,7 +590,7 @@ function SidebarLogo() {
 								<SidebarMenuButton
 									size={isCollapsed ? "sm" : "lg"}
 									className={cn(
-										"data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
+										"data-[state=open]:-accent data-[state=open]:text-sidebar-accent-foreground",
 										isCollapsed &&
 											"flex justify-center items-center p-2 h-10 w-10 mx-auto",
 									)}
@@ -774,87 +775,6 @@ function SidebarLogo() {
 						</DropdownMenu>
 					</SidebarMenuItem>
 
-					{/* Notification Bell */}
-					<SidebarMenuItem className={cn(isCollapsed && "mt-2")}>
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className={cn(
-										"relative",
-										isCollapsed && "h-8 w-8 p-1.5 mx-auto",
-									)}
-								>
-									<Bell className="size-4" />
-									{invitations && invitations.length > 0 && (
-										<span className="absolute -top-0 -right-0 flex size-4 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
-											{invitations.length}
-										</span>
-									)}
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent
-								align="start"
-								side={"right"}
-								className="w-80"
-							>
-								<DropdownMenuLabel>Pending Invitations</DropdownMenuLabel>
-								<div className="flex flex-col gap-2">
-									{invitations && invitations.length > 0 ? (
-										invitations.map((invitation) => (
-											<div key={invitation.id} className="flex flex-col gap-2">
-												<DropdownMenuItem
-													className="flex flex-col items-start gap-1 p-3"
-													onSelect={(e) => e.preventDefault()}
-												>
-													<div className="font-medium">
-														{invitation?.organization?.name}
-													</div>
-													<div className="text-xs text-muted-foreground">
-														Expires:{" "}
-														{new Date(invitation.expiresAt).toLocaleString()}
-													</div>
-													<div className="text-xs text-muted-foreground">
-														Role: {invitation.role}
-													</div>
-												</DropdownMenuItem>
-												<DialogAction
-													title="Accept Invitation"
-													description="Are you sure you want to accept this invitation?"
-													type="default"
-													onClick={async () => {
-														const { error } =
-															await authClient.organization.acceptInvitation({
-																invitationId: invitation.id,
-															});
-
-														if (error) {
-															toast.error(
-																error.message || "Error accepting invitation",
-															);
-														} else {
-															toast.success("Invitation accepted successfully");
-															await refetchInvitations();
-															await refetch();
-														}
-													}}
-												>
-													<Button size="sm" variant="secondary">
-														Accept Invitation
-													</Button>
-												</DialogAction>
-											</div>
-										))
-									) : (
-										<DropdownMenuItem disabled>
-											No pending invitations
-										</DropdownMenuItem>
-									)}
-								</div>
-							</DropdownMenuContent>
-						</DropdownMenu>
-					</SidebarMenuItem>
 				</SidebarMenu>
 			)}
 		</>
@@ -886,7 +806,7 @@ export default function Page({ children }: Props) {
 		refetchOnWindowFocus: false,
 	});
 
-	const includesProjects = pathname?.includes("/dashboard/project");
+	const hasOwnBreadcrumb = pathname?.includes("/dashboard/project") || pathname?.includes("/dashboard/deployments") || pathname?.includes("/dashboard/monitoring") || pathname?.includes("/dashboard/schedules") || pathname?.includes("/dashboard/traefik") || pathname?.includes("/dashboard/docker") || pathname?.includes("/dashboard/swarm") || pathname?.includes("/dashboard/requests");
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	const {
@@ -921,12 +841,12 @@ export default function Page({ children }: Props) {
 			}}
 			style={
 				{
-					"--sidebar-width": "19.5rem",
-					"--sidebar-width-mobile": "19.5rem",
+					"--sidebar-width": "16rem",
+					"--sidebar-width-mobile": "18rem",
 				} as React.CSSProperties
 			}
 		>
-			<Sidebar collapsible="icon" variant="floating">
+			<Sidebar collapsible="icon" variant="sidebar">
 				<SidebarHeader>
 					{/* <SidebarMenuButton
 						className="group-data-[collapsible=icon]:!p-0"
@@ -1162,33 +1082,36 @@ export default function Page({ children }: Props) {
 				<SidebarRail />
 			</Sidebar>
 			<SidebarInset>
-				{!includesProjects && (
-					<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-						<div className="flex items-center justify-between w-full px-4">
-							<div className="flex items-center gap-2">
-								<SidebarTrigger className="-ml-1" />
-								<Separator orientation="vertical" className="mr-2 h-4" />
-								<Breadcrumb>
-									<BreadcrumbList>
-										<BreadcrumbItem className="block">
-											<BreadcrumbLink asChild>
-												<Link
-													href={activeItem?.url || "/"}
-													className="flex items-center gap-1.5"
-												>
-													{activeItem?.title}
-												</Link>
-											</BreadcrumbLink>
-										</BreadcrumbItem>
-									</BreadcrumbList>
-								</Breadcrumb>
-							</div>
+				{!hasOwnBreadcrumb && (
+					<header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b bg-background/90 backdrop-blur px-4">
+						<SidebarTrigger className="-ml-1" />
+						<Separator orientation="vertical" className="mr-2 h-4" />
+						<div className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-sm">
+							<Breadcrumb>
+								<BreadcrumbList>
+									<BreadcrumbItem className="block">
+										<BreadcrumbLink asChild>
+											<Link
+												href={activeItem?.url || "/"}
+												className="flex items-center gap-1.5 font-medium"
+											>
+												{activeItem?.title}
+											</Link>
+										</BreadcrumbLink>
+									</BreadcrumbItem>
+								</BreadcrumbList>
+							</Breadcrumb>
+						</div>
+						<div className="ml-auto flex items-center gap-2">
 							{!isCloud && <TimeBadge />}
+							<NotificationBell />
 						</div>
 					</header>
 				)}
 
-				<div className="flex flex-col w-full p-4 pt-0">{children}</div>
+				<main className={cn("flex-1 overflow-y-auto px-4 pb-6", !hasOwnBreadcrumb && "pt-6")}>
+					{children}
+				</main>
 			</SidebarInset>
 		</SidebarProvider>
 	);
