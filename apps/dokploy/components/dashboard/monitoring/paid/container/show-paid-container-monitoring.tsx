@@ -132,7 +132,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 	return (
 		<>
 			<div className="flex items-center justify-between flex-wrap	 gap-2">
-				<h2 className="text-2xl font-bold tracking-tight">
+				<h2 className="text-2xl font-semibold tracking-tight">
 					Container Monitoring
 				</h2>
 				<div className="flex items-center gap-4 flex-wrap">
@@ -189,7 +189,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 						<Cpu className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">CPU Usage</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">{metrics.CPU}%</p>
+					<p className="mt-2 text-2xl font-semibold">{metrics.CPU}%</p>
 				</Card>
 
 				<Card className="p-6 bg-transparent">
@@ -197,7 +197,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 						<MemoryStick className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">Memory Usage</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">
+					<p className="mt-2 text-2xl font-semibold">
 						{metrics?.Memory?.percentage}%
 					</p>
 					<p className="mt-1 text-sm text-muted-foreground">
@@ -211,7 +211,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 						<Network className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">Network I/O</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">
+					<p className="mt-2 text-2xl font-semibold">
 						{metrics?.Network?.input} {metrics?.Network?.inputUnit} /{" "}
 						{metrics?.Network?.output} {metrics?.Network?.outputUnit}
 					</p>
@@ -222,7 +222,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 						<HardDrive className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">Block I/O</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">
+					<p className="mt-2 text-2xl font-semibold">
 						{metrics?.BlockIO?.read} {metrics?.BlockIO?.readUnit} /{" "}
 						{metrics?.BlockIO?.write} {metrics?.BlockIO?.writeUnit}
 					</p>

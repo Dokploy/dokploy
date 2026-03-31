@@ -1,13 +1,13 @@
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { hasPermission } from "@dokploy/server/services/permission";
-import { Loader2 } from "lucide-react";
+import { Activity, Loader2 } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ShowPaidMonitoring } from "@/components/dashboard/monitoring/paid/servers/show-paid-monitoring";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { Card } from "@/components/ui/card";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { api } from "@/utils/api";
 
@@ -23,7 +23,23 @@ const Dashboard = () => {
 
 	const { data: monitoring, isPending } = api.user.getMetricsToken.useQuery();
 	return (
-		<div className="space-y-4 pb-10">
+		<>
+		<BreadcrumbSidebar
+			list={[{ name: "Monitoring", href: "/dashboard/monitoring" }]}
+		/>
+		<div className="w-full">
+			<div className="flex justify-between gap-4 w-full items-center flex-wrap">
+				<div className="flex flex-col gap-1.5">
+					<h2 className="text-2xl font-semibold tracking-tight flex flex-row gap-2">
+						<Activity className="size-6 text-muted-foreground self-center" />
+						Monitoring
+					</h2>
+					<p className="text-sm text-muted-foreground">
+						Monitor your server and container resources in real time.
+					</p>
+				</div>
+			</div>
+			<div className="pt-6">
 			{/* <AlertBlock>
 				You are watching the <strong>Free</strong> plan.{" "}
 				<a
@@ -37,12 +53,10 @@ const Dashboard = () => {
 				to get more features.
 			</AlertBlock> */}
 			{isPending ? (
-				<Card className="bg-sidebar  p-2.5 rounded-xl  mx-auto  items-center">
-					<div className="rounded-xl bg-background flex shadow-md px-4 min-h-[50vh] justify-center items-center text-muted-foreground">
-						Loading...
-						<Loader2 className="h-4 w-4 animate-spin" />
-					</div>
-				</Card>
+				<div className="flex gap-2 items-center justify-center min-h-[50vh] text-muted-foreground">
+					<span>Loading...</span>
+					<Loader2 className="h-4 w-4 animate-spin" />
+				</div>
 			) : (
 				<>
 					{/* {monitoring?.enabledFeatures && (
@@ -55,8 +69,6 @@ const Dashboard = () => {
 						</div>
 					)} */}
 					{toggleMonitoring ? (
-						<Card className="bg-sidebar  p-2.5 rounded-xl  mx-auto">
-							<div className="rounded-xl bg-background shadow-md">
 								<ShowPaidMonitoring
 									BASE_URL={
 										process.env.NODE_ENV === "production"
@@ -69,18 +81,14 @@ const Dashboard = () => {
 											: DEFAULT_TOKEN
 									}
 								/>
-							</div>
-						</Card>
 					) : (
-						<Card className="h-full bg-sidebar  p-2.5 rounded-xl">
-							<div className="rounded-xl bg-background shadow-md p-6">
 								<ContainerFreeMonitoring appName="dokploy" />
-							</div>
-						</Card>
 					)}
 				</>
 			)}
+			</div>
 		</div>
+		</>
 	);
 };
 
