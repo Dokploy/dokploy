@@ -38,6 +38,30 @@ export const domain = z
 			});
 		}
 
+		if (input.host.startsWith("*.")) {
+			const baseDomain = input.host.slice(2);
+			if (!baseDomain || baseDomain.includes("*")) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["host"],
+					message:
+						"Invalid wildcard domain format. Use *.example.com",
+				});
+			}
+
+			if (
+				input.https &&
+				input.certificateType === "none"
+			) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["certificateType"],
+					message:
+						"Wildcard domains require Let's Encrypt (DNS Challenge) or a Custom certificate resolver for HTTPS",
+				});
+			}
+		}
+
 		// Validate stripPath requires a valid path
 		if (input.stripPath && (!input.path || input.path === "/")) {
 			ctx.addIssue({
@@ -99,6 +123,32 @@ export const domainCompose = z
 				path: ["customCertResolver"],
 				message: "Required when certificate type is custom",
 			});
+		}
+
+		// Validate wildcard domain format
+		if (input.host.startsWith("*.")) {
+			const baseDomain = input.host.slice(2);
+			if (!baseDomain || baseDomain.includes("*")) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["host"],
+					message:
+						"Invalid wildcard domain format. Use *.example.com",
+				});
+			}
+
+			// Wildcard domains with HTTPS need letsencrypt (auto DNS challenge) or custom
+			if (
+				input.https &&
+				input.certificateType === "none"
+			) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["certificateType"],
+					message:
+						"Wildcard domains require Let's Encrypt (DNS Challenge) or a Custom certificate resolver for HTTPS",
+				});
+			}
 		}
 
 		// Validate stripPath requires a valid path

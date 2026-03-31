@@ -19,6 +19,7 @@ import type {
 	PropertiesNetworks,
 } from "./types";
 import { encodeBase64 } from "./utils";
+import { buildHostRule, isWildcardDomain } from "../traefik/domain";
 
 export const cloneCompose = async (compose: Compose) => {
 	let command = "set -e;";
@@ -265,8 +266,10 @@ export const createDomainLabels = (
 		internalPath,
 	} = domain;
 	const routerName = `${appName}-${uniqueConfigKey}-${entrypoint}`;
+	const hostRule = buildHostRule(host);
+	const wildcardDomain = isWildcardDomain(host);
 	const labels = [
-		`traefik.http.routers.${routerName}.rule=Host(\`${host}\`)${path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
+		`traefik.http.routers.${routerName}.rule=${hostRule}${path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
 		`traefik.http.routers.${routerName}.entrypoints=${entrypoint}`,
 		`traefik.http.services.${routerName}.loadbalancer.server.port=${port}`,
 		`traefik.http.routers.${routerName}.service=${routerName}`,
@@ -314,8 +317,11 @@ export const createDomainLabels = (
 	// Add TLS configuration for websecure
 	if (entrypoint === "websecure") {
 		if (certificateType === "letsencrypt") {
+			const resolverName = wildcardDomain
+				? "letsencrypt-dns"
+				: "letsencrypt";
 			labels.push(
-				`traefik.http.routers.${routerName}.tls.certresolver=letsencrypt`,
+				`traefik.http.routers.${routerName}.tls.certresolver=${resolverName}`,
 			);
 		} else if (certificateType === "custom" && customCertResolver) {
 			labels.push(
