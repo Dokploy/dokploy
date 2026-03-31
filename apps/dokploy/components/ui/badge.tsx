@@ -14,16 +14,16 @@ const badgeVariants = cva(
 					"border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
 				destructive:
 					"border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-				red: "border-transparent select-none items-center whitespace-nowrap font-medium bg-red-600/20 dark:bg-red-500/15 text-destructive text-xs h-4 px-1 py-1 rounded-md",
+				red: "rounded-md h-5 px-1.5 py-0 text-xs font-medium border-transparent select-none bg-red-600/15 text-red-600 dark:bg-red-500/15 dark:text-red-400",
 				yellow:
-					"border-transparent select-none items-center whitespace-nowrap font-medium bg-yellow-600/20 dark:bg-yellow-500/15 dark:text-yellow-500 text-yellow-600 text-xs h-4 px-1 py-1 rounded-md",
+					"rounded-md h-5 px-1.5 py-0 text-xs font-medium border-transparent select-none bg-yellow-600/15 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400",
 				orange:
-					"border-transparent select-none items-center whitespace-nowrap font-medium bg-orange-600/20 dark:bg-orange-500/15 dark:text-orange-500 text-orange-600 text-xs h-4 px-1 py-1 rounded-md",
+					"rounded-md h-5 px-1.5 py-0 text-xs font-medium border-transparent select-none bg-orange-600/15 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400",
 				green:
-					"border-transparent select-none items-center whitespace-nowrap font-medium bg-emerald-600/20 dark:bg-emerald-500/15 dark:text-emerald-500 text-emerald-600 text-xs h-4 px-1 py-1 rounded-md",
-				blue: "border-transparent select-none items-center whitespace-nowrap font-medium bg-blue-600/20 dark:bg-blue-500/15 dark:text-blue-500 text-blue-600 text-xs h-4 px-1 py-1 rounded-md",
+					"rounded-md h-5 px-1.5 py-0 text-xs font-medium border-transparent select-none bg-emerald-600/15 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
+				blue: "rounded-md h-5 px-1.5 py-0 text-xs font-medium border-transparent select-none bg-blue-600/15 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400",
 				blank:
-					"border-transparent select-none items-center whitespace-nowrap font-medium dark:bg-white/15 bg-black/15 text-foreground text-xs h-4 px-1 py-1 rounded-md",
+					"rounded-md h-5 px-1.5 py-0 text-xs font-medium border-transparent select-none bg-muted text-muted-foreground",
 				outline: "text-foreground",
 			},
 		},
