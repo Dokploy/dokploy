@@ -3,14 +3,15 @@ import {
 	Check,
 	Copy,
 	Download as DownloadIcon,
+	Filter,
 	Loader2,
 	Pause,
 	Play,
+	Search,
 } from "lucide-react";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { LineCountFilter } from "./line-count-filter";
 import { SinceLogsFilter, type TimeFilter } from "./since-logs-filter";
@@ -306,118 +307,180 @@ export const DockerLogsId: React.FC<Props> = ({
 		}
 	}, [filteredLogs, autoScroll]);
 
+	const [showFilters, setShowFilters] = useState(false);
+	const activeFilterCount =
+		(typeFilter.length > 0 ? typeFilter.length : 0) +
+		(lines !== "100" ? 1 : 0) +
+		(since !== "1 hour" ? 1 : 0);
+
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="rounded-lg">
-				<div className="space-y-4">
-					<div className="flex flex-wrap justify-between items-start sm:items-center gap-4">
-						<div className="flex flex-wrap gap-4">
-							<LineCountFilter value={lines} onValueChange={handleLines} />
+			{/* Toolbar */}
+			<div className="flex items-center gap-2">
+				<div className="flex items-center flex-1 min-w-0 h-9 rounded-lg border border-input bg-transparent px-3 gap-2 focus-within:border-foreground/50 transition-colors">
+					<Search className="size-4 text-muted-foreground shrink-0" />
+					<input
+						type="search"
+						placeholder="Search logs..."
+						value={search}
+						onChange={handleSearch}
+						className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground min-w-0"
+					/>
+				</div>
+				<Button
+					variant="outline"
+					size="sm"
+					className={`h-9 relative ${showFilters ? "bg-accent" : ""}`}
+					onClick={() => setShowFilters((v) => !v)}
+				>
+					<Filter className="h-4 w-4 mr-1.5" />
+					Filters
+					{activeFilterCount > 0 && (
+						<span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-white">
+							{activeFilterCount}
+						</span>
+					)}
+				</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					className="h-9"
+					onClick={handlePauseResume}
+					title={isPaused ? "Resume logs" : "Pause logs"}
+				>
+					{isPaused ? (
+						<Play className="mr-1.5 h-3.5 w-3.5" />
+					) : (
+						<Pause className="mr-1.5 h-3.5 w-3.5" />
+					)}
+					<span className="hidden sm:inline">{isPaused ? "Resume" : "Pause"}</span>
+				</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					className="h-9"
+					onClick={handleCopy}
+					disabled={filteredLogs.length === 0}
+					title="Copy logs to clipboard"
+				>
+					{copied ? (
+						<Check className="mr-1.5 h-3.5 w-3.5" />
+					) : (
+						<Copy className="mr-1.5 h-3.5 w-3.5" />
+					)}
+					<span className="hidden sm:inline">Copy</span>
+				</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					className="h-9 hidden sm:inline-flex"
+					onClick={handleDownload}
+					disabled={filteredLogs.length === 0 || !data?.Name}
+				>
+					<DownloadIcon className="mr-1.5 h-3.5 w-3.5" />
+					Download
+				</Button>
+			</div>
 
+			{isPaused && (
+				<div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-400">
+					<Pause className="h-4 w-4 shrink-0" />
+					<span>
+						Logs paused
+						{messageBuffer.length > 0 && (
+							<span className="ml-1 font-medium">
+								({messageBuffer.length} messages buffered)
+							</span>
+						)}
+					</span>
+				</div>
+			)}
+
+			{/* Log viewer with filter panel */}
+			<div className="flex overflow-hidden rounded-lg border">
+				{/* Filter panel */}
+				<div
+					className={`shrink-0 overflow-hidden bg-card transition-all duration-200 ease-in-out ${
+						showFilters ? "w-[260px] opacity-100 border-r" : "w-0 opacity-0"
+					}`}
+				>
+					<div className="w-[260px] p-4 space-y-5 overflow-y-auto h-[720px]">
+						<div className="flex items-center justify-between">
+							<h3 className="text-sm font-semibold">Filters</h3>
+							{activeFilterCount > 0 && (
+								<Button
+									variant="ghost"
+									size="sm"
+									className="h-6 text-xs px-2"
+									onClick={() => {
+										handleLines("100");
+										handleSince("1 hour");
+										setTypeFilter([]);
+										setShowTimestamp(false);
+									}}
+								>
+									Clear all
+								</Button>
+							)}
+						</div>
+
+						<div className="space-y-2 [&_button]:w-full [&_button]:justify-between">
+							<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+								Lines
+							</p>
+							<LineCountFilter value={lines} onValueChange={handleLines} />
+						</div>
+
+						<div className="space-y-2 [&_button]:w-full [&_button]:justify-between">
+							<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+								Time range
+							</p>
 							<SinceLogsFilter
 								value={since}
 								onValueChange={handleSince}
 								showTimestamp={showTimestamp}
 								onTimestampChange={setShowTimestamp}
 							/>
+						</div>
 
+						<div className="space-y-2 [&_button]:w-full [&_button]:justify-between">
+							<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+								Log type
+							</p>
 							<StatusLogsFilter
 								value={typeFilter}
 								setValue={setTypeFilter}
 								title="Log type"
 								options={priorities}
 							/>
+						</div>
+					</div>
+				</div>
 
-							<Input
-								type="search"
-								placeholder="Search logs..."
-								value={search}
-								onChange={handleSearch}
-								className="inline-flex h-9 text-sm placeholder-gray-400 w-full sm:w-auto"
+				{/* Log content */}
+				<div
+					ref={scrollRef}
+					onScroll={handleScroll}
+					className="flex-1 h-[720px] overflow-y-auto space-y-0 p-4 bg-[#fafafa] dark:bg-[#050506] custom-logs-scrollbar"
+				>
+					{filteredLogs.length > 0 ? (
+						filteredLogs.map((filteredLog: LogLine, index: number) => (
+							<TerminalLine
+								key={`${filteredLog.rawTimestamp ?? ""}-${index}`}
+								log={filteredLog}
+								searchTerm={search}
+								noTimestamp={!showTimestamp}
 							/>
+						))
+					) : isLoading ? (
+						<div className="flex justify-center items-center h-full text-muted-foreground">
+							<Loader2 className="h-6 w-6 animate-spin" />
 						</div>
-
-						<div className="flex gap-2">
-							<Button
-								variant="outline"
-								size="sm"
-								className="h-9"
-								onClick={handlePauseResume}
-								title={isPaused ? "Resume logs" : "Pause logs"}
-							>
-								{isPaused ? (
-									<Play className="mr-2 h-4 w-4" />
-								) : (
-									<Pause className="mr-2 h-4 w-4" />
-								)}
-								{isPaused ? "Resume" : "Pause"}
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								className="h-9"
-								onClick={handleCopy}
-								disabled={filteredLogs.length === 0}
-								title="Copy logs to clipboard"
-							>
-								{copied ? (
-									<Check className="mr-2 h-4 w-4" />
-								) : (
-									<Copy className="mr-2 h-4 w-4" />
-								)}
-								Copy
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								className="h-9 sm:w-auto w-full"
-								onClick={handleDownload}
-								disabled={filteredLogs.length === 0 || !data?.Name}
-							>
-								<DownloadIcon className="mr-2 h-4 w-4" />
-								Download logs
-							</Button>
+					) : (
+						<div className="flex justify-center items-center h-full text-muted-foreground">
+							No logs found
 						</div>
-					</div>
-					{isPaused && (
-						<AlertBlock type="warning">
-							<div className="flex items-center gap-2">
-								<Pause className="h-4 w-4" />
-								<span>
-									Logs paused
-									{messageBuffer.length > 0 && (
-										<span className="ml-1 font-medium">
-											({messageBuffer.length} messages buffered)
-										</span>
-									)}
-								</span>
-							</div>
-						</AlertBlock>
 					)}
-					<div
-						ref={scrollRef}
-						onScroll={handleScroll}
-						className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
-					>
-						{filteredLogs.length > 0 ? (
-							filteredLogs.map((filteredLog: LogLine, index: number) => (
-								<TerminalLine
-									key={`${filteredLog.rawTimestamp ?? ""}-${index}`}
-									log={filteredLog}
-									searchTerm={search}
-									noTimestamp={!showTimestamp}
-								/>
-							))
-						) : isLoading ? (
-							<div className="flex justify-center items-center h-full text-muted-foreground">
-								<Loader2 className="h-6 w-6 animate-spin" />
-							</div>
-						) : (
-							<div className="flex justify-center items-center h-full text-muted-foreground">
-								No logs found
-							</div>
-						)}
-					</div>
 				</div>
 			</div>
 		</div>
