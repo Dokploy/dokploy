@@ -545,16 +545,6 @@ export const ManageCustomRoles = () => {
 	return (
 		<div>
 			<div>
-				<div>
-					<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-						<ShieldCheck className="size-5 text-muted-foreground" />
-						Custom Roles
-					</h2>
-					<p className="text-sm text-muted-foreground mt-1">
-						Create and manage custom roles with fine-grained permissions
-					</p>
-				</div>
-				<div className="pt-6">
 					<EnterpriseFeatureGate
 						lockedProps={{
 							title: "Custom Roles",

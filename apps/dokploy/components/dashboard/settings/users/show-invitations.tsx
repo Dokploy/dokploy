@@ -35,19 +35,10 @@ export const ShowInvitations = () => {
 		<div className="w-full">
 			<div>
 				<div>
-					<div className="flex justify-between items-center gap-4 flex-wrap">
-						<div>
-							<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-								<Mail className="size-5 text-muted-foreground" />
-								Invitations
-							</h2>
-							<p className="text-sm text-muted-foreground mt-1">
-								Create invitations to your organization.
-							</p>
-						</div>
+					<div className="flex justify-end mb-4">
 						<AddInvitation />
 					</div>
-					<div className="space-y-2 pt-6">
+					<div>
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>

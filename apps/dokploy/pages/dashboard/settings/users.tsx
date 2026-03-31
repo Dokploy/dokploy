@@ -1,26 +1,81 @@
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import { Users } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
+import { useRouter } from "next/router";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import { ShowInvitations } from "@/components/dashboard/settings/users/show-invitations";
 import { ShowUsers } from "@/components/dashboard/settings/users/show-users";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { ManageCustomRoles } from "@/components/proprietary/roles/manage-custom-roles";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 
+const TAB_VALUES = ["users", "invitations", "roles"] as const;
+type TabValue = (typeof TAB_VALUES)[number];
+
+function isValidTab(t: string): t is TabValue {
+	return TAB_VALUES.includes(t as TabValue);
+}
+
 const Page = () => {
+	const router = useRouter();
 	const { data: auth } = api.user.get.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const isOwnerOrAdmin = auth?.role === "owner" || auth?.role === "admin";
 	const canCreateMembers = permissions?.member.create ?? false;
 
+	const tab =
+		router.query.tab && isValidTab(router.query.tab as string)
+			? (router.query.tab as TabValue)
+			: "users";
+
+	const setTab = (value: string) => {
+		if (!isValidTab(value)) return;
+		router.replace(
+			{ pathname: "/dashboard/settings/users", query: { tab: value } },
+			undefined,
+			{ shallow: true },
+		);
+	};
+
 	return (
-		<div className="flex flex-col gap-4 w-full">
-			<ShowUsers />
-			{canCreateMembers && <ShowInvitations />}
-			{isOwnerOrAdmin && <ManageCustomRoles />}
+		<div className="w-full">
+			<div className="flex flex-col gap-1.5 mb-6">
+				<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+					<Users className="size-5 text-muted-foreground" />
+					Team
+				</h2>
+				<p className="text-sm text-muted-foreground">
+					Manage users, invitations, and roles for your organization.
+				</p>
+			</div>
+			<Tabs value={tab} onValueChange={setTab} className="w-full">
+				<TabsList>
+					<TabsTrigger value="users">Users</TabsTrigger>
+					{canCreateMembers && (
+						<TabsTrigger value="invitations">Invitations</TabsTrigger>
+					)}
+					{isOwnerOrAdmin && (
+						<TabsTrigger value="roles">Roles</TabsTrigger>
+					)}
+				</TabsList>
+				<TabsContent value="users">
+					<ShowUsers />
+				</TabsContent>
+				{canCreateMembers && (
+					<TabsContent value="invitations">
+						<ShowInvitations />
+					</TabsContent>
+				)}
+				{isOwnerOrAdmin && (
+					<TabsContent value="roles">
+						<ManageCustomRoles />
+					</TabsContent>
+				)}
+			</Tabs>
 		</div>
 	);
 };

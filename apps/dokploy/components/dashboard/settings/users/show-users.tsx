@@ -47,14 +47,7 @@ export const ShowUsers = () => {
 		<div className="w-full">
 			<div>
 				<div>
-					<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-						<Users className="size-5 text-muted-foreground" />
-						Users
-					</h2>
-					<p className="text-sm text-muted-foreground mt-1">
-						Add your users to your Dokploy account.
-					</p>
-					<div className="space-y-2 pt-6">
+					<div>
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
