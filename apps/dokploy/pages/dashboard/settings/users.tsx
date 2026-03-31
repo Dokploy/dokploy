@@ -44,17 +44,19 @@ const Page = () => {
 
 	return (
 		<div className="w-full">
-			<div className="flex justify-between gap-4 items-start flex-wrap mb-6">
+			<div className="flex justify-between gap-4 w-full items-center flex-wrap mb-6">
 				<div className="flex flex-col gap-1.5">
 					<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-						<Users className="size-5 text-muted-foreground" />
+						<Users className="size-6 text-muted-foreground self-center" />
 						Team
 					</h2>
 					<p className="text-sm text-muted-foreground">
 						Manage users, invitations, and roles for your organization.
 					</p>
 				</div>
-				{tab === "invitations" && canCreateMembers && <AddInvitation />}
+				<div>
+					{tab === "invitations" && canCreateMembers && <AddInvitation />}
+				</div>
 			</div>
 			<Tabs value={tab} onValueChange={setTab} className="w-full">
 				<TabsList>
