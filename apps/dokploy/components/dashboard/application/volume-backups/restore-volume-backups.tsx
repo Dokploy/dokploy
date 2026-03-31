@@ -173,7 +173,7 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 							control={form.control}
 							name="destinationId"
 							render={({ field }) => (
-								<FormItem className="">
+								<FormItem >
 									<FormLabel>Destination</FormLabel>
 									<Popover>
 										<PopoverTrigger asChild>
@@ -239,7 +239,7 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 							control={form.control}
 							name="backupFile"
 							render={({ field }) => (
-								<FormItem className="">
+								<FormItem >
 									<FormLabel className="flex items-center">
 										Search Backup Files
 										{field.value && (

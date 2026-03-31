@@ -134,7 +134,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 							name="composeFile"
 							render={({ field }) => (
 								<FormItem className="overflow-auto">
-									<FormControl className="">
+									<FormControl >
 										<div className="flex flex-col gap-4 w-full outline-none focus:outline-none overflow-auto">
 											<CodeEditor
 												// disabled

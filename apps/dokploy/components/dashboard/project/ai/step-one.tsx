@@ -37,7 +37,7 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 	};
 	return (
 		<div className="flex flex-col h-full gap-4">
-			<div className="">
+			<div >
 				<div className="space-y-4 ">
 					<h2 className="text-lg font-semibold">Step 1: Describe Your Needs</h2>
 					<div className="space-y-2">

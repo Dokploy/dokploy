@@ -297,7 +297,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	};
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger className="" asChild>
+			<DialogTrigger asChild>
 				{children}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">

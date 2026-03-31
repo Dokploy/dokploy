@@ -81,7 +81,7 @@ export const ShowVolumeBackups = ({
 			<CardHeader className="px-0">
 				<div className="flex justify-between items-center flex-wrap gap-2">
 					<div className="flex flex-col gap-2">
-						<CardTitle className="text-xl font-bold flex items-center gap-2">
+						<CardTitle className="text-base font-medium flex items-center gap-2">
 							Volume Backups
 						</CardTitle>
 						<CardDescription>

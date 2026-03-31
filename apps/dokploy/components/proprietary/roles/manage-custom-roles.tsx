@@ -16,10 +16,7 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
-	Card,
-	CardContent,
 	CardDescription,
-	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
 import {
@@ -549,9 +546,9 @@ type CreateRoleSchema = z.infer<typeof createRoleSchema>;
 
 export const ManageCustomRoles = () => {
 	return (
-		<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto w-full">
-			<div className="rounded-xl bg-background shadow-md">
-				<CardHeader>
+		<div>
+			<div >
+				<div>
 					<CardTitle className="text-xl flex flex-row gap-2">
 						<ShieldCheck className="size-6 text-muted-foreground self-center" />
 						Custom Roles
@@ -559,8 +556,8 @@ export const ManageCustomRoles = () => {
 					<CardDescription>
 						Create and manage custom roles with fine-grained permissions
 					</CardDescription>
-				</CardHeader>
-				<CardContent className="border-t pt-6">
+				</div>
+				<div className="border-t pt-6">
 					<EnterpriseFeatureGate
 						lockedProps={{
 							title: "Custom Roles",
@@ -571,9 +568,9 @@ export const ManageCustomRoles = () => {
 					>
 						<CustomRolesContent />
 					</EnterpriseFeatureGate>
-				</CardContent>
+				</div>
 			</div>
-		</Card>
+		</div>
 	);
 };
 

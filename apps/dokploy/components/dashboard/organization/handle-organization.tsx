@@ -151,7 +151,7 @@ export function AddOrganization({ organizationId }: Props) {
 											className="col-span-3"
 										/>
 									</FormControl>
-									<FormMessage className="" />
+									<FormMessage />
 								</FormItem>
 							)}
 						/>

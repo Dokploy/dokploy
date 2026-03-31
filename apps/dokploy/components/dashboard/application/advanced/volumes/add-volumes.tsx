@@ -155,7 +155,7 @@ export const AddVolumes = ({
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger className="" asChild>
+			<DialogTrigger asChild>
 				<Button>{children}</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-3xl">
