@@ -193,7 +193,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 								return (
 									<Card
 										key={item.domainId}
-										className="relative overflow-hidden w-full border transition-colors hover:bg-accent/50 bg-transparent h-fit"
+										className="group/card relative overflow-hidden w-full rounded-lg border border-border/50 bg-card transition-all duration-200 hover:border-border hover:bg-card/80 h-fit"
 									>
 										<CardContent className="p-6">
 											<div className="flex flex-col gap-4">

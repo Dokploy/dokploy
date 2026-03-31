@@ -28,6 +28,8 @@ const Page = () => {
 	const router = useRouter();
 	const { data: auth } = api.user.get.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
+	const { data: haveValidLicense } =
+		api.licenseKey.haveValidLicenseKey.useQuery();
 	const isOwnerOrAdmin = auth?.role === "owner" || auth?.role === "admin";
 	const canCreateMembers = permissions?.member.create ?? false;
 
@@ -59,7 +61,9 @@ const Page = () => {
 				</div>
 				<div>
 					{tab === "invitations" && canCreateMembers && <AddInvitation />}
-					{tab === "roles" && isOwnerOrAdmin && <HandleCustomRole />}
+					{tab === "roles" && isOwnerOrAdmin && haveValidLicense && (
+						<HandleCustomRole />
+					)}
 				</div>
 			</div>
 			<Tabs value={tab} onValueChange={setTab} className="w-full">

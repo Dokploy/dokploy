@@ -24,7 +24,7 @@ export const ShowGeneralCompose = ({ composeId }: Props) => {
 
 	return (
 		<>
-			<Card className="bg-background">
+			<Card className="bg-background border-border/50">
 				<CardHeader>
 					<div className="flex flex-row gap-2 justify-between flex-wrap">
 						<CardTitle className="text-xl">Deploy Settings</CardTitle>
