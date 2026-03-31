@@ -20,6 +20,7 @@ import {
 	ExternalLink,
 	Loader2,
 	Rocket,
+	Search,
 	Server,
 } from "lucide-react";
 import Link from "next/link";
@@ -452,14 +453,17 @@ export function ShowDeploymentsTable() {
 	});
 
 	return (
-		<div className="space-y-2">
+		<div className="space-y-4">
 			<div className="flex flex-wrap items-center gap-2">
-				<Input
-					placeholder="Search by name, project, environment, server..."
-					value={globalFilter}
-					onChange={(e) => setGlobalFilter(e.target.value)}
-					className="max-w-xs"
-				/>
+				<div className="flex items-center flex-1 min-w-[200px] h-10 rounded-xl border border-input bg-transparent px-3 gap-2 focus-within:ring-1 focus-within:ring-ring transition-colors">
+					<Search className="size-4 text-muted-foreground shrink-0" />
+					<input
+						placeholder="Search by name, project, environment, server..."
+						value={globalFilter}
+						onChange={(e) => setGlobalFilter(e.target.value)}
+						className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+					/>
+				</div>
 				<Select value={statusFilter} onValueChange={setStatusFilter}>
 					<SelectTrigger className="w-[140px]">
 						<SelectValue placeholder="Status" />
@@ -491,7 +495,7 @@ export function ShowDeploymentsTable() {
 					</div>
 				) : (
 					<>
-						<div className="rounded-md border overflow-x-auto">
+						<div className="rounded-lg border overflow-x-auto">
 							<Table>
 								<TableHeader>
 									{table.getHeaderGroups().map((headerGroup) => (
@@ -543,7 +547,7 @@ export function ShowDeploymentsTable() {
 								</TableBody>
 							</Table>
 						</div>
-						<div className="flex flex-col gap-4 px-4 py-4 border-t sm:flex-row sm:items-center sm:justify-between">
+						<div className="flex flex-col gap-4 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
 							<div className="flex items-center gap-2 flex-wrap">
 								<span className="text-sm text-muted-foreground whitespace-nowrap">
 									Rows per page
