@@ -18,6 +18,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { TimeBadge } from "@/components/ui/time-badge";
+import { NotificationBell } from "@/components/layouts/notification-bell";
 import { api } from "@/utils/api";
 
 interface BreadcrumbEntry {
@@ -37,11 +38,10 @@ export const BreadcrumbSidebar = ({ list }: Props) => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	return (
-		<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-			<div className="flex items-center justify-between w-full px-4">
-				<div className="flex items-center gap-2">
-					<SidebarTrigger className="-ml-1" />
-					<Separator orientation="vertical" className="mr-2 h-4" />
+		<header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b bg-background/90 backdrop-blur px-4 -mx-4 mb-6">
+				<SidebarTrigger className="-ml-1" />
+				<Separator orientation="vertical" className="mr-2 h-4" />
+				<div className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-sm flex-1">
 					<Breadcrumb>
 						<BreadcrumbList>
 							{list.map((item, index) => (
@@ -79,8 +79,10 @@ export const BreadcrumbSidebar = ({ list }: Props) => {
 						</BreadcrumbList>
 					</Breadcrumb>
 				</div>
-				{!isCloud && <TimeBadge />}
-			</div>
+				<div className="ml-auto flex items-center gap-2">
+					{!isCloud && <TimeBadge />}
+					<NotificationBell />
+				</div>
 		</header>
 	);
 };

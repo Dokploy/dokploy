@@ -35,6 +35,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { TimeBadge } from "@/components/ui/time-badge";
+import { NotificationBell } from "@/components/layouts/notification-bell";
 import { api, type RouterOutputs } from "@/utils/api";
 
 type ProjectItem = RouterOutputs["project"]["all"][number];
@@ -204,6 +206,7 @@ export const AdvanceBreadcrumb = () => {
 		null,
 	);
 
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	// Fetch all projects
 	const { data: allProjects } = api.project.all.useQuery();
 
@@ -313,7 +316,7 @@ export const AdvanceBreadcrumb = () => {
 	// If we're just on the projects page, show simple breadcrumb
 	if (!projectId) {
 		return (
-			<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+			<header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b bg-background/90 backdrop-blur px-4 -mx-4 mb-6">
 				<div className="flex items-center gap-2">
 					<SidebarTrigger className="-ml-1" />
 					<Separator orientation="vertical" className="mr-2 h-4" />
@@ -322,30 +325,33 @@ export const AdvanceBreadcrumb = () => {
 						<span className="font-medium">Projects</span>
 					</div>
 				</div>
+				<div className="ml-auto flex items-center gap-2">
+					{!isCloud && <TimeBadge />}
+					<NotificationBell />
+				</div>
 			</header>
 		);
 	}
 
 	return (
-		<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+		<header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b bg-background/90 backdrop-blur px-4 -mx-4 mb-6">
 			<div className="flex items-center gap-2">
 				<SidebarTrigger className="-ml-1" />
 				<Separator orientation="vertical" className="mr-2 h-4" />
 
-				<div className="flex items-center">
+				<div className="flex items-center gap-0.5">
 					{/* Project Selector */}
 					<Popover open={projectOpen} onOpenChange={setProjectOpen}>
 						<PopoverTrigger asChild>
 							<Button
 								variant="ghost"
 								aria-expanded={projectOpen}
-								className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
+								className="h-7 px-2 py-1 hover:bg-accent gap-1.5 text-sm"
 							>
-								<FolderInput className="size-4 text-muted-foreground" />
-								<span className="font-medium max-w-[150px] truncate">
+								<span className="max-w-[120px] truncate">
 									{currentProject?.name || "Select Project"}
 								</span>
-								<ChevronDown className="size-4 text-muted-foreground" />
+								<ChevronDown className="size-3.5 text-muted-foreground" />
 							</Button>
 						</PopoverTrigger>
 						<PopoverContent
@@ -471,17 +477,19 @@ export const AdvanceBreadcrumb = () => {
 
 					{/* Environment Selector */}
 					{projectEnvironments && projectEnvironments.length > 1 && (
+						<>
+						<span className="text-muted-foreground/40 text-sm select-none">/</span>
 						<Popover open={environmentOpen} onOpenChange={setEnvironmentOpen}>
 							<PopoverTrigger asChild>
 								<Button
 									variant="ghost"
 									aria-expanded={environmentOpen}
-									className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
+									className="h-7 px-2 py-1 hover:bg-accent gap-1.5 text-sm text-muted-foreground"
 								>
-									<span className="font-medium max-w-[150px] truncate">
+									<span className="max-w-[120px] truncate">
 										{currentEnvironment?.name || "production"}
 									</span>
-									<ChevronDown className="size-4 text-muted-foreground" />
+									<ChevronDown className="size-3.5 text-muted-foreground" />
 								</Button>
 							</PopoverTrigger>
 							<PopoverContent
@@ -530,31 +538,35 @@ export const AdvanceBreadcrumb = () => {
 								</Command>
 							</PopoverContent>
 						</Popover>
+					</>
 					)}
 
 					{projectEnvironments && projectEnvironments.length === 1 && (
-						<p className="text-sm font-normal ml-1">
+						<>
+						<span className="text-muted-foreground/40 text-sm select-none">/</span>
+						<span className="text-sm text-muted-foreground px-1">
 							{currentEnvironment?.name || "production"}
-						</p>
+						</span>
+						</>
 					)}
 
 					{/* Service Selector - only show when viewing a service */}
 					{serviceId && currentService && (
 						<>
-							<Separator orientation="vertical" className="mx-2 h-6" />
+							<span className="text-muted-foreground/40 text-sm select-none">/</span>
 
 							<Popover open={serviceOpen} onOpenChange={setServiceOpen}>
 								<PopoverTrigger asChild>
 									<Button
 										variant="ghost"
 										aria-expanded={serviceOpen}
-										className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
+										className="h-7 px-2 py-1 hover:bg-accent gap-1.5 text-sm"
 									>
 										{getServiceIcon(currentService.type)}
-										<span className="font-medium max-w-[150px] truncate">
+										<span className="max-w-[120px] truncate">
 											{currentService.name}
 										</span>
-										<ChevronDown className="size-4 text-muted-foreground" />
+										<ChevronDown className="size-3.5 text-muted-foreground" />
 									</Button>
 								</PopoverTrigger>
 								<PopoverContent
@@ -617,18 +629,22 @@ export const AdvanceBreadcrumb = () => {
 							<Button
 								variant="ghost"
 								size="icon"
-								className="size-7 ml-1"
+								className="size-6 ml-0.5 text-muted-foreground/50 hover:text-muted-foreground"
 								onClick={() => {
 									router.push(
 										`/dashboard/project/${projectId}/environment/${environmentId}`,
 									);
 								}}
 							>
-								<X className="size-4 text-muted-foreground" />
+								<X className="size-3.5" />
 							</Button>
 						</>
 					)}
 				</div>
+			</div>
+			<div className="ml-auto flex items-center gap-2">
+				{!isCloud && <TimeBadge />}
+				<NotificationBell />
 			</div>
 		</header>
 	);
