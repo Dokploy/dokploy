@@ -15,7 +15,6 @@ import { EnterpriseFeatureGate } from "@/components/proprietary/enterprise-featu
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -544,16 +543,16 @@ type CreateRoleSchema = z.infer<typeof createRoleSchema>;
 export const ManageCustomRoles = () => {
 	return (
 		<div className="flex flex-col gap-4">
-				<EnterpriseFeatureGate
-						lockedProps={{
-							title: "Custom Roles",
-							description:
-								"Custom roles with fine-grained permissions are part of Dokploy Enterprise. Add a valid license to create and assign custom roles.",
-							ctaLabel: "Go to License",
-						}}
-					>
-						<CustomRolesContent />
-					</EnterpriseFeatureGate>
+			<EnterpriseFeatureGate
+				lockedProps={{
+					title: "Custom Roles",
+					description:
+						"Custom roles with fine-grained permissions are part of Dokploy Enterprise. Add a valid license to create and assign custom roles.",
+					ctaLabel: "Go to License",
+				}}
+			>
+				<CustomRolesContent />
+			</EnterpriseFeatureGate>
 		</div>
 	);
 };
