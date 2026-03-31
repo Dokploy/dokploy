@@ -12,9 +12,9 @@ import { toast } from "sonner";
 import { z } from "zod";
 import {
 	DiscordIcon,
-	MattermostIcon,
 	GotifyIcon,
 	LarkIcon,
+	MattermostIcon,
 	NtfyIcon,
 	PushoverIcon,
 	ResendIcon,
@@ -1799,7 +1799,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									name="appDeploy"
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
-											<div >
+											<div>
 												<FormLabel>App Deploy</FormLabel>
 												<FormDescription>
 													Trigger the action when a app is deployed.

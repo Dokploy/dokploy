@@ -6,8 +6,8 @@ import { useRouter } from "next/router";
 import type { ReactElement } from "react";
 import { ShowDeploymentsTable } from "@/components/dashboard/deployments/show-deployments-table";
 import { ShowQueueTable } from "@/components/dashboard/deployments/show-queue-table";
-import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TAB_VALUES = ["deployments", "queue"] as const;

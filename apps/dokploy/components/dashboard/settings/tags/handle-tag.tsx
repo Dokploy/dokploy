@@ -7,6 +7,7 @@ import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { TagBadge } from "@/components/shared/tag-badge";
 import { Button } from "@/components/ui/button";
+import { ColorPicker } from "@/components/ui/color-picker";
 import {
 	Dialog,
 	DialogContent,
@@ -19,14 +20,12 @@ import {
 import {
 	Form,
 	FormControl,
-	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { ColorPicker } from "@/components/ui/color-picker";
 import { api } from "@/utils/api";
 
 const TagSchema = z.object({

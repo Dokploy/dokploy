@@ -10,7 +10,6 @@ import {
 	Search,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
-import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
 import { LineCountFilter } from "./line-count-filter";
@@ -353,7 +352,9 @@ export const DockerLogsId: React.FC<Props> = ({
 					) : (
 						<Pause className="mr-1.5 h-3.5 w-3.5" />
 					)}
-					<span className="hidden sm:inline">{isPaused ? "Resume" : "Pause"}</span>
+					<span className="hidden sm:inline">
+						{isPaused ? "Resume" : "Pause"}
+					</span>
 				</Button>
 				<Button
 					variant="outline"

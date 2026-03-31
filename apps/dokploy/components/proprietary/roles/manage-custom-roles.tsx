@@ -15,10 +15,7 @@ import { EnterpriseFeatureGate } from "@/components/proprietary/enterprise-featu
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
-import {
-	CardDescription,
-	CardTitle,
-} from "@/components/ui/card";
+import { CardDescription, CardTitle } from "@/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -547,7 +544,7 @@ type CreateRoleSchema = z.infer<typeof createRoleSchema>;
 export const ManageCustomRoles = () => {
 	return (
 		<div>
-			<div >
+			<div>
 				<div>
 					<CardTitle className="text-xl flex flex-row gap-2">
 						<ShieldCheck className="size-6 text-muted-foreground self-center" />

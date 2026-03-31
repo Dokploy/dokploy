@@ -1,10 +1,7 @@
 import { ClipboardList } from "lucide-react";
 import React from "react";
 import { EnterpriseFeatureGate } from "@/components/proprietary/enterprise-feature-gate";
-import {
-	CardDescription,
-	CardTitle,
-} from "@/components/ui/card";
+import { CardDescription, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { columns } from "./columns";
 import { type AuditLogFilters, DataTable } from "./data-table";
@@ -81,7 +78,7 @@ function AuditLogsContent() {
 export function ShowAuditLogs() {
 	return (
 		<div>
-			<div >
+			<div>
 				<EnterpriseFeatureGate
 					lockedProps={{
 						title: "Audit Logs",

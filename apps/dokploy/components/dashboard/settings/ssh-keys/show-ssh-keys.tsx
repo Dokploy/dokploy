@@ -21,8 +21,8 @@ export const ShowDestinations = () => {
 						SSH Keys
 					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						Create and manage SSH Keys, you can use them to access your
-						servers, git private repositories, and more.
+						Create and manage SSH Keys, you can use them to access your servers,
+						git private repositories, and more.
 					</p>
 					<div className="space-y-2 pt-6">
 						{isPending ? (

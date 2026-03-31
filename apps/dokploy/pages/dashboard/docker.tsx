@@ -6,8 +6,8 @@ import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import { ShowContainers } from "@/components/dashboard/docker/show/show-containers";
-import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { appRouter } from "@/server/api/root";
 
 const Dashboard = () => {

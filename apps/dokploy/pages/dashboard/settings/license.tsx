@@ -12,7 +12,7 @@ const Page = () => {
 		<div className="w-full">
 			<div className="h-full rounded-xl max-w-5xl mx-auto flex flex-col gap-4">
 				<div>
-					<div >
+					<div>
 						<div className="p-6">
 							<LicenseKeySettings />
 						</div>

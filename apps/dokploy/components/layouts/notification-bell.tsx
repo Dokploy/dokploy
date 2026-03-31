@@ -1,5 +1,6 @@
 import { Bell } from "lucide-react";
 import { toast } from "sonner";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -8,15 +9,12 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DialogAction } from "@/components/shared/dialog-action";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 
 export function NotificationBell() {
-	const {
-		data: invitations,
-		refetch: refetchInvitations,
-	} = api.user.listInvitations.useQuery();
+	const { data: invitations, refetch: refetchInvitations } =
+		api.user.listInvitations.useQuery();
 	const { refetch } = api.user.get.useQuery();
 
 	return (
@@ -49,8 +47,7 @@ export function NotificationBell() {
 										{invitation?.organization?.name}
 									</div>
 									<div className="text-xs text-muted-foreground">
-										Expires:{" "}
-										{new Date(invitation.expiresAt).toLocaleString()}
+										Expires: {new Date(invitation.expiresAt).toLocaleString()}
 									</div>
 									<div className="text-xs text-muted-foreground">
 										Role: {invitation.role}
@@ -84,9 +81,7 @@ export function NotificationBell() {
 							</div>
 						))
 					) : (
-						<DropdownMenuItem disabled>
-							No pending invitations
-						</DropdownMenuItem>
+						<DropdownMenuItem disabled>No pending invitations</DropdownMenuItem>
 					)}
 				</div>
 			</DropdownMenuContent>

@@ -19,8 +19,8 @@ export const ShowDestinations = () => {
 						S3 Destinations
 					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						Add your providers like AWS S3, Cloudflare R2, Wasabi,
-						DigitalOcean Spaces etc.
+						Add your providers like AWS S3, Cloudflare R2, Wasabi, DigitalOcean
+						Spaces etc.
 					</p>
 					<div className="space-y-2 pt-6">
 						{isPending ? (

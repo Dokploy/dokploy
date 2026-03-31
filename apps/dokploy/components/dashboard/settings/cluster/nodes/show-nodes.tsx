@@ -59,7 +59,9 @@ export const ShowNodes = ({ serverId }: Props) => {
 								<Boxes className="size-5 text-muted-foreground" />
 								Cluster
 							</h2>
-							<p className="text-sm text-muted-foreground mt-1">Add nodes to your cluster</p>
+							<p className="text-sm text-muted-foreground mt-1">
+								Add nodes to your cluster
+							</p>
 						</div>
 						{haveAtLeastOneRegistry && (
 							<div className="flex flex-row gap-2">

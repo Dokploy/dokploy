@@ -5,8 +5,8 @@ import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import { HandleSchedules } from "@/components/dashboard/application/schedules/handle-schedules";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
-import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { api } from "@/utils/api";
 
 function SchedulesPage() {
@@ -27,7 +27,10 @@ function SchedulesPage() {
 							Schedule tasks to run automatically at specified intervals.
 						</p>
 					</div>
-					<HandleSchedules id={user?.user.id || ""} scheduleType="dokploy-server" />
+					<HandleSchedules
+						id={user?.user.id || ""}
+						scheduleType="dokploy-server"
+					/>
 				</div>
 				<div className="pt-6">
 					<ShowSchedules

@@ -6,16 +6,14 @@ import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import SwarmMonitorCard from "@/components/dashboard/swarm/monitoring-card";
-import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { appRouter } from "@/server/api/root";
 
 const Dashboard = () => {
 	return (
 		<>
-			<BreadcrumbSidebar
-				list={[{ name: "Swarm", href: "/dashboard/swarm" }]}
-			/>
+			<BreadcrumbSidebar list={[{ name: "Swarm", href: "/dashboard/swarm" }]} />
 			<div className="w-full">
 				<div className="flex justify-between gap-4 w-full items-center flex-wrap">
 					<div className="flex flex-col gap-1.5">

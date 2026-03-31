@@ -7,6 +7,7 @@ import {
 	updateScheduleSchema,
 } from "@dokploy/server/db/schema/schedule";
 import { runCommand } from "@dokploy/server/index";
+import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import {
 	createSchedule,
 	deleteSchedule,
@@ -18,7 +19,6 @@ import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { removeJob, schedule } from "@/server/utils/backup";
-import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 export const scheduleRouter = createTRPCRouter({
 	create: protectedProcedure

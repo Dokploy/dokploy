@@ -1,10 +1,5 @@
 import { format } from "date-fns";
-import {
-	AlertCircle,
-	ArrowDownUp,
-	Calendar as CalendarIcon,
-	InfoIcon,
-} from "lucide-react";
+import { AlertCircle, Calendar as CalendarIcon, InfoIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -86,164 +81,161 @@ export const ShowRequests = () => {
 	return (
 		<>
 			<div className="w-full">
-						{shouldShowWarning && (
-							<AlertBlock type="warning">
-								When you activate, you need to reload traefik to apply the
-								changes, you can reload traefik in{" "}
-								<Link
-									href="/dashboard/settings/server"
-									className="text-primary"
-								>
-									Settings
-								</Link>
-							</AlertBlock>
-						)}
-						<div className="space-y-2 pt-4">
-							<div className="flex w-full gap-4 justify-end items-center">
-								<div className="flex-1 flex items-center gap-4">
-									<div className="flex items-center gap-2">
-										<Label htmlFor="cron" className="min-w-32">
-											Log Cleanup Schedule
-										</Label>
-										<TooltipProvider>
-											<Tooltip>
-												<TooltipTrigger>
-													<InfoIcon className="size-4 text-muted-foreground" />
-												</TooltipTrigger>
-												<TooltipContent>
-													<p className="max-w-80">
-														At the scheduled time, the cleanup job will keep
-														only the last 1000 entries in the access log file
-														and signal Traefik to reopen its log files. The
-														default schedule is daily at midnight (0 0 * * *).
-													</p>
-												</TooltipContent>
-											</Tooltip>
-										</TooltipProvider>
-									</div>
-									<div className="flex-1 flex gap-4">
-										<Input
-											id="cron"
-											placeholder="0 0 * * *"
-											value={cronExpression || ""}
-											onChange={(e) => setCronExpression(e.target.value)}
-											className="max-w-60"
-											required
-										/>
-										<Button
-											variant="outline"
-											onClick={async () => {
-												if (!cronExpression?.trim()) {
-													toast.error("Please enter a valid cron expression");
-													return;
-												}
-												try {
-													await updateLogCleanup({
-														cronExpression: cronExpression,
-													});
-													toast.success("Log cleanup schedule updated");
-												} catch (error) {
-													toast.error(
-														`Failed to update log cleanup schedule: ${error instanceof Error ? error.message : "Unknown error"}`,
-													);
-												}
-											}}
-										>
-											Update Schedule
-										</Button>
-									</div>
-								</div>
-								<DialogAction
-									title={isActive ? "Deactivate Requests" : "Activate Requests"}
-									description="You will also need to restart Traefik to apply the changes"
-									type={isActive ? "destructive" : "default"}
+				{shouldShowWarning && (
+					<AlertBlock type="warning">
+						When you activate, you need to reload traefik to apply the changes,
+						you can reload traefik in{" "}
+						<Link href="/dashboard/settings/server" className="text-primary">
+							Settings
+						</Link>
+					</AlertBlock>
+				)}
+				<div className="space-y-2 pt-4">
+					<div className="flex w-full gap-4 justify-end items-center">
+						<div className="flex-1 flex items-center gap-4">
+							<div className="flex items-center gap-2">
+								<Label htmlFor="cron" className="min-w-32">
+									Log Cleanup Schedule
+								</Label>
+								<TooltipProvider>
+									<Tooltip>
+										<TooltipTrigger>
+											<InfoIcon className="size-4 text-muted-foreground" />
+										</TooltipTrigger>
+										<TooltipContent>
+											<p className="max-w-80">
+												At the scheduled time, the cleanup job will keep only
+												the last 1000 entries in the access log file and signal
+												Traefik to reopen its log files. The default schedule is
+												daily at midnight (0 0 * * *).
+											</p>
+										</TooltipContent>
+									</Tooltip>
+								</TooltipProvider>
+							</div>
+							<div className="flex-1 flex gap-4">
+								<Input
+									id="cron"
+									placeholder="0 0 * * *"
+									value={cronExpression || ""}
+									onChange={(e) => setCronExpression(e.target.value)}
+									className="max-w-60"
+									required
+								/>
+								<Button
+									variant="outline"
 									onClick={async () => {
-										await toggleRequests({ enable: !isActive })
-											.then(() => {
-												refetch();
-												toast.success(
-													`Requests ${isActive ? "deactivated" : "activated"}`,
-												);
-											})
-											.catch((err) => {
-												toast.error(err.message);
+										if (!cronExpression?.trim()) {
+											toast.error("Please enter a valid cron expression");
+											return;
+										}
+										try {
+											await updateLogCleanup({
+												cronExpression: cronExpression,
 											});
+											toast.success("Log cleanup schedule updated");
+										} catch (error) {
+											toast.error(
+												`Failed to update log cleanup schedule: ${error instanceof Error ? error.message : "Unknown error"}`,
+											);
+										}
 									}}
 								>
-									<Button>{isActive ? "Deactivate" : "Activate"}</Button>
-								</DialogAction>
+									Update Schedule
+								</Button>
 							</div>
+						</div>
+						<DialogAction
+							title={isActive ? "Deactivate Requests" : "Activate Requests"}
+							description="You will also need to restart Traefik to apply the changes"
+							type={isActive ? "destructive" : "default"}
+							onClick={async () => {
+								await toggleRequests({ enable: !isActive })
+									.then(() => {
+										refetch();
+										toast.success(
+											`Requests ${isActive ? "deactivated" : "activated"}`,
+										);
+									})
+									.catch((err) => {
+										toast.error(err.message);
+									});
+							}}
+						>
+							<Button>{isActive ? "Deactivate" : "Activate"}</Button>
+						</DialogAction>
+					</div>
 
-							{isActive ? (
-								<>
-									<div className="flex justify-end mb-4 gap-2">
+					{isActive ? (
+						<>
+							<div className="flex justify-end mb-4 gap-2">
+								<Button
+									variant="outline"
+									onClick={() => setDateRange(getDefaultDateRange())}
+									className="px-3"
+								>
+									Reset to Last 3 Days
+								</Button>
+								<Popover>
+									<PopoverTrigger asChild>
 										<Button
 											variant="outline"
-											onClick={() => setDateRange(getDefaultDateRange())}
-											className="px-3"
+											className="w-[300px] justify-start text-left font-normal"
 										>
-											Reset to Last 3 Days
+											<CalendarIcon className="mr-2 h-4 w-4" />
+											{dateRange.from ? (
+												dateRange.to ? (
+													<>
+														{format(dateRange.from, "LLL dd, y")} -{" "}
+														{format(dateRange.to, "LLL dd, y")}
+													</>
+												) : (
+													format(dateRange.from, "LLL dd, y")
+												)
+											) : (
+												<span>Pick a date range</span>
+											)}
 										</Button>
-										<Popover>
-											<PopoverTrigger asChild>
-												<Button
-													variant="outline"
-													className="w-[300px] justify-start text-left font-normal"
-												>
-													<CalendarIcon className="mr-2 h-4 w-4" />
-													{dateRange.from ? (
-														dateRange.to ? (
-															<>
-																{format(dateRange.from, "LLL dd, y")} -{" "}
-																{format(dateRange.to, "LLL dd, y")}
-															</>
-														) : (
-															format(dateRange.from, "LLL dd, y")
-														)
-													) : (
-														<span>Pick a date range</span>
-													)}
-												</Button>
-											</PopoverTrigger>
-											<PopoverContent className="w-auto p-0" align="end">
-												<Calendar
-													initialFocus
-													mode="range"
-													defaultMonth={dateRange.from}
-													selected={{
-														from: dateRange.from,
-														to: dateRange.to,
-													}}
-													onSelect={(range) => {
-														setDateRange({
-															from: range?.from,
-															to: range?.to,
-														});
-													}}
-													numberOfMonths={2}
-												/>
-											</PopoverContent>
-										</Popover>
-									</div>
-									<RequestDistributionChart dateRange={dateRange} />
-									<RequestsTable dateRange={dateRange} />
-								</>
-							) : (
-								<div className="flex flex-col items-center justify-center py-12 gap-4 text-muted-foreground">
-									<AlertCircle className="size-12 text-muted-foreground/50" />
-									<div className="text-center space-y-2">
-										<h3 className="text-lg font-medium">
-											Requests are not activated
-										</h3>
-										<p className="text-sm max-w-md">
-											Activate requests to see incoming traffic statistics and
-											monitor your application's usage. After activation, you'll
-											need to reload Traefik for the changes to take effect.
-										</p>
-									</div>
-								</div>
-							)}
+									</PopoverTrigger>
+									<PopoverContent className="w-auto p-0" align="end">
+										<Calendar
+											initialFocus
+											mode="range"
+											defaultMonth={dateRange.from}
+											selected={{
+												from: dateRange.from,
+												to: dateRange.to,
+											}}
+											onSelect={(range) => {
+												setDateRange({
+													from: range?.from,
+													to: range?.to,
+												});
+											}}
+											numberOfMonths={2}
+										/>
+									</PopoverContent>
+								</Popover>
+							</div>
+							<RequestDistributionChart dateRange={dateRange} />
+							<RequestsTable dateRange={dateRange} />
+						</>
+					) : (
+						<div className="flex flex-col items-center justify-center py-12 gap-4 text-muted-foreground">
+							<AlertCircle className="size-12 text-muted-foreground/50" />
+							<div className="text-center space-y-2">
+								<h3 className="text-lg font-medium">
+									Requests are not activated
+								</h3>
+								<p className="text-sm max-w-md">
+									Activate requests to see incoming traffic statistics and
+									monitor your application's usage. After activation, you'll
+									need to reload Traefik for the changes to take effect.
+								</p>
+							</div>
 						</div>
+					)}
+				</div>
 			</div>
 		</>
 	);

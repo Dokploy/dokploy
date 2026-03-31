@@ -1,8 +1,9 @@
 "use client";
 
 import debounce from "lodash/debounce";
-import { Pipette, X } from "lucide-react";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Pipette } from "lucide-react";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	InputGroup,
@@ -14,7 +15,6 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 
 // ─── Color helpers ──────────────────────────────────────────────────
 
@@ -28,10 +28,10 @@ function parseColor(colorString: string): {
 
 	if (colorString.startsWith("#")) {
 		const hex = colorString.slice(1);
-		const r = parseInt(hex.slice(0, 2), 16);
-		const g = parseInt(hex.slice(2, 4), 16);
-		const b = parseInt(hex.slice(4, 6), 16);
-		const a = hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1;
+		const r = Number.parseInt(hex.slice(0, 2), 16);
+		const g = Number.parseInt(hex.slice(2, 4), 16);
+		const b = Number.parseInt(hex.slice(4, 6), 16);
+		const a = hex.length === 8 ? Number.parseInt(hex.slice(6, 8), 16) / 255 : 1;
 		return {
 			r: Number.isNaN(r) ? 0 : r,
 			g: Number.isNaN(g) ? 0 : g,
@@ -63,13 +63,13 @@ function getHexOnly(colorValue: string): string {
 }
 
 function hslToRgb(
-	h: number,
-	s: number,
-	l: number,
+	_h: number,
+	_s: number,
+	_l: number,
 ): { r: number; g: number; b: number } {
-	h /= 360;
-	s /= 100;
-	l /= 100;
+	let h = _h / 360;
+	let s = _s / 100;
+	let l = _l / 100;
 	let r: number;
 	let g: number;
 	let b: number;
@@ -98,13 +98,13 @@ function hslToRgb(
 }
 
 function hsvToRgb(
-	h: number,
-	s: number,
-	v: number,
+	_h: number,
+	_s: number,
+	_v: number,
 ): { r: number; g: number; b: number } {
-	h /= 360;
-	s /= 100;
-	v /= 100;
+	const h = _h / 360;
+	const s = _s / 100;
+	const v = _v / 100;
 	let r = 0;
 	let g = 0;
 	let b = 0;
@@ -153,13 +153,13 @@ function hsvToRgb(
 }
 
 function rgbToHsv(
-	r: number,
-	g: number,
-	b: number,
+	_r: number,
+	_g: number,
+	_b: number,
 ): { h: number; s: number; v: number } {
-	r /= 255;
-	g /= 255;
-	b /= 255;
+	const r = _r / 255;
+	const g = _g / 255;
+	const b = _b / 255;
 	const max = Math.max(r, g, b);
 	const min = Math.min(r, g, b);
 	const d = max - min;
@@ -216,9 +216,7 @@ function SaturationValuePicker({
 			const newS =
 				rect.width > 0 ? Math.min(100, (xPos / rect.width) * 100) : 0;
 			const newV =
-				rect.height > 0
-					? Math.max(0, 100 - (yPos / rect.height) * 100)
-					: 0;
+				rect.height > 0 ? Math.max(0, 100 - (yPos / rect.height) * 100) : 0;
 			onChange(newS, newV);
 		},
 		[onChange],
@@ -272,7 +270,10 @@ function SaturationValuePicker({
 function HueBar({
 	hue,
 	onChange,
-}: { hue: number; onChange: (h: number) => void }) {
+}: {
+	hue: number;
+	onChange: (h: number) => void;
+}) {
 	const barRef = useRef<HTMLDivElement>(null);
 	const [isDragging, setIsDragging] = useState(false);
 
@@ -382,9 +383,7 @@ export function ColorPicker({
 		isInternalUpdate.current = false;
 	}, [displayValue]);
 
-	const debouncedOnChange = useRef(
-		debounce((v: string) => onChange(v), 100),
-	);
+	const debouncedOnChange = useRef(debounce((v: string) => onChange(v), 100));
 	useEffect(() => {
 		debouncedOnChange.current = debounce((v: string) => onChange(v), 100);
 		return () => debouncedOnChange.current.cancel();
@@ -505,8 +504,7 @@ export function ColorPicker({
 								onChange={(e) => handleHexChange(e.target.value)}
 								onBlur={handleHexBlur}
 								onKeyDown={(e) => {
-									if (e.key === "Enter")
-										(e.target as HTMLInputElement).blur();
+									if (e.key === "Enter") (e.target as HTMLInputElement).blur();
 								}}
 								placeholder={placeholder}
 							/>

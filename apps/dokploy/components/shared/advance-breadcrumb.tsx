@@ -18,6 +18,7 @@ import {
 	PostgresqlIcon,
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
+import { NotificationBell } from "@/components/layouts/notification-bell";
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -36,7 +37,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { TimeBadge } from "@/components/ui/time-badge";
-import { NotificationBell } from "@/components/layouts/notification-bell";
 import { api, type RouterOutputs } from "@/utils/api";
 
 type ProjectItem = RouterOutputs["project"]["all"][number];
@@ -478,82 +478,88 @@ export const AdvanceBreadcrumb = () => {
 					{/* Environment Selector */}
 					{projectEnvironments && projectEnvironments.length > 1 && (
 						<>
-						<span className="text-muted-foreground/40 text-sm select-none">/</span>
-						<Popover open={environmentOpen} onOpenChange={setEnvironmentOpen}>
-							<PopoverTrigger asChild>
-								<Button
-									variant="ghost"
-									aria-expanded={environmentOpen}
-									className="h-7 px-2 py-1 hover:bg-accent gap-1.5 text-sm text-muted-foreground"
+							<span className="text-muted-foreground/40 text-sm select-none">
+								/
+							</span>
+							<Popover open={environmentOpen} onOpenChange={setEnvironmentOpen}>
+								<PopoverTrigger asChild>
+									<Button
+										variant="ghost"
+										aria-expanded={environmentOpen}
+										className="h-7 px-2 py-1 hover:bg-accent gap-1.5 text-sm text-muted-foreground"
+									>
+										<span className="max-w-[120px] truncate">
+											{currentEnvironment?.name || "production"}
+										</span>
+										<ChevronDown className="size-3.5 text-muted-foreground" />
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent
+									className="w-[350px] p-0"
+									align="start"
+									sideOffset={8}
 								>
-									<span className="max-w-[120px] truncate">
-										{currentEnvironment?.name || "production"}
-									</span>
-									<ChevronDown className="size-3.5 text-muted-foreground" />
-								</Button>
-							</PopoverTrigger>
-							<PopoverContent
-								className="w-[350px] p-0"
-								align="start"
-								sideOffset={8}
-							>
-								<Command shouldFilter={false}>
-									<div className="relative">
-										<CommandInput
-											placeholder="Find Environment..."
-											value={environmentSearch}
-											onValueChange={setEnvironmentSearch}
-											className="w-full focus-visible:ring-0"
-										/>
-										<kbd className="pointer-events-none h-5 absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 flex">
-											Esc
-										</kbd>
-									</div>
-									<CommandList>
-										<CommandEmpty>No environments found.</CommandEmpty>
-										<CommandGroup>
-											<ScrollArea className="h-[300px]">
-												{filteredEnvironments.map((env) => {
-													const isSelected =
-														env.environmentId === environmentId;
-													return (
-														<CommandItem
-															key={env.environmentId}
-															value={env.environmentId}
-															onSelect={() =>
-																handleEnvironmentSelect(env.environmentId)
-															}
-															className="flex items-center justify-between py-2 cursor-pointer"
-														>
-															<span className="font-medium">{env.name}</span>
-															{isSelected && (
-																<Check className="size-4 text-primary" />
-															)}
-														</CommandItem>
-													);
-												})}
-											</ScrollArea>
-										</CommandGroup>
-									</CommandList>
-								</Command>
-							</PopoverContent>
-						</Popover>
-					</>
+									<Command shouldFilter={false}>
+										<div className="relative">
+											<CommandInput
+												placeholder="Find Environment..."
+												value={environmentSearch}
+												onValueChange={setEnvironmentSearch}
+												className="w-full focus-visible:ring-0"
+											/>
+											<kbd className="pointer-events-none h-5 absolute right-2 top-1/2 -translate-y-1/2 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 flex">
+												Esc
+											</kbd>
+										</div>
+										<CommandList>
+											<CommandEmpty>No environments found.</CommandEmpty>
+											<CommandGroup>
+												<ScrollArea className="h-[300px]">
+													{filteredEnvironments.map((env) => {
+														const isSelected =
+															env.environmentId === environmentId;
+														return (
+															<CommandItem
+																key={env.environmentId}
+																value={env.environmentId}
+																onSelect={() =>
+																	handleEnvironmentSelect(env.environmentId)
+																}
+																className="flex items-center justify-between py-2 cursor-pointer"
+															>
+																<span className="font-medium">{env.name}</span>
+																{isSelected && (
+																	<Check className="size-4 text-primary" />
+																)}
+															</CommandItem>
+														);
+													})}
+												</ScrollArea>
+											</CommandGroup>
+										</CommandList>
+									</Command>
+								</PopoverContent>
+							</Popover>
+						</>
 					)}
 
 					{projectEnvironments && projectEnvironments.length === 1 && (
 						<>
-						<span className="text-muted-foreground/40 text-sm select-none">/</span>
-						<span className="text-sm text-muted-foreground px-1">
-							{currentEnvironment?.name || "production"}
-						</span>
+							<span className="text-muted-foreground/40 text-sm select-none">
+								/
+							</span>
+							<span className="text-sm text-muted-foreground px-1">
+								{currentEnvironment?.name || "production"}
+							</span>
 						</>
 					)}
 
 					{/* Service Selector - only show when viewing a service */}
 					{serviceId && currentService && (
 						<>
-							<span className="text-muted-foreground/40 text-sm select-none">/</span>
+							<span className="text-muted-foreground/40 text-sm select-none">
+								/
+							</span>
 
 							<Popover open={serviceOpen} onOpenChange={setServiceOpen}>
 								<PopoverTrigger asChild>

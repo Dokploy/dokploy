@@ -72,7 +72,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
 		return (
 			<>
-				<div className={cn("relative", !className?.includes("max-w-") && "w-full")}>
+				<div
+					className={cn("relative", !className?.includes("max-w-") && "w-full")}
+				>
 					<input
 						type={inputType}
 						className={cn(
@@ -113,9 +115,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 					)}
 				</div>
 				{errorMessage && (
-					<span className="text-sm text-red-600">
-						{errorMessage}
-					</span>
+					<span className="text-sm text-red-600">{errorMessage}</span>
 				)}
 			</>
 		);

@@ -2,12 +2,12 @@ import { findGitProviderById, removeGitProvider } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
-import { audit } from "@/server/api/utils/audit";
 import {
 	createTRPCRouter,
 	protectedProcedure,
 	withPermission,
 } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import { apiRemoveGitProvider, gitProvider } from "@/server/db/schema";
 
 export const gitProviderRouter = createTRPCRouter({

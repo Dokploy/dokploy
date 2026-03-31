@@ -106,55 +106,52 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 
 			<Select onValueChange={setContainerId} value={containerId}>
 				<SelectTrigger>
-						{isLoading ? (
-							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
-								<span>Loading...</span>
-								<Loader2 className="animate-spin size-4" />
+					{isLoading ? (
+						<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
+							<span>Loading...</span>
+							<Loader2 className="animate-spin size-4" />
+						</div>
+					) : (
+						<SelectValue placeholder="Select a container" />
+					)}
+				</SelectTrigger>
+				<SelectContent>
+					<SelectGroup>
+						{option === "native" ? (
+							<div>
+								{containers?.map((container) => (
+									<SelectItem
+										key={container.containerId}
+										value={container.containerId}
+									>
+										{container.name} ({container.containerId}){" "}
+										<Badge variant={badgeStateColor(container.state)}>
+											{container.state}
+										</Badge>
+										{container.status ? ` ${container.status}` : ""}
+									</SelectItem>
+								))}
 							</div>
 						) : (
-							<SelectValue placeholder="Select a container" />
+							<>
+								{services?.map((container) => (
+									<SelectItem
+										key={container.containerId}
+										value={container.containerId}
+									>
+										{container.name} ({container.containerId}@{container.node})
+										<Badge variant={badgeStateColor(container.state)}>
+											{container.state}
+										</Badge>
+										{container.currentState ? ` ${container.currentState}` : ""}
+									</SelectItem>
+								))}
+							</>
 						)}
-					</SelectTrigger>
-					<SelectContent>
-						<SelectGroup>
-							{option === "native" ? (
-								<div>
-									{containers?.map((container) => (
-										<SelectItem
-											key={container.containerId}
-											value={container.containerId}
-										>
-											{container.name} ({container.containerId}){" "}
-											<Badge variant={badgeStateColor(container.state)}>
-												{container.state}
-											</Badge>
-											{container.status ? ` ${container.status}` : ""}
-										</SelectItem>
-									))}
-								</div>
-							) : (
-								<>
-									{services?.map((container) => (
-										<SelectItem
-											key={container.containerId}
-											value={container.containerId}
-										>
-											{container.name} ({container.containerId}@{container.node}
-											)
-											<Badge variant={badgeStateColor(container.state)}>
-												{container.state}
-											</Badge>
-											{container.currentState
-												? ` ${container.currentState}`
-												: ""}
-										</SelectItem>
-									))}
-								</>
-							)}
 
-							<SelectLabel>Containers ({containersLenght})</SelectLabel>
-						</SelectGroup>
-					</SelectContent>
+						<SelectLabel>Containers ({containersLenght})</SelectLabel>
+					</SelectGroup>
+				</SelectContent>
 			</Select>
 
 			{option === "swarm" &&

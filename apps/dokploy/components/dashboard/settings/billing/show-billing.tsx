@@ -656,7 +656,7 @@ export const ShowBilling = () => {
 										className="w-full"
 										onValueChange={(e) => setIsAnnual(e === "annual")}
 									>
-										<TabsList >
+										<TabsList>
 											<TabsTrigger value="monthly">Monthly</TabsTrigger>
 											<TabsTrigger value="annual">Annual (20% off)</TabsTrigger>
 										</TabsList>

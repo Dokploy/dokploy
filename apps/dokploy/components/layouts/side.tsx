@@ -774,7 +774,6 @@ function SidebarLogo() {
 							</DropdownMenuContent>
 						</DropdownMenu>
 					</SidebarMenuItem>
-
 				</SidebarMenu>
 			)}
 		</>
@@ -806,7 +805,15 @@ export default function Page({ children }: Props) {
 		refetchOnWindowFocus: false,
 	});
 
-	const hasOwnBreadcrumb = pathname?.includes("/dashboard/project") || pathname?.includes("/dashboard/deployments") || pathname?.includes("/dashboard/monitoring") || pathname?.includes("/dashboard/schedules") || pathname?.includes("/dashboard/traefik") || pathname?.includes("/dashboard/docker") || pathname?.includes("/dashboard/swarm") || pathname?.includes("/dashboard/requests");
+	const hasOwnBreadcrumb =
+		pathname?.includes("/dashboard/project") ||
+		pathname?.includes("/dashboard/deployments") ||
+		pathname?.includes("/dashboard/monitoring") ||
+		pathname?.includes("/dashboard/schedules") ||
+		pathname?.includes("/dashboard/traefik") ||
+		pathname?.includes("/dashboard/docker") ||
+		pathname?.includes("/dashboard/swarm") ||
+		pathname?.includes("/dashboard/requests");
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	const {
@@ -1109,7 +1116,12 @@ export default function Page({ children }: Props) {
 					</header>
 				)}
 
-				<main className={cn("flex-1 overflow-y-auto px-4 pb-6", !hasOwnBreadcrumb && "pt-6")}>
+				<main
+					className={cn(
+						"flex-1 overflow-y-auto px-4 pb-6",
+						!hasOwnBreadcrumb && "pt-6",
+					)}
+				>
 					{children}
 				</main>
 			</SidebarInset>

@@ -148,11 +148,7 @@ const DialogContent = React.forwardRef<
 				</div>
 
 				{/* DialogFooter outside scrollable area with proper spacing */}
-				{dialogFooter && (
-					<div className="px-6 pb-6 pt-2">
-						{dialogFooter}
-					</div>
-				)}
+				{dialogFooter && <div className="px-6 pb-6 pt-2">{dialogFooter}</div>}
 
 				<DialogPrimitive.Close className="absolute right-4 top-4 rounded-full h-7 w-7 flex items-center justify-center opacity-60 ring-offset-background transition-all hover:opacity-100 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
 					<X className="h-3.5 w-3.5" />

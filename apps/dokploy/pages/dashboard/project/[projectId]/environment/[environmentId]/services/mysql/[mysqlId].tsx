@@ -26,10 +26,7 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
-import {
-	CardDescription,
-	CardTitle,
-} from "@/components/ui/card";
+import { CardDescription, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -83,7 +80,7 @@ const MySql = (
 				</Head>
 				<div className="w-full">
 					<div>
-						<div >
+						<div>
 							<div className="flex flex-row justify-between items-center">
 								<div className="flex flex-col">
 									<CardTitle className="text-xl flex flex-row gap-2">

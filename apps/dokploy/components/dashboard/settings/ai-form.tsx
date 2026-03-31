@@ -21,7 +21,9 @@ export const AiForm = () => {
 								<BotIcon className="size-5 text-muted-foreground" />
 								AI Settings
 							</h2>
-							<p className="text-sm text-muted-foreground mt-1">Manage your AI configurations</p>
+							<p className="text-sm text-muted-foreground mt-1">
+								Manage your AI configurations
+							</p>
 						</div>
 						{aiConfigs && aiConfigs?.length > 0 && <HandleAi />}
 					</div>
@@ -53,7 +55,9 @@ export const AiForm = () => {
 														<span className="text-sm font-medium">
 															{config.name}
 														</span>
-														<p className="text-sm text-muted-foreground">{config.model}</p>
+														<p className="text-sm text-muted-foreground">
+															{config.model}
+														</p>
 													</div>
 													<div className="flex justify-between items-center">
 														<HandleAi aiId={config.aiId} />

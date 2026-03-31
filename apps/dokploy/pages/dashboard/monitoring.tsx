@@ -6,8 +6,8 @@ import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ShowPaidMonitoring } from "@/components/dashboard/monitoring/paid/servers/show-paid-monitoring";
-import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { api } from "@/utils/api";
 
@@ -24,23 +24,23 @@ const Dashboard = () => {
 	const { data: monitoring, isPending } = api.user.getMetricsToken.useQuery();
 	return (
 		<>
-		<BreadcrumbSidebar
-			list={[{ name: "Monitoring", href: "/dashboard/monitoring" }]}
-		/>
-		<div className="w-full">
-			<div className="flex justify-between gap-4 w-full items-center flex-wrap">
-				<div className="flex flex-col gap-1.5">
-					<h2 className="text-2xl font-semibold tracking-tight flex flex-row gap-2">
-						<Activity className="size-6 text-muted-foreground self-center" />
-						Monitoring
-					</h2>
-					<p className="text-sm text-muted-foreground">
-						Monitor your server and container resources in real time.
-					</p>
+			<BreadcrumbSidebar
+				list={[{ name: "Monitoring", href: "/dashboard/monitoring" }]}
+			/>
+			<div className="w-full">
+				<div className="flex justify-between gap-4 w-full items-center flex-wrap">
+					<div className="flex flex-col gap-1.5">
+						<h2 className="text-2xl font-semibold tracking-tight flex flex-row gap-2">
+							<Activity className="size-6 text-muted-foreground self-center" />
+							Monitoring
+						</h2>
+						<p className="text-sm text-muted-foreground">
+							Monitor your server and container resources in real time.
+						</p>
+					</div>
 				</div>
-			</div>
-			<div className="pt-6">
-			{/* <AlertBlock>
+				<div className="pt-6">
+					{/* <AlertBlock>
 				You are watching the <strong>Free</strong> plan.{" "}
 				<a
 					href="https://dokploy.com#pricing"
@@ -52,14 +52,14 @@ const Dashboard = () => {
 				</a>{" "}
 				to get more features.
 			</AlertBlock> */}
-			{isPending ? (
-				<div className="flex gap-2 items-center justify-center min-h-[50vh] text-muted-foreground">
-					<span>Loading...</span>
-					<Loader2 className="h-4 w-4 animate-spin" />
-				</div>
-			) : (
-				<>
-					{/* {monitoring?.enabledFeatures && (
+					{isPending ? (
+						<div className="flex gap-2 items-center justify-center min-h-[50vh] text-muted-foreground">
+							<span>Loading...</span>
+							<Loader2 className="h-4 w-4 animate-spin" />
+						</div>
+					) : (
+						<>
+							{/* {monitoring?.enabledFeatures && (
 						<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
 							<Label className="text-muted-foreground">Change Monitoring</Label>
 							<Switch
@@ -68,7 +68,7 @@ const Dashboard = () => {
 							/>
 						</div>
 					)} */}
-					{toggleMonitoring ? (
+							{toggleMonitoring ? (
 								<ShowPaidMonitoring
 									BASE_URL={
 										process.env.NODE_ENV === "production"
@@ -81,13 +81,13 @@ const Dashboard = () => {
 											: DEFAULT_TOKEN
 									}
 								/>
-					) : (
+							) : (
 								<ContainerFreeMonitoring appName="dokploy" />
+							)}
+						</>
 					)}
-				</>
-			)}
+				</div>
 			</div>
-		</div>
 		</>
 	);
 };

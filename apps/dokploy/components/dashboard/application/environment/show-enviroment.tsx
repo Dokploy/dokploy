@@ -168,7 +168,7 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 								name="environment"
 								render={({ field }) => (
 									<FormItem>
-										<FormControl >
+										<FormControl>
 											<CodeEditor
 												style={
 													{

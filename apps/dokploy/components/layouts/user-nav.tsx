@@ -13,8 +13,8 @@ import {
 	Sun,
 	User,
 } from "lucide-react";
-import { useTheme } from "next-themes";
 import { useRouter } from "next/router";
+import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -61,7 +61,7 @@ export const UserNav = ({ compact }: { compact?: boolean }) => {
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
 				{compact ? (
-					<button className="flex items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring">
+					<button type="button" className="flex items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring">
 						{avatarEl}
 					</button>
 				) : (

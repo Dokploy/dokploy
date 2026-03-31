@@ -112,25 +112,57 @@
 }
 
 /* ── Scrollbar ── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.3); }
-* { scrollbar-width: thin; scrollbar-color: hsl(var(--border)) transparent; }
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+::-webkit-scrollbar-thumb {
+	background: hsl(var(--border));
+	border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: hsl(var(--muted-foreground) / 0.3);
+}
+* {
+	scrollbar-width: thin;
+	scrollbar-color: hsl(var(--border)) transparent;
+}
 
 /* ── Docker logs scrollbar ── */
 @layer utilities {
-	.custom-logs-scrollbar { scrollbar-width: thin; scrollbar-color: hsl(var(--muted-foreground)) transparent; }
-	.custom-logs-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
-	.custom-logs-scrollbar::-webkit-scrollbar-track { background: transparent; }
-	.custom-logs-scrollbar::-webkit-scrollbar-thumb { background-color: hsl(var(--muted-foreground) / 0.3); border-radius: 20px; }
-	.custom-logs-scrollbar::-webkit-scrollbar-thumb:hover { background-color: hsl(var(--muted-foreground) / 0.5); }
+	.custom-logs-scrollbar {
+		scrollbar-width: thin;
+		scrollbar-color: hsl(var(--muted-foreground)) transparent;
+	}
+	.custom-logs-scrollbar::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+	.custom-logs-scrollbar::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	.custom-logs-scrollbar::-webkit-scrollbar-thumb {
+		background-color: hsl(var(--muted-foreground) / 0.3);
+		border-radius: 20px;
+	}
+	.custom-logs-scrollbar::-webkit-scrollbar-thumb:hover {
+		background-color: hsl(var(--muted-foreground) / 0.5);
+	}
 }
 
 /* ── Terminal (xterm) ── */
-.xterm-viewport { border-radius: 0 !important; }
-.xterm .xterm-viewport { overflow-y: auto !important; }
-.xterm .xterm-screen { overflow: hidden; }
+.xterm-viewport {
+	border-radius: 0 !important;
+}
+.xterm .xterm-viewport {
+	overflow-y: auto !important;
+}
+.xterm .xterm-screen {
+	overflow: hidden;
+}
 .xterm-bg-257.xterm-fg-257 {
 	background-color: var(--terminal-paste) !important;
 	color: currentColor !important;
@@ -140,16 +172,33 @@
 .cm-editor {
 	@apply w-full h-full rounded-lg overflow-hidden border border-border outline-none;
 }
-.cm-editor .cm-scroller { font-family: inherit; line-height: inherit; }
-.cm-editor.cm-focused { @apply outline-none border-foreground/50; }
-.cm-editor .cm-activeLine:has(.cm-placeholder) { background-color: transparent; }
-.compose-file-editor .cm-editor { @apply min-h-[25rem]; }
-.cm-content, .cm-lineWrapping { @apply font-mono; }
+.cm-editor .cm-scroller {
+	font-family: inherit;
+	line-height: inherit;
+}
+.cm-editor.cm-focused {
+	@apply outline-none border-foreground/50;
+}
+.cm-editor .cm-activeLine:has(.cm-placeholder) {
+	background-color: transparent;
+}
+.compose-file-editor .cm-editor {
+	@apply min-h-[25rem];
+}
+.cm-content,
+.cm-lineWrapping {
+	@apply font-mono;
+}
 
 /* ── Utilities ── */
 @layer utilities {
-	.no-scrollbar::-webkit-scrollbar { display: none; }
-	.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+	.no-scrollbar::-webkit-scrollbar {
+		display: none;
+	}
+	.no-scrollbar {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
 }
 
 /* HubSpot Widget - Force light color-scheme to prevent white background */

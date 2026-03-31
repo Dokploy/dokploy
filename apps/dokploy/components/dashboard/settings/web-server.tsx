@@ -19,28 +19,30 @@ export const WebServer = () => {
 					<ServerIcon className="size-5 text-muted-foreground" />
 					Web Server
 				</h2>
-				<p className="text-sm text-muted-foreground">Reload or clean the web server.</p>
+				<p className="text-sm text-muted-foreground">
+					Reload or clean the web server.
+				</p>
 			</div>
 			<div className="space-y-6 pt-6">
-						<div className="grid md:grid-cols-2 gap-4">
-							<ShowDokployActions />
-							<ShowTraefikActions />
-							<ShowStorageActions />
+				<div className="grid md:grid-cols-2 gap-4">
+					<ShowDokployActions />
+					<ShowTraefikActions />
+					<ShowStorageActions />
 
-							<UpdateServer />
-						</div>
+					<UpdateServer />
+				</div>
 
-						<div className="flex items-center flex-wrap justify-between gap-4">
-							<span className="text-sm text-muted-foreground">
-								Server IP: {webServerSettings?.serverIp}
-							</span>
-							<span className="text-sm text-muted-foreground">
-								Version: {dokployVersion}
-							</span>
+				<div className="flex items-center flex-wrap justify-between gap-4">
+					<span className="text-sm text-muted-foreground">
+						Server IP: {webServerSettings?.serverIp}
+					</span>
+					<span className="text-sm text-muted-foreground">
+						Version: {dokployVersion}
+					</span>
 
-							<ToggleDockerCleanup />
-						</div>
-					</div>
+					<ToggleDockerCleanup />
+				</div>
+			</div>
 		</div>
 	);
 };

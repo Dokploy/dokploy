@@ -236,7 +236,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 
 	return (
 		<>
-			<CardHeader >
+			<CardHeader>
 				<CardTitle className="text-xl flex flex-row gap-2">
 					<LayoutDashboardIcon className="size-6 text-muted-foreground self-center" />
 					Monitoring

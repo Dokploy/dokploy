@@ -886,7 +886,7 @@ const EnvironmentPage = (
 			</Head>
 			<div className="w-full">
 				<div>
-					<div >
+					<div>
 						<div className="flex justify-between gap-4 w-full items-center flex-wrap">
 							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2 items-center">
