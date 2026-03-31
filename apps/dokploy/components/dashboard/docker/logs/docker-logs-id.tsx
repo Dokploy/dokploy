@@ -309,8 +309,8 @@ export const DockerLogsId: React.FC<Props> = ({
 	const [showFilters, setShowFilters] = useState(false);
 	const activeFilterCount =
 		(typeFilter.length > 0 ? typeFilter.length : 0) +
-		(lines !== "100" ? 1 : 0) +
-		(since !== "1 hour" ? 1 : 0);
+		(lines !== 100 ? 1 : 0) +
+		(since !== "all" ? 1 : 0);
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -414,8 +414,8 @@ export const DockerLogsId: React.FC<Props> = ({
 									size="sm"
 									className="h-6 text-xs px-2"
 									onClick={() => {
-										handleLines("100");
-										handleSince("1 hour");
+										handleLines(100);
+										handleSince("all");
 										setTypeFilter([]);
 										setShowTimestamp(false);
 									}}

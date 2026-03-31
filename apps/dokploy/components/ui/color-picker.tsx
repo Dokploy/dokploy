@@ -67,16 +67,17 @@ function hslToRgb(
 	_s: number,
 	_l: number,
 ): { r: number; g: number; b: number } {
-	let h = _h / 360;
-	let s = _s / 100;
-	let l = _l / 100;
+	const h = _h / 360;
+	const s = _s / 100;
+	const l = _l / 100;
 	let r: number;
 	let g: number;
 	let b: number;
 	if (s === 0) {
 		r = g = b = l;
 	} else {
-		const hue2rgb = (p: number, q: number, t: number) => {
+		const hue2rgb = (p: number, q: number, _t: number) => {
+			let t = _t;
 			if (t < 0) t += 1;
 			if (t > 1) t -= 1;
 			if (t < 1 / 6) return p + (q - p) * 6 * t;

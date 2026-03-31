@@ -14,7 +14,7 @@ import { api } from "@/utils/api";
 
 export function NotificationBell() {
 	const { data: invitations, refetch: refetchInvitations } =
-		api.user.listInvitations.useQuery();
+		api.user.getInvitations.useQuery();
 	const { refetch } = api.user.get.useQuery();
 
 	return (
