@@ -202,26 +202,24 @@ export const ShowProjects = () => {
 				list={[{ name: "Projects", href: "/dashboard/projects" }]}
 			/>
 			<div className="w-full">
-				<Card className="h-full bg-sidebar p-2.5 rounded-xl  ">
-					<div className="rounded-xl bg-background shadow-md ">
-						<div className="flex justify-between gap-4 w-full items-center flex-wrap p-6">
-							<CardHeader className="p-0">
-								<CardTitle className="text-xl flex flex-row gap-2">
-									<FolderInput className="size-6 text-muted-foreground self-center" />
-									Projects
-								</CardTitle>
-								<CardDescription>
-									Create and manage your projects
-								</CardDescription>
-							</CardHeader>
-							{permissions?.project.create && (
-								<div className="">
-									<HandleProject />
-								</div>
-							)}
+					<div className="flex justify-between gap-4 w-full items-center flex-wrap">
+						<div className="flex flex-col gap-1.5">
+							<h2 className="text-2xl font-semibold tracking-tight flex flex-row gap-2">
+								<FolderInput className="size-6 text-muted-foreground self-center" />
+								Projects
+							</h2>
+							<p className="text-sm text-muted-foreground">
+								Create and manage your projects
+							</p>
 						</div>
+						{permissions?.project.create && (
+							<div>
+								<HandleProject />
+							</div>
+						)}
+					</div>
 
-						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
+						<div className="space-y-2 pt-6 gap-4 flex flex-col min-h-[60vh]">
 							{isPending ? (
 								<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[60vh]">
 									<span>Loading...</span>
@@ -510,9 +508,7 @@ export const ShowProjects = () => {
 									</div>
 								</>
 							)}
-						</CardContent>
-					</div>
-				</Card>
+						</div>
 			</div>
 		</>
 	);
