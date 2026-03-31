@@ -317,6 +317,7 @@ export const ShowUsers = () => {
 							</>
 						)}
 					</div>
+			</div>
 		</div>
 	);
 };

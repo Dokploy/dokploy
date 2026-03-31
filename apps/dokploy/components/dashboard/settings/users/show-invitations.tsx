@@ -199,6 +199,7 @@ export const ShowInvitations = () => {
 							</>
 						)}
 					</div>
+			</div>
 		</div>
 	);
 };
