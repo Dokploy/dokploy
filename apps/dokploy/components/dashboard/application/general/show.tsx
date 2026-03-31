@@ -277,18 +277,16 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 						appName={data?.appName || ""}
 						serverId={data?.serverId || ""}
 					>
-						<Button
-							variant="outline"
-							size="sm"
-							className="h-8 gap-1.5 text-sm"
-						>
+						<Button variant="outline" size="sm" className="h-8 gap-1.5 text-sm">
 							<Terminal className="size-3.5 mr-1" />
 							Open Terminal
 						</Button>
 					</DockerTerminalModal>
 					{canUpdateService && (
 						<div className="flex flex-row items-center gap-2 rounded-md h-8 px-3 border border-border/50">
-							<span className="text-sm font-medium text-muted-foreground">Autodeploy</span>
+							<span className="text-sm font-medium text-muted-foreground">
+								Autodeploy
+							</span>
 							<Switch
 								aria-label="Toggle autodeploy"
 								checked={data?.autoDeploy || false}
@@ -312,7 +310,9 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 
 					{canUpdateService && (
 						<div className="flex flex-row items-center gap-2 rounded-md h-8 px-3 border border-border/50">
-							<span className="text-sm font-medium text-muted-foreground">Clean Cache</span>
+							<span className="text-sm font-medium text-muted-foreground">
+								Clean Cache
+							</span>
 							<Switch
 								aria-label="Toggle clean cache"
 								checked={data?.cleanCache || false}

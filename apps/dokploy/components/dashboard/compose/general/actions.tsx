@@ -211,18 +211,16 @@ export const ComposeActions = ({ composeId }: Props) => {
 				serverId={data?.serverId || ""}
 				appType={data?.composeType || "docker-compose"}
 			>
-				<Button
-					variant="outline"
-					size="sm"
-					className="h-8 gap-1.5 text-sm"
-				>
+				<Button variant="outline" size="sm" className="h-8 gap-1.5 text-sm">
 					<Terminal className="size-3.5 mr-1" />
 					Open Terminal
 				</Button>
 			</DockerTerminalModal>
 			{canUpdateService && (
 				<div className="flex flex-row items-center gap-2 rounded-md h-8 px-3 border border-border/50">
-					<span className="text-sm font-medium text-muted-foreground">Autodeploy</span>
+					<span className="text-sm font-medium text-muted-foreground">
+						Autodeploy
+					</span>
 					<Switch
 						aria-label="Toggle autodeploy"
 						checked={data?.autoDeploy || false}
