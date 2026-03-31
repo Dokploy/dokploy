@@ -45,9 +45,7 @@ export const ShowUsers = () => {
 
 	return (
 		<div className="w-full">
-			<div>
-				<div>
-					<div>
+			<div className="flex flex-col gap-4">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
@@ -319,8 +317,6 @@ export const ShowUsers = () => {
 							</>
 						)}
 					</div>
-				</div>
-			</div>
 		</div>
 	);
 };

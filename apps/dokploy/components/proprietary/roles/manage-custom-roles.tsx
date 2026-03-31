@@ -543,9 +543,8 @@ type CreateRoleSchema = z.infer<typeof createRoleSchema>;
 
 export const ManageCustomRoles = () => {
 	return (
-		<div>
-			<div>
-					<EnterpriseFeatureGate
+		<div className="flex flex-col gap-4">
+				<EnterpriseFeatureGate
 						lockedProps={{
 							title: "Custom Roles",
 							description:
@@ -555,8 +554,6 @@ export const ManageCustomRoles = () => {
 					>
 						<CustomRolesContent />
 					</EnterpriseFeatureGate>
-				</div>
-			</div>
 		</div>
 	);
 };

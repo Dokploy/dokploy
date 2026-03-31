@@ -33,12 +33,11 @@ export const ShowInvitations = () => {
 
 	return (
 		<div className="w-full">
-			<div>
+			<div className="flex flex-col gap-4">
+				<div className="flex justify-end">
+					<AddInvitation />
+				</div>
 				<div>
-					<div className="flex justify-end mb-4">
-						<AddInvitation />
-					</div>
-					<div>
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
@@ -200,8 +199,6 @@ export const ShowInvitations = () => {
 							</>
 						)}
 					</div>
-				</div>
-			</div>
 		</div>
 	);
 };
