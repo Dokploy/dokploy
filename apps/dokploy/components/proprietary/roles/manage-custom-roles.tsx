@@ -560,10 +560,10 @@ export const ManageCustomRoles = () => {
 interface HandleCustomRoleProps {
 	roleName?: string;
 	initialPermissions?: Record<string, string[]>;
-	onSuccess: () => void;
+	onSuccess?: () => void;
 }
 
-function HandleCustomRole({
+export function HandleCustomRole({
 	roleName,
 	initialPermissions,
 	onSuccess,
@@ -626,7 +626,7 @@ function HandleCustomRole({
 			if (!isEdit) {
 				setOpen(false);
 			}
-			onSuccess();
+			onSuccess?.();
 		} catch (error) {
 			let message = `Error ${isEdit ? "updating" : "creating"} role`;
 			if (error instanceof Error) {
@@ -780,9 +780,6 @@ const CustomRolesContent = () => {
 
 	return (
 		<div className="space-y-4">
-			<div className="flex justify-end">
-				<HandleCustomRole onSuccess={refetch} />
-			</div>
 
 			{customRoles?.length === 0 ? (
 				<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center text-center py-8">
