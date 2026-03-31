@@ -136,7 +136,7 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger className="" asChild>
+			<DialogTrigger asChild>
 				{sshKeyId ? (
 					<Button
 						variant="ghost"

@@ -54,11 +54,11 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 
 	return (
 		<>
-			<Card className="bg-background">
+			<Card className="bg-background border-border/50">
 				<CardHeader>
 					<CardTitle className="text-xl">Deploy Settings</CardTitle>
 				</CardHeader>
-				<CardContent className="flex flex-row gap-4 flex-wrap">
+				<CardContent className="flex flex-row gap-2 flex-wrap">
 					<TooltipProvider delayDuration={0} disableHoverableContent={false}>
 						{canDeploy && (
 							<DialogAction
@@ -83,13 +83,14 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							>
 								<Button
 									variant="default"
+									size="sm"
 									isLoading={data?.applicationStatus === "running"}
-									className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+									className="h-8 gap-1.5 text-sm"
 								>
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
-												<Rocket className="size-4 mr-1" />
+												<Rocket className="size-3.5 mr-1" />
 												Deploy
 											</div>
 										</TooltipTrigger>
@@ -126,13 +127,14 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							>
 								<Button
 									variant="secondary"
+									size="sm"
 									isLoading={isReloading}
-									className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+									className="h-8 gap-1.5 text-sm"
 								>
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
-												<RefreshCcw className="size-4 mr-1" />
+												<RefreshCcw className="size-3.5 mr-1" />
 												Reload
 											</div>
 										</TooltipTrigger>
@@ -165,13 +167,14 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							>
 								<Button
 									variant="secondary"
+									size="sm"
 									isLoading={data?.applicationStatus === "running"}
-									className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+									className="h-8 gap-1.5 text-sm"
 								>
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
-												<Hammer className="size-4 mr-1" />
+												<Hammer className="size-3.5 mr-1" />
 												Rebuild
 											</div>
 										</TooltipTrigger>
@@ -208,13 +211,14 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							>
 								<Button
 									variant="secondary"
+									size="sm"
 									isLoading={isStarting}
-									className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+									className="h-8 gap-1.5 text-sm"
 								>
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
-												<CheckCircle2 className="size-4 mr-1" />
+												<CheckCircle2 className="size-3.5 mr-1" />
 												Start
 											</div>
 										</TooltipTrigger>
@@ -248,13 +252,14 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							>
 								<Button
 									variant="destructive"
+									size="sm"
 									isLoading={isStopping}
-									className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+									className="h-8 gap-1.5 text-sm"
 								>
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
-												<Ban className="size-4 mr-1" />
+												<Ban className="size-3.5 mr-1" />
 												Stop
 											</div>
 										</TooltipTrigger>
@@ -272,17 +277,16 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 						appName={data?.appName || ""}
 						serverId={data?.serverId || ""}
 					>
-						<Button
-							variant="outline"
-							className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
-						>
-							<Terminal className="size-4 mr-1" />
+						<Button variant="outline" size="sm" className="h-8 gap-1.5 text-sm">
+							<Terminal className="size-3.5 mr-1" />
 							Open Terminal
 						</Button>
 					</DockerTerminalModal>
 					{canUpdateService && (
-						<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
-							<span className="text-sm font-medium">Autodeploy</span>
+						<div className="flex flex-row items-center gap-2 rounded-md h-8 px-3 border border-border/50">
+							<span className="text-sm font-medium text-muted-foreground">
+								Autodeploy
+							</span>
 							<Switch
 								aria-label="Toggle autodeploy"
 								checked={data?.autoDeploy || false}
@@ -299,14 +303,16 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											toast.error("Error updating Auto Deploy");
 										});
 								}}
-								className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
+								size="sm"
 							/>
 						</div>
 					)}
 
 					{canUpdateService && (
-						<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
-							<span className="text-sm font-medium">Clean Cache</span>
+						<div className="flex flex-row items-center gap-2 rounded-md h-8 px-3 border border-border/50">
+							<span className="text-sm font-medium text-muted-foreground">
+								Clean Cache
+							</span>
 							<Switch
 								aria-label="Toggle clean cache"
 								checked={data?.cleanCache || false}
@@ -323,7 +329,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											toast.error("Error updating Clean Cache");
 										});
 								}}
-								className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
+								size="sm"
 							/>
 						</div>
 					)}

@@ -100,7 +100,7 @@ export const AddInvitation = () => {
 	};
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
-			<DialogTrigger className="" asChild>
+			<DialogTrigger asChild>
 				<Button>
 					<PlusIcon className="h-4 w-4" /> Add Invitation
 				</Button>

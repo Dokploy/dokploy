@@ -3,20 +3,12 @@ import defaultTheme from "tailwindcss/defaultTheme";
 
 const config = {
 	darkMode: ["class"],
-	content: [
-		"./pages/**/*.{ts,tsx}",
-		"./components/**/*.{ts,tsx}",
-		"./app/**/*.{ts,tsx}",
-		"./src/**/*.{ts,tsx}",
-	],
-	prefix: "",
+	content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
 	theme: {
 		container: {
 			center: true,
 			padding: "2rem",
-			screens: {
-				"2xl": "87.5rem",
-			},
+			screens: { "2xl": "87.5rem" },
 		},
 		extend: {
 			fontFamily: {
@@ -26,10 +18,8 @@ const config = {
 				"3xl": "1920px",
 			},
 			maxWidth: {
-				"2xl": "40rem",
 				"8xl": "85rem",
 				"9xl": "95rem",
-				"10xl": "105rem",
 			},
 			colors: {
 				border: "hsl(var(--border))",
@@ -82,35 +72,28 @@ const config = {
 				sm: "calc(var(--radius) - 4px)",
 			},
 			keyframes: {
-				"caret-blink": {
-					"0%,70%,100%": {
-						opacity: "1",
-					},
-					"20%,50%": {
-						opacity: "0",
-					},
-				},
 				"accordion-down": {
-					from: {
-						height: "0",
-					},
-					to: {
-						height: "var(--radix-accordion-content-height)",
-					},
+					from: { height: "0" },
+					to: { height: "var(--radix-accordion-content-height)" },
 				},
 				"accordion-up": {
-					from: {
-						height: "var(--radix-accordion-content-height)",
-					},
-					to: {
-						height: "0",
-					},
+					from: { height: "var(--radix-accordion-content-height)" },
+					to: { height: "0" },
+				},
+				"caret-blink": {
+					"0%,70%,100%": { opacity: "1" },
+					"20%,50%": { opacity: "0" },
+				},
+				heartbeat: {
+					"0%,100%": { transform: "scale(1)", opacity: "0.7" },
+					"50%": { transform: "scale(1.15)", opacity: "1" },
 				},
 			},
 			animation: {
-				"caret-blink": "caret-blink 1.25s ease-out infinite",
 				"accordion-down": "accordion-down 0.2s ease-out",
 				"accordion-up": "accordion-up 0.2s ease-out",
+				"caret-blink": "caret-blink 1.25s ease-out infinite",
+				heartbeat: "heartbeat 2s ease-in-out infinite",
 			},
 		},
 	},

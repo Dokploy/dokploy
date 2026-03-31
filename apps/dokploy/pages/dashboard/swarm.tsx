@@ -1,15 +1,37 @@
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import { Boxes } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import SwarmMonitorCard from "@/components/dashboard/swarm/monitoring-card";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { appRouter } from "@/server/api/root";
 
 const Dashboard = () => {
-	return <SwarmMonitorCard />;
+	return (
+		<>
+			<BreadcrumbSidebar list={[{ name: "Swarm", href: "/dashboard/swarm" }]} />
+			<div className="w-full">
+				<div className="flex justify-between gap-4 w-full items-center flex-wrap">
+					<div className="flex flex-col gap-1.5">
+						<h2 className="text-2xl font-semibold tracking-tight flex flex-row gap-2">
+							<Boxes className="size-6 text-muted-foreground self-center" />
+							Docker Swarm
+						</h2>
+						<p className="text-sm text-muted-foreground">
+							Monitor and manage your Docker Swarm cluster
+						</p>
+					</div>
+				</div>
+				<div className="pt-6">
+					<SwarmMonitorCard />
+				</div>
+			</div>
+		</>
+	);
 };
 
 export default Dashboard;

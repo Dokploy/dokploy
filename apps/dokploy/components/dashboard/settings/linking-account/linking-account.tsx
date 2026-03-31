@@ -4,13 +4,6 @@ import { Link2, Loader2, Unlink } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
 import { authClient } from "@/lib/auth-client";
 
 const LINKING_CALLBACK_URL = "/dashboard/settings/profile";
@@ -110,22 +103,20 @@ export function LinkingAccount() {
 	const canUnlink = accounts.length > 1;
 
 	return (
-		<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-6xl mx-auto w-full">
-			<div className="rounded-xl bg-background shadow-md">
-				<CardHeader>
-					<div className="flex flex-row gap-2 flex-wrap justify-between items-center">
-						<div>
-							<CardTitle className="text-xl flex flex-row gap-2">
-								<Link2 className="size-6 text-muted-foreground self-center" />
-								Linking account
-							</CardTitle>
-							<CardDescription>
-								Link your Google or GitHub account to sign in with them.
-							</CardDescription>
-						</div>
+		<div>
+			<div>
+				<div className="flex flex-row gap-2 flex-wrap justify-between items-center">
+					<div>
+						<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+							<Link2 className="size-5 text-muted-foreground" />
+							Linking account
+						</h2>
+						<p className="text-sm text-muted-foreground mt-1">
+							Link your Google or GitHub account to sign in with them.
+						</p>
 					</div>
-				</CardHeader>
-				<CardContent className="space-y-6 py-8 border-t">
+				</div>
+				<div className="space-y-6 pt-6">
 					{/* Linked accounts */}
 					<div className="space-y-2">
 						<p className="text-sm font-medium">Linked accounts</p>
@@ -238,8 +229,8 @@ export function LinkingAccount() {
 							</Button>
 						)}
 					</div>
-				</CardContent>
+				</div>
 			</div>
-		</Card>
+		</div>
 	);
 }

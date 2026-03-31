@@ -338,7 +338,7 @@ export const RestoreBackup = ({
 							control={form.control}
 							name="destinationId"
 							render={({ field }) => (
-								<FormItem className="">
+								<FormItem>
 									<FormLabel>Destination</FormLabel>
 									<Popover>
 										<PopoverTrigger asChild>
@@ -404,7 +404,7 @@ export const RestoreBackup = ({
 							control={form.control}
 							name="backupFile"
 							render={({ field }) => (
-								<FormItem className="">
+								<FormItem>
 									<FormLabel className="flex items-center justify-between">
 										Search Backup Files
 										{field.value && (

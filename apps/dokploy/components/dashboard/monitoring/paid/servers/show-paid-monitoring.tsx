@@ -150,9 +150,8 @@ export const ShowPaidMonitoring = ({
 	}
 
 	return (
-		<div className="space-y-4 pt-5 pb-10 w-full md:px-4">
-			<div className="flex items-center justify-between flex-wrap	 gap-2">
-				<h2 className="text-2xl font-bold tracking-tight">System Monitoring</h2>
+		<div className="space-y-4 w-full">
+			<div className="flex items-center justify-between flex-wrap gap-2">
 				<div className="flex items-center gap-4 flex-wrap">
 					<div>
 						<span className="text-sm text-muted-foreground">Data points:</span>
@@ -202,45 +201,45 @@ export const ShowPaidMonitoring = ({
 
 			{/* Stats Cards */}
 			<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
-				<div className="rounded-lg border text-card-foreground shadow-sm p-6">
+				<div className="rounded-lg border text-card-foreground p-6">
 					<div className="flex items-center gap-2">
 						<Clock className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">Uptime</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">
+					<p className="mt-2 text-2xl font-semibold">
 						{formatUptime(metrics.uptime || 0)}
 					</p>
 				</div>
 
-				<div className="rounded-lg border text-card-foreground shadow-sm p-6">
+				<div className="rounded-lg border text-card-foreground p-6">
 					<div className="flex items-center gap-2">
 						<Cpu className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">CPU Usage</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">{metrics.cpu}%</p>
+					<p className="mt-2 text-2xl font-semibold">{metrics.cpu}%</p>
 				</div>
 
-				<div className="rounded-lg border text-card-foreground bg-transparent shadow-sm p-6">
+				<div className="rounded-lg border text-card-foreground bg-transparent p-6">
 					<div className="flex items-center gap-2">
 						<MemoryStick className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">Memory Usage</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">
+					<p className="mt-2 text-2xl font-semibold">
 						{metrics.memUsedGB} GB / {metrics.memTotal} GB
 					</p>
 				</div>
 
-				<div className="rounded-lg border text-card-foreground shadow-sm p-6">
+				<div className="rounded-lg border text-card-foreground p-6">
 					<div className="flex items-center gap-2">
 						<HardDrive className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">Disk Usage</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">{metrics.diskUsed}%</p>
+					<p className="mt-2 text-2xl font-semibold">{metrics.diskUsed}%</p>
 				</div>
 			</div>
 
 			{/* System Information */}
-			<div className="rounded-lg border text-card-foreground shadow-sm p-6">
+			<div className="rounded-lg border text-card-foreground p-6">
 				<h3 className="text-lg font-medium mb-4">System Information</h3>
 				<div className="grid gap-4 md:grid-cols-2">
 					<div>

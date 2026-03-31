@@ -1,13 +1,6 @@
 import { CreditCard, FileText } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ShowInvoices } from "./show-invoices";
 
@@ -29,18 +22,16 @@ export const ShowBillingInvoices = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto">
-				<div className="rounded-xl bg-background shadow-md">
-					<CardHeader>
-						<CardTitle className="text-xl flex flex-row gap-2">
-							<CreditCard className="size-6 text-muted-foreground self-center" />
-							Billing
-						</CardTitle>
-						<CardDescription>
-							Manage your subscription and invoices
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-4 py-4 border-t">
+			<div>
+				<div>
+					<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+						<CreditCard className="size-5 text-muted-foreground" />
+						Billing
+					</h2>
+					<p className="text-sm text-muted-foreground mt-1">
+						Manage your subscription and invoices
+					</p>
+					<div className="space-y-4 pt-6">
 						<nav className="flex space-x-2 border-b">
 							{navigationItems.map((item) => {
 								const Icon = item.icon;
@@ -66,9 +57,9 @@ export const ShowBillingInvoices = () => {
 						<div className="mt-6">
 							<ShowInvoices />
 						</div>
-					</CardContent>
+					</div>
 				</div>
-			</Card>
+			</div>
 		</div>
 	);
 };

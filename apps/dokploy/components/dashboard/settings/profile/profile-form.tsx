@@ -8,13 +8,6 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import {
 	Form,
 	FormControl,
 	FormDescription,
@@ -149,23 +142,23 @@ export const ProfileForm = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
-				<div className="rounded-xl bg-background shadow-md ">
-					<CardHeader className="flex flex-row gap-2 flex-wrap justify-between items-center">
+			<div>
+				<div>
+					<div className="flex flex-row gap-2 flex-wrap justify-between items-center">
 						<div>
-							<CardTitle className="text-xl flex flex-row gap-2">
-								<User className="size-6 text-muted-foreground self-center" />
+							<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+								<User className="size-5 text-muted-foreground" />
 								Account
-							</CardTitle>
-							<CardDescription>
+							</h2>
+							<p className="text-sm text-muted-foreground mt-1">
 								Change the details of your profile here.
-							</CardDescription>
+							</p>
 						</div>
 
 						{!data?.user.twoFactorEnabled ? <Enable2FA /> : <Configure2FA />}
-					</CardHeader>
+					</div>
 
-					<CardContent className="space-y-2 py-8 border-t">
+					<div className="space-y-2 pt-6">
 						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[35vh]">
@@ -452,9 +445,9 @@ export const ProfileForm = () => {
 								</Form>
 							</>
 						)}
-					</CardContent>
+					</div>
 				</div>
-			</Card>
+			</div>
 		</div>
 	);
 };

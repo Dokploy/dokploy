@@ -17,13 +17,6 @@ import {
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { useUrl } from "@/utils/hooks/use-url";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
@@ -54,18 +47,16 @@ export const ShowGitProviders = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto">
-				<div className="rounded-xl bg-background shadow-md ">
-					<CardHeader className="">
-						<CardTitle className="text-xl flex flex-row gap-2">
-							<GitBranch className="size-6 text-muted-foreground self-center" />
-							Git Providers
-						</CardTitle>
-						<CardDescription>
-							Connect your Git provider for authentication.
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-2 py-8 border-t">
+			<div>
+				<div>
+					<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+						<GitBranch className="size-5 text-muted-foreground" />
+						Git Providers
+					</h2>
+					<p className="text-sm text-muted-foreground mt-1">
+						Connect your Git provider for authentication.
+					</p>
+					<div className="space-y-2 pt-6">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
@@ -80,7 +71,7 @@ export const ShowGitProviders = () => {
 											Create your first Git Provider
 										</span>
 										<div>
-											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
+											<div className="flex items-center p-1 w-full rounded-lg">
 												<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
 													<AddGithubProvider />
 													<AddGitlabProvider />
@@ -96,7 +87,7 @@ export const ShowGitProviders = () => {
 											<span className="text-base font-medium">
 												Available Providers
 											</span>
-											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
+											<div className="flex items-center p-1 w-full rounded-lg">
 												<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
 													<AddGithubProvider />
 													<AddGitlabProvider />
@@ -128,7 +119,7 @@ export const ShowGitProviders = () => {
 												return (
 													<div
 														key={gitProvider.gitProviderId}
-														className="flex items-center justify-between bg-sidebar p-1 w-full rounded-lg"
+														className="flex items-center justify-between p-1 w-full rounded-lg"
 													>
 														<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border w-full">
 															<div className="flex flex-col items-center justify-between">
@@ -292,9 +283,9 @@ export const ShowGitProviders = () => {
 								)}
 							</>
 						)}
-					</CardContent>
+					</div>
 				</div>
-			</Card>
+			</div>
 		</div>
 	);
 };

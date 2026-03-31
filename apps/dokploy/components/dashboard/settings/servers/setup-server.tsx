@@ -346,7 +346,7 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 										className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
 									>
 										<div className="flex flex-col gap-2 text-sm pt-3">
-											<div className="rounded-xl bg-background shadow-md border">
+											<div className="border">
 												<SetupMonitoring serverId={serverId} />
 											</div>
 										</div>

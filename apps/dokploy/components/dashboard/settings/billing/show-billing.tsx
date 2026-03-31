@@ -16,13 +16,6 @@ import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
 import { NumberInput } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -147,18 +140,16 @@ export const ShowBilling = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="bg-sidebar p-2.5 rounded-xl max-w-6xl mx-auto">
-				<div className="rounded-xl bg-background shadow-md">
-					<CardHeader>
-						<CardTitle className="text-xl flex flex-row gap-2">
-							<CreditCard className="size-6 text-muted-foreground self-center" />
-							Billing
-						</CardTitle>
-						<CardDescription>
-							Manage your subscription and invoices
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-4 py-4 border-t">
+			<div>
+				<div>
+					<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+						<CreditCard className="size-5 text-muted-foreground" />
+						Billing
+					</h2>
+					<p className="text-sm text-muted-foreground mt-1">
+						Manage your subscription and invoices
+					</p>
+					<div className="space-y-4 pt-6">
 						<nav className="flex space-x-2 border-b">
 							{navigationItems.map((item) => {
 								const Icon = item.icon;
@@ -665,20 +656,20 @@ export const ShowBilling = () => {
 										className="w-full"
 										onValueChange={(e) => setIsAnnual(e === "annual")}
 									>
-										<TabsList className="">
+										<TabsList>
 											<TabsTrigger value="monthly">Monthly</TabsTrigger>
 											<TabsTrigger value="annual">Annual (20% off)</TabsTrigger>
 										</TabsList>
 									</Tabs>
 									<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 										{/* Hobby */}
-										<section className="flex flex-col rounded-2xl border border-border px-5 py-6 shadow-sm">
+										<section className="flex flex-col rounded-lg border border-border px-5 py-6">
 											{isAnnual && (
 												<Badge className="mb-3 w-fit" variant="secondary">
 													20% off
 												</Badge>
 											)}
-											<h3 className="text-xl font-bold tracking-tight text-foreground">
+											<h3 className="text-base font-medium tracking-tight text-foreground">
 												Hobby
 											</h3>
 											<p className="mt-1 text-sm text-muted-foreground">
@@ -795,7 +786,7 @@ export const ShowBilling = () => {
 										</section>
 
 										{/* Startup - Recommended */}
-										<section className="flex flex-col rounded-2xl border-2 border-primary px-5 py-6 shadow-sm">
+										<section className="flex flex-col rounded-lg border-2 border-primary px-5 py-6">
 											<div className="mb-3 flex flex-wrap gap-2">
 												<Badge className="w-fit" variant="default">
 													Recommended
@@ -806,7 +797,7 @@ export const ShowBilling = () => {
 													</Badge>
 												)}
 											</div>
-											<h3 className="text-xl font-bold tracking-tight text-foreground">
+											<h3 className="text-base font-medium tracking-tight text-foreground">
 												Startup
 											</h3>
 											<p className="mt-1 text-sm text-muted-foreground">
@@ -944,8 +935,8 @@ export const ShowBilling = () => {
 										</section>
 
 										{/* Enterprise */}
-										<section className="flex flex-col rounded-2xl border border-border px-5 py-6 shadow-sm">
-											<h3 className="text-xl font-bold tracking-tight text-foreground">
+										<section className="flex flex-col rounded-lg border border-border px-5 py-6">
+											<h3 className="text-base font-medium tracking-tight text-foreground">
 												Enterprise
 											</h3>
 											<p className="mt-1 text-sm text-muted-foreground">
@@ -1163,9 +1154,9 @@ export const ShowBilling = () => {
 								</>
 							)}
 						</div>
-					</CardContent>
+					</div>
 				</div>
-			</Card>
+			</div>
 		</div>
 	);
 };

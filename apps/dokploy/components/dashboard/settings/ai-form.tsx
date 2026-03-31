@@ -4,13 +4,6 @@ import { BotIcon, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { HandleAi } from "./handle-ai";
 
@@ -20,19 +13,21 @@ export const AiForm = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
-				<div className="rounded-xl bg-background shadow-md ">
-					<CardHeader className="flex flex-row gap-2 justify-between">
+			<div>
+				<div>
+					<div className="flex flex-row gap-2 justify-between">
 						<div>
-							<CardTitle className="text-xl flex flex-row gap-2">
-								<BotIcon className="size-6 text-muted-foreground self-center" />
+							<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+								<BotIcon className="size-5 text-muted-foreground" />
 								AI Settings
-							</CardTitle>
-							<CardDescription>Manage your AI configurations</CardDescription>
+							</h2>
+							<p className="text-sm text-muted-foreground mt-1">
+								Manage your AI configurations
+							</p>
 						</div>
 						{aiConfigs && aiConfigs?.length > 0 && <HandleAi />}
-					</CardHeader>
-					<CardContent className="space-y-2 py-8 border-t">
+					</div>
+					<div className="space-y-2 pt-6">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
@@ -53,14 +48,16 @@ export const AiForm = () => {
 										{aiConfigs?.map((config) => (
 											<div
 												key={config.aiId}
-												className="flex items-center justify-between bg-sidebar p-1 w-full rounded-lg"
+												className="flex items-center justify-between p-1 w-full rounded-lg"
 											>
 												<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border  w-full">
 													<div>
 														<span className="text-sm font-medium">
 															{config.name}
 														</span>
-														<CardDescription>{config.model}</CardDescription>
+														<p className="text-sm text-muted-foreground">
+															{config.model}
+														</p>
 													</div>
 													<div className="flex justify-between items-center">
 														<HandleAi aiId={config.aiId} />
@@ -98,9 +95,9 @@ export const AiForm = () => {
 								)}
 							</>
 						)}
-					</CardContent>
+					</div>
 				</div>
-			</Card>
+			</div>
 		</div>
 	);
 };

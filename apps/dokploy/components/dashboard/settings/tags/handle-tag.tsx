@@ -1,12 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Palette, PenBoxIcon, PlusIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { PenBoxIcon, PlusIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { TagBadge } from "@/components/shared/tag-badge";
 import { Button } from "@/components/ui/button";
+import { ColorPicker } from "@/components/ui/color-picker";
 import {
 	Dialog,
 	DialogContent,
@@ -19,7 +20,6 @@ import {
 import {
 	Form,
 	FormControl,
-	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -58,7 +58,6 @@ interface HandleTagProps {
 export const HandleTag = ({ tagId }: HandleTagProps) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const colorInputRef = useRef<HTMLInputElement>(null);
 
 	const { mutateAsync, error, isError } = tagId
 		? api.tag.update.useMutation()
@@ -166,46 +165,14 @@ export const HandleTag = ({ tagId }: HandleTagProps) => {
 							name="color"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Color (Optional)</FormLabel>
+									<FormLabel>Color</FormLabel>
 									<FormControl>
-										<div className="flex items-center gap-3">
-											<FormLabel
-												className="relative flex items-center justify-center w-12 h-12 rounded-md border-2 cursor-pointer hover:opacity-80 transition-opacity"
-												style={{
-													backgroundColor: field.value || "#3b82f6",
-												}}
-												onClick={() => colorInputRef.current?.click()}
-											>
-												<div className="flex items-center justify-center">
-													{!field.value && (
-														<Palette className="h-5 w-5 text-white" />
-													)}
-												</div>
-												<input
-													ref={colorInputRef}
-													type="color"
-													className="absolute opacity-0 pointer-events-none w-12 h-12 top-0 left-0"
-													value={field.value || "#3b82f6"}
-													onChange={field.onChange}
-												/>
-											</FormLabel>
-											<div className="flex-1">
-												<Input
-													placeholder="#3b82f6"
-													{...field}
-													value={field.value || ""}
-													onChange={(e) => {
-														const value = e.target.value;
-														if (value.startsWith("#") || value === "") {
-															field.onChange(value);
-														}
-													}}
-												/>
-												<FormDescription className="mt-1">
-													Choose a color to easily identify this tag
-												</FormDescription>
-											</div>
-										</div>
+										<ColorPicker
+											value={field.value || "#3b82f6"}
+											onChange={field.onChange}
+											defaultValue="#3b82f6"
+											placeholder="#3b82f6"
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>

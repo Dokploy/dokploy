@@ -244,7 +244,9 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 					{selectedVariant && (
 						<>
 							<div className="mb-6">
-								<h3 className="text-xl font-bold">{selectedVariant?.name}</h3>
+								<h3 className="text-base font-medium">
+									{selectedVariant?.name}
+								</h3>
 								<p className="text-muted-foreground mt-2">
 									{selectedVariant?.shortDescription}
 								</p>
@@ -491,7 +493,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 					)}
 				</div>
 			</div>
-			<div className="">
+			<div>
 				<div className="flex justify-between">
 					{selectedVariant && (
 						<Button

@@ -16,13 +16,6 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
@@ -549,41 +542,28 @@ type CreateRoleSchema = z.infer<typeof createRoleSchema>;
 
 export const ManageCustomRoles = () => {
 	return (
-		<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto w-full">
-			<div className="rounded-xl bg-background shadow-md">
-				<CardHeader>
-					<CardTitle className="text-xl flex flex-row gap-2">
-						<ShieldCheck className="size-6 text-muted-foreground self-center" />
-						Custom Roles
-					</CardTitle>
-					<CardDescription>
-						Create and manage custom roles with fine-grained permissions
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="border-t pt-6">
-					<EnterpriseFeatureGate
-						lockedProps={{
-							title: "Custom Roles",
-							description:
-								"Custom roles with fine-grained permissions are part of Dokploy Enterprise. Add a valid license to create and assign custom roles.",
-							ctaLabel: "Go to License",
-						}}
-					>
-						<CustomRolesContent />
-					</EnterpriseFeatureGate>
-				</CardContent>
-			</div>
-		</Card>
+		<div className="flex flex-col gap-4">
+			<EnterpriseFeatureGate
+				lockedProps={{
+					title: "Custom Roles",
+					description:
+						"Custom roles with fine-grained permissions are part of Dokploy Enterprise. Add a valid license to create and assign custom roles.",
+					ctaLabel: "Go to License",
+				}}
+			>
+				<CustomRolesContent />
+			</EnterpriseFeatureGate>
+		</div>
 	);
 };
 
 interface HandleCustomRoleProps {
 	roleName?: string;
 	initialPermissions?: Record<string, string[]>;
-	onSuccess: () => void;
+	onSuccess?: () => void;
 }
 
-function HandleCustomRole({
+export function HandleCustomRole({
 	roleName,
 	initialPermissions,
 	onSuccess,
@@ -646,7 +626,7 @@ function HandleCustomRole({
 			if (!isEdit) {
 				setOpen(false);
 			}
-			onSuccess();
+			onSuccess?.();
 		} catch (error) {
 			let message = `Error ${isEdit ? "updating" : "creating"} role`;
 			if (error instanceof Error) {
@@ -673,8 +653,8 @@ function HandleCustomRole({
 						Edit
 					</Button>
 				) : (
-					<Button size="sm">
-						<PlusIcon className="size-4 mr-1" />
+					<Button>
+						<PlusIcon className="h-4 w-4" />
 						Create Role
 					</Button>
 				)}
@@ -800,10 +780,6 @@ const CustomRolesContent = () => {
 
 	return (
 		<div className="space-y-4">
-			<div className="flex justify-end">
-				<HandleCustomRole onSuccess={refetch} />
-			</div>
-
 			{customRoles?.length === 0 ? (
 				<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center text-center py-8">
 					<div className="rounded-full bg-muted p-4">

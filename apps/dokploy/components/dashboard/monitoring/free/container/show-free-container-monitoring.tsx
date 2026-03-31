@@ -201,16 +201,7 @@ export const ContainerFreeMonitoring = ({
 	}, [appName]);
 
 	return (
-		<div className="rounded-xl bg-background flex flex-col gap-4">
-			<header className="flex items-center justify-between">
-				<div className="space-y-1">
-					<h1 className="text-2xl font-semibold tracking-tight">Monitoring</h1>
-					<p className="text-sm text-muted-foreground">
-						Watch the usage of your server in the current app
-					</p>
-				</div>
-			</header>
-
+		<div className="flex flex-col gap-4">
 			<div className="grid gap-6 lg:grid-cols-2">
 				<Card className="bg-background">
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

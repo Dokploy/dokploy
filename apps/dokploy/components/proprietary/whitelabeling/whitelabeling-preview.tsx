@@ -30,7 +30,7 @@ export function WhitelabelingPreview({ config }: WhitelabelingPreviewProps) {
 			<CardContent>
 				<div className="rounded-lg border overflow-hidden">
 					{/* Simulated sidebar header */}
-					<div className="flex items-center gap-3 p-4 border-b bg-sidebar">
+					<div className="flex items-center gap-3 p-4 border-b">
 						{config.logoUrl ? (
 							<img
 								src={config.logoUrl}
@@ -63,7 +63,7 @@ export function WhitelabelingPreview({ config }: WhitelabelingPreviewProps) {
 
 					{/* Simulated footer */}
 					{config.footerText && (
-						<div className="px-4 py-2 border-t text-xs text-muted-foreground text-center bg-sidebar">
+						<div className="px-4 py-2 border-t text-xs text-muted-foreground text-center">
 							{config.footerText}
 						</div>
 					)}

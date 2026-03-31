@@ -61,7 +61,7 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 
 	if (isLoading) {
 		return (
-			<Card className="group relative w-full bg-transparent">
+			<Card className="group relative w-full bg-transparent border-border/50">
 				<CardHeader>
 					<CardTitle className="flex items-start justify-between">
 						<div className="flex flex-col gap-2">
@@ -94,7 +94,7 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 		compose.sourceType !== "raw"
 	) {
 		return (
-			<Card className="group relative w-full bg-transparent">
+			<Card className="group relative w-full bg-transparent border-border/50">
 				<CardHeader>
 					<CardTitle className="flex items-start justify-between">
 						<div className="flex flex-col gap-2">
@@ -119,7 +119,7 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 	}
 
 	return (
-		<Card className="group relative w-full bg-transparent">
+		<Card className="group relative w-full bg-transparent border-border/50">
 			<CardHeader>
 				<CardTitle className="flex items-start justify-between">
 					<div className="flex flex-col gap-2">

@@ -34,13 +34,7 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { CardDescription, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -104,10 +98,10 @@ const Service = (
 				</title>
 			</Head>
 			<div className="w-full">
-				<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">
-					<div className="rounded-xl bg-background shadow-md ">
+				<div>
+					<div>
 						<div className="flex flex-col gap-4">
-							<CardHeader className="flex flex-row justify-between items-center">
+							<div className="flex flex-row justify-between items-center">
 								<div className="flex flex-col">
 									<CardTitle className="text-xl flex flex-row gap-2">
 										<div className="relative flex flex-row gap-4">
@@ -180,9 +174,9 @@ const Service = (
 										)}
 									</div>
 								</div>
-							</CardHeader>
+							</div>
 						</div>
-						<CardContent className="space-y-2 py-8 border-t">
+						<div className="space-y-2 py-8 border-t">
 							{data?.server?.serverStatus === "inactive" ? (
 								<div className="flex h-[55vh] border-2 rounded-xl border-dashed p-4">
 									<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
@@ -411,9 +405,9 @@ const Service = (
 									)}
 								</Tabs>
 							)}
-						</CardContent>
+						</div>
 					</div>
-				</Card>
+				</div>
 			</div>
 		</div>
 	);

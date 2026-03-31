@@ -2,13 +2,6 @@ import { Database, FolderUp, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { HandleDestinations } from "./handle-destinations";
 
@@ -19,19 +12,17 @@ export const ShowDestinations = () => {
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
-				<div className="rounded-xl bg-background shadow-md ">
-					<CardHeader className="">
-						<CardTitle className="text-xl flex flex-row gap-2">
-							<Database className="size-6 text-muted-foreground self-center" />
-							S3 Destinations
-						</CardTitle>
-						<CardDescription>
-							Add your providers like AWS S3, Cloudflare R2, Wasabi,
-							DigitalOcean Spaces etc.
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-2 py-8 border-t">
+			<div>
+				<div>
+					<h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+						<Database className="size-5 text-muted-foreground" />
+						S3 Destinations
+					</h2>
+					<p className="text-sm text-muted-foreground mt-1">
+						Add your providers like AWS S3, Cloudflare R2, Wasabi, DigitalOcean
+						Spaces etc.
+					</p>
+					<div className="space-y-2 pt-6">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
@@ -54,7 +45,7 @@ export const ShowDestinations = () => {
 											{data?.map((destination, index) => (
 												<div
 													key={destination.destinationId}
-													className="flex items-center justify-between bg-sidebar p-1 w-full rounded-lg"
+													className="flex items-center justify-between p-1 w-full rounded-lg"
 												>
 													<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border  w-full">
 														<div className="flex flex-col gap-1">
@@ -119,9 +110,9 @@ export const ShowDestinations = () => {
 								)}
 							</>
 						)}
-					</CardContent>
+					</div>
 				</div>
-			</Card>
+			</div>
 		</div>
 	);
 };

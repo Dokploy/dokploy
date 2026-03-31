@@ -1,13 +1,7 @@
 import { ClipboardList } from "lucide-react";
 import React from "react";
 import { EnterpriseFeatureGate } from "@/components/proprietary/enterprise-feature-gate";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { CardDescription, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { columns } from "./columns";
 import { type AuditLogFilters, DataTable } from "./data-table";
@@ -83,8 +77,8 @@ function AuditLogsContent() {
 
 export function ShowAuditLogs() {
 	return (
-		<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-6xl w-full mx-auto">
-			<div className="rounded-xl bg-background shadow-md ">
+		<div>
+			<div>
 				<EnterpriseFeatureGate
 					lockedProps={{
 						title: "Audit Logs",
@@ -93,7 +87,7 @@ export function ShowAuditLogs() {
 						ctaLabel: "Manage License",
 					}}
 				>
-					<CardHeader>
+					<div>
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<ClipboardList className="h-5 w-5 text-muted-foreground self-center" />
 							Audit Logs
@@ -101,12 +95,12 @@ export function ShowAuditLogs() {
 						<CardDescription>
 							Track all actions performed by members in your organization.
 						</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-2 py-8 border-t">
+					</div>
+					<div className="space-y-2 pt-6">
 						<AuditLogsContent />
-					</CardContent>
+					</div>
 				</EnterpriseFeatureGate>
 			</div>
-		</Card>
+		</div>
 	);
 }

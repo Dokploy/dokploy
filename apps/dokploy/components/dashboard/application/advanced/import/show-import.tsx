@@ -187,7 +187,7 @@ export const ShowImport = ({ composeId }: Props) => {
 							<Dialog open={showModal} onOpenChange={setShowModal}>
 								<DialogContent className="max-w-[50vw]">
 									<DialogHeader>
-										<DialogTitle className="text-2xl font-bold">
+										<DialogTitle className="text-2xl font-semibold">
 											Template Information
 										</DialogTitle>
 										<DialogDescription className="space-y-2">
@@ -322,7 +322,7 @@ export const ShowImport = ({ composeId }: Props) => {
 			<Dialog open={showMountContent} onOpenChange={setShowMountContent}>
 				<DialogContent className="max-w-[50vw]">
 					<DialogHeader>
-						<DialogTitle className="text-xl font-bold">
+						<DialogTitle className="text-base font-medium">
 							{selectedMount?.filePath}
 						</DialogTitle>
 						<DialogDescription>Mount File Content</DialogDescription>

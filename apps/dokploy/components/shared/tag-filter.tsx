@@ -92,12 +92,9 @@ export function TagFilter({
 						</div>
 						<CommandList>
 							<CommandEmpty>
-								<div className="flex flex-col items-center gap-2 py-1">
-									<span className="text-sm text-muted-foreground">
-										No tags found.
-									</span>
-									<HandleTag />
-								</div>
+								<span className="text-sm text-muted-foreground">
+									No tags found.
+								</span>
 							</CommandEmpty>
 							<CommandGroup>
 								{tags.map((tag) => {
@@ -119,6 +116,9 @@ export function TagFilter({
 								})}
 							</CommandGroup>
 						</CommandList>
+						<div className="border-t px-1 py-1 [&_button]:w-full [&_button]:justify-start [&_button]:h-7 [&_button]:text-xs [&_button]:font-normal [&_button]:text-muted-foreground [&_button]:bg-transparent [&_button]:shadow-none [&_button]:hover:text-foreground [&_button]:hover:bg-accent">
+							<HandleTag />
+						</div>
 					</Command>
 				</PopoverContent>
 			</Popover>

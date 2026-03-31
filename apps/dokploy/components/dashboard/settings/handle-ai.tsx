@@ -144,7 +144,7 @@ export const HandleAi = ({ aiId }: Props) => {
 				}
 			}}
 		>
-			<DialogTrigger className="" asChild>
+			<DialogTrigger asChild>
 				{aiId ? (
 					<Button
 						variant="ghost"
