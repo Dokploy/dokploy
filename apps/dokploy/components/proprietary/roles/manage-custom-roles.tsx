@@ -653,8 +653,8 @@ export function HandleCustomRole({
 						Edit
 					</Button>
 				) : (
-					<Button size="sm">
-						<PlusIcon className="size-4 mr-1" />
+					<Button>
+						<PlusIcon className="h-4 w-4" />
 						Create Role
 					</Button>
 				)}
