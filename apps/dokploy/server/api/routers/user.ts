@@ -21,7 +21,10 @@ import {
 	apiUpdateUser,
 	invitation,
 	member,
+	organizationRole,
+	user,
 } from "@dokploy/server/db/schema";
+import { nanoid } from "nanoid";
 import {
 	hasPermission,
 	resolvePermissions,
@@ -556,6 +559,99 @@ export const userRouter = createTRPCRouter({
 
 			return organizations.length;
 		}),
+	createUserWithCredentials: withPermission("member", "create")
+		.input(
+			z.object({
+				email: z.string().email(),
+				password: z.string().min(8, "Password must be at least 8 characters"),
+				role: z.string().min(1, "Role is required"),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"This feature is only available for self-hosted instances",
+				});
+			}
+
+			const orgId = ctx.session.activeOrganizationId;
+			const email = input.email.toLowerCase();
+
+			const existingUser = await db.query.user.findFirst({
+				where: eq(user.email, email),
+			});
+
+			if (existingUser) {
+				const existingMember = await db.query.member.findFirst({
+					where: and(
+						eq(member.organizationId, orgId),
+						eq(member.userId, existingUser.id),
+					),
+				});
+
+				if (existingMember) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "User is already a member of this organization",
+					});
+				}
+			}
+
+			if (!["owner", "admin", "member"].includes(input.role)) {
+				const customRole = await db.query.organizationRole.findFirst({
+					where: and(
+						eq(organizationRole.organizationId, orgId),
+						eq(organizationRole.role, input.role),
+					),
+				});
+
+				if (!customRole) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Role "${input.role}" not found`,
+					});
+				}
+			}
+
+			const now = new Date();
+			const userId = nanoid();
+
+			await db.transaction(async (tx) => {
+				await tx.insert(user).values({
+					id: userId,
+					email,
+					emailVerified: true,
+					updatedAt: now,
+				});
+
+				await tx.insert(account).values({
+					accountId: nanoid(),
+					providerId: "credential",
+					userId,
+					password: bcrypt.hashSync(input.password, 10),
+					createdAt: now,
+					updatedAt: now,
+				});
+
+				await tx.insert(member).values({
+					userId,
+					organizationId: orgId,
+					role: input.role as any,
+					createdAt: now,
+				});
+			});
+
+			await audit(ctx, {
+				action: "create",
+				resourceType: "user",
+				resourceId: userId,
+				resourceName: email,
+				metadata: { type: "createUserWithCredentials", role: input.role },
+			});
+		}),
+
 	sendInvitation: withPermission("member", "create")
 		.input(
 			z.object({
