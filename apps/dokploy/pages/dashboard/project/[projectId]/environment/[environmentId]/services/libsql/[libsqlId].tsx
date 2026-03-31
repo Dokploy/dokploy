@@ -27,10 +27,7 @@ import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
 import {
-	Card,
-	CardContent,
 	CardDescription,
-	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -74,9 +71,9 @@ const Libsql = (
 						Dokploy
 					</title>
 				</Head>
-				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
-					<div className="rounded-xl bg-background shadow-md ">
-						<CardHeader className="flex flex-row justify-between items-center">
+				<div>
+					<div >
+						<div className="flex flex-row justify-between items-center">
 							<div className="flex flex-col">
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<div className="relative flex flex-row gap-4">
@@ -139,8 +136,8 @@ const Libsql = (
 									)}
 								</div>
 							</div>
-						</CardHeader>
-						<CardContent className="space-y-2 py-8 border-t">
+						</div>
+						<div className="space-y-2 py-8 border-t">
 							{data?.server?.serverStatus === "inactive" ? (
 								<div className="flex h-[55vh] border-2 rounded-xl border-dashed p-4">
 									<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
@@ -280,9 +277,9 @@ const Libsql = (
 									</TabsContent>
 								</Tabs>
 							)}
-						</CardContent>
+						</div>
 					</div>
-				</Card>
+				</div>
 			</div>
 		</div>
 	);

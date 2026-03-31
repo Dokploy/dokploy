@@ -54,7 +54,6 @@ import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
-	CardContent,
 	CardDescription,
 	CardFooter,
 	CardHeader,
@@ -886,9 +885,9 @@ const EnvironmentPage = (
 				</title>
 			</Head>
 			<div className="w-full">
-				<Card className="h-full bg-sidebar p-2.5 rounded-xl">
-					<div className="rounded-xl bg-background shadow-md">
-						<div className="flex justify-between gap-4 w-full items-center flex-wrap p-6">
+				<div>
+					<div >
+						<div className="flex justify-between gap-4 w-full items-center flex-wrap">
 							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2 items-center">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
@@ -951,7 +950,7 @@ const EnvironmentPage = (
 								</div>
 							</div>
 						</div>
-						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
+						<div className="space-y-2 pt-6 gap-4 flex flex-col min-h-[60vh]">
 							<>
 								<div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
 									<div className="flex items-center gap-4">
@@ -1572,9 +1571,9 @@ const EnvironmentPage = (
 									)}
 								</div>
 							</>
-						</CardContent>
+						</div>
 					</div>
-				</Card>
+				</div>
 			</div>
 		</div>
 	);
