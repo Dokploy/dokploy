@@ -42,6 +42,7 @@ import { ShowNodesModal } from "../cluster/nodes/show-nodes-modal";
 import { TerminalModal } from "../web-server/terminal-modal";
 import { ShowServerActions } from "./actions/show-server-actions";
 import { HandleServers } from "./handle-servers";
+import { SetupMonitoringModal } from "./setup-monitoring-modal";
 import { SetupServer } from "./setup-server";
 import { ShowDockerContainersModal } from "./show-docker-containers-modal";
 import { ShowMonitoringModal } from "./show-monitoring-modal";
@@ -357,6 +358,19 @@ export const ShowServers = () => {
 																						</TooltipTrigger>
 																						<TooltipContent>
 																							<p>Web Server Actions</p>
+																						</TooltipContent>
+																					</Tooltip>
+																				)}
+
+																				{server.sshKeyId && !isBuildServer && (
+																					<Tooltip>
+																						<TooltipTrigger asChild>
+																							<SetupMonitoringModal
+																								serverId={server.serverId}
+																							/>
+																						</TooltipTrigger>
+																						<TooltipContent>
+																							<p>Configure Monitoring</p>
 																						</TooltipContent>
 																					</Tooltip>
 																				)}

@@ -29,7 +29,7 @@ const Dialog = ({
 		>
 			<DialogPrimitive.Root
 				open={open || isOpened}
-				onOpenChange={handleOpenChange}
+        onOpenChange={handleOpenChange}
 				{...props}
 				modal={false}
 			/>

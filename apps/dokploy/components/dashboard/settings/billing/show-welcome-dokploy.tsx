@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { ShowBilling } from "@/components/dashboard/settings/billing/show-billing";
 import {
 	Dialog,
 	DialogContent,
@@ -44,16 +43,13 @@ export const ShowWelcomeDokploy = () => {
 				<DialogContent className="sm:max-w-xl">
 					<DialogHeader>
 						<DialogTitle className="text-2xl font-semibold text-center">
-							Welcome to Dokploy Cloud 🎉
+							Welcome to Dokploy Very Cloud 🎉
 						</DialogTitle>
 						<p className="text-center text-sm text-muted-foreground mt-2">
 							Unlock powerful features to streamline your deployments and manage
 							projects effortlessly.
 						</p>
 					</DialogHeader>
-					<div className="mt-4 space-y-3 text-sm text-primary ">
-						<ShowBilling />
-					</div>
 				</DialogContent>
 			</Dialog>
 		</>

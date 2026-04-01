@@ -202,9 +202,9 @@ export const ShowProjects = () => {
 				list={[{ name: "Projects", href: "/dashboard/projects" }]}
 			/>
 			<div className="w-full">
-				<Card className="h-full bg-sidebar p-2.5 rounded-xl  ">
+				<Card className="h-full bg-sidebar rounded-xl  ">
 					<div className="rounded-xl bg-background shadow-md ">
-						<div className="flex justify-between gap-4 w-full items-center flex-wrap p-6">
+						<div className="flex justify-between gap-4 w-auto items-center flex-wrap p-4  border-b">
 							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
@@ -221,7 +221,7 @@ export const ShowProjects = () => {
 							)}
 						</div>
 
-						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
+						<CardContent className="space-y-2 py-8 gap-4 flex flex-col min-h-[60vh]">
 							{isPending ? (
 								<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[60vh]">
 									<span>Loading...</span>

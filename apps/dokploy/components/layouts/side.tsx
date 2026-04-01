@@ -926,7 +926,7 @@ export default function Page({ children }: Props) {
 				} as React.CSSProperties
 			}
 		>
-			<Sidebar collapsible="icon" variant="floating">
+			<Sidebar>
 				<SidebarHeader>
 					{/* <SidebarMenuButton
 						className="group-data-[collapsible=icon]:!p-0"

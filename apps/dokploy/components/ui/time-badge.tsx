@@ -51,7 +51,7 @@ export function TimeBadge() {
 	}).format(time);
 
 	return (
-		<div className="inline-flex items-center rounded-full border p-1 text-xs whitespace-nowrap max-w-full overflow-hidden gap-1">
+		<div className="inline-flex relative -top-4 -right-4 items-center rounded-b-lg border border-t-0 p-1 text-xs whitespace-nowrap max-w-full overflow-hidden gap-1">
 			<div className="inline-flex items-center px-1 gap-1">
 				<span className="hidden sm:inline">Server Time:</span>
 				<span className="font-medium tabular-nums">{formattedTime}</span>

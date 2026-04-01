@@ -205,16 +205,15 @@ const Service = (
 									</div>
 								</div>
 							) : (
-								<Tabs
-									value={tab}
-									defaultValue="general"
-									className="w-full"
-									onValueChange={(e) => {
-										setTab(e as TabState);
-										const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/compose/${composeId}?tab=${e}`;
-										router.push(newPath);
-									}}
-								>
+							<Tabs
+								value={tab}
+								className="w-full"
+								onValueChange={(e) => {
+									setTab(e as TabState);
+									const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/compose/${composeId}?tab=${e}`;
+									router.push(newPath);
+								}}
+							>
 									<div className="flex flex-row items-center w-full overflow-auto">
 										<TabsList className="flex gap-8 max-md:gap-4 justify-start">
 											<TabsTrigger value="general">General</TabsTrigger>
@@ -302,52 +301,15 @@ const Service = (
 										<TabsContent value="monitoring">
 											<div className="pt-2.5">
 												<div className="flex flex-col border rounded-lg ">
-													{data?.serverId && isCloud ? (
-														<ComposePaidMonitoring
-															serverId={data?.serverId || ""}
-															baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
-															appName={data?.appName || ""}
-															token={
-																data?.server?.metricsConfig?.server?.token || ""
-															}
-															appType={data?.composeType || "docker-compose"}
-														/>
-													) : (
-														<>
-															{/* {monitoring?.enabledFeatures &&
-															isCloud &&
-															data?.serverId && (
-																<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2 m-4">
-																	<Label className="text-muted-foreground">
-																		Change Monitoring
-																	</Label>
-																	<Switch
-																		checked={toggleMonitoring}
-																		onCheckedChange={setToggleMonitoring}
-																	/>
-																</div>
-															)}
-
-														{toggleMonitoring ? (
-															<ComposePaidMonitoring
-																appName={data?.appName || ""}
-																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
-																token={
-																	monitoring?.metricsConfig?.server?.token || ""
-																}
-																appType={data?.composeType || "docker-compose"}
-															/>
-														) : ( */}
-															{/* <div> */}
-															<ComposeFreeMonitoring
-																serverId={data?.serverId || ""}
-																appName={data?.appName || ""}
-																appType={data?.composeType || "docker-compose"}
-															/>
-															{/* </div> */}
-															{/* )} */}
-														</>
-													)}
+													<ComposePaidMonitoring
+														serverId={data?.serverId || ""}
+														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+														appName={data?.appName || ""}
+														token={
+															data?.server?.metricsConfig?.server?.token || ""
+														}
+														appType={data?.composeType || "docker-compose"}
+													/>
 												</div>
 											</div>
 										</TabsContent>

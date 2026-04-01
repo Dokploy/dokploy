@@ -89,7 +89,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 		{
 			refetchInterval:
 				dataPoints === "all" ? undefined : Number.parseInt(refreshInterval),
-			enabled: !!appName,
+			enabled: !!appName && !!token,
 		},
 	);
 
