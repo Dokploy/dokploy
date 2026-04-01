@@ -75,6 +75,21 @@ const createDeploymentWorker = () =>
 				}
 			} catch (error) {
 				console.log("Error", error);
+				if (job.data.applicationType === "application") {
+					await updateApplicationStatus(job.data.applicationId, "error").catch(
+						(e) => console.error("Failed to update application status", e),
+					);
+				} else if (job.data.applicationType === "compose") {
+					await updateCompose(job.data.composeId, {
+						composeStatus: "error",
+					}).catch((e) => console.error("Failed to update compose status", e));
+				} else if (job.data.applicationType === "application-preview") {
+					await updatePreviewDeployment(job.data.previewDeploymentId, {
+						previewStatus: "error",
+					}).catch(
+						(e) => console.error("Failed to update preview status", e),
+					);
+				}
 			}
 		},
 		{
