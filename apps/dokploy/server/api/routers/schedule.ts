@@ -14,7 +14,7 @@ import {
 	updateSchedule,
 } from "@dokploy/server/services/schedule";
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { removeJob, schedule } from "@/server/utils/backup";
@@ -157,6 +157,7 @@ export const scheduleRouter = createTRPCRouter({
 			};
 			return db.query.schedules.findMany({
 				where: where[input.scheduleType],
+				orderBy: [asc(schedules.name)],
 				with: {
 					application: true,
 					server: true,
