@@ -228,11 +228,15 @@ export const mongoRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const queue: string[] = [];
-			const done = false;
+			let done = false;
 
 			deployMongo(input.mongoId, (log) => {
 				queue.push(log);
-			});
+			})
+				.catch(() => {})
+				.finally(() => {
+					done = true;
+				});
 
 			while (!done || queue.length > 0) {
 				if (queue.length > 0) {
