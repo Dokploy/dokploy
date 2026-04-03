@@ -45,10 +45,12 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
 
 type User = typeof authClient.$Infer.Session.user;
 
 export const ImpersonationBar = () => {
+	const { config: whitelabeling } = useWhitelabeling();
 	const [users, setUsers] = useState<User[]>([]);
 	const [selectedUser, setSelectedUser] = useState<User | null>(null);
 	const [isImpersonating, setIsImpersonating] = useState(false);
@@ -103,7 +105,7 @@ export const ImpersonationBar = () => {
 			setOpen(false);
 
 			toast.success("Successfully impersonating user", {
-				description: `You are now viewing as ${selectedUser.name || selectedUser.email}`,
+				description: `You are now viewing as ${`${selectedUser.name} ${selectedUser.lastName}`.trim() || selectedUser.email}`,
 			});
 			window.location.reload();
 		} catch (error) {
@@ -180,7 +182,10 @@ export const ImpersonationBar = () => {
 					)}
 				>
 					<div className="flex items-center gap-4 px-4 md:px-20 w-full">
-						<Logo className="w-10 h-10" />
+						<Logo
+							className="w-10 h-10"
+							logoUrl={whitelabeling?.logoUrl || undefined}
+						/>
 						{!isImpersonating ? (
 							<div className="flex items-center gap-2 w-full">
 								<Popover open={open} onOpenChange={setOpen}>
@@ -195,7 +200,8 @@ export const ImpersonationBar = () => {
 													<UserIcon className="mr-2 h-4 w-4 flex-shrink-0" />
 													<span className="truncate flex flex-col items-start">
 														<span className="text-sm font-medium">
-															{selectedUser.name || ""}
+															{`${selectedUser.name} ${selectedUser.lastName}`.trim() ||
+																""}
 														</span>
 														<span className="text-xs text-muted-foreground">
 															{selectedUser.email}
@@ -242,7 +248,8 @@ export const ImpersonationBar = () => {
 																		<UserIcon className="h-4 w-4 flex-shrink-0" />
 																		<span className="flex flex-col items-start">
 																			<span className="text-sm font-medium">
-																				{user.name || ""}
+																				{`${user.name} ${user.lastName}`.trim() ||
+																					""}
 																			</span>
 																			<span className="text-xs text-muted-foreground">
 																				{user.email} • {user.role}
@@ -283,10 +290,14 @@ export const ImpersonationBar = () => {
 										<AvatarImage
 											className="object-cover"
 											src={data?.user?.image || ""}
-											alt={data?.user?.name || ""}
+											alt={
+												`${data?.user?.firstName} ${data?.user?.lastName}`.trim() ||
+												""
+											}
 										/>
 										<AvatarFallback>
-											{data?.user?.name?.slice(0, 2).toUpperCase() || "U"}
+											{`${data?.user?.firstName?.[0] || ""}${data?.user?.lastName?.[0] || ""}`.toUpperCase() ||
+												"U"}
 										</AvatarFallback>
 									</Avatar>
 									<div className="flex flex-col gap-1">
@@ -299,7 +310,8 @@ export const ImpersonationBar = () => {
 												Impersonating
 											</Badge>
 											<span className="font-medium">
-												{data?.user?.name || ""}
+												{`${data?.user?.firstName} ${data?.user?.lastName}`.trim() ||
+													""}
 											</span>
 										</div>
 										<div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">

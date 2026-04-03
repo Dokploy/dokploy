@@ -1,6 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+import { boolean, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
@@ -8,7 +7,7 @@ import { bitbucket } from "./bitbucket";
 import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
-import { users_temp } from "./user";
+import { user } from "./user";
 
 export const gitProviderType = pgEnum("gitProviderType", [
 	"github",
@@ -32,7 +31,10 @@ export const gitProvider = pgTable("git_provider", {
 		.references(() => organization.id, { onDelete: "cascade" }),
 	userId: text("userId")
 		.notNull()
-		.references(() => users_temp.id, { onDelete: "cascade" }),
+		.references(() => user.id, { onDelete: "cascade" }),
+	sharedWithOrganization: boolean("sharedWithOrganization")
+		.notNull()
+		.default(false),
 });
 
 export const gitProviderRelations = relations(gitProvider, ({ one }) => ({
@@ -56,16 +58,17 @@ export const gitProviderRelations = relations(gitProvider, ({ one }) => ({
 		fields: [gitProvider.organizationId],
 		references: [organization.id],
 	}),
-	user: one(users_temp, {
+	user: one(user, {
 		fields: [gitProvider.userId],
-		references: [users_temp.id],
+		references: [user.id],
 	}),
 }));
 
-const createSchema = createInsertSchema(gitProvider);
+export const apiRemoveGitProvider = z.object({
+	gitProviderId: z.string().min(1),
+});
 
-export const apiRemoveGitProvider = createSchema
-	.extend({
-		gitProviderId: z.string().min(1),
-	})
-	.pick({ gitProviderId: true });
+export const apiToggleShareGitProvider = z.object({
+	gitProviderId: z.string().min(1),
+	sharedWithOrganization: z.boolean(),
+});

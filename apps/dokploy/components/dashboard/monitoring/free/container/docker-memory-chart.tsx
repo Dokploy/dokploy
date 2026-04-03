@@ -12,15 +12,15 @@ import type { DockerStatsJSON } from "./show-free-container-monitoring";
 import { convertMemoryToBytes } from "./show-free-container-monitoring";
 
 interface Props {
-	acummulativeData: DockerStatsJSON["memory"];
+	accumulativeData: DockerStatsJSON["memory"];
 	memoryLimitGB: number;
 }
 
 export const DockerMemoryChart = ({
-	acummulativeData,
+	accumulativeData,
 	memoryLimitGB,
 }: Props) => {
-	const transformedData = acummulativeData.map((item, index) => {
+	const transformedData = accumulativeData.map((item, index) => {
 		return {
 			time: item.time,
 			name: `Point ${index + 1}`,

@@ -54,7 +54,7 @@ export const ShowVolumeBackups = ({
 		},
 	);
 	const utils = api.useUtils();
-	const { mutateAsync: deleteVolumeBackup, isLoading: isDeleting } =
+	const { mutateAsync: deleteVolumeBackup, isPending: isDeleting } =
 		api.volumeBackups.delete.useMutation();
 	const { mutateAsync: runManually } =
 		api.volumeBackups.runManually.useMutation();
@@ -86,7 +86,7 @@ export const ShowVolumeBackups = ({
 						</CardTitle>
 						<CardDescription>
 							Schedule volume backups to run automatically at specified
-							intervals.
+							intervals
 						</CardDescription>
 					</div>
 					<div className="flex items-center gap-2 flex-wrap">

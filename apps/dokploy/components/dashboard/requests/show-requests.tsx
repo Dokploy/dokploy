@@ -51,13 +51,38 @@ export const ShowRequests = () => {
 	const { mutateAsync: updateLogCleanup } =
 		api.settings.updateLogCleanup.useMutation();
 	const [cronExpression, setCronExpression] = useState<string | null>(null);
+
+	// Set default date range to last 3 days
+	const getDefaultDateRange = () => {
+		const to = new Date();
+		const from = new Date();
+		from.setDate(from.getDate() - 3);
+		return { from, to };
+	};
+
 	const [dateRange, setDateRange] = useState<{
 		from: Date | undefined;
 		to: Date | undefined;
-	}>({
-		from: undefined,
-		to: undefined,
-	});
+	}>(getDefaultDateRange());
+
+	// Check if logs exist to determine if traefik has been reloaded
+	// Only fetch when active to minimize network calls
+	const { data: statsLogsCheck } = api.settings.readStatsLogs.useQuery(
+		{
+			page: {
+				pageIndex: 0,
+				pageSize: 1,
+			},
+		},
+		{
+			enabled: !!isActive,
+			refetchInterval: 5000, // Check every 5 seconds when active
+		},
+	);
+
+	// Determine if warning should be shown
+	// Show warning only if active but no logs exist yet
+	const shouldShowWarning = isActive && (statsLogsCheck?.totalCount ?? 0) === 0;
 
 	useEffect(() => {
 		if (logCleanupStatus) {
@@ -79,16 +104,18 @@ export const ShowRequests = () => {
 								See all the incoming requests that pass trough Traefik
 							</CardDescription>
 
-							<AlertBlock type="warning">
-								When you activate, you need to reload traefik to apply the
-								changes, you can reload traefik in{" "}
-								<Link
-									href="/dashboard/settings/server"
-									className="text-primary"
-								>
-									Settings
-								</Link>
-							</AlertBlock>
+							{shouldShowWarning && (
+								<AlertBlock type="warning">
+									When you activate, you need to reload traefik to apply the
+									changes, you can reload traefik in{" "}
+									<Link
+										href="/dashboard/settings/server"
+										className="text-primary"
+									>
+										Settings
+									</Link>
+								</AlertBlock>
+							)}
 						</CardHeader>
 						<CardContent className="space-y-2 py-8 border-t">
 							<div className="flex w-full gap-4 justify-end items-center">
@@ -169,17 +196,13 @@ export const ShowRequests = () => {
 							{isActive ? (
 								<>
 									<div className="flex justify-end mb-4 gap-2">
-										{(dateRange.from || dateRange.to) && (
-											<Button
-												variant="outline"
-												onClick={() =>
-													setDateRange({ from: undefined, to: undefined })
-												}
-												className="px-3"
-											>
-												Clear dates
-											</Button>
-										)}
+										<Button
+											variant="outline"
+											onClick={() => setDateRange(getDefaultDateRange())}
+											className="px-3"
+										>
+											Reset to Last 3 Days
+										</Button>
 										<Popover>
 											<PopoverTrigger asChild>
 												<Button
