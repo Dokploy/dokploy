@@ -143,7 +143,12 @@ export const licenseKeyRouter = createTRPCRouter({
 				});
 			}
 
-			await deactivateLicenseKey(currentUser.licenseKey);
+			try {
+				await deactivateLicenseKey(currentUser.licenseKey);
+			} catch (err) {
+				console.error("Failed to deactivate license key remotely:", err);
+			}
+
 			await db
 				.update(user)
 				.set({
