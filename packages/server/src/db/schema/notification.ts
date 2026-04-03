@@ -38,6 +38,7 @@ export const notifications = pgTable("notification", {
 	databaseBackup: boolean("databaseBackup").notNull().default(false),
 	volumeBackup: boolean("volumeBackup").notNull().default(false),
 	dokployRestart: boolean("dokployRestart").notNull().default(false),
+	dokployBackup: boolean("dokployBackup").notNull().default(false),
 	dockerCleanup: boolean("dockerCleanup").notNull().default(false),
 	serverThreshold: boolean("serverThreshold").notNull().default(false),
 	notificationType: notificationType("notificationType").notNull(),
@@ -266,6 +267,7 @@ export const apiCreateSlack = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -294,6 +296,7 @@ export const apiCreateTelegram = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -324,6 +327,7 @@ export const apiCreateDiscord = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -355,6 +359,7 @@ export const apiCreateEmail = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -391,6 +396,7 @@ export const apiCreateResend = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -421,6 +427,7 @@ export const apiCreateGotify = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -455,6 +462,7 @@ export const apiCreateNtfy = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -486,6 +494,7 @@ export const apiCreateMattermost = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -503,6 +512,7 @@ export const apiCreateMattermost = notificationsSchema
 		webhookUrl: true,
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		appDeploy: true,
@@ -535,6 +545,7 @@ export const apiCreateCustom = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -562,6 +573,7 @@ export const apiCreateLark = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -588,6 +600,7 @@ export const apiCreateTeams = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -614,6 +627,7 @@ export const apiCreatePushover = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -648,6 +662,7 @@ export const apiUpdatePushover = z.object({
 	expire: z.number().min(1).max(10800).nullish(),
 	appBuildError: z.boolean().optional(),
 	databaseBackup: z.boolean().optional(),
+	dokployBackup: z.boolean().optional(),
 	volumeBackup: z.boolean().optional(),
 	dokployRestart: z.boolean().optional(),
 	name: z.string().optional(),

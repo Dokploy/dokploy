@@ -31,13 +31,13 @@ import {
 	updateCompose,
 	updateDeploymentStatus,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import {
 	addNewService,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import { db } from "@dokploy/server/db";
 import {
 	type CompleteTemplate,
 	fetchTemplateFiles,
@@ -75,8 +75,8 @@ import {
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
-import { audit } from "../utils/audit";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import { audit } from "../utils/audit";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure

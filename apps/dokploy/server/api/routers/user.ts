@@ -13,6 +13,7 @@ import {
 	updateUser,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import {
 	account,
 	apiAssignPermissions,
@@ -344,12 +345,19 @@ export const userRouter = createTRPCRouter({
 					});
 				}
 
-				const { id, ...rest } = input;
+				const { id, accessedGitProviders, ...rest } = input;
+
+				const licensed = await hasValidLicense(
+					ctx.session?.activeOrganizationId || "",
+				);
 
 				await db
 					.update(member)
 					.set({
 						...rest,
+						...(licensed && accessedGitProviders !== undefined
+							? { accessedGitProviders }
+							: {}),
 					})
 					.where(
 						and(

@@ -225,7 +225,7 @@ export const RestoreBackup = ({
 		resolver: zodResolver(RestoreBackupSchema),
 	});
 
-	const destionationId = form.watch("destinationId");
+	const destinationId = form.watch("destinationId");
 	const currentDatabaseType = form.watch("databaseType");
 	const metadata = form.watch("metadata");
 
@@ -240,12 +240,12 @@ export const RestoreBackup = ({
 
 	const { data: files = [], isPending } = api.backup.listBackupFiles.useQuery(
 		{
-			destinationId: destionationId,
+			destinationId: destinationId,
 			search: debouncedSearchTerm,
 			serverId: serverId ?? "",
 		},
 		{
-			enabled: isOpen && !!destionationId,
+			enabled: isOpen && !!destinationId,
 		},
 	);
 
