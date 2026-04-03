@@ -1,10 +1,10 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+import { boolean, pgTable, text } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
 import { compose } from "./compose";
+import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
@@ -26,6 +26,7 @@ export const environments = pgTable("environment", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	isDefault: boolean("isDefault").notNull().default(false),
 });
 
 export const environmentRelations = relations(
@@ -36,50 +37,40 @@ export const environmentRelations = relations(
 			references: [projects.projectId],
 		}),
 		applications: many(applications),
-		mariadb: many(mariadb),
-		postgres: many(postgres),
-		mysql: many(mysql),
-		redis: many(redis),
-		mongo: many(mongo),
 		compose: many(compose),
+		libsql: many(libsql),
+		mariadb: many(mariadb),
+		mongo: many(mongo),
+		mysql: many(mysql),
+		postgres: many(postgres),
+		redis: many(redis),
 	}),
 );
 
-const createSchema = createInsertSchema(environments, {
+export const apiCreateEnvironment = z.object({
+	name: z.string().min(1),
+	description: z.string().optional(),
+	projectId: z.string().min(1),
+});
+
+export const apiFindOneEnvironment = z.object({
+	environmentId: z.string().min(1),
+});
+
+export const apiRemoveEnvironment = z.object({
+	environmentId: z.string().min(1),
+});
+
+export const apiUpdateEnvironment = z.object({
+	environmentId: z.string().min(1),
+	name: z.string().min(1).optional(),
+	description: z.string().optional(),
+	projectId: z.string().optional(),
+	env: z.string().optional(),
+});
+
+export const apiDuplicateEnvironment = z.object({
 	environmentId: z.string().min(1),
 	name: z.string().min(1),
 	description: z.string().optional(),
 });
-
-export const apiCreateEnvironment = createSchema.pick({
-	name: true,
-	description: true,
-	projectId: true,
-});
-
-export const apiFindOneEnvironment = createSchema
-	.pick({
-		environmentId: true,
-	})
-	.required();
-
-export const apiRemoveEnvironment = createSchema
-	.pick({
-		environmentId: true,
-	})
-	.required();
-
-export const apiUpdateEnvironment = createSchema.partial().extend({
-	environmentId: z.string().min(1),
-});
-
-export const apiDuplicateEnvironment = createSchema
-	.pick({
-		environmentId: true,
-		name: true,
-		description: true,
-	})
-	.required({
-		environmentId: true,
-		name: true,
-	});

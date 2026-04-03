@@ -1,5 +1,5 @@
 import copy from "copy-to-clipboard";
-import { CopyIcon, ExternalLinkIcon, ServerIcon } from "lucide-react";
+import { CopyIcon, ExternalLinkIcon, ServerIcon, Settings } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -22,7 +22,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
@@ -36,9 +35,10 @@ import { ValidateServer } from "./validate-server";
 
 interface Props {
 	serverId: string;
+	asButton?: boolean;
 }
 
-export const SetupServer = ({ serverId }: Props) => {
+export const SetupServer = ({ serverId, asButton = false }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: server } = api.server.one.useQuery(
 		{
@@ -51,6 +51,7 @@ export const SetupServer = ({ serverId }: Props) => {
 
 	const [activeLog, setActiveLog] = useState<string | null>(null);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const isBuildServer = server?.serverType === "build";
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
 	const [isDeploying, setIsDeploying] = useState(false);
@@ -80,14 +81,23 @@ export const SetupServer = ({ serverId }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>
-				<DropdownMenuItem
+			{asButton ? (
+				<DialogTrigger asChild>
+					<Button variant="outline" size="icon" className="h-9 w-9">
+						<Settings className="h-4 w-4" />
+					</Button>
+				</DialogTrigger>
+			) : (
+				<Button
 					className="w-full cursor-pointer "
-					onSelect={(e) => e.preventDefault()}
+					size="sm"
+					onClick={() => {
+						setIsOpen(true);
+					}}
 				>
-					Setup Server
-				</DropdownMenuItem>
-			</DialogTrigger>
+					Setup Server <Settings className="size-4" />
+				</Button>
+			)}
 			<DialogContent className="sm:max-w-4xl  ">
 				<DialogHeader>
 					<div className="flex flex-col gap-1.5">
@@ -108,26 +118,36 @@ export const SetupServer = ({ serverId }: Props) => {
 					</div>
 				) : (
 					<div id="hook-form-add-gitlab" className="grid w-full gap-4">
-						<AlertBlock type="warning">
-							Using a root user is required to ensure everything works as
-							expected.
+						<AlertBlock type="info">
+							You can connect as root or as a non-root user with passwordless
+							sudo access. If using a non-root user, ensure passwordless sudo is
+							configured.
 						</AlertBlock>
 
 						<Tabs defaultValue="ssh-keys">
 							<TabsList
 								className={cn(
 									"grid  w-[700px]",
-									isCloud ? "grid-cols-6" : "grid-cols-5",
+									isBuildServer
+										? "grid-cols-3"
+										: isCloud
+											? "grid-cols-6"
+											: "grid-cols-5",
 								)}
 							>
 								<TabsTrigger value="ssh-keys">SSH Keys</TabsTrigger>
 								<TabsTrigger value="deployments">Deployments</TabsTrigger>
 								<TabsTrigger value="validate">Validate</TabsTrigger>
-								<TabsTrigger value="audit">Security</TabsTrigger>
-								{isCloud && (
-									<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+
+								{!isBuildServer && (
+									<>
+										<TabsTrigger value="audit">Security</TabsTrigger>
+										{isCloud && (
+											<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+										)}
+										<TabsTrigger value="gpu-setup">GPU Setup</TabsTrigger>
+									</>
 								)}
-								<TabsTrigger value="gpu-setup">GPU Setup</TabsTrigger>
 							</TabsList>
 							<TabsContent
 								value="ssh-keys"
@@ -141,7 +161,7 @@ export const SetupServer = ({ serverId }: Props) => {
 									<ul>
 										<li>
 											1. Add the public SSH Key when you create a server in your
-											preffered provider (Hostinger, Digital Ocean, Hetzner,
+											preferred provider (Hostinger, Digital Ocean, Hetzner,
 											etc){" "}
 										</li>
 										<li>2. Add The SSH Key to Server Manually</li>
@@ -171,7 +191,7 @@ export const SetupServer = ({ serverId }: Props) => {
 											Automatic process
 										</span>
 										<Link
-											href="https://docs.dokploy.com/docs/core/multi-server/instructions#requirements"
+											href="https://docs.dokploy.com/docs/core/remote-servers/instructions#requirements"
 											target="_blank"
 											className="text-primary flex flex-row gap-2"
 										>
@@ -311,32 +331,36 @@ export const SetupServer = ({ serverId }: Props) => {
 									<ValidateServer serverId={serverId} />
 								</div>
 							</TabsContent>
-							<TabsContent
-								value="audit"
-								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-							>
-								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
-									<SecurityAudit serverId={serverId} />
-								</div>
-							</TabsContent>
-							<TabsContent
-								value="monitoring"
-								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-							>
-								<div className="flex flex-col gap-2 text-sm pt-3">
-									<div className="rounded-xl bg-background shadow-md border">
-										<SetupMonitoring serverId={serverId} />
-									</div>
-								</div>
-							</TabsContent>
-							<TabsContent
-								value="gpu-setup"
-								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-							>
-								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
-									<GPUSupport serverId={serverId} />
-								</div>
-							</TabsContent>
+							{!isBuildServer && (
+								<>
+									<TabsContent
+										value="audit"
+										className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+									>
+										<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
+											<SecurityAudit serverId={serverId} />
+										</div>
+									</TabsContent>
+									<TabsContent
+										value="monitoring"
+										className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+									>
+										<div className="flex flex-col gap-2 text-sm pt-3">
+											<div className="rounded-xl bg-background shadow-md border">
+												<SetupMonitoring serverId={serverId} />
+											</div>
+										</div>
+									</TabsContent>
+									<TabsContent
+										value="gpu-setup"
+										className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+									>
+										<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
+											<GPUSupport serverId={serverId} />
+										</div>
+									</TabsContent>
+								</>
+							)}
 						</Tabs>
 					</div>
 				)}

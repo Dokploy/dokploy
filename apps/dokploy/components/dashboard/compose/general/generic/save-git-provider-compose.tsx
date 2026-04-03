@@ -1,5 +1,5 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { KeyRoundIcon, LockIcon, X } from "lucide-react";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { HelpCircle, KeyRoundIcon, LockIcon, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
@@ -58,9 +58,9 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 	const { data: sshKeys } = api.sshKey.all.useQuery();
 	const router = useRouter();
 
-	const { mutateAsync, isLoading } = api.compose.update.useMutation();
+	const { mutateAsync, isPending } = api.compose.update.useMutation();
 
-	const form = useForm<GitProvider>({
+	const form = useForm({
 		defaultValues: {
 			branch: "",
 			repositoryURL: "",
@@ -230,10 +230,8 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 									<FormLabel>Watch Paths</FormLabel>
 									<TooltipProvider>
 										<Tooltip>
-											<TooltipTrigger>
-												<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
-													?
-												</div>
+											<TooltipTrigger asChild>
+												<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 											</TooltipTrigger>
 											<TooltipContent className="max-w-[300px]">
 												<p>
@@ -318,7 +316,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 				</div>
 
 				<div className="flex flex-row justify-end">
-					<Button type="submit" className="w-fit" isLoading={isLoading}>
+					<Button type="submit" className="w-fit" isLoading={isPending}>
 						Save{" "}
 					</Button>
 				</div>

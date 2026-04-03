@@ -1,0 +1,1 @@
+ALTER TABLE "application" ADD COLUMN "createEnvFile" boolean DEFAULT true NOT NULL;

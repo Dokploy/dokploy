@@ -51,7 +51,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 		},
 	);
 	const utils = api.useUtils();
-	const { mutateAsync: deleteSchedule, isLoading: isDeleting } =
+	const { mutateAsync: deleteSchedule, isPending: isDeleting } =
 		api.schedule.delete.useMutation();
 	const { mutateAsync: runManually } = api.schedule.runManually.useMutation();
 

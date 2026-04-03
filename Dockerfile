@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
-FROM node:20.16.0-slim AS base
+FROM node:24.4.0-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
-RUN corepack prepare pnpm@9.12.0 --activate
+RUN corepack prepare pnpm@10.22.0 --activate
 
 FROM base AS build
 COPY . /usr/src/app
@@ -20,7 +20,7 @@ ENV NODE_ENV=production
 RUN pnpm --filter=@dokploy/server build
 RUN pnpm --filter=./apps/dokploy run build
 
-RUN pnpm --filter=./apps/dokploy --prod deploy /prod/dokploy
+RUN pnpm --filter=./apps/dokploy --prod deploy --legacy /prod/dokploy
 
 RUN cp -R /usr/src/app/apps/dokploy/.next /prod/dokploy/.next
 RUN cp -R /usr/src/app/apps/dokploy/dist /prod/dokploy/dist
@@ -46,23 +46,27 @@ COPY --from=build /prod/dokploy/node_modules ./node_modules
 
 
 # Install docker
-RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm get-docker.sh && curl https://rclone.org/install.sh | bash
+RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh --version 28.5.2 && rm get-docker.sh && curl https://rclone.org/install.sh | bash
 
 # Install Nixpacks and tsx
 # | VERBOSE=1 VERSION=1.21.0 bash
 
-ARG NIXPACKS_VERSION=1.39.0
+ARG NIXPACKS_VERSION=1.41.0
 RUN curl -sSL https://nixpacks.com/install.sh -o install.sh \
     && chmod +x install.sh \
     && ./install.sh \
     && pnpm install -g tsx
 
 # Install Railpack
-ARG RAILPACK_VERSION=0.2.2
+ARG RAILPACK_VERSION=0.15.4
 RUN curl -sSL https://railpack.com/install.sh | bash
 
 # Install buildpacks
-COPY --from=buildpacksio/pack:0.35.0 /usr/local/bin/pack /usr/local/bin/pack
+COPY --from=buildpacksio/pack:0.39.1 /usr/local/bin/pack /usr/local/bin/pack
 
 EXPOSE 3000
-CMD [ "pnpm", "start" ]
+
+HEALTHCHECK --interval=10s --timeout=3s --retries=10 \
+  CMD curl -fs http://localhost:3000/api/trpc/settings.health || exit 1
+
+  CMD ["sh", "-c", "pnpm run wait-for-postgres && exec pnpm start"]

@@ -42,7 +42,7 @@ export const ShowDockerLogsCompose = ({
 	appType,
 	serverId,
 }: Props) => {
-	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
+	const { data, isPending } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName,
 			appType,
@@ -73,7 +73,7 @@ export const ShowDockerLogsCompose = ({
 				<Label>Select a container to view logs</Label>
 				<Select onValueChange={setContainerId} value={containerId}>
 					<SelectTrigger>
-						{isLoading ? (
+						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
 								<span>Loading...</span>
 								<Loader2 className="animate-spin size-4" />
@@ -93,6 +93,7 @@ export const ShowDockerLogsCompose = ({
 									<Badge variant={badgeStateColor(container.state)}>
 										{container.state}
 									</Badge>
+									{container.status ? ` ${container.status}` : ""}
 								</SelectItem>
 							))}
 							<SelectLabel>Containers ({data?.length})</SelectLabel>
