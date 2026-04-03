@@ -8,7 +8,12 @@ import type { Libsql } from "@dokploy/server/services/libsql";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	getBackupCommand,
+	getBackupTimestamp,
+	getS3Credentials,
+	normalizeS3Path,
+} from "./utils";
 
 export const runLibsqlBackup = async (
 	libsql: Libsql,

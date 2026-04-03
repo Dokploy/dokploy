@@ -8,7 +8,12 @@ import { findEnvironmentById } from "@dokploy/server/services/environment";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	getBackupCommand,
+	getBackupTimestamp,
+	getS3Credentials,
+	normalizeS3Path,
+} from "./utils";
 
 export const runComposeBackup = async (
 	compose: Compose,

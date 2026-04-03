@@ -2,7 +2,11 @@ import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { findComposeById } from "@dokploy/server/services/compose";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
-import { getBackupTimestamp, getS3Credentials, normalizeS3Path } from "../backups/utils";
+import {
+	getBackupTimestamp,
+	getS3Credentials,
+	normalizeS3Path,
+} from "../backups/utils";
 
 export const getVolumeServiceAppName = (
 	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
