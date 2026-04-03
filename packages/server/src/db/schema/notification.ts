@@ -682,6 +682,7 @@ export const apiUpdatePushover = z.object({
 	appDeploy: z.boolean().optional(),
 	dockerCleanup: z.boolean().optional(),
 	serverThreshold: z.boolean().optional(),
+	dokployUpdate: z.boolean().optional(),
 });
 
 export const apiTestPushoverConnection = z
