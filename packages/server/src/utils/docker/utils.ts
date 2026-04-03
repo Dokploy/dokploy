@@ -408,6 +408,13 @@ export const prepareEnvironmentVariables = (
 	return resolvedVars;
 };
 
+export const quoteDotenvValue = (pair: string): string => {
+	const i = pair.indexOf("=");
+	if (i === -1) return pair;
+	const value = pair.substring(i + 1).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+	return `${pair.substring(0, i)}="${value}"`;
+};
+
 export const prepareEnvironmentVariablesForShell = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,

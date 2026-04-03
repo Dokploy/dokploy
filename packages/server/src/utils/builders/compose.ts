@@ -8,6 +8,7 @@ import {
 	encodeBase64,
 	getEnvironmentVariablesObject,
 	prepareEnvironmentVariables,
+	quoteDotenvValue,
 } from "../docker/utils";
 
 export type ComposeNested = InferResultType<
@@ -119,7 +120,9 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 		envContent,
 		compose.environment.project.env,
 		compose.environment.env,
-	).join("\n");
+	)
+		.map(quoteDotenvValue)
+		.join("\n");
 
 	const encodedContent = encodeBase64(envFileContent);
 	return `
