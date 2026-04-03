@@ -545,52 +545,42 @@ export const backupRouter = createTRPCRouter({
 			}
 			const destination = await findDestinationById(input.destinationId);
 			const queue: string[] = [];
-			const done = false;
-			if (input.backupType === "database") {
-				if (input.databaseType === "postgres") {
-					const postgres = await findPostgresById(input.databaseId);
-
-					restorePostgresBackup(postgres, destination, input, (log) => {
-						queue.push(log);
-					});
+			let done = false;
+			const onLog = (log: string) => queue.push(log);
+			const runRestore = async () => {
+				if (input.backupType === "database") {
+					if (input.databaseType === "postgres") {
+						const postgres = await findPostgresById(input.databaseId);
+						await restorePostgresBackup(postgres, destination, input, onLog);
+					} else if (input.databaseType === "mysql") {
+						const mysql = await findMySqlById(input.databaseId);
+						await restoreMySqlBackup(mysql, destination, input, onLog);
+					} else if (input.databaseType === "mariadb") {
+						const mariadb = await findMariadbById(input.databaseId);
+						await restoreMariadbBackup(mariadb, destination, input, onLog);
+					} else if (input.databaseType === "mongo") {
+						const mongo = await findMongoById(input.databaseId);
+						await restoreMongoBackup(mongo, destination, input, onLog);
+					} else if (input.databaseType === "libsql") {
+						const libsql = await findLibsqlById(input.databaseId);
+						await restoreLibsqlBackup(libsql, destination, input, onLog);
+					} else if (input.databaseType === "web-server") {
+						await restoreWebServerBackup(destination, input.backupFile, onLog);
+					}
+				} else if (input.backupType === "compose") {
+					const compose = await findComposeById(input.databaseId);
+					await restoreComposeBackup(compose, destination, input, onLog);
 				}
-
-				if (input.databaseType === "mysql") {
-					const mysql = await findMySqlById(input.databaseId);
-					restoreMySqlBackup(mysql, destination, input, (log) => {
-						queue.push(log);
-					});
-				}
-				if (input.databaseType === "mariadb") {
-					const mariadb = await findMariadbById(input.databaseId);
-					restoreMariadbBackup(mariadb, destination, input, (log) => {
-						queue.push(log);
-					});
-				}
-				if (input.databaseType === "mongo") {
-					const mongo = await findMongoById(input.databaseId);
-					restoreMongoBackup(mongo, destination, input, (log) => {
-						queue.push(log);
-					});
-				}
-				if (input.databaseType === "libsql") {
-					const libsql = await findLibsqlById(input.databaseId);
-					restoreLibsqlBackup(libsql, destination, input, (log) => {
-						queue.push(log);
-					});
-				}
-				if (input.databaseType === "web-server") {
-					restoreWebServerBackup(destination, input.backupFile, (log) => {
-						queue.push(log);
-					});
-				}
-			}
-			if (input.backupType === "compose") {
-				const compose = await findComposeById(input.databaseId);
-				restoreComposeBackup(compose, destination, input, (log) => {
-					queue.push(log);
+			};
+			runRestore()
+				.catch((error) => {
+					onLog(
+						`Error: ${error instanceof Error ? error.message : String(error)}`,
+					);
+				})
+				.finally(() => {
+					done = true;
 				});
-			}
 			while (!done || queue.length > 0) {
 				if (queue.length > 0) {
 					yield queue.shift()!;

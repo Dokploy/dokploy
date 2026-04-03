@@ -179,11 +179,9 @@ export const apiCreateLibsql = createSchema
 		}
 	});
 
-export const apiFindOneLibsql = createSchema
-	.pick({
-		libsqlId: true,
-	})
-	.required();
+export const apiFindOneLibsql = z.object({
+	libsqlId: z.string().min(1),
+});
 
 export const apiChangeLibsqlStatus = createSchema
 	.pick({
