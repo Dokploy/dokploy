@@ -1,6 +1,3 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -526,67 +523,21 @@ export const uploadFileToContainer = async (
 		? destinationPath
 		: `/${destinationPath}`;
 
-	if (serverId) {
-		// Remote server: transfer file via base64 encoding using heredoc
-		const base64Content = fileBuffer.toString("base64");
-		const tempFileName = `dokploy-upload-${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-		const tempPath = `/tmp/${tempFileName}`;
+	const base64Content = fileBuffer.toString("base64");
+	const tempFileName = `dokploy-upload-${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+	const tempPath = `/tmp/${tempFileName}`;
 
-		try {
-			// Create temp directory and write file on remote server using heredoc
-			// This handles large files and special characters better than echo
-			const writeCommand = `cat << 'EOF' | base64 -d > "${tempPath}"
-${base64Content}
-EOF
-`;
+	const command = `echo '${base64Content}' | base64 -d > "${tempPath}" && docker cp "${tempPath}" "${containerId}:${normalizedPath}" ; rm -f "${tempPath}"`;
 
-			await execAsyncRemote(serverId, writeCommand);
-
-			// Copy file into container
-			const copyCommand = `docker cp "${tempPath}" "${containerId}:${normalizedPath}"`;
-			await execAsyncRemote(serverId, copyCommand);
-
-			// Clean up temp file
-			const cleanupCommand = `rm -f "${tempPath}"`;
-			await execAsyncRemote(serverId, cleanupCommand);
-		} catch (error) {
-			// Try to clean up on error
-			try {
-				await execAsyncRemote(serverId, `rm -f "${tempPath}"`);
-			} catch {
-				// Ignore cleanup errors
-			}
-			throw new Error(
-				`Failed to upload file to container: ${error instanceof Error ? error.message : String(error)}`,
-			);
+	try {
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
 		}
-	} else {
-		// Local server: use temp directory
-		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-upload-"));
-		const tempFilePath = join(tempDir, fileName);
-
-		try {
-			// Write file to temp directory
-			await writeFile(tempFilePath, fileBuffer);
-
-			// Copy file into container
-			const copyCommand = `docker cp "${tempFilePath}" "${containerId}:${normalizedPath}"`;
-			await execAsync(copyCommand);
-
-			// Clean up temp directory
-			await rm(tempFilePath, { force: true });
-			await rm(tempDir, { recursive: true, force: true });
-		} catch (error) {
-			// Try to clean up on error
-			try {
-				await rm(tempFilePath, { force: true });
-				await rm(tempDir, { recursive: true, force: true });
-			} catch {
-				// Ignore cleanup errors
-			}
-			throw new Error(
-				`Failed to upload file to container: ${error instanceof Error ? error.message : String(error)}`,
-			);
-		}
+	} catch (error) {
+		throw new Error(
+			`Failed to upload file to container: ${error instanceof Error ? error.message : String(error)}`,
+		);
 	}
 };
