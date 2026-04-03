@@ -434,7 +434,7 @@ export const parseEnvironmentKeyValuePair = (
 	return [key, valueParts.join("=")];
 };
 
-export const getEnviromentVariablesObject = (
+export const getEnvironmentVariablesObject = (
 	input: string | null,
 	projectEnv?: string | null,
 	environmentEnv?: string | null,

@@ -17,11 +17,11 @@ import {
 	suggestVariants,
 } from "@dokploy/server/services/ai";
 import { createComposeByTemplate } from "@dokploy/server/services/compose";
-import { findProjectById } from "@dokploy/server/services/project";
 import {
 	addNewService,
 	checkServiceAccess,
 } from "@dokploy/server/services/permission";
+import { findProjectById } from "@dokploy/server/services/project";
 import {
 	getProviderHeaders,
 	getProviderName,
