@@ -88,6 +88,17 @@ pnpm run dokploy:dev
 
 Go to http://localhost:3000 to see the development server
 
+### Environment Variables (Optional)
+
+These environment variables can be used to tune resource usage, especially on constrained (4GB) nodes:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MONITORING_WS_REFRESH_MS` | `1300` | WebSocket monitoring poll interval in milliseconds. Increase on low-memory nodes. |
+| `SCHEDULE_WORKER_COUNT` | `3` | Number of BullMQ workers for the schedules service. |
+| `SCHEDULE_WORKER_CONCURRENCY` | `100` | Max concurrent jobs per worker. |
+| `MAX_METRICS_LIMIT` | `2000` | Server-side cap for monitoring metrics queries. |
+
 > [!NOTE]
 > This project uses Biome. If your editor is configured to use another formatter such as Prettier, it's recommended to either change it to use Biome or turn it off.
 

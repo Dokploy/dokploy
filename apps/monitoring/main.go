@@ -16,6 +16,16 @@ import (
 	"github.com/mauriciogm/dokploy/apps/monitoring/monitoring"
 )
 
+var maxMetricsLimit = 2000
+
+func init() {
+	if v := os.Getenv("MAX_METRICS_LIMIT"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			maxMetricsLimit = n
+		}
+	}
+}
+
 func main() {
 	godotenv.Load()
 
@@ -64,33 +74,59 @@ func main() {
 
 	app.Get("/metrics", func(c *fiber.Ctx) error {
 		limit := c.Query("limit", "50")
+		before := c.Query("before", "")
 
 		var metrics []monitoring.SystemMetrics
-		if limit == "all" {
-			dbMetrics, err := db.GetAllMetrics()
-			if err != nil {
-				return c.Status(500).JSON(fiber.Map{
-					"error": "Failed to fetch metrics",
+		var dbMetrics []database.ServerMetric
+		var queryErr error
+
+		if before != "" {
+			cursor, parseErr := time.Parse(time.RFC3339Nano, before)
+			if parseErr != nil {
+				return c.Status(400).JSON(fiber.Map{
+					"error": "Invalid 'before' timestamp format. Use RFC3339Nano.",
 				})
 			}
-			for _, m := range dbMetrics {
-				metrics = append(metrics, monitoring.ConvertToSystemMetrics(m))
+			n := 50
+			if limit != "all" {
+				if parsed, err := strconv.Atoi(limit); err == nil {
+					n = parsed
+				}
 			}
+			if n > maxMetricsLimit {
+				n = maxMetricsLimit
+			}
+			dbMetrics, queryErr = db.GetMetricsBefore(cursor, n)
+		} else if limit == "all" {
+			log.Printf("DEPRECATION WARNING: limit=all is deprecated. Results capped at %d. Use pagination with 'before' parameter.", maxMetricsLimit)
+			dbMetrics, queryErr = db.GetLastNMetrics(maxMetricsLimit)
 		} else {
 			n, err := strconv.Atoi(limit)
 			if err != nil {
 				n = 50
 			}
-			dbMetrics, err := db.GetLastNMetrics(n)
-			if err != nil {
-				return c.Status(500).JSON(fiber.Map{
-					"error": "Failed to fetch metrics",
-				})
+			if n > maxMetricsLimit {
+				n = maxMetricsLimit
 			}
-			for _, m := range dbMetrics {
-				metrics = append(metrics, monitoring.ConvertToSystemMetrics(m))
-			}
+			dbMetrics, queryErr = db.GetLastNMetrics(n)
 		}
+
+		if queryErr != nil {
+			return c.Status(500).JSON(fiber.Map{
+				"error": "Failed to fetch metrics",
+			})
+		}
+
+		for _, m := range dbMetrics {
+			metrics = append(metrics, monitoring.ConvertToSystemMetrics(m))
+		}
+
+		// Report total count so clients know if results were truncated
+		totalCount, countErr := db.GetMetricsCount()
+		if countErr != nil {
+			log.Printf("Error getting metrics count: %v", countErr)
+		}
+		c.Set("X-Total-Count", strconv.Itoa(totalCount))
 
 		return c.JSON(metrics)
 	})
@@ -107,6 +143,7 @@ func main() {
 	app.Get("/metrics/containers", func(c *fiber.Ctx) error {
 		limit := c.Query("limit", "50")
 		appName := c.Query("appName", "")
+		before := c.Query("before", "")
 
 		if appName == "" {
 			return c.JSON([]database.ContainerMetric{})
@@ -115,12 +152,33 @@ func main() {
 		var metrics []database.ContainerMetric
 		var err error
 
-		if limit == "all" {
-			metrics, err = db.GetAllMetricsContainer(appName)
+		if before != "" {
+			cursor, parseErr := time.Parse(time.RFC3339Nano, before)
+			if parseErr != nil {
+				return c.Status(400).JSON(fiber.Map{
+					"error": "Invalid 'before' timestamp format. Use RFC3339Nano.",
+				})
+			}
+			n := 50
+			if limit != "all" {
+				if parsed, pErr := strconv.Atoi(limit); pErr == nil {
+					n = parsed
+				}
+			}
+			if n > maxMetricsLimit {
+				n = maxMetricsLimit
+			}
+			metrics, err = db.GetContainerMetricsBefore(appName, cursor, n)
+		} else if limit == "all" {
+			log.Printf("DEPRECATION WARNING: limit=all is deprecated for container metrics. Results capped at %d.", maxMetricsLimit)
+			metrics, err = db.GetLastNContainerMetrics(appName, maxMetricsLimit)
 		} else {
 			limitNum, parseErr := strconv.Atoi(limit)
 			if parseErr != nil {
 				limitNum = 50
+			}
+			if limitNum > maxMetricsLimit {
+				limitNum = maxMetricsLimit
 			}
 			metrics, err = db.GetLastNContainerMetrics(appName, limitNum)
 		}
@@ -130,6 +188,12 @@ func main() {
 				"error": "Error getting container metrics: " + err.Error(),
 			})
 		}
+
+		totalCount, countErr := db.GetContainerMetricsCount(appName)
+		if countErr != nil {
+			log.Printf("Error getting container metrics count: %v", countErr)
+		}
+		c.Set("X-Total-Count", strconv.Itoa(totalCount))
 
 		return c.JSON(metrics)
 	})

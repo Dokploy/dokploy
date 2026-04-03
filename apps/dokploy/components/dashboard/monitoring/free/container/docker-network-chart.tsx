@@ -76,8 +76,8 @@ interface CustomTooltipProps {
 		value?: number;
 		payload: {
 			time: string;
-			inMB: number;
-			outMB: number;
+			inMB: string;
+			outMB: string;
 		};
 	}[];
 }

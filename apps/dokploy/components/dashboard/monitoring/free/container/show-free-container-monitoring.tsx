@@ -15,22 +15,22 @@ const defaultData = {
 	},
 	memory: {
 		value: {
-			used: 0,
-			total: 0,
+			used: "0",
+			total: "0",
 		},
 		time: "",
 	},
 	block: {
 		value: {
-			readMb: 0,
-			writeMb: 0,
+			readMb: "0",
+			writeMb: "0",
 		},
 		time: "",
 	},
 	network: {
 		value: {
-			inputMb: 0,
-			outputMb: 0,
+			inputMb: "0",
+			outputMb: "0",
 		},
 		time: "",
 	},
@@ -51,22 +51,22 @@ export interface DockerStats {
 	};
 	memory: {
 		value: {
-			used: number;
-			total: number;
+			used: string;
+			total: string;
 		};
 		time: string;
 	};
 	block: {
 		value: {
-			readMb: number;
-			writeMb: number;
+			readMb: string;
+			writeMb: string;
 		};
 		time: string;
 	};
 	network: {
 		value: {
-			inputMb: number;
-			outputMb: number;
+			inputMb: string;
+			outputMb: string;
 		};
 		time: string;
 	};

@@ -26,10 +26,8 @@ export const setupMonitoring = async (serverId: string) => {
 		Env: [`METRICS_CONFIG=${JSON.stringify(server?.metricsConfig)}`],
 		Image: imageName,
 		HostConfig: {
-			// Memory: 100 * 1024 * 1024, // 100MB en bytes
-			// PidMode: "host",
-			// CapAdd: ["NET_ADMIN", "SYS_ADMIN"],
-			// Privileged: true,
+			Memory: 150 * 1024 * 1024, // 150MB hard limit
+			MemoryReservation: 64 * 1024 * 1024, // 64MB soft limit
 			RestartPolicy: {
 				Name: "always",
 			},
@@ -102,10 +100,8 @@ export const setupWebMonitoring = async () => {
 		Env: [`METRICS_CONFIG=${JSON.stringify(webServerSettings?.metricsConfig)}`],
 		Image: imageName,
 		HostConfig: {
-			// Memory: 100 * 1024 * 1024, // 100MB en bytes
-			// PidMode: "host",
-			// CapAdd: ["NET_ADMIN", "SYS_ADMIN"],
-			// Privileged: true,
+			Memory: 150 * 1024 * 1024, // 150MB hard limit
+			MemoryReservation: 64 * 1024 * 1024, // 64MB soft limit
 			RestartPolicy: {
 				Name: "always",
 			},
