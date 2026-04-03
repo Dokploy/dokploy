@@ -66,10 +66,7 @@ export const getAccessibleGitProviderIds = async (session: {
 		columns: { accessedGitProviders: true, role: true },
 	});
 
-	if (
-		memberRecord?.role === "owner" ||
-		memberRecord?.role === "admin"
-	) {
+	if (memberRecord?.role === "owner" || memberRecord?.role === "admin") {
 		return new Set(allOrgProviders.map((p) => p.gitProviderId));
 	}
 

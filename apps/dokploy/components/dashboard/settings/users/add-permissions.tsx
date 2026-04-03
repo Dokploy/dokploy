@@ -891,9 +891,7 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 								render={() => (
 									<FormItem className="md:col-span-2">
 										<div className="mb-4">
-											<FormLabel className="text-base">
-												Git Providers
-											</FormLabel>
+											<FormLabel className="text-base">Git Providers</FormLabel>
 											<FormDescription>
 												Select the Git Providers that the user can access
 											</FormDescription>
@@ -925,8 +923,7 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 																		} else {
 																			field.onChange(
 																				field.value?.filter(
-																					(v) =>
-																						v !== provider.gitProviderId,
+																					(v) => v !== provider.gitProviderId,
 																				),
 																			);
 																		}

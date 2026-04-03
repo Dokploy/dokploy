@@ -71,9 +71,7 @@ export const gitProviderRouter = createTRPCRouter({
 
 	allForPermissions: withPermission("member", "update")
 		.use(async ({ ctx, next }) => {
-			const licensed = await hasValidLicense(
-				ctx.session.activeOrganizationId,
-			);
+			const licensed = await hasValidLicense(ctx.session.activeOrganizationId);
 			if (!licensed) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
@@ -90,10 +88,7 @@ export const gitProviderRouter = createTRPCRouter({
 					providerType: true,
 				},
 				orderBy: desc(gitProvider.createdAt),
-				where: eq(
-					gitProvider.organizationId,
-					ctx.session.activeOrganizationId,
-				),
+				where: eq(gitProvider.organizationId, ctx.session.activeOrganizationId),
 			});
 		}),
 

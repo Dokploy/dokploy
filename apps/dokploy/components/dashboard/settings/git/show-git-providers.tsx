@@ -193,8 +193,7 @@ export const ShowGitProviders = () => {
 																							await toggleShare({
 																								gitProviderId:
 																									gitProvider.gitProviderId,
-																								sharedWithOrganization:
-																									checked,
+																								sharedWithOrganization: checked,
 																							})
 																								.then(() => {
 																									toast.success(
@@ -288,17 +287,13 @@ export const ShowGitProviders = () => {
 																	<>
 																		{isGithub && haveGithubRequirements && (
 																			<EditGithubProvider
-																				githubId={
-																					gitProvider.github?.githubId
-																				}
+																				githubId={gitProvider.github?.githubId}
 																			/>
 																		)}
 
 																		{isGitlab && (
 																			<EditGitlabProvider
-																				gitlabId={
-																					gitProvider.gitlab?.gitlabId
-																				}
+																				gitlabId={gitProvider.gitlab?.gitlabId}
 																			/>
 																		)}
 
