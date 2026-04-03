@@ -1,5 +1,5 @@
 import { getUserByToken, IS_CLOUD } from "@dokploy/server";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -23,11 +23,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
+import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const registerSchema = z
 	.object({
 		name: z.string().min(1, {
-			message: "Name is required",
+			message: "First name is required",
+		}),
+		lastName: z.string().min(1, {
+			message: "Last name is required",
 		}),
 		email: z
 			.string()
@@ -79,6 +83,7 @@ const Invitation = ({
 	userAlreadyExists,
 }: Props) => {
 	const router = useRouter();
+	const { config: whitelabeling } = useWhitelabelingPublic();
 	const { data } = api.user.getUserByToken.useQuery(
 		{
 			token,
@@ -92,6 +97,7 @@ const Invitation = ({
 	const form = useForm<Register>({
 		defaultValues: {
 			name: "",
+			lastName: "",
 			email: "",
 			password: "",
 			confirmPassword: "",
@@ -115,6 +121,7 @@ const Invitation = ({
 				email: values.email,
 				password: values.password,
 				name: values.name,
+				lastName: values.lastName,
 				fetchOptions: {
 					headers: {
 						"x-dokploy-token": token,
@@ -143,12 +150,15 @@ const Invitation = ({
 			<div className="flex  h-screen w-full items-center justify-center ">
 				<div className="flex flex-col items-center gap-4 w-full">
 					<CardTitle className="text-2xl font-bold flex items-center gap-2">
-						<Link
-							href="https://dokploy.com"
-							target="_blank"
-							className="flex flex-row items-center gap-2"
-						>
-							<Logo className="size-12" />
+						<Link href="/" className="flex flex-row items-center gap-2">
+							<Logo
+								className="size-12"
+								logoUrl={
+									whitelabeling?.loginLogoUrl ||
+									whitelabeling?.logoUrl ||
+									undefined
+								}
+							/>
 						</Link>
 						Invitation
 					</CardTitle>
@@ -197,12 +207,22 @@ const Invitation = ({
 													name="name"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>Name</FormLabel>
+															<FormLabel>First Name</FormLabel>
 															<FormControl>
-																<Input
-																	placeholder="Enter your name"
-																	{...field}
-																/>
+																<Input placeholder="John" {...field} />
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+												<FormField
+													control={form.control}
+													name="lastName"
+													render={({ field }) => (
+														<FormItem>
+															<FormLabel>Last Name</FormLabel>
+															<FormControl>
+																<Input placeholder="Doe" {...field} />
 															</FormControl>
 															<FormMessage />
 														</FormItem>

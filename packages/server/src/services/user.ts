@@ -1,10 +1,10 @@
 import { db } from "@dokploy/server/db";
-import { apikey, member, users_temp } from "@dokploy/server/db/schema";
+import { apikey, member, user } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { auth } from "../lib/auth";
 
-export type User = typeof users_temp.$inferSelect;
+export type User = typeof user.$inferSelect;
 
 export const addNewProject = async (
 	userId: string,
@@ -89,7 +89,7 @@ export const canPerformAccessService = async (
 	return false;
 };
 
-export const canPeformDeleteService = async (
+export const canPerformDeleteService = async (
 	userId: string,
 	serviceId: string,
 	organizationId: string,
@@ -215,7 +215,7 @@ export const checkServiceAccess = async (
 			);
 			break;
 		case "delete":
-			hasPermission = await canPeformDeleteService(
+			hasPermission = await canPerformDeleteService(
 				userId,
 				serviceId,
 				organizationId,
@@ -403,16 +403,16 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
 		}
 	}
 
-	const user = await db
-		.update(users_temp)
+	const userResult = await db
+		.update(user)
 		.set({
 			...userData,
 		})
-		.where(eq(users_temp.id, userId))
+		.where(eq(user.id, userId))
 		.returning()
 		.then((res) => res[0]);
 
-	return user;
+	return userResult;
 };
 
 export const createApiKey = async (
@@ -432,7 +432,7 @@ export const createApiKey = async (
 		refillInterval?: number;
 	},
 ) => {
-	const apiKey = await auth.createApiKey({
+	const result = await auth.createApiKey({
 		body: {
 			name: input.name,
 			expiresIn: input.expiresIn,
@@ -450,10 +450,9 @@ export const createApiKey = async (
 	if (input.metadata) {
 		await db
 			.update(apikey)
-			.set({
-				metadata: JSON.stringify(input.metadata),
-			})
-			.where(eq(apikey.id, apiKey.id));
+			.set({ metadata: JSON.stringify(input.metadata) })
+			.where(eq(apikey.id, result.id));
 	}
-	return apiKey;
+
+	return result;
 };

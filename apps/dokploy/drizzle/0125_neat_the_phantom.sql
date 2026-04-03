@@ -1,0 +1,2 @@
+ALTER TABLE "application" ADD COLUMN "rollbackRegistryId" text;--> statement-breakpoint
+ALTER TABLE "application" ADD CONSTRAINT "application_rollbackRegistryId_registry_registryId_fk" FOREIGN KEY ("rollbackRegistryId") REFERENCES "public"."registry"("registryId") ON DELETE set null ON UPDATE no action;

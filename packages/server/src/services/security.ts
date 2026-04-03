@@ -50,7 +50,8 @@ export const createSecurity = async (
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error creating this security",
+			message:
+				error instanceof Error ? error.message : "Error creating this security",
 			cause: error,
 		});
 	}
@@ -90,15 +91,35 @@ export const updateSecurityById = async (
 	data: Partial<Security>,
 ) => {
 	try {
-		const response = await db
-			.update(security)
-			.set({
-				...data,
-			})
-			.where(eq(security.securityId, securityId))
-			.returning();
+		await db.transaction(async (tx) => {
+			const securityResponse = await findSecurityById(securityId);
 
-		return response[0];
+			const application = await findApplicationById(
+				securityResponse.applicationId,
+			);
+
+			await removeSecurityMiddleware(application, securityResponse);
+
+			const response = await tx
+				.update(security)
+				.set({
+					...data,
+				})
+				.where(eq(security.securityId, securityId))
+				.returning()
+				.then((res) => res[0]);
+
+			if (!response) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Security not found",
+				});
+			}
+
+			await createSecurityMiddleware(application, response);
+
+			return response;
+		});
 	} catch (error) {
 		const message =
 			error instanceof Error ? error.message : "Error updating this security";

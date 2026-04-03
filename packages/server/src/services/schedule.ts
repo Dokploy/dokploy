@@ -18,7 +18,10 @@ export const createSchedule = async (
 	input: z.infer<typeof createScheduleSchema>,
 ) => {
 	const { scheduleId, ...rest } = input;
-	const [newSchedule] = await db.insert(schedules).values(rest).returning();
+	const [newSchedule] = await db
+		.insert(schedules)
+		.values(rest as typeof schedules.$inferInsert)
+		.returning();
 
 	if (
 		newSchedule &&
@@ -120,7 +123,7 @@ export const updateSchedule = async (
 	const { scheduleId, ...rest } = input;
 	const [updatedSchedule] = await db
 		.update(schedules)
-		.set(rest)
+		.set(rest as Partial<typeof schedules.$inferInsert>)
 		.where(eq(schedules.scheduleId, scheduleId))
 		.returning();
 

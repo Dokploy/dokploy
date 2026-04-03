@@ -1,9 +1,10 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { HelpCircle, Plus, Settings2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -79,7 +80,7 @@ interface Props {
 export const ShowPreviewSettings = ({ applicationId }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [isEnabled, setIsEnabled] = useState(false);
-	const { mutateAsync: updateApplication, isLoading } =
+	const { mutateAsync: updateApplication, isPending } =
 		api.application.update.useMutation();
 
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
@@ -100,6 +101,8 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 	});
 
 	const previewHttps = form.watch("previewHttps");
+	const wildcardDomain = form.watch("wildcardDomain");
+	const isTraefikMeDomain = wildcardDomain?.includes("traefik.me") || false;
 
 	useEffect(() => {
 		setIsEnabled(data?.isPreviewDeploymentsActive || false);
@@ -120,7 +123,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				previewCertificateType: data.previewCertificateType || "none",
 				previewCustomCertResolver: data.previewCustomCertResolver || "",
 				previewRequireCollaboratorPermissions:
-					data.previewRequireCollaboratorPermissions || true,
+					data.previewRequireCollaboratorPermissions ?? true,
 			});
 		}
 	}, [data]);
@@ -168,6 +171,13 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 						</DialogDescription>
 					</DialogHeader>
 					<div className="grid gap-4">
+						{isTraefikMeDomain && (
+							<AlertBlock type="info">
+								<strong>Note:</strong> traefik.me is a public HTTP service and
+								does not support SSL/HTTPS. HTTPS and certificate options will
+								not have any effect.
+							</AlertBlock>
+						)}
 						<Form {...form}>
 							<form
 								onSubmit={form.handleSubmit(onSubmit)}
@@ -525,7 +535,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 							Cancel
 						</Button>
 						<Button
-							isLoading={isLoading}
+							isLoading={isPending}
 							form="hook-form-delete-application"
 							type="submit"
 						>

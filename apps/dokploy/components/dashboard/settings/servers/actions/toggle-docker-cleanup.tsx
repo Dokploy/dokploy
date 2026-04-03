@@ -7,9 +7,12 @@ interface Props {
 	serverId?: string;
 }
 export const ToggleDockerCleanup = ({ serverId }: Props) => {
-	const { data, refetch } = api.user.get.useQuery(undefined, {
-		enabled: !serverId,
-	});
+	const { data, refetch } = api.settings.getWebServerSettings.useQuery(
+		undefined,
+		{
+			enabled: !serverId,
+		},
+	);
 
 	const { data: server, refetch: refetchServer } = api.server.one.useQuery(
 		{
@@ -22,7 +25,7 @@ export const ToggleDockerCleanup = ({ serverId }: Props) => {
 
 	const enabled = serverId
 		? server?.enableDockerCleanup
-		: data?.user.enableDockerCleanup;
+		: data?.enableDockerCleanup;
 
 	const { mutateAsync } = api.settings.updateDockerCleanup.useMutation();
 
@@ -30,7 +33,10 @@ export const ToggleDockerCleanup = ({ serverId }: Props) => {
 		try {
 			await mutateAsync({
 				enableDockerCleanup: checked,
-				serverId: serverId,
+				...(serverId && { serverId }),
+			} as {
+				enableDockerCleanup: boolean;
+				serverId?: string;
 			});
 			if (serverId) {
 				await refetchServer();
