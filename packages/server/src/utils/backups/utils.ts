@@ -56,6 +56,9 @@ export const removeScheduleBackup = (backupId: string) => {
 	currentJob?.cancel();
 };
 
+export const getBackupTimestamp = () =>
+	new Date().toISOString().replace(/[:.]/g, "-");
+
 export const normalizeS3Path = (prefix: string) => {
 	// Trim whitespace and remove leading/trailing slashes
 	const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");

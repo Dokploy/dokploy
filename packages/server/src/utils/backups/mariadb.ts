@@ -8,7 +8,7 @@ import type { Mariadb } from "@dokploy/server/services/mariadb";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import { getBackupCommand, getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runMariadbBackup = async (
 	mariadb: Mariadb,
@@ -19,12 +19,7 @@ export const runMariadbBackup = async (
 	const project = await findProjectById(environment.projectId);
 	const { prefix } = backup;
 	const destination = backup.destination;
-	const timestamp = new Date()
-		.toISOString()
-		.replace("T", "_")
-		.replace(/:/g, "-")
-		.replace(".", "_");
-	const backupFileName = `${timestamp}.sql.gz`;
+	const backupFileName = `${getBackupTimestamp()}.sql.gz`;
 	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,

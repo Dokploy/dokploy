@@ -8,7 +8,7 @@ import type { Mongo } from "@dokploy/server/services/mongo";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import { getBackupCommand, getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	const { environmentId, name, appName } = mongo;
@@ -16,12 +16,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	const project = await findProjectById(environment.projectId);
 	const { prefix } = backup;
 	const destination = backup.destination;
-	const timestamp = new Date()
-		.toISOString()
-		.replace("T", "_")
-		.replace(/:/g, "-")
-		.replace(".", "_");
-	const backupFileName = `${timestamp}.bson.gz`;
+	const backupFileName = `${getBackupTimestamp()}.bson.gz`;
 	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,

@@ -8,7 +8,7 @@ import type { MySql } from "@dokploy/server/services/mysql";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import { getBackupCommand, getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	const { environmentId, name, appName } = mysql;
@@ -16,12 +16,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	const project = await findProjectById(environment.projectId);
 	const { prefix } = backup;
 	const destination = backup.destination;
-	const timestamp = new Date()
-		.toISOString()
-		.replace("T", "_")
-		.replace(/:/g, "-")
-		.replace(".", "_");
-	const backupFileName = `${timestamp}.sql.gz`;
+	const backupFileName = `${getBackupTimestamp()}.sql.gz`;
 	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
