@@ -32,10 +32,10 @@ export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	config.http.routers[routerName] = await createRouterConfig(
 		app,
 		domain,
-		"web",
+		domain.customEntrypoint || "web",
 	);
 
-	if (domain.https) {
+	if (!domain.customEntrypoint && domain.https) {
 		config.http.routers[routerNameSecure] = await createRouterConfig(
 			app,
 			domain,
@@ -121,13 +121,20 @@ const toPunycode = (host: string): string => {
 export const createRouterConfig = async (
 	app: ApplicationNested,
 	domain: Domain,
-	entryPoint: "web" | "websecure",
+	entryPoint: string,
 ) => {
 	const { appName, redirects, security } = app;
 	const { certificateType } = domain;
 
-	const { host, path, https, uniqueConfigKey, internalPath, stripPath } =
-		domain;
+	const {
+		host,
+		path,
+		https,
+		uniqueConfigKey,
+		internalPath,
+		stripPath,
+		customEntrypoint,
+	} = domain;
 	const punycodeHost = toPunycode(host);
 	const routerConfig: HttpRouter = {
 		rule: `Host(\`${punycodeHost}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
@@ -174,7 +181,7 @@ export const createRouterConfig = async (
 		}
 	}
 
-	if (entryPoint === "websecure") {
+	if (entryPoint === "websecure" || (customEntrypoint && https)) {
 		if (certificateType === "letsencrypt") {
 			routerConfig.tls = { certResolver: "letsencrypt" };
 		} else if (certificateType === "custom" && domain.customCertResolver) {
