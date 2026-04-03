@@ -50,7 +50,10 @@ export const gitProviderRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const provider = await findGitProviderById(input.gitProviderId);
 
-			if (provider.userId !== ctx.session.userId) {
+			if (
+				provider.userId !== ctx.session.userId ||
+				provider.organizationId !== ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "Only the owner can share this provider",

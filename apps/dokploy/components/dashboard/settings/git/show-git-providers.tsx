@@ -47,7 +47,7 @@ export const ShowGitProviders = () => {
 	const { data, isPending, refetch } = api.gitProvider.getAll.useQuery();
 	const { mutateAsync, isPending: isRemoving } =
 		api.gitProvider.remove.useMutation();
-	const { mutateAsync: toggleShare } =
+	const { mutateAsync: toggleShare, isPending: isToggling } =
 		api.gitProvider.toggleShare.useMutation();
 	const url = useUrl();
 
@@ -184,6 +184,7 @@ export const ShowGitProviders = () => {
 																				<div className="flex items-center gap-1.5 mr-2">
 																					<Users className="size-4 text-muted-foreground" />
 																					<Switch
+																						disabled={isToggling}
 																						checked={
 																							gitProvider.sharedWithOrganization
 																						}
