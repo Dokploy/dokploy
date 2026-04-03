@@ -30,7 +30,7 @@ export const gitProviderRouter = createTRPCRouter({
 			try {
 				const gitProvider = await findGitProviderById(input.gitProviderId);
 
-				assertGitProviderAccess(gitProvider, ctx.session.activeOrganizationId, "git");
+				assertGitProviderAccess(gitProvider, ctx.session.activeOrganizationId);
 				await audit(ctx, {
 					action: "delete",
 					resourceType: "gitProvider",
