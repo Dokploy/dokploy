@@ -27,13 +27,13 @@ interface Props {
 }
 
 export const ShowProviderFormCompose = ({ composeId }: Props) => {
-	const { data: githubProviders, isLoading: isLoadingGithub } =
+	const { data: githubProviders, isPending: isLoadingGithub } =
 		api.github.githubProviders.useQuery();
-	const { data: gitlabProviders, isLoading: isLoadingGitlab } =
+	const { data: gitlabProviders, isPending: isLoadingGitlab } =
 		api.gitlab.gitlabProviders.useQuery();
-	const { data: bitbucketProviders, isLoading: isLoadingBitbucket } =
+	const { data: bitbucketProviders, isPending: isLoadingBitbucket } =
 		api.bitbucket.bitbucketProviders.useQuery();
-	const { data: giteaProviders, isLoading: isLoadingGitea } =
+	const { data: giteaProviders, isPending: isLoadingGitea } =
 		api.gitea.giteaProviders.useQuery();
 
 	const { mutateAsync: disconnectGitProvider } =

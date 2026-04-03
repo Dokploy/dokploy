@@ -1,6 +1,5 @@
 import { relations } from "drizzle-orm";
 import { integer, pgTable, text } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { gitProvider } from "./git-provider";
@@ -29,8 +28,7 @@ export const githubProviderRelations = relations(github, ({ one }) => ({
 	}),
 }));
 
-const createSchema = createInsertSchema(github);
-export const apiCreateGithub = createSchema.extend({
+export const apiCreateGithub = z.object({
 	githubAppName: z.string().optional(),
 	githubAppId: z.number().optional(),
 	githubClientId: z.string().optional(),
@@ -48,13 +46,11 @@ export const apiFindGithubBranches = z.object({
 	githubId: z.string().optional(),
 });
 
-export const apiFindOneGithub = createSchema
-	.extend({
-		githubId: z.string().min(1),
-	})
-	.pick({ githubId: true });
+export const apiFindOneGithub = z.object({
+	githubId: z.string().min(1),
+});
 
-export const apiUpdateGithub = createSchema.extend({
+export const apiUpdateGithub = z.object({
 	githubId: z.string().min(1),
 	name: z.string().min(1),
 	gitProviderId: z.string().min(1),

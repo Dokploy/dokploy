@@ -11,11 +11,11 @@ import {
 import type { DockerStatsJSON } from "./show-free-container-monitoring";
 
 interface Props {
-	acummulativeData: DockerStatsJSON["block"];
+	accumulativeData: DockerStatsJSON["block"];
 }
 
-export const DockerBlockChart = ({ acummulativeData }: Props) => {
-	const transformedData = acummulativeData.map((item, index) => {
+export const DockerBlockChart = ({ accumulativeData }: Props) => {
+	const transformedData = accumulativeData.map((item, index) => {
 		return {
 			time: item.time,
 			name: `Point ${index + 1}`,

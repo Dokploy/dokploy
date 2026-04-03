@@ -11,12 +11,12 @@ import {
 import type { DockerStatsJSON } from "./show-free-container-monitoring";
 
 interface Props {
-	acummulativeData: DockerStatsJSON["disk"];
+	accumulativeData: DockerStatsJSON["disk"];
 	diskTotal: number;
 }
 
-export const DockerDiskChart = ({ acummulativeData, diskTotal }: Props) => {
-	const transformedData = acummulativeData.map((item, index) => {
+export const DockerDiskChart = ({ accumulativeData, diskTotal }: Props) => {
+	const transformedData = accumulativeData.map((item, index) => {
 		return {
 			time: item.time,
 			name: `Point ${index + 1}`,

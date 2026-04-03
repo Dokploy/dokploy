@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Code2, Globe2, HardDrive } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -69,11 +69,11 @@ export const ShowImport = ({ composeId }: Props) => {
 	} | null>(null);
 
 	const utils = api.useUtils();
-	const { mutateAsync: processTemplate, isLoading: isLoadingTemplate } =
+	const { mutateAsync: processTemplate, isPending: isLoadingTemplate } =
 		api.compose.processTemplate.useMutation();
 	const {
 		mutateAsync: importTemplate,
-		isLoading: isImporting,
+		isPending: isImporting,
 		isSuccess: isImportSuccess,
 	} = api.compose.import.useMutation();
 

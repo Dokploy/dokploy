@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import copy from "copy-to-clipboard";
 import { CopyIcon, DownloadIcon, Fingerprint, QrCode } from "lucide-react";
 import QRCode from "qrcode";
@@ -401,7 +401,7 @@ export const Enable2FA = () => {
 												<div className="grid grid-cols-2 gap-2">
 													{backupCodes.map((code, index) => (
 														<code
-															key={index}
+															key={`${code}-${index}`}
 															className="bg-muted p-2 rounded text-sm font-mono"
 														>
 															{code}

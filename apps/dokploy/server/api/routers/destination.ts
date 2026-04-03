@@ -1,5 +1,5 @@
 import {
-	createDestintation,
+	createDestination,
 	execAsync,
 	execAsyncRemote,
 	findDestinationById,
@@ -7,14 +7,11 @@ import {
 	removeDestinationById,
 	updateDestinationById,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
-import {
-	adminProcedure,
-	createTRPCRouter,
-	protectedProcedure,
-} from "@/server/api/trpc";
-import { db } from "@/server/db";
+import { createTRPCRouter, withPermission } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateDestination,
 	apiFindOneDestination,
@@ -24,14 +21,21 @@ import {
 } from "@/server/db/schema";
 
 export const destinationRouter = createTRPCRouter({
-	create: adminProcedure
+	create: withPermission("destination", "create")
 		.input(apiCreateDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createDestintation(
+				const result = await createDestination(
 					input,
 					ctx.session.activeOrganizationId,
 				);
+				await audit(ctx, {
+					action: "create",
+					resourceType: "destination",
+					resourceId: result.destinationId,
+					resourceName: input.name,
+				});
+				return result;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -40,11 +44,18 @@ export const destinationRouter = createTRPCRouter({
 				});
 			}
 		}),
-	testConnection: adminProcedure
+	testConnection: withPermission("destination", "create")
 		.input(apiCreateDestination)
 		.mutation(async ({ input }) => {
-			const { secretAccessKey, bucket, region, endpoint, accessKey, provider } =
-				input;
+			const {
+				secretAccessKey,
+				bucket,
+				region,
+				endpoint,
+				accessKey,
+				provider,
+				additionalFlags,
+			} = input;
 			try {
 				const rcloneFlags = [
 					`--s3-access-key-id="${accessKey}"`,
@@ -60,6 +71,9 @@ export const destinationRouter = createTRPCRouter({
 				];
 				if (provider) {
 					rcloneFlags.unshift(`--s3-provider="${provider}"`);
+				}
+				if (additionalFlags?.length) {
+					rcloneFlags.push(...additionalFlags);
 				}
 				const rcloneDestination = `:s3:${bucket}`;
 				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
@@ -87,7 +101,7 @@ export const destinationRouter = createTRPCRouter({
 				});
 			}
 		}),
-	one: protectedProcedure
+	one: withPermission("destination", "read")
 		.input(apiFindOneDestination)
 		.query(async ({ input, ctx }) => {
 			const destination = await findDestinationById(input.destinationId);
@@ -99,13 +113,13 @@ export const destinationRouter = createTRPCRouter({
 			}
 			return destination;
 		}),
-	all: protectedProcedure.query(async ({ ctx }) => {
+	all: withPermission("destination", "read").query(async ({ ctx }) => {
 		return await db.query.destinations.findMany({
 			where: eq(destinations.organizationId, ctx.session.activeOrganizationId),
 			orderBy: [desc(destinations.createdAt)],
 		});
 	}),
-	remove: adminProcedure
+	remove: withPermission("destination", "delete")
 		.input(apiRemoveDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -117,15 +131,22 @@ export const destinationRouter = createTRPCRouter({
 						message: "You are not allowed to delete this destination",
 					});
 				}
-				return await removeDestinationById(
+				const result = await removeDestinationById(
 					input.destinationId,
 					ctx.session.activeOrganizationId,
 				);
+				await audit(ctx, {
+					action: "delete",
+					resourceType: "destination",
+					resourceId: input.destinationId,
+					resourceName: destination.name,
+				});
+				return result;
 			} catch (error) {
 				throw error;
 			}
 		}),
-	update: adminProcedure
+	update: withPermission("destination", "create")
 		.input(apiUpdateDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -136,12 +157,26 @@ export const destinationRouter = createTRPCRouter({
 						message: "You are not allowed to update this destination",
 					});
 				}
-				return await updateDestinationById(input.destinationId, {
+				const result = await updateDestinationById(input.destinationId, {
 					...input,
 					organizationId: ctx.session.activeOrganizationId,
 				});
+				await audit(ctx, {
+					action: "update",
+					resourceType: "destination",
+					resourceId: input.destinationId,
+					resourceName: input.name,
+				});
+				return result;
 			} catch (error) {
-				throw error;
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? error?.message
+							: "Error connecting to bucket",
+					cause: error,
+				});
 			}
 		}),
 });
