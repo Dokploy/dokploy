@@ -26,8 +26,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import {
-	type UploadFileToContainer,
 	uploadFileToContainerSchema,
+	type UploadFileToContainer,
 } from "@/utils/schema";
 
 interface Props {
@@ -51,7 +51,7 @@ export const UploadFileModal = ({ children, containerId, serverId }: Props) => {
 			},
 		});
 
-	const form = useForm<UploadFileToContainer>({
+	const form = useForm({
 		resolver: zodResolver(uploadFileToContainerSchema),
 		defaultValues: {
 			containerId,
