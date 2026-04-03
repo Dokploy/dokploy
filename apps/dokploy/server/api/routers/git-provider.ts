@@ -1,8 +1,9 @@
 import { findGitProviderById, removeGitProvider } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { audit } from "@/server/api/utils/audit";
+import { assertGitProviderAccess } from "@/server/api/utils/git-provider";
 import {
 	createTRPCRouter,
 	protectedProcedure,
@@ -20,10 +21,7 @@ export const gitProviderRouter = createTRPCRouter({
 				gitea: true,
 			},
 			orderBy: desc(gitProvider.createdAt),
-			where: and(
-				eq(gitProvider.userId, ctx.session.userId),
-				eq(gitProvider.organizationId, ctx.session.activeOrganizationId),
-			),
+			where: eq(gitProvider.organizationId, ctx.session.activeOrganizationId),
 		});
 	}),
 	remove: withPermission("gitProviders", "delete")
@@ -32,12 +30,7 @@ export const gitProviderRouter = createTRPCRouter({
 			try {
 				const gitProvider = await findGitProviderById(input.gitProviderId);
 
-				if (gitProvider.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not allowed to delete this Git provider",
-					});
-				}
+				assertGitProviderAccess(gitProvider, ctx.session.activeOrganizationId, "git");
 				await audit(ctx, {
 					action: "delete",
 					resourceType: "gitProvider",

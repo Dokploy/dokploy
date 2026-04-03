@@ -14,6 +14,7 @@ import {
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { assertGitProviderAccess } from "@/server/api/utils/git-provider";
 import {
 	apiFindGithubBranches,
 	apiFindOneGithub,
@@ -21,17 +22,25 @@ import {
 } from "@/server/db/schema";
 
 export const githubRouter = createTRPCRouter({
-	one: protectedProcedure.input(apiFindOneGithub).query(async ({ input }) => {
-		return await findGithubById(input.githubId);
-	}),
+	one: protectedProcedure
+		.input(apiFindOneGithub)
+		.query(async ({ input, ctx }) => {
+			const provider = await findGithubById(input.githubId);
+			assertGitProviderAccess(provider, ctx.session.activeOrganizationId);
+			return provider;
+		}),
 	getGithubRepositories: protectedProcedure
 		.input(apiFindOneGithub)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			const provider = await findGithubById(input.githubId);
+			assertGitProviderAccess(provider, ctx.session.activeOrganizationId);
 			return await getGithubRepositories(input.githubId);
 		}),
 	getGithubBranches: protectedProcedure
 		.input(apiFindGithubBranches)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			const provider = await findGithubById(input.githubId || "");
+			assertGitProviderAccess(provider, ctx.session.activeOrganizationId);
 			return await getGithubBranches(input);
 		}),
 	githubProviders: protectedProcedure.query(async ({ ctx }) => {
@@ -44,8 +53,7 @@ export const githubRouter = createTRPCRouter({
 		result = result.filter(
 			(provider) =>
 				provider.gitProvider.organizationId ===
-					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId,
+				ctx.session.activeOrganizationId,
 		);
 
 		const filtered = result
@@ -64,8 +72,10 @@ export const githubRouter = createTRPCRouter({
 
 	testConnection: protectedProcedure
 		.input(apiFindOneGithub)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const provider = await findGithubById(input.githubId);
+				assertGitProviderAccess(provider, ctx.session.activeOrganizationId);
 				const result = await getGithubRepositories(input.githubId);
 				return `Found ${result.length} repositories`;
 			} catch (err) {
@@ -78,6 +88,8 @@ export const githubRouter = createTRPCRouter({
 	update: withPermission("gitProviders", "create")
 		.input(apiUpdateGithub)
 		.mutation(async ({ input, ctx }) => {
+			const provider = await findGithubById(input.githubId);
+			assertGitProviderAccess(provider, ctx.session.activeOrganizationId);
 			await updateGitProvider(input.gitProviderId, {
 				name: input.name,
 				organizationId: ctx.session.activeOrganizationId,
