@@ -1,5 +1,9 @@
 import { dirname, join } from "node:path";
-import { encodeBase64, prepareEnvironmentVariables } from "../docker/utils";
+import {
+	encodeBase64,
+	prepareEnvironmentVariables,
+	quoteDotenvValue,
+} from "../docker/utils";
 
 export const createEnvFileCommand = (
 	directory: string,
@@ -11,7 +15,9 @@ export const createEnvFileCommand = (
 		env,
 		projectEnv,
 		environmentEnv,
-	).join("\n");
+	)
+		.map(quoteDotenvValue)
+		.join("\n");
 
 	const encodedContent = encodeBase64(envFileContent || "");
 	const envFilePath = join(dirname(directory), ".env");
