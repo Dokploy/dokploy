@@ -177,7 +177,7 @@ export const addDomainToCompose = async (
 			domain,
 			domain.customEntrypoint || "web",
 		);
-		if (domain.customEntrypoint == null && https) {
+		if (!domain.customEntrypoint && https) {
 			const httpsLabels = createDomainLabels(appName, domain, "websecure");
 			httpLabels.push(...httpsLabels);
 		}
@@ -289,7 +289,7 @@ export const createDomainLabels = (
 	if (stripPath && path && path !== "/") {
 		const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
 		// Only define middleware once (on web entrypoint)
-		if (entrypoint === "web" || customEntrypoint != null) {
+		if (entrypoint === "web" || customEntrypoint) {
 			labels.push(
 				`traefik.http.middlewares.${middlewareName}.stripprefix.prefixes=${path}`,
 			);
@@ -301,7 +301,7 @@ export const createDomainLabels = (
 	if (internalPath && internalPath !== "/" && internalPath.startsWith("/")) {
 		const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
 		// Only define middleware once (on web entrypoint)
-		if (entrypoint === "web" || customEntrypoint != null) {
+		if (entrypoint === "web" || customEntrypoint) {
 			labels.push(
 				`traefik.http.middlewares.${middlewareName}.addprefix.prefix=${internalPath}`,
 			);
@@ -317,7 +317,7 @@ export const createDomainLabels = (
 	}
 
 	// Add TLS configuration for websecure
-	if (entrypoint === "websecure" || (customEntrypoint != null && https)) {
+	if (entrypoint === "websecure" || (customEntrypoint && https)) {
 		if (certificateType === "letsencrypt") {
 			labels.push(
 				`traefik.http.routers.${routerName}.tls.certresolver=letsencrypt`,
