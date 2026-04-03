@@ -1,7 +1,7 @@
 import type { Domain } from "@dokploy/server";
 import { createDomainLabels } from "@dokploy/server";
-import { parse, stringify } from "yaml";
 import { describe, expect, it } from "vitest";
+import { parse, stringify } from "yaml";
 
 /**
  * Regression tests for Traefik Host rule label format.
@@ -32,6 +32,7 @@ describe("Host rule format regression tests", () => {
 		previewDeploymentId: "",
 		internalPath: "/",
 		stripPath: false,
+		customEntrypoint: null,
 	};
 
 	describe("Host rule format validation", () => {

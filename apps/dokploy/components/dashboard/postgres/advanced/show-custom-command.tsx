@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -42,6 +42,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
 		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
 		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
 		mariadb: () =>
 			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
 		application: () =>
@@ -56,6 +57,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 		postgres: () => api.postgres.update.useMutation(),
 		redis: () => api.redis.update.useMutation(),
 		mysql: () => api.mysql.update.useMutation(),
+		libsql: () => api.libsql.update.useMutation(),
 		mariadb: () => api.mariadb.update.useMutation(),
 		application: () => api.application.update.useMutation(),
 		mongo: () => api.mongo.update.useMutation(),
@@ -84,7 +86,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 			form.reset({
 				dockerImage: data.dockerImage,
 				command: data.command || "",
-				args: data.args?.map((arg) => ({ value: arg })) || [],
+				args: (data as any).args?.map((arg: string) => ({ value: arg })) || [],
 			});
 		}
 	}, [data, form]);
@@ -95,6 +97,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 			postgresId: id || "",
 			redisId: id || "",
 			mysqlId: id || "",
+			libsqlId: id || "",
 			mariadbId: id || "",
 			dockerImage: formData?.dockerImage,
 			command: formData?.command,
@@ -129,7 +132,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 											<FormItem>
 												<FormLabel>Docker Image</FormLabel>
 												<FormControl>
-													<Input placeholder="postgres:15" {...field} />
+													<Input placeholder="postgres:18" {...field} />
 												</FormControl>
 
 												<FormMessage />
@@ -144,7 +147,14 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 										<FormItem>
 											<FormLabel>Command</FormLabel>
 											<FormControl>
-												<Input placeholder="/bin/sh" {...field} />
+												<Input
+													placeholder={
+														type === "libsql"
+															? "sqld --db-path iku.db --http-listen-addr 0.0.0.0:8080 --grpc-listen-addr 0.0.0.0:5001 --admin-listen-addr 0.0.0.0:5000"
+															: "Custom command"
+													}
+													{...field}
+												/>
 											</FormControl>
 
 											<FormMessage />

@@ -206,4 +206,38 @@ describe("getRegistryTag", () => {
 			expect(result).toBe("docker.io/myuser/repo");
 		});
 	});
+
+	describe("special characters in username", () => {
+		it("should handle Harbor robot account username with $ (e.g. robot$library+dokploy)", () => {
+			const registry = createMockRegistry({
+				username: "robot$library+dokploy",
+			});
+			const result = getRegistryTag(registry, "nginx");
+			expect(result).toBe("docker.io/robot$library+dokploy/nginx");
+		});
+
+		it("should handle username with $ and other special characters", () => {
+			const registry = createMockRegistry({
+				username: "robot$test+app",
+			});
+			const result = getRegistryTag(registry, "myapp:latest");
+			expect(result).toBe("docker.io/robot$test+app/myapp:latest");
+		});
+
+		it("should handle username with multiple $ symbols", () => {
+			const registry = createMockRegistry({
+				username: "user$name$test",
+			});
+			const result = getRegistryTag(registry, "app");
+			expect(result).toBe("docker.io/user$name$test/app");
+		});
+
+		it("should handle username with + and - symbols", () => {
+			const registry = createMockRegistry({
+				username: "robot+test-user",
+			});
+			const result = getRegistryTag(registry, "nginx:latest");
+			expect(result).toBe("docker.io/robot+test-user/nginx:latest");
+		});
+	});
 });
