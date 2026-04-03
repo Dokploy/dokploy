@@ -367,9 +367,7 @@ describe("createDomainLabels", () => {
 			"custom",
 		);
 
-		const middlewareLabel = labels.find((l) =>
-			l.includes(".middlewares="),
-		);
+		const middlewareLabel = labels.find((l) => l.includes(".middlewares="));
 		// Should not contain redirect-to-https since there's only one router
 		expect(middlewareLabel).toBeUndefined();
 	});
