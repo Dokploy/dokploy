@@ -3,8 +3,8 @@ import {
 	createDeploymentBackup,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
-import type { Postgres } from "@dokploy/server/services/postgres";
 import { findEnvironmentById } from "@dokploy/server/services/environment";
+import type { Postgres } from "@dokploy/server/services/postgres";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
@@ -14,7 +14,7 @@ export const runPostgresBackup = async (
 	postgres: Postgres,
 	backup: BackupSchedule,
 ) => {
-	const { name, environmentId } = postgres;
+	const { name, environmentId, appName } = postgres;
 	const environment = await findEnvironmentById(environmentId);
 	const project = await findProjectById(environment.projectId);
 
@@ -31,7 +31,7 @@ export const runPostgresBackup = async (
 		.replace(/:/g, "-")
 		.replace(".", "_");
 	const backupFileName = `${timestamp}.sql.gz`;
-	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
+	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	try {
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;

@@ -3,15 +3,15 @@ import {
 	createDeploymentBackup,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
-import type { MySql } from "@dokploy/server/services/mysql";
 import { findEnvironmentById } from "@dokploy/server/services/environment";
+import type { MySql } from "@dokploy/server/services/mysql";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
-	const { environmentId, name } = mysql;
+	const { environmentId, name, appName } = mysql;
 	const environment = await findEnvironmentById(environmentId);
 	const project = await findProjectById(environment.projectId);
 	const { prefix } = backup;
@@ -22,7 +22,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 		.replace(/:/g, "-")
 		.replace(".", "_");
 	const backupFileName = `${timestamp}.sql.gz`;
-	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
+	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
 		title: "MySQL Backup",

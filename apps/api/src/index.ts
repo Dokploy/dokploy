@@ -10,6 +10,7 @@ import {
 	type DeployJob,
 	deployJobSchema,
 } from "./schema.js";
+import { fetchDeploymentJobs } from "./service.js";
 import { deploy } from "./utils.js";
 
 const app = new Hono();
@@ -118,7 +119,6 @@ app.post("/deploy", zValidator("json", deployJobSchema), async (c) => {
 			200,
 		);
 	} catch (error) {
-		console.log("error", error);
 		logger.error("Failed to send deployment event", error);
 		return c.json(
 			{
@@ -174,6 +174,29 @@ app.post(
 
 app.get("/health", async (c) => {
 	return c.json({ status: "ok" });
+});
+
+// List deployment jobs (Inngest runs) for a server - same shape as BullMQ queue for the UI
+app.get("/jobs", async (c) => {
+	const serverId = c.req.query("serverId");
+	if (!serverId) {
+		return c.json({ message: "serverId is required" }, 400);
+	}
+
+	try {
+		const rows = await fetchDeploymentJobs(serverId);
+		return c.json(rows);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		if (message.includes("INNGEST_BASE_URL")) {
+			return c.json(
+				{ message: "INNGEST_BASE_URL is required to list deployment jobs" },
+				503,
+			);
+		}
+		logger.error("Failed to fetch jobs from Inngest", { serverId, error });
+		return c.json([], 200);
+	}
 });
 
 // Serve Inngest functions endpoint

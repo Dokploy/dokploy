@@ -2,6 +2,7 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreateProject,
 	applications,
+	libsql,
 	mariadb,
 	mongo,
 	mysql,
@@ -11,12 +12,13 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import type { z } from "zod";
 import { createProductionEnvironment } from "./environment";
 
 export type Project = typeof projects.$inferSelect;
 
 export const createProject = async (
-	input: typeof apiCreateProject._type,
+	input: z.infer<typeof apiCreateProject>,
 	organizationId: string,
 ) => {
 	const newProject = await db
@@ -52,12 +54,18 @@ export const findProjectById = async (projectId: string) => {
 			environments: {
 				with: {
 					applications: true,
+					compose: true,
+					libsql: true,
 					mariadb: true,
 					mongo: true,
 					mysql: true,
 					postgres: true,
 					redis: true,
-					compose: true,
+				},
+			},
+			projectTags: {
+				with: {
+					tag: true,
 				},
 			},
 		},
@@ -103,6 +111,9 @@ export const validUniqueServerAppName = async (appName: string) => {
 			applications: {
 				where: eq(applications.appName, appName),
 			},
+			libsql: {
+				where: eq(libsql.appName, appName),
+			},
 			mariadb: {
 				where: eq(mariadb.appName, appName),
 			},
@@ -125,6 +136,7 @@ export const validUniqueServerAppName = async (appName: string) => {
 	const nonEmptyProjects = query.filter(
 		(project) =>
 			project.applications.length > 0 ||
+			project.libsql.length > 0 ||
 			project.mariadb.length > 0 ||
 			project.mongo.length > 0 ||
 			project.mysql.length > 0 ||
