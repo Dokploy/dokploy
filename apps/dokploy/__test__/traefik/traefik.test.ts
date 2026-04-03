@@ -306,6 +306,81 @@ test("Custom entrypoint on https domain", async () => {
 	expect(router.tls?.certResolver).toBe("letsencrypt");
 });
 
+test("Custom entrypoint with path includes PathPrefix in rule", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, customEntrypoint: "custom", path: "/api" },
+		"custom",
+	);
+
+	expect(router.rule).toContain("PathPrefix(`/api`)");
+	expect(router.entryPoints).toEqual(["custom"]);
+});
+
+test("Custom entrypoint with stripPath adds stripprefix middleware", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{
+			...baseDomain,
+			customEntrypoint: "custom",
+			path: "/api",
+			stripPath: true,
+		},
+		"custom",
+	);
+
+	expect(router.middlewares).toContain("stripprefix--1");
+	expect(router.entryPoints).toEqual(["custom"]);
+});
+
+test("Custom entrypoint with internalPath adds addprefix middleware", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{
+			...baseDomain,
+			customEntrypoint: "custom",
+			internalPath: "/hello",
+		},
+		"custom",
+	);
+
+	expect(router.middlewares).toContain("addprefix--1");
+	expect(router.entryPoints).toEqual(["custom"]);
+});
+
+test("Custom entrypoint with https and custom cert resolver", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{
+			...baseDomain,
+			https: true,
+			customEntrypoint: "custom",
+			certificateType: "custom",
+			customCertResolver: "myresolver",
+		},
+		"custom",
+	);
+
+	expect(router.entryPoints).toEqual(["custom"]);
+	expect(router.tls?.certResolver).toBe("myresolver");
+});
+
+test("Custom entrypoint without https should not have tls", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{
+			...baseDomain,
+			https: false,
+			customEntrypoint: "custom",
+			certificateType: "letsencrypt",
+		},
+		"custom",
+	);
+
+	expect(router.entryPoints).toEqual(["custom"]);
+	expect(router.tls).toBeUndefined();
+});
+
 /** IDN/Punycode */
 
 test("Internationalized domain name is converted to punycode", async () => {
