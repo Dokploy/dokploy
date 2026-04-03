@@ -157,7 +157,7 @@ export const scheduleRouter = createTRPCRouter({
 			};
 			return db.query.schedules.findMany({
 				where: where[input.scheduleType],
-				orderBy: [asc(schedules.name)],
+				orderBy: [asc(schedules.createdAt)],
 				with: {
 					application: true,
 					server: true,
