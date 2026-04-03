@@ -14,12 +14,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { uploadFileToContainerSchema } from "@/utils/schema";
-import {
-	createTRPCRouter,
-	protectedProcedure,
-	uploadProcedure,
-	withPermission,
-} from "../trpc";
+import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
 export const containerIdRegex = /^[a-zA-Z0-9.\-_]+$/;
 
@@ -185,7 +180,6 @@ export const dockerRouter = createTRPCRouter({
 		}),
 
 	uploadFileToContainer: protectedProcedure
-		.use(uploadProcedure)
 		.input(uploadFileToContainerSchema)
 		.mutation(async ({ input, ctx }) => {
 			if (input.serverId) {

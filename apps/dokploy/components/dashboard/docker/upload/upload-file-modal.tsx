@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Upload } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -13,6 +13,8 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Dropzone } from "@/components/ui/dropzone";
 import {
 	Form,
 	FormControl,
@@ -22,12 +24,10 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { Dropzone } from "@/components/ui/dropzone";
 import { api } from "@/utils/api";
 import {
-	uploadFileToContainerSchema,
 	type UploadFileToContainer,
+	uploadFileToContainerSchema,
 } from "@/utils/schema";
 
 interface Props {
@@ -39,7 +39,7 @@ interface Props {
 export const UploadFileModal = ({ children, containerId, serverId }: Props) => {
 	const [open, setOpen] = useState(false);
 
-	const { mutateAsync: uploadFile, isLoading } =
+	const { mutateAsync: uploadFile, isPending: isLoading } =
 		api.docker.uploadFileToContainer.useMutation({
 			onSuccess: () => {
 				toast.success("File uploaded successfully");
