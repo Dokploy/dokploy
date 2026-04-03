@@ -547,7 +547,7 @@ export const backupRouter = createTRPCRouter({
 			const queue: string[] = [];
 			let done = false;
 			const onLog = (log: string) => queue.push(log);
-			(async () => {
+			const runRestore = async () => {
 				if (input.backupType === "database") {
 					if (input.databaseType === "postgres") {
 						const postgres = await findPostgresById(input.databaseId);
@@ -571,8 +571,13 @@ export const backupRouter = createTRPCRouter({
 					const compose = await findComposeById(input.databaseId);
 					await restoreComposeBackup(compose, destination, input, onLog);
 				}
-			})()
-				.catch(() => {})
+			};
+			runRestore()
+				.catch((error) => {
+					onLog(
+						`Error: ${error instanceof Error ? error.message : String(error)}`,
+					);
+				})
 				.finally(() => {
 					done = true;
 				});
