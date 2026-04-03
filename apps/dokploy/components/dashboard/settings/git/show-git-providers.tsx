@@ -5,6 +5,7 @@ import {
 	ImportIcon,
 	Loader2,
 	Trash2,
+	Users,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -24,6 +25,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import { useUrl } from "@/utils/hooks/use-url";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
@@ -39,6 +47,8 @@ export const ShowGitProviders = () => {
 	const { data, isPending, refetch } = api.gitProvider.getAll.useQuery();
 	const { mutateAsync, isPending: isRemoving } =
 		api.gitProvider.remove.useMutation();
+	const { mutateAsync: toggleShare } =
+		api.gitProvider.toggleShare.useMutation();
 	const url = useUrl();
 
 	const getGitlabUrl = (
@@ -154,10 +164,62 @@ export const ShowGitProviders = () => {
 																			)}
 																		</span>
 																	</div>
+																	{!gitProvider.isOwner && (
+																		<Badge
+																			variant="secondary"
+																			className="text-xs"
+																		>
+																			<Users className="size-3 mr-1" />
+																			Shared
+																		</Badge>
+																	)}
 																</div>
 															</div>
 
 															<div className="flex flex-row gap-1 items-center">
+																{gitProvider.isOwner && (
+																	<TooltipProvider delayDuration={0}>
+																		<Tooltip>
+																			<TooltipTrigger asChild>
+																				<div className="flex items-center gap-1.5 mr-2">
+																					<Users className="size-4 text-muted-foreground" />
+																					<Switch
+																						checked={
+																							gitProvider.sharedWithOrganization
+																						}
+																						onCheckedChange={async (
+																							checked,
+																						) => {
+																							await toggleShare({
+																								gitProviderId:
+																									gitProvider.gitProviderId,
+																								sharedWithOrganization:
+																									checked,
+																							})
+																								.then(() => {
+																									toast.success(
+																										checked
+																											? "Provider shared with organization"
+																											: "Provider unshared",
+																									);
+																									refetch();
+																								})
+																								.catch(() => {
+																									toast.error(
+																										"Error updating sharing",
+																									);
+																								});
+																						}}
+																					/>
+																				</div>
+																			</TooltipTrigger>
+																			<TooltipContent>
+																				Share with entire organization
+																			</TooltipContent>
+																		</Tooltip>
+																	</TooltipProvider>
+																)}
+
 																{isBitbucket &&
 																gitProvider.bitbucket?.appPassword &&
 																!gitProvider.bitbucket?.apiToken ? (
@@ -222,62 +284,75 @@ export const ShowGitProviders = () => {
 																	</div>
 																)}
 
-																{isGithub && haveGithubRequirements && (
-																	<EditGithubProvider
-																		githubId={gitProvider.github?.githubId}
-																	/>
-																)}
+																{gitProvider.isOwner && (
+																	<>
+																		{isGithub && haveGithubRequirements && (
+																			<EditGithubProvider
+																				githubId={
+																					gitProvider.github?.githubId
+																				}
+																			/>
+																		)}
 
-																{isGitlab && (
-																	<EditGitlabProvider
-																		gitlabId={gitProvider.gitlab?.gitlabId}
-																	/>
-																)}
+																		{isGitlab && (
+																			<EditGitlabProvider
+																				gitlabId={
+																					gitProvider.gitlab?.gitlabId
+																				}
+																			/>
+																		)}
 
-																{isBitbucket && (
-																	<EditBitbucketProvider
-																		bitbucketId={
-																			gitProvider.bitbucket?.bitbucketId
-																		}
-																	/>
-																)}
+																		{isBitbucket && (
+																			<EditBitbucketProvider
+																				bitbucketId={
+																					gitProvider.bitbucket?.bitbucketId
+																				}
+																			/>
+																		)}
 
-																{isGitea && (
-																	<EditGiteaProvider
-																		giteaId={gitProvider.gitea?.giteaId}
-																	/>
-																)}
+																		{isGitea && (
+																			<EditGiteaProvider
+																				giteaId={gitProvider.gitea?.giteaId}
+																			/>
+																		)}
 
-																<DialogAction
-																	title="Delete Git Provider"
-																	description="Are you sure you want to delete this Git Provider?"
-																	type="destructive"
-																	onClick={async () => {
-																		await mutateAsync({
-																			gitProviderId: gitProvider.gitProviderId,
-																		})
-																			.then(() => {
-																				toast.success(
-																					"Git Provider deleted successfully",
-																				);
-																				refetch();
-																			})
-																			.catch(() => {
-																				toast.error(
-																					"Error deleting Git Provider",
-																				);
-																			});
-																	}}
-																>
-																	<Button
-																		variant="ghost"
-																		size="icon"
-																		className="group hover:bg-red-500/10"
-																		isLoading={isRemoving}
-																	>
-																		<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-																	</Button>
-																</DialogAction>
+																		<DialogAction
+																			title="Delete Git Provider"
+																			description={
+																				gitProvider.sharedWithOrganization
+																					? "This provider is shared with the organization. Deleting it will remove access for all members. Are you sure?"
+																					: "Are you sure you want to delete this Git Provider?"
+																			}
+																			type="destructive"
+																			onClick={async () => {
+																				await mutateAsync({
+																					gitProviderId:
+																						gitProvider.gitProviderId,
+																				})
+																					.then(() => {
+																						toast.success(
+																							"Git Provider deleted successfully",
+																						);
+																						refetch();
+																					})
+																					.catch(() => {
+																						toast.error(
+																							"Error deleting Git Provider",
+																						);
+																					});
+																			}}
+																		>
+																			<Button
+																				variant="ghost"
+																				size="icon"
+																				className="group hover:bg-red-500/10"
+																				isLoading={isRemoving}
+																			>
+																				<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+																			</Button>
+																		</DialogAction>
+																	</>
+																)}
 															</div>
 														</div>
 													</div>

@@ -143,7 +143,12 @@ export const licenseKeyRouter = createTRPCRouter({
 				});
 			}
 
-			await deactivateLicenseKey(currentUser.licenseKey);
+			try {
+				await deactivateLicenseKey(currentUser.licenseKey);
+			} catch (_) {
+				// Always clean up locally even if the license server is unreachable
+			}
+
 			await db
 				.update(user)
 				.set({
