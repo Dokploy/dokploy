@@ -290,9 +290,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				composeId: id,
 			}),
 			...data,
-			customEntrypoint: data.useCustomEntrypoint
-				? data.customEntrypoint
-				: null,
+			customEntrypoint: data.useCustomEntrypoint ? data.customEntrypoint : null,
 		})
 			.then(async () => {
 				toast.success(dictionary.success);

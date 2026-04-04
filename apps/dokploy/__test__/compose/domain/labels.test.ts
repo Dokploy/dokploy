@@ -248,7 +248,11 @@ describe("createDomainLabels", () => {
 			...baseDomain,
 			middlewares: ["auth@file"],
 		};
-		const labels = await createDomainLabels(appName, customMiddlewareDomain, "web");
+		const labels = await createDomainLabels(
+			appName,
+			customMiddlewareDomain,
+			"web",
+		);
 
 		expect(labels).toContain(
 			"traefik.http.routers.test-app-1-web.middlewares=auth@file",
@@ -260,7 +264,11 @@ describe("createDomainLabels", () => {
 			...baseDomain,
 			middlewares: ["auth@file", "rate-limit@file"],
 		};
-		const labels = await createDomainLabels(appName, customMiddlewareDomain, "web");
+		const labels = await createDomainLabels(
+			appName,
+			customMiddlewareDomain,
+			"web",
+		);
 
 		expect(labels).toContain(
 			"traefik.http.routers.test-app-1-web.middlewares=auth@file,rate-limit@file",
