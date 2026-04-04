@@ -56,12 +56,21 @@ export const UpdateDatabasePassword = ({
 			form.reset();
 			setIsOpen(false);
 		} catch (e) {
-			setError(e instanceof Error ? e.message : "Error updating password");
+			const raw = e instanceof Error ? e.message : "Error updating password";
+			const noContainer = raw.match(/No running container found for \S+/);
+			if (noContainer) {
+				setError(
+					"The database container is not running. Please start the service before changing the password.",
+				);
+			} else {
+				setError(
+					"Error updating password. Please check that the container is running and try again.",
+				);
+			}
 		} finally {
 			setIsPending(false);
 		}
 	};
-
 	return (
 		<Dialog
 			open={isOpen}

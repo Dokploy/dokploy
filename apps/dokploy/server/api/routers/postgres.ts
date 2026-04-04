@@ -424,7 +424,6 @@ export const postgresRouter = createTRPCRouter({
 				fi
 				docker exec "$CONTAINER_ID" psql -U ${databaseUser} -c "ALTER USER \\"${databaseUser}\\" WITH PASSWORD '${password}';"
 			`;
-
 			if (serverId) {
 				await execAsyncRemote(serverId, command);
 			} else {
