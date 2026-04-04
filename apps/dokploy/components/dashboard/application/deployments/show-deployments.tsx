@@ -1,3 +1,4 @@
+import copy from "copy-to-clipboard";
 import {
 	ChevronDown,
 	ChevronUp,
@@ -11,7 +12,6 @@ import {
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import copy from "copy-to-clipboard";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";

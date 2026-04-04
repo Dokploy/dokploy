@@ -39,6 +39,9 @@ interface Props {
 }
 
 export const EnvironmentVariables = ({ environmentId, children }: Props) => {
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canRead = permissions?.environmentEnvVars.read ?? false;
+	const canWrite = permissions?.environmentEnvVars.write ?? false;
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isPending } =
@@ -97,6 +100,10 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 		};
 	}, [form, onSubmit, isPending, isOpen]);
 
+	if (!canRead) {
+		return null;
+	}
+
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
@@ -141,6 +148,7 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 												<CodeEditor
 													lineWrapping
 													language="properties"
+													readOnly={!canWrite}
 													wrapperClassName="h-[35rem] font-mono"
 													placeholder={`NODE_ENV=development
 DATABASE_URL=postgresql://localhost:5432/mydb
@@ -157,11 +165,13 @@ API_KEY=your-api-key-here
 										</FormItem>
 									)}
 								/>
-								<DialogFooter>
-									<Button isLoading={isPending} type="submit">
-										Update
-									</Button>
-								</DialogFooter>
+								{canWrite && (
+									<DialogFooter>
+										<Button isLoading={isPending} type="submit">
+											Update
+										</Button>
+									</DialogFooter>
+								)}
 							</form>
 						</Form>
 					</div>

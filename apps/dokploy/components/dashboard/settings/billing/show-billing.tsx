@@ -91,7 +91,10 @@ export const ShowBilling = () => {
 		api.stripe.upgradeSubscription.useMutation();
 	const utils = api.useUtils();
 
-	const [serverQuantity, setServerQuantity] = useState(3);
+	const [hobbyServerQuantity, setHobbyServerQuantity] = useState(1);
+	const [startupServerQuantity, setStartupServerQuantity] = useState(
+		STARTUP_SERVERS_INCLUDED,
+	);
 	const [isAnnual, setIsAnnual] = useState(false);
 	const [upgradeTier, setUpgradeTier] = useState<"hobby" | "startup" | null>(
 		null,
@@ -111,6 +114,12 @@ export const ShowBilling = () => {
 		productId: string,
 	) => {
 		const stripe = await stripePromise;
+		const serverQuantity =
+			tier === "startup"
+				? startupServerQuantity
+				: tier === "hobby"
+					? hobbyServerQuantity
+					: hobbyServerQuantity;
 		if (data && data.subscriptions.length === 0) {
 			createCheckoutSession({
 				tier,
@@ -679,7 +688,7 @@ export const ShowBilling = () => {
 												<p className="text-2xl font-semibold text-foreground">
 													$
 													{calculatePriceHobby(
-														serverQuantity,
+														hobbyServerQuantity,
 														isAnnual,
 													).toFixed(2)}
 													/{isAnnual ? "yr" : "mo"}
@@ -692,7 +701,8 @@ export const ShowBilling = () => {
 													<p className="text-xs text-muted-foreground mt-2">
 														$
 														{(
-															calculatePriceHobby(serverQuantity, true) / 12
+															calculatePriceHobby(hobbyServerQuantity, true) /
+															12
 														).toFixed(2)}
 														/mo
 													</p>
@@ -724,19 +734,19 @@ export const ShowBilling = () => {
 														Servers:
 													</span>
 													<Button
-														disabled={serverQuantity <= 1}
+														disabled={hobbyServerQuantity <= 1}
 														variant="outline"
 														size="icon"
 														onClick={() =>
-															setServerQuantity((q) => Math.max(1, q - 1))
+															setHobbyServerQuantity((q) => Math.max(1, q - 1))
 														}
 													>
 														<MinusIcon className="h-4 w-4" />
 													</Button>
 													<NumberInput
-														value={serverQuantity}
+														value={hobbyServerQuantity}
 														onChange={(e) =>
-															setServerQuantity(
+															setHobbyServerQuantity(
 																Math.max(
 																	1,
 																	Number(
@@ -750,7 +760,7 @@ export const ShowBilling = () => {
 													<Button
 														variant="outline"
 														size="icon"
-														onClick={() => setServerQuantity((q) => q + 1)}
+														onClick={() => setHobbyServerQuantity((q) => q + 1)}
 													>
 														<PlusIcon className="h-4 w-4" />
 													</Button>
@@ -775,7 +785,7 @@ export const ShowBilling = () => {
 															onClick={() =>
 																handleCheckout("hobby", data!.hobbyProductId!)
 															}
-															disabled={serverQuantity < 1}
+															disabled={hobbyServerQuantity < 1}
 														>
 															Get Started
 														</Button>
@@ -806,7 +816,7 @@ export const ShowBilling = () => {
 												<p className="text-2xl font-semibold text-foreground">
 													$
 													{calculatePriceStartup(
-														serverQuantity,
+														startupServerQuantity,
 														isAnnual,
 													).toFixed(2)}
 													/{isAnnual ? "yr" : "mo"}
@@ -819,7 +829,10 @@ export const ShowBilling = () => {
 													<p className="text-xs text-muted-foreground mt-2">
 														$
 														{(
-															calculatePriceStartup(serverQuantity, true) / 12
+															calculatePriceStartup(
+																startupServerQuantity,
+																true,
+															) / 12
 														).toFixed(2)}
 														/mo
 													</p>
@@ -856,13 +869,14 @@ export const ShowBilling = () => {
 													<div className="flex items-center gap-2">
 														<Button
 															disabled={
-																serverQuantity <= STARTUP_SERVERS_INCLUDED
+																startupServerQuantity <=
+																STARTUP_SERVERS_INCLUDED
 															}
 															variant="outline"
 															size="icon"
 															className="h-8 w-8"
 															onClick={() =>
-																setServerQuantity((q) =>
+																setStartupServerQuantity((q) =>
 																	Math.max(STARTUP_SERVERS_INCLUDED, q - 1),
 																)
 															}
@@ -870,9 +884,9 @@ export const ShowBilling = () => {
 															<MinusIcon className="h-4 w-4" />
 														</Button>
 														<NumberInput
-															value={serverQuantity}
+															value={startupServerQuantity}
 															onChange={(e) =>
-																setServerQuantity(
+																setStartupServerQuantity(
 																	Math.max(
 																		STARTUP_SERVERS_INCLUDED,
 																		Number(
@@ -887,7 +901,9 @@ export const ShowBilling = () => {
 															variant="outline"
 															size="icon"
 															className="h-8 w-8"
-															onClick={() => setServerQuantity((q) => q + 1)}
+															onClick={() =>
+																setStartupServerQuantity((q) => q + 1)
+															}
 														>
 															<PlusIcon className="h-4 w-4" />
 														</Button>
@@ -917,7 +933,7 @@ export const ShowBilling = () => {
 																)
 															}
 															disabled={
-																serverQuantity < STARTUP_SERVERS_INCLUDED
+																startupServerQuantity < STARTUP_SERVERS_INCLUDED
 															}
 														>
 															Get Started
@@ -1009,7 +1025,7 @@ export const ShowBilling = () => {
 															<p className="text-2xl font-semibold tracking-tight text-primary ">
 																${" "}
 																{calculatePrice(
-																	serverQuantity,
+																	hobbyServerQuantity,
 																	isAnnual,
 																).toFixed(2)}{" "}
 																USD
@@ -1018,7 +1034,10 @@ export const ShowBilling = () => {
 															<p className="text-base font-semibold tracking-tight text-muted-foreground">
 																${" "}
 																{(
-																	calculatePrice(serverQuantity, isAnnual) / 12
+																	calculatePrice(
+																		hobbyServerQuantity,
+																		isAnnual,
+																	) / 12
 																).toFixed(2)}{" "}
 																/ Month USD
 															</p>
@@ -1026,9 +1045,10 @@ export const ShowBilling = () => {
 													) : (
 														<p className="text-2xl font-semibold tracking-tight text-primary ">
 															${" "}
-															{calculatePrice(serverQuantity, isAnnual).toFixed(
-																2,
-															)}{" "}
+															{calculatePrice(
+																hobbyServerQuantity,
+																isAnnual,
+															).toFixed(2)}{" "}
 															USD
 														</p>
 													)}
@@ -1071,26 +1091,28 @@ export const ShowBilling = () => {
 													<div className="flex flex-col gap-2 mt-4">
 														<div className="flex items-center gap-2 justify-center">
 															<span className="text-sm text-muted-foreground">
-																{serverQuantity} Servers
+																{hobbyServerQuantity} Servers
 															</span>
 														</div>
 
 														<div className="flex items-center space-x-2">
 															<Button
-																disabled={serverQuantity <= 1}
+																disabled={hobbyServerQuantity <= 1}
 																variant="outline"
 																onClick={() => {
-																	if (serverQuantity <= 1) return;
+																	if (hobbyServerQuantity <= 1) return;
 
-																	setServerQuantity(serverQuantity - 1);
+																	setHobbyServerQuantity(
+																		hobbyServerQuantity - 1,
+																	);
 																}}
 															>
 																<MinusIcon className="h-4 w-4" />
 															</Button>
 															<NumberInput
-																value={serverQuantity}
+																value={hobbyServerQuantity}
 																onChange={(e) => {
-																	setServerQuantity(
+																	setHobbyServerQuantity(
 																		e.target.value as unknown as number,
 																	);
 																}}
@@ -1099,7 +1121,9 @@ export const ShowBilling = () => {
 															<Button
 																variant="outline"
 																onClick={() => {
-																	setServerQuantity(serverQuantity + 1);
+																	setHobbyServerQuantity(
+																		hobbyServerQuantity + 1,
+																	);
 																}}
 															>
 																<PlusIcon className="h-4 w-4" />
@@ -1125,7 +1149,7 @@ export const ShowBilling = () => {
 																	onClick={async () => {
 																		handleCheckout("legacy", product.id);
 																	}}
-																	disabled={serverQuantity < 1}
+																	disabled={hobbyServerQuantity < 1}
 																>
 																	Subscribe
 																</Button>

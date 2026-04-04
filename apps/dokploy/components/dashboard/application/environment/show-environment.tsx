@@ -36,16 +36,19 @@ interface Props {
 }
 
 export const ShowEnvironment = ({ id, type }: Props) => {
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canWrite = permissions?.envVars.write ?? false;
 	const queryMap = {
-		postgres: () =>
-			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
-		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
-		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+		compose: () =>
+			api.compose.one.useQuery({ composeId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
 		mariadb: () =>
 			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
 		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
-		compose: () =>
-			api.compose.one.useQuery({ composeId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+		postgres: () =>
+			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
@@ -53,12 +56,13 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 	const [isEnvVisible, setIsEnvVisible] = useState(true);
 
 	const mutationMap = {
-		postgres: () => api.postgres.update.useMutation(),
-		redis: () => api.redis.update.useMutation(),
-		mysql: () => api.mysql.update.useMutation(),
+		compose: () => api.compose.update.useMutation(),
+		libsql: () => api.libsql.update.useMutation(),
 		mariadb: () => api.mariadb.update.useMutation(),
 		mongo: () => api.mongo.update.useMutation(),
-		compose: () => api.compose.update.useMutation(),
+		mysql: () => api.mysql.update.useMutation(),
+		postgres: () => api.postgres.update.useMutation(),
+		redis: () => api.redis.update.useMutation(),
 	};
 	const { mutateAsync, isPending } = mutationMap[type]
 		? mutationMap[type]()
@@ -85,12 +89,13 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 
 	const onSubmit = async (formData: EnvironmentSchema) => {
 		mutateAsync({
+			composeId: id || "",
+			libsqlId: id || "",
+			mariadbId: id || "",
 			mongoId: id || "",
+			mysqlId: id || "",
 			postgresId: id || "",
 			redisId: id || "",
-			mysqlId: id || "",
-			mariadbId: id || "",
-			composeId: id || "",
 			env: formData.environment,
 		})
 			.then(async () => {
@@ -185,25 +190,27 @@ PORT=3000
 								)}
 							/>
 
-							<div className="flex flex-row justify-end gap-2">
-								{hasChanges && (
+							{canWrite && (
+								<div className="flex flex-row justify-end gap-2">
+									{hasChanges && (
+										<Button
+											type="button"
+											variant="outline"
+											onClick={handleCancel}
+										>
+											Cancel
+										</Button>
+									)}
 									<Button
-										type="button"
-										variant="outline"
-										onClick={handleCancel}
+										isLoading={isPending}
+										className="w-fit"
+										type="submit"
+										disabled={!hasChanges}
 									>
-										Cancel
+										Save
 									</Button>
-								)}
-								<Button
-									isLoading={isPending}
-									className="w-fit"
-									type="submit"
-									disabled={!hasChanges}
-								>
-									Save
-								</Button>
-							</div>
+								</div>
+							)}
 						</form>
 					</Form>
 				</CardContent>

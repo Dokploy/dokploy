@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
 	type AnyPgColumn,
 	boolean,
@@ -31,6 +31,7 @@ export const domains = pgTable("domain", {
 	host: text("host").notNull(),
 	https: boolean("https").notNull().default(false),
 	port: integer("port").default(3000),
+	customEntrypoint: text("customEntrypoint"),
 	path: text("path").default("/"),
 	serviceName: text("serviceName"),
 	domainType: domainType("domainType").default("application"),
@@ -53,6 +54,7 @@ export const domains = pgTable("domain", {
 	certificateType: certificateType("certificateType").notNull().default("none"),
 	internalPath: text("internalPath").default("/"),
 	stripPath: boolean("stripPath").notNull().default(false),
+	middlewares: text("middlewares").array().default(sql`ARRAY[]::text[]`),
 });
 
 export const domainsRelations = relations(domains, ({ one }) => ({
@@ -80,6 +82,7 @@ export const apiCreateDomain = createSchema.pick({
 	host: true,
 	path: true,
 	port: true,
+	customEntrypoint: true,
 	https: true,
 	applicationId: true,
 	certificateType: true,
@@ -90,6 +93,7 @@ export const apiCreateDomain = createSchema.pick({
 	previewDeploymentId: true,
 	internalPath: true,
 	stripPath: true,
+	middlewares: true,
 });
 
 export const apiFindDomain = z.object({
@@ -113,6 +117,7 @@ export const apiUpdateDomain = createSchema
 		host: true,
 		path: true,
 		port: true,
+		customEntrypoint: true,
 		https: true,
 		certificateType: true,
 		customCertResolver: true,
@@ -120,5 +125,6 @@ export const apiUpdateDomain = createSchema
 		domainType: true,
 		internalPath: true,
 		stripPath: true,
+		middlewares: true,
 	})
 	.merge(createSchema.pick({ domainId: true }).required());

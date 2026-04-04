@@ -178,6 +178,7 @@ export const apiUpdateRedis = createSchema
 	.partial()
 	.extend({
 		redisId: z.string().min(1),
+		dockerImage: z.string().optional(),
 	})
 	.omit({ serverId: true });
 

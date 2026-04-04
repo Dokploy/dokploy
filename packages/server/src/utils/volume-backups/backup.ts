@@ -2,7 +2,11 @@ import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { findComposeById } from "@dokploy/server/services/compose";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
-import { getS3Credentials, normalizeS3Path } from "../backups/utils";
+import {
+	getBackupTimestamp,
+	getS3Credentials,
+	normalizeS3Path,
+} from "../backups/utils";
 
 export const getVolumeServiceAppName = (
 	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
@@ -18,7 +22,8 @@ export const getVolumeServiceAppName = (
 		volumeBackup.mysql?.appName ||
 		volumeBackup.mariadb?.appName ||
 		volumeBackup.mongo?.appName ||
-		volumeBackup.redis?.appName;
+		volumeBackup.redis?.appName ||
+		volumeBackup.libsql?.appName;
 	return serviceAppName || volumeBackup.appName;
 };
 
@@ -31,7 +36,7 @@ export const backupVolume = async (
 	const { VOLUME_BACKUPS_PATH, VOLUME_BACKUP_LOCK_PATH } = paths(!!serverId);
 	const destination = volumeBackup.destination;
 	const s3AppName = getVolumeServiceAppName(volumeBackup);
-	const backupFileName = `${volumeName}-${new Date().toISOString()}.tar`;
+	const backupFileName = `${volumeName}-${getBackupTimestamp()}.tar`;
 	const bucketDestination = `${s3AppName}/${normalizeS3Path(prefix || "")}${backupFileName}`;
 	const rcloneFlags = getS3Credentials(volumeBackup.destination);
 	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
@@ -39,7 +44,7 @@ export const backupVolume = async (
 
 	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
 
-	const baseCommand = `
+	const backupCommand = `
 	set -e
 	echo "Volume name: ${volumeName}"
 	echo "Backup file name: ${backupFileName}"
@@ -52,6 +57,9 @@ export const backupVolume = async (
   ubuntu \
   bash -c "cd /volume_data && tar cvf /backup/${backupFileName} ."
   echo "Volume backup done ✅"
+  `;
+
+	const uploadCommand = `
   echo "Starting upload to S3..."
   ${rcloneCommand}
   echo "Upload to S3 done ✅"
@@ -61,7 +69,10 @@ export const backupVolume = async (
   `;
 
 	if (!turnOff) {
-		return baseCommand;
+		return `
+		${backupCommand}
+		${uploadCommand}
+		`;
 	}
 
 	const serviceLockId =
@@ -110,9 +121,10 @@ export const backupVolume = async (
 		ACTUAL_REPLICAS=$(docker service inspect ${volumeBackup.application?.appName} --format "{{.Spec.Mode.Replicated.Replicas}}")
 		echo "Actual replicas: $ACTUAL_REPLICAS"
 		docker service update --replicas=0 ${volumeBackup.application?.appName}
-        ${baseCommand}
+        ${backupCommand}
 		echo "Starting application to $ACTUAL_REPLICAS replicas"
         docker service update --replicas=$ACTUAL_REPLICAS --with-registry-auth ${volumeBackup.application?.appName}
+		${uploadCommand}
   `);
 	}
 	if (serviceType === "compose") {
@@ -147,8 +159,9 @@ export const backupVolume = async (
 		}
 		return lockWrapper(`
         ${stopCommand}
-        ${baseCommand}
+        ${backupCommand}
         ${startCommand}
+		${uploadCommand}
   `);
 	}
 };

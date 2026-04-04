@@ -4,6 +4,7 @@ import {
 	DiscordIcon,
 	GotifyIcon,
 	LarkIcon,
+	MattermostIcon,
 	NtfyIcon,
 	ResendIcon,
 	SlackIcon,
@@ -26,6 +27,7 @@ export const ShowNotifications = () => {
 	const { data, isPending, refetch } = api.notification.all.useQuery();
 	const { mutateAsync, isPending: isRemoving } =
 		api.notification.remove.useMutation();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	return (
 		<div className="w-full">
@@ -56,7 +58,9 @@ export const ShowNotifications = () => {
 											To send notifications it is required to set at least 1
 											provider.
 										</span>
-										<HandleNotifications />
+										{permissions?.notification.create && (
+											<HandleNotifications />
+										)}
 									</div>
 								) : (
 									<div className="flex flex-col gap-4 min-h-[25vh]">
@@ -118,6 +122,12 @@ export const ShowNotifications = () => {
 																	<TeamsIcon className="size-7 text-muted-foreground" />
 																</div>
 															)}
+															{notification.notificationType ===
+																"mattermost" && (
+																<div className="flex  items-center justify-center rounded-lg">
+																	<MattermostIcon className="size-7" />
+																</div>
+															)}
 
 															{notification.name}
 														</span>
@@ -126,45 +136,50 @@ export const ShowNotifications = () => {
 																notificationId={notification.notificationId}
 															/>
 
-															<DialogAction
-																title="Delete Notification"
-																description="Are you sure you want to delete this notification?"
-																type="destructive"
-																onClick={async () => {
-																	await mutateAsync({
-																		notificationId: notification.notificationId,
-																	})
-																		.then(() => {
-																			toast.success(
-																				"Notification deleted successfully",
-																			);
-																			refetch();
+															{permissions?.notification.delete && (
+																<DialogAction
+																	title="Delete Notification"
+																	description="Are you sure you want to delete this notification?"
+																	type="destructive"
+																	onClick={async () => {
+																		await mutateAsync({
+																			notificationId:
+																				notification.notificationId,
 																		})
-																		.catch(() => {
-																			toast.error(
-																				"Error deleting notification",
-																			);
-																		});
-																}}
-															>
-																<Button
-																	variant="ghost"
-																	size="icon"
-																	className="group hover:bg-red-500/10 "
-																	isLoading={isRemoving}
+																			.then(() => {
+																				toast.success(
+																					"Notification deleted successfully",
+																				);
+																				refetch();
+																			})
+																			.catch(() => {
+																				toast.error(
+																					"Error deleting notification",
+																				);
+																			});
+																	}}
 																>
-																	<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-																</Button>
-															</DialogAction>
+																	<Button
+																		variant="ghost"
+																		size="icon"
+																		className="group hover:bg-red-500/10 "
+																		isLoading={isRemoving}
+																	>
+																		<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+																	</Button>
+																</DialogAction>
+															)}
 														</div>
 													</div>
 												</div>
 											))}
 										</div>
 
-										<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
-											<HandleNotifications />
-										</div>
+										{permissions?.notification.create && (
+											<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
+												<HandleNotifications />
+											</div>
+										)}
 									</div>
 								)}
 							</>

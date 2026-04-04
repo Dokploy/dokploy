@@ -21,7 +21,12 @@ import {
 	STARTUP_PRODUCT_ID,
 	WEBSITE_URL,
 } from "@/server/utils/stripe";
-import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+	withPermission,
+} from "../trpc";
 
 export const stripeRouter = createTRPCRouter({
 	/** Returns the current billing plan for the user's organization. Used to gate features like chat (Startup only). */
@@ -314,16 +319,18 @@ export const stripeRouter = createTRPCRouter({
 			return { ok: true };
 		}),
 
-	canCreateMoreServers: adminProcedure.query(async ({ ctx }) => {
-		const user = await findUserById(ctx.user.ownerId);
-		const servers = await findServersByUserId(user.id);
+	canCreateMoreServers: withPermission("server", "create").query(
+		async ({ ctx }) => {
+			const user = await findUserById(ctx.user.ownerId);
+			const servers = await findServersByUserId(user.id);
 
-		if (!IS_CLOUD) {
-			return true;
-		}
+			if (!IS_CLOUD) {
+				return true;
+			}
 
-		return servers.length < user.serversQuantity;
-	}),
+			return servers.length < user.serversQuantity;
+		},
+	),
 
 	getInvoices: adminProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);

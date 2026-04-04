@@ -10,6 +10,7 @@ import {
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateRegistry,
 	apiFindOneRegistry,
@@ -19,14 +20,21 @@ import {
 	apiUpdateRegistry,
 	registry,
 } from "@/server/db/schema";
-import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, withPermission } from "../trpc";
 export const registryRouter = createTRPCRouter({
-	create: adminProcedure
+	create: withPermission("registry", "create")
 		.input(apiCreateRegistry)
 		.mutation(async ({ ctx, input }) => {
-			return await createRegistry(input, ctx.session.activeOrganizationId);
+			const reg = await createRegistry(input, ctx.session.activeOrganizationId);
+			await audit(ctx, {
+				action: "create",
+				resourceType: "registry",
+				resourceId: reg.registryId,
+				resourceName: reg.registryName,
+			});
+			return reg;
 		}),
-	remove: adminProcedure
+	remove: withPermission("registry", "delete")
 		.input(apiRemoveRegistry)
 		.mutation(async ({ ctx, input }) => {
 			const registry = await findRegistryById(input.registryId);
@@ -36,9 +44,15 @@ export const registryRouter = createTRPCRouter({
 					message: "You are not allowed to delete this registry",
 				});
 			}
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "registry",
+				resourceId: registry.registryId,
+				resourceName: registry.registryName,
+			});
 			return await removeRegistry(input.registryId);
 		}),
-	update: protectedProcedure
+	update: withPermission("registry", "create")
 		.input(apiUpdateRegistry)
 		.mutation(async ({ input, ctx }) => {
 			const { registryId, ...rest } = input;
@@ -60,15 +74,21 @@ export const registryRouter = createTRPCRouter({
 				});
 			}
 
+			await audit(ctx, {
+				action: "update",
+				resourceType: "registry",
+				resourceId: registryId,
+				resourceName: registry.registryName,
+			});
 			return true;
 		}),
-	all: protectedProcedure.query(async ({ ctx }) => {
+	all: withPermission("registry", "read").query(async ({ ctx }) => {
 		const registryResponse = await db.query.registry.findMany({
 			where: eq(registry.organizationId, ctx.session.activeOrganizationId),
 		});
 		return registryResponse;
 	}),
-	one: adminProcedure
+	one: withPermission("registry", "read")
 		.input(apiFindOneRegistry)
 		.query(async ({ input, ctx }) => {
 			const registry = await findRegistryById(input.registryId);
@@ -80,7 +100,7 @@ export const registryRouter = createTRPCRouter({
 			}
 			return registry;
 		}),
-	testRegistry: protectedProcedure
+	testRegistry: withPermission("registry", "read")
 		.input(apiTestRegistry)
 		.mutation(async ({ input }) => {
 			try {
@@ -122,11 +142,10 @@ export const registryRouter = createTRPCRouter({
 				});
 			}
 		}),
-	testRegistryById: protectedProcedure
+	testRegistryById: withPermission("registry", "read")
 		.input(apiTestRegistryById)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				// Get the full registry with password from database
 				const registryData = await db.query.registry.findFirst({
 					where: eq(registry.registryId, input.registryId ?? ""),
 				});

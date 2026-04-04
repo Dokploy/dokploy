@@ -10,13 +10,18 @@
 // import { getServerAuthSession } from "@/server/auth";
 import { db } from "@dokploy/server/db";
 import { hasValidLicense } from "@dokploy/server/index";
+import type { statements } from "@dokploy/server/lib/access-control";
 import { validateRequest } from "@dokploy/server/lib/auth";
+import { checkPermission } from "@dokploy/server/services/permission";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
 import type { Session, User } from "better-auth";
 import superjson from "superjson";
 import { ZodError } from "zod";
+
+type Resource = keyof typeof statements;
+type ActionOf<R extends Resource> = (typeof statements)[R][number];
 
 /**
  * 1. CONTEXT
@@ -101,7 +106,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
  * 2. INITIALIZATION
  *
  * This is where the tRPC API is initialized, connecting the context and transformer. We also parse
- * ZodErrors so that you get typesafety on the frontend if your procedure fails due to validation
+ * ZodErrors so that you get type safety on the frontend if your procedure fails due to validation
  * errors on the backend.
  */
 
@@ -235,3 +240,26 @@ export const enterpriseProcedure = t.procedure.use(async ({ ctx, next }) => {
 		},
 	});
 });
+
+/**
+ * Permission-checked procedure factory.
+ *
+ * Verifies the caller has the required resource+action permission before the
+ * handler runs. Works for all role types:
+ * - owner / admin  → always granted (static roles, no license needed)
+ * - member         → legacy boolean fields (no license needed)
+ * - custom role    → enterprise license verified automatically inside resolveRole
+ *
+ * Usage:
+ *   create: withPermission("project", "create")
+ *     .input(...)
+ *     .mutation(async ({ ctx, input }) => { ... })
+ */
+export const withPermission = <R extends Resource>(
+	resource: R,
+	action: ActionOf<R>,
+) =>
+	protectedProcedure.use(async ({ ctx, next }) => {
+		await checkPermission(ctx, { [resource]: [action] } as any);
+		return next();
+	});

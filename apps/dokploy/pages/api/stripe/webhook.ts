@@ -174,27 +174,27 @@ export default async function handler(
 		case "invoice.payment_succeeded": {
 			const newInvoice = event.data.object as Stripe.Invoice;
 
-			const suscription = await stripe.subscriptions.retrieve(
+			const subscription = await stripe.subscriptions.retrieve(
 				newInvoice.subscription as string,
 			);
 
-			if (suscription.status !== "active") {
+			if (subscription.status !== "active") {
 				console.log(
-					`Skipping invoice.payment_succeeded for subscription ${suscription.id} with status ${suscription.status}`,
+					`Skipping invoice.payment_succeeded for subscription ${subscription.id} with status ${subscription.status}`,
 				);
 				break;
 			}
 
 			const serversQuantity = getSubscriptionServersQuantity(
-				suscription?.items?.data ?? [],
+				subscription?.items?.data ?? [],
 			);
 			await db
 				.update(user)
 				.set({ serversQuantity })
-				.where(eq(user.stripeCustomerId, suscription.customer as string));
+				.where(eq(user.stripeCustomerId, subscription.customer as string));
 
 			const admin = await findUserByStripeCustomerId(
-				suscription.customer as string,
+				subscription.customer as string,
 			);
 
 			if (!admin) {

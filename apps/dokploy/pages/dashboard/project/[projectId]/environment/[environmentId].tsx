@@ -37,6 +37,7 @@ import { DuplicateProject } from "@/components/dashboard/project/duplicate-proje
 import { EnvironmentVariables } from "@/components/dashboard/project/environment-variables";
 import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import {
+	LibsqlIcon,
 	MariadbIcon,
 	MongodbIcon,
 	MysqlIcon,
@@ -44,8 +45,8 @@ import {
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { AlertBlock } from "@/components/shared/alert-block";
-import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
@@ -111,7 +112,8 @@ export type Services = {
 		| "mysql"
 		| "mongo"
 		| "redis"
-		| "compose";
+		| "compose"
+		| "libsql";
 	description?: string | null;
 	id: string;
 	createdAt: string;
@@ -248,14 +250,27 @@ export const extractServicesFromEnvironment = (
 			};
 		}) || [];
 
+	const libsql: Services[] =
+		environment.libsql?.map((item) => ({
+			name: item.name,
+			type: "libsql",
+			id: item.libsqlId,
+			createdAt: item.createdAt,
+			status: item.applicationStatus,
+			description: item.description,
+			serverId: item.serverId,
+			serverName: item?.server?.name || null,
+		})) || [];
+
 	allServices.push(
 		...applications,
+		...compose,
+		...libsql,
 		...mysql,
 		...redis,
 		...mongo,
 		...postgres,
 		...mariadb,
-		...compose,
 	);
 
 	allServices.sort((a, b) => {
@@ -272,6 +287,7 @@ const EnvironmentPage = (
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId, environmentId } = props;
 	const { data: auth } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	const { data: environments } = api.environment.byProjectId.useQuery({
 		projectId: projectId,
@@ -382,7 +398,8 @@ const EnvironmentPage = (
 			(currentEnvironment.postgres?.length || 0) === 0 &&
 			(currentEnvironment.redis?.length || 0) === 0 &&
 			(currentEnvironment.applications?.length || 0) === 0 &&
-			(currentEnvironment.compose?.length || 0) === 0);
+			(currentEnvironment.compose?.length || 0) === 0 &&
+			(currentEnvironment.libsql?.length || 0) === 0);
 
 	const applications = extractServicesFromEnvironment(currentEnvironment);
 
@@ -395,6 +412,7 @@ const EnvironmentPage = (
 		{ value: "mysql", label: "MySQL", icon: MysqlIcon },
 		{ value: "redis", label: "Redis", icon: RedisIcon },
 		{ value: "compose", label: "Compose", icon: CircuitBoard },
+		{ value: "libsql", label: "Libsql", icon: LibsqlIcon },
 	];
 
 	const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -860,18 +878,7 @@ const EnvironmentPage = (
 
 	return (
 		<div>
-			<BreadcrumbSidebar
-				list={[
-					{ name: "Projects", href: "/dashboard/projects" },
-					{
-						name: projectData?.name || "",
-					},
-					{
-						name: currentEnvironment.name,
-						dropdownItems: environmentDropdownItems,
-					},
-				]}
-			/>
+			<AdvanceBreadcrumb />
 			<Head>
 				<title>
 					Environment: {currentEnvironment.name} | {projectData?.name} |{" "}
@@ -905,9 +912,7 @@ const EnvironmentPage = (
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>
-									{(auth?.role === "owner" ||
-										auth?.role === "admin" ||
-										auth?.canCreateServices) && (
+									{permissions?.service.create && (
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
 												<Button>
@@ -1029,9 +1034,7 @@ const EnvironmentPage = (
 														Stop
 													</Button>
 												</DialogAction>
-												{(auth?.role === "owner" ||
-													auth?.role === "admin" ||
-													auth?.canDeleteServices) && (
+												{permissions?.service.delete && (
 													<>
 														<DialogAction
 															title="Delete Services"
@@ -1539,6 +1542,9 @@ const EnvironmentPage = (
 																			{service.type === "compose" && (
 																				<CircuitBoard className="h-6 w-6" />
 																			)}
+																			{service.type === "libsql" && (
+																				<LibsqlIcon className="h-6 w-6" />
+																			)}
 																		</span>
 																	</div>
 																</CardTitle>
@@ -1624,6 +1630,7 @@ export async function getServerSideProps(
 					environmentId: params.environmentId,
 				});
 			} catch (error) {
+				console.log(error);
 				// If user doesn't have access to requested environment, redirect to accessible one
 				const accessibleEnvironments =
 					await helpers.environment.byProjectId.fetch({
@@ -1643,11 +1650,11 @@ export async function getServerSideProps(
 						},
 					};
 				}
-				// No accessible environments, redirect to home
+				// No accessible environments, redirect to projects
 				return {
 					redirect: {
 						permanent: false,
-						destination: "/",
+						destination: "/dashboard/projects",
 					},
 				};
 			}
@@ -1663,7 +1670,8 @@ export async function getServerSideProps(
 					environmentId: params.environmentId,
 				},
 			};
-		} catch {
+		} catch (error) {
+			console.log(error);
 			return {
 				redirect: {
 					permanent: false,

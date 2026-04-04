@@ -45,7 +45,7 @@ export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
 
 export const generateTraefikMeDomain = async (
 	appName: string,
-	userId: string,
+	_userId: string,
 	serverId?: string,
 ) => {
 	if (serverId) {
