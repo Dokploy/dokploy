@@ -156,6 +156,20 @@ export const apiTestRegistry = createSchema
 	})
 	.superRefine((data, ctx) => {
 		if (data.registryType !== "awsEcr") {
+			if (!isNonEmptyString(data.username)) {
+				ctx.addIssue({
+					code: "custom",
+					message: "Username is required",
+					path: ["username"],
+				});
+			}
+			if (!isNonEmptyString(data.password)) {
+				ctx.addIssue({
+					code: "custom",
+					message: "Password is required",
+					path: ["password"],
+				});
+			}
 			return;
 		}
 		const { awsAccessKeyId, awsSecretAccessKey, awsRegion, registryUrl } = data;

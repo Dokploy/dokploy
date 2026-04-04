@@ -33,8 +33,14 @@ if ! ${loginCommand} 2>&1; then
 fi
 `;
 		} else if (username && password) {
+			const loginCommand = getSafeRegistryLoginCommand({
+				registryType: registry?.registryType ?? "cloud",
+				registryUrl,
+				username,
+				password,
+			});
 			command += `
-if ! echo "${password}" | docker login --username "${username}" --password-stdin "${registryUrl || ""}" 2>&1; then
+if ! ${loginCommand} 2>&1; then
 	echo "❌ Login failed";
 	exit 1;
 fi

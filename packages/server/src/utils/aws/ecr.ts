@@ -47,7 +47,9 @@ export async function getECRAuthToken(
 	const decoded = Buffer.from(authData.authorizationToken, "base64").toString(
 		"utf-8",
 	);
-	const [username, password] = decoded.split(":");
+	const colonIdx = decoded.indexOf(":");
+	const username = decoded.slice(0, colonIdx);
+	const password = decoded.slice(colonIdx + 1);
 	if (!username || !password) {
 		throw new Error("Invalid ECR authorization token format");
 	}

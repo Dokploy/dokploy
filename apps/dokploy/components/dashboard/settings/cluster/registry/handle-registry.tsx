@@ -394,7 +394,6 @@ export const HandleRegistry = ({ registryId }: Props) => {
       serverId: data.serverId,
       registryId: registryId || "",
       awsAccessKeyId: data.awsAccessKeyId || "",
-      awsSecretAccessKey: data.awsSecretAccessKey || "",
       awsRegion: data.awsRegion || "",
     };
 
@@ -402,6 +401,12 @@ export const HandleRegistry = ({ registryId }: Props) => {
     // When editing, empty password means "keep the existing password"
     if (data.password && data.password.length > 0) {
       payload.password = data.password;
+    }
+
+    // Same guard for the AWS secret key — omit when blank so the stored
+    // value is not overwritten during an edit where the field was left empty
+    if (data.awsSecretAccessKey && data.awsSecretAccessKey.length > 0) {
+      payload.awsSecretAccessKey = data.awsSecretAccessKey;
     }
 
     await mutateAsync(payload)
