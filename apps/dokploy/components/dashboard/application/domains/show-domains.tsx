@@ -104,7 +104,12 @@ export const ShowDomains = ({ id, type }: Props) => {
 	const [validationStates, setValidationStates] = useState<ValidationStates>(
 		{},
 	);
-	const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+	const [viewMode, setViewMode] = useState<"grid" | "table">(() => {
+		if (typeof window !== "undefined") {
+			return (localStorage.getItem("domains-view-mode") as "grid" | "table") ?? "grid";
+		}
+		return "grid";
+	});
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -193,6 +198,8 @@ export const ShowDomains = ({ id, type }: Props) => {
 		handleDeleteDomain,
 		isDeleting: isRemoving,
 		serverIp: application?.server?.ipAddress?.toString() || ip?.toString(),
+		canCreateDomain,
+		canDeleteDomain,
 	});
 
 	const table = useReactTable({
@@ -231,9 +238,11 @@ export const ShowDomains = ({ id, type }: Props) => {
 								<Button
 									variant="outline"
 									size="icon"
-									onClick={() =>
-										setViewMode(viewMode === "grid" ? "table" : "grid")
-									}
+									onClick={() => {
+										const next = viewMode === "grid" ? "table" : "grid";
+										localStorage.setItem("domains-view-mode", next);
+										setViewMode(next);
+									}}
 								>
 									{viewMode === "grid" ? (
 										<LayoutList className="size-4" />

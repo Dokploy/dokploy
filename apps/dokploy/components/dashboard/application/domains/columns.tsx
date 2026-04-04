@@ -6,6 +6,7 @@ import {
 	Loader2,
 	PenBoxIcon,
 	RefreshCw,
+	Server,
 	Trash2,
 	XCircle,
 } from "lucide-react";
@@ -36,6 +37,8 @@ interface ColumnsProps {
 	handleDeleteDomain: (domainId: string) => Promise<void>;
 	isDeleting: boolean;
 	serverIp?: string;
+	canCreateDomain: boolean;
+	canDeleteDomain: boolean;
 }
 
 export const createColumns = ({
@@ -46,7 +49,27 @@ export const createColumns = ({
 	handleDeleteDomain,
 	isDeleting,
 	serverIp,
+	canCreateDomain,
+	canDeleteDomain,
 }: ColumnsProps): ColumnDef<Domain>[] => [
+	...(type === "compose"
+		? [
+				{
+					accessorKey: "serviceName",
+					header: "Service",
+					cell: ({ row }: { row: { getValue: (key: string) => unknown } }) => {
+						const serviceName = row.getValue("serviceName") as string | null;
+						if (!serviceName) return null;
+						return (
+							<Badge variant="outline">
+								<Server className="size-3 mr-1" />
+								{serviceName}
+							</Badge>
+						);
+					},
+				} satisfies ColumnDef<Domain>,
+			]
+		: []),
 	{
 		accessorKey: "host",
 		header: ({ column }) => {
@@ -63,19 +86,14 @@ export const createColumns = ({
 		cell: ({ row }) => {
 			const domain = row.original;
 			return (
-				<AddDomain id={id} type={type} domainId={domain.domainId}>
-					<Button variant="link" className="p-0 h-auto font-medium">
-						<Link
-							className="flex items-center gap-2 hover:underline"
-							target="_blank"
-							href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
-							onClick={(e) => e.stopPropagation()}
-						>
-							{domain.host}
-							<ExternalLink className="size-3" />
-						</Link>
-					</Button>
-				</AddDomain>
+				<Link
+					className="flex items-center gap-2 font-medium hover:underline"
+					target="_blank"
+					href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+				>
+					{domain.host}
+					<ExternalLink className="size-3" />
+				</Link>
 			);
 		},
 	},
@@ -116,25 +134,23 @@ export const createColumns = ({
 		},
 	},
 	{
+		accessorKey: "customEntrypoint",
+		header: "Entrypoint",
+		cell: ({ row }) => {
+			const entrypoint = row.getValue("customEntrypoint") as string | null;
+			if (!entrypoint) return <span className="text-muted-foreground">-</span>;
+			return <div className="font-mono text-sm">{entrypoint}</div>;
+		},
+	},
+	{
 		accessorKey: "https",
 		header: "Protocol",
 		cell: ({ row }) => {
 			const https = row.getValue("https") as boolean;
 			return (
-				<TooltipProvider>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Badge variant={https ? "outline" : "secondary"}>
-								{https ? "HTTPS" : "HTTP"}
-							</Badge>
-						</TooltipTrigger>
-						<TooltipContent>
-							<p>
-								{https ? "Secure HTTPS connection" : "Standard HTTP connection"}
-							</p>
-						</TooltipContent>
-					</Tooltip>
-				</TooltipProvider>
+				<Badge variant={https ? "outline" : "secondary"}>
+					{https ? "HTTPS" : "HTTP"}
+				</Badge>
 			);
 		},
 	},
@@ -210,6 +226,28 @@ export const createColumns = ({
 		},
 	},
 	{
+		accessorKey: "createdAt",
+		header: ({ column }) => {
+			return (
+				<Button
+					variant="ghost"
+					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+				>
+					Created
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			);
+		},
+		cell: ({ row }) => {
+			const createdAt = row.getValue("createdAt") as string;
+			return (
+				<div className="text-sm text-muted-foreground">
+					{new Date(createdAt).toLocaleDateString()}
+				</div>
+			);
+		},
+	},
+	{
 		id: "actions",
 		header: "Actions",
 		enableHiding: false,
@@ -228,32 +266,36 @@ export const createColumns = ({
 							serverIp={serverIp}
 						/>
 					)}
-					<AddDomain id={id} type={type} domainId={domain.domainId}>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="group hover:bg-blue-500/10 h-8 w-8"
+					{canCreateDomain && (
+						<AddDomain id={id} type={type} domainId={domain.domainId}>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="group hover:bg-blue-500/10 h-8 w-8"
+							>
+								<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
+							</Button>
+						</AddDomain>
+					)}
+					{canDeleteDomain && (
+						<DialogAction
+							title="Delete Domain"
+							description="Are you sure you want to delete this domain?"
+							type="destructive"
+							onClick={async () => {
+								await handleDeleteDomain(domain.domainId);
+							}}
 						>
-							<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
-						</Button>
-					</AddDomain>
-					<DialogAction
-						title="Delete Domain"
-						description="Are you sure you want to delete this domain?"
-						type="destructive"
-						onClick={async () => {
-							await handleDeleteDomain(domain.domainId);
-						}}
-					>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="group hover:bg-red-500/10 h-8 w-8"
-							isLoading={isDeleting}
-						>
-							<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-						</Button>
-					</DialogAction>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="group hover:bg-red-500/10 h-8 w-8"
+								isLoading={isDeleting}
+							>
+								<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+							</Button>
+						</DialogAction>
+					)}
 				</div>
 			);
 		},
