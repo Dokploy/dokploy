@@ -43,6 +43,8 @@ import {
 	apiSaveEnvironmentVariablesPostgres,
 	apiSaveExternalPortPostgres,
 	apiUpdatePostgres,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
 	environments,
 	postgres as postgresTable,
 	projects,
@@ -403,7 +405,12 @@ export const postgresRouter = createTRPCRouter({
 		.input(
 			z.object({
 				postgresId: z.string().min(1),
-				password: z.string().min(1),
+				password: z
+					.string()
+					.min(1)
+					.regex(DATABASE_PASSWORD_REGEX, {
+						message: DATABASE_PASSWORD_MESSAGE,
+					}),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {

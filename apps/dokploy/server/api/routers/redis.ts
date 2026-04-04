@@ -41,6 +41,8 @@ import {
 	apiSaveEnvironmentVariablesRedis,
 	apiSaveExternalPortRedis,
 	apiUpdateRedis,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
 	environments,
 	projects,
 	redis as redisTable,
@@ -384,7 +386,12 @@ export const redisRouter = createTRPCRouter({
 		.input(
 			z.object({
 				redisId: z.string().min(1),
-				password: z.string().min(1),
+				password: z
+					.string()
+					.min(1)
+					.regex(DATABASE_PASSWORD_REGEX, {
+						message: DATABASE_PASSWORD_MESSAGE,
+					}),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {

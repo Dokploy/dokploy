@@ -24,9 +24,17 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
+const DATABASE_PASSWORD_REGEX = /^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/;
+
 const updatePasswordSchema = z
 	.object({
-		password: z.string().min(1, "Password is required"),
+		password: z
+			.string()
+			.min(1, "Password is required")
+			.regex(DATABASE_PASSWORD_REGEX, {
+				message:
+					"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters",
+			}),
 		confirmPassword: z.string().min(1, "Please confirm the password"),
 	})
 	.refine((data) => data.password === data.confirmPassword, {
@@ -63,15 +71,12 @@ export const UpdateDatabasePassword = ({
 			setIsOpen(false);
 		} catch (e) {
 			const raw = e instanceof Error ? e.message : "Error updating password";
-			const noContainer = raw.match(/No running container found for \S+/);
-			if (noContainer) {
+			if (/No running container found/i.test(raw)) {
 				setError(
 					"The database container is not running. Please start the service before changing the password.",
 				);
 			} else {
-				setError(
-					"Error updating password. Please check that the container is running and try again.",
-				);
+				setError(raw);
 			}
 		} finally {
 			setIsPending(false);
@@ -101,7 +106,7 @@ export const UpdateDatabasePassword = ({
 					</DialogDescription>
 				</DialogHeader>
 				{error && <AlertBlock type="error">{error}</AlertBlock>}
-				<AlertBlock type="warning">
+				<AlertBlock type="warning" className="my-4">
 					This will change the {label.toLowerCase()} both in the running
 					database container and in Dokploy. The container must be running for
 					this operation to succeed.

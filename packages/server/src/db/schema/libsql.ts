@@ -34,7 +34,11 @@ import {
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
-import { generateAppName } from "./utils";
+import {
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
+	generateAppName,
+} from "./utils";
 
 export const libsql = pgTable("libsql", {
 	libsqlId: text("libsqlId")
@@ -111,9 +115,8 @@ const createSchema = createInsertSchema(libsql, {
 	databaseUser: z.string().min(1),
 	databasePassword: z
 		.string()
-		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-			message:
-				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+		.regex(DATABASE_PASSWORD_REGEX, {
+			message: DATABASE_PASSWORD_MESSAGE,
 		}),
 	sqldNode: z.enum(sqldNode.enumValues),
 	sqldPrimaryUrl: z.string().nullable(),

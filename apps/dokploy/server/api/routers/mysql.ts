@@ -42,6 +42,8 @@ import {
 	apiSaveEnvironmentVariablesMySql,
 	apiSaveExternalPortMySql,
 	apiUpdateMySql,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
 	environments,
 	mysql as mysqlTable,
 	projects,
@@ -394,7 +396,12 @@ export const mysqlRouter = createTRPCRouter({
 		.input(
 			z.object({
 				mysqlId: z.string().min(1),
-				password: z.string().min(1),
+				password: z
+					.string()
+					.min(1)
+					.regex(DATABASE_PASSWORD_REGEX, {
+						message: DATABASE_PASSWORD_MESSAGE,
+					}),
 				type: z.enum(["user", "root"]).default("user"),
 			}),
 		)

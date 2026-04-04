@@ -42,6 +42,8 @@ import {
 	apiSaveEnvironmentVariablesMongo,
 	apiSaveExternalPortMongo,
 	apiUpdateMongo,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
 	environments,
 	mongo as mongoTable,
 	projects,
@@ -397,7 +399,12 @@ export const mongoRouter = createTRPCRouter({
 		.input(
 			z.object({
 				mongoId: z.string().min(1),
-				password: z.string().min(1),
+				password: z
+					.string()
+					.min(1)
+					.regex(DATABASE_PASSWORD_REGEX, {
+						message: DATABASE_PASSWORD_MESSAGE,
+					}),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
