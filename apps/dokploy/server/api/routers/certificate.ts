@@ -76,7 +76,7 @@ export const certificateRouter = createTRPCRouter({
 			where: eq(certificates.organizationId, ctx.session.activeOrganizationId),
 		});
 	}),
-	update: adminProcedure
+	update: withPermission("certificate", "update")
 		.input(apiUpdateCertificate)
 		.mutation(async ({ input, ctx }) => {
 			const certificate = await findCertificateById(input.certificateId);
