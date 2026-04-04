@@ -3,10 +3,13 @@ import {
 	createMount,
 	createMysql,
 	deployMySql,
+	execAsync,
+	execAsyncRemote,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findMySqlById,
 	findProjectById,
+	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeMySqlById,
@@ -39,6 +42,8 @@ import {
 	apiSaveEnvironmentVariablesMySql,
 	apiSaveExternalPortMySql,
 	apiUpdateMySql,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
 	environments,
 	mysql as mysqlTable,
 	projects,
@@ -385,6 +390,63 @@ export const mysqlRouter = createTRPCRouter({
 				resourceId: mysqlId,
 				resourceName: service.appName,
 			});
+			return true;
+		}),
+	changePassword: protectedProcedure
+		.input(
+			z.object({
+				mysqlId: z.string().min(1),
+				password: z.string().min(1).regex(DATABASE_PASSWORD_REGEX, {
+					message: DATABASE_PASSWORD_MESSAGE,
+				}),
+				type: z.enum(["user", "root"]).default("user"),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { mysqlId, password, type } = input;
+			await checkServicePermissionAndAccess(ctx, mysqlId, {
+				service: ["create"],
+			});
+
+			const my = await findMySqlById(mysqlId);
+			const { appName, serverId, databaseUser, databaseRootPassword } = my;
+
+			const containerCmd = getServiceContainerCommand(appName);
+			const targetUser = type === "root" ? "root" : databaseUser;
+
+			const command = `
+				CONTAINER_ID=$(${containerCmd})
+				if [ -z "$CONTAINER_ID" ]; then
+					echo "No running container found for ${appName}" >&2
+					exit 1
+				fi
+				docker exec "$CONTAINER_ID" mysql -u root -p'${databaseRootPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"
+			`;
+
+			await db.transaction(async (tx) => {
+				const setData =
+					type === "root"
+						? { databaseRootPassword: password }
+						: { databasePassword: password };
+				await tx
+					.update(mysqlTable)
+					.set(setData)
+					.where(eq(mysqlTable.mysqlId, mysqlId));
+
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: mysqlId,
+				resourceName: appName,
+			});
+
 			return true;
 		}),
 	move: protectedProcedure

@@ -3,11 +3,14 @@ import {
 	createMount,
 	createPostgres,
 	deployPostgres,
+	execAsync,
+	execAsyncRemote,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findPostgresById,
 	findProjectById,
 	getMountPath,
+	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
 	removePostgresById,
@@ -40,6 +43,8 @@ import {
 	apiSaveEnvironmentVariablesPostgres,
 	apiSaveExternalPortPostgres,
 	apiUpdatePostgres,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
 	environments,
 	postgres as postgresTable,
 	projects,
@@ -394,6 +399,56 @@ export const postgresRouter = createTRPCRouter({
 				resourceId: postgresId,
 				resourceName: service.appName,
 			});
+			return true;
+		}),
+	changePassword: protectedProcedure
+		.input(
+			z.object({
+				postgresId: z.string().min(1),
+				password: z.string().min(1).regex(DATABASE_PASSWORD_REGEX, {
+					message: DATABASE_PASSWORD_MESSAGE,
+				}),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { postgresId, password } = input;
+			await checkServicePermissionAndAccess(ctx, postgresId, {
+				service: ["create"],
+			});
+
+			const pg = await findPostgresById(postgresId);
+			const { appName, serverId, databaseUser } = pg;
+
+			const containerCmd = getServiceContainerCommand(appName);
+			const command = `
+				CONTAINER_ID=$(${containerCmd})
+				if [ -z "$CONTAINER_ID" ]; then
+					echo "No running container found for ${appName}" >&2
+					exit 1
+				fi
+				docker exec "$CONTAINER_ID" psql -U ${databaseUser} -c "ALTER USER \\"${databaseUser}\\" WITH PASSWORD '${password}';"
+			`;
+
+			await db.transaction(async (tx) => {
+				await tx
+					.update(postgresTable)
+					.set({ databasePassword: password })
+					.where(eq(postgresTable.postgresId, postgresId));
+
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: postgresId,
+				resourceName: appName,
+			});
+
 			return true;
 		}),
 	move: protectedProcedure

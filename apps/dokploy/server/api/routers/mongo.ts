@@ -3,10 +3,13 @@ import {
 	createMongo,
 	createMount,
 	deployMongo,
+	execAsync,
+	execAsyncRemote,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findMongoById,
 	findProjectById,
+	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeMongoById,
@@ -39,6 +42,8 @@ import {
 	apiSaveEnvironmentVariablesMongo,
 	apiSaveExternalPortMongo,
 	apiUpdateMongo,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
 	environments,
 	mongo as mongoTable,
 	projects,
@@ -388,6 +393,56 @@ export const mongoRouter = createTRPCRouter({
 				resourceId: mongoId,
 				resourceName: service.appName,
 			});
+			return true;
+		}),
+	changePassword: protectedProcedure
+		.input(
+			z.object({
+				mongoId: z.string().min(1),
+				password: z.string().min(1).regex(DATABASE_PASSWORD_REGEX, {
+					message: DATABASE_PASSWORD_MESSAGE,
+				}),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { mongoId, password } = input;
+			await checkServicePermissionAndAccess(ctx, mongoId, {
+				service: ["create"],
+			});
+
+			const mongo = await findMongoById(mongoId);
+			const { appName, serverId, databaseUser, databasePassword } = mongo;
+
+			const containerCmd = getServiceContainerCommand(appName);
+			const command = `
+				CONTAINER_ID=$(${containerCmd})
+				if [ -z "$CONTAINER_ID" ]; then
+					echo "No running container found for ${appName}" >&2
+					exit 1
+				fi
+				docker exec "$CONTAINER_ID" mongosh -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase admin --eval "db.getSiblingDB('admin').changeUserPassword('${databaseUser}', '${password}')"
+			`;
+
+			await db.transaction(async (tx) => {
+				await tx
+					.update(mongoTable)
+					.set({ databasePassword: password })
+					.where(eq(mongoTable.mongoId, mongoId));
+
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: mongoId,
+				resourceName: appName,
+			});
+
 			return true;
 		}),
 	move: protectedProcedure

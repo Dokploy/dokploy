@@ -28,7 +28,13 @@ import {
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
-import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
+import {
+	APP_NAME_MESSAGE,
+	APP_NAME_REGEX,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
+	generateAppName,
+} from "./utils";
 
 export const mariadb = pgTable("mariadb", {
 	mariadbId: text("mariadbId")
@@ -108,17 +114,13 @@ const createSchema = createInsertSchema(mariadb, {
 	createdAt: z.string(),
 	databaseName: z.string().min(1),
 	databaseUser: z.string().min(1),
-	databasePassword: z
-		.string()
-		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-			message:
-				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-		}),
+	databasePassword: z.string().regex(DATABASE_PASSWORD_REGEX, {
+		message: DATABASE_PASSWORD_MESSAGE,
+	}),
 	databaseRootPassword: z
 		.string()
-		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-			message:
-				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+		.regex(DATABASE_PASSWORD_REGEX, {
+			message: DATABASE_PASSWORD_MESSAGE,
 		})
 		.optional(),
 	dockerImage: z.string().default("mariadb:6"),

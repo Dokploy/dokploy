@@ -3,9 +3,12 @@ import {
 	createMount,
 	createRedis,
 	deployRedis,
+	execAsync,
+	execAsyncRemote,
 	findEnvironmentById,
 	findProjectById,
 	findRedisById,
+	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeRedisById,
@@ -38,6 +41,8 @@ import {
 	apiSaveEnvironmentVariablesRedis,
 	apiSaveExternalPortRedis,
 	apiUpdateRedis,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
 	environments,
 	projects,
 	redis as redisTable,
@@ -375,6 +380,56 @@ export const redisRouter = createTRPCRouter({
 				resourceId: redisId,
 				resourceName: redis.appName,
 			});
+			return true;
+		}),
+	changePassword: protectedProcedure
+		.input(
+			z.object({
+				redisId: z.string().min(1),
+				password: z.string().min(1).regex(DATABASE_PASSWORD_REGEX, {
+					message: DATABASE_PASSWORD_MESSAGE,
+				}),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { redisId, password } = input;
+			await checkServicePermissionAndAccess(ctx, redisId, {
+				service: ["create"],
+			});
+
+			const rd = await findRedisById(redisId);
+			const { appName, serverId, databasePassword } = rd;
+
+			const containerCmd = getServiceContainerCommand(appName);
+			const command = `
+				CONTAINER_ID=$(${containerCmd})
+				if [ -z "$CONTAINER_ID" ]; then
+					echo "No running container found for ${appName}" >&2
+					exit 1
+				fi
+				docker exec "$CONTAINER_ID" redis-cli -a '${databasePassword}' CONFIG SET requirepass '${password}'
+			`;
+
+			await db.transaction(async (tx) => {
+				await tx
+					.update(redisTable)
+					.set({ databasePassword: password })
+					.where(eq(redisTable.redisId, redisId));
+
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: redisId,
+				resourceName: appName,
+			});
+
 			return true;
 		}),
 	move: protectedProcedure
