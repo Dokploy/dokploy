@@ -5,6 +5,7 @@ import { api } from "@/utils/api";
 import { DockerBlockChart } from "./docker-block-chart";
 import { DockerCpuChart } from "./docker-cpu-chart";
 import { DockerDiskChart } from "./docker-disk-chart";
+import { DockerDiskUsageChart } from "./docker-disk-usage-chart";
 import { DockerMemoryChart } from "./docker-memory-chart";
 import { DockerNetworkChart } from "./docker-network-chart";
 
@@ -281,6 +282,18 @@ export const ContainerFreeMonitoring = ({
 									diskTotal={currentData.disk.value.diskTotal}
 								/>
 							</div>
+						</CardContent>
+					</Card>
+				)}
+				{appName === "dokploy" && (
+					<Card className="bg-background">
+						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+							<CardTitle className="text-sm font-medium">
+								Docker Disk Usage
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<DockerDiskUsageChart />
 						</CardContent>
 					</Card>
 				)}

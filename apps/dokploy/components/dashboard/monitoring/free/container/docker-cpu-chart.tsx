@@ -1,87 +1,83 @@
 import { format } from "date-fns";
+import { Area, AreaChart, CartesianGrid, YAxis } from "recharts";
 import {
-	Area,
-	AreaChart,
-	CartesianGrid,
-	Legend,
-	ResponsiveContainer,
-	Tooltip,
-	YAxis,
-} from "recharts";
+	type ChartConfig,
+	ChartContainer,
+	ChartLegend,
+	ChartLegendContent,
+	ChartTooltip,
+	ChartTooltipContent,
+} from "@/components/ui/chart";
 import type { DockerStatsJSON } from "./show-free-container-monitoring";
 
 interface Props {
 	accumulativeData: DockerStatsJSON["cpu"];
 }
 
+const chartConfig = {
+	usage: {
+		label: "CPU Usage",
+		color: "hsl(var(--chart-1))",
+	},
+} satisfies ChartConfig;
+
 export const DockerCpuChart = ({ accumulativeData }: Props) => {
-	const transformedData = accumulativeData.map((item, index) => {
-		return {
-			name: `Point ${index + 1}`,
-			time: item.time,
-			usage: item.value.toString().split("%")[0],
-		};
-	});
+	const transformedData = accumulativeData.map((item, index) => ({
+		name: `Point ${index + 1}`,
+		time: item.time,
+		usage: item.value.toString().split("%")[0],
+	}));
+
 	return (
-		<div className="mt-6 w-full h-[10rem]">
-			<ResponsiveContainer>
-				<AreaChart
-					data={transformedData}
-					margin={{
-						top: 10,
-						right: 30,
-						left: 0,
-						bottom: 0,
-					}}
-				>
-					<defs>
-						<linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-							<stop offset="5%" stopColor="#27272A" stopOpacity={0.8} />
-							<stop offset="95%" stopColor="white" stopOpacity={0} />
-						</linearGradient>
-					</defs>
-					<YAxis stroke="#A1A1AA" domain={[0, 100]} />
-					<CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
-					{/* @ts-ignore */}
-					<Tooltip content={<CustomTooltip />} />
-					<Legend />
-					<Area
-						type="monotone"
-						dataKey="usage"
-						stroke="#27272A"
-						fillOpacity={1}
-						fill="url(#colorUv)"
-					/>
-				</AreaChart>
-			</ResponsiveContainer>
-		</div>
+		<ChartContainer config={chartConfig} className="mt-4 h-[10rem] w-full">
+			<AreaChart
+				data={transformedData}
+				margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+			>
+				<defs>
+					<linearGradient id="fillCpu" x1="0" y1="0" x2="0" y2="1">
+						<stop
+							offset="5%"
+							stopColor="var(--color-usage)"
+							stopOpacity={0.8}
+						/>
+						<stop
+							offset="95%"
+							stopColor="var(--color-usage)"
+							stopOpacity={0.1}
+						/>
+					</linearGradient>
+				</defs>
+				<CartesianGrid vertical={false} />
+				<YAxis
+					tickFormatter={(value) => `${value}%`}
+					domain={[0, 100]}
+					tickLine={false}
+					axisLine={false}
+				/>
+				<ChartTooltip
+					cursor={false}
+					content={
+						<ChartTooltipContent
+							labelFormatter={(_, payload) => {
+								const time = payload?.[0]?.payload?.time;
+								return time
+									? format(new Date(time), "PPpp")
+									: "";
+							}}
+							formatter={(value) => [`${value}%`, "CPU Usage"]}
+						/>
+					}
+				/>
+				<Area
+					type="monotone"
+					dataKey="usage"
+					stroke="var(--color-usage)"
+					fill="url(#fillCpu)"
+					strokeWidth={2}
+				/>
+				<ChartLegend content={<ChartLegendContent />} />
+			</AreaChart>
+		</ChartContainer>
 	);
-};
-
-interface CustomTooltipProps {
-	active: boolean;
-	payload?: {
-		color?: string;
-		dataKey?: string;
-		value?: number;
-		payload: {
-			time: string;
-			usage: number;
-		};
-	}[];
-}
-
-const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
-	if (active && payload && payload.length && payload[0]) {
-		return (
-			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
-				{payload[0].payload.time && (
-					<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
-				)}
-				<p>{`CPU Usage: ${payload[0].payload.usage}%`}</p>
-			</div>
-		);
-	}
-
-	return null;
 };
