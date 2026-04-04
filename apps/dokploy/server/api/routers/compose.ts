@@ -1,12 +1,19 @@
+import { dirname, join } from "node:path";
 import {
 	addDomainToCompose,
 	clearOldDeployments,
+	cloneBitbucketRepository,
 	cloneCompose,
+	cloneGiteaRepository,
+	cloneGithubRepository,
+	cloneGitlabRepository,
+	cloneGitRepository,
 	createCommand,
 	createCompose,
 	createComposeByTemplate,
 	createDomain,
 	createMount,
+	deleteMount,
 	execAsync,
 	execAsyncRemote,
 	findComposeById,
@@ -15,36 +22,30 @@ import {
 	findGitProviderById,
 	findProjectById,
 	findServerById,
+	findUserById,
 	getComposeContainer,
 	getWebServerSettings,
 	IS_CLOUD,
 	loadServices,
+	paths,
+	processTemplate,
 	randomizeComposeFile,
 	randomizeIsolatedDeploymentComposeFile,
 	removeCompose,
 	removeComposeDirectory,
 	removeDeploymentsByComposeId,
+	removeDomainById,
 	startCompose,
 	stopCompose,
-	processTemplate,
 	updateCompose,
 	updateDeploymentStatus,
 } from "@dokploy/server";
-import { db } from "@dokploy/server/db";
 import {
 	addNewService,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import {
-	cloneBitbucketRepository,
-	cloneGitRepository,
-	cloneGiteaRepository,
-	cloneGithubRepository,
-	cloneGitlabRepository,
-	paths,
-} from "@dokploy/server";
 import {
 	type CompleteTemplate,
 	fetchTemplateFiles,
@@ -54,13 +55,11 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import _ from "lodash";
 import { nanoid } from "nanoid";
-import { dirname, join } from "node:path";
 import { parse } from "toml";
 import { stringify } from "yaml";
 import { z } from "zod";
 import { slugify } from "@/lib/slug";
 import { db } from "@/server/db";
-import { applyTemplateToCompose } from "@/server/utils/apply-template";
 import {
 	apiCreateCompose,
 	apiDeleteCompose,
@@ -82,6 +81,7 @@ import {
 	killDockerBuild,
 	myQueue,
 } from "@/server/queues/queueSetup";
+import { applyTemplateToCompose } from "@/server/utils/apply-template";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
