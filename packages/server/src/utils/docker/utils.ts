@@ -272,7 +272,7 @@ const parseSizeToBytes = (size: string): number => {
 	const match = size.match(/^([\d.]+)\s*([KMGT]?B)$/i);
 	if (!match) return 0;
 	const value = Number.parseFloat(match[1] as string);
-	const unit = match[2].toUpperCase();
+	const unit = (match[2] as string).toUpperCase();
 	const multipliers: Record<string, number> = {
 		B: 1,
 		KB: 1024,
