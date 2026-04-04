@@ -16,7 +16,8 @@ import { ShowImport } from "@/components/dashboard/application/advanced/import/s
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowDeployments } from "@/components/dashboard/application/deployments/show-deployments";
 import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
-import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
+import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";
+import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
@@ -30,7 +31,7 @@ import { ShowBackups } from "@/components/dashboard/database/backups/show-backup
 import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
 import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
+import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -51,6 +52,7 @@ import {
 import { UseKeyboardNav } from "@/hooks/use-keyboard-nav";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
 
 type TabState =
 	| "projects"
@@ -79,10 +81,13 @@ const Service = (
 	const { data } = api.compose.one.useQuery({ composeId });
 
 	const { data: auth } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: environments } = api.environment.byProjectId.useQuery({
 		projectId: data?.environment?.projectId || "",
 	});
+	const { config: whitelabeling } = useWhitelabeling();
+	const appName = whitelabeling?.appName || "Dokploy";
 	const environmentDropdownItems =
 		environments?.map((env) => ({
 			name: env.name,
@@ -92,24 +97,10 @@ const Service = (
 	return (
 		<div className="pb-10">
 			<UseKeyboardNav forPage="compose" />
-			<BreadcrumbSidebar
-				list={[
-					{ name: "Projects", href: "/dashboard/projects" },
-					{
-						name: data?.environment?.project?.name || "",
-					},
-					{
-						name: data?.environment?.name || "",
-						dropdownItems: environmentDropdownItems,
-					},
-					{
-						name: data?.name || "",
-					},
-				]}
-			/>
+			<AdvanceBreadcrumb />
 			<Head>
 				<title>
-					Compose: {data?.name} - {data?.environment?.project?.name} | Dokploy
+					Compose: {data?.name} - {data?.environment?.project?.name} | {appName}
 				</title>
 			</Head>
 			<div className="w-full">
@@ -180,9 +171,11 @@ const Service = (
 										)}
 									</div>
 									<div className="flex flex-row gap-2 justify-end">
-										<UpdateCompose composeId={composeId} />
+										{permissions?.service.create && (
+											<UpdateCompose composeId={composeId} />
+										)}
 
-										{(auth?.role === "owner" || auth?.canDeleteServices) && (
+										{permissions?.service.delete && (
 											<DeleteService id={composeId} type="compose" />
 										)}
 									</div>
@@ -225,19 +218,45 @@ const Service = (
 									<div className="flex flex-row items-center w-full overflow-auto">
 										<TabsList className="flex gap-8 max-md:gap-4 justify-start">
 											<TabsTrigger value="general">General</TabsTrigger>
-											<TabsTrigger value="environment">Environment</TabsTrigger>
-											<TabsTrigger value="domains">Domains</TabsTrigger>
-											<TabsTrigger value="deployments">Deployments</TabsTrigger>
-											<TabsTrigger value="backups">Backups</TabsTrigger>
-											<TabsTrigger value="schedules">Schedules</TabsTrigger>
-											<TabsTrigger value="volumeBackups">
-												Volume Backups
-											</TabsTrigger>
-											<TabsTrigger value="logs">Logs</TabsTrigger>
-											{((data?.serverId && isCloud) || !data?.server) && (
-												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+											{permissions?.envVars.read && (
+												<TabsTrigger value="environment">
+													Environment
+												</TabsTrigger>
 											)}
-											<TabsTrigger value="advanced">Advanced</TabsTrigger>
+											{permissions?.domain.read && (
+												<TabsTrigger value="domains">Domains</TabsTrigger>
+											)}
+											{permissions?.deployment.read && (
+												<TabsTrigger value="deployments">
+													Deployments
+												</TabsTrigger>
+											)}
+											{permissions?.service.create && (
+												<TabsTrigger value="backups">Backups</TabsTrigger>
+											)}
+											{permissions?.schedule.read && (
+												<TabsTrigger value="schedules">Schedules</TabsTrigger>
+											)}
+											{permissions?.volumeBackup.read && (
+												<TabsTrigger value="volumeBackups">
+													Volume Backups
+												</TabsTrigger>
+											)}
+											{permissions?.logs.read && (
+												<TabsTrigger value="logs">Logs</TabsTrigger>
+											)}
+											{data?.sourceType !== "raw" && (
+												<TabsTrigger value="patches">Patches</TabsTrigger>
+											)}
+											{permissions?.monitoring.read &&
+												((data?.serverId && isCloud) || !data?.server) && (
+													<TabsTrigger value="monitoring">
+														Monitoring
+													</TabsTrigger>
+												)}
+											{permissions?.service.create && (
+												<TabsTrigger value="advanced">Advanced</TabsTrigger>
+											)}
 										</TabsList>
 									</div>
 
@@ -246,47 +265,56 @@ const Service = (
 											<ShowGeneralCompose composeId={composeId} />
 										</div>
 									</TabsContent>
-									<TabsContent value="environment">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowEnvironment id={composeId} type="compose" />
-										</div>
-									</TabsContent>
-									<TabsContent value="backups">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackups id={composeId} backupType="compose" />
-										</div>
-									</TabsContent>
+									{permissions?.envVars.read && (
+										<TabsContent value="environment">
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowEnvironment id={composeId} type="compose" />
+											</div>
+										</TabsContent>
+									)}
+									{permissions?.service.create && (
+										<TabsContent value="backups">
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowBackups id={composeId} backupType="compose" />
+											</div>
+										</TabsContent>
+									)}
 
-									<TabsContent value="schedules">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowSchedules id={composeId} scheduleType="compose" />
-										</div>
-									</TabsContent>
-									<TabsContent value="volumeBackups">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowVolumeBackups
-												id={composeId}
-												type="compose"
-												serverId={data?.serverId || ""}
-											/>
-										</div>
-									</TabsContent>
-									<TabsContent value="monitoring">
-										<div className="pt-2.5">
-											<div className="flex flex-col border rounded-lg ">
-												{data?.serverId && isCloud ? (
-													<ComposePaidMonitoring
-														serverId={data?.serverId || ""}
-														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
-														appName={data?.appName || ""}
-														token={
-															data?.server?.metricsConfig?.server?.token || ""
-														}
-														appType={data?.composeType || "docker-compose"}
-													/>
-												) : (
-													<>
-														{/* {monitoring?.enabledFeatures &&
+									{permissions?.schedule.read && (
+										<TabsContent value="schedules">
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowSchedules id={composeId} scheduleType="compose" />
+											</div>
+										</TabsContent>
+									)}
+									{permissions?.volumeBackup.read && (
+										<TabsContent value="volumeBackups">
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowVolumeBackups
+													id={composeId}
+													type="compose"
+													serverId={data?.serverId || ""}
+												/>
+											</div>
+										</TabsContent>
+									)}
+									{permissions?.monitoring.read && (
+										<TabsContent value="monitoring">
+											<div className="pt-2.5">
+												<div className="flex flex-col border rounded-lg ">
+													{data?.serverId && isCloud ? (
+														<ComposePaidMonitoring
+															serverId={data?.serverId || ""}
+															baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+															appName={data?.appName || ""}
+															token={
+																data?.server?.metricsConfig?.server?.token || ""
+															}
+															appType={data?.composeType || "docker-compose"}
+														/>
+													) : (
+														<>
+															{/* {monitoring?.enabledFeatures &&
 															isCloud &&
 															data?.serverId && (
 																<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2 m-4">
@@ -310,62 +338,77 @@ const Service = (
 																appType={data?.composeType || "docker-compose"}
 															/>
 														) : ( */}
-														{/* <div> */}
-														<ComposeFreeMonitoring
-															serverId={data?.serverId || ""}
-															appName={data?.appName || ""}
-															appType={data?.composeType || "docker-compose"}
-														/>
-														{/* </div> */}
-														{/* )} */}
-													</>
+															{/* <div> */}
+															<ComposeFreeMonitoring
+																serverId={data?.serverId || ""}
+																appName={data?.appName || ""}
+																appType={data?.composeType || "docker-compose"}
+															/>
+															{/* </div> */}
+															{/* )} */}
+														</>
+													)}
+												</div>
+											</div>
+										</TabsContent>
+									)}
+
+									{permissions?.logs.read && (
+										<TabsContent value="logs">
+											<div className="flex flex-col gap-4 pt-2.5">
+												{data?.composeType === "docker-compose" ? (
+													<ShowDockerLogsCompose
+														serverId={data?.serverId || ""}
+														appName={data?.appName || ""}
+														appType={data?.composeType || "docker-compose"}
+													/>
+												) : (
+													<ShowDockerLogsStack
+														serverId={data?.serverId || ""}
+														appName={data?.appName || ""}
+													/>
 												)}
 											</div>
-										</div>
-									</TabsContent>
+										</TabsContent>
+									)}
 
-									<TabsContent value="logs">
-										<div className="flex flex-col gap-4 pt-2.5">
-											{data?.composeType === "docker-compose" ? (
-												<ShowDockerLogsCompose
+									{permissions?.deployment.read && (
+										<TabsContent value="deployments" className="w-full pt-2.5">
+											<div className="flex flex-col gap-4 border rounded-lg">
+												<ShowDeployments
+													id={composeId}
+													type="compose"
 													serverId={data?.serverId || ""}
-													appName={data?.appName || ""}
-													appType={data?.composeType || "docker-compose"}
+													refreshToken={data?.refreshToken || ""}
 												/>
-											) : (
-												<ShowDockerLogsStack
-													serverId={data?.serverId || ""}
-													appName={data?.appName || ""}
-												/>
-											)}
-										</div>
-									</TabsContent>
+											</div>
+										</TabsContent>
+									)}
 
-									<TabsContent value="deployments" className="w-full pt-2.5">
-										<div className="flex flex-col gap-4 border rounded-lg">
-											<ShowDeployments
-												id={composeId}
-												type="compose"
-												serverId={data?.serverId || ""}
-												refreshToken={data?.refreshToken || ""}
-											/>
-										</div>
-									</TabsContent>
+									{permissions?.domain.read && (
+										<TabsContent value="domains">
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowDomains id={composeId} type="compose" />
+											</div>
+										</TabsContent>
+									)}
 
-									<TabsContent value="domains">
+									<TabsContent value="patches" className="w-full">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDomains id={composeId} type="compose" />
+											<ShowPatches id={composeId} type="compose" />
 										</div>
 									</TabsContent>
 
-									<TabsContent value="advanced">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<AddCommandCompose composeId={composeId} />
-											<ShowVolumes id={composeId} type="compose" />
-											<ShowImport composeId={composeId} />
-											<IsolatedDeploymentTab composeId={composeId} />
-										</div>
-									</TabsContent>
+									{permissions?.service.create && (
+										<TabsContent value="advanced">
+											<div className="flex flex-col gap-4 pt-2.5">
+												<AddCommandCompose composeId={composeId} />
+												<ShowVolumes id={composeId} type="compose" />
+												<ShowImport composeId={composeId} />
+												<IsolatedDeploymentTab composeId={composeId} />
+											</div>
+										</TabsContent>
+									)}
 								</Tabs>
 							)}
 						</CardContent>

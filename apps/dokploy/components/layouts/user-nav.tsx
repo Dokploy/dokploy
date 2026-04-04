@@ -10,18 +10,9 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import { authClient } from "@/lib/auth-client";
-import { Languages } from "@/lib/languages";
 import { getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
-import useLocale from "@/utils/hooks/use-locale";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
 
@@ -30,9 +21,9 @@ const _AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 export const UserNav = () => {
 	const router = useRouter();
 	const { data } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
-	const { locale, setLocale } = useLocale();
 	// const { mutateAsync } = api.auth.logout.useMutation();
 
 	return (
@@ -104,9 +95,7 @@ export const UserNav = () => {
 							>
 								Monitoring
 							</DropdownMenuItem>
-							{(data?.role === "owner" ||
-								data?.role === "admin" ||
-								data?.canAccessToTraefikFiles) && (
+							{permissions?.traefikFiles.read && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -116,9 +105,7 @@ export const UserNav = () => {
 									Traefik
 								</DropdownMenuItem>
 							)}
-							{(data?.role === "owner" ||
-								data?.role === "admin" ||
-								data?.canAccessToDocker) && (
+							{permissions?.docker.read && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -132,7 +119,7 @@ export const UserNav = () => {
 							)}
 						</>
 					) : (
-						(data?.role === "owner" || data?.role === "admin") && (
+						permissions?.organization.update && (
 							<DropdownMenuItem
 								className="cursor-pointer"
 								onClick={() => {
@@ -155,39 +142,19 @@ export const UserNav = () => {
 					</DropdownMenuItem>
 				)}
 				<DropdownMenuSeparator />
-				<div className="flex items-center justify-between px-2 py-1.5">
-					<DropdownMenuItem
-						className="cursor-pointer"
-						onClick={async () => {
-							await authClient.signOut().then(() => {
-								router.push("/");
-							});
-							// await mutateAsync().then(() => {
-							// 	router.push("/");
-							// });
-						}}
-					>
-						Log out
-					</DropdownMenuItem>
-					<div className="w-32">
-						<Select
-							onValueChange={setLocale}
-							defaultValue={locale}
-							value={locale}
-						>
-							<SelectTrigger>
-								<SelectValue placeholder="Select Language" />
-							</SelectTrigger>
-							<SelectContent>
-								{Object.values(Languages).map((language) => (
-									<SelectItem key={language.code} value={language.code}>
-										{language.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				</div>
+				<DropdownMenuItem
+					className="cursor-pointer"
+					onClick={async () => {
+						await authClient.signOut().then(() => {
+							router.push("/");
+						});
+						// await mutateAsync().then(() => {
+						// 	router.push("/");
+						// });
+					}}
+				>
+					Log out
+				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

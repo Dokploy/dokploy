@@ -22,7 +22,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
@@ -89,15 +88,15 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 					</Button>
 				</DialogTrigger>
 			) : (
-				<DropdownMenuItem
+				<Button
 					className="w-full cursor-pointer "
-					onSelect={(e) => {
-						e.preventDefault();
+					size="sm"
+					onClick={() => {
 						setIsOpen(true);
 					}}
 				>
-					Setup Server
-				</DropdownMenuItem>
+					Setup Server <Settings className="size-4" />
+				</Button>
 			)}
 			<DialogContent className="sm:max-w-4xl  ">
 				<DialogHeader>
@@ -119,9 +118,10 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 					</div>
 				) : (
 					<div id="hook-form-add-gitlab" className="grid w-full gap-4">
-						<AlertBlock type="warning">
-							Using a root user is required to ensure everything works as
-							expected.
+						<AlertBlock type="info">
+							You can connect as root or as a non-root user with passwordless
+							sudo access. If using a non-root user, ensure passwordless sudo is
+							configured.
 						</AlertBlock>
 
 						<Tabs defaultValue="ssh-keys">
@@ -161,7 +161,7 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 									<ul>
 										<li>
 											1. Add the public SSH Key when you create a server in your
-											preffered provider (Hostinger, Digital Ocean, Hetzner,
+											preferred provider (Hostinger, Digital Ocean, Hetzner,
 											etc){" "}
 										</li>
 										<li>2. Add The SSH Key to Server Manually</li>
@@ -191,7 +191,7 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 											Automatic process
 										</span>
 										<Link
-											href="https://docs.dokploy.com/docs/core/multi-server/instructions#requirements"
+											href="https://docs.dokploy.com/docs/core/remote-servers/instructions#requirements"
 											target="_blank"
 											className="text-primary flex flex-row gap-2"
 										>

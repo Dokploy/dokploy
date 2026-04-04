@@ -1,15 +1,15 @@
 import { IS_CLOUD, shouldDeploy } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/server/db";
 import { compose } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import {
 	extractBranchName,
-	extractCommitedPaths,
 	extractCommitMessage,
+	extractCommittedPaths,
 	extractHash,
 	getProviderByHeader,
 } from "../[refreshToken]";
@@ -97,15 +97,17 @@ export default async function handler(
 				return;
 			}
 
-			const commitedPaths = await extractCommitedPaths(
+			const committedPaths = await extractCommittedPaths(
 				req.body,
 				composeResult.bitbucket,
-				composeResult.bitbucketRepository || "",
+				composeResult.bitbucketRepositorySlug ||
+					composeResult.bitbucketRepository ||
+					"",
 			);
 
 			const shouldDeployPaths = shouldDeploy(
 				composeResult.watchPaths,
-				commitedPaths,
+				committedPaths,
 			);
 
 			if (!shouldDeployPaths) {

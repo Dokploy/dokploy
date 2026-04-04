@@ -11,8 +11,12 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
+	sendPushoverNotification,
+	sendResendNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -47,18 +51,34 @@ export const sendBuildSuccessNotifications = async ({
 			discord: true,
 			telegram: true,
 			slack: true,
+			resend: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 			custom: true,
 			lark: true,
+			pushover: true,
+			teams: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
-			notification;
+		const {
+			email,
+			resend,
+			discord,
+			telegram,
+			slack,
+			gotify,
+			ntfy,
+			mattermost,
+			custom,
+			lark,
+			pushover,
+			teams,
+		} = notification;
 		try {
-			if (email) {
+			if (email || resend) {
 				const template = await renderAsync(
 					BuildSuccessEmail({
 						projectName,
@@ -69,11 +89,22 @@ export const sendBuildSuccessNotifications = async ({
 						environmentName,
 					}),
 				).catch();
-				await sendEmailNotification(
-					email,
-					"Build success for dokploy",
-					template,
-				);
+
+				if (email) {
+					await sendEmailNotification(
+						email,
+						"Build success for dokploy",
+						template,
+					);
+				}
+
+				if (resend) {
+					await sendResendNotification(
+						resend,
+						"Build success for dokploy",
+						template,
+					);
+				}
 			}
 
 			if (discord) {
@@ -238,6 +269,14 @@ export const sendBuildSuccessNotifications = async ({
 				});
 			}
 
+			if (mattermost) {
+				await sendMattermostNotification(mattermost, {
+					text: `**✅ Build Success**\n\n**Project:** ${projectName}\n**Application:** ${applicationName}\n**Type:** ${applicationType}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}\n\n[View Build Details](${buildLink})`,
+					channel: mattermost.channel,
+					username: mattermost.username || "Dokploy",
+				});
+			}
+
 			if (custom) {
 				await sendCustomNotification(custom, {
 					title: "Build Success",
@@ -360,6 +399,32 @@ export const sendBuildSuccessNotifications = async ({
 								},
 							],
 						},
+					},
+				});
+			}
+
+			if (pushover) {
+				await sendPushoverNotification(
+					pushover,
+					"Build Success",
+					`Project: ${projectName}\nApplication: ${applicationName}\nEnvironment: ${environmentName}\nType: ${applicationType}\nDate: ${date.toLocaleString()}`,
+				);
+			}
+
+			if (teams) {
+				await sendTeamsNotification(teams, {
+					title: "✅ Build Success",
+					facts: [
+						{ name: "Project", value: projectName },
+						{ name: "Application", value: applicationName },
+						{ name: "Environment", value: environmentName },
+						{ name: "Type", value: applicationType },
+						{ name: "Date", value: format(date, "PP pp") },
+					],
+					potentialAction: {
+						type: "Action.OpenUrl",
+						title: "View Build Details",
+						url: buildLink,
 					},
 				});
 			}

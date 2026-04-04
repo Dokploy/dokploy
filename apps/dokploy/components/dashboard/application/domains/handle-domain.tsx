@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -61,6 +61,8 @@ export const domain = z
 			.min(1, { message: "Port must be at least 1" })
 			.max(65535, { message: "Port must be 65535 or below" })
 			.optional(),
+		useCustomEntrypoint: z.boolean(),
+		customEntrypoint: z.string().optional(),
 		https: z.boolean().optional(),
 		certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 		customCertResolver: z.string().optional(),
@@ -114,6 +116,14 @@ export const domain = z
 				message: "Internal path must start with '/'",
 			});
 		}
+
+		if (input.useCustomEntrypoint && !input.customEntrypoint) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["customEntrypoint"],
+				message: "Custom entry point must be specified",
+			});
+		}
 	});
 
 type Domain = z.infer<typeof domain>;
@@ -159,11 +169,11 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 					},
 				);
 
-	const { mutateAsync, isError, error, isLoading } = domainId
+	const { mutateAsync, isError, error, isPending } = domainId
 		? api.domain.update.useMutation()
 		: api.domain.create.useMutation();
 
-	const { mutateAsync: generateDomain, isLoading: isLoadingGenerate } =
+	const { mutateAsync: generateDomain, isPending: isLoadingGenerate } =
 		api.domain.generateDomain.useMutation();
 
 	const { data: canGenerateTraefikMeDomains } =
@@ -196,6 +206,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			internalPath: undefined,
 			stripPath: false,
 			port: undefined,
+			useCustomEntrypoint: false,
+			customEntrypoint: undefined,
 			https: false,
 			certificateType: undefined,
 			customCertResolver: undefined,
@@ -206,6 +218,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	});
 
 	const certificateType = form.watch("certificateType");
+	const useCustomEntrypoint = form.watch("useCustomEntrypoint");
 	const https = form.watch("https");
 	const domainType = form.watch("domainType");
 	const host = form.watch("host");
@@ -220,6 +233,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				internalPath: data?.internalPath || undefined,
 				stripPath: data?.stripPath || false,
 				port: data?.port || undefined,
+				useCustomEntrypoint: !!data.customEntrypoint,
+				customEntrypoint: data.customEntrypoint || undefined,
 				certificateType: data?.certificateType || undefined,
 				customCertResolver: data?.customCertResolver || undefined,
 				serviceName: data?.serviceName || undefined,
@@ -234,13 +249,15 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				internalPath: undefined,
 				stripPath: false,
 				port: undefined,
+				useCustomEntrypoint: false,
+				customEntrypoint: undefined,
 				https: false,
 				certificateType: undefined,
 				customCertResolver: undefined,
 				domainType: type,
 			});
 		}
-	}, [form, data, isLoading, domainId]);
+	}, [form, data, isPending, domainId]);
 
 	// Separate effect for handling custom cert resolver validation
 	useEffect(() => {
@@ -637,6 +654,50 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 
 								<FormField
 									control={form.control}
+									name="useCustomEntrypoint"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Custom Entrypoint</FormLabel>
+												<FormDescription>
+													Use custom entrypoint for domina
+													<br />
+													"web" and/or "websecure" is used by default.
+												</FormDescription>
+												<FormMessage />
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+
+								{useCustomEntrypoint && (
+									<FormField
+										control={form.control}
+										name="customEntrypoint"
+										render={({ field }) => (
+											<FormItem className="w-full">
+												<FormLabel>Entrypoint Name</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Enter entrypoint name manually"
+														{...field}
+														className="w-full"
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
+
+								<FormField
+									control={form.control}
 									name="https"
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
@@ -730,7 +791,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 					</form>
 
 					<DialogFooter>
-						<Button isLoading={isLoading} form="hook-form" type="submit">
+						<Button isLoading={isPending} form="hook-form" type="submit">
 							{dictionary.submit}
 						</Button>
 					</DialogFooter>
