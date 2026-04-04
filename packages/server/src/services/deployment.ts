@@ -179,7 +179,7 @@ export const createDeployment = async (
 				logPath: "",
 				description: deployment.description || "",
 				commitHash: deployment.commitHash ?? null,
-				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+				errorMessage: `An error have occurred: ${error instanceof Error ? error.message : error}`,
 				startedAt: new Date().toISOString(),
 				finishedAt: new Date().toISOString(),
 			})
@@ -259,7 +259,7 @@ export const createDeploymentPreview = async (
 				status: "error",
 				logPath: "",
 				description: deployment.description || "",
-				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+				errorMessage: `An error have occurred: ${error instanceof Error ? error.message : error}`,
 				startedAt: new Date().toISOString(),
 				finishedAt: new Date().toISOString(),
 			})
@@ -338,7 +338,7 @@ echo "Initializing deployment\n" >> ${logFilePath};
 				logPath: "",
 				description: deployment.description || "",
 				commitHash: deployment.commitHash ?? null,
-				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+				errorMessage: `An error have occurred: ${error instanceof Error ? error.message : error}`,
 				startedAt: new Date().toISOString(),
 				finishedAt: new Date().toISOString(),
 			})
@@ -422,7 +422,7 @@ echo "Initializing backup\n" >> ${logFilePath};
 				status: "error",
 				logPath: "",
 				description: deployment.description || "",
-				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+				errorMessage: `An error have occurred: ${error instanceof Error ? error.message : error}`,
 				startedAt: new Date().toISOString(),
 				finishedAt: new Date().toISOString(),
 			})
@@ -497,7 +497,7 @@ export const createDeploymentSchedule = async (
 				status: "error",
 				logPath: "",
 				description: deployment.description || "",
-				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+				errorMessage: `An error have occurred: ${error instanceof Error ? error.message : error}`,
 				startedAt: new Date().toISOString(),
 				finishedAt: new Date().toISOString(),
 			})
@@ -582,7 +582,7 @@ export const createDeploymentVolumeBackup = async (
 				status: "error",
 				logPath: "",
 				description: deployment.description || "",
-				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+				errorMessage: `An error have occurred: ${error instanceof Error ? error.message : error}`,
 				startedAt: new Date().toISOString(),
 				finishedAt: new Date().toISOString(),
 			})

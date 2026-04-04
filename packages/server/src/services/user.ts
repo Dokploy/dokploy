@@ -89,7 +89,7 @@ export const canPerformAccessService = async (
 	return false;
 };
 
-export const canPeformDeleteService = async (
+export const canPerformDeleteService = async (
 	userId: string,
 	serviceId: string,
 	organizationId: string,
@@ -215,7 +215,7 @@ export const checkServiceAccess = async (
 			);
 			break;
 		case "delete":
-			hasPermission = await canPeformDeleteService(
+			hasPermission = await canPerformDeleteService(
 				userId,
 				serviceId,
 				organizationId,

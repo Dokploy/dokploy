@@ -37,6 +37,7 @@ import { DuplicateProject } from "@/components/dashboard/project/duplicate-proje
 import { EnvironmentVariables } from "@/components/dashboard/project/environment-variables";
 import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import {
+	LibsqlIcon,
 	MariadbIcon,
 	MongodbIcon,
 	MysqlIcon,
@@ -111,7 +112,8 @@ export type Services = {
 		| "mysql"
 		| "mongo"
 		| "redis"
-		| "compose";
+		| "compose"
+		| "libsql";
 	description?: string | null;
 	id: string;
 	createdAt: string;
@@ -248,14 +250,27 @@ export const extractServicesFromEnvironment = (
 			};
 		}) || [];
 
+	const libsql: Services[] =
+		environment.libsql?.map((item) => ({
+			name: item.name,
+			type: "libsql",
+			id: item.libsqlId,
+			createdAt: item.createdAt,
+			status: item.applicationStatus,
+			description: item.description,
+			serverId: item.serverId,
+			serverName: item?.server?.name || null,
+		})) || [];
+
 	allServices.push(
 		...applications,
+		...compose,
+		...libsql,
 		...mysql,
 		...redis,
 		...mongo,
 		...postgres,
 		...mariadb,
-		...compose,
 	);
 
 	allServices.sort((a, b) => {
@@ -383,7 +398,8 @@ const EnvironmentPage = (
 			(currentEnvironment.postgres?.length || 0) === 0 &&
 			(currentEnvironment.redis?.length || 0) === 0 &&
 			(currentEnvironment.applications?.length || 0) === 0 &&
-			(currentEnvironment.compose?.length || 0) === 0);
+			(currentEnvironment.compose?.length || 0) === 0 &&
+			(currentEnvironment.libsql?.length || 0) === 0);
 
 	const applications = extractServicesFromEnvironment(currentEnvironment);
 
@@ -396,6 +412,7 @@ const EnvironmentPage = (
 		{ value: "mysql", label: "MySQL", icon: MysqlIcon },
 		{ value: "redis", label: "Redis", icon: RedisIcon },
 		{ value: "compose", label: "Compose", icon: CircuitBoard },
+		{ value: "libsql", label: "Libsql", icon: LibsqlIcon },
 	];
 
 	const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -1524,6 +1541,9 @@ const EnvironmentPage = (
 																			)}
 																			{service.type === "compose" && (
 																				<CircuitBoard className="h-6 w-6" />
+																			)}
+																			{service.type === "libsql" && (
+																				<LibsqlIcon className="h-6 w-6" />
 																			)}
 																		</span>
 																	</div>

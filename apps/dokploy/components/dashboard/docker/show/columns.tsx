@@ -10,7 +10,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ShowContainerConfig } from "../config/show-container-config";
 import { ShowDockerModalLogs } from "../logs/show-docker-modal-logs";
+import { RemoveContainerDialog } from "../remove/remove-container";
 import { DockerTerminalModal } from "../terminal/docker-terminal-modal";
+import { UploadFileModal } from "../upload/upload-file-modal";
 import type { Container } from "./show-containers";
 
 export const columns: ColumnDef<Container>[] = [
@@ -127,6 +129,16 @@ export const columns: ColumnDef<Container>[] = [
 						>
 							Terminal
 						</DockerTerminalModal>
+						<UploadFileModal
+							containerId={container.containerId}
+							serverId={container.serverId || undefined}
+						>
+							Upload File
+						</UploadFileModal>
+						<RemoveContainerDialog
+							containerId={container.containerId}
+							serverId={container.serverId ?? undefined}
+						/>
 					</DropdownMenuContent>
 				</DropdownMenu>
 			);

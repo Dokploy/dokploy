@@ -633,7 +633,7 @@ export const composeRouter = createTRPCRouter({
 			return compose;
 		}),
 
-	templates: publicProcedure
+	templates: protectedProcedure
 		.input(z.object({ baseUrl: z.string().optional() }))
 		.query(async ({ input }) => {
 			try {

@@ -26,6 +26,7 @@ const getProjectName = (
 		volumeBackup.mariadb,
 		volumeBackup.mongo,
 		volumeBackup.redis,
+		volumeBackup.libsql,
 	];
 
 	for (const service of services) {
@@ -48,6 +49,7 @@ const getOrganizationId = (
 		volumeBackup.mariadb,
 		volumeBackup.mongo,
 		volumeBackup.redis,
+		volumeBackup.libsql,
 	];
 
 	for (const service of services) {
