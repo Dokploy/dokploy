@@ -22,7 +22,7 @@ import {
 	apiUpdateUser,
 	invitation,
 	member,
-	userTemplateBookmarks,
+	user,
 } from "@dokploy/server/db/schema";
 import {
 	hasPermission,
@@ -642,12 +642,12 @@ export const userRouter = createTRPCRouter({
 		}),
 
 	getBookmarkedTemplates: protectedProcedure.query(async ({ ctx }) => {
-		const bookmarked = await db.query.userTemplateBookmarks.findMany({
-			where: eq(userTemplateBookmarks.userId, ctx.user.id),
-			orderBy: [asc(userTemplateBookmarks.createdAt)],
+		const result = await db.query.user.findFirst({
+			where: eq(user.id, ctx.user.id),
+			columns: { bookmarkedTemplates: true },
 		});
 
-		return bookmarked.map((b) => b.templateId);
+		return result?.bookmarkedTemplates ?? [];
 	}),
 
 	toggleTemplateBookmark: protectedProcedure
@@ -657,24 +657,23 @@ export const userRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			const existing = await db.query.userTemplateBookmarks.findFirst({
-				where: and(
-					eq(userTemplateBookmarks.userId, ctx.user.id),
-					eq(userTemplateBookmarks.templateId, input.templateId),
-				),
+			const result = await db.query.user.findFirst({
+				where: eq(user.id, ctx.user.id),
+				columns: { bookmarkedTemplates: true },
 			});
 
-			if (existing) {
-				await db
-					.delete(userTemplateBookmarks)
-					.where(eq(userTemplateBookmarks.id, existing.id));
-				return { isBookmarked: false };
-			}
+			const current = result?.bookmarkedTemplates ?? [];
+			const isBookmarked = current.includes(input.templateId);
 
-			await db.insert(userTemplateBookmarks).values({
-				userId: ctx.user.id,
-				templateId: input.templateId,
-			});
-			return { isBookmarked: true };
+			const updated = isBookmarked
+				? current.filter((id) => id !== input.templateId)
+				: [...current, input.templateId];
+
+			await db
+				.update(user)
+				.set({ bookmarkedTemplates: updated })
+				.where(eq(user.id, ctx.user.id));
+
+			return { isBookmarked: !isBookmarked };
 		}),
 });
