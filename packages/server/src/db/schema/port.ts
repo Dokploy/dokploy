@@ -49,11 +49,9 @@ export const apiCreatePort = createSchema
 	})
 	.required();
 
-export const apiFindOnePort = createSchema
-	.pick({
-		portId: true,
-	})
-	.required();
+export const apiFindOnePort = z.object({
+	portId: z.string().min(1),
+});
 
 export const apiUpdatePort = createSchema
 	.pick({

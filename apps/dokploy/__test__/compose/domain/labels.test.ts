@@ -7,6 +7,7 @@ describe("createDomainLabels", () => {
 	const baseDomain: Domain = {
 		host: "example.com",
 		port: 8080,
+		customEntrypoint: null,
 		https: false,
 		uniqueConfigKey: 1,
 		customCertResolver: null,
@@ -329,5 +330,135 @@ describe("createDomainLabels", () => {
 			"traefik.http.routers.test-app-1-websecure.middlewares=auth@file",
 		);
 		expect(websecureLabels).not.toContain("redirect-to-https");
+	});
+
+	it("should create basic labels for custom entrypoint", async () => {
+		const labels = await createDomainLabels(
+			appName,
+			{ ...baseDomain, customEntrypoint: "custom" },
+			"custom",
+		);
+		expect(labels).toEqual([
+			"traefik.http.routers.test-app-1-custom.rule=Host(`example.com`)",
+			"traefik.http.routers.test-app-1-custom.entrypoints=custom",
+			"traefik.http.services.test-app-1-custom.loadbalancer.server.port=8080",
+			"traefik.http.routers.test-app-1-custom.service=test-app-1-custom",
+		]);
+	});
+
+	it("should create https labels for custom entrypoint", async () => {
+		const labels = await createDomainLabels(
+			appName,
+			{
+				...baseDomain,
+				https: true,
+				customEntrypoint: "custom",
+				certificateType: "letsencrypt",
+			},
+			"custom",
+		);
+		expect(labels).toEqual([
+			"traefik.http.routers.test-app-1-custom.rule=Host(`example.com`)",
+			"traefik.http.routers.test-app-1-custom.entrypoints=custom",
+			"traefik.http.services.test-app-1-custom.loadbalancer.server.port=8080",
+			"traefik.http.routers.test-app-1-custom.service=test-app-1-custom",
+			"traefik.http.routers.test-app-1-custom.tls.certresolver=letsencrypt",
+		]);
+	});
+
+	it("should add stripPath middleware for custom entrypoint", async () => {
+		const labels = await createDomainLabels(
+			appName,
+			{
+				...baseDomain,
+				customEntrypoint: "custom",
+				path: "/api",
+				stripPath: true,
+			},
+			"custom",
+		);
+
+		expect(labels).toContain(
+			"traefik.http.middlewares.stripprefix-test-app-1.stripprefix.prefixes=/api",
+		);
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-custom.middlewares=stripprefix-test-app-1",
+		);
+	});
+
+	it("should add internalPath middleware for custom entrypoint", async () => {
+		const labels = await createDomainLabels(
+			appName,
+			{
+				...baseDomain,
+				customEntrypoint: "custom",
+				internalPath: "/hello",
+			},
+			"custom",
+		);
+
+		expect(labels).toContain(
+			"traefik.http.middlewares.addprefix-test-app-1.addprefix.prefix=/hello",
+		);
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-custom.middlewares=addprefix-test-app-1",
+		);
+	});
+
+	it("should add path prefix in rule for custom entrypoint", async () => {
+		const labels = await createDomainLabels(
+			appName,
+			{
+				...baseDomain,
+				customEntrypoint: "custom",
+				path: "/api",
+			},
+			"custom",
+		);
+
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-custom.rule=Host(`example.com`) && PathPrefix(`/api`)",
+		);
+	});
+
+	it("should combine all middlewares for custom entrypoint", async () => {
+		const labels = await createDomainLabels(
+			appName,
+			{
+				...baseDomain,
+				customEntrypoint: "custom",
+				path: "/api",
+				stripPath: true,
+				internalPath: "/hello",
+			},
+			"custom",
+		);
+
+		expect(labels).toContain(
+			"traefik.http.middlewares.stripprefix-test-app-1.stripprefix.prefixes=/api",
+		);
+		expect(labels).toContain(
+			"traefik.http.middlewares.addprefix-test-app-1.addprefix.prefix=/hello",
+		);
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-custom.middlewares=stripprefix-test-app-1,addprefix-test-app-1",
+		);
+	});
+
+	it("should not add redirect-to-https for custom entrypoint even with https", async () => {
+		const labels = await createDomainLabels(
+			appName,
+			{
+				...baseDomain,
+				customEntrypoint: "custom",
+				https: true,
+				certificateType: "letsencrypt",
+			},
+			"custom",
+		);
+
+		const middlewareLabel = labels.find((l) => l.includes(".middlewares="));
+		// Should not contain redirect-to-https since there's only one router
+		expect(middlewareLabel).toBeUndefined();
 	});
 });

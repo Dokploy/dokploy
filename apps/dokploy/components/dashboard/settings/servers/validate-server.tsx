@@ -18,7 +18,7 @@ interface Props {
 
 export const ValidateServer = ({ serverId }: Props) => {
 	const [isRefreshing, setIsRefreshing] = useState(false);
-	const { data, refetch, error, isLoading, isError } =
+	const { data, refetch, error, isPending, isError } =
 		api.server.validate.useQuery(
 			{ serverId },
 			{
@@ -70,7 +70,7 @@ export const ValidateServer = ({ serverId }: Props) => {
 					</CardHeader>
 
 					<CardContent className="flex flex-col gap-4">
-						{isLoading ? (
+						{isPending ? (
 							<div className="flex items-center justify-center text-muted-foreground py-4">
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 								<span>Checking Server configuration</span>
@@ -161,6 +161,29 @@ export const ValidateServer = ({ serverId }: Props) => {
 												data?.isMainDirectoryInstalled
 													? "Created"
 													: "Not Created"
+											}
+										/>
+										<StatusRow
+											label="Privilege Mode"
+											isEnabled={
+												data?.privilegeMode === "root" ||
+												data?.privilegeMode === "sudo"
+											}
+											description={
+												data?.privilegeMode === "root"
+													? "Running as root"
+													: data?.privilegeMode === "sudo"
+														? "Running with sudo"
+														: "No sudo access (required for non-root)"
+											}
+										/>
+										<StatusRow
+											label="Docker Group"
+											isEnabled={data?.dockerGroupMember}
+											description={
+												data?.dockerGroupMember
+													? "User is in docker group"
+													: "User is not in docker group"
 											}
 										/>
 									</div>

@@ -1,5 +1,5 @@
 import { paths } from "@dokploy/server/constants";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
 	boolean,
 	integer,
@@ -14,6 +14,7 @@ import { account, apikey, organization } from "./account";
 import { backups } from "./backups";
 import { projects } from "./project";
 import { schedules } from "./schedule";
+import { ssoProvider } from "./sso";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.
@@ -53,9 +54,21 @@ export const user = pgTable("user", {
 	// Metrics
 	enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(false),
 	allowImpersonation: boolean("allowImpersonation").notNull().default(false),
+	// Enterprise / proprietary features
+	enableEnterpriseFeatures: boolean("enableEnterpriseFeatures")
+		.notNull()
+		.default(false),
+	licenseKey: text("licenseKey"),
+	isValidEnterpriseLicense: boolean("isValidEnterpriseLicense")
+		.notNull()
+		.default(false),
 	stripeCustomerId: text("stripeCustomerId"),
 	stripeSubscriptionId: text("stripeSubscriptionId"),
 	serversQuantity: integer("serversQuantity").notNull().default(0),
+	trustedOrigins: text("trustedOrigins").array(),
+	bookmarkedTemplates: text("bookmarkedTemplates")
+		.array()
+		.default(sql`ARRAY[]::text[]`),
 });
 
 export const usersRelations = relations(user, ({ one, many }) => ({
@@ -66,6 +79,7 @@ export const usersRelations = relations(user, ({ one, many }) => ({
 	organizations: many(organization),
 	projects: many(projects),
 	apiKeys: many(apikey),
+	ssoProviders: many(ssoProvider),
 	backups: many(backups),
 	schedules: many(schedules),
 }));
@@ -75,6 +89,9 @@ const createSchema = createInsertSchema(user, {
 	isRegistered: z.boolean().optional(),
 }).omit({
 	role: true,
+	trustedOrigins: true,
+	bookmarkedTemplates: true,
+	isValidEnterpriseLicense: true,
 });
 
 export const apiCreateUserInvitation = createSchema.pick({}).extend({
@@ -113,6 +130,7 @@ export const apiAssignPermissions = createSchema
 		accessedProjects: z.array(z.string()).optional(),
 		accessedEnvironments: z.array(z.string()).optional(),
 		accessedServices: z.array(z.string()).optional(),
+		accessedGitProviders: z.array(z.string()).optional(),
 		canCreateProjects: z.boolean().optional(),
 		canCreateServices: z.boolean().optional(),
 		canDeleteProjects: z.boolean().optional(),
@@ -214,6 +232,6 @@ export const apiUpdateUser = createSchema.partial().extend({
 		.optional(),
 	password: z.string().optional(),
 	currentPassword: z.string().optional(),
-	name: z.string().optional(),
+	firstName: z.string().optional(),
 	lastName: z.string().optional(),
 });

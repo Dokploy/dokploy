@@ -6,6 +6,19 @@ const alphabet = "abcdefghijklmnopqrstuvwxyz123456789";
 
 const customNanoid = customAlphabet(alphabet, 6);
 
+/** App name: letters, numbers, dots, underscores, hyphens only (no spaces). Safe for shell/Docker. */
+export const APP_NAME_REGEX = /^[a-zA-Z0-9._-]+$/;
+
+export const APP_NAME_MESSAGE =
+	"App name can only contain letters, numbers, dots, underscores and hyphens";
+
+/** Database password: blocks shell-dangerous characters like $ ! ' " \ / and spaces. */
+export const DATABASE_PASSWORD_REGEX =
+	/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/;
+
+export const DATABASE_PASSWORD_MESSAGE =
+	"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility";
+
 export const generateAppName = (type: string) => {
 	const verb = faker.hacker.verb().replace(/ /g, "-");
 	const adjective = faker.hacker.adjective().replace(/ /g, "-");

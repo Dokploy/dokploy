@@ -31,6 +31,7 @@ export const domains = pgTable("domain", {
 	host: text("host").notNull(),
 	https: boolean("https").notNull().default(false),
 	port: integer("port").default(3000),
+	customEntrypoint: text("customEntrypoint"),
 	path: text("path").default("/"),
 	serviceName: text("serviceName"),
 	domainType: domainType("domainType").default("application"),
@@ -71,12 +72,17 @@ export const domainsRelations = relations(domains, ({ one }) => ({
 	}),
 }));
 
-const createSchema = createInsertSchema(domains, domain._def.schema.shape);
+const createSchema = createInsertSchema(domains, {
+	...domain.shape,
+	// Override pgEnum so Zod 4 infers only string literals, not numeric enum index
+	domainType: z.enum(["compose", "application", "preview"]).optional(),
+});
 
 export const apiCreateDomain = createSchema.pick({
 	host: true,
 	path: true,
 	port: true,
+	customEntrypoint: true,
 	https: true,
 	applicationId: true,
 	certificateType: true,
@@ -90,11 +96,9 @@ export const apiCreateDomain = createSchema.pick({
 	middlewares: true,
 });
 
-export const apiFindDomain = createSchema
-	.pick({
-		domainId: true,
-	})
-	.required();
+export const apiFindDomain = z.object({
+	domainId: z.string().min(1),
+});
 
 export const apiFindDomainByApplication = createSchema.pick({
 	applicationId: true,
@@ -113,6 +117,7 @@ export const apiUpdateDomain = createSchema
 		host: true,
 		path: true,
 		port: true,
+		customEntrypoint: true,
 		https: true,
 		certificateType: true,
 		customCertResolver: true,
