@@ -10,8 +10,12 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
+	sendPushoverNotification,
+	sendResendNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -31,27 +35,53 @@ export const sendDockerCleanupNotifications = async (
 			discord: true,
 			telegram: true,
 			slack: true,
+			resend: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 			custom: true,
 			lark: true,
+			pushover: true,
+			teams: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
-			notification;
+		const {
+			email,
+			resend,
+			discord,
+			telegram,
+			slack,
+			gotify,
+			ntfy,
+			mattermost,
+			custom,
+			lark,
+			pushover,
+			teams,
+		} = notification;
 		try {
-			if (email) {
+			if (email || resend) {
 				const template = await renderAsync(
 					DockerCleanupEmail({ message, date: date.toLocaleString() }),
 				).catch();
 
-				await sendEmailNotification(
-					email,
-					"Docker cleanup for dokploy",
-					template,
-				);
+				if (email) {
+					await sendEmailNotification(
+						email,
+						"Docker cleanup for dokploy",
+						template,
+					);
+				}
+
+				if (resend) {
+					await sendResendNotification(
+						resend,
+						"Docker cleanup for dokploy",
+						template,
+					);
+				}
 			}
 
 			if (discord) {
@@ -138,6 +168,14 @@ export const sendDockerCleanupNotifications = async (
 							],
 						},
 					],
+				});
+			}
+
+			if (mattermost) {
+				await sendMattermostNotification(mattermost, {
+					text: `**✅ Docker Cleanup**\n\n**Message:** ${message}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}`,
+					channel: mattermost.channel,
+					username: mattermost.username || "Dokploy",
 				});
 			}
 
@@ -228,6 +266,24 @@ export const sendDockerCleanupNotifications = async (
 							],
 						},
 					},
+				});
+			}
+
+			if (pushover) {
+				await sendPushoverNotification(
+					pushover,
+					"Docker Cleanup",
+					`Date: ${date.toLocaleString()}\nMessage: ${message}`,
+				);
+			}
+
+			if (teams) {
+				await sendTeamsNotification(teams, {
+					title: "✅ Docker Cleanup",
+					facts: [
+						{ name: "Date", value: format(date, "PP pp") },
+						{ name: "Message", value: message },
+					],
 				});
 			}
 		} catch (error) {

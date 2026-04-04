@@ -8,6 +8,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
+import { getWebServerSettings } from "./web-server-settings";
 
 export const findUserById = async (userId: string) => {
 	const userResult = await db.query.user.findFirst({
@@ -107,11 +108,59 @@ export const getDokployUrl = async () => {
 	if (IS_CLOUD) {
 		return "https://app.dokploy.com";
 	}
-	const owner = await findOwner();
+	const settings = await getWebServerSettings();
 
-	if (owner.user.host) {
-		const protocol = owner.user.https ? "https" : "http";
-		return `${protocol}://${owner.user.host}`;
+	if (settings?.host) {
+		const protocol = settings?.https ? "https" : "http";
+		return `${protocol}://${settings?.host}`;
 	}
-	return `http://${owner.user.serverIp}:${process.env.PORT}`;
+	return `http://${settings?.serverIp}:${process.env.PORT}`;
+};
+
+const TRUSTED_ORIGINS_CACHE_TTL_MS = 30 * 60_000;
+let trustedOriginsCache: { data: string[]; expiresAt: number } | null = null;
+
+export const getTrustedOrigins = async () => {
+	const runQuery = async () => {
+		const rows = await db
+			.select({ trustedOrigins: user.trustedOrigins })
+			.from(member)
+			.innerJoin(user, eq(member.userId, user.id))
+			.where(eq(member.role, "owner"));
+		return Array.from(new Set(rows.flatMap((r) => r.trustedOrigins ?? [])));
+	};
+
+	if (IS_CLOUD) {
+		const now = Date.now();
+		if (trustedOriginsCache && now < trustedOriginsCache.expiresAt) {
+			return trustedOriginsCache.data;
+		}
+		try {
+			const trustedOrigins = await runQuery();
+			trustedOriginsCache = {
+				data: trustedOrigins,
+				expiresAt: now + TRUSTED_ORIGINS_CACHE_TTL_MS,
+			};
+			return trustedOrigins;
+		} catch (error) {
+			console.error("Failed to fetch trusted origins:", error);
+			return trustedOriginsCache?.data ?? [];
+		}
+	}
+
+	try {
+		return await runQuery();
+	} catch (error) {
+		console.error("Failed to fetch trusted origins:", error);
+		return [];
+	}
+};
+
+export const getTrustedProviders = async () => {
+	try {
+		const providers = await db.query.ssoProvider.findMany();
+		return providers.map((provider) => provider.providerId);
+	} catch (error) {
+		return [];
+	}
 };

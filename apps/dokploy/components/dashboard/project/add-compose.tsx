@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CircuitBoard, HelpCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -75,7 +75,7 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 	const slug = slugify(projectName);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
-	const { mutateAsync, isLoading, error, isError } =
+	const { mutateAsync, isPending, error, isError } =
 		api.compose.create.useMutation();
 
 	const hasServers = servers && servers.length > 0;
@@ -114,6 +114,8 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 				await utils.environment.one.invalidate({
 					environmentId,
 				});
+				// Invalidate the project query to refresh the project data for the advance-breadcrumb
+				await utils.project.all.invalidate();
 			})
 			.catch(() => {
 				toast.error("Error creating the compose");
@@ -304,7 +306,7 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 					</form>
 
 					<DialogFooter>
-						<Button isLoading={isLoading} form="hook-form" type="submit">
+						<Button isLoading={isPending} form="hook-form" type="submit">
 							Create
 						</Button>
 					</DialogFooter>

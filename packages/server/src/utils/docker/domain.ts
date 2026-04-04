@@ -63,7 +63,9 @@ export const loadDockerCompose = async (
 
 	if (existsSync(path)) {
 		const yamlStr = readFileSync(path, "utf8");
-		const parsedConfig = parse(yamlStr) as ComposeSpecification;
+		const parsedConfig = parse(yamlStr, {
+			maxAliasCount: 10000,
+		}) as ComposeSpecification;
 		return parsedConfig;
 	}
 	return null;
@@ -86,7 +88,9 @@ export const loadDockerComposeRemote = async (
 			return null;
 		}
 		if (!stdout) return null;
-		const parsedConfig = parse(stdout) as ComposeSpecification;
+		const parsedConfig = parse(stdout, {
+			maxAliasCount: 10000,
+		}) as ComposeSpecification;
 		return parsedConfig;
 	} catch {
 		return null;
@@ -106,10 +110,6 @@ export const writeDomainsToCompose = async (
 	compose: Compose,
 	domains: Domain[],
 ) => {
-	if (!domains.length) {
-		return "";
-	}
-
 	try {
 		const composeConverted = await addDomainToCompose(compose, domains);
 		const path = getComposePath(compose);
@@ -145,7 +145,7 @@ export const addDomainToCompose = async (
 		result = await loadDockerCompose(compose);
 	}
 
-	if (!result || domains.length === 0) {
+	if (!result) {
 		return null;
 	}
 
@@ -164,14 +164,20 @@ export const addDomainToCompose = async (
 	for (const domain of domains) {
 		const { serviceName, https } = domain;
 		if (!serviceName) {
-			throw new Error("Service name not found");
+			throw new Error(`Domain "${domain.host}" is missing a service name`);
 		}
 		if (!result?.services?.[serviceName]) {
-			throw new Error(`The service ${serviceName} not found in the compose`);
+			throw new Error(
+				`Domain "${domain.host}" is attached to service "${serviceName}" which does not exist in the compose`,
+			);
 		}
 
-		const httpLabels = createDomainLabels(appName, domain, "web");
-		if (https) {
+		const httpLabels = createDomainLabels(
+			appName,
+			domain,
+			domain.customEntrypoint || "web",
+		);
+		if (!domain.customEntrypoint && https) {
 			const httpsLabels = createDomainLabels(appName, domain, "websecure");
 			httpLabels.push(...httpsLabels);
 		}
@@ -249,11 +255,12 @@ export const writeComposeFile = async (
 export const createDomainLabels = (
 	appName: string,
 	domain: Domain,
-	entrypoint: "web" | "websecure",
+	entrypoint: string,
 ) => {
 	const {
 		host,
 		port,
+		customEntrypoint,
 		https,
 		uniqueConfigKey,
 		certificateType,
@@ -282,7 +289,7 @@ export const createDomainLabels = (
 	if (stripPath && path && path !== "/") {
 		const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
 		// Only define middleware once (on web entrypoint)
-		if (entrypoint === "web") {
+		if (entrypoint === "web" || customEntrypoint) {
 			labels.push(
 				`traefik.http.middlewares.${middlewareName}.stripprefix.prefixes=${path}`,
 			);
@@ -294,7 +301,7 @@ export const createDomainLabels = (
 	if (internalPath && internalPath !== "/" && internalPath.startsWith("/")) {
 		const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
 		// Only define middleware once (on web entrypoint)
-		if (entrypoint === "web") {
+		if (entrypoint === "web" || customEntrypoint) {
 			labels.push(
 				`traefik.http.middlewares.${middlewareName}.addprefix.prefix=${internalPath}`,
 			);
@@ -310,7 +317,7 @@ export const createDomainLabels = (
 	}
 
 	// Add TLS configuration for websecure
-	if (entrypoint === "websecure") {
+	if (entrypoint === "websecure" || (customEntrypoint && https)) {
 		if (certificateType === "letsencrypt") {
 			labels.push(
 				`traefik.http.routers.${routerName}.tls.certresolver=letsencrypt`,
@@ -330,6 +337,7 @@ export const addDokployNetworkToService = (
 ) => {
 	let networks = networkService;
 	const network = "dokploy-network";
+	const defaultNetwork = "default";
 	if (!networks) {
 		networks = [];
 	}
@@ -338,9 +346,15 @@ export const addDokployNetworkToService = (
 		if (!networks.includes(network)) {
 			networks.push(network);
 		}
+		if (!networks.includes(defaultNetwork)) {
+			networks.push(defaultNetwork);
+		}
 	} else if (networks && typeof networks === "object") {
 		if (!(network in networks)) {
 			networks[network] = {};
+		}
+		if (!(defaultNetwork in networks)) {
+			networks[defaultNetwork] = {};
 		}
 	}
 

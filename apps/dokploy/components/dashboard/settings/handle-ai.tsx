@@ -1,5 +1,5 @@
 "use client";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Check, ChevronDown, PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -57,7 +57,6 @@ interface Props {
 
 export const HandleAi = ({ aiId }: Props) => {
 	const utils = api.useUtils();
-	const [error, setError] = useState<string | null>(null);
 	const [open, setOpen] = useState(false);
 	const [modelPopoverOpen, setModelPopoverOpen] = useState(false);
 	const [modelSearch, setModelSearch] = useState("");
@@ -69,7 +68,7 @@ export const HandleAi = ({ aiId }: Props) => {
 			enabled: !!aiId,
 		},
 	);
-	const { mutateAsync, isLoading } = aiId
+	const { mutateAsync, isPending } = aiId
 		? api.ai.update.useMutation()
 		: api.ai.create.useMutation();
 
@@ -102,19 +101,19 @@ export const HandleAi = ({ aiId }: Props) => {
 	const apiKey = form.watch("apiKey");
 
 	const isOllama = apiUrl.includes(":11434") || apiUrl.includes("ollama");
-	const { data: models, isLoading: isLoadingServerModels } =
-		api.ai.getModels.useQuery(
-			{
-				apiUrl: apiUrl ?? "",
-				apiKey: apiKey ?? "",
-			},
-			{
-				enabled: !!apiUrl && (isOllama || !!apiKey),
-				onError: (error) => {
-					setError(`Failed to fetch models: ${error.message}`);
-				},
-			},
-		);
+	const {
+		data: models,
+		isPending: isLoadingServerModels,
+		error: modelsError,
+	} = api.ai.getModels.useQuery(
+		{
+			apiUrl: apiUrl ?? "",
+			apiKey: apiKey ?? "",
+		},
+		{
+			enabled: !!apiUrl && (isOllama || !!apiKey),
+		},
+	);
 
 	const onSubmit = async (data: Schema) => {
 		try {
@@ -169,7 +168,9 @@ export const HandleAi = ({ aiId }: Props) => {
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
-					{error && <AlertBlock type="error">{error}</AlertBlock>}
+					{modelsError && (
+						<AlertBlock type="error">{modelsError.message}</AlertBlock>
+					)}
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
 						<FormField
 							control={form.control}
@@ -372,7 +373,7 @@ export const HandleAi = ({ aiId }: Props) => {
 						/>
 
 						<div className="flex justify-end  gap-2 pt-4">
-							<Button type="submit" isLoading={isLoading}>
+							<Button type="submit" isLoading={isPending}>
 								{aiId ? "Update" : "Create"}
 							</Button>
 						</div>
