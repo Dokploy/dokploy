@@ -40,6 +40,15 @@ interface Props {
 	applicationId: string;
 }
 
+const previewStatusAccentClass: Record<string, string> = {
+	done: "bg-green-500",
+	running: "bg-yellow-500",
+	queued: "bg-blue-500",
+	cancelled: "bg-muted-foreground",
+	idle: "bg-muted-foreground",
+	error: "bg-red-500",
+};
+
 export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 	const { data } = api.application.one.useQuery({ applicationId });
 
@@ -113,19 +122,20 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 							<div className="flex flex-col gap-4">
 								{previewDeployments?.map((deployment) => {
 									const deploymentUrl = `${deployment.domain?.https ? "https" : "http"}://${deployment.domain?.host}${deployment.domain?.path || "/"}`;
-									const status = deployment.previewStatus;
+									const latestDeployment = deployment.deployments?.[0];
+									const status =
+										latestDeployment?.status || deployment.previewStatus;
+									const statusDate =
+										latestDeployment?.createdAt || deployment.createdAt;
 									return (
 										<div
 											key={deployment.previewDeploymentId}
 											className="group relative overflow-hidden border rounded-lg transition-colors"
 										>
 											<div
-												className={`absolute left-0 top-0 w-1 h-full ${
-													status === "done"
-														? "bg-green-500"
-														: status === "running"
-															? "bg-yellow-500"
-															: "bg-red-500"
+												className={`absolute left-0 top-0 h-full w-1 ${
+													previewStatusAccentClass[status ?? "error"] ??
+													"bg-red-500"
 												}`}
 											/>
 
@@ -143,11 +153,8 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 														</div>
 													</div>
 													<Badge variant="outline" className="gap-2">
-														<StatusTooltip
-															status={deployment.previewStatus}
-															className="size-2"
-														/>
-														<DateTooltip date={deployment.createdAt} />
+														<StatusTooltip status={status} className="size-2" />
+														<DateTooltip date={statusDate} />
 													</Badge>
 												</div>
 
@@ -230,7 +237,9 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 															<Button
 																variant="outline"
 																size="sm"
-																isLoading={status === "running"}
+																isLoading={
+																	status === "running" || status === "queued"
+																}
 																className="gap-2"
 															>
 																<TooltipProvider>

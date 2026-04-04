@@ -57,7 +57,9 @@ const statusVariants: Record<
 	| "yellow"
 	| "green"
 	| "red"
+	| "blue"
 > = {
+	queued: "blue",
 	running: "yellow",
 	done: "green",
 	error: "red",
@@ -466,6 +468,7 @@ export function ShowDeploymentsTable() {
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value="all">All statuses</SelectItem>
+						<SelectItem value="queued">Queued</SelectItem>
 						<SelectItem value="running">Running</SelectItem>
 						<SelectItem value="done">Done</SelectItem>
 						<SelectItem value="error">Error</SelectItem>
