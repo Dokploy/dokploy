@@ -1,35 +1,51 @@
 import { db } from "@dokploy/server/db";
 import {
+	type apiCreateCustom,
 	type apiCreateDiscord,
 	type apiCreateEmail,
-	type apiCreateLark,
 	type apiCreateGotify,
+	type apiCreateLark,
+	type apiCreateMattermost,
 	type apiCreateNtfy,
+	type apiCreatePushover,
+	type apiCreateResend,
 	type apiCreateSlack,
+	type apiCreateTeams,
 	type apiCreateTelegram,
+	type apiUpdateCustom,
 	type apiUpdateDiscord,
 	type apiUpdateEmail,
-	type apiUpdateLark,
 	type apiUpdateGotify,
+	type apiUpdateLark,
+	type apiUpdateMattermost,
 	type apiUpdateNtfy,
+	type apiUpdatePushover,
+	type apiUpdateResend,
 	type apiUpdateSlack,
+	type apiUpdateTeams,
 	type apiUpdateTelegram,
+	custom,
 	discord,
 	email,
-	lark,
 	gotify,
+	lark,
+	mattermost,
 	notifications,
 	ntfy,
+	pushover,
+	resend,
 	slack,
+	teams,
 	telegram,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import type { z } from "zod";
 
 export type Notification = typeof notifications.$inferSelect;
 
 export const createSlackNotification = async (
-	input: typeof apiCreateSlack._type,
+	input: z.infer<typeof apiCreateSlack>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -57,6 +73,8 @@ export const createSlackNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "slack",
@@ -78,7 +96,7 @@ export const createSlackNotification = async (
 };
 
 export const updateSlackNotification = async (
-	input: typeof apiUpdateSlack._type,
+	input: z.infer<typeof apiUpdateSlack>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -88,6 +106,8 @@ export const updateSlackNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				organizationId: input.organizationId,
@@ -119,7 +139,7 @@ export const updateSlackNotification = async (
 };
 
 export const createTelegramNotification = async (
-	input: typeof apiCreateTelegram._type,
+	input: z.infer<typeof apiCreateTelegram>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -148,6 +168,8 @@ export const createTelegramNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "telegram",
@@ -169,7 +191,7 @@ export const createTelegramNotification = async (
 };
 
 export const updateTelegramNotification = async (
-	input: typeof apiUpdateTelegram._type,
+	input: z.infer<typeof apiUpdateTelegram>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -179,6 +201,8 @@ export const updateTelegramNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				organizationId: input.organizationId,
@@ -211,7 +235,7 @@ export const updateTelegramNotification = async (
 };
 
 export const createDiscordNotification = async (
-	input: typeof apiCreateDiscord._type,
+	input: z.infer<typeof apiCreateDiscord>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -239,6 +263,8 @@ export const createDiscordNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "discord",
@@ -260,7 +286,7 @@ export const createDiscordNotification = async (
 };
 
 export const updateDiscordNotification = async (
-	input: typeof apiUpdateDiscord._type,
+	input: z.infer<typeof apiUpdateDiscord>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -270,6 +296,8 @@ export const updateDiscordNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				organizationId: input.organizationId,
@@ -301,7 +329,7 @@ export const updateDiscordNotification = async (
 };
 
 export const createEmailNotification = async (
-	input: typeof apiCreateEmail._type,
+	input: z.infer<typeof apiCreateEmail>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -333,6 +361,8 @@ export const createEmailNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "email",
@@ -354,7 +384,7 @@ export const createEmailNotification = async (
 };
 
 export const updateEmailNotification = async (
-	input: typeof apiUpdateEmail._type,
+	input: z.infer<typeof apiUpdateEmail>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -364,6 +394,8 @@ export const updateEmailNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				organizationId: input.organizationId,
@@ -398,8 +430,104 @@ export const updateEmailNotification = async (
 	});
 };
 
+export const createResendNotification = async (
+	input: z.infer<typeof apiCreateResend>,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newResend = await tx
+			.insert(resend)
+			.values({
+				apiKey: input.apiKey,
+				fromAddress: input.fromAddress,
+				toAddresses: input.toAddresses,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newResend) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting resend",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				resendId: newResend.resendId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "resend",
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateResendNotification = async (
+	input: z.infer<typeof apiUpdateResend>,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(resend)
+			.set({
+				apiKey: input.apiKey,
+				fromAddress: input.fromAddress,
+				toAddresses: input.toAddresses,
+			})
+			.where(eq(resend.resendId, input.resendId))
+			.returning()
+			.then((value) => value[0]);
+
+		return newDestination;
+	});
+};
+
 export const createGotifyNotification = async (
-	input: typeof apiCreateGotify._type,
+	input: z.infer<typeof apiCreateGotify>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -429,6 +557,8 @@ export const createGotifyNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "gotify",
@@ -449,7 +579,7 @@ export const createGotifyNotification = async (
 };
 
 export const updateGotifyNotification = async (
-	input: typeof apiUpdateGotify._type,
+	input: z.infer<typeof apiUpdateGotify>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -459,6 +589,8 @@ export const updateGotifyNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				organizationId: input.organizationId,
@@ -489,7 +621,7 @@ export const updateGotifyNotification = async (
 };
 
 export const createNtfyNotification = async (
-	input: typeof apiCreateNtfy._type,
+	input: z.infer<typeof apiCreateNtfy>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -519,6 +651,8 @@ export const createNtfyNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "ntfy",
@@ -539,7 +673,7 @@ export const createNtfyNotification = async (
 };
 
 export const updateNtfyNotification = async (
-	input: typeof apiUpdateNtfy._type,
+	input: z.infer<typeof apiUpdateNtfy>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -549,6 +683,8 @@ export const updateNtfyNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				organizationId: input.organizationId,
@@ -578,6 +714,98 @@ export const updateNtfyNotification = async (
 	});
 };
 
+export const createCustomNotification = async (
+	input: z.infer<typeof apiCreateCustom>,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newCustom = await tx
+			.insert(custom)
+			.values({
+				endpoint: input.endpoint,
+				headers: input.headers,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newCustom) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting custom",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				customId: newCustom.customId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "custom",
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateCustomNotification = async (
+	input: z.infer<typeof apiUpdateCustom>,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(custom)
+			.set({
+				endpoint: input.endpoint,
+				headers: input.headers,
+			})
+			.where(eq(custom.customId, input.customId));
+
+		return newDestination;
+	});
+};
+
 export const findNotificationById = async (notificationId: string) => {
 	const notification = await db.query.notifications.findFirst({
 		where: eq(notifications.notificationId, notificationId),
@@ -586,9 +814,14 @@ export const findNotificationById = async (notificationId: string) => {
 			telegram: true,
 			discord: true,
 			email: true,
+			resend: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
+			custom: true,
 			lark: true,
+			pushover: true,
+			teams: true,
 		},
 	});
 	if (!notification) {
@@ -610,7 +843,7 @@ export const removeNotificationById = async (notificationId: string) => {
 };
 
 export const createLarkNotification = async (
-	input: typeof apiCreateLark._type,
+	input: z.infer<typeof apiCreateLark>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -637,6 +870,8 @@ export const createLarkNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "lark",
@@ -658,7 +893,7 @@ export const createLarkNotification = async (
 };
 
 export const updateLarkNotification = async (
-	input: typeof apiUpdateLark._type,
+	input: z.infer<typeof apiUpdateLark>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -668,6 +903,8 @@ export const updateLarkNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				organizationId: input.organizationId,
@@ -697,6 +934,98 @@ export const updateLarkNotification = async (
 	});
 };
 
+export const createTeamsNotification = async (
+	input: z.infer<typeof apiCreateTeams>,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newTeams = await tx
+			.insert(teams)
+			.values({
+				webhookUrl: input.webhookUrl,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newTeams) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting teams",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				teamsId: newTeams.teamsId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "teams",
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateTeamsNotification = async (
+	input: z.infer<typeof apiUpdateTeams>,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(teams)
+			.set({
+				webhookUrl: input.webhookUrl,
+			})
+			.where(eq(teams.teamsId, input.teamsId))
+			.returning()
+			.then((value) => value[0]);
+
+		return newDestination;
+	});
+};
+
 export const updateNotificationById = async (
 	notificationId: string,
 	notificationData: Partial<Notification>,
@@ -710,4 +1039,198 @@ export const updateNotificationById = async (
 		.returning();
 
 	return result[0];
+};
+
+export const createMattermostNotification = async (
+	input: z.infer<typeof apiCreateMattermost>,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newMattermost = await tx
+			.insert(mattermost)
+			.values({
+				webhookUrl: input.webhookUrl,
+				channel: input.channel,
+				username: input.username,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newMattermost) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting mattermost",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				mattermostId: newMattermost.mattermostId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "mattermost",
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateMattermostNotification = async (
+	input: z.infer<typeof apiUpdateMattermost>,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(mattermost)
+			.set({
+				webhookUrl: input.webhookUrl,
+				channel: input.channel,
+				username: input.username,
+			})
+			.where(eq(mattermost.mattermostId, input.mattermostId))
+			.returning()
+			.then((value) => value[0]);
+
+		return newDestination;
+	});
+};
+
+export const createPushoverNotification = async (
+	input: z.infer<typeof apiCreatePushover>,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newPushover = await tx
+			.insert(pushover)
+			.values({
+				userKey: input.userKey,
+				apiToken: input.apiToken,
+				priority: input.priority,
+				retry: input.retry,
+				expire: input.expire,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newPushover) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting pushover",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				pushoverId: newPushover.pushoverId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				serverThreshold: input.serverThreshold,
+				notificationType: "pushover",
+				organizationId: organizationId,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updatePushoverNotification = async (
+	input: z.infer<typeof apiUpdatePushover>,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(pushover)
+			.set({
+				userKey: input.userKey,
+				apiToken: input.apiToken,
+				priority: input.priority,
+				retry: input.retry,
+				expire: input.expire,
+			})
+			.where(eq(pushover.pushoverId, input.pushoverId));
+
+		return newDestination;
+	});
 };

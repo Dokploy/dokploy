@@ -14,19 +14,30 @@ vi.mock("@dokploy/server/db", () => {
 			set: vi.fn(() => chain),
 			where: vi.fn(() => chain),
 			returning: vi.fn().mockResolvedValue([{}] as any),
+			from: vi.fn(() => chain),
+			innerJoin: vi.fn(() => chain),
+			then: (resolve: (v: any) => void) => {
+				resolve([]);
+			},
 		} as any;
 		return chain;
 	};
 
 	return {
 		db: {
-			select: vi.fn(),
+			select: vi.fn(() => createChainableMock()),
 			insert: vi.fn(),
 			update: vi.fn(() => createChainableMock()),
 			delete: vi.fn(),
 			query: {
 				applications: {
 					findFirst: vi.fn(),
+				},
+				patch: {
+					findMany: vi.fn().mockResolvedValue([]),
+				},
+				member: {
+					findMany: vi.fn().mockResolvedValue([]),
 				},
 			},
 		},
@@ -189,7 +200,7 @@ describe("deployApplication - Command Generation Tests", () => {
 
 	it("should verify nixpacks command is called with correct app", async () => {
 		const mockNixpacksCommand = "nixpacks build /path/to/app --name test-app";
-		vi.mocked(builders.getBuildCommand).mockReturnValue(mockNixpacksCommand);
+		vi.mocked(builders.getBuildCommand).mockResolvedValue(mockNixpacksCommand);
 
 		await deployApplication({
 			applicationId: "test-app-id",
@@ -220,7 +231,7 @@ describe("deployApplication - Command Generation Tests", () => {
 		);
 
 		const mockRailpackCommand = "railpack prepare /path/to/app";
-		vi.mocked(builders.getBuildCommand).mockReturnValue(mockRailpackCommand);
+		vi.mocked(builders.getBuildCommand).mockResolvedValue(mockRailpackCommand);
 
 		await deployApplication({
 			applicationId: "test-app-id",
@@ -241,7 +252,7 @@ describe("deployApplication - Command Generation Tests", () => {
 
 	it("should execute commands in correct order", async () => {
 		const mockNixpacksCommand = "nixpacks build";
-		vi.mocked(builders.getBuildCommand).mockReturnValue(mockNixpacksCommand);
+		vi.mocked(builders.getBuildCommand).mockResolvedValue(mockNixpacksCommand);
 
 		await deployApplication({
 			applicationId: "test-app-id",
@@ -260,7 +271,7 @@ describe("deployApplication - Command Generation Tests", () => {
 
 	it("should include log redirection in command", async () => {
 		const mockCommand = "nixpacks build";
-		vi.mocked(builders.getBuildCommand).mockReturnValue(mockCommand);
+		vi.mocked(builders.getBuildCommand).mockResolvedValue(mockCommand);
 
 		await deployApplication({
 			applicationId: "test-app-id",

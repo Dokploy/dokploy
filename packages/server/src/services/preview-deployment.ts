@@ -7,17 +7,18 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
+import type { z } from "zod";
 import { generatePassword } from "../templates";
 import { removeService } from "../utils/docker/utils";
 import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
-import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
 import { createDomain } from "./domain";
 import { type Github, getIssueComment } from "./github";
+import { getWebServerSettings } from "./web-server-settings";
 
 export type PreviewDeployment = typeof previewDeployments.$inferSelect;
 
@@ -130,7 +131,7 @@ export const findPreviewDeploymentsByApplicationId = async (
 };
 
 export const createPreviewDeployment = async (
-	schema: typeof apiCreatePreviewDeployment._type,
+	schema: z.infer<typeof apiCreatePreviewDeployment>,
 ) => {
 	const application = await findApplicationById(schema.applicationId);
 	const appName = `preview-${application.appName}-${generatePassword(6)}`;
@@ -235,7 +236,7 @@ const generateWildcardDomain = async (
 	baseDomain: string,
 	appName: string,
 	serverIp: string,
-	userId: string,
+	_userId: string,
 ): Promise<string> => {
 	if (!baseDomain.startsWith("*.")) {
 		throw new Error('The base domain must start with "*."');
@@ -253,8 +254,8 @@ const generateWildcardDomain = async (
 		}
 
 		if (!ip) {
-			const admin = await findUserById(userId);
-			ip = admin?.serverIp || "";
+			const settings = await getWebServerSettings();
+			ip = settings?.serverIp || "";
 		}
 
 		const slugIp = ip.replaceAll(".", "-");

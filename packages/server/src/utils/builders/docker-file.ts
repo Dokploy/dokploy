@@ -1,5 +1,5 @@
 import {
-	getEnviromentVariablesObject,
+	getEnvironmentVariablesObject,
 	prepareEnvironmentVariablesForShell,
 } from "@dokploy/server/utils/docker/utils";
 import { quote } from "shell-quote";
@@ -19,6 +19,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 		buildSecrets,
 		dockerBuildStage,
 		cleanCache,
+		createEnvFile,
 	} = application;
 	const dockerFilePath = getBuildAppDirectory(application);
 
@@ -51,7 +52,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			commandArgs.push("--build-arg", arg);
 		}
 
-		const secrets = getEnviromentVariablesObject(
+		const secrets = getEnvironmentVariablesObject(
 			buildSecrets,
 			application.environment.project.env,
 			application.environment.env,
@@ -61,19 +62,13 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			.map(([key, value]) => `${key}=${quote([value])}`)
 			.join(" ");
 
-		for (const key in secrets) {
-			// Although buildx is smart enough to know we may be referring to an environment variable name,
-			// we still make sure it doesn't fall back to `type=file`.
-			// See: https://docs.docker.com/reference/cli/docker/buildx/build/#secret
-			commandArgs.push("--secret", `type=env,id=${key}`);
-		}
-
 		/*
 			Do not generate an environment file when publishDirectory is specified,
 			as it could be publicly exposed.
+			Also respect the createEnvFile flag.
 		*/
 		let command = "";
-		if (!publishDirectory) {
+		if (!publishDirectory && createEnvFile) {
 			command += createEnvFileCommand(
 				dockerFilePath,
 				env,
@@ -82,14 +77,21 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			);
 		}
 
+		for (const key in secrets) {
+			// Although buildx is smart enough to know we may be referring to an environment variable name,
+			// we still make sure it doesn't fall back to `type=file`.
+			// See: https://docs.docker.com/reference/cli/docker/buildx/build/#secret
+			commandArgs.push("--secret", `type=env,id=${key}`);
+		}
+
 		command += `
 echo "Building ${appName}" ;
-cd ${dockerContextPath} || { 
+cd ${dockerContextPath} || {
   echo "❌ The path ${dockerContextPath} does not exist" ;
   exit 1;
 }
 
-${joinedSecrets} docker ${commandArgs.join(" ")} || { 
+${joinedSecrets} docker ${commandArgs.join(" ")} || {
   echo "❌ Docker build failed" ;
   exit 1;
 }

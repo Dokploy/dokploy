@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -43,7 +43,7 @@ interface Props {
 export const UpdateApplication = ({ applicationId }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
-	const { mutateAsync, error, isError, isLoading } =
+	const { mutateAsync, error, isError, isPending } =
 		api.application.update.useMutation();
 	const { data } = api.application.one.useQuery(
 		{
@@ -148,7 +148,7 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 								/>
 								<DialogFooter>
 									<Button
-										isLoading={isLoading}
+										isLoading={isPending}
 										form="hook-form-update-application"
 										type="submit"
 									>

@@ -11,6 +11,7 @@ import { pullImage } from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
+import type { z } from "zod";
 import { validUniqueServerAppName } from "./project";
 
 export function getMountPath(dockerImage: string): string {
@@ -19,7 +20,8 @@ export function getMountPath(dockerImage: string): string {
 	if (versionMatch?.[1]) {
 		const version = Number.parseInt(versionMatch[1], 10);
 		if (version >= 18) {
-			return `/var/lib/postgresql/${version}/data`;
+			// PostgreSQL 18+ uses /var/lib/postgresql/{version}/docker as the default PGDATA
+			return `/var/lib/postgresql/${version}/docker`;
 		}
 	}
 	return "/var/lib/postgresql/data";
@@ -27,7 +29,9 @@ export function getMountPath(dockerImage: string): string {
 
 export type Postgres = typeof postgres.$inferSelect;
 
-export const createPostgres = async (input: typeof apiCreatePostgres._type) => {
+export const createPostgres = async (
+	input: z.infer<typeof apiCreatePostgres>,
+) => {
 	const appName = buildAppName("postgres", input.appName);
 
 	const valid = await validUniqueServerAppName(appName);
