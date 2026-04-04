@@ -1,4 +1,5 @@
 import { getSafeRegistryLoginCommand } from "../../db/schema/registry";
+import { shEscape } from "../../db/schema/utils";
 import { getECRAuthToken } from "../aws/ecr";
 import type { ApplicationNested } from "../builders";
 
@@ -48,7 +49,7 @@ fi
 		}
 
 		command += `
-docker pull ${dockerImage} 2>&1 || {
+docker pull ${shEscape(dockerImage)} 2>&1 || {
   echo "❌ Pulling image failed";
   exit 1;
 }
