@@ -74,6 +74,9 @@ export const certificateRouter = createTRPCRouter({
 	all: withPermission("certificate", "read").query(async ({ ctx }) => {
 		return await db.query.certificates.findMany({
 			where: eq(certificates.organizationId, ctx.session.activeOrganizationId),
+			with: {
+				server: true,
+			},
 		});
 	}),
 	update: withPermission("certificate", "update")

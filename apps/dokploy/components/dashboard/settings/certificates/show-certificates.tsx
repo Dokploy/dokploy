@@ -4,6 +4,7 @@ import {
 	ChevronRight,
 	Link,
 	Loader2,
+	Server,
 	ShieldCheck,
 	Trash2,
 } from "lucide-react";
@@ -121,6 +122,12 @@ export const ShowCertificates = () => {
 																			CN: {commonName}
 																		</span>
 																	)}
+																	<span className="text-xs text-muted-foreground flex items-center gap-1">
+																		<Server className="size-3" />
+																		{certificate.server
+																			? `${certificate.server.name} (${certificate.server.ipAddress})`
+																			: "Dokploy (Local)"}
+																	</span>
 																	{chainInfo.isChain && (
 																		<div className="flex flex-col gap-1.5 mt-1">
 																			<button
