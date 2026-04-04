@@ -41,11 +41,7 @@ export const DockerNetworkChart = ({ accumulativeData }: Props) => {
 			>
 				<defs>
 					<linearGradient id="fillNetIn" x1="0" y1="0" x2="0" y2="1">
-						<stop
-							offset="5%"
-							stopColor="var(--color-inMB)"
-							stopOpacity={0.8}
-						/>
+						<stop offset="5%" stopColor="var(--color-inMB)" stopOpacity={0.8} />
 						<stop
 							offset="95%"
 							stopColor="var(--color-inMB)"
@@ -73,9 +69,7 @@ export const DockerNetworkChart = ({ accumulativeData }: Props) => {
 						<ChartTooltipContent
 							labelFormatter={(_, payload) => {
 								const time = payload?.[0]?.payload?.time;
-								return time
-									? format(new Date(time), "PPpp")
-									: "";
+								return time ? format(new Date(time), "PPpp") : "";
 							}}
 							formatter={(value, name) => {
 								const label = name === "inMB" ? "In" : "Out";

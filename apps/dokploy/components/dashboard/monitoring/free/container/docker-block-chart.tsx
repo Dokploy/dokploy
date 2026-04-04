@@ -73,13 +73,10 @@ export const DockerBlockChart = ({ accumulativeData }: Props) => {
 						<ChartTooltipContent
 							labelFormatter={(_, payload) => {
 								const time = payload?.[0]?.payload?.time;
-								return time
-									? format(new Date(time), "PPpp")
-									: "";
+								return time ? format(new Date(time), "PPpp") : "";
 							}}
 							formatter={(value, name) => {
-								const label =
-									name === "readMb" ? "Read" : "Write";
+								const label = name === "readMb" ? "Read" : "Write";
 								return [`${value} MB`, label];
 							}}
 						/>

@@ -124,7 +124,8 @@ export const DockerDiskUsageChart = () => {
 									if (!item) return [formatSize(value as number), name];
 									return [
 										`${item.size} — ${item.active} active / ${item.totalCount} total — Reclaimable: ${item.reclaimable}`,
-										chartConfig[name as keyof typeof chartConfig]?.label ?? name,
+										chartConfig[name as keyof typeof chartConfig]?.label ??
+											name,
 									];
 								}}
 							/>

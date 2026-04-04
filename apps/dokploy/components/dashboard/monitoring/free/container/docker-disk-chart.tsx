@@ -80,13 +80,10 @@ export const DockerDiskChart = ({ accumulativeData, diskTotal }: Props) => {
 						<ChartTooltipContent
 							labelFormatter={(_, payload) => {
 								const time = payload?.[0]?.payload?.time;
-								return time
-									? format(new Date(time), "PPpp")
-									: "";
+								return time ? format(new Date(time), "PPpp") : "";
 							}}
 							formatter={(value, name) => {
-								const label =
-									name === "usedGb" ? "Used" : "Free";
+								const label = name === "usedGb" ? "Used" : "Free";
 								return [`${value} GB`, label];
 							}}
 						/>

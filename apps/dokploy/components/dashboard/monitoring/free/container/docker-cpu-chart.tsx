@@ -61,9 +61,7 @@ export const DockerCpuChart = ({ accumulativeData }: Props) => {
 						<ChartTooltipContent
 							labelFormatter={(_, payload) => {
 								const time = payload?.[0]?.payload?.time;
-								return time
-									? format(new Date(time), "PPpp")
-									: "";
+								return time ? format(new Date(time), "PPpp") : "";
 							}}
 							formatter={(value) => [`${value}%`, "CPU Usage"]}
 						/>
