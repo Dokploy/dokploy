@@ -33,6 +33,7 @@ describe("Host rule format regression tests", () => {
 		internalPath: "/",
 		stripPath: false,
 		customEntrypoint: null,
+		middlewares: null,
 	};
 
 	describe("Host rule format validation", () => {
