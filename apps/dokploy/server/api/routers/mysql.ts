@@ -3,10 +3,13 @@ import {
 	createMount,
 	createMysql,
 	deployMySql,
+	execAsync,
+	execAsyncRemote,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findMySqlById,
 	findProjectById,
+	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeMySqlById,
@@ -385,6 +388,58 @@ export const mysqlRouter = createTRPCRouter({
 				resourceId: mysqlId,
 				resourceName: service.appName,
 			});
+			return true;
+		}),
+	changePassword: protectedProcedure
+		.input(
+			z.object({
+				mysqlId: z.string().min(1),
+				password: z.string().min(1),
+				type: z.enum(["user", "root"]).default("user"),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { mysqlId, password, type } = input;
+			await checkServicePermissionAndAccess(ctx, mysqlId, {
+				service: ["create"],
+			});
+
+			const my = await findMySqlById(mysqlId);
+			const { appName, serverId, databaseUser, databaseRootPassword } = my;
+
+			const containerCmd = getServiceContainerCommand(appName);
+			const authPassword =
+				type === "root" ? databaseRootPassword : databaseRootPassword;
+			const targetUser = type === "root" ? "root" : databaseUser;
+
+			const command = `
+				CONTAINER_ID=$(${containerCmd})
+				if [ -z "$CONTAINER_ID" ]; then
+					echo "No running container found for ${appName}" >&2
+					exit 1
+				fi
+				docker exec "$CONTAINER_ID" mysql -u root -p'${authPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"
+			`;
+
+			if (serverId) {
+				await execAsyncRemote(serverId, command);
+			} else {
+				await execAsync(command, { shell: "/bin/bash" });
+			}
+
+			if (type === "root") {
+				await updateMySqlById(mysqlId, { databaseRootPassword: password });
+			} else {
+				await updateMySqlById(mysqlId, { databasePassword: password });
+			}
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: mysqlId,
+				resourceName: appName,
+			});
+
 			return true;
 		}),
 	move: protectedProcedure

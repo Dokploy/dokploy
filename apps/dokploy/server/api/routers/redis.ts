@@ -3,9 +3,12 @@ import {
 	createMount,
 	createRedis,
 	deployRedis,
+	execAsync,
+	execAsyncRemote,
 	findEnvironmentById,
 	findProjectById,
 	findRedisById,
+	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeRedisById,
@@ -375,6 +378,49 @@ export const redisRouter = createTRPCRouter({
 				resourceId: redisId,
 				resourceName: redis.appName,
 			});
+			return true;
+		}),
+	changePassword: protectedProcedure
+		.input(
+			z.object({
+				redisId: z.string().min(1),
+				password: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { redisId, password } = input;
+			await checkServicePermissionAndAccess(ctx, redisId, {
+				service: ["create"],
+			});
+
+			const rd = await findRedisById(redisId);
+			const { appName, serverId, databasePassword } = rd;
+
+			const containerCmd = getServiceContainerCommand(appName);
+			const command = `
+				CONTAINER_ID=$(${containerCmd})
+				if [ -z "$CONTAINER_ID" ]; then
+					echo "No running container found for ${appName}" >&2
+					exit 1
+				fi
+				docker exec "$CONTAINER_ID" redis-cli -a '${databasePassword}' CONFIG SET requirepass '${password}'
+			`;
+
+			if (serverId) {
+				await execAsyncRemote(serverId, command);
+			} else {
+				await execAsync(command, { shell: "/bin/bash" });
+			}
+
+			await updateRedisById(redisId, { databasePassword: password });
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: redisId,
+				resourceName: appName,
+			});
+
 			return true;
 		}),
 	move: protectedProcedure

@@ -3,10 +3,13 @@ import {
 	createMariadb,
 	createMount,
 	deployMariadb,
+	execAsync,
+	execAsyncRemote,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findMariadbById,
 	findProjectById,
+	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeMariadbById,
@@ -366,6 +369,56 @@ export const mariadbRouter = createTRPCRouter({
 				resourceId: mariadbId,
 				resourceName: service.appName,
 			});
+			return true;
+		}),
+	changePassword: protectedProcedure
+		.input(
+			z.object({
+				mariadbId: z.string().min(1),
+				password: z.string().min(1),
+				type: z.enum(["user", "root"]).default("user"),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { mariadbId, password, type } = input;
+			await checkServicePermissionAndAccess(ctx, mariadbId, {
+				service: ["create"],
+			});
+
+			const maria = await findMariadbById(mariadbId);
+			const { appName, serverId, databaseUser, databaseRootPassword } = maria;
+
+			const containerCmd = getServiceContainerCommand(appName);
+			const targetUser = type === "root" ? "root" : databaseUser;
+
+			const command = `
+				CONTAINER_ID=$(${containerCmd})
+				if [ -z "$CONTAINER_ID" ]; then
+					echo "No running container found for ${appName}" >&2
+					exit 1
+				fi
+				docker exec "$CONTAINER_ID" mariadb -u root -p'${databaseRootPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"
+			`;
+
+			if (serverId) {
+				await execAsyncRemote(serverId, command);
+			} else {
+				await execAsync(command, { shell: "/bin/bash" });
+			}
+
+			if (type === "root") {
+				await updateMariadbById(mariadbId, { databaseRootPassword: password });
+			} else {
+				await updateMariadbById(mariadbId, { databasePassword: password });
+			}
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: mariadbId,
+				resourceName: appName,
+			});
+
 			return true;
 		}),
 	move: protectedProcedure
