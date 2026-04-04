@@ -106,7 +106,10 @@ export const ShowDomains = ({ id, type }: Props) => {
 	);
 	const [viewMode, setViewMode] = useState<"grid" | "table">(() => {
 		if (typeof window !== "undefined") {
-			return (localStorage.getItem("domains-view-mode") as "grid" | "table") ?? "grid";
+			return (
+				(localStorage.getItem("domains-view-mode") as "grid" | "table") ??
+				"grid"
+			);
 		}
 		return "grid";
 	});
