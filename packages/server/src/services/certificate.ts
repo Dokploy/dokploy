@@ -136,8 +136,6 @@ export const updateCertificate = async (
 		autoRenew?: boolean;
 	},
 ) => {
-	const existing = await findCertificateById(certificateId);
-
 	const updated = await db
 		.update(certificates)
 		.set({

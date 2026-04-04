@@ -5,10 +5,11 @@ import {
 	removeCertificateById,
 	updateCertificate,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
-import { db } from "@/server/db";
+import { createTRPCRouter, withPermission } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateCertificate,
 	apiFindCertificate,
@@ -17,7 +18,7 @@ import {
 } from "@/server/db/schema";
 
 export const certificateRouter = createTRPCRouter({
-	create: adminProcedure
+	create: withPermission("certificate", "create")
 		.input(apiCreateCertificate)
 		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD && !input.serverId) {
@@ -26,10 +27,20 @@ export const certificateRouter = createTRPCRouter({
 					message: "Please set a server to create a certificate",
 				});
 			}
-			return await createCertificate(input, ctx.session.activeOrganizationId);
+			const cert = await createCertificate(
+				input,
+				ctx.session.activeOrganizationId,
+			);
+			await audit(ctx, {
+				action: "create",
+				resourceType: "certificate",
+				resourceId: cert.certificateId,
+				resourceName: cert.name,
+			});
+			return cert;
 		}),
 
-	one: adminProcedure
+	one: withPermission("certificate", "read")
 		.input(apiFindCertificate)
 		.query(async ({ input, ctx }) => {
 			const certificates = await findCertificateById(input.certificateId);
@@ -41,7 +52,7 @@ export const certificateRouter = createTRPCRouter({
 			}
 			return certificates;
 		}),
-	remove: adminProcedure
+	remove: withPermission("certificate", "delete")
 		.input(apiFindCertificate)
 		.mutation(async ({ input, ctx }) => {
 			const certificates = await findCertificateById(input.certificateId);
@@ -51,10 +62,16 @@ export const certificateRouter = createTRPCRouter({
 					message: "You are not allowed to delete this certificate",
 				});
 			}
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "certificate",
+				resourceId: certificates.certificateId,
+				resourceName: certificates.name,
+			});
 			await removeCertificateById(input.certificateId);
 			return true;
 		}),
-	all: adminProcedure.query(async ({ ctx }) => {
+	all: withPermission("certificate", "read").query(async ({ ctx }) => {
 		return await db.query.certificates.findMany({
 			where: eq(certificates.organizationId, ctx.session.activeOrganizationId),
 		});

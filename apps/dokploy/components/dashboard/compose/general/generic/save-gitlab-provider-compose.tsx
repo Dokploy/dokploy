@@ -1,7 +1,7 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CheckIcon, ChevronsUpDown, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -74,10 +74,10 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 	const { data: gitlabProviders } = api.gitlab.gitlabProviders.useQuery();
 	const { data, refetch } = api.compose.one.useQuery({ composeId });
 
-	const { mutateAsync, isLoading: isSavingGitlabProvider } =
+	const { mutateAsync, isPending: isSavingGitlabProvider } =
 		api.compose.update.useMutation();
 
-	const form = useForm<GitlabProvider>({
+	const form = useForm({
 		defaultValues: {
 			composePath: "./docker-compose.yml",
 			repository: {
@@ -96,6 +96,16 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 
 	const repository = form.watch("repository");
 	const gitlabId = form.watch("gitlabId");
+
+	const gitlabUrl = useMemo(() => {
+		const url = gitlabProviders?.find(
+			(provider) => provider.gitlabId === gitlabId,
+		)?.gitlabUrl;
+
+		const gitlabUrl = url?.replace(/\/$/, "");
+
+		return gitlabUrl || "https://gitlab.com";
+	}, [gitlabId, gitlabProviders]);
 
 	const {
 		data: repositories,
@@ -224,9 +234,9 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 								<FormItem className="md:col-span-2 flex flex-col">
 									<div className="flex items-center justify-between">
 										<FormLabel>Repository</FormLabel>
-										{field.value.owner && field.value.repo && (
+										{field.value.gitlabPathNamespace && (
 											<Link
-												href={`https://gitlab.com/${field.value.owner}/${field.value.repo}`}
+												href={`${gitlabUrl}/${field.value.gitlabPathNamespace}`}
 												target="_blank"
 												rel="noopener noreferrer"
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
@@ -246,13 +256,13 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{isLoadingRepositories
-														? "Loading...."
-														: field.value.owner
-															? repositories?.find(
+													{!field.value.owner
+														? "Select repository"
+														: isLoadingRepositories
+															? "Loading...."
+															: (repositories?.find(
 																	(repo) => repo.name === field.value.repo,
-																)?.name
-															: "Select repository"}
+																)?.name ?? "Select repository")}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -264,11 +274,15 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 													placeholder="Search repository..."
 													className="h-9"
 												/>
-												{isLoadingRepositories && (
+												{!gitlabId ? (
+													<span className="py-6 text-center text-sm text-muted-foreground">
+														Select a GitLab account first
+													</span>
+												) : isLoadingRepositories ? (
 													<span className="py-6 text-center text-sm">
 														Loading Repositories....
 													</span>
-												)}
+												) : null}
 												<CommandEmpty>No repositories found.</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>
@@ -339,7 +353,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{status === "loading" && fetchStatus === "fetching"
+													{status === "pending" && fetchStatus === "fetching"
 														? "Loading...."
 														: field.value
 															? branches?.find(
@@ -356,7 +370,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 													placeholder="Search branch..."
 													className="h-9"
 												/>
-												{status === "loading" && fetchStatus === "fetching" && (
+												{status === "pending" && fetchStatus === "fetching" && (
 													<span className="py-6 text-center text-sm text-muted-foreground">
 														Loading Branches....
 													</span>

@@ -23,7 +23,6 @@ import {
 	CommandList,
 	CommandSeparator,
 } from "@/components/ui/command";
-import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { StatusTooltip } from "../shared/status-tooltip";
 
@@ -56,7 +55,7 @@ export const SearchCommand = () => {
 	const router = useRouter();
 	const [open, setOpen] = React.useState(false);
 	const [search, setSearch] = React.useState("");
-	const { data: session } = authClient.useSession();
+	const { data: session } = api.user.session.useQuery();
 	const { data } = api.project.all.useQuery(undefined, {
 		enabled: !!session,
 	});
@@ -89,7 +88,7 @@ export const SearchCommand = () => {
 					<CommandGroup heading={"Projects"}>
 						<CommandList>
 							{data?.map((project) => {
-								// Find default environment, or fall back to first environment
+								// Find default environment from accessible environments, or fall back to first accessible environment
 								const defaultEnvironment =
 									project.environments.find(
 										(environment) => environment.isDefault,
@@ -173,6 +172,14 @@ export const SearchCommand = () => {
 							}}
 						>
 							Projects
+						</CommandItem>
+						<CommandItem
+							onSelect={() => {
+								router.push("/dashboard/deployments");
+								setOpen(false);
+							}}
+						>
+							Deployments
 						</CommandItem>
 						{!isCloud && (
 							<>

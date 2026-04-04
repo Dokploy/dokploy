@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { HelpCircle, PlusIcon, SquarePen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -75,9 +76,10 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 		{ enabled: !!certificateId },
 	);
 
-	const { mutateAsync, isError, error, isLoading } = certificateId
-		? api.certificates.update.useMutation()
-		: api.certificates.create.useMutation();
+	const createMutation = api.certificates.create.useMutation();
+	const updateMutation = api.certificates.update.useMutation();
+	const mutation = certificateId ? updateMutation : createMutation;
+	const { mutateAsync, isError, error, isPending } = mutation;
 
 	const form = useForm<HandleCertificateForm>({
 		defaultValues: {
@@ -108,15 +110,25 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 	}, [existingCert, form, open]);
 
 	const onSubmit = async (data: HandleCertificateForm) => {
-		await mutateAsync({
-			...(certificateId ? { certificateId } : {}),
+		const basePayload = {
 			name: data.name,
 			certificateData: data.certificateData,
 			privateKey: data.privateKey,
 			autoRenew: data.autoRenew,
-			serverId: data.serverId === "dokploy" ? undefined : data.serverId,
-			organizationId: "",
-		} as any)
+		};
+
+		const promise = certificateId
+			? updateMutation.mutateAsync({
+					certificateId,
+					...basePayload,
+				})
+			: createMutation.mutateAsync({
+					...basePayload,
+					serverId: data.serverId === "dokploy" ? undefined : data.serverId,
+					organizationId: "",
+				});
+
+		await promise
 			.then(async () => {
 				toast.success(
 					certificateId ? "Certificate Updated" : "Certificate Created",
@@ -226,10 +238,9 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="flex items-center gap-2">
 									<FormControl>
-										<input
-											type="checkbox"
+										<Checkbox
 											checked={field.value}
-											onChange={field.onChange}
+											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
 									<FormLabel className="!mt-0">Auto-renew</FormLabel>
@@ -305,7 +316,7 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 
 					<DialogFooter className="flex w-full flex-row !justify-end">
 						<Button
-							isLoading={isLoading}
+							isLoading={isPending}
 							form="hook-form-handle-certificate"
 							type="submit"
 						>
