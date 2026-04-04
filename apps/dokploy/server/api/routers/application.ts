@@ -75,6 +75,34 @@ import {
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 
+function resolveDockerProviderFields(
+	input: z.infer<typeof apiSaveDockerProvider>,
+) {
+	const base = {
+		dockerImage: input.dockerImage,
+		sourceType: "docker" as const,
+		applicationStatus: "idle" as const,
+	};
+
+	if (input.registryId && input.registryId !== "none") {
+		return {
+			...base,
+			registryId: input.registryId,
+			username: null,
+			password: null,
+			registryUrl: null,
+		};
+	}
+
+	return {
+		...base,
+		registryId: null,
+		username: input.username,
+		password: input.password,
+		registryUrl: input.registryUrl,
+	};
+}
+
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateApplication)
@@ -514,14 +542,10 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
-			await updateApplication(input.applicationId, {
-				dockerImage: input.dockerImage,
-				username: input.username,
-				password: input.password,
-				sourceType: "docker",
-				applicationStatus: "idle",
-				registryUrl: input.registryUrl,
-			});
+			await updateApplication(
+				input.applicationId,
+				resolveDockerProviderFields(input),
+			);
 			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
 				action: "update",

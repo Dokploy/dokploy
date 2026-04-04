@@ -1,5 +1,9 @@
 import { db } from "@dokploy/server/db";
-import { type apiCreateRegistry, registry } from "@dokploy/server/db/schema";
+import {
+	type apiCreateRegistry,
+	getSafeRegistryLoginCommand,
+	registry,
+} from "@dokploy/server/db/schema";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -8,24 +12,9 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
 import { IS_CLOUD } from "../constants";
+import { getECRAuthToken } from "../utils/aws/ecr";
 
 export type Registry = typeof registry.$inferSelect;
-
-function shEscape(s: string | undefined): string {
-	if (!s) return "''";
-	return `'${s.replace(/'/g, `'\\''`)}'`;
-}
-
-export function safeDockerLoginCommand(
-	registry: string | undefined,
-	user: string | undefined,
-	pass: string | undefined,
-) {
-	const escapedRegistry = shEscape(registry);
-	const escapedUser = shEscape(user);
-	const escapedPassword = shEscape(pass);
-	return `printf %s ${escapedPassword} | docker login ${escapedRegistry} -u ${escapedUser} --password-stdin`;
-}
 
 export const createRegistry = async (
 	input: z.infer<typeof apiCreateRegistry>,
@@ -36,6 +25,8 @@ export const createRegistry = async (
 			.insert(registry)
 			.values({
 				...input,
+				username: input.username ?? "",
+				password: input.password ?? "",
 				organizationId: organizationId,
 			})
 			.returning()
@@ -54,14 +45,28 @@ export const createRegistry = async (
 				message: "Select a server to add the registry",
 			});
 		}
-		const loginCommand = safeDockerLoginCommand(
-			input.registryUrl,
-			input.username,
-			input.password,
-		);
+		let ecrAuthPassword: string | undefined;
+		if (newRegistry.registryType === "awsEcr") {
+			const token = await getECRAuthToken({
+				awsAccessKeyId: input.awsAccessKeyId || "",
+				awsSecretAccessKey: input.awsSecretAccessKey || "",
+				awsRegion: input.awsRegion || "",
+			});
+			ecrAuthPassword = token.password;
+		}
+		const loginCommand = getSafeRegistryLoginCommand({
+			registryType: newRegistry.registryType,
+			registryUrl: input.registryUrl,
+			username: input.username,
+			password: input.password,
+			ecrAuthPassword,
+		});
 		if (input.serverId && input.serverId !== "none") {
 			await execAsyncRemote(input.serverId, loginCommand);
-		} else if (newRegistry.registryType === "cloud") {
+		} else if (
+			newRegistry.registryType === "cloud" ||
+			newRegistry.registryType === "awsEcr"
+		) {
 			await execAsync(loginCommand);
 		}
 
@@ -112,11 +117,22 @@ export const updateRegistry = async (
 			.returning()
 			.then((res) => res[0]);
 
-		const loginCommand = safeDockerLoginCommand(
-			response?.registryUrl,
-			response?.username,
-			response?.password,
-		);
+		let ecrAuthPassword: string | undefined;
+		if (response?.registryType === "awsEcr") {
+			const token = await getECRAuthToken({
+				awsAccessKeyId: response.awsAccessKeyId || "",
+				awsSecretAccessKey: response.awsSecretAccessKey || "",
+				awsRegion: response.awsRegion || "",
+			});
+			ecrAuthPassword = token.password;
+		}
+		const loginCommand = getSafeRegistryLoginCommand({
+			registryType: response?.registryType || "cloud",
+			registryUrl: response?.registryUrl || undefined,
+			username: response?.username || undefined,
+			password: response?.password || undefined,
+			ecrAuthPassword,
+		});
 
 		if (
 			IS_CLOUD &&
@@ -131,7 +147,10 @@ export const updateRegistry = async (
 
 		if (registryData?.serverId && registryData?.serverId !== "none") {
 			await execAsyncRemote(registryData.serverId, loginCommand);
-		} else if (response?.registryType === "cloud") {
+		} else if (
+			response?.registryType === "cloud" ||
+			response?.registryType === "awsEcr"
+		) {
 			await execAsync(loginCommand);
 		}
 
@@ -146,11 +165,18 @@ export const updateRegistry = async (
 	}
 };
 
+/**
+ * Finds a registry by ID, intentionally excluding secrets (password, awsSecretAccessKey).
+ * Used for API responses and authorization checks where secrets are not needed.
+ * Code that needs secrets (login, deploy) should query the DB directly or
+ * use application relations which include all fields.
+ */
 export const findRegistryById = async (registryId: string) => {
 	const registryResponse = await db.query.registry.findFirst({
 		where: eq(registry.registryId, registryId),
 		columns: {
 			password: false,
+			awsSecretAccessKey: false,
 		},
 	});
 	if (!registryResponse) {
@@ -167,6 +193,10 @@ export const findAllRegistryByOrganizationId = async (
 ) => {
 	const registryResponse = await db.query.registry.findMany({
 		where: eq(registry.organizationId, organizationId),
+		columns: {
+			password: false,
+			awsSecretAccessKey: false,
+		},
 	});
 	return registryResponse;
 };

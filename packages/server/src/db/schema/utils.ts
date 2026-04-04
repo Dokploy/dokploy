@@ -34,3 +34,11 @@ export const buildAppName = (type: string, baseAppName?: string) => {
 	}
 	return generateAppName(type);
 };
+
+export const shEscape = (s: string | null | undefined) => {
+	if (!s) return "''";
+	return `'${s.replace(/'/g, `'\\''`)}'`;
+};
+
+export const isNonEmptyString = (s: unknown): s is string =>
+	typeof s === "string" && s.trim().length > 0;
