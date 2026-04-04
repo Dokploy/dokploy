@@ -47,10 +47,16 @@ import { validUniqueServerAppName } from "./project";
 
 export type Compose = typeof compose.$inferSelect;
 
-const getComposeTargetServerId = (
+const getComposeBuildServerId = (
 	compose: Pick<Compose, "buildServerId" | "serverId">,
 ) => {
 	return compose.buildServerId || compose.serverId;
+};
+
+const getComposeRuntimeServerId = (
+	compose: Pick<Compose, "serverId">,
+) => {
+	return compose.serverId;
 };
 
 export const createCompose = async (
@@ -161,7 +167,7 @@ export const loadServices = async (
 	const compose = await findComposeById(composeId);
 
 	if (type === "fetch") {
-		const targetServerId = getComposeTargetServerId(compose);
+		const targetServerId = getComposeBuildServerId(compose);
 		const composeEntity = {
 			...compose,
 			serverId: targetServerId,
@@ -176,7 +182,7 @@ export const loadServices = async (
 
 	let composeData: ComposeSpecification | null;
 
-	const targetServerId = getComposeTargetServerId(compose);
+	const targetServerId = getComposeBuildServerId(compose);
 	if (targetServerId) {
 		composeData = await loadDockerComposeRemote({
 			...compose,
@@ -234,7 +240,7 @@ export const deployCompose = async ({
 	commitHash?: string;
 }) => {
 	const compose = await findComposeById(composeId);
-	const targetServerId = getComposeTargetServerId(compose);
+	const targetServerId = getComposeBuildServerId(compose);
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.environment.projectId
@@ -372,7 +378,7 @@ export const rebuildCompose = async ({
 	commitHash?: string;
 }) => {
 	const compose = await findComposeById(composeId);
-	const targetServerId = getComposeTargetServerId(compose);
+	const targetServerId = getComposeBuildServerId(compose);
 
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
@@ -418,6 +424,21 @@ export const rebuildCompose = async ({
 		await updateCompose(composeId, {
 			composeStatus: "done",
 		});
+
+		if (compose.sourceType !== "raw") {
+			const commitInfo = await getGitCommitInfo({
+				...compose,
+				serverId: targetServerId,
+				type: "compose",
+			});
+			if (commitInfo) {
+				await updateDeployment(deployment.deploymentId, {
+					title: commitInfo.message,
+					description: `Commit: ${commitInfo.hash}`,
+					commitHash: commitInfo.hash,
+				});
+			}
+		}
 	} catch (error) {
 		let command = "";
 
@@ -439,21 +460,6 @@ export const rebuildCompose = async ({
 			composeStatus: "error",
 		});
 		throw error;
-	} finally {
-		if (compose.sourceType !== "raw") {
-			const commitInfo = await getGitCommitInfo({
-				...compose,
-				serverId: targetServerId,
-				type: "compose",
-			});
-			if (commitInfo) {
-				await updateDeployment(deployment.deploymentId, {
-					title: commitInfo.message,
-					description: `Commit: ${commitInfo.hash}`,
-					commitHash: commitInfo.hash,
-				});
-			}
-		}
 	}
 
 	return true;
@@ -464,7 +470,7 @@ export const removeCompose = async (
 	deleteVolumes: boolean,
 ) => {
 	try {
-		const targetServerId = getComposeTargetServerId(compose);
+		const targetServerId = getComposeRuntimeServerId(compose);
 		const { COMPOSE_PATH } = paths(!!targetServerId);
 		const projectPath = join(COMPOSE_PATH, compose.appName);
 
@@ -503,7 +509,7 @@ export const removeCompose = async (
 
 export const startCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
-	const targetServerId = getComposeTargetServerId(compose);
+	const targetServerId = getComposeRuntimeServerId(compose);
 	try {
 		const { COMPOSE_PATH } = paths(!!targetServerId);
 
@@ -539,7 +545,7 @@ export const startCompose = async (composeId: string) => {
 
 export const stopCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
-	const targetServerId = getComposeTargetServerId(compose);
+	const targetServerId = getComposeRuntimeServerId(compose);
 	try {
 		const { COMPOSE_PATH } = paths(!!targetServerId);
 		if (compose.composeType === "docker-compose") {

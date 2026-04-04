@@ -76,7 +76,7 @@ import {
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { audit } from "../utils/audit";
 
 export const composeRouter = createTRPCRouter({
@@ -1127,7 +1127,7 @@ export const composeRouter = createTRPCRouter({
 			return getGitHistory({
 				appName: composeData.appName,
 				type: "compose",
-				serverId: composeData.serverId || null,
+				serverId: composeData.buildServerId || composeData.serverId || null,
 				limit: input.limit,
 			});
 		}),

@@ -321,6 +321,7 @@ echo "Building on ${compose.buildServerId ? "Build Server" : "Dokploy Server"}" 
 				...(compose.buildServerId && {
 					buildServerId: compose.buildServerId,
 				}),
+				serverId: targetServerId ?? null,
 				status: "running",
 				logPath: logFilePath,
 				startedAt: new Date().toISOString(),
@@ -836,6 +837,9 @@ const centralizedDeploymentsWith = {
 		},
 	},
 	server: {
+		columns: { serverId: true, name: true, serverType: true },
+	},
+	buildServer: {
 		columns: { serverId: true, name: true, serverType: true },
 	},
 } as const;

@@ -327,10 +327,6 @@ export const deployApplication = async ({
 					description: `Commit: ${commitInfo.hash}`,
 					commitHash: commitInfo.hash,
 				});
-				await createRollbackForDeploymentIfNeeded(
-					applicationEntity,
-					deployment.deploymentId,
-				);
 			}
 		}
 	}
@@ -449,10 +445,6 @@ export const rebuildApplication = async ({
 					description: `Commit: ${commitInfo.hash}`,
 					commitHash: commitInfo.hash,
 				});
-				await createRollbackForDeploymentIfNeeded(
-					application,
-					deployment.deploymentId,
-				);
 			}
 		}
 	}
