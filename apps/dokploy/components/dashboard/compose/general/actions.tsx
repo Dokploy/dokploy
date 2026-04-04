@@ -57,123 +57,6 @@ export const ComposeActions = ({ composeId }: Props) => {
 	return (
 		<div className="flex flex-row gap-4 w-full flex-wrap ">
 			<TooltipProvider delayDuration={0} disableHoverableContent={false}>
-				<DialogAction
-					title="Deploy Compose"
-					description="Are you sure you want to deploy this compose?"
-					type="default"
-					onClick={async () => {
-						await deploy({
-							composeId: composeId,
-						})
-							.then(() => {
-								toast.success("Compose deployed successfully");
-								refetch();
-								router.push(
-									`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/compose/${composeId}?tab=deployments`,
-								);
-							})
-							.catch(() => {
-								toast.error("Error deploying compose");
-							});
-					}}
-				>
-					<Button
-						variant="default"
-						isLoading={data?.composeStatus === "running"}
-						className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
-					>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<div className="flex items-center">
-									<Rocket className="size-4 mr-1" />
-									Deploy
-								</div>
-							</TooltipTrigger>
-							<TooltipPrimitive.Portal>
-								<TooltipContent sideOffset={5} className="z-[60]">
-									<p>Downloads the source code and performs a complete build</p>
-								</TooltipContent>
-							</TooltipPrimitive.Portal>
-						</Tooltip>
-					</Button>
-				</DialogAction>
-				<DialogAction
-					title="Reload Compose"
-					description="Are you sure you want to reload this compose?"
-					type="default"
-					onClick={async () => {
-						await redeploy({
-							composeId: composeId,
-						})
-							.then(() => {
-								toast.success("Compose reloaded successfully");
-								refetch();
-							})
-							.catch(() => {
-								toast.error("Error reloading compose");
-							});
-					}}
-				>
-					<Button
-						variant="secondary"
-						isLoading={data?.composeStatus === "running"}
-						className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
-					>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<div className="flex items-center">
-									<RefreshCcw className="size-4 mr-1" />
-									Reload
-								</div>
-							</TooltipTrigger>
-							<TooltipPrimitive.Portal>
-								<TooltipContent sideOffset={5} className="z-[60]">
-									<p>Reload the compose without rebuilding it</p>
-								</TooltipContent>
-							</TooltipPrimitive.Portal>
-						</Tooltip>
-					</Button>
-				</DialogAction>
-
-				{isGitSource && (
-					<DialogAction
-						title="Load Template"
-						description="This will clone the repository, parse template.toml, and update your configuration (Environment Variables, Mounts, Domains). Existing configurations might be overwritten."
-						onClick={async () => {
-							await loadTemplate({ composeId })
-								.then(() => {
-									toast.success("Template loaded and applied successfully");
-									refetch();
-								})
-								.catch((err) => {
-									toast.error("Error loading template: " + err.message);
-								});
-						}}
-					>
-						<Button
-							variant="secondary"
-							isLoading={isLoadingTemplate}
-							className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
-						>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<div className="flex items-center">
-										<Puzzle className="size-4 mr-1" />
-										Load Template
-									</div>
-								</TooltipTrigger>
-								<TooltipPrimitive.Portal>
-									<TooltipContent sideOffset={5} className="z-[60]">
-										<p>
-											Load configuration from template.toml in the repository
-										</p>
-									</TooltipContent>
-								</TooltipPrimitive.Portal>
-							</Tooltip>
-						</Button>
-					</DialogAction>
-				)}
-
 				{canDeploy && (
 					<DialogAction
 						title="Deploy Compose"
@@ -251,6 +134,44 @@ export const ComposeActions = ({ composeId }: Props) => {
 								<TooltipPrimitive.Portal>
 									<TooltipContent sideOffset={5} className="z-[60]">
 										<p>Reload the compose without rebuilding it</p>
+									</TooltipContent>
+								</TooltipPrimitive.Portal>
+							</Tooltip>
+						</Button>
+					</DialogAction>
+				)}
+				{isGitSource && canDeploy && (
+					<DialogAction
+						title="Load Template"
+						description="This will clone the repository, parse template.toml, and update your configuration (Environment Variables, Mounts, Domains). Existing configurations might be overwritten."
+						onClick={async () => {
+							await loadTemplate({ composeId })
+								.then(() => {
+									toast.success("Template loaded and applied successfully");
+									refetch();
+								})
+								.catch((err) => {
+									toast.error("Error loading template: " + err.message);
+								});
+						}}
+					>
+						<Button
+							variant="secondary"
+							isLoading={isLoadingTemplate}
+							className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+						>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<div className="flex items-center">
+										<Puzzle className="size-4 mr-1" />
+										Load Template
+									</div>
+								</TooltipTrigger>
+								<TooltipPrimitive.Portal>
+									<TooltipContent sideOffset={5} className="z-[60]">
+										<p>
+											Load configuration from template.toml in the repository
+										</p>
 									</TooltipContent>
 								</TooltipPrimitive.Portal>
 							</Tooltip>
