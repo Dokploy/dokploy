@@ -419,13 +419,18 @@ export const mongoRouter = createTRPCRouter({
 				docker exec "$CONTAINER_ID" mongosh -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase admin --eval "db.getSiblingDB('admin').changeUserPassword('${databaseUser}', '${password}')"
 			`;
 
-			if (serverId) {
-				await execAsyncRemote(serverId, command);
-			} else {
-				await execAsync(command, { shell: "/bin/bash" });
-			}
+			await db.transaction(async (tx) => {
+				await tx
+					.update(mongoTable)
+					.set({ databasePassword: password })
+					.where(eq(mongoTable.mongoId, mongoId));
 
-			await updateMongoById(mongoId, { databasePassword: password });
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
 
 			await audit(ctx, {
 				action: "update",

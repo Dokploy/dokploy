@@ -406,13 +406,18 @@ export const redisRouter = createTRPCRouter({
 				docker exec "$CONTAINER_ID" redis-cli -a '${databasePassword}' CONFIG SET requirepass '${password}'
 			`;
 
-			if (serverId) {
-				await execAsyncRemote(serverId, command);
-			} else {
-				await execAsync(command, { shell: "/bin/bash" });
-			}
+			await db.transaction(async (tx) => {
+				await tx
+					.update(redisTable)
+					.set({ databasePassword: password })
+					.where(eq(redisTable.redisId, redisId));
 
-			await updateRedisById(redisId, { databasePassword: password });
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
 
 			await audit(ctx, {
 				action: "update",

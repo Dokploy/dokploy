@@ -400,17 +400,22 @@ export const mariadbRouter = createTRPCRouter({
 				docker exec "$CONTAINER_ID" mariadb -u root -p'${databaseRootPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"
 			`;
 
-			if (serverId) {
-				await execAsyncRemote(serverId, command);
-			} else {
-				await execAsync(command, { shell: "/bin/bash" });
-			}
+			await db.transaction(async (tx) => {
+				const setData =
+					type === "root"
+						? { databaseRootPassword: password }
+						: { databasePassword: password };
+				await tx
+					.update(mariadbTable)
+					.set(setData)
+					.where(eq(mariadbTable.mariadbId, mariadbId));
 
-			if (type === "root") {
-				await updateMariadbById(mariadbId, { databaseRootPassword: password });
-			} else {
-				await updateMariadbById(mariadbId, { databasePassword: password });
-			}
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
 
 			await audit(ctx, {
 				action: "update",

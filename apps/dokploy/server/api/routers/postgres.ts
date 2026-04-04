@@ -424,13 +424,19 @@ export const postgresRouter = createTRPCRouter({
 				fi
 				docker exec "$CONTAINER_ID" psql -U ${databaseUser} -c "ALTER USER \\"${databaseUser}\\" WITH PASSWORD '${password}';"
 			`;
-			if (serverId) {
-				await execAsyncRemote(serverId, command);
-			} else {
-				await execAsync(command, { shell: "/bin/bash" });
-			}
 
-			await updatePostgresById(postgresId, { databasePassword: password });
+			await db.transaction(async (tx) => {
+				await tx
+					.update(postgresTable)
+					.set({ databasePassword: password })
+					.where(eq(postgresTable.postgresId, postgresId));
+
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
 
 			await audit(ctx, {
 				action: "update",

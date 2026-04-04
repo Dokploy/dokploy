@@ -24,9 +24,15 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
-const updatePasswordSchema = z.object({
-	password: z.string().min(1, "Password is required"),
-});
+const updatePasswordSchema = z
+	.object({
+		password: z.string().min(1, "Password is required"),
+		confirmPassword: z.string().min(1, "Please confirm the password"),
+	})
+	.refine((data) => data.password === data.confirmPassword, {
+		message: "Passwords do not match",
+		path: ["confirmPassword"],
+	});
 
 type UpdatePassword = z.infer<typeof updatePasswordSchema>;
 
@@ -44,7 +50,7 @@ export const UpdateDatabasePassword = ({
 	const [isPending, setIsPending] = useState(false);
 
 	const form = useForm<UpdatePassword>({
-		defaultValues: { password: "" },
+		defaultValues: { password: "", confirmPassword: "" },
 		resolver: zodResolver(updatePasswordSchema),
 	});
 
@@ -115,6 +121,23 @@ export const UpdateDatabasePassword = ({
 										<Input
 											type="password"
 											placeholder={`Enter new ${label.toLowerCase()}`}
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="confirmPassword"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Confirm {label}</FormLabel>
+									<FormControl>
+										<Input
+											type="password"
+											placeholder={`Confirm new ${label.toLowerCase()}`}
 											{...field}
 										/>
 									</FormControl>

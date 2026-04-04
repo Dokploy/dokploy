@@ -408,8 +408,6 @@ export const mysqlRouter = createTRPCRouter({
 			const { appName, serverId, databaseUser, databaseRootPassword } = my;
 
 			const containerCmd = getServiceContainerCommand(appName);
-			const authPassword =
-				type === "root" ? databaseRootPassword : databaseRootPassword;
 			const targetUser = type === "root" ? "root" : databaseUser;
 
 			const command = `
@@ -418,20 +416,25 @@ export const mysqlRouter = createTRPCRouter({
 					echo "No running container found for ${appName}" >&2
 					exit 1
 				fi
-				docker exec "$CONTAINER_ID" mysql -u root -p'${authPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"
+				docker exec "$CONTAINER_ID" mysql -u root -p'${databaseRootPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"
 			`;
 
-			if (serverId) {
-				await execAsyncRemote(serverId, command);
-			} else {
-				await execAsync(command, { shell: "/bin/bash" });
-			}
+			await db.transaction(async (tx) => {
+				const setData =
+					type === "root"
+						? { databaseRootPassword: password }
+						: { databasePassword: password };
+				await tx
+					.update(mysqlTable)
+					.set(setData)
+					.where(eq(mysqlTable.mysqlId, mysqlId));
 
-			if (type === "root") {
-				await updateMySqlById(mysqlId, { databaseRootPassword: password });
-			} else {
-				await updateMySqlById(mysqlId, { databasePassword: password });
-			}
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
 
 			await audit(ctx, {
 				action: "update",
