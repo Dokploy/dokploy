@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
 	type AnyPgColumn,
 	boolean,
@@ -54,7 +54,7 @@ export const domains = pgTable("domain", {
 	certificateType: certificateType("certificateType").notNull().default("none"),
 	internalPath: text("internalPath").default("/"),
 	stripPath: boolean("stripPath").notNull().default(false),
-	middlewares: text("middlewares").array(),
+	middlewares: text("middlewares").array().default(sql`ARRAY[]::text[]`),
 });
 
 export const domainsRelations = relations(domains, ({ one }) => ({
