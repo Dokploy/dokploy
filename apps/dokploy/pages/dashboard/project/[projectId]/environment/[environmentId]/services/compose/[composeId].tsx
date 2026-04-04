@@ -16,7 +16,7 @@ import { ShowImport } from "@/components/dashboard/application/advanced/import/s
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowDeployments } from "@/components/dashboard/application/deployments/show-deployments";
 import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
-import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
+import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";
 import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
@@ -31,7 +31,7 @@ import { ShowBackups } from "@/components/dashboard/database/backups/show-backup
 import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
 import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
+import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -97,22 +97,7 @@ const Service = (
 	return (
 		<div className="pb-10">
 			<UseKeyboardNav forPage="compose" />
-			<BreadcrumbSidebar
-				list={[
-					{ name: "Projects", href: "/dashboard/projects" },
-					{
-						name: data?.environment?.project?.name || "",
-						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
-					},
-					{
-						name: data?.environment?.name || "",
-						dropdownItems: environmentDropdownItems,
-					},
-					{
-						name: data?.name || "",
-					},
-				]}
-			/>
+			<AdvanceBreadcrumb />
 			<Head>
 				<title>
 					Compose: {data?.name} - {data?.environment?.project?.name} | {appName}

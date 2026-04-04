@@ -5,7 +5,7 @@ import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
 import { parse, stringify } from "yaml";
 import { encodeBase64 } from "../docker/utils";
-import { execAsyncRemote } from "../process/execAsync";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
 import type { FileConfig, HttpLoadBalancerService } from "./file-types";
 
 export const createTraefikConfig = (appName: string) => {
@@ -57,18 +57,16 @@ export const removeTraefikConfig = async (
 	try {
 		const { DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
+		const command = `rm -f ${configPath}`;
 
 		if (serverId) {
-			await execAsyncRemote(serverId, `rm ${configPath}`);
+			await execAsyncRemote(serverId, command);
 		} else {
-			if (fs.existsSync(configPath)) {
-				await fs.promises.unlink(configPath);
-			}
+			await execAsync(command);
 		}
-		if (fs.existsSync(configPath)) {
-			await fs.promises.unlink(configPath);
-		}
-	} catch {}
+	} catch (error) {
+		console.error(`Error removing traefik config for ${appName}:`, error);
+	}
 };
 
 export const removeTraefikConfigRemote = async (
@@ -78,8 +76,13 @@ export const removeTraefikConfigRemote = async (
 	try {
 		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-		await execAsyncRemote(serverId, `rm ${configPath}`);
-	} catch {}
+		await execAsyncRemote(serverId, `rm -f ${configPath}`);
+	} catch (error) {
+		console.error(
+			`Error removing remote traefik config for ${appName}:`,
+			error,
+		);
+	}
 };
 
 export const loadOrCreateConfig = (appName: string): FileConfig => {

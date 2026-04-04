@@ -20,6 +20,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -409,7 +410,10 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 									<FormControl>
 										<Input placeholder="root" {...field} />
 									</FormControl>
-
+									<FormDescription>
+										Use &quot;root&quot; or a non-root user with passwordless
+										sudo access.
+									</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}

@@ -21,12 +21,12 @@ import { observable } from "@trpc/server/observable";
 import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { updateServersBasedOnQuantity } from "@/pages/api/stripe/webhook";
-import { audit } from "@/server/api/utils/audit";
 import {
 	createTRPCRouter,
 	protectedProcedure,
 	withPermission,
 } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateServer,
 	apiFindOneServer,
@@ -252,6 +252,8 @@ export const serverRouter = createTRPCRouter({
 					isDokployNetworkInstalled: boolean;
 					isSwarmInstalled: boolean;
 					isMainDirectoryInstalled: boolean;
+					privilegeMode: string;
+					dockerGroupMember: boolean;
 				};
 			} catch (error) {
 				throw new TRPCError({

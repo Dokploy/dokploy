@@ -143,6 +143,10 @@ const RESOURCE_META: Record<string, { label: string; description: string }> = {
 		description:
 			"Manage notification providers (Slack, Discord, Telegram, etc.)",
 	},
+	tag: {
+		label: "Tags",
+		description: "Manage tags to organize and categorize projects",
+	},
 	member: {
 		label: "Users",
 		description: "Manage organization members, invitations, and roles",
@@ -379,6 +383,12 @@ const ACTION_META: Record<
 		},
 		delete: { label: "Delete", description: "Remove notification providers" },
 	},
+	tag: {
+		read: { label: "Read", description: "View tags" },
+		create: { label: "Create", description: "Create new tags" },
+		update: { label: "Update", description: "Edit existing tags" },
+		delete: { label: "Delete", description: "Delete tags" },
+	},
 	member: {
 		read: {
 			label: "Read",
@@ -447,6 +457,7 @@ const ROLE_PRESETS: {
 			domain: ["read"],
 			destination: ["read"],
 			notification: ["read"],
+			tag: ["read"],
 			member: ["read"],
 			logs: ["read"],
 			monitoring: ["read"],
@@ -515,6 +526,7 @@ const ROLE_PRESETS: {
 			domain: ["read", "create", "delete"],
 			destination: ["read", "create", "delete"],
 			notification: ["read", "create", "delete"],
+			tag: ["read", "create", "update", "delete"],
 			logs: ["read"],
 			monitoring: ["read"],
 			auditLog: ["read"],

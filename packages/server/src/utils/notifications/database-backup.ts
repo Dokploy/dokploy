@@ -10,6 +10,7 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
 	sendResendNotification,
@@ -29,7 +30,7 @@ export const sendDatabaseBackupNotifications = async ({
 }: {
 	projectName: string;
 	applicationName: string;
-	databaseType: "postgres" | "mysql" | "mongodb" | "mariadb";
+	databaseType: "postgres" | "mysql" | "mongodb" | "mariadb" | "libsql";
 	type: "error" | "success";
 	organizationId: string;
 	errorMessage?: string;
@@ -50,6 +51,7 @@ export const sendDatabaseBackupNotifications = async ({
 			resend: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 			custom: true,
 			lark: true,
 			pushover: true,
@@ -66,6 +68,7 @@ export const sendDatabaseBackupNotifications = async ({
 			slack,
 			gotify,
 			ntfy,
+			mattermost,
 			custom,
 			lark,
 			pushover,
@@ -269,6 +272,21 @@ export const sendDatabaseBackupNotifications = async ({
 							],
 						},
 					],
+				});
+			}
+
+			if (mattermost) {
+				const statusEmoji = type === "success" ? "✅" : "❌";
+				const typeStatus = type === "success" ? "Successful" : "Failed";
+				const errorMsg =
+					type === "error" && errorMessage
+						? `\n\n**Error:**\n\`\`\`\n${errorMessage}\n\`\`\``
+						: "";
+
+				await sendMattermostNotification(mattermost, {
+					text: `**${statusEmoji} Database Backup ${typeStatus}**\n\n**Project:** ${projectName}\n**Application:** ${applicationName}\n**Type:** ${databaseType}\n**Database Name:** ${databaseName}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}${errorMsg}`,
+					channel: mattermost.channel,
+					username: mattermost.username || "Dokploy",
 				});
 			}
 

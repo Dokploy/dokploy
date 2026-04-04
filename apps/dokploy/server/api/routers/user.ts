@@ -13,6 +13,7 @@ import {
 	updateUser,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import {
 	account,
 	apiAssignPermissions,
@@ -21,6 +22,7 @@ import {
 	apiUpdateUser,
 	invitation,
 	member,
+	user,
 } from "@dokploy/server/db/schema";
 import {
 	hasPermission,
@@ -344,12 +346,19 @@ export const userRouter = createTRPCRouter({
 					});
 				}
 
-				const { id, ...rest } = input;
+				const { id, accessedGitProviders, ...rest } = input;
+
+				const licensed = await hasValidLicense(
+					ctx.session?.activeOrganizationId || "",
+				);
 
 				await db
 					.update(member)
 					.set({
 						...rest,
+						...(licensed && accessedGitProviders !== undefined
+							? { accessedGitProviders }
+							: {}),
 					})
 					.where(
 						and(
@@ -465,7 +474,7 @@ export const userRouter = createTRPCRouter({
 					});
 				}
 
-				if (apiKeyToDelete.userId !== ctx.user.id) {
+				if (apiKeyToDelete.referenceId !== ctx.user.id) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to delete this API key",
@@ -630,5 +639,41 @@ export const userRouter = createTRPCRouter({
 				metadata: { type: "sendInvitation" },
 			});
 			return inviteLink;
+		}),
+
+	getBookmarkedTemplates: protectedProcedure.query(async ({ ctx }) => {
+		const result = await db.query.user.findFirst({
+			where: eq(user.id, ctx.user.id),
+			columns: { bookmarkedTemplates: true },
+		});
+
+		return result?.bookmarkedTemplates ?? [];
+	}),
+
+	toggleTemplateBookmark: protectedProcedure
+		.input(
+			z.object({
+				templateId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const result = await db.query.user.findFirst({
+				where: eq(user.id, ctx.user.id),
+				columns: { bookmarkedTemplates: true },
+			});
+
+			const current = result?.bookmarkedTemplates ?? [];
+			const isBookmarked = current.includes(input.templateId);
+
+			const updated = isBookmarked
+				? current.filter((id) => id !== input.templateId)
+				: [...current, input.templateId];
+
+			await db
+				.update(user)
+				.set({ bookmarkedTemplates: updated })
+				.where(eq(user.id, ctx.user.id));
+
+			return { isBookmarked: !isBookmarked };
 		}),
 });

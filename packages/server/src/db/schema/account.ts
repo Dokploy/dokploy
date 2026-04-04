@@ -163,6 +163,10 @@ export const member = pgTable("member", {
 		.array()
 		.notNull()
 		.default(sql`ARRAY[]::text[]`),
+	accessedGitProviders: text("accessedGitProviders")
+		.array()
+		.notNull()
+		.default(sql`ARRAY[]::text[]`),
 });
 
 export const memberRelations = relations(member, ({ one }) => ({
@@ -214,7 +218,8 @@ export const apikey = pgTable("apikey", {
 	start: text("start"),
 	prefix: text("prefix"),
 	key: text("key").notNull(),
-	userId: text("user_id")
+	configId: text("config_id").default("default").notNull(),
+	referenceId: text("reference_id")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
 	refillInterval: integer("refill_interval"),
@@ -236,7 +241,7 @@ export const apikey = pgTable("apikey", {
 
 export const apikeyRelations = relations(apikey, ({ one }) => ({
 	user: one(user, {
-		fields: [apikey.userId],
+		fields: [apikey.referenceId],
 		references: [user.id],
 	}),
 }));

@@ -38,6 +38,12 @@ const filterEnvironmentServices = (
 	applications: environment.applications.filter((app: any) =>
 		accessedServices.includes(app.applicationId),
 	),
+	compose: environment.compose.filter((comp: any) =>
+		accessedServices.includes(comp.composeId),
+	),
+	libsql: environment.libsql.filter((db: any) =>
+		accessedServices.includes(db.libsqlId),
+	),
 	mariadb: environment.mariadb.filter((db: any) =>
 		accessedServices.includes(db.mariadbId),
 	),
@@ -52,9 +58,6 @@ const filterEnvironmentServices = (
 	),
 	redis: environment.redis.filter((db: any) =>
 		accessedServices.includes(db.redisId),
-	),
-	compose: environment.compose.filter((comp: any) =>
-		accessedServices.includes(comp.composeId),
 	),
 });
 

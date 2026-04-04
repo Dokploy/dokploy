@@ -30,13 +30,13 @@ import {
 	updateCompose,
 	updateDeploymentStatus,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import {
 	addNewService,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import { db } from "@dokploy/server/db";
 import {
 	cloneBitbucketRepository,
 	cloneGitRepository,
@@ -84,8 +84,8 @@ import {
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { audit } from "../utils/audit";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -764,7 +764,7 @@ export const composeRouter = createTRPCRouter({
 			return compose;
 		}),
 
-	templates: publicProcedure
+	templates: protectedProcedure
 		.input(z.object({ baseUrl: z.string().optional() }))
 		.query(async ({ input }) => {
 			try {
