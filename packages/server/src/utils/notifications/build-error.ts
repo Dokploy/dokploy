@@ -10,6 +10,7 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
 	sendResendNotification,
@@ -50,6 +51,7 @@ export const sendBuildErrorNotifications = async ({
 			resend: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 			custom: true,
 			lark: true,
 			pushover: true,
@@ -66,6 +68,7 @@ export const sendBuildErrorNotifications = async ({
 			slack,
 			gotify,
 			ntfy,
+			mattermost,
 			custom,
 			lark,
 			pushover,
@@ -247,6 +250,26 @@ export const sendBuildErrorNotifications = async ({
 							],
 						},
 					],
+				});
+			}
+
+			if (mattermost) {
+				await sendMattermostNotification(mattermost, {
+					text: `:warning: **Build Failed**
+
+**Project:** ${projectName}
+**Application:** ${applicationName}
+**Type:** ${applicationType}
+**Time:** ${date.toLocaleString()}
+
+**Error:**
+\`\`\`
+${errorMessage}
+\`\`\`
+
+[View Build Details](${buildLink})`,
+					channel: mattermost.channel,
+					username: mattermost.username || "Dokploy Bot",
 				});
 			}
 

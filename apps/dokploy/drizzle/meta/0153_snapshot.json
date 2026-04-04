@@ -1,5 +1,5 @@
 {
-  "id": "a5e45e3f-7f87-4fed-955c-040c63de37a1",
+  "id": "2819200c-c7c0-474e-8d78-b96ee4785b2a",
   "prevId": "68c71185-6e91-4b8d-8f91-795457e75ab2",
   "version": "7",
   "dialect": "postgresql",
@@ -1961,6 +1961,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "libsqlId": {
+          "name": "libsqlId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "userId": {
           "name": "userId",
           "type": "text",
@@ -2050,6 +2056,19 @@
           ],
           "columnsTo": [
             "mongoId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "backup_libsqlId_libsql_libsqlId_fk": {
+          "name": "backup_libsqlId_libsql_libsqlId_fk",
+          "tableFrom": "backup",
+          "tableTo": "libsql",
+          "columnsFrom": [
+            "libsqlId"
+          ],
+          "columnsTo": [
+            "libsqlId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2761,12 +2780,6 @@
         },
         "buildServerId": {
           "name": "buildServerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "commitHash": {
-          "name": "commitHash",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -3569,6 +3582,264 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.libsql": {
+      "name": "libsql",
+      "schema": "",
+      "columns": {
+        "libsqlId": {
+          "name": "libsqlId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "appName": {
+          "name": "appName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "databaseUser": {
+          "name": "databaseUser",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "databasePassword": {
+          "name": "databasePassword",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sqldNode": {
+          "name": "sqldNode",
+          "type": "sqldNode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'primary'"
+        },
+        "sqldPrimaryUrl": {
+          "name": "sqldPrimaryUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enableNamespaces": {
+          "name": "enableNamespaces",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "dockerImage": {
+          "name": "dockerImage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "command": {
+          "name": "command",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "env": {
+          "name": "env",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryReservation": {
+          "name": "memoryReservation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryLimit": {
+          "name": "memoryLimit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuReservation": {
+          "name": "cpuReservation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuLimit": {
+          "name": "cpuLimit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "externalPort": {
+          "name": "externalPort",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "externalGRPCPort": {
+          "name": "externalGRPCPort",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "externalAdminPort": {
+          "name": "externalAdminPort",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "applicationStatus": {
+          "name": "applicationStatus",
+          "type": "applicationStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'idle'"
+        },
+        "healthCheckSwarm": {
+          "name": "healthCheckSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "restartPolicySwarm": {
+          "name": "restartPolicySwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "placementSwarm": {
+          "name": "placementSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updateConfigSwarm": {
+          "name": "updateConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rollbackConfigSwarm": {
+          "name": "rollbackConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "modeSwarm": {
+          "name": "modeSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "labelsSwarm": {
+          "name": "labelsSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "networkSwarm": {
+          "name": "networkSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stopGracePeriodSwarm": {
+          "name": "stopGracePeriodSwarm",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "endpointSpecSwarm": {
+          "name": "endpointSpecSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "replicas": {
+          "name": "replicas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "environmentId": {
+          "name": "environmentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "serverId": {
+          "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "libsql_environmentId_environment_environmentId_fk": {
+          "name": "libsql_environmentId_environment_environmentId_fk",
+          "tableFrom": "libsql",
+          "tableTo": "environment",
+          "columnsFrom": [
+            "environmentId"
+          ],
+          "columnsTo": [
+            "environmentId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "libsql_serverId_server_serverId_fk": {
+          "name": "libsql_serverId_server_serverId_fk",
+          "tableFrom": "libsql",
+          "tableTo": "server",
+          "columnsFrom": [
+            "serverId"
+          ],
+          "columnsTo": [
+            "serverId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "libsql_appName_unique": {
+          "name": "libsql_appName_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "appName"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.mariadb": {
       "name": "mariadb",
       "schema": "",
@@ -4123,8 +4394,14 @@
           "primaryKey": false,
           "notNull": false
         },
-        "postgresId": {
-          "name": "postgresId",
+        "composeId": {
+          "name": "composeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "libsqlId": {
+          "name": "libsqlId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4147,14 +4424,14 @@
           "primaryKey": false,
           "notNull": false
         },
-        "redisId": {
-          "name": "redisId",
+        "postgresId": {
+          "name": "postgresId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "composeId": {
-          "name": "composeId",
+        "redisId": {
+          "name": "redisId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4175,15 +4452,28 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "mount_postgresId_postgres_postgresId_fk": {
-          "name": "mount_postgresId_postgres_postgresId_fk",
+        "mount_composeId_compose_composeId_fk": {
+          "name": "mount_composeId_compose_composeId_fk",
           "tableFrom": "mount",
-          "tableTo": "postgres",
+          "tableTo": "compose",
           "columnsFrom": [
-            "postgresId"
+            "composeId"
           ],
           "columnsTo": [
-            "postgresId"
+            "composeId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "mount_libsqlId_libsql_libsqlId_fk": {
+          "name": "mount_libsqlId_libsql_libsqlId_fk",
+          "tableFrom": "mount",
+          "tableTo": "libsql",
+          "columnsFrom": [
+            "libsqlId"
+          ],
+          "columnsTo": [
+            "libsqlId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -4227,6 +4517,19 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
+        "mount_postgresId_postgres_postgresId_fk": {
+          "name": "mount_postgresId_postgres_postgresId_fk",
+          "tableFrom": "mount",
+          "tableTo": "postgres",
+          "columnsFrom": [
+            "postgresId"
+          ],
+          "columnsTo": [
+            "postgresId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "mount_redisId_redis_redisId_fk": {
           "name": "mount_redisId_redis_redisId_fk",
           "tableFrom": "mount",
@@ -4236,19 +4539,6 @@
           ],
           "columnsTo": [
             "redisId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "mount_composeId_compose_composeId_fk": {
-          "name": "mount_composeId_compose_composeId_fk",
-          "tableFrom": "mount",
-          "tableTo": "compose",
-          "columnsFrom": [
-            "composeId"
-          ],
-          "columnsTo": [
-            "composeId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -7366,6 +7656,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "libsqlId": {
+          "name": "libsqlId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "composeId": {
           "name": "composeId",
           "type": "text",
@@ -7461,6 +7757,19 @@
           ],
           "columnsTo": [
             "redisId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "volume_backup_libsqlId_libsql_libsqlId_fk": {
+          "name": "volume_backup_libsqlId_libsql_libsqlId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "libsql",
+          "columnsFrom": [
+            "libsqlId"
+          ],
+          "columnsTo": [
+            "libsqlId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -7662,7 +7971,8 @@
         "mariadb",
         "mysql",
         "mongo",
-        "web-server"
+        "web-server",
+        "libsql"
       ]
     },
     "public.composeType": {
@@ -7733,7 +8043,8 @@
         "mariadb",
         "mongo",
         "redis",
-        "compose"
+        "compose",
+        "libsql"
       ]
     },
     "public.notificationType": {
@@ -7837,6 +8148,14 @@
         "letsencrypt",
         "none",
         "custom"
+      ]
+    },
+    "public.sqldNode": {
+      "name": "sqldNode",
+      "schema": "public",
+      "values": [
+        "primary",
+        "replica"
       ]
     },
     "public.triggerType": {

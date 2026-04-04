@@ -33,11 +33,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-	InputOTP,
-	InputOTPGroup,
-	InputOTPSlot,
-} from "@/components/ui/input-otp";
+import { InputOTP } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
@@ -253,26 +249,20 @@ export default function Home({ IS_CLOUD }: Props) {
 							onSubmit={onTwoFactorSubmit}
 							className="space-y-4"
 							id="two-factor-form"
-							autoComplete="off"
+							autoComplete="on"
 						>
 							<div className="flex flex-col gap-2">
-								<Label>2FA Code</Label>
+								<Label htmlFor="totp-code">2FA Code</Label>
 								<InputOTP
+									id="totp-code"
+									name="totp"
 									value={twoFactorCode}
 									onChange={setTwoFactorCode}
 									maxLength={6}
+									placeholder="••••••"
 									pattern={REGEXP_ONLY_DIGITS}
 									autoFocus
-								>
-									<InputOTPGroup>
-										<InputOTPSlot index={0} className="border-border" />
-										<InputOTPSlot index={1} className="border-border" />
-										<InputOTPSlot index={2} className="border-border" />
-										<InputOTPSlot index={3} className="border-border" />
-										<InputOTPSlot index={4} className="border-border" />
-										<InputOTPSlot index={5} className="border-border" />
-									</InputOTPGroup>
-								</InputOTP>
+								/>
 								<CardDescription>
 									Enter the 6-digit code from your authenticator app
 								</CardDescription>

@@ -1,5 +1,5 @@
 import { paths } from "@dokploy/server/constants";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
 	boolean,
 	integer,
@@ -66,6 +66,9 @@ export const user = pgTable("user", {
 	stripeSubscriptionId: text("stripeSubscriptionId"),
 	serversQuantity: integer("serversQuantity").notNull().default(0),
 	trustedOrigins: text("trustedOrigins").array(),
+	bookmarkedTemplates: text("bookmarkedTemplates")
+		.array()
+		.default(sql`ARRAY[]::text[]`),
 });
 
 export const usersRelations = relations(user, ({ one, many }) => ({
@@ -87,6 +90,7 @@ const createSchema = createInsertSchema(user, {
 }).omit({
 	role: true,
 	trustedOrigins: true,
+	bookmarkedTemplates: true,
 	isValidEnterpriseLicense: true,
 });
 
@@ -126,6 +130,7 @@ export const apiAssignPermissions = createSchema
 		accessedProjects: z.array(z.string()).optional(),
 		accessedEnvironments: z.array(z.string()).optional(),
 		accessedServices: z.array(z.string()).optional(),
+		accessedGitProviders: z.array(z.string()).optional(),
 		canCreateProjects: z.boolean().optional(),
 		canCreateServices: z.boolean().optional(),
 		canDeleteProjects: z.boolean().optional(),

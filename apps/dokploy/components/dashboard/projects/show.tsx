@@ -51,7 +51,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { TimeBadge } from "@/components/ui/time-badge";
 import { api } from "@/utils/api";
 import { useDebounce } from "@/utils/hooks/use-debounce";
 import { HandleProject } from "./handle-project";
@@ -199,11 +198,6 @@ export const ShowProjects = () => {
 
 	return (
 		<>
-			{!isCloud && (
-				<div className="absolute top-4 right-4">
-					<TimeBadge />
-				</div>
-			)}
 			<BreadcrumbSidebar
 				list={[{ name: "Projects", href: "/dashboard/projects" }]}
 			/>
@@ -300,26 +294,27 @@ export const ShowProjects = () => {
 												.map(
 													(env) =>
 														env.applications.length === 0 &&
+														env.compose.length === 0 &&
+														env.libsql.length === 0 &&
 														env.mariadb.length === 0 &&
 														env.mongo.length === 0 &&
 														env.mysql.length === 0 &&
 														env.postgres.length === 0 &&
-														env.redis.length === 0 &&
-														env.applications.length === 0 &&
-														env.compose.length === 0,
+														env.redis.length === 0,
 												)
 												.every(Boolean);
 
 											const totalServices = project?.environments
 												.map(
 													(env) =>
+														env.applications.length +
+														env.compose.length +
+														env.libsql.length +
 														env.mariadb.length +
 														env.mongo.length +
 														env.mysql.length +
 														env.postgres.length +
-														env.redis.length +
-														env.applications.length +
-														env.compose.length,
+														env.redis.length,
 												)
 												.reduce((acc, curr) => acc + curr, 0);
 

@@ -16,18 +16,18 @@ import {
 	stopServiceRemote,
 	updateRedisById,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import {
 	addNewService,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { audit } from "@/server/api/utils/audit";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiChangeRedisStatus,
 	apiCreateRedis,
@@ -38,9 +38,10 @@ import {
 	apiSaveEnvironmentVariablesRedis,
 	apiSaveExternalPortRedis,
 	apiUpdateRedis,
+	environments,
+	projects,
 	redis as redisTable,
 } from "@/server/db/schema";
-import { environments, projects } from "@/server/db/schema";
 export const redisRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateRedis)
@@ -251,11 +252,15 @@ export const redisRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const queue: string[] = [];
-			const done = false;
+			let done = false;
 
 			deployRedis(input.redisId, (log) => {
 				queue.push(log);
-			});
+			})
+				.catch(() => {})
+				.finally(() => {
+					done = true;
+				});
 
 			while (!done || queue.length > 0) {
 				if (queue.length > 0) {

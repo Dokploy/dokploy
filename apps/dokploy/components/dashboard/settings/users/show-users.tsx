@@ -122,7 +122,7 @@ export const ShowUsers = () => {
 													// Can change role based on hierarchy:
 													// - Owner: Can change anyone's role (except themselves and other owners)
 													// - Admin: Can only change member/custom roles (not other admins or owners)
-													// - Owner role is intransferible
+													// - Owner role is nontransferable
 													const canChangeRole =
 														member.role !== "owner" &&
 														member.user.id !== session?.user?.id &&
