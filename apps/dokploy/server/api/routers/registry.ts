@@ -23,6 +23,7 @@ import {
 	apiTestRegistry,
 	apiTestRegistryById,
 	apiUpdateRegistry,
+	getSafeRegistryLoginCommand,
 	registry,
 } from "@/server/db/schema";
 import { createTRPCRouter, withPermission } from "../trpc";
@@ -128,23 +129,29 @@ export const registryRouter = createTRPCRouter({
 					return true;
 				}
 
-				const args = [
-					"login",
-					input.registryUrl,
-					"--username",
-					input.username || "",
-					"--password-stdin",
-				];
+				const loginCommand = getSafeRegistryLoginCommand({
+					registryType: input.registryType ?? "cloud",
+					registryUrl: input.registryUrl,
+					username: input.username,
+					password: input.password,
+				});
 
 				if (input.serverId && input.serverId !== "none") {
-					await execAsyncRemote(
-						input.serverId,
-						`echo ${input.password} | docker ${args.join(" ")}`,
-					);
+					await execAsyncRemote(input.serverId, loginCommand);
 				} else {
-					await execFileAsync("docker", args, {
-						input: Buffer.from(input.password || "").toString(),
-					});
+					await execFileAsync(
+						"docker",
+						[
+							"login",
+							input.registryUrl,
+							"--username",
+							input.username || "",
+							"--password-stdin",
+						],
+						{
+							input: Buffer.from(input.password || "").toString(),
+						},
+					);
 				}
 
 				return true;
@@ -199,23 +206,29 @@ export const registryRouter = createTRPCRouter({
 						input.serverId,
 					);
 				} else {
-					const args = [
-						"login",
-						registryData.registryUrl,
-						"--username",
-						registryData.username,
-						"--password-stdin",
-					];
+					const loginCommand = getSafeRegistryLoginCommand({
+						registryType: registryData.registryType,
+						registryUrl: registryData.registryUrl,
+						username: registryData.username,
+						password: registryData.password,
+					});
 
 					if (input.serverId && input.serverId !== "none") {
-						await execAsyncRemote(
-							input.serverId,
-							`echo ${registryData.password} | docker ${args.join(" ")}`,
-						);
+						await execAsyncRemote(input.serverId, loginCommand);
 					} else {
-						await execFileAsync("docker", args, {
-							input: Buffer.from(registryData.password).toString(),
-						});
+						await execFileAsync(
+							"docker",
+							[
+								"login",
+								registryData.registryUrl,
+								"--username",
+								registryData.username,
+								"--password-stdin",
+							],
+							{
+								input: Buffer.from(registryData.password).toString(),
+							},
+						);
 					}
 				}
 
