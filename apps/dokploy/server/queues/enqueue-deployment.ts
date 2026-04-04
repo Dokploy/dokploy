@@ -51,9 +51,11 @@ const attachQueuedDeployment = async (
 };
 
 export const enqueueDeploymentJob = async (jobData: DeploymentJob) => {
-	const queuedJobData = await attachQueuedDeployment(jobData);
+	let queuedJobData: DeploymentJob | null = null;
 
 	try {
+		queuedJobData = await attachQueuedDeployment(jobData);
+
 		if (IS_CLOUD && queuedJobData.serverId) {
 			await deploy(queuedJobData);
 			return queuedJobData;
@@ -70,7 +72,7 @@ export const enqueueDeploymentJob = async (jobData: DeploymentJob) => {
 
 		return queuedJobData;
 	} catch (error) {
-		if (queuedJobData.deploymentId) {
+		if (queuedJobData?.deploymentId) {
 			await failQueuedDeployment(queuedJobData.deploymentId, error);
 		}
 

@@ -1199,6 +1199,25 @@ export const failQueuedDeployment = async (
 	return failedDeployment;
 };
 
+export const cancelDeploymentsByStatus = async (
+	statuses: NonNullable<Deployment["status"]>[],
+) => {
+	if (statuses.length === 0) {
+		return [];
+	}
+
+	const cancelledAt = new Date().toISOString();
+
+	return db
+		.update(deployments)
+		.set({
+			status: "cancelled",
+			finishedAt: cancelledAt,
+		})
+		.where(inArray(deployments.status, statuses))
+		.returning();
+};
+
 export const queueApplicationDeployment = async (
 	deployment: Omit<ApplicationDeploymentInput, "deploymentId" | "status">,
 ) => {
