@@ -1,5 +1,5 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
+import { Ban, CheckCircle2, History, RefreshCcw, Rocket, Terminal } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -7,6 +7,11 @@ import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,
@@ -173,6 +178,22 @@ export const ComposeActions = ({ composeId }: Props) => {
     isFetchingGitlabBranches ||
     isFetchingBitbucketBranches ||
     isFetchingGiteaBranches;
+
+  const hasGitSource =
+    data?.sourceType === "github" ||
+    data?.sourceType === "gitlab" ||
+    data?.sourceType === "bitbucket" ||
+    data?.sourceType === "gitea" ||
+    data?.sourceType === "git";
+
+  const [gitHistoryOpen, setGitHistoryOpen] = useState(false);
+
+  const { data: gitHistory, isFetching: isFetchingGitHistory } =
+    api.compose.getGitHistory.useQuery(
+      { composeId, limit: 10 },
+      { enabled: gitHistoryOpen && hasGitSource },
+    );
+
   return (
     <div className="flex flex-row gap-4 w-full flex-wrap ">
       <TooltipProvider delayDuration={0} disableHoverableContent={false}>
@@ -187,13 +208,78 @@ export const ComposeActions = ({ composeId }: Props) => {
                     Optional: Deploy a specific commit hash (7-40 hex
                     characters)
                   </p>
-                  <Input
-                    value={commitHash}
-                    onChange={(e) => {
-                      setCommitHash(e.target.value);
-                    }}
-                    placeholder="e.g. a1b2c3d4"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      value={commitHash}
+                      onChange={(e) => {
+                        setCommitHash(e.target.value);
+                      }}
+                      placeholder="e.g. a1b2c3d4"
+                    />
+                    {hasGitSource && (
+                      <Popover
+                        open={gitHistoryOpen}
+                        onOpenChange={setGitHistoryOpen}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            type="button"
+                            title="View git history"
+                          >
+                            <History className="size-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-96 p-2"
+                          align="end"
+                          side="bottom"
+                        >
+                          <p className="text-xs font-medium mb-2 px-1">
+                            Recent commits
+                          </p>
+                          {isFetchingGitHistory ? (
+                            <p className="text-xs text-muted-foreground px-1 py-2">
+                              Loading commits...
+                            </p>
+                          ) : !gitHistory || gitHistory.length === 0 ? (
+                            <p className="text-xs text-muted-foreground px-1 py-2">
+                              No commits found. Deploy at least once to see git
+                              history.
+                            </p>
+                          ) : (
+                            <div className="flex flex-col gap-0.5 max-h-64 overflow-y-auto">
+                              {gitHistory.map((commit) => (
+                                <button
+                                  key={commit.hash}
+                                  type="button"
+                                  className="flex flex-col gap-0.5 rounded px-2 py-1.5 text-left hover:bg-muted cursor-pointer"
+                                  onClick={() => {
+                                    setCommitHash(commit.hash);
+                                    setGitHistoryOpen(false);
+                                  }}
+                                >
+                                  <span className="text-xs font-mono text-primary">
+                                    {commit.hash.slice(0, 12)}
+                                  </span>
+                                  <span className="text-xs truncate">
+                                    {commit.message}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {commit.author} &middot;{" "}
+                                    {new Date(
+                                      commit.date,
+                                    ).toLocaleDateString()}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  </div>
                   {commitHash.trim().length > 0 && (
                     <div className="space-y-1">
                       {!hasValidCommitHash ? (
