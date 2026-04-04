@@ -327,10 +327,8 @@ export const deployApplication = async ({
 					description: `Commit: ${commitInfo.hash}`,
 					commitHash: commitInfo.hash,
 				});
-				await createRollbackForDeploymentIfNeeded(
-					applicationEntity,
-					deployment.deploymentId,
-				);
+				// Rollback is already created by getBuildCommand() -> uploadImageRemoteCommand()
+				// so we don't call createRollbackForDeploymentIfNeeded here to avoid duplicates.
 			}
 		}
 	}
@@ -449,10 +447,8 @@ export const rebuildApplication = async ({
 					description: `Commit: ${commitInfo.hash}`,
 					commitHash: commitInfo.hash,
 				});
-				await createRollbackForDeploymentIfNeeded(
-					application,
-					deployment.deploymentId,
-				);
+				// Rollback is already created by getBuildCommand() -> uploadImageRemoteCommand()
+				// so we don't call createRollbackForDeploymentIfNeeded here to avoid duplicates.
 			}
 		}
 	}

@@ -809,6 +809,9 @@ const centralizedDeploymentsWith = {
 			server: {
 				columns: { serverId: true, name: true, serverType: true },
 			},
+			buildServer: {
+				columns: { serverId: true, name: true, serverType: true },
+			},
 		},
 	},
 	compose: {

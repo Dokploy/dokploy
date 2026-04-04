@@ -173,10 +173,18 @@ export const getCheckoutCommitCommand = ({
 	const quotedOutputPath = quote([outputPath]);
 	const quotedGitDirectoryPath = quote([gitDirectoryPath]);
 	const quotedCommitHash = quote([commitHash]);
+	// First try `git fetch --depth 1 origin <sha>` which works when the server
+	// supports `allowReachableSHA1InWant` (GitHub, modern GitLab, etc.).
+	// If that fails (e.g. older Bitbucket Server, some self-hosted GitLab),
+	// fall back to fetching the default branch with enough depth and then
+	// checking out the SHA from the local history.
 	return [
 		`echo "Checking out commit" ${quotedCommitHash};`,
 		`if [ -d ${quotedGitDirectoryPath} ]; then`,
-		`git -C ${quotedOutputPath} fetch --depth 1 origin ${quotedCommitHash} &&`,
+		`if ! git -C ${quotedOutputPath} fetch --depth 1 origin ${quotedCommitHash} 2>/dev/null; then`,
+		`echo "Direct SHA fetch not supported, falling back to branch fetch...";`,
+		`git -C ${quotedOutputPath} fetch --unshallow 2>/dev/null || git -C ${quotedOutputPath} fetch origin 2>/dev/null || true;`,
+		"fi;",
 		`git -C ${quotedOutputPath} checkout ${quotedCommitHash};`,
 		"else",
 		`echo "Error: .git directory not found at" ${quotedGitDirectoryPath} ". Cannot check out commit" ${quotedCommitHash};`,

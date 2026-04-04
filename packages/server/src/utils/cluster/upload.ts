@@ -1,7 +1,14 @@
 import { findAllDeploymentsByApplicationId } from "@dokploy/server/services/deployment";
-import type { Registry } from "@dokploy/server/services/registry";
+import { type Registry, safeDockerLoginCommand } from "@dokploy/server/services/registry";
 import { createRollback } from "@dokploy/server/services/rollbacks";
+import { execAsync, execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import type { ApplicationNested } from "../builders";
+
+/** Escape a string for safe interpolation in a single-quoted shell context. */
+const shEscape = (s: string | undefined): string => {
+	if (!s) return "''";
+	return `'${s.replace(/'/g, `'\\''`)}'`;
+};
 
 export const uploadImageRemoteCommand = async (
 	application: ApplicationNested,
@@ -117,10 +124,39 @@ export const createRollbackForDeploymentIfNeeded = async (
 		return;
 	}
 
-	await createRollback({
+	const rollback = await createRollback({
 		appName: application.appName,
 		deploymentId,
 	});
+
+	// Ensure the rollback image is tagged locally and pushed to the rollback registry.
+	// This is especially important for the commit-reuse path where
+	// uploadImageRemoteCommand (which normally handles this) is skipped.
+	if (rollback?.image && application.rollbackRegistry) {
+		const localLatestImage = `${application.appName}:latest`;
+		const rollbackRegistryTag = getRegistryTag(
+			application.rollbackRegistry,
+			rollback.image,
+		);
+		const loginCmd = safeDockerLoginCommand(
+			application.rollbackRegistry.registryUrl,
+			application.rollbackRegistry.username,
+			application.rollbackRegistry.password,
+		);
+		const tagAndPushCmd = [
+			loginCmd,
+			`docker tag ${localLatestImage} ${rollback.image}`,
+			`docker tag ${localLatestImage} ${rollbackRegistryTag}`,
+			`docker push ${rollbackRegistryTag}`,
+		].join(" && ");
+
+		const serverId = application.serverId;
+		if (serverId) {
+			await execAsyncRemote(serverId, tagAndPushCmd);
+		} else {
+			await execAsync(tagAndPushCmd);
+		}
+	}
 };
 /**
  * Extract the repository name from imageName by taking the last part after '/'
@@ -165,17 +201,17 @@ const getRegistryCommands = (
 ): string => {
 	return `
 echo "📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'" ;
-echo "${registry.password}" | docker login ${registry.registryUrl} -u '${registry.username}' --password-stdin || { 
+printf %s ${shEscape(registry.password)} | docker login ${shEscape(registry.registryUrl)} -u ${shEscape(registry.username)} --password-stdin || {
 	echo "❌ DockerHub Failed" ;
 	exit 1;
 }
 echo "✅ Registry Login Success" ;
-docker tag ${imageName} ${registryTag} || { 
+docker tag ${imageName} ${registryTag} || {
 	echo "❌ Error tagging image" ;
 	exit 1;
 }
 echo "✅ Image Tagged" ;
-docker push ${registryTag} || { 
+docker push ${registryTag} || {
 	echo "❌ Error pushing image" ;
 	exit 1;
 }
@@ -206,7 +242,7 @@ export const getReuseCommitImageCommand = (
 			const commitTag = getRegistryTag(registry, localCommitImage);
 			return [
 				`if [ "$reused_image" -eq 0 ]; then`,
-				`\techo "${registry.password}" | docker login ${registry.registryUrl} -u '${registry.username}' --password-stdin >/dev/null 2>&1 || true;`,
+				`\tprintf %s ${shEscape(registry.password)} | docker login ${shEscape(registry.registryUrl)} -u ${shEscape(registry.username)} --password-stdin >/dev/null 2>&1 || true;`,
 				`\tif docker pull ${commitTag} >/dev/null 2>&1; then`,
 				`\t\tdocker tag ${commitTag} ${localLatestImage} >/dev/null 2>&1 && reused_image=1;`,
 				`\t\techo "✅ Reused image from registry source ${index + 1}";`,
@@ -216,12 +252,15 @@ export const getReuseCommitImageCommand = (
 		})
 		.join(" ");
 
-	const syncLatestToRuntimeRegistry = application.registry
+	// Push :latest to whichever registry getImageName() will use at runtime:
+	// runtime registry when present, otherwise buildRegistry.
+	const runtimeRegistry = application.registry || application.buildRegistry;
+	const syncLatestToRuntimeRegistry = runtimeRegistry
 		? [
 				`if [ "$reused_image" -eq 1 ]; then`,
-				`\techo "${application.registry.password}" | docker login ${application.registry.registryUrl} -u '${application.registry.username}' --password-stdin >/dev/null 2>&1 || true;`,
-				`\tdocker tag ${localLatestImage} ${getRegistryTag(application.registry, localLatestImage)} >/dev/null 2>&1;`,
-				`\tdocker push ${getRegistryTag(application.registry, localLatestImage)} >/dev/null 2>&1 || true;`,
+				`\tprintf %s ${shEscape(runtimeRegistry.password)} | docker login ${shEscape(runtimeRegistry.registryUrl)} -u ${shEscape(runtimeRegistry.username)} --password-stdin >/dev/null 2>&1 || true;`,
+				`\tdocker tag ${localLatestImage} ${getRegistryTag(runtimeRegistry, localLatestImage)} >/dev/null 2>&1;`,
+				`\tdocker push ${getRegistryTag(runtimeRegistry, localLatestImage)} >/dev/null 2>&1 || true;`,
 				"fi;",
 			].join(" ")
 		: "";

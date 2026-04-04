@@ -307,7 +307,7 @@ describe("deployApplication - Command Generation Tests", () => {
 			expect.stringContaining("git -C"),
 		);
 		expect(execProcess.execAsync).toHaveBeenCalledWith(
-			expect.stringContaining("checkout abcdef1234567890"),
+			expect.stringMatching(/checkout\s+['"]?abcdef1234567890['"]?/),
 		);
 	});
 });
