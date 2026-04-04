@@ -4,17 +4,18 @@ import {
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
 	IS_CLOUD,
+	initCancelDeployments,
 	initCronJobs,
+	initEnterpriseBackupCronJobs,
 	initializeNetwork,
 	initSchedules,
 	initVolumeBackupsCronJobs,
-	initCancelDeployments,
 	sendDokployRestartNotifications,
 	setupDirectories,
 } from "@dokploy/server";
 import { config } from "dotenv";
 import next from "next";
-import { migration } from "@/server/db/migration";
+import packageInfo from "../package.json";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
@@ -26,10 +27,21 @@ config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
 const HOST = process.env.HOST || "0.0.0.0";
 const dev = process.env.NODE_ENV !== "production";
+
+// Initialize critical directories and Traefik config BEFORE Next.js starts
+// This prevents race conditions with the install script
+if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
+	setupDirectories();
+	createDefaultTraefikConfig();
+	createDefaultServerTraefikConfig();
+	console.log("✅ initialization complete");
+}
+
 const app = next({ dev, turbopack: process.env.TURBOPACK === "1" });
 const handle = app.getRequestHandler();
 void app.prepare().then(async () => {
 	try {
+		console.log("Running DokployVersion: ", packageInfo.version);
 		const server = http.createServer((req, res) => {
 			handle(req, res);
 		});
@@ -45,12 +57,8 @@ void app.prepare().then(async () => {
 		}
 
 		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
-			setupDirectories();
 			createDefaultMiddlewares();
 			await initializeNetwork();
-			createDefaultTraefikConfig();
-			createDefaultServerTraefikConfig();
-			await migration();
 			await initCronJobs();
 			await initSchedules();
 			await initCancelDeployments();
@@ -58,12 +66,10 @@ void app.prepare().then(async () => {
 			await sendDokployRestartNotifications();
 		}
 
-		if (IS_CLOUD && process.env.NODE_ENV === "production") {
-			await migration();
-		}
-
 		server.listen(PORT, HOST);
 		console.log(`Server Started on: http://${HOST}:${PORT}`);
+		await initEnterpriseBackupCronJobs();
+
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");
 			const { deploymentWorker } = await import("./queues/deployments-queue");

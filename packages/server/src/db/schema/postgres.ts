@@ -23,10 +23,12 @@ import {
 	RestartPolicySwarmSchema,
 	type ServiceModeSwarm,
 	ServiceModeSwarmSchema,
+	type UlimitsSwarm,
+	UlimitsSwarmSchema,
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
-import { generateAppName } from "./utils";
+import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
 
 export const postgres = pgTable("postgres", {
 	postgresId: text("postgresId")
@@ -44,6 +46,7 @@ export const postgres = pgTable("postgres", {
 	description: text("description"),
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
+	args: text("args").array(),
 	env: text("env"),
 	memoryReservation: text("memoryReservation"),
 	externalPort: integer("externalPort"),
@@ -64,6 +67,7 @@ export const postgres = pgTable("postgres", {
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
+	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
 	replicas: integer("replicas").default(1).notNull(),
 	createdAt: text("createdAt")
 		.notNull()
@@ -93,6 +97,12 @@ export const postgresRelations = relations(postgres, ({ one, many }) => ({
 const createSchema = createInsertSchema(postgres, {
 	postgresId: z.string(),
 	name: z.string().min(1),
+	appName: z
+		.string()
+		.min(1)
+		.max(63)
+		.regex(APP_NAME_REGEX, APP_NAME_MESSAGE)
+		.optional(),
 	databasePassword: z
 		.string()
 		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
@@ -101,8 +111,9 @@ const createSchema = createInsertSchema(postgres, {
 		}),
 	databaseName: z.string().min(1),
 	databaseUser: z.string().min(1),
-	dockerImage: z.string().default("postgres:15"),
+	dockerImage: z.string().default("postgres:18"),
 	command: z.string().optional(),
+	args: z.array(z.string()).optional(),
 	env: z.string().optional(),
 	memoryReservation: z.string().optional(),
 	memoryLimit: z.string().optional(),
@@ -124,27 +135,24 @@ const createSchema = createInsertSchema(postgres, {
 	networkSwarm: NetworkSwarmSchema.nullable(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
+	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 });
 
-export const apiCreatePostgres = createSchema
-	.pick({
-		name: true,
-		appName: true,
-		databaseName: true,
-		databaseUser: true,
-		databasePassword: true,
-		dockerImage: true,
-		environmentId: true,
-		description: true,
-		serverId: true,
-	})
-	.required();
+export const apiCreatePostgres = createSchema.pick({
+	name: true,
+	appName: true,
+	databaseName: true,
+	databaseUser: true,
+	databasePassword: true,
+	dockerImage: true,
+	environmentId: true,
+	description: true,
+	serverId: true,
+});
 
-export const apiFindOnePostgres = createSchema
-	.pick({
-		postgresId: true,
-	})
-	.required();
+export const apiFindOnePostgres = z.object({
+	postgresId: z.string().min(1),
+});
 
 export const apiChangePostgresStatus = createSchema
 	.pick({
@@ -184,6 +192,7 @@ export const apiUpdatePostgres = createSchema
 	.partial()
 	.extend({
 		postgresId: z.string().min(1),
+		dockerImage: z.string().optional(),
 	})
 	.omit({ serverId: true });
 

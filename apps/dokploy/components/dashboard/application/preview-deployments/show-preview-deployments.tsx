@@ -1,7 +1,9 @@
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import {
 	ExternalLink,
 	FileText,
 	GitPullRequest,
+	Hammer,
 	Loader2,
 	PenSquare,
 	RocketIcon,
@@ -22,6 +24,12 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import { ShowModalLogs } from "../../settings/web-server/show-modal-logs";
 import { ShowDeploymentsModal } from "../deployments/show-deployments-modal";
@@ -35,8 +43,11 @@ interface Props {
 export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 	const { data } = api.application.one.useQuery({ applicationId });
 
-	const { mutateAsync: deletePreviewDeployment, isLoading } =
+	const { mutateAsync: deletePreviewDeployment, isPending } =
 		api.previewDeployment.delete.useMutation();
+
+	const { mutateAsync: redeployPreviewDeployment } =
+		api.previewDeployment.redeploy.useMutation();
 
 	const {
 		data: previewDeployments,
@@ -46,6 +57,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 		{ applicationId },
 		{
 			enabled: !!applicationId,
+			refetchInterval: 2000,
 		},
 	);
 
@@ -182,7 +194,68 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 															id={deployment.previewDeploymentId}
 															type="previewDeployment"
 															serverId={data?.serverId || ""}
-														/>
+														>
+															<Button
+																variant="outline"
+																size="sm"
+																className="gap-2"
+															>
+																<RocketIcon className="size-4" />
+																Deployments
+															</Button>
+														</ShowDeploymentsModal>
+
+														<DialogAction
+															title="Rebuild Preview Deployment"
+															description="Are you sure you want to rebuild this preview deployment?"
+															type="default"
+															onClick={async () => {
+																await redeployPreviewDeployment({
+																	previewDeploymentId:
+																		deployment.previewDeploymentId,
+																})
+																	.then(() => {
+																		toast.success(
+																			"Preview deployment rebuild started",
+																		);
+																		refetchPreviewDeployments();
+																	})
+																	.catch(() => {
+																		toast.error(
+																			"Error rebuilding preview deployment",
+																		);
+																	});
+															}}
+														>
+															<Button
+																variant="outline"
+																size="sm"
+																isLoading={status === "running"}
+																className="gap-2"
+															>
+																<TooltipProvider>
+																	<Tooltip>
+																		<TooltipTrigger asChild>
+																			<div className="flex items-center gap-2">
+																				<Hammer className="size-4" />
+																				Rebuild
+																			</div>
+																		</TooltipTrigger>
+																		<TooltipPrimitive.Portal>
+																			<TooltipContent
+																				sideOffset={5}
+																				className="z-[60]"
+																			>
+																				<p>
+																					Rebuild the preview deployment without
+																					downloading new code
+																				</p>
+																			</TooltipContent>
+																		</TooltipPrimitive.Portal>
+																	</Tooltip>
+																</TooltipProvider>
+															</Button>
+														</DialogAction>
 
 														<AddPreviewDomain
 															previewDeploymentId={`${deployment.previewDeploymentId}`}
@@ -208,7 +281,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 															<Button
 																variant="ghost"
 																size="sm"
-																isLoading={isLoading}
+																isLoading={isPending}
 																className="text-red-600 hover:text-red-700 hover:bg-red-50"
 															>
 																<Trash2 className="size-4" />

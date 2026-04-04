@@ -1,18 +1,27 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Form } from "@/components/ui/form";
+import {
+	Form,
+	FormControl,
+	FormDescription,
+	FormField,
+	FormItem,
+	FormLabel,
+} from "@/components/ui/form";
 import { Secrets } from "@/components/ui/secrets";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
 const addEnvironmentSchema = z.object({
 	env: z.string(),
 	buildArgs: z.string(),
 	buildSecrets: z.string(),
+	createEnvFile: z.boolean(),
 });
 
 type EnvironmentSchema = z.infer<typeof addEnvironmentSchema>;
@@ -22,7 +31,9 @@ interface Props {
 }
 
 export const ShowEnvironment = ({ applicationId }: Props) => {
-	const { mutateAsync, isLoading } =
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canWrite = permissions?.envVars.write ?? false;
+	const { mutateAsync, isPending } =
 		api.application.saveEnvironment.useMutation();
 
 	const { data, refetch } = api.application.one.useQuery(
@@ -39,6 +50,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 			env: "",
 			buildArgs: "",
 			buildSecrets: "",
+			createEnvFile: true,
 		},
 		resolver: zodResolver(addEnvironmentSchema),
 	});
@@ -47,10 +59,12 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	const currentEnv = form.watch("env");
 	const currentBuildArgs = form.watch("buildArgs");
 	const currentBuildSecrets = form.watch("buildSecrets");
+	const currentCreateEnvFile = form.watch("createEnvFile");
 	const hasChanges =
 		currentEnv !== (data?.env || "") ||
 		currentBuildArgs !== (data?.buildArgs || "") ||
-		currentBuildSecrets !== (data?.buildSecrets || "");
+		currentBuildSecrets !== (data?.buildSecrets || "") ||
+		currentCreateEnvFile !== (data?.createEnvFile ?? true);
 
 	useEffect(() => {
 		if (data) {
@@ -58,6 +72,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 				env: data.env || "",
 				buildArgs: data.buildArgs || "",
 				buildSecrets: data.buildSecrets || "",
+				createEnvFile: data.createEnvFile ?? true,
 			});
 		}
 	}, [data, form]);
@@ -67,6 +82,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 			env: formData.env,
 			buildArgs: formData.buildArgs,
 			buildSecrets: formData.buildSecrets,
+			createEnvFile: formData.createEnvFile,
 			applicationId,
 		})
 			.then(async () => {
@@ -83,13 +99,14 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 			env: data?.env || "",
 			buildArgs: data?.buildArgs || "",
 			buildSecrets: data?.buildSecrets || "",
+			createEnvFile: data?.createEnvFile ?? true,
 		});
 	};
 
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isLoading) {
+			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isPending) {
 				e.preventDefault();
 				form.handleSubmit(onSubmit)();
 			}
@@ -99,7 +116,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 		return () => {
 			document.removeEventListener("keydown", handleKeyDown);
 		};
-	}, [form, onSubmit, isLoading]);
+	}, [form, onSubmit, isPending]);
 
 	return (
 		<Card className="bg-background px-6 pb-6">
@@ -167,21 +184,49 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 							placeholder="NPM_TOKEN=xyz"
 						/>
 					)}
-					<div className="flex flex-row justify-end gap-2">
-						{hasChanges && (
-							<Button type="button" variant="outline" onClick={handleCancel}>
-								Cancel
+					{data?.buildType === "dockerfile" && (
+						<FormField
+							control={form.control}
+							name="createEnvFile"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-sm">
+									<div className="space-y-0.5">
+										<FormLabel>Create Environment File</FormLabel>
+										<FormDescription>
+											When enabled, an .env file will be created in the same
+											directory as your Dockerfile during the build process.
+											Disable this if you don't want to generate an environment
+											file.
+										</FormDescription>
+									</div>
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+											disabled={!canWrite}
+										/>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
+					)}
+					{canWrite && (
+						<div className="flex flex-row justify-end gap-2">
+							{hasChanges && (
+								<Button type="button" variant="outline" onClick={handleCancel}>
+									Cancel
+								</Button>
+							)}
+							<Button
+								isLoading={isPending}
+								className="w-fit"
+								type="submit"
+								disabled={!hasChanges}
+							>
+								Save
 							</Button>
-						)}
-						<Button
-							isLoading={isLoading}
-							className="w-fit"
-							type="submit"
-							disabled={!hasChanges}
-						>
-							Save
-						</Button>
-					</div>
+						</div>
+					)}
 				</form>
 			</Form>
 		</Card>

@@ -79,6 +79,24 @@ export const validateDokployNetwork = () => `
   fi
 `;
 
+export const validateSudoAccess = () => `
+  if [ "$(id -u)" -eq 0 ]; then
+    echo "root true"
+  elif sudo -n true 2>/dev/null; then
+    echo "sudo true"
+  else
+    echo "none false"
+  fi
+`;
+
+export const validateDockerGroup = () => `
+  if groups | grep -qw docker; then
+    echo true
+  else
+    echo false
+  fi
+`;
+
 export const serverValidate = async (serverId: string) => {
 	const client = new Client();
 	const server = await findServerById(serverId);
@@ -118,7 +136,11 @@ export const serverValidate = async (serverId: string) => {
           isSwarmInstalled=$(${validateSwarm()})
           isMainDirectoryInstalled=$(${validateMainDirectory()})
 
-  echo "{\\"docker\\": {\\"version\\": \\"$dockerVersion\\", \\"enabled\\": $dockerEnabled}, \\"rclone\\": {\\"version\\": \\"$rcloneVersion\\", \\"enabled\\": $rcloneEnabled}, \\"nixpacks\\": {\\"version\\": \\"$nixpacksVersion\\", \\"enabled\\": $nixpacksEnabled}, \\"buildpacks\\": {\\"version\\": \\"$buildpacksVersion\\", \\"enabled\\": $buildpacksEnabled}, \\"railpack\\": {\\"version\\": \\"$railpackVersion\\", \\"enabled\\": $railpackEnabled}, \\"isDokployNetworkInstalled\\": $isDokployNetworkInstalled, \\"isSwarmInstalled\\": $isSwarmInstalled, \\"isMainDirectoryInstalled\\": $isMainDirectoryInstalled}"
+          sudoAccessResult=$(${validateSudoAccess()})
+          privilegeMode=$(echo $sudoAccessResult | awk '{print $1}')
+          isDockerGroupMember=$(${validateDockerGroup()})
+
+  echo "{\\"docker\\": {\\"version\\": \\"$dockerVersion\\", \\"enabled\\": $dockerEnabled}, \\"rclone\\": {\\"version\\": \\"$rcloneVersion\\", \\"enabled\\": $rcloneEnabled}, \\"nixpacks\\": {\\"version\\": \\"$nixpacksVersion\\", \\"enabled\\": $nixpacksEnabled}, \\"buildpacks\\": {\\"version\\": \\"$buildpacksVersion\\", \\"enabled\\": $buildpacksEnabled}, \\"railpack\\": {\\"version\\": \\"$railpackVersion\\", \\"enabled\\": $railpackEnabled}, \\"isDokployNetworkInstalled\\": $isDokployNetworkInstalled, \\"isSwarmInstalled\\": $isSwarmInstalled, \\"isMainDirectoryInstalled\\": $isMainDirectoryInstalled, \\"privilegeMode\\": \\"$privilegeMode\\", \\"dockerGroupMember\\": $isDockerGroupMember}"
         `;
 				client.exec(bashCommand, (err, stream) => {
 					if (err) {

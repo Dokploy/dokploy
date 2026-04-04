@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Eye, EyeOff, LayoutDashboardIcon, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -80,7 +80,7 @@ const Schema = z.object({
 type Schema = z.infer<typeof Schema>;
 
 export const SetupMonitoring = ({ serverId }: Props) => {
-	const { data } = serverId
+	const { data: serverData } = serverId
 		? api.server.one.useQuery(
 				{
 					serverId: serverId || "",
@@ -89,11 +89,18 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 					enabled: !!serverId,
 				},
 			)
-		: api.user.getServerMetrics.useQuery();
+		: { data: null };
+
+	const { data: webServerSettings } =
+		api.settings.getWebServerSettings.useQuery(undefined, {
+			enabled: !serverId,
+		});
+
+	const data = serverId ? serverData : webServerSettings;
 
 	const url = useUrl();
 
-	const { data: projects } = api.project.all.useQuery();
+	const { data: projects } = api.project.allForPermissions.useQuery();
 
 	const extractServicesFromProjects = () => {
 		if (!projects) return [];

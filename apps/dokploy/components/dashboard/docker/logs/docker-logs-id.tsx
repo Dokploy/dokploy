@@ -402,7 +402,7 @@ export const DockerLogsId: React.FC<Props> = ({
 						{filteredLogs.length > 0 ? (
 							filteredLogs.map((filteredLog: LogLine, index: number) => (
 								<TerminalLine
-									key={index}
+									key={`${filteredLog.rawTimestamp ?? ""}-${index}`}
 									log={filteredLog}
 									searchTerm={search}
 									noTimestamp={!showTimestamp}
