@@ -143,22 +143,24 @@ export const createRouterConfig = async (
 		entryPoints: [entryPoint],
 	};
 
-	// Add path rewriting middleware if needed
-	if (internalPath && internalPath !== "/" && internalPath !== path) {
-		const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
-		routerConfig.middlewares?.push(pathMiddleware);
-	}
+	const isRedirectRouter = entryPoint === "web" && https && !customEntrypoint;
 
-	if (stripPath && path && path !== "/") {
-		const stripMiddleware = `stripprefix-${appName}-${uniqueConfigKey}`;
-		routerConfig.middlewares?.push(stripMiddleware);
-	}
+	// Web router with HTTPS only needs redirect — all other middlewares
+	// run on the websecure router where the request actually lands.
+	if (isRedirectRouter) {
+		routerConfig.middlewares?.push("redirect-to-https");
+	} else {
+		// Add path rewriting middleware if needed
+		if (internalPath && internalPath !== "/" && internalPath !== path) {
+			const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
+			routerConfig.middlewares?.push(pathMiddleware);
+		}
 
-	if (entryPoint === "web" && https) {
-		routerConfig.middlewares?.unshift("redirect-to-https");
-	}
+		if (stripPath && path && path !== "/") {
+			const stripMiddleware = `stripprefix-${appName}-${uniqueConfigKey}`;
+			routerConfig.middlewares?.push(stripMiddleware);
+		}
 
-	if ((entryPoint === "websecure" && https) || !https) {
 		// redirects - skip for preview deployments as wildcard subdomains
 		// should not inherit parent redirect rules (e.g., www-redirect)
 		if (domain.domainType !== "preview") {

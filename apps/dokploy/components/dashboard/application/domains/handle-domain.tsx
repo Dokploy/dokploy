@@ -290,6 +290,9 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				composeId: id,
 			}),
 			...data,
+			customEntrypoint: data.useCustomEntrypoint
+				? data.customEntrypoint
+				: null,
 		})
 			.then(async () => {
 				toast.success(dictionary.success);
@@ -674,7 +677,12 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 											<FormControl>
 												<Switch
 													checked={field.value}
-													onCheckedChange={field.onChange}
+													onCheckedChange={(checked) => {
+														field.onChange(checked);
+														if (!checked) {
+															form.setValue("customEntrypoint", undefined);
+														}
+													}}
 												/>
 											</FormControl>
 										</FormItem>

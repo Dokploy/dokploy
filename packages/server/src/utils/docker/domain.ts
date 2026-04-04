@@ -279,38 +279,44 @@ export const createDomainLabels = (
 
 	// Collect middlewares for this router
 	const middlewares: string[] = [];
+	const isRedirectRouter = entrypoint === "web" && https && !customEntrypoint;
 
-	// Add HTTPS redirect for web entrypoint (must be first)
-	if (entrypoint === "web" && https) {
+	// Web router with HTTPS only needs redirect — all other middlewares
+	// run on the websecure router where the request actually lands.
+	if (isRedirectRouter) {
 		middlewares.push("redirect-to-https@file");
 	}
 
 	// Add stripPath middleware if needed
 	if (stripPath && path && path !== "/") {
 		const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
-		// Only define middleware once (on web entrypoint)
+		// Define middleware on web (or custom) entrypoint so Traefik registers it
 		if (entrypoint === "web" || customEntrypoint) {
 			labels.push(
 				`traefik.http.middlewares.${middlewareName}.stripprefix.prefixes=${path}`,
 			);
 		}
-		middlewares.push(middlewareName);
+		if (!isRedirectRouter) {
+			middlewares.push(middlewareName);
+		}
 	}
 
 	// Add internalPath middleware if needed
 	if (internalPath && internalPath !== "/" && internalPath.startsWith("/")) {
 		const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
-		// Only define middleware once (on web entrypoint)
+		// Define middleware on web (or custom) entrypoint so Traefik registers it
 		if (entrypoint === "web" || customEntrypoint) {
 			labels.push(
 				`traefik.http.middlewares.${middlewareName}.addprefix.prefix=${internalPath}`,
 			);
 		}
-		middlewares.push(middlewareName);
+		if (!isRedirectRouter) {
+			middlewares.push(middlewareName);
+		}
 	}
 
-	// Add custom middlewares
-	if (domain.middlewares?.length) {
+	// Add custom middlewares (skip for redirect-only router)
+	if (!isRedirectRouter && domain.middlewares?.length) {
 		middlewares.push(...domain.middlewares);
 	}
 
