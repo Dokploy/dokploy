@@ -223,7 +223,7 @@ const AddRegistrySchema = z
           path: ["awsAccessKeyId"],
         });
       }
-      if (!isNonEmptyString(awsSecretAccessKey)) {
+      if (!data.isEditing && !isNonEmptyString(awsSecretAccessKey)) {
         ctx.addIssue({
           code: "custom",
           message: "AWS Secret Access Key is required",
