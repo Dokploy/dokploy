@@ -109,11 +109,9 @@ const createSchema = createInsertSchema(postgres, {
 		.max(63)
 		.regex(APP_NAME_REGEX, APP_NAME_MESSAGE)
 		.optional(),
-	databasePassword: z
-		.string()
-		.regex(DATABASE_PASSWORD_REGEX, {
-			message: DATABASE_PASSWORD_MESSAGE,
-		}),
+	databasePassword: z.string().regex(DATABASE_PASSWORD_REGEX, {
+		message: DATABASE_PASSWORD_MESSAGE,
+	}),
 	databaseName: z.string().min(1),
 	databaseUser: z.string().min(1),
 	dockerImage: z.string().default("postgres:18"),

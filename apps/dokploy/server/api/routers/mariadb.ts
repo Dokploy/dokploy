@@ -377,12 +377,9 @@ export const mariadbRouter = createTRPCRouter({
 		.input(
 			z.object({
 				mariadbId: z.string().min(1),
-				password: z
-					.string()
-					.min(1)
-					.regex(DATABASE_PASSWORD_REGEX, {
-						message: DATABASE_PASSWORD_MESSAGE,
-					}),
+				password: z.string().min(1).regex(DATABASE_PASSWORD_REGEX, {
+					message: DATABASE_PASSWORD_MESSAGE,
+				}),
 				type: z.enum(["user", "root"]).default("user"),
 			}),
 		)

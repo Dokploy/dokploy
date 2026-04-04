@@ -114,11 +114,9 @@ const createSchema = createInsertSchema(mariadb, {
 	createdAt: z.string(),
 	databaseName: z.string().min(1),
 	databaseUser: z.string().min(1),
-	databasePassword: z
-		.string()
-		.regex(DATABASE_PASSWORD_REGEX, {
-			message: DATABASE_PASSWORD_MESSAGE,
-		}),
+	databasePassword: z.string().regex(DATABASE_PASSWORD_REGEX, {
+		message: DATABASE_PASSWORD_MESSAGE,
+	}),
 	databaseRootPassword: z
 		.string()
 		.regex(DATABASE_PASSWORD_REGEX, {

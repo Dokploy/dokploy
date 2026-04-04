@@ -112,11 +112,9 @@ const createSchema = createInsertSchema(mysql, {
 	name: z.string().min(1),
 	databaseName: z.string().min(1),
 	databaseUser: z.string().min(1),
-	databasePassword: z
-		.string()
-		.regex(DATABASE_PASSWORD_REGEX, {
-			message: DATABASE_PASSWORD_MESSAGE,
-		}),
+	databasePassword: z.string().regex(DATABASE_PASSWORD_REGEX, {
+		message: DATABASE_PASSWORD_MESSAGE,
+	}),
 	databaseRootPassword: z
 		.string()
 		.regex(DATABASE_PASSWORD_REGEX, {

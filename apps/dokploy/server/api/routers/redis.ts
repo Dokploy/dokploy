@@ -386,12 +386,9 @@ export const redisRouter = createTRPCRouter({
 		.input(
 			z.object({
 				redisId: z.string().min(1),
-				password: z
-					.string()
-					.min(1)
-					.regex(DATABASE_PASSWORD_REGEX, {
-						message: DATABASE_PASSWORD_MESSAGE,
-					}),
+				password: z.string().min(1).regex(DATABASE_PASSWORD_REGEX, {
+					message: DATABASE_PASSWORD_MESSAGE,
+				}),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {

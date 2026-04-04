@@ -113,11 +113,9 @@ const createSchema = createInsertSchema(libsql, {
 	appName: z.string().min(1),
 	createdAt: z.string(),
 	databaseUser: z.string().min(1),
-	databasePassword: z
-		.string()
-		.regex(DATABASE_PASSWORD_REGEX, {
-			message: DATABASE_PASSWORD_MESSAGE,
-		}),
+	databasePassword: z.string().regex(DATABASE_PASSWORD_REGEX, {
+		message: DATABASE_PASSWORD_MESSAGE,
+	}),
 	sqldNode: z.enum(sqldNode.enumValues),
 	sqldPrimaryUrl: z.string().nullable(),
 	enableNamespaces: z.boolean().default(false),
