@@ -1,5 +1,6 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
+import { getECRAuthToken } from "../aws/ecr";
 import { getRegistryTag, uploadImageRemoteCommand } from "../cluster/upload";
 import {
 	calculateResources,
@@ -122,7 +123,7 @@ export const mechanizeDockerContainer = async (
 	);
 
 	const image = getImageName(application);
-	const authConfig = getAuthConfig(application);
+	const authConfig = await getAuthConfig(application);
 	const docker = await getRemoteDocker(application.serverId);
 
 	const settings: CreateServiceOptions = {
@@ -210,7 +211,7 @@ const getImageName = (application: ApplicationNested) => {
 	return imageName;
 };
 
-export const getAuthConfig = (application: ApplicationNested) => {
+export const getAuthConfig = async (application: ApplicationNested) => {
 	const {
 		registry,
 		buildRegistry,
@@ -229,12 +230,36 @@ export const getAuthConfig = (application: ApplicationNested) => {
 			};
 		}
 	} else if (registry) {
+		if (registry.registryType === "awsEcr") {
+			const token = await getECRAuthToken({
+				awsAccessKeyId: registry.awsAccessKeyId || "",
+				awsSecretAccessKey: registry.awsSecretAccessKey || "",
+				awsRegion: registry.awsRegion || "",
+			});
+			return {
+				password: token.password,
+				username: "AWS",
+				serveraddress: registry.registryUrl || "",
+			};
+		}
 		return {
 			password: registry.password,
 			username: registry.username,
 			serveraddress: registry.registryUrl,
 		};
 	} else if (buildRegistry) {
+		if (buildRegistry.registryType === "awsEcr") {
+			const token = await getECRAuthToken({
+				awsAccessKeyId: buildRegistry.awsAccessKeyId || "",
+				awsSecretAccessKey: buildRegistry.awsSecretAccessKey || "",
+				awsRegion: buildRegistry.awsRegion || "",
+			});
+			return {
+				password: token.password,
+				username: "AWS",
+				serveraddress: buildRegistry.registryUrl || "",
+			};
+		}
 		return {
 			password: buildRegistry.password,
 			username: buildRegistry.username,

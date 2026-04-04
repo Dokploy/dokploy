@@ -15,6 +15,9 @@ describe("getRegistryTag", () => {
 			imagePrefix: null,
 			createdAt: new Date().toISOString(),
 			organizationId: "test-org-id",
+			awsAccessKeyId: null,
+			awsSecretAccessKey: null,
+			awsRegion: null,
 			...overrides,
 		};
 	};

@@ -16,8 +16,11 @@ import {
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
 	initializeStandaloneTraefik,
+	initializeTraefikService,
 	TRAEFIK_VERSION,
 } from "@dokploy/server/setup/traefik-setup";
+
+const useTraefikSwarmMode = process.env.TRAEFIK_SWARM_MODE === "true";
 
 (async () => {
 	try {
@@ -28,7 +31,11 @@ import {
 		createDefaultTraefikConfig();
 		createDefaultServerTraefikConfig();
 		await execAsync(`docker pull traefik:v${TRAEFIK_VERSION}`);
-		await initializeStandaloneTraefik();
+		if (useTraefikSwarmMode) {
+			await initializeTraefikService({});
+		} else {
+			await initializeStandaloneTraefik();
+		}
 		await initializeRedis();
 		await initializePostgres();
 		console.log("Dokploy setup completed");

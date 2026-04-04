@@ -67,6 +67,7 @@ export {
 } from "./utils/access-log/handler";
 export * from "./utils/access-log/types";
 export * from "./utils/access-log/utils";
+export * from "./utils/aws/ecr";
 export * from "./utils/backups/compose";
 export * from "./utils/backups/index";
 export * from "./utils/backups/libsql";

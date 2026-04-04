@@ -1,4 +1,4 @@
-import { GitBranch, Loader2, UploadCloud } from "lucide-react";
+import { Container, GitBranch, Loader2, UploadCloud } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -19,12 +19,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
 import { SaveBitbucketProvider } from "./save-bitbucket-provider";
 import { SaveDragNDrop } from "./save-drag-n-drop";
+import { SaveEcrProvider } from "./save-ecr-provider";
 import { SaveGitlabProvider } from "./save-gitlab-provider";
 import { UnauthorizedGitProvider } from "./unauthorized-git-provider";
 
 type TabState =
 	| "github"
 	| "docker"
+	| "ecr"
 	| "git"
 	| "drop"
 	| "gitlab"
@@ -48,10 +50,23 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 	const { data: application, refetch } = api.application.one.useQuery({
 		applicationId,
 	});
+	const { data: registries } = api.registry.all.useQuery();
 	const { mutateAsync: disconnectGitProvider } =
 		api.application.disconnectGitProvider.useMutation();
 
-	const [tab, setSab] = useState<TabState>(application?.sourceType || "github");
+	const ecrRegistries = registries?.filter((r) => r.registryType === "awsEcr");
+
+	const getDefaultTab = (): TabState => {
+		if (application?.sourceType === "docker" && application?.registryId) {
+			const reg = registries?.find(
+				(r) => r.registryId === application.registryId,
+			);
+			if (reg?.registryType === "awsEcr") return "ecr";
+		}
+		return (application?.sourceType as TabState) || "github";
+	};
+
+	const [tab, setSab] = useState<TabState>(getDefaultTab);
 
 	const isLoading =
 		isLoadingGithub || isLoadingGitlab || isLoadingBitbucket || isLoadingGitea;
@@ -191,6 +206,13 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 								Docker
 							</TabsTrigger>
 							<TabsTrigger
+								value="ecr"
+								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+							>
+								<Container className="size-4 text-current" />
+								ECR
+							</TabsTrigger>
+							<TabsTrigger
 								value="git"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
@@ -289,6 +311,27 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 					</TabsContent>
 					<TabsContent value="docker" className="w-full p-2">
 						<SaveDockerProvider applicationId={applicationId} />
+					</TabsContent>
+
+					<TabsContent value="ecr" className="w-full p-2">
+						{ecrRegistries && ecrRegistries.length > 0 ? (
+							<SaveEcrProvider applicationId={applicationId} />
+						) : (
+							<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
+								<Container className="size-8 text-muted-foreground" />
+								<span className="text-base text-muted-foreground">
+									To deploy using AWS ECR, you need to configure an ECR registry
+									first. Please, go to{" "}
+									<Link
+										href="/dashboard/settings/registries"
+										className="text-foreground"
+									>
+										Settings
+									</Link>{" "}
+									to do so.
+								</span>
+							</div>
+						)}
 					</TabsContent>
 
 					<TabsContent value="git" className="w-full p-2">

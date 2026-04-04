@@ -1107,6 +1107,13 @@
       "when": 1775246622387,
       "tag": "0157_stiff_misty_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 158,
+      "version": "7",
+      "when": 1775263414866,
+      "tag": "0158_fat_stone_men",
+      "breakpoints": true
     }
   ]
 }

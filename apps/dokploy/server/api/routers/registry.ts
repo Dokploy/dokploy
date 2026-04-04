@@ -2,14 +2,19 @@ import {
 	createRegistry,
 	execAsyncRemote,
 	execFileAsync,
+	findAllRegistryByOrganizationId,
 	findRegistryById,
 	IS_CLOUD,
+	listECRRepositories as listECRRepos,
+	listECRImageTags as listECRTags,
+	loginDockerToECR,
 	removeRegistry,
 	updateRegistry,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateRegistry,
@@ -83,10 +88,9 @@ export const registryRouter = createTRPCRouter({
 			return true;
 		}),
 	all: withPermission("registry", "read").query(async ({ ctx }) => {
-		const registryResponse = await db.query.registry.findMany({
-			where: eq(registry.organizationId, ctx.session.activeOrganizationId),
-		});
-		return registryResponse;
+		return await findAllRegistryByOrganizationId(
+			ctx.session.activeOrganizationId,
+		);
 	}),
 	one: withPermission("registry", "read")
 		.input(apiFindOneRegistry)
@@ -104,20 +108,33 @@ export const registryRouter = createTRPCRouter({
 		.input(apiTestRegistry)
 		.mutation(async ({ input }) => {
 			try {
-				const args = [
-					"login",
-					input.registryUrl,
-					"--username",
-					input.username,
-					"--password-stdin",
-				];
-
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: "Select a server to test the registry",
 					});
 				}
+
+				if (input.registryType === "awsEcr") {
+					await loginDockerToECR(
+						{
+							awsAccessKeyId: input.awsAccessKeyId || "",
+							awsSecretAccessKey: input.awsSecretAccessKey || "",
+							awsRegion: input.awsRegion || "",
+							registryUrl: input.registryUrl,
+						},
+						input.serverId,
+					);
+					return true;
+				}
+
+				const args = [
+					"login",
+					input.registryUrl,
+					"--username",
+					input.username || "",
+					"--password-stdin",
+				];
 
 				if (input.serverId && input.serverId !== "none") {
 					await execAsyncRemote(
@@ -126,7 +143,7 @@ export const registryRouter = createTRPCRouter({
 					);
 				} else {
 					await execFileAsync("docker", args, {
-						input: Buffer.from(input.password).toString(),
+						input: Buffer.from(input.password || "").toString(),
 					});
 				}
 
@@ -164,14 +181,6 @@ export const registryRouter = createTRPCRouter({
 					});
 				}
 
-				const args = [
-					"login",
-					registryData.registryUrl,
-					"--username",
-					registryData.username,
-					"--password-stdin",
-				];
-
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
@@ -179,15 +188,35 @@ export const registryRouter = createTRPCRouter({
 					});
 				}
 
-				if (input.serverId && input.serverId !== "none") {
-					await execAsyncRemote(
+				if (registryData.registryType === "awsEcr") {
+					await loginDockerToECR(
+						{
+							awsAccessKeyId: registryData.awsAccessKeyId || "",
+							awsSecretAccessKey: registryData.awsSecretAccessKey || "",
+							awsRegion: registryData.awsRegion || "",
+							registryUrl: registryData.registryUrl,
+						},
 						input.serverId,
-						`echo ${registryData.password} | docker ${args.join(" ")}`,
 					);
 				} else {
-					await execFileAsync("docker", args, {
-						input: Buffer.from(registryData.password).toString(),
-					});
+					const args = [
+						"login",
+						registryData.registryUrl,
+						"--username",
+						registryData.username,
+						"--password-stdin",
+					];
+
+					if (input.serverId && input.serverId !== "none") {
+						await execAsyncRemote(
+							input.serverId,
+							`echo ${registryData.password} | docker ${args.join(" ")}`,
+						);
+					} else {
+						await execFileAsync("docker", args, {
+							input: Buffer.from(registryData.password).toString(),
+						});
+					}
 				}
 
 				return true;
@@ -198,6 +227,98 @@ export const registryRouter = createTRPCRouter({
 						error instanceof Error
 							? error.message
 							: "Error testing the registry",
+					cause: error,
+				});
+			}
+		}),
+	listECRImageTags: withPermission("registry", "read")
+		.input(
+			z.object({
+				registryId: z.string().min(1),
+				repositoryName: z.string().min(1),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			const registryData = await db.query.registry.findFirst({
+				where: eq(registry.registryId, input.registryId),
+			});
+
+			if (!registryData) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Registry not found",
+				});
+			}
+
+			if (registryData.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({ code: "UNAUTHORIZED", message: "Access denied" });
+			}
+
+			if (registryData.registryType !== "awsEcr") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Registry is not an ECR registry",
+				});
+			}
+
+			try {
+				return await listECRTags(
+					{
+						awsAccessKeyId: registryData.awsAccessKeyId || "",
+						awsSecretAccessKey: registryData.awsSecretAccessKey || "",
+						awsRegion: registryData.awsRegion || "",
+					},
+					input.repositoryName,
+				);
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? error.message
+							: "Failed to list image tags",
+					cause: error,
+				});
+			}
+		}),
+	listECRRepositories: withPermission("registry", "read")
+		.input(z.object({ registryId: z.string().min(1) }))
+		.query(async ({ input, ctx }) => {
+			const registryData = await db.query.registry.findFirst({
+				where: eq(registry.registryId, input.registryId),
+			});
+
+			if (!registryData) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Registry not found",
+				});
+			}
+
+			if (registryData.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({ code: "UNAUTHORIZED", message: "Access denied" });
+			}
+
+			if (registryData.registryType !== "awsEcr") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Registry is not an ECR registry",
+				});
+			}
+
+			try {
+				return await listECRRepos({
+					awsAccessKeyId: registryData.awsAccessKeyId || "",
+					awsSecretAccessKey: registryData.awsSecretAccessKey || "",
+					awsRegion: registryData.awsRegion || "",
+				});
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? error.message
+							: "Failed to list ECR repositories",
 					cause: error,
 				});
 			}
