@@ -9,6 +9,7 @@ export const deployJobSchema = z.discriminatedUnion("applicationType", [
 		type: z.enum(["deploy", "redeploy"]),
 		applicationType: z.literal("application"),
 		serverId: z.string().min(1),
+		deploymentId: z.string().optional(),
 	}),
 	z.object({
 		composeId: z.string(),
@@ -18,6 +19,7 @@ export const deployJobSchema = z.discriminatedUnion("applicationType", [
 		type: z.enum(["deploy", "redeploy"]),
 		applicationType: z.literal("compose"),
 		serverId: z.string().min(1),
+		deploymentId: z.string().optional(),
 	}),
 	z.object({
 		applicationId: z.string(),
@@ -28,6 +30,7 @@ export const deployJobSchema = z.discriminatedUnion("applicationType", [
 		type: z.enum(["deploy", "redeploy"]),
 		applicationType: z.literal("application-preview"),
 		serverId: z.string().min(1),
+		deploymentId: z.string().optional(),
 	}),
 ]);
 

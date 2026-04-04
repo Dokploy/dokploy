@@ -21,12 +21,14 @@ export const deploy = async (job: DeployJob) => {
 						applicationId: job.applicationId,
 						titleLog: job.titleLog || "Rebuild deployment",
 						descriptionLog: job.descriptionLog || "",
+						deploymentId: job.deploymentId,
 					});
 				} else if (job.type === "deploy") {
 					await deployApplication({
 						applicationId: job.applicationId,
 						titleLog: job.titleLog || "Manual deployment",
 						descriptionLog: job.descriptionLog || "",
+						deploymentId: job.deploymentId,
 					});
 				}
 			}
@@ -41,12 +43,14 @@ export const deploy = async (job: DeployJob) => {
 						composeId: job.composeId,
 						titleLog: job.titleLog || "Rebuild deployment",
 						descriptionLog: job.descriptionLog || "",
+						deploymentId: job.deploymentId,
 					});
 				} else if (job.type === "deploy") {
 					await deployCompose({
 						composeId: job.composeId,
 						titleLog: job.titleLog || "Manual deployment",
 						descriptionLog: job.descriptionLog || "",
+						deploymentId: job.deploymentId,
 					});
 				}
 			}
@@ -61,6 +65,7 @@ export const deploy = async (job: DeployJob) => {
 						titleLog: job.titleLog || "Rebuild Preview Deployment",
 						descriptionLog: job.descriptionLog || "",
 						previewDeploymentId: job.previewDeploymentId,
+						deploymentId: job.deploymentId,
 					});
 				} else if (job.type === "deploy") {
 					await deployPreviewApplication({
@@ -68,6 +73,7 @@ export const deploy = async (job: DeployJob) => {
 						titleLog: job.titleLog || "Preview Deployment",
 						descriptionLog: job.descriptionLog || "",
 						previewDeploymentId: job.previewDeploymentId,
+						deploymentId: job.deploymentId,
 					});
 				}
 			}

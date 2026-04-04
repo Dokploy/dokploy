@@ -68,14 +68,14 @@ import {
 	projects,
 } from "@/server/db/schema";
 import { deploymentWorker } from "@/server/queues/deployments-queue";
+import { enqueueDeploymentJob } from "@/server/queues/enqueue-deployment";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByApplication,
 	getJobsByApplicationId,
 	killDockerBuild,
-	myQueue,
 } from "@/server/queues/queueSetup";
-import { cancelDeployment, deploy } from "@/server/utils/deploy";
+import { cancelDeployment } from "@/server/utils/deploy";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -336,29 +336,9 @@ export const applicationRouter = createTRPCRouter({
 				type: "redeploy",
 				applicationType: "application",
 				server: !!application.serverId,
+				serverId: application.serverId || undefined,
 			};
-
-			if (IS_CLOUD && application.serverId) {
-				jobData.serverId = application.serverId;
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
-				});
-				await audit(ctx, {
-					action: "rebuild",
-					resourceType: "application",
-					resourceId: application.applicationId,
-					resourceName: application.appName,
-				});
-				return true;
-			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			await enqueueDeploymentJob(jobData);
 			await audit(ctx, {
 				action: "rebuild",
 				resourceType: "application",
@@ -704,28 +684,9 @@ export const applicationRouter = createTRPCRouter({
 				type: "deploy",
 				applicationType: "application",
 				server: !!application.serverId,
+				serverId: application.serverId || undefined,
 			};
-			if (IS_CLOUD && application.serverId) {
-				jobData.serverId = application.serverId;
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
-				});
-				await audit(ctx, {
-					action: "deploy",
-					resourceType: "application",
-					resourceId: application.applicationId,
-					resourceName: application.appName,
-				});
-				return true;
-			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			await enqueueDeploymentJob(jobData);
 			await audit(ctx, {
 				action: "deploy",
 				resourceType: "application",
@@ -823,23 +784,9 @@ export const applicationRouter = createTRPCRouter({
 				type: "deploy",
 				applicationType: "application",
 				server: !!app.serverId,
+				serverId: app.serverId || undefined,
 			};
-			if (IS_CLOUD && app.serverId) {
-				jobData.serverId = app.serverId;
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
-				});
-				return true;
-			}
-
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			await enqueueDeploymentJob(jobData);
 			await audit(ctx, {
 				action: "deploy",
 				resourceType: "application",

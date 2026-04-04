@@ -140,7 +140,7 @@ export const settingsRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			return true;
 		}
-		const result = cleanAllDeploymentQueue();
+		const result = await cleanAllDeploymentQueue();
 		await audit(ctx, {
 			action: "update",
 			resourceType: "settings",
