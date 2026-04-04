@@ -259,6 +259,48 @@ export const cleanupSystem = async (serverId?: string) => {
 	}
 };
 
+export interface DockerDiskUsageItem {
+	type: string;
+	totalCount: number;
+	active: number;
+	size: string;
+	reclaimable: string;
+	sizeBytes: number;
+}
+
+const parseSizeToBytes = (size: string): number => {
+	const match = size.match(/^([\d.]+)\s*([KMGT]?B)$/i);
+	if (!match) return 0;
+	const value = Number.parseFloat(match[1] as string);
+	const unit = match[2].toUpperCase();
+	const multipliers: Record<string, number> = {
+		B: 1,
+		KB: 1024,
+		MB: 1024 ** 2,
+		GB: 1024 ** 3,
+		TB: 1024 ** 4,
+	};
+	return value * (multipliers[unit] || 0);
+};
+
+export const getDockerDiskUsage = async (): Promise<DockerDiskUsageItem[]> => {
+	const command = "docker system df --format '{{json .}}'";
+	const { stdout } = await execAsync(command);
+
+	const lines = stdout.trim().split("\n").filter(Boolean);
+	return lines.map((line) => {
+		const data = JSON.parse(line);
+		return {
+			type: data.Type,
+			totalCount: Number.parseInt(data.TotalCount, 10) || 0,
+			active: Number.parseInt(data.Active, 10) || 0,
+			size: data.Size,
+			reclaimable: data.Reclaimable,
+			sizeBytes: parseSizeToBytes(data.Size),
+		};
+	});
+};
+
 /**
  * Volume cleanup should always be performed manually by the user. The reason is that during automatic cleanup, a volume may be deleted due to a stopped container, which is a dangerous situation.
  *

@@ -1,103 +1,103 @@
 import { format } from "date-fns";
+import { Area, AreaChart, CartesianGrid, YAxis } from "recharts";
 import {
-	Area,
-	AreaChart,
-	CartesianGrid,
-	Legend,
-	ResponsiveContainer,
-	Tooltip,
-	YAxis,
-} from "recharts";
+	type ChartConfig,
+	ChartContainer,
+	ChartLegend,
+	ChartLegendContent,
+	ChartTooltip,
+	ChartTooltipContent,
+} from "@/components/ui/chart";
 import type { DockerStatsJSON } from "./show-free-container-monitoring";
 
 interface Props {
 	accumulativeData: DockerStatsJSON["block"];
 }
 
+const chartConfig = {
+	readMb: {
+		label: "Read (MB)",
+		color: "hsl(var(--chart-1))",
+	},
+	writeMb: {
+		label: "Write (MB)",
+		color: "hsl(var(--chart-2))",
+	},
+} satisfies ChartConfig;
+
 export const DockerBlockChart = ({ accumulativeData }: Props) => {
-	const transformedData = accumulativeData.map((item, index) => {
-		return {
-			time: item.time,
-			name: `Point ${index + 1}`,
-			readMb: item.value.readMb,
-			writeMb: item.value.writeMb,
-		};
-	});
+	const transformedData = accumulativeData.map((item, index) => ({
+		time: item.time,
+		name: `Point ${index + 1}`,
+		readMb: item.value.readMb,
+		writeMb: item.value.writeMb,
+	}));
 
 	return (
-		<div className="mt-6 w-full h-[10rem]">
-			<ResponsiveContainer>
-				<AreaChart
-					data={transformedData}
-					margin={{
-						top: 10,
-						right: 30,
-						left: 0,
-						bottom: 0,
-					}}
-				>
-					<defs>
-						<linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-							<stop offset="5%" stopColor="#27272A" stopOpacity={0.8} />
-							<stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
-						</linearGradient>
-						<linearGradient id="colorWrite" x1="0" y1="0" x2="0" y2="1">
-							<stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8} />
-							<stop offset="95%" stopColor="#82ca9d" stopOpacity={0} />
-						</linearGradient>
-					</defs>
-					<YAxis stroke="#A1A1AA" />
-					<CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
-					{/* @ts-ignore */}
-					<Tooltip content={<CustomTooltip />} />
-					<Legend />
-					<Area
-						type="monotone"
-						dataKey="readMb"
-						stroke="#27272A"
-						fillOpacity={1}
-						fill="url(#colorUv)"
-						name="Read Mb"
-					/>
-					<Area
-						type="monotone"
-						dataKey="writeMb"
-						stroke="#82ca9d"
-						fillOpacity={1}
-						fill="url(#colorWrite)"
-						name="Write Mb"
-					/>
-				</AreaChart>
-			</ResponsiveContainer>
-		</div>
+		<ChartContainer config={chartConfig} className="mt-4 h-[10rem] w-full">
+			<AreaChart
+				data={transformedData}
+				margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+			>
+				<defs>
+					<linearGradient id="fillBlockRead" x1="0" y1="0" x2="0" y2="1">
+						<stop
+							offset="5%"
+							stopColor="var(--color-readMb)"
+							stopOpacity={0.8}
+						/>
+						<stop
+							offset="95%"
+							stopColor="var(--color-readMb)"
+							stopOpacity={0.1}
+						/>
+					</linearGradient>
+					<linearGradient id="fillBlockWrite" x1="0" y1="0" x2="0" y2="1">
+						<stop
+							offset="5%"
+							stopColor="var(--color-writeMb)"
+							stopOpacity={0.8}
+						/>
+						<stop
+							offset="95%"
+							stopColor="var(--color-writeMb)"
+							stopOpacity={0.1}
+						/>
+					</linearGradient>
+				</defs>
+				<CartesianGrid vertical={false} />
+				<YAxis tickLine={false} axisLine={false} />
+				<ChartTooltip
+					cursor={false}
+					content={
+						<ChartTooltipContent
+							labelFormatter={(_, payload) => {
+								const time = payload?.[0]?.payload?.time;
+								return time ? format(new Date(time), "PPpp") : "";
+							}}
+							formatter={(value, name) => {
+								const label = name === "readMb" ? "Read" : "Write";
+								return [`${value} MB`, label];
+							}}
+						/>
+					}
+				/>
+				<Area
+					type="monotone"
+					dataKey="readMb"
+					stroke="var(--color-readMb)"
+					fill="url(#fillBlockRead)"
+					strokeWidth={2}
+				/>
+				<Area
+					type="monotone"
+					dataKey="writeMb"
+					stroke="var(--color-writeMb)"
+					fill="url(#fillBlockWrite)"
+					strokeWidth={2}
+				/>
+				<ChartLegend content={<ChartLegendContent />} />
+			</AreaChart>
+		</ChartContainer>
 	);
-};
-interface CustomTooltipProps {
-	active: boolean;
-	payload?: {
-		color?: string;
-		dataKey?: string;
-		value?: number;
-		payload: {
-			time: string;
-			readMb: number;
-			writeMb: number;
-		};
-	}[];
-}
-
-const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
-	if (active && payload && payload.length && payload[0]) {
-		return (
-			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
-				{payload[0].payload.time && (
-					<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
-				)}
-				<p>{`Read ${payload[0].payload.readMb} `}</p>
-				<p>{`Write: ${payload[0].payload.writeMb} `}</p>
-			</div>
-		);
-	}
-
-	return null;
 };
