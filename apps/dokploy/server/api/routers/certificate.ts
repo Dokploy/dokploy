@@ -90,7 +90,6 @@ export const certificateRouter = createTRPCRouter({
 				name: input.name,
 				certificateData: input.certificateData,
 				privateKey: input.privateKey,
-				autoRenew: input.autoRenew,
 			});
 		}),
 });

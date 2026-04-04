@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -52,7 +51,6 @@ const handleCertificateSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	certificateData: z.string().min(1, "Certificate data is required"),
 	privateKey: z.string().min(1, "Private key is required"),
-	autoRenew: z.boolean().optional(),
 	serverId: z.string().optional(),
 });
 
@@ -86,7 +84,6 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 			name: "",
 			certificateData: "",
 			privateKey: "",
-			autoRenew: false,
 		},
 		resolver: zodResolver(handleCertificateSchema),
 	});
@@ -97,14 +94,12 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 				name: existingCert.name,
 				certificateData: existingCert.certificateData,
 				privateKey: existingCert.privateKey,
-				autoRenew: existingCert.autoRenew ?? false,
 			});
 		} else {
 			form.reset({
 				name: "",
 				certificateData: "",
 				privateKey: "",
-				autoRenew: false,
 			});
 		}
 	}, [existingCert, form, open]);
@@ -114,7 +109,6 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 			name: data.name,
 			certificateData: data.certificateData,
 			privateKey: data.privateKey,
-			autoRenew: data.autoRenew,
 		};
 
 		const promise = certificateId
@@ -228,22 +222,6 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 											{...field}
 										/>
 									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="autoRenew"
-							render={({ field }) => (
-								<FormItem className="flex items-center gap-2">
-									<FormControl>
-										<Checkbox
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-									<FormLabel className="!mt-0">Auto-renew</FormLabel>
 									<FormMessage />
 								</FormItem>
 							)}

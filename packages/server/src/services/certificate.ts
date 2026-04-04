@@ -133,7 +133,6 @@ export const updateCertificate = async (
 		name?: string;
 		certificateData?: string;
 		privateKey?: string;
-		autoRenew?: boolean;
 	},
 ) => {
 	const updated = await db
