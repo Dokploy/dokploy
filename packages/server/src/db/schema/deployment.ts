@@ -18,6 +18,7 @@ import { schedules } from "./schedule";
 import { server } from "./server";
 import { volumeBackups } from "./volume-backups";
 export const deploymentStatus = pgEnum("deploymentStatus", [
+	"queued",
 	"running",
 	"done",
 	"error",

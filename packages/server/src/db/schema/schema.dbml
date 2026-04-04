@@ -39,6 +39,7 @@ enum databaseType {
 }
 
 enum deploymentStatus {
+  queued
   running
   done
   error
