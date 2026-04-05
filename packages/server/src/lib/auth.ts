@@ -166,7 +166,10 @@ const { handler, api } = betterAuth({
 									message: "Invitation has already been used",
 								});
 							}
-							if (_user.email.toLowerCase().trim() !== invitation.email.toLowerCase().trim()) {
+							if (
+								_user.email.toLowerCase().trim() !==
+								invitation.email.toLowerCase().trim()
+							) {
 								throw new APIError("BAD_REQUEST", {
 									message: "Email does not match invitation",
 								});
