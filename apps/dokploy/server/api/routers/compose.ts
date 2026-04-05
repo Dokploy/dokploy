@@ -56,6 +56,7 @@ import {
 	apiFindCompose,
 	apiRandomizeCompose,
 	apiRedeployCompose,
+	apiSaveEnvironmentVariablesCompose,
 	apiUpdateCompose,
 	compose as composeTable,
 } from "@/server/db/schema";
@@ -206,6 +207,31 @@ export const composeRouter = createTRPCRouter({
 			}
 			return updateCompose(input.composeId, input);
 		}),
+	saveEnvironment: protectedProcedure
+		.input(apiSaveEnvironmentVariablesCompose)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.composeId, {
+				envVars: ["write"],
+			});
+			const updated = await updateCompose(input.composeId, {
+				env: input.env,
+			});
+
+			if (!updated) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error adding environment variables",
+				});
+			}
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "compose",
+				resourceId: input.composeId,
+				resourceName: updated?.name,
+			});
+			return true;
+		}),
 	delete: protectedProcedure
 		.input(apiDeleteCompose)
 		.mutation(async ({ input, ctx }) => {
@@ -283,16 +309,9 @@ export const composeRouter = createTRPCRouter({
 	loadServices: protectedProcedure
 		.input(apiFetchServices)
 		.query(async ({ input, ctx }) => {
-			const compose = await findComposeById(input.composeId);
-			if (
-				compose.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to load this compose",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, input.composeId, {
+				service: ["read"],
+			});
 			return await loadServices(input.composeId, input.type);
 		}),
 	loadMountsByService: protectedProcedure
