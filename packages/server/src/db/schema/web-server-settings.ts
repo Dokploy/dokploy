@@ -66,6 +66,36 @@ export const webServerSettings = pgTable("webServerSettings", {
 				},
 			},
 		}),
+	// Whitelabeling Configuration (Enterprise / Proprietary)
+	whitelabelingConfig: jsonb("whitelabelingConfig")
+		.$type<{
+			appName: string | null;
+			appDescription: string | null;
+			logoUrl: string | null;
+			faviconUrl: string | null;
+			customCss: string | null;
+			loginLogoUrl: string | null;
+			supportUrl: string | null;
+			docsUrl: string | null;
+			errorPageTitle: string | null;
+			errorPageDescription: string | null;
+			metaTitle: string | null;
+			footerText: string | null;
+		}>()
+		.default({
+			appName: null,
+			appDescription: null,
+			logoUrl: null,
+			faviconUrl: null,
+			customCss: null,
+			loginLogoUrl: null,
+			supportUrl: null,
+			docsUrl: null,
+			errorPageTitle: null,
+			errorPageDescription: null,
+			metaTitle: null,
+			footerText: null,
+		}),
 	// Cache Cleanup Configuration
 	cleanupCacheApplications: boolean("cleanupCacheApplications")
 		.notNull()
@@ -152,6 +182,33 @@ export const apiSaveSSHKey = z
 export const apiUpdateDockerCleanup = z.object({
 	enableDockerCleanup: z.boolean(),
 	serverId: z.string().optional(),
+});
+
+// Whitelabeling validation schemas
+const safeUrl = z
+	.string()
+	.refine((url) => /^https?:\/\//i.test(url), {
+		message: "Only http:// and https:// URLs are allowed",
+	})
+	.nullable();
+
+export const whitelabelingConfigSchema = z.object({
+	appName: z.string().nullable(),
+	appDescription: z.string().nullable(),
+	logoUrl: safeUrl,
+	faviconUrl: safeUrl,
+	customCss: z.string().nullable(),
+	loginLogoUrl: safeUrl,
+	supportUrl: safeUrl,
+	docsUrl: safeUrl,
+	errorPageTitle: z.string().nullable(),
+	errorPageDescription: z.string().nullable(),
+	metaTitle: z.string().nullable(),
+	footerText: z.string().nullable(),
+});
+
+export const apiUpdateWhitelabeling = z.object({
+	whitelabelingConfig: whitelabelingConfigSchema,
 });
 
 export const apiUpdateWebServerMonitoring = z.object({

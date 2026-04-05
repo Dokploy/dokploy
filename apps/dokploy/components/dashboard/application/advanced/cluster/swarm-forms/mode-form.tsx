@@ -23,7 +23,14 @@ import { api } from "@/utils/api";
 
 interface ModeFormProps {
 	id: string;
-	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
+	type:
+		| "postgres"
+		| "mariadb"
+		| "mongo"
+		| "mysql"
+		| "redis"
+		| "application"
+		| "libsql";
 }
 
 export const ModeForm = ({ id, type }: ModeFormProps) => {
@@ -39,6 +46,7 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 		application: () =>
 			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
 		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
@@ -51,6 +59,7 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 		mariadb: () => api.mariadb.update.useMutation(),
 		application: () => api.application.update.useMutation(),
 		mongo: () => api.mongo.update.useMutation(),
+		libsql: () => api.libsql.update.useMutation(),
 	};
 
 	const { mutateAsync } = mutationMap[type]
@@ -95,6 +104,7 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 					mysqlId: id || "",
 					mariadbId: id || "",
 					mongoId: id || "",
+					libsqlId: id || "",
 					modeSwarm: null,
 				});
 				toast.success("Mode updated successfully");
@@ -105,7 +115,14 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 
 			const modeData =
 				formData.type === "Replicated"
-					? { Replicated: { Replicas: formData.Replicas } }
+					? {
+							Replicated: {
+								Replicas:
+									formData.Replicas !== undefined && formData.Replicas !== ""
+										? Number(formData.Replicas)
+										: undefined,
+							},
+						}
 					: { Global: {} };
 
 			await mutateAsync({
@@ -115,6 +132,7 @@ export const ModeForm = ({ id, type }: ModeFormProps) => {
 				mysqlId: id || "",
 				mariadbId: id || "",
 				mongoId: id || "",
+				libsqlId: id || "",
 				modeSwarm: modeData,
 			});
 

@@ -12,7 +12,7 @@ import {
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { getS3Credentials, normalizeS3Path } from "../backups/utils";
 import { sendVolumeBackupNotifications } from "../notifications/volume-backup";
-import { backupVolume } from "./backup";
+import { backupVolume, getVolumeServiceAppName } from "./backup";
 
 // Helper functions to extract project info from volume backup
 const getProjectName = (
@@ -26,6 +26,7 @@ const getProjectName = (
 		volumeBackup.mariadb,
 		volumeBackup.mongo,
 		volumeBackup.redis,
+		volumeBackup.libsql,
 	];
 
 	for (const service of services) {
@@ -48,6 +49,7 @@ const getOrganizationId = (
 		volumeBackup.mariadb,
 		volumeBackup.mongo,
 		volumeBackup.redis,
+		volumeBackup.libsql,
 	];
 
 	for (const service of services) {
@@ -81,9 +83,9 @@ const cleanupOldVolumeBackups = async (
 
 	try {
 		const rcloneFlags = getS3Credentials(destination);
-		const normalizedPrefix = normalizeS3Path(prefix);
-		const backupFilesPath = `:s3:${destination.bucket}/${normalizedPrefix}`;
-		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include \"${volumeName}-*.tar\" :s3:${destination.bucket}/${normalizedPrefix}`;
+		const s3AppName = getVolumeServiceAppName(volumeBackup);
+		const backupFilesPath = `:s3:${destination.bucket}/${s3AppName}/${normalizeS3Path(prefix || "")}`;
+		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include \"${volumeName}-*.tar\" ${backupFilesPath}`;
 		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
 		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
 		const fullCommand = `${listCommand} | ${sortAndPick} ${deleteCommand}`;
@@ -131,14 +133,21 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 				? "mongodb"
 				: volumeBackup.serviceType;
 
-		await sendVolumeBackupNotifications({
-			projectName,
-			applicationName: volumeBackup.name,
-			volumeName: volumeBackup.volumeName,
-			serviceType: mappedServiceType,
-			type: "success",
-			organizationId,
-		});
+		try {
+			await sendVolumeBackupNotifications({
+				projectName,
+				applicationName: volumeBackup.name,
+				volumeName: volumeBackup.volumeName,
+				serviceType: mappedServiceType,
+				type: "success",
+				organizationId,
+			});
+		} catch (notificationError) {
+			console.error(
+				"Failed to send volume backup success notification",
+				notificationError,
+			);
+		}
 	} catch (error) {
 		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 		const volumeBackupPath = path.join(
@@ -160,14 +169,21 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 				? "mongodb"
 				: volumeBackup.serviceType;
 
-		await sendVolumeBackupNotifications({
-			projectName,
-			applicationName: volumeBackup.name,
-			volumeName: volumeBackup.volumeName,
-			serviceType: mappedServiceType,
-			type: "error",
-			organizationId,
-			errorMessage: error instanceof Error ? error.message : String(error),
-		});
+		try {
+			await sendVolumeBackupNotifications({
+				projectName,
+				applicationName: volumeBackup.name,
+				volumeName: volumeBackup.volumeName,
+				serviceType: mappedServiceType,
+				type: "error",
+				organizationId,
+				errorMessage: error instanceof Error ? error.message : String(error),
+			});
+		} catch (notificationError) {
+			console.error(
+				"Failed to send volume backup error notification",
+				notificationError,
+			);
+		}
 	}
 };

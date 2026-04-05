@@ -30,10 +30,18 @@ import {
 	RestartPolicySwarmSchema,
 	type ServiceModeSwarm,
 	ServiceModeSwarmSchema,
+	type UlimitsSwarm,
+	UlimitsSwarmSchema,
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
-import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
+import {
+	APP_NAME_MESSAGE,
+	APP_NAME_REGEX,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
+	generateAppName,
+} from "./utils";
 
 export const mongo = pgTable("mongo", {
 	mongoId: text("mongoId")
@@ -48,7 +56,7 @@ export const mongo = pgTable("mongo", {
 	description: text("description"),
 	databaseUser: text("databaseUser").notNull(),
 	databasePassword: text("databasePassword").notNull(),
-	dockerImage: text("dockerImage").notNull(),
+	dockerImage: text("dockerImage").notNull().default("mongo:8"),
 	command: text("command"),
 	args: text("args").array(),
 	env: text("env"),
@@ -70,6 +78,7 @@ export const mongo = pgTable("mongo", {
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
+	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
 	replicas: integer("replicas").default(1).notNull(),
 	createdAt: text("createdAt")
 		.notNull()
@@ -107,12 +116,9 @@ const createSchema = createInsertSchema(mongo, {
 	createdAt: z.string(),
 	mongoId: z.string(),
 	name: z.string().min(1),
-	databasePassword: z
-		.string()
-		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-			message:
-				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-		}),
+	databasePassword: z.string().regex(DATABASE_PASSWORD_REGEX, {
+		message: DATABASE_PASSWORD_MESSAGE,
+	}),
 	databaseUser: z.string().min(1),
 	dockerImage: z.string().default("mongo:15"),
 	command: z.string().optional(),
@@ -138,6 +144,7 @@ const createSchema = createInsertSchema(mongo, {
 	networkSwarm: NetworkSwarmSchema.nullable(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
+	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 });
 
 export const apiCreateMongo = createSchema.pick({
@@ -152,11 +159,9 @@ export const apiCreateMongo = createSchema.pick({
 	replicaSets: true,
 });
 
-export const apiFindOneMongo = createSchema
-	.pick({
-		mongoId: true,
-	})
-	.required();
+export const apiFindOneMongo = z.object({
+	mongoId: z.string().min(1),
+});
 
 export const apiChangeMongoStatus = createSchema
 	.pick({
@@ -189,6 +194,7 @@ export const apiUpdateMongo = createSchema
 	.partial()
 	.extend({
 		mongoId: z.string().min(1),
+		dockerImage: z.string().optional(),
 	})
 	.omit({ serverId: true });
 

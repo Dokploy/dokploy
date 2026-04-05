@@ -8,19 +8,24 @@ import type { Mariadb } from "@dokploy/server/services/mariadb";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	getBackupCommand,
+	getBackupTimestamp,
+	getS3Credentials,
+	normalizeS3Path,
+} from "./utils";
 
 export const runMariadbBackup = async (
 	mariadb: Mariadb,
 	backup: BackupSchedule,
 ) => {
-	const { environmentId, name } = mariadb;
+	const { environmentId, name, appName } = mariadb;
 	const environment = await findEnvironmentById(environmentId);
 	const project = await findProjectById(environment.projectId);
 	const { prefix } = backup;
 	const destination = backup.destination;
-	const backupFileName = `${new Date().toISOString()}.sql.gz`;
-	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
+	const backupFileName = `${getBackupTimestamp()}.sql.gz`;
+	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
 		title: "MariaDB Backup",

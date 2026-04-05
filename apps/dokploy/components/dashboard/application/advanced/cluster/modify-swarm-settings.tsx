@@ -22,6 +22,7 @@ import {
 	HealthCheckForm,
 	LabelsForm,
 	ModeForm,
+	NetworkForm,
 	PlacementForm,
 	RestartPolicyForm,
 	RollbackConfigForm,
@@ -80,6 +81,13 @@ const menuItems: MenuItem[] = [
 			"Set service mode to either 'Replicated' with a specified number of tasks (Replicas), or 'Global' (one task per node).",
 	},
 	{
+		id: "network",
+		label: "Network",
+		description: "Configure network attachments",
+		docDescription:
+			"Attach the service to one or more networks. Specify the network name (Target) and optional network aliases for service discovery.",
+	},
+	{
 		id: "labels",
 		label: "Labels",
 		description: "Configure service labels",
@@ -102,16 +110,16 @@ const menuItems: MenuItem[] = [
 	},
 ];
 
-const hasStopGracePeriodSwarm = (
-	value: unknown,
-): value is { stopGracePeriodSwarm: bigint | number | string | null } =>
-	typeof value === "object" &&
-	value !== null &&
-	"stopGracePeriodSwarm" in value;
-
 interface Props {
 	id: string;
-	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
+	type:
+		| "application"
+		| "libsql"
+		| "mariadb"
+		| "mongo"
+		| "mysql"
+		| "postgres"
+		| "redis";
 }
 
 export const AddSwarmSettings = ({ id, type }: Props) => {
@@ -190,6 +198,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							<RollbackConfigForm id={id} type={type} />
 						)}
 						{activeMenu === "mode" && <ModeForm id={id} type={type} />}
+						{activeMenu === "network" && <NetworkForm id={id} type={type} />}
 						{activeMenu === "labels" && <LabelsForm id={id} type={type} />}
 						{activeMenu === "stop-grace-period" && (
 							<StopGracePeriodForm id={id} type={type} />

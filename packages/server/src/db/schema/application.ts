@@ -19,6 +19,7 @@ import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
+import { patch } from "./patch";
 import { ports } from "./port";
 import { previewDeployments } from "./preview-deployments";
 import { redirects } from "./redirects";
@@ -43,6 +44,8 @@ import {
 	type ServiceModeSwarm,
 	ServiceModeSwarmSchema,
 	triggerType,
+	type UlimitsSwarm,
+	UlimitsSwarmSchema,
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
@@ -157,7 +160,7 @@ export const applications = pgTable("application", {
 		},
 	),
 	enableSubmodules: boolean("enableSubmodules").notNull().default(false),
-	dockerfile: text("dockerfile"),
+	dockerfile: text("dockerfile").default("Dockerfile"),
 	dockerContextPath: text("dockerContextPath"),
 	dockerBuildStage: text("dockerBuildStage"),
 	// Drop
@@ -173,6 +176,7 @@ export const applications = pgTable("application", {
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
+	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
 	//
 	replicas: integer("replicas").default(1).notNull(),
 	applicationStatus: applicationStatus("applicationStatus")
@@ -284,6 +288,7 @@ export const applicationsRelations = relations(
 			references: [registry.registryId],
 			relationName: "applicationRollbackRegistry",
 		}),
+		patches: many(patch),
 	}),
 );
 
@@ -327,6 +332,7 @@ const createSchema = createInsertSchema(applications, {
 	sourceType: z
 		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
 		.optional(),
+	triggerType: z.enum(["push", "tag"]).optional(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	buildType: z.enum([
 		"dockerfile",
@@ -360,11 +366,13 @@ const createSchema = createInsertSchema(applications, {
 	previewPath: z.string().optional(),
 	previewCertificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 	previewRequireCollaboratorPermissions: z.boolean().optional(),
-	watchPaths: z.array(z.string()).optional(),
+	watchPaths: z.array(z.string()).optional().optional(),
 	previewLabels: z.array(z.string()).optional(),
 	cleanCache: z.boolean().optional(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
+	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
+	enableSubmodules: z.boolean().optional(),
 });
 
 export const apiCreateApplication = createSchema.pick({
@@ -375,11 +383,9 @@ export const apiCreateApplication = createSchema.pick({
 	serverId: true,
 });
 
-export const apiFindOneApplication = createSchema
-	.pick({
-		applicationId: true,
-	})
-	.required();
+export const apiFindOneApplication = z.object({
+	applicationId: z.string().min(1),
+});
 
 export const apiDeployApplication = createSchema
 	.pick({
@@ -429,13 +435,13 @@ export const apiSaveGithubProvider = createSchema
 		owner: true,
 		buildPath: true,
 		githubId: true,
-		watchPaths: true,
-		enableSubmodules: true,
 	})
 	.required()
 	.extend({
 		triggerType: z.enum(["push", "tag"]).default("push"),
-	});
+	})
+	.required()
+	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
 
 export const apiSaveGitlabProvider = createSchema
 	.pick({
@@ -447,10 +453,9 @@ export const apiSaveGitlabProvider = createSchema
 		gitlabId: true,
 		gitlabProjectId: true,
 		gitlabPathNamespace: true,
-		watchPaths: true,
-		enableSubmodules: true,
 	})
-	.required();
+	.required()
+	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
 
 export const apiSaveBitbucketProvider = createSchema
 	.pick({
@@ -461,10 +466,9 @@ export const apiSaveBitbucketProvider = createSchema
 		bitbucketRepositorySlug: true,
 		bitbucketId: true,
 		applicationId: true,
-		watchPaths: true,
-		enableSubmodules: true,
 	})
-	.required();
+	.required()
+	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
 
 export const apiSaveGiteaProvider = createSchema
 	.pick({
@@ -474,10 +478,9 @@ export const apiSaveGiteaProvider = createSchema
 		giteaOwner: true,
 		giteaRepository: true,
 		giteaId: true,
-		watchPaths: true,
-		enableSubmodules: true,
 	})
-	.required();
+	.required()
+	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
 
 export const apiSaveDockerProvider = createSchema
 	.pick({
@@ -502,6 +505,7 @@ export const apiSaveGitProvider = createSchema
 	.merge(
 		createSchema.pick({
 			customGitSSHKeyId: true,
+			enableSubmodules: true,
 		}),
 	);
 
@@ -515,11 +519,9 @@ export const apiSaveEnvironmentVariables = createSchema
 	})
 	.required();
 
-export const apiFindMonitoringStats = createSchema
-	.pick({
-		appName: true,
-	})
-	.required();
+export const apiFindMonitoringStats = z.object({
+	appName: z.string().min(1),
+});
 
 export const apiUpdateApplication = createSchema
 	.partial()

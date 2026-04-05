@@ -1,7 +1,7 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { InfoIcon } from "lucide-react";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { InfoIcon, Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -21,10 +21,18 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
 	createConverter,
 	NumberInputWithSteps,
 } from "@/components/ui/number-input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import {
 	Tooltip,
 	TooltipContent,
@@ -50,20 +58,44 @@ const memoryConverter = createConverter(1024 * 1024, (mb) => {
 		: `${formatNumber(mb)} MB`;
 });
 
+const ulimitSchema = z.object({
+	Name: z.string().min(1, "Name is required"),
+	Soft: z.coerce.number().int().min(-1, "Must be >= -1"),
+	Hard: z.coerce.number().int().min(-1, "Must be >= -1"),
+});
+
 const addResourcesSchema = z.object({
 	memoryReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
+	ulimitsSwarm: z.array(ulimitSchema).optional(),
 });
 
+const ULIMIT_PRESETS = [
+	{ value: "nofile", label: "nofile (Open Files)" },
+	{ value: "nproc", label: "nproc (Processes)" },
+	{ value: "memlock", label: "memlock (Locked Memory)" },
+	{ value: "stack", label: "stack (Stack Size)" },
+	{ value: "core", label: "core (Core File Size)" },
+	{ value: "cpu", label: "cpu (CPU Time)" },
+	{ value: "data", label: "data (Data Segment)" },
+	{ value: "fsize", label: "fsize (File Size)" },
+	{ value: "locks", label: "locks (File Locks)" },
+	{ value: "msgqueue", label: "msgqueue (Message Queues)" },
+	{ value: "nice", label: "nice (Nice Priority)" },
+	{ value: "rtprio", label: "rtprio (Real-time Priority)" },
+	{ value: "sigpending", label: "sigpending (Pending Signals)" },
+];
+
 export type ServiceType =
-	| "postgres"
-	| "mongo"
-	| "redis"
-	| "mysql"
+	| "application"
+	| "libsql"
 	| "mariadb"
-	| "application";
+	| "mongo"
+	| "mysql"
+	| "postgres"
+	| "redis";
 
 interface Props {
 	id: string;
@@ -74,41 +106,49 @@ type AddResources = z.infer<typeof addResourcesSchema>;
 
 export const ShowResources = ({ id, type }: Props) => {
 	const queryMap = {
+		application: () =>
+			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
+		mariadb: () =>
+			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
 		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
-		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
-		mariadb: () =>
-			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
-		application: () =>
-			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
-		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 
 	const mutationMap = {
+		application: () => api.application.update.useMutation(),
+		libsql: () => api.libsql.update.useMutation(),
+		mariadb: () => api.mariadb.update.useMutation(),
+		mongo: () => api.mongo.update.useMutation(),
+		mysql: () => api.mysql.update.useMutation(),
 		postgres: () => api.postgres.update.useMutation(),
 		redis: () => api.redis.update.useMutation(),
-		mysql: () => api.mysql.update.useMutation(),
-		mariadb: () => api.mariadb.update.useMutation(),
-		application: () => api.application.update.useMutation(),
-		mongo: () => api.mongo.update.useMutation(),
 	};
 
-	const { mutateAsync, isLoading } = mutationMap[type]
+	const { mutateAsync, isPending } = mutationMap[type]
 		? mutationMap[type]()
 		: api.mongo.update.useMutation();
 
-	const form = useForm<AddResources>({
+	const form = useForm({
 		defaultValues: {
 			cpuLimit: "",
 			cpuReservation: "",
 			memoryLimit: "",
 			memoryReservation: "",
+			ulimitsSwarm: [],
 		},
 		resolver: zodResolver(addResourcesSchema),
+	});
+
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: "ulimitsSwarm",
 	});
 
 	useEffect(() => {
@@ -118,22 +158,28 @@ export const ShowResources = ({ id, type }: Props) => {
 				cpuReservation: data?.cpuReservation || undefined,
 				memoryLimit: data?.memoryLimit || undefined,
 				memoryReservation: data?.memoryReservation || undefined,
+				ulimitsSwarm: (data as any)?.ulimitsSwarm || [],
 			});
 		}
 	}, [data, form, form.reset]);
 
 	const onSubmit = async (formData: AddResources) => {
 		await mutateAsync({
+			applicationId: id || "",
+			libsqlId: id || "",
+			mariadbId: id || "",
 			mongoId: id || "",
+			mysqlId: id || "",
 			postgresId: id || "",
 			redisId: id || "",
-			mysqlId: id || "",
-			mariadbId: id || "",
-			applicationId: id || "",
 			cpuLimit: formData.cpuLimit || null,
 			cpuReservation: formData.cpuReservation || null,
 			memoryLimit: formData.memoryLimit || null,
 			memoryReservation: formData.memoryReservation || null,
+			ulimitsSwarm:
+				formData.ulimitsSwarm && formData.ulimitsSwarm.length > 0
+					? formData.ulimitsSwarm
+					: null,
 		})
 			.then(async () => {
 				toast.success("Resources Updated");
@@ -325,8 +371,157 @@ export const ShowResources = ({ id, type }: Props) => {
 								}}
 							/>
 						</div>
+
+						{/* Ulimits Section */}
+						<div className="space-y-4">
+							<div className="flex items-center justify-between">
+								<div className="flex items-center gap-2">
+									<FormLabel className="text-base">Ulimits</FormLabel>
+									<TooltipProvider>
+										<Tooltip delayDuration={0}>
+											<TooltipTrigger>
+												<InfoIcon className="h-4 w-4 text-muted-foreground" />
+											</TooltipTrigger>
+											<TooltipContent className="max-w-xs">
+												<p>
+													Set resource limits for the container. Each ulimit has
+													a soft limit (warning threshold) and hard limit
+													(maximum allowed). Use -1 for unlimited.
+												</p>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+								</div>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									onClick={() =>
+										append({ Name: "nofile", Soft: 65535, Hard: 65535 })
+									}
+								>
+									<Plus className="h-4 w-4 mr-1" />
+									Add Ulimit
+								</Button>
+							</div>
+
+							{fields.length > 0 && (
+								<div className="space-y-3">
+									{fields.map((field, index) => (
+										<div
+											key={field.id}
+											className="flex items-start gap-3 p-3 border rounded-lg bg-muted/30"
+										>
+											<FormField
+												control={form.control}
+												name={`ulimitsSwarm.${index}.Name`}
+												render={({ field }) => (
+													<FormItem className="flex-1">
+														<FormLabel className="text-xs">Type</FormLabel>
+														<Select
+															onValueChange={field.onChange}
+															value={field.value}
+														>
+															<FormControl>
+																<SelectTrigger>
+																	<SelectValue placeholder="Select ulimit" />
+																</SelectTrigger>
+															</FormControl>
+															<SelectContent>
+																{ULIMIT_PRESETS.map((preset) => (
+																	<SelectItem
+																		key={preset.value}
+																		value={preset.value}
+																	>
+																		{preset.label}
+																	</SelectItem>
+																))}
+															</SelectContent>
+														</Select>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name={`ulimitsSwarm.${index}.Soft`}
+												render={({ field }) => (
+													<FormItem className="w-32">
+														<FormLabel className="text-xs">
+															Soft Limit
+														</FormLabel>
+														<FormControl>
+															<Input
+																type="number"
+																min={-1}
+																placeholder="65535"
+																{...field}
+																value={
+																	typeof field.value === "number"
+																		? field.value
+																		: ""
+																}
+																onChange={(e) =>
+																	field.onChange(Number(e.target.value))
+																}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name={`ulimitsSwarm.${index}.Hard`}
+												render={({ field }) => (
+													<FormItem className="w-32">
+														<FormLabel className="text-xs">
+															Hard Limit
+														</FormLabel>
+														<FormControl>
+															<Input
+																type="number"
+																min={-1}
+																placeholder="65535"
+																{...field}
+																value={
+																	typeof field.value === "number"
+																		? field.value
+																		: ""
+																}
+																onChange={(e) =>
+																	field.onChange(Number(e.target.value))
+																}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon"
+												className="mt-6 text-destructive hover:text-destructive"
+												onClick={() => remove(index)}
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
+										</div>
+									))}
+								</div>
+							)}
+
+							{fields.length === 0 && (
+								<p className="text-sm text-muted-foreground">
+									No ulimits configured. Click &quot;Add Ulimit&quot; to set
+									resource limits.
+								</p>
+							)}
+						</div>
+
 						<div className="flex w-full justify-end">
-							<Button isLoading={isLoading} type="submit">
+							<Button isLoading={isPending} type="submit">
 								Save
 							</Button>
 						</div>
