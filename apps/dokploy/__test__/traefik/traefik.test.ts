@@ -95,6 +95,7 @@ const baseApp: ApplicationNested = {
 	dropBuildPath: null,
 	enabled: null,
 	env: null,
+	icon: null,
 	healthCheckSwarm: null,
 	labelsSwarm: null,
 	memoryLimit: null,
