@@ -65,6 +65,7 @@ export const user = pgTable("user", {
 	stripeCustomerId: text("stripeCustomerId"),
 	stripeSubscriptionId: text("stripeSubscriptionId"),
 	serversQuantity: integer("serversQuantity").notNull().default(0),
+	isEnterpriseCloud: boolean("isEnterpriseCloud").notNull().default(false),
 	trustedOrigins: text("trustedOrigins").array(),
 	bookmarkedTemplates: text("bookmarkedTemplates")
 		.array()
@@ -92,6 +93,7 @@ const createSchema = createInsertSchema(user, {
 	trustedOrigins: true,
 	bookmarkedTemplates: true,
 	isValidEnterpriseLicense: true,
+	isEnterpriseCloud: true,
 });
 
 export const apiCreateUserInvitation = createSchema.pick({}).extend({
