@@ -427,9 +427,9 @@ describe("Docker Image Name and Tag Extraction", () => {
 
 		it("should extract tag from registry with port and tag", () => {
 			expect(extractImageTag("registry:5000/image:tag")).toBe("tag");
-			expect(
-				extractImageTag("registry.example.com:5000/myimage:v2.0"),
-			).toBe("v2.0");
+			expect(extractImageTag("registry.example.com:5000/myimage:v2.0")).toBe(
+				"v2.0",
+			);
 			expect(extractImageTag("localhost:5000/app:sha-abc123")).toBe(
 				"sha-abc123",
 			);
