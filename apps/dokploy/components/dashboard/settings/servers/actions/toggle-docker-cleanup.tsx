@@ -1,7 +1,14 @@
-import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
+import { HelpCircle } from "lucide-react";
+import { toast } from "sonner";
 
 interface Props {
 	serverId?: string;
@@ -52,7 +59,37 @@ export const ToggleDockerCleanup = ({ serverId }: Props) => {
 	return (
 		<div className="flex items-center gap-4">
 			<Switch checked={!!enabled} onCheckedChange={handleToggle} />
-			<Label className="text-primary">Daily Docker Cleanup</Label>
+			<TooltipProvider delayDuration={0}>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Label className="text-primary flex items-center gap-1.5 cursor-pointer">
+							Daily Docker Cleanup
+							<HelpCircle className="size-4 text-muted-foreground" />
+						</Label>
+					</TooltipTrigger>
+					<TooltipContent side="top" className="max-w-sm">
+						<p>
+							Runs a full Docker cleanup daily, pruning stopped
+							containers, unused images, volumes, build cache, and
+							system resources. This may remove images built for
+							Compose services that run on-demand (backup runners,
+							cron jobs, one-off tasks).
+						</p>
+						<p className="mt-1">
+							For custom cleanup strategies, use{" "}
+							<a
+								href="https://docs.dokploy.com/docs/core/schedule-jobs#example-1-automatic-docker-cleanup"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="underline text-primary"
+							>
+								Schedule Jobs
+							</a>{" "}
+							on your web server or remote servers.
+						</p>
+					</TooltipContent>
+				</Tooltip>
+			</TooltipProvider>
 		</div>
 	);
 };
