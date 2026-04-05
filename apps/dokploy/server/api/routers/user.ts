@@ -347,7 +347,7 @@ export const userRouter = createTRPCRouter({
 					});
 				}
 
-				const { id, accessedGitProviders, ...rest } = input;
+				const { id, accessedGitProviders, accessedServers, ...rest } = input;
 
 				const licensed = await hasValidLicense(
 					ctx.session?.activeOrganizationId || "",
@@ -359,6 +359,9 @@ export const userRouter = createTRPCRouter({
 						...rest,
 						...(licensed && accessedGitProviders !== undefined
 							? { accessedGitProviders }
+							: {}),
+						...(licensed && accessedServers !== undefined
+							? { accessedServers }
 							: {}),
 					})
 					.where(

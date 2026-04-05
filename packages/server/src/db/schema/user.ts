@@ -131,6 +131,7 @@ export const apiAssignPermissions = createSchema
 		accessedEnvironments: z.array(z.string()).optional(),
 		accessedServices: z.array(z.string()).optional(),
 		accessedGitProviders: z.array(z.string()).optional(),
+		accessedServers: z.array(z.string()).optional(),
 		canCreateProjects: z.boolean().optional(),
 		canCreateServices: z.boolean().optional(),
 		canDeleteProjects: z.boolean().optional(),

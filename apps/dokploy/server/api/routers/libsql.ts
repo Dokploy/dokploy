@@ -15,6 +15,7 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateLibsqlById,
+	getAccessibleServerIds,
 } from "@dokploy/server";
 import {
 	addNewService,
@@ -62,6 +63,17 @@ export const libsqlRouter = createTRPCRouter({
 						message: "You are not authorized to access this project",
 					});
 				}
+
+				if (input.serverId) {
+					const accessibleIds = await getAccessibleServerIds(ctx.session);
+					if (!accessibleIds.has(input.serverId)) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this server",
+						});
+					}
+				}
+
 				const newLibsql = await createLibsql({
 					...input,
 				});
