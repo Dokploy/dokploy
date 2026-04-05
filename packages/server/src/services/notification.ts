@@ -5,40 +5,47 @@ import {
 	type apiCreateEmail,
 	type apiCreateGotify,
 	type apiCreateLark,
+	type apiCreateMattermost,
 	type apiCreateNtfy,
 	type apiCreatePushover,
 	type apiCreateResend,
 	type apiCreateSlack,
+	type apiCreateTeams,
 	type apiCreateTelegram,
 	type apiUpdateCustom,
 	type apiUpdateDiscord,
 	type apiUpdateEmail,
 	type apiUpdateGotify,
 	type apiUpdateLark,
+	type apiUpdateMattermost,
 	type apiUpdateNtfy,
 	type apiUpdatePushover,
 	type apiUpdateResend,
 	type apiUpdateSlack,
+	type apiUpdateTeams,
 	type apiUpdateTelegram,
 	custom,
 	discord,
 	email,
 	gotify,
 	lark,
+	mattermost,
 	notifications,
 	ntfy,
 	pushover,
 	resend,
 	slack,
+	teams,
 	telegram,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import type { z } from "zod";
 
 export type Notification = typeof notifications.$inferSelect;
 
 export const createSlackNotification = async (
-	input: typeof apiCreateSlack._type,
+	input: z.infer<typeof apiCreateSlack>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -66,6 +73,7 @@ export const createSlackNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -88,7 +96,7 @@ export const createSlackNotification = async (
 };
 
 export const updateSlackNotification = async (
-	input: typeof apiUpdateSlack._type,
+	input: z.infer<typeof apiUpdateSlack>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -98,6 +106,7 @@ export const updateSlackNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -130,7 +139,7 @@ export const updateSlackNotification = async (
 };
 
 export const createTelegramNotification = async (
-	input: typeof apiCreateTelegram._type,
+	input: z.infer<typeof apiCreateTelegram>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -159,6 +168,7 @@ export const createTelegramNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -181,7 +191,7 @@ export const createTelegramNotification = async (
 };
 
 export const updateTelegramNotification = async (
-	input: typeof apiUpdateTelegram._type,
+	input: z.infer<typeof apiUpdateTelegram>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -191,6 +201,7 @@ export const updateTelegramNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -224,7 +235,7 @@ export const updateTelegramNotification = async (
 };
 
 export const createDiscordNotification = async (
-	input: typeof apiCreateDiscord._type,
+	input: z.infer<typeof apiCreateDiscord>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -252,6 +263,7 @@ export const createDiscordNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -274,7 +286,7 @@ export const createDiscordNotification = async (
 };
 
 export const updateDiscordNotification = async (
-	input: typeof apiUpdateDiscord._type,
+	input: z.infer<typeof apiUpdateDiscord>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -284,6 +296,7 @@ export const updateDiscordNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -316,7 +329,7 @@ export const updateDiscordNotification = async (
 };
 
 export const createEmailNotification = async (
-	input: typeof apiCreateEmail._type,
+	input: z.infer<typeof apiCreateEmail>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -348,6 +361,7 @@ export const createEmailNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -370,7 +384,7 @@ export const createEmailNotification = async (
 };
 
 export const updateEmailNotification = async (
-	input: typeof apiUpdateEmail._type,
+	input: z.infer<typeof apiUpdateEmail>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -380,6 +394,7 @@ export const updateEmailNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -416,7 +431,7 @@ export const updateEmailNotification = async (
 };
 
 export const createResendNotification = async (
-	input: typeof apiCreateResend._type,
+	input: z.infer<typeof apiCreateResend>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -445,6 +460,7 @@ export const createResendNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -467,7 +483,7 @@ export const createResendNotification = async (
 };
 
 export const updateResendNotification = async (
-	input: typeof apiUpdateResend._type,
+	input: z.infer<typeof apiUpdateResend>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -477,6 +493,7 @@ export const updateResendNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -510,7 +527,7 @@ export const updateResendNotification = async (
 };
 
 export const createGotifyNotification = async (
-	input: typeof apiCreateGotify._type,
+	input: z.infer<typeof apiCreateGotify>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -540,6 +557,7 @@ export const createGotifyNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -561,7 +579,7 @@ export const createGotifyNotification = async (
 };
 
 export const updateGotifyNotification = async (
-	input: typeof apiUpdateGotify._type,
+	input: z.infer<typeof apiUpdateGotify>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -571,6 +589,7 @@ export const updateGotifyNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -602,7 +621,7 @@ export const updateGotifyNotification = async (
 };
 
 export const createNtfyNotification = async (
-	input: typeof apiCreateNtfy._type,
+	input: z.infer<typeof apiCreateNtfy>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -632,6 +651,7 @@ export const createNtfyNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -653,7 +673,7 @@ export const createNtfyNotification = async (
 };
 
 export const updateNtfyNotification = async (
-	input: typeof apiUpdateNtfy._type,
+	input: z.infer<typeof apiUpdateNtfy>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -663,6 +683,7 @@ export const updateNtfyNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -694,7 +715,7 @@ export const updateNtfyNotification = async (
 };
 
 export const createCustomNotification = async (
-	input: typeof apiCreateCustom._type,
+	input: z.infer<typeof apiCreateCustom>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -722,6 +743,8 @@ export const createCustomNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "custom",
@@ -743,7 +766,7 @@ export const createCustomNotification = async (
 };
 
 export const updateCustomNotification = async (
-	input: typeof apiUpdateCustom._type,
+	input: z.infer<typeof apiUpdateCustom>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -753,6 +776,7 @@ export const updateCustomNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -793,9 +817,11 @@ export const findNotificationById = async (notificationId: string) => {
 			resend: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 			custom: true,
 			lark: true,
 			pushover: true,
+			teams: true,
 		},
 	});
 	if (!notification) {
@@ -817,7 +843,7 @@ export const removeNotificationById = async (notificationId: string) => {
 };
 
 export const createLarkNotification = async (
-	input: typeof apiCreateLark._type,
+	input: z.infer<typeof apiCreateLark>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -844,6 +870,8 @@ export const createLarkNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "lark",
@@ -865,7 +893,7 @@ export const createLarkNotification = async (
 };
 
 export const updateLarkNotification = async (
-	input: typeof apiUpdateLark._type,
+	input: z.infer<typeof apiUpdateLark>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -875,6 +903,7 @@ export const updateLarkNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -905,6 +934,98 @@ export const updateLarkNotification = async (
 	});
 };
 
+export const createTeamsNotification = async (
+	input: z.infer<typeof apiCreateTeams>,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newTeams = await tx
+			.insert(teams)
+			.values({
+				webhookUrl: input.webhookUrl,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newTeams) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting teams",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				teamsId: newTeams.teamsId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "teams",
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateTeamsNotification = async (
+	input: z.infer<typeof apiUpdateTeams>,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(teams)
+			.set({
+				webhookUrl: input.webhookUrl,
+			})
+			.where(eq(teams.teamsId, input.teamsId))
+			.returning()
+			.then((value) => value[0]);
+
+		return newDestination;
+	});
+};
+
 export const updateNotificationById = async (
 	notificationId: string,
 	notificationData: Partial<Notification>,
@@ -920,8 +1041,104 @@ export const updateNotificationById = async (
 	return result[0];
 };
 
+export const createMattermostNotification = async (
+	input: z.infer<typeof apiCreateMattermost>,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newMattermost = await tx
+			.insert(mattermost)
+			.values({
+				webhookUrl: input.webhookUrl,
+				channel: input.channel,
+				username: input.username,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newMattermost) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting mattermost",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				mattermostId: newMattermost.mattermostId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "mattermost",
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateMattermostNotification = async (
+	input: z.infer<typeof apiUpdateMattermost>,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(mattermost)
+			.set({
+				webhookUrl: input.webhookUrl,
+				channel: input.channel,
+				username: input.username,
+			})
+			.where(eq(mattermost.mattermostId, input.mattermostId))
+			.returning()
+			.then((value) => value[0]);
+
+		return newDestination;
+	});
+};
+
 export const createPushoverNotification = async (
-	input: typeof apiCreatePushover._type,
+	input: z.infer<typeof apiCreatePushover>,
 	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
@@ -952,6 +1169,7 @@ export const createPushoverNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
@@ -974,7 +1192,7 @@ export const createPushoverNotification = async (
 };
 
 export const updatePushoverNotification = async (
-	input: typeof apiUpdatePushover._type,
+	input: z.infer<typeof apiUpdatePushover>,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDestination = await tx
@@ -984,6 +1202,7 @@ export const updatePushoverNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,

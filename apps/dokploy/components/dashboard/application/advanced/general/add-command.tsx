@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -50,7 +50,7 @@ export const AddCommand = ({ applicationId }: Props) => {
 
 	const utils = api.useUtils();
 
-	const { mutateAsync, isLoading } = api.application.update.useMutation();
+	const { mutateAsync, isPending } = api.application.update.useMutation();
 
 	const form = useForm<AddCommand>({
 		defaultValues: {
@@ -177,7 +177,7 @@ export const AddCommand = ({ applicationId }: Props) => {
 							</div>
 						</div>
 						<div className="flex justify-end">
-							<Button isLoading={isLoading} type="submit" className="w-fit">
+							<Button isLoading={isPending} type="submit" className="w-fit">
 								Save
 							</Button>
 						</div>

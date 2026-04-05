@@ -20,9 +20,11 @@ export const notificationType = pgEnum("notificationType", [
 	"resend",
 	"gotify",
 	"ntfy",
+	"mattermost",
 	"pushover",
 	"custom",
 	"lark",
+	"teams",
 ]);
 
 export const notifications = pgTable("notification", {
@@ -36,6 +38,7 @@ export const notifications = pgTable("notification", {
 	databaseBackup: boolean("databaseBackup").notNull().default(false),
 	volumeBackup: boolean("volumeBackup").notNull().default(false),
 	dokployRestart: boolean("dokployRestart").notNull().default(false),
+	dokployBackup: boolean("dokployBackup").notNull().default(false),
 	dockerCleanup: boolean("dockerCleanup").notNull().default(false),
 	serverThreshold: boolean("serverThreshold").notNull().default(false),
 	notificationType: notificationType("notificationType").notNull(),
@@ -63,6 +66,9 @@ export const notifications = pgTable("notification", {
 	ntfyId: text("ntfyId").references(() => ntfy.ntfyId, {
 		onDelete: "cascade",
 	}),
+	mattermostId: text("mattermostId").references(() => mattermost.mattermostId, {
+		onDelete: "cascade",
+	}),
 	customId: text("customId").references(() => custom.customId, {
 		onDelete: "cascade",
 	}),
@@ -70,6 +76,9 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	pushoverId: text("pushoverId").references(() => pushover.pushoverId, {
+		onDelete: "cascade",
+	}),
+	teamsId: text("teamsId").references(() => teams.teamsId, {
 		onDelete: "cascade",
 	}),
 	organizationId: text("organizationId")
@@ -150,6 +159,16 @@ export const ntfy = pgTable("ntfy", {
 	priority: integer("priority").notNull().default(3),
 });
 
+export const mattermost = pgTable("mattermost", {
+	mattermostId: text("mattermostId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
+	channel: text("channel"),
+	username: text("username"),
+});
+
 export const custom = pgTable("custom", {
 	customId: text("customId")
 		.notNull()
@@ -177,6 +196,14 @@ export const pushover = pgTable("pushover", {
 	priority: integer("priority").notNull().default(0),
 	retry: integer("retry"),
 	expire: integer("expire"),
+});
+
+export const teams = pgTable("teams", {
+	teamsId: text("teamsId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
 });
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
@@ -208,6 +235,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 		fields: [notifications.ntfyId],
 		references: [ntfy.ntfyId],
 	}),
+	mattermost: one(mattermost, {
+		fields: [notifications.mattermostId],
+		references: [mattermost.mattermostId],
+	}),
 	custom: one(custom, {
 		fields: [notifications.customId],
 		references: [custom.customId],
@@ -219,6 +250,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	pushover: one(pushover, {
 		fields: [notifications.pushoverId],
 		references: [pushover.pushoverId],
+	}),
+	teams: one(teams, {
+		fields: [notifications.teamsId],
+		references: [teams.teamsId],
 	}),
 	organization: one(organization, {
 		fields: [notifications.organizationId],
@@ -232,6 +267,7 @@ export const apiCreateSlack = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -260,6 +296,7 @@ export const apiCreateTelegram = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -290,6 +327,7 @@ export const apiCreateDiscord = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -321,6 +359,7 @@ export const apiCreateEmail = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -357,6 +396,7 @@ export const apiCreateResend = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -387,6 +427,7 @@ export const apiCreateGotify = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -421,6 +462,7 @@ export const apiCreateNtfy = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -448,16 +490,62 @@ export const apiTestNtfyConnection = apiCreateNtfy.pick({
 	priority: true,
 });
 
-export const apiFindOneNotification = notificationsSchema
+export const apiCreateMattermost = notificationsSchema
 	.pick({
-		notificationId: true,
+		appBuildError: true,
+		databaseBackup: true,
+		dokployBackup: true,
+		volumeBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
 	})
-	.required();
+	.extend({
+		webhookUrl: z.string().url(),
+		channel: z.string().optional(),
+		username: z.string().optional(),
+	})
+	.required({
+		name: true,
+		webhookUrl: true,
+		appBuildError: true,
+		databaseBackup: true,
+		dokployBackup: true,
+		volumeBackup: true,
+		dokployRestart: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	});
+
+export const apiUpdateMattermost = apiCreateMattermost.partial().extend({
+	notificationId: z.string().min(1),
+	mattermostId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestMattermostConnection = apiCreateMattermost
+	.pick({
+		webhookUrl: true,
+		channel: true,
+		username: true,
+	})
+	.extend({
+		channel: z.string().optional(),
+		username: z.string().optional(),
+	});
+
+export const apiFindOneNotification = z.object({
+	notificationId: z.string().min(1),
+});
 
 export const apiCreateCustom = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -467,7 +555,7 @@ export const apiCreateCustom = notificationsSchema
 	})
 	.extend({
 		endpoint: z.string().min(1),
-		headers: z.record(z.string()).optional(),
+		headers: z.record(z.string(), z.string()).optional(),
 	});
 
 export const apiUpdateCustom = apiCreateCustom.partial().extend({
@@ -478,13 +566,14 @@ export const apiUpdateCustom = apiCreateCustom.partial().extend({
 
 export const apiTestCustomConnection = z.object({
 	endpoint: z.string().min(1),
-	headers: z.record(z.string()).optional(),
+	headers: z.record(z.string(), z.string()).optional(),
 });
 
 export const apiCreateLark = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -507,10 +596,38 @@ export const apiTestLarkConnection = apiCreateLark.pick({
 	webhookUrl: true,
 });
 
+export const apiCreateTeams = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployBackup: true,
+		volumeBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		webhookUrl: z.string().min(1),
+	})
+	.required();
+
+export const apiUpdateTeams = apiCreateTeams.partial().extend({
+	notificationId: z.string().min(1),
+	teamsId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestTeamsConnection = apiCreateTeams.pick({
+	webhookUrl: true,
+});
+
 export const apiCreatePushover = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -545,6 +662,7 @@ export const apiUpdatePushover = z.object({
 	expire: z.number().min(1).max(10800).nullish(),
 	appBuildError: z.boolean().optional(),
 	databaseBackup: z.boolean().optional(),
+	dokployBackup: z.boolean().optional(),
 	volumeBackup: z.boolean().optional(),
 	dokployRestart: z.boolean().optional(),
 	name: z.string().optional(),

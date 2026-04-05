@@ -9,6 +9,7 @@ export interface Gitea {
 	refreshToken: string | null;
 	expiresAt: number | null;
 	giteaUrl: string;
+	giteaInternalUrl: string | null;
 	clientId: string | null;
 	clientSecret: string | null;
 	organizationName?: string;
@@ -37,3 +38,5 @@ export const redirectWithError = (res: NextApiResponse, error: string) => {
 		`/dashboard/settings/git-providers?error=${encodeURIComponent(error)}`,
 	);
 };
+
+export default findGitea;

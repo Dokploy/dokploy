@@ -1,5 +1,6 @@
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
+import { hasPermission } from "@dokploy/server/services/permission";
 import { Loader2 } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
@@ -20,7 +21,7 @@ const Dashboard = () => {
 		false,
 	);
 
-	const { data: monitoring, isLoading } = api.user.getMetricsToken.useQuery();
+	const { data: monitoring, isPending } = api.user.getMetricsToken.useQuery();
 	return (
 		<div className="space-y-4 pb-10">
 			{/* <AlertBlock>
@@ -35,7 +36,7 @@ const Dashboard = () => {
 				</a>{" "}
 				to get more features.
 			</AlertBlock> */}
-			{isLoading ? (
+			{isPending ? (
 				<Card className="bg-sidebar  p-2.5 rounded-xl  mx-auto  items-center">
 					<div className="rounded-xl bg-background flex shadow-md px-4 min-h-[50vh] justify-center items-center text-muted-foreground">
 						Loading...
@@ -99,12 +100,29 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	const { user } = await validateRequest(ctx.req);
+	const { user, session } = await validateRequest(ctx.req);
 	if (!user) {
 		return {
 			redirect: {
 				permanent: true,
 				destination: "/",
+			},
+		};
+	}
+
+	const canView = await hasPermission(
+		{
+			user: { id: user.id },
+			session: { activeOrganizationId: session?.activeOrganizationId || "" },
+		},
+		{ monitoring: ["read"] },
+	);
+
+	if (!canView) {
+		return {
+			redirect: {
+				permanent: false,
+				destination: "/dashboard/projects",
 			},
 		};
 	}

@@ -8,52 +8,34 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, withPermission } from "../trpc";
 import { containerIdRegex } from "./docker";
 
 export const swarmRouter = createTRPCRouter({
-	getNodes: protectedProcedure
+	getNodes: withPermission("server", "read")
 		.input(
 			z.object({
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input, ctx }) => {
-			if (input.serverId) {
-				const server = await findServerById(input.serverId);
-				if (server.organizationId !== ctx.session?.activeOrganizationId) {
-					throw new TRPCError({ code: "UNAUTHORIZED" });
-				}
-			}
+		.query(async ({ input }) => {
 			return await getSwarmNodes(input.serverId);
 		}),
-	getNodeInfo: protectedProcedure
+	getNodeInfo: withPermission("server", "read")
 		.input(z.object({ nodeId: z.string(), serverId: z.string().optional() }))
-		.query(async ({ input, ctx }) => {
-			if (input.serverId) {
-				const server = await findServerById(input.serverId);
-				if (server.organizationId !== ctx.session?.activeOrganizationId) {
-					throw new TRPCError({ code: "UNAUTHORIZED" });
-				}
-			}
+		.query(async ({ input }) => {
 			return await getNodeInfo(input.nodeId, input.serverId);
 		}),
-	getNodeApps: protectedProcedure
+	getNodeApps: withPermission("server", "read")
 		.input(
 			z.object({
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input, ctx }) => {
-			if (input.serverId) {
-				const server = await findServerById(input.serverId);
-				if (server.organizationId !== ctx.session?.activeOrganizationId) {
-					throw new TRPCError({ code: "UNAUTHORIZED" });
-				}
-			}
+		.query(async ({ input }) => {
 			return getNodeApplications(input.serverId);
 		}),
-	getAppInfos: protectedProcedure
+	getAppInfos: withPermission("server", "read")
 		.meta({
 			openapi: {
 				path: "/drop-deployment",
@@ -72,16 +54,10 @@ export const swarmRouter = createTRPCRouter({
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input, ctx }) => {
-			if (input.serverId) {
-				const server = await findServerById(input.serverId);
-				if (server.organizationId !== ctx.session?.activeOrganizationId) {
-					throw new TRPCError({ code: "UNAUTHORIZED" });
-				}
-			}
+		.query(async ({ input }) => {
 			return await getApplicationInfo(input.appName, input.serverId);
 		}),
-	getContainerStats: protectedProcedure
+	getContainerStats: withPermission("server", "read")
 		.input(
 			z.object({
 				serverId: z.string().optional(),

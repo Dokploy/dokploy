@@ -115,9 +115,20 @@ SYS_ARCH=$(uname -m)
 CURRENT_USER=$USER
 
 echo "Installing requirements for: OS: $OS_TYPE"
-if [ $EUID != 0 ]; then
-	echo "Please run this script as root or with sudo ❌"
-	exit
+
+# Auto-detect sudo requirement
+if [ "$EUID" -eq 0 ]; then
+	SUDO_CMD=""
+	echo "Running as root"
+else
+	if sudo -n true 2>/dev/null; then
+		SUDO_CMD="sudo"
+		echo "Running as $CURRENT_USER with sudo privileges"
+	else
+		echo "Error: Non-root user requires passwordless sudo access. ❌"
+		echo "Configure with: echo '$CURRENT_USER ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/$CURRENT_USER"
+		exit 1
+	fi
 fi
 
 # Check if the OS is manjaro, if so, change it to arch
@@ -152,7 +163,7 @@ else
 fi
 
 if [ "$OS_TYPE" = 'amzn' ]; then
-    dnf install -y findutils >/dev/null
+    $SUDO_CMD dnf install -y findutils >/dev/null
 fi
 
 case "$OS_TYPE" in
@@ -218,6 +229,9 @@ ${installBuildpacks()}
 
 echo -e "13. Installing Railpack"
 ${installRailpack()}
+
+echo -e "14. Configuring permissions"
+${setupPermissions()}
 `
 		: `
 echo -e "2. Installing Docker. "
@@ -235,6 +249,9 @@ ${installBuildpacks()}
 
 echo -e "6. Installing Railpack"
 ${installRailpack()}
+
+echo -e "7. Configuring permissions"
+${setupPermissions()}
 `
 }
 				`;
@@ -281,17 +298,43 @@ const installRequirements = async (
 			.on("error", (err) => {
 				client.end();
 				if (err.level === "client-authentication") {
-					onData?.(
-						`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
-					);
+					const technicalDetail = `Error: ${err.message} ${err.level}`;
+					const friendlyMessage = [
+						"",
+						"❌ Couldn't connect to your server — the SSH key was not accepted.",
+						"",
+						"This usually means the key doesn't match what's on the server, or the key format is invalid.",
+						"",
+						`Technical details: ${technicalDetail}`,
+						"",
+						"💡 Hints:",
+						"  • Check that the SSH key you added in Dokploy is the same one installed on the server (e.g. in ~/.ssh/authorized_keys).",
+						"  • Try generating a new SSH key in Dokploy and add only the public key to the server, then try again.",
+						"  • Make sure to follow the instructions on the Setup Server Button on the SSH Keys tab",
+					].join("\n");
+					onData?.(friendlyMessage);
 					reject(
 						new Error(
-							`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
+							`Authentication failed: Invalid SSH private key. ${technicalDetail}`,
 						),
 					);
 				} else {
-					onData?.(`SSH connection error: ${err.message} ${err.level}`);
-					reject(new Error(`SSH connection error: ${err.message}`));
+					const technicalDetail = `${err.message} ${err.level ?? ""}`.trim();
+					const friendlyMessage = [
+						"",
+						"❌ Couldn't connect to your server.",
+						"",
+						"The connection failed before setup could run. Common causes: wrong IP or port, firewall blocking access, or the server is offline.",
+						"",
+						`Technical details: ${technicalDetail}`,
+						"",
+						"💡 Hints:",
+						"  • Check that the server IP address and SSH port are correct and the server is powered on.",
+						"  • If the server is in a private network, ensure Dokploy can reach it (VPN, firewall rules, or correct security groups).",
+						"  • Make sure the SSH port (usually 22) is open and the SSH service is running on the server.",
+					].join("\n");
+					onData?.(friendlyMessage);
+					reject(new Error(`SSH connection error: ${technicalDetail}`));
 				}
 			})
 			.connect({
@@ -326,16 +369,18 @@ const setupMainDirectory = () => `
 		echo "/etc/dokploy already exists ✅"
 	else
 		# Create the /etc/dokploy directory
-		mkdir -p /etc/dokploy
-		chmod 777 /etc/dokploy
-
+		$SUDO_CMD mkdir -p /etc/dokploy
 		echo "Directory /etc/dokploy created ✅"
+	fi
+	# Ensure the current user owns the directory
+	if [ -n "$SUDO_CMD" ]; then
+		$SUDO_CMD chown -R $CURRENT_USER:$CURRENT_USER /etc/dokploy
 	fi
 `;
 
 export const setupSwarm = () => `
 		# Check if the node is already part of a Docker Swarm
-		if docker info | grep -q 'Swarm: active'; then
+		if $SUDO_CMD docker info | grep -q 'Swarm: active'; then
 			echo "Already part of a Docker Swarm ✅"
 		else
 			# Get IP address
@@ -385,18 +430,18 @@ export const setupSwarm = () => `
 			echo "Advertise address: \$advertise_addr"
 
 			# Initialize Docker Swarm
-			docker swarm init --advertise-addr \$advertise_addr
+			$SUDO_CMD docker swarm init --advertise-addr \$advertise_addr
 			echo "Swarm initialized ✅"
 		fi
 	`;
 
 const setupNetwork = () => `
 	# Check if the dokploy-network already exists
-	if docker network ls | grep -q 'dokploy-network'; then
+	if $SUDO_CMD docker network ls | grep -q 'dokploy-network'; then
 		echo "Network dokploy-network already exists ✅"
 	else
 		# Create the dokploy-network if it doesn't exist
-		if docker network create --driver overlay --attachable dokploy-network; then
+		if $SUDO_CMD docker network create --driver overlay --attachable dokploy-network; then
 			echo "Network created ✅"
 		else
 			echo "Failed to create dokploy-network ❌" >&2
@@ -421,33 +466,34 @@ const installUtilities = () => `
 
 	case "$OS_TYPE" in
 	arch)
-		pacman -Sy --noconfirm --needed curl wget git git-lfs jq openssl >/dev/null || true
+		$SUDO_CMD pacman -Sy --noconfirm --needed curl wget git git-lfs jq openssl >/dev/null || true
 		;;
 	alpine)
-		sed -i '/^#.*\/community/s/^#//' /etc/apk/repositories
-		apk update >/dev/null
-		apk add curl wget git git-lfs jq openssl sudo unzip tar >/dev/null
+		$SUDO_CMD sed -i '/^#.*\/community/s/^#//' /etc/apk/repositories
+		$SUDO_CMD apk update >/dev/null
+		$SUDO_CMD apk add curl wget git git-lfs jq openssl sudo unzip tar >/dev/null
 		;;
 	ubuntu | debian | raspbian)
-		DEBIAN_FRONTEND=noninteractive apt-get update -y >/dev/null
-		DEBIAN_FRONTEND=noninteractive apt-get install -y unzip curl wget git git-lfs jq openssl >/dev/null
+		export DEBIAN_FRONTEND=noninteractive
+		$SUDO_CMD apt-get update -y >/dev/null
+		$SUDO_CMD apt-get install -y unzip curl wget git git-lfs jq openssl >/dev/null
 		;;
 	centos | fedora | rhel | ol | rocky | almalinux | opencloudos | amzn)
 		if [ "$OS_TYPE" = "amzn" ]; then
-			dnf install -y wget git git-lfs jq openssl >/dev/null
+			$SUDO_CMD dnf install -y wget git git-lfs jq openssl >/dev/null
 		else
 			if ! command -v dnf >/dev/null; then
-				yum install -y dnf >/dev/null
+				$SUDO_CMD yum install -y dnf >/dev/null
 			fi
 			if ! command -v curl >/dev/null; then
-				dnf install -y curl >/dev/null
+				$SUDO_CMD dnf install -y curl >/dev/null
 			fi
-			dnf install -y wget git git-lfs jq openssl unzip >/dev/null
+			$SUDO_CMD dnf install -y wget git git-lfs jq openssl unzip >/dev/null
 		fi
 		;;
 	sles | opensuse-leap | opensuse-tumbleweed)
-		zypper refresh >/dev/null
-		zypper install -y curl wget git git-lfs jq openssl >/dev/null
+		$SUDO_CMD zypper refresh >/dev/null
+		$SUDO_CMD zypper install -y curl wget git git-lfs jq openssl >/dev/null
 		;;
 	*)
 		echo "This script only supports Debian, Redhat, Arch Linux, or SLES based operating systems for now."
@@ -474,41 +520,41 @@ if ! [ -x "$(command -v docker)" ]; then
     echo " - Docker is not installed. Installing Docker. It may take a while."
     case "$OS_TYPE" in
         "almalinux")
-            dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo >/dev/null 2>&1
-            dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin >/dev/null 2>&1
+            $SUDO_CMD dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo >/dev/null 2>&1
+            $SUDO_CMD dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then
                 echo " - Docker could not be installed automatically. Please visit https://docs.docker.com/engine/install/ and install Docker manually to continue."
                 exit 1
             fi
-            systemctl start docker >/dev/null 2>&1
-            systemctl enable docker >/dev/null 2>&1
+            $SUDO_CMD systemctl start docker >/dev/null 2>&1
+            $SUDO_CMD systemctl enable docker >/dev/null 2>&1
             ;;
 	"opencloudos")
             # Special handling for OpenCloud OS
             echo " - Installing Docker for OpenCloud OS..."
-            dnf install -y docker >/dev/null 2>&1
+            $SUDO_CMD dnf install -y docker >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then
                 echo " - Docker could not be installed automatically. Please visit https://docs.docker.com/engine/install/ and install Docker manually to continue."
                 exit 1
             fi
-            
+
             # Remove --live-restore parameter from Docker configuration if it exists
             if [ -f "/etc/sysconfig/docker" ]; then
                 echo " - Removing --live-restore parameter from Docker configuration..."
-                sed -i 's/--live-restore[^[:space:]]*//' /etc/sysconfig/docker >/dev/null 2>&1
-                sed -i 's/--live-restore//' /etc/sysconfig/docker >/dev/null 2>&1
+                $SUDO_CMD sed -i 's/--live-restore[^[:space:]]*//' /etc/sysconfig/docker >/dev/null 2>&1
+                $SUDO_CMD sed -i 's/--live-restore//' /etc/sysconfig/docker >/dev/null 2>&1
                 # Clean up any double spaces that might be left
-                sed -i 's/  */ /g' /etc/sysconfig/docker >/dev/null 2>&1
+                $SUDO_CMD sed -i 's/  */ /g' /etc/sysconfig/docker >/dev/null 2>&1
             fi
-            
-            systemctl enable docker >/dev/null 2>&1
-            systemctl start docker >/dev/null 2>&1
+
+            $SUDO_CMD systemctl enable docker >/dev/null 2>&1
+            $SUDO_CMD systemctl start docker >/dev/null 2>&1
             echo " - Docker configured for OpenCloud OS"
             ;;
         "alpine")
-            apk add docker docker-cli-compose >/dev/null 2>&1
-            rc-update add docker default >/dev/null 2>&1
-            service docker start >/dev/null 2>&1
+            $SUDO_CMD apk add docker docker-cli-compose >/dev/null 2>&1
+            $SUDO_CMD rc-update add docker default >/dev/null 2>&1
+            $SUDO_CMD service docker start >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then
                 echo " - Failed to install Docker with apk. Try to install it manually."
                 echo "   Please visit https://wiki.alpinelinux.org/wiki/Docker for more information."
@@ -516,8 +562,8 @@ if ! [ -x "$(command -v docker)" ]; then
             fi
             ;;
         "arch")
-            pacman -Sy docker docker-compose --noconfirm >/dev/null 2>&1
-            systemctl enable docker.service >/dev/null 2>&1
+            $SUDO_CMD pacman -Sy docker docker-compose --noconfirm >/dev/null 2>&1
+            $SUDO_CMD systemctl enable docker.service >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then
                 echo " - Failed to install Docker with pacman. Try to install it manually."
                 echo "   Please visit https://wiki.archlinux.org/title/docker for more information."
@@ -525,13 +571,13 @@ if ! [ -x "$(command -v docker)" ]; then
             fi
             ;;
         "amzn")
-            dnf install docker -y >/dev/null 2>&1
+            $SUDO_CMD dnf install docker -y >/dev/null 2>&1
             DOCKER_CONFIG=/usr/local/lib/docker
-            mkdir -p $DOCKER_CONFIG/cli-plugins >/dev/null 2>&1
-            curl -sL https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o $DOCKER_CONFIG/cli-plugins/docker-compose >/dev/null 2>&1
-            chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose >/dev/null 2>&1
-            systemctl start docker >/dev/null 2>&1
-            systemctl enable docker >/dev/null 2>&1
+            $SUDO_CMD mkdir -p $DOCKER_CONFIG/cli-plugins >/dev/null 2>&1
+            $SUDO_CMD curl -sL https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o $DOCKER_CONFIG/cli-plugins/docker-compose >/dev/null 2>&1
+            $SUDO_CMD chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose >/dev/null 2>&1
+            $SUDO_CMD systemctl start docker >/dev/null 2>&1
+            $SUDO_CMD systemctl enable docker >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then
                 echo " - Failed to install Docker with dnf. Try to install it manually."
                 echo "   Please visit https://www.cyberciti.biz/faq/how-to-install-docker-on-amazon-linux-2/ for more information."
@@ -541,18 +587,18 @@ if ! [ -x "$(command -v docker)" ]; then
         "fedora")
             if [ -x "$(command -v dnf5)" ]; then
                 # dnf5 is available
-                dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo --overwrite >/dev/null 2>&1
+                $SUDO_CMD dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo --overwrite >/dev/null 2>&1
             else
                 # dnf5 is not available, use dnf
-                dnf config-manager --add-repo=https://download.docker.com/linux/fedora/docker-ce.repo >/dev/null 2>&1
+                $SUDO_CMD dnf config-manager --add-repo=https://download.docker.com/linux/fedora/docker-ce.repo >/dev/null 2>&1
             fi
-            dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin >/dev/null 2>&1
+            $SUDO_CMD dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then
                 echo " - Docker could not be installed automatically. Please visit https://docs.docker.com/engine/install/ and install Docker manually to continue."
                 exit 1
             fi
-            systemctl start docker >/dev/null 2>&1
-            systemctl enable docker >/dev/null 2>&1
+            $SUDO_CMD systemctl start docker >/dev/null 2>&1
+            $SUDO_CMD systemctl enable docker >/dev/null 2>&1
             ;;
         *)
             if [ "$OS_TYPE" = "ubuntu" ] && [ "$OS_VERSION" = "24.10" ]; then
@@ -560,9 +606,9 @@ if ! [ -x "$(command -v docker)" ]; then
                     echo "Please install Docker manually."
                 exit 1
             fi
-						
+
             if ! [ -x "$(command -v docker)" ]; then
-                curl -s https://get.docker.com | sh -s -- --version $DOCKER_VERSION 2>&1
+                curl -s https://get.docker.com | $SUDO_CMD sh -s -- --version $DOCKER_VERSION 2>&1
                 if ! [ -x "$(command -v docker)" ]; then
                     echo " - Docker installation failed."
                     echo "   Maybe your OS is not supported?"
@@ -571,13 +617,13 @@ if ! [ -x "$(command -v docker)" ]; then
                 fi
             fi
 			if [ "$OS_TYPE" = "rocky" ]; then
-				systemctl start docker >/dev/null 2>&1
-				systemctl enable docker >/dev/null 2>&1
+				$SUDO_CMD systemctl start docker >/dev/null 2>&1
+				$SUDO_CMD systemctl enable docker >/dev/null 2>&1
 			fi
 
 			if [ "$OS_TYPE" = "centos" ]; then
-				systemctl start docker >/dev/null 2>&1
-				systemctl enable docker >/dev/null 2>&1
+				$SUDO_CMD systemctl start docker >/dev/null 2>&1
+				$SUDO_CMD systemctl enable docker >/dev/null 2>&1
 			fi
 
 
@@ -621,7 +667,7 @@ export const installRClone = () => `
     if command_exists rclone; then
 		echo "RClone already installed ✅"
 	else
-		curl https://rclone.org/install.sh | sudo bash
+		curl https://rclone.org/install.sh | $SUDO_CMD bash
 		RCLONE_VERSION=$(rclone --version | head -n 1 | awk '{print $2}' | sed 's/^v//')
 		echo "RClone version $RCLONE_VERSION installed ✅"
 	fi
@@ -630,19 +676,19 @@ export const installRClone = () => `
 export const createTraefikInstance = () => {
 	const command = `
 	    # Check if dokpyloy-traefik exists
-		if docker service inspect dokploy-traefik > /dev/null 2>&1; then
+		if $SUDO_CMD docker service inspect dokploy-traefik > /dev/null 2>&1; then
 			echo "Migrating Traefik to Standalone..."
-			docker service rm dokploy-traefik
+			$SUDO_CMD docker service rm dokploy-traefik
 			sleep 8
 			echo "Traefik migrated to Standalone ✅"
 		fi
 
-		if docker inspect dokploy-traefik > /dev/null 2>&1; then
+		if $SUDO_CMD docker inspect dokploy-traefik > /dev/null 2>&1; then
 			echo "Traefik already exists ✅"
 		else
 			# Create the dokploy-traefik container
 			TRAEFIK_VERSION=${TRAEFIK_VERSION}
-			docker run -d \
+			$SUDO_CMD docker run -d \
 				--name dokploy-traefik \
 				--restart always \
 				-v /etc/dokploy/traefik/traefik.yml:/etc/traefik/traefik.yml \
@@ -653,7 +699,7 @@ export const createTraefikInstance = () => {
 				-p ${TRAEFIK_HTTP3_PORT}:${TRAEFIK_HTTP3_PORT}/udp \
 				traefik:v$TRAEFIK_VERSION
 
-			docker network connect dokploy-network dokploy-traefik;
+			$SUDO_CMD docker network connect dokploy-network dokploy-traefik;
 			echo "Traefik version $TRAEFIK_VERSION installed ✅"
 		fi
 	`;
@@ -666,7 +712,7 @@ const installNixpacks = () => `
 		echo "Nixpacks already installed ✅"
 	else
 	    export NIXPACKS_VERSION=1.41.0
-        bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
+        $SUDO_CMD bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
 		echo "Nixpacks version $NIXPACKS_VERSION installed ✅"
 	fi
 `;
@@ -676,8 +722,25 @@ const installRailpack = () => `
 		echo "Railpack already installed ✅"
 	else
 	    export RAILPACK_VERSION=0.15.4
-		bash -c "$(curl -fsSL https://railpack.com/install.sh)"
+		$SUDO_CMD bash -c "$(curl -fsSL https://railpack.com/install.sh)"
 		echo "Railpack version $RAILPACK_VERSION installed ✅"
+	fi
+`;
+
+const setupPermissions = () => `
+	# Add user to docker group if not root
+	if [ -n "$SUDO_CMD" ]; then
+		if ! groups $CURRENT_USER | grep -qw docker; then
+			$SUDO_CMD usermod -aG docker $CURRENT_USER
+			echo "User $CURRENT_USER added to docker group ✅"
+		else
+			echo "User $CURRENT_USER already in docker group ✅"
+		fi
+		# Ensure the user owns the dokploy directory
+		$SUDO_CMD chown -R $CURRENT_USER:$CURRENT_USER /etc/dokploy
+		echo "Permissions configured for $CURRENT_USER ✅"
+	else
+		echo "Running as root, no extra permissions needed ✅"
 	fi
 `;
 
@@ -690,7 +753,7 @@ const installBuildpacks = () => `
 		echo "Buildpacks already installed ✅"
 	else
 		BUILDPACKS_VERSION=0.39.1
-		curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.39.1/pack-v$BUILDPACKS_VERSION-linux$SUFFIX.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
+		curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.39.1/pack-v$BUILDPACKS_VERSION-linux$SUFFIX.tgz" | $SUDO_CMD tar -C /usr/local/bin/ --no-same-owner -xzv pack
 		echo "Buildpacks version $BUILDPACKS_VERSION installed ✅"
 	fi
 `;

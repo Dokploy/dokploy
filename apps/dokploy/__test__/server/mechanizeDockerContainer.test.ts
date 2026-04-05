@@ -6,6 +6,7 @@ type MockCreateServiceOptions = {
 	TaskTemplate?: {
 		ContainerSpec?: {
 			StopGracePeriod?: number;
+			Ulimits?: Array<{ Name: string; Soft: number; Hard: number }>;
 		};
 	};
 	[key: string]: unknown;
@@ -57,6 +58,7 @@ const createApplication = (
 		},
 		replicas: 1,
 		stopGracePeriodSwarm: 0n,
+		ulimitsSwarm: null,
 		serverId: "server-id",
 		...overrides,
 	}) as unknown as ApplicationNested;
@@ -109,5 +111,51 @@ describe("mechanizeDockerContainer", () => {
 		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty(
 			"StopGracePeriod",
 		);
+	});
+
+	it("passes ulimits to ContainerSpec when ulimitsSwarm is defined", async () => {
+		const ulimits = [
+			{ Name: "nofile", Soft: 10000, Hard: 20000 },
+			{ Name: "nproc", Soft: 4096, Hard: 8192 },
+		];
+		const application = createApplication({ ulimitsSwarm: ulimits });
+
+		await mechanizeDockerContainer(application);
+
+		expect(createServiceMock).toHaveBeenCalledTimes(1);
+		const call = createServiceMock.mock.calls[0];
+		if (!call) {
+			throw new Error("createServiceMock should have been called once");
+		}
+		const [settings] = call;
+		expect(settings.TaskTemplate?.ContainerSpec?.Ulimits).toEqual(ulimits);
+	});
+
+	it("omits Ulimits when ulimitsSwarm is null", async () => {
+		const application = createApplication({ ulimitsSwarm: null });
+
+		await mechanizeDockerContainer(application);
+
+		expect(createServiceMock).toHaveBeenCalledTimes(1);
+		const call = createServiceMock.mock.calls[0];
+		if (!call) {
+			throw new Error("createServiceMock should have been called once");
+		}
+		const [settings] = call;
+		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty("Ulimits");
+	});
+
+	it("omits Ulimits when ulimitsSwarm is an empty array", async () => {
+		const application = createApplication({ ulimitsSwarm: [] });
+
+		await mechanizeDockerContainer(application);
+
+		expect(createServiceMock).toHaveBeenCalledTimes(1);
+		const call = createServiceMock.mock.calls[0];
+		if (!call) {
+			throw new Error("createServiceMock should have been called once");
+		}
+		const [settings] = call;
+		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty("Ulimits");
 	});
 });

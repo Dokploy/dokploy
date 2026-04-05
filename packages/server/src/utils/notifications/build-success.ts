@@ -11,10 +11,12 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
 	sendResendNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -52,9 +54,11 @@ export const sendBuildSuccessNotifications = async ({
 			resend: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 			custom: true,
 			lark: true,
 			pushover: true,
+			teams: true,
 		},
 	});
 
@@ -67,9 +71,11 @@ export const sendBuildSuccessNotifications = async ({
 			slack,
 			gotify,
 			ntfy,
+			mattermost,
 			custom,
 			lark,
 			pushover,
+			teams,
 		} = notification;
 		try {
 			if (email || resend) {
@@ -263,6 +269,14 @@ export const sendBuildSuccessNotifications = async ({
 				});
 			}
 
+			if (mattermost) {
+				await sendMattermostNotification(mattermost, {
+					text: `**✅ Build Success**\n\n**Project:** ${projectName}\n**Application:** ${applicationName}\n**Type:** ${applicationType}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}\n\n[View Build Details](${buildLink})`,
+					channel: mattermost.channel,
+					username: mattermost.username || "Dokploy",
+				});
+			}
+
 			if (custom) {
 				await sendCustomNotification(custom, {
 					title: "Build Success",
@@ -395,6 +409,24 @@ export const sendBuildSuccessNotifications = async ({
 					"Build Success",
 					`Project: ${projectName}\nApplication: ${applicationName}\nEnvironment: ${environmentName}\nType: ${applicationType}\nDate: ${date.toLocaleString()}`,
 				);
+			}
+
+			if (teams) {
+				await sendTeamsNotification(teams, {
+					title: "✅ Build Success",
+					facts: [
+						{ name: "Project", value: projectName },
+						{ name: "Application", value: applicationName },
+						{ name: "Environment", value: environmentName },
+						{ name: "Type", value: applicationType },
+						{ name: "Date", value: format(date, "PP pp") },
+					],
+					potentialAction: {
+						type: "Action.OpenUrl",
+						title: "View Build Details",
+						url: buildLink,
+					},
+				});
 			}
 		} catch (error) {
 			console.log(error);

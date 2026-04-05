@@ -4,7 +4,11 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { and, eq } from "drizzle-orm";
+
 import semver from "semver";
+import { db } from "../db";
+import { compose } from "../db/schema";
 import {
 	initializeStandaloneTraefik,
 	initializeTraefikService,
@@ -379,12 +383,12 @@ export const readPorts = async (
 	const seenPorts = new Set<string>();
 	for (const key in parsedResult) {
 		if (Object.hasOwn(parsedResult, key)) {
-			const containerPortMapppings = parsedResult[key];
+			const containerPortMappings = parsedResult[key];
 			const protocol = key.split("/")[1];
 			const targetPort = Number.parseInt(key.split("/")[0] ?? "0", 10);
 
 			// Take only the first mapping to avoid duplicates (IPv4 and IPv6)
-			const firstMapping = containerPortMapppings[0];
+			const firstMapping = containerPortMappings[0];
 			if (firstMapping) {
 				const publishedPort = Number.parseInt(firstMapping.HostPort, 10);
 				const portKey = `${targetPort}-${publishedPort}-${protocol}`;
@@ -409,17 +413,38 @@ export const checkPortInUse = async (
 	serverId?: string,
 ): Promise<{ isInUse: boolean; conflictingContainer?: string }> => {
 	try {
-		const command = `docker ps -a --format '{{.Names}}' | grep -v '^dokploy-traefik$' | while read name; do docker port "$name" 2>/dev/null | grep -q ':${port}' && echo "$name" && break; done || true`;
-		const { stdout } = serverId
-			? await execAsyncRemote(serverId, command)
-			: await execAsync(command);
+		// Check if port is in use by a Docker container
+		const dockerCommand = `docker ps -a --format '{{.Names}}' | grep -v '^dokploy-traefik$' | while read name; do docker port "$name" 2>/dev/null | grep -q ':${port}' && echo "$name" && break; done || true`;
+		const { stdout: dockerOut } = serverId
+			? await execAsyncRemote(serverId, dockerCommand)
+			: await execAsync(dockerCommand);
 
-		const container = stdout.trim();
+		const container = dockerOut.trim();
 
-		return {
-			isInUse: !!container,
-			conflictingContainer: container || undefined,
-		};
+		if (container) {
+			return {
+				isInUse: true,
+				conflictingContainer: `container "${container}"`,
+			};
+		}
+
+		// Check if port is in use by a host-level service (non-Docker)
+		// Dokploy runs inside a container, so we spawn an ephemeral container
+		// with --net=host to share the host's network stack and use nc -z to
+		// check if something is listening on the port
+		const hostCommand = `docker run --rm --net=host busybox sh -c 'nc -z 0.0.0.0 ${port} 2>/dev/null && echo in_use || echo free'`;
+		const { stdout: hostOut } = serverId
+			? await execAsyncRemote(serverId, hostCommand)
+			: await execAsync(hostCommand);
+
+		if (hostOut.includes("in_use")) {
+			return {
+				isInUse: true,
+				conflictingContainer: "a host-level service",
+			};
+		}
+
+		return { isInUse: false };
 	} catch (error) {
 		console.error("Error checking port availability:", error);
 		return { isInUse: false };
@@ -438,13 +463,40 @@ export const writeTraefikSetup = async (input: TraefikOptions) => {
 			additionalPorts: input.additionalPorts,
 			serverId: input.serverId,
 		});
+		await reconnectServicesToTraefik(input.serverId);
 	} else if (resourceType === "standalone") {
 		await initializeStandaloneTraefik({
 			env: input.env,
 			additionalPorts: input.additionalPorts,
 			serverId: input.serverId,
 		});
+
+		await reconnectServicesToTraefik(input.serverId);
 	} else {
 		throw new Error("Traefik resource type not found");
+	}
+};
+
+export const reconnectServicesToTraefik = async (serverId?: string) => {
+	const composeResult = await db.query.compose.findMany({
+		where: and(
+			...(serverId ? [eq(compose.serverId, serverId)] : []),
+			eq(compose.isolatedDeployment, true),
+		),
+	});
+
+	if (!composeResult) {
+		return;
+	}
+	let commands = "";
+
+	for (const compose of composeResult) {
+		commands += `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1\n`;
+	}
+
+	if (serverId) {
+		await execAsyncRemote(serverId, commands);
+	} else {
+		await execAsync(commands);
 	}
 };

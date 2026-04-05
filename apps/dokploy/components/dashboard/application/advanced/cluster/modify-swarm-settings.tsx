@@ -110,16 +110,16 @@ const menuItems: MenuItem[] = [
 	},
 ];
 
-const hasStopGracePeriodSwarm = (
-	value: unknown,
-): value is { stopGracePeriodSwarm: bigint | number | string | null } =>
-	typeof value === "object" &&
-	value !== null &&
-	"stopGracePeriodSwarm" in value;
-
 interface Props {
 	id: string;
-	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
+	type:
+		| "application"
+		| "libsql"
+		| "mariadb"
+		| "mongo"
+		| "mysql"
+		| "postgres"
+		| "redis";
 }
 
 export const AddSwarmSettings = ({ id, type }: Props) => {

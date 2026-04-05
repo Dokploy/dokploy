@@ -1,10 +1,14 @@
+import { db } from "@dokploy/server/db";
 import { user } from "@dokploy/server/db/schema";
-import { validateLicenseKey } from "@dokploy/server/index";
+import { hasValidLicense, validateLicenseKey } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
-import { db } from "@/server/db";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+} from "@/server/api/trpc";
 import {
 	activateLicenseKey,
 	deactivateLicenseKey,
@@ -12,7 +16,7 @@ import {
 
 export const licenseKeyRouter = createTRPCRouter({
 	activate: adminProcedure
-		.input(z.object({ licenseKey: z.string() }))
+		.input(z.object({ licenseKey: z.string().min(1) }))
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const currentUserId = ctx.user.id;
@@ -74,6 +78,13 @@ export const licenseKeyRouter = createTRPCRouter({
 				});
 			}
 
+			if (ctx.user.role !== "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not authorized to validate a license key",
+				});
+			}
+
 			if (!currentUser.licenseKey) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -132,7 +143,12 @@ export const licenseKeyRouter = createTRPCRouter({
 				});
 			}
 
-			await deactivateLicenseKey(currentUser.licenseKey);
+			try {
+				await deactivateLicenseKey(currentUser.licenseKey);
+			} catch (err) {
+				console.error("Failed to deactivate license key remotely:", err);
+			}
+
 			await db
 				.update(user)
 				.set({
@@ -164,24 +180,20 @@ export const licenseKeyRouter = createTRPCRouter({
 			});
 		}
 
+		if (ctx.user.role !== "owner") {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "You are not authorized to get enterprise settings",
+			});
+		}
+
 		return {
 			enableEnterpriseFeatures: !!currentUser.enableEnterpriseFeatures,
 			licenseKey: currentUser.licenseKey ?? "",
 		};
 	}),
-	haveValidLicenseKey: adminProcedure.query(async ({ ctx }) => {
-		const currentUserId = ctx.user.id;
-		const currentUser = await db.query.user.findFirst({
-			where: eq(user.id, currentUserId),
-			columns: {
-				enableEnterpriseFeatures: true,
-				isValidEnterpriseLicense: true,
-			},
-		});
-		return !!(
-			currentUser?.enableEnterpriseFeatures &&
-			currentUser?.isValidEnterpriseLicense
-		);
+	haveValidLicenseKey: protectedProcedure.query(async ({ ctx }) => {
+		return await hasValidLicense(ctx.session.activeOrganizationId);
 	}),
 	updateEnterpriseSettings: adminProcedure
 		.input(
@@ -197,6 +209,13 @@ export const licenseKeyRouter = createTRPCRouter({
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "enableEnterpriseFeatures must be provided",
+					});
+				}
+
+				if (ctx.user.role !== "owner") {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You are not authorized to update enterprise settings",
 					});
 				}
 
