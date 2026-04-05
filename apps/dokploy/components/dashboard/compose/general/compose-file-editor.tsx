@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -26,6 +26,8 @@ const AddComposeFile = z.object({
 type AddComposeFile = z.infer<typeof AddComposeFile>;
 
 export const ComposeFileEditor = ({ composeId }: Props) => {
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canUpdate = permissions?.service.create ?? false;
 	const utils = api.useUtils();
 	const { data, refetch } = api.compose.one.useQuery(
 		{
@@ -34,7 +36,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		{ enabled: !!composeId },
 	);
 
-	const { mutateAsync, isLoading } = api.compose.update.useMutation();
+	const { mutateAsync, isPending } = api.compose.update.useMutation();
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
 	const form = useForm<AddComposeFile>({
@@ -93,7 +95,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.code === "KeyS" && !isLoading) {
+			if ((e.ctrlKey || e.metaKey) && e.code === "KeyS" && !isPending) {
 				e.preventDefault();
 				form.handleSubmit(onSubmit)();
 			}
@@ -103,7 +105,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		return () => {
 			document.removeEventListener("keydown", handleKeyDown);
 		};
-	}, [form, onSubmit, isLoading]);
+	}, [form, onSubmit, isPending]);
 
 	return (
 		<>
@@ -164,14 +166,16 @@ services:
 				</Form>
 				<div className="flex justify-between flex-col lg:flex-row gap-2">
 					<div className="w-full flex flex-col lg:flex-row gap-4 items-end" />
-					<Button
-						type="submit"
-						form="hook-form-save-compose-file"
-						isLoading={isLoading}
-						className="lg:w-fit w-full"
-					>
-						Save
-					</Button>
+					{canUpdate && (
+						<Button
+							type="submit"
+							form="hook-form-save-compose-file"
+							isLoading={isPending}
+							className="lg:w-fit w-full"
+						>
+							Save
+						</Button>
+					)}
 				</div>
 			</div>
 		</>

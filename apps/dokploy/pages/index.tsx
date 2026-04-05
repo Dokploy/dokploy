@@ -1,6 +1,6 @@
 import { IS_CLOUD, isAdminPresent } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
@@ -33,14 +33,11 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-	InputOTP,
-	InputOTPGroup,
-	InputOTPSlot,
-} from "@/components/ui/input-otp";
+import { InputOTP } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
+import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const LoginSchema = z.object({
 	email: z.string().email(),
@@ -58,6 +55,7 @@ interface Props {
 }
 export default function Home({ IS_CLOUD }: Props) {
 	const router = useRouter();
+	const { config: whitelabeling } = useWhitelabelingPublic();
 	const { data: showSignInWithSSO } = api.sso.showSignInWithSSO.useQuery();
 	const [isLoginLoading, setIsLoginLoading] = useState(false);
 	const [isTwoFactorLoading, setIsTwoFactorLoading] = useState(false);
@@ -216,7 +214,14 @@ export default function Home({ IS_CLOUD }: Props) {
 			<div className="flex flex-col space-y-2 text-center">
 				<h1 className="text-2xl font-semibold tracking-tight">
 					<div className="flex flex-row items-center justify-center gap-2">
-						<Logo className="size-12" />
+						<Logo
+							className="size-12"
+							logoUrl={
+								whitelabeling?.loginLogoUrl ||
+								whitelabeling?.logoUrl ||
+								undefined
+							}
+						/>
 						Sign in
 					</div>
 				</h1>
@@ -244,26 +249,20 @@ export default function Home({ IS_CLOUD }: Props) {
 							onSubmit={onTwoFactorSubmit}
 							className="space-y-4"
 							id="two-factor-form"
-							autoComplete="off"
+							autoComplete="on"
 						>
 							<div className="flex flex-col gap-2">
-								<Label>2FA Code</Label>
+								<Label htmlFor="totp-code">2FA Code</Label>
 								<InputOTP
+									id="totp-code"
+									name="totp"
 									value={twoFactorCode}
 									onChange={setTwoFactorCode}
 									maxLength={6}
+									placeholder="••••••"
 									pattern={REGEXP_ONLY_DIGITS}
 									autoFocus
-								>
-									<InputOTPGroup>
-										<InputOTPSlot index={0} className="border-border" />
-										<InputOTPSlot index={1} className="border-border" />
-										<InputOTPSlot index={2} className="border-border" />
-										<InputOTPSlot index={3} className="border-border" />
-										<InputOTPSlot index={4} className="border-border" />
-										<InputOTPSlot index={5} className="border-border" />
-									</InputOTPGroup>
-								</InputOTP>
+								/>
 								<CardDescription>
 									Enter the 6-digit code from your authenticator app
 								</CardDescription>

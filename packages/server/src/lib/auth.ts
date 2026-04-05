@@ -1,15 +1,21 @@
 import type { IncomingMessage } from "node:http";
+import { apiKey } from "@better-auth/api-key";
 import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
-import { admin, apiKey, organization, twoFactor } from "better-auth/plugins";
+import { admin, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { BETTER_AUTH_SECRET, IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
-import { getTrustedOrigins, getUserByToken } from "../services/admin";
+import {
+	getTrustedOrigins,
+	getTrustedProviders,
+	getUserByToken,
+} from "../services/admin";
+import { createAuditLog } from "../services/proprietary/audit-log";
 import {
 	getWebServerSettings,
 	updateWebServerSettings,
@@ -17,8 +23,7 @@ import {
 import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
-
-const trustedProviders = process.env?.TRUSTED_PROVIDERS?.split(",") || [];
+import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -49,7 +54,10 @@ const { handler, api } = betterAuth({
 	account: {
 		accountLinking: {
 			enabled: true,
-			trustedProviders: ["github", "google", ...(trustedProviders || [])],
+			async trustedProviders() {
+				const fromDb = await getTrustedProviders();
+				return ["github", "google", ...fromDb];
+			},
 			allowDifferentEmails: true,
 		},
 	},
@@ -68,25 +76,32 @@ const { handler, api } = betterAuth({
 		disabled: process.env.NODE_ENV === "production",
 	},
 	async trustedOrigins() {
-		const trustedOrigins = await getTrustedOrigins();
-		if (IS_CLOUD) {
-			return trustedOrigins;
-		}
-		const settings = await getWebServerSettings();
-		if (!settings) {
+		try {
+			if (IS_CLOUD) {
+				return await getTrustedOrigins();
+			}
+			const [trustedOrigins, settings] = await Promise.all([
+				getTrustedOrigins(),
+				getWebServerSettings(),
+			]);
+			if (!settings) return [];
+			const devOrigins =
+				process.env.NODE_ENV === "development"
+					? [
+							"http://localhost:3000",
+							"https://absolutely-handy-falcon.ngrok-free.app",
+						]
+					: [];
+			return [
+				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
+				...(settings?.host ? [`https://${settings?.host}`] : []),
+				...devOrigins,
+				...trustedOrigins,
+			];
+		} catch (error) {
+			console.error("Failed to resolve trusted origins:", error);
 			return [];
 		}
-		return [
-			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
-			...(settings?.host ? [`https://${settings?.host}`] : []),
-			...(process.env.NODE_ENV === "development"
-				? [
-						"http://localhost:3000",
-						"https://absolutely-handy-falcon.ngrok-free.app",
-					]
-				: []),
-			...trustedOrigins,
-		];
 	},
 	emailVerification: {
 		sendOnSignUp: true,
@@ -106,7 +121,7 @@ const { handler, api } = betterAuth({
 	emailAndPassword: {
 		enabled: true,
 		autoSignIn: !IS_CLOUD,
-		requireEmailVerification: IS_CLOUD,
+		requireEmailVerification: IS_CLOUD && process.env.NODE_ENV === "production",
 		password: {
 			async hash(password) {
 				return bcrypt.hashSync(password, 10);
@@ -262,6 +277,52 @@ const { handler, api } = betterAuth({
 						},
 					};
 				},
+				after: async (session) => {
+					const orgId = (
+						session as typeof session & { activeOrganizationId?: string }
+					).activeOrganizationId;
+					if (!orgId) return;
+					const memberRecord = await db.query.member.findFirst({
+						where: and(
+							eq(schema.member.userId, session.userId),
+							eq(schema.member.organizationId, orgId),
+						),
+						with: { user: true },
+					});
+					if (!memberRecord) return;
+					await createAuditLog({
+						organizationId: orgId,
+						userId: session.userId,
+						userEmail: memberRecord.user.email,
+						userRole: memberRecord.role,
+						action: "login",
+						resourceType: "session",
+					});
+				},
+			},
+			delete: {
+				after: async (session) => {
+					const orgId = (
+						session as typeof session & { activeOrganizationId?: string }
+					).activeOrganizationId;
+					if (!orgId) return;
+					const memberRecord = await db.query.member.findFirst({
+						where: and(
+							eq(schema.member.userId, session.userId),
+							eq(schema.member.organizationId, orgId),
+						),
+						with: { user: true },
+					});
+					if (!memberRecord) return;
+					await createAuditLog({
+						organizationId: orgId,
+						userId: session.userId,
+						userEmail: memberRecord.user.email,
+						userRole: memberRecord.role,
+						action: "logout",
+						resourceType: "session",
+					});
+				},
 			},
 		},
 	},
@@ -311,10 +372,21 @@ const { handler, api } = betterAuth({
 	plugins: [
 		apiKey({
 			enableMetadata: true,
+			references: "user",
 		}),
 		sso(),
 		twoFactor(),
 		organization({
+			ac,
+			roles: {
+				owner: ownerRole,
+				admin: adminRole,
+				member: memberRole,
+			},
+			dynamicAccessControl: {
+				enabled: true,
+				maximumRolesPerOrganization: 10,
+			},
 			async sendInvitationEmail(data, _request) {
 				if (IS_CLOUD) {
 					const host =
@@ -343,12 +415,15 @@ const { handler, api } = betterAuth({
 	],
 });
 
-export const auth = {
+const _auth = {
 	handler,
 	createApiKey: api.createApiKey,
 	registerSSOProvider: api.registerSSOProvider,
 	updateSSOProvider: api.updateSSOProvider,
 };
+
+export type AuthType = typeof _auth;
+export const auth: AuthType = _auth;
 
 export const validateRequest = async (request: IncomingMessage) => {
 	const apiKey = request.headers["x-api-key"] as string;
@@ -460,11 +535,16 @@ export const validateRequest = async (request: IncomingMessage) => {
 		const member = await db.query.member.findFirst({
 			where: and(
 				eq(schema.member.userId, session.user.id),
-				eq(
-					schema.member.organizationId,
-					session.session.activeOrganizationId || "",
-				),
+				...(session.session.activeOrganizationId
+					? [
+							eq(
+								schema.member.organizationId,
+								session.session.activeOrganizationId || "",
+							),
+						]
+					: []),
 			),
+			orderBy: [desc(schema.member.isDefault), desc(schema.member.createdAt)],
 			with: {
 				organization: true,
 				user: true,
@@ -476,6 +556,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 			member?.user.enableEnterpriseFeatures || false;
 		session.user.isValidEnterpriseLicense =
 			member?.user.isValidEnterpriseLicense || false;
+		session.session.activeOrganizationId = member?.organization.id || "";
 		if (member) {
 			session.user.ownerId = member.organization.ownerId;
 		} else {

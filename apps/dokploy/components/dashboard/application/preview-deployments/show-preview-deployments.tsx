@@ -43,7 +43,7 @@ interface Props {
 export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 	const { data } = api.application.one.useQuery({ applicationId });
 
-	const { mutateAsync: deletePreviewDeployment, isLoading } =
+	const { mutateAsync: deletePreviewDeployment, isPending } =
 		api.previewDeployment.delete.useMutation();
 
 	const { mutateAsync: redeployPreviewDeployment } =
@@ -57,8 +57,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 		{ applicationId },
 		{
 			enabled: !!applicationId,
-			refetchInterval: (data) =>
-				data?.some((d) => d.previewStatus === "running") ? 2000 : false,
+			refetchInterval: 2000,
 		},
 	);
 
@@ -282,7 +281,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 															<Button
 																variant="ghost"
 																size="sm"
-																isLoading={isLoading}
+																isLoading={isPending}
 																className="text-red-600 hover:text-red-700 hover:bg-red-50"
 															>
 																<Trash2 className="size-4" />

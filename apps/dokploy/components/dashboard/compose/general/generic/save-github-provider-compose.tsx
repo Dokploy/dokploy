@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CheckIcon, ChevronsUpDown, HelpCircle, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -72,10 +72,10 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 	const { data: githubProviders } = api.github.githubProviders.useQuery();
 	const { data, refetch } = api.compose.one.useQuery({ composeId });
 
-	const { mutateAsync, isLoading: isSavingGithubProvider } =
+	const { mutateAsync, isPending: isSavingGithubProvider } =
 		api.compose.update.useMutation();
 
-	const form = useForm<GithubProvider>({
+	const form = useForm({
 		defaultValues: {
 			composePath: "./docker-compose.yml",
 			repository: {
@@ -94,7 +94,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 	const repository = form.watch("repository");
 	const githubId = form.watch("githubId");
 	const triggerType = form.watch("triggerType");
-	const { data: repositories, isLoading: isLoadingRepositories } =
+	const { data: repositories, isPending: isLoadingRepositories } =
 		api.github.getGithubRepositories.useQuery(
 			{
 				githubId,
@@ -321,7 +321,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{status === "loading" && fetchStatus === "fetching"
+													{status === "pending" && fetchStatus === "fetching"
 														? "Loading...."
 														: field.value
 															? branches?.find(
@@ -338,7 +338,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 													placeholder="Search branch..."
 													className="h-9"
 												/>
-												{status === "loading" && fetchStatus === "fetching" && (
+												{status === "pending" && fetchStatus === "fetching" && (
 													<span className="py-6 text-center text-sm text-muted-foreground">
 														Loading Branches....
 													</span>

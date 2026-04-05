@@ -18,7 +18,9 @@ export const randomizeComposeFile = async (
 ) => {
 	const compose = await findComposeById(composeId);
 	const composeFile = compose.composeFile;
-	const composeData = parse(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile, {
+		maxAliasCount: 10000,
+	}) as ComposeSpecification;
 
 	const randomSuffix = suffix || generateRandomHash();
 

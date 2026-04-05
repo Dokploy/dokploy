@@ -15,7 +15,7 @@ interface Props {
 }
 
 export const AddWorker = ({ serverId }: Props) => {
-	const { data, isLoading, error, isError } = api.cluster.addWorker.useQuery({
+	const { data, isPending, error, isError } = api.cluster.addWorker.useQuery({
 		serverId,
 	});
 
@@ -26,7 +26,7 @@ export const AddWorker = ({ serverId }: Props) => {
 				<DialogDescription>Add a new worker</DialogDescription>
 			</DialogHeader>
 			{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
-			{isLoading ? (
+			{isPending ? (
 				<Loader2 className="w-full animate-spin text-muted-foreground" />
 			) : (
 				<>

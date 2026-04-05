@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -71,7 +71,7 @@ export const ShowRollbackSettings = ({ applicationId, children }: Props) => {
 		},
 	);
 
-	const { mutateAsync: updateApplication, isLoading } =
+	const { mutateAsync: updateApplication, isPending } =
 		api.application.update.useMutation();
 
 	const { data: registries } = api.registry.all.useQuery();
@@ -212,7 +212,7 @@ export const ShowRollbackSettings = ({ applicationId, children }: Props) => {
 							/>
 						)}
 
-						<Button type="submit" className="w-full" isLoading={isLoading}>
+						<Button type="submit" className="w-full" isLoading={isPending}>
 							Save Settings
 						</Button>
 					</form>

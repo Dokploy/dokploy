@@ -21,10 +21,10 @@ interface Props {
 	serverId?: string;
 }
 export const ShowTraefikActions = ({ serverId }: Props) => {
-	const { mutateAsync: reloadTraefik, isLoading: reloadTraefikIsLoading } =
+	const { mutateAsync: reloadTraefik, isPending: reloadTraefikIsLoading } =
 		api.settings.reloadTraefik.useMutation();
 
-	const { mutateAsync: toggleDashboard, isLoading: toggleDashboardIsLoading } =
+	const { mutateAsync: toggleDashboard, isPending: toggleDashboardIsLoading } =
 		api.settings.toggleDashboard.useMutation();
 
 	const { data: haveTraefikDashboardPortEnabled, refetch: refetchDashboard } =
