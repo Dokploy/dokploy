@@ -148,10 +148,12 @@ const { handler, api } = betterAuth({
 						const xDokployToken =
 							context?.request?.headers?.get("x-dokploy-token");
 						if (xDokployToken) {
-							const invitation = await getUserByToken(xDokployToken);
-							if (!invitation) {
+							let invitation: Awaited<ReturnType<typeof getUserByToken>>;
+							try {
+								invitation = await getUserByToken(xDokployToken);
+							} catch {
 								throw new APIError("BAD_REQUEST", {
-									message: "User not found",
+									message: "Invalid invitation token",
 								});
 							}
 							if (invitation.isExpired) {
@@ -164,7 +166,7 @@ const { handler, api } = betterAuth({
 									message: "Invitation has already been used",
 								});
 							}
-							if (_user.email !== invitation.email) {
+							if (_user.email.toLowerCase().trim() !== invitation.email.toLowerCase().trim()) {
 								throw new APIError("BAD_REQUEST", {
 									message: "Email does not match invitation",
 								});
