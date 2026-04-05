@@ -1,5 +1,6 @@
 import {
 	createApiKey,
+	createOrganizationUserWithCredentials,
 	findNotificationById,
 	findOrganizationById,
 	findUserById,
@@ -564,6 +565,37 @@ export const userRouter = createTRPCRouter({
 			});
 
 			return organizations.length;
+		}),
+	createUserWithCredentials: withPermission("member", "create")
+		.input(
+			z.object({
+				email: z.string().email(),
+				password: z.string().min(8),
+				role: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"Creating users with initial credentials is only available in self-hosted mode",
+				});
+			}
+
+			if (!ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Active organization is required",
+				});
+			}
+
+			return await createOrganizationUserWithCredentials({
+				organizationId: ctx.session.activeOrganizationId,
+				email: input.email,
+				password: input.password,
+				role: input.role,
+			});
 		}),
 	sendInvitation: withPermission("member", "create")
 		.input(
