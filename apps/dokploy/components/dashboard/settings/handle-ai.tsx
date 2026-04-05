@@ -252,9 +252,7 @@ export const HandleAi = ({ aiId }: Props) => {
 							control={form.control}
 							name="model"
 							render={({ field }) => {
-								const selectedModel = models?.find(
-									(m) => m.id === field.value,
-								);
+								const selectedModel = models?.find((m) => m.id === field.value);
 								const filteredModels = models?.filter((model) =>
 									model.id.toLowerCase().includes(modelSearch.toLowerCase()),
 								);
@@ -272,60 +270,67 @@ export const HandleAi = ({ aiId }: Props) => {
 									<FormItem>
 										<FormLabel>Model</FormLabel>
 										<div className="flex gap-2">
-											{!isLoadingServerModels && models && models.length > 0 && (
-												<Popover
-													open={modelPopoverOpen}
-													onOpenChange={setModelPopoverOpen}
-												>
-													<PopoverTrigger asChild>
-														<FormControl>
-															<Button
-																variant="outline"
-																className={cn(
-																	"w-[60px] shrink-0 justify-center",
-																)}
-																type="button"
-															>
-																<ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
-															</Button>
-														</FormControl>
-													</PopoverTrigger>
-													<PopoverContent className="w-[400px] p-0" align="start">
-														<Command>
-															<CommandInput
-																placeholder="Search models..."
-																value={modelSearch}
-																onValueChange={setModelSearch}
-															/>
-															<CommandList>
-																<CommandEmpty>No models found.</CommandEmpty>
-																{displayModels.map((model) => {
-																	const isSelected = field.value === model.id;
-																	return (
-																		<CommandItem
-																			key={model.id}
-																			value={model.id}
-																			onSelect={() => {
-																				field.onChange(model.id);
-																				setModelPopoverOpen(false);
-																				setModelSearch("");
-																			}}
-																		>
-																			<Check
-																				className={cn(
-																					"mr-2 h-4 w-4",
-																					isSelected ? "opacity-100" : "opacity-0",
-																				)}
-																			/>
-																			{model.id}
-																		</CommandItem>
-																	);
-																})}
-															</CommandList>
-														</Command>
-													</PopoverContent>
-												</Popover>
-											)}
+											{!isLoadingServerModels &&
+												models &&
+												models.length > 0 && (
+													<Popover
+														open={modelPopoverOpen}
+														onOpenChange={setModelPopoverOpen}
+													>
+														<PopoverTrigger asChild>
+															<FormControl>
+																<Button
+																	variant="outline"
+																	className={cn(
+																		"w-[60px] shrink-0 justify-center",
+																	)}
+																	type="button"
+																>
+																	<ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+																</Button>
+															</FormControl>
+														</PopoverTrigger>
+														<PopoverContent
+															className="w-[400px] p-0"
+															align="start"
+														>
+															<Command>
+																<CommandInput
+																	placeholder="Search models..."
+																	value={modelSearch}
+																	onValueChange={setModelSearch}
+																/>
+																<CommandList>
+																	<CommandEmpty>No models found.</CommandEmpty>
+																	{displayModels.map((model) => {
+																		const isSelected = field.value === model.id;
+																		return (
+																			<CommandItem
+																				key={model.id}
+																				value={model.id}
+																				onSelect={() => {
+																					field.onChange(model.id);
+																					setModelPopoverOpen(false);
+																					setModelSearch("");
+																				}}
+																			>
+																				<Check
+																					className={cn(
+																						"mr-2 h-4 w-4",
+																						isSelected
+																							? "opacity-100"
+																							: "opacity-0",
+																					)}
+																				/>
+																				{model.id}
+																			</CommandItem>
+																		);
+																	})}
+																</CommandList>
+															</Command>
+														</PopoverContent>
+													</Popover>
+												)}
 											<FormControl>
 												<Input
 													placeholder="gpt-4o or custom model name"

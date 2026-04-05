@@ -65,21 +65,33 @@ export const aiRouter = createTRPCRouter({
 				const headers = getProviderHeaders(input.apiUrl, input.apiKey);
 
 				// Test with a minimal completion request
-				const testModel = input.model || (() => {
-					// Default test models per provider if none specified
-					switch (providerName) {
-						case "openai": return "gpt-3.5-turbo";
-						case "anthropic": return "claude-3-haiku-20240307";
-						case "perplexity": return "sonar";
-						case "zai": return "glm-4.7";
-						case "minimax": return "MiniMax-M2.7";
-						case "gemini": return "gemini-pro";
-						case "mistral": return "mistral-tiny";
-						case "cohere": return "command-r";
-						case "deepinfra": return "meta-llama/Meta-Llama-3-8B";
-						default: return "gpt-3.5-turbo";
-					}
-				})();
+				const testModel =
+					input.model ||
+					(() => {
+						// Default test models per provider if none specified
+						switch (providerName) {
+							case "openai":
+								return "gpt-3.5-turbo";
+							case "anthropic":
+								return "claude-3-haiku-20240307";
+							case "perplexity":
+								return "sonar";
+							case "zai":
+								return "glm-4.7";
+							case "minimax":
+								return "MiniMax-M2.7";
+							case "gemini":
+								return "gemini-pro";
+							case "mistral":
+								return "mistral-tiny";
+							case "cohere":
+								return "command-r";
+							case "deepinfra":
+								return "meta-llama/Meta-Llama-3-8B";
+							default:
+								return "gpt-3.5-turbo";
+						}
+					})();
 
 				// Anthropic-style API
 				if (providerName === "anthropic" || providerName === "minimax") {
