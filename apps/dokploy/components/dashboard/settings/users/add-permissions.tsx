@@ -209,12 +209,9 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 		},
 	);
 
-	const { data: servers } = api.server.allForPermissions.useQuery(
-		undefined,
-		{
-			enabled: isOpen && !!haveValidLicense,
-		},
-	);
+	const { data: servers } = api.server.allForPermissions.useQuery(undefined, {
+		enabled: isOpen && !!haveValidLicense,
+	});
 
 	const { data, refetch } = api.user.one.useQuery(
 		{
@@ -994,9 +991,7 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 														<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
 															<FormControl>
 																<Checkbox
-																	checked={field.value?.includes(
-																		s.serverId,
-																	)}
+																	checked={field.value?.includes(s.serverId)}
 																	onCheckedChange={(checked) => {
 																		if (checked) {
 																			field.onChange([
