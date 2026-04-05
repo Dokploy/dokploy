@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CheckIcon, ChevronsUpDown, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -72,10 +72,10 @@ interface Props {
 export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 	const { data: giteaProviders } = api.gitea.giteaProviders.useQuery();
 	const { data, refetch } = api.compose.one.useQuery({ composeId });
-	const { mutateAsync, isLoading: isSavingGiteaProvider } =
+	const { mutateAsync, isPending: isSavingGiteaProvider } =
 		api.compose.update.useMutation();
 
-	const form = useForm<GiteaProvider>({
+	const form = useForm({
 		defaultValues: {
 			composePath: "./docker-compose.yml",
 			repository: {
@@ -331,7 +331,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{status === "loading" && fetchStatus === "fetching"
+													{status === "pending" && fetchStatus === "fetching"
 														? "Loading...."
 														: field.value
 															? branches?.find(

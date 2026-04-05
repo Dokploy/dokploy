@@ -1,9 +1,9 @@
 import { buffer } from "node:stream/consumers";
 import { findUserById, type Server } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
-import { db } from "@/server/db";
 import { organization, server, user } from "@/server/db/schema";
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -174,27 +174,27 @@ export default async function handler(
 		case "invoice.payment_succeeded": {
 			const newInvoice = event.data.object as Stripe.Invoice;
 
-			const suscription = await stripe.subscriptions.retrieve(
+			const subscription = await stripe.subscriptions.retrieve(
 				newInvoice.subscription as string,
 			);
 
-			if (suscription.status !== "active") {
+			if (subscription.status !== "active") {
 				console.log(
-					`Skipping invoice.payment_succeeded for subscription ${suscription.id} with status ${suscription.status}`,
+					`Skipping invoice.payment_succeeded for subscription ${subscription.id} with status ${subscription.status}`,
 				);
 				break;
 			}
 
 			const serversQuantity = getSubscriptionServersQuantity(
-				suscription?.items?.data ?? [],
+				subscription?.items?.data ?? [],
 			);
 			await db
 				.update(user)
 				.set({ serversQuantity })
-				.where(eq(user.stripeCustomerId, suscription.customer as string));
+				.where(eq(user.stripeCustomerId, subscription.customer as string));
 
 			const admin = await findUserByStripeCustomerId(
-				suscription.customer as string,
+				subscription.customer as string,
 			);
 
 			if (!admin) {

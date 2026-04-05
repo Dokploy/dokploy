@@ -164,6 +164,11 @@ const createSchema = createInsertSchema(compose, {
 	composePath: z.string().min(1),
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
 	watchPaths: z.array(z.string()).optional(),
+	sourceType: z
+		.enum(["git", "github", "gitlab", "bitbucket", "gitea", "raw"])
+		.optional(),
+	triggerType: z.enum(["push", "tag"]).optional(),
+	composeStatus: z.enum(["idle", "running", "done", "error"]).optional(),
 });
 
 export const apiCreateCompose = createSchema.pick({

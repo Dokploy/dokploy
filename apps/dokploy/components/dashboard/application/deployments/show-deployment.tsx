@@ -194,13 +194,21 @@ export const ShowDeployment = ({
 					{" "}
 					{filteredLogs.length > 0 ? (
 						filteredLogs.map((log: LogLine, index: number) => (
-							<TerminalLine key={index} log={log} noTimestamp />
+							<TerminalLine
+								key={`${log.rawTimestamp ?? ""}-${index}`}
+								log={log}
+								noTimestamp
+							/>
 						))
 					) : (
 						<>
 							{optionalErrors.length > 0 ? (
 								optionalErrors.map((log: LogLine, index: number) => (
-									<TerminalLine key={`extra-${index}`} log={log} noTimestamp />
+									<TerminalLine
+										key={`extra-${log.rawTimestamp ?? ""}-${index}`}
+										log={log}
+										noTimestamp
+									/>
 								))
 							) : (
 								<div className="flex justify-center items-center h-full text-muted-foreground">

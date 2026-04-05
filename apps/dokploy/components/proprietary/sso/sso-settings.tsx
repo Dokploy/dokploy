@@ -83,18 +83,18 @@ export const SSOSettings = () => {
 	const [editingValue, setEditingValue] = useState("");
 	const [newOriginInput, setNewOriginInput] = useState("");
 
-	const { data: providers, isLoading } = api.sso.listProviders.useQuery();
+	const { data: providers, isPending } = api.sso.listProviders.useQuery();
 	const { data: trustedOrigins = [] } = api.sso.getTrustedOrigins.useQuery(
 		undefined,
 		{ enabled: manageOriginsOpen },
 	);
-	const { mutateAsync: deleteProvider, isLoading: isDeleting } =
+	const { mutateAsync: deleteProvider, isPending: isDeleting } =
 		api.sso.deleteProvider.useMutation();
-	const { mutateAsync: addTrustedOrigin, isLoading: isAddingOrigin } =
+	const { mutateAsync: addTrustedOrigin, isPending: isAddingOrigin } =
 		api.sso.addTrustedOrigin.useMutation();
-	const { mutateAsync: removeTrustedOrigin, isLoading: isRemovingOrigin } =
+	const { mutateAsync: removeTrustedOrigin, isPending: isRemovingOrigin } =
 		api.sso.removeTrustedOrigin.useMutation();
-	const { mutateAsync: updateTrustedOrigin, isLoading: isUpdatingOrigin } =
+	const { mutateAsync: updateTrustedOrigin, isPending: isUpdatingOrigin } =
 		api.sso.updateTrustedOrigin.useMutation();
 
 	const handleAddOrigin = async () => {
@@ -180,7 +180,7 @@ export const SSOSettings = () => {
 				</Button>
 			</div>
 
-			{isLoading ? (
+			{isPending ? (
 				<div className="flex items-center gap-2 justify-center min-h-[25vh]">
 					<Loader2 className="size-6 text-muted-foreground animate-spin" />
 					<span className="text-sm text-muted-foreground">

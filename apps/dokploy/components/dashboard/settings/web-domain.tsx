@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { GlobeIcon } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -66,7 +66,7 @@ type AddServerDomain = z.infer<typeof addServerDomain>;
 
 export const WebDomain = () => {
 	const { data, refetch } = api.settings.getWebServerSettings.useQuery();
-	const { mutateAsync, isLoading } =
+	const { mutateAsync, isPending } =
 		api.settings.assignDomainServer.useMutation();
 
 	const form = useForm<AddServerDomain>({
@@ -235,7 +235,7 @@ export const WebDomain = () => {
 								)}
 
 								<div className="flex w-full justify-end col-span-2">
-									<Button isLoading={isLoading} type="submit">
+									<Button isLoading={isPending} type="submit">
 										Save
 									</Button>
 								</div>

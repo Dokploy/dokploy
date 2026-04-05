@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CircuitBoard, HelpCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/tooltip";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
+import { APP_NAME_MESSAGE, APP_NAME_REGEX } from "@/utils/schema";
 
 const AddComposeSchema = z.object({
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
@@ -54,9 +55,8 @@ const AddComposeSchema = z.object({
 		.min(1, {
 			message: "App name is required",
 		})
-		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
-			message:
-				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
+		.regex(APP_NAME_REGEX, {
+			message: APP_NAME_MESSAGE,
 		}),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
@@ -75,11 +75,8 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 	const slug = slugify(projectName);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
-	const { mutateAsync, isLoading, error, isError } =
+	const { mutateAsync, isPending, error, isError } =
 		api.compose.create.useMutation();
-
-	// Get environment data to extract projectId
-	const { data: environment } = api.environment.one.useQuery({ environmentId });
 
 	const hasServers = servers && servers.length > 0;
 	// Show dropdown logic based on cloud environment
@@ -117,6 +114,8 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 				await utils.environment.one.invalidate({
 					environmentId,
 				});
+				// Invalidate the project query to refresh the project data for the advance-breadcrumb
+				await utils.project.all.invalidate();
 			})
 			.catch(() => {
 				toast.error("Error creating the compose");
@@ -307,7 +306,7 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 					</form>
 
 					<DialogFooter>
-						<Button isLoading={isLoading} form="hook-form" type="submit">
+						<Button isLoading={isPending} form="hook-form" type="submit">
 							Create
 						</Button>
 					</DialogFooter>

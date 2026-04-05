@@ -119,7 +119,14 @@ const hasStopGracePeriodSwarm = (
 
 interface Props {
 	id: string;
-	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
+	type:
+		| "application"
+		| "libsql"
+		| "mariadb"
+		| "mongo"
+		| "mysql"
+		| "postgres"
+		| "redis";
 }
 
 export const AddSwarmSettings = ({ id, type }: Props) => {

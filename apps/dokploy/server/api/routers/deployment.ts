@@ -4,74 +4,123 @@ import {
 	findAllDeploymentsByApplicationId,
 	findAllDeploymentsByComposeId,
 	findAllDeploymentsByServerId,
-	findApplicationById,
-	findComposeById,
+	findAllDeploymentsCentralized,
 	findDeploymentById,
-	findServerById,
+	IS_CLOUD,
 	removeDeployment,
+	resolveServicePath,
 	updateDeploymentStatus,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
+import {
+	checkServicePermissionAndAccess,
+	findMemberByUserId,
+} from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/server/db";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiFindAllByApplication,
 	apiFindAllByCompose,
 	apiFindAllByServer,
 	apiFindAllByType,
 	deployments,
+	server,
 } from "@/server/db/schema";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { myQueue } from "@/server/queues/queueSetup";
+import { fetchDeployApiJobs, type QueueJobRow } from "@/server/utils/deploy";
+import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
 export const deploymentRouter = createTRPCRouter({
 	all: protectedProcedure
 		.input(apiFindAllByApplication)
 		.query(async ({ input, ctx }) => {
-			const application = await findApplicationById(input.applicationId);
-			if (
-				application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this application",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				deployment: ["read"],
+			});
 			return await findAllDeploymentsByApplicationId(input.applicationId);
 		}),
 
 	allByCompose: protectedProcedure
 		.input(apiFindAllByCompose)
 		.query(async ({ input, ctx }) => {
-			const compose = await findComposeById(input.composeId);
-			if (
-				compose.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this compose",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, input.composeId, {
+				deployment: ["read"],
+			});
 			return await findAllDeploymentsByComposeId(input.composeId);
 		}),
-	allByServer: protectedProcedure
+	allByServer: withPermission("deployment", "read")
 		.input(apiFindAllByServer)
-		.query(async ({ input, ctx }) => {
-			const server = await findServerById(input.serverId);
-			if (server.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this server",
-				});
-			}
+		.query(async ({ input }) => {
 			return await findAllDeploymentsByServerId(input.serverId);
 		}),
+	allCentralized: withPermission("deployment", "read").query(
+		async ({ ctx }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			const accessedServices =
+				ctx.user.role !== "owner" && ctx.user.role !== "admin"
+					? (await findMemberByUserId(ctx.user.id, orgId)).accessedServices
+					: null;
+			if (accessedServices !== null && accessedServices.length === 0) {
+				return [];
+			}
+			return findAllDeploymentsCentralized(orgId, accessedServices);
+		},
+	),
+
+	queueList: withPermission("deployment", "read").query(async ({ ctx }) => {
+		const orgId = ctx.session.activeOrganizationId;
+		let rows: QueueJobRow[];
+
+		if (IS_CLOUD) {
+			const servers = await db.query.server.findMany({
+				where: eq(server.organizationId, orgId),
+				columns: { serverId: true },
+			});
+			const serverRowsArrays = await Promise.all(
+				servers.map(({ serverId }) => fetchDeployApiJobs(serverId)),
+			);
+			rows = serverRowsArrays.flat();
+			rows.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
+		} else {
+			const jobs = await myQueue.getJobs();
+			const jobRows = await Promise.all(
+				jobs.map(async (job) => {
+					const state = await job.getState();
+					return {
+						id: String(job.id),
+						name: job.name ?? undefined,
+						data: job.data as Record<string, unknown>,
+						timestamp: job.timestamp,
+						processedOn: job.processedOn,
+						finishedOn: job.finishedOn,
+						failedReason: job.failedReason ?? undefined,
+						state,
+					};
+				}),
+			);
+			jobRows.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
+			rows = jobRows;
+		}
+
+		return Promise.all(
+			rows.map(async (row) => ({
+				...row,
+				servicePath: await resolveServicePath(
+					orgId,
+					(row.data ?? {}) as Record<string, unknown>,
+				),
+			})),
+		);
+	}),
 
 	allByType: protectedProcedure
 		.input(apiFindAllByType)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.id, {
+				deployment: ["read"],
+			});
 			const deploymentsList = await db.query.deployments.findMany({
 				where: eq(deployments[`${input.type}Id`], input.id),
 				orderBy: desc(deployments.createdAt),
@@ -79,18 +128,22 @@ export const deploymentRouter = createTRPCRouter({
 					rollback: true,
 				},
 			});
-
 			return deploymentsList;
 		}),
-
 	killProcess: protectedProcedure
 		.input(
 			z.object({
 				deploymentId: z.string().min(1),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const deployment = await findDeploymentById(input.deploymentId);
+			const serviceId = deployment.applicationId || deployment.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					deployment: ["cancel"],
+				});
+			}
 
 			if (!deployment.pid) {
 				throw new TRPCError({
@@ -107,6 +160,11 @@ export const deploymentRouter = createTRPCRouter({
 			}
 
 			await updateDeploymentStatus(deployment.deploymentId, "error");
+			await audit(ctx, {
+				action: "cancel",
+				resourceType: "deployment",
+				resourceId: deployment.deploymentId,
+			});
 		}),
 
 	removeDeployment: protectedProcedure
@@ -115,7 +173,20 @@ export const deploymentRouter = createTRPCRouter({
 				deploymentId: z.string().min(1),
 			}),
 		)
-		.mutation(async ({ input }) => {
-			return await removeDeployment(input.deploymentId);
+		.mutation(async ({ input, ctx }) => {
+			const deployment = await findDeploymentById(input.deploymentId);
+			const serviceId = deployment.applicationId || deployment.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					deployment: ["cancel"],
+				});
+			}
+			const result = await removeDeployment(input.deploymentId);
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "deployment",
+				resourceId: deployment.deploymentId,
+			});
+			return result;
 		}),
 });

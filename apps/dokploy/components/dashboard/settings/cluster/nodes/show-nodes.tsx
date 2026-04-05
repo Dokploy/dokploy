@@ -48,7 +48,7 @@ interface Props {
 }
 
 export const ShowNodes = ({ serverId }: Props) => {
-	const { data, isLoading, refetch } = api.cluster.getNodes.useQuery({
+	const { data, isPending, refetch } = api.cluster.getNodes.useQuery({
 		serverId,
 	});
 	const { data: registry } = api.registry.all.useQuery();
@@ -75,7 +75,7 @@ export const ShowNodes = ({ serverId }: Props) => {
 						)}
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t min-h-[35vh]">
-						{isLoading ? (
+						{isPending ? (
 							<div className="flex items-center justify-center w-full h-[40vh]">
 								<Loader2 className="size-8 animate-spin text-muted-foreground" />
 							</div>

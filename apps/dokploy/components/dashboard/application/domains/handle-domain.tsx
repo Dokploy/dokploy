@@ -1,11 +1,12 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { DatabaseZap, Dices, RefreshCw, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -61,11 +62,14 @@ export const domain = z
 			.min(1, { message: "Port must be at least 1" })
 			.max(65535, { message: "Port must be 65535 or below" })
 			.optional(),
+		useCustomEntrypoint: z.boolean(),
+		customEntrypoint: z.string().optional(),
 		https: z.boolean().optional(),
 		certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 		customCertResolver: z.string().optional(),
 		serviceName: z.string().optional(),
 		domainType: z.enum(["application", "compose", "preview"]).optional(),
+		middlewares: z.array(z.string()).optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {
@@ -114,6 +118,14 @@ export const domain = z
 				message: "Internal path must start with '/'",
 			});
 		}
+
+		if (input.useCustomEntrypoint && !input.customEntrypoint) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["customEntrypoint"],
+				message: "Custom entry point must be specified",
+			});
+		}
 	});
 
 type Domain = z.infer<typeof domain>;
@@ -159,11 +171,11 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 					},
 				);
 
-	const { mutateAsync, isError, error, isLoading } = domainId
+	const { mutateAsync, isError, error, isPending } = domainId
 		? api.domain.update.useMutation()
 		: api.domain.create.useMutation();
 
-	const { mutateAsync: generateDomain, isLoading: isLoadingGenerate } =
+	const { mutateAsync: generateDomain, isPending: isLoadingGenerate } =
 		api.domain.generateDomain.useMutation();
 
 	const { data: canGenerateTraefikMeDomains } =
@@ -196,16 +208,20 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			internalPath: undefined,
 			stripPath: false,
 			port: undefined,
+			useCustomEntrypoint: false,
+			customEntrypoint: undefined,
 			https: false,
 			certificateType: undefined,
 			customCertResolver: undefined,
 			serviceName: undefined,
 			domainType: type,
+			middlewares: [],
 		},
 		mode: "onChange",
 	});
 
 	const certificateType = form.watch("certificateType");
+	const useCustomEntrypoint = form.watch("useCustomEntrypoint");
 	const https = form.watch("https");
 	const domainType = form.watch("domainType");
 	const host = form.watch("host");
@@ -220,10 +236,13 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				internalPath: data?.internalPath || undefined,
 				stripPath: data?.stripPath || false,
 				port: data?.port || undefined,
+				useCustomEntrypoint: !!data.customEntrypoint,
+				customEntrypoint: data.customEntrypoint || undefined,
 				certificateType: data?.certificateType || undefined,
 				customCertResolver: data?.customCertResolver || undefined,
 				serviceName: data?.serviceName || undefined,
 				domainType: data?.domainType || type,
+				middlewares: data?.middlewares || [],
 			});
 		}
 
@@ -234,13 +253,16 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				internalPath: undefined,
 				stripPath: false,
 				port: undefined,
+				useCustomEntrypoint: false,
+				customEntrypoint: undefined,
 				https: false,
 				certificateType: undefined,
 				customCertResolver: undefined,
 				domainType: type,
+				middlewares: [],
 			});
 		}
-	}, [form, data, isLoading, domainId]);
+	}, [form, data, isPending, domainId]);
 
 	// Separate effect for handling custom cert resolver validation
 	useEffect(() => {
@@ -268,6 +290,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				composeId: id,
 			}),
 			...data,
+			customEntrypoint: data.useCustomEntrypoint ? data.customEntrypoint : null,
 		})
 			.then(async () => {
 				toast.success(dictionary.success);
@@ -637,6 +660,55 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 
 								<FormField
 									control={form.control}
+									name="useCustomEntrypoint"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Custom Entrypoint</FormLabel>
+												<FormDescription>
+													Use custom entrypoint for domina
+													<br />
+													"web" and/or "websecure" is used by default.
+												</FormDescription>
+												<FormMessage />
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={(checked) => {
+														field.onChange(checked);
+														if (!checked) {
+															form.setValue("customEntrypoint", undefined);
+														}
+													}}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+
+								{useCustomEntrypoint && (
+									<FormField
+										control={form.control}
+										name="customEntrypoint"
+										render={({ field }) => (
+											<FormItem className="w-full">
+												<FormLabel>Entrypoint Name</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Enter entrypoint name manually"
+														{...field}
+														className="w-full"
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
+
+								<FormField
+									control={form.control}
 									name="https"
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
@@ -725,12 +797,94 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 										)}
 									</>
 								)}
+								<FormField
+									control={form.control}
+									name="middlewares"
+									render={({ field }) => (
+										<FormItem>
+											<div className="flex items-center gap-2">
+												<FormLabel>Middlewares</FormLabel>
+												<TooltipProvider>
+													<Tooltip>
+														<TooltipTrigger>
+															<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
+																?
+															</div>
+														</TooltipTrigger>
+														<TooltipContent className="max-w-[300px]">
+															<p>
+																Add Traefik middleware references. Middlewares
+																must be defined in your Traefik configuration.
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
+											<div className="flex flex-wrap gap-2 mb-2">
+												{field.value?.map((name, index) => (
+													<Badge key={index} variant="secondary">
+														{name}
+														<X
+															className="ml-1 size-3 cursor-pointer"
+															onClick={() => {
+																const newMiddlewares = [...(field.value || [])];
+																newMiddlewares.splice(index, 1);
+																form.setValue("middlewares", newMiddlewares);
+															}}
+														/>
+													</Badge>
+												))}
+											</div>
+											<FormControl>
+												<div className="flex gap-2">
+													<Input
+														placeholder="e.g., rate-limit@file, auth@file"
+														onKeyDown={(e) => {
+															if (e.key === "Enter") {
+																e.preventDefault();
+																const input = e.currentTarget;
+																const value = input.value.trim();
+																if (value && !field.value?.includes(value)) {
+																	form.setValue("middlewares", [
+																		...(field.value || []),
+																		value,
+																	]);
+																	input.value = "";
+																}
+															}
+														}}
+													/>
+													<Button
+														type="button"
+														variant="secondary"
+														onClick={() => {
+															const input = document.querySelector(
+																'input[placeholder="e.g., rate-limit@file, auth@file"]',
+															) as HTMLInputElement;
+															const value = input.value.trim();
+															if (value && !field.value?.includes(value)) {
+																form.setValue("middlewares", [
+																	...(field.value || []),
+																	value,
+																]);
+																input.value = "";
+															}
+														}}
+													>
+														Add
+													</Button>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
 							</div>
 						</div>
 					</form>
 
 					<DialogFooter>
-						<Button isLoading={isLoading} form="hook-form" type="submit">
+						<Button isLoading={isPending} form="hook-form" type="submit">
 							{dictionary.submit}
 						</Button>
 					</DialogFooter>

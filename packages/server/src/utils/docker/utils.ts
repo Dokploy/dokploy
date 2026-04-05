@@ -7,6 +7,7 @@ import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
 import { quote } from "shell-quote";
 import type { ApplicationNested } from "../builders";
+import type { LibsqlNested } from "../databases/libsql";
 import type { MariadbNested } from "../databases/mariadb";
 import type { MongoNested } from "../databases/mongo";
 import type { MysqlNested } from "../databases/mysql";
@@ -258,6 +259,48 @@ export const cleanupSystem = async (serverId?: string) => {
 	}
 };
 
+export interface DockerDiskUsageItem {
+	type: string;
+	totalCount: number;
+	active: number;
+	size: string;
+	reclaimable: string;
+	sizeBytes: number;
+}
+
+const parseSizeToBytes = (size: string): number => {
+	const match = size.match(/^([\d.]+)\s*([KMGT]?B)$/i);
+	if (!match) return 0;
+	const value = Number.parseFloat(match[1] as string);
+	const unit = (match[2] as string).toUpperCase();
+	const multipliers: Record<string, number> = {
+		B: 1,
+		KB: 1024,
+		MB: 1024 ** 2,
+		GB: 1024 ** 3,
+		TB: 1024 ** 4,
+	};
+	return value * (multipliers[unit] || 0);
+};
+
+export const getDockerDiskUsage = async (): Promise<DockerDiskUsageItem[]> => {
+	const command = "docker system df --format '{{json .}}'";
+	const { stdout } = await execAsync(command);
+
+	const lines = stdout.trim().split("\n").filter(Boolean);
+	return lines.map((line) => {
+		const data = JSON.parse(line);
+		return {
+			type: data.Type,
+			totalCount: Number.parseInt(data.TotalCount, 10) || 0,
+			active: Number.parseInt(data.Active, 10) || 0,
+			size: data.Size,
+			reclaimable: data.Reclaimable,
+			sizeBytes: parseSizeToBytes(data.Size),
+		};
+	});
+};
+
 /**
  * Volume cleanup should always be performed manually by the user. The reason is that during automatic cleanup, a volume may be deleted due to a stopped container, which is a dangerous situation.
  *
@@ -433,7 +476,7 @@ export const parseEnvironmentKeyValuePair = (
 	return [key, valueParts.join("=")];
 };
 
-export const getEnviromentVariablesObject = (
+export const getEnvironmentVariablesObject = (
 	input: string | null,
 	projectEnv?: string | null,
 	environmentEnv?: string | null,
@@ -605,6 +648,7 @@ export const generateFileMounts = (
 	appName: string,
 	service:
 		| ApplicationNested
+		| LibsqlNested
 		| MongoNested
 		| MariadbNested
 		| MysqlNested
@@ -734,5 +778,179 @@ export const getComposeContainer = async (
 		return container;
 	} catch (error) {
 		throw error;
+	}
+};
+
+type ServiceHealthStatus = {
+	status: "healthy" | "unhealthy";
+	message?: string;
+};
+
+const checkSwarmServiceRunning = async (
+	serviceName: string,
+): Promise<ServiceHealthStatus> => {
+	try {
+		const service = docker.getService(serviceName);
+		const info = await service.inspect();
+		const replicas = info.Spec?.Mode?.Replicated?.Replicas ?? 0;
+		if (replicas === 0) {
+			return {
+				status: "unhealthy",
+				message: "Service has 0 replicas configured",
+			};
+		}
+
+		// Check that at least one task is actually running
+		const tasks = await docker.listTasks({
+			filters: JSON.stringify({
+				service: [serviceName],
+				"desired-state": ["running"],
+			}),
+		});
+
+		const runningTask = tasks.find((t) => t.Status?.State === "running");
+
+		if (!runningTask) {
+			const latestTask = tasks[0];
+			const taskState = latestTask?.Status?.State ?? "unknown";
+			return {
+				status: "unhealthy",
+				message: `No running tasks (current state: ${taskState})`,
+			};
+		}
+
+		return { status: "healthy" };
+	} catch (error) {
+		return {
+			status: "unhealthy",
+			message: error instanceof Error ? error.message : "Service not found",
+		};
+	}
+};
+
+const getSwarmServiceContainerId = async (
+	serviceName: string,
+): Promise<string | null> => {
+	try {
+		const tasks = await docker.listTasks({
+			filters: JSON.stringify({
+				service: [serviceName],
+				"desired-state": ["running"],
+			}),
+		});
+
+		const runningTask = tasks.find((t) => t.Status?.State === "running");
+
+		return runningTask?.Status?.ContainerStatus?.ContainerID ?? null;
+	} catch {
+		return null;
+	}
+};
+
+export const checkPostgresHealth = async (): Promise<ServiceHealthStatus> => {
+	const serviceCheck = await checkSwarmServiceRunning("dokploy-postgres");
+	if (serviceCheck.status === "unhealthy") {
+		return serviceCheck;
+	}
+
+	// Verify PostgreSQL actually accepts connections
+	const containerId = await getSwarmServiceContainerId("dokploy-postgres");
+	if (!containerId) {
+		return { status: "unhealthy", message: "Could not find running container" };
+	}
+
+	try {
+		const exec = await docker.getContainer(containerId).exec({
+			Cmd: ["pg_isready", "-U", "dokploy"],
+			AttachStdout: true,
+			AttachStderr: true,
+		});
+		const stream = await exec.start({});
+
+		const output = await new Promise<string>((resolve) => {
+			let data = "";
+			stream.on("data", (chunk: Buffer) => {
+				data += chunk.toString();
+			});
+			stream.on("end", () => resolve(data));
+		});
+
+		const inspectResult = await exec.inspect();
+		if (inspectResult.ExitCode !== 0) {
+			return {
+				status: "unhealthy",
+				message: `PostgreSQL not ready: ${output.trim()}`,
+			};
+		}
+
+		return { status: "healthy" };
+	} catch (error) {
+		return {
+			status: "unhealthy",
+			message:
+				error instanceof Error ? error.message : "Failed to check PostgreSQL",
+		};
+	}
+};
+
+export const checkRedisHealth = async (): Promise<ServiceHealthStatus> => {
+	const serviceCheck = await checkSwarmServiceRunning("dokploy-redis");
+	if (serviceCheck.status === "unhealthy") {
+		return serviceCheck;
+	}
+
+	// Verify Redis actually responds to PING
+	const containerId = await getSwarmServiceContainerId("dokploy-redis");
+	if (!containerId) {
+		return { status: "unhealthy", message: "Could not find running container" };
+	}
+
+	try {
+		const exec = await docker.getContainer(containerId).exec({
+			Cmd: ["redis-cli", "ping"],
+			AttachStdout: true,
+			AttachStderr: true,
+		});
+		const stream = await exec.start({});
+
+		const output = await new Promise<string>((resolve) => {
+			let data = "";
+			stream.on("data", (chunk: Buffer) => {
+				data += chunk.toString();
+			});
+			stream.on("end", () => resolve(data));
+		});
+
+		if (!output.includes("PONG")) {
+			return {
+				status: "unhealthy",
+				message: `Redis did not respond with PONG: ${output.trim()}`,
+			};
+		}
+
+		return { status: "healthy" };
+	} catch (error) {
+		return {
+			status: "unhealthy",
+			message: error instanceof Error ? error.message : "Failed to check Redis",
+		};
+	}
+};
+
+export const checkTraefikHealth = async (): Promise<ServiceHealthStatus> => {
+	// Traefik can run as a standalone container or a swarm service
+	try {
+		const container = docker.getContainer("dokploy-traefik");
+		const info = await container.inspect();
+		if (!info.State.Running) {
+			return {
+				status: "unhealthy",
+				message: "Container is not running",
+			};
+		}
+		return { status: "healthy" };
+	} catch {
+		// Not a standalone container, check as swarm service
+		return checkSwarmServiceRunning("dokploy-traefik");
 	}
 };
