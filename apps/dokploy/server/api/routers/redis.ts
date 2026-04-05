@@ -3,9 +3,12 @@ import {
 	createMount,
 	createRedis,
 	deployRedis,
+	execAsync,
+	execAsyncRemote,
 	findEnvironmentById,
 	findProjectById,
 	findRedisById,
+	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeRedisById,
@@ -15,19 +18,20 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateRedisById,
+	getAccessibleServerIds,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import {
 	addNewService,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { audit } from "@/server/api/utils/audit";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiChangeRedisStatus,
 	apiCreateRedis,
@@ -38,9 +42,12 @@ import {
 	apiSaveEnvironmentVariablesRedis,
 	apiSaveExternalPortRedis,
 	apiUpdateRedis,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
+	environments,
+	projects,
 	redis as redisTable,
 } from "@/server/db/schema";
-import { environments, projects } from "@/server/db/schema";
 export const redisRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateRedis)
@@ -64,6 +71,17 @@ export const redisRouter = createTRPCRouter({
 						message: "You are not authorized to access this project",
 					});
 				}
+
+				if (input.serverId) {
+					const accessibleIds = await getAccessibleServerIds(ctx.session);
+					if (!accessibleIds.has(input.serverId)) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this server",
+						});
+					}
+				}
+
 				const newRedis = await createRedis({
 					...input,
 				});
@@ -251,11 +269,15 @@ export const redisRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const queue: string[] = [];
-			const done = false;
+			let done = false;
 
 			deployRedis(input.redisId, (log) => {
 				queue.push(log);
-			});
+			})
+				.catch(() => {})
+				.finally(() => {
+					done = true;
+				});
 
 			while (!done || queue.length > 0) {
 				if (queue.length > 0) {
@@ -370,6 +392,56 @@ export const redisRouter = createTRPCRouter({
 				resourceId: redisId,
 				resourceName: redis.appName,
 			});
+			return true;
+		}),
+	changePassword: protectedProcedure
+		.input(
+			z.object({
+				redisId: z.string().min(1),
+				password: z.string().min(1).regex(DATABASE_PASSWORD_REGEX, {
+					message: DATABASE_PASSWORD_MESSAGE,
+				}),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { redisId, password } = input;
+			await checkServicePermissionAndAccess(ctx, redisId, {
+				service: ["create"],
+			});
+
+			const rd = await findRedisById(redisId);
+			const { appName, serverId, databasePassword } = rd;
+
+			const containerCmd = getServiceContainerCommand(appName);
+			const command = `
+				CONTAINER_ID=$(${containerCmd})
+				if [ -z "$CONTAINER_ID" ]; then
+					echo "No running container found for ${appName}" >&2
+					exit 1
+				fi
+				docker exec "$CONTAINER_ID" redis-cli -a '${databasePassword}' CONFIG SET requirepass '${password}'
+			`;
+
+			await db.transaction(async (tx) => {
+				await tx
+					.update(redisTable)
+					.set({ databasePassword: password })
+					.where(eq(redisTable.redisId, redisId));
+
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: redisId,
+				resourceName: appName,
+			});
+
 			return true;
 		}),
 	move: protectedProcedure

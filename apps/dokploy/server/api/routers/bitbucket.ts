@@ -1,6 +1,7 @@
 import {
 	createBitbucket,
 	findBitbucketById,
+	getAccessibleGitProviderIds,
 	getBitbucketBranches,
 	getBitbucketRepositories,
 	testBitbucketConnection,
@@ -54,6 +55,8 @@ export const bitbucketRouter = createTRPCRouter({
 			return await findBitbucketById(input.bitbucketId);
 		}),
 	bitbucketProviders: protectedProcedure.query(async ({ ctx }) => {
+		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
+
 		let result = await db.query.bitbucket.findMany({
 			with: {
 				gitProvider: true,
@@ -67,7 +70,7 @@ export const bitbucketRouter = createTRPCRouter({
 			return (
 				provider.gitProvider.organizationId ===
 					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId
+				accessibleIds.has(provider.gitProvider.gitProviderId)
 			);
 		});
 		return result;

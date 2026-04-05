@@ -59,6 +59,7 @@ export const findEnvironmentById = async (environmentId: string) => {
 					applicationStatus: true,
 					description: true,
 					serverId: true,
+					icon: true,
 				},
 			},
 			mariadb: {
@@ -169,6 +170,24 @@ export const findEnvironmentById = async (environmentId: string) => {
 					serverId: true,
 				},
 			},
+			libsql: {
+				with: {
+					server: {
+						columns: {
+							name: true,
+							serverId: true,
+						},
+					},
+				},
+				columns: {
+					libsqlId: true,
+					name: true,
+					createdAt: true,
+					applicationStatus: true,
+					description: true,
+					serverId: true,
+				},
+			},
 			project: true,
 		},
 	});
@@ -193,6 +212,7 @@ export const findEnvironmentsByProjectId = async (projectId: string) => {
 			postgres: true,
 			redis: true,
 			compose: true,
+			libsql: true,
 			project: true,
 		},
 		columns: {
@@ -211,6 +231,7 @@ const environmentHasServices = (
 	return (
 		(env.applications?.length ?? 0) > 0 ||
 		(env.compose?.length ?? 0) > 0 ||
+		(env.libsql?.length ?? 0) > 0 ||
 		(env.mariadb?.length ?? 0) > 0 ||
 		(env.mongo?.length ?? 0) > 0 ||
 		(env.mysql?.length ?? 0) > 0 ||

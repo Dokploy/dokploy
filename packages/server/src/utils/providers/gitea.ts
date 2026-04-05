@@ -170,7 +170,7 @@ export const cloneGiteaRepository = async ({
 
 	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
 	const cloneUrl = buildGiteaCloneUrl(
-		giteaProvider.giteaUrl,
+		giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl,
 		giteaProvider.accessToken!,
 		giteaOwner!,
 		giteaRepository!,

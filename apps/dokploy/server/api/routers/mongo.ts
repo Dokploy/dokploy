@@ -3,10 +3,14 @@ import {
 	createMongo,
 	createMount,
 	deployMongo,
+	execAsync,
+	execAsyncRemote,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findMongoById,
 	findProjectById,
+	getAccessibleServerIds,
+	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeMongoById,
@@ -17,18 +21,18 @@ import {
 	stopServiceRemote,
 	updateMongoById,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import {
 	addNewService,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { audit } from "@/server/api/utils/audit";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiChangeMongoStatus,
 	apiCreateMongo,
@@ -39,9 +43,12 @@ import {
 	apiSaveEnvironmentVariablesMongo,
 	apiSaveExternalPortMongo,
 	apiUpdateMongo,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
+	environments,
 	mongo as mongoTable,
+	projects,
 } from "@/server/db/schema";
-import { environments, projects } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
 export const mongoRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -66,6 +73,17 @@ export const mongoRouter = createTRPCRouter({
 						message: "You are not authorized to access this project",
 					});
 				}
+
+				if (input.serverId) {
+					const accessibleIds = await getAccessibleServerIds(ctx.session);
+					if (!accessibleIds.has(input.serverId)) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this server",
+						});
+					}
+				}
+
 				const newMongo = await createMongo({
 					...input,
 				});
@@ -228,11 +246,15 @@ export const mongoRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const queue: string[] = [];
-			const done = false;
+			let done = false;
 
 			deployMongo(input.mongoId, (log) => {
 				queue.push(log);
-			});
+			})
+				.catch(() => {})
+				.finally(() => {
+					done = true;
+				});
 
 			while (!done || queue.length > 0) {
 				if (queue.length > 0) {
@@ -383,6 +405,56 @@ export const mongoRouter = createTRPCRouter({
 				resourceId: mongoId,
 				resourceName: service.appName,
 			});
+			return true;
+		}),
+	changePassword: protectedProcedure
+		.input(
+			z.object({
+				mongoId: z.string().min(1),
+				password: z.string().min(1).regex(DATABASE_PASSWORD_REGEX, {
+					message: DATABASE_PASSWORD_MESSAGE,
+				}),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { mongoId, password } = input;
+			await checkServicePermissionAndAccess(ctx, mongoId, {
+				service: ["create"],
+			});
+
+			const mongo = await findMongoById(mongoId);
+			const { appName, serverId, databaseUser, databasePassword } = mongo;
+
+			const containerCmd = getServiceContainerCommand(appName);
+			const command = `
+				CONTAINER_ID=$(${containerCmd})
+				if [ -z "$CONTAINER_ID" ]; then
+					echo "No running container found for ${appName}" >&2
+					exit 1
+				fi
+				docker exec "$CONTAINER_ID" mongosh -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase admin --eval "db.getSiblingDB('admin').changeUserPassword('${databaseUser}', '${password}')"
+			`;
+
+			await db.transaction(async (tx) => {
+				await tx
+					.update(mongoTable)
+					.set({ databasePassword: password })
+					.where(eq(mongoTable.mongoId, mongoId));
+
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: mongoId,
+				resourceName: appName,
+			});
+
 			return true;
 		}),
 	move: protectedProcedure

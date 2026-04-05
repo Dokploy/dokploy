@@ -1,10 +1,10 @@
 import { db } from "@dokploy/server/db";
 import { IS_CLOUD } from "@dokploy/server/index";
-import { audit } from "@/server/api/utils/audit";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { audit } from "@/server/api/utils/audit";
 import {
 	invitation,
 	member,
@@ -409,11 +409,11 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			// Owner role is intransferible - cannot change to or from owner
+			// Owner role is nontransferable - cannot change to or from owner
 			if (target.role === "owner" || input.role === "owner") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "The owner role is intransferible",
+					message: "The owner role is nontransferable",
 				});
 			}
 

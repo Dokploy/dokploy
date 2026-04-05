@@ -3,11 +3,14 @@ import {
 	createMount,
 	createPostgres,
 	deployPostgres,
+	execAsync,
+	execAsyncRemote,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findPostgresById,
 	findProjectById,
 	getMountPath,
+	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
 	removePostgresById,
@@ -17,19 +20,20 @@ import {
 	stopService,
 	stopServiceRemote,
 	updatePostgresById,
+	getAccessibleServerIds,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import {
 	addNewService,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { audit } from "@/server/api/utils/audit";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiChangePostgresStatus,
 	apiCreatePostgres,
@@ -40,9 +44,12 @@ import {
 	apiSaveEnvironmentVariablesPostgres,
 	apiSaveExternalPortPostgres,
 	apiUpdatePostgres,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
+	environments,
 	postgres as postgresTable,
+	projects,
 } from "@/server/db/schema";
-import { environments, projects } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
 
 export const postgresRouter = createTRPCRouter({
@@ -68,6 +75,17 @@ export const postgresRouter = createTRPCRouter({
 						message: "You are not authorized to access this project",
 					});
 				}
+
+				if (input.serverId) {
+					const accessibleIds = await getAccessibleServerIds(ctx.session);
+					if (!accessibleIds.has(input.serverId)) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this server",
+						});
+					}
+				}
+
 				const newPostgres = await createPostgres({
 					...input,
 				});
@@ -233,11 +251,15 @@ export const postgresRouter = createTRPCRouter({
 			});
 
 			const queue: string[] = [];
-			const done = false;
+			let done = false;
 
 			deployPostgres(input.postgresId, (log) => {
 				queue.push(log);
-			});
+			})
+				.catch(() => {})
+				.finally(() => {
+					done = true;
+				});
 
 			while (!done || queue.length > 0) {
 				if (queue.length > 0) {
@@ -389,6 +411,56 @@ export const postgresRouter = createTRPCRouter({
 				resourceId: postgresId,
 				resourceName: service.appName,
 			});
+			return true;
+		}),
+	changePassword: protectedProcedure
+		.input(
+			z.object({
+				postgresId: z.string().min(1),
+				password: z.string().min(1).regex(DATABASE_PASSWORD_REGEX, {
+					message: DATABASE_PASSWORD_MESSAGE,
+				}),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { postgresId, password } = input;
+			await checkServicePermissionAndAccess(ctx, postgresId, {
+				service: ["create"],
+			});
+
+			const pg = await findPostgresById(postgresId);
+			const { appName, serverId, databaseUser } = pg;
+
+			const containerCmd = getServiceContainerCommand(appName);
+			const command = `
+				CONTAINER_ID=$(${containerCmd})
+				if [ -z "$CONTAINER_ID" ]; then
+					echo "No running container found for ${appName}" >&2
+					exit 1
+				fi
+				docker exec "$CONTAINER_ID" psql -U ${databaseUser} -c "ALTER USER \\"${databaseUser}\\" WITH PASSWORD '${password}';"
+			`;
+
+			await db.transaction(async (tx) => {
+				await tx
+					.update(postgresTable)
+					.set({ databasePassword: password })
+					.where(eq(postgresTable.postgresId, postgresId));
+
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: postgresId,
+				resourceName: appName,
+			});
+
 			return true;
 		}),
 	move: protectedProcedure

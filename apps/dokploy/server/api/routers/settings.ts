@@ -15,6 +15,7 @@ import {
 	DEFAULT_UPDATE_DATA,
 	execAsync,
 	findServerById,
+	getDockerDiskUsage,
 	getDokployImageTag,
 	getLogCleanupStatus,
 	getUpdateData,
@@ -290,6 +291,12 @@ export const settingsRouter = createTRPCRouter({
 			resourceName: "clean-monitoring",
 		});
 		return true;
+	}),
+	getDockerDiskUsage: adminProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return [];
+		}
+		return getDockerDiskUsage();
 	}),
 	saveSSHPrivateKey: adminProcedure
 		.input(apiSaveSSHKey)
@@ -648,6 +655,7 @@ export const settingsRouter = createTRPCRouter({
 					"postgres",
 					"redis",
 					"mongo",
+					"libsql",
 					"mariadb",
 					"sshRouter",
 					"gitProvider",
