@@ -31,6 +31,7 @@ import {
 	stopCompose,
 	updateCompose,
 	updateDeploymentStatus,
+	getAccessibleServerIds,
 } from "@dokploy/server";
 import {
 	type CompleteTemplate,
@@ -98,6 +99,17 @@ export const composeRouter = createTRPCRouter({
 						message: "You are not authorized to access this project",
 					});
 				}
+
+				if (input.serverId) {
+					const accessibleIds = await getAccessibleServerIds(ctx.session);
+					if (!accessibleIds.has(input.serverId)) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this server",
+						});
+					}
+				}
+
 				const newService = await createCompose({
 					...input,
 				});
@@ -561,6 +573,16 @@ export const composeRouter = createTRPCRouter({
 					code: "UNAUTHORIZED",
 					message: "You need to use a server to create a compose",
 				});
+			}
+
+			if (input.serverId) {
+				const accessibleIds = await getAccessibleServerIds(ctx.session);
+				if (!accessibleIds.has(input.serverId)) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
 			}
 
 			const template = await fetchTemplateFiles(input.id, input.baseUrl);

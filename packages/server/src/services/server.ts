@@ -2,14 +2,16 @@ import { Client } from "ssh2";
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateServer,
+	member,
 	organization,
 	server,
 } from "@dokploy/server/db/schema";
+import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import type { z } from "zod";
 
 export type Server = typeof server.$inferSelect;
-
 export interface ServerStorageUsage {
 	usedPercentage: number;
 	used: string;
@@ -19,7 +21,7 @@ export interface ServerStorageUsage {
 }
 
 export const createServer = async (
-	input: typeof apiCreateServer._type,
+	input: z.infer<typeof apiCreateServer>,
 	organizationId: string,
 ) => {
 	const newServer = await db
@@ -28,7 +30,7 @@ export const createServer = async (
 			...input,
 			organizationId: organizationId,
 			createdAt: new Date().toISOString(),
-		})
+		} as typeof server.$inferInsert)
 		.returning()
 		.then((value) => value[0]);
 
@@ -88,11 +90,12 @@ export const haveActiveServices = async (serverId: string) => {
 		with: {
 			applications: true,
 			compose: true,
-			redis: true,
+			libsql: true,
 			mariadb: true,
 			mongo: true,
 			mysql: true,
 			postgres: true,
+			redis: true,
 		},
 	});
 
@@ -103,11 +106,12 @@ export const haveActiveServices = async (serverId: string) => {
 	const total =
 		currentServer?.applications?.length +
 		currentServer?.compose?.length +
-		currentServer?.redis?.length +
+		currentServer?.libsql?.length +
 		currentServer?.mariadb?.length +
 		currentServer?.mongo?.length +
 		currentServer?.mysql?.length +
-		currentServer?.postgres?.length;
+		currentServer?.postgres?.length +
+		currentServer?.redis?.length;
 
 	if (total === 0) {
 		return false;
@@ -161,7 +165,6 @@ export const getServerStorageUsage = async (
 
 		client
 			.once("ready", () => {
-				// Get disk usage using df command
 				const bashCommand = `
 					df -h / | awk 'NR==2 {
 						used_percent = $5;
@@ -196,11 +199,7 @@ export const getServerStorageUsage = async (
 										mountPoint: parts[4] ?? "",
 									});
 								} else {
-									reject(
-										new Error(
-											"Failed to parse disk usage output",
-										),
-									);
+									reject(new Error("Failed to parse disk usage output"));
 								}
 							} catch (parseError) {
 								reject(
@@ -214,7 +213,6 @@ export const getServerStorageUsage = async (
 							output += data.toString();
 						})
 						.stderr.on("data", (data: Buffer) => {
-							// Log stderr but don't reject on it
 							console.error(
 								`Storage usage error for server ${serverId}:`,
 								data.toString(),
@@ -231,11 +229,7 @@ export const getServerStorageUsage = async (
 						),
 					);
 				} else {
-					reject(
-						new Error(
-							`SSH connection error: ${err.message}`,
-						),
-					);
+					reject(new Error(`SSH connection error: ${err.message}`));
 				}
 			})
 			.connect({
@@ -245,4 +239,38 @@ export const getServerStorageUsage = async (
 				privateKey: currentServer.sshKey?.privateKey,
 			});
 	});
+};
+
+export const getAccessibleServerIds = async (session: {
+	userId: string;
+	activeOrganizationId: string;
+}): Promise<Set<string>> => {
+	const { userId, activeOrganizationId } = session;
+
+	const allOrgServers = await db.query.server.findMany({
+		where: eq(server.organizationId, activeOrganizationId),
+		columns: {
+			serverId: true,
+		},
+	});
+
+	const memberRecord = await db.query.member.findFirst({
+		where: and(
+			eq(member.userId, userId),
+			eq(member.organizationId, activeOrganizationId),
+		),
+		columns: { accessedServers: true, role: true },
+	});
+
+	if (memberRecord?.role === "owner" || memberRecord?.role === "admin") {
+		return new Set(allOrgServers.map((s) => s.serverId));
+	}
+
+	const licensed = await hasValidLicense(activeOrganizationId);
+
+	if (!licensed) {
+		return new Set(allOrgServers.map((s) => s.serverId));
+	}
+
+	return new Set(memberRecord?.accessedServers ?? []);
 };
