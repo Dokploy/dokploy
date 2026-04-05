@@ -1149,6 +1149,13 @@
       "when": 1775367585821,
       "tag": "0163_perfect_lethal_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 164,
+      "version": "7",
+      "when": 1775369858244,
+      "tag": "0164_slippery_sasquatch",
+      "breakpoints": true
     }
   ]
 }
