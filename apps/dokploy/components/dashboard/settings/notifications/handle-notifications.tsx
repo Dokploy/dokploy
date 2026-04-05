@@ -1890,7 +1890,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											<div className="space-y-0.5">
 												<FormLabel>Gocker Backup</FormLabel>
 												<FormDescription>
-													Trigger the action when a dokploy backup is created.
+													Trigger the action when a Gocker backup is created.
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1955,7 +1955,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												<div className="space-y-0.5">
 													<FormLabel>Gocker Restart</FormLabel>
 													<FormDescription>
-														Trigger the action when dokploy is restarted.
+														Trigger the action when Gocker is restarted.
 													</FormDescription>
 												</div>
 												<FormControl>
