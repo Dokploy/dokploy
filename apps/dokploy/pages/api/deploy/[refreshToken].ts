@@ -319,8 +319,19 @@ export function extractImageTag(dockerImage: string | null) {
 		return null;
 	}
 
-	const tag = dockerImage.split(":").pop();
-	return tag === dockerImage ? "latest" : tag;
+	const lastColonIndex = dockerImage.lastIndexOf(":");
+	if (lastColonIndex === -1) {
+		return "latest";
+	}
+
+	const afterColon = dockerImage.substring(lastColonIndex + 1);
+	const isPortWithPath = /^\d{1,5}\//.test(afterColon);
+
+	if (isPortWithPath) {
+		return "latest";
+	}
+
+	return afterColon;
 }
 
 /**
