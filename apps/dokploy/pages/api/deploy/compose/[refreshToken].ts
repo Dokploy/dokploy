@@ -54,9 +54,7 @@ export default async function handler(
 		if (sourceType === "github") {
 			const branchName = extractBranchName(req.headers, req.body);
 			const normalizedCommits =
-				req.body?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				) || [];
+				req.body?.commits?.flatMap((commit: any) => commit.modified) || [];
 
 			const shouldDeployPaths = shouldDeploy(
 				composeResult.watchPaths,
@@ -75,9 +73,7 @@ export default async function handler(
 		} else if (sourceType === "gitlab") {
 			const branchName = extractBranchName(req.headers, req.body);
 			const normalizedCommits =
-				req.body?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				) || [];
+				req.body?.commits?.flatMap((commit: any) => commit.modified) || [];
 
 			const shouldDeployPaths = shouldDeploy(
 				composeResult.watchPaths,
@@ -127,19 +123,13 @@ export default async function handler(
 
 			if (provider === "github") {
 				normalizedCommits =
-					req.body?.commits?.flatMap(
-						(commit: any) => commit.modified,
-					) || [];
+					req.body?.commits?.flatMap((commit: any) => commit.modified) || [];
 			} else if (provider === "gitlab") {
 				normalizedCommits =
-					req.body?.commits?.flatMap(
-						(commit: any) => commit.modified,
-					) || [];
+					req.body?.commits?.flatMap((commit: any) => commit.modified) || [];
 			} else if (provider === "gitea") {
 				normalizedCommits =
-					req.body?.commits?.flatMap(
-						(commit: any) => commit.modified,
-					) || [];
+					req.body?.commits?.flatMap((commit: any) => commit.modified) || [];
 			}
 
 			const shouldDeployPaths = shouldDeploy(
@@ -155,9 +145,7 @@ export default async function handler(
 			const branchName = extractBranchName(req.headers, req.body);
 
 			const normalizedCommits =
-				req.body?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				) || [];
+				req.body?.commits?.flatMap((commit: any) => commit.modified) || [];
 
 			const shouldDeployPaths = shouldDeploy(
 				composeResult.watchPaths,

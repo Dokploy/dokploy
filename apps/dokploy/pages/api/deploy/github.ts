@@ -214,9 +214,7 @@ export default async function handler(
 			const deploymentHash = extractHash(req.headers, req.body);
 			const owner = githubBody?.repository?.owner?.name;
 			const normalizedCommits =
-				githubBody?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				) || [];
+				githubBody?.commits?.flatMap((commit: any) => commit.modified) || [];
 
 			const apps = await db.query.applications.findMany({
 				where: and(
