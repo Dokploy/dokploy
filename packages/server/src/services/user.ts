@@ -405,7 +405,7 @@ export const createOrganizationUserWithCredentials = async ({
 	organizationId: string;
 	email: string;
 	password: string;
-	role: "member" | "admin";
+	role: string;
 }) => {
 	const normalizedEmail = email.trim().toLowerCase();
 	const now = new Date();

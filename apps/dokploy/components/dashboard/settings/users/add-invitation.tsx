@@ -139,7 +139,7 @@ export const AddInvitation = () => {
 			if (data.mode === "credentials") {
 				await createUserWithCredentials({
 					email: data.email.toLowerCase(),
-					password: data.password,
+					password: data.password!,
 					role: data.role,
 				});
 				toast.success("User created with initial credentials");
