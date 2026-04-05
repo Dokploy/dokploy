@@ -18,7 +18,7 @@ echo "Pulling ${dockerImage}";
 				username,
 				password,
 			);
-			
+
 			command += `
 if ! ${loginCommand} 2>&1; then
 	echo "❌ Login failed";
