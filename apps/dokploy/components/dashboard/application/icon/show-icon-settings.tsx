@@ -1,25 +1,37 @@
+import DOMPurify from "dompurify";
 import { Search, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dropzone } from "@/components/ui/dropzone";
 import { Input } from "@/components/ui/input";
-import iconNames from "@/lib/icons.json";
+import { type BundledIcon, bundledIcons } from "@/lib/bundled-icons";
 import { api } from "@/utils/api";
 
 interface ShowIconSettingsProps {
 	applicationId: string;
 }
 
+const svgToDataUrl = (icon: BundledIcon): string => {
+	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#${icon.hex}"><path d="${icon.path}"/></svg>`;
+	return `data:image/svg+xml;base64,${btoa(svg)}`;
+};
+
 export const ShowIconSettings = ({ applicationId }: ShowIconSettingsProps) => {
 	const [uploadedIcon, setUploadedIcon] = useState<string | null>(null);
 	const [iconSearchQuery, setIconSearchQuery] = useState("");
 	const [iconsToShow, setIconsToShow] = useState(24);
 
-	const popularIcons = (iconNames as string[]).sort();
-	const filteredIcons = popularIcons.filter((icon) =>
-		icon.toLowerCase().includes(iconSearchQuery.toLowerCase()),
-	);
+	const filteredIcons = useMemo(() => {
+		if (!iconSearchQuery) return bundledIcons;
+		const q = iconSearchQuery.toLowerCase();
+		return bundledIcons.filter(
+			(icon) =>
+				icon.title.toLowerCase().includes(q) ||
+				icon.slug.toLowerCase().includes(q),
+		);
+	}, [iconSearchQuery]);
+
 	const displayedIcons = filteredIcons.slice(0, iconsToShow);
 	const hasMoreIcons = filteredIcons.length > iconsToShow;
 
@@ -30,7 +42,6 @@ export const ShowIconSettings = ({ applicationId }: ShowIconSettingsProps) => {
 	const utils = api.useUtils();
 	const { mutateAsync: updateApplication } =
 		api.application.update.useMutation();
-	const { mutateAsync: fetchIcon } = api.application.fetchIcon.useMutation();
 
 	useEffect(() => {
 		if (data?.icon) {
@@ -44,26 +55,35 @@ export const ShowIconSettings = ({ applicationId }: ShowIconSettingsProps) => {
 		setIconsToShow(24);
 	}, [iconSearchQuery]);
 
-	const handleIconSelect = async (iconName: string) => {
+	const handleIconSelect = async (icon: BundledIcon) => {
 		try {
-			const result = await fetchIcon({ iconName });
-			setUploadedIcon(result.icon);
+			const dataUrl = svgToDataUrl(icon);
+			setUploadedIcon(dataUrl);
 			await updateApplication({
 				applicationId,
-				icon: result.icon,
+				icon: dataUrl,
 			});
 			toast.success("Icon saved successfully");
 			await utils.application.one.invalidate({ applicationId });
-		} catch (error) {
-			toast.error("Error loading icon");
+		} catch (_error) {
+			toast.error("Error saving icon");
 		}
+	};
+
+	const sanitizeSvg = (svgContent: string): string | null => {
+		const clean = DOMPurify.sanitize(svgContent, {
+			USE_PROFILES: { svg: true, svgFilters: true },
+			ADD_TAGS: ["use"],
+		});
+		if (!clean) return null;
+		return `data:image/svg+xml;base64,${btoa(clean)}`;
 	};
 
 	return (
 		<div className="flex flex-col gap-4 pt-2.5">
 			{uploadedIcon && (
 				<div className="flex items-center gap-4 p-4 rounded-lg bg-background border">
-					{/* biome-ignore lint/performance/noImgElement: uploaded icon is data URL; Next/Image not used for preview */}
+					{/* biome-ignore lint/performance/noImgElement: icon is data URL */}
 					<img
 						src={uploadedIcon}
 						alt="Uploaded icon"
@@ -89,7 +109,7 @@ export const ShowIconSettings = ({ applicationId }: ShowIconSettingsProps) => {
 								await utils.application.one.invalidate({
 									applicationId,
 								});
-							} catch (error) {
+							} catch (_error) {
 								toast.error("Error removing icon");
 							}
 						}}
@@ -118,26 +138,23 @@ export const ShowIconSettings = ({ applicationId }: ShowIconSettingsProps) => {
 					) : (
 						<>
 							<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-								{displayedIcons.map((iconName) => (
+								{displayedIcons.map((icon) => (
 									<button
 										type="button"
-										key={iconName}
-										onClick={() => handleIconSelect(iconName)}
+										key={icon.slug}
+										onClick={() => handleIconSelect(icon)}
 										className="flex flex-col items-center gap-2 p-3 rounded-lg border hover:border-primary hover:bg-muted transition-colors group"
 									>
-										{/* biome-ignore lint/performance/noImgElement: external CDN URL and data URLs for icons; Next/Image not used for dynamic icon grid */}
-										<img
-											src={`https://cdn.svgporn.com/logos/${iconName}.svg`}
-											alt={iconName}
-											className="size-8 object-contain group-hover:scale-110 transition-transform"
-											onError={(e) => {
-												(
-													e.target as HTMLImageElement
-												).style.display = "none";
-											}}
-										/>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											viewBox="0 0 24 24"
+											className="size-8 group-hover:scale-110 transition-transform"
+											fill={`#${icon.hex}`}
+										>
+											<path d={icon.path} />
+										</svg>
 										<span className="text-xs text-muted-foreground capitalize truncate w-full text-center">
-											{iconName}
+											{icon.title}
 										</span>
 									</button>
 								))}
@@ -146,13 +163,9 @@ export const ShowIconSettings = ({ applicationId }: ShowIconSettingsProps) => {
 								<div className="flex justify-center mt-4">
 									<Button
 										variant="outline"
-										onClick={() =>
-											setIconsToShow((prev) => prev + 24)
-										}
+										onClick={() => setIconsToShow((prev) => prev + 24)}
 									>
-										Load More (
-										{filteredIcons.length - iconsToShow}{" "}
-										remaining)
+										Load More ({filteredIcons.length - iconsToShow} remaining)
 									</Button>
 								</div>
 							)}
@@ -173,41 +186,52 @@ export const ShowIconSettings = ({ applicationId }: ShowIconSettingsProps) => {
 								const file = files[0];
 								if (!file) return;
 
-								const fileToProcess: File = file;
-
 								const allowedTypes = [
 									"image/jpeg",
 									"image/jpg",
 									"image/png",
 									"image/svg+xml",
 								];
-								const fileExtension = fileToProcess.name
-									.split(".")
-									.pop()
-									?.toLowerCase();
-								const allowedExtensions = [
-									"jpg",
-									"jpeg",
-									"png",
-									"svg",
-								];
+								const fileExtension = file.name.split(".").pop()?.toLowerCase();
+								const allowedExtensions = ["jpg", "jpeg", "png", "svg"];
 
 								if (
-									!allowedTypes.includes(fileToProcess.type) &&
-									!allowedExtensions.includes(
-										fileExtension || "",
-									)
+									!allowedTypes.includes(file.type) &&
+									!allowedExtensions.includes(fileExtension || "")
 								) {
-									toast.error(
-										"Only JPG, JPEG, PNG, and SVG files are allowed",
-									);
+									toast.error("Only JPG, JPEG, PNG, and SVG files are allowed");
 									return;
 								}
 
-								if (fileToProcess.size > 2 * 1024 * 1024) {
-									toast.error(
-										"Image size must be less than 2MB",
-									);
+								if (file.size > 2 * 1024 * 1024) {
+									toast.error("Image size must be less than 2MB");
+									return;
+								}
+
+								const isSvg =
+									file.type === "image/svg+xml" || fileExtension === "svg";
+
+								if (isSvg) {
+									const text = await file.text();
+									const sanitizedDataUrl = sanitizeSvg(text);
+									if (!sanitizedDataUrl) {
+										toast.error("Invalid SVG file");
+										return;
+									}
+									setUploadedIcon(sanitizedDataUrl);
+									try {
+										await updateApplication({
+											applicationId,
+											icon: sanitizedDataUrl,
+										});
+										toast.success("Icon saved!");
+										await utils.application.one.invalidate({
+											applicationId,
+										});
+									} catch (_error) {
+										toast.error("Error saving icon");
+										setUploadedIcon(null);
+									}
 									return;
 								}
 
@@ -224,45 +248,18 @@ export const ShowIconSettings = ({ applicationId }: ShowIconSettingsProps) => {
 										await utils.application.one.invalidate({
 											applicationId,
 										});
-									} catch (error) {
+									} catch (_error) {
 										toast.error("Error saving icon");
 										setUploadedIcon(null);
 									}
 								};
-								reader.readAsDataURL(fileToProcess);
+								reader.readAsDataURL(file);
 							}}
 							classNameWrapper="border-2 border-dashed border-border hover:border-primary bg-muted/30 hover:bg-muted/50 transition-all rounded-lg"
 						/>
 					</div>
 					<div className="mt-3 text-center text-xs text-muted-foreground">
 						Supported formats: JPG, JPEG, PNG, SVG (max 2MB)
-					</div>
-				</div>
-
-				<div className="pt-4 mt-6 border-t">
-					<div className="flex flex-col items-center gap-2 text-xs text-muted-foreground">
-						<div className="flex items-center gap-1">
-							<span>Icons by</span>
-							<a
-								href="https://github.com/gilbarbara/logos"
-								target="_blank"
-								rel="noopener noreferrer"
-								className="hover:text-foreground transition-colors underline"
-							>
-								gilbarbara/logos
-							</a>
-						</div>
-						<div className="flex items-center gap-1">
-							<span>Developer:</span>
-							<a
-								href="https://statsly.org/"
-								target="_blank"
-								rel="noopener noreferrer"
-								className="hover:text-foreground transition-colors underline"
-							>
-								Statsly
-							</a>
-						</div>
 					</div>
 				</div>
 			</div>

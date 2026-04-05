@@ -1544,7 +1544,7 @@ const EnvironmentPage = (
 																					<img
 																						src={service.icon}
 																						alt={service.name}
-																						className="h-12 w-12 object-contain"
+																						className="size-7 object-contain"
 																					/>
 																				) : (
 																					<GlobeIcon className="h-6 w-6" />
