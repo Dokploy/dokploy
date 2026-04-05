@@ -76,9 +76,7 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 		if (hasStopGracePeriodSwarm(data)) {
 			const value = data.stopGracePeriodSwarm;
 			const normalizedValue =
-				value === null || value === undefined
-					? null
-					: Number(value);
+				value === null || value === undefined ? null : Number(value);
 			form.reset({
 				value: normalizedValue,
 			});
