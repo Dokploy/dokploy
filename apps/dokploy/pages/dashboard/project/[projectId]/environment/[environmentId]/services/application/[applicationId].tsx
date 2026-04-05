@@ -1,7 +1,7 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import copy from "copy-to-clipboard";
-import { GlobeIcon, HelpCircle, ServerOff } from "lucide-react";
+import { HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -25,12 +25,12 @@ import { ShowDeployments } from "@/components/dashboard/application/deployments/
 import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show";
 import { ShowGeneralApplication } from "@/components/dashboard/application/general/show";
+import { ShowIconSettings } from "@/components/dashboard/application/icon/show-icon-settings";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
-import { ShowIconSettings } from "@/components/dashboard/application/icon/show-icon-settings";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
@@ -39,7 +39,6 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -125,20 +124,13 @@ const Service = (
 							<div className="flex flex-col">
 								<CardTitle className="text-xl flex flex-row gap-2 items-center">
 									<div className="relative flex flex-row gap-4 items-center">
-										<div className="absolute -right-1 -top-2">
+										<ShowIconSettings
+											applicationId={applicationId}
+											icon={data?.icon}
+										/>
+										<div className="absolute -right-1 -top-2 z-10">
 											<StatusTooltip status={data?.applicationStatus} />
 										</div>
-
-										{data?.icon ? (
-											// biome-ignore lint/performance/noImgElement: icon is data URL or base64; Next/Image not suited for dynamic inline icons
-											<img
-												src={data.icon}
-												alt={data.name}
-												className="h-8 w-8 object-contain"
-											/>
-										) : (
-											<GlobeIcon className="h-6 w-6 text-muted-foreground" />
-										)}
 									</div>
 									{data?.name}
 								</CardTitle>
@@ -281,7 +273,6 @@ const Service = (
 											{permissions?.service.create && (
 												<TabsTrigger value="advanced">Advanced</TabsTrigger>
 											)}
-											<TabsTrigger value="icon">Icon</TabsTrigger>
 										</TabsList>
 									</div>
 
@@ -431,9 +422,6 @@ const Service = (
 											</div>
 										</TabsContent>
 									)}
-									<TabsContent value="icon">
-										<ShowIconSettings applicationId={applicationId} />
-									</TabsContent>
 								</Tabs>
 							)}
 						</CardContent>
