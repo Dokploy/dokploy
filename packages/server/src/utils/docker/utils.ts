@@ -588,9 +588,15 @@ export const generateConfigContainer = (
 						},
 					},
 				}),
-		...(rollbackConfigSwarm && {
-			RollbackConfig: rollbackConfigSwarm,
-		}),
+		...(rollbackConfigSwarm
+			? { RollbackConfig: rollbackConfigSwarm }
+			: {
+					// default rollback config to match update config
+					RollbackConfig: {
+						Parallelism: 1,
+						Order: "start-first",
+					},
+				}),
 		...(updateConfigSwarm
 			? { UpdateConfig: updateConfigSwarm }
 			: {
@@ -598,6 +604,7 @@ export const generateConfigContainer = (
 					UpdateConfig: {
 						Parallelism: 1,
 						Order: "start-first",
+						FailureAction: "rollback",
 					},
 				}),
 		...(stopGracePeriodSwarm !== null &&
