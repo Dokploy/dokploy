@@ -373,6 +373,7 @@ const createSchema = createInsertSchema(applications, {
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 	enableSubmodules: z.boolean().optional(),
+	icon: z.string().max(2 * 1024 * 1024, "Icon must be less than 2MB").nullable().optional(),
 });
 
 export const apiCreateApplication = createSchema.pick({
