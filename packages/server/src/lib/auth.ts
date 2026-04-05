@@ -148,10 +148,15 @@ const { handler, api } = betterAuth({
 						const xDokployToken =
 							context?.request?.headers?.get("x-dokploy-token");
 						if (xDokployToken) {
-							const user = await getUserByToken(xDokployToken);
-							if (!user) {
+							const invitation = await getUserByToken(xDokployToken);
+							if (!invitation) {
 								throw new APIError("BAD_REQUEST", {
 									message: "User not found",
+								});
+							}
+							if (_user.email !== invitation.email) {
+								throw new APIError("BAD_REQUEST", {
+									message: "Email does not match invitation",
 								});
 							}
 						} else {
