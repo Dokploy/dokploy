@@ -45,7 +45,7 @@ export const UpdateServer = ({
 	const [isUpdateAvailable, setIsUpdateAvailable] = useState(
 		!!updateData?.updateAvailable,
 	);
-	const { mutateAsync: getUpdateData, isLoading } =
+	const { mutateAsync: getUpdateData, isPending } =
 		api.settings.getUpdateData.useMutation();
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 	const { data: releaseTag } = api.settings.getReleaseTag.useQuery();
@@ -196,7 +196,7 @@ export const UpdateServer = ({
 				)}
 
 				{/* Up to date state */}
-				{hasCheckedUpdate && !isUpdateAvailable && !isLoading && (
+				{hasCheckedUpdate && !isUpdateAvailable && !isPending && (
 					<div className="mb-8">
 						<div className="flex flex-col items-center gap-6 mb-6">
 							<div className="rounded-full p-4 bg-emerald-400/40">
@@ -215,7 +215,7 @@ export const UpdateServer = ({
 					</div>
 				)}
 
-				{hasCheckedUpdate && isLoading && (
+				{hasCheckedUpdate && isPending && (
 					<div className="mb-8">
 						<div className="flex flex-col items-center gap-6 mb-6">
 							<div className="rounded-full p-4 bg-[#5B9DFF]/40 text-foreground">
@@ -252,7 +252,7 @@ export const UpdateServer = ({
 				)}
 
 				<div className="flex items-center justify-between pt-2">
-					<ToggleAutoCheckUpdates disabled={isLoading} />
+					<ToggleAutoCheckUpdates disabled={isPending} />
 				</div>
 
 				<div className="space-y-4 flex items-center justify-end mt-4	">
@@ -266,9 +266,9 @@ export const UpdateServer = ({
 							<Button
 								variant="secondary"
 								onClick={handleCheckUpdates}
-								disabled={isLoading}
+								disabled={isPending}
 							>
-								{isLoading ? (
+								{isPending ? (
 									<>
 										<RefreshCcw className="h-4 w-4 animate-spin" />
 										Checking for updates

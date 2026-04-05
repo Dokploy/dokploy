@@ -292,7 +292,7 @@ networks:
   dokploy-network:
 `;
 
-test("It shoudn't add suffix to dokploy-network", () => {
+test("It shouldn't add suffix to dokploy-network", () => {
 	const composeData = parse(composeFile7) as ComposeSpecification;
 
 	const suffix = generateRandomHash();

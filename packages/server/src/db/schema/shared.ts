@@ -16,6 +16,8 @@ export const certificateType = pgEnum("certificateType", [
 
 export const triggerType = pgEnum("triggerType", ["push", "tag"]);
 
+export const sqldNode = pgEnum("sqldNode", ["primary", "replica"]);
+
 export interface HealthCheckSwarm {
 	Test?: string[] | undefined;
 	Interval?: number | undefined;
@@ -175,12 +177,12 @@ export const NetworkSwarmSchema = z.array(
 		.object({
 			Target: z.string().optional(),
 			Aliases: z.array(z.string()).optional(),
-			DriverOpts: z.record(z.string()).optional(),
+			DriverOpts: z.record(z.string(), z.string()).optional(),
 		})
 		.strict(),
 );
 
-export const LabelsSwarmSchema = z.record(z.string());
+export const LabelsSwarmSchema = z.record(z.string(), z.string());
 
 export const EndpointPortConfigSwarmSchema = z
 	.object({

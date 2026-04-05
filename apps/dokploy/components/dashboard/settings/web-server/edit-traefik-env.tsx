@@ -1,7 +1,6 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useHealthCheckAfterMutation } from "@/hooks/use-health-check-after-mutation";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -24,6 +23,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import { useHealthCheckAfterMutation } from "@/hooks/use-health-check-after-mutation";
 import { api } from "@/utils/api";
 
 const schema = z.object({
@@ -44,7 +44,7 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 		serverId,
 	});
 
-	const { mutateAsync, isLoading, error, isError } =
+	const { mutateAsync, isPending, error, isError } =
 		api.settings.writeTraefikEnv.useMutation();
 
 	const {
@@ -87,7 +87,7 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isLoading && !canEdit) {
+			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isPending && !canEdit) {
 				e.preventDefault();
 				form.handleSubmit(onSubmit)();
 			}
@@ -97,7 +97,7 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 		return () => {
 			document.removeEventListener("keydown", handleKeyDown);
 		};
-	}, [form, onSubmit, isLoading, canEdit]);
+	}, [form, onSubmit, isPending, canEdit]);
 
 	return (
 		<Dialog>
@@ -163,8 +163,8 @@ TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_HTTP_CHALLENGE_DNS_PROVIDER=cloudflare
 
 					<DialogFooter>
 						<Button
-							isLoading={isLoading || isHealthCheckExecuting}
-							disabled={canEdit || isLoading || isHealthCheckExecuting}
+							isLoading={isPending || isHealthCheckExecuting}
+							disabled={canEdit || isPending || isHealthCheckExecuting}
 							form="hook-form-update-server-traefik-config"
 							type="submit"
 						>

@@ -16,7 +16,7 @@ import { TerminalModal } from "../../web-server/terminal-modal";
 import { GPUSupportModal } from "../gpu-support-modal";
 
 export const ShowDokployActions = () => {
-	const { mutateAsync: reloadServer, isLoading } =
+	const { mutateAsync: reloadServer, isPending } =
 		api.settings.reloadServer.useMutation();
 
 	const { mutateAsync: cleanRedis } = api.settings.cleanRedis.useMutation();
@@ -26,8 +26,8 @@ export const ShowDokployActions = () => {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild disabled={isLoading}>
-				<Button isLoading={isLoading} variant="outline">
+			<DropdownMenuTrigger asChild disabled={isPending}>
+				<Button isLoading={isPending} variant="outline">
 					Server
 				</Button>
 			</DropdownMenuTrigger>

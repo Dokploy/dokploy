@@ -9,7 +9,7 @@ import {
 	updateCompose,
 	updatePreviewDeployment,
 } from "@dokploy/server";
-import type { DeployJob } from "./schema";
+import type { DeployJob } from "./schema.js";
 
 export const deploy = async (job: DeployJob) => {
 	try {

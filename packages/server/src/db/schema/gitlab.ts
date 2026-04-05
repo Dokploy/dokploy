@@ -1,6 +1,5 @@
 import { relations } from "drizzle-orm";
 import { integer, pgTable, text } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { gitProvider } from "./git-provider";
@@ -31,9 +30,7 @@ export const gitlabProviderRelations = relations(gitlab, ({ one }) => ({
 	}),
 }));
 
-const createSchema = createInsertSchema(gitlab);
-
-export const apiCreateGitlab = createSchema.extend({
+export const apiCreateGitlab = z.object({
 	applicationId: z.string().optional(),
 	secret: z.string().optional(),
 	groupName: z.string().optional(),
@@ -45,17 +42,14 @@ export const apiCreateGitlab = createSchema.extend({
 	gitlabInternalUrl: z.string().optional().nullable(),
 });
 
-export const apiFindOneGitlab = createSchema
-	.extend({
-		gitlabId: z.string().min(1),
-	})
-	.pick({ gitlabId: true });
+export const apiFindOneGitlab = z.object({
+	gitlabId: z.string().min(1),
+});
 
-export const apiGitlabTestConnection = createSchema
-	.extend({
-		groupName: z.string().optional(),
-	})
-	.pick({ gitlabId: true, groupName: true });
+export const apiGitlabTestConnection = z.object({
+	gitlabId: z.string().min(1),
+	groupName: z.string().optional(),
+});
 
 export const apiFindGitlabBranches = z.object({
 	id: z.number().optional(),
@@ -64,7 +58,7 @@ export const apiFindGitlabBranches = z.object({
 	gitlabId: z.string().optional(),
 });
 
-export const apiUpdateGitlab = createSchema.extend({
+export const apiUpdateGitlab = z.object({
 	applicationId: z.string().optional(),
 	secret: z.string().optional(),
 	groupName: z.string().optional(),
@@ -72,5 +66,6 @@ export const apiUpdateGitlab = createSchema.extend({
 	name: z.string().min(1),
 	gitlabId: z.string().min(1),
 	gitlabUrl: z.string().min(1),
+	gitProviderId: z.string().min(1),
 	gitlabInternalUrl: z.string().optional().nullable(),
 });

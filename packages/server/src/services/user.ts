@@ -96,7 +96,7 @@ export const canPerformAccessService = async (
 	return false;
 };
 
-export const canPeformDeleteService = async (
+export const canPerformDeleteService = async (
 	userId: string,
 	serviceId: string,
 	organizationId: string,
@@ -222,7 +222,7 @@ export const checkServiceAccess = async (
 			);
 			break;
 		case "delete":
-			hasPermission = await canPeformDeleteService(
+			hasPermission = await canPerformDeleteService(
 				userId,
 				serviceId,
 				organizationId,
@@ -526,7 +526,7 @@ export const createApiKey = async (
 		refillInterval?: number;
 	},
 ) => {
-	const apiKey = await auth.createApiKey({
+	const result = await auth.createApiKey({
 		body: {
 			name: input.name,
 			expiresIn: input.expiresIn,
@@ -544,10 +544,9 @@ export const createApiKey = async (
 	if (input.metadata) {
 		await db
 			.update(apikey)
-			.set({
-				metadata: JSON.stringify(input.metadata),
-			})
-			.where(eq(apikey.id, apiKey.id));
+			.set({ metadata: JSON.stringify(input.metadata) })
+			.where(eq(apikey.id, result.id));
 	}
-	return apiKey;
+
+	return result;
 };

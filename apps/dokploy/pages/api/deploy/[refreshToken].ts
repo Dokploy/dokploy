@@ -4,9 +4,9 @@ import {
 	IS_CLOUD,
 	shouldDeploy,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/server/db";
 import { applications } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
@@ -196,7 +196,7 @@ export default async function handler(
 				return;
 			}
 
-			const commitedPaths = await extractCommitedPaths(
+			const committedPaths = await extractCommittedPaths(
 				req.body,
 				application.bitbucket,
 				application.bitbucketRepositorySlug ||
@@ -206,7 +206,7 @@ export default async function handler(
 
 			const shouldDeployPaths = shouldDeploy(
 				application.watchPaths,
-				commitedPaths,
+				committedPaths,
 			);
 
 			if (!shouldDeployPaths) {
@@ -538,7 +538,7 @@ export const getProviderByHeader = (headers: any) => {
 	return null;
 };
 
-export const extractCommitedPaths = async (
+export const extractCommittedPaths = async (
 	body: any,
 	bitbucket: Bitbucket | null,
 	repository: string,
@@ -548,7 +548,7 @@ export const extractCommitedPaths = async (
 	const commitHashes = changes
 		.map((change: any) => change.new?.target?.hash)
 		.filter(Boolean);
-	const commitedPaths: string[] = [];
+	const committedPaths: string[] = [];
 	const username =
 		bitbucket?.bitbucketWorkspaceName || bitbucket?.bitbucketUsername || "";
 	for (const commit of commitHashes) {
@@ -559,7 +559,7 @@ export const extractCommitedPaths = async (
 			});
 			const data = await response.json();
 			for (const value of data.values) {
-				if (value?.new?.path) commitedPaths.push(value.new.path);
+				if (value?.new?.path) committedPaths.push(value.new.path);
 			}
 		} catch (error) {
 			console.error(
@@ -571,5 +571,5 @@ export const extractCommitedPaths = async (
 		}
 	}
 
-	return commitedPaths;
+	return committedPaths;
 };

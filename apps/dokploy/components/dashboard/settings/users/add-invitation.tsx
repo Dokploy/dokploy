@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -32,7 +32,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 
 const addInvitation = z
@@ -42,7 +41,7 @@ const addInvitation = z
 			.string()
 			.min(1, "Email is required")
 			.email({ message: "Invalid email" }),
-		role: z.enum(["member", "admin"]),
+		role: z.string().min(1, "Role is required"),
 		notificationId: z.string().optional(),
 		password: z.string().optional(),
 		confirmPassword: z.string().optional(),
@@ -98,15 +97,16 @@ type AddInvitation = z.infer<typeof addInvitation>;
 export const AddInvitation = () => {
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
-	const [isLoading, setIsLoading] = useState(false);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: emailProviders } =
 		api.notification.getEmailProviders.useQuery();
+	const { mutateAsync: inviteMember, isPending: isInviting } =
+		api.organization.inviteMember.useMutation();
 	const { mutateAsync: sendInvitation } = api.user.sendInvitation.useMutation();
-	const { mutateAsync: createUserWithCredentials } =
+	const { mutateAsync: createUserWithCredentials, isPending: isCreating } =
 		api.user.createUserWithCredentials.useMutation();
+	const { data: customRoles } = api.customRole.all.useQuery();
 	const [error, setError] = useState<string | null>(null);
-	const { data: activeOrganization } = authClient.useActiveOrganization();
 
 	const form = useForm<AddInvitation>({
 		defaultValues: {
@@ -133,7 +133,6 @@ export const AddInvitation = () => {
 	}, [form, isCloud]);
 
 	const onSubmit = async (data: AddInvitation) => {
-		setIsLoading(true);
 		setError(null);
 
 		try {
@@ -146,20 +145,14 @@ export const AddInvitation = () => {
 				toast.success("User created with initial credentials");
 				setOpen(false);
 			} else {
-				const result = await authClient.organization.inviteMember({
+				const result = await inviteMember({
 					email: data.email.toLowerCase(),
 					role: data.role,
-					organizationId: activeOrganization?.id,
 				});
-
-				if (result.error) {
-					setError(result.error.message || "");
-					return;
-				}
 
 				if (!isCloud && data.notificationId) {
 					await sendInvitation({
-						invitationId: result.data.id,
+						invitationId: result!.id,
 						notificationId: data.notificationId || "",
 					})
 						.then(() => {
@@ -184,7 +177,6 @@ export const AddInvitation = () => {
 				utils.organization.allInvitations.invalidate(),
 				utils.user.all.invalidate(),
 			]);
-			setIsLoading(false);
 		}
 	};
 
@@ -287,6 +279,11 @@ export const AddInvitation = () => {
 											<SelectContent>
 												<SelectItem value="member">Member</SelectItem>
 												<SelectItem value="admin">Admin</SelectItem>
+												{customRoles?.map((role) => (
+													<SelectItem key={role.role} value={role.role}>
+														{role.role}
+													</SelectItem>
+												))}
 											</SelectContent>
 										</Select>
 										<FormDescription>
@@ -388,7 +385,7 @@ export const AddInvitation = () => {
 
 						<DialogFooter className="flex w-full flex-row">
 							<Button
-								isLoading={isLoading}
+								isLoading={isInviting || isCreating}
 								form="hook-form-add-invitation"
 								type="submit"
 							>

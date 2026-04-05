@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { TimeBadge } from "@/components/ui/time-badge";
+import { api } from "@/utils/api";
 
 interface BreadcrumbEntry {
 	name: string;
@@ -32,16 +34,18 @@ interface Props {
 }
 
 export const BreadcrumbSidebar = ({ list }: Props) => {
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+
 	return (
 		<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-			<div className="flex items-center justify-between w-full">
+			<div className="flex items-center justify-between w-full px-4">
 				<div className="flex items-center gap-2">
 					<SidebarTrigger className="-ml-1" />
 					<Separator orientation="vertical" className="mr-2 h-4" />
 					<Breadcrumb>
 						<BreadcrumbList>
 							{list.map((item, index) => (
-								<Fragment key={item.name}>
+								<Fragment key={`${item.name}-${index}`}>
 									<BreadcrumbItem className="block">
 										{item.dropdownItems && item.dropdownItems.length > 0 ? (
 											<DropdownMenu>
@@ -75,6 +79,7 @@ export const BreadcrumbSidebar = ({ list }: Props) => {
 						</BreadcrumbList>
 					</Breadcrumb>
 				</div>
+				{!isCloud && <TimeBadge />}
 			</div>
 		</header>
 	);

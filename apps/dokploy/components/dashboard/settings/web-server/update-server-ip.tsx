@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -49,7 +49,7 @@ export const UpdateServerIp = ({ children }: Props) => {
 	const { data, refetch } = api.settings.getWebServerSettings.useQuery();
 	const { data: ip } = api.server.publicIp.useQuery();
 
-	const { mutateAsync, isLoading, error, isError } =
+	const { mutateAsync, isPending, error, isError } =
 		api.settings.updateServerIp.useMutation();
 
 	const form = useForm<Schema>({
@@ -143,8 +143,8 @@ export const UpdateServerIp = ({ children }: Props) => {
 
 					<DialogFooter>
 						<Button
-							isLoading={isLoading}
-							disabled={isLoading}
+							isLoading={isPending}
+							disabled={isPending}
 							form="hook-form-update-server-ip"
 							type="submit"
 						>

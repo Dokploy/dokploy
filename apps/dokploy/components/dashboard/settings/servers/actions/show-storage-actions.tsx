@@ -15,30 +15,33 @@ interface Props {
 	serverId?: string;
 }
 export const ShowStorageActions = ({ serverId }: Props) => {
-	const { mutateAsync: cleanAll, isLoading: cleanAllIsLoading } =
+	const { mutateAsync: cleanAll, isPending: cleanAllIsLoading } =
 		api.settings.cleanAll.useMutation();
 
 	const {
 		mutateAsync: cleanDockerBuilder,
-		isLoading: cleanDockerBuilderIsLoading,
+		isPending: cleanDockerBuilderIsPending,
 	} = api.settings.cleanDockerBuilder.useMutation();
 
 	const { mutateAsync: cleanMonitoring } =
 		api.settings.cleanMonitoring.useMutation();
 	const {
 		mutateAsync: cleanUnusedImages,
-		isLoading: cleanUnusedImagesIsLoading,
+		isPending: cleanUnusedImagesIsPending,
 	} = api.settings.cleanUnusedImages.useMutation();
 
 	const {
 		mutateAsync: cleanUnusedVolumes,
-		isLoading: cleanUnusedVolumesIsLoading,
+		isPending: cleanUnusedVolumesIsPending,
 	} = api.settings.cleanUnusedVolumes.useMutation();
 
 	const {
 		mutateAsync: cleanStoppedContainers,
-		isLoading: cleanStoppedContainersIsLoading,
+		isPending: cleanStoppedContainersIsPending,
 	} = api.settings.cleanStoppedContainers.useMutation();
+
+	const { mutateAsync: cleanPatchRepos, isPending: cleanPatchReposIsLoading } =
+		api.patch.cleanPatchRepos.useMutation();
 
 	return (
 		<DropdownMenu>
@@ -46,19 +49,21 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 				asChild
 				disabled={
 					cleanAllIsLoading ||
-					cleanDockerBuilderIsLoading ||
-					cleanUnusedImagesIsLoading ||
-					cleanUnusedVolumesIsLoading ||
-					cleanStoppedContainersIsLoading
+					cleanDockerBuilderIsPending ||
+					cleanUnusedImagesIsPending ||
+					cleanUnusedVolumesIsPending ||
+					cleanStoppedContainersIsPending ||
+					cleanPatchReposIsLoading
 				}
 			>
 				<Button
 					isLoading={
 						cleanAllIsLoading ||
-						cleanDockerBuilderIsLoading ||
-						cleanUnusedImagesIsLoading ||
-						cleanUnusedVolumesIsLoading ||
-						cleanStoppedContainersIsLoading
+						cleanDockerBuilderIsPending ||
+						cleanUnusedImagesIsPending ||
+						cleanUnusedVolumesIsPending ||
+						cleanStoppedContainersIsPending ||
+						cleanPatchReposIsLoading
 					}
 					variant="outline"
 				>
@@ -117,6 +122,23 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 						}}
 					>
 						<span>Clean stopped containers</span>
+					</DropdownMenuItem>
+
+					<DropdownMenuItem
+						className="w-full cursor-pointer"
+						onClick={async () => {
+							await cleanPatchRepos({
+								serverId: serverId,
+							})
+								.then(async () => {
+									toast.success("Cleaned Patch Caches");
+								})
+								.catch(() => {
+									toast.error("Error cleaning Patch Caches");
+								});
+						}}
+					>
+						<span>Clean Patch Caches</span>
 					</DropdownMenuItem>
 
 					<DropdownMenuItem

@@ -22,7 +22,8 @@ export type TemplateProps = {
 		| "mongodb"
 		| "mariadb"
 		| "redis"
-		| "compose";
+		| "compose"
+		| "libsql";
 	type: "error" | "success";
 	errorMessage?: string;
 	backupSize?: string;
