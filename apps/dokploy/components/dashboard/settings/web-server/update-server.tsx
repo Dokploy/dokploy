@@ -239,7 +239,7 @@ export const UpdateServer = ({
 							<div className="text-[#5B9DFF]">
 								We recommend reviewing the{" "}
 								<Link
-									href="https://github.com/Gocker/dokploy/releases"
+									href="https://github.com/Gocker/gocker/releases"
 									target="_blank"
 									className="text-white underline hover:text-zinc-200"
 								>

@@ -351,7 +351,7 @@ export const WelcomeSubscription = () => {
 												</Button>
 												<Button className="rounded-full  w-fit">
 													<Link
-														href="https://github.com/Gocker/dokploy"
+														href="https://github.com/Gocker/gocker"
 														aria-label="Gocker on GitHub"
 														target="_blank"
 														className="flex flex-row items-center gap-2 "

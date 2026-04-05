@@ -86,7 +86,7 @@ export default function Custom404({ statusCode, error }: Props) {
 								whitelabeling.footerText
 							) : (
 								<Link
-									href="https://github.com/Gocker/dokploy/issues"
+									href="https://github.com/Gocker/gocker/issues"
 									target="_blank"
 									className="underline hover:text-primary transition-colors"
 								>
