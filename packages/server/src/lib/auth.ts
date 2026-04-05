@@ -154,6 +154,16 @@ const { handler, api } = betterAuth({
 									message: "User not found",
 								});
 							}
+							if (invitation.isExpired) {
+								throw new APIError("BAD_REQUEST", {
+									message: "Invitation has expired",
+								});
+							}
+							if (invitation.status !== "pending") {
+								throw new APIError("BAD_REQUEST", {
+									message: "Invitation has already been used",
+								});
+							}
 							if (_user.email !== invitation.email) {
 								throw new APIError("BAD_REQUEST", {
 									message: "Email does not match invitation",
