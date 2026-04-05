@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useId } from "react";
 
 interface Props {
 	className?: string;
@@ -6,6 +7,8 @@ interface Props {
 }
 
 export const Logo = ({ className = "size-14", logoUrl }: Props) => {
+	const gradientId = useId();
+
 	if (logoUrl) {
 		return (
 			// biome-ignore lint/performance/noImgElement: this is for dynamic logo loading
@@ -20,12 +23,12 @@ export const Logo = ({ className = "size-14", logoUrl }: Props) => {
 	return (
 		<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" className={className}>
 			<defs>
-				<linearGradient id="gockerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+				<linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
 					<stop offset="0%" stopColor="#22d3ee" />
 					<stop offset="100%" stopColor="#2563eb" />
 				</linearGradient>
 			</defs>
-			<rect x="6" y="6" width="52" height="52" rx="14" fill="url(#gockerGradient)" />
+			<rect x="6" y="6" width="52" height="52" rx="14" fill={`url(#${gradientId})`} />
 			<path
 				d="M42 24.5a13 13 0 1 0 0 15"
 				fill="none"
