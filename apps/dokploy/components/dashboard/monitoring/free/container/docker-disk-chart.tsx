@@ -3,8 +3,6 @@ import { Area, AreaChart, CartesianGrid, YAxis } from "recharts";
 import {
 	type ChartConfig,
 	ChartContainer,
-	ChartLegend,
-	ChartLegendContent,
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/components/ui/chart";
@@ -20,10 +18,6 @@ const chartConfig = {
 		label: "Used (GB)",
 		color: "hsl(var(--chart-3))",
 	},
-	freeGb: {
-		label: "Free (GB)",
-		color: "hsl(var(--chart-4))",
-	},
 } satisfies ChartConfig;
 
 export const DockerDiskChart = ({ accumulativeData, diskTotal }: Props) => {
@@ -32,7 +26,6 @@ export const DockerDiskChart = ({ accumulativeData, diskTotal }: Props) => {
 		name: `Point ${index + 1}`,
 		usedGb: +item.value.diskUsage,
 		totalGb: +item.value.diskTotal,
-		freeGb: item.value.diskFree,
 	}));
 
 	return (
@@ -54,18 +47,6 @@ export const DockerDiskChart = ({ accumulativeData, diskTotal }: Props) => {
 							stopOpacity={0.1}
 						/>
 					</linearGradient>
-					<linearGradient id="fillDiskFree" x1="0" y1="0" x2="0" y2="1">
-						<stop
-							offset="5%"
-							stopColor="var(--color-freeGb)"
-							stopOpacity={0.4}
-						/>
-						<stop
-							offset="95%"
-							stopColor="var(--color-freeGb)"
-							stopOpacity={0.1}
-						/>
-					</linearGradient>
 				</defs>
 				<CartesianGrid vertical={false} />
 				<YAxis
@@ -82,9 +63,8 @@ export const DockerDiskChart = ({ accumulativeData, diskTotal }: Props) => {
 								const time = payload?.[0]?.payload?.time;
 								return time ? format(new Date(time), "PPpp") : "";
 							}}
-							formatter={(value, name) => {
-								const label = name === "usedGb" ? "Used" : "Free";
-								return [`${value} GB`, label];
+							formatter={(value) => {
+								return [`${value} GB`, "Used"];
 							}}
 						/>
 					}
@@ -96,14 +76,6 @@ export const DockerDiskChart = ({ accumulativeData, diskTotal }: Props) => {
 					fill="url(#fillDiskUsed)"
 					strokeWidth={2}
 				/>
-				<Area
-					type="monotone"
-					dataKey="freeGb"
-					stroke="var(--color-freeGb)"
-					fill="url(#fillDiskFree)"
-					strokeWidth={2}
-				/>
-				<ChartLegend content={<ChartLegendContent />} />
 			</AreaChart>
 		</ChartContainer>
 	);
