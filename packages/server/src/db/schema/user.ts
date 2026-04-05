@@ -93,6 +93,7 @@ const createSchema = createInsertSchema(user, {
 	trustedOrigins: true,
 	bookmarkedTemplates: true,
 	isValidEnterpriseLicense: true,
+	isEnterpriseCloud: true,
 });
 
 export const apiCreateUserInvitation = createSchema.pick({}).extend({
