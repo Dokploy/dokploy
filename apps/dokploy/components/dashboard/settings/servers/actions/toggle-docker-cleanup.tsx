@@ -69,11 +69,10 @@ export const ToggleDockerCleanup = ({ serverId }: Props) => {
 					</TooltipTrigger>
 					<TooltipContent side="top" className="max-w-sm">
 						<p>
-							Runs a full Docker cleanup daily, pruning stopped
-							containers, unused images, volumes, build cache, and
-							system resources. This may remove images built for
-							Compose services that run on-demand (backup runners,
-							cron jobs, one-off tasks).
+							Runs a full Docker cleanup daily, pruning stopped containers,
+							unused images, volumes, build cache, and system resources. This
+							may remove images built for Compose services that run on-demand
+							(backup runners, cron jobs, one-off tasks).
 						</p>
 						<p className="mt-1">
 							For custom cleanup strategies, use{" "}
