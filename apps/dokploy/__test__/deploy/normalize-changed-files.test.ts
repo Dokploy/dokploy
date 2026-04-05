@@ -24,7 +24,10 @@ describe("normalizeChangedFilesFromCommits", () => {
 				{
 					added: undefined,
 					modified: [undefined, "steam/src/app.ts", ""],
-					removed: [null, "shared/migrations/0007_csfloat_buy_attempt_flows.ts"],
+					removed: [
+						null,
+						"shared/migrations/0007_csfloat_buy_attempt_flows.ts",
+					],
 				},
 				undefined,
 				{

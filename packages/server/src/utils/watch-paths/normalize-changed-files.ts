@@ -17,5 +17,7 @@ export const normalizeChangedFilesFromCommits = (
 				(paths) => paths || [],
 			);
 		})
-		.filter((path): path is string => typeof path === "string" && path.length > 0);
+		.filter(
+			(path): path is string => typeof path === "string" && path.length > 0,
+		);
 };

@@ -13,8 +13,8 @@ describe("shouldDeploy", () => {
 	});
 
 	it("still matches valid modified paths when nullish entries are mixed in", () => {
-		expect(shouldDeploy(["steam/**"], [undefined, "steam/src/app.ts"] as any)).toBe(
-			true,
-		);
+		expect(
+			shouldDeploy(["steam/**"], [undefined, "steam/src/app.ts"] as any),
+		).toBe(true);
 	});
 });

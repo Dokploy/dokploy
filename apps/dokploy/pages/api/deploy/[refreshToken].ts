@@ -142,21 +142,13 @@ export default async function handler(
 			let normalizedCommits: string[] = [];
 
 			if (provider === "github") {
-				normalizedCommits = normalizeChangedFilesFromCommits(
-					req.body?.commits,
-				);
+				normalizedCommits = normalizeChangedFilesFromCommits(req.body?.commits);
 			} else if (provider === "gitlab") {
-				normalizedCommits = normalizeChangedFilesFromCommits(
-					req.body?.commits,
-				);
+				normalizedCommits = normalizeChangedFilesFromCommits(req.body?.commits);
 			} else if (provider === "gitea") {
-				normalizedCommits = normalizeChangedFilesFromCommits(
-					req.body?.commits,
-				);
+				normalizedCommits = normalizeChangedFilesFromCommits(req.body?.commits);
 			} else if (provider === "soft-serve") {
-				normalizedCommits = normalizeChangedFilesFromCommits(
-					req.body?.commits,
-				);
+				normalizedCommits = normalizeChangedFilesFromCommits(req.body?.commits);
 			}
 
 			const shouldDeployPaths = shouldDeploy(
