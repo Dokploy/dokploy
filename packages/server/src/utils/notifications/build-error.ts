@@ -240,14 +240,13 @@ export const sendBuildErrorNotifications = async ({
 									value: `\`\`\`${errorMessage}\`\`\``,
 									short: false,
 								},
-							],
-							actions: [
 								{
-									type: "button",
-									text: "View Build Details",
-									url: buildLink,
+									title: "Details",
+									value: `<${buildLink}|View Build Details>`,
+									short: false,
 								},
 							],
+							mrkdwn_in: ["fields"],
 						},
 					],
 				});
