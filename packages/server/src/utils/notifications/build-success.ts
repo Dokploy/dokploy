@@ -256,12 +256,10 @@ export const sendBuildSuccessNotifications = async ({
 									value: date.toLocaleString(),
 									short: true,
 								},
-							],
-							actions: [
 								{
-									type: "button",
-									text: "View Build Details",
-									url: buildLink,
+									title: "Details",
+									value: `<${buildLink}|View Build Details>`,
+									short: false,
 								},
 							],
 						},
