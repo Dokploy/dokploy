@@ -12,7 +12,7 @@ interface Props {
 export default function Custom404({ statusCode, error }: Props) {
 	const displayStatusCode = statusCode || 400;
 	const { config: whitelabeling } = useWhitelabelingPublic();
-	const appName = whitelabeling?.appName || "Dokploy";
+	const appName = whitelabeling?.appName || "Gocker";
 	const logoUrl = whitelabeling?.logoUrl || undefined;
 	const errorTitle = whitelabeling?.errorPageTitle;
 	const errorDescription = whitelabeling?.errorPageDescription;
@@ -86,7 +86,7 @@ export default function Custom404({ statusCode, error }: Props) {
 								whitelabeling.footerText
 							) : (
 								<Link
-									href="https://github.com/Dokploy/dokploy/issues"
+									href="https://github.com/Gocker/dokploy/issues"
 									target="_blank"
 									className="underline hover:text-primary transition-colors"
 								>

@@ -251,7 +251,7 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 										>
 											<SelectTrigger>
 												<SelectValue
-													placeholder={!isCloud ? "Dokploy" : "Select a Server"}
+													placeholder={!isCloud ? "Gocker" : "Select a Server"}
 												/>
 											</SelectTrigger>
 											<SelectContent>
@@ -259,7 +259,7 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 													{!isCloud && (
 														<SelectItem value="dokploy">
 															<span className="flex items-center gap-2 justify-between w-full">
-																<span>Dokploy</span>
+																<span>Gocker</span>
 																<span className="text-muted-foreground text-xs self-center">
 																	Default
 																</span>

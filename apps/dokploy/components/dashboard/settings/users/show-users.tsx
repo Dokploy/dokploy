@@ -60,7 +60,7 @@ export const ShowUsers = () => {
 							Users
 						</CardTitle>
 						<CardDescription>
-							Add your users to your Dokploy account.
+							Add your users to your Gocker account.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -75,7 +75,7 @@ export const ShowUsers = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<Users className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground">
-											Invite users to your Dokploy account
+											Invite users to your Gocker account
 										</span>
 									</div>
 								) : (

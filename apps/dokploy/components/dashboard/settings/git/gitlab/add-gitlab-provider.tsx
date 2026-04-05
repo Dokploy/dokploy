@@ -156,7 +156,7 @@ export const AddGitlabProvider = () => {
 									<li>
 										Create a new application with the following details:
 										<ul className="list-disc list-inside ml-4">
-											<li>Name: Dokploy</li>
+											<li>Name: Gocker</li>
 											<li>
 												Redirect URI:{" "}
 												<span className="text-primary">{webhookUrl}</span>{" "}
@@ -214,7 +214,7 @@ export const AddGitlabProvider = () => {
 												/>
 											</FormControl>
 											<FormDescription>
-												Use when GitLab runs on the same instance as Dokploy.
+												Use when GitLab runs on the same instance as Gocker.
 												Used for OAuth token exchange to reach GitLab via
 												internal network (e.g. Docker service name).
 											</FormDescription>

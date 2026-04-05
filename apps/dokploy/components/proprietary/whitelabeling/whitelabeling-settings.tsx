@@ -54,7 +54,7 @@ const formSchema = z.object({
 type FormSchema = z.infer<typeof formSchema>;
 
 const DEFAULT_CSS_TEMPLATE = `/* ============================================
-   Dokploy Default Theme - CSS Variables
+   Gocker Default Theme - CSS Variables
    Modify these values to customize your instance.
    ============================================ */
 
@@ -288,10 +288,10 @@ export function WhitelabelingSettings() {
 									<FormItem>
 										<FormLabel>Application Name</FormLabel>
 										<FormControl>
-											<Input placeholder="Dokploy" {...field} />
+											<Input placeholder="Gocker" {...field} />
 										</FormControl>
 										<FormDescription>
-											Replaces "Dokploy" across the entire interface.
+											Replaces "Gocker" across the entire interface.
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -312,7 +312,7 @@ export function WhitelabelingSettings() {
 										</FormControl>
 										<FormDescription>
 											Tagline shown on the login/onboarding pages. Defaults to
-											the standard Dokploy description if empty.
+											the standard Gocker description if empty.
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -449,10 +449,10 @@ export function WhitelabelingSettings() {
 									<FormItem>
 										<FormLabel>Page Title</FormLabel>
 										<FormControl>
-											<Input placeholder="Dokploy" {...field} />
+											<Input placeholder="Gocker" {...field} />
 										</FormControl>
 										<FormDescription>
-											Browser tab title. Defaults to "Dokploy" if empty.
+											Browser tab title. Defaults to "Gocker" if empty.
 										</FormDescription>
 										<FormMessage />
 									</FormItem>

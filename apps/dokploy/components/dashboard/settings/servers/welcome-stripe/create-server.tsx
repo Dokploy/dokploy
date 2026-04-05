@@ -62,7 +62,7 @@ export const CreateServer = ({ stepper }: Props) => {
 
 	const form = useForm<Schema>({
 		defaultValues: {
-			description: "Dokploy Cloud Server",
+			description: "Gocker Cloud Server",
 			name: "My First Server",
 			ipAddress: "",
 			port: 22,
@@ -74,7 +74,7 @@ export const CreateServer = ({ stepper }: Props) => {
 
 	useEffect(() => {
 		form.reset({
-			description: "Dokploy Cloud Server",
+			description: "Gocker Cloud Server",
 			name: "My First Server",
 			ipAddress: "",
 			port: 22,

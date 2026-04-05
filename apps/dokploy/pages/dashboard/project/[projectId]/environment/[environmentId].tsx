@@ -390,7 +390,7 @@ const EnvironmentPage = (
 			{ enabled: !!selectedTargetProject },
 		);
 	const { config: whitelabeling } = useWhitelabeling();
-	const appName = whitelabeling?.appName || "Dokploy";
+	const appName = whitelabeling?.appName || "Gocker";
 
 	const emptyServices =
 		!currentEnvironment ||
@@ -829,7 +829,7 @@ const EnvironmentPage = (
 		return Array.from(servers.values());
 	}, [applications]);
 
-	// Check if there are services without a server (Dokploy server)
+	// Check if there are services without a server (Gocker server)
 	const hasServicesWithoutServer = useMemo(() => {
 		if (!applications) return false;
 		return applications.some((service) => !service.serverId);
@@ -1429,7 +1429,7 @@ const EnvironmentPage = (
 														<SelectItem value="dokploy-server">
 															<div className="flex items-center gap-2">
 																<ServerIcon className="size-4" />
-																<span>Dokploy server</span>
+																<span>Gocker server</span>
 															</div>
 														</SelectItem>
 													)}

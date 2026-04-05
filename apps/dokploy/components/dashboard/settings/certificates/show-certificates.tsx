@@ -126,7 +126,7 @@ export const ShowCertificates = () => {
 																		<Server className="size-3" />
 																		{certificate.server
 																			? `${certificate.server.name} (${certificate.server.ipAddress})`
-																			: "Dokploy (Local)"}
+																			: "Gocker (Local)"}
 																	</span>
 																	{chainInfo.isChain && (
 																		<div className="flex flex-col gap-1.5 mt-1">

@@ -77,8 +77,8 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 
 	const hasServers = servers && servers.length > 0;
 	// Show dropdown logic based on cloud environment
-	// Cloud: show only if there are remote servers (no Dokploy option)
-	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
+	// Cloud: show only if there are remote servers (no Gocker option)
+	// Self-hosted: show only if there are remote servers (Gocker is default, hide if no remote servers)
 	const shouldShowServerDropdown = hasServers;
 
 	const { mutateAsync, isPending, error, isError } =
@@ -196,7 +196,7 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 										>
 											<SelectTrigger>
 												<SelectValue
-													placeholder={!isCloud ? "Dokploy" : "Select a Server"}
+													placeholder={!isCloud ? "Gocker" : "Select a Server"}
 												/>
 											</SelectTrigger>
 											<SelectContent>
@@ -204,7 +204,7 @@ export const AddApplication = ({ environmentId, projectName }: Props) => {
 													{!isCloud && (
 														<SelectItem value="dokploy">
 															<span className="flex items-center gap-2 justify-between w-full">
-																<span>Dokploy</span>
+																<span>Gocker</span>
 																<span className="text-muted-foreground text-xs self-center">
 																	Default
 																</span>

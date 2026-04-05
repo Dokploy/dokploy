@@ -451,7 +451,7 @@ export const SSOSettings = () => {
 									</p>
 									{!baseURL && (
 										<p className="text-xs text-muted-foreground">
-											Replace {"{baseURL}"} with your Dokploy URL (e.g. https://
+											Replace {"{baseURL}"} with your Gocker URL (e.g. https://
 											your-domain.com).
 										</p>
 									)}

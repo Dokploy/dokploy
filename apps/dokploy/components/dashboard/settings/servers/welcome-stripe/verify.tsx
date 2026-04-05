@@ -150,7 +150,7 @@ export const Verify = () => {
 											}
 										/>
 										<StatusRow
-											label="Dokploy Network Created"
+											label="Gocker Network Created"
 											isEnabled={data?.isDokployNetworkInstalled}
 											description={
 												data?.isDokployNetworkInstalled

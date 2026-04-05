@@ -25,7 +25,7 @@ export const GPUSupportModal = () => {
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Dokploy Server GPU Setup
+						Gocker Server GPU Setup
 					</DialogTitle>
 				</DialogHeader>
 

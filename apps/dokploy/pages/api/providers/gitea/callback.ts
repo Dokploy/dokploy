@@ -15,7 +15,7 @@ const parseState = (state: string): string | null => {
 
 // Helper to fetch access token from Gitea
 const fetchAccessToken = async (gitea: Gitea, code: string) => {
-	// Use internal URL for token exchange when Gitea is on same instance as Dokploy
+	// Use internal URL for token exchange when Gitea is on same instance as Gocker
 	const baseUrl = gitea.giteaInternalUrl || gitea.giteaUrl;
 	const response = await fetch(`${baseUrl}/login/oauth/access_token`, {
 		method: "POST",

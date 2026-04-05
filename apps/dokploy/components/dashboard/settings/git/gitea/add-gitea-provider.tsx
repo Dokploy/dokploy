@@ -188,7 +188,7 @@ export const AddGiteaProvider = () => {
 									<li>
 										Create a new application with the following details:
 										<ul className="list-disc list-inside ml-4">
-											<li>Name: Dokploy</li>
+											<li>Name: Gocker</li>
 											<li>
 												Redirect URI:{" "}
 												<span className="text-primary">{webhookUrl}</span>{" "}
@@ -245,7 +245,7 @@ export const AddGiteaProvider = () => {
 												/>
 											</FormControl>
 											<FormDescription>
-												Use when Gitea runs on the same instance as Dokploy.
+												Use when Gitea runs on the same instance as Gocker.
 												Used for OAuth token exchange to reach Gitea via
 												internal network (e.g. Docker service name).
 											</FormDescription>

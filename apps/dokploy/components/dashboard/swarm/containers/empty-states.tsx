@@ -22,7 +22,7 @@ export const DocLinks = () => (
 				rel="noopener noreferrer"
 				className="text-xs text-primary underline underline-offset-4 inline-flex items-center gap-1"
 			>
-				Dokploy Documentation
+				Gocker Documentation
 				<ExternalLink className="h-3 w-3" />
 			</a>
 			<a
@@ -169,7 +169,7 @@ export const NoServices = ({ nodeCount, onRefresh }: NoServicesProps) => (
 			<ol className="list-decimal list-inside space-y-2 ml-1">
 				<li>
 					<strong>Deployed as Swarm services</strong> &mdash; Applications in
-					Dokploy deploy to Swarm by default. Docker Compose projects need to
+					Gocker deploy to Swarm by default. Docker Compose projects need to
 					use{" "}
 					<code className="bg-muted px-1.5 py-0.5 rounded text-xs">Stack</code>{" "}
 					type (not{" "}

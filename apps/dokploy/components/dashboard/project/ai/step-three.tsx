@@ -24,7 +24,7 @@ export const StepThree = ({ templateInfo }: StepProps) => {
 						<div>
 							<h3 className="text-md font-semibold">Server</h3>
 							<p className="text-sm text-muted-foreground">
-								{templateInfo?.server?.name || "Dokploy Server"}
+								{templateInfo?.server?.name || "Gocker Server"}
 							</p>
 						</div>
 						<div className="space-y-2">

@@ -39,7 +39,7 @@ const MyApp = ({
 				`}
 			</style>
 			<Head>
-				<title>Dokploy</title>
+				<title>Gocker</title>
 			</Head>
 			<ThemeProvider
 				attribute="class"
