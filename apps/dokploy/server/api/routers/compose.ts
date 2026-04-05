@@ -61,6 +61,7 @@ import {
 	apiFindCompose,
 	apiRandomizeCompose,
 	apiRedeployCompose,
+	apiSaveEnvironmentVariablesCompose,
 	apiUpdateCompose,
 	compose as composeTable,
 	environments,
@@ -201,6 +202,31 @@ export const composeRouter = createTRPCRouter({
 			});
 			return updated;
 		}),
+	saveEnvironment: protectedProcedure
+		.input(apiSaveEnvironmentVariablesCompose)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.composeId, {
+				envVars: ["write"],
+			});
+			const updated = await updateCompose(input.composeId, {
+				env: input.env,
+			});
+
+			if (!updated) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error adding environment variables",
+				});
+			}
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "compose",
+				resourceId: input.composeId,
+				resourceName: updated?.name,
+			});
+			return true;
+		}),
 	delete: protectedProcedure
 		.input(apiDeleteCompose)
 		.mutation(async ({ input, ctx }) => {
@@ -290,7 +316,7 @@ export const composeRouter = createTRPCRouter({
 		.input(apiFetchServices)
 		.query(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
-				service: ["create"],
+				service: ["read"],
 			});
 			return await loadServices(input.composeId, input.type);
 		}),

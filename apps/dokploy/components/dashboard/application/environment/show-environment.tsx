@@ -56,17 +56,17 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 	const [isEnvVisible, setIsEnvVisible] = useState(true);
 
 	const mutationMap = {
-		compose: () => api.compose.update.useMutation(),
-		libsql: () => api.libsql.update.useMutation(),
-		mariadb: () => api.mariadb.update.useMutation(),
-		mongo: () => api.mongo.update.useMutation(),
-		mysql: () => api.mysql.update.useMutation(),
-		postgres: () => api.postgres.update.useMutation(),
-		redis: () => api.redis.update.useMutation(),
+		compose: () => api.compose.saveEnvironment.useMutation(),
+		libsql: () => api.libsql.saveEnvironment.useMutation(),
+		mariadb: () => api.mariadb.saveEnvironment.useMutation(),
+		mongo: () => api.mongo.saveEnvironment.useMutation(),
+		mysql: () => api.mysql.saveEnvironment.useMutation(),
+		postgres: () => api.postgres.saveEnvironment.useMutation(),
+		redis: () => api.redis.saveEnvironment.useMutation(),
 	};
 	const { mutateAsync, isPending } = mutationMap[type]
 		? mutationMap[type]()
-		: api.mongo.update.useMutation();
+		: api.mongo.saveEnvironment.useMutation();
 
 	const form = useForm<EnvironmentSchema>({
 		defaultValues: {
