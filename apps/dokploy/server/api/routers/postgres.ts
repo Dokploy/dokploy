@@ -20,6 +20,7 @@ import {
 	stopService,
 	stopServiceRemote,
 	updatePostgresById,
+	getAccessibleServerIds,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -74,6 +75,17 @@ export const postgresRouter = createTRPCRouter({
 						message: "You are not authorized to access this project",
 					});
 				}
+
+				if (input.serverId) {
+					const accessibleIds = await getAccessibleServerIds(ctx.session);
+					if (!accessibleIds.has(input.serverId)) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this server",
+						});
+					}
+				}
+
 				const newPostgres = await createPostgres({
 					...input,
 				});
