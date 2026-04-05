@@ -21,6 +21,7 @@ const _AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 export const UserNav = () => {
 	const router = useRouter();
 	const { data } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	// const { mutateAsync } = api.auth.logout.useMutation();
@@ -94,9 +95,7 @@ export const UserNav = () => {
 							>
 								Monitoring
 							</DropdownMenuItem>
-							{(data?.role === "owner" ||
-								data?.role === "admin" ||
-								data?.canAccessToTraefikFiles) && (
+							{permissions?.traefikFiles.read && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -106,9 +105,7 @@ export const UserNav = () => {
 									Traefik
 								</DropdownMenuItem>
 							)}
-							{(data?.role === "owner" ||
-								data?.role === "admin" ||
-								data?.canAccessToDocker) && (
+							{permissions?.docker.read && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -122,7 +119,7 @@ export const UserNav = () => {
 							)}
 						</>
 					) : (
-						(data?.role === "owner" || data?.role === "admin") && (
+						permissions?.organization.update && (
 							<DropdownMenuItem
 								className="cursor-pointer"
 								onClick={() => {

@@ -32,75 +32,154 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 
-const addInvitation = z.object({
-	email: z
-		.string()
-		.min(1, "Email is required")
-		.email({ message: "Invalid email" }),
-	role: z.enum(["member", "admin"]),
-	notificationId: z.string().optional(),
-});
+const addInvitation = z
+	.object({
+		mode: z.enum(["invitation", "credentials"]),
+		email: z
+			.string()
+			.min(1, "Email is required")
+			.email({ message: "Invalid email" }),
+		role: z.string().min(1, "Role is required"),
+		notificationId: z.string().optional(),
+		password: z.string().optional(),
+		confirmPassword: z.string().optional(),
+	})
+	.superRefine((value, ctx) => {
+		if (value.mode !== "credentials") {
+			return;
+		}
+
+		if (!value.password) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Password is required",
+				path: ["password"],
+			});
+		} else if (value.password.length < 8) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Password must be at least 8 characters",
+				path: ["password"],
+			});
+		}
+
+		if (!value.confirmPassword) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Confirm password is required",
+				path: ["confirmPassword"],
+			});
+		} else if (value.confirmPassword.length < 8) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Password must be at least 8 characters",
+				path: ["confirmPassword"],
+			});
+		}
+
+		if (
+			value.password &&
+			value.confirmPassword &&
+			value.password !== value.confirmPassword
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Passwords do not match",
+				path: ["confirmPassword"],
+			});
+		}
+	});
 
 type AddInvitation = z.infer<typeof addInvitation>;
 
 export const AddInvitation = () => {
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
-	const [isLoading, setIsLoading] = useState(false);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: emailProviders } =
 		api.notification.getEmailProviders.useQuery();
+	const { mutateAsync: inviteMember, isPending: isInviting } =
+		api.organization.inviteMember.useMutation();
 	const { mutateAsync: sendInvitation } = api.user.sendInvitation.useMutation();
+	const { mutateAsync: createUserWithCredentials, isPending: isCreating } =
+		api.user.createUserWithCredentials.useMutation();
+	const { data: customRoles } = api.customRole.all.useQuery();
 	const [error, setError] = useState<string | null>(null);
-	const { data: activeOrganization } = api.organization.active.useQuery();
 
 	const form = useForm<AddInvitation>({
 		defaultValues: {
+			mode: "invitation",
 			email: "",
 			role: "member",
 			notificationId: "",
+			password: "",
+			confirmPassword: "",
 		},
 		resolver: zodResolver(addInvitation),
 	});
+
+	const mode = form.watch("mode");
+
 	useEffect(() => {
 		form.reset();
 	}, [form, form.formState.isSubmitSuccessful, form.reset]);
 
-	const onSubmit = async (data: AddInvitation) => {
-		setIsLoading(true);
-		const result = await authClient.organization.inviteMember({
-			email: data.email.toLowerCase(),
-			role: data.role,
-			organizationId: activeOrganization?.id,
-		});
-
-		if (result.error) {
-			setError(result.error.message || "");
-		} else {
-			if (!isCloud && data.notificationId) {
-				await sendInvitation({
-					invitationId: result.data.id,
-					notificationId: data.notificationId || "",
-				})
-					.then(() => {
-						toast.success("Invitation created and email sent");
-					})
-					.catch((error: any) => {
-						toast.error(error.message);
-					});
-			} else {
-				toast.success("Invitation created");
-			}
-			setError(null);
-			setOpen(false);
+	useEffect(() => {
+		if (isCloud && form.getValues("mode") === "credentials") {
+			form.setValue("mode", "invitation");
 		}
+	}, [form, isCloud]);
 
-		utils.organization.allInvitations.invalidate();
-		setIsLoading(false);
+	const onSubmit = async (data: AddInvitation) => {
+		setError(null);
+
+		try {
+			if (data.mode === "credentials") {
+				await createUserWithCredentials({
+					email: data.email.toLowerCase(),
+					password: data.password!,
+					role: data.role,
+				});
+				toast.success("User created with initial credentials");
+				setOpen(false);
+			} else {
+				const result = await inviteMember({
+					email: data.email.toLowerCase(),
+					role: data.role,
+				});
+
+				if (!isCloud && data.notificationId) {
+					await sendInvitation({
+						invitationId: result!.id,
+						notificationId: data.notificationId || "",
+					})
+						.then(() => {
+							toast.success("Invitation created and email sent");
+						})
+						.catch((error: any) => {
+							toast.error(error.message);
+						});
+				} else {
+					toast.success("Invitation created");
+				}
+
+				setOpen(false);
+			}
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "Failed to create user";
+			setError(message);
+			toast.error(message);
+		} finally {
+			await Promise.all([
+				utils.organization.allInvitations.invalidate(),
+				utils.user.all.invalidate(),
+			]);
+		}
 	};
+
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger className="" asChild>
@@ -111,7 +190,11 @@ export const AddInvitation = () => {
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Add Invitation</DialogTitle>
-					<DialogDescription>Invite a new user</DialogDescription>
+					<DialogDescription>
+						{mode === "credentials"
+							? "Create a user with initial credentials"
+							: "Invite a new user"}
+					</DialogDescription>
 				</DialogHeader>
 				{error && <AlertBlock type="error">{error}</AlertBlock>}
 
@@ -121,6 +204,43 @@ export const AddInvitation = () => {
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid w-full gap-4 "
 					>
+						{!isCloud && (
+							<FormField
+								control={form.control}
+								name="mode"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<FormLabel>Invite Method</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												defaultValue={field.value}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select invite method" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="invitation">
+														Invitation Link
+													</SelectItem>
+													<SelectItem value="credentials">
+														Initial Credentials
+													</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormDescription>
+												Choose between invitation link flow or direct
+												credentials provisioning
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+						)}
+
 						<FormField
 							control={form.control}
 							name="email"
@@ -159,6 +279,11 @@ export const AddInvitation = () => {
 											<SelectContent>
 												<SelectItem value="member">Member</SelectItem>
 												<SelectItem value="admin">Admin</SelectItem>
+												{customRoles?.map((role) => (
+													<SelectItem key={role.role} value={role.role}>
+														{role.role}
+													</SelectItem>
+												))}
 											</SelectContent>
 										</Select>
 										<FormDescription>
@@ -170,7 +295,7 @@ export const AddInvitation = () => {
 							}}
 						/>
 
-						{!isCloud && (
+						{!isCloud && mode === "invitation" && (
 							<FormField
 								control={form.control}
 								name="notificationId"
@@ -210,9 +335,57 @@ export const AddInvitation = () => {
 								}}
 							/>
 						)}
+
+						{!isCloud && mode === "credentials" && (
+							<>
+								<FormField
+									control={form.control}
+									name="password"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Password</FormLabel>
+												<FormControl>
+													<Input
+														type="password"
+														placeholder="Enter initial password"
+														{...field}
+													/>
+												</FormControl>
+												<FormDescription>
+													The user can sign in with this password immediately
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="confirmPassword"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Confirm Password</FormLabel>
+												<FormControl>
+													<Input
+														type="password"
+														placeholder="Confirm initial password"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+							</>
+						)}
+
 						<DialogFooter className="flex w-full flex-row">
 							<Button
-								isLoading={isLoading}
+								isLoading={isInviting || isCreating}
 								form="hook-form-add-invitation"
 								type="submit"
 							>

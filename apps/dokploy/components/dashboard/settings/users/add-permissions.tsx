@@ -26,6 +26,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
+import { EnterpriseFeatureLocked } from "@/components/proprietary/enterprise-feature-gate";
 import { api, type RouterOutputs } from "@/utils/api";
 
 /** Shape returned by project.allForPermissions (admin only). Used for the permissions UI. */
@@ -46,7 +47,8 @@ export type Services = {
 		| "mysql"
 		| "mongo"
 		| "redis"
-		| "compose";
+		| "compose"
+		| "libsql";
 	description?: string | null;
 	id: string;
 	createdAt: string;
@@ -136,6 +138,18 @@ export const extractServices = (data: Environment | undefined) => {
 		serverId: item.serverId,
 	})) ?? []) as Services[];
 
+	const libsql: Services[] =
+		data?.libsql?.map((item) => ({
+			appName: item.appName,
+			name: item.name,
+			type: "libsql" as const,
+			id: item.libsqlId,
+			createdAt: item.createdAt,
+			status: item.applicationStatus,
+			description: item.description,
+			serverId: item.serverId,
+		})) || [];
+
 	applications.push(
 		...mysql,
 		...redis,
@@ -143,6 +157,7 @@ export const extractServices = (data: Environment | undefined) => {
 		...postgres,
 		...mariadb,
 		...compose,
+		...libsql,
 	);
 
 	applications.sort((a, b) => {
@@ -156,6 +171,8 @@ const addPermissions = z.object({
 	accessedProjects: z.array(z.string()).optional(),
 	accessedEnvironments: z.array(z.string()).optional(),
 	accessedServices: z.array(z.string()).optional(),
+	accessedGitProviders: z.array(z.string()).optional(),
+	accessedServers: z.array(z.string()).optional(),
 	canCreateProjects: z.boolean().optional().default(false),
 	canCreateServices: z.boolean().optional().default(false),
 	canDeleteProjects: z.boolean().optional().default(false),
@@ -173,12 +190,27 @@ type AddPermissions = z.infer<typeof addPermissions>;
 
 interface Props {
 	userId: string;
+	role?: string;
 }
 
-export const AddUserPermissions = ({ userId }: Props) => {
+export const AddUserPermissions = ({ userId, role }: Props) => {
+	const isCustomRole = !!role && !["owner", "admin", "member"].includes(role);
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: projects } = api.project.allForPermissions.useQuery(undefined, {
 		enabled: isOpen,
+	});
+	const { data: haveValidLicense } =
+		api.licenseKey.haveValidLicenseKey.useQuery();
+
+	const { data: gitProviders } = api.gitProvider.allForPermissions.useQuery(
+		undefined,
+		{
+			enabled: isOpen && !!haveValidLicense,
+		},
+	);
+
+	const { data: servers } = api.server.allForPermissions.useQuery(undefined, {
+		enabled: isOpen && !!haveValidLicense,
 	});
 
 	const { data, refetch } = api.user.one.useQuery(
@@ -198,6 +230,8 @@ export const AddUserPermissions = ({ userId }: Props) => {
 			accessedProjects: [],
 			accessedEnvironments: [],
 			accessedServices: [],
+			accessedGitProviders: [],
+			accessedServers: [],
 			canDeleteEnvironments: false,
 			canCreateProjects: false,
 			canCreateServices: false,
@@ -219,6 +253,8 @@ export const AddUserPermissions = ({ userId }: Props) => {
 				accessedProjects: data.accessedProjects || [],
 				accessedEnvironments: data.accessedEnvironments || [],
 				accessedServices: data.accessedServices || [],
+				accessedGitProviders: data.accessedGitProviders || [],
+				accessedServers: data.accessedServers || [],
 				canCreateProjects: data.canCreateProjects,
 				canCreateServices: data.canCreateServices,
 				canDeleteProjects: data.canDeleteProjects,
@@ -246,6 +282,8 @@ export const AddUserPermissions = ({ userId }: Props) => {
 			accessedProjects: data.accessedProjects || [],
 			accessedEnvironments: data.accessedEnvironments || [],
 			accessedServices: data.accessedServices || [],
+			accessedGitProviders: data.accessedGitProviders || [],
+			accessedServers: data.accessedServers || [],
 			canAccessToDocker: data.canAccessToDocker,
 			canAccessToAPI: data.canAccessToAPI,
 			canAccessToSSHKeys: data.canAccessToSSHKeys,
@@ -284,226 +322,237 @@ export const AddUserPermissions = ({ userId }: Props) => {
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4"
 					>
-						<FormField
-							control={form.control}
-							name="canCreateProjects"
-							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-									<div className="space-y-0.5">
-										<FormLabel>Create Projects</FormLabel>
-										<FormDescription>
-											Allow the user to create projects
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="canDeleteProjects"
-							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-									<div className="space-y-0.5">
-										<FormLabel>Delete Projects</FormLabel>
-										<FormDescription>
-											Allow the user to delete projects
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="canCreateServices"
-							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-									<div className="space-y-0.5">
-										<FormLabel>Create Services</FormLabel>
-										<FormDescription>
-											Allow the user to create services
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="canDeleteServices"
-							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-									<div className="space-y-0.5">
-										<FormLabel>Delete Services</FormLabel>
-										<FormDescription>
-											Allow the user to delete services
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="canCreateEnvironments"
-							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-									<div className="space-y-0.5">
-										<FormLabel>Create Environments</FormLabel>
-										<FormDescription>
-											Allow the user to create environments
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="canDeleteEnvironments"
-							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-									<div className="space-y-0.5">
-										<FormLabel>Delete Environments</FormLabel>
-										<FormDescription>
-											Allow the user to delete environments
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="canAccessToTraefikFiles"
-							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-									<div className="space-y-0.5">
-										<FormLabel>Access to Traefik Files</FormLabel>
-										<FormDescription>
-											Allow the user to access to the Traefik Tab Files
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="canAccessToDocker"
-							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-									<div className="space-y-0.5">
-										<FormLabel>Access to Docker</FormLabel>
-										<FormDescription>
-											Allow the user to access to the Docker Tab
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="canAccessToAPI"
-							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-									<div className="space-y-0.5">
-										<FormLabel>Access to API/CLI</FormLabel>
-										<FormDescription>
-											Allow the user to access to the API/CLI
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="canAccessToSSHKeys"
-							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-									<div className="space-y-0.5">
-										<FormLabel>Access to SSH Keys</FormLabel>
-										<FormDescription>
-											Allow to users to access to the SSH Keys section
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="canAccessToGitProviders"
-							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-									<div className="space-y-0.5">
-										<FormLabel>Access to Git Providers</FormLabel>
-										<FormDescription>
-											Allow to users to access to the Git Providers section
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
+						{isCustomRole && (
+							<div className="md:col-span-2 rounded-lg border p-3 bg-muted/50 text-sm text-muted-foreground">
+								This user has a custom role assigned. Capabilities are defined
+								by the role. You can still manage which projects, environments,
+								and services they can access below.
+							</div>
+						)}
+						{!isCustomRole && (
+							<>
+								<FormField
+									control={form.control}
+									name="canCreateProjects"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Create Projects</FormLabel>
+												<FormDescription>
+													Allow the user to create projects
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="canDeleteProjects"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Delete Projects</FormLabel>
+												<FormDescription>
+													Allow the user to delete projects
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="canCreateServices"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Create Services</FormLabel>
+												<FormDescription>
+													Allow the user to create services
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="canDeleteServices"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Delete Services</FormLabel>
+												<FormDescription>
+													Allow the user to delete services
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="canCreateEnvironments"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Create Environments</FormLabel>
+												<FormDescription>
+													Allow the user to create environments
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="canDeleteEnvironments"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Delete Environments</FormLabel>
+												<FormDescription>
+													Allow the user to delete environments
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="canAccessToTraefikFiles"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Access to Traefik Files</FormLabel>
+												<FormDescription>
+													Allow the user to access to the Traefik Tab Files
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="canAccessToDocker"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Access to Docker</FormLabel>
+												<FormDescription>
+													Allow the user to access to the Docker Tab
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="canAccessToAPI"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Access to API/CLI</FormLabel>
+												<FormDescription>
+													Allow the user to access to the API/CLI
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="canAccessToSSHKeys"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Access to SSH Keys</FormLabel>
+												<FormDescription>
+													Allow to users to access to the SSH Keys section
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="canAccessToGitProviders"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Access to Git Providers</FormLabel>
+												<FormDescription>
+													Allow to users to access to the Git Providers section
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
 						<FormField
 							control={form.control}
 							name="accessedProjects"
@@ -843,6 +892,151 @@ export const AddUserPermissions = ({ userId }: Props) => {
 								</FormItem>
 							)}
 						/>
+						{haveValidLicense ? (
+							<FormField
+								control={form.control}
+								name="accessedGitProviders"
+								render={() => (
+									<FormItem className="md:col-span-2">
+										<div className="mb-4">
+											<FormLabel className="text-base">Git Providers</FormLabel>
+											<FormDescription>
+												Select the Git Providers that the user can access
+											</FormDescription>
+										</div>
+										{gitProviders?.length === 0 && (
+											<p className="text-sm text-muted-foreground">
+												No git providers found
+											</p>
+										)}
+										<div className="grid md:grid-cols-1 gap-2">
+											{gitProviders?.map((provider) => (
+												<FormField
+													key={provider.gitProviderId}
+													control={form.control}
+													name="accessedGitProviders"
+													render={({ field }) => (
+														<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
+															<FormControl>
+																<Checkbox
+																	checked={field.value?.includes(
+																		provider.gitProviderId,
+																	)}
+																	onCheckedChange={(checked) => {
+																		if (checked) {
+																			field.onChange([
+																				...(field.value || []),
+																				provider.gitProviderId,
+																			]);
+																		} else {
+																			field.onChange(
+																				field.value?.filter(
+																					(v) => v !== provider.gitProviderId,
+																				),
+																			);
+																		}
+																	}}
+																/>
+															</FormControl>
+															<div className="flex items-center gap-2">
+																<FormLabel className="text-sm cursor-pointer">
+																	{provider.name}
+																</FormLabel>
+																<span className="text-xs text-muted-foreground capitalize">
+																	({provider.providerType})
+																</span>
+															</div>
+														</FormItem>
+													)}
+												/>
+											))}
+										</div>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						) : (
+							<div className="md:col-span-2">
+								<EnterpriseFeatureLocked
+									compact
+									title="Git Provider Assignment"
+									description="Assign specific Git Providers to users with an Enterprise license."
+								/>
+							</div>
+						)}
+						{haveValidLicense ? (
+							<FormField
+								control={form.control}
+								name="accessedServers"
+								render={() => (
+									<FormItem className="md:col-span-2">
+										<div className="mb-4">
+											<FormLabel className="text-base">Servers</FormLabel>
+											<FormDescription>
+												Select the Servers that the user can access
+											</FormDescription>
+										</div>
+										{servers?.length === 0 && (
+											<p className="text-sm text-muted-foreground">
+												No servers found
+											</p>
+										)}
+										<div className="grid md:grid-cols-1 gap-2">
+											{servers?.map((s) => (
+												<FormField
+													key={s.serverId}
+													control={form.control}
+													name="accessedServers"
+													render={({ field }) => (
+														<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
+															<FormControl>
+																<Checkbox
+																	checked={field.value?.includes(s.serverId)}
+																	onCheckedChange={(checked) => {
+																		if (checked) {
+																			field.onChange([
+																				...(field.value || []),
+																				s.serverId,
+																			]);
+																		} else {
+																			field.onChange(
+																				field.value?.filter(
+																					(v) => v !== s.serverId,
+																				),
+																			);
+																		}
+																	}}
+																/>
+															</FormControl>
+															<div className="flex items-center gap-2">
+																<FormLabel className="text-sm cursor-pointer">
+																	{s.name}
+																</FormLabel>
+																<span className="text-xs text-muted-foreground">
+																	({s.ipAddress})
+																</span>
+																<span className="text-xs text-muted-foreground capitalize">
+																	{s.serverType}
+																</span>
+															</div>
+														</FormItem>
+													)}
+												/>
+											))}
+										</div>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						) : (
+							<div className="md:col-span-2">
+								<EnterpriseFeatureLocked
+									compact
+									title="Server Assignment"
+									description="Assign specific Servers to users with an Enterprise license."
+								/>
+							</div>
+						)}
 						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2">
 							<Button
 								isLoading={isPending}

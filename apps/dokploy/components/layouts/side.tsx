@@ -11,6 +11,7 @@ import {
 	ChevronRight,
 	ChevronsUpDown,
 	CircleHelp,
+	ClipboardList,
 	Clock,
 	CreditCard,
 	Database,
@@ -24,11 +25,13 @@ import {
 	LogIn,
 	type LucideIcon,
 	Package,
+	Palette,
 	PieChart,
 	Rocket,
 	Server,
 	ShieldCheck,
 	Star,
+	Tags,
 	Trash2,
 	User,
 	Users,
@@ -91,13 +94,21 @@ import { UserNav } from "./user-nav";
 
 // The types of the queries we are going to use
 type AuthQueryOutput = inferRouterOutputs<AppRouter>["user"]["get"];
+type PermissionsOutput =
+	inferRouterOutputs<AppRouter>["user"]["getPermissions"];
+
+type EnabledOpts = {
+	auth?: AuthQueryOutput;
+	permissions?: PermissionsOutput;
+	isCloud: boolean;
+};
 
 type SingleNavItem = {
 	isSingle?: true;
 	title: string;
 	url: string;
 	icon?: LucideIcon;
-	isEnabled?: (opts: { auth?: AuthQueryOutput; isCloud: boolean }) => boolean;
+	isEnabled?: (opts: EnabledOpts) => boolean;
 };
 
 // NavItem type
@@ -111,10 +122,7 @@ type NavItem =
 			title: string;
 			icon: LucideIcon;
 			items: SingleNavItem[];
-			isEnabled?: (opts: {
-				auth?: AuthQueryOutput;
-				isCloud: boolean;
-			}) => boolean;
+			isEnabled?: (opts: EnabledOpts) => boolean;
 	  };
 
 // ExternalLink type
@@ -123,7 +131,7 @@ type ExternalLink = {
 	name: string;
 	url: string;
 	icon: React.ComponentType<{ className?: string }>;
-	isEnabled?: (opts: { auth?: AuthQueryOutput; isCloud: boolean }) => boolean;
+	isEnabled?: (opts: EnabledOpts) => boolean;
 };
 
 // Menu type
@@ -151,14 +159,16 @@ const MENU: Menu = {
 			title: "Deployments",
 			url: "/dashboard/deployments",
 			icon: Rocket,
+			isEnabled: ({ permissions }) => !!permissions?.deployment.read,
 		},
 		{
 			isSingle: true,
 			title: "Monitoring",
 			url: "/dashboard/monitoring",
 			icon: BarChartHorizontalBigIcon,
-			// Only enabled in non-cloud environments
-			isEnabled: ({ isCloud }) => !isCloud,
+			// Only enabled in non-cloud environments and if user has monitoring.read
+			isEnabled: ({ isCloud, permissions }) =>
+				!isCloud && !!permissions?.monitoring.read,
 		},
 		{
 			isSingle: true,
@@ -166,64 +176,44 @@ const MENU: Menu = {
 			url: "/dashboard/schedules",
 			icon: Clock,
 			// Only enabled in non-cloud environments
-			isEnabled: ({ isCloud, auth }) =>
-				!isCloud && (auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ isCloud, permissions }) =>
+				!isCloud && !!permissions?.organization.update,
 		},
 		{
 			isSingle: true,
 			title: "Traefik File System",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
-			// Only enabled for admins and users with access to Traefik files in non-cloud environments
-			isEnabled: ({ auth, isCloud }) =>
-				!!(
-					(auth?.role === "owner" ||
-						auth?.role === "admin" ||
-						auth?.canAccessToTraefikFiles) &&
-					!isCloud
-				),
+			// Only enabled for users with access to Traefik files in non-cloud environments
+			isEnabled: ({ permissions, isCloud }) =>
+				!!(permissions?.traefikFiles.read && !isCloud),
 		},
 		{
 			isSingle: true,
 			title: "Docker",
 			url: "/dashboard/docker",
 			icon: BlocksIcon,
-			// Only enabled for admins and users with access to Docker in non-cloud environments
-			isEnabled: ({ auth, isCloud }) =>
-				!!(
-					(auth?.role === "owner" ||
-						auth?.role === "admin" ||
-						auth?.canAccessToDocker) &&
-					!isCloud
-				),
+			// Only enabled for users with access to Docker in non-cloud environments
+			isEnabled: ({ permissions, isCloud }) =>
+				!!(permissions?.docker.read && !isCloud),
 		},
 		{
 			isSingle: true,
 			title: "Swarm",
 			url: "/dashboard/swarm",
 			icon: PieChart,
-			// Only enabled for admins and users with access to Docker in non-cloud environments
-			isEnabled: ({ auth, isCloud }) =>
-				!!(
-					(auth?.role === "owner" ||
-						auth?.role === "admin" ||
-						auth?.canAccessToDocker) &&
-					!isCloud
-				),
+			// Only enabled for users with access to Docker in non-cloud environments
+			isEnabled: ({ permissions, isCloud }) =>
+				!!(permissions?.docker.read && !isCloud),
 		},
 		{
 			isSingle: true,
 			title: "Requests",
 			url: "/dashboard/requests",
 			icon: Forward,
-			// Only enabled for admins and users with access to Docker in non-cloud environments
-			isEnabled: ({ auth, isCloud }) =>
-				!!(
-					(auth?.role === "owner" ||
-						auth?.role === "admin" ||
-						auth?.canAccessToDocker) &&
-					!isCloud
-				),
+			// Only enabled for users with access to Docker in non-cloud environments
+			isEnabled: ({ permissions, isCloud }) =>
+				!!(permissions?.docker.read && !isCloud),
 		},
 
 		// Legacy unused menu, adjusted to the new structure
@@ -290,8 +280,8 @@ const MENU: Menu = {
 			url: "/dashboard/settings/server",
 			icon: Activity,
 			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ auth, isCloud }) =>
-				!!((auth?.role === "owner" || auth?.role === "admin") && !isCloud),
+			isEnabled: ({ permissions, isCloud }) =>
+				!!(permissions?.organization.update && !isCloud),
 		},
 		{
 			isSingle: true,
@@ -304,70 +294,66 @@ const MENU: Menu = {
 			title: "Remote Servers",
 			url: "/dashboard/settings/servers",
 			icon: Server,
-			// Only enabled for admins
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ permissions }) => !!permissions?.server.read,
 		},
 		{
 			isSingle: true,
 			title: "Users",
 			icon: Users,
 			url: "/dashboard/settings/users",
-			// Only enabled for admins
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			// Only enabled for users with member.read permission
+			isEnabled: ({ permissions }) => !!permissions?.member.read,
+		},
+		{
+			isSingle: true,
+			title: "Audit Logs",
+			icon: ClipboardList,
+			url: "/dashboard/settings/audit-logs",
+			isEnabled: ({ permissions }) => !!permissions?.auditLog.read,
 		},
 		{
 			isSingle: true,
 			title: "SSH Keys",
 			icon: KeyRound,
 			url: "/dashboard/settings/ssh-keys",
-			// Only enabled for admins and users with access to SSH keys
-			isEnabled: ({ auth }) =>
-				!!(
-					auth?.role === "owner" ||
-					auth?.canAccessToSSHKeys ||
-					auth?.role === "admin"
-				),
+			// Only enabled for users with access to SSH keys
+			isEnabled: ({ permissions }) => !!permissions?.sshKeys.read,
 		},
 		{
 			title: "AI",
 			icon: BotIcon,
 			url: "/dashboard/settings/ai",
 			isSingle: true,
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ permissions }) => !!permissions?.organization.update,
+		},
+		{
+			isSingle: true,
+			title: "Tags",
+			url: "/dashboard/settings/tags",
+			icon: Tags,
+			isEnabled: ({ permissions }) => !!permissions?.tag.read,
 		},
 		{
 			isSingle: true,
 			title: "Git",
 			url: "/dashboard/settings/git-providers",
 			icon: GitBranch,
-			// Only enabled for admins and users with access to Git providers
-			isEnabled: ({ auth }) =>
-				!!(
-					auth?.role === "owner" ||
-					auth?.canAccessToGitProviders ||
-					auth?.role === "admin"
-				),
+			// Only enabled for users with access to Git providers
+			isEnabled: ({ permissions }) => !!permissions?.gitProviders.read,
 		},
 		{
 			isSingle: true,
 			title: "Registry",
 			url: "/dashboard/settings/registry",
 			icon: Package,
-			// Only enabled for admins
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ permissions }) => !!permissions?.registry.read,
 		},
 		{
 			isSingle: true,
 			title: "S3 Destinations",
 			url: "/dashboard/settings/destinations",
 			icon: Database,
-			// Only enabled for admins
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ permissions }) => !!permissions?.destination.read,
 		},
 
 		{
@@ -375,9 +361,7 @@ const MENU: Menu = {
 			title: "Certificates",
 			url: "/dashboard/settings/certificates",
 			icon: ShieldCheck,
-			// Only enabled for admins
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ permissions }) => !!permissions?.certificate.read,
 		},
 		{
 			isSingle: true,
@@ -385,24 +369,23 @@ const MENU: Menu = {
 			url: "/dashboard/settings/cluster",
 			icon: Boxes,
 			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ auth, isCloud }) =>
-				!!((auth?.role === "owner" || auth?.role === "admin") && !isCloud),
+			isEnabled: ({ permissions, isCloud }) =>
+				!!(permissions?.organization.update && !isCloud),
 		},
 		{
 			isSingle: true,
 			title: "Notifications",
 			url: "/dashboard/settings/notifications",
 			icon: Bell,
-			// Only enabled for admins
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			// Only enabled for users with access to notifications
+			isEnabled: ({ permissions }) => !!permissions?.notification.read,
 		},
 		{
 			isSingle: true,
 			title: "Billing",
 			url: "/dashboard/settings/billing",
 			icon: CreditCard,
-			// Only enabled for admins in cloud environments
+			// Only enabled for owners in cloud environments
 			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && isCloud),
 		},
 		{
@@ -410,7 +393,7 @@ const MENU: Menu = {
 			title: "License",
 			url: "/dashboard/settings/license",
 			icon: Key,
-			// Only enabled for admins in non-cloud environments
+			// Only enabled for owners
 			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
@@ -419,8 +402,15 @@ const MENU: Menu = {
 			url: "/dashboard/settings/sso",
 			icon: LogIn,
 			// Enabled for admins in both cloud and self-hosted (enterprise)
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ permissions }) => !!permissions?.organization.update,
+		},
+		{
+			isSingle: true,
+			title: "Whitelabeling",
+			url: "/dashboard/settings/whitelabeling",
+			icon: Palette,
+			// Only enabled for owners in non-cloud environments (enterprise)
+			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && !isCloud),
 		},
 	],
 
@@ -444,39 +434,45 @@ const MENU: Menu = {
  */
 function createMenuForAuthUser(opts: {
 	auth?: AuthQueryOutput;
+	permissions?: PermissionsOutput;
 	isCloud: boolean;
+	whitelabeling?: {
+		docsUrl?: string | null;
+		supportUrl?: string | null;
+	} | null;
 }): Menu {
+	const filterEnabled = <
+		T extends {
+			isEnabled?: (o: EnabledOpts) => boolean;
+		},
+	>(
+		items: readonly T[],
+	): T[] =>
+		items.filter((item) =>
+			!item.isEnabled
+				? true
+				: item.isEnabled({
+						auth: opts.auth,
+						permissions: opts.permissions,
+						isCloud: opts.isCloud,
+					}),
+		) as T[];
+
+	// Apply whitelabeling URL overrides to help items
+	const helpItems = filterEnabled(MENU.help).map((item) => {
+		if (opts.whitelabeling?.docsUrl && item.name === "Documentation") {
+			return { ...item, url: opts.whitelabeling.docsUrl };
+		}
+		if (opts.whitelabeling?.supportUrl && item.name === "Support") {
+			return { ...item, url: opts.whitelabeling.supportUrl };
+		}
+		return item;
+	});
+
 	return {
-		// Filter the home items based on the user's role and permissions
-		// Calls the `isEnabled` function if it exists to determine if the item should be displayed
-		home: MENU.home.filter((item) =>
-			!item.isEnabled
-				? true
-				: item.isEnabled({
-						auth: opts.auth,
-						isCloud: opts.isCloud,
-					}),
-		),
-		// Filter the settings items based on the user's role and permissions
-		// Calls the `isEnabled` function if it exists to determine if the item should be displayed
-		settings: MENU.settings.filter((item) =>
-			!item.isEnabled
-				? true
-				: item.isEnabled({
-						auth: opts.auth,
-						isCloud: opts.isCloud,
-					}),
-		),
-		// Filter the help items based on the user's role and permissions
-		// Calls the `isEnabled` function if it exists to determine if the item should be displayed
-		help: MENU.help.filter((item) =>
-			!item.isEnabled
-				? true
-				: item.isEnabled({
-						auth: opts.auth,
-						isCloud: opts.isCloud,
-					}),
-		),
+		home: filterEnabled(MENU.home),
+		settings: filterEnabled(MENU.settings),
+		help: helpItems,
 	};
 }
 
@@ -557,6 +553,7 @@ function SidebarLogo() {
 	const { mutateAsync: setDefaultOrganization, isPending: isSettingDefault } =
 		api.organization.setDefault.useMutation();
 	const { isMobile } = useSidebar();
+	const isCollapsed = state === "collapsed" && !isMobile;
 	const { data: activeOrganization } = api.organization.active.useQuery();
 
 	const { data: invitations, refetch: refetchInvitations } =
@@ -582,9 +579,7 @@ function SidebarLogo() {
 				<SidebarMenu
 					className={cn(
 						"flex gap-2",
-						state === "collapsed"
-							? "flex-col"
-							: "flex-row justify-between items-center",
+						isCollapsed ? "flex-col" : "flex-row justify-between items-center",
 					)}
 				>
 					{/* Organization Logo and Selector */}
@@ -592,17 +587,17 @@ function SidebarLogo() {
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<SidebarMenuButton
-									size={state === "collapsed" ? "sm" : "lg"}
+									size={isCollapsed ? "sm" : "lg"}
 									className={cn(
 										"data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
-										state === "collapsed" &&
+										isCollapsed &&
 											"flex justify-center items-center p-2 h-10 w-10 mx-auto",
 									)}
 								>
 									<div
 										className={cn(
 											"flex items-center gap-2",
-											state === "collapsed" && "justify-center",
+											isCollapsed && "justify-center",
 										)}
 									>
 										<div
@@ -614,7 +609,7 @@ function SidebarLogo() {
 											<Logo
 												className={cn(
 													"transition-all",
-													state === "collapsed" ? "size-4" : "size-5",
+													isCollapsed ? "size-4" : "size-5",
 												)}
 												logoUrl={activeOrganization?.logo || undefined}
 											/>
@@ -622,7 +617,7 @@ function SidebarLogo() {
 										<div
 											className={cn(
 												"flex flex-col items-start",
-												state === "collapsed" && "hidden",
+												isCollapsed && "hidden",
 											)}
 										>
 											<p className="text-sm font-medium leading-none">
@@ -631,7 +626,7 @@ function SidebarLogo() {
 										</div>
 									</div>
 									<ChevronsUpDown
-										className={cn("ml-auto", state === "collapsed" && "hidden")}
+										className={cn("ml-auto", isCollapsed && "hidden")}
 									/>
 								</SidebarMenuButton>
 							</DropdownMenuTrigger>
@@ -780,7 +775,7 @@ function SidebarLogo() {
 					</SidebarMenuItem>
 
 					{/* Notification Bell */}
-					<SidebarMenuItem className={cn(state === "collapsed" && "mt-2")}>
+					<SidebarMenuItem className={cn(isCollapsed && "mt-2")}>
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button
@@ -788,7 +783,7 @@ function SidebarLogo() {
 									size="icon"
 									className={cn(
 										"relative",
-										state === "collapsed" && "h-8 w-8 p-1.5 mx-auto",
+										isCollapsed && "h-8 w-8 p-1.5 mx-auto",
 									)}
 								>
 									<Bell className="size-4" />
@@ -884,7 +879,12 @@ export default function Page({ children }: Props) {
 
 	const pathname = usePathname();
 	const { data: auth } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
+	const { data: whitelabeling } = api.whitelabeling.get.useQuery(undefined, {
+		staleTime: 5 * 60 * 1000,
+		refetchOnWindowFocus: false,
+	});
 
 	const includesProjects = pathname?.includes("/dashboard/project");
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -893,7 +893,12 @@ export default function Page({ children }: Props) {
 		home: filteredHome,
 		settings: filteredSettings,
 		help,
-	} = createMenuForAuthUser({ auth, isCloud: !!isCloud });
+	} = createMenuForAuthUser({
+		auth,
+		permissions,
+		isCloud: !!isCloud,
+		whitelabeling,
+	});
 
 	const activeItem = findActiveNavItem(
 		[...filteredHome, ...filteredSettings],
@@ -911,6 +916,7 @@ export default function Page({ children }: Props) {
 			onOpenChange={(open) => {
 				setDefaultOpen(open);
 
+				// biome-ignore lint/suspicious/noDocumentCookie: this sets the cookie to keep the sidebar state.
 				document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}`;
 			}}
 			style={
@@ -1133,7 +1139,7 @@ export default function Page({ children }: Props) {
 				</SidebarContent>
 				<SidebarFooter>
 					<SidebarMenu className="flex flex-col gap-2">
-						{!isCloud && (auth?.role === "owner" || auth?.role === "admin") && (
+						{!isCloud && permissions?.organization.update && (
 							<SidebarMenuItem>
 								<UpdateServerButton />
 							</SidebarMenuItem>
@@ -1141,15 +1147,15 @@ export default function Page({ children }: Props) {
 						<SidebarMenuItem>
 							<UserNav />
 						</SidebarMenuItem>
+						{whitelabeling?.footerText && (
+							<div className="px-3 text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
+								{whitelabeling.footerText}
+							</div>
+						)}
 						{dokployVersion && (
-							<>
-								<div className="px-3 text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
-									Version {dokployVersion}
-								</div>
-								<div className="hidden text-xs text-muted-foreground text-center group-data-[collapsible=icon]:block">
-									{dokployVersion}
-								</div>
-							</>
+							<div className="px-3 text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
+								Version {dokployVersion}
+							</div>
 						)}
 					</SidebarMenu>
 				</SidebarFooter>

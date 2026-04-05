@@ -48,7 +48,7 @@ import { ShowMonitoringModal } from "./show-monitoring-modal";
 import { ShowSchedulesModal } from "./show-schedules-modal";
 import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
-import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
+import { WelcomeSubscription } from "./welcome-stripe/welcome-subscription";
 
 export const ShowServers = () => {
 	const router = useRouter();
@@ -59,10 +59,11 @@ export const ShowServers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: canCreateMoreServers } =
 		api.stripe.canCreateMoreServers.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	return (
 		<div className="w-full">
-			{query?.success && isCloud && <WelcomeSuscription />}
+			{query?.success && isCloud && <WelcomeSubscription />}
 			<Card className="h-full  p-2.5 rounded-xl  max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
@@ -115,7 +116,7 @@ export const ShowServers = () => {
 													Start adding servers to deploy your applications
 													remotely.
 												</span>
-												<HandleServers />
+												{permissions?.server.create && <HandleServers />}
 											</div>
 										) : (
 											<div className="flex flex-col gap-4 min-h-[25vh]">
@@ -362,66 +363,71 @@ export const ShowServers = () => {
 
 																				<div className="flex-1" />
 
-																				<Tooltip>
-																					<TooltipTrigger asChild>
-																						<div>
-																							<DialogAction
-																								disabled={!canDelete}
-																								title={
-																									canDelete
-																										? "Delete Server"
-																										: "Server has active services"
-																								}
-																								description={
-																									canDelete ? (
-																										"This will delete the server and all associated data"
-																									) : (
-																										<div className="flex flex-col gap-2">
-																											You can not delete this
-																											server because it has
-																											active services.
-																											<AlertBlock type="warning">
-																												You have active services
-																												associated with this
-																												server, please delete
-																												them first.
-																											</AlertBlock>
-																										</div>
-																									)
-																								}
-																								onClick={async () => {
-																									await mutateAsync({
-																										serverId: server.serverId,
-																									})
-																										.then(() => {
-																											refetch();
-																											toast.success(
-																												`Server ${server.name} deleted successfully`,
-																											);
+																				{permissions?.server.delete && (
+																					<Tooltip>
+																						<TooltipTrigger asChild>
+																							<div>
+																								<DialogAction
+																									disabled={!canDelete}
+																									title={
+																										canDelete
+																											? "Delete Server"
+																											: "Server has active services"
+																									}
+																									description={
+																										canDelete ? (
+																											"This will delete the server and all associated data"
+																										) : (
+																											<div className="flex flex-col gap-2">
+																												You can not delete this
+																												server because it has
+																												active services.
+																												<AlertBlock type="warning">
+																													You have active
+																													services associated
+																													with this server,
+																													please delete them
+																													first.
+																												</AlertBlock>
+																											</div>
+																										)
+																									}
+																									onClick={async () => {
+																										await mutateAsync({
+																											serverId: server.serverId,
 																										})
-																										.catch((err) => {
-																											toast.error(err.message);
-																										});
-																								}}
-																							>
-																								<Button
-																									variant="ghost"
-																									size="icon"
-																									className={`h-9 w-9 ${canDelete ? "text-destructive hover:text-destructive hover:bg-destructive/10" : "text-muted-foreground hover:bg-muted"}`}
+																											.then(() => {
+																												refetch();
+																												toast.success(
+																													`Server ${server.name} deleted successfully`,
+																												);
+																											})
+																											.catch((err) => {
+																												toast.error(
+																													err.message,
+																												);
+																											});
+																									}}
 																								>
-																									<Trash2 className="h-4 w-4" />
-																								</Button>
-																							</DialogAction>
-																						</div>
-																					</TooltipTrigger>
-																					<TooltipContent>
-																						<p>
-																							{canDelete
-																								? "Delete Server"
-																								: "Cannot delete - has active services"}
-																						</p>
-																					</TooltipContent>
-																				</Tooltip>
+																									<Button
+																										variant="ghost"
+																										size="icon"
+																										className={`h-9 w-9 ${canDelete ? "text-destructive hover:text-destructive hover:bg-destructive/10" : "text-muted-foreground hover:bg-muted"}`}
+																									>
+																										<Trash2 className="h-4 w-4" />
+																									</Button>
+																								</DialogAction>
+																							</div>
+																						</TooltipTrigger>
+																						<TooltipContent>
+																							<p>
+																								{canDelete
+																									? "Delete Server"
+																									: "Cannot delete - has active services"}
+																							</p>
+																						</TooltipContent>
+																					</Tooltip>
+																				)}
 																			</TooltipProvider>
 																		</div>
 																	)}
@@ -431,13 +437,15 @@ export const ShowServers = () => {
 													})}
 												</div>
 
-												<div className="flex flex-row gap-2 flex-wrap w-full justify-end mt-4">
-													{data && data?.length > 0 && (
-														<div>
-															<HandleServers />
-														</div>
-													)}
-												</div>
+												{permissions?.server.create && (
+													<div className="flex flex-row gap-2 flex-wrap w-full justify-end mt-4">
+														{data && data?.length > 0 && (
+															<div>
+																<HandleServers />
+															</div>
+														)}
+													</div>
+												)}
 											</div>
 										)}
 									</>

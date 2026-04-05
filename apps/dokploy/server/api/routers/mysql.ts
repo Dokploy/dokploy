@@ -1,15 +1,15 @@
 import {
-	addNewService,
 	checkPortInUse,
-	checkServiceAccess,
 	createMount,
 	createMysql,
 	deployMySql,
+	execAsync,
+	execAsyncRemote,
 	findBackupsByDbId,
 	findEnvironmentById,
-	findMemberById,
 	findMySqlById,
 	findProjectById,
+	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeMySqlById,
@@ -19,12 +19,20 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateMySqlById,
+	getAccessibleServerIds,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import {
+	addNewService,
+	checkServiceAccess,
+	checkServicePermissionAndAccess,
+	findMemberByUserId,
+} from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiChangeMySqlStatus,
 	apiCreateMySql,
@@ -35,6 +43,8 @@ import {
 	apiSaveEnvironmentVariablesMySql,
 	apiSaveExternalPortMySql,
 	apiUpdateMySql,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
 	environments,
 	mysql as mysqlTable,
 	projects,
@@ -46,18 +56,10 @@ export const mysqlRouter = createTRPCRouter({
 		.input(apiCreateMySql)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				// Get project from environment
 				const environment = await findEnvironmentById(input.environmentId);
 				const project = await findProjectById(environment.projectId);
 
-				if (ctx.user.role === "member") {
-					await checkServiceAccess(
-						ctx.user.id,
-						project.projectId,
-						ctx.session.activeOrganizationId,
-						"create",
-					);
-				}
+				await checkServiceAccess(ctx, project.projectId, "create");
 
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
@@ -73,16 +75,20 @@ export const mysqlRouter = createTRPCRouter({
 					});
 				}
 
+				if (input.serverId) {
+					const accessibleIds = await getAccessibleServerIds(ctx.session);
+					if (!accessibleIds.has(input.serverId)) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this server",
+						});
+					}
+				}
+
 				const newMysql = await createMysql({
 					...input,
 				});
-				if (ctx.user.role === "member") {
-					await addNewService(
-						ctx.user.id,
-						newMysql.mysqlId,
-						project.organizationId,
-					);
-				}
+				await addNewService(ctx, newMysql.mysqlId);
 
 				await createMount({
 					serviceId: newMysql.mysqlId,
@@ -92,6 +98,12 @@ export const mysqlRouter = createTRPCRouter({
 					type: "volume",
 				});
 
+				await audit(ctx, {
+					action: "create",
+					resourceType: "service",
+					resourceId: newMysql.mysqlId,
+					resourceName: newMysql.appName,
+				});
 				return newMysql;
 			} catch (error) {
 				if (error instanceof TRPCError) {
@@ -107,14 +119,7 @@ export const mysqlRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneMySql)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.role === "member") {
-				await checkServiceAccess(
-					ctx.user.id,
-					input.mysqlId,
-					ctx.session.activeOrganizationId,
-					"access",
-				);
-			}
+			await checkServiceAccess(ctx, input.mysqlId, "read");
 			const mysql = await findMySqlById(input.mysqlId);
 			if (
 				mysql.environment.project.organizationId !==
@@ -131,16 +136,10 @@ export const mysqlRouter = createTRPCRouter({
 	start: protectedProcedure
 		.input(apiFindOneMySql)
 		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
+				deployment: ["create"],
+			});
 			const service = await findMySqlById(input.mysqlId);
-			if (
-				service.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to start this MySQL",
-				});
-			}
 
 			if (service.serverId) {
 				await startServiceRemote(service.serverId, service.appName);
@@ -151,21 +150,21 @@ export const mysqlRouter = createTRPCRouter({
 				applicationStatus: "done",
 			});
 
+			await audit(ctx, {
+				action: "start",
+				resourceType: "service",
+				resourceId: service.mysqlId,
+				resourceName: service.appName,
+			});
 			return service;
 		}),
 	stop: protectedProcedure
 		.input(apiFindOneMySql)
 		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
+				deployment: ["create"],
+			});
 			const mongo = await findMySqlById(input.mysqlId);
-			if (
-				mongo.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to stop this MySQL",
-				});
-			}
 			if (mongo.serverId) {
 				await stopServiceRemote(mongo.serverId, mongo.appName);
 			} else {
@@ -175,21 +174,21 @@ export const mysqlRouter = createTRPCRouter({
 				applicationStatus: "idle",
 			});
 
+			await audit(ctx, {
+				action: "stop",
+				resourceType: "service",
+				resourceId: mongo.mysqlId,
+				resourceName: mongo.appName,
+			});
 			return mongo;
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMySql)
 		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
+				service: ["create"],
+			});
 			const mysql = await findMySqlById(input.mysqlId);
-			if (
-				mysql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to save this external port",
-				});
-			}
 
 			if (input.externalPort) {
 				const portCheck = await checkPortInUse(
@@ -208,21 +207,27 @@ export const mysqlRouter = createTRPCRouter({
 				externalPort: input.externalPort,
 			});
 			await deployMySql(input.mysqlId);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: mysql.mysqlId,
+				resourceName: mysql.appName,
+			});
 			return mysql;
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployMySql)
 		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
+				deployment: ["create"],
+			});
 			const mysql = await findMySqlById(input.mysqlId);
-			if (
-				mysql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to deploy this MySQL",
-				});
-			}
+			await audit(ctx, {
+				action: "deploy",
+				resourceType: "service",
+				resourceId: mysql.mysqlId,
+				resourceName: mysql.appName,
+			});
 			return deployMySql(input.mysqlId);
 		}),
 	deployWithLogs: protectedProcedure
@@ -236,23 +241,20 @@ export const mysqlRouter = createTRPCRouter({
 		})
 		.input(apiDeployMySql)
 		.subscription(async function* ({ input, ctx, signal }) {
-			const mysql = await findMySqlById(input.mysqlId);
-			if (
-				mysql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to deploy this MySQL",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
+				deployment: ["create"],
+			});
 
 			const queue: string[] = [];
-			const done = false;
+			let done = false;
 
 			deployMySql(input.mysqlId, (log) => {
 				queue.push(log);
-			});
+			})
+				.catch(() => {})
+				.finally(() => {
+					done = true;
+				});
 
 			while (!done || queue.length > 0) {
 				if (queue.length > 0) {
@@ -269,34 +271,28 @@ export const mysqlRouter = createTRPCRouter({
 	changeStatus: protectedProcedure
 		.input(apiChangeMySqlStatus)
 		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
+				deployment: ["create"],
+			});
 			const mongo = await findMySqlById(input.mysqlId);
-			if (
-				mongo.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to change this MySQL status",
-				});
-			}
 			await updateMySqlById(input.mysqlId, {
 				applicationStatus: input.applicationStatus,
+			});
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: mongo.mysqlId,
+				resourceName: mongo.appName,
 			});
 			return mongo;
 		}),
 	reload: protectedProcedure
 		.input(apiResetMysql)
 		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
+				deployment: ["create"],
+			});
 			const mysql = await findMySqlById(input.mysqlId);
-			if (
-				mysql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to reload this MySQL",
-				});
-			}
 			if (mysql.serverId) {
 				await stopServiceRemote(mysql.serverId, mysql.appName);
 			} else {
@@ -313,19 +309,18 @@ export const mysqlRouter = createTRPCRouter({
 			await updateMySqlById(input.mysqlId, {
 				applicationStatus: "done",
 			});
+			await audit(ctx, {
+				action: "reload",
+				resourceType: "service",
+				resourceId: mysql.mysqlId,
+				resourceName: mysql.appName,
+			});
 			return true;
 		}),
 	remove: protectedProcedure
 		.input(apiFindOneMySql)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.role === "member") {
-				await checkServiceAccess(
-					ctx.user.id,
-					input.mysqlId,
-					ctx.session.activeOrganizationId,
-					"delete",
-				);
-			}
+			await checkServiceAccess(ctx, input.mysqlId, "delete");
 			const mongo = await findMySqlById(input.mysqlId);
 			if (
 				mongo.environment.project.organizationId !==
@@ -337,6 +332,12 @@ export const mysqlRouter = createTRPCRouter({
 				});
 			}
 
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "service",
+				resourceId: mongo.mysqlId,
+				resourceName: mongo.appName,
+			});
 			const backups = await findBackupsByDbId(input.mysqlId, "mysql");
 			const cleanupOperations = [
 				async () => await removeService(mongo?.appName, mongo.serverId),
@@ -355,16 +356,9 @@ export const mysqlRouter = createTRPCRouter({
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesMySql)
 		.mutation(async ({ input, ctx }) => {
-			const mysql = await findMySqlById(input.mysqlId);
-			if (
-				mysql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to save this environment",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
+				envVars: ["write"],
+			});
 			const service = await updateMySqlById(input.mysqlId, {
 				env: input.env,
 			});
@@ -376,22 +370,20 @@ export const mysqlRouter = createTRPCRouter({
 				});
 			}
 
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: input.mysqlId,
+			});
 			return true;
 		}),
 	update: protectedProcedure
 		.input(apiUpdateMySql)
 		.mutation(async ({ input, ctx }) => {
 			const { mysqlId, ...rest } = input;
-			const mysql = await findMySqlById(mysqlId);
-			if (
-				mysql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to update this MySQL",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, mysqlId, {
+				service: ["create"],
+			});
 			const service = await updateMySqlById(mysqlId, {
 				...rest,
 			});
@@ -403,6 +395,69 @@ export const mysqlRouter = createTRPCRouter({
 				});
 			}
 
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: mysqlId,
+				resourceName: service.appName,
+			});
+			return true;
+		}),
+	changePassword: protectedProcedure
+		.input(
+			z.object({
+				mysqlId: z.string().min(1),
+				password: z.string().min(1).regex(DATABASE_PASSWORD_REGEX, {
+					message: DATABASE_PASSWORD_MESSAGE,
+				}),
+				type: z.enum(["user", "root"]).default("user"),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { mysqlId, password, type } = input;
+			await checkServicePermissionAndAccess(ctx, mysqlId, {
+				service: ["create"],
+			});
+
+			const my = await findMySqlById(mysqlId);
+			const { appName, serverId, databaseUser, databaseRootPassword } = my;
+
+			const containerCmd = getServiceContainerCommand(appName);
+			const targetUser = type === "root" ? "root" : databaseUser;
+
+			const command = `
+				CONTAINER_ID=$(${containerCmd})
+				if [ -z "$CONTAINER_ID" ]; then
+					echo "No running container found for ${appName}" >&2
+					exit 1
+				fi
+				docker exec "$CONTAINER_ID" mysql -u root -p'${databaseRootPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"
+			`;
+
+			await db.transaction(async (tx) => {
+				const setData =
+					type === "root"
+						? { databaseRootPassword: password }
+						: { databasePassword: password };
+				await tx
+					.update(mysqlTable)
+					.set(setData)
+					.where(eq(mysqlTable.mysqlId, mysqlId));
+
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: mysqlId,
+				resourceName: appName,
+			});
+
 			return true;
 		}),
 	move: protectedProcedure
@@ -413,31 +468,10 @@ export const mysqlRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			const mysql = await findMySqlById(input.mysqlId);
-			if (
-				mysql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to move this mysql",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
+				service: ["create"],
+			});
 
-			const targetEnvironment = await findEnvironmentById(
-				input.targetEnvironmentId,
-			);
-			if (
-				targetEnvironment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to move to this environment",
-				});
-			}
-
-			// Update the mysql's projectId
 			const updatedMysql = await db
 				.update(mysqlTable)
 				.set({
@@ -454,24 +488,28 @@ export const mysqlRouter = createTRPCRouter({
 				});
 			}
 
+			await audit(ctx, {
+				action: "move",
+				resourceType: "service",
+				resourceId: updatedMysql.mysqlId,
+				resourceName: updatedMysql.appName,
+			});
 			return updatedMysql;
 		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildMysql)
 		.mutation(async ({ input, ctx }) => {
-			const mysql = await findMySqlById(input.mysqlId);
-			if (
-				mysql.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to rebuild this MySQL database",
-				});
-			}
+			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
+				deployment: ["create"],
+			});
 
-			await rebuildDatabase(mysql.mysqlId, "mysql");
+			await rebuildDatabase(input.mysqlId, "mysql");
 
+			await audit(ctx, {
+				action: "rebuild",
+				resourceType: "service",
+				resourceId: input.mysqlId,
+			});
 			return true;
 		}),
 	search: protectedProcedure
@@ -520,19 +558,18 @@ export const mysqlRouter = createTRPCRouter({
 					ilike(mysqlTable.description ?? "", `%${input.description.trim()}%`),
 				);
 			}
-			if (ctx.user.role === "member") {
-				const { accessedServices } = await findMemberById(
-					ctx.user.id,
-					ctx.session.activeOrganizationId,
-				);
-				if (accessedServices.length === 0) return { items: [], total: 0 };
-				baseConditions.push(
-					sql`${mysqlTable.mysqlId} IN (${sql.join(
-						accessedServices.map((id) => sql`${id}`),
-						sql`, `,
-					)})`,
-				);
-			}
+			const { accessedServices } = await findMemberByUserId(
+				ctx.user.id,
+				ctx.session.activeOrganizationId,
+			);
+			if (accessedServices.length === 0) return { items: [], total: 0 };
+			baseConditions.push(
+				sql`${mysqlTable.mysqlId} IN (${sql.join(
+					accessedServices.map((id) => sql`${id}`),
+					sql`, `,
+				)})`,
+			);
+
 			const where = and(...baseConditions);
 			const [items, countResult] = await Promise.all([
 				db

@@ -39,6 +39,9 @@ interface Props {
 }
 
 export const ProjectEnvironment = ({ projectId, children }: Props) => {
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canRead = permissions?.projectEnvVars.read ?? false;
+	const canWrite = permissions?.projectEnvVars.write ?? false;
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isPending } =
@@ -84,7 +87,12 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isPending && isOpen) {
+			if (
+				(e.ctrlKey || e.metaKey) &&
+				e.code === "KeyS" &&
+				!isPending &&
+				isOpen
+			) {
 				e.preventDefault();
 				form.handleSubmit(onSubmit)();
 			}
@@ -95,6 +103,10 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 			document.removeEventListener("keydown", handleKeyDown);
 		};
 	}, [form, onSubmit, isPending, isOpen]);
+
+	if (!canRead) {
+		return null;
+	}
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -139,6 +151,7 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 												<CodeEditor
 													lineWrapping
 													language="properties"
+													readOnly={!canWrite}
 													wrapperClassName="h-[35rem] font-mono"
 													placeholder={`NODE_ENV=production
 PORT=3000
@@ -154,11 +167,13 @@ PORT=3000
 										</FormItem>
 									)}
 								/>
-								<DialogFooter>
-									<Button isLoading={isPending} type="submit">
-										Update
-									</Button>
-								</DialogFooter>
+								{canWrite && (
+									<DialogFooter>
+										<Button isLoading={isPending} type="submit">
+											Update
+										</Button>
+									</DialogFooter>
+								)}
 							</form>
 						</Form>
 					</div>

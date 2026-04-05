@@ -26,6 +26,8 @@ const AddComposeFile = z.object({
 type AddComposeFile = z.infer<typeof AddComposeFile>;
 
 export const ComposeFileEditor = ({ composeId }: Props) => {
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canUpdate = permissions?.service.create ?? false;
 	const utils = api.useUtils();
 	const { data, refetch } = api.compose.one.useQuery(
 		{
@@ -93,7 +95,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isPending) {
+			if ((e.ctrlKey || e.metaKey) && e.code === "KeyS" && !isPending) {
 				e.preventDefault();
 				form.handleSubmit(onSubmit)();
 			}
@@ -164,14 +166,16 @@ services:
 				</Form>
 				<div className="flex justify-between flex-col lg:flex-row gap-2">
 					<div className="w-full flex flex-col lg:flex-row gap-4 items-end" />
-					<Button
-						type="submit"
-						form="hook-form-save-compose-file"
-						isLoading={isPending}
-						className="lg:w-fit w-full"
-					>
-						Save
-					</Button>
+					{canUpdate && (
+						<Button
+							type="submit"
+							form="hook-form-save-compose-file"
+							isLoading={isPending}
+							className="lg:w-fit w-full"
+						>
+							Save
+						</Button>
+					)}
 				</div>
 			</div>
 		</>

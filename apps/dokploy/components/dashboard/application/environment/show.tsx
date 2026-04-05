@@ -31,6 +31,8 @@ interface Props {
 }
 
 export const ShowEnvironment = ({ applicationId }: Props) => {
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canWrite = permissions?.envVars.write ?? false;
 	const { mutateAsync, isPending } =
 		api.application.saveEnvironment.useMutation();
 
@@ -104,7 +106,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isPending) {
+			if ((e.ctrlKey || e.metaKey) && e.code === "KeyS" && !isPending) {
 				e.preventDefault();
 				form.handleSubmit(onSubmit)();
 			}
@@ -201,27 +203,30 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 										<Switch
 											checked={field.value}
 											onCheckedChange={field.onChange}
+											disabled={!canWrite}
 										/>
 									</FormControl>
 								</FormItem>
 							)}
 						/>
 					)}
-					<div className="flex flex-row justify-end gap-2">
-						{hasChanges && (
-							<Button type="button" variant="outline" onClick={handleCancel}>
-								Cancel
+					{canWrite && (
+						<div className="flex flex-row justify-end gap-2">
+							{hasChanges && (
+								<Button type="button" variant="outline" onClick={handleCancel}>
+									Cancel
+								</Button>
+							)}
+							<Button
+								isLoading={isPending}
+								className="w-fit"
+								type="submit"
+								disabled={!hasChanges}
+							>
+								Save
 							</Button>
-						)}
-						<Button
-							isLoading={isPending}
-							className="w-fit"
-							type="submit"
-							disabled={!hasChanges}
-						>
-							Save
-						</Button>
-					</div>
+						</div>
+					)}
 				</form>
 			</Form>
 		</Card>

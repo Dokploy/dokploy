@@ -1,13 +1,12 @@
 import {
-	checkServiceAccess,
 	createMount,
 	deleteMount,
 	findApplicationById,
 	findComposeById,
+	findLibsqlById,
 	findMariadbById,
 	findMongoById,
 	findMountById,
-	findMountOrganizationId,
 	findMountsByApplicationId,
 	findMySqlById,
 	findPostgresById,
@@ -16,8 +15,13 @@ import {
 	updateMount,
 } from "@dokploy/server";
 import type { ServiceType } from "@dokploy/server/db/schema/mount";
+import {
+	checkServiceAccess,
+	checkServicePermissionAndAccess,
+} from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateMount,
 	apiFindMountByApplicationId,
@@ -60,6 +64,10 @@ async function getServiceOrganizationId(
 			const compose = await findComposeById(serviceId);
 			return compose?.environment?.project?.organizationId ?? null;
 		}
+		case "libsql": {
+			const libsql = await findLibsqlById(serviceId);
+			return libsql?.environment?.project?.organizationId ?? null;
+		}
 		default:
 			return null;
 	}
@@ -68,49 +76,97 @@ async function getServiceOrganizationId(
 export const mountRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMount)
-		.mutation(async ({ input }) => {
-			return await createMount(input);
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.serviceId, {
+				volume: ["create"],
+			});
+			const mount = await createMount(input);
+			await audit(ctx, {
+				action: "create",
+				resourceType: "mount",
+				resourceId: mount.mountId,
+				resourceName: input.mountPath,
+			});
+			return mount;
 		}),
 	remove: protectedProcedure
 		.input(apiRemoveMount)
 		.mutation(async ({ input, ctx }) => {
-			const organizationId = await findMountOrganizationId(input.mountId);
-			if (organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to delete this mount",
+			const mount = await findMountById(input.mountId);
+			const serviceId =
+				mount.applicationId ||
+				mount.postgresId ||
+				mount.mariadbId ||
+				mount.mongoId ||
+				mount.mysqlId ||
+				mount.redisId ||
+				mount.libsqlId ||
+				mount.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					volume: ["delete"],
 				});
 			}
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "mount",
+				resourceId: input.mountId,
+			});
 			return await deleteMount(input.mountId);
 		}),
 
 	one: protectedProcedure
 		.input(apiFindOneMount)
 		.query(async ({ input, ctx }) => {
-			const organizationId = await findMountOrganizationId(input.mountId);
-			if (organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this mount",
+			const mount = await findMountById(input.mountId);
+			const serviceId =
+				mount.applicationId ||
+				mount.postgresId ||
+				mount.mariadbId ||
+				mount.mongoId ||
+				mount.mysqlId ||
+				mount.redisId ||
+				mount.libsqlId ||
+				mount.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					volume: ["read"],
 				});
 			}
-			return await findMountById(input.mountId);
+			return mount;
 		}),
 	update: protectedProcedure
 		.input(apiUpdateMount)
 		.mutation(async ({ input, ctx }) => {
-			const organizationId = await findMountOrganizationId(input.mountId);
-			if (organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to update this mount",
+			const mount = await findMountById(input.mountId);
+			const serviceId =
+				mount.applicationId ||
+				mount.postgresId ||
+				mount.mariadbId ||
+				mount.mongoId ||
+				mount.mysqlId ||
+				mount.redisId ||
+				mount.libsqlId ||
+				mount.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					volume: ["create"],
 				});
 			}
+			await audit(ctx, {
+				action: "update",
+				resourceType: "mount",
+				resourceId: input.mountId,
+				resourceName: input.mountPath,
+			});
 			return await updateMount(input.mountId, input);
 		}),
 	allNamedByApplicationId: protectedProcedure
 		.input(z.object({ applicationId: z.string().min(1) }))
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				volume: ["read"],
+			});
 			const app = await findApplicationById(input.applicationId);
 			const container = await getServiceContainer(app.appName, app.serverId);
 			const mounts = container?.Mounts.filter(
@@ -121,15 +177,7 @@ export const mountRouter = createTRPCRouter({
 	listByServiceId: protectedProcedure
 		.input(apiFindMountByApplicationId)
 		.query(async ({ input, ctx }) => {
-			console.log("input", input);
-			if (ctx.user.role === "member") {
-				await checkServiceAccess(
-					ctx.user.id,
-					input.serviceId,
-					ctx.session.activeOrganizationId,
-					"access",
-				);
-			}
+			await checkServiceAccess(ctx, input.serviceId, "read");
 			const organizationId = await getServiceOrganizationId(
 				input.serviceId,
 				input.serviceType,
