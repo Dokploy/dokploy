@@ -246,6 +246,7 @@ export const sendBuildErrorNotifications = async ({
 									short: false,
 								},
 							],
+							mrkdwn_in: ["fields"],
 						},
 					],
 				});

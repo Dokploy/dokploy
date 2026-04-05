@@ -262,6 +262,7 @@ export const sendBuildSuccessNotifications = async ({
 									short: false,
 								},
 							],
+							mrkdwn_in: ["fields"],
 						},
 					],
 				});
