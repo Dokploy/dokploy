@@ -1,0 +1,1 @@
+ALTER TABLE "destination" ADD COLUMN "destinationType" text DEFAULT 's3' NOT NULL;

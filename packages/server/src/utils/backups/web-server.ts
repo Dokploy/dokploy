@@ -11,14 +11,19 @@ import {
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { sendDokployBackupNotifications } from "../notifications/dokploy-backup";
 import { execAsync } from "../process/execAsync";
-import { getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	buildRcloneCopytoCommand,
+	getBackupTimestamp,
+	getDestinationPath,
+	normalizeS3Path,
+} from "./utils";
 
 function formatBytes(bytes?: number) {
 	if (bytes === undefined) return "Unknown size";
 	if (bytes === 0) return "0 B";
 	const sizes = ["B", "KB", "MB", "GB", "TB"];
 	const i = Math.floor(Math.log(bytes) / Math.log(1024));
-	const value = bytes / Math.pow(1024, i);
+	const value = bytes / 1024 ** i;
 	return `${value.toFixed(2)} ${sizes[i]} (${bytes} bytes)`;
 }
 
@@ -36,12 +41,12 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 	let computedBackupSize: number | undefined;
 	try {
 		const destination = await findDestinationById(backup.destinationId);
-		const rcloneFlags = getS3Credentials(destination);
 		const timestamp = getBackupTimestamp();
 		const { BASE_PATH } = paths();
 		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-backup-"));
 		const backupFileName = `webserver-backup-${timestamp}.zip`;
-		const s3Path = `:s3:${destination.bucket}/${backup.appName}/${normalizeS3Path(backup.prefix)}${backupFileName}`;
+		const subPath = `${backup.appName}/${normalizeS3Path(backup.prefix)}${backupFileName}`;
+		const remotePath = getDestinationPath(destination, subPath);
 
 		try {
 			await execAsync(`mkdir -p ${tempDir}/filesystem`);
@@ -98,10 +103,14 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 				// If stat fails, keep undefined
 			}
 
-			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${zipPath}" "${s3Path}"`;
-			writeStream.write("Running command to upload backup to S3\n");
-			await execAsync(uploadCommand);
-			writeStream.write("Uploaded backup to S3 ✅\n");
+			const uploadCommand = buildRcloneCopytoCommand(
+				destination,
+				zipPath,
+				remotePath,
+			);
+			writeStream.write("Running command to upload backup to destination\n");
+			await execAsync(uploadCommand, { shell: "/bin/bash" });
+			writeStream.write("Uploaded backup to destination ✅\n");
 			writeStream.end();
 			await sendDokployBackupNotifications({
 				type: "success",

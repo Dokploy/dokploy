@@ -23,6 +23,7 @@ export const destinations = pgTable("destination", {
 	region: text("region").notNull(),
 	endpoint: text("endpoint").notNull(),
 	additionalFlags: text("additionalFlags").array(),
+	destinationType: text("destinationType").notNull().default("s3"),
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
@@ -49,6 +50,7 @@ const createSchema = createInsertSchema(destinations, {
 	endpoint: z.string(),
 	secretAccessKey: z.string(),
 	region: z.string(),
+	destinationType: z.enum(["s3", "sftp", "ftp"]).default("s3"),
 	additionalFlags: z
 		.array(z.string().regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR))
 		.default([]),
@@ -64,6 +66,7 @@ export const apiCreateDestination = createSchema
 		endpoint: true,
 		secretAccessKey: true,
 		additionalFlags: true,
+		destinationType: true,
 	})
 	.required()
 	.extend({
@@ -91,6 +94,7 @@ export const apiUpdateDestination = createSchema
 		destinationId: true,
 		provider: true,
 		additionalFlags: true,
+		destinationType: true,
 	})
 	.required()
 	.extend({

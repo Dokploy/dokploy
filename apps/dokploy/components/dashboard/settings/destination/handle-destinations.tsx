@@ -43,12 +43,13 @@ import { S3_PROVIDERS } from "./constants";
 
 const addDestination = z.object({
 	name: z.string().min(1, "Name is required"),
-	provider: z.string().min(1, "Provider is required"),
-	accessKeyId: z.string().min(1, "Access Key Id is required"),
-	secretAccessKey: z.string().min(1, "Secret Access Key is required"),
-	bucket: z.string().min(1, "Bucket is required"),
-	region: z.string(),
-	endpoint: z.string().min(1, "Endpoint is required"),
+	destinationType: z.enum(["s3", "ftp", "sftp"]).default("s3"),
+	provider: z.string().optional(),
+	accessKeyId: z.string().min(1, "Username / Access Key is required"),
+	secretAccessKey: z.string().min(1, "Password / Secret Key is required"),
+	bucket: z.string().optional(),
+	region: z.string().optional(),
+	endpoint: z.string().min(1, "Host / Endpoint is required"),
 	serverId: z.string().optional(),
 	additionalFlags: z
 		.array(
@@ -96,6 +97,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 
 	const form = useForm<AddDestination>({
 		defaultValues: {
+			destinationType: "s3",
 			provider: "",
 			accessKeyId: "",
 			bucket: "",
@@ -113,10 +115,17 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		name: "additionalFlags",
 	});
 
+	const destinationType = form.watch("destinationType");
+	const isS3 = destinationType === "s3";
+	const isFTP = destinationType === "ftp";
+	const isSFTP = destinationType === "sftp";
+
 	useEffect(() => {
 		if (destination) {
 			form.reset({
 				name: destination.name,
+				destinationType:
+					(destination.destinationType as "s3" | "ftp" | "sftp") ?? "s3",
 				provider: destination.provider || "",
 				accessKeyId: destination.accessKey,
 				secretAccessKey: destination.secretAccessKey,
@@ -135,12 +144,13 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		await mutateAsync({
 			provider: data.provider || "",
 			accessKey: data.accessKeyId,
-			bucket: data.bucket,
+			bucket: data.bucket || "",
 			endpoint: data.endpoint,
 			name: data.name,
-			region: data.region,
+			region: data.region || "",
 			secretAccessKey: data.secretAccessKey,
 			destinationId: destinationId || "",
+			destinationType: data.destinationType,
 			additionalFlags: data.additionalFlags?.map((f) => f.value) ?? [],
 		})
 			.then(async () => {
@@ -163,10 +173,8 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 
 	const handleTestConnection = async (serverId?: string) => {
 		const result = await form.trigger([
-			"provider",
 			"accessKeyId",
 			"secretAccessKey",
-			"bucket",
 			"endpoint",
 			"additionalFlags",
 		]);
@@ -195,18 +203,18 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		const bucket = form.getValues("bucket");
 		const endpoint = form.getValues("endpoint");
 		const region = form.getValues("region");
-
-		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
+		const type = form.getValues("destinationType");
 
 		await testConnection({
-			provider,
+			provider: provider || "",
 			accessKey,
-			bucket,
+			bucket: bucket || "",
 			endpoint,
 			name: "Test",
-			region,
+			region: region || "",
 			secretAccessKey: secretKey,
 			serverId,
+			destinationType: type,
 			additionalFlags:
 				form.getValues("additionalFlags")?.map((f) => f.value) ?? [],
 		})
@@ -214,8 +222,8 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 				toast.success("Connection Success");
 			})
 			.catch((e) => {
-				toast.error("Error connecting to provider", {
-					description: `${e.message}\n\nTry manually: rclone ls ${connectionString}`,
+				toast.error("Error connecting to destination", {
+					description: e.message,
 				});
 			});
 	};
@@ -269,7 +277,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									<FormItem>
 										<FormLabel>Name</FormLabel>
 										<FormControl>
-											<Input placeholder={"S3 Bucket"} {...field} />
+											<Input placeholder={"My Backup Destination"} {...field} />
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -278,39 +286,69 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 						/>
 						<FormField
 							control={form.control}
-							name="provider"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Provider</FormLabel>
-										<FormControl>
-											<Select
-												onValueChange={field.onChange}
-												defaultValue={field.value}
-												value={field.value}
-											>
-												<FormControl>
-													<SelectTrigger>
-														<SelectValue placeholder="Select a S3 Provider" />
-													</SelectTrigger>
-												</FormControl>
-												<SelectContent>
-													{S3_PROVIDERS.map((s3Provider) => (
-														<SelectItem
-															key={s3Provider.key}
-															value={s3Provider.key}
-														>
-															{s3Provider.name}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
+							name="destinationType"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Destination Type</FormLabel>
+									<FormControl>
+										<Select
+											onValueChange={field.onChange}
+											defaultValue={field.value}
+											value={field.value}
+										>
+											<FormControl>
+												<SelectTrigger>
+													<SelectValue placeholder="Select destination type" />
+												</SelectTrigger>
+											</FormControl>
+											<SelectContent>
+												<SelectItem value="s3">S3 / Object Storage</SelectItem>
+												<SelectItem value="ftp">FTP</SelectItem>
+												<SelectItem value="sftp">SFTP</SelectItem>
+											</SelectContent>
+										</Select>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
 						/>
+						{isS3 && (
+							<FormField
+								control={form.control}
+								name="provider"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<FormLabel>Provider</FormLabel>
+											<FormControl>
+												<Select
+													onValueChange={field.onChange}
+													defaultValue={field.value}
+													value={field.value}
+												>
+													<FormControl>
+														<SelectTrigger>
+															<SelectValue placeholder="Select a S3 Provider" />
+														</SelectTrigger>
+													</FormControl>
+													<SelectContent>
+														{S3_PROVIDERS.map((s3Provider) => (
+															<SelectItem
+																key={s3Provider.key}
+																value={s3Provider.key}
+															>
+																{s3Provider.name}
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+						)}
 
 						<FormField
 							control={form.control}
@@ -318,9 +356,12 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
+										<FormLabel>{isS3 ? "Access Key Id" : "Username"}</FormLabel>
 										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
+											<Input
+												placeholder={isS3 ? "xcas41dasde" : "user"}
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -333,10 +374,16 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
+										<FormLabel>
+											{isS3 ? "Secret Access Key" : "Password"}
+										</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={"asd123asdasw"} {...field} />
+										<Input
+											placeholder={isS3 ? "asd123asdasw" : "••••••••"}
+											type={isS3 ? "text" : "password"}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -348,10 +395,15 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
+										<FormLabel>
+											{isS3 ? "Bucket" : "Remote Path (Optional)"}
+										</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
+										<Input
+											placeholder={isS3 ? "dokploy-bucket" : "/backups"}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -363,10 +415,13 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
+										<FormLabel>{isS3 ? "Region" : "Port"}</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
+										<Input
+											placeholder={isS3 ? "us-east-1" : isFTP ? "21" : "22"}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -377,10 +432,16 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							name="endpoint"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
+									<FormLabel>{isS3 ? "Endpoint" : "Host"}</FormLabel>
 									<FormControl>
 										<Input
-											placeholder={"https://us.bucket.aws/s3"}
+											placeholder={
+												isS3
+													? "https://us.bucket.aws/s3"
+													: isFTP
+														? "ftp.example.com"
+														: "sftp.example.com"
+											}
 											{...field}
 										/>
 									</FormControl>

@@ -55,28 +55,62 @@ export const destinationRouter = createTRPCRouter({
 				accessKey,
 				provider,
 				additionalFlags,
+				destinationType,
 			} = input;
+			const type = destinationType ?? "s3";
 			try {
-				const rcloneFlags = [
-					`--s3-access-key-id="${accessKey}"`,
-					`--s3-secret-access-key="${secretAccessKey}"`,
-					`--s3-region="${region}"`,
-					`--s3-endpoint="${endpoint}"`,
-					"--s3-no-check-bucket",
-					"--s3-force-path-style",
-					"--retries 1",
-					"--low-level-retries 1",
-					"--timeout 10s",
-					"--contimeout 5s",
-				];
-				if (provider) {
-					rcloneFlags.unshift(`--s3-provider="${provider}"`);
+				let rcloneCommand: string;
+
+				if (type === "ftp") {
+					const port = region || "21";
+					const flags = [
+						`--ftp-host="${endpoint}"`,
+						`--ftp-port="${port}"`,
+						`--ftp-user="${accessKey}"`,
+						`--ftp-pass="${secretAccessKey}"`,
+						"--retries 1",
+						"--low-level-retries 1",
+						"--timeout 10s",
+						"--contimeout 5s",
+					];
+					if (additionalFlags?.length) flags.push(...additionalFlags);
+					const base = bucket ? `${bucket}/` : "";
+					rcloneCommand = `rclone ls ${flags.join(" ")} ":ftp:${base}"`;
+				} else if (type === "sftp") {
+					const port = region || "22";
+					const flags = [
+						`--sftp-host="${endpoint}"`,
+						`--sftp-port="${port}"`,
+						`--sftp-user="${accessKey}"`,
+						"--retries 1",
+						"--low-level-retries 1",
+						"--timeout 10s",
+						"--contimeout 5s",
+					];
+					if (additionalFlags?.length) flags.push(...additionalFlags);
+					const base = bucket ? `${bucket}/` : "";
+					rcloneCommand = `SFTP_PASS=$(rclone obscure "${secretAccessKey}") && rclone ls ${flags.join(" ")} --sftp-pass="$SFTP_PASS" ":sftp:${base}"`;
+				} else {
+					const rcloneFlags = [
+						`--s3-access-key-id="${accessKey}"`,
+						`--s3-secret-access-key="${secretAccessKey}"`,
+						`--s3-region="${region}"`,
+						`--s3-endpoint="${endpoint}"`,
+						"--s3-no-check-bucket",
+						"--s3-force-path-style",
+						"--retries 1",
+						"--low-level-retries 1",
+						"--timeout 10s",
+						"--contimeout 5s",
+					];
+					if (provider) {
+						rcloneFlags.unshift(`--s3-provider="${provider}"`);
+					}
+					if (additionalFlags?.length) {
+						rcloneFlags.push(...additionalFlags);
+					}
+					rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} ":s3:${bucket}"`;
 				}
-				if (additionalFlags?.length) {
-					rcloneFlags.push(...additionalFlags);
-				}
-				const rcloneDestination = `:s3:${bucket}`;
-				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
@@ -88,7 +122,7 @@ export const destinationRouter = createTRPCRouter({
 				if (IS_CLOUD) {
 					await execAsyncRemote(input.serverId || "", rcloneCommand);
 				} else {
-					await execAsync(rcloneCommand);
+					await execAsync(rcloneCommand, { shell: "/bin/bash" });
 				}
 			} catch (error) {
 				throw new TRPCError({
@@ -96,7 +130,7 @@ export const destinationRouter = createTRPCRouter({
 					message:
 						error instanceof Error
 							? error?.message
-							: "Error connecting to bucket",
+							: "Error connecting to destination",
 					cause: error,
 				});
 			}

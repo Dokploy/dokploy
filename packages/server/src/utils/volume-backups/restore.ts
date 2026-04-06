@@ -3,9 +3,12 @@ import {
 	findApplicationById,
 	findComposeById,
 	findDestinationById,
-	getS3Credentials,
 	paths,
 } from "../..";
+import {
+	buildRcloneDownloadCommand,
+	getDestinationPath,
+} from "../backups/utils";
 
 export const restoreVolume = async (
 	id: string,
@@ -18,12 +21,14 @@ export const restoreVolume = async (
 	const destination = await findDestinationById(destinationId);
 	const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeName);
-	const rcloneFlags = getS3Credentials(destination);
-	const bucketPath = `:s3:${destination.bucket}`;
-	const backupPath = `${bucketPath}/${backupFileName}`;
+	const backupPath = getDestinationPath(destination, backupFileName);
 
-	// Command to download backup file from S3
-	const downloadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${backupPath}" "${volumeBackupPath}/${backupFileName}"`;
+	// Command to download backup file from destination
+	const downloadCommand = buildRcloneDownloadCommand(
+		destination,
+		backupPath,
+		`${volumeBackupPath}/${backupFileName}`,
+	);
 
 	// Base restore command that creates the volume and restores data
 	const baseRestoreCommand = `

@@ -10,7 +10,12 @@ import {
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { scheduledJobs, scheduleJob } from "node-schedule";
-import { getS3Credentials, normalizeS3Path } from "../backups/utils";
+import {
+	getDestinationCredentials,
+	getDestinationPath,
+	getSFTPCredentials,
+	normalizeS3Path,
+} from "../backups/utils";
 import { sendVolumeBackupNotifications } from "../notifications/volume-backup";
 import { backupVolume, getVolumeServiceAppName } from "./backup";
 
@@ -82,18 +87,31 @@ const cleanupOldVolumeBackups = async (
 	if (!keepLatestCount) return;
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
+		const type = destination.destinationType ?? "s3";
 		const s3AppName = getVolumeServiceAppName(volumeBackup);
-		const backupFilesPath = `:s3:${destination.bucket}/${s3AppName}/${normalizeS3Path(prefix || "")}`;
-		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include \"${volumeName}-*.tar\" ${backupFilesPath}`;
+		const subPath = `${s3AppName}/${normalizeS3Path(prefix || "")}`;
+		const backupFilesPath = getDestinationPath(destination, subPath);
 		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
-		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
-		const fullCommand = `${listCommand} | ${sortAndPick} ${deleteCommand}`;
+
+		let fullCommand: string;
+		if (type === "sftp") {
+			const { flags, password } = getSFTPCredentials(destination);
+			const flagStr = flags.join(" ");
+			const listCommand = `rclone lsf ${flagStr} --sftp-pass="$SFTP_PASS" --include "${volumeName}-*.tar" "${backupFilesPath}"`;
+			const deleteCommand = `rclone delete ${flagStr} --sftp-pass="$SFTP_PASS" "${backupFilesPath}{}"`;
+			fullCommand = `SFTP_PASS=$(rclone obscure "${password}") && ${listCommand} | ${sortAndPick} ${deleteCommand}`;
+		} else {
+			const { flags } = getDestinationCredentials(destination);
+			const flagStr = flags.join(" ");
+			const listCommand = `rclone lsf ${flagStr} --include "${volumeName}-*.tar" "${backupFilesPath}"`;
+			const deleteCommand = `rclone delete ${flagStr} "${backupFilesPath}{}"`;
+			fullCommand = `${listCommand} | ${sortAndPick} ${deleteCommand}`;
+		}
 
 		if (serverId) {
 			await execAsyncRemote(serverId, fullCommand);
 		} else {
-			await execAsync(fullCommand);
+			await execAsync(fullCommand, { shell: "/bin/bash" });
 		}
 	} catch (error) {
 		console.error("Volume backup retention error", error);

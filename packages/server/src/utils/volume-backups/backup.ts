@@ -3,8 +3,9 @@ import { paths } from "@dokploy/server/constants";
 import { findComposeById } from "@dokploy/server/services/compose";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
 import {
+	buildRcloneCopytoCommand,
 	getBackupTimestamp,
-	getS3Credentials,
+	getDestinationPath,
 	normalizeS3Path,
 } from "../backups/utils";
 
@@ -38,11 +39,14 @@ export const backupVolume = async (
 	const s3AppName = getVolumeServiceAppName(volumeBackup);
 	const backupFileName = `${volumeName}-${getBackupTimestamp()}.tar`;
 	const bucketDestination = `${s3AppName}/${normalizeS3Path(prefix || "")}${backupFileName}`;
-	const rcloneFlags = getS3Credentials(volumeBackup.destination);
-	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+	const rcloneDestination = getDestinationPath(destination, bucketDestination);
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
 
-	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
+	const rcloneCommand = buildRcloneCopytoCommand(
+		destination,
+		`${volumeBackupPath}/${backupFileName}`,
+		rcloneDestination,
+	);
 
 	const backupCommand = `
 	set -e
@@ -60,9 +64,9 @@ export const backupVolume = async (
   `;
 
 	const uploadCommand = `
-  echo "Starting upload to S3..."
+  echo "Starting upload to destination..."
   ${rcloneCommand}
-  echo "Upload to S3 done ✅"
+  echo "Upload to destination done ✅"
   echo "Cleaning up local backup file..."
   rm "${volumeBackupPath}/${backupFileName}"
   echo "Local backup file cleaned up ✅"

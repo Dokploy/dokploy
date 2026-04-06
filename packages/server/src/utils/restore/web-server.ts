@@ -3,7 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Destination } from "@dokploy/server/services/destination";
-import { getS3Credentials } from "../backups/utils";
+import {
+	buildRcloneDownloadCommand,
+	getDestinationPath,
+} from "../backups/utils";
 import { execAsync } from "../process/execAsync";
 
 export const restoreWebServerBackup = async (
@@ -15,9 +18,7 @@ export const restoreWebServerBackup = async (
 		return;
 	}
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
-		const backupPath = `${bucketPath}/${backupFile}`;
+		const backupPath = getDestinationPath(destination, backupFile);
 		const { BASE_PATH } = paths();
 
 		// Create a temporary directory outside of BASE_PATH
@@ -32,10 +33,15 @@ export const restoreWebServerBackup = async (
 			emit("Creating temporary directory...");
 			await execAsync(`mkdir -p ${tempDir}`);
 
-			// Download backup from S3
-			emit("Downloading backup from S3...");
+			// Download backup from destination
+			emit("Downloading backup from destination...");
 			await execAsync(
-				`rclone copyto ${rcloneFlags.join(" ")} "${backupPath}" "${tempDir}/${backupFile}"`,
+				buildRcloneDownloadCommand(
+					destination,
+					backupPath,
+					`${tempDir}/${backupFile}`,
+				),
+				{ shell: "/bin/bash" },
 			);
 
 			// List files before extraction

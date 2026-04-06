@@ -89,6 +89,163 @@ export const getS3Credentials = (destination: Destination) => {
 	return rcloneFlags;
 };
 
+// For FTP destinations, accessKey=username, secretAccessKey=password,
+// endpoint=host, region=port, bucket=remote base path
+export const getFTPCredentials = (destination: Destination) => {
+	const { accessKey, secretAccessKey, region, endpoint } = destination;
+	const port = region || "21";
+	const rcloneFlags = [
+		`--ftp-host="${endpoint}"`,
+		`--ftp-port="${port}"`,
+		`--ftp-user="${accessKey}"`,
+		`--ftp-pass="${secretAccessKey}"`,
+	];
+
+	if (destination.additionalFlags?.length) {
+		rcloneFlags.push(...destination.additionalFlags);
+	}
+
+	return rcloneFlags;
+};
+
+// For SFTP destinations, accessKey=username, secretAccessKey=password,
+// endpoint=host, region=port, bucket=remote base path
+export const getSFTPCredentials = (destination: Destination) => {
+	const { accessKey, secretAccessKey, region, endpoint } = destination;
+	const port = region || "22";
+	const rcloneFlags = [
+		`--sftp-host="${endpoint}"`,
+		`--sftp-port="${port}"`,
+		`--sftp-user="${accessKey}"`,
+	];
+
+	if (destination.additionalFlags?.length) {
+		rcloneFlags.push(...destination.additionalFlags);
+	}
+
+	// SFTP password must be obscured via rclone; handled in getDestinationRcloneCommand
+	return { flags: rcloneFlags, password: secretAccessKey };
+};
+
+export const getDestinationCredentials = (destination: Destination) => {
+	const type = destination.destinationType ?? "s3";
+	if (type === "ftp") return { flags: getFTPCredentials(destination) };
+	if (type === "sftp") return getSFTPCredentials(destination);
+	return { flags: getS3Credentials(destination) };
+};
+
+// Returns the rclone remote path string for the given destination and sub-path
+export const getDestinationPath = (
+	destination: Destination,
+	subPath: string,
+) => {
+	const type = destination.destinationType ?? "s3";
+	const base = destination.bucket ? `${destination.bucket}/` : "";
+	if (type === "ftp") return `:ftp:${base}${subPath}`;
+	if (type === "sftp") return `:sftp:${base}${subPath}`;
+	return `:s3:${destination.bucket}/${subPath}`;
+};
+
+// Builds the full rclone upload command, handling SFTP password obscuring
+export const buildRcloneUploadCommand = (
+	destination: Destination,
+	remotePath: string,
+) => {
+	const type = destination.destinationType ?? "s3";
+	if (type === "sftp") {
+		const { flags, password } = getSFTPCredentials(destination);
+		return `SFTP_PASS=$(rclone obscure "${password}") && rclone rcat ${flags.join(" ")} --sftp-pass="$SFTP_PASS" "${remotePath}"`;
+	}
+	const { flags } = getDestinationCredentials(destination);
+	return `rclone rcat ${flags.join(" ")} "${remotePath}"`;
+};
+
+// Builds the rclone list command for a remote path
+export const buildRcloneListCommand = (
+	destination: Destination,
+	remotePath: string,
+	includePattern: string,
+) => {
+	const type = destination.destinationType ?? "s3";
+	if (type === "sftp") {
+		const { flags, password } = getSFTPCredentials(destination);
+		return `SFTP_PASS=$(rclone obscure "${password}") && rclone lsf ${flags.join(" ")} --sftp-pass="$SFTP_PASS" --include "${includePattern}" "${remotePath}"`;
+	}
+	const { flags } = getDestinationCredentials(destination);
+	return `rclone lsf ${flags.join(" ")} --include "${includePattern}" "${remotePath}"`;
+};
+
+// Builds the rclone delete command for a remote path
+export const buildRcloneDeleteCommand = (
+	destination: Destination,
+	remotePath: string,
+) => {
+	const type = destination.destinationType ?? "s3";
+	if (type === "sftp") {
+		const { flags, password } = getSFTPCredentials(destination);
+		return `SFTP_PASS=$(rclone obscure "${password}") && rclone delete ${flags.join(" ")} --sftp-pass="$SFTP_PASS" "${remotePath}"`;
+	}
+	const { flags } = getDestinationCredentials(destination);
+	return `rclone delete ${flags.join(" ")} "${remotePath}"`;
+};
+
+export const buildRcloneCopytoCommand = (
+	destination: Destination,
+	localPath: string,
+	remotePath: string,
+) => {
+	const type = destination.destinationType ?? "s3";
+	if (type === "sftp") {
+		const { flags, password } = getSFTPCredentials(destination);
+		return `SFTP_PASS=$(rclone obscure "${password}") && rclone copyto ${flags.join(" ")} --sftp-pass="$SFTP_PASS" "${localPath}" "${remotePath}"`;
+	}
+	const { flags } = getDestinationCredentials(destination);
+	return `rclone copyto ${flags.join(" ")} "${localPath}" "${remotePath}"`;
+};
+
+// Builds the rclone copyto command for downloading a file from remote to local
+export const buildRcloneDownloadCommand = (
+	destination: Destination,
+	remotePath: string,
+	localPath: string,
+) => {
+	const type = destination.destinationType ?? "s3";
+	if (type === "sftp") {
+		const { flags, password } = getSFTPCredentials(destination);
+		return `SFTP_PASS=$(rclone obscure "${password}") && rclone copyto ${flags.join(" ")} --sftp-pass="$SFTP_PASS" "${remotePath}" "${localPath}"`;
+	}
+	const { flags } = getDestinationCredentials(destination);
+	return `rclone copyto ${flags.join(" ")} "${remotePath}" "${localPath}"`;
+};
+
+// Builds the rclone cat command for reading a file (used in restore)
+export const buildRcloneCatCommand = (
+	destination: Destination,
+	remotePath: string,
+) => {
+	const type = destination.destinationType ?? "s3";
+	if (type === "sftp") {
+		const { flags, password } = getSFTPCredentials(destination);
+		return `SFTP_PASS=$(rclone obscure "${password}") && rclone cat ${flags.join(" ")} --sftp-pass="$SFTP_PASS" "${remotePath}"`;
+	}
+	const { flags } = getDestinationCredentials(destination);
+	return `rclone cat ${flags.join(" ")} "${remotePath}"`;
+};
+
+// Builds the rclone copy command for downloading a file (used in restore)
+export const buildRcloneCopyCommand = (
+	destination: Destination,
+	remotePath: string,
+) => {
+	const type = destination.destinationType ?? "s3";
+	if (type === "sftp") {
+		const { flags, password } = getSFTPCredentials(destination);
+		return `SFTP_PASS=$(rclone obscure "${password}") && rclone copy ${flags.join(" ")} --sftp-pass="$SFTP_PASS" "${remotePath}"`;
+	}
+	const { flags } = getDestinationCredentials(destination);
+	return `rclone copy ${flags.join(" ")} "${remotePath}"`;
+};
+
 export const getPostgresBackupCommand = (
 	database: string,
 	databaseUser: string,
@@ -289,16 +446,16 @@ export const getBackupCommand = (
 	}
 
 	echo "[$(date)] ✅ backup completed successfully" >> ${logPath};
-	echo "[$(date)] Starting upload to S3..." >> ${logPath};
+	echo "[$(date)] Starting upload to destination..." >> ${logPath};
 
 	# Run the upload command and capture the exit status
 	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
+		echo "[$(date)] ❌ Error: Upload to destination failed" >> ${logPath};
 		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
 		exit 1;
 	}
 
-	echo "[$(date)] ✅ Upload to S3 completed successfully" >> ${logPath};
+	echo "[$(date)] ✅ Upload to destination completed successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };
