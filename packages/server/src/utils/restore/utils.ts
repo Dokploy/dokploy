@@ -7,7 +7,9 @@ export const getPostgresRestoreCommand = (
 	database: string,
 	databaseUser: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID sh -c "pg_restore -U '${databaseUser}' -d ${database} -O --clean --if-exists"`;
+	const tmpFile = "/tmp/dokploy_restore.dump";
+	const pgArgs = `-U '${databaseUser}' -d ${database} -O`;
+	return `docker exec -i $CONTAINER_ID sh -c "cat > ${tmpFile} && pg_restore ${pgArgs} --clean --if-exists --section=pre-data ${tmpFile} && pg_restore ${pgArgs} --section=data ${tmpFile} && pg_restore ${pgArgs} --section=post-data ${tmpFile}; rm -f ${tmpFile}"`;
 };
 
 export const getMariadbRestoreCommand = (
