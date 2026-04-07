@@ -121,28 +121,27 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Registry</FormLabel>
-								<Select
-									onValueChange={field.onChange}
-									value={field.value}
-								>
+								<Select onValueChange={field.onChange} value={field.value}>
 									<SelectTrigger>
 										<SelectValue placeholder="Select a registry" />
 									</SelectTrigger>
 									<SelectContent>
 										<SelectGroup>
-											<SelectItem value="none">None</SelectItem>
-											{registries?.map((registry) => (
-												<SelectItem
-													key={registry.registryId}
-													value={registry.registryId}
-												>
-													{registry.registryName}
-												</SelectItem>
-											))}
-											<SelectLabel>
-												Registries ({registries?.length || 0})
-											</SelectLabel>
+											<SelectItem value="none">Manual</SelectItem>
 										</SelectGroup>
+										{registries && registries.length > 0 && (
+											<SelectGroup>
+												<SelectLabel>Stored Registries</SelectLabel>
+												{registries.map((registry) => (
+													<SelectItem
+														key={registry.registryId}
+														value={registry.registryId}
+													>
+														{registry.registryName}
+													</SelectItem>
+												))}
+											</SelectGroup>
+										)}
 									</SelectContent>
 								</Select>
 							</FormItem>
