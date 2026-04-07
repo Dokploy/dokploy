@@ -24,7 +24,11 @@ export const isDockerDesktop = async () => {
 /** Returns the Docker host IP address. */
 export const getDockerHost = async (): Promise<string> => {
 	if (process.env.NODE_ENV === "production") {
-		if (process.platform === "linux" && !(await isWSL() || await isDockerDesktop())) {
+		const isLinux = process.platform === "linux"
+			? (await Promise.all([isWSL(), isDockerDesktop()])).every((v) => !v)
+			: false;
+
+		if (isLinux) {
 			try {
 				// Try to get the Docker bridge IP first
 				const { stdout } = await execAsync(
