@@ -220,13 +220,14 @@ export const ContainerFreeMonitoring = ({
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">
 							<span className="text-sm text-muted-foreground">
-								Used: {currentData.cpu.value}
+								Used: {String(currentData.cpu.value).includes("%") ? currentData.cpu.value : `${currentData.cpu.value}%`}
 							</span>
 							<Progress
-								value={Number.parseInt(
-									currentData.cpu.value.replace("%", ""),
-									10,
-								)}
+								value={
+									Number.parseFloat(
+										String(currentData.cpu.value).replace("%", ""),
+									) || 0
+								}
 								className="w-[100%]"
 							/>
 							<DockerCpuChart accumulativeData={accumulativeData.cpu} />
