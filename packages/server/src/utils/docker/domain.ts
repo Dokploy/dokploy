@@ -337,6 +337,13 @@ export const createDomainLabels = (
 			labels.push(
 				`traefik.http.routers.${routerName}.tls.certresolver=${customCertResolver}`,
 			);
+		} else if (certificateType === "none" && https) {
+			// When certificateType is "none" with HTTPS enabled, the user is
+			// providing their own certificate (e.g. uploaded via Settings →
+			// Certificates). We still need to enable TLS on the router so Traefik
+			// terminates the connection; omitting tls=true causes a 404 for all
+			// HTTPS requests.
+			labels.push(`traefik.http.routers.${routerName}.tls=true`);
 		}
 	}
 

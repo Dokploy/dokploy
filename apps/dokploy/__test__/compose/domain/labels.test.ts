@@ -103,6 +103,18 @@ describe("createDomainLabels", () => {
 		);
 	});
 
+	it("should add tls=true label for certificateType 'none' on websecure entrypoint", async () => {
+		const noneDomain = {
+			...baseDomain,
+			https: true,
+			certificateType: "none" as const,
+		};
+		const labels = await createDomainLabels(appName, noneDomain, "websecure");
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-websecure.tls=true",
+		);
+	});
+
 	it("should handle different ports correctly", async () => {
 		const customPortDomain = { ...baseDomain, port: 3000 };
 		const labels = await createDomainLabels(appName, customPortDomain, "web");
