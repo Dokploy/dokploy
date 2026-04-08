@@ -1,6 +1,7 @@
 import {
 	prepareEnvironmentVariables,
 	prepareEnvironmentVariablesForShell,
+	quoteDotenvValue,
 } from "@dokploy/server/index";
 import { describe, expect, it } from "vitest";
 
@@ -360,6 +361,50 @@ SIMPLE=\${{environment.SIMPLE_VAR}}
 			"ANOTHER_TEST=value with 'quotes' inside",
 			"SIMPLE=no-quotes",
 		]);
+	});
+});
+
+describe("quoteDotenvValue (dotenv value quoting)", () => {
+	it("wraps a simple value in double quotes", () => {
+		expect(quoteDotenvValue("KEY=value")).toBe('KEY="value"');
+	});
+
+	it("returns pair unchanged when no = present", () => {
+		expect(quoteDotenvValue("NOEQUALS")).toBe("NOEQUALS");
+	});
+
+	it("handles empty value", () => {
+		expect(quoteDotenvValue("KEY=")).toBe('KEY=""');
+	});
+
+	it("escapes backslashes", () => {
+		expect(quoteDotenvValue("PATH=C:\\Users\\docs")).toBe(
+			'PATH="C:\\\\Users\\\\docs"',
+		);
+	});
+
+	it("escapes double quotes in values", () => {
+		expect(quoteDotenvValue('MSG=say "hello"')).toBe(
+			'MSG="say \\"hello\\""',
+		);
+	});
+
+	it("escapes literal newlines from dotenv expansion", () => {
+		expect(quoteDotenvValue("MSG=line1\nline2")).toBe('MSG="line1\\nline2"');
+	});
+
+	it("escapes carriage returns", () => {
+		expect(quoteDotenvValue("MSG=line1\rline2")).toBe('MSG="line1\\rline2"');
+	});
+
+	it("escapes dollar signs to prevent variable expansion", () => {
+		expect(quoteDotenvValue("PRICE=$100")).toBe('PRICE="\\$100"');
+	});
+
+	it("handles value with multiple special characters", () => {
+		expect(quoteDotenvValue('COMPLEX=a\\b"c\n$d')).toBe(
+			'COMPLEX="a\\\\b\\"c\\n\\$d"',
+		);
 	});
 });
 

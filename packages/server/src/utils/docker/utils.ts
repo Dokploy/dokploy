@@ -408,11 +408,22 @@ export const prepareEnvironmentVariables = (
 	return resolvedVars;
 };
 
+const DOTENV_ESCAPE_MAP: Record<string, string> = {
+	"\\": "\\\\",
+	'"': '\\"',
+	"\n": "\\n",
+	"\r": "\\r",
+	$: "\\$",
+};
+
 export const quoteDotenvValue = (pair: string): string => {
-	const i = pair.indexOf("=");
-	if (i === -1) return pair;
-	const value = pair.substring(i + 1).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-	return `${pair.substring(0, i)}="${value}"`;
+	const eqIndex = pair.indexOf("=");
+	if (eqIndex === -1) return pair;
+	const key = pair.substring(0, eqIndex);
+	const value = pair
+		.substring(eqIndex + 1)
+		.replace(/[\\"$\n\r]/g, (ch) => DOTENV_ESCAPE_MAP[ch] ?? ch);
+	return `${key}="${value}"`;
 };
 
 export const prepareEnvironmentVariablesForShell = (
