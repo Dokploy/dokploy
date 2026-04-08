@@ -150,15 +150,19 @@ export const createRouterConfig = async (
 	if (isRedirectRouter) {
 		routerConfig.middlewares?.push("redirect-to-https");
 	} else {
-		// Add path rewriting middleware if needed
-		if (internalPath && internalPath !== "/" && internalPath !== path) {
-			const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
-			routerConfig.middlewares?.push(pathMiddleware);
-		}
-
+		// Add path rewriting middleware if needed.
+		// stripPrefix must run before addPrefix so that the incoming path segment
+		// is stripped first and then the internal prefix is applied. For example,
+		// a request to /public/api/users with stripPath=/public and
+		// internalPath=/app/v2 should arrive at the service as /app/v2/api/users.
 		if (stripPath && path && path !== "/") {
 			const stripMiddleware = `stripprefix-${appName}-${uniqueConfigKey}`;
 			routerConfig.middlewares?.push(stripMiddleware);
+		}
+
+		if (internalPath && internalPath !== "/" && internalPath !== path) {
+			const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
+			routerConfig.middlewares?.push(pathMiddleware);
 		}
 
 		// redirects - skip for preview deployments as wildcard subdomains
