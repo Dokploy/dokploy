@@ -149,7 +149,7 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 					Restore Volume Backup
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-lg">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center">
 						<RotateCcw className="mr-2 size-4" />
