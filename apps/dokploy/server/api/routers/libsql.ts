@@ -6,6 +6,7 @@ import {
 	findEnvironmentById,
 	findLibsqlById,
 	findProjectById,
+	getContainerLogs,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeLibsqlById,
@@ -465,5 +466,40 @@ export const libsqlRouter = createTRPCRouter({
 				resourceId: input.libsqlId,
 			});
 			return true;
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			apiFindOneLibsql.extend({
+				tail: z.number().int().min(1).max(10000).default(100),
+				since: z
+					.string()
+					.regex(/^(all|\d+[smhd])$/, "Invalid since format")
+					.default("all"),
+				search: z
+					.string()
+					.regex(/^[a-zA-Z0-9 ._-]{0,500}$/)
+					.optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.libsqlId, "read");
+			const libsql = await findLibsqlById(input.libsqlId);
+			if (
+				libsql.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this LibSQL",
+				});
+			}
+			return await getContainerLogs(
+				libsql.appName,
+				input.tail,
+				input.since,
+				input.search,
+				libsql.serverId,
+			);
 		}),
 });

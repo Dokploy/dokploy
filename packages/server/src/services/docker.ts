@@ -354,6 +354,87 @@ export const getContainersByAppLabel = async (
 	return [];
 };
 
+export const getContainerLogs = async (
+	appName: string,
+	tail = 100,
+	since = "all",
+	search?: string,
+	serverId?: string | null,
+): Promise<string> => {
+	// First, find the real container ID by appName filter
+	const findCommand = `docker ps -q --filter "name=^${appName}" | head -1`;
+	const findResult = serverId
+		? await execAsyncRemote(serverId, findCommand)
+		: await execAsync(findCommand);
+
+	const containerId = findResult.stdout.trim();
+	if (!containerId) {
+		// Fallback: try as a swarm service
+		const svcCommand = `docker service ls -q --filter "name=${appName}" | head -1`;
+		const svcResult = serverId
+			? await execAsyncRemote(serverId, svcCommand)
+			: await execAsync(svcCommand);
+
+		const serviceId = svcResult.stdout.trim();
+		if (!serviceId) {
+			throw new Error(`No container or service found for: ${appName}`);
+		}
+
+		// Use docker service logs for swarm
+		const sinceFlag = since === "all" ? "" : `--since ${since}`;
+		const baseCommand = `docker service logs --timestamps --raw --tail ${tail} ${sinceFlag} ${appName}`;
+		const escapedSearch = search?.replace(/'/g, "'\\''") ?? "";
+		const command = search
+			? `${baseCommand} 2>&1 | grep -iF '${escapedSearch}'`
+			: `${baseCommand} 2>&1`;
+
+		try {
+			const result = serverId
+				? await execAsyncRemote(serverId, command)
+				: await execAsync(command);
+			return result.stdout;
+		} catch (error: unknown) {
+			if (
+				error &&
+				typeof error === "object" &&
+				"stdout" in error &&
+				typeof (error as { stdout: string }).stdout === "string" &&
+				(error as { stdout: string }).stdout.length > 0
+			) {
+				return (error as { stdout: string }).stdout;
+			}
+			throw error;
+		}
+	}
+
+	const sinceFlag = since === "all" ? "" : `--since ${since}`;
+	const baseCommand = `docker container logs --timestamps --tail ${tail} ${sinceFlag} ${containerId}`;
+
+	const escapedSearch = search?.replace(/'/g, "'\\''") ?? "";
+	const command = search
+		? `${baseCommand} 2>&1 | grep -iF '${escapedSearch}'`
+		: `${baseCommand} 2>&1`;
+
+	try {
+		const result = serverId
+			? await execAsyncRemote(serverId, command)
+			: await execAsync(command);
+
+		return result.stdout;
+	} catch (error: unknown) {
+		if (
+			error &&
+			typeof error === "object" &&
+			"stdout" in error &&
+			typeof (error as { stdout: string }).stdout === "string" &&
+			(error as { stdout: string }).stdout.length > 0
+		) {
+			return (error as { stdout: string }).stdout;
+		}
+		throw error;
+	}
+};
+
 export const containerRestart = async (containerId: string) => {
 	try {
 		const { stdout, stderr } = await execAsync(
