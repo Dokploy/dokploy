@@ -440,17 +440,16 @@ export const removeCompose = async (
 			}
 		} else {
 			const command = `
-			 docker network disconnect ${compose.appName} dokploy-traefik;
-			cd ${projectPath} && env -i PATH="$PATH" docker compose -p ${compose.appName} down ${
+			docker network disconnect ${compose.appName} dokploy-traefik;
+			env -i PATH="$PATH" docker compose -p ${compose.appName} down ${
 				deleteVolumes ? "--volumes" : ""
-			} && rm -rf ${projectPath}`;
+			};
+			rm -rf ${projectPath}`;
 
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);
 			} else {
-				await execAsync(command, {
-					cwd: projectPath,
-				});
+				await execAsync(command);
 			}
 		}
 	} catch (error) {
