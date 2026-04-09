@@ -143,7 +143,7 @@ const createSchema = createInsertSchema(backups, {
 	destinationId: z.string(),
 	enabled: z.boolean().optional(),
 	prefix: z.string().min(1),
-	database: z.string().min(1),
+	database: z.string(),
 	schedule: z.string(),
 	keepLatestCount: z.number().optional(),
 	databaseType: z.enum([
