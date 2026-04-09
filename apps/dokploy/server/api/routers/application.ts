@@ -7,6 +7,7 @@ import {
 	findGitProviderById,
 	findProjectById,
 	getApplicationStats,
+	getContainerLogs,
 	IS_CLOUD,
 	mechanizeDockerContainer,
 	readConfig,
@@ -1100,5 +1101,40 @@ export const applicationRouter = createTRPCRouter({
 				items,
 				total: countResult[0]?.count ?? 0,
 			};
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			apiFindOneApplication.extend({
+				tail: z.number().int().min(1).max(10000).default(100),
+				since: z
+					.string()
+					.regex(/^(all|\d+[smhd])$/, "Invalid since format")
+					.default("all"),
+				search: z
+					.string()
+					.regex(/^[a-zA-Z0-9 ._-]{0,500}$/)
+					.optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.applicationId, "read");
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this application",
+				});
+			}
+			return await getContainerLogs(
+				application.appName,
+				input.tail,
+				input.since,
+				input.search,
+				application.serverId,
+			);
 		}),
 });
