@@ -32,14 +32,13 @@ export function AnalyzeLogs({ logs, context }: Props) {
 	const { data: providers } = api.ai.getEnabledProviders.useQuery(undefined, {
 		enabled: open,
 	});
-	const { mutate, isPending, data, reset } =
-		api.ai.analyzeLogs.useMutation({
-			onError: (error) => {
-				toast.error("Analysis failed", {
-					description: error.message,
-				});
-			},
-		});
+	const { mutate, isPending, data, reset } = api.ai.analyzeLogs.useMutation({
+		onError: (error) => {
+			toast.error("Analysis failed", {
+				description: error.message,
+			});
+		},
+	});
 
 	const handleAnalyze = () => {
 		if (!aiId || logs.length === 0) return;
@@ -119,7 +118,11 @@ export function AnalyzeLogs({ logs, context }: Props) {
 								) : (
 									<>
 										<Bot className="mr-2 h-3.5 w-3.5" />
-										Analyze {logs.length > MAX_LOG_LINES ? `last ${MAX_LOG_LINES}` : logs.length} lines
+										Analyze{" "}
+										{logs.length > MAX_LOG_LINES
+											? `last ${MAX_LOG_LINES}`
+											: logs.length}{" "}
+										lines
 									</>
 								)}
 							</Button>

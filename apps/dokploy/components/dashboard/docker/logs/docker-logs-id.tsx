@@ -378,7 +378,7 @@ export const DockerLogsId: React.FC<Props> = ({
 								<DownloadIcon className="mr-2 h-4 w-4" />
 								Download logs
 							</Button>
-								<AnalyzeLogs logs={filteredLogs} context="runtime" />
+							<AnalyzeLogs logs={filteredLogs} context="runtime" />
 						</div>
 					</div>
 					{isPaused && (

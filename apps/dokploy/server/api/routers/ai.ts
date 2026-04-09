@@ -253,7 +253,9 @@ ${input.logs}`,
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message:
-						error instanceof Error ? error.message : `Analysis failed: ${error}`,
+						error instanceof Error
+							? error.message
+							: `Analysis failed: ${error}`,
 				});
 			}
 		}),
@@ -285,7 +287,9 @@ ${input.logs}`,
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message:
-						error instanceof Error ? error.message : `Connection failed: ${error}`,
+						error instanceof Error
+							? error.message
+							: `Connection failed: ${error}`,
 				});
 			}
 		}),
