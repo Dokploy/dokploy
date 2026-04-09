@@ -355,45 +355,60 @@ export const getContainersByAppLabel = async (
 };
 
 export const getContainerLogs = async (
-	appNameOrId: string,
+	appName: string,
 	tail = 100,
 	since = "all",
 	search?: string,
 	serverId?: string | null,
-	useContainerIdDirectly = false,
 ): Promise<string> => {
-	const exec = (cmd: string) =>
-		serverId ? execAsyncRemote(serverId, cmd) : execAsync(cmd);
+	// First, find the real container ID by appName filter
+	const findCommand = `docker ps -q --filter "name=^${appName}" | head -1`;
+	const findResult = serverId
+		? await execAsyncRemote(serverId, findCommand)
+		: await execAsync(findCommand);
 
-	let target = appNameOrId;
-	let isService = false;
+	const containerId = findResult.stdout.trim();
+	if (!containerId) {
+		// Fallback: try as a swarm service
+		const svcCommand = `docker service ls -q --filter "name=${appName}" | head -1`;
+		const svcResult = serverId
+			? await execAsyncRemote(serverId, svcCommand)
+			: await execAsync(svcCommand);
 
-	if (!useContainerIdDirectly) {
-		// Find the real container ID by appName filter
-		const findResult = await exec(
-			`docker ps -q --filter "name=^${appNameOrId}" | head -1`,
-		);
-		const containerId = findResult.stdout.trim();
+		const serviceId = svcResult.stdout.trim();
+		if (!serviceId) {
+			throw new Error(`No container or service found for: ${appName}`);
+		}
 
-		if (!containerId) {
-			// Fallback: try as a swarm service
-			const svcResult = await exec(
-				`docker service ls -q --filter "name=${appNameOrId}" | head -1`,
-			);
-			const serviceId = svcResult.stdout.trim();
-			if (!serviceId) {
-				throw new Error(`No container or service found for: ${appNameOrId}`);
+		// Use docker service logs for swarm
+		const sinceFlag = since === "all" ? "" : `--since ${since}`;
+		const baseCommand = `docker service logs --timestamps --raw --tail ${tail} ${sinceFlag} ${appName}`;
+		const escapedSearch = search?.replace(/'/g, "'\\''") ?? "";
+		const command = search
+			? `${baseCommand} 2>&1 | grep -iF '${escapedSearch}'`
+			: `${baseCommand} 2>&1`;
+
+		try {
+			const result = serverId
+				? await execAsyncRemote(serverId, command)
+				: await execAsync(command);
+			return result.stdout;
+		} catch (error: unknown) {
+			if (
+				error &&
+				typeof error === "object" &&
+				"stdout" in error &&
+				typeof (error as { stdout: string }).stdout === "string" &&
+				(error as { stdout: string }).stdout.length > 0
+			) {
+				return (error as { stdout: string }).stdout;
 			}
-			isService = true;
-		} else {
-			target = containerId;
+			throw error;
 		}
 	}
 
 	const sinceFlag = since === "all" ? "" : `--since ${since}`;
-	const baseCommand = isService
-		? `docker service logs --timestamps --raw --tail ${tail} ${sinceFlag} ${target}`
-		: `docker container logs --timestamps --tail ${tail} ${sinceFlag} ${target}`;
+	const baseCommand = `docker container logs --timestamps --tail ${tail} ${sinceFlag} ${containerId}`;
 
 	const escapedSearch = search?.replace(/'/g, "'\\''") ?? "";
 	const command = search
@@ -401,7 +416,10 @@ export const getContainerLogs = async (
 		: `${baseCommand} 2>&1`;
 
 	try {
-		const result = await exec(command);
+		const result = serverId
+			? await execAsyncRemote(serverId, command)
+			: await execAsync(command);
+
 		return result.stdout;
 	} catch (error: unknown) {
 		if (
@@ -417,58 +435,21 @@ export const getContainerLogs = async (
 	}
 };
 
-export const containerRestart = async (
-	containerId: string,
-	serverId?: string,
-) => {
-	const command = `docker container restart ${containerId}`;
-	const { stderr } = serverId
-		? await execAsyncRemote(serverId, command)
-		: await execAsync(command);
+export const containerRestart = async (containerId: string) => {
+	try {
+		const { stdout, stderr } = await execAsync(
+			`docker container restart ${containerId}`,
+		);
 
-	if (stderr) {
-		console.error(`Error: ${stderr}`);
-		throw new Error(stderr);
-	}
-};
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return;
+		}
 
-export const containerStart = async (
-	containerId: string,
-	serverId?: string,
-) => {
-	const command = `docker container start ${containerId}`;
-	const { stderr } = serverId
-		? await execAsyncRemote(serverId, command)
-		: await execAsync(command);
+		const config = JSON.parse(stdout);
 
-	if (stderr) {
-		console.error(`Error: ${stderr}`);
-		throw new Error(stderr);
-	}
-};
-
-export const containerStop = async (containerId: string, serverId?: string) => {
-	const command = `docker container stop ${containerId}`;
-	const { stderr } = serverId
-		? await execAsyncRemote(serverId, command)
-		: await execAsync(command);
-
-	if (stderr) {
-		console.error(`Error: ${stderr}`);
-		throw new Error(stderr);
-	}
-};
-
-export const containerKill = async (containerId: string, serverId?: string) => {
-	const command = `docker container kill ${containerId}`;
-	const { stderr } = serverId
-		? await execAsyncRemote(serverId, command)
-		: await execAsync(command);
-
-	if (stderr) {
-		console.error(`Error: ${stderr}`);
-		throw new Error(stderr);
-	}
+		return config;
+	} catch {}
 };
 
 export const containerRemove = async (

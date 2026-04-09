@@ -10,6 +10,7 @@ import {
 	findMongoById,
 	findProjectById,
 	getAccessibleServerIds,
+	getContainerLogs,
 	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
@@ -600,5 +601,40 @@ export const mongoRouter = createTRPCRouter({
 					.where(where),
 			]);
 			return { items, total: countResult[0]?.count ?? 0 };
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			apiFindOneMongo.extend({
+				tail: z.number().int().min(1).max(10000).default(100),
+				since: z
+					.string()
+					.regex(/^(all|\d+[smhd])$/, "Invalid since format")
+					.default("all"),
+				search: z
+					.string()
+					.regex(/^[a-zA-Z0-9 ._-]{0,500}$/)
+					.optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.mongoId, "read");
+			const mongo = await findMongoById(input.mongoId);
+			if (
+				mongo.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this MongoDB",
+				});
+			}
+			return await getContainerLogs(
+				mongo.appName,
+				input.tail,
+				input.since,
+				input.search,
+				mongo.serverId,
+			);
 		}),
 });
