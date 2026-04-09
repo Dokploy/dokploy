@@ -337,11 +337,11 @@ export const DockerLogsId: React.FC<Props> = ({
 							/>
 						</div>
 
-						<div className="flex gap-2">
+						<div className="flex flex-wrap gap-2">
 							<Button
 								variant="outline"
 								size="sm"
-								className="h-9"
+								className="h-9 w-full sm:w-auto"
 								onClick={handlePauseResume}
 								title={isPaused ? "Resume logs" : "Pause logs"}
 							>
@@ -355,7 +355,7 @@ export const DockerLogsId: React.FC<Props> = ({
 							<Button
 								variant="outline"
 								size="sm"
-								className="h-9"
+								className="h-9 w-full sm:w-auto"
 								onClick={handleCopy}
 								disabled={filteredLogs.length === 0}
 								title="Copy logs to clipboard"
@@ -370,7 +370,7 @@ export const DockerLogsId: React.FC<Props> = ({
 							<Button
 								variant="outline"
 								size="sm"
-								className="h-9 sm:w-auto w-full"
+								className="h-9 w-full sm:w-auto"
 								onClick={handleDownload}
 								disabled={filteredLogs.length === 0 || !data?.Name}
 							>
@@ -397,7 +397,7 @@ export const DockerLogsId: React.FC<Props> = ({
 					<div
 						ref={scrollRef}
 						onScroll={handleScroll}
-						className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
+						className="h-[50vh] sm:h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
 					>
 						{filteredLogs.length > 0 ? (
 							filteredLogs.map((filteredLog: LogLine, index: number) => (

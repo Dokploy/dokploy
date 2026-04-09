@@ -65,7 +65,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 
 	const tooltip = (color: string, timestamp: string | null) => {
 		const square = (
-			<div className={cn("w-2 h-full flex-shrink-0 rounded-[3px]", color)} />
+			<div className={cn("w-2 min-h-4 h-full flex-shrink-0 rounded-[3px]", color)} />
 		);
 		return timestamp ? (
 			<TooltipProvider delayDuration={0} disableHoverableContent>
@@ -91,7 +91,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 	return (
 		<div
 			className={cn(
-				"font-mono text-xs flex flex-row gap-3 py-2 sm:py-0.5 group",
+				"font-mono text-xs flex flex-col sm:flex-row gap-1 sm:gap-3 py-2 sm:py-0.5 group",
 				type === "error"
 					? "bg-red-500/10 hover:bg-red-500/15"
 					: type === "warning"
@@ -107,7 +107,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 				{/* <Square className="size-4 text-muted-foreground opacity-0 group-hover/logitem:opacity-100 transition-opacity" /> */}
 				{tooltip(color, rawTimestamp)}
 				{!noTimestamp && (
-					<span className="select-none pl-2 text-muted-foreground w-full sm:w-40 flex-shrink-0">
+					<span className="select-none pl-2 text-muted-foreground w-auto sm:w-40 flex-shrink-0">
 						{formattedTime}
 					</span>
 				)}
