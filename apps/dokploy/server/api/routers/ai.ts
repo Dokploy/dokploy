@@ -25,9 +25,11 @@ import { findProjectById } from "@dokploy/server/services/project";
 import {
 	getProviderHeaders,
 	getProviderName,
+	selectAIProvider,
 	type Model,
 } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
+import { generateText } from "ai";
 import { z } from "zod";
 import { slugify } from "@/lib/slug";
 import {
@@ -93,6 +95,30 @@ export const aiRouter = createTRPCRouter({
 								object: "model",
 								created: Date.now(),
 								owned_by: "perplexity",
+							},
+						] as Model[];
+					case "zai":
+						return [
+							{
+								id: "glm-5",
+								object: "model",
+								created: Date.now(),
+								owned_by: "zai",
+							},
+							{
+								id: "glm-4.7",
+								object: "model",
+								created: Date.now(),
+								owned_by: "zai",
+							},
+						] as Model[];
+					case "minimax":
+						return [
+							{
+								id: "MiniMax-M2.7",
+								object: "model",
+								created: Date.now(),
+								owned_by: "minimax",
 							},
 						] as Model[];
 					default:
@@ -172,6 +198,96 @@ export const aiRouter = createTRPCRouter({
 		.input(z.object({ aiId: z.string() }))
 		.mutation(async ({ input }) => {
 			return await deleteAiSettings(input.aiId);
+		}),
+
+	getEnabledProviders: protectedProcedure.query(async ({ ctx }) => {
+		const settings = await getAiSettingsByOrganizationId(
+			ctx.session.activeOrganizationId,
+		);
+		return settings
+			.filter((s) => s.isEnabled)
+			.map((s) => ({ aiId: s.aiId, name: s.name, model: s.model }));
+	}),
+
+	analyzeLogs: protectedProcedure
+		.input(
+			z.object({
+				aiId: z.string().min(1),
+				logs: z.string().min(1),
+				context: z.enum(["build", "runtime"]),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			try {
+				const aiSettings = await getAiSettingById(input.aiId);
+				if (!aiSettings?.isEnabled) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "AI provider is not enabled",
+					});
+				}
+
+				const provider = selectAIProvider(aiSettings);
+				const model = provider(aiSettings.model);
+
+				const contextLabel =
+					input.context === "build" ? "build/deployment" : "runtime/container";
+
+				const result = await generateText({
+					model,
+					prompt: `You are a DevOps engineer analyzing ${contextLabel} logs. Analyze the following logs and provide:
+
+1. **Summary**: A brief summary of what's happening
+2. **Issues Found**: Any errors, warnings, or problems detected
+3. **Root Cause**: The most likely root cause if there are errors
+4. **Suggested Fix**: Actionable steps to resolve the issues
+
+Be concise and practical. Focus on the most important issues. If the logs look healthy, say so briefly.
+
+Logs:
+${input.logs}`,
+				});
+
+				return { analysis: result.text };
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error ? error.message : `Analysis failed: ${error}`,
+				});
+			}
+		}),
+
+	testConnection: protectedProcedure
+		.input(
+			z.object({
+				apiUrl: z.string().min(1),
+				apiKey: z.string(),
+				model: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			try {
+				const provider = selectAIProvider({
+					apiUrl: input.apiUrl,
+					apiKey: input.apiKey,
+				});
+				const model = provider(input.model);
+				const result = await generateText({
+					model,
+					prompt: "Reply with 'ok'",
+				});
+				if (!result.text) {
+					throw new Error("No response received from the model");
+				}
+				return { success: true, message: "Connection successful" };
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error ? error.message : `Connection failed: ${error}`,
+				});
+			}
 		}),
 
 	suggest: protectedProcedure
