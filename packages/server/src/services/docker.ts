@@ -354,6 +354,69 @@ export const getContainersByAppLabel = async (
 	return [];
 };
 
+export const getContainerLogs = async (
+	appNameOrId: string,
+	tail = 100,
+	since = "all",
+	search?: string,
+	serverId?: string | null,
+	useContainerIdDirectly = false,
+): Promise<string> => {
+	const exec = (cmd: string) =>
+		serverId ? execAsyncRemote(serverId, cmd) : execAsync(cmd);
+
+	let target = appNameOrId;
+	let isService = false;
+
+	if (!useContainerIdDirectly) {
+		// Find the real container ID by appName filter
+		const findResult = await exec(
+			`docker ps -q --filter "name=^${appNameOrId}" | head -1`,
+		);
+		const containerId = findResult.stdout.trim();
+
+		if (!containerId) {
+			// Fallback: try as a swarm service
+			const svcResult = await exec(
+				`docker service ls -q --filter "name=${appNameOrId}" | head -1`,
+			);
+			const serviceId = svcResult.stdout.trim();
+			if (!serviceId) {
+				throw new Error(`No container or service found for: ${appNameOrId}`);
+			}
+			isService = true;
+		} else {
+			target = containerId;
+		}
+	}
+
+	const sinceFlag = since === "all" ? "" : `--since ${since}`;
+	const baseCommand = isService
+		? `docker service logs --timestamps --raw --tail ${tail} ${sinceFlag} ${target}`
+		: `docker container logs --timestamps --tail ${tail} ${sinceFlag} ${target}`;
+
+	const escapedSearch = search?.replace(/'/g, "'\\''") ?? "";
+	const command = search
+		? `${baseCommand} 2>&1 | grep -iF '${escapedSearch}'`
+		: `${baseCommand} 2>&1`;
+
+	try {
+		const result = await exec(command);
+		return result.stdout;
+	} catch (error: unknown) {
+		if (
+			error &&
+			typeof error === "object" &&
+			"stdout" in error &&
+			typeof (error as { stdout: string }).stdout === "string" &&
+			(error as { stdout: string }).stdout.length > 0
+		) {
+			return (error as { stdout: string }).stdout;
+		}
+		throw error;
+	}
+};
+
 export const containerRestart = async (containerId: string) => {
 	try {
 		const { stdout, stderr } = await execAsync(

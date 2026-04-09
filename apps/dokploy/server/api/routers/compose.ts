@@ -16,7 +16,9 @@ import {
 	findGitProviderById,
 	findProjectById,
 	findServerById,
+	getAccessibleServerIds,
 	getComposeContainer,
+	getContainerLogs,
 	getWebServerSettings,
 	IS_CLOUD,
 	loadServices,
@@ -30,7 +32,6 @@ import {
 	stopCompose,
 	updateCompose,
 	updateDeploymentStatus,
-	getAccessibleServerIds,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -1129,5 +1130,45 @@ export const composeRouter = createTRPCRouter({
 				items,
 				total: countResult[0]?.count ?? 0,
 			};
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			apiFindCompose.extend({
+				containerId: z
+					.string()
+					.min(1)
+					.regex(/^[a-zA-Z0-9.\-_]+$/, "Invalid container id."),
+				tail: z.number().int().min(1).max(10000).default(100),
+				since: z
+					.string()
+					.regex(/^(all|\d+[smhd])$/, "Invalid since format")
+					.default("all"),
+				search: z
+					.string()
+					.regex(/^[a-zA-Z0-9 ._-]{0,500}$/)
+					.optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.composeId, "read");
+			const compose = await findComposeById(input.composeId);
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this compose",
+				});
+			}
+			return await getContainerLogs(
+				input.containerId,
+				input.tail,
+				input.since,
+				input.search,
+				compose.serverId,
+				true,
+			);
 		}),
 });

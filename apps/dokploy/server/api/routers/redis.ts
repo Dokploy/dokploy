@@ -8,6 +8,7 @@ import {
 	findEnvironmentById,
 	findProjectById,
 	findRedisById,
+	getContainerLogs,
 	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
@@ -586,5 +587,40 @@ export const redisRouter = createTRPCRouter({
 					.where(where),
 			]);
 			return { items, total: countResult[0]?.count ?? 0 };
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			apiFindOneRedis.extend({
+				tail: z.number().int().min(1).max(10000).default(100),
+				since: z
+					.string()
+					.regex(/^(all|\d+[smhd])$/, "Invalid since format")
+					.default("all"),
+				search: z
+					.string()
+					.regex(/^[a-zA-Z0-9 ._-]{0,500}$/)
+					.optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.redisId, "read");
+			const redis = await findRedisById(input.redisId);
+			if (
+				redis.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Redis",
+				});
+			}
+			return await getContainerLogs(
+				redis.appName,
+				input.tail,
+				input.since,
+				input.search,
+				redis.serverId,
+			);
 		}),
 });

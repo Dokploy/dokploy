@@ -9,6 +9,7 @@ import {
 	findEnvironmentById,
 	findPostgresById,
 	findProjectById,
+	getContainerLogs,
 	getMountPath,
 	getServiceContainerCommand,
 	IS_CLOUD,
@@ -613,5 +614,40 @@ export const postgresRouter = createTRPCRouter({
 					.where(where),
 			]);
 			return { items, total: countResult[0]?.count ?? 0 };
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			apiFindOnePostgres.extend({
+				tail: z.number().int().min(1).max(10000).default(100),
+				since: z
+					.string()
+					.regex(/^(all|\d+[smhd])$/, "Invalid since format")
+					.default("all"),
+				search: z
+					.string()
+					.regex(/^[a-zA-Z0-9 ._-]{0,500}$/)
+					.optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.postgresId, "read");
+			const postgres = await findPostgresById(input.postgresId);
+			if (
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Postgres",
+				});
+			}
+			return await getContainerLogs(
+				postgres.appName,
+				input.tail,
+				input.since,
+				input.search,
+				postgres.serverId,
+			);
 		}),
 });
