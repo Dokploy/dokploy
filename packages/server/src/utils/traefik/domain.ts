@@ -151,14 +151,16 @@ export const createRouterConfig = async (
 		routerConfig.middlewares?.push("redirect-to-https");
 	} else {
 		// Add path rewriting middleware if needed
-		if (internalPath && internalPath !== "/" && internalPath !== path) {
-			const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
-			routerConfig.middlewares?.push(pathMiddleware);
-		}
-
+		// stripPrefix must come before addPrefix so Traefik strips the
+		// public path first, then prepends the internal path.
 		if (stripPath && path && path !== "/") {
 			const stripMiddleware = `stripprefix-${appName}-${uniqueConfigKey}`;
 			routerConfig.middlewares?.push(stripMiddleware);
+		}
+
+		if (internalPath && internalPath !== "/" && internalPath !== path) {
+			const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
+			routerConfig.middlewares?.push(pathMiddleware);
 		}
 
 		// redirects - skip for preview deployments as wildcard subdomains

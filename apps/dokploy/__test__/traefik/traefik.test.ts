@@ -424,6 +424,26 @@ test("Custom entrypoint with internalPath adds addprefix middleware", async () =
 	expect(router.entryPoints).toEqual(["custom"]);
 });
 
+test("stripPath and internalPath together: stripprefix must come before addprefix", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{
+			...baseDomain,
+			path: "/public",
+			stripPath: true,
+			internalPath: "/app/v2",
+		},
+		"web",
+	);
+
+	const stripIndex = router.middlewares?.indexOf("stripprefix--1") ?? -1;
+	const addIndex = router.middlewares?.indexOf("addprefix--1") ?? -1;
+
+	expect(stripIndex).toBeGreaterThanOrEqual(0);
+	expect(addIndex).toBeGreaterThanOrEqual(0);
+	expect(stripIndex).toBeLessThan(addIndex);
+});
+
 test("Custom entrypoint with https and custom cert resolver", async () => {
 	const router = await createRouterConfig(
 		baseApp,
