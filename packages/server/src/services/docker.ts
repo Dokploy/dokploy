@@ -355,60 +355,45 @@ export const getContainersByAppLabel = async (
 };
 
 export const getContainerLogs = async (
-	appName: string,
+	appNameOrId: string,
 	tail = 100,
 	since = "all",
 	search?: string,
 	serverId?: string | null,
+	useContainerIdDirectly = false,
 ): Promise<string> => {
-	// First, find the real container ID by appName filter
-	const findCommand = `docker ps -q --filter "name=^${appName}" | head -1`;
-	const findResult = serverId
-		? await execAsyncRemote(serverId, findCommand)
-		: await execAsync(findCommand);
+	const exec = (cmd: string) =>
+		serverId ? execAsyncRemote(serverId, cmd) : execAsync(cmd);
 
-	const containerId = findResult.stdout.trim();
-	if (!containerId) {
-		// Fallback: try as a swarm service
-		const svcCommand = `docker service ls -q --filter "name=${appName}" | head -1`;
-		const svcResult = serverId
-			? await execAsyncRemote(serverId, svcCommand)
-			: await execAsync(svcCommand);
+	let target = appNameOrId;
+	let isService = false;
 
-		const serviceId = svcResult.stdout.trim();
-		if (!serviceId) {
-			throw new Error(`No container or service found for: ${appName}`);
-		}
+	if (!useContainerIdDirectly) {
+		// Find the real container ID by appName filter
+		const findResult = await exec(
+			`docker ps -q --filter "name=^${appNameOrId}" | head -1`,
+		);
+		const containerId = findResult.stdout.trim();
 
-		// Use docker service logs for swarm
-		const sinceFlag = since === "all" ? "" : `--since ${since}`;
-		const baseCommand = `docker service logs --timestamps --raw --tail ${tail} ${sinceFlag} ${appName}`;
-		const escapedSearch = search?.replace(/'/g, "'\\''") ?? "";
-		const command = search
-			? `${baseCommand} 2>&1 | grep -iF '${escapedSearch}'`
-			: `${baseCommand} 2>&1`;
-
-		try {
-			const result = serverId
-				? await execAsyncRemote(serverId, command)
-				: await execAsync(command);
-			return result.stdout;
-		} catch (error: unknown) {
-			if (
-				error &&
-				typeof error === "object" &&
-				"stdout" in error &&
-				typeof (error as { stdout: string }).stdout === "string" &&
-				(error as { stdout: string }).stdout.length > 0
-			) {
-				return (error as { stdout: string }).stdout;
+		if (!containerId) {
+			// Fallback: try as a swarm service
+			const svcResult = await exec(
+				`docker service ls -q --filter "name=${appNameOrId}" | head -1`,
+			);
+			const serviceId = svcResult.stdout.trim();
+			if (!serviceId) {
+				throw new Error(`No container or service found for: ${appNameOrId}`);
 			}
-			throw error;
+			isService = true;
+		} else {
+			target = containerId;
 		}
 	}
 
 	const sinceFlag = since === "all" ? "" : `--since ${since}`;
-	const baseCommand = `docker container logs --timestamps --tail ${tail} ${sinceFlag} ${containerId}`;
+	const baseCommand = isService
+		? `docker service logs --timestamps --raw --tail ${tail} ${sinceFlag} ${target}`
+		: `docker container logs --timestamps --tail ${tail} ${sinceFlag} ${target}`;
 
 	const escapedSearch = search?.replace(/'/g, "'\\''") ?? "";
 	const command = search
@@ -416,10 +401,7 @@ export const getContainerLogs = async (
 		: `${baseCommand} 2>&1`;
 
 	try {
-		const result = serverId
-			? await execAsyncRemote(serverId, command)
-			: await execAsync(command);
-
+		const result = await exec(command);
 		return result.stdout;
 	} catch (error: unknown) {
 		if (

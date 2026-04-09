@@ -1168,6 +1168,7 @@ export const composeRouter = createTRPCRouter({
 				input.since,
 				input.search,
 				compose.serverId,
+				true,
 			);
 		}),
 });
