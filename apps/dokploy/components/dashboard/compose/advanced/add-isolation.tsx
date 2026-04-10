@@ -28,8 +28,10 @@ import {
 	FormField,
 	FormItem,
 	FormLabel,
+	FormMessage,
 } from "@/components/ui/form";
 
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
@@ -40,6 +42,7 @@ interface Props {
 // Schema for Isolated Deployment
 const isolatedSchema = z.object({
 	isolatedDeployment: z.boolean().optional(),
+	isolatedNetworkMtu: z.number().int().min(68).max(9000).nullable().optional(),
 });
 
 type IsolatedSchema = z.infer<typeof isolatedSchema>;
@@ -63,6 +66,7 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 	const form = useForm<IsolatedSchema>({
 		defaultValues: {
 			isolatedDeployment: false,
+			isolatedNetworkMtu: null,
 		},
 		resolver: zodResolver(isolatedSchema),
 	});
@@ -71,6 +75,7 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 		if (data) {
 			form.reset({
 				isolatedDeployment: data?.isolatedDeployment || false,
+				isolatedNetworkMtu: data?.isolatedNetworkMtu ?? null,
 			});
 		}
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
@@ -79,6 +84,7 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 		await updateCompose({
 			composeId,
 			isolatedDeployment: formData?.isolatedDeployment || false,
+			isolatedNetworkMtu: formData?.isolatedNetworkMtu ?? null,
 		})
 			.then(async (_data) => {
 				await refetch();
@@ -179,6 +185,41 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 										)}
 									/>
 								</div>
+
+								{form.watch("isolatedDeployment") && (
+									<div>
+										<FormField
+											control={form.control}
+											name="isolatedNetworkMtu"
+											render={({ field }) => (
+												<FormItem className="mt-4 rounded-lg border p-3 shadow-sm">
+													<div className="space-y-0.5">
+														<FormLabel>
+															Network MTU (optional)
+														</FormLabel>
+														<FormDescription>
+															Set a custom MTU for the isolated network. Leave empty for Docker default (1500). Use 1350 for environments behind VPN/overlay networks.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Input
+															type="number"
+															min={68}
+															max={9000}
+															placeholder="1500"
+															value={field.value ?? ""}
+															onChange={(e) => {
+																const val = e.target.value;
+																field.onChange(val === "" ? null : Number(val));
+															}}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</div>
+								)}
 
 								<div className="flex flex-col lg:flex-row gap-4 w-full items-end justify-end">
 									<Button
