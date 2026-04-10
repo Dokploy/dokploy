@@ -269,7 +269,7 @@ export const deployCompose = async ({
 		}
 
 		if (freshVolumes && compose.composeType === "docker-compose") {
-			const downCommand = `set -e; docker compose -p ${compose.appName} down --volumes 2>&1 || true;`;
+			const downCommand = `set -e; env -i PATH="$PATH" docker compose -p ${compose.appName} down --volumes 2>&1 || true;`;
 			const downWithLog = `(${downCommand}) >> ${deployment.logPath} 2>&1`;
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, downWithLog);
@@ -395,7 +395,7 @@ export const rebuildCompose = async ({
 		}
 
 		if (freshVolumes && compose.composeType === "docker-compose") {
-			const downCommand = `set -e; docker compose -p ${compose.appName} down --volumes 2>&1 || true;`;
+			const downCommand = `set -e; env -i PATH="$PATH" docker compose -p ${compose.appName} down --volumes 2>&1 || true;`;
 			const downWithLog = `(${downCommand}) >> ${deployment.logPath} 2>&1`;
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, downWithLog);
