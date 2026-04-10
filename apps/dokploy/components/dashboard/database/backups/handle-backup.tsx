@@ -39,6 +39,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { InputArray } from "@/components/ui/input-array";
 import {
 	Popover,
 	PopoverContent,
@@ -112,6 +113,7 @@ const Schema = z
 					.optional(),
 			})
 			.optional(),
+		additionalOptions: z.array(z.string()).nullable(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.backupType === "compose" && !data.databaseType) {
@@ -230,6 +232,7 @@ export const HandleBackup = ({
 			databaseType: backupType === "compose" ? undefined : databaseType,
 			backupType: backupType,
 			metadata: {},
+			additionalOptions: [],
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -269,6 +272,7 @@ export const HandleBackup = ({
 			databaseType: backup?.databaseType ?? databaseType,
 			backupType: backup?.backupType ?? backupType,
 			metadata: backup?.metadata ?? {},
+			additionalOptions: backup?.additionalOptions ?? [],
 		});
 	}, [form, form.reset, backupId, backup]);
 
@@ -317,6 +321,7 @@ export const HandleBackup = ({
 			backupId: backupId ?? "",
 			backupType,
 			metadata: data.metadata,
+			additionalOptions: data.additionalOptions?.map(e => e?.trim()).filter(Boolean) || [],
 		})
 			.then(async () => {
 				toast.success(`Backup ${backupId ? "Updated" : "Created"}`);
@@ -774,6 +779,25 @@ export const HandleBackup = ({
 									)}
 								</>
 							)}
+							<FormField
+								control={form.control}
+								name="additionalOptions"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<FormLabel>Additional Options</FormLabel>
+											<FormControl>
+												<InputArray placeholder={"--flag=value"} {...field} />
+											</FormControl>
+											<FormDescription>
+												Use if you want to pass additional options to the backup command
+											</FormDescription>
+
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
 						</div>
 						<DialogFooter>
 							<Button
