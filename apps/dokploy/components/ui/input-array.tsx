@@ -13,7 +13,7 @@ const InputArray = React.forwardRef<
 	HTMLInputElement,
 	InputArrayProps
 >(({ className, errorMessage, value, onChange, disabled, ...props }, ref) => {
-    const items = value ?? [];
+	const items = value ?? [];
 	const updateAt = (index: number, newValue: string) => {
 		const next = [...items];
 		next[index] = newValue;
