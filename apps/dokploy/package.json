@@ -9,7 +9,7 @@
 		"start": "node -r dotenv/config dist/migration.mjs && node -r dotenv/config dist/server.mjs",
 		"build-server": "tsx esbuild.config.ts",
 		"build-next": "next build --webpack",
-		"setup": "tsx -r dotenv/config setup.ts && sleep 5 && pnpm run migration:run",
+		"setup": "tsx -r dotenv/config setup.ts && pnpm run migration:run",
 		"wait-for-postgres": "node -r dotenv/config dist/wait-for-postgres.mjs",
 		"wait-for-postgres-dev": "tsx -r dotenv/config wait-for-postgres.ts",
 		"reset-password": "node -r dotenv/config dist/reset-password.mjs",
