@@ -65,6 +65,9 @@ export const user = pgTable("user", {
 	stripeCustomerId: text("stripeCustomerId"),
 	stripeSubscriptionId: text("stripeSubscriptionId"),
 	serversQuantity: integer("serversQuantity").notNull().default(0),
+	sendInvoiceNotifications: boolean("sendInvoiceNotifications")
+		.notNull()
+		.default(false),
 	isEnterpriseCloud: boolean("isEnterpriseCloud").notNull().default(false),
 	trustedOrigins: text("trustedOrigins").array(),
 	bookmarkedTemplates: text("bookmarkedTemplates")
