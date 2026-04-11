@@ -67,6 +67,12 @@ import {
 
 export const projectRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create a project",
+				description: "Creates a new project in the current organization with a default environment. Validates server availability for cloud deployments.",
+			},
+		})
 		.input(apiCreateProject)
 		.mutation(async ({ ctx, input }) => {
 			try {
@@ -106,6 +112,12 @@ export const projectRouter = createTRPCRouter({
 		}),
 
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a project",
+				description: "Retrieves a project by its ID with all environments and services. Filters services based on the user's access permissions.",
+			},
+		})
 		.input(apiFindOneProject)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
@@ -193,7 +205,14 @@ export const projectRouter = createTRPCRouter({
 			}
 			return project;
 		}),
-	all: protectedProcedure.query(async ({ ctx }) => {
+	all: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List all projects",
+				description: "Returns all projects in the current organization with their environments and services. Filters results based on the user's access permissions.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
 			const { accessedProjects, accessedEnvironments, accessedServices } =
 				await findMemberByUserId(ctx.user.id, ctx.session.activeOrganizationId);
@@ -375,7 +394,14 @@ export const projectRouter = createTRPCRouter({
 		});
 	}),
 
-	allForPermissions: withPermission("member", "update").query(
+	allForPermissions: withPermission("member", "update")
+		.meta({
+			openapi: {
+				summary: "List all projects for permissions",
+				description: "Returns all projects with their environments and services for the permissions management UI. Requires member update permission.",
+			},
+		})
+		.query(
 		async ({ ctx }) => {
 			return await db.query.projects.findMany({
 				where: eq(projects.organizationId, ctx.session.activeOrganizationId),
@@ -488,6 +514,12 @@ export const projectRouter = createTRPCRouter({
 	),
 
 	search: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Search projects",
+				description: "Searches projects by name or description with pagination. Respects project-level access control for non-admin users.",
+			},
+		})
 		.input(
 			z.object({
 				q: z.string().optional(),
@@ -565,6 +597,12 @@ export const projectRouter = createTRPCRouter({
 		}),
 
 	remove: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a project",
+				description: "Permanently deletes a project and all its associated environments, services, and resources.",
+			},
+		})
 		.input(apiRemoveProject)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -592,6 +630,12 @@ export const projectRouter = createTRPCRouter({
 			}
 		}),
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update a project",
+				description: "Updates a project's name, description, or environment variables. Validates organization ownership and project-level access permissions.",
+			},
+		})
 		.input(apiUpdateProject)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -640,6 +684,12 @@ export const projectRouter = createTRPCRouter({
 			}
 		}),
 	duplicate: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Duplicate a project or environment",
+				description: "Duplicates services from a source environment into a new project or into the same project. Copies applications, compose services, databases, and their associated domains, mounts, ports, and backups.",
+			},
+		})
 		.input(
 			z.object({
 				sourceEnvironmentId: z.string(),

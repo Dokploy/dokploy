@@ -25,6 +25,12 @@ import {
 
 export const sshRouter = createTRPCRouter({
 	create: withPermission("sshKeys", "create")
+		.meta({
+			openapi: {
+				summary: "Create SSH key",
+				description: "Stores a new SSH key for the current organization and logs an audit event.",
+			},
+		})
 		.input(apiCreateSshKey)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -46,6 +52,12 @@ export const sshRouter = createTRPCRouter({
 			}
 		}),
 	remove: withPermission("sshKeys", "delete")
+		.meta({
+			openapi: {
+				summary: "Delete SSH key",
+				description: "Removes an SSH key by ID. Verifies organization ownership and logs an audit event before deletion.",
+			},
+		})
 		.input(apiRemoveSshKey)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -69,6 +81,12 @@ export const sshRouter = createTRPCRouter({
 			}
 		}),
 	one: withPermission("sshKeys", "read")
+		.meta({
+			openapi: {
+				summary: "Get SSH key",
+				description: "Returns a single SSH key by ID. Verifies the caller belongs to the same organization.",
+			},
+		})
 		.input(apiFindOneSshKey)
 		.query(async ({ input, ctx }) => {
 			const sshKey = await findSSHKeyById(input.sshKeyId);
@@ -81,13 +99,27 @@ export const sshRouter = createTRPCRouter({
 			}
 			return sshKey;
 		}),
-	all: withPermission("sshKeys", "read").query(async ({ ctx }) => {
+	all: withPermission("sshKeys", "read")
+		.meta({
+			openapi: {
+				summary: "List all SSH keys",
+				description: "Returns all SSH keys for the current organization, ordered by creation date descending.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		return await db.query.sshKeys.findMany({
 			where: eq(sshKeys.organizationId, ctx.session.activeOrganizationId),
 			orderBy: desc(sshKeys.createdAt),
 		});
 	}),
-	allForApps: protectedProcedure.query(async ({ ctx }) => {
+	allForApps: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List SSH keys for app selection",
+				description: "Returns a lightweight list of SSH keys (ID and name only) for the current organization, suitable for dropdown selectors in application forms.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		return await db.query.sshKeys.findMany({
 			columns: {
 				sshKeyId: true,
@@ -98,11 +130,23 @@ export const sshRouter = createTRPCRouter({
 		});
 	}),
 	generate: withPermission("sshKeys", "read")
+		.meta({
+			openapi: {
+				summary: "Generate SSH key pair",
+				description: "Generates a new SSH key pair of the specified type (RSA, ED25519, etc.) and returns both public and private keys.",
+			},
+		})
 		.input(apiGenerateSSHKey)
 		.mutation(async ({ input }) => {
 			return await generateSSHKey(input.type);
 		}),
 	update: withPermission("sshKeys", "create")
+		.meta({
+			openapi: {
+				summary: "Update SSH key",
+				description: "Updates an existing SSH key. Verifies organization ownership before applying changes and logs an audit event.",
+			},
+		})
 		.input(apiUpdateSshKey)
 		.mutation(async ({ input, ctx }) => {
 			try {

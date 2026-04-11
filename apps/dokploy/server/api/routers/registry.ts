@@ -23,6 +23,12 @@ import {
 import { createTRPCRouter, withPermission } from "../trpc";
 export const registryRouter = createTRPCRouter({
 	create: withPermission("registry", "create")
+		.meta({
+			openapi: {
+				summary: "Create registry",
+				description: "Creates a new Docker registry entry for the current organization and logs an audit event.",
+			},
+		})
 		.input(apiCreateRegistry)
 		.mutation(async ({ ctx, input }) => {
 			const reg = await createRegistry(input, ctx.session.activeOrganizationId);
@@ -35,6 +41,12 @@ export const registryRouter = createTRPCRouter({
 			return reg;
 		}),
 	remove: withPermission("registry", "delete")
+		.meta({
+			openapi: {
+				summary: "Delete registry",
+				description: "Removes a Docker registry entry by ID. Verifies organization ownership and logs an audit event before deletion.",
+			},
+		})
 		.input(apiRemoveRegistry)
 		.mutation(async ({ ctx, input }) => {
 			const registry = await findRegistryById(input.registryId);
@@ -53,6 +65,12 @@ export const registryRouter = createTRPCRouter({
 			return await removeRegistry(input.registryId);
 		}),
 	update: withPermission("registry", "create")
+		.meta({
+			openapi: {
+				summary: "Update registry",
+				description: "Updates an existing Docker registry entry. Verifies organization ownership before applying changes and logs an audit event.",
+			},
+		})
 		.input(apiUpdateRegistry)
 		.mutation(async ({ input, ctx }) => {
 			const { registryId, ...rest } = input;
@@ -82,13 +100,26 @@ export const registryRouter = createTRPCRouter({
 			});
 			return true;
 		}),
-	all: withPermission("registry", "read").query(async ({ ctx }) => {
+	all: withPermission("registry", "read")
+		.meta({
+			openapi: {
+				summary: "List all registries",
+				description: "Returns all Docker registry entries for the current organization.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const registryResponse = await db.query.registry.findMany({
 			where: eq(registry.organizationId, ctx.session.activeOrganizationId),
 		});
 		return registryResponse;
 	}),
 	one: withPermission("registry", "read")
+		.meta({
+			openapi: {
+				summary: "Get registry",
+				description: "Returns a single Docker registry entry by ID. Verifies the caller belongs to the same organization.",
+			},
+		})
 		.input(apiFindOneRegistry)
 		.query(async ({ input, ctx }) => {
 			const registry = await findRegistryById(input.registryId);
@@ -101,6 +132,12 @@ export const registryRouter = createTRPCRouter({
 			return registry;
 		}),
 	testRegistry: withPermission("registry", "read")
+		.meta({
+			openapi: {
+				summary: "Test registry credentials",
+				description: "Attempts a docker login with the provided credentials to verify the registry URL, username, and password are valid. Can run locally or on a remote server.",
+			},
+		})
 		.input(apiTestRegistry)
 		.mutation(async ({ input }) => {
 			try {
@@ -143,6 +180,12 @@ export const registryRouter = createTRPCRouter({
 			}
 		}),
 	testRegistryById: withPermission("registry", "read")
+		.meta({
+			openapi: {
+				summary: "Test registry connection by ID",
+				description: "Looks up a saved registry by ID and attempts a docker login with its stored credentials. Verifies organization ownership before testing.",
+			},
+		})
 		.input(apiTestRegistryById)
 		.mutation(async ({ input, ctx }) => {
 			try {

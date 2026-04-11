@@ -53,6 +53,12 @@ import {
 import { cancelJobs } from "@/server/utils/backup";
 export const mongoRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create a MongoDB database",
+				description: "Creates a new MongoDB database service with the specified configuration, sets up a persistent data volume, and registers it in the project.",
+			},
+		})
 		.input(apiCreateMongo)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -117,6 +123,12 @@ export const mongoRouter = createTRPCRouter({
 			}
 		}),
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a MongoDB database by ID",
+				description: "Returns the full details of a MongoDB database service, including its environment and project configuration.",
+			},
+		})
 		.input(apiFindOneMongo)
 		.query(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.mongoId, "read");
@@ -135,6 +147,12 @@ export const mongoRouter = createTRPCRouter({
 		}),
 
 	start: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Start a MongoDB database",
+				description: "Starts the Docker container for the specified MongoDB database and sets its status to done.",
+			},
+		})
 		.input(apiFindOneMongo)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mongoId, {
@@ -160,6 +178,12 @@ export const mongoRouter = createTRPCRouter({
 			return service;
 		}),
 	stop: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Stop a MongoDB database",
+				description: "Stops the Docker container for the specified MongoDB database and sets its status to idle.",
+			},
+		})
 		.input(apiFindOneMongo)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mongoId, {
@@ -185,6 +209,12 @@ export const mongoRouter = createTRPCRouter({
 			return mongo;
 		}),
 	saveExternalPort: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save the external port for a MongoDB database",
+				description: "Updates the external port mapping for the MongoDB database and triggers a redeployment. Validates that the port is not already in use.",
+			},
+		})
 		.input(apiSaveExternalPortMongo)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mongoId, {
@@ -218,6 +248,12 @@ export const mongoRouter = createTRPCRouter({
 			return mongo;
 		}),
 	deploy: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Deploy a MongoDB database",
+				description: "Triggers a deployment for the specified MongoDB database, rebuilding and restarting its Docker container with the current configuration.",
+			},
+		})
 		.input(apiDeployMongo)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mongoId, {
@@ -271,6 +307,12 @@ export const mongoRouter = createTRPCRouter({
 		}),
 
 	changeStatus: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Change MongoDB database status",
+				description: "Updates the application status of a MongoDB database without starting or stopping the container.",
+			},
+		})
 		.input(apiChangeMongoStatus)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mongoId, {
@@ -289,6 +331,12 @@ export const mongoRouter = createTRPCRouter({
 			return mongo;
 		}),
 	reload: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Reload a MongoDB database",
+				description: "Restarts the MongoDB database by stopping and then starting its Docker container.",
+			},
+		})
 		.input(apiResetMongo)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mongoId, {
@@ -321,6 +369,12 @@ export const mongoRouter = createTRPCRouter({
 			return true;
 		}),
 	remove: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a MongoDB database",
+				description: "Removes the MongoDB database service, its Docker container, cancels associated backup jobs, and deletes the database record.",
+			},
+		})
 		.input(apiFindOneMongo)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.mongoId, "delete");
@@ -359,6 +413,12 @@ export const mongoRouter = createTRPCRouter({
 			return mongo;
 		}),
 	saveEnvironment: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save environment variables for a MongoDB database",
+				description: "Updates the environment variables for the specified MongoDB database service.",
+			},
+		})
 		.input(apiSaveEnvironmentVariablesMongo)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mongoId, {
@@ -383,6 +443,12 @@ export const mongoRouter = createTRPCRouter({
 			return true;
 		}),
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update a MongoDB database",
+				description: "Updates the configuration of an existing MongoDB database service.",
+			},
+		})
 		.input(apiUpdateMongo)
 		.mutation(async ({ input, ctx }) => {
 			const { mongoId, ...rest } = input;
@@ -409,6 +475,12 @@ export const mongoRouter = createTRPCRouter({
 			return true;
 		}),
 	changePassword: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Change MongoDB database password",
+				description: "Changes the password for the MongoDB database user by executing changeUserPassword via mongosh inside the running container and updating the stored password.",
+			},
+		})
 		.input(
 			z.object({
 				mongoId: z.string().min(1),
@@ -459,6 +531,12 @@ export const mongoRouter = createTRPCRouter({
 			return true;
 		}),
 	move: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Move a MongoDB database to another environment",
+				description: "Moves the MongoDB database to a different environment within the same project.",
+			},
+		})
 		.input(
 			z.object({
 				mongoId: z.string(),
@@ -495,6 +573,12 @@ export const mongoRouter = createTRPCRouter({
 			return updatedMongo;
 		}),
 	rebuild: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Rebuild a MongoDB database",
+				description: "Rebuilds the MongoDB database Docker container from scratch, pulling the latest image and recreating the service.",
+			},
+		})
 		.input(apiRebuildMongo)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mongoId, {
@@ -511,6 +595,12 @@ export const mongoRouter = createTRPCRouter({
 			return true;
 		}),
 	search: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Search MongoDB databases",
+				description: "Returns a paginated list of MongoDB databases matching the given filters. Supports searching by name, appName, description, project, and environment.",
+			},
+		})
 		.input(
 			z.object({
 				q: z.string().optional(),
@@ -604,6 +694,12 @@ export const mongoRouter = createTRPCRouter({
 		}),
 
 	readLogs: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Read MongoDB container logs",
+				description: "Retrieves the Docker container logs for the specified MongoDB database, with support for tail count, time-based filtering, and text search.",
+			},
+		})
 		.input(
 			apiFindOneMongo.extend({
 				tail: z.number().int().min(1).max(10000).default(100),

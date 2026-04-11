@@ -54,6 +54,12 @@ import {
 import { cancelJobs } from "@/server/utils/backup";
 export const mariadbRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create a MariaDB database",
+				description: "Creates a new MariaDB database service with the specified configuration, sets up a persistent data volume, and registers it in the project.",
+			},
+		})
 		.input(apiCreateMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -114,6 +120,12 @@ export const mariadbRouter = createTRPCRouter({
 			}
 		}),
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a MariaDB database by ID",
+				description: "Returns the full details of a MariaDB database service, including its environment and project configuration.",
+			},
+		})
 		.input(apiFindOneMariaDB)
 		.query(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.mariadbId, "read");
@@ -131,6 +143,12 @@ export const mariadbRouter = createTRPCRouter({
 		}),
 
 	start: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Start a MariaDB database",
+				description: "Starts the Docker container for the specified MariaDB database and sets its status to done.",
+			},
+		})
 		.input(apiFindOneMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
@@ -155,6 +173,12 @@ export const mariadbRouter = createTRPCRouter({
 			return service;
 		}),
 	stop: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Stop a MariaDB database",
+				description: "Stops the Docker container for the specified MariaDB database and sets its status to idle.",
+			},
+		})
 		.input(apiFindOneMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
@@ -180,6 +204,12 @@ export const mariadbRouter = createTRPCRouter({
 			return mariadb;
 		}),
 	saveExternalPort: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save the external port for a MariaDB database",
+				description: "Updates the external port mapping for the MariaDB database and triggers a redeployment. Validates that the port is not already in use.",
+			},
+		})
 		.input(apiSaveExternalPortMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
@@ -213,6 +243,12 @@ export const mariadbRouter = createTRPCRouter({
 			return mariadb;
 		}),
 	deploy: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Deploy a MariaDB database",
+				description: "Triggers a deployment for the specified MariaDB database, rebuilding and restarting its Docker container with the current configuration.",
+			},
+		})
 		.input(apiDeployMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
@@ -250,6 +286,12 @@ export const mariadbRouter = createTRPCRouter({
 			});
 		}),
 	changeStatus: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Change MariaDB database status",
+				description: "Updates the application status of a MariaDB database without starting or stopping the container.",
+			},
+		})
 		.input(apiChangeMariaDBStatus)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
@@ -268,6 +310,12 @@ export const mariadbRouter = createTRPCRouter({
 			return mongo;
 		}),
 	remove: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a MariaDB database",
+				description: "Removes the MariaDB database service, its Docker container, cancels associated backup jobs, and deletes the database record.",
+			},
+		})
 		.input(apiFindOneMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.mariadbId, "delete");
@@ -305,6 +353,12 @@ export const mariadbRouter = createTRPCRouter({
 			return mongo;
 		}),
 	saveEnvironment: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save environment variables for a MariaDB database",
+				description: "Updates the environment variables for the specified MariaDB database service.",
+			},
+		})
 		.input(apiSaveEnvironmentVariablesMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
@@ -329,6 +383,12 @@ export const mariadbRouter = createTRPCRouter({
 			return true;
 		}),
 	reload: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Reload a MariaDB database",
+				description: "Restarts the MariaDB database by stopping and then starting its Docker container.",
+			},
+		})
 		.input(apiResetMariadb)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
@@ -361,6 +421,12 @@ export const mariadbRouter = createTRPCRouter({
 			return true;
 		}),
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update a MariaDB database",
+				description: "Updates the configuration of an existing MariaDB database service.",
+			},
+		})
 		.input(apiUpdateMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			const { mariadbId, ...rest } = input;
@@ -387,6 +453,12 @@ export const mariadbRouter = createTRPCRouter({
 			return true;
 		}),
 	changePassword: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Change MariaDB database password",
+				description: "Changes the password for a MariaDB user or root account by executing ALTER USER inside the running container and updating the stored password.",
+			},
+		})
 		.input(
 			z.object({
 				mariadbId: z.string().min(1),
@@ -444,6 +516,12 @@ export const mariadbRouter = createTRPCRouter({
 			return true;
 		}),
 	move: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Move a MariaDB database to another environment",
+				description: "Moves the MariaDB database to a different environment within the same project.",
+			},
+		})
 		.input(
 			z.object({
 				mariadbId: z.string(),
@@ -480,6 +558,12 @@ export const mariadbRouter = createTRPCRouter({
 			return updatedMariadb;
 		}),
 	rebuild: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Rebuild a MariaDB database",
+				description: "Rebuilds the MariaDB database Docker container from scratch, pulling the latest image and recreating the service.",
+			},
+		})
 		.input(apiRebuildMariadb)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
@@ -495,6 +579,12 @@ export const mariadbRouter = createTRPCRouter({
 			return true;
 		}),
 	search: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Search MariaDB databases",
+				description: "Returns a paginated list of MariaDB databases matching the given filters. Supports searching by name, appName, description, project, and environment.",
+			},
+		})
 		.input(
 			z.object({
 				q: z.string().optional(),
@@ -593,6 +683,12 @@ export const mariadbRouter = createTRPCRouter({
 		}),
 
 	readLogs: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Read MariaDB container logs",
+				description: "Retrieves the Docker container logs for the specified MariaDB database, with support for tail count, time-based filtering, and text search.",
+			},
+		})
 		.input(
 			apiFindOneMariaDB.extend({
 				tail: z.number().int().min(1).max(10000).default(100),

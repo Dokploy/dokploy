@@ -95,6 +95,12 @@ import {
 
 export const notificationRouter = createTRPCRouter({
 	createSlack: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Create Slack notification",
+				description: "Creates a new Slack notification provider for the current organization and logs an audit event.",
+			},
+		})
 		.input(apiCreateSlack)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -114,6 +120,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	updateSlack: withPermission("notification", "update")
+		.meta({
+			openapi: {
+				summary: "Update Slack notification",
+				description: "Updates an existing Slack notification provider. Verifies organization ownership before applying changes.",
+			},
+		})
 		.input(apiUpdateSlack)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -140,6 +152,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	testSlackConnection: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Test Slack connection",
+				description: "Sends a test message to the configured Slack channel to verify the webhook connection works.",
+			},
+		})
 		.input(apiTestSlackConnection)
 		.mutation(async ({ input }) => {
 			try {
@@ -157,6 +175,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	createTelegram: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Create Telegram notification",
+				description: "Creates a new Telegram notification provider for the current organization and logs an audit event.",
+			},
+		})
 		.input(apiCreateTelegram)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -179,6 +203,12 @@ export const notificationRouter = createTRPCRouter({
 		}),
 
 	updateTelegram: withPermission("notification", "update")
+		.meta({
+			openapi: {
+				summary: "Update Telegram notification",
+				description: "Updates an existing Telegram notification provider. Verifies organization ownership before applying changes.",
+			},
+		})
 		.input(apiUpdateTelegram)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -209,6 +239,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	testTelegramConnection: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Test Telegram connection",
+				description: "Sends a test message to the configured Telegram chat to verify the bot token and chat ID work.",
+			},
+		})
 		.input(apiTestTelegramConnection)
 		.mutation(async ({ input }) => {
 			try {
@@ -223,6 +259,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	createDiscord: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Create Discord notification",
+				description: "Creates a new Discord notification provider for the current organization and logs an audit event.",
+			},
+		})
 		.input(apiCreateDiscord)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -245,6 +287,12 @@ export const notificationRouter = createTRPCRouter({
 		}),
 
 	updateDiscord: withPermission("notification", "update")
+		.meta({
+			openapi: {
+				summary: "Update Discord notification",
+				description: "Updates an existing Discord notification provider. Verifies organization ownership before applying changes.",
+			},
+		})
 		.input(apiUpdateDiscord)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -276,6 +324,12 @@ export const notificationRouter = createTRPCRouter({
 		}),
 
 	testDiscordConnection: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Test Discord connection",
+				description: "Sends a test embed message to the configured Discord webhook to verify the connection works.",
+			},
+		})
 		.input(apiTestDiscordConnection)
 		.mutation(async ({ input }) => {
 			try {
@@ -298,6 +352,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	createEmail: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Create Email notification",
+				description: "Creates a new SMTP email notification provider for the current organization and logs an audit event.",
+			},
+		})
 		.input(apiCreateEmail)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -316,6 +376,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	updateEmail: withPermission("notification", "update")
+		.meta({
+			openapi: {
+				summary: "Update Email notification",
+				description: "Updates an existing SMTP email notification provider. Verifies organization ownership before applying changes.",
+			},
+		})
 		.input(apiUpdateEmail)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -346,6 +412,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	testEmailConnection: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Test Email connection",
+				description: "Sends a test email via the configured SMTP settings to verify the connection works.",
+			},
+		})
 		.input(apiTestEmailConnection)
 		.mutation(async ({ input }) => {
 			try {
@@ -364,6 +436,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	createResend: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Create Resend notification",
+				description: "Creates a new Resend email notification provider for the current organization and logs an audit event.",
+			},
+		})
 		.input(apiCreateResend)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -382,6 +460,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	updateResend: withPermission("notification", "update")
+		.meta({
+			openapi: {
+				summary: "Update Resend notification",
+				description: "Updates an existing Resend email notification provider. Verifies organization ownership before applying changes.",
+			},
+		})
 		.input(apiUpdateResend)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -412,6 +496,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	testResendConnection: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Test Resend connection",
+				description: "Sends a test email via Resend to verify the API key and configuration work.",
+			},
+		})
 		.input(apiTestResendConnection)
 		.mutation(async ({ input }) => {
 			try {
@@ -430,6 +520,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	remove: withPermission("notification", "delete")
+		.meta({
+			openapi: {
+				summary: "Delete notification",
+				description: "Removes a notification provider by ID. Verifies organization ownership and logs an audit event before deletion.",
+			},
+		})
 		.input(apiFindOneNotification)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -458,6 +554,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	one: withPermission("notification", "read")
+		.meta({
+			openapi: {
+				summary: "Get notification",
+				description: "Returns a single notification provider by ID. Verifies the caller belongs to the same organization.",
+			},
+		})
 		.input(apiFindOneNotification)
 		.query(async ({ input, ctx }) => {
 			const notification = await findNotificationById(input.notificationId);
@@ -469,7 +571,14 @@ export const notificationRouter = createTRPCRouter({
 			}
 			return notification;
 		}),
-	all: withPermission("notification", "read").query(async ({ ctx }) => {
+	all: withPermission("notification", "read")
+		.meta({
+			openapi: {
+				summary: "List all notifications",
+				description: "Returns all notification providers for the current organization, including all provider-specific details (Slack, Telegram, Discord, etc.).",
+			},
+		})
+		.query(async ({ ctx }) => {
 		return await db.query.notifications.findMany({
 			with: {
 				slack: true,
@@ -490,6 +599,12 @@ export const notificationRouter = createTRPCRouter({
 		});
 	}),
 	receiveNotification: publicProcedure
+		.meta({
+			openapi: {
+				summary: "Receive server threshold notification",
+				description: "Public endpoint that receives CPU/memory threshold alerts from Dokploy or remote servers. Validates the token and dispatches notifications to all configured providers.",
+			},
+		})
 		.input(
 			z.object({
 				ServerType: z.enum(["Dokploy", "Remote"]).default("Dokploy"),
@@ -551,6 +666,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	createGotify: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Create Gotify notification",
+				description: "Creates a new Gotify notification provider for the current organization and logs an audit event.",
+			},
+		})
 		.input(apiCreateGotify)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -569,6 +690,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	updateGotify: withPermission("notification", "update")
+		.meta({
+			openapi: {
+				summary: "Update Gotify notification",
+				description: "Updates an existing Gotify notification provider. Verifies organization ownership before applying changes.",
+			},
+		})
 		.input(apiUpdateGotify)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -598,6 +725,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	testGotifyConnection: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Test Gotify connection",
+				description: "Sends a test notification to the configured Gotify server to verify the connection works.",
+			},
+		})
 		.input(apiTestGotifyConnection)
 		.mutation(async ({ input }) => {
 			try {
@@ -616,6 +749,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	createNtfy: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Create ntfy notification",
+				description: "Creates a new ntfy notification provider for the current organization and logs an audit event.",
+			},
+		})
 		.input(apiCreateNtfy)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -634,6 +773,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	updateNtfy: withPermission("notification", "update")
+		.meta({
+			openapi: {
+				summary: "Update ntfy notification",
+				description: "Updates an existing ntfy notification provider. Verifies organization ownership before applying changes.",
+			},
+		})
 		.input(apiUpdateNtfy)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -663,6 +808,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	testNtfyConnection: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Test ntfy connection",
+				description: "Sends a test notification to the configured ntfy topic to verify the connection works.",
+			},
+		})
 		.input(apiTestNtfyConnection)
 		.mutation(async ({ input }) => {
 			try {
@@ -686,6 +837,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	createMattermost: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Create Mattermost notification",
+				description: "Creates a new Mattermost notification provider for the current organization and logs an audit event.",
+			},
+		})
 		.input(apiCreateMattermost)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -707,6 +864,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	updateMattermost: withPermission("notification", "update")
+		.meta({
+			openapi: {
+				summary: "Update Mattermost notification",
+				description: "Updates an existing Mattermost notification provider. Verifies organization ownership before applying changes.",
+			},
+		})
 		.input(apiUpdateMattermost)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -736,6 +899,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	testMattermostConnection: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Test Mattermost connection",
+				description: "Sends a test message to the configured Mattermost webhook to verify the connection works.",
+			},
+		})
 		.input(apiTestMattermostConnection)
 		.mutation(async ({ input }) => {
 			try {
@@ -754,6 +923,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	createCustom: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Create custom webhook notification",
+				description: "Creates a new custom webhook notification provider for the current organization and logs an audit event.",
+			},
+		})
 		.input(apiCreateCustom)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -772,6 +947,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	updateCustom: withPermission("notification", "update")
+		.meta({
+			openapi: {
+				summary: "Update custom webhook notification",
+				description: "Updates an existing custom webhook notification provider. Verifies organization ownership before applying changes.",
+			},
+		})
 		.input(apiUpdateCustom)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -798,6 +979,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	testCustomConnection: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Test custom webhook connection",
+				description: "Sends a test payload to the configured custom webhook URL to verify the connection works.",
+			},
+		})
 		.input(apiTestCustomConnection)
 		.mutation(async ({ input }) => {
 			try {
@@ -816,6 +1003,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	createLark: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Create Lark notification",
+				description: "Creates a new Lark notification provider for the current organization and logs an audit event.",
+			},
+		})
 		.input(apiCreateLark)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -834,6 +1027,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	updateLark: withPermission("notification", "update")
+		.meta({
+			openapi: {
+				summary: "Update Lark notification",
+				description: "Updates an existing Lark notification provider. Verifies organization ownership before applying changes.",
+			},
+		})
 		.input(apiUpdateLark)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -863,6 +1062,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	testLarkConnection: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Test Lark connection",
+				description: "Sends a test message to the configured Lark webhook to verify the connection works.",
+			},
+		})
 		.input(apiTestLarkConnection)
 		.mutation(async ({ input }) => {
 			try {
@@ -882,6 +1087,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	createTeams: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Create Teams notification",
+				description: "Creates a new Microsoft Teams notification provider for the current organization and logs an audit event.",
+			},
+		})
 		.input(apiCreateTeams)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -900,6 +1111,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	updateTeams: withPermission("notification", "update")
+		.meta({
+			openapi: {
+				summary: "Update Teams notification",
+				description: "Updates an existing Microsoft Teams notification provider. Verifies organization ownership before applying changes.",
+			},
+		})
 		.input(apiUpdateTeams)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -929,6 +1146,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	testTeamsConnection: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Test Teams connection",
+				description: "Sends a test message to the configured Microsoft Teams webhook to verify the connection works.",
+			},
+		})
 		.input(apiTestTeamsConnection)
 		.mutation(async ({ input }) => {
 			try {
@@ -946,6 +1169,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	createPushover: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Create Pushover notification",
+				description: "Creates a new Pushover notification provider for the current organization and logs an audit event.",
+			},
+		})
 		.input(apiCreatePushover)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -967,6 +1196,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	updatePushover: withPermission("notification", "update")
+		.meta({
+			openapi: {
+				summary: "Update Pushover notification",
+				description: "Updates an existing Pushover notification provider. Verifies organization ownership before applying changes.",
+			},
+		})
 		.input(apiUpdatePushover)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -996,6 +1231,12 @@ export const notificationRouter = createTRPCRouter({
 			}
 		}),
 	testPushoverConnection: withPermission("notification", "create")
+		.meta({
+			openapi: {
+				summary: "Test Pushover connection",
+				description: "Sends a test notification to the configured Pushover account to verify the connection works.",
+			},
+		})
 		.input(apiTestPushoverConnection)
 		.mutation(async ({ input }) => {
 			try {
@@ -1013,7 +1254,14 @@ export const notificationRouter = createTRPCRouter({
 				});
 			}
 		}),
-	getEmailProviders: withPermission("notification", "read").query(
+	getEmailProviders: withPermission("notification", "read")
+		.meta({
+			openapi: {
+				summary: "List email notification providers",
+				description: "Returns all notification providers that support email (SMTP and Resend) for the current organization.",
+			},
+		})
+		.query(
 		async ({ ctx }) => {
 			return await db.query.notifications.findMany({
 				where: eq(

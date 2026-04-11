@@ -75,6 +75,12 @@ async function getServiceOrganizationId(
 
 export const mountRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create mount",
+				description: "Creates a new volume, bind, or file mount for a service. Checks service-level volume permissions and logs an audit event.",
+			},
+		})
 		.input(apiCreateMount)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.serviceId, {
@@ -90,6 +96,12 @@ export const mountRouter = createTRPCRouter({
 			return mount;
 		}),
 	remove: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete mount",
+				description: "Removes a mount by ID. Resolves the owning service to check volume delete permissions and logs an audit event.",
+			},
+		})
 		.input(apiRemoveMount)
 		.mutation(async ({ input, ctx }) => {
 			const mount = await findMountById(input.mountId);
@@ -116,6 +128,12 @@ export const mountRouter = createTRPCRouter({
 		}),
 
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get mount",
+				description: "Returns a single mount by ID. Resolves the owning service to check volume read permissions.",
+			},
+		})
 		.input(apiFindOneMount)
 		.query(async ({ input, ctx }) => {
 			const mount = await findMountById(input.mountId);
@@ -136,6 +154,12 @@ export const mountRouter = createTRPCRouter({
 			return mount;
 		}),
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update mount",
+				description: "Updates an existing mount. Resolves the owning service to check volume create permissions and logs an audit event.",
+			},
+		})
 		.input(apiUpdateMount)
 		.mutation(async ({ input, ctx }) => {
 			const mount = await findMountById(input.mountId);
@@ -162,6 +186,12 @@ export const mountRouter = createTRPCRouter({
 			return await updateMount(input.mountId, input);
 		}),
 	allNamedByApplicationId: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List named volumes by application",
+				description: "Returns Docker named volumes attached to the running container of a given application. Inspects the live container to retrieve mount information.",
+			},
+		})
 		.input(z.object({ applicationId: z.string().min(1) }))
 		.query(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -175,6 +205,12 @@ export const mountRouter = createTRPCRouter({
 			return mounts;
 		}),
 	listByServiceId: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List mounts by service",
+				description: "Returns all configured mounts for a given service (application, compose, or database). Verifies service access and organization ownership.",
+			},
+		})
 		.input(apiFindMountByApplicationId)
 		.query(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.serviceId, "read");

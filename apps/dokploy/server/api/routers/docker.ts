@@ -20,6 +20,12 @@ export const containerIdRegex = /^[a-zA-Z0-9.\-_]+$/;
 
 export const dockerRouter = createTRPCRouter({
 	getContainers: withPermission("docker", "read")
+		.meta({
+			openapi: {
+				summary: "Get Docker containers",
+				description: "Retrieves a list of all Docker containers. Optionally targets a specific remote server by ID.",
+			},
+		})
 		.input(
 			z.object({
 				serverId: z.string().optional(),
@@ -36,6 +42,12 @@ export const dockerRouter = createTRPCRouter({
 		}),
 
 	restartContainer: withPermission("docker", "read")
+		.meta({
+			openapi: {
+				summary: "Restart a Docker container",
+				description: "Restarts a Docker container by its ID. An audit log entry is created for the action.",
+			},
+		})
 		.input(
 			z.object({
 				containerId: z
@@ -56,6 +68,12 @@ export const dockerRouter = createTRPCRouter({
 		}),
 
 	removeContainer: withPermission("docker", "read")
+		.meta({
+			openapi: {
+				summary: "Remove a Docker container",
+				description: "Removes a Docker container by its ID. Optionally targets a remote server. An audit log entry is created for the deletion.",
+			},
+		})
 		.input(
 			z.object({
 				containerId: z
@@ -82,6 +100,12 @@ export const dockerRouter = createTRPCRouter({
 		}),
 
 	getConfig: withPermission("docker", "read")
+		.meta({
+			openapi: {
+				summary: "Get Docker container configuration",
+				description: "Retrieves the configuration (inspect data) for a specific Docker container. Optionally targets a remote server.",
+			},
+		})
 		.input(
 			z.object({
 				containerId: z
@@ -102,6 +126,12 @@ export const dockerRouter = createTRPCRouter({
 		}),
 
 	getContainersByAppNameMatch: withPermission("service", "read")
+		.meta({
+			openapi: {
+				summary: "Get containers by app name match",
+				description: "Retrieves containers whose names match the given application name. Supports filtering by app type (stack or docker-compose) and optionally targets a remote server.",
+			},
+		})
 		.input(
 			z.object({
 				appType: z.enum(["stack", "docker-compose"]).optional(),
@@ -124,6 +154,12 @@ export const dockerRouter = createTRPCRouter({
 		}),
 
 	getContainersByAppLabel: withPermission("docker", "read")
+		.meta({
+			openapi: {
+				summary: "Get containers by app label",
+				description: "Retrieves containers filtered by application label. Supports standalone and swarm deployment types, and optionally targets a remote server.",
+			},
+		})
 		.input(
 			z.object({
 				appName: z.string().min(1).regex(containerIdRegex, "Invalid app name."),
@@ -146,6 +182,12 @@ export const dockerRouter = createTRPCRouter({
 		}),
 
 	getStackContainersByAppName: withPermission("docker", "read")
+		.meta({
+			openapi: {
+				summary: "Get stack containers by app name",
+				description: "Retrieves all containers belonging to a Docker stack by application name. Optionally targets a remote server.",
+			},
+		})
 		.input(
 			z.object({
 				appName: z.string().min(1).regex(containerIdRegex, "Invalid app name."),
@@ -163,6 +205,12 @@ export const dockerRouter = createTRPCRouter({
 		}),
 
 	getServiceContainersByAppName: withPermission("docker", "read")
+		.meta({
+			openapi: {
+				summary: "Get service containers by app name",
+				description: "Retrieves all containers belonging to a Docker Swarm service by application name. Optionally targets a remote server.",
+			},
+		})
 		.input(
 			z.object({
 				appName: z.string().min(1).regex(containerIdRegex, "Invalid app name."),
@@ -180,6 +228,12 @@ export const dockerRouter = createTRPCRouter({
 		}),
 
 	uploadFileToContainer: withPermission("docker", "read")
+		.meta({
+			openapi: {
+				summary: "Upload a file to a Docker container",
+				description: "Uploads a file to a specified path inside a Docker container. The file is converted to a buffer and transferred to the container's filesystem.",
+			},
+		})
 		.input(uploadFileToContainerSchema)
 		.mutation(async ({ input, ctx }) => {
 			if (input.serverId) {

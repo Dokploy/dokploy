@@ -22,6 +22,12 @@ import {
 
 export const destinationRouter = createTRPCRouter({
 	create: withPermission("destination", "create")
+		.meta({
+			openapi: {
+				summary: "Create backup destination",
+				description: "Creates a new S3-compatible backup destination for the current organization and logs an audit event.",
+			},
+		})
 		.input(apiCreateDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -45,6 +51,12 @@ export const destinationRouter = createTRPCRouter({
 			}
 		}),
 	testConnection: withPermission("destination", "create")
+		.meta({
+			openapi: {
+				summary: "Test backup destination connection",
+				description: "Tests connectivity to an S3-compatible bucket using rclone. Runs locally or on a remote server depending on configuration.",
+			},
+		})
 		.input(apiCreateDestination)
 		.mutation(async ({ input }) => {
 			const {
@@ -102,6 +114,12 @@ export const destinationRouter = createTRPCRouter({
 			}
 		}),
 	one: withPermission("destination", "read")
+		.meta({
+			openapi: {
+				summary: "Get backup destination",
+				description: "Returns a single backup destination by ID. Verifies the caller belongs to the same organization.",
+			},
+		})
 		.input(apiFindOneDestination)
 		.query(async ({ input, ctx }) => {
 			const destination = await findDestinationById(input.destinationId);
@@ -113,13 +131,26 @@ export const destinationRouter = createTRPCRouter({
 			}
 			return destination;
 		}),
-	all: withPermission("destination", "read").query(async ({ ctx }) => {
+	all: withPermission("destination", "read")
+		.meta({
+			openapi: {
+				summary: "List all backup destinations",
+				description: "Returns all S3-compatible backup destinations for the current organization, ordered by creation date descending.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		return await db.query.destinations.findMany({
 			where: eq(destinations.organizationId, ctx.session.activeOrganizationId),
 			orderBy: [desc(destinations.createdAt)],
 		});
 	}),
 	remove: withPermission("destination", "delete")
+		.meta({
+			openapi: {
+				summary: "Delete backup destination",
+				description: "Removes a backup destination by ID. Verifies organization ownership and logs an audit event before deletion.",
+			},
+		})
 		.input(apiRemoveDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -147,6 +178,12 @@ export const destinationRouter = createTRPCRouter({
 			}
 		}),
 	update: withPermission("destination", "create")
+		.meta({
+			openapi: {
+				summary: "Update backup destination",
+				description: "Updates an existing backup destination. Verifies organization ownership before applying changes and logs an audit event.",
+			},
+		})
 		.input(apiUpdateDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {

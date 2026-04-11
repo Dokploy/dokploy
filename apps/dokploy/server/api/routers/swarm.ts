@@ -13,6 +13,12 @@ import { containerIdRegex } from "./docker";
 
 export const swarmRouter = createTRPCRouter({
 	getNodes: withPermission("server", "read")
+		.meta({
+			openapi: {
+				summary: "Get Swarm nodes",
+				description: "Retrieves all nodes in the Docker Swarm. Optionally targets a remote server by ID.",
+			},
+		})
 		.input(
 			z.object({
 				serverId: z.string().optional(),
@@ -22,11 +28,23 @@ export const swarmRouter = createTRPCRouter({
 			return await getSwarmNodes(input.serverId);
 		}),
 	getNodeInfo: withPermission("server", "read")
+		.meta({
+			openapi: {
+				summary: "Get Swarm node info",
+				description: "Retrieves detailed information about a specific Docker Swarm node by its node ID. Optionally targets a remote server.",
+			},
+		})
 		.input(z.object({ nodeId: z.string(), serverId: z.string().optional() }))
 		.query(async ({ input }) => {
 			return await getNodeInfo(input.nodeId, input.serverId);
 		}),
 	getNodeApps: withPermission("server", "read")
+		.meta({
+			openapi: {
+				summary: "Get Swarm node applications",
+				description: "Retrieves all applications (services) running across Docker Swarm nodes. Optionally targets a remote server.",
+			},
+		})
 		.input(
 			z.object({
 				serverId: z.string().optional(),
@@ -58,6 +76,12 @@ export const swarmRouter = createTRPCRouter({
 			return await getApplicationInfo(input.appName, input.serverId);
 		}),
 	getContainerStats: withPermission("server", "read")
+		.meta({
+			openapi: {
+				summary: "Get container stats",
+				description: "Retrieves resource usage statistics for all containers. Optionally targets a remote server and validates organization access.",
+			},
+		})
 		.input(
 			z.object({
 				serverId: z.string().optional(),

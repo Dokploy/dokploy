@@ -83,6 +83,12 @@ import { audit } from "../utils/audit";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create a compose service",
+				description: "Creates a new Docker Compose service in the specified project environment with the given configuration.",
+			},
+		})
 		.input(apiCreateCompose)
 		.mutation(async ({ ctx, input }) => {
 			try {
@@ -133,6 +139,12 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a compose service",
+				description: "Retrieves detailed information about a compose service by its ID, including git provider access status and deployment configuration.",
+			},
+		})
 		.input(apiFindCompose)
 		.query(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.composeId, "read");
@@ -189,6 +201,12 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update a compose service",
+				description: "Updates the configuration of a compose service such as name, description, compose file content, and other settings.",
+			},
+		})
 		.input(apiUpdateCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -204,6 +222,12 @@ export const composeRouter = createTRPCRouter({
 			return updated;
 		}),
 	saveEnvironment: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save compose environment variables",
+				description: "Updates the environment variables for a compose service.",
+			},
+		})
 		.input(apiSaveEnvironmentVariablesCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -229,6 +253,12 @@ export const composeRouter = createTRPCRouter({
 			return true;
 		}),
 	delete: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a compose service",
+				description: "Permanently deletes a compose service and cleans up associated Docker resources, deployments, and directories. Optionally deletes associated volumes.",
+			},
+		})
 		.input(apiDeleteCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.composeId, "delete");
@@ -279,6 +309,12 @@ export const composeRouter = createTRPCRouter({
 			return composeResult;
 		}),
 	cleanQueues: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Clean deployment queues",
+				description: "Removes all pending deployment jobs from the queue for the specified compose service.",
+			},
+		})
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -288,6 +324,12 @@ export const composeRouter = createTRPCRouter({
 			return { success: true, message: "Queues cleaned successfully" };
 		}),
 	clearDeployments: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Clear old deployments",
+				description: "Removes old deployment logs and artifacts for the compose service to free up disk space.",
+			},
+		})
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -304,6 +346,12 @@ export const composeRouter = createTRPCRouter({
 			return true;
 		}),
 	killBuild: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Kill active build",
+				description: "Forcefully terminates the currently running Docker build process for the compose service.",
+			},
+		})
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -314,6 +362,12 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	loadServices: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Load compose services",
+				description: "Parses the compose file and returns the list of services defined in it, with their current container status.",
+			},
+		})
 		.input(apiFetchServices)
 		.query(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -322,6 +376,12 @@ export const composeRouter = createTRPCRouter({
 			return await loadServices(input.composeId, input.type);
 		}),
 	loadMountsByService: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Load mounts by service",
+				description: "Retrieves the Docker volume mounts for a specific service within a compose stack by inspecting the running container.",
+			},
+		})
 		.input(
 			z.object({
 				composeId: z.string().min(1),
@@ -340,6 +400,12 @@ export const composeRouter = createTRPCRouter({
 			return mounts;
 		}),
 	fetchSourceType: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Fetch and clone source",
+				description: "Clones the compose repository from the configured git provider and returns the source type. Executes the clone command locally or on a remote server.",
+			},
+		})
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -365,6 +431,12 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	randomizeCompose: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Randomize compose file",
+				description: "Adds a random suffix to service names and volumes in the compose file to avoid naming conflicts between deployments.",
+			},
+		})
 		.input(apiRandomizeCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -381,6 +453,12 @@ export const composeRouter = createTRPCRouter({
 			return result;
 		}),
 	isolatedDeployment: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Randomize for isolated deployment",
+				description: "Randomizes the compose file for isolated deployment mode, ensuring unique service and volume names to support parallel deployments.",
+			},
+		})
 		.input(apiRandomizeCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -400,6 +478,12 @@ export const composeRouter = createTRPCRouter({
 			return result;
 		}),
 	getConvertedCompose: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get converted compose file",
+				description: "Returns the compose file with domains injected as Traefik labels, converted to YAML format ready for deployment.",
+			},
+		})
 		.input(apiFindCompose)
 		.query(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -414,6 +498,12 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	deploy: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Deploy a compose service",
+				description: "Triggers a new deployment for the compose service. Queues a deployment job or executes it directly for cloud servers.",
+			},
+		})
 		.input(apiDeployCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -464,6 +554,12 @@ export const composeRouter = createTRPCRouter({
 			};
 		}),
 	redeploy: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Redeploy a compose service",
+				description: "Triggers a rebuild and redeployment of the compose service. Queues a deployment job or executes it directly for cloud servers.",
+			},
+		})
 		.input(apiRedeployCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -512,6 +608,12 @@ export const composeRouter = createTRPCRouter({
 			};
 		}),
 	stop: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Stop a compose service",
+				description: "Stops all running containers for the compose service using docker compose stop.",
+			},
+		})
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -528,6 +630,12 @@ export const composeRouter = createTRPCRouter({
 			return true;
 		}),
 	start: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Start a compose service",
+				description: "Starts all containers for the compose service using docker compose start.",
+			},
+		})
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -544,6 +652,12 @@ export const composeRouter = createTRPCRouter({
 			return true;
 		}),
 	getDefaultCommand: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get default compose command",
+				description: "Generates and returns the default docker compose command that would be used to deploy the service.",
+			},
+		})
 		.input(apiFindCompose)
 		.query(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -554,6 +668,12 @@ export const composeRouter = createTRPCRouter({
 			return `docker ${command}`;
 		}),
 	refreshToken: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Refresh deploy token",
+				description: "Regenerates the webhook refresh token for the compose service, invalidating the previous token used for triggering deployments.",
+			},
+		})
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -572,6 +692,12 @@ export const composeRouter = createTRPCRouter({
 			return true;
 		}),
 	deployTemplate: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Deploy a template",
+				description: "Creates a new compose service from a template by fetching its files, processing variables, creating mounts and domains, and setting up the compose configuration.",
+			},
+		})
 		.input(
 			z.object({
 				environmentId: z.string(),
@@ -680,6 +806,12 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	templates: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List available templates",
+				description: "Fetches the list of available compose templates from the GitHub templates repository.",
+			},
+		})
 		.input(z.object({ baseUrl: z.string().optional() }))
 		.query(async ({ input }) => {
 			try {
@@ -698,6 +830,12 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	getTags: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get template tags",
+				description: "Fetches all unique tags from the available compose templates for filtering purposes.",
+			},
+		})
 		.input(z.object({ baseUrl: z.string().optional() }))
 		.query(async ({ input }) => {
 			const githubTemplates = await fetchTemplatesList(input.baseUrl);
@@ -707,6 +845,12 @@ export const composeRouter = createTRPCRouter({
 			return uniqueTags;
 		}),
 	disconnectGitProvider: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Disconnect git provider",
+				description: "Removes all git provider configuration from the compose service, resetting source type to default and clearing repository, branch, and owner fields for all providers.",
+			},
+		})
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -759,6 +903,12 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	move: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Move compose to another environment",
+				description: "Moves a compose service to a different environment within the same project or to another project's environment.",
+			},
+		})
 		.input(
 			z.object({
 				composeId: z.string(),
@@ -796,6 +946,12 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	processTemplate: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Process a template",
+				description: "Processes a base64-encoded template configuration, resolving variables and generating the compose file and environment settings without applying them.",
+			},
+		})
 		.input(
 			z.object({
 				base64: z.string(),
@@ -860,6 +1016,12 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	import: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Import a template",
+				description: "Imports a base64-encoded template into an existing compose service, replacing its compose file, environment variables, mounts, and domains with the template's configuration.",
+			},
+		})
 		.input(
 			z.object({
 				base64: z.string(),
@@ -972,6 +1134,12 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	cancelDeployment: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Cancel a deployment",
+				description: "Cancels an in-progress deployment for the compose service and resets its status to idle. Only available in cloud version.",
+			},
+		})
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -1025,6 +1193,12 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	search: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Search compose services",
+				description: "Searches compose services by name, appName, or description with pagination. Respects service-level access control.",
+			},
+		})
 		.input(
 			z.object({
 				q: z.string().optional(),
@@ -1133,6 +1307,12 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	readLogs: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Read compose container logs",
+				description: "Retrieves Docker container logs for a specific container within the compose service with configurable tail length, time range, and optional text search filtering.",
+			},
+		})
 		.input(
 			apiFindCompose.extend({
 				containerId: z

@@ -15,6 +15,12 @@ import {
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 export const organizationRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create an organization",
+				description: "Create a new organization and add the current user as the owner. Only owners and admins can create organizations in self-hosted mode.",
+			},
+		})
 		.input(
 			z.object({
 				name: z.string(),
@@ -65,7 +71,14 @@ export const organizationRouter = createTRPCRouter({
 			});
 			return result;
 		}),
-	all: protectedProcedure.query(async ({ ctx }) => {
+	all: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List all organizations",
+				description: "Retrieve all organizations the current user is a member of, including their membership details.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const memberResult = await db.query.organization.findMany({
 			where: (organization) =>
 				exists(
@@ -88,6 +101,12 @@ export const organizationRouter = createTRPCRouter({
 		return memberResult;
 	}),
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get an organization by ID",
+				description: "Retrieve a single organization by its ID. The current user must be a member of the organization.",
+			},
+		})
 		.input(
 			z.object({
 				organizationId: z.string(),
@@ -114,6 +133,12 @@ export const organizationRouter = createTRPCRouter({
 			});
 		}),
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update an organization",
+				description: "Update the name and logo of an organization. Only the organization owner can perform this action.",
+			},
+		})
 		.input(
 			z.object({
 				organizationId: z.string(),
@@ -178,6 +203,12 @@ export const organizationRouter = createTRPCRouter({
 			return result[0];
 		}),
 	delete: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete an organization",
+				description: "Delete an organization by ID. Only the owner can delete it, and they must retain at least one organization.",
+			},
+		})
 		.input(
 			z.object({
 				organizationId: z.string(),
@@ -248,6 +279,12 @@ export const organizationRouter = createTRPCRouter({
 			return result;
 		}),
 	inviteMember: withPermission("member", "create")
+		.meta({
+			openapi: {
+				summary: "Invite a member to organization",
+				description: "Create a pending invitation for a user by email to join the active organization with the specified role. Checks for existing membership and pending invitations. Supports custom roles.",
+			},
+		})
 		.input(
 			z.object({
 				email: z.string().email(),
@@ -335,13 +372,26 @@ export const organizationRouter = createTRPCRouter({
 			return created;
 		}),
 
-	allInvitations: withPermission("member", "create").query(async ({ ctx }) => {
+	allInvitations: withPermission("member", "create")
+		.meta({
+			openapi: {
+				summary: "List all organization invitations",
+				description: "Retrieve all invitations for the active organization, ordered by status and expiration date.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		return await db.query.invitation.findMany({
 			where: eq(invitation.organizationId, ctx.session.activeOrganizationId),
 			orderBy: [desc(invitation.status), desc(invitation.expiresAt)],
 		});
 	}),
 	removeInvitation: withPermission("member", "create")
+		.meta({
+			openapi: {
+				summary: "Remove an invitation",
+				description: "Delete a pending invitation by ID. Only invitations belonging to the active organization can be removed.",
+			},
+		})
 		.input(z.object({ invitationId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
 			const invitationResult = await db.query.invitation.findFirst({
@@ -377,6 +427,12 @@ export const organizationRouter = createTRPCRouter({
 			return result;
 		}),
 	updateMemberRole: withPermission("member", "update")
+		.meta({
+			openapi: {
+				summary: "Update member role",
+				description: "Change the role of a member in the active organization. Users cannot change their own role, and the owner role is nontransferable. Only owners can change admin roles. Supports custom roles.",
+			},
+		})
 		.input(
 			z.object({
 				memberId: z.string(),
@@ -463,6 +519,12 @@ export const organizationRouter = createTRPCRouter({
 			return true;
 		}),
 	setDefault: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Set default organization",
+				description: "Set an organization as the default for the current user. Unsets any previous default and marks the specified organization as the new default.",
+			},
+		})
 		.input(
 			z.object({
 				organizationId: z.string().min(1),
@@ -509,7 +571,14 @@ export const organizationRouter = createTRPCRouter({
 			});
 			return { success: true };
 		}),
-	active: protectedProcedure.query(async ({ ctx }) => {
+	active: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get active organization",
+				description: "Retrieve the organization that is currently active in the user's session. Returns null if no organization is active.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		if (!ctx.session.activeOrganizationId) {
 			return null;
 		}

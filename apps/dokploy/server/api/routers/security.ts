@@ -15,6 +15,12 @@ import {
 
 export const securityRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create a security entry",
+				description: "Creates a new HTTP basic auth security entry for an application with the provided username and password. Logs an audit entry.",
+			},
+		})
 		.input(apiCreateSecurity)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -31,6 +37,12 @@ export const securityRouter = createTRPCRouter({
 		}),
 
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a security entry",
+				description: "Returns a single HTTP basic auth security entry by its ID.",
+			},
+		})
 		.input(apiFindOneSecurity)
 		.query(async ({ input, ctx }) => {
 			const security = await findSecurityById(input.securityId);
@@ -41,6 +53,12 @@ export const securityRouter = createTRPCRouter({
 		}),
 
 	delete: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a security entry",
+				description: "Deletes an HTTP basic auth security entry by its ID and logs an audit entry.",
+			},
+		})
 		.input(apiFindOneSecurity)
 		.mutation(async ({ input, ctx }) => {
 			const security = await findSecurityById(input.securityId);
@@ -57,6 +75,12 @@ export const securityRouter = createTRPCRouter({
 		}),
 
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update a security entry",
+				description: "Updates an existing HTTP basic auth security entry's configuration and logs an audit entry.",
+			},
+		})
 		.input(apiUpdateSecurity)
 		.mutation(async ({ input, ctx }) => {
 			const security = await findSecurityById(input.securityId);

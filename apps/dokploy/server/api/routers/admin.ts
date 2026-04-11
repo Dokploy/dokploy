@@ -10,6 +10,12 @@ import { adminProcedure, createTRPCRouter } from "../trpc";
 
 export const adminRouter = createTRPCRouter({
 	setupMonitoring: adminProcedure
+		.meta({
+			openapi: {
+				summary: "Update web server monitoring settings",
+				description: "Update the monitoring configuration for the web server including refresh rates, thresholds, and container services. Restarts the monitoring system and returns the updated settings. Disabled on cloud.",
+			},
+		})
 		.input(apiUpdateWebServerMonitoring)
 		.mutation(async ({ input }) => {
 			try {

@@ -30,7 +30,14 @@ import {
 
 export const stripeRouter = createTRPCRouter({
 	/** Returns the current billing plan for the user's organization. Used to gate features like chat (Startup only). */
-	getCurrentPlan: protectedProcedure.query(async ({ ctx }) => {
+	getCurrentPlan: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get current billing plan",
+				description: "Returns the active Stripe billing plan (hobby, startup, or legacy) for the caller's organization owner. Returns null if not on cloud or no subscription exists.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		if (!IS_CLOUD) return null;
 		const owner = await findUserById(ctx.user.ownerId);
 		if (!owner?.stripeCustomerId) return null;
@@ -71,7 +78,14 @@ export const stripeRouter = createTRPCRouter({
 		return null;
 	}),
 
-	getProducts: adminProcedure.query(async ({ ctx }) => {
+	getProducts: adminProcedure
+		.meta({
+			openapi: {
+				summary: "List Stripe products and subscriptions",
+				description: "Returns available Stripe products, the user's active subscriptions, current plan tier, billing interval, and price amount.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);
 		const stripeCustomerId = user.stripeCustomerId;
 
@@ -162,6 +176,12 @@ export const stripeRouter = createTRPCRouter({
 		};
 	}),
 	createCheckoutSession: adminProcedure
+		.meta({
+			openapi: {
+				summary: "Create Stripe checkout session",
+				description: "Creates a Stripe checkout session for subscribing to a billing plan. Handles customer creation or reuse and returns the session ID for redirect.",
+			},
+		})
 		.input(
 			z
 				.object({
@@ -222,7 +242,14 @@ export const stripeRouter = createTRPCRouter({
 
 			return { sessionId: session.id };
 		}),
-	createCustomerPortalSession: adminProcedure.mutation(async ({ ctx }) => {
+	createCustomerPortalSession: adminProcedure
+		.meta({
+			openapi: {
+				summary: "Create Stripe customer portal session",
+				description: "Creates a Stripe billing portal session URL so the user can manage their subscription, payment methods, and invoices.",
+			},
+		})
+		.mutation(async ({ ctx }) => {
 		// Use the organization's owner account for billing portal
 		const owner = await findUserById(ctx.user.ownerId);
 
@@ -253,6 +280,12 @@ export const stripeRouter = createTRPCRouter({
 	}),
 
 	upgradeSubscription: adminProcedure
+		.meta({
+			openapi: {
+				summary: "Upgrade subscription",
+				description: "Upgrades or changes the current Stripe subscription to a different tier or server quantity. Applies prorated charges for the billing period change.",
+			},
+		})
 		.input(
 			z
 				.object({
@@ -324,7 +357,14 @@ export const stripeRouter = createTRPCRouter({
 			return { ok: true };
 		}),
 
-	canCreateMoreServers: withPermission("server", "create").query(
+	canCreateMoreServers: withPermission("server", "create")
+		.meta({
+			openapi: {
+				summary: "Check server creation quota",
+				description: "Returns whether the organization can create more servers based on their subscription's server quantity limit. Always returns true for self-hosted instances.",
+			},
+		})
+		.query(
 		async ({ ctx }) => {
 			const user = await findUserById(ctx.user.ownerId);
 			const servers = await findServersByUserId(user.id);
@@ -338,6 +378,12 @@ export const stripeRouter = createTRPCRouter({
 	),
 
 	updateInvoiceNotifications: adminProcedure
+		.meta({
+			openapi: {
+				summary: "Update invoice notification preference",
+				description: "Enables or disables email notifications for invoice events. Only available on Dokploy Cloud.",
+			},
+		})
 		.input(z.object({ enabled: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
 			if (!IS_CLOUD) {
@@ -353,7 +399,14 @@ export const stripeRouter = createTRPCRouter({
 			return { ok: true };
 		}),
 
-	getInvoices: adminProcedure.query(async ({ ctx }) => {
+	getInvoices: adminProcedure
+		.meta({
+			openapi: {
+				summary: "List invoices",
+				description: "Returns up to 100 Stripe invoices for the organization owner, including status, amounts, and download links.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);
 		const stripeCustomerId = user.stripeCustomerId;
 

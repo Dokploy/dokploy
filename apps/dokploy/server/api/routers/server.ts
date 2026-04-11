@@ -48,6 +48,12 @@ import {
 
 export const serverRouter = createTRPCRouter({
 	create: withPermission("server", "create")
+		.meta({
+			openapi: {
+				summary: "Create a server",
+				description: "Creates a new server in the organization. In cloud mode, enforces the user's server quantity limit. Returns the newly created server.",
+			},
+		})
 		.input(apiCreateServer)
 		.mutation(async ({ ctx, input }) => {
 			try {
@@ -80,6 +86,12 @@ export const serverRouter = createTRPCRouter({
 		}),
 
 	one: withPermission("server", "read")
+		.meta({
+			openapi: {
+				summary: "Get a server",
+				description: "Retrieves a single server by its ID. Validates that the user has access to the server within their organization.",
+			},
+		})
 		.input(apiFindOneServer)
 		.query(async ({ input, ctx }) => {
 			const server = await findServerById(input.serverId);
@@ -101,13 +113,26 @@ export const serverRouter = createTRPCRouter({
 			return server;
 		}),
 	getDefaultCommand: withPermission("server", "read")
+		.meta({
+			openapi: {
+				summary: "Get default server command",
+				description: "Returns the default setup command for a server. The command varies depending on whether the server is a build server or a deploy server.",
+			},
+		})
 		.input(apiFindOneServer)
 		.query(async ({ input }) => {
 			const server = await findServerById(input.serverId);
 			const isBuildServer = server.serverType === "build";
 			return defaultCommand(isBuildServer);
 		}),
-	all: withPermission("server", "read").query(async ({ ctx }) => {
+	all: withPermission("server", "read")
+		.meta({
+			openapi: {
+				summary: "List all servers",
+				description: "Returns all servers in the current organization along with a count of associated services (applications, compose, databases). Results are filtered by the user's accessible server permissions.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleServerIds(ctx.session);
 
 		const result = await db
@@ -130,6 +155,12 @@ export const serverRouter = createTRPCRouter({
 		return result.filter((s) => accessibleIds.has(s.serverId));
 	}),
 	allForPermissions: withPermission("member", "update")
+		.meta({
+			openapi: {
+				summary: "List all servers for permissions",
+				description: "Returns a minimal list of servers (ID, name, IP, type) used for configuring member permissions. Requires a valid enterprise license.",
+			},
+		})
 		.use(async ({ ctx, next }) => {
 			const licensed = await hasValidLicense(ctx.session.activeOrganizationId);
 			if (!licensed) {
@@ -152,7 +183,14 @@ export const serverRouter = createTRPCRouter({
 				where: eq(server.organizationId, ctx.session.activeOrganizationId),
 			});
 		}),
-	count: protectedProcedure.query(async ({ ctx }) => {
+	count: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get server count",
+				description: "Returns the total number of servers across all organizations owned by the current user.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const organizations = await db.query.organization.findMany({
 			where: eq(organization.ownerId, ctx.user.id),
 			with: {
@@ -164,7 +202,14 @@ export const serverRouter = createTRPCRouter({
 
 		return servers.length ?? 0;
 	}),
-	withSSHKey: withPermission("server", "read").query(async ({ ctx }) => {
+	withSSHKey: withPermission("server", "read")
+		.meta({
+			openapi: {
+				summary: "List servers with SSH keys",
+				description: "Returns all deploy-type servers that have an SSH key configured. In cloud mode, only active servers are included. Results are filtered by the user's accessible server permissions.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleServerIds(ctx.session);
 
 		const result = await db.query.server.findMany({
@@ -184,7 +229,14 @@ export const serverRouter = createTRPCRouter({
 		});
 		return result.filter((s) => accessibleIds.has(s.serverId));
 	}),
-	buildServers: withPermission("server", "read").query(async ({ ctx }) => {
+	buildServers: withPermission("server", "read")
+		.meta({
+			openapi: {
+				summary: "List build servers",
+				description: "Returns all build-type servers that have an SSH key configured. In cloud mode, only active servers are included. Results are filtered by the user's accessible server permissions.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleServerIds(ctx.session);
 
 		const result = await db.query.server.findMany({
@@ -205,6 +257,12 @@ export const serverRouter = createTRPCRouter({
 		return result.filter((s) => accessibleIds.has(s.serverId));
 	}),
 	setup: withPermission("server", "create")
+		.meta({
+			openapi: {
+				summary: "Setup a server",
+				description: "Runs the initial setup process on a remote server, installing required dependencies and configuring Docker. An audit log entry is created.",
+			},
+		})
 		.input(apiFindOneServer)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -256,6 +314,12 @@ export const serverRouter = createTRPCRouter({
 			}
 		}),
 	validate: withPermission("server", "read")
+		.meta({
+			openapi: {
+				summary: "Validate server configuration",
+				description: "Checks the server for required tools and configuration including Docker, Rclone, Nixpacks, Buildpacks, Railpack, Swarm mode, network setup, and privilege mode.",
+			},
+		})
 		.input(apiFindOneServer)
 		.query(async ({ input, ctx }) => {
 			try {
@@ -304,6 +368,12 @@ export const serverRouter = createTRPCRouter({
 		}),
 
 	security: withPermission("server", "read")
+		.meta({
+			openapi: {
+				summary: "Get server security audit",
+				description: "Performs a security audit on the server, checking UFW firewall, SSH configuration, non-root user setup, unattended upgrades, and Fail2Ban status.",
+			},
+		})
 		.input(apiFindOneServer)
 		.query(async ({ input, ctx }) => {
 			try {
@@ -354,6 +424,12 @@ export const serverRouter = createTRPCRouter({
 			}
 		}),
 	setupMonitoring: withPermission("server", "create")
+		.meta({
+			openapi: {
+				summary: "Setup server monitoring",
+				description: "Configures and deploys the monitoring agent on a server with the specified metrics configuration including refresh rates, retention, thresholds, and container service filters.",
+			},
+		})
 		.input(apiUpdateServerMonitoring)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -402,6 +478,12 @@ export const serverRouter = createTRPCRouter({
 			}
 		}),
 	remove: withPermission("server", "delete")
+		.meta({
+			openapi: {
+				summary: "Remove a server",
+				description: "Deletes a server and removes all associated deployments. Fails if the server has active services. In cloud mode, updates the user's server quantity allocation.",
+			},
+		})
 		.input(apiRemoveServer)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -435,6 +517,12 @@ export const serverRouter = createTRPCRouter({
 			}
 		}),
 	update: withPermission("server", "create")
+		.meta({
+			openapi: {
+				summary: "Update a server",
+				description: "Updates the configuration of an existing server. Fails if the server is inactive. An audit log entry is created for the update.",
+			},
+		})
 		.input(apiUpdateServer)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -467,14 +555,28 @@ export const serverRouter = createTRPCRouter({
 				throw error;
 			}
 		}),
-	publicIp: protectedProcedure.query(async () => {
+	publicIp: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get public IP address",
+				description: "Returns the public IP address of the local server. Returns an empty string in cloud mode.",
+			},
+		})
+		.query(async () => {
 		if (IS_CLOUD) {
 			return "";
 		}
 		const ip = await getPublicIpWithFallback();
 		return ip;
 	}),
-	getServerTime: protectedProcedure.query(() => {
+	getServerTime: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get server time",
+				description: "Returns the current server time and timezone. Returns null in cloud mode.",
+			},
+		})
+		.query(() => {
 		if (IS_CLOUD) {
 			return null;
 		}
@@ -484,6 +586,12 @@ export const serverRouter = createTRPCRouter({
 		};
 	}),
 	getServerMetrics: withPermission("monitoring", "read")
+		.meta({
+			openapi: {
+				summary: "Get server metrics",
+				description: "Fetches monitoring metrics (CPU, memory, disk, network) from the server's monitoring agent endpoint. Requires the monitoring service to be configured and running.",
+			},
+		})
 		.input(
 			z.object({
 				url: z.string(),

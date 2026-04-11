@@ -22,20 +22,47 @@ import {
 } from "@/server/db/schema";
 
 export const githubRouter = createTRPCRouter({
-	one: protectedProcedure.input(apiFindOneGithub).query(async ({ input }) => {
-		return await findGithubById(input.githubId);
-	}),
+	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get GitHub provider",
+				description: "Returns a single GitHub provider configuration by its ID.",
+			},
+		})
+		.input(apiFindOneGithub)
+		.query(async ({ input }) => {
+			return await findGithubById(input.githubId);
+		}),
 	getGithubRepositories: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List GitHub repositories",
+				description: "Fetches the list of repositories accessible by the GitHub provider. Calls the GitHub API using the provider's credentials.",
+			},
+		})
 		.input(apiFindOneGithub)
 		.query(async ({ input }) => {
 			return await getGithubRepositories(input.githubId);
 		}),
 	getGithubBranches: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List GitHub branches",
+				description: "Fetches the list of branches for a specific GitHub repository. Calls the GitHub API using the provider's credentials.",
+			},
+		})
 		.input(apiFindGithubBranches)
 		.query(async ({ input }) => {
 			return await getGithubBranches(input);
 		}),
-	githubProviders: protectedProcedure.query(async ({ ctx }) => {
+	githubProviders: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List GitHub providers",
+				description: "Returns all GitHub providers accessible to the current user within the active organization, filtered to only those with valid credentials.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
 
 		let result = await db.query.github.findMany({
@@ -66,6 +93,12 @@ export const githubRouter = createTRPCRouter({
 	}),
 
 	testConnection: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Test GitHub connection",
+				description: "Tests the connection to a GitHub provider by attempting to fetch its repositories. Returns the number of repositories found or throws an error on failure.",
+			},
+		})
 		.input(apiFindOneGithub)
 		.mutation(async ({ input }) => {
 			try {
@@ -79,6 +112,12 @@ export const githubRouter = createTRPCRouter({
 			}
 		}),
 	update: withPermission("gitProviders", "create")
+		.meta({
+			openapi: {
+				summary: "Update GitHub provider",
+				description: "Updates a GitHub provider configuration and its associated git provider record. Requires gitProviders create permission.",
+			},
+		})
 		.input(apiUpdateGithub)
 		.mutation(async ({ input, ctx }) => {
 			await updateGitProvider(input.gitProviderId, {

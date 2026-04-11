@@ -55,6 +55,12 @@ import { cancelJobs } from "@/server/utils/backup";
 
 export const postgresRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create a PostgreSQL database",
+				description: "Creates a new PostgreSQL database service with the specified configuration, sets up a persistent data volume, and registers it in the project.",
+			},
+		})
 		.input(apiCreatePostgres)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -121,6 +127,12 @@ export const postgresRouter = createTRPCRouter({
 			}
 		}),
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a PostgreSQL database by ID",
+				description: "Returns the full details of a PostgreSQL database service, including its environment and project configuration.",
+			},
+		})
 		.input(apiFindOnePostgres)
 		.query(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.postgresId, "read");
@@ -139,6 +151,12 @@ export const postgresRouter = createTRPCRouter({
 		}),
 
 	start: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Start a PostgreSQL database",
+				description: "Starts the Docker container for the specified PostgreSQL database and sets its status to done.",
+			},
+		})
 		.input(apiFindOnePostgres)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
@@ -164,6 +182,12 @@ export const postgresRouter = createTRPCRouter({
 			return service;
 		}),
 	stop: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Stop a PostgreSQL database",
+				description: "Stops the Docker container for the specified PostgreSQL database and sets its status to idle.",
+			},
+		})
 		.input(apiFindOnePostgres)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
@@ -188,6 +212,12 @@ export const postgresRouter = createTRPCRouter({
 			return postgres;
 		}),
 	saveExternalPort: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save the external port for a PostgreSQL database",
+				description: "Updates the external port mapping for the PostgreSQL database and triggers a redeployment. Validates that the port is not already in use.",
+			},
+		})
 		.input(apiSaveExternalPortPostgres)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
@@ -221,6 +251,12 @@ export const postgresRouter = createTRPCRouter({
 			return postgres;
 		}),
 	deploy: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Deploy a PostgreSQL database",
+				description: "Triggers a deployment for the specified PostgreSQL database, rebuilding and restarting its Docker container with the current configuration.",
+			},
+		})
 		.input(apiDeployPostgres)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
@@ -276,6 +312,12 @@ export const postgresRouter = createTRPCRouter({
 		}),
 
 	changeStatus: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Change PostgreSQL database status",
+				description: "Updates the application status of a PostgreSQL database without starting or stopping the container.",
+			},
+		})
 		.input(apiChangePostgresStatus)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
@@ -294,6 +336,12 @@ export const postgresRouter = createTRPCRouter({
 			return postgres;
 		}),
 	remove: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a PostgreSQL database",
+				description: "Removes the PostgreSQL database service, its Docker container, cancels associated backup jobs, and deletes the database record.",
+			},
+		})
 		.input(apiFindOnePostgres)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.postgresId, "delete");
@@ -332,6 +380,12 @@ export const postgresRouter = createTRPCRouter({
 			return postgres;
 		}),
 	saveEnvironment: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save environment variables for a PostgreSQL database",
+				description: "Updates the environment variables for the specified PostgreSQL database service.",
+			},
+		})
 		.input(apiSaveEnvironmentVariablesPostgres)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
@@ -356,6 +410,12 @@ export const postgresRouter = createTRPCRouter({
 			return true;
 		}),
 	reload: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Reload a PostgreSQL database",
+				description: "Restarts the PostgreSQL database by stopping and then starting its Docker container.",
+			},
+		})
 		.input(apiResetPostgres)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
@@ -388,6 +448,12 @@ export const postgresRouter = createTRPCRouter({
 			return true;
 		}),
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update a PostgreSQL database",
+				description: "Updates the configuration of an existing PostgreSQL database service.",
+			},
+		})
 		.input(apiUpdatePostgres)
 		.mutation(async ({ input, ctx }) => {
 			const { postgresId, ...rest } = input;
@@ -415,6 +481,12 @@ export const postgresRouter = createTRPCRouter({
 			return true;
 		}),
 	changePassword: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Change PostgreSQL database password",
+				description: "Changes the password for the PostgreSQL database user by executing ALTER USER inside the running container and updating the stored password.",
+			},
+		})
 		.input(
 			z.object({
 				postgresId: z.string().min(1),
@@ -465,6 +537,12 @@ export const postgresRouter = createTRPCRouter({
 			return true;
 		}),
 	move: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Move a PostgreSQL database to another environment",
+				description: "Moves the PostgreSQL database to a different environment within the same project.",
+			},
+		})
 		.input(
 			z.object({
 				postgresId: z.string(),
@@ -501,6 +579,12 @@ export const postgresRouter = createTRPCRouter({
 			return updatedPostgres;
 		}),
 	rebuild: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Rebuild a PostgreSQL database",
+				description: "Rebuilds the PostgreSQL database Docker container from scratch, pulling the latest image and recreating the service.",
+			},
+		})
 		.input(apiRebuildPostgres)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
@@ -517,6 +601,12 @@ export const postgresRouter = createTRPCRouter({
 			return true;
 		}),
 	search: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Search PostgreSQL databases",
+				description: "Returns a paginated list of PostgreSQL databases matching the given filters. Supports searching by name, appName, description, project, and environment.",
+			},
+		})
 		.input(
 			z.object({
 				q: z.string().optional(),
@@ -617,6 +707,12 @@ export const postgresRouter = createTRPCRouter({
 		}),
 
 	readLogs: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Read PostgreSQL container logs",
+				description: "Retrieves the Docker container logs for the specified PostgreSQL database, with support for tail count, time-based filtering, and text search.",
+			},
+		})
 		.input(
 			apiFindOnePostgres.extend({
 				tail: z.number().int().min(1).max(10000).default(100),

@@ -34,6 +34,12 @@ import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
 export const deploymentRouter = createTRPCRouter({
 	all: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List deployments by application",
+				description: "Returns all deployments associated with the given application, ordered by creation date.",
+			},
+		})
 		.input(apiFindAllByApplication)
 		.query(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -43,6 +49,12 @@ export const deploymentRouter = createTRPCRouter({
 		}),
 
 	allByCompose: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List deployments by compose",
+				description: "Returns all deployments associated with the given compose service.",
+			},
+		})
 		.input(apiFindAllByCompose)
 		.query(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
@@ -51,11 +63,24 @@ export const deploymentRouter = createTRPCRouter({
 			return await findAllDeploymentsByComposeId(input.composeId);
 		}),
 	allByServer: withPermission("deployment", "read")
+		.meta({
+			openapi: {
+				summary: "List deployments by server",
+				description: "Returns all deployments associated with the given server.",
+			},
+		})
 		.input(apiFindAllByServer)
 		.query(async ({ input }) => {
 			return await findAllDeploymentsByServerId(input.serverId);
 		}),
-	allCentralized: withPermission("deployment", "read").query(
+	allCentralized: withPermission("deployment", "read")
+		.meta({
+			openapi: {
+				summary: "List all deployments centralized",
+				description: "Returns all deployments across all services in the organization. Non-admin users only see deployments for their accessible services.",
+			},
+		})
+		.query(
 		async ({ ctx }) => {
 			const orgId = ctx.session.activeOrganizationId;
 			const accessedServices =
@@ -69,7 +94,14 @@ export const deploymentRouter = createTRPCRouter({
 		},
 	),
 
-	queueList: withPermission("deployment", "read").query(async ({ ctx }) => {
+	queueList: withPermission("deployment", "read")
+		.meta({
+			openapi: {
+				summary: "List deployment queue jobs",
+				description: "Returns all jobs in the deployment queue with their current state, timestamps, and resolved service paths.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const orgId = ctx.session.activeOrganizationId;
 		let rows: QueueJobRow[];
 
@@ -116,6 +148,12 @@ export const deploymentRouter = createTRPCRouter({
 	}),
 
 	allByType: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List deployments by service type",
+				description: "Returns all deployments for a given service ID and type (application, compose, etc.), including associated rollback information.",
+			},
+		})
 		.input(apiFindAllByType)
 		.query(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.id, {
@@ -131,6 +169,12 @@ export const deploymentRouter = createTRPCRouter({
 			return deploymentsList;
 		}),
 	killProcess: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Cancel a running deployment",
+				description: "Kills the running process of a deployment by sending SIGKILL to its PID. Updates the deployment status to error.",
+			},
+		})
 		.input(
 			z.object({
 				deploymentId: z.string().min(1),
@@ -168,6 +212,12 @@ export const deploymentRouter = createTRPCRouter({
 		}),
 
 	removeDeployment: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a deployment",
+				description: "Permanently removes a deployment record and its associated data.",
+			},
+		})
 		.input(
 			z.object({
 				deploymentId: z.string().min(1),

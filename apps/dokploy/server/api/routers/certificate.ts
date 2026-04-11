@@ -19,6 +19,12 @@ import {
 
 export const certificateRouter = createTRPCRouter({
 	create: withPermission("certificate", "create")
+		.meta({
+			openapi: {
+				summary: "Create a certificate",
+				description: "Creates a new SSL/TLS certificate. In cloud mode, a server must be specified. Logs an audit entry upon creation.",
+			},
+		})
 		.input(apiCreateCertificate)
 		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD && !input.serverId) {
@@ -41,6 +47,12 @@ export const certificateRouter = createTRPCRouter({
 		}),
 
 	one: withPermission("certificate", "read")
+		.meta({
+			openapi: {
+				summary: "Get a certificate",
+				description: "Returns a single certificate by its ID. Verifies that the certificate belongs to the current organization.",
+			},
+		})
 		.input(apiFindCertificate)
 		.query(async ({ input, ctx }) => {
 			const certificates = await findCertificateById(input.certificateId);
@@ -53,6 +65,12 @@ export const certificateRouter = createTRPCRouter({
 			return certificates;
 		}),
 	remove: withPermission("certificate", "delete")
+		.meta({
+			openapi: {
+				summary: "Delete a certificate",
+				description: "Deletes a certificate by its ID after verifying organization ownership. Logs an audit entry before removal.",
+			},
+		})
 		.input(apiFindCertificate)
 		.mutation(async ({ input, ctx }) => {
 			const certificates = await findCertificateById(input.certificateId);
@@ -71,7 +89,14 @@ export const certificateRouter = createTRPCRouter({
 			await removeCertificateById(input.certificateId);
 			return true;
 		}),
-	all: withPermission("certificate", "read").query(async ({ ctx }) => {
+	all: withPermission("certificate", "read")
+		.meta({
+			openapi: {
+				summary: "List all certificates",
+				description: "Returns all certificates belonging to the current organization, including their associated server information.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		return await db.query.certificates.findMany({
 			where: eq(certificates.organizationId, ctx.session.activeOrganizationId),
 			with: {
@@ -80,6 +105,12 @@ export const certificateRouter = createTRPCRouter({
 		});
 	}),
 	update: withPermission("certificate", "update")
+		.meta({
+			openapi: {
+				summary: "Update a certificate",
+				description: "Updates the name, certificate data, and private key of an existing certificate. Verifies organization ownership before applying changes.",
+			},
+		})
 		.input(apiUpdateCertificate)
 		.mutation(async ({ input, ctx }) => {
 			const certificate = await findCertificateById(input.certificateId);

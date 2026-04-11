@@ -51,6 +51,12 @@ import {
 } from "@/server/db/schema";
 export const redisRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create a Redis database",
+				description: "Creates a new Redis database service with the specified configuration, sets up a persistent data volume, and registers it in the project.",
+			},
+		})
 		.input(apiCreateRedis)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -108,6 +114,12 @@ export const redisRouter = createTRPCRouter({
 			}
 		}),
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a Redis database by ID",
+				description: "Returns the full details of a Redis database service, including its environment and project configuration.",
+			},
+		})
 		.input(apiFindOneRedis)
 		.query(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.redisId, "read");
@@ -126,6 +138,12 @@ export const redisRouter = createTRPCRouter({
 		}),
 
 	start: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Start a Redis database",
+				description: "Starts the Docker container for the specified Redis database and sets its status to done.",
+			},
+		})
 		.input(apiFindOneRedis)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.redisId, {
@@ -151,6 +169,12 @@ export const redisRouter = createTRPCRouter({
 			return redis;
 		}),
 	reload: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Reload a Redis database",
+				description: "Restarts the Redis database by stopping and then starting its Docker container.",
+			},
+		})
 		.input(apiResetRedis)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.redisId, {
@@ -184,6 +208,12 @@ export const redisRouter = createTRPCRouter({
 		}),
 
 	stop: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Stop a Redis database",
+				description: "Stops the Docker container for the specified Redis database and sets its status to idle.",
+			},
+		})
 		.input(apiFindOneRedis)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.redisId, {
@@ -208,6 +238,12 @@ export const redisRouter = createTRPCRouter({
 			return redis;
 		}),
 	saveExternalPort: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save the external port for a Redis database",
+				description: "Updates the external port mapping for the Redis database and triggers a redeployment. Validates that the port is not already in use.",
+			},
+		})
 		.input(apiSaveExternalPortRedis)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.redisId, {
@@ -241,6 +277,12 @@ export const redisRouter = createTRPCRouter({
 			return redis;
 		}),
 	deploy: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Deploy a Redis database",
+				description: "Triggers a deployment for the specified Redis database, rebuilding and restarting its Docker container with the current configuration.",
+			},
+		})
 		.input(apiDeployRedis)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.redisId, {
@@ -293,6 +335,12 @@ export const redisRouter = createTRPCRouter({
 			}
 		}),
 	changeStatus: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Change Redis database status",
+				description: "Updates the application status of a Redis database without starting or stopping the container.",
+			},
+		})
 		.input(apiChangeRedisStatus)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.redisId, {
@@ -311,6 +359,12 @@ export const redisRouter = createTRPCRouter({
 			return mongo;
 		}),
 	remove: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a Redis database",
+				description: "Removes the Redis database service, its Docker container, and deletes the database record.",
+			},
+		})
 		.input(apiFindOneRedis)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.redisId, "delete");
@@ -346,6 +400,12 @@ export const redisRouter = createTRPCRouter({
 			return redis;
 		}),
 	saveEnvironment: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save environment variables for a Redis database",
+				description: "Updates the environment variables for the specified Redis database service.",
+			},
+		})
 		.input(apiSaveEnvironmentVariablesRedis)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.redisId, {
@@ -370,6 +430,12 @@ export const redisRouter = createTRPCRouter({
 			return true;
 		}),
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update a Redis database",
+				description: "Updates the configuration of an existing Redis database service.",
+			},
+		})
 		.input(apiUpdateRedis)
 		.mutation(async ({ input, ctx }) => {
 			const { redisId, ...rest } = input;
@@ -396,6 +462,12 @@ export const redisRouter = createTRPCRouter({
 			return true;
 		}),
 	changePassword: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Change Redis database password",
+				description: "Changes the password for the Redis database by executing CONFIG SET requirepass inside the running container and updating the stored password.",
+			},
+		})
 		.input(
 			z.object({
 				redisId: z.string().min(1),
@@ -446,6 +518,12 @@ export const redisRouter = createTRPCRouter({
 			return true;
 		}),
 	move: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Move a Redis database to another environment",
+				description: "Moves the Redis database to a different environment within the same project.",
+			},
+		})
 		.input(
 			z.object({
 				redisId: z.string(),
@@ -482,6 +560,12 @@ export const redisRouter = createTRPCRouter({
 			return updatedRedis;
 		}),
 	rebuild: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Rebuild a Redis database",
+				description: "Rebuilds the Redis database Docker container from scratch, pulling the latest image and recreating the service.",
+			},
+		})
 		.input(apiRebuildRedis)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.redisId, {
@@ -497,6 +581,12 @@ export const redisRouter = createTRPCRouter({
 			return true;
 		}),
 	search: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Search Redis databases",
+				description: "Returns a paginated list of Redis databases matching the given filters. Supports searching by name, appName, description, project, and environment.",
+			},
+		})
 		.input(
 			z.object({
 				q: z.string().optional(),
@@ -590,6 +680,12 @@ export const redisRouter = createTRPCRouter({
 		}),
 
 	readLogs: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Read Redis container logs",
+				description: "Retrieves the Docker container logs for the specified Redis database, with support for tail count, time-based filtering, and text search.",
+			},
+		})
 		.input(
 			apiFindOneRedis.extend({
 				tail: z.number().int().min(1).max(10000).default(100),

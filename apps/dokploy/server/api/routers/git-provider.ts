@@ -21,7 +21,14 @@ import {
 } from "@/server/db/schema";
 
 export const gitProviderRouter = createTRPCRouter({
-	getAll: protectedProcedure.query(async ({ ctx }) => {
+	getAll: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List all git providers",
+				description: "Returns all git providers (GitHub, GitLab, Bitbucket, Gitea) accessible to the current user within the active organization, ordered by creation date.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
 
 		if (accessibleIds.size === 0) {
@@ -46,6 +53,12 @@ export const gitProviderRouter = createTRPCRouter({
 	}),
 
 	toggleShare: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Toggle git provider sharing",
+				description: "Toggles whether a git provider is shared with the entire organization. Only the owner of the provider can change this setting.",
+			},
+		})
 		.input(apiToggleShareGitProvider)
 		.mutation(async ({ input, ctx }) => {
 			const provider = await findGitProviderById(input.gitProviderId);
@@ -73,6 +86,12 @@ export const gitProviderRouter = createTRPCRouter({
 		}),
 
 	allForPermissions: withPermission("member", "update")
+		.meta({
+			openapi: {
+				summary: "List git providers for permissions",
+				description: "Returns a minimal list of all git providers in the organization for use in permission assignment UIs. Requires a valid enterprise license and member update permission.",
+			},
+		})
 		.use(async ({ ctx, next }) => {
 			const licensed = await hasValidLicense(ctx.session.activeOrganizationId);
 			if (!licensed) {
@@ -96,6 +115,12 @@ export const gitProviderRouter = createTRPCRouter({
 		}),
 
 	remove: withPermission("gitProviders", "delete")
+		.meta({
+			openapi: {
+				summary: "Remove git provider",
+				description: "Deletes a git provider from the organization. Requires gitProviders delete permission and the provider must belong to the active organization.",
+			},
+		})
 		.input(apiRemoveGitProvider)
 		.mutation(async ({ input, ctx }) => {
 			try {

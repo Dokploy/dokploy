@@ -25,6 +25,12 @@ import {
 
 export const bitbucketRouter = createTRPCRouter({
 	create: withPermission("gitProviders", "create")
+		.meta({
+			openapi: {
+				summary: "Create Bitbucket provider",
+				description: "Creates a new Bitbucket provider configuration linked to the active organization. Requires gitProviders create permission.",
+			},
+		})
 		.input(apiCreateBitbucket)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -50,11 +56,24 @@ export const bitbucketRouter = createTRPCRouter({
 			}
 		}),
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get Bitbucket provider",
+				description: "Returns a single Bitbucket provider configuration by its ID.",
+			},
+		})
 		.input(apiFindOneBitbucket)
 		.query(async ({ input }) => {
 			return await findBitbucketById(input.bitbucketId);
 		}),
-	bitbucketProviders: protectedProcedure.query(async ({ ctx }) => {
+	bitbucketProviders: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List Bitbucket providers",
+				description: "Returns all Bitbucket providers accessible to the current user within the active organization.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
 
 		let result = await db.query.bitbucket.findMany({
@@ -77,16 +96,34 @@ export const bitbucketRouter = createTRPCRouter({
 	}),
 
 	getBitbucketRepositories: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List Bitbucket repositories",
+				description: "Fetches the list of repositories accessible by the Bitbucket provider. Calls the Bitbucket API using the provider's credentials.",
+			},
+		})
 		.input(apiFindOneBitbucket)
 		.query(async ({ input }) => {
 			return await getBitbucketRepositories(input.bitbucketId);
 		}),
 	getBitbucketBranches: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List Bitbucket branches",
+				description: "Fetches the list of branches for a specific Bitbucket repository. Calls the Bitbucket API using the provider's credentials.",
+			},
+		})
 		.input(apiFindBitbucketBranches)
 		.query(async ({ input }) => {
 			return await getBitbucketBranches(input);
 		}),
 	testConnection: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Test Bitbucket connection",
+				description: "Tests the connection to a Bitbucket provider by attempting to fetch its repositories. Returns the number of repositories found or throws an error on failure.",
+			},
+		})
 		.input(apiBitbucketTestConnection)
 		.mutation(async ({ input }) => {
 			try {
@@ -101,6 +138,12 @@ export const bitbucketRouter = createTRPCRouter({
 			}
 		}),
 	update: withPermission("gitProviders", "create")
+		.meta({
+			openapi: {
+				summary: "Update Bitbucket provider",
+				description: "Updates a Bitbucket provider configuration. Requires gitProviders create permission.",
+			},
+		})
 		.input(apiUpdateBitbucket)
 		.mutation(async ({ input, ctx }) => {
 			const result = await updateBitbucket(input.bitbucketId, {

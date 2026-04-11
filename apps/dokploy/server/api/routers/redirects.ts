@@ -15,6 +15,12 @@ import {
 
 export const redirectsRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create a redirect",
+				description: "Creates a new redirect rule for an application using a regex pattern. Logs an audit entry.",
+			},
+		})
 		.input(apiCreateRedirect)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -31,6 +37,12 @@ export const redirectsRouter = createTRPCRouter({
 		}),
 
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a redirect",
+				description: "Returns a single redirect rule by its ID.",
+			},
+		})
 		.input(apiFindOneRedirect)
 		.query(async ({ input, ctx }) => {
 			const redirect = await findRedirectById(input.redirectId);
@@ -41,6 +53,12 @@ export const redirectsRouter = createTRPCRouter({
 		}),
 
 	delete: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a redirect",
+				description: "Deletes a redirect rule by its ID and logs an audit entry.",
+			},
+		})
 		.input(apiFindOneRedirect)
 		.mutation(async ({ input, ctx }) => {
 			const redirect = await findRedirectById(input.redirectId);
@@ -57,6 +75,12 @@ export const redirectsRouter = createTRPCRouter({
 		}),
 
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update a redirect",
+				description: "Updates an existing redirect rule's configuration and logs an audit entry.",
+			},
+		})
 		.input(apiUpdateRedirect)
 		.mutation(async ({ input, ctx }) => {
 			const redirect = await findRedirectById(input.redirectId);

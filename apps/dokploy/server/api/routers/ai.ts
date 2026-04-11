@@ -41,12 +41,24 @@ import { generatePassword } from "@/templates/utils";
 
 export const aiRouter = createTRPCRouter({
 	one: adminProcedure
+		.meta({
+			openapi: {
+				summary: "Get AI settings by ID",
+				description: "Returns a single AI provider configuration by its ID.",
+			},
+		})
 		.input(z.object({ aiId: z.string() }))
 		.query(async ({ input }) => {
 			return await getAiSettingById(input.aiId);
 		}),
 
 	getModels: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List available AI models",
+				description: "Fetches the list of models from the given AI provider URL. Supports OpenAI-compatible, Ollama, Gemini, Perplexity, ZAI, and MiniMax providers.",
+			},
+		})
 		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string() }))
 		.query(async ({ input }) => {
 			try {
@@ -174,33 +186,75 @@ export const aiRouter = createTRPCRouter({
 				});
 			}
 		}),
-	create: adminProcedure.input(apiCreateAi).mutation(async ({ ctx, input }) => {
+	create: adminProcedure
+		.meta({
+			openapi: {
+				summary: "Create AI provider",
+				description: "Saves a new AI provider configuration (API URL, key, model) for the current organization.",
+			},
+		})
+		.input(apiCreateAi)
+		.mutation(async ({ ctx, input }) => {
 		return await saveAiSettings(ctx.session.activeOrganizationId, input);
 	}),
 
-	update: adminProcedure.input(apiUpdateAi).mutation(async ({ ctx, input }) => {
+	update: adminProcedure
+		.meta({
+			openapi: {
+				summary: "Update AI provider",
+				description: "Updates an existing AI provider configuration for the current organization.",
+			},
+		})
+		.input(apiUpdateAi)
+		.mutation(async ({ ctx, input }) => {
 		return await saveAiSettings(ctx.session.activeOrganizationId, input);
 	}),
 
-	getAll: adminProcedure.query(async ({ ctx }) => {
+	getAll: adminProcedure
+		.meta({
+			openapi: {
+				summary: "List all AI providers",
+				description: "Returns all AI provider configurations for the current organization.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		return await getAiSettingsByOrganizationId(
 			ctx.session.activeOrganizationId,
 		);
 	}),
 
 	get: adminProcedure
+		.meta({
+			openapi: {
+				summary: "Get AI provider",
+				description: "Returns a single AI provider configuration by its ID.",
+			},
+		})
 		.input(z.object({ aiId: z.string() }))
 		.query(async ({ input }) => {
 			return await getAiSettingById(input.aiId);
 		}),
 
 	delete: adminProcedure
+		.meta({
+			openapi: {
+				summary: "Delete AI provider",
+				description: "Removes an AI provider configuration by its ID.",
+			},
+		})
 		.input(z.object({ aiId: z.string() }))
 		.mutation(async ({ input }) => {
 			return await deleteAiSettings(input.aiId);
 		}),
 
-	getEnabledProviders: protectedProcedure.query(async ({ ctx }) => {
+	getEnabledProviders: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List enabled AI providers",
+				description: "Returns a lightweight list of enabled AI providers (ID, name, model) for the current organization, suitable for dropdown selectors.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const settings = await getAiSettingsByOrganizationId(
 			ctx.session.activeOrganizationId,
 		);
@@ -210,6 +264,12 @@ export const aiRouter = createTRPCRouter({
 	}),
 
 	analyzeLogs: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Analyze logs with AI",
+				description: "Sends build or runtime logs to the specified AI provider for analysis. Returns a summary of issues found, root causes, and suggested fixes.",
+			},
+		})
 		.input(
 			z.object({
 				aiId: z.string().min(1),
@@ -268,6 +328,12 @@ ${input.logs}`,
 		}),
 
 	testConnection: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Test AI provider connection",
+				description: "Sends a minimal prompt to the specified AI provider and model to verify the API URL, key, and model are valid and reachable.",
+			},
+		})
 		.input(
 			z.object({
 				apiUrl: z.string().min(1),
@@ -302,6 +368,12 @@ ${input.logs}`,
 		}),
 
 	suggest: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Suggest deployment variants",
+				description: "Uses AI to generate deployment configuration suggestions (docker-compose variants) based on the user's input prompt.",
+			},
+		})
 		.input(
 			z.object({
 				aiId: z.string(),
@@ -323,6 +395,12 @@ ${input.logs}`,
 			}
 		}),
 	deploy: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Deploy AI suggestion",
+				description: "Deploys an AI-generated suggestion by creating a compose service with its docker-compose file, environment variables, domains, and config file mounts.",
+			},
+		})
 		.input(deploySuggestionSchema)
 		.mutation(async ({ ctx, input }) => {
 			const environment = await findEnvironmentById(input.environmentId);

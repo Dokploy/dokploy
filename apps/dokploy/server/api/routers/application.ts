@@ -79,6 +79,12 @@ import { cancelDeployment, deploy } from "@/server/utils/deploy";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create an application",
+				description: "Creates a new application in the specified project environment. Supports GitHub, GitLab, Bitbucket, Git, Docker image, and drop sources.",
+			},
+		})
 		.input(apiCreateApplication)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -134,6 +140,12 @@ export const applicationRouter = createTRPCRouter({
 			}
 		}),
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get an application",
+				description: "Retrieves detailed information about an application by its ID, including git provider access status and deployment configuration.",
+			},
+		})
 		.input(apiFindOneApplication)
 		.query(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.applicationId, "read");
@@ -189,6 +201,12 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	reload: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Reload an application",
+				description: "Restarts the Docker container for the application by mechanizing it. Resets the application status to idle, then to done on success or error on failure.",
+			},
+		})
 		.input(apiReloadApplication)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -218,6 +236,12 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	delete: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete an application",
+				description: "Permanently deletes an application and cleans up all associated resources including Docker services, Traefik configuration, deployments, middlewares, and source code.",
+			},
+		})
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.applicationId, "delete");
@@ -279,6 +303,12 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	stop: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Stop an application",
+				description: "Stops the running Docker service for the application and sets its status to idle.",
+			},
+		})
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -301,6 +331,12 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	start: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Start an application",
+				description: "Starts the Docker service for the application and sets its status to done.",
+			},
+		})
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -323,6 +359,12 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	redeploy: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Redeploy an application",
+				description: "Triggers a rebuild and redeployment of the application. Queues a deployment job or executes it directly for cloud servers.",
+			},
+		})
 		.input(apiRedeployApplication)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -367,6 +409,12 @@ export const applicationRouter = createTRPCRouter({
 			});
 		}),
 	saveEnvironment: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save environment variables",
+				description: "Updates the environment variables, build arguments, and build secrets for an application.",
+			},
+		})
 		.input(apiSaveEnvironmentVariables)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -388,6 +436,12 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	saveBuildType: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save build type configuration",
+				description: "Updates the build type and related settings for an application, including Dockerfile path, build context, publish directory, and build stage.",
+			},
+		})
 		.input(apiSaveBuildType)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -413,6 +467,12 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	saveGithubProvider: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save GitHub provider",
+				description: "Configures the application to use a GitHub repository as its source, setting the repository, branch, owner, and build path.",
+			},
+		})
 		.input(apiSaveGithubProvider)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -440,6 +500,12 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	saveGitlabProvider: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save GitLab provider",
+				description: "Configures the application to use a GitLab repository as its source, setting the repository, branch, owner, build path, and project ID.",
+			},
+		})
 		.input(apiSaveGitlabProvider)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -468,6 +534,12 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	saveBitbucketProvider: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save Bitbucket provider",
+				description: "Configures the application to use a Bitbucket repository as its source, setting the repository, branch, owner, and build path.",
+			},
+		})
 		.input(apiSaveBitbucketProvider)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -495,6 +567,12 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	saveGiteaProvider: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save Gitea provider",
+				description: "Configures the application to use a Gitea repository as its source, setting the repository, branch, owner, and build path.",
+			},
+		})
 		.input(apiSaveGiteaProvider)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -521,6 +599,12 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	saveDockerProvider: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save Docker provider",
+				description: "Configures the application to use a Docker image as its source, setting the image name, registry URL, and optional credentials.",
+			},
+		})
 		.input(apiSaveDockerProvider)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -544,6 +628,12 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	saveGitProvider: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save Git provider",
+				description: "Configures the application to use a custom Git repository URL as its source, with optional SSH key authentication.",
+			},
+		})
 		.input(apiSaveGitProvider)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -569,6 +659,12 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	disconnectGitProvider: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Disconnect git provider",
+				description: "Removes all git provider configuration from the application, resetting source type to default and clearing repository, branch, and owner fields for all providers.",
+			},
+		})
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -622,6 +718,12 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	markRunning: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Mark application as running",
+				description: "Sets the application status to running. Used to indicate that a deployment is in progress.",
+			},
+		})
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -637,6 +739,12 @@ export const applicationRouter = createTRPCRouter({
 			});
 		}),
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update an application",
+				description: "Updates the general configuration of an application such as name, description, memory limits, CPU limits, and other settings.",
+			},
+		})
 		.input(apiUpdateApplication)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -673,6 +781,12 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	refreshToken: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Refresh deploy token",
+				description: "Regenerates the webhook refresh token for the application, invalidating the previous token used for triggering deployments.",
+			},
+		})
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -691,6 +805,12 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	deploy: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Deploy an application",
+				description: "Triggers a new deployment for the application. Queues a deployment job or executes it directly for cloud servers.",
+			},
+		})
 		.input(apiDeployApplication)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -735,6 +855,12 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	cleanQueues: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Clean deployment queues",
+				description: "Removes all pending deployment jobs from the queue for the specified application.",
+			},
+		})
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -743,6 +869,12 @@ export const applicationRouter = createTRPCRouter({
 			await cleanQueuesByApplication(input.applicationId);
 		}),
 	clearDeployments: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Clear old deployments",
+				description: "Removes old deployment logs and artifacts for the application to free up disk space.",
+			},
+		})
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -759,6 +891,12 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	killBuild: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Kill active build",
+				description: "Forcefully terminates the currently running Docker build process for the application.",
+			},
+		})
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -774,6 +912,12 @@ export const applicationRouter = createTRPCRouter({
 			});
 		}),
 	readTraefikConfig: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Read Traefik configuration",
+				description: "Reads the current Traefik reverse proxy configuration file for the application. Supports both local and remote server configurations.",
+			},
+		})
 		.input(apiFindOneApplication)
 		.query(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -793,6 +937,12 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	dropDeployment: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Deploy from zip upload",
+				description: "Deploys an application from an uploaded zip file. Unzips the file into the application directory and triggers a deployment.",
+			},
+		})
 		.input(
 			zfd.formData({
 				applicationId: z.string(),
@@ -849,6 +999,12 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	updateTraefikConfig: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update Traefik configuration",
+				description: "Writes a new Traefik reverse proxy configuration for the application. Supports both local and remote server configurations.",
+			},
+		})
 		.input(z.object({ applicationId: z.string(), traefikConfig: z.string() }))
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -873,6 +1029,12 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	readAppMonitoring: withPermission("monitoring", "read")
+		.meta({
+			openapi: {
+				summary: "Read application monitoring stats",
+				description: "Retrieves CPU and memory monitoring statistics for the application. Only available in self-hosted mode.",
+			},
+		})
 		.input(apiFindMonitoringStats)
 		.query(async ({ input }) => {
 			if (IS_CLOUD) {
@@ -886,6 +1048,12 @@ export const applicationRouter = createTRPCRouter({
 			return stats;
 		}),
 	move: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Move application to another environment",
+				description: "Moves an application to a different environment within the same project or to another project's environment.",
+			},
+		})
 		.input(
 			z.object({
 				applicationId: z.string(),
@@ -922,6 +1090,12 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	cancelDeployment: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Cancel a deployment",
+				description: "Cancels an in-progress deployment for the application and resets its status to idle. Only available in cloud version.",
+			},
+		})
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -972,6 +1146,12 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	search: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Search applications",
+				description: "Searches applications by name, appName, description, repository, owner, or Docker image with pagination. Respects service-level access control.",
+			},
+		})
 		.input(
 			z.object({
 				q: z.string().optional(),
@@ -1104,6 +1284,12 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	readLogs: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Read application logs",
+				description: "Retrieves Docker container logs for the application with configurable tail length, time range, and optional text search filtering.",
+			},
+		})
 		.input(
 			apiFindOneApplication.extend({
 				tail: z.number().int().min(1).max(10000).default(100),

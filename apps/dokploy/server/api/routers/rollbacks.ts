@@ -11,6 +11,12 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const rollbackRouter = createTRPCRouter({
 	delete: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a rollback",
+				description: "Permanently removes a rollback record by its ID.",
+			},
+		})
 		.input(apiFindOneRollback)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -40,6 +46,12 @@ export const rollbackRouter = createTRPCRouter({
 			}
 		}),
 	rollback: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Perform a rollback",
+				description: "Rolls back an application to a previous deployment by restoring its Docker image and redeploying.",
+			},
+		})
 		.input(apiFindOneRollback)
 		.mutation(async ({ input, ctx }) => {
 			try {

@@ -27,6 +27,12 @@ import {
 
 export const giteaRouter = createTRPCRouter({
 	create: withPermission("gitProviders", "create")
+		.meta({
+			openapi: {
+				summary: "Create Gitea provider",
+				description: "Creates a new Gitea provider configuration linked to the active organization. Requires gitProviders create permission.",
+			},
+		})
 		.input(apiCreateGitea)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -53,11 +59,26 @@ export const giteaRouter = createTRPCRouter({
 			}
 		}),
 
-	one: protectedProcedure.input(apiFindOneGitea).query(async ({ input }) => {
-		return await findGiteaById(input.giteaId);
-	}),
+	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get Gitea provider",
+				description: "Returns a single Gitea provider configuration by its ID.",
+			},
+		})
+		.input(apiFindOneGitea)
+		.query(async ({ input }) => {
+			return await findGiteaById(input.giteaId);
+		}),
 
-	giteaProviders: protectedProcedure.query(async ({ ctx }) => {
+	giteaProviders: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List Gitea providers",
+				description: "Returns all Gitea providers accessible to the current user within the active organization, filtered to only those with valid credentials.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
 
 		let result = await db.query.gitea.findMany({
@@ -88,6 +109,12 @@ export const giteaRouter = createTRPCRouter({
 	}),
 
 	getGiteaRepositories: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List Gitea repositories",
+				description: "Fetches the list of repositories accessible by the Gitea provider. Calls the Gitea API using the provider's credentials.",
+			},
+		})
 		.input(apiFindOneGitea)
 		.query(async ({ input }) => {
 			const { giteaId } = input;
@@ -112,6 +139,12 @@ export const giteaRouter = createTRPCRouter({
 		}),
 
 	getGiteaBranches: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List Gitea branches",
+				description: "Fetches the list of branches for a specific Gitea repository. Calls the Gitea API using the provider's credentials.",
+			},
+		})
 		.input(apiFindGiteaBranches)
 		.query(async ({ input }) => {
 			const { giteaId, owner, repositoryName } = input;
@@ -140,6 +173,12 @@ export const giteaRouter = createTRPCRouter({
 		}),
 
 	testConnection: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Test Gitea connection",
+				description: "Tests the connection to a Gitea provider by attempting to fetch its repositories. Returns the number of repositories found or throws an error on failure.",
+			},
+		})
 		.input(apiGiteaTestConnection)
 		.mutation(async ({ input }) => {
 			const giteaId = input.giteaId ?? "";
@@ -160,6 +199,12 @@ export const giteaRouter = createTRPCRouter({
 		}),
 
 	update: withPermission("gitProviders", "create")
+		.meta({
+			openapi: {
+				summary: "Update Gitea provider",
+				description: "Updates a Gitea provider configuration and its associated git provider record. Requires gitProviders create permission.",
+			},
+		})
 		.input(apiUpdateGitea)
 		.mutation(async ({ input, ctx }) => {
 			if (input.name) {
@@ -188,6 +233,12 @@ export const giteaRouter = createTRPCRouter({
 		}),
 
 	getGiteaUrl: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get Gitea instance URL",
+				description: "Returns the base URL of the Gitea instance associated with the given provider ID.",
+			},
+		})
 		.input(apiFindOneGitea)
 		.query(async ({ input }) => {
 			const { giteaId } = input;

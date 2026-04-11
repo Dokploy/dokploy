@@ -43,6 +43,12 @@ import {
 } from "@/server/db/schema";
 export const libsqlRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create a LibSQL database",
+				description: "Creates a new LibSQL database service with the specified configuration, sets up a persistent data volume, and registers it in the project.",
+			},
+		})
 		.input(apiCreateLibsql)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -100,6 +106,12 @@ export const libsqlRouter = createTRPCRouter({
 			}
 		}),
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a LibSQL database by ID",
+				description: "Returns the full details of a LibSQL database service, including its environment and project configuration.",
+			},
+		})
 		.input(apiFindOneLibsql)
 		.query(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.libsqlId, "read");
@@ -118,6 +130,12 @@ export const libsqlRouter = createTRPCRouter({
 		}),
 
 	start: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Start a LibSQL database",
+				description: "Starts the Docker container for the specified LibSQL database and sets its status to done.",
+			},
+		})
 		.input(apiFindOneLibsql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
@@ -143,6 +161,12 @@ export const libsqlRouter = createTRPCRouter({
 			return libsql;
 		}),
 	stop: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Stop a LibSQL database",
+				description: "Stops the Docker container for the specified LibSQL database and sets its status to idle.",
+			},
+		})
 		.input(apiFindOneLibsql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
@@ -168,6 +192,12 @@ export const libsqlRouter = createTRPCRouter({
 			return libsql;
 		}),
 	saveExternalPorts: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save the external ports for a LibSQL database",
+				description: "Updates the external port mappings (HTTP, gRPC, admin) for the LibSQL database and triggers a redeployment. Validates that ports are not already in use.",
+			},
+		})
 		.input(apiSaveExternalPortsLibsql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
@@ -230,6 +260,12 @@ export const libsqlRouter = createTRPCRouter({
 			return libsql;
 		}),
 	deploy: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Deploy a LibSQL database",
+				description: "Triggers a deployment for the specified LibSQL database, rebuilding and restarting its Docker container with the current configuration.",
+			},
+		})
 		.input(apiDeployLibsql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
@@ -282,6 +318,12 @@ export const libsqlRouter = createTRPCRouter({
 			}
 		}),
 	changeStatus: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Change LibSQL database status",
+				description: "Updates the application status of a LibSQL database without starting or stopping the container.",
+			},
+		})
 		.input(apiChangeLibsqlStatus)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
@@ -300,6 +342,12 @@ export const libsqlRouter = createTRPCRouter({
 			return libsql;
 		}),
 	remove: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a LibSQL database",
+				description: "Removes the LibSQL database service, its Docker container, and deletes the database record.",
+			},
+		})
 		.input(apiFindOneLibsql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.libsqlId, "delete");
@@ -335,6 +383,12 @@ export const libsqlRouter = createTRPCRouter({
 			return libsql;
 		}),
 	saveEnvironment: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save environment variables for a LibSQL database",
+				description: "Updates the environment variables for the specified LibSQL database service.",
+			},
+		})
 		.input(apiSaveEnvironmentVariablesLibsql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
@@ -359,6 +413,12 @@ export const libsqlRouter = createTRPCRouter({
 			return true;
 		}),
 	reload: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Reload a LibSQL database",
+				description: "Restarts the LibSQL database by stopping and then starting its Docker container.",
+			},
+		})
 		.input(apiResetLibsql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
@@ -391,6 +451,12 @@ export const libsqlRouter = createTRPCRouter({
 			return true;
 		}),
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update a LibSQL database",
+				description: "Updates the configuration of an existing LibSQL database service.",
+			},
+		})
 		.input(apiUpdateLibsql)
 		.mutation(async ({ input, ctx }) => {
 			const { libsqlId, ...rest } = input;
@@ -417,6 +483,12 @@ export const libsqlRouter = createTRPCRouter({
 			return true;
 		}),
 	move: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Move a LibSQL database to another environment",
+				description: "Moves the LibSQL database to a different environment within the same project.",
+			},
+		})
 		.input(
 			z.object({
 				libsqlId: z.string(),
@@ -453,6 +525,12 @@ export const libsqlRouter = createTRPCRouter({
 			return updatedLibsql;
 		}),
 	rebuild: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Rebuild a LibSQL database",
+				description: "Rebuilds the LibSQL database Docker container from scratch, pulling the latest image and recreating the service.",
+			},
+		})
 		.input(apiRebuildLibsql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
@@ -469,6 +547,12 @@ export const libsqlRouter = createTRPCRouter({
 		}),
 
 	readLogs: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Read LibSQL container logs",
+				description: "Retrieves the Docker container logs for the specified LibSQL database, with support for tail count, time-based filtering, and text search.",
+			},
+		})
 		.input(
 			apiFindOneLibsql.extend({
 				tail: z.number().int().min(1).max(10000).default(100),

@@ -60,7 +60,14 @@ const apiCreateApiKey = z.object({
 });
 
 export const userRouter = createTRPCRouter({
-	all: withPermission("member", "read").query(async ({ ctx }) => {
+	all: withPermission("member", "read")
+		.meta({
+			openapi: {
+				summary: "List all organization members",
+				description: "Retrieve all members of the current active organization, including their associated user data, ordered by creation date.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		return await db.query.member.findMany({
 			where: eq(member.organizationId, ctx.session.activeOrganizationId),
 			with: {
@@ -70,6 +77,12 @@ export const userRouter = createTRPCRouter({
 		});
 	}),
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a user by ID",
+				description: "Retrieve a specific user's membership and profile within the active organization. Users can view their own data; admins and owners can view any member. Requires member.update permission for non-self lookups.",
+			},
+		})
 		.input(
 			z.object({
 				userId: z.string(),
@@ -114,7 +127,14 @@ export const userRouter = createTRPCRouter({
 
 			return memberResult;
 		}),
-	session: publicProcedure.query(async ({ ctx }) => {
+	session: publicProcedure
+		.meta({
+			openapi: {
+				summary: "Get current session",
+				description: "Return the current user's ID and active organization ID from the session. Returns null if no valid session exists.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		if (!ctx.user || !ctx.session || !ctx.session.activeOrganizationId) {
 			return null;
 		}
@@ -127,7 +147,14 @@ export const userRouter = createTRPCRouter({
 			},
 		};
 	}),
-	get: protectedProcedure.query(async ({ ctx }) => {
+	get: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get current user profile",
+				description: "Retrieve the current authenticated user's membership record including user profile and API keys for the active organization.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const memberResult = await db.query.member.findFirst({
 			where: and(
 				eq(member.userId, ctx.user.id),
@@ -144,10 +171,24 @@ export const userRouter = createTRPCRouter({
 
 		return memberResult;
 	}),
-	getPermissions: protectedProcedure.query(async ({ ctx }) => {
+	getPermissions: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get resolved permissions",
+				description: "Return the fully resolved permissions for the current user in the active organization, combining role-based and custom permissions.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		return resolvePermissions(ctx);
 	}),
-	haveRootAccess: protectedProcedure.query(async ({ ctx }) => {
+	haveRootAccess: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Check root access",
+				description: "Check whether the current user has root admin access. Only returns true in cloud mode for the designated admin user or impersonating sessions.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		if (!IS_CLOUD) {
 			return false;
 		}
@@ -159,7 +200,14 @@ export const userRouter = createTRPCRouter({
 		}
 		return false;
 	}),
-	getBackups: adminProcedure.query(async ({ ctx }) => {
+	getBackups: adminProcedure
+		.meta({
+			openapi: {
+				summary: "Get user backups",
+				description: "Retrieve the current admin user's backup configurations including destinations, deployments, and API keys.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const memberResult = await db.query.member.findFirst({
 			where: and(
 				eq(member.userId, ctx.user.id),
@@ -182,8 +230,14 @@ export const userRouter = createTRPCRouter({
 
 		return memberResult?.user;
 	}),
-	getServerMetrics: withPermission("monitoring", "read").query(
-		async ({ ctx }) => {
+	getServerMetrics: withPermission("monitoring", "read")
+		.meta({
+			openapi: {
+				summary: "Get server metrics user",
+				description: "Retrieve the user record associated with server metrics access for the current organization membership.",
+			},
+		})
+		.query(async ({ ctx }) => {
 			const memberResult = await db.query.member.findFirst({
 				where: and(
 					eq(member.userId, ctx.user.id),
@@ -198,6 +252,12 @@ export const userRouter = createTRPCRouter({
 		},
 	),
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update current user",
+				description: "Update the current user's profile. If changing the password, the current password must be provided and verified. Logs an audit event on success.",
+			},
+		})
 		.input(apiUpdateUser)
 		.mutation(async ({ input, ctx }) => {
 			if (input.password || input.currentPassword) {
@@ -248,12 +308,24 @@ export const userRouter = createTRPCRouter({
 			}
 		}),
 	getUserByToken: publicProcedure
+		.meta({
+			openapi: {
+				summary: "Get user by token",
+				description: "Look up a user by their authentication token. This is a public endpoint that does not require an active session.",
+			},
+		})
 		.input(apiFindOneToken)
 		.query(async ({ input }) => {
 			return await getUserByToken(input.token);
 		}),
-	getMetricsToken: withPermission("monitoring", "read").query(
-		async ({ ctx }) => {
+	getMetricsToken: withPermission("monitoring", "read")
+		.meta({
+			openapi: {
+				summary: "Get metrics token and configuration",
+				description: "Retrieve the server IP, paid features flag, and monitoring configuration needed for metrics collection.",
+			},
+		})
+		.query(async ({ ctx }) => {
 			const user = await findUserById(ctx.user.ownerId);
 			const settings = await getWebServerSettings();
 			return {
@@ -264,6 +336,12 @@ export const userRouter = createTRPCRouter({
 		},
 	),
 	remove: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Remove a user",
+				description: "Delete a user from the organization. Only owners and admins can remove users; owners cannot be removed, and admins cannot remove themselves or other admins. Disabled on cloud.",
+			},
+		})
 		.input(
 			z.object({
 				userId: z.string(),
@@ -333,6 +411,12 @@ export const userRouter = createTRPCRouter({
 			return result;
 		}),
 	assignPermissions: withPermission("member", "update")
+		.meta({
+			openapi: {
+				summary: "Assign member permissions",
+				description: "Update permissions for a specific member in the organization. Only the organization owner can assign permissions. Git provider and server access restrictions require a valid license.",
+			},
+		})
 		.input(apiAssignPermissions)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -383,7 +467,14 @@ export const userRouter = createTRPCRouter({
 				throw error;
 			}
 		}),
-	getInvitations: protectedProcedure.query(async ({ ctx }) => {
+	getInvitations: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get pending invitations for current user",
+				description: "Retrieve all pending organization invitations for the current user's email that have not yet expired.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		return await db.query.invitation.findMany({
 			where: and(
 				eq(invitation.email, ctx.user.email),
@@ -397,6 +488,12 @@ export const userRouter = createTRPCRouter({
 	}),
 
 	getContainerMetrics: withPermission("monitoring", "read")
+		.meta({
+			openapi: {
+				summary: "Get container metrics",
+				description: "Fetch monitoring metrics for a specific container by querying the metrics endpoint. Requires an application name, metrics URL, and authentication token.",
+			},
+		})
 		.input(
 			z.object({
 				url: z.string(),
@@ -455,11 +552,24 @@ export const userRouter = createTRPCRouter({
 			}
 		}),
 
-	generateToken: protectedProcedure.mutation(async () => {
+	generateToken: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Generate authentication token",
+				description: "Generate a new authentication token for the current user.",
+			},
+		})
+		.mutation(async () => {
 		return "token";
 	}),
 
 	deleteApiKey: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete an API key",
+				description: "Delete an API key by ID. Only the owner of the API key can delete it. Logs an audit event on success.",
+			},
+		})
 		.input(
 			z.object({
 				apiKeyId: z.string(),
@@ -499,6 +609,12 @@ export const userRouter = createTRPCRouter({
 		}),
 
 	createApiKey: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create an API key",
+				description: "Create a new API key for the current user, scoped to a specific organization. Supports optional rate limiting and request limiting configuration.",
+			},
+		})
 		.input(apiCreateApiKey)
 		.mutation(async ({ input, ctx }) => {
 			// Verify user is a member of the organization specified in metadata
@@ -529,6 +645,12 @@ export const userRouter = createTRPCRouter({
 		}),
 
 	checkUserOrganizations: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Check user organization count",
+				description: "Return the number of organizations a user belongs to. Users can check their own count; admins and owners can check counts for members in the active organization.",
+			},
+		})
 		.input(
 			z.object({
 				userId: z.string(),
@@ -570,6 +692,12 @@ export const userRouter = createTRPCRouter({
 			return organizations.length;
 		}),
 	createUserWithCredentials: withPermission("member", "create")
+		.meta({
+			openapi: {
+				summary: "Create user with credentials",
+				description: "Create a new user with email and password and add them to the active organization with the specified role. Only available in self-hosted mode.",
+			},
+		})
 		.input(
 			z.object({
 				email: z.string().email(),
@@ -601,6 +729,12 @@ export const userRouter = createTRPCRouter({
 			});
 		}),
 	sendInvitation: withPermission("member", "create")
+		.meta({
+			openapi: {
+				summary: "Send invitation email",
+				description: "Send an invitation email to a pending invitee using a configured email or Resend notification provider. Returns the generated invite link. Disabled on cloud.",
+			},
+		})
 		.input(
 			z.object({
 				invitationId: z.string().min(1),
@@ -676,7 +810,14 @@ export const userRouter = createTRPCRouter({
 			return inviteLink;
 		}),
 
-	getBookmarkedTemplates: protectedProcedure.query(async ({ ctx }) => {
+	getBookmarkedTemplates: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get bookmarked templates",
+				description: "Retrieve the list of template IDs that the current user has bookmarked.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const result = await db.query.user.findFirst({
 			where: eq(user.id, ctx.user.id),
 			columns: { bookmarkedTemplates: true },
@@ -686,6 +827,12 @@ export const userRouter = createTRPCRouter({
 	}),
 
 	toggleTemplateBookmark: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Toggle template bookmark",
+				description: "Add or remove a template from the current user's bookmarks. Returns whether the template is now bookmarked.",
+			},
+		})
 		.input(
 			z.object({
 				templateId: z.string().min(1),

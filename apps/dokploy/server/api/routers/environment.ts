@@ -63,6 +63,12 @@ const filterEnvironmentServices = (
 
 export const environmentRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create environment",
+				description: "Creates a new environment within a project. The name 'production' is reserved and cannot be used. Checks creation permissions and logs an audit event.",
+			},
+		})
 		.input(apiCreateEnvironment)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -99,6 +105,12 @@ export const environmentRouter = createTRPCRouter({
 		}),
 
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get environment",
+				description: "Returns a single environment by ID with all its services. Non-admin users only see services they have been granted access to.",
+			},
+		})
 		.input(apiFindOneEnvironment)
 		.query(async ({ input, ctx }) => {
 			const environment = await findEnvironmentById(input.environmentId);
@@ -137,6 +149,12 @@ export const environmentRouter = createTRPCRouter({
 		}),
 
 	byProjectId: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List environments by project",
+				description: "Returns all environments for a given project. Non-admin users only see environments and services they have been granted access to.",
+			},
+		})
 		.input(z.object({ projectId: z.string() }))
 		.query(async ({ input, ctx }) => {
 			try {
@@ -183,6 +201,12 @@ export const environmentRouter = createTRPCRouter({
 		}),
 
 	remove: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete environment",
+				description: "Deletes an environment by ID. The default environment cannot be deleted. Checks deletion permissions and environment access before removing.",
+			},
+		})
 		.input(apiRemoveEnvironment)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -229,6 +253,12 @@ export const environmentRouter = createTRPCRouter({
 		}),
 
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update environment",
+				description: "Updates an environment's name, description, or env variables. The default environment cannot be renamed. Checks environment access and env-var write permissions.",
+			},
+		})
 		.input(apiUpdateEnvironment)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -296,6 +326,12 @@ export const environmentRouter = createTRPCRouter({
 		}),
 
 	duplicate: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Duplicate environment",
+				description: "Creates a copy of an existing environment including its services. Checks environment access and organization ownership before duplicating.",
+			},
+		})
 		.input(apiDuplicateEnvironment)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -343,6 +379,12 @@ export const environmentRouter = createTRPCRouter({
 		}),
 
 	search: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Search environments",
+				description: "Searches environments by name, description, or project with pagination. Non-admin users only see environments they have been granted access to.",
+			},
+		})
 		.input(
 			z.object({
 				q: z.string().optional(),

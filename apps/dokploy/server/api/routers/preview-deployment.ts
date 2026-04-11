@@ -16,6 +16,12 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const previewDeploymentRouter = createTRPCRouter({
 	all: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List preview deployments",
+				description: "Returns all preview deployments associated with the given application.",
+			},
+		})
 		.input(apiFindAllByApplication)
 		.query(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
@@ -25,6 +31,12 @@ export const previewDeploymentRouter = createTRPCRouter({
 		}),
 
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a preview deployment",
+				description: "Returns the details of a specific preview deployment by its ID.",
+			},
+		})
 		.input(z.object({ previewDeploymentId: z.string() }))
 		.query(async ({ input, ctx }) => {
 			const previewDeployment = await findPreviewDeploymentById(
@@ -39,6 +51,12 @@ export const previewDeploymentRouter = createTRPCRouter({
 		}),
 
 	delete: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a preview deployment",
+				description: "Permanently removes a preview deployment and its associated resources.",
+			},
+		})
 		.input(z.object({ previewDeploymentId: z.string() }))
 		.mutation(async ({ input, ctx }) => {
 			const previewDeployment = await findPreviewDeploymentById(
@@ -59,6 +77,12 @@ export const previewDeploymentRouter = createTRPCRouter({
 		}),
 
 	redeploy: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Redeploy a preview deployment",
+				description: "Triggers a rebuild of an existing preview deployment by adding a new job to the deployment queue.",
+			},
+		})
 		.input(
 			z.object({
 				previewDeploymentId: z.string(),

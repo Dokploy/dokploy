@@ -30,6 +30,12 @@ import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
 export const volumeBackupsRouter = createTRPCRouter({
 	list: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List volume backups",
+				description: "Returns all volume backup configurations for a given service, including related service details.",
+			},
+		})
 		.input(
 			z.object({
 				id: z.string().min(1),
@@ -65,6 +71,12 @@ export const volumeBackupsRouter = createTRPCRouter({
 			});
 		}),
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create a volume backup",
+				description: "Creates a new volume backup configuration for a service. If enabled, automatically schedules the backup using the provided cron expression.",
+			},
+		})
 		.input(createVolumeBackupSchema)
 		.mutation(async ({ input, ctx }) => {
 			const serviceId =
@@ -102,6 +114,12 @@ export const volumeBackupsRouter = createTRPCRouter({
 			return newVolumeBackup;
 		}),
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a volume backup",
+				description: "Returns the details of a specific volume backup configuration by its ID.",
+			},
+		})
 		.input(
 			z.object({
 				volumeBackupId: z.string().min(1),
@@ -126,6 +144,12 @@ export const volumeBackupsRouter = createTRPCRouter({
 			return vb;
 		}),
 	delete: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a volume backup",
+				description: "Permanently removes a volume backup configuration by its ID.",
+			},
+		})
 		.input(
 			z.object({
 				volumeBackupId: z.string().min(1),
@@ -156,6 +180,12 @@ export const volumeBackupsRouter = createTRPCRouter({
 			return result;
 		}),
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update a volume backup",
+				description: "Updates an existing volume backup configuration. Reschedules or removes the backup job depending on the enabled state.",
+			},
+		})
 		.input(updateVolumeBackupSchema)
 		.mutation(async ({ input, ctx }) => {
 			const existingVb = await findVolumeBackupById(input.volumeBackupId);
@@ -216,6 +246,12 @@ export const volumeBackupsRouter = createTRPCRouter({
 		}),
 
 	runManually: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Run a volume backup manually",
+				description: "Immediately executes a volume backup outside of its normal cron schedule.",
+			},
+		})
 		.input(z.object({ volumeBackupId: z.string().min(1) }))
 		.mutation(async ({ input, ctx }) => {
 			const vb = await findVolumeBackupById(input.volumeBackupId);

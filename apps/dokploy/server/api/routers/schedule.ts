@@ -22,6 +22,12 @@ import { removeJob, schedule } from "@/server/utils/backup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 export const scheduleRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create a scheduled job",
+				description: "Creates a new scheduled job for an application or compose service. If enabled, the job is automatically scheduled using the provided cron expression and timezone.",
+			},
+		})
 		.input(createScheduleSchema)
 		.mutation(async ({ input, ctx }) => {
 			const serviceId = input.applicationId || input.composeId;
@@ -54,6 +60,12 @@ export const scheduleRouter = createTRPCRouter({
 		}),
 
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update a scheduled job",
+				description: "Updates an existing scheduled job configuration. Reschedules or removes the job depending on the enabled state.",
+			},
+		})
 		.input(updateScheduleSchema)
 		.mutation(async ({ input, ctx }) => {
 			const existingSchedule = await findScheduleById(input.scheduleId);
@@ -99,6 +111,12 @@ export const scheduleRouter = createTRPCRouter({
 		}),
 
 	delete: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a scheduled job",
+				description: "Permanently removes a scheduled job and unschedules any associated cron job.",
+			},
+		})
 		.input(z.object({ scheduleId: z.string() }))
 		.mutation(async ({ input, ctx }) => {
 			const scheduleItem = await findScheduleById(input.scheduleId);
@@ -129,6 +147,12 @@ export const scheduleRouter = createTRPCRouter({
 		}),
 
 	list: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List scheduled jobs",
+				description: "Returns all scheduled jobs for a given service (application, compose, server, or dokploy-server), including their deployment history.",
+			},
+		})
 		.input(
 			z.object({
 				id: z.string(),
@@ -170,6 +194,12 @@ export const scheduleRouter = createTRPCRouter({
 		}),
 
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a scheduled job",
+				description: "Returns the details of a specific scheduled job by its ID.",
+			},
+		})
 		.input(z.object({ scheduleId: z.string() }))
 		.query(async ({ input, ctx }) => {
 			const schedule = await findScheduleById(input.scheduleId);
@@ -183,6 +213,12 @@ export const scheduleRouter = createTRPCRouter({
 		}),
 
 	runManually: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Run a scheduled job manually",
+				description: "Immediately executes a scheduled job outside of its normal cron schedule.",
+			},
+		})
 		.input(z.object({ scheduleId: z.string().min(1) }))
 		.mutation(async ({ input, ctx }) => {
 			const scheduleItem = await findScheduleById(input.scheduleId);

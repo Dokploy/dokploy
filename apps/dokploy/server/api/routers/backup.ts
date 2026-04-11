@@ -78,6 +78,12 @@ interface RcloneFile {
 
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create a backup",
+				description: "Creates a new backup configuration for a database or compose service. If enabled, automatically schedules the backup according to the provided cron expression.",
+			},
+		})
 		.input(apiCreateBackup)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -152,6 +158,12 @@ export const backupRouter = createTRPCRouter({
 			}
 		}),
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a backup",
+				description: "Returns the details of a specific backup configuration by its ID.",
+			},
+		})
 		.input(apiFindOneBackup)
 		.query(async ({ input, ctx }) => {
 			const backup = await findBackupById(input.backupId);
@@ -172,6 +184,12 @@ export const backupRouter = createTRPCRouter({
 			return backup;
 		}),
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update a backup",
+				description: "Updates an existing backup configuration. Reschedules or removes the backup job depending on the enabled state.",
+			},
+		})
 		.input(apiUpdateBackup)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -229,6 +247,12 @@ export const backupRouter = createTRPCRouter({
 			}
 		}),
 	remove: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a backup",
+				description: "Permanently removes a backup configuration and unschedules any associated backup job.",
+			},
+		})
 		.input(apiRemoveBackup)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -272,6 +296,12 @@ export const backupRouter = createTRPCRouter({
 			}
 		}),
 	manualBackupPostgres: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Run a PostgreSQL backup manually",
+				description: "Immediately executes a PostgreSQL backup using the specified backup configuration. Cleans up old backups according to retention settings.",
+			},
+		})
 		.input(apiFindOneBackup)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -303,6 +333,12 @@ export const backupRouter = createTRPCRouter({
 		}),
 
 	manualBackupMySql: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Run a MySQL backup manually",
+				description: "Immediately executes a MySQL backup using the specified backup configuration. Cleans up old backups according to retention settings.",
+			},
+		})
 		.input(apiFindOneBackup)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -330,6 +366,12 @@ export const backupRouter = createTRPCRouter({
 			}
 		}),
 	manualBackupMariadb: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Run a MariaDB backup manually",
+				description: "Immediately executes a MariaDB backup using the specified backup configuration. Cleans up old backups according to retention settings.",
+			},
+		})
 		.input(apiFindOneBackup)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -357,6 +399,12 @@ export const backupRouter = createTRPCRouter({
 			}
 		}),
 	manualBackupCompose: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Run a Compose backup manually",
+				description: "Immediately executes a Compose service backup using the specified backup configuration. Cleans up old backups according to retention settings.",
+			},
+		})
 		.input(apiFindOneBackup)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -384,6 +432,12 @@ export const backupRouter = createTRPCRouter({
 			}
 		}),
 	manualBackupMongo: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Run a MongoDB backup manually",
+				description: "Immediately executes a MongoDB backup using the specified backup configuration. Cleans up old backups according to retention settings.",
+			},
+		})
 		.input(apiFindOneBackup)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -411,6 +465,12 @@ export const backupRouter = createTRPCRouter({
 			}
 		}),
 	manualBackupLibsql: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Run a LibSQL backup manually",
+				description: "Immediately executes a LibSQL backup using the specified backup configuration. Cleans up old backups according to retention settings.",
+			},
+		})
 		.input(apiFindOneBackup)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -438,6 +498,12 @@ export const backupRouter = createTRPCRouter({
 			}
 		}),
 	manualBackupWebServer: withPermission("backup", "create")
+		.meta({
+			openapi: {
+				summary: "Run a web server backup manually",
+				description: "Immediately executes a web server backup using the specified backup configuration. Cleans up old backups according to retention settings.",
+			},
+		})
 		.input(apiFindOneBackup)
 		.mutation(async ({ input, ctx }) => {
 			const backup = await findBackupById(input.backupId);
@@ -451,6 +517,12 @@ export const backupRouter = createTRPCRouter({
 			return true;
 		}),
 	listBackupFiles: withPermission("backup", "read")
+		.meta({
+			openapi: {
+				summary: "List backup files in S3",
+				description: "Lists backup files stored in the S3 destination bucket. Supports searching by path prefix and returns up to 100 results.",
+			},
+		})
 		.input(
 			z.object({
 				destinationId: z.string(),

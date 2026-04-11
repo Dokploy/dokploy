@@ -50,6 +50,12 @@ const resolvePatchServiceId = (patch: {
 
 export const patchRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create patch",
+				description: "Creates a new file patch for an application or compose service. Checks service-level permissions and logs an audit event.",
+			},
+		})
 		.input(apiCreatePatch)
 		.mutation(async ({ input, ctx }) => {
 			const serviceId = input.applicationId ?? input.composeId;
@@ -73,7 +79,15 @@ export const patchRouter = createTRPCRouter({
 			return result;
 		}),
 
-	one: protectedProcedure.input(apiFindPatch).query(async ({ input, ctx }) => {
+	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get patch",
+				description: "Returns a single patch by ID. Resolves the associated service to verify read permissions.",
+			},
+		})
+		.input(apiFindPatch)
+		.query(async ({ input, ctx }) => {
 		const patch = await findPatchById(input.patchId);
 		const serviceId = resolvePatchServiceId(patch);
 		await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -83,6 +97,12 @@ export const patchRouter = createTRPCRouter({
 	}),
 
 	byEntityId: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List patches by entity",
+				description: "Returns all patches associated with a given application or compose service.",
+			},
+		})
 		.input(
 			z.object({ id: z.string(), type: z.enum(["application", "compose"]) }),
 		)
@@ -94,6 +114,12 @@ export const patchRouter = createTRPCRouter({
 		}),
 
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update patch",
+				description: "Updates the content or configuration of an existing patch. Resolves the associated service to verify permissions and logs an audit event.",
+			},
+		})
 		.input(apiUpdatePatch)
 		.mutation(async ({ input, ctx }) => {
 			const patch = await findPatchById(input.patchId);
@@ -114,6 +140,12 @@ export const patchRouter = createTRPCRouter({
 		}),
 
 	delete: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete patch",
+				description: "Deletes a patch by ID. Resolves the associated service to verify delete permissions and logs an audit event.",
+			},
+		})
 		.input(apiDeletePatch)
 		.mutation(async ({ input, ctx }) => {
 			const patch = await findPatchById(input.patchId);
@@ -133,6 +165,12 @@ export const patchRouter = createTRPCRouter({
 		}),
 
 	toggleEnabled: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Toggle patch enabled state",
+				description: "Enables or disables a patch without deleting it. Resolves the associated service to verify permissions and logs an audit event.",
+			},
+		})
 		.input(apiTogglePatchEnabled)
 		.mutation(async ({ input, ctx }) => {
 			const patch = await findPatchById(input.patchId);
@@ -155,6 +193,12 @@ export const patchRouter = createTRPCRouter({
 
 	// Repository Operations
 	ensureRepo: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Ensure patch repository exists",
+				description: "Ensures a patch repository is initialized for the given application or compose service. Creates the repo if it does not exist and logs an audit event.",
+			},
+		})
 		.input(
 			z.object({
 				id: z.string(),
@@ -179,6 +223,12 @@ export const patchRouter = createTRPCRouter({
 		}),
 
 	readRepoDirectories: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List patch repository directories",
+				description: "Reads the directory listing at a given path inside the patch repository for an application or compose service.",
+			},
+		})
 		.input(
 			z.object({
 				id: z.string().min(1),
@@ -202,6 +252,12 @@ export const patchRouter = createTRPCRouter({
 		}),
 
 	readRepoFile: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Read patch repository file",
+				description: "Reads a file from the patch repository. For delete-type patches it returns the current repo content; otherwise returns the patch content if available, falling back to the repo file.",
+			},
+		})
 		.input(
 			z.object({
 				id: z.string().min(1),
@@ -241,6 +297,12 @@ export const patchRouter = createTRPCRouter({
 		}),
 
 	saveFileAsPatch: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save file as patch",
+				description: "Creates or updates a patch record from file content. If a patch already exists for the file path, it updates the existing patch; otherwise creates a new one.",
+			},
+		})
 		.input(
 			z.object({
 				id: z.string().min(1),
@@ -291,6 +353,12 @@ export const patchRouter = createTRPCRouter({
 		}),
 
 	markFileForDeletion: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Mark file for deletion",
+				description: "Creates a delete-type patch that will remove the specified file from the service on next deployment. Logs an audit event.",
+			},
+		})
 		.input(
 			z.object({
 				id: z.string().min(1),
@@ -318,6 +386,12 @@ export const patchRouter = createTRPCRouter({
 		}),
 
 	cleanPatchRepos: adminProcedure
+		.meta({
+			openapi: {
+				summary: "Clean patch repositories",
+				description: "Removes all patch repository working directories on the local or a specified remote server. Admin-only operation that logs an audit event.",
+			},
+		})
 		.input(z.object({ serverId: z.string().optional() }))
 		.mutation(async ({ input, ctx }) => {
 			await cleanPatchRepos(input.serverId);

@@ -27,6 +27,12 @@ import {
 
 export const gitlabRouter = createTRPCRouter({
 	create: withPermission("gitProviders", "create")
+		.meta({
+			openapi: {
+				summary: "Create GitLab provider",
+				description: "Creates a new GitLab provider configuration linked to the active organization. Requires gitProviders create permission.",
+			},
+		})
 		.input(apiCreateGitlab)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -51,10 +57,25 @@ export const gitlabRouter = createTRPCRouter({
 				});
 			}
 		}),
-	one: protectedProcedure.input(apiFindOneGitlab).query(async ({ input }) => {
-		return await findGitlabById(input.gitlabId);
-	}),
-	gitlabProviders: protectedProcedure.query(async ({ ctx }) => {
+	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get GitLab provider",
+				description: "Returns a single GitLab provider configuration by its ID.",
+			},
+		})
+		.input(apiFindOneGitlab)
+		.query(async ({ input }) => {
+			return await findGitlabById(input.gitlabId);
+		}),
+	gitlabProviders: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List GitLab providers",
+				description: "Returns all GitLab providers accessible to the current user within the active organization, filtered to only those with valid credentials.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
 
 		let result = await db.query.gitlab.findMany({
@@ -85,17 +106,35 @@ export const gitlabRouter = createTRPCRouter({
 		return filtered;
 	}),
 	getGitlabRepositories: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List GitLab repositories",
+				description: "Fetches the list of repositories accessible by the GitLab provider. Calls the GitLab API using the provider's credentials.",
+			},
+		})
 		.input(apiFindOneGitlab)
 		.query(async ({ input }) => {
 			return await getGitlabRepositories(input.gitlabId);
 		}),
 
 	getGitlabBranches: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List GitLab branches",
+				description: "Fetches the list of branches for a specific GitLab repository. Calls the GitLab API using the provider's credentials.",
+			},
+		})
 		.input(apiFindGitlabBranches)
 		.query(async ({ input }) => {
 			return await getGitlabBranches(input);
 		}),
 	testConnection: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Test GitLab connection",
+				description: "Tests the connection to a GitLab provider by attempting to fetch its repositories. Returns the number of repositories found or throws an error on failure.",
+			},
+		})
 		.input(apiGitlabTestConnection)
 		.mutation(async ({ input }) => {
 			try {
@@ -110,6 +149,12 @@ export const gitlabRouter = createTRPCRouter({
 			}
 		}),
 	update: withPermission("gitProviders", "create")
+		.meta({
+			openapi: {
+				summary: "Update GitLab provider",
+				description: "Updates a GitLab provider configuration and its associated git provider record. Requires gitProviders create permission.",
+			},
+		})
 		.input(apiUpdateGitlab)
 		.mutation(async ({ input, ctx }) => {
 			if (input.name) {

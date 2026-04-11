@@ -16,6 +16,12 @@ import {
 
 export const portRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create a port",
+				description: "Creates a new port mapping for an application, binding a published port to a target port. Logs an audit entry.",
+			},
+		})
 		.input(apiCreatePort)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -39,6 +45,12 @@ export const portRouter = createTRPCRouter({
 			}
 		}),
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a port",
+				description: "Returns a single port mapping by its ID, including the associated application details.",
+			},
+		})
 		.input(apiFindOnePort)
 		.query(async ({ input, ctx }) => {
 			try {
@@ -58,6 +70,12 @@ export const portRouter = createTRPCRouter({
 			}
 		}),
 	delete: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a port",
+				description: "Deletes a port mapping by its ID and logs an audit entry with the published and target port details.",
+			},
+		})
 		.input(apiFindOnePort)
 		.mutation(async ({ input, ctx }) => {
 			const port = await finPortById(input.portId);
@@ -85,6 +103,12 @@ export const portRouter = createTRPCRouter({
 			}
 		}),
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update a port",
+				description: "Updates an existing port mapping's configuration and logs an audit entry.",
+			},
+		})
 		.input(apiUpdatePort)
 		.mutation(async ({ input, ctx }) => {
 			const port = await finPortById(input.portId);

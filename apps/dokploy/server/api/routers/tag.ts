@@ -16,6 +16,12 @@ import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
 export const tagRouter = createTRPCRouter({
 	create: withPermission("tag", "create")
+		.meta({
+			openapi: {
+				summary: "Create tag",
+				description: "Creates a new tag with a name and color for the current organization. Tag names must be unique within the organization.",
+			},
+		})
 		.input(apiCreateTag)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -47,7 +53,14 @@ export const tagRouter = createTRPCRouter({
 			}
 		}),
 
-	all: protectedProcedure.query(async ({ ctx }) => {
+	all: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "List all tags",
+				description: "Returns all tags for the current organization, ordered alphabetically by name.",
+			},
+		})
+		.query(async ({ ctx }) => {
 		try {
 			const organizationTags = await db.query.tags.findMany({
 				where: eq(tags.organizationId, ctx.session.activeOrganizationId),
@@ -64,7 +77,15 @@ export const tagRouter = createTRPCRouter({
 		}
 	}),
 
-	one: protectedProcedure.input(apiFindOneTag).query(async ({ input, ctx }) => {
+	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get tag",
+				description: "Returns a single tag by ID. Only returns tags belonging to the caller's organization.",
+			},
+		})
+		.input(apiFindOneTag)
+		.query(async ({ input, ctx }) => {
 		try {
 			const tag = await db.query.tags.findFirst({
 				where: and(
@@ -94,6 +115,12 @@ export const tagRouter = createTRPCRouter({
 	}),
 
 	update: withPermission("tag", "update")
+		.meta({
+			openapi: {
+				summary: "Update tag",
+				description: "Updates an existing tag's name and/or color. Verifies the tag belongs to the caller's organization. Tag names must remain unique.",
+			},
+		})
 		.input(apiUpdateTag)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -144,6 +171,12 @@ export const tagRouter = createTRPCRouter({
 		}),
 
 	remove: withPermission("tag", "delete")
+		.meta({
+			openapi: {
+				summary: "Delete tag",
+				description: "Deletes a tag by ID. Cascade-deletes all project-tag associations. Verifies the tag belongs to the caller's organization.",
+			},
+		})
 		.input(apiRemoveTag)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -179,6 +212,12 @@ export const tagRouter = createTRPCRouter({
 		}),
 
 	assignToProject: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Assign tag to project",
+				description: "Associates a tag with a project. Verifies that both the tag and project belong to the caller's organization and that the caller has project access.",
+			},
+		})
 		.input(
 			z.object({
 				projectId: z.string().min(1),
@@ -267,6 +306,12 @@ export const tagRouter = createTRPCRouter({
 		}),
 
 	removeFromProject: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Remove tag from project",
+				description: "Removes a tag-project association. Verifies that both the tag and project belong to the caller's organization and that the caller has project access.",
+			},
+		})
 		.input(
 			z.object({
 				projectId: z.string().min(1),
@@ -347,6 +392,12 @@ export const tagRouter = createTRPCRouter({
 		}),
 
 	bulkAssign: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Bulk assign tags to project",
+				description: "Replaces all tag associations for a project with the provided list of tag IDs. Removes existing associations first, then inserts the new set.",
+			},
+		})
 		.input(
 			z.object({
 				projectId: z.string().min(1),

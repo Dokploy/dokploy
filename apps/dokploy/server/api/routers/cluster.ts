@@ -13,6 +13,12 @@ import { createTRPCRouter, withPermission } from "../trpc";
 
 export const clusterRouter = createTRPCRouter({
 	getNodes: withPermission("server", "read")
+		.meta({
+			openapi: {
+				summary: "Get cluster nodes",
+				description: "Retrieves all nodes in the Docker Swarm cluster. Optionally targets a remote server.",
+			},
+		})
 		.input(
 			z.object({
 				serverId: z.string().optional(),
@@ -25,6 +31,12 @@ export const clusterRouter = createTRPCRouter({
 		}),
 
 	removeWorker: withPermission("server", "delete")
+		.meta({
+			openapi: {
+				summary: "Remove a worker node",
+				description: "Drains and forcefully removes a worker node from the Docker Swarm cluster. An audit log entry is created for the removal.",
+			},
+		})
 		.input(
 			z.object({
 				nodeId: z.string(),
@@ -60,6 +72,12 @@ export const clusterRouter = createTRPCRouter({
 		}),
 
 	addWorker: withPermission("server", "create")
+		.meta({
+			openapi: {
+				summary: "Get worker join command",
+				description: "Returns the Docker Swarm join command and token for adding a new worker node to the cluster, along with the Docker version.",
+			},
+		})
 		.input(
 			z.object({
 				serverId: z.string().optional(),
@@ -83,6 +101,12 @@ export const clusterRouter = createTRPCRouter({
 		}),
 
 	addManager: withPermission("server", "create")
+		.meta({
+			openapi: {
+				summary: "Get manager join command",
+				description: "Returns the Docker Swarm join command and token for adding a new manager node to the cluster, along with the Docker version.",
+			},
+		})
 		.input(
 			z.object({
 				serverId: z.string().optional(),

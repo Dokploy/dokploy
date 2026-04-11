@@ -54,6 +54,12 @@ import { cancelJobs } from "@/server/utils/backup";
 
 export const mysqlRouter = createTRPCRouter({
 	create: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Create a MySQL database",
+				description: "Creates a new MySQL database service with the specified configuration, sets up a persistent data volume, and registers it in the project.",
+			},
+		})
 		.input(apiCreateMySql)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -118,6 +124,12 @@ export const mysqlRouter = createTRPCRouter({
 			}
 		}),
 	one: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Get a MySQL database by ID",
+				description: "Returns the full details of a MySQL database service, including its environment and project configuration.",
+			},
+		})
 		.input(apiFindOneMySql)
 		.query(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.mysqlId, "read");
@@ -135,6 +147,12 @@ export const mysqlRouter = createTRPCRouter({
 		}),
 
 	start: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Start a MySQL database",
+				description: "Starts the Docker container for the specified MySQL database and sets its status to done.",
+			},
+		})
 		.input(apiFindOneMySql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
@@ -160,6 +178,12 @@ export const mysqlRouter = createTRPCRouter({
 			return service;
 		}),
 	stop: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Stop a MySQL database",
+				description: "Stops the Docker container for the specified MySQL database and sets its status to idle.",
+			},
+		})
 		.input(apiFindOneMySql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
@@ -184,6 +208,12 @@ export const mysqlRouter = createTRPCRouter({
 			return mongo;
 		}),
 	saveExternalPort: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save the external port for a MySQL database",
+				description: "Updates the external port mapping for the MySQL database and triggers a redeployment. Validates that the port is not already in use.",
+			},
+		})
 		.input(apiSaveExternalPortMySql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
@@ -217,6 +247,12 @@ export const mysqlRouter = createTRPCRouter({
 			return mysql;
 		}),
 	deploy: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Deploy a MySQL database",
+				description: "Triggers a deployment for the specified MySQL database, rebuilding and restarting its Docker container with the current configuration.",
+			},
+		})
 		.input(apiDeployMySql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
@@ -270,6 +306,12 @@ export const mysqlRouter = createTRPCRouter({
 			}
 		}),
 	changeStatus: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Change MySQL database status",
+				description: "Updates the application status of a MySQL database without starting or stopping the container.",
+			},
+		})
 		.input(apiChangeMySqlStatus)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
@@ -288,6 +330,12 @@ export const mysqlRouter = createTRPCRouter({
 			return mongo;
 		}),
 	reload: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Reload a MySQL database",
+				description: "Restarts the MySQL database by stopping and then starting its Docker container.",
+			},
+		})
 		.input(apiResetMysql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
@@ -319,6 +367,12 @@ export const mysqlRouter = createTRPCRouter({
 			return true;
 		}),
 	remove: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Delete a MySQL database",
+				description: "Removes the MySQL database service, its Docker container, cancels associated backup jobs, and deletes the database record.",
+			},
+		})
 		.input(apiFindOneMySql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.mysqlId, "delete");
@@ -355,6 +409,12 @@ export const mysqlRouter = createTRPCRouter({
 			return mongo;
 		}),
 	saveEnvironment: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Save environment variables for a MySQL database",
+				description: "Updates the environment variables for the specified MySQL database service.",
+			},
+		})
 		.input(apiSaveEnvironmentVariablesMySql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
@@ -379,6 +439,12 @@ export const mysqlRouter = createTRPCRouter({
 			return true;
 		}),
 	update: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Update a MySQL database",
+				description: "Updates the configuration of an existing MySQL database service.",
+			},
+		})
 		.input(apiUpdateMySql)
 		.mutation(async ({ input, ctx }) => {
 			const { mysqlId, ...rest } = input;
@@ -405,6 +471,12 @@ export const mysqlRouter = createTRPCRouter({
 			return true;
 		}),
 	changePassword: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Change MySQL database password",
+				description: "Changes the password for a MySQL user or root account by executing ALTER USER inside the running container and updating the stored password.",
+			},
+		})
 		.input(
 			z.object({
 				mysqlId: z.string().min(1),
@@ -462,6 +534,12 @@ export const mysqlRouter = createTRPCRouter({
 			return true;
 		}),
 	move: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Move a MySQL database to another environment",
+				description: "Moves the MySQL database to a different environment within the same project.",
+			},
+		})
 		.input(
 			z.object({
 				mysqlId: z.string(),
@@ -498,6 +576,12 @@ export const mysqlRouter = createTRPCRouter({
 			return updatedMysql;
 		}),
 	rebuild: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Rebuild a MySQL database",
+				description: "Rebuilds the MySQL database Docker container from scratch, pulling the latest image and recreating the service.",
+			},
+		})
 		.input(apiRebuildMysql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
@@ -514,6 +598,12 @@ export const mysqlRouter = createTRPCRouter({
 			return true;
 		}),
 	search: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Search MySQL databases",
+				description: "Returns a paginated list of MySQL databases matching the given filters. Supports searching by name, appName, description, project, and environment.",
+			},
+		})
 		.input(
 			z.object({
 				q: z.string().optional(),
@@ -607,6 +697,12 @@ export const mysqlRouter = createTRPCRouter({
 		}),
 
 	readLogs: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Read MySQL container logs",
+				description: "Retrieves the Docker container logs for the specified MySQL database, with support for tail count, time-based filtering, and text search.",
+			},
+		})
 		.input(
 			apiFindOneMySql.extend({
 				tail: z.number().int().min(1).max(10000).default(100),
