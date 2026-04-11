@@ -135,11 +135,15 @@ export const initializeJobs = async () => {
 
 	for (const server of servers) {
 		const { serverId } = server;
-		scheduleJob({
-			serverId,
-			type: "server",
-			cronSchedule: CLEANUP_CRON_JOB,
-		});
+		try {
+			await scheduleJob({
+				serverId,
+				type: "server",
+				cronSchedule: CLEANUP_CRON_JOB,
+			});
+		} catch (error) {
+			logger.error(error, `Failed to schedule cleanup job for server ${serverId}`);
+		}
 	}
 
 	logger.info({ Quantity: servers.length }, "Active Servers Initialized");
@@ -157,11 +161,15 @@ export const initializeJobs = async () => {
 	});
 
 	for (const backup of backupsResult) {
-		scheduleJob({
-			backupId: backup.backupId,
-			type: "backup",
-			cronSchedule: backup.schedule,
-		});
+		try {
+			await scheduleJob({
+				backupId: backup.backupId,
+				type: "backup",
+				cronSchedule: backup.schedule,
+			});
+		} catch (error) {
+			logger.error(error, `Failed to schedule backup ${backup.backupId}`);
+		}
 	}
 	logger.info({ Quantity: backupsResult.length }, "Backups Initialized");
 
@@ -197,11 +205,15 @@ export const initializeJobs = async () => {
 	);
 
 	for (const schedule of filteredSchedulesBasedOnServerStatus) {
-		scheduleJob({
-			scheduleId: schedule.scheduleId,
-			type: "schedule",
-			cronSchedule: schedule.cronExpression,
-		});
+		try {
+			await scheduleJob({
+				scheduleId: schedule.scheduleId,
+				type: "schedule",
+				cronSchedule: schedule.cronExpression,
+			});
+		} catch (error) {
+			logger.error(error, `Failed to schedule ${schedule.scheduleId}`);
+		}
 	}
 	logger.info(
 		{ Quantity: filteredSchedulesBasedOnServerStatus.length },
@@ -236,11 +248,15 @@ export const initializeJobs = async () => {
 	);
 
 	for (const volumeBackup of filteredVolumeBackupsBasedOnServerStatus) {
-		scheduleJob({
-			volumeBackupId: volumeBackup.volumeBackupId,
-			type: "volume-backup",
-			cronSchedule: volumeBackup.cronExpression,
-		});
+		try {
+			await scheduleJob({
+				volumeBackupId: volumeBackup.volumeBackupId,
+				type: "volume-backup",
+				cronSchedule: volumeBackup.cronExpression,
+			});
+		} catch (error) {
+			logger.error(error, `Failed to schedule volume backup ${volumeBackup.volumeBackupId}`);
+		}
 	}
 
 	logger.info(

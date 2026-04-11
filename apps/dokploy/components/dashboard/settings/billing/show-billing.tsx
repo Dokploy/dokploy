@@ -200,9 +200,7 @@ export const ShowBilling = () => {
 										</div>
 										<Switch
 											id="invoice-notifications"
-											checked={
-												admin?.user.sendInvoiceNotifications ?? false
-											}
+											checked={admin?.user.sendInvoiceNotifications ?? false}
 											onCheckedChange={async (checked) => {
 												await updateInvoiceNotifications({
 													enabled: checked,

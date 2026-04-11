@@ -32,10 +32,7 @@ export const sendInvoiceEmail = async (
 	if (!invoice.hosted_invoice_url) return;
 
 	try {
-		const amountFormatted = formatAmount(
-			invoice.amount_paid,
-			invoice.currency,
-		);
+		const amountFormatted = formatAmount(invoice.amount_paid, invoice.currency);
 
 		const htmlContent = await renderAsync(
 			InvoiceNotificationEmail({
@@ -85,10 +82,7 @@ export const sendPaymentFailedEmail = async (
 	if (!invoice.hosted_invoice_url) return;
 
 	try {
-		const amountFormatted = formatAmount(
-			invoice.amount_due,
-			invoice.currency,
-		);
+		const amountFormatted = formatAmount(invoice.amount_due, invoice.currency);
 
 		const htmlContent = await renderAsync(
 			PaymentFailedEmail({
