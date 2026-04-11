@@ -5,6 +5,10 @@ import { and, asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 import { organization, server, user } from "@/server/db/schema";
+import {
+	sendInvoiceEmail,
+	sendPaymentFailedEmail,
+} from "@/server/utils/stripe-notifications";
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -241,6 +245,11 @@ export default async function handler(
 			}
 			const newServersQuantity = admin.serversQuantity;
 			await updateServersBasedOnQuantity(admin.id, newServersQuantity);
+
+			if (admin.sendInvoiceNotifications) {
+				await sendInvoiceEmail(newInvoice, admin);
+			}
+
 			break;
 		}
 		case "invoice.payment_failed": {
@@ -249,7 +258,6 @@ export default async function handler(
 			const subscription = await stripe.subscriptions.retrieve(
 				newInvoice.subscription as string,
 			);
-
 			if (subscription.status !== "active") {
 				const admin = await findUserByStripeCustomerId(
 					newInvoice.customer as string,
@@ -261,6 +269,10 @@ export default async function handler(
 
 				if (admin.isEnterpriseCloud) {
 					break;
+				}
+
+				if (admin.sendInvoiceNotifications) {
+					await sendPaymentFailedEmail(newInvoice, admin);
 				}
 
 				await db

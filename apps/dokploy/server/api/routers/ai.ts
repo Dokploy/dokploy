@@ -217,13 +217,20 @@ export const aiRouter = createTRPCRouter({
 				context: z.enum(["build", "runtime"]),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const aiSettings = await getAiSettingById(input.aiId);
 				if (!aiSettings?.isEnabled) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "AI provider is not enabled",
+					});
+				}
+
+				if (aiSettings.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Access denied",
 					});
 				}
 
@@ -253,7 +260,9 @@ ${input.logs}`,
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message:
-						error instanceof Error ? error.message : `Analysis failed: ${error}`,
+						error instanceof Error
+							? error.message
+							: `Analysis failed: ${error}`,
 				});
 			}
 		}),
@@ -285,7 +294,9 @@ ${input.logs}`,
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message:
-						error instanceof Error ? error.message : `Connection failed: ${error}`,
+						error instanceof Error
+							? error.message
+							: `Connection failed: ${error}`,
 				});
 			}
 		}),

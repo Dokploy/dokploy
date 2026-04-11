@@ -68,7 +68,7 @@ const AI_PROVIDERS = [
 	{ name: "DeepInfra", apiUrl: "https://api.deepinfra.com/v1/openai" },
 	{ name: "Ollama", apiUrl: "http://localhost:11434" },
 	{ name: "OpenRouter", apiUrl: "https://openrouter.ai/api/v1" },
-	{ name: "Z.AI", apiUrl: "https://api.z.ai/api/paas/v4/" },
+	{ name: "Z.AI", apiUrl: "https://api.z.ai/api/paas/v4" },
 	{ name: "MiniMax", apiUrl: "https://api.minimax.io/v1" },
 ] as const;
 

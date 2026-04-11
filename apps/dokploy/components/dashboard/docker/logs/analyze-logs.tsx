@@ -1,5 +1,6 @@
 "use client";
-import { Bot, Loader2, RotateCcw, X } from "lucide-react";
+import { Bot, Loader2, RotateCcw, Settings, X } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
@@ -32,14 +33,13 @@ export function AnalyzeLogs({ logs, context }: Props) {
 	const { data: providers } = api.ai.getEnabledProviders.useQuery(undefined, {
 		enabled: open,
 	});
-	const { mutate, isPending, data, reset } =
-		api.ai.analyzeLogs.useMutation({
-			onError: (error) => {
-				toast.error("Analysis failed", {
-					description: error.message,
-				});
-			},
-		});
+	const { mutate, isPending, data, reset } = api.ai.analyzeLogs.useMutation({
+		onError: (error) => {
+			toast.error("Analysis failed", {
+				description: error.message,
+			});
+		},
+	});
 
 	const handleAnalyze = () => {
 		if (!aiId || logs.length === 0) return;
@@ -92,38 +92,57 @@ export function AnalyzeLogs({ logs, context }: Props) {
 				</div>
 				<div className="p-4 space-y-3">
 					{!data?.analysis ? (
-						<>
-							<Select value={aiId} onValueChange={setAiId}>
-								<SelectTrigger className="h-9 text-sm">
-									<SelectValue placeholder="Select AI provider..." />
-								</SelectTrigger>
-								<SelectContent>
-									{providers?.map((p) => (
-										<SelectItem key={p.aiId} value={p.aiId}>
-											{p.name} ({p.model})
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-							<Button
-								size="sm"
-								className="w-full"
-								disabled={!aiId || isPending || logs.length === 0}
-								onClick={handleAnalyze}
-							>
-								{isPending ? (
-									<>
-										<Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-										Analyzing...
-									</>
-								) : (
-									<>
-										<Bot className="mr-2 h-3.5 w-3.5" />
-										Analyze {logs.length > MAX_LOG_LINES ? `last ${MAX_LOG_LINES}` : logs.length} lines
-									</>
-								)}
-							</Button>
-						</>
+						providers && providers.length === 0 ? (
+							<div className="flex flex-col items-center gap-3 py-2 text-center">
+								<p className="text-sm text-muted-foreground">
+									No AI providers configured. Set up a provider to start
+									analyzing logs.
+								</p>
+								<Button size="sm" variant="outline" asChild>
+									<Link href="/dashboard/settings/ai">
+										<Settings className="mr-2 h-3.5 w-3.5" />
+										Configure AI Provider
+									</Link>
+								</Button>
+							</div>
+						) : (
+							<>
+								<Select value={aiId} onValueChange={setAiId}>
+									<SelectTrigger className="h-9 text-sm">
+										<SelectValue placeholder="Select AI provider..." />
+									</SelectTrigger>
+									<SelectContent>
+										{providers?.map((p) => (
+											<SelectItem key={p.aiId} value={p.aiId}>
+												{p.name} ({p.model})
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+								<Button
+									size="sm"
+									className="w-full"
+									disabled={!aiId || isPending || logs.length === 0}
+									onClick={handleAnalyze}
+								>
+									{isPending ? (
+										<>
+											<Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+											Analyzing...
+										</>
+									) : (
+										<>
+											<Bot className="mr-2 h-3.5 w-3.5" />
+											Analyze{" "}
+											{logs.length > MAX_LOG_LINES
+												? `last ${MAX_LOG_LINES}`
+												: logs.length}{" "}
+											lines
+										</>
+									)}
+								</Button>
+							</>
+						)
 					) : (
 						<>
 							<div className="max-h-[400px] overflow-y-auto">
