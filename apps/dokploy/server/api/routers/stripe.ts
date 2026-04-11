@@ -332,6 +332,22 @@ export const stripeRouter = createTRPCRouter({
 		},
 	),
 
+	updateInvoiceNotifications: adminProcedure
+		.input(z.object({ enabled: z.boolean() }))
+		.mutation(async ({ ctx, input }) => {
+			if (!IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available in Dokploy Cloud",
+				});
+			}
+			const owner = await findUserById(ctx.user.ownerId);
+			await updateUser(owner.id, {
+				sendInvoiceNotifications: input.enabled,
+			});
+			return { ok: true };
+		}),
+
 	getInvoices: adminProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);
 		const stripeCustomerId = user.stripeCustomerId;

@@ -2,6 +2,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import clsx from "clsx";
 import {
 	AlertTriangle,
+	Bell,
 	CheckIcon,
 	CreditCard,
 	FileText,
@@ -25,7 +26,17 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { NumberInput } from "@/components/ui/input";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
@@ -90,6 +101,8 @@ export const ShowBilling = () => {
 		api.stripe.createCustomerPortalSession.useMutation();
 	const { mutateAsync: upgradeSubscription, isPending: isUpgrading } =
 		api.stripe.upgradeSubscription.useMutation();
+	const { mutateAsync: updateInvoiceNotifications } =
+		api.stripe.updateInvoiceNotifications.useMutation();
 	const utils = api.useUtils();
 
 	const [hobbyServerQuantity, setHobbyServerQuantity] = useState(1);
@@ -151,14 +164,68 @@ export const ShowBilling = () => {
 		<div className="w-full">
 			<Card className="bg-sidebar p-2.5 rounded-xl max-w-6xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md">
-					<CardHeader>
-						<CardTitle className="text-xl flex flex-row gap-2">
-							<CreditCard className="size-6 text-muted-foreground self-center" />
-							Billing
-						</CardTitle>
-						<CardDescription>
-							Manage your subscription and invoices
-						</CardDescription>
+					<CardHeader className="flex flex-row items-start justify-between">
+						<div>
+							<CardTitle className="text-xl flex flex-row gap-2">
+								<CreditCard className="size-6 text-muted-foreground self-center" />
+								Billing
+							</CardTitle>
+							<CardDescription>
+								Manage your subscription and invoices
+							</CardDescription>
+						</div>
+						{(admin?.user.stripeSubscriptionId || isEnterpriseCloud) && (
+							<Dialog>
+								<DialogTrigger asChild>
+									<Button variant="outline" size="icon">
+										<Bell className="size-4" />
+									</Button>
+								</DialogTrigger>
+								<DialogContent className="sm:max-w-md">
+									<DialogHeader>
+										<DialogTitle>Notification Settings</DialogTitle>
+										<DialogDescription>
+											Configure your billing email notifications.
+										</DialogDescription>
+									</DialogHeader>
+									<div className="flex items-center justify-between rounded-lg border p-4">
+										<div className="space-y-0.5">
+											<Label htmlFor="invoice-notifications">
+												Invoice Notifications
+											</Label>
+											<p className="text-sm text-muted-foreground">
+												Receive email notifications for payments and failed
+												charges.
+											</p>
+										</div>
+										<Switch
+											id="invoice-notifications"
+											checked={
+												admin?.user.sendInvoiceNotifications ?? false
+											}
+											onCheckedChange={async (checked) => {
+												await updateInvoiceNotifications({
+													enabled: checked,
+												})
+													.then(() => {
+														utils.user.get.invalidate();
+														toast.success(
+															checked
+																? "Invoice notifications enabled"
+																: "Invoice notifications disabled",
+														);
+													})
+													.catch(() => {
+														toast.error(
+															"Failed to update invoice notifications",
+														);
+													});
+											}}
+										/>
+									</div>
+								</DialogContent>
+							</Dialog>
+						)}
 					</CardHeader>
 					<CardContent className="space-y-4 py-4 border-t">
 						<nav className="flex space-x-2 border-b">
