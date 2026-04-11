@@ -52,7 +52,6 @@ import { db } from "@dokploy/server/db";
 import { checkPermission } from "@dokploy/server/services/permission";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";
-import { tryCatch } from "bullmq";
 import { eq, sql } from "drizzle-orm";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { parse, stringify } from "yaml";
