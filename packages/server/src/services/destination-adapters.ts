@@ -96,17 +96,7 @@ type S3Credentials = z.infer<typeof s3CredentialsSchema>;
 
 type DestinationAdapter<TType extends DestinationType, TDetails> = {
     type: TType;
-    create: (
-        input: Extract<AnyCreateInput, { type: TType }>,
-        destinationId: string,
-    ) => Promise<void>;
-    testCommand: (
-        input: Extract<AnyCreateInput, { type: TType }>,
-    ) => Promise<string>;
-    update: (
-        destinationId: string,
-        input: Extract<AnyUpdateInput, { type: TType }>,
-    ) => Promise<void>;
+    testCommand: (input: Extract<AnyCreateInput, { type: TType }>) => string;
     getRcloneConfig: (credentials: TDetails) => DestinationRcloneConfig;
     extractCredentials: (
         input: Extract<AnyCreateInput | AnyUpdateInput, { type: TType }>,
@@ -116,29 +106,30 @@ type DestinationAdapter<TType extends DestinationType, TDetails> = {
 const destinationAdapters = {
     ftp: {
         type: "ftp",
-        create: async () => {},
-        testCommand: async (input: FtpOrSftpCreateInput) => {
+        testCommand: (input: FtpOrSftpCreateInput) => {
             const obscuredPassword = obscureRclonePassword(input.password);
             const rcloneFlags = [
                 `--ftp-host="${input.host}"`,
                 `--ftp-port="${input.port}"`,
                 `--ftp-user="${input.username}"`,
                 `--ftp-pass="${obscuredPassword}"`,
+                "--retries 1",
+                "--low-level-retries 1",
+                "--timeout 10s",
+                "--contimeout 5s",
             ];
             if (input.additionalFlags?.length) {
                 rcloneFlags.push(...input.additionalFlags);
             }
             return `rclone lsd ${rcloneFlags.join(" ")} :ftp:${input.path || "/"}`;
         },
-        update: async () => {},
         getRcloneConfig: (credentials: FtpCredentials) => {
-            const obscuredPassword = obscureRclonePassword(credentials.password);
             return {
                 flags: [
                     `--ftp-host="${credentials.host}"`,
                     `--ftp-port="${credentials.port}"`,
                     `--ftp-user="${credentials.username}"`,
-                    `--ftp-pass="${obscuredPassword}"`,
+                    `--ftp-pass="${credentials.password}"`,
                 ],
                 destinationPrefix: "ftp",
                 destinationPathPrefix: credentials.path,
@@ -158,29 +149,30 @@ const destinationAdapters = {
     } satisfies DestinationAdapter<"ftp", FtpCredentials>,
     sftp: {
         type: "sftp",
-        create: async () => {},
-        testCommand: async (input: FtpOrSftpCreateInput) => {
+        testCommand: (input: FtpOrSftpCreateInput) => {
             const obscuredPassword = obscureRclonePassword(input.password);
             const rcloneFlags = [
                 `--sftp-host="${input.host}"`,
                 `--sftp-port="${input.port}"`,
                 `--sftp-user="${input.username}"`,
                 `--sftp-pass="${obscuredPassword}"`,
+                "--retries 1",
+                "--low-level-retries 1",
+                "--timeout 10s",
+                "--contimeout 5s",
             ];
             if (input.additionalFlags?.length) {
                 rcloneFlags.push(...input.additionalFlags);
             }
             return `rclone lsd ${rcloneFlags.join(" ")} :sftp:${input.path || "/"}`;
         },
-        update: async () => {},
         getRcloneConfig: (credentials: FtpCredentials) => {
-            const obscuredPassword = obscureRclonePassword(credentials.password);
             return {
                 flags: [
                     `--sftp-host="${credentials.host}"`,
                     `--sftp-port="${credentials.port}"`,
                     `--sftp-user="${credentials.username}"`,
-                    `--sftp-pass="${obscuredPassword}"`,
+                    `--sftp-pass="${credentials.password}"`,
                 ],
                 destinationPrefix: "sftp",
                 destinationPathPrefix: credentials.path,
@@ -200,8 +192,7 @@ const destinationAdapters = {
     } satisfies DestinationAdapter<"sftp", FtpCredentials>,
     s3: {
         type: "s3",
-        create: async () => {},
-        testCommand: async (input: S3CreateInput) => {
+        testCommand: (input: S3CreateInput) => {
             const flags = [
                 `--s3-access-key-id="${input.accessKey}"`,
                 `--s3-secret-access-key="${input.secretAccessKey}"`,
@@ -224,7 +215,6 @@ const destinationAdapters = {
 
             return `rclone ls ${flags.join(" ")} ":s3:${input.bucket}"`;
         },
-        update: async () => {},
         getRcloneConfig: (credentials: S3Credentials) => {
             const flags = [
                 `--s3-access-key-id="${credentials.accessKey}"`,

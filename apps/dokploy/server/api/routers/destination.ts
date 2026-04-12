@@ -56,7 +56,7 @@ export const destinationRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			try {
 				const adapter = getDestinationAdapter(input.type);
-				const rcloneCommand = await adapter.testCommand(input as never);
+				const rcloneCommand = adapter.testCommand(input as never);
 
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
