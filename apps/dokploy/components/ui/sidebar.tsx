@@ -22,7 +22,7 @@ const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
-const SIDEBAR_KEYBOARD_SHORTCUT = "b";
+const SIDEBAR_KEYBOARD_SHORTCUT = "KeyB";
 
 type SidebarContext = {
 	state: "expanded" | "collapsed";
@@ -82,7 +82,7 @@ const SidebarProvider = React.forwardRef<
 
 				_setOpen(value);
 
-				// This sets the cookie to keep the sidebar state.
+				// biome-ignore lint/suspicious/noDocumentCookie: This sets the cookie to keep the sidebar state.
 				document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
 			},
 			[setOpenProp, open],
@@ -99,7 +99,7 @@ const SidebarProvider = React.forwardRef<
 		React.useEffect(() => {
 			const handleKeyDown = (event: KeyboardEvent) => {
 				if (
-					event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
+					event.code === SIDEBAR_KEYBOARD_SHORTCUT &&
 					(event.metaKey || event.ctrlKey)
 				) {
 					event.preventDefault();

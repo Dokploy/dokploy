@@ -9,7 +9,7 @@ import type { z } from "zod";
 
 export type Destination = typeof destinations.$inferSelect;
 
-export const createDestintation = async (
+export const createDestination = async (
 	input: z.infer<typeof apiCreateDestination>,
 	organizationId: string,
 ) => {

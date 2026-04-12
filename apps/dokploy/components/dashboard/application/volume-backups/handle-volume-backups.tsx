@@ -71,6 +71,7 @@ const formSchema = z
 			"mongo",
 			"mysql",
 			"redis",
+			"libsql",
 		]),
 		serviceName: z.string(),
 		destinationId: z.string().min(1, "Destination required"),
@@ -482,7 +483,7 @@ export const HandleVolumeBackups = ({
 													</SelectContent>
 												</Select>
 												<FormDescription>
-													Choose the volume to backup, if you dont see the
+													Choose the volume to backup. If you do not see the
 													volume here, you can type the volume name manually
 												</FormDescription>
 												<FormMessage />
@@ -517,7 +518,7 @@ export const HandleVolumeBackups = ({
 											</SelectContent>
 										</Select>
 										<FormDescription>
-											Choose the volume to backup, if you dont see the volume
+											Choose the volume to backup. If you do not see the volume
 											here, you can type the volume name manually
 										</FormDescription>
 										<FormMessage />

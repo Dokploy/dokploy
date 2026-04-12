@@ -95,6 +95,7 @@ const baseApp: ApplicationNested = {
 	dropBuildPath: null,
 	enabled: null,
 	env: null,
+	icon: null,
 	healthCheckSwarm: null,
 	labelsSwarm: null,
 	memoryLimit: null,
@@ -137,6 +138,7 @@ const baseDomain: Domain = {
 	https: false,
 	path: null,
 	port: null,
+	customEntrypoint: null,
 	serviceName: "",
 	composeId: "",
 	customCertResolver: null,
@@ -145,6 +147,7 @@ const baseDomain: Domain = {
 	previewDeploymentId: "",
 	internalPath: "/",
 	stripPath: false,
+	middlewares: null,
 };
 
 const baseRedirect: Redirect = {
@@ -264,6 +267,80 @@ test("Websecure entrypoint on https domain with redirect", async () => {
 	expect(router.middlewares).toContain("redirect-test-1");
 });
 
+/** Custom Middlewares */
+
+test("Web entrypoint with single custom middleware", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, middlewares: ["auth@file"] },
+		"web",
+	);
+
+	expect(router.middlewares).toContain("auth@file");
+});
+
+test("Web entrypoint with multiple custom middlewares", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, middlewares: ["auth@file", "rate-limit@file"] },
+		"web",
+	);
+
+	expect(router.middlewares).toContain("auth@file");
+	expect(router.middlewares).toContain("rate-limit@file");
+});
+
+test("Web entrypoint on https domain with custom middleware", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, https: true, middlewares: ["auth@file"] },
+		"web",
+	);
+
+	// Should only have HTTPS redirect - custom middleware applies on websecure
+	expect(router.middlewares).toContain("redirect-to-https");
+	expect(router.middlewares).not.toContain("auth@file");
+});
+
+test("Websecure entrypoint with custom middleware", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, https: true, middlewares: ["auth@file"] },
+		"websecure",
+	);
+
+	// Should have custom middleware but not HTTPS redirect
+	expect(router.middlewares).not.toContain("redirect-to-https");
+	expect(router.middlewares).toContain("auth@file");
+});
+
+test("Web entrypoint with redirect and custom middleware", async () => {
+	const router = await createRouterConfig(
+		{
+			...baseApp,
+			appName: "test",
+			redirects: [{ ...baseRedirect, uniqueConfigKey: 1 }],
+		},
+		{ ...baseDomain, middlewares: ["auth@file"] },
+		"web",
+	);
+
+	// Should have both redirect middleware and custom middleware
+	expect(router.middlewares).toContain("redirect-test-1");
+	expect(router.middlewares).toContain("auth@file");
+});
+
+test("Web entrypoint with empty middlewares array", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, https: false, middlewares: [] },
+		"web",
+	);
+
+	// Should behave same as no middlewares - no redirect for http
+	expect(router.middlewares).not.toContain("redirect-to-https");
+});
+
 /** Certificates */
 
 test("CertificateType on websecure entrypoint", async () => {
@@ -274,6 +351,130 @@ test("CertificateType on websecure entrypoint", async () => {
 	);
 
 	expect(router.tls?.certResolver).toBe("letsencrypt");
+});
+
+test("Custom entrypoint on http domain", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, https: false, customEntrypoint: "custom" },
+		"custom",
+	);
+
+	expect(router.entryPoints).toEqual(["custom"]);
+	expect(router.middlewares).not.toContain("redirect-to-https");
+	expect(router.tls).toBeUndefined();
+});
+
+test("Custom entrypoint on https domain", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{
+			...baseDomain,
+			https: true,
+			customEntrypoint: "custom",
+			certificateType: "letsencrypt",
+		},
+		"custom",
+	);
+
+	expect(router.entryPoints).toEqual(["custom"]);
+	expect(router.middlewares).not.toContain("redirect-to-https");
+	expect(router.tls?.certResolver).toBe("letsencrypt");
+});
+
+test("Custom entrypoint with path includes PathPrefix in rule", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, customEntrypoint: "custom", path: "/api" },
+		"custom",
+	);
+
+	expect(router.rule).toContain("PathPrefix(`/api`)");
+	expect(router.entryPoints).toEqual(["custom"]);
+});
+
+test("Custom entrypoint with stripPath adds stripprefix middleware", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{
+			...baseDomain,
+			customEntrypoint: "custom",
+			path: "/api",
+			stripPath: true,
+		},
+		"custom",
+	);
+
+	expect(router.middlewares).toContain("stripprefix--1");
+	expect(router.entryPoints).toEqual(["custom"]);
+});
+
+test("Custom entrypoint with internalPath adds addprefix middleware", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{
+			...baseDomain,
+			customEntrypoint: "custom",
+			internalPath: "/hello",
+		},
+		"custom",
+	);
+
+	expect(router.middlewares).toContain("addprefix--1");
+	expect(router.entryPoints).toEqual(["custom"]);
+});
+
+test("stripPath and internalPath together: stripprefix must come before addprefix", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{
+			...baseDomain,
+			path: "/public",
+			stripPath: true,
+			internalPath: "/app/v2",
+		},
+		"web",
+	);
+
+	const stripIndex = router.middlewares?.indexOf("stripprefix--1") ?? -1;
+	const addIndex = router.middlewares?.indexOf("addprefix--1") ?? -1;
+
+	expect(stripIndex).toBeGreaterThanOrEqual(0);
+	expect(addIndex).toBeGreaterThanOrEqual(0);
+	expect(stripIndex).toBeLessThan(addIndex);
+});
+
+test("Custom entrypoint with https and custom cert resolver", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{
+			...baseDomain,
+			https: true,
+			customEntrypoint: "custom",
+			certificateType: "custom",
+			customCertResolver: "myresolver",
+		},
+		"custom",
+	);
+
+	expect(router.entryPoints).toEqual(["custom"]);
+	expect(router.tls?.certResolver).toBe("myresolver");
+});
+
+test("Custom entrypoint without https should not have tls", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{
+			...baseDomain,
+			https: false,
+			customEntrypoint: "custom",
+			certificateType: "letsencrypt",
+		},
+		"custom",
+	);
+
+	expect(router.entryPoints).toEqual(["custom"]);
+	expect(router.tls).toBeUndefined();
 });
 
 /** IDN/Punycode */

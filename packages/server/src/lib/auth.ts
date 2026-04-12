@@ -76,27 +76,32 @@ const { handler, api } = betterAuth({
 		disabled: process.env.NODE_ENV === "production",
 	},
 	async trustedOrigins() {
-		if (IS_CLOUD) {
-			return getTrustedOrigins();
+		try {
+			if (IS_CLOUD) {
+				return await getTrustedOrigins();
+			}
+			const [trustedOrigins, settings] = await Promise.all([
+				getTrustedOrigins(),
+				getWebServerSettings(),
+			]);
+			if (!settings) return [];
+			const devOrigins =
+				process.env.NODE_ENV === "development"
+					? [
+							"http://localhost:3000",
+							"https://absolutely-handy-falcon.ngrok-free.app",
+						]
+					: [];
+			return [
+				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
+				...(settings?.host ? [`https://${settings?.host}`] : []),
+				...devOrigins,
+				...trustedOrigins,
+			];
+		} catch (error) {
+			console.error("Failed to resolve trusted origins:", error);
+			return [];
 		}
-		const [trustedOrigins, settings] = await Promise.all([
-			getTrustedOrigins(),
-			getWebServerSettings(),
-		]);
-		if (!settings) return [];
-		const devOrigins =
-			process.env.NODE_ENV === "development"
-				? [
-						"http://localhost:3000",
-						"https://absolutely-handy-falcon.ngrok-free.app",
-					]
-				: [];
-		return [
-			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
-			...(settings?.host ? [`https://${settings?.host}`] : []),
-			...devOrigins,
-			...trustedOrigins,
-		];
 	},
 	emailVerification: {
 		sendOnSignUp: true,
@@ -143,10 +148,30 @@ const { handler, api } = betterAuth({
 						const xDokployToken =
 							context?.request?.headers?.get("x-dokploy-token");
 						if (xDokployToken) {
-							const user = await getUserByToken(xDokployToken);
-							if (!user) {
+							let invitation: Awaited<ReturnType<typeof getUserByToken>>;
+							try {
+								invitation = await getUserByToken(xDokployToken);
+							} catch {
 								throw new APIError("BAD_REQUEST", {
-									message: "User not found",
+									message: "Invalid invitation token",
+								});
+							}
+							if (invitation.isExpired) {
+								throw new APIError("BAD_REQUEST", {
+									message: "Invitation has expired",
+								});
+							}
+							if (invitation.status !== "pending") {
+								throw new APIError("BAD_REQUEST", {
+									message: "Invitation has already been used",
+								});
+							}
+							if (
+								_user.email.toLowerCase().trim() !==
+								invitation.email.toLowerCase().trim()
+							) {
+								throw new APIError("BAD_REQUEST", {
+									message: "Email does not match invitation",
 								});
 							}
 						} else {

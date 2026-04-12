@@ -3,10 +3,14 @@ import {
 	createMount,
 	createMysql,
 	deployMySql,
+	execAsync,
+	execAsyncRemote,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findMySqlById,
 	findProjectById,
+	getContainerLogs,
+	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeMySqlById,
@@ -16,19 +20,20 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateMySqlById,
+	getAccessibleServerIds,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import {
 	addNewService,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { audit } from "@/server/api/utils/audit";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiChangeMySqlStatus,
 	apiCreateMySql,
@@ -39,6 +44,8 @@ import {
 	apiSaveEnvironmentVariablesMySql,
 	apiSaveExternalPortMySql,
 	apiUpdateMySql,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
 	environments,
 	mysql as mysqlTable,
 	projects,
@@ -67,6 +74,16 @@ export const mysqlRouter = createTRPCRouter({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this project",
 					});
+				}
+
+				if (input.serverId) {
+					const accessibleIds = await getAccessibleServerIds(ctx.session);
+					if (!accessibleIds.has(input.serverId)) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this server",
+						});
+					}
 				}
 
 				const newMysql = await createMysql({
@@ -230,11 +247,15 @@ export const mysqlRouter = createTRPCRouter({
 			});
 
 			const queue: string[] = [];
-			const done = false;
+			let done = false;
 
 			deployMySql(input.mysqlId, (log) => {
 				queue.push(log);
-			});
+			})
+				.catch(() => {})
+				.finally(() => {
+					done = true;
+				});
 
 			while (!done || queue.length > 0) {
 				if (queue.length > 0) {
@@ -383,6 +404,63 @@ export const mysqlRouter = createTRPCRouter({
 			});
 			return true;
 		}),
+	changePassword: protectedProcedure
+		.input(
+			z.object({
+				mysqlId: z.string().min(1),
+				password: z.string().min(1).regex(DATABASE_PASSWORD_REGEX, {
+					message: DATABASE_PASSWORD_MESSAGE,
+				}),
+				type: z.enum(["user", "root"]).default("user"),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { mysqlId, password, type } = input;
+			await checkServicePermissionAndAccess(ctx, mysqlId, {
+				service: ["create"],
+			});
+
+			const my = await findMySqlById(mysqlId);
+			const { appName, serverId, databaseUser, databaseRootPassword } = my;
+
+			const containerCmd = getServiceContainerCommand(appName);
+			const targetUser = type === "root" ? "root" : databaseUser;
+
+			const command = `
+				CONTAINER_ID=$(${containerCmd})
+				if [ -z "$CONTAINER_ID" ]; then
+					echo "No running container found for ${appName}" >&2
+					exit 1
+				fi
+				docker exec "$CONTAINER_ID" mysql -u root -p'${databaseRootPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"
+			`;
+
+			await db.transaction(async (tx) => {
+				const setData =
+					type === "root"
+						? { databaseRootPassword: password }
+						: { databasePassword: password };
+				await tx
+					.update(mysqlTable)
+					.set(setData)
+					.where(eq(mysqlTable.mysqlId, mysqlId));
+
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: mysqlId,
+				resourceName: appName,
+			});
+
+			return true;
+		}),
 	move: protectedProcedure
 		.input(
 			z.object({
@@ -526,5 +604,40 @@ export const mysqlRouter = createTRPCRouter({
 					.where(where),
 			]);
 			return { items, total: countResult[0]?.count ?? 0 };
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			apiFindOneMySql.extend({
+				tail: z.number().int().min(1).max(10000).default(100),
+				since: z
+					.string()
+					.regex(/^(all|\d+[smhd])$/, "Invalid since format")
+					.default("all"),
+				search: z
+					.string()
+					.regex(/^[a-zA-Z0-9 ._-]{0,500}$/)
+					.optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.mysqlId, "read");
+			const mysql = await findMySqlById(input.mysqlId);
+			if (
+				mysql.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this MySQL",
+				});
+			}
+			return await getContainerLogs(
+				mysql.appName,
+				input.tail,
+				input.since,
+				input.search,
+				mysql.serverId,
+			);
 		}),
 });

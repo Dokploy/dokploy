@@ -1,7 +1,7 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import copy from "copy-to-clipboard";
-import { GlobeIcon, HelpCircle, ServerOff } from "lucide-react";
+import { HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -25,6 +25,7 @@ import { ShowDeployments } from "@/components/dashboard/application/deployments/
 import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show";
 import { ShowGeneralApplication } from "@/components/dashboard/application/general/show";
+import { ShowIconSettings } from "@/components/dashboard/application/icon/show-icon-settings";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
@@ -35,7 +36,7 @@ import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
+import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -66,7 +67,8 @@ type TabState =
 	| "domains"
 	| "monitoring"
 	| "preview-deployments"
-	| "volume-backups";
+	| "volume-backups"
+	| "icon";
 
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -108,22 +110,7 @@ const Service = (
 	return (
 		<div className="pb-10">
 			<UseKeyboardNav forPage="application" />
-			<BreadcrumbSidebar
-				list={[
-					{ name: "Projects", href: "/dashboard/projects" },
-					{
-						name: data?.environment?.project?.name || "",
-						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
-					},
-					{
-						name: data?.environment?.name || "",
-						dropdownItems: environmentDropdownItems,
-					},
-					{
-						name: data?.name || "",
-					},
-				]}
-			/>
+			<AdvanceBreadcrumb />
 			<Head>
 				<title>
 					Application: {data?.name} - {data?.environment.project.name} |{" "}
@@ -135,13 +122,15 @@ const Service = (
 					<div className="rounded-xl bg-background shadow-md ">
 						<CardHeader className="flex flex-row justify-between items-center">
 							<div className="flex flex-col">
-								<CardTitle className="text-xl flex flex-row gap-2">
-									<div className="relative flex flex-row gap-4">
-										<div className="absolute -right-1 -top-2">
+								<CardTitle className="text-xl flex flex-row gap-2 items-center">
+									<div className="relative flex flex-row gap-4 items-center">
+										<ShowIconSettings
+											applicationId={applicationId}
+											icon={data?.icon}
+										/>
+										<div className="absolute -right-1 -top-2 z-10">
 											<StatusTooltip status={data?.applicationStatus} />
 										</div>
-
-										<GlobeIcon className="h-6 w-6 text-muted-foreground" />
 									</div>
 									{data?.name}
 								</CardTitle>
