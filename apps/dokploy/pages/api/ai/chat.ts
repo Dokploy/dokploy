@@ -10,13 +10,16 @@ import {
 	buildEndpointCatalog,
 	createApiTool,
 } from "@dokploy/server/utils/ai/api-tool";
+import {
+	getOrCreateEmbeddings,
+	retrieveRelevantEndpoints,
+} from "@dokploy/server/utils/ai/tool-retrieval";
 import { selectAIProvider } from "@dokploy/server/utils/ai/select-ai-provider";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, stepCountIs, streamText } from "ai";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 let cachedSpec: any = null;
-const cachedCatalogs = new Map<string, { catalog: string; count: number; operationIds: Set<string> }>();
 
 function getOpenApiSpec() {
 	if (!cachedSpec) {
@@ -28,14 +31,6 @@ function getOpenApiSpec() {
 		}
 	}
 	return cachedSpec;
-}
-
-function getEndpointCatalog(spec: any, contextType: ChatContext["type"]) {
-	const cached = cachedCatalogs.get(contextType);
-	if (cached) return cached;
-	const result = buildEndpointCatalog(spec, contextType);
-	cachedCatalogs.set(contextType, result);
-	return result;
 }
 
 function buildContextBlock(context: ChatContext): string {
@@ -86,15 +81,17 @@ BEHAVIOR:
 - When something fails → read the error, figure out the fix, and apply it. Don't stop to explain the error — fix it.
 - EVERY capability you need is in the ENDPOINT CATALOG below. If you think you can't do something, you're wrong — scan ALL sections again.
 - You already have all the IDs you need from the context above. NEVER ask the user for IDs, paths, or information you can discover by calling endpoints.
-- For destructive actions only (delete, stop): briefly confirm. Everything else: just do it.
+- NEVER ask for confirmation or permission. The only exception is deleting a service entirely. For everything else (read, update, deploy, stop, start, restart) → just do it immediately.
 
 KEY PATTERN: When you need to explore files, find paths, or check repository structure → use the "patch" section endpoints to browse directories and read files. NEVER ask the user for file paths.
 
 DATA MODEL: Project → Environment → Services (application, compose, postgres, mysql, redis, mongo, mariadb, libsql). Each service has deployments with build logs.
 
 TOOL: You have one tool "call_api". Pass operationId + params from the catalog.
+- ALWAYS pass required params (*) in the "params" object. Example: { "operationId": "domain-byComposeId", "params": { "composeId": "abc123" } }
 - Params: * = required, ? = optional, [a|b|c] = allowed values
 - GET = read-only (auto-executed). POST/PUT/DELETE = write (user approves).
+- If a call fails, read the error message and fix the params. NEVER retry the same call with the same params.
 
 RESPONSE STYLE:
 - 2-3 sentences max. No walls of text.
@@ -186,10 +183,44 @@ export default async function handler(
 		const spec = getOpenApiSpec();
 
 		if (spec) {
-			const { catalog, count, operationIds } = getEndpointCatalog(spec, context.type);
+			const voyageApiKey = process.env.VOYAGE_API_KEY;
+			if (!voyageApiKey) {
+				return res.status(400).json({ error: "VOYAGE_API_KEY is required" });
+			}
+
+			const embeddingsPath = join(process.cwd(), ".tool-embeddings.json");
+			const allEmbeddings = await getOrCreateEmbeddings(
+				spec,
+				voyageApiKey,
+				embeddingsPath,
+			);
+
+			const userQuery = getUserMessages(messages).trim();
+			const { operationIds: tagFilteredIds } = buildEndpointCatalog(spec, context.type);
+
+			let relevantIds: Set<string> | undefined;
+
+			if (userQuery && allEmbeddings.length > 0) {
+				const topIds = await retrieveRelevantEndpoints(
+					userQuery,
+					allEmbeddings,
+					voyageApiKey,
+					{ allowedOperationIds: tagFilteredIds, topK: 25 },
+				);
+
+				if (topIds.length > 0) {
+					relevantIds = new Set(topIds);
+				}
+			}
+
+			const { catalog, count, operationIds } = buildEndpointCatalog(
+				spec,
+				context.type,
+				relevantIds,
+			);
 			catalogText = catalog;
 			endpointCount = count;
-			tools = createApiTool(spec, toolConfig, operationIds, 2000);
+			tools = createApiTool(spec, toolConfig, operationIds, 8000);
 		} else {
 			tools = getAllTools(context, toolConfig);
 		}

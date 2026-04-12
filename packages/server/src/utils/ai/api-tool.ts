@@ -206,6 +206,7 @@ export interface CatalogResult {
 export function buildEndpointCatalog(
 	spec: OpenApiSpec,
 	contextType: ChatContext["type"] = "general",
+	relevantOperationIds?: Set<string>,
 ): CatalogResult {
 	const operationIds = new Set<string>();
 	const allowedTags = getAllowedTags(contextType);
@@ -216,6 +217,7 @@ export function buildEndpointCatalog(
 			if (!op.operationId || op.deprecated) continue;
 			if (op.tags?.some((t) => EXCLUDED_TAGS.has(t))) continue;
 			if (allowedTags && !op.tags?.some((t) => allowedTags.has(t))) continue;
+			if (relevantOperationIds && !relevantOperationIds.has(op.operationId)) continue;
 
 			operationIds.add(op.operationId);
 
@@ -381,7 +383,7 @@ export function createApiTool(
 
 					if (!response.ok) {
 						const errorText = await response.text();
-						return `API error (${response.status}): ${errorText.slice(0, 500)}`;
+						return `API error (${response.status}): ${errorText.slice(0, 500)}\n\nHint: Check the ENDPOINT CATALOG for required parameters (*). You called "${operationId}" with params: ${JSON.stringify(params ?? {})}`;
 					}
 
 					const json = JSON.stringify(await response.json(), null, 2);

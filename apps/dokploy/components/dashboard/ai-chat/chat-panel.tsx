@@ -133,6 +133,7 @@ export function ChatPanel() {
 	const enabledProviders = providers ?? [];
 
 	const STORAGE_KEY = "dokploy-chat-messages";
+	const restoredRef = useRef(false);
 
 	const { messages, sendMessage, status, setMessages, addToolApprovalResponse } = useChat({
 			id: "dokploy-chat",
@@ -143,23 +144,32 @@ export function ChatPanel() {
 					context: contextRef.current,
 				}),
 			}),
-			initialMessages: () => {
-				try {
-					const stored = localStorage.getItem(STORAGE_KEY);
-					return stored ? JSON.parse(stored) : [];
-				} catch {
-					return [];
-				}
-			},
 		});
 
 	const isLoading = status === "streaming" || status === "submitted";
 
+	// Restore messages from localStorage on mount
+	useEffect(() => {
+		if (restoredRef.current) return;
+		restoredRef.current = true;
+		try {
+			const stored = localStorage.getItem(STORAGE_KEY);
+			if (stored) {
+				const parsed = JSON.parse(stored);
+				if (Array.isArray(parsed) && parsed.length > 0) {
+					setMessages(parsed);
+				}
+			}
+		} catch {
+			// ignore
+		}
+	}, [setMessages]);
+
 	// Persist messages to localStorage
 	useEffect(() => {
+		if (!restoredRef.current) return;
 		if (messages.length > 0) {
 			try {
-				// Keep only last 50 messages to avoid localStorage bloat
 				const toStore = messages.slice(-50);
 				localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
 			} catch {
@@ -378,6 +388,7 @@ export function ChatPanel() {
 															toolCallId={part.toolCallId}
 															toolName={part.toolName}
 															state={part.state}
+															input={(part as any).input}
 															output={
 																part.state === "output-available"
 																	? part.output
@@ -484,6 +495,7 @@ function ToolCallDisplay({
 	toolCallId,
 	toolName,
 	state,
+	input,
 	output,
 	onApprove,
 	onDeny,
@@ -491,6 +503,7 @@ function ToolCallDisplay({
 	toolCallId: string;
 	toolName: string;
 	state: string;
+	input?: unknown;
 	output?: unknown;
 	onApprove?: (id: string) => void;
 	onDeny?: (id: string) => void;
@@ -508,19 +521,47 @@ function ToolCallDisplay({
 			: JSON.stringify(output, null, 2)
 		: null;
 
-	const displayName = toolName
-		.split("-")
-		.map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-		.join(" ");
+	// Extract operationId and params from input
+	const inputData = input as { operationId?: string; params?: Record<string, unknown> } | undefined;
+	const operationId = inputData?.operationId;
+	const params = inputData?.params;
+
+	// Format: "compose-one" → "compose → one"
+	const displayLabel = operationId
+		? operationId.replace("-", " → ")
+		: toolName;
+
+	// Determine HTTP method hint from operationId
+	const isReadOp = operationId?.match(/^(.*-)?(one|all|get|list|read|search|by)/i);
+
+	const StatusIcon = isRunning
+		? () => <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500 shrink-0" />
+		: isDone
+			? () => <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
+			: isError
+				? () => <X className="h-3.5 w-3.5 text-red-500 shrink-0" />
+				: () => <Wrench className="h-3.5 w-3.5 text-muted-foreground shrink-0" />;
 
 	if (needsApproval) {
 		return (
-			<div className="flex items-center justify-between gap-2 text-xs">
-				<div className="flex items-center gap-1.5">
-					<Wrench className="h-3 w-3 text-muted-foreground shrink-0" />
-					<span>{displayName}</span>
+			<div className="space-y-2">
+				<div className="flex items-center gap-2 text-xs">
+					<Wrench className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
+					<code className="font-mono text-xs font-medium">{displayLabel}</code>
+					<Badge variant="outline" className="text-[10px] px-1 py-0 h-4 font-normal">
+						write
+					</Badge>
 				</div>
-				<div className="flex gap-1.5 shrink-0">
+				{params && Object.keys(params).length > 0 && (
+					<div className="ml-5.5 flex flex-wrap gap-1">
+						{Object.entries(params).map(([key, value]) => (
+							<span key={key} className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">
+								{key}={typeof value === "string" ? `"${value}"` : String(value)}
+							</span>
+						))}
+					</div>
+				)}
+				<div className="flex gap-1.5 ml-5.5">
 					<Button
 						variant="outline"
 						size="sm"
@@ -545,43 +586,44 @@ function ToolCallDisplay({
 	}
 
 	return (
-		<div className="flex items-start gap-1.5 text-xs">
-			{isRunning ? (
-				<Loader2 className="h-3 w-3 animate-spin text-muted-foreground mt-0.5 shrink-0" />
-			) : isDone ? (
-				<Check className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
-			) : isError ? (
-				<X className="h-3 w-3 text-destructive mt-0.5 shrink-0" />
-			) : (
-				<Wrench className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
-			)}
-
-			{outputText ? (
-				<Collapsible open={isOpen} onOpenChange={setIsOpen}>
-					<CollapsibleTrigger asChild>
-						<button
-							type="button"
-							className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
-						>
-							<span>{displayName}</span>
+		<div className="space-y-1">
+			<Collapsible open={isOpen} onOpenChange={setIsOpen}>
+				<CollapsibleTrigger asChild>
+					<button
+						type="button"
+						className="flex items-center gap-2 text-xs w-full hover:bg-muted/50 rounded -mx-1 px-1 py-0.5 transition-colors"
+					>
+						<StatusIcon />
+						<code className="font-mono text-xs font-medium">{displayLabel}</code>
+						{isReadOp && (
+							<Badge variant="secondary" className="text-[10px] px-1 py-0 h-4 font-normal">
+								read
+							</Badge>
+						)}
+						{params && Object.keys(params).length > 0 && (
+							<span className="text-[10px] text-muted-foreground truncate">
+								{Object.entries(params)
+									.slice(0, 3)
+									.map(([k, v]) => `${k}=${typeof v === "string" ? `"${String(v).slice(0, 20)}"` : String(v)}`)
+									.join(", ")}
+								{Object.keys(params).length > 3 ? ` +${Object.keys(params).length - 3}` : ""}
+							</span>
+						)}
+						{(outputText || isRunning) && (
 							<ChevronDown
-								className={`h-3 w-3 transition-transform ${isOpen ? "rotate-180" : ""}`}
+								className={`h-3 w-3 ml-auto text-muted-foreground transition-transform shrink-0 ${isOpen ? "rotate-180" : ""}`}
 							/>
-						</button>
-					</CollapsibleTrigger>
+						)}
+					</button>
+				</CollapsibleTrigger>
+				{outputText && (
 					<CollapsibleContent>
-						<pre className="mt-1 p-2 bg-muted/50 rounded text-[10px] overflow-x-auto max-h-[150px] overflow-y-auto leading-tight">
-							{outputText.length > 2000
-								? `${outputText.slice(0, 2000)}\n... (truncated)`
-								: outputText}
+						<pre className="mt-1 ml-5.5 p-2 bg-muted/50 rounded text-[10px] overflow-x-auto max-h-[200px] overflow-y-auto leading-tight whitespace-pre-wrap break-words">
+							{outputText}
 						</pre>
 					</CollapsibleContent>
-				</Collapsible>
-			) : (
-				<span className="text-muted-foreground">
-					{isRunning ? `${displayName}...` : displayName}
-				</span>
-			)}
+				)}
+			</Collapsible>
 		</div>
 	);
 }
