@@ -11,8 +11,8 @@ import { execAsync, execAsyncRemote } from "../process/execAsync";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
-	getS3Credentials,
-	normalizeS3Path,
+	getRcloneCommand,
+	normalizePath,
 } from "./utils";
 
 export const runComposeBackup = async (
@@ -25,8 +25,8 @@ export const runComposeBackup = async (
 	const { prefix, databaseType, serviceName } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${getBackupTimestamp()}.${databaseType === "mongo" ? "bson" : "sql"}.gz`;
-	const s3AppName = serviceName ? `${appName}_${serviceName}` : appName;
-	const bucketDestination = `${s3AppName}/${normalizeS3Path(prefix)}${backupFileName}`;
+	const backupAppName = serviceName ? `${appName}_${serviceName}` : appName;
+	const backupDestination = `${backupAppName}/${normalizePath(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
 		title: "Compose Backup",
@@ -34,9 +34,7 @@ export const runComposeBackup = async (
 	});
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		const rcloneCommand = getRcloneCommand(destination, "rcat", backupDestination);
 
 		const backupCommand = getBackupCommand(
 			backup,

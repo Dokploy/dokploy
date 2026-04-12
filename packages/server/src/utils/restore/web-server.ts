@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Destination } from "@dokploy/server/services/destination";
-import { getS3Credentials } from "../backups/utils";
+import { getRcloneMultiDestinationCommand } from "../backups/utils";
 import { execAsync } from "../process/execAsync";
 
 export const restoreWebServerBackup = async (
@@ -15,17 +15,21 @@ export const restoreWebServerBackup = async (
 		return;
 	}
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
-		const backupPath = `${bucketPath}/${backupFile}`;
 		const { BASE_PATH } = paths();
 
 		// Create a temporary directory outside of BASE_PATH
 		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-restore-"));
 
+		const rcloneCommand = getRcloneMultiDestinationCommand(
+			destination,
+			"copyto",
+			{ type: "remote", path: backupFile },
+			{ type: "local", path: `${tempDir}/${backupFile}` },
+		);
+
 		try {
 			emit("Starting restore...");
-			emit(`Backup path: ${backupPath}`);
+			emit(`Backup path: ${backupFile}`);
 			emit(`Temp directory: ${tempDir}`);
 
 			// Create temp directory
@@ -35,7 +39,7 @@ export const restoreWebServerBackup = async (
 			// Download backup from S3
 			emit("Downloading backup from S3...");
 			await execAsync(
-				`rclone copyto ${rcloneFlags.join(" ")} "${backupPath}" "${tempDir}/${backupFile}"`,
+				rcloneCommand
 			);
 
 			// List files before extraction

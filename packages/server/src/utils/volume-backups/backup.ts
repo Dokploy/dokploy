@@ -4,8 +4,8 @@ import { findComposeById } from "@dokploy/server/services/compose";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
 import {
 	getBackupTimestamp,
-	getS3Credentials,
-	normalizeS3Path,
+	getRcloneMultiDestinationCommand,
+	normalizePath,
 } from "../backups/utils";
 
 export const getVolumeServiceAppName = (
@@ -35,14 +35,18 @@ export const backupVolume = async (
 		volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
 	const { VOLUME_BACKUPS_PATH, VOLUME_BACKUP_LOCK_PATH } = paths(!!serverId);
 	const destination = volumeBackup.destination;
-	const s3AppName = getVolumeServiceAppName(volumeBackup);
+	const appName = getVolumeServiceAppName(volumeBackup);
 	const backupFileName = `${volumeName}-${getBackupTimestamp()}.tar`;
-	const bucketDestination = `${s3AppName}/${normalizeS3Path(prefix || "")}${backupFileName}`;
-	const rcloneFlags = getS3Credentials(volumeBackup.destination);
-	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+	const rcloneDestination = `${appName}/${normalizePath(prefix || "")}${backupFileName}`;
+	
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
 
-	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
+	const rcloneCommand = getRcloneMultiDestinationCommand(
+		destination,
+		"copyto",
+		{ type: "local", path: `${volumeBackupPath}/${backupFileName}` },
+		{ type: "remote", path: rcloneDestination },
+	);
 
 	const backupCommand = `
 	set -e

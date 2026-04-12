@@ -3,9 +3,12 @@ import {
 	execAsync,
 	execAsyncRemote,
 	findDestinationById,
+	getDestinationAdapter,
 	IS_CLOUD,
 	removeDestinationById,
 	updateDestinationById,
+	apiCreateAnyDestination,
+	apiUpdateAnyDestination,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
@@ -13,22 +16,26 @@ import { desc, eq } from "drizzle-orm";
 import { createTRPCRouter, withPermission } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import {
-	apiCreateDestination,
 	apiFindOneDestination,
 	apiRemoveDestination,
-	apiUpdateDestination,
 	destinations,
 } from "@/server/db/schema";
 
 export const destinationRouter = createTRPCRouter({
 	create: withPermission("destination", "create")
-		.input(apiCreateDestination)
+		.input(apiCreateAnyDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				const adapter = getDestinationAdapter(input.type);
+				const credentials = adapter.extractCredentials(input as never);
 				const result = await createDestination(
-					input,
+					{
+						...input,
+						credentials,
+					},
 					ctx.session.activeOrganizationId,
 				);
+
 				await audit(ctx, {
 					action: "create",
 					resourceType: "destination",
@@ -45,38 +52,11 @@ export const destinationRouter = createTRPCRouter({
 			}
 		}),
 	testConnection: withPermission("destination", "create")
-		.input(apiCreateDestination)
+		.input(apiCreateAnyDestination)
 		.mutation(async ({ input }) => {
-			const {
-				secretAccessKey,
-				bucket,
-				region,
-				endpoint,
-				accessKey,
-				provider,
-				additionalFlags,
-			} = input;
 			try {
-				const rcloneFlags = [
-					`--s3-access-key-id="${accessKey}"`,
-					`--s3-secret-access-key="${secretAccessKey}"`,
-					`--s3-region="${region}"`,
-					`--s3-endpoint="${endpoint}"`,
-					"--s3-no-check-bucket",
-					"--s3-force-path-style",
-					"--retries 1",
-					"--low-level-retries 1",
-					"--timeout 10s",
-					"--contimeout 5s",
-				];
-				if (provider) {
-					rcloneFlags.unshift(`--s3-provider="${provider}"`);
-				}
-				if (additionalFlags?.length) {
-					rcloneFlags.push(...additionalFlags);
-				}
-				const rcloneDestination = `:s3:${bucket}`;
-				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+				const adapter = getDestinationAdapter(input.type);
+				const rcloneCommand = await adapter.testCommand(input as never);
 
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
@@ -131,6 +111,7 @@ export const destinationRouter = createTRPCRouter({
 						message: "You are not allowed to delete this destination",
 					});
 				}
+				
 				const result = await removeDestinationById(
 					input.destinationId,
 					ctx.session.activeOrganizationId,
@@ -147,7 +128,7 @@ export const destinationRouter = createTRPCRouter({
 			}
 		}),
 	update: withPermission("destination", "create")
-		.input(apiUpdateDestination)
+		.input(apiUpdateAnyDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const destination = await findDestinationById(input.destinationId);
@@ -157,10 +138,30 @@ export const destinationRouter = createTRPCRouter({
 						message: "You are not allowed to update this destination",
 					});
 				}
+				
+				if (destination.type !== input.type) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Destination type cannot be changed",
+					});
+				}
+
+				const adapter = getDestinationAdapter(destination.type);
+				const credentials = adapter.extractCredentials(input as never);
+				const existingCredentials =
+					typeof destination.credentials === "object" && destination.credentials
+						? destination.credentials
+						: {};
+				
 				const result = await updateDestinationById(input.destinationId, {
 					...input,
+					credentials: {
+						...existingCredentials,
+						...credentials,
+					},
 					organizationId: ctx.session.activeOrganizationId,
 				});
+
 				await audit(ctx, {
 					action: "update",
 					resourceType: "destination",
