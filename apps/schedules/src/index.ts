@@ -104,7 +104,10 @@ process.on("uncaughtException", (err) => {
 });
 
 process.on("unhandledRejection", (reason, _promise) => {
-	logger.error(reason instanceof Error ? reason : { reason: String(reason) }, "Unhandled Rejection at: Promise");
+	logger.error(
+		reason instanceof Error ? reason : { reason: String(reason) },
+		"Unhandled Rejection at: Promise",
+	);
 });
 
 const port = Number.parseInt(process.env.PORT || "3000");
