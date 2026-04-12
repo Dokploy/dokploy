@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { PROPERTY_HINTS } from "./api-tool";
 
 interface EndpointEmbedding {
 	operationId: string;
@@ -127,8 +128,13 @@ function buildEndpointText(
 			)) {
 				const req = requiredSet.has(key) ? "required" : "optional";
 				const enumVals = extractEnum(prop);
-				const enumStr = enumVals ? ` [${enumVals.join("|")}]` : "";
-				params.push(`${key} (${req})${enumStr}`);
+				const hint = PROPERTY_HINTS[key];
+				const extra = enumVals
+					? ` [${enumVals.join("|")}]`
+					: hint
+						? ` — ${hint}`
+						: "";
+				params.push(`${key} (${req})${extra}`);
 			}
 		}
 	}

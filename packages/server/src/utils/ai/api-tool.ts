@@ -42,9 +42,35 @@ interface EndpointInfo {
 }
 
 /**
- * Build a compact one-line-per-endpoint catalog for the system prompt.
- * Example line: "application-deploy (POST, applicationId*, title?, description?) — Deploy an application"
+ * Semantic hints for properties that the OpenAPI spec doesn't describe well.
+ * These are appended to parameter names in the catalog so the model knows what values to use.
  */
+export const PROPERTY_HINTS: Record<string, string> = {
+	composePath: "path to the directory containing docker-compose.yml in the repo, e.g. '.' or 'docker/'",
+	composeFile: "raw YAML content of the docker-compose.yml file",
+	env: "environment variables as a single string, one per line in KEY=VALUE format",
+	dockerImage: "Docker image name with optional tag, e.g. 'nginx:alpine' or 'postgres:16'",
+	command: "Docker CMD override, e.g. 'npm start' or 'python app.py'",
+	args: "Docker command arguments as an array of strings",
+	buildPath: "path to the build context directory in the repo, e.g. '.' or './app'",
+	publishDirectory: "output directory for static builds, e.g. 'dist' or '.next'",
+	dockerfile: "path to the Dockerfile relative to buildPath, e.g. 'Dockerfile' or 'docker/Dockerfile.prod'",
+	repository: "Git repository name, e.g. 'my-app' (not the full URL)",
+	branch: "Git branch name, e.g. 'main' or 'develop'",
+	customGitUrl: "full Git clone URL, e.g. 'https://github.com/user/repo.git'",
+	databasePassword: "password string for the database",
+	externalPort: "port number exposed to the host, e.g. 5432",
+	host: "domain hostname, e.g. 'myapp.example.com'",
+	appName: "unique internal service name (auto-generated, alphanumeric with dots/hyphens)",
+	watchPaths: "array of file paths that trigger auto-deploy on change, e.g. ['src/**', 'package.json']",
+	suffix: "custom suffix appended to the service name",
+	repoPath: "path within the cloned repository to browse, use '.' for root directory",
+	filePath: "path to a specific file in the repository, e.g. 'docker-compose.yml' or 'src/index.ts'",
+	tail: "number of log lines to return from the end, e.g. 100",
+	since: "time duration for log filtering, e.g. '1h' or '30m'",
+	search: "text to search for in logs",
+};
+
 const EXCLUDED_TAGS = new Set([
 	"notification",
 	"sso",
@@ -243,9 +269,12 @@ export function buildEndpointCatalog(
 						schema.properties as Record<string, any>,
 					)) {
 						const enumVals = extractEnum(prop);
+						const hint = PROPERTY_HINTS[key];
 						const suffix = enumVals
 							? `[${enumVals.join("|")}]`
-							: "";
+							: hint
+								? `(${hint})`
+								: "";
 						if (requiredSet.has(key)) {
 							requiredParams.push(`${key}*${suffix}`);
 						} else {
