@@ -2,6 +2,7 @@ import {
 	deployApplication,
 	deployCompose,
 	deployPreviewApplication,
+	findPreviewDeploymentById,
 	IS_CLOUD,
 	rebuildApplication,
 	rebuildCompose,
@@ -53,6 +54,14 @@ const createDeploymentWorker = () =>
 						});
 					}
 				} else if (job.data.applicationType === "application-preview") {
+					const previewDeployment = await findPreviewDeploymentById(
+						job.data.previewDeploymentId,
+					).catch(() => null);
+
+					if (!previewDeployment) {
+						return;
+					}
+
 					await updatePreviewDeployment(job.data.previewDeploymentId, {
 						previewStatus: "running",
 					});
