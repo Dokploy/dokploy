@@ -239,4 +239,43 @@ export const deploymentRouter = createTRPCRouter({
 			});
 			return result;
 		}),
+
+	readBuildLogs: protectedProcedure
+		.meta({
+			openapi: {
+				summary: "Read deployment build logs",
+				description:
+					"Reads the build/deployment log file for a specific deployment. Returns the last N lines (default 200). Works for both local and remote server deployments.",
+			},
+		})
+		.input(
+			z.object({
+				deploymentId: z.string().min(1),
+				tail: z.number().int().min(1).max(10000).default(200),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			const deployment = await findDeploymentById(input.deploymentId);
+
+			const serviceId = deployment.applicationId || deployment.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					deployment: ["read"],
+				});
+			}
+
+			const command = `tail -n ${input.tail} ${deployment.logPath} 2>/dev/null || echo "Log file not found"`;
+			const { stdout } = deployment.serverId
+				? await execAsyncRemote(deployment.serverId, command)
+				: await execAsync(command);
+
+			return {
+				deploymentId: deployment.deploymentId,
+				status: deployment.status,
+				errorMessage: deployment.errorMessage || null,
+				title: deployment.title,
+				createdAt: deployment.createdAt,
+				logs: stdout,
+			};
+		}),
 });

@@ -1,35 +1,125 @@
-import { validateRequest } from "@dokploy/server";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { getAiSettingById } from "@dokploy/server/services/ai";
 import {
 	type ChatContext,
 	getAllTools,
-	getReadTools,
 } from "@dokploy/server/utils/ai/chat-tools";
+import {
+	buildEndpointCatalog,
+	createApiTool,
+} from "@dokploy/server/utils/ai/api-tool";
 import { selectAIProvider } from "@dokploy/server/utils/ai/select-ai-provider";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, stepCountIs, streamText } from "ai";
 import type { NextApiRequest, NextApiResponse } from "next";
 
-function buildSystemPrompt(context: ChatContext) {
-	return `You are an autonomous DevOps agent inside Dokploy, a self-hosted PaaS that uses Docker.
+let cachedSpec: any = null;
+const cachedCatalogs = new Map<string, { catalog: string; count: number; operationIds: Set<string> }>();
 
-YOU ARE AN AGENT — act autonomously:
-- NEVER ask the user for IDs, parameters, or information you can find yourself with tools
-- NEVER respond without calling tools first — always investigate before answering
-- Chain multiple tool calls: get info → analyze → act → verify
-- If one tool gives you data you need for another tool, call the next tool immediately
+function getOpenApiSpec() {
+	if (!cachedSpec) {
+		try {
+			const specPath = join(process.cwd(), "../../openapi.json");
+			cachedSpec = JSON.parse(readFileSync(specPath, "utf-8"));
+		} catch {
+			cachedSpec = null;
+		}
+	}
+	return cachedSpec;
+}
 
-${context.type !== "general" ? `CURRENT CONTEXT: You are on a ${context.type} page. The ${context.type}Id is "${context.id}" — all tools already use this ID automatically. You do NOT need to pass it.` : ""}
+function getEndpointCatalog(spec: any, contextType: ChatContext["type"]) {
+	const cached = cachedCatalogs.get(contextType);
+	if (cached) return cached;
+	const result = buildEndpointCatalog(spec, contextType);
+	cachedCatalogs.set(contextType, result);
+	return result;
+}
 
-Dokploy data model:
-- Project → Environment(s) → Services (applications, compose, postgres, mysql, redis, mongo, mariadb, libsql)
-- Each application/compose has deployments with status (done/error/running/cancelled)
-- To investigate a failed build: call list-deployments → find the one with status "error" → call read-deployment-logs with that deploymentId → analyze the error
+function buildContextBlock(context: ChatContext): string {
+	if (context.type === "general") {
+		return "CONTEXT: The user is on the general dashboard (no specific resource selected). Use project-all to list their projects if needed.";
+	}
 
-Guidelines:
-- Be concise — summarize findings, don't dump raw JSON
-- Before destructive actions (stop, delete), explain what you'll do first
-- When updating env vars, ALWAYS get current ones first (from get-application-info) and include ALL existing vars plus the new ones
-- If a tool errors, try a different approach`;
+	const lines: string[] = [];
+	lines.push(
+		`CONTEXT: The user is currently viewing a specific ${context.type}. The ${context.type}Id is "${context.id}".`,
+	);
+	lines.push(
+		`When the user says "this app", "this service", "this database", "add env var", etc., they ALWAYS mean this ${context.type} (ID: "${context.id}"). NEVER ask which service they mean.`,
+	);
+
+	if (context.projectId) {
+		lines.push(`- projectId: "${context.projectId}"`);
+	}
+	if (context.environmentId) {
+		lines.push(`- environmentId: "${context.environmentId}"`);
+	}
+	if (context.serverId) {
+		lines.push(`- serverId: "${context.serverId}"`);
+	}
+
+	lines.push(
+		"Use these IDs directly when calling tools — do NOT ask the user for them. You already know exactly which resource the user is talking about.",
+	);
+
+	return lines.join("\n");
+}
+
+function buildSystemPrompt(context: ChatContext, catalog: string | null, endpointCount?: number) {
+	const contextBlock = buildContextBlock(context);
+
+	return `You are an autonomous DevOps agent inside Dokploy (Docker-based PaaS). You take action immediately — you don't explain, you don't ask, you DO.
+
+${contextBlock}
+
+THINKING PROCESS (do this before EVERY action):
+1. Scan ALL section headers (## tag — description) in the ENDPOINT CATALOG to find which sections are relevant
+2. Read the endpoint descriptions in those sections to pick the right operationId
+3. Call the endpoint with the correct params — use the IDs from the context above
+
+BEHAVIOR:
+- When the user asks you to do something → DO IT. Call the API right away.
+- When you need information → call the endpoint to get it. Never say "I can't access" or "I don't have the ability to".
+- When something fails → read the error, figure out the fix, and apply it. Don't stop to explain the error — fix it.
+- EVERY capability you need is in the ENDPOINT CATALOG below. If you think you can't do something, you're wrong — scan ALL sections again.
+- You already have all the IDs you need from the context above. NEVER ask the user for IDs, paths, or information you can discover by calling endpoints.
+- For destructive actions only (delete, stop): briefly confirm. Everything else: just do it.
+
+KEY PATTERN: When you need to explore files, find paths, or check repository structure → use the "patch" section endpoints to browse directories and read files. NEVER ask the user for file paths.
+
+DATA MODEL: Project → Environment → Services (application, compose, postgres, mysql, redis, mongo, mariadb, libsql). Each service has deployments with build logs.
+
+TOOL: You have one tool "call_api". Pass operationId + params from the catalog.
+- Params: * = required, ? = optional, [a|b|c] = allowed values
+- GET = read-only (auto-executed). POST/PUT/DELETE = write (user approves).
+
+RESPONSE STYLE:
+- 2-3 sentences max. No walls of text.
+- Never explain limitations — find the right endpoint and act.
+- Answer in the user's language.
+
+${catalog ? `ENDPOINT CATALOG (${endpointCount} endpoints):\n${catalog}` : ""}`;
+}
+
+function getUserMessages(messages: any[]): string {
+	const texts: string[] = [];
+	for (const msg of messages) {
+		if (msg.role !== "user") continue;
+		if (typeof msg.content === "string") {
+			texts.push(msg.content);
+		} else if (Array.isArray(msg.content)) {
+			texts.push(
+				msg.content
+					.filter((p: any) => p.type === "text")
+					.map((p: any) => p.text)
+					.join(" "),
+			);
+		}
+	}
+	return texts.slice(-3).join(". ");
 }
 
 export default async function handler(
@@ -49,20 +139,40 @@ export default async function handler(
 		const body = req.body;
 		const messages = body.messages;
 		const aiId = body.aiId;
-		const context = (body.context as ChatContext) || { type: "general" as const, id: "" };
+		const context = (body.context as ChatContext) || {
+			type: "general" as const,
+			id: "",
+		};
 
-		if (!aiId || !messages) {
-			return res.status(400).json({ error: "Missing aiId or messages" });
+		// ─── Resolve model ────────────────────────────────────────
+		let model: any;
+
+		if (IS_CLOUD && process.env.CLOUD_ANTHROPIC_API_KEY) {
+			const anthropic = createAnthropic({
+				apiKey: process.env.CLOUD_ANTHROPIC_API_KEY,
+			});
+			model = anthropic("claude-haiku-4-5-20251001");
+		} else {
+			if (!aiId || !messages) {
+				return res
+					.status(400)
+					.json({ error: "Missing aiId or messages" });
+			}
+			const aiSettings = await getAiSettingById(aiId);
+			if (!aiSettings || !aiSettings.isEnabled) {
+				return res
+					.status(400)
+					.json({ error: "AI provider not enabled" });
+			}
+			const provider = selectAIProvider(aiSettings);
+			model = provider(aiSettings.model);
 		}
 
-		const aiSettings = await getAiSettingById(aiId);
-		if (!aiSettings || !aiSettings.isEnabled) {
-			return res.status(400).json({ error: "AI provider not enabled" });
+		if (!messages) {
+			return res.status(400).json({ error: "Missing messages" });
 		}
 
-		const provider = selectAIProvider(aiSettings);
-		const model = provider(aiSettings.model);
-
+		// ─── Resolve tools ────────────────────────────────────────
 		const protocol = req.headers["x-forwarded-proto"] || "http";
 		const host = req.headers.host || "localhost:3000";
 		const toolConfig = {
@@ -70,35 +180,41 @@ export default async function handler(
 			cookie: req.headers.cookie || "",
 		};
 
-		// All tools (read + write) — prepareStep controls which are active
-		const allTools = getAllTools(context, toolConfig);
-		const readToolNames = Object.keys(getReadTools(context, toolConfig));
+		let tools: Record<string, any>;
+		let catalogText: string | null = null;
+		let endpointCount = 0;
+		const spec = getOpenApiSpec();
 
+		if (spec) {
+			const { catalog, count, operationIds } = getEndpointCatalog(spec, context.type);
+			catalogText = catalog;
+			endpointCount = count;
+			tools = createApiTool(spec, toolConfig, operationIds, 2000);
+		} else {
+			tools = getAllTools(context, toolConfig);
+		}
+
+		// ─── Stream response ──────────────────────────────────────
 		const modelMessages = await convertToModelMessages(messages);
 
 		const result = streamText({
 			model,
-			system: buildSystemPrompt(context),
+			system: buildSystemPrompt(context, catalogText, endpointCount),
 			messages: modelMessages,
-			tools: allTools,
-			prepareStep: ({ steps }) => {
-				// First 3 steps: only read tools (investigate first)
-				// After that: all tools (can take action)
-				if (steps.length < 3) {
-					return {
-						activeTools: readToolNames as (keyof typeof allTools)[],
-					};
-				}
-				return {};
-			},
-			stopWhen: stepCountIs(10),
+			tools,
+			stopWhen: stepCountIs(12),
 		});
+
+		// Disable buffering for streaming
+		res.setHeader("X-Accel-Buffering", "no");
+		res.setHeader("Cache-Control", "no-cache, no-transform");
 
 		result.pipeUIMessageStreamToResponse(res);
 	} catch (error) {
 		console.error("AI chat error:", error);
 		return res.status(500).json({
-			error: error instanceof Error ? error.message : "Internal server error",
+			error:
+				error instanceof Error ? error.message : "Internal server error",
 		});
 	}
 }

@@ -3,9 +3,22 @@ import { dynamicTool } from "ai";
 import { z } from "zod";
 import { findDeploymentById } from "../../services/deployment";
 
+export type ServiceType =
+	| "application"
+	| "compose"
+	| "postgres"
+	| "mysql"
+	| "redis"
+	| "mongo"
+	| "mariadb"
+	| "libsql";
+
 export interface ChatContext {
-	type: "application" | "compose" | "project" | "server" | "general";
+	type: ServiceType | "project" | "server" | "general";
 	id: string;
+	projectId?: string;
+	environmentId?: string;
+	serverId?: string;
 }
 
 interface ToolConfig {
