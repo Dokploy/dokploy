@@ -142,7 +142,10 @@ export const initializeJobs = async () => {
 				cronSchedule: CLEANUP_CRON_JOB,
 			});
 		} catch (error) {
-			logger.error(error, `Failed to schedule cleanup job for server ${serverId}`);
+			logger.error(
+				error,
+				`Failed to schedule cleanup job for server ${serverId}`,
+			);
 		}
 	}
 
@@ -255,7 +258,10 @@ export const initializeJobs = async () => {
 				cronSchedule: volumeBackup.cronExpression,
 			});
 		} catch (error) {
-			logger.error(error, `Failed to schedule volume backup ${volumeBackup.volumeBackupId}`);
+			logger.error(
+				error,
+				`Failed to schedule volume backup ${volumeBackup.volumeBackupId}`,
+			);
 		}
 	}
 
