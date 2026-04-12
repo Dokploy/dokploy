@@ -60,6 +60,12 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	CardsLayout,
+	getDefaultLayout,
+	type Layout,
+	LayoutSwitcher,
+} from "@/components/ui/cards-layout";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Command,
@@ -287,6 +293,7 @@ const EnvironmentPage = (
 ) => {
 	const utils = api.useUtils();
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
+	const [layout, setLayout] = useState<Layout>(() => getDefaultLayout());
 	const { projectId, environmentId } = props;
 	const { data: auth } = api.user.get.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
@@ -1447,6 +1454,7 @@ const EnvironmentPage = (
 												</SelectContent>
 											</Select>
 										)}
+										<LayoutSwitcher layout={layout} setLayout={setLayout} />
 									</div>
 								</div>
 
@@ -1470,14 +1478,14 @@ const EnvironmentPage = (
 										</div>
 									) : (
 										<div className="flex w-full flex-col gap-4">
-											<div className="gap-5 pb-10 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+											<CardsLayout layout={layout}>
 												{filteredServices?.map((service) => (
 													<Link
 														key={service.id}
 														href={`/dashboard/project/${projectId}/environment/${environmentId}/services/${service.type}/${service.id}`}
 														className="block"
 													>
-														<Card className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-border">
+														<Card className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-primary/10">
 															{service.serverId && (
 																<div className="absolute -left-1 -top-2">
 																	<ServerIcon className="size-4 text-muted-foreground" />
@@ -1577,7 +1585,7 @@ const EnvironmentPage = (
 														</Card>
 													</Link>
 												))}
-											</div>
+											</CardsLayout>
 										</div>
 									)}
 								</div>
