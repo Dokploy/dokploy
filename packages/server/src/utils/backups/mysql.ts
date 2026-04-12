@@ -11,8 +11,8 @@ import { execAsync, execAsyncRemote } from "../process/execAsync";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
-	getS3Credentials,
-	normalizeS3Path,
+	getRcloneCommand,
+	normalizePath,
 } from "./utils";
 
 export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
@@ -22,7 +22,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	const { prefix } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${getBackupTimestamp()}.sql.gz`;
-	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
+	const bucketDestination = `${appName}/${normalizePath(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
 		title: "MySQL Backup",
@@ -30,10 +30,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	});
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-
-		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		const rcloneCommand = getRcloneCommand(destination, "rcat", bucketDestination);
 
 		const backupCommand = getBackupCommand(
 			backup,

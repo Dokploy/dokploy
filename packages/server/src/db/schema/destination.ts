@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { jsonb, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -9,6 +9,8 @@ import {
 } from "../validations/destination";
 import { organization } from "./account";
 import { backups } from "./backups";
+	
+export const destinationTypeEnum = pgEnum("destination_type", ["sftp", "ftp", "s3"]);
 
 export const destinations = pgTable("destination", {
 	destinationId: text("destinationId")
@@ -16,17 +18,16 @@ export const destinations = pgTable("destination", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	name: text("name").notNull(),
-	provider: text("provider"),
-	accessKey: text("accessKey").notNull(),
-	secretAccessKey: text("secretAccessKey").notNull(),
-	bucket: text("bucket").notNull(),
-	region: text("region").notNull(),
-	endpoint: text("endpoint").notNull(),
+	credentials: jsonb("credentials")
+		.$type<Record<string, unknown>>()
+		.notNull()
+		.default({}),
 	additionalFlags: text("additionalFlags").array(),
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
 	createdAt: timestamp("createdAt").notNull().defaultNow(),
+	type: destinationTypeEnum("type").notNull(),
 });
 
 export const destinationsRelations = relations(
@@ -43,27 +44,20 @@ export const destinationsRelations = relations(
 const createSchema = createInsertSchema(destinations, {
 	destinationId: z.string(),
 	name: z.string().min(1),
-	provider: z.string(),
-	accessKey: z.string(),
-	bucket: z.string(),
-	endpoint: z.string(),
-	secretAccessKey: z.string(),
-	region: z.string(),
+	credentials: z.record(z.string(), z.unknown()).default({}),
 	additionalFlags: z
 		.array(z.string().regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR))
 		.default([]),
+	type: z.enum(["s3", "ftp", "sftp"], {
+		error: "Type must be either 's3', 'ftp' or 'sftp'" ,
+	}),
 });
 
 export const apiCreateDestination = createSchema
 	.pick({
 		name: true,
-		provider: true,
-		accessKey: true,
-		bucket: true,
-		region: true,
-		endpoint: true,
-		secretAccessKey: true,
 		additionalFlags: true,
+		type: true,
 	})
 	.required()
 	.extend({
@@ -83,13 +77,7 @@ export const apiRemoveDestination = createSchema
 export const apiUpdateDestination = createSchema
 	.pick({
 		name: true,
-		accessKey: true,
-		bucket: true,
-		region: true,
-		endpoint: true,
-		secretAccessKey: true,
 		destinationId: true,
-		provider: true,
 		additionalFlags: true,
 	})
 	.required()
