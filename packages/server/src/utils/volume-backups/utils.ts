@@ -14,6 +14,11 @@ import { getRcloneCommand, normalizePath } from "../backups/utils";
 import { sendVolumeBackupNotifications } from "../notifications/volume-backup";
 import { backupVolume, getVolumeServiceAppName } from "./backup";
 
+const escapeRegexForGrep = (value: string) =>
+	value.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+
+const shellEscape = (value: string) => `'${value.replace(/'/g, `'"'"'`)}'`;
+
 // Helper functions to extract project info from volume backup
 const getProjectName = (
 	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
@@ -84,7 +89,11 @@ const cleanupOldVolumeBackups = async (
 	try {
 		const appName = getVolumeServiceAppName(volumeBackup);
 		const backupFilesPath = `${appName}/${normalizePath(prefix || "")}`;
-		const listCommand = getRcloneCommand(destination, "lsf", backupFilesPath) + `| grep "^${volumeName}-.*\.tar$"`;
+		const escapedVolumeName = escapeRegexForGrep(volumeName);
+		const grepPattern = `^${escapedVolumeName}-.*\\.tar$`;
+		const listCommand =
+			getRcloneCommand(destination, "lsf", backupFilesPath) +
+			`| grep -E ${shellEscape(grepPattern)}`;
 		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
 		const deleteCommand = getRcloneCommand(destination, "delete", backupFilesPath + "{}") ;	
 		const fullCommand = `${listCommand} | ${sortAndPick} ${deleteCommand}`;

@@ -20,6 +20,8 @@ const obscureRclonePassword = (password: string) => {
     }
 };
 
+const shellEscape = (value: string) => `'${value.replace(/'/g, `'"'"'`)}'`;
+
 const ftpCredentialsSchema = z.object({
     username: z.string().min(1),
     password: z.string().min(1),
@@ -109,10 +111,10 @@ const destinationAdapters = {
         testCommand: (input: FtpOrSftpCreateInput) => {
             const obscuredPassword = obscureRclonePassword(input.password);
             const rcloneFlags = [
-                `--ftp-host="${input.host}"`,
-                `--ftp-port="${input.port}"`,
-                `--ftp-user="${input.username}"`,
-                `--ftp-pass="${obscuredPassword}"`,
+                `--ftp-host=${shellEscape(input.host)}`,
+                `--ftp-port=${shellEscape(input.port)}`,
+                `--ftp-user=${shellEscape(input.username)}`,
+                `--ftp-pass=${shellEscape(obscuredPassword)}`,
                 "--retries 1",
                 "--low-level-retries 1",
                 "--timeout 10s",
@@ -121,15 +123,15 @@ const destinationAdapters = {
             if (input.additionalFlags?.length) {
                 rcloneFlags.push(...input.additionalFlags);
             }
-            return `rclone lsd ${rcloneFlags.join(" ")} :ftp:${input.path || "/"}`;
+            return `rclone lsd ${rcloneFlags.join(" ")} "${shellEscape(`:ftp:${input.path || "/"}`)}"`;
         },
         getRcloneConfig: (credentials: FtpCredentials) => {
             return {
                 flags: [
-                    `--ftp-host="${credentials.host}"`,
-                    `--ftp-port="${credentials.port}"`,
-                    `--ftp-user="${credentials.username}"`,
-                    `--ftp-pass="${credentials.password}"`,
+                    `--ftp-host=${shellEscape(credentials.host)}`,
+                    `--ftp-port=${shellEscape(credentials.port)}`,
+                    `--ftp-user=${shellEscape(credentials.username)}`,
+                    `--ftp-pass=${shellEscape(credentials.password)}`,
                 ],
                 destinationPrefix: "ftp",
                 destinationPathPrefix: credentials.path,
@@ -152,10 +154,10 @@ const destinationAdapters = {
         testCommand: (input: FtpOrSftpCreateInput) => {
             const obscuredPassword = obscureRclonePassword(input.password);
             const rcloneFlags = [
-                `--sftp-host="${input.host}"`,
-                `--sftp-port="${input.port}"`,
-                `--sftp-user="${input.username}"`,
-                `--sftp-pass="${obscuredPassword}"`,
+                `--sftp-host=${shellEscape(input.host)}`,
+                `--sftp-port=${shellEscape(input.port)}`,
+                `--sftp-user=${shellEscape(input.username)}`,
+                `--sftp-pass=${shellEscape(obscuredPassword)}`,
                 "--retries 1",
                 "--low-level-retries 1",
                 "--timeout 10s",
@@ -164,15 +166,15 @@ const destinationAdapters = {
             if (input.additionalFlags?.length) {
                 rcloneFlags.push(...input.additionalFlags);
             }
-            return `rclone lsd ${rcloneFlags.join(" ")} :sftp:${input.path || "/"}`;
+            return `rclone lsd ${rcloneFlags.join(" ")} "${shellEscape(`:sftp:${input.path || "/"}`)}"`;
         },
         getRcloneConfig: (credentials: FtpCredentials) => {
             return {
                 flags: [
-                    `--sftp-host="${credentials.host}"`,
-                    `--sftp-port="${credentials.port}"`,
-                    `--sftp-user="${credentials.username}"`,
-                    `--sftp-pass="${credentials.password}"`,
+                    `--sftp-host=${shellEscape(credentials.host)}`,
+                    `--sftp-port=${shellEscape(credentials.port)}`,
+                    `--sftp-user=${shellEscape(credentials.username)}`,
+                    `--sftp-pass=${shellEscape(credentials.password)}`,
                 ],
                 destinationPrefix: "sftp",
                 destinationPathPrefix: credentials.path,
@@ -194,10 +196,10 @@ const destinationAdapters = {
         type: "s3",
         testCommand: (input: S3CreateInput) => {
             const flags = [
-                `--s3-access-key-id="${input.accessKey}"`,
-                `--s3-secret-access-key="${input.secretAccessKey}"`,
-                `--s3-region="${input.region}"`,
-                `--s3-endpoint="${input.endpoint}"`,
+                `--s3-access-key-id=${shellEscape(input.accessKey)}`,
+                `--s3-secret-access-key=${shellEscape(input.secretAccessKey)}`,
+                `--s3-region=${shellEscape(input.region)}`,
+                `--s3-endpoint=${shellEscape(input.endpoint)}`,
                 "--s3-no-check-bucket",
                 "--s3-force-path-style",
                 "--retries 1",
@@ -207,26 +209,26 @@ const destinationAdapters = {
             ];
 
             if (input.provider) {
-                flags.unshift(`--s3-provider="${input.provider}"`);
+                flags.unshift(`--s3-provider=${shellEscape(input.provider)}`);
             }
             if (input.additionalFlags?.length) {
                 flags.push(...input.additionalFlags);
             }
 
-            return `rclone ls ${flags.join(" ")} ":s3:${input.bucket}"`;
+            return `rclone ls ${flags.join(" ")} ${shellEscape(`:s3:${input.bucket}`)}`;
         },
         getRcloneConfig: (credentials: S3Credentials) => {
             const flags = [
-                `--s3-access-key-id="${credentials.accessKey}"`,
-                `--s3-secret-access-key="${credentials.secretAccessKey}"`,
-                `--s3-region="${credentials.region}"`,
-                `--s3-endpoint="${credentials.endpoint}"`,
+                `--s3-access-key-id=${shellEscape(credentials.accessKey)}`,
+                `--s3-secret-access-key=${shellEscape(credentials.secretAccessKey)}`,
+                `--s3-region=${shellEscape(credentials.region)}`,
+                `--s3-endpoint=${shellEscape(credentials.endpoint)}`,
                 "--s3-no-check-bucket",
                 "--s3-force-path-style",
             ];
 
             if (credentials.provider) {
-                flags.unshift(`--s3-provider="${credentials.provider}"`);
+                flags.unshift(`--s3-provider=${shellEscape(credentials.provider)}`);
             }
 
             return {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { ADDITIONAL_FLAG_ERROR, ADDITIONAL_FLAG_REGEX } from "@dokploy/server";
 import { useFieldArray, useForm } from "react-hook-form";
 import { PlusIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -186,6 +187,26 @@ export const DestinationDialog = ({
                 errors.push(`${property.name}: ${property.label} is required`);
             }
         }
+
+        const additionalFlags = Array.isArray(values.additionalFlags)
+            ? values.additionalFlags
+            : [];
+        for (const flag of additionalFlags) {
+            const flagValue =
+                typeof flag === "object" && flag && "value" in flag
+                    ? (flag as { value?: unknown }).value
+                    : undefined;
+
+            if (
+                typeof flagValue !== "string" ||
+                !flagValue.trim() ||
+                !ADDITIONAL_FLAG_REGEX.test(flagValue)
+            ) {
+                errors.push(`additionalFlags: ${ADDITIONAL_FLAG_ERROR}`);
+                break;
+            }
+        }
+
         return errors;
     };
 
