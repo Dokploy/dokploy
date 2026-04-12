@@ -46,6 +46,17 @@ export const findPreviewDeploymentById = async (
 	return application;
 };
 
+export const previewDeploymentExists = async (previewDeploymentId: string) => {
+	const previewDeployment = await db.query.previewDeployments.findFirst({
+		where: eq(previewDeployments.previewDeploymentId, previewDeploymentId),
+		columns: {
+			previewDeploymentId: true,
+		},
+	});
+
+	return Boolean(previewDeployment);
+};
+
 export const removePreviewDeployment = async (previewDeploymentId: string) => {
 	try {
 		const previewDeployment =
