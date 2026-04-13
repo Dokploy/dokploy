@@ -11,6 +11,7 @@ import { useRouter } from "next/router";
 import { toast } from "sonner";
 import { ShowBuildChooseForm } from "@/components/dashboard/application/build/show";
 import { ShowProviderForm } from "@/components/dashboard/application/general/generic/show";
+import { ShowScalingAndRollouts } from "@/components/dashboard/application/general/show-scaling-and-rollouts";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -329,6 +330,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 					)}
 				</CardContent>
 			</Card>
+			<ShowScalingAndRollouts applicationId={applicationId} />
 			<ShowProviderForm applicationId={applicationId} />
 			<ShowBuildChooseForm applicationId={applicationId} />
 		</>
