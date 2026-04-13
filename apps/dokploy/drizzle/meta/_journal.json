@@ -1107,13 +1107,6 @@
       "when": 1775246622387,
       "tag": "0157_stiff_misty_knight",
       "breakpoints": true
-    },
-    {
-      "idx": 158,
-      "version": "7",
-      "when": 1775260544663,
-      "tag": "0158_funny_gladiator",
-      "breakpoints": true
     }
   ]
 }
