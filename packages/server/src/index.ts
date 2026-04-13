@@ -106,6 +106,7 @@ export * from "./utils/notifications/build-success";
 export * from "./utils/notifications/database-backup";
 export * from "./utils/notifications/docker-cleanup";
 export * from "./utils/notifications/dokploy-restart";
+export * from "./utils/notifications/schedule-failure";
 export * from "./utils/notifications/server-threshold";
 export * from "./utils/notifications/utils";
 export * from "./utils/process/execAsync";
