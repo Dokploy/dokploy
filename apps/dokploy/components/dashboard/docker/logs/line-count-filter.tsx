@@ -1,5 +1,5 @@
 import { Command as CommandPrimitive } from "cmdk";
-import { debounce } from "lodash";
+import debounce from "lodash/debounce";
 import { CheckIcon, Hash } from "lucide-react";
 import React, { useCallback, useRef } from "react";
 import { Badge } from "@/components/ui/badge";

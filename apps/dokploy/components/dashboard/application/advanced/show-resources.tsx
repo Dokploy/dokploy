@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { InfoIcon, Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -89,12 +89,13 @@ const ULIMIT_PRESETS = [
 ];
 
 export type ServiceType =
-	| "postgres"
-	| "mongo"
-	| "redis"
-	| "mysql"
+	| "application"
+	| "libsql"
 	| "mariadb"
-	| "application";
+	| "mongo"
+	| "mysql"
+	| "postgres"
+	| "redis";
 
 interface Props {
 	id: string;
@@ -105,34 +106,36 @@ type AddResources = z.infer<typeof addResourcesSchema>;
 
 export const ShowResources = ({ id, type }: Props) => {
 	const queryMap = {
+		application: () =>
+			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
+		mariadb: () =>
+			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
 		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
-		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
-		mariadb: () =>
-			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
-		application: () =>
-			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
-		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 
 	const mutationMap = {
+		application: () => api.application.update.useMutation(),
+		libsql: () => api.libsql.update.useMutation(),
+		mariadb: () => api.mariadb.update.useMutation(),
+		mongo: () => api.mongo.update.useMutation(),
+		mysql: () => api.mysql.update.useMutation(),
 		postgres: () => api.postgres.update.useMutation(),
 		redis: () => api.redis.update.useMutation(),
-		mysql: () => api.mysql.update.useMutation(),
-		mariadb: () => api.mariadb.update.useMutation(),
-		application: () => api.application.update.useMutation(),
-		mongo: () => api.mongo.update.useMutation(),
 	};
 
-	const { mutateAsync, isLoading } = mutationMap[type]
+	const { mutateAsync, isPending } = mutationMap[type]
 		? mutationMap[type]()
 		: api.mongo.update.useMutation();
 
-	const form = useForm<AddResources>({
+	const form = useForm({
 		defaultValues: {
 			cpuLimit: "",
 			cpuReservation: "",
@@ -155,19 +158,20 @@ export const ShowResources = ({ id, type }: Props) => {
 				cpuReservation: data?.cpuReservation || undefined,
 				memoryLimit: data?.memoryLimit || undefined,
 				memoryReservation: data?.memoryReservation || undefined,
-				ulimitsSwarm: data?.ulimitsSwarm || [],
+				ulimitsSwarm: (data as any)?.ulimitsSwarm || [],
 			});
 		}
 	}, [data, form, form.reset]);
 
 	const onSubmit = async (formData: AddResources) => {
 		await mutateAsync({
+			applicationId: id || "",
+			libsqlId: id || "",
+			mariadbId: id || "",
 			mongoId: id || "",
+			mysqlId: id || "",
 			postgresId: id || "",
 			redisId: id || "",
-			mysqlId: id || "",
-			mariadbId: id || "",
-			applicationId: id || "",
 			cpuLimit: formData.cpuLimit || null,
 			cpuReservation: formData.cpuReservation || null,
 			memoryLimit: formData.memoryLimit || null,
@@ -452,6 +456,11 @@ export const ShowResources = ({ id, type }: Props) => {
 																min={-1}
 																placeholder="65535"
 																{...field}
+																value={
+																	typeof field.value === "number"
+																		? field.value
+																		: ""
+																}
 																onChange={(e) =>
 																	field.onChange(Number(e.target.value))
 																}
@@ -475,6 +484,11 @@ export const ShowResources = ({ id, type }: Props) => {
 																min={-1}
 																placeholder="65535"
 																{...field}
+																value={
+																	typeof field.value === "number"
+																		? field.value
+																		: ""
+																}
 																onChange={(e) =>
 																	field.onChange(Number(e.target.value))
 																}
@@ -507,7 +521,7 @@ export const ShowResources = ({ id, type }: Props) => {
 						</div>
 
 						<div className="flex w-full justify-end">
-							<Button isLoading={isLoading} type="submit">
+							<Button isLoading={isPending} type="submit">
 								Save
 							</Button>
 						</div>

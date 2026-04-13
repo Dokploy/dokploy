@@ -17,17 +17,19 @@ import {
 	suggestVariants,
 } from "@dokploy/server/services/ai";
 import { createComposeByTemplate } from "@dokploy/server/services/compose";
-import { findProjectById } from "@dokploy/server/services/project";
 import {
 	addNewService,
 	checkServiceAccess,
-} from "@dokploy/server/services/user";
+} from "@dokploy/server/services/permission";
+import { findProjectById } from "@dokploy/server/services/project";
 import {
 	getProviderHeaders,
 	getProviderName,
+	selectAIProvider,
 	type Model,
 } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
+import { generateText } from "ai";
 import { z } from "zod";
 import { slugify } from "@/lib/slug";
 import {
@@ -38,17 +40,10 @@ import {
 import { generatePassword } from "@/templates/utils";
 
 export const aiRouter = createTRPCRouter({
-	one: protectedProcedure
+	one: adminProcedure
 		.input(z.object({ aiId: z.string() }))
-		.query(async ({ ctx, input }) => {
-			const aiSetting = await getAiSettingById(input.aiId);
-			if (aiSetting.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You don't have access to this AI configuration",
-				});
-			}
-			return aiSetting;
+		.query(async ({ input }) => {
+			return await getAiSettingById(input.aiId);
 		}),
 
 	getModels: protectedProcedure
@@ -100,6 +95,30 @@ export const aiRouter = createTRPCRouter({
 								object: "model",
 								created: Date.now(),
 								owned_by: "perplexity",
+							},
+						] as Model[];
+					case "zai":
+						return [
+							{
+								id: "glm-5",
+								object: "model",
+								created: Date.now(),
+								owned_by: "zai",
+							},
+							{
+								id: "glm-4.7",
+								object: "model",
+								created: Date.now(),
+								owned_by: "zai",
+							},
+						] as Model[];
+					case "minimax":
+						return [
+							{
+								id: "MiniMax-M2.7",
+								object: "model",
+								created: Date.now(),
+								owned_by: "minimax",
 							},
 						] as Model[];
 					default:
@@ -159,11 +178,9 @@ export const aiRouter = createTRPCRouter({
 		return await saveAiSettings(ctx.session.activeOrganizationId, input);
 	}),
 
-	update: protectedProcedure
-		.input(apiUpdateAi)
-		.mutation(async ({ ctx, input }) => {
-			return await saveAiSettings(ctx.session.activeOrganizationId, input);
-		}),
+	update: adminProcedure.input(apiUpdateAi).mutation(async ({ ctx, input }) => {
+		return await saveAiSettings(ctx.session.activeOrganizationId, input);
+	}),
 
 	getAll: adminProcedure.query(async ({ ctx }) => {
 		return await getAiSettingsByOrganizationId(
@@ -171,30 +188,117 @@ export const aiRouter = createTRPCRouter({
 		);
 	}),
 
-	get: protectedProcedure
+	get: adminProcedure
 		.input(z.object({ aiId: z.string() }))
-		.query(async ({ ctx, input }) => {
-			const aiSetting = await getAiSettingById(input.aiId);
-			if (aiSetting.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You don't have access to this AI configuration",
-				});
-			}
-			return aiSetting;
+		.query(async ({ input }) => {
+			return await getAiSettingById(input.aiId);
 		}),
 
-	delete: protectedProcedure
+	delete: adminProcedure
 		.input(z.object({ aiId: z.string() }))
-		.mutation(async ({ ctx, input }) => {
-			const aiSetting = await getAiSettingById(input.aiId);
-			if (aiSetting.organizationId !== ctx.session.activeOrganizationId) {
+		.mutation(async ({ input }) => {
+			return await deleteAiSettings(input.aiId);
+		}),
+
+	getEnabledProviders: protectedProcedure.query(async ({ ctx }) => {
+		const settings = await getAiSettingsByOrganizationId(
+			ctx.session.activeOrganizationId,
+		);
+		return settings
+			.filter((s) => s.isEnabled)
+			.map((s) => ({ aiId: s.aiId, name: s.name, model: s.model }));
+	}),
+
+	analyzeLogs: protectedProcedure
+		.input(
+			z.object({
+				aiId: z.string().min(1),
+				logs: z.string().min(1),
+				context: z.enum(["build", "runtime"]),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const aiSettings = await getAiSettingById(input.aiId);
+				if (!aiSettings?.isEnabled) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "AI provider is not enabled",
+					});
+				}
+
+				if (aiSettings.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Access denied",
+					});
+				}
+
+				const provider = selectAIProvider(aiSettings);
+				const model = provider(aiSettings.model);
+
+				const contextLabel =
+					input.context === "build" ? "build/deployment" : "runtime/container";
+
+				const result = await generateText({
+					model,
+					prompt: `You are a DevOps engineer analyzing ${contextLabel} logs. Analyze the following logs and provide:
+
+1. **Summary**: A brief summary of what's happening
+2. **Issues Found**: Any errors, warnings, or problems detected
+3. **Root Cause**: The most likely root cause if there are errors
+4. **Suggested Fix**: Actionable steps to resolve the issues
+
+Be concise and practical. Focus on the most important issues. If the logs look healthy, say so briefly.
+
+Logs:
+${input.logs}`,
+				});
+
+				return { analysis: result.text };
+			} catch (error) {
 				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You don't have access to this AI configuration",
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? error.message
+							: `Analysis failed: ${error}`,
 				});
 			}
-			return await deleteAiSettings(input.aiId);
+		}),
+
+	testConnection: protectedProcedure
+		.input(
+			z.object({
+				apiUrl: z.string().min(1),
+				apiKey: z.string(),
+				model: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			try {
+				const provider = selectAIProvider({
+					apiUrl: input.apiUrl,
+					apiKey: input.apiKey,
+				});
+				const model = provider(input.model);
+				const result = await generateText({
+					model,
+					prompt: "Reply with 'ok'",
+				});
+				if (!result.text) {
+					throw new Error("No response received from the model");
+				}
+				return { success: true, message: "Connection successful" };
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? error.message
+							: `Connection failed: ${error}`,
+				});
+			}
 		}),
 
 	suggest: protectedProcedure
@@ -223,13 +327,7 @@ export const aiRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const environment = await findEnvironmentById(input.environmentId);
 			const project = await findProjectById(environment.projectId);
-			if (ctx.user.role === "member") {
-				await checkServiceAccess(
-					ctx.session.activeOrganizationId,
-					environment.projectId,
-					"create",
-				);
-			}
+			await checkServiceAccess(ctx, environment.projectId, "create");
 
 			if (IS_CLOUD && !input.serverId) {
 				throw new TRPCError({
@@ -275,13 +373,7 @@ export const aiRouter = createTRPCRouter({
 				}
 			}
 
-			if (ctx.user.role === "member") {
-				await addNewService(
-					ctx.session.activeOrganizationId,
-					ctx.user.ownerId,
-					compose.composeId,
-				);
-			}
+			await addNewService(ctx, compose.composeId);
 
 			return null;
 		}),

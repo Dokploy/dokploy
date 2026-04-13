@@ -1,6 +1,7 @@
 import { File, FilePlus2, Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -9,7 +10,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
 	Table,
@@ -35,7 +35,7 @@ export const ShowPatches = ({ id, type }: Props) => {
 
 	const utils = api.useUtils();
 
-	const { data: patches, isLoading: isPatchesLoading } =
+	const { data: patches, isPending: isPatchesLoading } =
 		api.patch.byEntityId.useQuery({ id, type }, { enabled: !!id });
 
 	const mutationMap = {

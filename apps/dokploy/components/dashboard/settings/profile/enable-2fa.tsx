@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import copy from "copy-to-clipboard";
 import { CopyIcon, DownloadIcon, Fingerprint, QrCode } from "lucide-react";
 import QRCode from "qrcode";
@@ -25,11 +25,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-	InputOTP,
-	InputOTPGroup,
-	InputOTPSlot,
-} from "@/components/ui/input-otp";
+import { InputOTP } from "@/components/ui/input-otp";
 import {
 	Tooltip,
 	TooltipContent,
@@ -401,7 +397,7 @@ export const Enable2FA = () => {
 												<div className="grid grid-cols-2 gap-2">
 													{backupCodes.map((code, index) => (
 														<code
-															key={index}
+															key={`${code}-${index}`}
 															className="bg-muted p-2 rounded text-sm font-mono"
 														>
 															{code}
@@ -423,23 +419,14 @@ export const Enable2FA = () => {
 								)}
 							</div>
 
-							<div className="flex flex-col justify-center items-center">
+							<div className="flex flex-col gap-2">
 								<FormLabel>Verification Code</FormLabel>
 								<InputOTP
 									maxLength={6}
 									value={otpValue}
 									onChange={setOtpValue}
-									autoComplete="off"
-								>
-									<InputOTPGroup>
-										<InputOTPSlot index={0} />
-										<InputOTPSlot index={1} />
-										<InputOTPSlot index={2} />
-										<InputOTPSlot index={3} />
-										<InputOTPSlot index={4} />
-										<InputOTPSlot index={5} />
-									</InputOTPGroup>
-								</InputOTP>
+									autoFocus
+								/>
 								<FormDescription>
 									Enter the 6-digit code from your authenticator app
 								</FormDescription>

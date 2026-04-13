@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -35,13 +35,9 @@ import { api } from "@/utils/api";
 
 const AddPortSchema = z.object({
 	publishedPort: z.number().int().min(1).max(65535),
-	publishMode: z.enum(["ingress", "host"], {
-		required_error: "Publish mode is required",
-	}),
+	publishMode: z.enum(["ingress", "host"]),
 	targetPort: z.number().int().min(1).max(65535),
-	protocol: z.enum(["tcp", "udp"], {
-		required_error: "Protocol is required",
-	}),
+	protocol: z.enum(["tcp", "udp"]),
 });
 
 type AddPort = z.infer<typeof AddPortSchema>;
@@ -68,7 +64,7 @@ export const HandlePorts = ({
 			enabled: !!portId,
 		},
 	);
-	const { mutateAsync, isLoading, error, isError } = portId
+	const { mutateAsync, isPending, error, isError } = portId
 		? api.port.update.useMutation()
 		: api.port.create.useMutation();
 
@@ -270,7 +266,7 @@ export const HandlePorts = ({
 
 					<DialogFooter>
 						<Button
-							isLoading={isLoading}
+							isLoading={isPending}
 							form="hook-form-add-port"
 							type="submit"
 						>

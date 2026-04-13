@@ -15,6 +15,7 @@ import { generateAppName } from ".";
 import { compose } from "./compose";
 import { deployments } from "./deployment";
 import { destinations } from "./destination";
+import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
@@ -26,6 +27,7 @@ export const databaseType = pgEnum("databaseType", [
 	"mysql",
 	"mongo",
 	"web-server",
+	"libsql",
 ]);
 
 export const backupType = pgEnum("backupType", ["database", "compose"]);
@@ -74,6 +76,9 @@ export const backups = pgTable("backup", {
 	mongoId: text("mongoId").references((): AnyPgColumn => mongo.mongoId, {
 		onDelete: "cascade",
 	}),
+	libsqlId: text("libsqlId").references((): AnyPgColumn => libsql.libsqlId, {
+		onDelete: "cascade",
+	}),
 	userId: text("userId").references(() => user.id),
 	// Only for compose backups
 	metadata: jsonb("metadata").$type<
@@ -118,6 +123,10 @@ export const backupsRelations = relations(backups, ({ one, many }) => ({
 		fields: [backups.mongoId],
 		references: [mongo.mongoId],
 	}),
+	libsql: one(libsql, {
+		fields: [backups.libsqlId],
+		references: [libsql.libsqlId],
+	}),
 	user: one(user, {
 		fields: [backups.userId],
 		references: [user.id],
@@ -137,11 +146,19 @@ const createSchema = createInsertSchema(backups, {
 	database: z.string().min(1),
 	schedule: z.string(),
 	keepLatestCount: z.number().optional(),
-	databaseType: z.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"]),
+	databaseType: z.enum([
+		"postgres",
+		"mariadb",
+		"mysql",
+		"mongo",
+		"web-server",
+		"libsql",
+	]),
 	postgresId: z.string().optional(),
 	mariadbId: z.string().optional(),
 	mysqlId: z.string().optional(),
 	mongoId: z.string().optional(),
+	libsqlId: z.string().optional(),
 	userId: z.string().optional(),
 	metadata: z.any().optional(),
 });
@@ -157,6 +174,7 @@ export const apiCreateBackup = createSchema.pick({
 	mysqlId: true,
 	postgresId: true,
 	mongoId: true,
+	libsqlId: true,
 	databaseType: true,
 	userId: true,
 	backupType: true,
@@ -165,11 +183,9 @@ export const apiCreateBackup = createSchema.pick({
 	metadata: true,
 });
 
-export const apiFindOneBackup = createSchema
-	.pick({
-		backupId: true,
-	})
-	.required();
+export const apiFindOneBackup = z.object({
+	backupId: z.string().min(1),
+});
 
 export const apiRemoveBackup = createSchema
 	.pick({
@@ -194,7 +210,14 @@ export const apiUpdateBackup = createSchema
 
 export const apiRestoreBackup = z.object({
 	databaseId: z.string(),
-	databaseType: z.enum(["postgres", "mysql", "mariadb", "mongo", "web-server"]),
+	databaseType: z.enum([
+		"postgres",
+		"mysql",
+		"mariadb",
+		"mongo",
+		"web-server",
+		"libsql",
+	]),
 	backupType: z.enum(["database", "compose"]),
 	databaseName: z.string().min(1),
 	backupFile: z.string().min(1),

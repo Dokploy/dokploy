@@ -64,7 +64,7 @@ export const redis = pgTable("redis", {
 	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
-	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "number" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
 	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
 	replicas: integer("replicas").default(1).notNull(),
@@ -122,7 +122,7 @@ const createSchema = createInsertSchema(redis, {
 	modeSwarm: ServiceModeSwarmSchema.nullable(),
 	labelsSwarm: LabelsSwarmSchema.nullable(),
 	networkSwarm: NetworkSwarmSchema.nullable(),
-	stopGracePeriodSwarm: z.bigint().nullable(),
+	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 });
@@ -137,11 +137,9 @@ export const apiCreateRedis = createSchema.pick({
 	serverId: true,
 });
 
-export const apiFindOneRedis = createSchema
-	.pick({
-		redisId: true,
-	})
-	.required();
+export const apiFindOneRedis = z.object({
+	redisId: z.string().min(1),
+});
 
 export const apiChangeRedisStatus = createSchema
 	.pick({
@@ -181,6 +179,7 @@ export const apiUpdateRedis = createSchema
 	.partial()
 	.extend({
 		redisId: z.string().min(1),
+		dockerImage: z.string().optional(),
 	})
 	.omit({ serverId: true });
 

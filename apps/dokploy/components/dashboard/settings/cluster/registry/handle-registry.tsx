@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { AlertTriangle, PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -105,13 +105,13 @@ export const HandleRegistry = ({ registryId }: Props) => {
 	const servers = [...(deployServers || []), ...(buildServers || [])];
 	const {
 		mutateAsync: testRegistry,
-		isLoading,
+		isPending,
 		error: testRegistryError,
 		isError: testRegistryIsError,
 	} = api.registry.testRegistry.useMutation();
 	const {
 		mutateAsync: testRegistryById,
-		isLoading: isLoadingById,
+		isPending: isPendingById,
 		error: testRegistryByIdError,
 		isError: testRegistryByIdIsError,
 	} = api.registry.testRegistryById.useMutation();
@@ -451,7 +451,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								<Button
 									type="button"
 									variant={"secondary"}
-									isLoading={isLoading || isLoadingById}
+									isLoading={isPending || isPendingById}
 									onClick={async () => {
 										// When editing with empty password, use the existing password from DB
 										if (registryId && (!password || password.length === 0)) {

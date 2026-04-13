@@ -15,7 +15,7 @@ interface Props {
 }
 
 export const AddManager = ({ serverId }: Props) => {
-	const { data, isLoading, error, isError } = api.cluster.addManager.useQuery({
+	const { data, isPending, error, isError } = api.cluster.addManager.useQuery({
 		serverId,
 	});
 
@@ -27,7 +27,7 @@ export const AddManager = ({ serverId }: Props) => {
 					<DialogDescription>Add a new manager</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
-				{isLoading ? (
+				{isPending ? (
 					<Loader2 className="w-full animate-spin text-muted-foreground" />
 				) : (
 					<>

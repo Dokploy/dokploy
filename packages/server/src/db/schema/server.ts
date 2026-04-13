@@ -15,6 +15,7 @@ import { applications } from "./application";
 import { certificates } from "./certificate";
 import { compose } from "./compose";
 import { deployments } from "./deployment";
+import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
@@ -117,6 +118,7 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 		relationName: "applicationBuildServer",
 	}),
 	compose: many(compose),
+	libsql: many(libsql),
 	redis: many(redis),
 	mariadb: many(mariadb),
 	mongo: many(mongo),
@@ -135,6 +137,7 @@ const createSchema = createInsertSchema(server, {
 	serverId: z.string().min(1),
 	name: z.string().min(1),
 	description: z.string().optional(),
+	serverType: z.enum(["deploy", "build"]).optional(),
 });
 
 export const apiCreateServer = createSchema
@@ -149,11 +152,9 @@ export const apiCreateServer = createSchema
 	})
 	.required();
 
-export const apiFindOneServer = createSchema
-	.pick({
-		serverId: true,
-	})
-	.required();
+export const apiFindOneServer = z.object({
+	serverId: z.string().min(1),
+});
 
 export const apiRemoveServer = createSchema
 	.pick({

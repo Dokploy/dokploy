@@ -21,9 +21,56 @@ import {
 	STARTUP_PRODUCT_ID,
 	WEBSITE_URL,
 } from "@/server/utils/stripe";
-import { adminProcedure, createTRPCRouter } from "../trpc";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+	withPermission,
+} from "../trpc";
 
 export const stripeRouter = createTRPCRouter({
+	/** Returns the current billing plan for the user's organization. Used to gate features like chat (Startup only). */
+	getCurrentPlan: protectedProcedure.query(async ({ ctx }) => {
+		if (!IS_CLOUD) return null;
+		const owner = await findUserById(ctx.user.ownerId);
+		if (!owner?.stripeCustomerId) return null;
+
+		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+			apiVersion: "2024-09-30.acacia",
+		});
+		const subscriptions = await stripe.subscriptions.list({
+			customer: owner.stripeCustomerId,
+			status: "active",
+			expand: ["data.items.data.price"],
+		});
+		const activeSub = subscriptions.data[0];
+		if (!activeSub) return null;
+
+		const priceIds = activeSub.items.data.map(
+			(item) => (item.price as Stripe.Price).id,
+		);
+		if (
+			priceIds.some(
+				(id) =>
+					id === STARTUP_BASE_PRICE_MONTHLY_ID ||
+					id === STARTUP_BASE_PRICE_ANNUAL_ID,
+			)
+		) {
+			return "startup" as const;
+		}
+		if (
+			priceIds.some(
+				(id) => id === HOBBY_PRICE_MONTHLY_ID || id === HOBBY_PRICE_ANNUAL_ID,
+			)
+		) {
+			return "hobby" as const;
+		}
+		if (priceIds.some((id) => LEGACY_PRICE_IDS.includes(id))) {
+			return "legacy" as const;
+		}
+		return null;
+	}),
+
 	getProducts: adminProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);
 		const stripeCustomerId = user.stripeCustomerId;
@@ -158,11 +205,16 @@ export const stripeRouter = createTRPCRouter({
 				mode: "subscription",
 				line_items: items,
 				...(stripeCustomerId
-					? { customer: stripeCustomerId }
+					? {
+							customer: stripeCustomerId,
+							customer_update: { name: "auto", address: "auto" },
+						}
 					: { customer_email: owner.email }),
 				metadata: {
 					adminId: owner.id,
 				},
+				billing_address_collection: "required",
+				tax_id_collection: { enabled: true },
 				allow_promotion_codes: true,
 				success_url: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
 				cancel_url: `${WEBSITE_URL}/dashboard/settings/billing`,
@@ -272,16 +324,34 @@ export const stripeRouter = createTRPCRouter({
 			return { ok: true };
 		}),
 
-	canCreateMoreServers: adminProcedure.query(async ({ ctx }) => {
-		const user = await findUserById(ctx.user.ownerId);
-		const servers = await findServersByUserId(user.id);
+	canCreateMoreServers: withPermission("server", "create").query(
+		async ({ ctx }) => {
+			const user = await findUserById(ctx.user.ownerId);
+			const servers = await findServersByUserId(user.id);
 
-		if (!IS_CLOUD) {
-			return true;
-		}
+			if (!IS_CLOUD) {
+				return true;
+			}
 
-		return servers.length < user.serversQuantity;
-	}),
+			return servers.length < user.serversQuantity;
+		},
+	),
+
+	updateInvoiceNotifications: adminProcedure
+		.input(z.object({ enabled: z.boolean() }))
+		.mutation(async ({ ctx, input }) => {
+			if (!IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available in Dokploy Cloud",
+				});
+			}
+			const owner = await findUserById(ctx.user.ownerId);
+			await updateUser(owner.id, {
+				sendInvoiceNotifications: input.enabled,
+			});
+			return { ok: true };
+		}),
 
 	getInvoices: adminProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);
