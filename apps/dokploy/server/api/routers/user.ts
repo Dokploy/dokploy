@@ -1,5 +1,6 @@
 import {
 	createApiKey,
+	createOrganizationUserWithCredentials,
 	findNotificationById,
 	findOrganizationById,
 	findUserById,
@@ -22,6 +23,7 @@ import {
 	apiUpdateUser,
 	invitation,
 	member,
+	user,
 } from "@dokploy/server/db/schema";
 import {
 	hasPermission,
@@ -345,7 +347,7 @@ export const userRouter = createTRPCRouter({
 					});
 				}
 
-				const { id, accessedGitProviders, ...rest } = input;
+				const { id, accessedGitProviders, accessedServers, ...rest } = input;
 
 				const licensed = await hasValidLicense(
 					ctx.session?.activeOrganizationId || "",
@@ -357,6 +359,9 @@ export const userRouter = createTRPCRouter({
 						...rest,
 						...(licensed && accessedGitProviders !== undefined
 							? { accessedGitProviders }
+							: {}),
+						...(licensed && accessedServers !== undefined
+							? { accessedServers }
 							: {}),
 					})
 					.where(
@@ -564,6 +569,37 @@ export const userRouter = createTRPCRouter({
 
 			return organizations.length;
 		}),
+	createUserWithCredentials: withPermission("member", "create")
+		.input(
+			z.object({
+				email: z.string().email(),
+				password: z.string().min(8),
+				role: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"Creating users with initial credentials is only available in self-hosted mode",
+				});
+			}
+
+			if (!ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Active organization is required",
+				});
+			}
+
+			return await createOrganizationUserWithCredentials({
+				organizationId: ctx.session.activeOrganizationId,
+				email: input.email,
+				password: input.password,
+				role: input.role,
+			});
+		}),
 	sendInvitation: withPermission("member", "create")
 		.input(
 			z.object({
@@ -638,5 +674,41 @@ export const userRouter = createTRPCRouter({
 				metadata: { type: "sendInvitation" },
 			});
 			return inviteLink;
+		}),
+
+	getBookmarkedTemplates: protectedProcedure.query(async ({ ctx }) => {
+		const result = await db.query.user.findFirst({
+			where: eq(user.id, ctx.user.id),
+			columns: { bookmarkedTemplates: true },
+		});
+
+		return result?.bookmarkedTemplates ?? [];
+	}),
+
+	toggleTemplateBookmark: protectedProcedure
+		.input(
+			z.object({
+				templateId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const result = await db.query.user.findFirst({
+				where: eq(user.id, ctx.user.id),
+				columns: { bookmarkedTemplates: true },
+			});
+
+			const current = result?.bookmarkedTemplates ?? [];
+			const isBookmarked = current.includes(input.templateId);
+
+			const updated = isBookmarked
+				? current.filter((id) => id !== input.templateId)
+				: [...current, input.templateId];
+
+			await db
+				.update(user)
+				.set({ bookmarkedTemplates: updated })
+				.where(eq(user.id, ctx.user.id));
+
+			return { isBookmarked: !isBookmarked };
 		}),
 });

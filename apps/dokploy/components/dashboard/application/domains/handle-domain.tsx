@@ -1,11 +1,12 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
+import { DatabaseZap, Dices, RefreshCw, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -68,6 +69,7 @@ export const domain = z
 		customCertResolver: z.string().optional(),
 		serviceName: z.string().optional(),
 		domainType: z.enum(["application", "compose", "preview"]).optional(),
+		middlewares: z.array(z.string()).optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {
@@ -213,6 +215,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			customCertResolver: undefined,
 			serviceName: undefined,
 			domainType: type,
+			middlewares: [],
 		},
 		mode: "onChange",
 	});
@@ -239,6 +242,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				customCertResolver: data?.customCertResolver || undefined,
 				serviceName: data?.serviceName || undefined,
 				domainType: data?.domainType || type,
+				middlewares: data?.middlewares || [],
 			});
 		}
 
@@ -255,6 +259,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				certificateType: undefined,
 				customCertResolver: undefined,
 				domainType: type,
+				middlewares: [],
 			});
 		}
 	}, [form, data, isPending, domainId]);
@@ -285,6 +290,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				composeId: id,
 			}),
 			...data,
+			customEntrypoint: data.useCustomEntrypoint ? data.customEntrypoint : null,
 		})
 			.then(async () => {
 				toast.success(dictionary.success);
@@ -669,7 +675,12 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 											<FormControl>
 												<Switch
 													checked={field.value}
-													onCheckedChange={field.onChange}
+													onCheckedChange={(checked) => {
+														field.onChange(checked);
+														if (!checked) {
+															form.setValue("customEntrypoint", undefined);
+														}
+													}}
 												/>
 											</FormControl>
 										</FormItem>
@@ -786,6 +797,88 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 										)}
 									</>
 								)}
+								<FormField
+									control={form.control}
+									name="middlewares"
+									render={({ field }) => (
+										<FormItem>
+											<div className="flex items-center gap-2">
+												<FormLabel>Middlewares</FormLabel>
+												<TooltipProvider>
+													<Tooltip>
+														<TooltipTrigger>
+															<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
+																?
+															</div>
+														</TooltipTrigger>
+														<TooltipContent className="max-w-[300px]">
+															<p>
+																Add Traefik middleware references. Middlewares
+																must be defined in your Traefik configuration.
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
+											<div className="flex flex-wrap gap-2 mb-2">
+												{field.value?.map((name, index) => (
+													<Badge key={index} variant="secondary">
+														{name}
+														<X
+															className="ml-1 size-3 cursor-pointer"
+															onClick={() => {
+																const newMiddlewares = [...(field.value || [])];
+																newMiddlewares.splice(index, 1);
+																form.setValue("middlewares", newMiddlewares);
+															}}
+														/>
+													</Badge>
+												))}
+											</div>
+											<FormControl>
+												<div className="flex gap-2">
+													<Input
+														placeholder="e.g., rate-limit@file, auth@file"
+														onKeyDown={(e) => {
+															if (e.key === "Enter") {
+																e.preventDefault();
+																const input = e.currentTarget;
+																const value = input.value.trim();
+																if (value && !field.value?.includes(value)) {
+																	form.setValue("middlewares", [
+																		...(field.value || []),
+																		value,
+																	]);
+																	input.value = "";
+																}
+															}
+														}}
+													/>
+													<Button
+														type="button"
+														variant="secondary"
+														onClick={() => {
+															const input = document.querySelector(
+																'input[placeholder="e.g., rate-limit@file, auth@file"]',
+															) as HTMLInputElement;
+															const value = input.value.trim();
+															if (value && !field.value?.includes(value)) {
+																form.setValue("middlewares", [
+																	...(field.value || []),
+																	value,
+																]);
+																input.value = "";
+															}
+														}}
+													>
+														Add
+													</Button>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
 							</div>
 						</div>
 					</form>

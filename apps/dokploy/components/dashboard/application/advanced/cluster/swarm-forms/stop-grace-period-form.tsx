@@ -16,7 +16,7 @@ import { api } from "@/utils/api";
 
 const hasStopGracePeriodSwarm = (
 	value: unknown,
-): value is { stopGracePeriodSwarm: bigint | number | string | null } =>
+): value is { stopGracePeriodSwarm: number | string | null } =>
 	typeof value === "object" &&
 	value !== null &&
 	"stopGracePeriodSwarm" in value;
@@ -68,7 +68,7 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 
 	const form = useForm<any>({
 		defaultValues: {
-			value: null as bigint | null,
+			value: null as number | null,
 		},
 	});
 
@@ -76,11 +76,7 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 		if (hasStopGracePeriodSwarm(data)) {
 			const value = data.stopGracePeriodSwarm;
 			const normalizedValue =
-				value === null || value === undefined
-					? null
-					: typeof value === "bigint"
-						? value
-						: BigInt(value);
+				value === null || value === undefined ? null : Number(value);
 			form.reset({
 				value: normalizedValue,
 			});
@@ -136,7 +132,7 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 									}
 									onChange={(e) =>
 										field.onChange(
-											e.target.value ? BigInt(e.target.value) : null,
+											e.target.value ? Number(e.target.value) : null,
 										)
 									}
 								/>

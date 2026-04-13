@@ -3,11 +3,15 @@ import {
 	createMount,
 	createPostgres,
 	deployPostgres,
+	execAsync,
+	execAsyncRemote,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findPostgresById,
 	findProjectById,
+	getContainerLogs,
 	getMountPath,
+	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
 	removePostgresById,
@@ -17,6 +21,7 @@ import {
 	stopService,
 	stopServiceRemote,
 	updatePostgresById,
+	getAccessibleServerIds,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -40,6 +45,8 @@ import {
 	apiSaveEnvironmentVariablesPostgres,
 	apiSaveExternalPortPostgres,
 	apiUpdatePostgres,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
 	environments,
 	postgres as postgresTable,
 	projects,
@@ -69,6 +76,17 @@ export const postgresRouter = createTRPCRouter({
 						message: "You are not authorized to access this project",
 					});
 				}
+
+				if (input.serverId) {
+					const accessibleIds = await getAccessibleServerIds(ctx.session);
+					if (!accessibleIds.has(input.serverId)) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this server",
+						});
+					}
+				}
+
 				const newPostgres = await createPostgres({
 					...input,
 				});
@@ -396,6 +414,56 @@ export const postgresRouter = createTRPCRouter({
 			});
 			return true;
 		}),
+	changePassword: protectedProcedure
+		.input(
+			z.object({
+				postgresId: z.string().min(1),
+				password: z.string().min(1).regex(DATABASE_PASSWORD_REGEX, {
+					message: DATABASE_PASSWORD_MESSAGE,
+				}),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { postgresId, password } = input;
+			await checkServicePermissionAndAccess(ctx, postgresId, {
+				service: ["create"],
+			});
+
+			const pg = await findPostgresById(postgresId);
+			const { appName, serverId, databaseUser } = pg;
+
+			const containerCmd = getServiceContainerCommand(appName);
+			const command = `
+				CONTAINER_ID=$(${containerCmd})
+				if [ -z "$CONTAINER_ID" ]; then
+					echo "No running container found for ${appName}" >&2
+					exit 1
+				fi
+				docker exec "$CONTAINER_ID" psql -U ${databaseUser} -c "ALTER USER \\"${databaseUser}\\" WITH PASSWORD '${password}';"
+			`;
+
+			await db.transaction(async (tx) => {
+				await tx
+					.update(postgresTable)
+					.set({ databasePassword: password })
+					.where(eq(postgresTable.postgresId, postgresId));
+
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: postgresId,
+				resourceName: appName,
+			});
+
+			return true;
+		}),
 	move: protectedProcedure
 		.input(
 			z.object({
@@ -546,5 +614,40 @@ export const postgresRouter = createTRPCRouter({
 					.where(where),
 			]);
 			return { items, total: countResult[0]?.count ?? 0 };
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			apiFindOnePostgres.extend({
+				tail: z.number().int().min(1).max(10000).default(100),
+				since: z
+					.string()
+					.regex(/^(all|\d+[smhd])$/, "Invalid since format")
+					.default("all"),
+				search: z
+					.string()
+					.regex(/^[a-zA-Z0-9 ._-]{0,500}$/)
+					.optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.postgresId, "read");
+			const postgres = await findPostgresById(input.postgresId);
+			if (
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Postgres",
+				});
+			}
+			return await getContainerLogs(
+				postgres.appName,
+				input.tail,
+				input.since,
+				input.search,
+				postgres.serverId,
+			);
 		}),
 });

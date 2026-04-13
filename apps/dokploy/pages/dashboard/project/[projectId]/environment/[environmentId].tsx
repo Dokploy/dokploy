@@ -119,6 +119,7 @@ export type Services = {
 	createdAt: string;
 	status?: "idle" | "running" | "done" | "error";
 	lastDeployDate?: Date | null;
+	icon?: string | null;
 };
 
 type Environment = Awaited<ReturnType<typeof findEnvironmentById>>;
@@ -157,6 +158,7 @@ export const extractServicesFromEnvironment = (
 				serverId: item.serverId,
 				serverName: item?.server?.name || null,
 				lastDeployDate,
+				icon: item.icon || null,
 			};
 		}) || [];
 
@@ -1536,9 +1538,17 @@ const EnvironmentPage = (
 																			{service.type === "mysql" && (
 																				<MysqlIcon className="h-7 w-7" />
 																			)}
-																			{service.type === "application" && (
-																				<GlobeIcon className="h-6 w-6" />
-																			)}
+																			{service.type === "application" &&
+																				(service.icon ? (
+																					// biome-ignore lint/performance/noImgElement: application icon is data URL
+																					<img
+																						src={service.icon}
+																						alt={service.name}
+																						className="size-7 object-contain"
+																					/>
+																				) : (
+																					<GlobeIcon className="h-6 w-6" />
+																				))}
 																			{service.type === "compose" && (
 																				<CircuitBoard className="h-6 w-6" />
 																			)}

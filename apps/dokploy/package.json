@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.28.8",
+	"version": "v0.29.0",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -110,6 +110,7 @@
 		"copy-to-clipboard": "^3.3.3",
 		"date-fns": "3.6.0",
 		"dockerode": "4.0.2",
+		"dompurify": "^3.3.3",
 		"dotenv": "16.4.5",
 		"drizzle-orm": "0.45.1",
 		"drizzle-zod": "0.8.3",
@@ -163,6 +164,7 @@
 	"devDependencies": {
 		"@types/adm-zip": "^0.5.7",
 		"@types/bcrypt": "5.0.2",
+		"@types/dompurify": "^3.2.0",
 		"@types/js-cookie": "^3.0.6",
 		"@types/lodash": "4.17.4",
 		"@types/micromatch": "4.0.9",
@@ -182,6 +184,7 @@
 		"esbuild": "0.20.2",
 		"lint-staged": "^15.5.2",
 		"memfs": "^4.17.2",
+		"simple-icons": "^16.14.0",
 		"tailwindcss": "^3.4.17",
 		"tsx": "^4.16.2",
 		"typescript": "^5.8.3",

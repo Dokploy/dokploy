@@ -225,6 +225,13 @@ export const apiUpdateCompose = createSchema
 	})
 	.omit({ serverId: true });
 
+export const apiSaveEnvironmentVariablesCompose = createSchema
+	.pick({
+		composeId: true,
+		env: true,
+	})
+	.required();
+
 export const apiRandomizeCompose = createSchema
 	.pick({
 		composeId: true,

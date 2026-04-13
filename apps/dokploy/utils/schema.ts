@@ -10,6 +10,10 @@ if (typeof window === "undefined") {
 	})();
 }
 
+export const APP_NAME_REGEX = /^[a-z](?!.*--)([a-z0-9-]*[a-z0-9])?$/;
+export const APP_NAME_MESSAGE =
+	"App name supports lowercase letters, numbers, '-' and must start with a letter, end with a letter or number, and cannot contain consecutive '-'";
+
 export const uploadFileSchema = zfd.formData({
 	applicationId: z.string().optional(),
 	zip: zfd.file(),

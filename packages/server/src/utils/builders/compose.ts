@@ -106,6 +106,7 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 	const envFilePath = join(dirname(composeFilePath), ".env");
 
 	let envContent = `APP_NAME=${appName}\n`;
+	envContent += `COMPOSE_PROJECT_NAME=${appName}\n`;
 	envContent += env || "";
 	if (!envContent.includes("DOCKER_CONFIG")) {
 		envContent += "\nDOCKER_CONFIG=/root/.docker";

@@ -1,14 +1,19 @@
 import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
+import { UpdateDatabasePassword } from "@/components/shared/update-database-password";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
+import { toast } from "sonner";
 
 interface Props {
 	redisId: string;
 }
 export const ShowInternalRedisCredentials = ({ redisId }: Props) => {
 	const { data } = api.redis.one.useQuery({ redisId });
+	const utils = api.useUtils();
+	const { mutateAsync: changePassword } =
+		api.redis.changePassword.useMutation();
 	return (
 		<>
 			<div className="flex w-full flex-col gap-5 ">
@@ -24,10 +29,20 @@ export const ShowInternalRedisCredentials = ({ redisId }: Props) => {
 							</div>
 							<div className="flex flex-col gap-2">
 								<Label>Password</Label>
-								<div className="flex flex-row gap-4">
+								<div className="flex flex-row gap-2 items-center">
 									<ToggleVisibilityInput
 										value={data?.databasePassword}
 										disabled
+									/>
+									<UpdateDatabasePassword
+										onUpdatePassword={async (newPassword) => {
+											await changePassword({
+												redisId,
+												password: newPassword,
+											});
+											toast.success("Password updated successfully");
+											utils.redis.one.invalidate({ redisId });
+										}}
 									/>
 								</div>
 							</div>
