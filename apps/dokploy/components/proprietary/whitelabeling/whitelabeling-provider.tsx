@@ -16,16 +16,14 @@ export function WhitelabelingProvider() {
 		: resolvedTheme === "light" ? "/icon-light.svg"
 		: "/icon.svg");
 
-	if (!config) return null;
-
 	return (
 		<>
 			<Head>
-				{config.metaTitle && <title>{config.metaTitle}</title>}
+				{config?.metaTitle && <title>{config.metaTitle}</title>}
 				<link rel="icon" href={faviconHref} key="app-favicon" />
 			</Head>
 
-			{config.customCss && (
+			{config?.customCss && (
 				<style
 					id="whitelabeling-styles"
 					dangerouslySetInnerHTML={{
