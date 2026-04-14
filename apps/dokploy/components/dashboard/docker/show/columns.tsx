@@ -11,6 +11,7 @@ import {
 import { ShowContainerConfig } from "../config/show-container-config";
 import { ShowDockerModalLogs } from "../logs/show-docker-modal-logs";
 import { ShowContainerMounts } from "../mounts/show-container-mounts";
+import { ShowContainerNetworks } from "../networks/show-container-networks";
 import { RemoveContainerDialog } from "../remove/remove-container";
 import { DockerTerminalModal } from "../terminal/docker-terminal-modal";
 import { UploadFileModal } from "../upload/upload-file-modal";
@@ -125,6 +126,10 @@ export const columns: ColumnDef<Container>[] = [
 							serverId={container.serverId || ""}
 						/>
 						<ShowContainerMounts
+							containerId={container.containerId}
+							serverId={container.serverId || ""}
+						/>
+						<ShowContainerNetworks
 							containerId={container.containerId}
 							serverId={container.serverId || ""}
 						/>
