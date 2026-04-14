@@ -17,6 +17,7 @@ import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
+import { getPreviewDeploymentJobType } from "@/server/utils/preview-deployment-jobs";
 import { extractCommitMessage, extractHash } from "./[refreshToken]";
 
 export default async function handler(
@@ -477,6 +478,7 @@ export default async function handler(
 				}
 				const previewDeploymentResult =
 					await findPreviewDeploymentByApplicationId(app.applicationId, prId);
+				const hasExistingPreviewDeployment = !!previewDeploymentResult;
 
 				let previewDeploymentId =
 					previewDeploymentResult?.previewDeploymentId || "";
@@ -497,13 +499,22 @@ export default async function handler(
 					applicationId: app.applicationId as string,
 					titleLog: "Preview Deployment",
 					descriptionLog: `Hash: ${deploymentHash}`,
-					type: "deploy",
+					type: getPreviewDeploymentJobType(hasExistingPreviewDeployment),
 					applicationType: "application-preview",
 					server: !!app.serverId,
 					previewDeploymentId,
 				};
 
 				if (previewDeploymentId) {
+					console.info("Queueing preview deployment job", {
+						action,
+						appName: app.name,
+						applicationId: app.applicationId,
+						previewDeploymentId,
+						pullRequestId: String(prId),
+						jobType: jobData.type,
+					});
+
 					if (IS_CLOUD && app.serverId) {
 						jobData.serverId = app.serverId;
 						deploy(jobData).catch((error) => {
@@ -511,14 +522,27 @@ export default async function handler(
 						});
 						continue;
 					}
-					await myQueue.add(
-						"deployments",
-						{ ...jobData },
-						{
-							removeOnComplete: true,
-							removeOnFail: true,
-						},
-					);
+					try {
+						await myQueue.add(
+							"deployments",
+							{ ...jobData },
+							{
+								removeOnComplete: true,
+								removeOnFail: true,
+							},
+						);
+					} catch (error) {
+						console.error("Failed to queue preview deployment job", {
+							action,
+							appName: app.name,
+							applicationId: app.applicationId,
+							previewDeploymentId,
+							pullRequestId: String(prId),
+							jobType: jobData.type,
+							error,
+						});
+						throw error;
+					}
 				}
 			}
 			return res.status(200).json({ message: "Apps Deployed" });
