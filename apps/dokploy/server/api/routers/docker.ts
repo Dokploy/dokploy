@@ -38,7 +38,7 @@ export const dockerRouter = createTRPCRouter({
 			return await getContainers(input.serverId);
 		}),
 
-	restartContainer: withPermission("docker", "read")
+	restartContainer: withPermission("service", "read")
 		.input(
 			z.object({
 				containerId: z
@@ -64,7 +64,7 @@ export const dockerRouter = createTRPCRouter({
 			});
 		}),
 
-	startContainer: withPermission("docker", "read")
+	startContainer: withPermission("service", "read")
 		.input(
 			z.object({
 				containerId: z
@@ -90,7 +90,7 @@ export const dockerRouter = createTRPCRouter({
 			});
 		}),
 
-	stopContainer: withPermission("docker", "read")
+	stopContainer: withPermission("service", "read")
 		.input(
 			z.object({
 				containerId: z
@@ -116,7 +116,7 @@ export const dockerRouter = createTRPCRouter({
 			});
 		}),
 
-	killContainer: withPermission("docker", "read")
+	killContainer: withPermission("service", "read")
 		.input(
 			z.object({
 				containerId: z

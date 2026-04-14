@@ -233,7 +233,7 @@ const Service = (
 													Deployments
 												</TabsTrigger>
 											)}
-											{permissions?.docker.read && (
+											{permissions?.service.read && (
 												<TabsTrigger value="containers">Containers</TabsTrigger>
 											)}
 											{permissions?.service.create && (
@@ -303,7 +303,7 @@ const Service = (
 											</div>
 										</TabsContent>
 									)}
-									{permissions?.docker.read && (
+									{permissions?.service.read && (
 										<TabsContent value="containers">
 											<div className="flex flex-col gap-4 pt-2.5">
 												<ShowComposeContainers
