@@ -86,9 +86,7 @@ export const ShowComposeContainers = ({
 					onClick={() => refetch()}
 					disabled={isPending}
 				>
-					<RefreshCw
-						className={`h-4 w-4 ${isPending ? "animate-spin" : ""}`}
-					/>
+					<RefreshCw className={`h-4 w-4 ${isPending ? "animate-spin" : ""}`} />
 				</Button>
 			</CardHeader>
 			<CardContent>
@@ -253,9 +251,7 @@ const ContainerRow = ({
 					<DialogContent className="sm:max-w-7xl">
 						<DialogHeader>
 							<DialogTitle>View Logs</DialogTitle>
-							<DialogDescription>
-								Logs for {container.name}
-							</DialogDescription>
+							<DialogDescription>Logs for {container.name}</DialogDescription>
 						</DialogHeader>
 						<div className="flex flex-col gap-4 pt-2.5">
 							<DockerLogsId

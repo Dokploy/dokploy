@@ -447,10 +447,7 @@ export const containerStart = async (
 	}
 };
 
-export const containerStop = async (
-	containerId: string,
-	serverId?: string,
-) => {
+export const containerStop = async (containerId: string, serverId?: string) => {
 	const command = `docker container stop ${containerId}`;
 	const { stderr } = serverId
 		? await execAsyncRemote(serverId, command)
@@ -462,10 +459,7 @@ export const containerStop = async (
 	}
 };
 
-export const containerKill = async (
-	containerId: string,
-	serverId?: string,
-) => {
+export const containerKill = async (containerId: string, serverId?: string) => {
 	const command = `docker container kill ${containerId}`;
 	const { stderr } = serverId
 		? await execAsyncRemote(serverId, command)
