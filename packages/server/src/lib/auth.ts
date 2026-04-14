@@ -196,7 +196,7 @@ const { handler, api } = betterAuth({
 						where: eq(schema.member.role, "owner"),
 					});
 
-					if (!IS_CLOUD) {
+					if (!IS_CLOUD && !isAdminPresent) {
 						await updateWebServerSettings({
 							serverIp: await getPublicIpWithFallback(),
 						});
