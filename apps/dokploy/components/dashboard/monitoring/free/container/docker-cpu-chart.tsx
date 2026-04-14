@@ -17,7 +17,7 @@ interface Props {
 const chartConfig = {
 	usage: {
 		label: "CPU Usage",
-		color: "hsl(var(--chart-1))",
+		color: "oklch(var(--chart-1))",
 	},
 } satisfies ChartConfig;
 

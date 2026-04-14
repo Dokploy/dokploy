@@ -17,11 +17,11 @@ interface Props {
 const chartConfig = {
 	inMB: {
 		label: "In (MB)",
-		color: "hsl(var(--chart-1))",
+		color: "oklch(var(--chart-1))",
 	},
 	outMB: {
 		label: "Out (MB)",
-		color: "hsl(var(--chart-2))",
+		color: "oklch(var(--chart-2))",
 	},
 } satisfies ChartConfig;
 

@@ -29,14 +29,14 @@ export function DiskChart({ data }: RadialChartProps) {
 	const chartData = [
 		{
 			disk: 25,
-			fill: "hsl(var(--chart-2))",
+			fill: "oklch(var(--chart-2))",
 		},
 	];
 
 	const chartConfig = {
 		disk: {
 			label: "Disk",
-			color: "hsl(var(--chart-2))",
+			color: "oklch(var(--chart-2))",
 		},
 	} satisfies ChartConfig;
 
@@ -71,7 +71,7 @@ export function DiskChart({ data }: RadialChartProps) {
 							dataKey="disk"
 							background
 							cornerRadius={10}
-							fill="hsl(var(--chart-2))"
+							fill="oklch(var(--chart-2))"
 						/>
 						<PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
 							<Label

@@ -19,7 +19,7 @@ interface Props {
 const chartConfig = {
 	usage: {
 		label: "Memory (GB)",
-		color: "hsl(var(--chart-2))",
+		color: "oklch(var(--chart-2))",
 	},
 } satisfies ChartConfig;
 

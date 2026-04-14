@@ -17,11 +17,11 @@ interface Props {
 const chartConfig = {
 	readMb: {
 		label: "Read (MB)",
-		color: "hsl(var(--chart-1))",
+		color: "oklch(var(--chart-1))",
 	},
 	writeMb: {
 		label: "Write (MB)",
-		color: "hsl(var(--chart-2))",
+		color: "oklch(var(--chart-2))",
 	},
 } satisfies ChartConfig;
 

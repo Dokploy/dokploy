@@ -22,11 +22,11 @@ interface NetworkChartProps {
 const chartConfig = {
 	networkIn: {
 		label: "Network In",
-		color: "hsl(var(--chart-3))",
+		color: "oklch(var(--chart-3))",
 	},
 	networkOut: {
 		label: "Network Out",
-		color: "hsl(var(--chart-4))",
+		color: "oklch(var(--chart-4))",
 	},
 } satisfies ChartConfig;
 
@@ -52,24 +52,24 @@ export function NetworkChart({ data }: NetworkChartProps) {
 							<linearGradient id="fillNetworkIn" x1="0" y1="0" x2="0" y2="1">
 								<stop
 									offset="5%"
-									stopColor="hsl(var(--chart-3))"
+									stopColor="oklch(var(--chart-3))"
 									stopOpacity={0.8}
 								/>
 								<stop
 									offset="95%"
-									stopColor="hsl(var(--chart-3))"
+									stopColor="oklch(var(--chart-3))"
 									stopOpacity={0.1}
 								/>
 							</linearGradient>
 							<linearGradient id="fillNetworkOut" x1="0" y1="0" x2="0" y2="1">
 								<stop
 									offset="5%"
-									stopColor="hsl(var(--chart-4))"
+									stopColor="oklch(var(--chart-4))"
 									stopOpacity={0.8}
 								/>
 								<stop
 									offset="95%"
-									stopColor="hsl(var(--chart-4))"
+									stopColor="oklch(var(--chart-4))"
 									stopOpacity={0.1}
 								/>
 							</linearGradient>
@@ -121,7 +121,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 							dataKey="networkIn"
 							type="monotone"
 							fill="url(#fillNetworkIn)"
-							stroke="hsl(var(--chart-3))"
+							stroke="oklch(var(--chart-3))"
 							strokeWidth={2}
 						/>
 						<Area
@@ -129,7 +129,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 							dataKey="networkOut"
 							type="monotone"
 							fill="url(#fillNetworkOut)"
-							stroke="hsl(var(--chart-4))"
+							stroke="oklch(var(--chart-4))"
 							strokeWidth={2}
 						/>
 						<ChartLegend

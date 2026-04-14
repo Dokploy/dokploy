@@ -511,7 +511,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"w-full justify-between !bg-transparent dark:!bg-input/30 !border !border-input !shadow-xs",
 														!field.value && "text-muted-foreground",
 													)}
 												>

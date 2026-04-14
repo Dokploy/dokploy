@@ -236,7 +236,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 										<Button
 											variant="outline"
 											className={cn(
-												"w-full sm:w-[200px] justify-between !bg-input",
+												"w-full sm:w-[200px] justify-between !bg-transparent dark:!bg-input/30 !border !border-input !shadow-xs",
 											)}
 										>
 											{isLoadingTags

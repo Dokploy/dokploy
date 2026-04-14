@@ -60,99 +60,99 @@ const DEFAULT_CSS_TEMPLATE = `/* ============================================
 
 /* ---------- Light Mode ---------- */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
+  --background: 1 0 0;
+  --foreground: 0.145 0 0;
 
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
+  --card: 1 0 0;
+  --card-foreground: 0.145 0 0;
 
-  --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 3.9%;
+  --popover: 1 0 0;
+  --popover-foreground: 0.145 0 0;
 
-  --primary: 240 5.9% 10%;
-  --primary-foreground: 0 0% 98%;
+  --primary: 0.205 0 0;
+  --primary-foreground: 0.985 0 0;
 
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
+  --secondary: 0.97 0 0;
+  --secondary-foreground: 0.205 0 0;
 
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
+  --muted: 0.97 0 0;
+  --muted-foreground: 0.556 0 0;
 
-  --accent: 240 4.8% 95.9%;
-  --accent-foreground: 240 5.9% 10%;
+  --accent: 0.97 0 0;
+  --accent-foreground: 0.205 0 0;
 
-  --destructive: 0 84.2% 50.2%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive: 0.577 0.245 27.325;
+  --destructive-foreground: 0.985 0 0;
 
-  --border: 240 5.9% 90%;
-  --input: 240 5.9% 90%;
-  --ring: 240 10% 3.9%;
-  --radius: 0.5rem;
+  --border: 0.922 0 0;
+  --input: 0.922 0 0;
+  --ring: 0.708 0 0;
+  --radius: 0.625rem;
 
   /* Sidebar */
-  --sidebar-background: 0 0% 98%;
-  --sidebar-foreground: 240 5.3% 26.1%;
-  --sidebar-primary: 240 5.9% 10%;
-  --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 240 4.8% 95.9%;
-  --sidebar-accent-foreground: 240 5.9% 10%;
-  --sidebar-border: 220 13% 91%;
-  --sidebar-ring: 217.2 91.2% 59.8%;
+  --sidebar: 0.985 0 0;
+  --sidebar-foreground: 0.145 0 0;
+  --sidebar-primary: 0.205 0 0;
+  --sidebar-primary-foreground: 0.985 0 0;
+  --sidebar-accent: 0.97 0 0;
+  --sidebar-accent-foreground: 0.205 0 0;
+  --sidebar-border: 0.922 0 0;
+  --sidebar-ring: 0.708 0 0;
 
   /* Charts */
-  --chart-1: 173 58% 39%;
-  --chart-2: 12 76% 61%;
-  --chart-3: 197 37% 24%;
-  --chart-4: 43 74% 66%;
-  --chart-5: 27 87% 67%;
+  --chart-1: 0.646 0.222 41.116;
+  --chart-2: 0.6 0.118 184.704;
+  --chart-3: 0.398 0.07 227.392;
+  --chart-4: 0.828 0.189 84.429;
+  --chart-5: 0.769 0.188 70.08;
 }
 
 /* ---------- Dark Mode ---------- */
 .dark {
-  --background: 0 0% 0%;
-  --foreground: 0 0% 98%;
+  --background: 0.145 0 0;
+  --foreground: 0.985 0 0;
 
-  --card: 240 4% 10%;
-  --card-foreground: 0 0% 98%;
+  --card: 0.205 0 0;
+  --card-foreground: 0.985 0 0;
 
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
+  --popover: 0.205 0 0;
+  --popover-foreground: 0.985 0 0;
 
-  --primary: 0 0% 98%;
-  --primary-foreground: 240 5.9% 10%;
+  --primary: 0.922 0 0;
+  --primary-foreground: 0.205 0 0;
 
-  --secondary: 240 3.7% 15.9%;
-  --secondary-foreground: 0 0% 98%;
+  --secondary: 0.269 0 0;
+  --secondary-foreground: 0.985 0 0;
 
-  --muted: 240 4% 10%;
-  --muted-foreground: 240 5% 64.9%;
+  --muted: 0.269 0 0;
+  --muted-foreground: 0.708 0 0;
 
-  --accent: 240 3.7% 15.9%;
-  --accent-foreground: 0 0% 98%;
+  --accent: 0.269 0 0;
+  --accent-foreground: 0.985 0 0;
 
-  --destructive: 0 84.2% 50.2%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive: 0.704 0.191 22.216;
+  --destructive-foreground: 0.985 0 0;
 
-  --border: 240 3.7% 15.9%;
-  --input: 240 4% 10%;
-  --ring: 240 4.9% 83.9%;
+  --border: 0.371 0 0;
+  --input: 0.371 0 0;
+  --ring: 0.556 0 0;
 
   /* Sidebar */
-  --sidebar-background: 240 5.9% 10%;
-  --sidebar-foreground: 240 4.8% 95.9%;
-  --sidebar-primary: 224.3 76.3% 48%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 240 3.7% 15.9%;
-  --sidebar-accent-foreground: 240 4.8% 95.9%;
-  --sidebar-border: 240 3.7% 15.9%;
-  --sidebar-ring: 217.2 91.2% 59.8%;
+  --sidebar: 0.205 0 0;
+  --sidebar-foreground: 0.985 0 0;
+  --sidebar-primary: 0.488 0.243 264.376;
+  --sidebar-primary-foreground: 0.985 0 0;
+  --sidebar-accent: 0.269 0 0;
+  --sidebar-accent-foreground: 0.985 0 0;
+  --sidebar-border: 0.371 0 0;
+  --sidebar-ring: 0.556 0 0;
 
   /* Charts */
-  --chart-1: 220 70% 50%;
-  --chart-2: 340 75% 55%;
-  --chart-3: 30 80% 55%;
-  --chart-4: 280 65% 60%;
-  --chart-5: 160 60% 45%;
+  --chart-1: 0.488 0.243 264.376;
+  --chart-2: 0.696 0.17 162.48;
+  --chart-3: 0.769 0.188 70.08;
+  --chart-4: 0.627 0.265 303.9;
+  --chart-5: 0.645 0.246 16.439;
 }
 
 /* ---------- Custom Styles ---------- */

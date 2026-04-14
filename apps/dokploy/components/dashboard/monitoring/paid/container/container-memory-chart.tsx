@@ -33,7 +33,7 @@ interface Props {
 const chartConfig = {
 	memory: {
 		label: "Memory",
-		color: "hsl(var(--chart-2))",
+		color: "oklch(var(--chart-2))",
 	},
 } satisfies ChartConfig;
 
@@ -73,12 +73,12 @@ export const ContainerMemoryChart = ({ data }: Props) => {
 							<linearGradient id="fillMemory" x1="0" y1="0" x2="0" y2="1">
 								<stop
 									offset="5%"
-									stopColor="hsl(var(--chart-2))"
+									stopColor="oklch(var(--chart-2))"
 									stopOpacity={0.8}
 								/>
 								<stop
 									offset="95%"
-									stopColor="hsl(var(--chart-2))"
+									stopColor="oklch(var(--chart-2))"
 									stopOpacity={0.1}
 								/>
 							</linearGradient>
@@ -133,7 +133,7 @@ export const ContainerMemoryChart = ({ data }: Props) => {
 							dataKey="memory"
 							type="monotone"
 							fill="url(#fillMemory)"
-							stroke="hsl(var(--chart-2))"
+							stroke="oklch(var(--chart-2))"
 							strokeWidth={2}
 						/>
 						<ChartLegend
