@@ -874,19 +874,34 @@ const EnvironmentPage = (
 		const idKey = getServiceIdKey(service);
 		if (!actions || !idKey) return;
 
-		try {
-			await actions[action].mutateAsync({
-				[idKey]: service.id,
-			} as any);
-			toast.success(
-				`Service ${service.name} ${action === "deploy" ? "queued for deployment" : `${action}ed`} successfully`,
-			);
-			refetch();
-		} catch (error) {
-			toast.error(
-				`Error ${action === "stop" ? "stopp" : action}ing service ${service.name}: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
+		const actionLabels = {
+			start: { loading: "Starting", success: "started", error: "starting" },
+			stop: { loading: "Stopping", success: "stopped", error: "stopping" },
+			deploy: {
+				loading: "Deploying",
+				success: "queued for deployment",
+				error: "deploying",
+			},
+		};
+
+		const labels = actionLabels[action];
+
+		toast.promise(
+			(async () => {
+				await actions[action].mutateAsync({
+					[idKey]: service.id,
+				} as any);
+			})(),
+			{
+				loading: `${labels.loading} ${service.name}...`,
+				success: () => {
+					utils.environment.one.invalidate({ environmentId });
+					return `${service.name} ${labels.success} successfully`;
+				},
+				error: (error) =>
+					`Error ${labels.error} ${service.name}: ${error instanceof Error ? error.message : "Unknown error"}`,
+			},
+		);
 	};
 
 	const handleServiceDelete = async (service: Services) => {
@@ -894,18 +909,22 @@ const EnvironmentPage = (
 		const idKey = getServiceIdKey(service);
 		if (!actions || !idKey) return;
 
-		try {
-			await actions.delete.mutateAsync({
-				[idKey]: service.id,
-			} as any);
-			await utils.environment.one.invalidate({ environmentId });
-			toast.success(`Service ${service.name} deleted successfully`);
-			refetch();
-		} catch (error) {
-			toast.error(
-				`Error deleting service ${service.name}: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
+		toast.promise(
+			(async () => {
+				await actions.delete.mutateAsync({
+					[idKey]: service.id,
+				} as any);
+			})(),
+			{
+				loading: `Deleting ${service.name}...`,
+				success: () => {
+					utils.environment.one.invalidate({ environmentId });
+					return `${service.name} deleted successfully`;
+				},
+				error: (error) =>
+					`Error deleting ${service.name}: ${error instanceof Error ? error.message : "Unknown error"}`,
+			},
+		);
 		setServiceToDelete(null);
 	};
 
