@@ -337,6 +337,8 @@ export const createDomainLabels = (
 			labels.push(
 				`traefik.http.routers.${routerName}.tls.certresolver=${customCertResolver}`,
 			);
+		} else if (certificateType === "none") {
+			labels.push(`traefik.http.routers.${routerName}.tls=true`);
 		}
 	}
 
