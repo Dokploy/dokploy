@@ -36,6 +36,9 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api } from "@/utils/api";
+import { ShowContainerConfig } from "@/components/dashboard/docker/config/show-container-config";
+import { ShowContainerMounts } from "@/components/dashboard/docker/mounts/show-container-mounts";
+import { DockerTerminalModal } from "@/components/dashboard/docker/terminal/docker-terminal-modal";
 
 const DockerLogsId = dynamic(
 	() =>
@@ -217,6 +220,20 @@ const ContainerRow = ({
 									View Logs
 								</DropdownMenuItem>
 							</DialogTrigger>
+							<ShowContainerConfig
+								containerId={container.containerId}
+								serverId={serverId || ""}
+							/>
+							<ShowContainerMounts
+								containerId={container.containerId}
+								serverId={serverId || ""}
+							/>
+							<DockerTerminalModal
+								containerId={container.containerId}
+								serverId={serverId || ""}
+							>
+								Terminal
+							</DockerTerminalModal>
 							<DropdownMenuSeparator />
 							<DropdownMenuItem
 								className="cursor-pointer"
