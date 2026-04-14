@@ -187,3 +187,9 @@ export const apiRebuildRedis = createSchema
 		redisId: true,
 	})
 	.required();
+
+export const apiTransferRedis = z.object({
+	redisId: z.string().min(1),
+	targetServerId: z.string().min(1),
+	decisions: z.record(z.string(), z.enum(["skip", "overwrite"])).optional(),
+});

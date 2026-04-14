@@ -240,3 +240,9 @@ export const apiRandomizeCompose = createSchema
 		suffix: z.string().optional(),
 		composeId: z.string().min(1),
 	});
+
+export const apiTransferCompose = z.object({
+	composeId: z.string().min(1),
+	targetServerId: z.string().min(1),
+	decisions: z.record(z.string(), z.enum(["skip", "overwrite"])).optional(),
+});

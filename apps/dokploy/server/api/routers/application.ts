@@ -28,6 +28,8 @@ import {
 	updateDeploymentStatus,
 	writeConfig,
 	writeConfigRemote,
+	scanServiceForTransfer,
+	executeTransfer,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -62,6 +64,7 @@ import {
 	apiSaveGithubProvider,
 	apiSaveGitlabProvider,
 	apiSaveGitProvider,
+	apiTransferApplication,
 	apiUpdateApplication,
 	applications,
 	environments,
@@ -1136,5 +1139,139 @@ export const applicationRouter = createTRPCRouter({
 				input.search,
 				application.serverId,
 			);
+		}),
+
+	transferScan: protectedProcedure
+		.input(apiTransferApplication.pick({ applicationId: true, targetServerId: true }))
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				service: ["delete"],
+			});
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this application",
+				});
+			}
+
+			return await scanServiceForTransfer({
+				serviceId: input.applicationId,
+				serviceType: "application",
+				appName: application.appName,
+				sourceServerId: application.serverId,
+				targetServerId: input.targetServerId,
+			});
+		}),
+
+	transferWithLogs: protectedProcedure
+		.input(apiTransferApplication)
+		.subscription(async function* ({ input, ctx, signal }) {
+			const application = await findApplicationById(input.applicationId);
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				service: ["delete"],
+			});
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this application",
+				});
+			}
+
+			const queue: string[] = [];
+			let done = false;
+
+			executeTransfer(
+				{
+					serviceId: input.applicationId,
+					serviceType: "application",
+					appName: application.appName,
+					sourceServerId: application.serverId,
+					targetServerId: input.targetServerId,
+				},
+				input.decisions || {},
+				(progress) => {
+					queue.push(JSON.stringify(progress));
+				},
+			)
+				.then(async (result) => {
+					if (result.success) {
+						await db
+							.update(applications)
+							.set({ serverId: input.targetServerId })
+							.where(eq(applications.applicationId, input.applicationId));
+						queue.push("Transfer completed successfully!");
+					} else {
+						queue.push(`Transfer failed: ${result.errors.join(", ")}`);
+					}
+				})
+				.catch((error) => {
+					queue.push(
+						`Transfer error: ${error instanceof Error ? error.message : String(error)}`,
+					);
+				})
+				.finally(() => {
+					done = true;
+				});
+
+			while (!done || queue.length > 0) {
+				if (queue.length > 0) {
+					yield queue.shift()!;
+				} else {
+					await new Promise((r) => setTimeout(r, 50));
+				}
+				if (signal?.aborted) {
+					return;
+				}
+			}
+		}),
+
+	transfer: protectedProcedure
+		.input(apiTransferApplication)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				service: ["delete"],
+			});
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this application",
+				});
+			}
+
+			const result = await executeTransfer(
+				{
+					serviceId: input.applicationId,
+					serviceType: "application",
+					appName: application.appName,
+					sourceServerId: application.serverId,
+					targetServerId: input.targetServerId,
+				},
+				input.decisions || {},
+			);
+
+			if (!result.success) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Transfer failed: ${result.errors.join(", ")}`,
+				});
+			}
+
+			await db
+				.update(applications)
+				.set({ serverId: input.targetServerId })
+				.where(eq(applications.applicationId, input.applicationId));
+
+			return { success: true };
 		}),
 });

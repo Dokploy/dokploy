@@ -307,6 +307,7 @@ const Mongo = (
 												<ShowDatabaseAdvancedSettings
 													id={mongoId}
 													type="mongo"
+													serverId={data?.serverId}
 												/>
 											</div>
 										</TabsContent>

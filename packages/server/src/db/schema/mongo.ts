@@ -210,3 +210,9 @@ export const apiRebuildMongo = createSchema
 		mongoId: true,
 	})
 	.required();
+
+export const apiTransferMongo = z.object({
+	mongoId: z.string().min(1),
+	targetServerId: z.string().min(1),
+	decisions: z.record(z.string(), z.enum(["skip", "overwrite"])).optional(),
+});

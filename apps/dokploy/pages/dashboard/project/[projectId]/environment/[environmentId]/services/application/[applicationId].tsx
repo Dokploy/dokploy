@@ -18,6 +18,7 @@ import { ShowPorts } from "@/components/dashboard/application/advanced/ports/sho
 import { ShowRedirects } from "@/components/dashboard/application/advanced/redirects/show-redirects";
 import { ShowSecurity } from "@/components/dashboard/application/advanced/security/show-security";
 import { ShowBuildServer } from "@/components/dashboard/application/advanced/show-build-server";
+import { TransferService } from "@/components/dashboard/shared/transfer-service";
 import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
 import { ShowTraefikConfig } from "@/components/dashboard/application/advanced/traefik/show-traefik-config";
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
@@ -419,6 +420,11 @@ const Service = (
 												<ShowSecurity applicationId={applicationId} />
 												<ShowPorts applicationId={applicationId} />
 												<ShowTraefikConfig applicationId={applicationId} />
+												<TransferService
+													serviceId={applicationId}
+													serviceType="application"
+													currentServerId={data?.serverId ?? null}
+												/>
 											</div>
 										</TabsContent>
 									)}

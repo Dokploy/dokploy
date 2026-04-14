@@ -22,6 +22,7 @@ import { ShowSchedules } from "@/components/dashboard/application/schedules/show
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
+import { TransferService } from "@/components/dashboard/shared/transfer-service";
 import { ShowComposeContainers } from "@/components/dashboard/compose/containers/show-compose-containers";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
@@ -423,6 +424,11 @@ const Service = (
 												<ShowVolumes id={composeId} type="compose" />
 												<ShowImport composeId={composeId} />
 												<IsolatedDeploymentTab composeId={composeId} />
+												<TransferService
+													serviceId={composeId}
+													serviceType="compose"
+													currentServerId={data?.serverId ?? null}
+												/>
 											</div>
 										</TabsContent>
 									)}

@@ -213,3 +213,9 @@ export const apiRebuildMariadb = createSchema
 		mariadbId: true,
 	})
 	.required();
+
+export const apiTransferMariadb = z.object({
+	mariadbId: z.string().min(1),
+	targetServerId: z.string().min(1),
+	decisions: z.record(z.string(), z.enum(["skip", "overwrite"])).optional(),
+});

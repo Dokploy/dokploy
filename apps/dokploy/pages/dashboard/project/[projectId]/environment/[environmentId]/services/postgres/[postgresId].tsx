@@ -292,6 +292,7 @@ const Postgresql = (
 												<ShowDatabaseAdvancedSettings
 													id={postgresId}
 													type="postgres"
+													serverId={data?.serverId}
 												/>
 											</div>
 										</TabsContent>

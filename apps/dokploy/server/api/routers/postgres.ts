@@ -22,6 +22,8 @@ import {
 	stopServiceRemote,
 	updatePostgresById,
 	getAccessibleServerIds,
+	scanServiceForTransfer,
+	executeTransfer,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -44,6 +46,7 @@ import {
 	apiResetPostgres,
 	apiSaveEnvironmentVariablesPostgres,
 	apiSaveExternalPortPostgres,
+	apiTransferPostgres,
 	apiUpdatePostgres,
 	DATABASE_PASSWORD_MESSAGE,
 	DATABASE_PASSWORD_REGEX,
@@ -649,5 +652,121 @@ export const postgresRouter = createTRPCRouter({
 				input.search,
 				postgres.serverId,
 			);
+		}),
+
+	transferScan: protectedProcedure
+		.input(apiTransferPostgres.pick({ postgresId: true, targetServerId: true }))
+		.mutation(async ({ input, ctx }) => {
+			const postgres = await findPostgresById(input.postgresId);
+			await checkServicePermissionAndAccess(ctx, input.postgresId, {
+				service: ["delete"],
+			});
+			if (
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Postgres",
+				});
+			}
+			return await scanServiceForTransfer({
+				serviceId: input.postgresId,
+				serviceType: "postgres",
+				appName: postgres.appName,
+				sourceServerId: postgres.serverId,
+				targetServerId: input.targetServerId,
+			});
+		}),
+
+	transferWithLogs: protectedProcedure
+		.input(apiTransferPostgres)
+		.subscription(async function* ({ input, ctx, signal }) {
+			const postgres = await findPostgresById(input.postgresId);
+			await checkServicePermissionAndAccess(ctx, input.postgresId, {
+				service: ["delete"],
+			});
+			if (
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Postgres",
+				});
+			}
+			const queue: string[] = [];
+			let done = false;
+			executeTransfer(
+				{
+					serviceId: input.postgresId,
+					serviceType: "postgres",
+					appName: postgres.appName,
+					sourceServerId: postgres.serverId,
+					targetServerId: input.targetServerId,
+				},
+				input.decisions || {},
+				(progress) => { queue.push(JSON.stringify(progress)); },
+			)
+				.then(async (result) => {
+					if (result.success) {
+						await db
+							.update(postgresTable)
+							.set({ serverId: input.targetServerId })
+							.where(eq(postgresTable.postgresId, input.postgresId));
+						queue.push("Transfer completed successfully!");
+					} else {
+						queue.push(`Transfer failed: ${result.errors.join(", ")}`);
+					}
+				})
+				.catch((error) => {
+					queue.push(`Transfer error: ${error instanceof Error ? error.message : String(error)}`);
+				})
+				.finally(() => { done = true; });
+
+			while (!done || queue.length > 0) {
+				if (queue.length > 0) { yield queue.shift()!; }
+				else { await new Promise((r) => setTimeout(r, 50)); }
+				if (signal?.aborted) { return; }
+			}
+		}),
+
+	transfer: protectedProcedure
+		.input(apiTransferPostgres)
+		.mutation(async ({ input, ctx }) => {
+			const postgres = await findPostgresById(input.postgresId);
+			await checkServicePermissionAndAccess(ctx, input.postgresId, {
+				service: ["delete"],
+			});
+			if (
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Postgres",
+				});
+			}
+			const result = await executeTransfer(
+				{
+					serviceId: input.postgresId,
+					serviceType: "postgres",
+					appName: postgres.appName,
+					sourceServerId: postgres.serverId,
+					targetServerId: input.targetServerId,
+				},
+				input.decisions || {},
+			);
+			if (!result.success) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Transfer failed: ${result.errors.join(", ")}`,
+				});
+			}
+			await db
+				.update(postgresTable)
+				.set({ serverId: input.targetServerId })
+				.where(eq(postgresTable.postgresId, input.postgresId));
+			return { success: true };
 		}),
 });

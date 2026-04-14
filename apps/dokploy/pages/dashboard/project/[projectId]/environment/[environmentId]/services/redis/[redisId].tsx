@@ -296,6 +296,7 @@ const Redis = (
 												<ShowDatabaseAdvancedSettings
 													id={redisId}
 													type="redis"
+													serverId={data?.serverId}
 												/>
 											</div>
 										</TabsContent>

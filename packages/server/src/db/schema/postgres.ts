@@ -204,3 +204,9 @@ export const apiRebuildPostgres = createSchema
 		postgresId: true,
 	})
 	.required();
+
+export const apiTransferPostgres = z.object({
+	postgresId: z.string().min(1),
+	targetServerId: z.string().min(1),
+	decisions: z.record(z.string(), z.enum(["skip", "overwrite"])).optional(),
+});

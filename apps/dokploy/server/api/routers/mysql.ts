@@ -21,6 +21,8 @@ import {
 	stopServiceRemote,
 	updateMySqlById,
 	getAccessibleServerIds,
+	scanServiceForTransfer,
+	executeTransfer,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -43,6 +45,7 @@ import {
 	apiResetMysql,
 	apiSaveEnvironmentVariablesMySql,
 	apiSaveExternalPortMySql,
+	apiTransferMysql,
 	apiUpdateMySql,
 	DATABASE_PASSWORD_MESSAGE,
 	DATABASE_PASSWORD_REGEX,
@@ -639,5 +642,121 @@ export const mysqlRouter = createTRPCRouter({
 				input.search,
 				mysql.serverId,
 			);
+		}),
+
+	transferScan: protectedProcedure
+		.input(apiTransferMysql.pick({ mysqlId: true, targetServerId: true }))
+		.mutation(async ({ input, ctx }) => {
+			const mysql = await findMySqlById(input.mysqlId);
+			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
+				service: ["delete"],
+			});
+			if (
+				mysql.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this MySQL",
+				});
+			}
+			return await scanServiceForTransfer({
+				serviceId: input.mysqlId,
+				serviceType: "mysql",
+				appName: mysql.appName,
+				sourceServerId: mysql.serverId,
+				targetServerId: input.targetServerId,
+			});
+		}),
+
+	transferWithLogs: protectedProcedure
+		.input(apiTransferMysql)
+		.subscription(async function* ({ input, ctx, signal }) {
+			const mysql = await findMySqlById(input.mysqlId);
+			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
+				service: ["delete"],
+			});
+			if (
+				mysql.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this MySQL",
+				});
+			}
+			const queue: string[] = [];
+			let done = false;
+			executeTransfer(
+				{
+					serviceId: input.mysqlId,
+					serviceType: "mysql",
+					appName: mysql.appName,
+					sourceServerId: mysql.serverId,
+					targetServerId: input.targetServerId,
+				},
+				input.decisions || {},
+				(progress) => { queue.push(JSON.stringify(progress)); },
+			)
+				.then(async (result) => {
+					if (result.success) {
+						await db
+							.update(mysqlTable)
+							.set({ serverId: input.targetServerId })
+							.where(eq(mysqlTable.mysqlId, input.mysqlId));
+						queue.push("Transfer completed successfully!");
+					} else {
+						queue.push(`Transfer failed: ${result.errors.join(", ")}`);
+					}
+				})
+				.catch((error) => {
+					queue.push(`Transfer error: ${error instanceof Error ? error.message : String(error)}`);
+				})
+				.finally(() => { done = true; });
+
+			while (!done || queue.length > 0) {
+				if (queue.length > 0) { yield queue.shift()!; }
+				else { await new Promise((r) => setTimeout(r, 50)); }
+				if (signal?.aborted) { return; }
+			}
+		}),
+
+	transfer: protectedProcedure
+		.input(apiTransferMysql)
+		.mutation(async ({ input, ctx }) => {
+			const mysql = await findMySqlById(input.mysqlId);
+			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
+				service: ["delete"],
+			});
+			if (
+				mysql.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this MySQL",
+				});
+			}
+			const result = await executeTransfer(
+				{
+					serviceId: input.mysqlId,
+					serviceType: "mysql",
+					appName: mysql.appName,
+					sourceServerId: mysql.serverId,
+					targetServerId: input.targetServerId,
+				},
+				input.decisions || {},
+			);
+			if (!result.success) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Transfer failed: ${result.errors.join(", ")}`,
+				});
+			}
+			await db
+				.update(mysqlTable)
+				.set({ serverId: input.targetServerId })
+				.where(eq(mysqlTable.mysqlId, input.mysqlId));
+			return { success: true };
 		}),
 });

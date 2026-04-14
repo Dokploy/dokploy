@@ -21,6 +21,8 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateMongoById,
+	scanServiceForTransfer,
+	executeTransfer,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -43,6 +45,7 @@ import {
 	apiResetMongo,
 	apiSaveEnvironmentVariablesMongo,
 	apiSaveExternalPortMongo,
+	apiTransferMongo,
 	apiUpdateMongo,
 	DATABASE_PASSWORD_MESSAGE,
 	DATABASE_PASSWORD_REGEX,
@@ -636,5 +639,121 @@ export const mongoRouter = createTRPCRouter({
 				input.search,
 				mongo.serverId,
 			);
+		}),
+
+	transferScan: protectedProcedure
+		.input(apiTransferMongo.pick({ mongoId: true, targetServerId: true }))
+		.mutation(async ({ input, ctx }) => {
+			const mongo = await findMongoById(input.mongoId);
+			await checkServicePermissionAndAccess(ctx, input.mongoId, {
+				service: ["delete"],
+			});
+			if (
+				mongo.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this MongoDB",
+				});
+			}
+			return await scanServiceForTransfer({
+				serviceId: input.mongoId,
+				serviceType: "mongo",
+				appName: mongo.appName,
+				sourceServerId: mongo.serverId,
+				targetServerId: input.targetServerId,
+			});
+		}),
+
+	transferWithLogs: protectedProcedure
+		.input(apiTransferMongo)
+		.subscription(async function* ({ input, ctx, signal }) {
+			const mongo = await findMongoById(input.mongoId);
+			await checkServicePermissionAndAccess(ctx, input.mongoId, {
+				service: ["delete"],
+			});
+			if (
+				mongo.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this MongoDB",
+				});
+			}
+			const queue: string[] = [];
+			let done = false;
+			executeTransfer(
+				{
+					serviceId: input.mongoId,
+					serviceType: "mongo",
+					appName: mongo.appName,
+					sourceServerId: mongo.serverId,
+					targetServerId: input.targetServerId,
+				},
+				input.decisions || {},
+				(progress) => { queue.push(JSON.stringify(progress)); },
+			)
+				.then(async (result) => {
+					if (result.success) {
+						await db
+							.update(mongoTable)
+							.set({ serverId: input.targetServerId })
+							.where(eq(mongoTable.mongoId, input.mongoId));
+						queue.push("Transfer completed successfully!");
+					} else {
+						queue.push(`Transfer failed: ${result.errors.join(", ")}`);
+					}
+				})
+				.catch((error) => {
+					queue.push(`Transfer error: ${error instanceof Error ? error.message : String(error)}`);
+				})
+				.finally(() => { done = true; });
+
+			while (!done || queue.length > 0) {
+				if (queue.length > 0) { yield queue.shift()!; }
+				else { await new Promise((r) => setTimeout(r, 50)); }
+				if (signal?.aborted) { return; }
+			}
+		}),
+
+	transfer: protectedProcedure
+		.input(apiTransferMongo)
+		.mutation(async ({ input, ctx }) => {
+			const mongo = await findMongoById(input.mongoId);
+			await checkServicePermissionAndAccess(ctx, input.mongoId, {
+				service: ["delete"],
+			});
+			if (
+				mongo.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this MongoDB",
+				});
+			}
+			const result = await executeTransfer(
+				{
+					serviceId: input.mongoId,
+					serviceType: "mongo",
+					appName: mongo.appName,
+					sourceServerId: mongo.serverId,
+					targetServerId: input.targetServerId,
+				},
+				input.decisions || {},
+			);
+			if (!result.success) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Transfer failed: ${result.errors.join(", ")}`,
+				});
+			}
+			await db
+				.update(mongoTable)
+				.set({ serverId: input.targetServerId })
+				.where(eq(mongoTable.mongoId, input.mongoId));
+			return { success: true };
 		}),
 });

@@ -32,6 +32,8 @@ import {
 	stopCompose,
 	updateCompose,
 	updateDeploymentStatus,
+	scanServiceForTransfer,
+	executeTransfer,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -63,6 +65,7 @@ import {
 	apiRandomizeCompose,
 	apiRedeployCompose,
 	apiSaveEnvironmentVariablesCompose,
+	apiTransferCompose,
 	apiUpdateCompose,
 	compose as composeTable,
 	environments,
@@ -1170,5 +1173,139 @@ export const composeRouter = createTRPCRouter({
 				compose.serverId,
 				true,
 			);
+		}),
+
+	transferScan: protectedProcedure
+		.input(apiTransferCompose.pick({ composeId: true, targetServerId: true }))
+		.mutation(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			await checkServicePermissionAndAccess(ctx, input.composeId, {
+				service: ["delete"],
+			});
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this compose",
+				});
+			}
+
+			return await scanServiceForTransfer({
+				serviceId: input.composeId,
+				serviceType: "compose",
+				appName: compose.appName,
+				sourceServerId: compose.serverId,
+				targetServerId: input.targetServerId,
+			});
+		}),
+
+	transferWithLogs: protectedProcedure
+		.input(apiTransferCompose)
+		.subscription(async function* ({ input, ctx, signal }) {
+			const compose = await findComposeById(input.composeId);
+			await checkServicePermissionAndAccess(ctx, input.composeId, {
+				service: ["delete"],
+			});
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this compose",
+				});
+			}
+
+			const queue: string[] = [];
+			let done = false;
+
+			executeTransfer(
+				{
+					serviceId: input.composeId,
+					serviceType: "compose",
+					appName: compose.appName,
+					sourceServerId: compose.serverId,
+					targetServerId: input.targetServerId,
+				},
+				input.decisions || {},
+				(progress) => {
+					queue.push(JSON.stringify(progress));
+				},
+			)
+				.then(async (result) => {
+					if (result.success) {
+						await db
+							.update(composeTable)
+							.set({ serverId: input.targetServerId })
+							.where(eq(composeTable.composeId, input.composeId));
+						queue.push("Transfer completed successfully!");
+					} else {
+						queue.push(`Transfer failed: ${result.errors.join(", ")}`);
+					}
+				})
+				.catch((error) => {
+					queue.push(
+						`Transfer error: ${error instanceof Error ? error.message : String(error)}`,
+					);
+				})
+				.finally(() => {
+					done = true;
+				});
+
+			while (!done || queue.length > 0) {
+				if (queue.length > 0) {
+					yield queue.shift()!;
+				} else {
+					await new Promise((r) => setTimeout(r, 50));
+				}
+				if (signal?.aborted) {
+					return;
+				}
+			}
+		}),
+
+	transfer: protectedProcedure
+		.input(apiTransferCompose)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			await checkServicePermissionAndAccess(ctx, input.composeId, {
+				service: ["delete"],
+			});
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this compose",
+				});
+			}
+
+			const result = await executeTransfer(
+				{
+					serviceId: input.composeId,
+					serviceType: "compose",
+					appName: compose.appName,
+					sourceServerId: compose.serverId,
+					targetServerId: input.targetServerId,
+				},
+				input.decisions || {},
+			);
+
+			if (!result.success) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Transfer failed: ${result.errors.join(", ")}`,
+				});
+			}
+
+			await db
+				.update(composeTable)
+				.set({ serverId: input.targetServerId })
+				.where(eq(composeTable.composeId, input.composeId));
+
+			return { success: true };
 		}),
 });
