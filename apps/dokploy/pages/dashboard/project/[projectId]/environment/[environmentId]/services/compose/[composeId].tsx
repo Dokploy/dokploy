@@ -307,7 +307,7 @@ const Service = (
 										<TabsContent value="containers">
 											<div className="flex flex-col gap-4 pt-2.5">
 												<ShowComposeContainers
-													serverId={data?.serverId || ""}
+													serverId={data?.serverId || undefined}
 													appName={data?.appName || ""}
 													appType={data?.composeType || "docker-compose"}
 												/>

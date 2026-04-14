@@ -135,7 +135,7 @@ export const dockerRouter = createTRPCRouter({
 			}
 			await containerKill(input.containerId, input.serverId);
 			await audit(ctx, {
-				action: "stop",
+				action: "kill",
 				resourceType: "docker",
 				resourceId: input.containerId,
 				resourceName: input.containerId,
