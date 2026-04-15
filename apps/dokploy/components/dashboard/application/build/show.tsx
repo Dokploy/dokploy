@@ -155,11 +155,14 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 
 	const buildType = form.watch("buildType");
 
-	const { data: railpackVersions, isLoading: isLoadingRailpackVersions } =
-		api.application.getRailpackVersions.useQuery(undefined, {
-			enabled: buildType === BuildType.railpack,
-			staleTime: 1000 * 60 * 60 * 24, // 24 hours
-		});
+	const {
+		data: railpackVersions,
+		isLoading: isLoadingRailpackVersions,
+		isError: isErrorRailpackVersions,
+	} = api.application.getRailpackVersions.useQuery(undefined, {
+		enabled: buildType === BuildType.railpack,
+		staleTime: 1000 * 60 * 60 * 24, // 24 hours
+	});
 	const [isManualRailpackVersion, setIsManualRailpackVersion] = useState(false);
 
 	useEffect(() => {
@@ -189,6 +192,12 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 		}
 	}, [railpackVersions, data?.railpackVersion, form]);
 
+	useEffect(() => {
+		if (buildType === BuildType.railpack && isErrorRailpackVersions) {
+			setIsManualRailpackVersion(true);
+		}
+	}, [buildType, isErrorRailpackVersions]);
+
 	// Hide builder section when Docker provider is selected
 	if (data?.sourceType === "docker") {
 		return null;
@@ -211,7 +220,9 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			applicationId,
 			buildType: data.buildType,
 			publishDirectory:
-				data.buildType === BuildType.nixpacks ? data.publishDirectory : null,
+				data.buildType === BuildType.nixpacks
+					? (data.publishDirectory ?? null)
+					: null,
 			dockerfile:
 				data.buildType === BuildType.dockerfile ? data.dockerfile : null,
 			dockerContextPath:
@@ -524,6 +535,12 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 													View releases
 												</a>
 											</FormDescription>
+											{isErrorRailpackVersions && !isManualRailpackVersion && (
+												<p className="text-sm text-destructive">
+													Failed to load Railpack versions. Switch to manual mode
+													to set a custom version.
+												</p>
+											)}
 											<FormMessage />
 										</FormItem>
 									)}
