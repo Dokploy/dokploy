@@ -690,7 +690,9 @@ export const mariadbRouter = createTRPCRouter({
 							.update(mariadbTable)
 							.set({ serverId: input.targetServerId })
 							.where(eq(mariadbTable.mariadbId, input.mariadbId));
-						queue.push("Transfer completed successfully!");
+						queue.push("Transfer completed! Starting deployment on target server...");
+						await deployMariadb(input.mariadbId).catch(() => {});
+						queue.push("Deployment started!");
 					} else {
 						queue.push(`Transfer failed: ${result.errors.join(", ")}`);
 					}
@@ -743,6 +745,9 @@ export const mariadbRouter = createTRPCRouter({
 				.update(mariadbTable)
 				.set({ serverId: input.targetServerId })
 				.where(eq(mariadbTable.mariadbId, input.mariadbId));
+
+			await deployMariadb(input.mariadbId).catch(() => {});
+
 			return { success: true };
 		}),
 });

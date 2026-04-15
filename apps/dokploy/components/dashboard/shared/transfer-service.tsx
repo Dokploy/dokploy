@@ -1,6 +1,13 @@
-import { AlertTriangle, ArrowRightLeft, Loader2, Server } from "lucide-react";
+import {
+	AlertTriangle,
+	ArrowRightLeft,
+	Loader2,
+	Server,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { DrawerLogs } from "@/components/shared/drawer-logs";
+import type { LogLine } from "@/components/dashboard/docker/logs/utils";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -90,41 +97,16 @@ const formatBytes = (bytes: number): string => {
 	return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 };
 
-const useTransferMutations = (serviceType: ServiceType) => {
-	const appScan = api.application.transferScan.useMutation();
-	const appTransfer = api.application.transfer.useMutation();
-	const composeScan = api.compose.transferScan.useMutation();
-	const composeTransfer = api.compose.transfer.useMutation();
-	const postgresScan = api.postgres.transferScan.useMutation();
-	const postgresTransfer = api.postgres.transfer.useMutation();
-	const mysqlScan = api.mysql.transferScan.useMutation();
-	const mysqlTransfer = api.mysql.transfer.useMutation();
-	const mariadbScan = api.mariadb.transferScan.useMutation();
-	const mariadbTransfer = api.mariadb.transfer.useMutation();
-	const mongoScan = api.mongo.transferScan.useMutation();
-	const mongoTransfer = api.mongo.transfer.useMutation();
-	const redisScan = api.redis.transferScan.useMutation();
-	const redisTransfer = api.redis.transfer.useMutation();
-
-	const mutations: Record<
-		ServiceType,
-		{
-			scan: { mutateAsync: (input: any) => Promise<any>; isPending: boolean };
-			transfer: {
-				mutateAsync: (input: any) => Promise<any>;
-				isPending: boolean;
-			};
-		}
-	> = {
-		application: { scan: appScan, transfer: appTransfer },
-		compose: { scan: composeScan, transfer: composeTransfer },
-		postgres: { scan: postgresScan, transfer: postgresTransfer },
-		mysql: { scan: mysqlScan, transfer: mysqlTransfer },
-		mariadb: { scan: mariadbScan, transfer: mariadbTransfer },
-		mongo: { scan: mongoScan, transfer: mongoTransfer },
-		redis: { scan: redisScan, transfer: redisTransfer },
+const useScanMutation = (serviceType: ServiceType) => {
+	const mutations = {
+		application: api.application.transferScan.useMutation(),
+		compose: api.compose.transferScan.useMutation(),
+		postgres: api.postgres.transferScan.useMutation(),
+		mysql: api.mysql.transferScan.useMutation(),
+		mariadb: api.mariadb.transferScan.useMutation(),
+		mongo: api.mongo.transferScan.useMutation(),
+		redis: api.redis.transferScan.useMutation(),
 	};
-
 	return mutations[serviceType];
 };
 
@@ -148,15 +130,17 @@ export const TransferService = ({
 }: TransferServiceProps) => {
 	const [targetServerId, setTargetServerId] = useState<string>("");
 	const [scanResult, setScanResult] = useState<ScanResult | null>(null);
-	const [step, setStep] = useState<"select" | "scan" | "confirm" | "transfer">(
-		"select",
-	);
+	const [step, setStep] = useState<"select" | "scan" | "confirm">("select");
 	const [showConfirm, setShowConfirm] = useState(false);
-	const [transferLogs, setTransferLogs] = useState<string[]>([]);
+
+	// Drawer logs state
+	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
+	const [isTransferring, setIsTransferring] = useState(false);
 
 	const { data: servers } = api.server.all.useQuery();
 	const utils = api.useUtils();
-	const { scan, transfer } = useTransferMutations(serviceType);
+	const scan = useScanMutation(serviceType);
 
 	const idKey = getServiceIdKey(serviceType);
 
@@ -165,6 +149,111 @@ export const TransferService = ({
 	);
 
 	const selectedServer = servers?.find((s) => s.serverId === targetServerId);
+
+	// Subscription for transfer with logs
+	const subscriptionInput = {
+		[idKey]: serviceId,
+		targetServerId: targetServerId || "placeholder",
+		decisions: {},
+	};
+
+	const useTransferSubscription = (sType: ServiceType) => {
+		api.application.transferWithLogs.useSubscription(subscriptionInput as any, {
+			enabled: isTransferring && sType === "application",
+			onData: handleLogData,
+			onError: handleLogError,
+		});
+		api.compose.transferWithLogs.useSubscription(subscriptionInput as any, {
+			enabled: isTransferring && sType === "compose",
+			onData: handleLogData,
+			onError: handleLogError,
+		});
+		api.postgres.transferWithLogs.useSubscription(subscriptionInput as any, {
+			enabled: isTransferring && sType === "postgres",
+			onData: handleLogData,
+			onError: handleLogError,
+		});
+		api.mysql.transferWithLogs.useSubscription(subscriptionInput as any, {
+			enabled: isTransferring && sType === "mysql",
+			onData: handleLogData,
+			onError: handleLogError,
+		});
+		api.mariadb.transferWithLogs.useSubscription(subscriptionInput as any, {
+			enabled: isTransferring && sType === "mariadb",
+			onData: handleLogData,
+			onError: handleLogError,
+		});
+		api.mongo.transferWithLogs.useSubscription(subscriptionInput as any, {
+			enabled: isTransferring && sType === "mongo",
+			onData: handleLogData,
+			onError: handleLogError,
+		});
+		api.redis.transferWithLogs.useSubscription(subscriptionInput as any, {
+			enabled: isTransferring && sType === "redis",
+			onData: handleLogData,
+			onError: handleLogError,
+		});
+	};
+
+	const handleLogData = (log: string) => {
+		if (!isDrawerOpen) {
+			setIsDrawerOpen(true);
+		}
+
+		// Try to parse as JSON progress
+		try {
+			const progress = JSON.parse(log);
+			if (progress.message) {
+				const logLine: LogLine = {
+					rawTimestamp: new Date().toISOString(),
+					timestamp: new Date(),
+					message: `[${progress.phase || "transfer"}] ${progress.message}`,
+				};
+				setFilteredLogs((prev) => [...prev, logLine]);
+			}
+			return;
+		} catch {
+			// Not JSON, treat as plain text
+		}
+
+		const logLine: LogLine = {
+			rawTimestamp: new Date().toISOString(),
+			timestamp: new Date(),
+			message: log,
+		};
+		setFilteredLogs((prev) => [...prev, logLine]);
+
+		if (
+			log.includes("completed successfully") ||
+			log.includes("Deployment queued") ||
+			log.includes("Deployment started")
+		) {
+			setTimeout(() => {
+				setIsTransferring(false);
+				utils.invalidate();
+				toast.success("Transfer and deployment completed!");
+			}, 2000);
+		}
+
+		if (log.includes("Transfer failed") || log.includes("Transfer error")) {
+			setIsTransferring(false);
+			toast.error("Transfer failed");
+		}
+	};
+
+	const handleLogError = (error: unknown) => {
+		console.error("Transfer subscription error:", error);
+		setIsTransferring(false);
+		const logLine: LogLine = {
+			rawTimestamp: new Date().toISOString(),
+			timestamp: new Date(),
+			message: `Error: ${error instanceof Error ? error.message : String(error)}`,
+		};
+		setFilteredLogs((prev) => [...prev, logLine]);
+	};
+
+	// Register the subscription hooks (must be called unconditionally)
+	useTransferSubscription(serviceType);
 
 	const handleScan = async () => {
 		if (!targetServerId) {
@@ -177,7 +266,7 @@ export const TransferService = ({
 			const result = await scan.mutateAsync({
 				[idKey]: serviceId,
 				targetServerId,
-			});
+			} as any);
 			setScanResult(result as ScanResult);
 			setStep("confirm");
 		} catch (error) {
@@ -190,38 +279,27 @@ export const TransferService = ({
 
 	const handleTransfer = async () => {
 		setShowConfirm(false);
-		setStep("transfer");
-		setTransferLogs([]);
+		setFilteredLogs([]);
+		setIsTransferring(true);
+		setIsDrawerOpen(true);
 
-		try {
-			await transfer.mutateAsync({
-				[idKey]: serviceId,
-				targetServerId,
-				decisions: {},
-			});
-
-			toast.success("Transfer completed successfully!");
-			setTransferLogs((prev) => [...prev, "Transfer completed successfully!"]);
-
-			await utils.invalidate();
-
-			setTimeout(() => {
-				setStep("select");
-				setScanResult(null);
-				setTargetServerId("");
-			}, 3000);
-		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : "Unknown error";
-			toast.error(`Transfer failed: ${message}`);
-			setTransferLogs((prev) => [...prev, `Transfer failed: ${message}`]);
-			setStep("confirm");
-		}
+		// Add initial log
+		setFilteredLogs([
+			{
+				rawTimestamp: new Date().toISOString(),
+				timestamp: new Date(),
+				message: `Starting transfer to ${selectedServer?.name} (${selectedServer?.ipAddress})...`,
+			},
+		]);
 	};
 
-	const isDbService = ["postgres", "mysql", "mariadb", "mongo", "redis"].includes(
-		serviceType,
-	);
+	const isDbService = [
+		"postgres",
+		"mysql",
+		"mariadb",
+		"mongo",
+		"redis",
+	].includes(serviceType);
 
 	return (
 		<Card className="bg-background">
@@ -247,7 +325,7 @@ export const TransferService = ({
 					<>
 						{/* Step 1: Select target server */}
 						<div className="space-y-2">
-							<label className="text-sm font-medium">Target Server</label>
+							<span className="text-sm font-medium">Target Server</span>
 							<Select
 								value={targetServerId}
 								onValueChange={(value) => {
@@ -255,7 +333,7 @@ export const TransferService = ({
 									setScanResult(null);
 									setStep("select");
 								}}
-								disabled={step === "transfer"}
+								disabled={isTransferring}
 							>
 								<SelectTrigger>
 									<SelectValue placeholder="Select target server" />
@@ -365,6 +443,36 @@ export const TransferService = ({
 											<Badge variant="outline">Will be synced</Badge>
 										</div>
 									)}
+									{scanResult.mounts.length > 0 && (
+										<div className="space-y-1">
+											<span className="text-sm text-muted-foreground">
+												Docker Volumes:
+											</span>
+											<div className="flex flex-wrap gap-1.5">
+												{scanResult.mounts.map((m) => (
+													<Badge
+														key={m.mount.mountId}
+														variant="outline"
+														className="font-mono text-xs"
+													>
+														{m.mount.volumeName ||
+															m.mount.hostPath ||
+															m.mount.mountPath}
+														{m.totalSize > 0 && (
+															<span className="ml-1 text-muted-foreground">
+																({formatBytes(m.totalSize)})
+															</span>
+														)}
+														{m.files.length > 0 && (
+															<span className="ml-1 text-muted-foreground">
+																{m.files.length} files
+															</span>
+														)}
+													</Badge>
+												))}
+											</div>
+										</div>
+									)}
 								</div>
 
 								{/* Conflict list */}
@@ -379,7 +487,10 @@ export const TransferService = ({
 													key={conflict.path}
 													className="text-xs font-mono flex items-center gap-2"
 												>
-													<Badge variant="outline" className="text-[10px]">
+													<Badge
+														variant="outline"
+														className="text-[10px]"
+													>
 														{conflict.status}
 													</Badge>
 													<span className="truncate">
@@ -401,8 +512,8 @@ export const TransferService = ({
 									</div>
 									<p className="text-sm text-muted-foreground">
 										{isDbService
-											? "Stop the database service before transferring to avoid data corruption. The service will be unavailable until deployed on the target server."
-											: "The service will be unavailable during transfer. After transfer completes, deploy the service on the target server to start it."}
+											? "Stop the database service before transferring to avoid data corruption. After transfer completes, the service will be automatically deployed on the target server."
+											: "The service will be unavailable during transfer. After transfer completes, the service will be automatically deployed on the target server."}
 									</p>
 								</div>
 
@@ -419,36 +530,12 @@ export const TransferService = ({
 									</Button>
 									<Button
 										onClick={() => setShowConfirm(true)}
-										disabled={transfer.isPending}
+										disabled={isTransferring}
 									>
 										<ArrowRightLeft className="mr-2 size-4" />
 										Transfer to {selectedServer?.name}
 									</Button>
 								</div>
-							</div>
-						)}
-
-						{/* Step 4: Transfer in progress */}
-						{step === "transfer" && (
-							<div className="space-y-4">
-								<div className="flex items-center gap-2">
-									<Loader2 className="size-4 animate-spin" />
-									<span className="text-sm font-medium">
-										Transferring service...
-									</span>
-								</div>
-								{transferLogs.length > 0 && (
-									<div className="rounded-lg border bg-muted/50 p-3 max-h-60 overflow-y-auto">
-										{transferLogs.map((log, i) => (
-											<div
-												key={`${log}-${i}`}
-												className="text-xs font-mono text-muted-foreground"
-											>
-												{log}
-											</div>
-										))}
-									</div>
-								)}
 							</div>
 						)}
 					</>
@@ -470,12 +557,14 @@ export const TransferService = ({
 										{scanResult.totalFiles} files (
 										{formatBytes(scanResult.totalTransferSize)}) will be
 										copied.
+										{scanResult.mounts.length > 0 &&
+											` ${scanResult.mounts.length} volume(s) will be transferred.`}
 									</p>
 								)}
 								<p className="text-yellow-600 dark:text-yellow-400 font-medium">
 									The service will experience downtime during this
-									process. After transfer, you must deploy the service on
-									the target server.
+									process. After transfer, the service will be
+									automatically deployed on the target server.
 								</p>
 							</AlertDialogDescription>
 						</AlertDialogHeader>
@@ -487,6 +576,20 @@ export const TransferService = ({
 						</AlertDialogFooter>
 					</AlertDialogContent>
 				</AlertDialog>
+
+				{/* Drawer for transfer logs */}
+				<DrawerLogs
+					isOpen={isDrawerOpen}
+					onClose={() => {
+						setIsDrawerOpen(false);
+						if (!isTransferring) {
+							setFilteredLogs([]);
+							setStep("select");
+							setScanResult(null);
+						}
+					}}
+					filteredLogs={filteredLogs}
+				/>
 			</CardContent>
 		</Card>
 	);

@@ -1240,7 +1240,28 @@ export const composeRouter = createTRPCRouter({
 							.update(composeTable)
 							.set({ serverId: input.targetServerId })
 							.where(eq(composeTable.composeId, input.composeId));
-						queue.push("Transfer completed successfully!");
+						queue.push("Transfer completed! Starting deployment on target server...");
+
+						const jobData: DeploymentJob = {
+							composeId: input.composeId,
+							titleLog: "Transfer deployment",
+							type: "deploy",
+							applicationType: "compose",
+							descriptionLog: "Auto-deploy after transfer to new server",
+							server: true,
+						};
+
+						if (IS_CLOUD) {
+							jobData.serverId = input.targetServerId;
+							deploy(jobData).catch(() => {});
+						} else {
+							await myQueue.add("deployments", jobData, {
+								removeOnComplete: true,
+								removeOnFail: true,
+							});
+						}
+
+						queue.push("Deployment queued successfully!");
 					} else {
 						queue.push(`Transfer failed: ${result.errors.join(", ")}`);
 					}
@@ -1305,6 +1326,26 @@ export const composeRouter = createTRPCRouter({
 				.update(composeTable)
 				.set({ serverId: input.targetServerId })
 				.where(eq(composeTable.composeId, input.composeId));
+
+			// Auto-deploy on target server
+			const jobData: DeploymentJob = {
+				composeId: input.composeId,
+				titleLog: "Transfer deployment",
+				type: "deploy",
+				applicationType: "compose",
+				descriptionLog: "Auto-deploy after transfer to new server",
+				server: true,
+			};
+
+			if (IS_CLOUD) {
+				jobData.serverId = input.targetServerId;
+				deploy(jobData).catch(() => {});
+			} else {
+				await myQueue.add("deployments", jobData, {
+					removeOnComplete: true,
+					removeOnFail: true,
+				});
+			}
 
 			return { success: true };
 		}),

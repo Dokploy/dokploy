@@ -704,7 +704,9 @@ export const mysqlRouter = createTRPCRouter({
 							.update(mysqlTable)
 							.set({ serverId: input.targetServerId })
 							.where(eq(mysqlTable.mysqlId, input.mysqlId));
-						queue.push("Transfer completed successfully!");
+						queue.push("Transfer completed! Starting deployment on target server...");
+						await deployMySql(input.mysqlId).catch(() => {});
+						queue.push("Deployment started!");
 					} else {
 						queue.push(`Transfer failed: ${result.errors.join(", ")}`);
 					}
@@ -757,6 +759,9 @@ export const mysqlRouter = createTRPCRouter({
 				.update(mysqlTable)
 				.set({ serverId: input.targetServerId })
 				.where(eq(mysqlTable.mysqlId, input.mysqlId));
+
+			await deployMySql(input.mysqlId).catch(() => {});
+
 			return { success: true };
 		}),
 });

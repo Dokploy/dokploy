@@ -714,7 +714,9 @@ export const postgresRouter = createTRPCRouter({
 							.update(postgresTable)
 							.set({ serverId: input.targetServerId })
 							.where(eq(postgresTable.postgresId, input.postgresId));
-						queue.push("Transfer completed successfully!");
+						queue.push("Transfer completed! Starting deployment on target server...");
+						await deployPostgres(input.postgresId).catch(() => {});
+						queue.push("Deployment started!");
 					} else {
 						queue.push(`Transfer failed: ${result.errors.join(", ")}`);
 					}
@@ -767,6 +769,9 @@ export const postgresRouter = createTRPCRouter({
 				.update(postgresTable)
 				.set({ serverId: input.targetServerId })
 				.where(eq(postgresTable.postgresId, input.postgresId));
+
+			await deployPostgres(input.postgresId).catch(() => {});
+
 			return { success: true };
 		}),
 });

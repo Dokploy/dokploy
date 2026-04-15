@@ -687,7 +687,9 @@ export const redisRouter = createTRPCRouter({
 							.update(redisTable)
 							.set({ serverId: input.targetServerId })
 							.where(eq(redisTable.redisId, input.redisId));
-						queue.push("Transfer completed successfully!");
+						queue.push("Transfer completed! Starting deployment on target server...");
+						await deployRedis(input.redisId).catch(() => {});
+						queue.push("Deployment started!");
 					} else {
 						queue.push(`Transfer failed: ${result.errors.join(", ")}`);
 					}
@@ -740,6 +742,9 @@ export const redisRouter = createTRPCRouter({
 				.update(redisTable)
 				.set({ serverId: input.targetServerId })
 				.where(eq(redisTable.redisId, input.redisId));
+
+			await deployRedis(input.redisId).catch(() => {});
+
 			return { success: true };
 		}),
 });

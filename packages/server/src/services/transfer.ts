@@ -3,7 +3,12 @@ import path from "node:path";
 import { findMountsByApplicationId } from "./mount";
 import {
 	compareFileLists,
+	getDirectorySize,
+	getVolumeSize,
+	listComposeVolumes,
+	listVolumesByPrefix,
 	scanDirectory,
+	scanDockerVolume,
 	scanMount,
 } from "../utils/transfer/scanner";
 import { runPreflightChecks } from "../utils/transfer/preflight";
@@ -57,6 +62,42 @@ const getAutoDataVolumeName = (
 	return null;
 };
 
+/**
+ * Discover all Docker volumes for a service.
+ * For compose: uses Docker labels + prefix matching.
+ * For databases: uses the auto {appName}-data convention.
+ * For applications: uses user-defined mounts only.
+ */
+const discoverServiceVolumes = async (
+	serverId: string | null,
+	serviceType: ServiceType,
+	appName: string,
+): Promise<string[]> => {
+	const volumes: Set<string> = new Set();
+
+	if (serviceType === "compose") {
+		// Get volumes by compose project label
+		const labelVolumes = await listComposeVolumes(serverId, appName);
+		for (const v of labelVolumes) {
+			volumes.add(v);
+		}
+
+		// Also try prefix matching (compose uses {projectName}_{volumeName} pattern)
+		const prefixVolumes = await listVolumesByPrefix(serverId, `${appName}_`);
+		for (const v of prefixVolumes) {
+			volumes.add(v);
+		}
+	}
+
+	// Auto data volume for databases
+	const autoVolume = getAutoDataVolumeName(serviceType, appName);
+	if (autoVolume) {
+		volumes.add(autoVolume);
+	}
+
+	return Array.from(volumes);
+};
+
 export const scanServiceForTransfer = async (
 	opts: TransferOptions,
 ): Promise<TransferScanResult> => {
@@ -80,94 +121,70 @@ export const scanServiceForTransfer = async (
 		);
 		const targetPath = getServiceBasePath(serviceType, appName, true);
 
-		try {
-			const sourceFiles = await scanDirectory(sourceServerId, sourcePath);
-			const targetFiles = await scanDirectory(targetServerId, targetPath);
+		const sourceFiles = await scanDirectory(sourceServerId, sourcePath);
+		const targetFiles = await scanDirectory(targetServerId, targetPath);
+		const dirSize = await getDirectorySize(sourceServerId, sourcePath);
 
-			const fileConflicts = await compareFileLists(
-				sourceFiles,
-				targetFiles,
-				sourceServerId,
-				targetServerId,
-				sourcePath,
-			);
+		const fileConflicts = compareFileLists(sourceFiles, targetFiles);
 
-			result.serviceDirectory = {
-				files: fileConflicts,
-				totalSize: sourceFiles.reduce((sum, f) => sum + f.size, 0),
-			};
-		} catch {
-			// Directory may not exist yet, that's ok
-		}
+		result.serviceDirectory = {
+			files: fileConflicts,
+			totalSize: dirSize || sourceFiles.reduce((sum, f) => sum + f.size, 0),
+		};
 	}
 
 	// 2. Check Traefik config
 	if (serviceType === "application" || serviceType === "compose") {
-		const configPath = "/etc/dokploy/traefik/dynamic";
-		const configFile = `${configPath}/${appName}.yml`;
+		const { DYNAMIC_TRAEFIK_PATH } = paths(!!sourceServerId);
+		const configFile = `${appName}.yml`;
+		const sourceConfigFiles = await scanDirectory(
+			sourceServerId,
+			DYNAMIC_TRAEFIK_PATH,
+		);
+		const hasSourceConfig = sourceConfigFiles.some(
+			(f) => f.path === configFile,
+		);
 
-		try {
-			const sourceFiles = await scanDirectory(sourceServerId, configPath);
-			const sourceConfig = sourceFiles.find(
-				(f) => f.path === `${appName}.yml`,
-			);
-			if (sourceConfig) {
-				result.traefikConfig.exists = true;
-				const targetFiles = await scanDirectory(targetServerId, configPath);
-				const targetConfig = targetFiles.find(
-					(f) => f.path === `${appName}.yml`,
-				);
-				if (targetConfig) {
-					result.traefikConfig.hasConflict = true;
-				}
-			}
-		} catch {
-			// Config may not exist
-		}
-	}
-
-	// 3. Scan auto data volume for databases
-	const autoVolume = getAutoDataVolumeName(serviceType, appName);
-	if (autoVolume) {
-		try {
-			const sourceFiles = await scanMount(sourceServerId, {
-				mountId: "auto",
-				type: "volume",
-				volumeName: autoVolume,
-				mountPath: "/data",
-			});
-			const targetFiles = await scanMount(targetServerId, {
-				mountId: "auto",
-				type: "volume",
-				volumeName: autoVolume,
-				mountPath: "/data",
-			});
-
-			const fileConflicts = await compareFileLists(
-				sourceFiles,
-				targetFiles,
-				sourceServerId,
+		if (hasSourceConfig) {
+			result.traefikConfig.exists = true;
+			const { DYNAMIC_TRAEFIK_PATH: targetTraefikPath } = paths(true);
+			const targetConfigFiles = await scanDirectory(
 				targetServerId,
-				undefined,
-				autoVolume,
+				targetTraefikPath,
 			);
-
-			result.mounts.push({
-				mount: {
-					mountId: "auto",
-					type: "volume",
-					volumeName: autoVolume,
-					mountPath: "/data",
-				},
-				files: fileConflicts,
-				totalSize: sourceFiles.reduce((sum, f) => sum + f.size, 0),
-			});
-		} catch {
-			// Volume may not exist
+			result.traefikConfig.hasConflict = targetConfigFiles.some(
+				(f) => f.path === configFile,
+			);
 		}
 	}
 
-	// 4. Scan user-defined mounts
+	// 3. Discover and scan ALL Docker volumes for the service
+	const discoveredVolumes = await discoverServiceVolumes(
+		sourceServerId,
+		serviceType,
+		appName,
+	);
+
+	for (const volumeName of discoveredVolumes) {
+		const sourceFiles = await scanDockerVolume(sourceServerId, volumeName);
+		const targetFiles = await scanDockerVolume(targetServerId, volumeName);
+		const volSize = await getVolumeSize(sourceServerId, volumeName);
+
+		const fileConflicts = compareFileLists(sourceFiles, targetFiles);
+
+		result.mounts.push({
+			mount: {
+				mountId: `docker-${volumeName}`,
+				type: "volume",
+				volumeName,
+				mountPath: "/data",
+			},
+			files: fileConflicts,
+			totalSize: volSize || sourceFiles.reduce((sum, f) => sum + f.size, 0),
+		});
+	}
+
+	// 4. Scan user-defined mounts from Dokploy DB
 	const serviceTypeForMount = serviceType as
 		| "application"
 		| "postgres"
@@ -176,49 +193,51 @@ export const scanServiceForTransfer = async (
 		| "mongo"
 		| "redis"
 		| "compose";
-	try {
-		const userMounts = await findMountsByApplicationId(
-			opts.serviceId,
-			serviceTypeForMount,
-		);
 
-		for (const mount of userMounts) {
-			const mountConfig: MountTransferConfig = {
-				mountId: mount.mountId,
-				type: mount.type,
-				hostPath: mount.hostPath,
-				volumeName: mount.volumeName,
-				mountPath: mount.mountPath,
-				content: mount.content,
-				filePath: mount.filePath,
-			};
+	const userMounts = await findMountsByApplicationId(
+		opts.serviceId,
+		serviceTypeForMount,
+	);
 
-			if (mount.type === "file") continue; // File mounts are DB-stored
+	for (const mount of userMounts) {
+		if (mount.type === "file") continue;
 
-			try {
-				const sourceFiles = await scanMount(sourceServerId, mountConfig);
-				const targetFiles = await scanMount(targetServerId, mountConfig);
-
-				const fileConflicts = await compareFileLists(
-					sourceFiles,
-					targetFiles,
-					sourceServerId,
-					targetServerId,
-					mount.type === "bind" ? mount.hostPath || undefined : undefined,
-					mount.type === "volume" ? mount.volumeName || undefined : undefined,
-				);
-
-				result.mounts.push({
-					mount: mountConfig,
-					files: fileConflicts,
-					totalSize: sourceFiles.reduce((sum, f) => sum + f.size, 0),
-				});
-			} catch {
-				// Individual mount scan failure shouldn't stop entire scan
-			}
+		// Skip if already discovered as Docker volume
+		if (
+			mount.type === "volume" &&
+			mount.volumeName &&
+			discoveredVolumes.includes(mount.volumeName)
+		) {
+			continue;
 		}
-	} catch {
-		// No mounts found
+
+		const mountConfig: MountTransferConfig = {
+			mountId: mount.mountId,
+			type: mount.type,
+			hostPath: mount.hostPath,
+			volumeName: mount.volumeName,
+			mountPath: mount.mountPath,
+			content: mount.content,
+			filePath: mount.filePath,
+		};
+
+		const sourceFiles = await scanMount(sourceServerId, mountConfig);
+		const targetFiles = await scanMount(targetServerId, mountConfig);
+
+		let mountSize = 0;
+		if (mount.type === "volume" && mount.volumeName) {
+			mountSize = await getVolumeSize(sourceServerId, mount.volumeName);
+		} else if (mount.type === "bind" && mount.hostPath) {
+			mountSize = await getDirectorySize(sourceServerId, mount.hostPath);
+		}
+
+		const fileConflicts = compareFileLists(sourceFiles, targetFiles);
+
+		result.mounts.push({
+			mount: mountConfig,
+			files: fileConflicts,
+			totalSize: mountSize || sourceFiles.reduce((sum, f) => sum + f.size, 0),
+		});
 	}
 
 	// Calculate totals
@@ -233,11 +252,7 @@ export const scanServiceForTransfer = async (
 	result.conflicts = [
 		...result.serviceDirectory.files,
 		...result.mounts.flatMap((m) => m.files),
-	].filter(
-		(f) =>
-			f.status !== "match" &&
-			f.status !== "missing_target",
-	);
+	].filter((f) => f.status !== "match" && f.status !== "missing_target");
 
 	return result;
 };
@@ -249,58 +264,90 @@ export const executeTransfer = async (
 ): Promise<TransferResult> => {
 	const { serviceType, appName, sourceServerId, targetServerId } = opts;
 	const errors: string[] = [];
-	let processedFiles = 0;
-	let transferredBytes = 0;
-
-	const scan = await scanServiceForTransfer(opts);
-	const totalFiles = scan.totalFiles;
-	const totalBytes = scan.totalTransferSize;
+	const processedFiles = 0;
+	const transferredBytes = 0;
 
 	const reportProgress = (
 		phase: TransferProgress["phase"],
 		message?: string,
 		currentFile?: string,
 	) => {
-		if (processedFiles > 0) {
-			const percentage = totalFiles > 0 ? Math.round((processedFiles / totalFiles) * 100) : 0;
-			onProgress?.({
-				phase,
-				currentFile,
-				processedFiles,
-				totalFiles,
-				transferredBytes,
-				totalBytes,
-				percentage,
-				message,
-			});
-		} else {
-			onProgress?.({
-				phase,
-				currentFile,
-				processedFiles,
-				totalFiles,
-				transferredBytes,
-				totalBytes,
-				percentage: 0,
-				message,
-			});
-		}
+		onProgress?.({
+			phase,
+			currentFile,
+			processedFiles,
+			totalFiles: 0,
+			transferredBytes,
+			totalBytes: 0,
+			percentage: 0,
+			message,
+		});
 	};
 
 	try {
-		// Phase 1: Preflight checks
+		// Phase 1: Preflight
 		reportProgress("preparing", "Running preflight checks...");
 
-		const mountConfigs: MountTransferConfig[] = scan.mounts.map(
-			(m) => m.mount,
+		// Discover all volumes
+		const discoveredVolumes = await discoverServiceVolumes(
+			sourceServerId,
+			serviceType,
+			appName,
 		);
+
+		// User-defined mounts
+		const mountConfigs: MountTransferConfig[] = [];
+		const serviceTypeForMount = serviceType as
+			| "application"
+			| "postgres"
+			| "mysql"
+			| "mariadb"
+			| "mongo"
+			| "redis"
+			| "compose";
+
+		const userMounts = await findMountsByApplicationId(
+			opts.serviceId,
+			serviceTypeForMount,
+		);
+
+		for (const mount of userMounts) {
+			if (mount.type === "file") continue;
+			if (
+				mount.type === "volume" &&
+				mount.volumeName &&
+				discoveredVolumes.includes(mount.volumeName)
+			) {
+				continue; // Will be handled as discovered volume
+			}
+			mountConfigs.push({
+				mountId: mount.mountId,
+				type: mount.type,
+				hostPath: mount.hostPath,
+				volumeName: mount.volumeName,
+				mountPath: mount.mountPath,
+				content: mount.content,
+				filePath: mount.filePath,
+			});
+		}
+
+		const allVolumeConfigs: MountTransferConfig[] = [
+			...discoveredVolumes.map((v) => ({
+				mountId: `docker-${v}`,
+				type: "volume" as const,
+				volumeName: v,
+				mountPath: "/data",
+			})),
+			...mountConfigs,
+		];
+
 		const targetBasePath = getServiceBasePath(serviceType, appName, true);
 
 		const preflight = await runPreflightChecks(
 			targetServerId,
 			targetBasePath,
-			totalBytes,
-			mountConfigs,
+			0,
+			allVolumeConfigs,
 			(msg) => reportProgress("preparing", msg),
 		);
 
@@ -326,18 +373,16 @@ export const executeTransfer = async (
 					targetBasePath,
 					(msg) => reportProgress("syncing_directory", msg),
 				);
-				processedFiles += scan.serviceDirectory.files.length;
-				transferredBytes += scan.serviceDirectory.totalSize;
 				reportProgress("syncing_directory", "Service directory synced");
 			} catch (error) {
-				errors.push(
-					`Failed to sync service directory: ${error instanceof Error ? error.message : String(error)}`,
-				);
+				const msg = error instanceof Error ? error.message : String(error);
+				errors.push(`Failed to sync service directory: ${msg}`);
+				reportProgress("syncing_directory", `Error: ${msg}`);
 			}
 		}
 
 		// Phase 3: Sync Traefik config
-		if (scan.traefikConfig.exists) {
+		if (serviceType === "application" || serviceType === "compose") {
 			reportProgress("syncing_traefik", "Syncing Traefik configuration...");
 			try {
 				await syncTraefikConfig(
@@ -346,43 +391,58 @@ export const executeTransfer = async (
 					appName,
 					(msg) => reportProgress("syncing_traefik", msg),
 				);
-				reportProgress("syncing_traefik", "Traefik config synced");
 			} catch (error) {
-				errors.push(
-					`Failed to sync Traefik config: ${error instanceof Error ? error.message : String(error)}`,
-				);
+				const msg = error instanceof Error ? error.message : String(error);
+				errors.push(`Failed to sync Traefik config: ${msg}`);
+				reportProgress("syncing_traefik", `Error: ${msg}`);
 			}
 		}
 
-		// Phase 4: Sync mounts
-		reportProgress("syncing_mounts", "Syncing mounts and volumes...");
-		for (const mountScan of scan.mounts) {
+		// Phase 4: Sync all discovered Docker volumes
+		reportProgress("syncing_mounts", "Syncing Docker volumes...");
+
+		for (const volumeName of discoveredVolumes) {
+			reportProgress("syncing_mounts", `Syncing volume: ${volumeName}`);
+			try {
+				await syncDockerVolume(
+					sourceServerId,
+					targetServerId,
+					volumeName,
+					(msg) => reportProgress("syncing_mounts", msg),
+				);
+			} catch (error) {
+				const msg = error instanceof Error ? error.message : String(error);
+				errors.push(`Failed to sync volume ${volumeName}: ${msg}`);
+				reportProgress("syncing_mounts", `Error: ${msg}`);
+			}
+		}
+
+		// Phase 5: Sync user-defined mounts (bind mounts, etc.)
+		for (const mountConfig of mountConfigs) {
 			const mountLabel =
-				mountScan.mount.volumeName ||
-				mountScan.mount.hostPath ||
-				mountScan.mount.mountPath;
-			reportProgress("syncing_mounts", `Syncing: ${mountLabel}`, mountLabel);
+				mountConfig.volumeName || mountConfig.hostPath || mountConfig.mountPath;
+			reportProgress("syncing_mounts", `Syncing: ${mountLabel}`);
 
 			try {
 				await syncMount(
 					sourceServerId,
 					targetServerId,
-					mountScan.mount,
+					mountConfig,
 					decisions,
 					(msg) => reportProgress("syncing_mounts", msg),
 				);
-				processedFiles += mountScan.files.length;
-				transferredBytes += mountScan.totalSize;
-				reportProgress("syncing_mounts", `Completed: ${mountLabel}`);
 			} catch (error) {
-				errors.push(
-					`Failed to sync mount ${mountLabel}: ${error instanceof Error ? error.message : String(error)}`,
-				);
+				const msg = error instanceof Error ? error.message : String(error);
+				errors.push(`Failed to sync mount ${mountLabel}: ${msg}`);
+				reportProgress("syncing_mounts", `Error: ${msg}`);
 			}
 		}
 
 		if (errors.length > 0) {
-			reportProgress("failed", `Transfer completed with errors: ${errors.join(", ")}`);
+			reportProgress(
+				"failed",
+				`Transfer completed with errors: ${errors.join(", ")}`,
+			);
 			return { success: false, errors };
 		}
 

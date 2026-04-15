@@ -1206,7 +1206,29 @@ export const applicationRouter = createTRPCRouter({
 							.update(applications)
 							.set({ serverId: input.targetServerId })
 							.where(eq(applications.applicationId, input.applicationId));
-						queue.push("Transfer completed successfully!");
+						queue.push("Transfer completed! Starting deployment on target server...");
+
+						// Auto-deploy on target server
+						const jobData: DeploymentJob = {
+							applicationId: input.applicationId,
+							titleLog: "Transfer deployment",
+							type: "deploy",
+							applicationType: "application",
+							descriptionLog: "Auto-deploy after transfer to new server",
+							server: true,
+						};
+
+						if (IS_CLOUD) {
+							jobData.serverId = input.targetServerId;
+							deploy(jobData).catch(() => {});
+						} else {
+							await myQueue.add("deployments", jobData, {
+								removeOnComplete: true,
+								removeOnFail: true,
+							});
+						}
+
+						queue.push("Deployment queued successfully!");
 					} else {
 						queue.push(`Transfer failed: ${result.errors.join(", ")}`);
 					}
@@ -1271,6 +1293,26 @@ export const applicationRouter = createTRPCRouter({
 				.update(applications)
 				.set({ serverId: input.targetServerId })
 				.where(eq(applications.applicationId, input.applicationId));
+
+			// Auto-deploy on target server
+			const jobData: DeploymentJob = {
+				applicationId: input.applicationId,
+				titleLog: "Transfer deployment",
+				type: "deploy",
+				applicationType: "application",
+				descriptionLog: "Auto-deploy after transfer to new server",
+				server: true,
+			};
+
+			if (IS_CLOUD) {
+				jobData.serverId = input.targetServerId;
+				deploy(jobData).catch(() => {});
+			} else {
+				await myQueue.add("deployments", jobData, {
+					removeOnComplete: true,
+					removeOnFail: true,
+				});
+			}
 
 			return { success: true };
 		}),

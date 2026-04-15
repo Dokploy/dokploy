@@ -701,7 +701,9 @@ export const mongoRouter = createTRPCRouter({
 							.update(mongoTable)
 							.set({ serverId: input.targetServerId })
 							.where(eq(mongoTable.mongoId, input.mongoId));
-						queue.push("Transfer completed successfully!");
+						queue.push("Transfer completed! Starting deployment on target server...");
+						await deployMongo(input.mongoId).catch(() => {});
+						queue.push("Deployment started!");
 					} else {
 						queue.push(`Transfer failed: ${result.errors.join(", ")}`);
 					}
@@ -754,6 +756,9 @@ export const mongoRouter = createTRPCRouter({
 				.update(mongoTable)
 				.set({ serverId: input.targetServerId })
 				.where(eq(mongoTable.mongoId, input.mongoId));
+
+			await deployMongo(input.mongoId).catch(() => {});
+
 			return { success: true };
 		}),
 });
