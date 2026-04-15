@@ -35,25 +35,30 @@ export const findPreviewDeploymentRecordById = async (
 export const findPreviewDeploymentById = async (
 	previewDeploymentId: string,
 ) => {
-	const application = await db.query.previewDeployments.findFirst({
-		where: eq(previewDeployments.previewDeploymentId, previewDeploymentId),
-		with: {
-			domain: true,
-			application: {
-				columns: {
-					applicationId: true,
-					serverId: true,
-				},
-			},
-		},
-	});
-	if (!application) {
+	const previewDeployment =
+		await findPreviewDeploymentRecordById(previewDeploymentId);
+
+	if (!previewDeployment) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Preview Deployment not found",
 		});
 	}
-	return application;
+
+	const [domain, application] = await Promise.all([
+		previewDeployment.domainId
+			? db.query.domains.findFirst({
+					where: eq(domains.domainId, previewDeployment.domainId),
+				})
+			: Promise.resolve(null),
+		findApplicationById(previewDeployment.applicationId),
+	]);
+
+	return {
+		...previewDeployment,
+		domain,
+		application,
+	};
 };
 
 export const previewDeploymentExists = async (previewDeploymentId: string) => {
