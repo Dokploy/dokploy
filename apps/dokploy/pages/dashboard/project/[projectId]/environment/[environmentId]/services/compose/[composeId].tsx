@@ -16,12 +16,13 @@ import { ShowImport } from "@/components/dashboard/application/advanced/import/s
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowDeployments } from "@/components/dashboard/application/deployments/show-deployments";
 import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
-import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
+import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";
 import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
+import { ShowComposeContainers } from "@/components/dashboard/compose/containers/show-compose-containers";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
@@ -60,6 +61,7 @@ type TabState =
 	| "advanced"
 	| "deployments"
 	| "domains"
+	| "containers"
 	| "monitoring"
 	| "volumeBackups";
 
@@ -231,6 +233,9 @@ const Service = (
 													Deployments
 												</TabsTrigger>
 											)}
+											{permissions?.service.read && (
+												<TabsTrigger value="containers">Containers</TabsTrigger>
+											)}
 											{permissions?.service.create && (
 												<TabsTrigger value="backups">Backups</TabsTrigger>
 											)}
@@ -298,6 +303,18 @@ const Service = (
 											</div>
 										</TabsContent>
 									)}
+									{permissions?.service.read && (
+										<TabsContent value="containers">
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowComposeContainers
+													serverId={data?.serverId || undefined}
+													appName={data?.appName || ""}
+													appType={data?.composeType || "docker-compose"}
+												/>
+											</div>
+										</TabsContent>
+									)}
+
 									{permissions?.monitoring.read && (
 										<TabsContent value="monitoring">
 											<div className="pt-2.5">

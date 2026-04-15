@@ -148,10 +148,30 @@ const { handler, api } = betterAuth({
 						const xDokployToken =
 							context?.request?.headers?.get("x-dokploy-token");
 						if (xDokployToken) {
-							const user = await getUserByToken(xDokployToken);
-							if (!user) {
+							let invitation: Awaited<ReturnType<typeof getUserByToken>>;
+							try {
+								invitation = await getUserByToken(xDokployToken);
+							} catch {
 								throw new APIError("BAD_REQUEST", {
-									message: "User not found",
+									message: "Invalid invitation token",
+								});
+							}
+							if (invitation.isExpired) {
+								throw new APIError("BAD_REQUEST", {
+									message: "Invitation has expired",
+								});
+							}
+							if (invitation.status !== "pending") {
+								throw new APIError("BAD_REQUEST", {
+									message: "Invitation has already been used",
+								});
+							}
+							if (
+								_user.email.toLowerCase().trim() !==
+								invitation.email.toLowerCase().trim()
+							) {
+								throw new APIError("BAD_REQUEST", {
+									message: "Email does not match invitation",
 								});
 							}
 						} else {
@@ -176,7 +196,7 @@ const { handler, api } = betterAuth({
 						where: eq(schema.member.role, "owner"),
 					});
 
-					if (!IS_CLOUD) {
+					if (!IS_CLOUD && !isAdminPresent) {
 						await updateWebServerSettings({
 							serverIp: await getPublicIpWithFallback(),
 						});

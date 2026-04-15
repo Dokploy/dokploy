@@ -1,6 +1,7 @@
 export * from "./auth/random-password";
 export * from "./constants/index";
 export * from "./db/constants";
+export * from "./db/validations/destination";
 export * from "./db/validations/domain";
 export * from "./db/validations/index";
 export * from "./lib/auth";
@@ -120,7 +121,7 @@ export * from "./utils/providers/raw";
 export * from "./utils/schedules/index";
 export * from "./utils/schedules/utils";
 export * from "./utils/servers/remote-docker";
-export * from "./utils/startup/cancell-deployments";
+export * from "./utils/startup/cancel-deployments";
 export * from "./utils/tracking/hubspot";
 export * from "./utils/traefik/application";
 export * from "./utils/traefik/domain";

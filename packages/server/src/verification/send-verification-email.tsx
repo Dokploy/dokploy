@@ -3,10 +3,12 @@ export const sendEmail = async ({
 	email,
 	subject,
 	text,
+	attachments,
 }: {
 	email: string;
 	subject: string;
 	text: string;
+	attachments?: { filename: string; content: Buffer }[];
 }) => {
 	await sendEmailNotification(
 		{
@@ -19,6 +21,7 @@ export const sendEmail = async ({
 		},
 		subject,
 		text,
+		attachments,
 	);
 
 	return true;

@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/tooltip";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
+import { APP_NAME_MESSAGE, APP_NAME_REGEX } from "@/utils/schema";
 
 const AddComposeSchema = z.object({
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
@@ -54,9 +55,8 @@ const AddComposeSchema = z.object({
 		.min(1, {
 			message: "App name is required",
 		})
-		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
-			message:
-				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
+		.regex(APP_NAME_REGEX, {
+			message: APP_NAME_MESSAGE,
 		}),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
@@ -77,9 +77,6 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { mutateAsync, isPending, error, isError } =
 		api.compose.create.useMutation();
-
-	// Get environment data to extract projectId
-	// const { data: environment } = api.environment.one.useQuery({ environmentId });
 
 	const hasServers = servers && servers.length > 0;
 	// Show dropdown logic based on cloud environment

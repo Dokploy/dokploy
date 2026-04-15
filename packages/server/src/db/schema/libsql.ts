@@ -34,7 +34,11 @@ import {
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
-import { generateAppName } from "./utils";
+import {
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
+	generateAppName,
+} from "./utils";
 
 export const libsql = pgTable("libsql", {
 	libsqlId: text("libsqlId")
@@ -75,7 +79,7 @@ export const libsql = pgTable("libsql", {
 	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
-	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "number" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
 	replicas: integer("replicas").default(1).notNull(),
 	createdAt: text("createdAt")
@@ -109,12 +113,9 @@ const createSchema = createInsertSchema(libsql, {
 	appName: z.string().min(1),
 	createdAt: z.string(),
 	databaseUser: z.string().min(1),
-	databasePassword: z
-		.string()
-		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-			message:
-				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-		}),
+	databasePassword: z.string().regex(DATABASE_PASSWORD_REGEX, {
+		message: DATABASE_PASSWORD_MESSAGE,
+	}),
 	sqldNode: z.enum(sqldNode.enumValues),
 	sqldPrimaryUrl: z.string().nullable(),
 	enableNamespaces: z.boolean().default(false),
@@ -142,7 +143,7 @@ const createSchema = createInsertSchema(libsql, {
 	modeSwarm: ServiceModeSwarmSchema.nullable(),
 	labelsSwarm: LabelsSwarmSchema.nullable(),
 	networkSwarm: NetworkSwarmSchema.nullable(),
-	stopGracePeriodSwarm: z.bigint().nullable(),
+	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 });
 
@@ -179,11 +180,9 @@ export const apiCreateLibsql = createSchema
 		}
 	});
 
-export const apiFindOneLibsql = createSchema
-	.pick({
-		libsqlId: true,
-	})
-	.required();
+export const apiFindOneLibsql = z.object({
+	libsqlId: z.string().min(1),
+});
 
 export const apiChangeLibsqlStatus = createSchema
 	.pick({
