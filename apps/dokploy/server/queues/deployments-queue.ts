@@ -2,7 +2,7 @@ import {
 	deployApplication,
 	deployCompose,
 	deployPreviewApplication,
-	findPreviewDeploymentById,
+	findPreviewDeploymentRecordById,
 	IS_CLOUD,
 	rebuildApplication,
 	rebuildCompose,
@@ -54,31 +54,43 @@ const createDeploymentWorker = () =>
 						});
 					}
 				} else if (job.data.applicationType === "application-preview") {
-					const previewDeployment = await findPreviewDeploymentById(
-						job.data.previewDeploymentId,
-					).catch(() => null);
+					const previewJob = job.data;
+					const previewDeployment = await findPreviewDeploymentRecordById(
+						previewJob.previewDeploymentId,
+					).catch((error) => {
+						console.error(
+							"Failed to look up preview deployment before queue execution",
+							{
+								previewDeploymentId: previewJob.previewDeploymentId,
+								applicationId: previewJob.applicationId,
+								type: previewJob.type,
+								error,
+							},
+						);
+						return null;
+					});
 
 					if (!previewDeployment) {
 						return;
 					}
 
-					await updatePreviewDeployment(job.data.previewDeploymentId, {
+					await updatePreviewDeployment(previewJob.previewDeploymentId, {
 						previewStatus: "running",
 					});
 
-					if (job.data.type === "redeploy") {
+					if (previewJob.type === "redeploy") {
 						await rebuildPreviewApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-							previewDeploymentId: job.data.previewDeploymentId,
+							applicationId: previewJob.applicationId,
+							titleLog: previewJob.titleLog,
+							descriptionLog: previewJob.descriptionLog,
+							previewDeploymentId: previewJob.previewDeploymentId,
 						});
-					} else if (job.data.type === "deploy") {
+					} else if (previewJob.type === "deploy") {
 						await deployPreviewApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-							previewDeploymentId: job.data.previewDeploymentId,
+							applicationId: previewJob.applicationId,
+							titleLog: previewJob.titleLog,
+							descriptionLog: previewJob.descriptionLog,
+							previewDeploymentId: previewJob.previewDeploymentId,
 						});
 					}
 				}
