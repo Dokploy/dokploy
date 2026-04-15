@@ -195,6 +195,18 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 	}
 
 	const onSubmit = async (data: AddTemplate) => {
+		const normalizedRailpackVersion =
+			data.buildType === BuildType.railpack
+				? (data.railpackVersion || railpackVersions?.[0] || "")
+						.replace(/^v/, "")
+						.trim()
+				: null;
+
+		if (data.buildType === BuildType.railpack && !normalizedRailpackVersion) {
+			toast.error("Railpack version is required");
+			return;
+		}
+
 		await mutateAsync({
 			applicationId,
 			buildType: data.buildType,
@@ -214,7 +226,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 				data.buildType === BuildType.static ? data.isStaticSpa : null,
 			railpackVersion:
 				data.buildType === BuildType.railpack
-					? (data.railpackVersion || railpackVersions?.[0] || "").replace(/^v/, "")
+					? normalizedRailpackVersion
 					: null,
 		})
 			.then(async () => {
@@ -519,7 +531,15 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 							</>
 						)}
 						<div className="flex w-full justify-end">
-							<Button isLoading={isPending} type="submit">
+							<Button
+								isLoading={isPending}
+								type="submit"
+								disabled={
+									buildType === BuildType.railpack &&
+									!isManualRailpackVersion &&
+									isLoadingRailpackVersions
+								}
+							>
 								Save
 							</Button>
 						</div>
