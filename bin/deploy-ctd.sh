@@ -12,6 +12,10 @@
 # Behavior:
 #   - SSHes to the Hetzner host over Tailscale
 #   - Runs `docker service update --image <IMAGE> --with-registry-auth dokploy`
+#     with --update-order stop-first — Dokploy publishes port 3000 in host
+#     mode, so the new task cannot bind while the old task still holds it.
+#     Expect ~30-60s of Dokploy UI downtime during rollover; preview deploys
+#     in flight will queue until the new task is healthy.
 #   - Streams the rollout via `docker service ps dokploy`
 #
 # Prerequisites on Hetzner:
@@ -37,7 +41,7 @@ echo "==> Updating service '${SERVICE}' on ${HOST} to ${IMAGE}"
 ssh "${HOST}" "docker service update \
   --image ${IMAGE} \
   --with-registry-auth \
-  --update-order start-first \
+  --update-order stop-first \
   ${SERVICE}"
 
 echo
