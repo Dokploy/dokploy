@@ -44,6 +44,7 @@ export const AddGithubProvider = () => {
 					metadata: "read",
 					emails: "read",
 					pull_requests: "write",
+					deployments: "write",
 				},
 				default_events: ["pull_request", "push"],
 			},
