@@ -467,7 +467,7 @@ export const deployPreviewApplication = async ({
 				repository: issueParams.repository,
 				deploymentId: githubDeploymentId,
 				state: "in_progress",
-				environmentUrl: previewDomain ? `https://${previewDomain}` : undefined,
+				environmentUrl: previewDomain || undefined,
 			});
 		}
 
@@ -524,7 +524,7 @@ export const deployPreviewApplication = async ({
 				repository: issueParams.repository,
 				deploymentId: githubDeploymentId,
 				state: "success",
-				environmentUrl: previewDomain ? `https://${previewDomain}` : undefined,
+				environmentUrl: previewDomain || undefined,
 			});
 		}
 	} catch (error) {
@@ -546,7 +546,7 @@ export const deployPreviewApplication = async ({
 				repository: issueParams.repository,
 				deploymentId: githubDeploymentId,
 				state: "failure",
-				environmentUrl: previewDomain ? `https://${previewDomain}` : undefined,
+				environmentUrl: previewDomain || undefined,
 			});
 		}
 		throw error;
@@ -657,7 +657,7 @@ export const rebuildPreviewApplication = async ({
 				repository: issueParams.repository,
 				deploymentId: githubDeploymentId,
 				state: "in_progress",
-				environmentUrl: previewDomain ? `https://${previewDomain}` : undefined,
+				environmentUrl: previewDomain || undefined,
 			});
 		}
 
@@ -709,7 +709,7 @@ export const rebuildPreviewApplication = async ({
 				repository: issueParams.repository,
 				deploymentId: githubDeploymentId,
 				state: "success",
-				environmentUrl: previewDomain ? `https://${previewDomain}` : undefined,
+				environmentUrl: previewDomain || undefined,
 			});
 		}
 	} catch (error) {
@@ -748,7 +748,7 @@ export const rebuildPreviewApplication = async ({
 				repository: issueParams.repository,
 				deploymentId: githubDeploymentId,
 				state: "failure",
-				environmentUrl: previewDomain ? `https://${previewDomain}` : undefined,
+				environmentUrl: previewDomain || undefined,
 			});
 		}
 		throw error;
