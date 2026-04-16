@@ -1,0 +1,68 @@
+name: Sync version to MCP and CLI repos
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  sync-version:
+    name: Sync version to external repos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Dokploy repository
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: get_version
+        run: |
+          VERSION=$(jq -r .version apps/dokploy/package.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Sync version to MCP repository
+        run: |
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/mcp.git mcp-repo
+
+          cd mcp-repo
+
+          if [ -f package.json ]; then
+            jq --arg v "${{ steps.get_version.outputs.version }}" '.version = $v' package.json > package.json.tmp
+            mv package.json.tmp package.json
+          fi
+
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+
+          git add -A
+          git commit -m "chore: bump version to ${{ steps.get_version.outputs.version }}" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            -m "Release: ${{ github.event.release.html_url }}" \
+            --allow-empty
+
+          git push
+
+          echo "MCP repo synced to version ${{ steps.get_version.outputs.version }}"
+
+      - name: Sync version to CLI repository
+        run: |
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/cli.git cli-repo
+
+          cd cli-repo
+
+          if [ -f package.json ]; then
+            jq --arg v "${{ steps.get_version.outputs.version }}" '.version = $v' package.json > package.json.tmp
+            mv package.json.tmp package.json
+          fi
+
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+
+          git add -A
+          git commit -m "chore: bump version to ${{ steps.get_version.outputs.version }}" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            -m "Release: ${{ github.event.release.html_url }}" \
+            --allow-empty
+
+          git push
+
+          echo "CLI repo synced to version ${{ steps.get_version.outputs.version }}"
