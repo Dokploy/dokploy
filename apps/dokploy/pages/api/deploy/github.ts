@@ -2,6 +2,8 @@ import {
 	checkUserRepositoryPermissions,
 	createPreviewDeployment,
 	createSecurityBlockedComment,
+	deactivateGithubDeployments,
+	findApplicationById,
 	findGithubById,
 	findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId,
@@ -335,6 +337,26 @@ export default async function handler(
 
 			if (previewDeploymentResult.length > 0) {
 				for (const previewDeployment of previewDeploymentResult) {
+					try {
+						const application = await findApplicationById(
+							previewDeployment.applicationId,
+						);
+
+						if (application?.githubId && application.owner && application.repository) {
+							await deactivateGithubDeployments({
+								githubId: application.githubId,
+								owner: application.owner,
+								repository: application.repository,
+								environment: `${application.name}-pr-${previewDeployment.pullRequestNumber}`,
+							});
+						}
+					} catch (error) {
+						console.warn(
+							"Failed to deactivate GitHub deployments for preview:",
+							error,
+						);
+					}
+
 					try {
 						await removePreviewDeployment(
 							previewDeployment.previewDeploymentId,
