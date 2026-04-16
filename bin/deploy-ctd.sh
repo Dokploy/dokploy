@@ -28,14 +28,13 @@ if [[ -z "$TAG" ]]; then
   exit 1
 fi
 
-HOST="${CTD_DOKPLOY_HOST:-100.71.164.32}"
-USER="${CTD_DOKPLOY_USER:-root}"
+HOST="${CTD_DOKPLOY_HOST:-contracko-01}"
 SERVICE="${CTD_DOKPLOY_SERVICE:-dokploy}"
 IMAGE="ghcr.io/budivoogt/dokploy:${TAG}"
 
-echo "==> Updating service '${SERVICE}' on ${USER}@${HOST} to ${IMAGE}"
+echo "==> Updating service '${SERVICE}' on ${HOST} to ${IMAGE}"
 
-ssh "${USER}@${HOST}" "docker service update \
+ssh "${HOST}" "docker service update \
   --image ${IMAGE} \
   --with-registry-auth \
   --update-order start-first \
@@ -43,7 +42,7 @@ ssh "${USER}@${HOST}" "docker service update \
 
 echo
 echo "==> Rollout status:"
-ssh "${USER}@${HOST}" "docker service ps ${SERVICE} --no-trunc --format 'table {{.Name}}\t{{.Image}}\t{{.CurrentState}}\t{{.Error}}' | head -5"
+ssh "${HOST}" "docker service ps ${SERVICE} --no-trunc --format 'table {{.Name}}\t{{.Image}}\t{{.CurrentState}}\t{{.Error}}' | head -5"
 
 echo
 echo "Done. If anything looks wrong, roll back with:"

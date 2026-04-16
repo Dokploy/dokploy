@@ -27,8 +27,7 @@ The script SSHes to the Hetzner host over Tailscale and runs `docker service upd
 
 Environment overrides:
 
-- `CTD_DOKPLOY_HOST` — Tailscale IP, defaults to `100.71.164.32`
-- `CTD_DOKPLOY_USER` — SSH user, defaults to `root`
+- `CTD_DOKPLOY_HOST` — SSH target, defaults to `contracko-01` (Tailscale MagicDNS alias)
 - `CTD_DOKPLOY_SERVICE` — swarm service name, defaults to `dokploy`
 
 ### 3. GHCR package visibility
