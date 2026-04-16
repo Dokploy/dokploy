@@ -22,6 +22,7 @@ export * from "./services/environment";
 export * from "./services/git-provider";
 export * from "./services/gitea";
 export * from "./services/github";
+export * from "./services/github-deployment";
 export * from "./services/gitlab";
 export * from "./services/libsql";
 export * from "./services/mariadb";
