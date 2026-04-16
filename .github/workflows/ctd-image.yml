@@ -1,0 +1,86 @@
+name: Build CTD image
+
+on:
+  push:
+    branches:
+      - "feat/**"
+      - "fix/**"
+      - "canary-ctd"
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ghcr.io/budivoogt/dokploy
+
+concurrency:
+  group: ctd-image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Compute tags
+        id: tags
+        run: |
+          RAW_VERSION=$(jq -r .version apps/dokploy/package.json)
+          VERSION="${RAW_VERSION#v}"
+          SHA_SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+          BRANCH_SLUG=$(echo "${{ github.ref_name }}" | tr '/' '-' | tr -cd 'A-Za-z0-9-_.')
+          VERSION_TAG="${{ env.IMAGE }}:v${VERSION}-ctd${SHA_SHORT}"
+          BRANCH_TAG="${{ env.IMAGE }}:${BRANCH_SLUG}"
+          {
+            echo "version_tag=${VERSION_TAG}"
+            echo "branch_tag=${BRANCH_TAG}"
+            echo "tag_label=v${VERSION}-ctd${SHA_SHORT}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building:"
+          echo "  - ${VERSION_TAG}"
+          echo "  - ${BRANCH_TAG}"
+
+      - name: Prepare env file
+        run: |
+          cp apps/dokploy/.env.production.example .env.production
+          cp apps/dokploy/.env.production.example apps/dokploy/.env.production
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ steps.tags.outputs.version_tag }}
+            ${{ steps.tags.outputs.branch_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        run: |
+          {
+            echo "### CTD image pushed"
+            echo ""
+            echo "**Tag:** \`${{ steps.tags.outputs.tag_label }}\`"
+            echo ""
+            echo "Deploy with:"
+            echo ""
+            echo '```'
+            echo "./bin/deploy-ctd.sh ${{ steps.tags.outputs.tag_label }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
