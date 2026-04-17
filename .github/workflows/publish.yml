@@ -33,6 +33,16 @@ jobs:
             type=raw,value=canary,enable=${{ github.ref == 'refs/heads/canary' }}
             type=sha,prefix=sha-
 
+      - name: Prepare env file
+        run: |
+          cp apps/dokploy/.env.production.example .env.production
+          cp apps/dokploy/.env.production.example apps/dokploy/.env.production
+
+      - name: Prepare env file
+        run: |
+          cp apps/dokploy/.env.production.example .env.production
+          cp apps/dokploy/.env.production.example apps/dokploy/.env.production
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
