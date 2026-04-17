@@ -3,6 +3,7 @@ name: Sync version to MCP and CLI repos
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   sync-version:
