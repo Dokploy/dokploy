@@ -21,7 +21,10 @@ import {
 	updateWebServerSettings,
 } from "../services/web-server-settings";
 import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
-import { sendEmail } from "../verification/send-verification-email";
+import {
+	sendEmail,
+	sendVerificationEmail,
+} from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 
@@ -106,14 +109,13 @@ const { handler, api } = betterAuth({
 	emailVerification: {
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
+		sendOnSignIn: true,
 		sendVerificationEmail: async ({ user, url }) => {
 			if (IS_CLOUD) {
-				await sendEmail({
+				await sendVerificationEmail({
+					userName: user.name || "User",
 					email: user.email,
-					subject: "Verify your email",
-					text: `
-				<p>Click the link to verify your email: <a href="${url}">Verify Email</a></p>
-				`,
+					verificationUrl: url,
 				});
 			}
 		},
