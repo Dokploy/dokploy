@@ -22,8 +22,8 @@ jobs:
 
       - name: Sync version to MCP repository
         run: |
-            git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/mcp.git mcp-repo
-            cd mcp-repo
+            git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/mcp.git /tmp/mcp-repo
+            cd /tmp/mcp-repo
 
             # Regenerate tools from latest OpenAPI spec
             npm install -g pnpm
@@ -49,12 +49,12 @@ jobs:
 
       - name: Sync version to CLI repository
         run: |
-          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/cli.git cli-repo
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/cli.git /tmp/cli-repo
 
-          cd cli-repo
+          cd /tmp/cli-repo
 
           # Copy latest openapi spec and regenerate commands
-          cp ../openapi.json ./openapi.json
+          cp ${{ github.workspace }}/openapi.json ./openapi.json
           npm install -g pnpm
           pnpm install
           pnpm run generate
