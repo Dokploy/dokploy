@@ -23,26 +23,26 @@ jobs:
         run: |
             git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/mcp.git mcp-repo
             cd mcp-repo
-        
-            # Bump version
-            jq --arg v "${{ steps.get_version.outputs.version }}" '.version = $v' package.json > package.json.tmp
-            mv package.json.tmp package.json
-        
+
             # Regenerate tools from latest OpenAPI spec
             npm install -g pnpm
             pnpm install
             pnpm run fetch-openapi
             pnpm run generate
-        
+
+            # Bump version after install so pnpm install doesn't overwrite it
+            jq --arg v "${{ steps.get_version.outputs.version }}" '.version = $v' package.json > package.json.tmp
+            mv package.json.tmp package.json
+
             git config user.name "Dokploy Bot"
             git config user.email "bot@dokploy.com"
-        
+
             git add -A
             git commit -m "chore: bump version to ${{ steps.get_version.outputs.version }}" \
               -m "Source: ${{ github.repository }}@${{ github.sha }}" \
               -m "Release: ${{ github.event.release.html_url }}" \
               --allow-empty
-        
+
             git push
         
 
@@ -52,17 +52,17 @@ jobs:
 
           cd cli-repo
 
-          # Bump version
-          if [ -f package.json ]; then
-            jq --arg v "${{ steps.get_version.outputs.version }}" '.version = $v' package.json > package.json.tmp
-            mv package.json.tmp package.json
-          fi
-
           # Copy latest openapi spec and regenerate commands
           cp ../openapi.json ./openapi.json
           npm install -g pnpm
           pnpm install
           pnpm run generate
+
+          # Bump version after install so pnpm install doesn't overwrite it
+          if [ -f package.json ]; then
+            jq --arg v "${{ steps.get_version.outputs.version }}" '.version = $v' package.json > package.json.tmp
+            mv package.json.tmp package.json
+          fi
 
           git config user.name "Dokploy Bot"
           git config user.email "bot@dokploy.com"
