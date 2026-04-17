@@ -239,15 +239,18 @@ export const deployApplication = async ({
 		await mechanizeDockerContainer(application);
 
 		if (deployHooks.post?.trim()) {
-			await waitForSwarmServiceRunning(application.appName, application.serverId);
+			const containerId = await waitForSwarmServiceRunning(
+				application.appName,
+				application.serverId,
+			);
 			await runDeployHook({
 				kind: "post",
 				appName: application.appName,
 				serverId: application.serverId,
 				command: deployHooks.post,
 				logPath: deployment.logPath,
+				containerId,
 			});
-		}
 		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -346,7 +349,7 @@ export const rebuildApplication = async ({
 		await runDeployHook({
 			kind: "pre",
 			appName: application.appName,
-			serverId,
+			serverId: application.serverId,
 			command: deployHooks.pre,
 			logPath: deployment.logPath,
 		});
@@ -354,13 +357,17 @@ export const rebuildApplication = async ({
 		await mechanizeDockerContainer(application);
 
 		if (deployHooks.post?.trim()) {
-			await waitForSwarmServiceRunning(application.appName, serverId);
+			const containerId = await waitForSwarmServiceRunning(
+				application.appName,
+				application.serverId,
+			);
 			await runDeployHook({
 				kind: "post",
 				appName: application.appName,
-				serverId,
+				serverId: application.serverId,
 				command: deployHooks.post,
 				logPath: deployment.logPath,
+				containerId,
 			});
 		}
 

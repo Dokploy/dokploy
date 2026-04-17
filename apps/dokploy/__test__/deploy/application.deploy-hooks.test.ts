@@ -196,7 +196,7 @@ const primeMocks = (app = createMockApplication()) => {
 	vi.mocked(deploymentService.updateDeployment).mockResolvedValue({} as any);
 	vi.mocked(hooks.runDeployHook).mockResolvedValue(undefined as any);
 	vi.mocked(hooks.waitForSwarmServiceRunning).mockResolvedValue(
-		undefined as any,
+		"container-id-abc",
 	);
 };
 
@@ -254,6 +254,7 @@ describe("deployApplication - Deploy Hooks", () => {
 		);
 		vi.mocked(hooks.waitForSwarmServiceRunning).mockImplementation(async () => {
 			order.push("wait");
+			return "container-id-abc";
 		});
 		vi.mocked(hooks.runDeployHook).mockImplementation(async ({ kind }) => {
 			order.push(`hook:${kind}`);
@@ -270,6 +271,7 @@ describe("deployApplication - Deploy Hooks", () => {
 			expect.objectContaining({
 				kind: "post",
 				command: "npm run migrate",
+				containerId: "container-id-abc",
 			}),
 		);
 	});
