@@ -76,7 +76,7 @@ const { handler, api } = betterAuth({
 		},
 	},
 	logger: {
-		disabled: false,
+		disabled: process.env.NODE_ENV === "production",
 	},
 	async trustedOrigins() {
 		try {
