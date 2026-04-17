@@ -39,15 +39,16 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canWrite = permissions?.envVars.write ?? false;
 	const queryMap = {
-		postgres: () =>
-			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
-		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
-		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+		compose: () =>
+			api.compose.one.useQuery({ composeId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
 		mariadb: () =>
 			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
 		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
-		compose: () =>
-			api.compose.one.useQuery({ composeId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+		postgres: () =>
+			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
@@ -55,16 +56,17 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 	const [isEnvVisible, setIsEnvVisible] = useState(true);
 
 	const mutationMap = {
-		postgres: () => api.postgres.update.useMutation(),
-		redis: () => api.redis.update.useMutation(),
-		mysql: () => api.mysql.update.useMutation(),
-		mariadb: () => api.mariadb.update.useMutation(),
-		mongo: () => api.mongo.update.useMutation(),
-		compose: () => api.compose.update.useMutation(),
+		compose: () => api.compose.saveEnvironment.useMutation(),
+		libsql: () => api.libsql.saveEnvironment.useMutation(),
+		mariadb: () => api.mariadb.saveEnvironment.useMutation(),
+		mongo: () => api.mongo.saveEnvironment.useMutation(),
+		mysql: () => api.mysql.saveEnvironment.useMutation(),
+		postgres: () => api.postgres.saveEnvironment.useMutation(),
+		redis: () => api.redis.saveEnvironment.useMutation(),
 	};
 	const { mutateAsync, isPending } = mutationMap[type]
 		? mutationMap[type]()
-		: api.mongo.update.useMutation();
+		: api.mongo.saveEnvironment.useMutation();
 
 	const form = useForm<EnvironmentSchema>({
 		defaultValues: {
@@ -87,12 +89,13 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 
 	const onSubmit = async (formData: EnvironmentSchema) => {
 		mutateAsync({
+			composeId: id || "",
+			libsqlId: id || "",
+			mariadbId: id || "",
 			mongoId: id || "",
+			mysqlId: id || "",
 			postgresId: id || "",
 			redisId: id || "",
-			mysqlId: id || "",
-			mariadbId: id || "",
-			composeId: id || "",
 			env: formData.environment,
 		})
 			.then(async () => {
@@ -113,7 +116,7 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isPending) {
+			if ((e.ctrlKey || e.metaKey) && e.code === "KeyS" && !isPending) {
 				e.preventDefault();
 				form.handleSubmit(onSubmit)();
 			}

@@ -354,21 +354,136 @@ export const getContainersByAppLabel = async (
 	return [];
 };
 
-export const containerRestart = async (containerId: string) => {
-	try {
-		const { stdout, stderr } = await execAsync(
-			`docker container restart ${containerId}`,
+export const getContainerLogs = async (
+	appNameOrId: string,
+	tail = 100,
+	since = "all",
+	search?: string,
+	serverId?: string | null,
+	useContainerIdDirectly = false,
+): Promise<string> => {
+	const exec = (cmd: string) =>
+		serverId ? execAsyncRemote(serverId, cmd) : execAsync(cmd);
+
+	let target = appNameOrId;
+	let isService = false;
+
+	if (!useContainerIdDirectly) {
+		// Find the real container ID by appName filter
+		const findResult = await exec(
+			`docker ps -q --filter "name=^${appNameOrId}" | head -1`,
 		);
+		const containerId = findResult.stdout.trim();
 
-		if (stderr) {
-			console.error(`Error: ${stderr}`);
-			return;
+		if (!containerId) {
+			// Fallback: try as a swarm service
+			const svcResult = await exec(
+				`docker service ls -q --filter "name=${appNameOrId}" | head -1`,
+			);
+			const serviceId = svcResult.stdout.trim();
+			if (!serviceId) {
+				throw new Error(`No container or service found for: ${appNameOrId}`);
+			}
+			isService = true;
+		} else {
+			target = containerId;
 		}
+	}
 
-		const config = JSON.parse(stdout);
+	const sinceFlag = since === "all" ? "" : `--since ${since}`;
+	const baseCommand = isService
+		? `docker service logs --timestamps --raw --tail ${tail} ${sinceFlag} ${target}`
+		: `docker container logs --timestamps --tail ${tail} ${sinceFlag} ${target}`;
 
-		return config;
-	} catch {}
+	const escapedSearch = search?.replace(/'/g, "'\\''") ?? "";
+	const command = search
+		? `${baseCommand} 2>&1 | grep -iF '${escapedSearch}'`
+		: `${baseCommand} 2>&1`;
+
+	try {
+		const result = await exec(command);
+		return result.stdout;
+	} catch (error: unknown) {
+		if (
+			error &&
+			typeof error === "object" &&
+			"stdout" in error &&
+			typeof (error as { stdout: string }).stdout === "string" &&
+			(error as { stdout: string }).stdout.length > 0
+		) {
+			return (error as { stdout: string }).stdout;
+		}
+		throw error;
+	}
+};
+
+export const containerRestart = async (
+	containerId: string,
+	serverId?: string,
+) => {
+	const command = `docker container restart ${containerId}`;
+	const { stderr } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (stderr) {
+		console.error(`Error: ${stderr}`);
+		throw new Error(stderr);
+	}
+};
+
+export const containerStart = async (
+	containerId: string,
+	serverId?: string,
+) => {
+	const command = `docker container start ${containerId}`;
+	const { stderr } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (stderr) {
+		console.error(`Error: ${stderr}`);
+		throw new Error(stderr);
+	}
+};
+
+export const containerStop = async (containerId: string, serverId?: string) => {
+	const command = `docker container stop ${containerId}`;
+	const { stderr } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (stderr) {
+		console.error(`Error: ${stderr}`);
+		throw new Error(stderr);
+	}
+};
+
+export const containerKill = async (containerId: string, serverId?: string) => {
+	const command = `docker container kill ${containerId}`;
+	const { stderr } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (stderr) {
+		console.error(`Error: ${stderr}`);
+		throw new Error(stderr);
+	}
+};
+
+export const containerRemove = async (
+	containerId: string,
+	serverId?: string,
+) => {
+	const command = `docker rm -f ${containerId}`;
+	const { stderr } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (stderr) {
+		console.error(`Error: ${stderr}`);
+		throw new Error(stderr);
+	}
 };
 
 export const getSwarmNodes = async (serverId?: string) => {
@@ -397,7 +512,9 @@ export const getSwarmNodes = async (serverId?: string) => {
 			.split("\n")
 			.map((line) => JSON.parse(line));
 		return nodesArray;
-	} catch {}
+	} catch (error) {
+		console.error("getSwarmNodes error:", error);
+	}
 };
 
 export const getNodeInfo = async (nodeId: string, serverId?: string) => {
@@ -448,6 +565,10 @@ export const getNodeApplications = async (serverId?: string) => {
 			return;
 		}
 
+		if (!stdout.trim()) {
+			return [];
+		}
+
 		const appArray = stdout
 			.trim()
 			.split("\n")
@@ -455,13 +576,19 @@ export const getNodeApplications = async (serverId?: string) => {
 			.filter((service) => !service.Name.startsWith("dokploy-"));
 
 		return appArray;
-	} catch {}
+	} catch (error) {
+		console.error("getNodeApplications error:", error);
+		return [];
+	}
 };
 
 export const getApplicationInfo = async (
 	appNames: string[],
 	serverId?: string,
 ) => {
+	if (appNames.length === 0) {
+		return [];
+	}
 	try {
 		let stdout = "";
 		let stderr = "";
@@ -482,11 +609,84 @@ export const getApplicationInfo = async (
 			return;
 		}
 
+		if (!stdout.trim()) {
+			return [];
+		}
+
 		const appArray = stdout
 			.trim()
 			.split("\n")
 			.map((line) => JSON.parse(line));
 
 		return appArray;
-	} catch {}
+	} catch (error) {
+		console.error("getApplicationInfo error:", error);
+		return [];
+	}
+};
+
+export const getAllContainerStats = async (serverId?: string) => {
+	try {
+		let stdout = "";
+		const command =
+			'docker stats --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'';
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+		}
+
+		if (!stdout.trim()) {
+			return [];
+		}
+
+		const stats = stdout
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line));
+
+		return stats;
+	} catch (error) {
+		console.error("getAllContainerStats error:", error);
+		return [];
+	}
+};
+
+export const uploadFileToContainer = async (
+	containerId: string,
+	fileBuffer: Buffer,
+	fileName: string,
+	destinationPath: string,
+	serverId?: string | null,
+): Promise<void> => {
+	const containerIdRegex = /^[a-zA-Z0-9.\-_]+$/;
+	if (!containerIdRegex.test(containerId)) {
+		throw new Error("Invalid container ID");
+	}
+
+	// Ensure destination path starts with /
+	const normalizedPath = destinationPath.startsWith("/")
+		? destinationPath
+		: `/${destinationPath}`;
+
+	const base64Content = fileBuffer.toString("base64");
+	const tempFileName = `dokploy-upload-${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+	const tempPath = `/tmp/${tempFileName}`;
+
+	const command = `echo '${base64Content}' | base64 -d > "${tempPath}" && docker cp "${tempPath}" "${containerId}:${normalizedPath}" ; rm -f "${tempPath}"`;
+
+	try {
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} catch (error) {
+		throw new Error(
+			`Failed to upload file to container: ${error instanceof Error ? error.message : String(error)}`,
+		);
+	}
 };

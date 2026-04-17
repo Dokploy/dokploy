@@ -21,7 +21,10 @@ import {
 	updateWebServerSettings,
 } from "../services/web-server-settings";
 import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
-import { sendEmail } from "../verification/send-verification-email";
+import {
+	sendEmail,
+	sendVerificationEmail,
+} from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 
@@ -76,39 +79,43 @@ const { handler, api } = betterAuth({
 		disabled: process.env.NODE_ENV === "production",
 	},
 	async trustedOrigins() {
-		if (IS_CLOUD) {
-			return getTrustedOrigins();
+		try {
+			if (IS_CLOUD) {
+				return await getTrustedOrigins();
+			}
+			const [trustedOrigins, settings] = await Promise.all([
+				getTrustedOrigins(),
+				getWebServerSettings(),
+			]);
+			if (!settings) return [];
+			const devOrigins =
+				process.env.NODE_ENV === "development"
+					? [
+							"http://localhost:3000",
+							"https://absolutely-handy-falcon.ngrok-free.app",
+						]
+					: [];
+			return [
+				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
+				...(settings?.host ? [`https://${settings?.host}`] : []),
+				...devOrigins,
+				...trustedOrigins,
+			];
+		} catch (error) {
+			console.error("Failed to resolve trusted origins:", error);
+			return [];
 		}
-		const [trustedOrigins, settings] = await Promise.all([
-			getTrustedOrigins(),
-			getWebServerSettings(),
-		]);
-		if (!settings) return [];
-		const devOrigins =
-			process.env.NODE_ENV === "development"
-				? [
-						"http://localhost:3000",
-						"https://absolutely-handy-falcon.ngrok-free.app",
-					]
-				: [];
-		return [
-			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
-			...(settings?.host ? [`https://${settings?.host}`] : []),
-			...devOrigins,
-			...trustedOrigins,
-		];
 	},
 	emailVerification: {
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
+		sendOnSignIn: true,
 		sendVerificationEmail: async ({ user, url }) => {
 			if (IS_CLOUD) {
-				await sendEmail({
+				await sendVerificationEmail({
+					userName: user.name || "User",
 					email: user.email,
-					subject: "Verify your email",
-					text: `
-				<p>Click the link to verify your email: <a href="${url}">Verify Email</a></p>
-				`,
+					verificationUrl: url,
 				});
 			}
 		},
@@ -143,10 +150,30 @@ const { handler, api } = betterAuth({
 						const xDokployToken =
 							context?.request?.headers?.get("x-dokploy-token");
 						if (xDokployToken) {
-							const user = await getUserByToken(xDokployToken);
-							if (!user) {
+							let invitation: Awaited<ReturnType<typeof getUserByToken>>;
+							try {
+								invitation = await getUserByToken(xDokployToken);
+							} catch {
 								throw new APIError("BAD_REQUEST", {
-									message: "User not found",
+									message: "Invalid invitation token",
+								});
+							}
+							if (invitation.isExpired) {
+								throw new APIError("BAD_REQUEST", {
+									message: "Invitation has expired",
+								});
+							}
+							if (invitation.status !== "pending") {
+								throw new APIError("BAD_REQUEST", {
+									message: "Invitation has already been used",
+								});
+							}
+							if (
+								_user.email.toLowerCase().trim() !==
+								invitation.email.toLowerCase().trim()
+							) {
+								throw new APIError("BAD_REQUEST", {
+									message: "Email does not match invitation",
 								});
 							}
 						} else {
@@ -171,7 +198,7 @@ const { handler, api } = betterAuth({
 						where: eq(schema.member.role, "owner"),
 					});
 
-					if (!IS_CLOUD) {
+					if (!IS_CLOUD && !isAdminPresent) {
 						await updateWebServerSettings({
 							serverIp: await getPublicIpWithFallback(),
 						});

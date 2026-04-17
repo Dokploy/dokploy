@@ -6,7 +6,7 @@ import { quote } from "shell-quote";
 import { writeDomainsToCompose } from "../docker/domain";
 import {
 	encodeBase64,
-	getEnviromentVariablesObject,
+	getEnvironmentVariablesObject,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 
@@ -46,17 +46,17 @@ Compose Type: ${composeType} ✅`;
 	set -e
 	{
 		echo "${logBox}";
-	
+
 		${newCompose}
-	
+
 		${envCommand}
-	
+
 		cd "${projectPath}";
 
 		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create ${compose.composeType === "stack" ? "--driver overlay" : ""} --attachable ${compose.appName}` : ""}
 		env -i PATH="$PATH" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
-	
+
 		echo "Docker Compose Deployed: ✅";
 	} || {
 		echo "Error: ❌ Script execution failed";
@@ -106,6 +106,7 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 	const envFilePath = join(dirname(composeFilePath), ".env");
 
 	let envContent = `APP_NAME=${appName}\n`;
+	envContent += `COMPOSE_PROJECT_NAME=${appName}\n`;
 	envContent += env || "";
 	if (!envContent.includes("DOCKER_CONFIG")) {
 		envContent += "\nDOCKER_CONFIG=/root/.docker";
@@ -131,7 +132,7 @@ echo "${encodedContent}" | base64 -d > "${envFilePath}";
 const getExportEnvCommand = (compose: ComposeNested) => {
 	if (compose.composeType !== "stack") return "";
 
-	const envVars = getEnviromentVariablesObject(
+	const envVars = getEnvironmentVariablesObject(
 		compose.env,
 		compose.environment.project.env,
 		compose.environment.env,

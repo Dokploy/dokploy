@@ -51,11 +51,12 @@ export const { useStepper, steps, Scoped } = defineStepper(
 	{ id: "complete", title: "Complete", description: "Checkout complete" },
 );
 
-export const WelcomeSuscription = () => {
+export const WelcomeSubscription = () => {
 	const [showConfetti, setShowConfetti] = useState(false);
 	const stepper = useStepper();
 	const [isOpen, setIsOpen] = useState(true);
-	const { push } = useRouter();
+	const router = useRouter();
+	const { push } = router;
 
 	useEffect(() => {
 		const confettiShown = localStorage.getItem("hasShownConfetti");
@@ -66,7 +67,22 @@ export const WelcomeSuscription = () => {
 	}, [showConfetti]);
 
 	return (
-		<Dialog open={isOpen}>
+		<Dialog
+			open={isOpen}
+			onOpenChange={(open) => {
+				setIsOpen(open);
+				if (!open) {
+					const { success, ...rest } = router.query;
+					router.replace(
+						{ pathname: router.pathname, query: rest },
+						undefined,
+						{
+							shallow: true,
+						},
+					);
+				}
+			}}
+		>
 			<DialogContent className="sm:max-w-7xl min-h-[75vh]">
 				{showConfetti ?? "Flaso"}
 				<div className="flex justify-center items-center w-full">
