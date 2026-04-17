@@ -30,6 +30,11 @@ import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
+import {
+	parseDeployHooks,
+	runDeployHook,
+	waitForSwarmServiceRunning,
+} from "../utils/docker/hooks";
 import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import {
@@ -221,7 +226,29 @@ export const deployApplication = async ({
 			await execAsync(commandWithLog);
 		}
 
+		const deployHooks = parseDeployHooks(application.deployHooks);
+
+		await runDeployHook({
+			kind: "pre",
+			appName: application.appName,
+			serverId,
+			command: deployHooks.pre,
+			logPath: deployment.logPath,
+		});
+
 		await mechanizeDockerContainer(application);
+
+		if (deployHooks.post?.trim()) {
+			await waitForSwarmServiceRunning(application.appName, serverId);
+			await runDeployHook({
+				kind: "post",
+				appName: application.appName,
+				serverId,
+				command: deployHooks.post,
+				logPath: deployment.logPath,
+			});
+		}
+
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
 
@@ -312,7 +339,30 @@ export const rebuildApplication = async ({
 		} else {
 			await execAsync(commandWithLog);
 		}
+
+		const deployHooks = parseDeployHooks(application.deployHooks);
+
+		await runDeployHook({
+			kind: "pre",
+			appName: application.appName,
+			serverId,
+			command: deployHooks.pre,
+			logPath: deployment.logPath,
+		});
+
 		await mechanizeDockerContainer(application);
+
+		if (deployHooks.post?.trim()) {
+			await waitForSwarmServiceRunning(application.appName, serverId);
+			await runDeployHook({
+				kind: "post",
+				appName: application.appName,
+				serverId,
+				command: deployHooks.post,
+				logPath: deployment.logPath,
+			});
+		}
+
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
 
