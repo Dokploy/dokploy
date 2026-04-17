@@ -82,6 +82,16 @@ export default function Home({ IS_CLOUD }: Props) {
 			});
 
 			if (error) {
+				const isEmailNotVerified =
+					error.code === "EMAIL_NOT_VERIFIED" ||
+					error.message?.toLowerCase().includes("email not verified");
+				if (isEmailNotVerified) {
+					const msg =
+						"Your email is not verified. We've sent a new verification link to your email.";
+					toast.info(msg);
+					setError(msg);
+					return;
+				}
 				toast.error(error.message);
 				setError(error.message || "An error occurred while logging in");
 				return;
