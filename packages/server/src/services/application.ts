@@ -231,7 +231,7 @@ export const deployApplication = async ({
 		await runDeployHook({
 			kind: "pre",
 			appName: application.appName,
-			serverId,
+			serverId: application.serverId,
 			command: deployHooks.pre,
 			logPath: deployment.logPath,
 		});
@@ -239,14 +239,15 @@ export const deployApplication = async ({
 		await mechanizeDockerContainer(application);
 
 		if (deployHooks.post?.trim()) {
-			await waitForSwarmServiceRunning(application.appName, serverId);
+			await waitForSwarmServiceRunning(application.appName, application.serverId);
 			await runDeployHook({
 				kind: "post",
 				appName: application.appName,
-				serverId,
+				serverId: application.serverId,
 				command: deployHooks.post,
 				logPath: deployment.logPath,
 			});
+		}
 		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
