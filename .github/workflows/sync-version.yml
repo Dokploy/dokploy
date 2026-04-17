@@ -16,7 +16,7 @@ jobs:
       - name: Get version
         id: get_version
         run: |
-          VERSION=$(jq -r .version apps/dokploy/package.json)
+          VERSION=$(jq -r .version apps/dokploy/package.json | sed 's/^v//')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
