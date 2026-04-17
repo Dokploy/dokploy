@@ -193,7 +193,24 @@ export const deployApplication = async ({
 		description: descriptionLog,
 	});
 
+	let githubDeploymentId: number | null = null;
+	const appDomain = application.domains?.[0]
+		? getDomainHost(application.domains[0] as Domain)
+		: undefined;
+
 	try {
+		if (application.sourceType === "github" && application.githubId) {
+			githubDeploymentId = await createGithubDeployment({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				ref: application.branch || "main",
+				environment: application.name,
+				description: `Dokploy deploy of ${application.branch || "main"}`,
+				transient: false,
+			});
+		}
+
 		let command = "set -e;";
 		if (application.sourceType === "github") {
 			command += await cloneGithubRepository(applicationEntity);
@@ -217,6 +234,17 @@ export const deployApplication = async ({
 			});
 		}
 
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				deploymentId: githubDeploymentId,
+				state: "in_progress",
+				environmentUrl: appDomain,
+			});
+		}
+
 		command += await getBuildCommand(application);
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
@@ -229,6 +257,17 @@ export const deployApplication = async ({
 		await mechanizeDockerContainer(application);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
+
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				deploymentId: githubDeploymentId,
+				state: "success",
+				environmentUrl: appDomain,
+			});
+		}
 
 		await sendBuildSuccessNotifications({
 			projectName: application.environment.project.name,
@@ -257,6 +296,17 @@ export const deployApplication = async ({
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
+
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				deploymentId: githubDeploymentId,
+				state: "failure",
+				environmentUrl: appDomain,
+			});
+		}
 
 		await sendBuildErrorNotifications({
 			projectName: application.environment.project.name,
