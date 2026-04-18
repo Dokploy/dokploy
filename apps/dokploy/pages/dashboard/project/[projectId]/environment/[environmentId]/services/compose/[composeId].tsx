@@ -43,7 +43,14 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+	serviceDetailTabsBarClassName,
+	serviceDetailTabsListClassName,
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from "@/components/ui/tabs";
 import {
 	Tooltip,
 	TooltipContent,
@@ -217,8 +224,8 @@ const Service = (
 										router.push(newPath);
 									}}
 								>
-									<div className="flex flex-row items-center w-full overflow-auto">
-										<TabsList className="flex gap-8 max-md:gap-4 justify-start">
+									<div className={serviceDetailTabsBarClassName}>
+										<TabsList className={serviceDetailTabsListClassName}>
 											<TabsTrigger value="general">General</TabsTrigger>
 											{permissions?.envVars.read && (
 												<TabsTrigger value="environment">
