@@ -50,7 +50,6 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 	);
 
 	const [activeLog, setActiveLog] = useState<string | null>(null);
-	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const isBuildServer = server?.serverType === "build";
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
@@ -128,11 +127,7 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 							<TabsList
 								className={cn(
 									"grid  w-[700px]",
-									isBuildServer
-										? "grid-cols-3"
-										: isCloud
-											? "grid-cols-6"
-											: "grid-cols-5",
+									isBuildServer ? "grid-cols-3" : "grid-cols-6",
 								)}
 							>
 								<TabsTrigger value="ssh-keys">SSH Keys</TabsTrigger>
@@ -142,9 +137,7 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 								{!isBuildServer && (
 									<>
 										<TabsTrigger value="audit">Security</TabsTrigger>
-										{isCloud && (
-											<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-										)}
+										<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 										<TabsTrigger value="gpu-setup">GPU Setup</TabsTrigger>
 									</>
 								)}
