@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dokploy-e2e-postgres
+    environment:
+      POSTGRES_USER: dokploy
+      POSTGRES_PASSWORD: dokploy
+      POSTGRES_DB: dokploy_test
+    ports:
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dokploy -d dokploy_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - dokploy-e2e-pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: dokploy-e2e-redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  dokploy-e2e-pgdata:
