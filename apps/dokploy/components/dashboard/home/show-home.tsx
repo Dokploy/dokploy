@@ -53,9 +53,7 @@ function StatCard({
 			<div className="flex flex-col gap-1">
 				<span className="text-3xl font-semibold tracking-tight">{value}</span>
 				{delta && (
-					<span className="text-xs text-muted-foreground">
-						{delta}
-					</span>
+					<span className="text-xs text-muted-foreground">{delta}</span>
 				)}
 			</div>
 		</div>
@@ -193,9 +191,7 @@ export const ShowHome = () => {
 											aria-hidden
 										/>
 										<div className="flex flex-col min-w-0 flex-1">
-											<span className="text-sm truncate">
-												{info.name}
-											</span>
+											<span className="text-sm truncate">{info.name}</span>
 											<span className="text-xs text-muted-foreground truncate">
 												{info.projectName} · {info.environment}
 											</span>
