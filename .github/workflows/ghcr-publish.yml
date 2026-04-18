@@ -14,6 +14,17 @@ on:
         description: 'Extra tag to apply to the image (e.g. latest, v0.29.0)'
         required: false
         default: 'latest'
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Tag ref to build (e.g. v0.30.0)'
+        type: string
+        required: true
+      image_tag:
+        description: 'Extra tag to apply to the image'
+        type: string
+        required: false
+        default: 'latest'
 
 permissions:
   contents: read
@@ -52,8 +63,11 @@ jobs:
         id: meta
         run: |
           OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"
+          REF="${{ inputs.ref != '' && inputs.ref || github.ref }}"
+          if [[ "$REF" == refs/tags/v* ]]; then
+            VERSION="${REF#refs/tags/v}"
+          elif [[ "$REF" == v*.*.* ]]; then
+            VERSION="${REF#v}"
           else
             VERSION=$(node -p "require('./apps/dokploy/package.json').version")
           fi
@@ -99,8 +113,11 @@ jobs:
         id: meta
         run: |
           OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"
+          REF="${{ inputs.ref != '' && inputs.ref || github.ref }}"
+          if [[ "$REF" == refs/tags/v* ]]; then
+            VERSION="${REF#refs/tags/v}"
+          elif [[ "$REF" == v*.*.* ]]; then
+            VERSION="${REF#v}"
           else
             VERSION=$(node -p "require('./apps/dokploy/package.json').version")
           fi
@@ -142,13 +159,20 @@ jobs:
         id: v
         run: |
           OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"
+          REF="${{ inputs.ref != '' && inputs.ref || github.ref }}"
+          IS_RELEASE=false
+          if [[ "$REF" == refs/tags/v* ]]; then
+            VERSION="${REF#refs/tags/v}"
+            IS_RELEASE=true
+          elif [[ "$REF" == v*.*.* ]]; then
+            VERSION="${REF#v}"
+            IS_RELEASE=true
           else
             VERSION=$(node -p "require('./apps/dokploy/package.json').version")
           fi
-          echo "owner_lc=$OWNER_LC" >> $GITHUB_OUTPUT
-          echo "version=$VERSION"   >> $GITHUB_OUTPUT
+          echo "owner_lc=$OWNER_LC"     >> $GITHUB_OUTPUT
+          echo "version=$VERSION"       >> $GITHUB_OUTPUT
+          echo "is_release=$IS_RELEASE" >> $GITHUB_OUTPUT
 
       - name: Create multi-arch manifests
         run: |
@@ -161,15 +185,15 @@ jobs:
             "${IMG}:${VER}-amd64" \
             "${IMG}:${VER}-arm64"
 
-          # latest on tag pushes
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+          # latest on release builds
+          if [[ "${{ steps.v.outputs.is_release }}" == "true" ]]; then
             docker buildx imagetools create -t "${IMG}:latest" \
               "${IMG}:${VER}-amd64" \
               "${IMG}:${VER}-arm64"
           fi
 
-          # Extra manual tag on workflow_dispatch
-          if [[ -n "$EXTRA" ]]; then
+          # Extra manual tag on workflow_dispatch / workflow_call
+          if [[ -n "$EXTRA" && "$EXTRA" != "latest" ]]; then
             docker buildx imagetools create -t "${IMG}:${EXTRA}" \
               "${IMG}:${VER}-amd64" \
               "${IMG}:${VER}-arm64"
