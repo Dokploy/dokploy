@@ -1,0 +1,12 @@
+{
+	"$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+	"release-type": "node",
+	"include-component-in-tag": false,
+	"include-v-in-tag": true,
+	"packages": {
+		"apps/dokploy": {
+			"package-name": "dokploy",
+			"changelog-path": "CHANGELOG.md"
+		}
+	}
+}
