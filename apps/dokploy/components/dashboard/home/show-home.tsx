@@ -95,8 +95,7 @@ function StatusListCard({
 
 export const ShowHome = () => {
 	const { data: auth } = api.user.get.useQuery();
-	const { data: projects } = api.project.all.useQuery();
-	const { data: servers } = api.server.all.useQuery();
+	const { data: homeStats } = api.project.homeStats.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canReadDeployments = !!permissions?.deployment.read;
 	const { data: deployments } = api.deployment.allCentralized.useQuery(
@@ -109,53 +108,19 @@ export const ShowHome = () => {
 
 	const firstName = auth?.user?.firstName?.trim();
 
-	const { totals, statusBreakdown } = useMemo(() => {
-		let applications = 0;
-		let compose = 0;
-		let databases = 0;
-		let environments = 0;
-		const breakdown = { running: 0, error: 0, idle: 0 };
-		const dbKeys = [
-			"postgres",
-			"mysql",
-			"mariadb",
-			"mongo",
-			"redis",
-			"libsql",
-		] as const;
-		const bump = (status?: string) => {
-			if (status === "done") breakdown.running++;
-			else if (status === "error") breakdown.error++;
-			else breakdown.idle++;
-		};
-		for (const p of projects ?? []) {
-			for (const env of p.environments ?? []) {
-				environments++;
-				applications += env.applications?.length ?? 0;
-				compose += env.compose?.length ?? 0;
-				for (const a of env.applications ?? []) bump(a.applicationStatus);
-				for (const c of env.compose ?? []) bump((c as any).composeStatus);
-				for (const key of dbKeys) {
-					const list = ((env as any)[key] ?? []) as Array<{
-						applicationStatus?: string;
-					}>;
-					databases += list.length;
-					for (const s of list) bump(s.applicationStatus);
-				}
-			}
-		}
-		return {
-			totals: {
-				projects: projects?.length ?? 0,
-				environments,
-				applications,
-				compose,
-				databases,
-				services: applications + compose + databases,
-			},
-			statusBreakdown: breakdown,
-		};
-	}, [projects, servers]);
+	const totals = homeStats ?? {
+		projects: 0,
+		environments: 0,
+		applications: 0,
+		compose: 0,
+		databases: 0,
+		services: 0,
+	};
+	const statusBreakdown = homeStats?.status ?? {
+		running: 0,
+		error: 0,
+		idle: 0,
+	};
 
 	const recentDeployments = useMemo(() => {
 		if (!deployments) return [];
