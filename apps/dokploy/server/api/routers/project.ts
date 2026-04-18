@@ -488,8 +488,7 @@ export const projectRouter = createTRPCRouter({
 	),
 
 	homeStats: protectedProcedure.query(async ({ ctx }) => {
-		const isPrivileged =
-			ctx.user.role === "owner" || ctx.user.role === "admin";
+		const isPrivileged = ctx.user.role === "owner" || ctx.user.role === "admin";
 
 		let accessedProjects: string[] = [];
 		let accessedEnvironments: string[] = [];
