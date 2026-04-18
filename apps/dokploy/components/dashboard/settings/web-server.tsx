@@ -11,6 +11,7 @@ import { ShowDokployActions } from "./servers/actions/show-dokploy-actions";
 import { ShowStorageActions } from "./servers/actions/show-storage-actions";
 import { ShowTraefikActions } from "./servers/actions/show-traefik-actions";
 import { ToggleDockerCleanup } from "./servers/actions/toggle-docker-cleanup";
+import { MonitoringSetupAction } from "./web-server/monitoring-setup-action";
 import { UpdateServer } from "./web-server/update-server";
 
 export const WebServer = () => {
@@ -44,6 +45,7 @@ export const WebServer = () => {
 							<ShowDokployActions />
 							<ShowTraefikActions />
 							<ShowStorageActions />
+							<MonitoringSetupAction />
 
 							<UpdateServer />
 						</div>

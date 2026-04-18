@@ -16,10 +16,7 @@ export const MonitoringPage = () => {
 		api.user.getMetricsToken.useQuery();
 
 	const fleet: FleetServer[] = useMemo(() => {
-		const localConfigured = Boolean(
-			localMeta?.metricsConfig?.server?.token ||
-				process.env.NODE_ENV !== "production",
-		);
+		const localConfigured = Boolean(localMeta?.metricsConfig?.server?.token);
 		const local: FleetServer = {
 			serverId: null,
 			name: "Dokploy primary",

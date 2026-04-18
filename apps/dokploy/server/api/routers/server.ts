@@ -641,9 +641,6 @@ export const serverRouter = createTRPCRouter({
 		}),
 });
 
-const DEV_METRICS_BASE_URL = "http://localhost:3001/metrics";
-const DEV_METRICS_TOKEN = "metrics";
-
 const isValidPort = (port: unknown): port is number =>
 	typeof port === "number" &&
 	Number.isInteger(port) &&
@@ -657,15 +654,18 @@ async function resolveMetricsEndpoint(
 	if (serverId === null) {
 		const settings = await getWebServerSettings();
 		const config = settings?.metricsConfig?.server;
-		if (process.env.NODE_ENV !== "production") {
-			return { baseUrl: DEV_METRICS_BASE_URL, token: DEV_METRICS_TOKEN };
+		if (config?.token && settings?.serverIp && isValidPort(config.port)) {
+			return {
+				baseUrl: `http://${settings.serverIp}:${config.port}/metrics`,
+				token: config.token,
+			};
 		}
-		if (!config?.token || !settings?.serverIp || !isValidPort(config.port))
-			return null;
-		return {
-			baseUrl: `http://${settings.serverIp}:${config.port}/metrics`,
-			token: config.token,
-		};
+		const devUrl = process.env.DOKPLOY_DEV_METRICS_URL;
+		const devToken = process.env.DOKPLOY_DEV_METRICS_TOKEN;
+		if (devUrl && devToken) {
+			return { baseUrl: devUrl, token: devToken };
+		}
+		return null;
 	}
 
 	const target = await findServerById(serverId);
