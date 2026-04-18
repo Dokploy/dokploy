@@ -205,7 +205,10 @@ export const stripeRouter = createTRPCRouter({
 				mode: "subscription",
 				line_items: items,
 				...(stripeCustomerId
-					? { customer: stripeCustomerId, customer_update: { name: "auto", address: "auto" } }
+					? {
+							customer: stripeCustomerId,
+							customer_update: { name: "auto", address: "auto" },
+						}
 					: { customer_email: owner.email }),
 				metadata: {
 					adminId: owner.id,

@@ -40,7 +40,7 @@ function DeploymentsPage() {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-8xl mx-auto min-h-[45vh]">
+			<Card className="h-full bg-sidebar p-2.5 rounded-xl min-h-[45vh]">
 				<div className="rounded-xl bg-background shadow-md h-full">
 					<CardHeader>
 						<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -102,7 +102,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 		return {
 			redirect: {
 				permanent: false,
-				destination: "/dashboard/projects",
+				destination: "/dashboard/home",
 			},
 		};
 	}

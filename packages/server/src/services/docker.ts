@@ -417,21 +417,58 @@ export const getContainerLogs = async (
 	}
 };
 
-export const containerRestart = async (containerId: string) => {
-	try {
-		const { stdout, stderr } = await execAsync(
-			`docker container restart ${containerId}`,
-		);
+export const containerRestart = async (
+	containerId: string,
+	serverId?: string,
+) => {
+	const command = `docker container restart ${containerId}`;
+	const { stderr } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
 
-		if (stderr) {
-			console.error(`Error: ${stderr}`);
-			return;
-		}
+	if (stderr) {
+		console.error(`Error: ${stderr}`);
+		throw new Error(stderr);
+	}
+};
 
-		const config = JSON.parse(stdout);
+export const containerStart = async (
+	containerId: string,
+	serverId?: string,
+) => {
+	const command = `docker container start ${containerId}`;
+	const { stderr } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
 
-		return config;
-	} catch {}
+	if (stderr) {
+		console.error(`Error: ${stderr}`);
+		throw new Error(stderr);
+	}
+};
+
+export const containerStop = async (containerId: string, serverId?: string) => {
+	const command = `docker container stop ${containerId}`;
+	const { stderr } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (stderr) {
+		console.error(`Error: ${stderr}`);
+		throw new Error(stderr);
+	}
+};
+
+export const containerKill = async (containerId: string, serverId?: string) => {
+	const command = `docker container kill ${containerId}`;
+	const { stderr } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (stderr) {
+		console.error(`Error: ${stderr}`);
+		throw new Error(stderr);
+	}
 };
 
 export const containerRemove = async (

@@ -82,6 +82,16 @@ export default function Home({ IS_CLOUD }: Props) {
 			});
 
 			if (error) {
+				const isEmailNotVerified =
+					error.code === "EMAIL_NOT_VERIFIED" ||
+					error.message?.toLowerCase().includes("email not verified");
+				if (isEmailNotVerified) {
+					const msg =
+						"Your email is not verified. We've sent a new verification link to your email.";
+					toast.info(msg);
+					setError(msg);
+					return;
+				}
 				toast.error(error.message);
 				setError(error.message || "An error occurred while logging in");
 				return;
@@ -96,7 +106,7 @@ export default function Home({ IS_CLOUD }: Props) {
 			}
 
 			toast.success("Logged in successfully");
-			router.push("/dashboard/projects");
+			router.push("/dashboard/home");
 		} catch {
 			toast.error("An error occurred while logging in");
 		} finally {
@@ -123,7 +133,7 @@ export default function Home({ IS_CLOUD }: Props) {
 			}
 
 			toast.success("Logged in successfully");
-			router.push("/dashboard/projects");
+			router.push("/dashboard/home");
 		} catch {
 			toast.error("An error occurred while verifying 2FA code");
 		} finally {
@@ -153,7 +163,7 @@ export default function Home({ IS_CLOUD }: Props) {
 			}
 
 			toast.success("Logged in successfully");
-			router.push("/dashboard/projects");
+			router.push("/dashboard/home");
 		} catch {
 			toast.error("An error occurred while verifying backup code");
 		} finally {
@@ -398,7 +408,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 				return {
 					redirect: {
 						permanent: true,
-						destination: "/dashboard/projects",
+						destination: "/dashboard/home",
 					},
 				};
 			}
@@ -427,7 +437,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		return {
 			redirect: {
 				permanent: true,
-				destination: "/dashboard/projects",
+				destination: "/dashboard/home",
 			},
 		};
 	}

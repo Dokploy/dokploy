@@ -116,6 +116,14 @@ export function TagSelector({
 									<HandleTag />
 								</div>
 							</CommandEmpty>
+							{tags.length === 0 && (
+								<div className="flex flex-col items-center gap-2 py-4">
+									<span className="text-sm text-muted-foreground">
+										No tags created yet.
+									</span>
+									<HandleTag />
+								</div>
+							)}
 							<CommandGroup>
 								{tags.map((tag) => {
 									const isSelected = selectedTags.includes(tag.id);

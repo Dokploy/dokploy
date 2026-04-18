@@ -73,9 +73,13 @@ export const WelcomeSubscription = () => {
 				setIsOpen(open);
 				if (!open) {
 					const { success, ...rest } = router.query;
-					router.replace({ pathname: router.pathname, query: rest }, undefined, {
-						shallow: true,
-					});
+					router.replace(
+						{ pathname: router.pathname, query: rest },
+						undefined,
+						{
+							shallow: true,
+						},
+					);
 				}
 			}}
 		>
@@ -421,7 +425,7 @@ export const WelcomeSubscription = () => {
 								onClick={() => {
 									if (stepper.isLast) {
 										setIsOpen(false);
-										push("/dashboard/projects");
+										push("/dashboard/home");
 									} else {
 										stepper.next();
 									}

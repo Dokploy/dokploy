@@ -166,6 +166,7 @@ export const ShowProjects = () => {
 						return (
 							total +
 							(env.applications?.length || 0) +
+							(env.libsql?.length || 0) +
 							(env.mariadb?.length || 0) +
 							(env.mongo?.length || 0) +
 							(env.mysql?.length || 0) +
@@ -178,6 +179,7 @@ export const ShowProjects = () => {
 						return (
 							total +
 							(env.applications?.length || 0) +
+							(env.libsql?.length || 0) +
 							(env.mariadb?.length || 0) +
 							(env.mongo?.length || 0) +
 							(env.mysql?.length || 0) +

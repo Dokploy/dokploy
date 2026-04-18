@@ -139,7 +139,7 @@ const Invitation = ({
 			});
 
 			toast.success("Account created successfully");
-			router.push("/dashboard/projects");
+			router.push("/dashboard/home");
 		} catch {
 			toast.error("An error occurred while creating your account");
 		}
