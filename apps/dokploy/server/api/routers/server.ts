@@ -2,22 +2,25 @@ import {
 	createServer,
 	defaultCommand,
 	deleteServer,
+	fetchDeploymentMetrics,
 	findServerById,
 	findServersByUserId,
 	findUserById,
+	getAccessibleServerIds,
 	getPublicIpWithFallback,
 	haveActiveServices,
 	IS_CLOUD,
+	listDeploymentsByServer,
 	removeDeploymentsByServerId,
 	serverAudit,
 	serverSetup,
 	serverValidate,
 	setupMonitoring,
 	updateServerById,
-	getAccessibleServerIds,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
+import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
@@ -541,4 +544,141 @@ export const serverRouter = createTRPCRouter({
 				throw error;
 			}
 		}),
+	getSystemMetrics: withPermission("monitoring", "read")
+		.input(
+			z.object({
+				serverId: z.string().nullable(),
+				dataPoints: z.string(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const endpoint = await resolveMetricsEndpoint(input.serverId, ctx);
+			if (!endpoint) return [];
+			const url = new URL(endpoint.baseUrl);
+			url.searchParams.append("limit", input.dataPoints);
+			const controller = new AbortController();
+			const timeout = setTimeout(() => controller.abort(), 10_000);
+			let response: Response;
+			try {
+				response = await fetch(url.toString(), {
+					headers: { Authorization: `Bearer ${endpoint.token}` },
+					signal: controller.signal,
+				});
+			} catch (error) {
+				if ((error as Error).name === "AbortError") {
+					throw new Error(
+						"Monitoring agent did not respond within 10s. Ensure the agent is running on this server.",
+					);
+				}
+				throw error;
+			} finally {
+				clearTimeout(timeout);
+			}
+			if (!response.ok) {
+				throw new Error(
+					`Error ${response.status}: ${response.statusText}. Ensure the monitoring agent is running on this server.`,
+				);
+			}
+			const data = await response.json();
+			if (!Array.isArray(data)) return [];
+			return data as {
+				cpu: string;
+				cpuModel: string;
+				cpuCores: number;
+				cpuPhysicalCores: number;
+				cpuSpeed: number;
+				os: string;
+				distro: string;
+				kernel: string;
+				arch: string;
+				memUsed: string;
+				memUsedGB: string;
+				memTotal: string;
+				uptime: number;
+				diskUsed: string;
+				totalDisk: string;
+				networkIn: string;
+				networkOut: string;
+				timestamp: string;
+			}[];
+		}),
+	getServerDeployments: withPermission("monitoring", "read")
+		.input(
+			z.object({
+				serverId: z.string().nullable(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			if (input.serverId !== null) {
+				const target = await findServerById(input.serverId);
+				if (target.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You do not have access to this server",
+					});
+				}
+			}
+			return listDeploymentsByServer(input.serverId);
+		}),
+	getDeploymentMetrics: withPermission("monitoring", "read")
+		.input(
+			z.object({
+				serverId: z.string().nullable(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const endpoint = await resolveMetricsEndpoint(input.serverId, ctx);
+			if (!endpoint) return [];
+			const deployments = await listDeploymentsByServer(input.serverId);
+			const runningAppNames = deployments
+				.filter((d) => d.status === "running" || d.status === "done")
+				.map((d) => d.appName);
+			return fetchDeploymentMetrics(
+				endpoint.baseUrl,
+				endpoint.token,
+				runningAppNames,
+			);
+		}),
 });
+
+const DEV_METRICS_BASE_URL = "http://localhost:3001/metrics";
+const DEV_METRICS_TOKEN = "metrics";
+
+const isValidPort = (port: unknown): port is number =>
+	typeof port === "number" &&
+	Number.isInteger(port) &&
+	port >= 1 &&
+	port <= 65535;
+
+async function resolveMetricsEndpoint(
+	serverId: string | null,
+	ctx: { session: { activeOrganizationId: string } },
+): Promise<{ baseUrl: string; token: string } | null> {
+	if (serverId === null) {
+		const settings = await getWebServerSettings();
+		const config = settings?.metricsConfig?.server;
+		if (process.env.NODE_ENV !== "production") {
+			return { baseUrl: DEV_METRICS_BASE_URL, token: DEV_METRICS_TOKEN };
+		}
+		if (!config?.token || !settings?.serverIp || !isValidPort(config.port))
+			return null;
+		return {
+			baseUrl: `http://${settings.serverIp}:${config.port}/metrics`,
+			token: config.token,
+		};
+	}
+
+	const target = await findServerById(serverId);
+	if (target.organizationId !== ctx.session.activeOrganizationId) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You do not have access to this server",
+		});
+	}
+	const config = target.metricsConfig?.server;
+	if (!config?.token || !isValidPort(config.port)) return null;
+	return {
+		baseUrl: `http://${target.ipAddress}:${config.port}/metrics`,
+		token: config.token,
+	};
+}

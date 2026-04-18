@@ -14,7 +14,6 @@ import {
 	updateUser,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import {
 	account,
 	apiAssignPermissions,
@@ -29,6 +28,7 @@ import {
 	hasPermission,
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
+import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { and, asc, eq, gt } from "drizzle-orm";

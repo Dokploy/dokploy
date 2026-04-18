@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import {
 	Dialog,
 	DialogContent,
@@ -15,7 +16,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { api } from "@/utils/api";
 
 interface Props {
