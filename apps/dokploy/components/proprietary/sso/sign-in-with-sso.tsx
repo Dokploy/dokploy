@@ -44,7 +44,7 @@ export function SignInWithSSO({ children }: SignInWithSSOProps) {
 		try {
 			const { data, error } = await authClient.signIn.sso({
 				email: values.email,
-				callbackURL: "/dashboard/projects",
+				callbackURL: "/dashboard/home",
 			});
 			if (error) {
 				toast.error(error.message ?? "Failed to sign in with SSO");

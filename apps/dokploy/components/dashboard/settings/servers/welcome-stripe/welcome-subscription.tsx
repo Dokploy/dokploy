@@ -425,7 +425,7 @@ export const WelcomeSubscription = () => {
 								onClick={() => {
 									if (stepper.isLast) {
 										setIsOpen(false);
-										push("/dashboard/projects");
+										push("/dashboard/home");
 									} else {
 										stepper.next();
 									}
