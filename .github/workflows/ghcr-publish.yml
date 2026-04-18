@@ -1,0 +1,176 @@
+name: Build and Publish to GHCR
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch, tag, or SHA to build (default: current branch)'
+        required: false
+        default: ''
+      image_tag:
+        description: 'Extra tag to apply to the image (e.g. latest, v0.29.0)'
+        required: false
+        default: 'latest'
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  # Lowercased at push time via docker/metadata-action
+  IMAGE_NAME: ${{ github.repository_owner }}/dokploy
+
+jobs:
+  build-amd64:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare env files (required by Dockerfile)
+        run: |
+          cp apps/dokploy/.env.production.example .env.production
+          cp apps/dokploy/.env.production.example apps/dokploy/.env.production
+
+      - name: Compute version/tag
+        id: meta
+        run: |
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION=$(node -p "require('./apps/dokploy/package.json').version")
+          fi
+          echo "owner_lc=$OWNER_LC"   >> $GITHUB_OUTPUT
+          echo "version=$VERSION"     >> $GITHUB_OUTPUT
+          echo "image_amd=${{ env.REGISTRY }}/$OWNER_LC/dokploy:${VERSION}-amd64" >> $GITHUB_OUTPUT
+
+      - name: Build and push (amd64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.image_amd }}
+          cache-from: type=gha,scope=amd64
+          cache-to: type=gha,mode=max,scope=amd64
+
+  build-arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare env files (required by Dockerfile)
+        run: |
+          cp apps/dokploy/.env.production.example .env.production
+          cp apps/dokploy/.env.production.example apps/dokploy/.env.production
+
+      - name: Compute version/tag
+        id: meta
+        run: |
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION=$(node -p "require('./apps/dokploy/package.json').version")
+          fi
+          echo "owner_lc=$OWNER_LC"   >> $GITHUB_OUTPUT
+          echo "version=$VERSION"     >> $GITHUB_OUTPUT
+          echo "image_arm=${{ env.REGISTRY }}/$OWNER_LC/dokploy:${VERSION}-arm64" >> $GITHUB_OUTPUT
+
+      - name: Build and push (arm64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.image_arm }}
+          cache-from: type=gha,scope=arm64
+          cache-to: type=gha,mode=max,scope=arm64
+
+  combine-manifests:
+    needs: [build-amd64, build-arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute version
+        id: v
+        run: |
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION=$(node -p "require('./apps/dokploy/package.json').version")
+          fi
+          echo "owner_lc=$OWNER_LC" >> $GITHUB_OUTPUT
+          echo "version=$VERSION"   >> $GITHUB_OUTPUT
+
+      - name: Create multi-arch manifests
+        run: |
+          IMG="${{ env.REGISTRY }}/${{ steps.v.outputs.owner_lc }}/dokploy"
+          VER="${{ steps.v.outputs.version }}"
+          EXTRA="${{ inputs.image_tag }}"
+
+          # Versioned manifest
+          docker buildx imagetools create -t "${IMG}:${VER}" \
+            "${IMG}:${VER}-amd64" \
+            "${IMG}:${VER}-arm64"
+
+          # latest on tag pushes
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            docker buildx imagetools create -t "${IMG}:latest" \
+              "${IMG}:${VER}-amd64" \
+              "${IMG}:${VER}-arm64"
+          fi
+
+          # Extra manual tag on workflow_dispatch
+          if [[ -n "$EXTRA" ]]; then
+            docker buildx imagetools create -t "${IMG}:${EXTRA}" \
+              "${IMG}:${VER}-amd64" \
+              "${IMG}:${VER}-arm64"
+          fi
