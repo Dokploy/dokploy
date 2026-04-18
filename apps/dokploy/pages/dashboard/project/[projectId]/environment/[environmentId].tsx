@@ -36,7 +36,7 @@ import { AddTemplate } from "@/components/dashboard/project/add-template";
 import { AdvancedEnvironmentSelector } from "@/components/dashboard/project/advanced-environment-selector";
 import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 import { EnvironmentVariables } from "@/components/dashboard/project/environment-variables";
-import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
+import { ProjectEnvironment } from "@/components/dashboard/home/project-environment";
 import {
 	LibsqlIcon,
 	MariadbIcon,
@@ -1856,7 +1856,7 @@ export async function getServerSideProps(
 				return {
 					redirect: {
 						permanent: false,
-						destination: "/dashboard/projects",
+						destination: "/dashboard/home",
 					},
 				};
 			}
