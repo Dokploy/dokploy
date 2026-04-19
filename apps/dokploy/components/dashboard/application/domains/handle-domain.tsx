@@ -300,10 +300,15 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 		}
 	}, [baseDomains, selectedBaseDomain]);
 
-	// Update host field when subdomain or base domain changes (in restriction mode)
 	useEffect(() => {
-		if (isRestrictionEnabled && subdomain && selectedBaseDomain) {
-			form.setValue("host", `${subdomain}.${selectedBaseDomain}`);
+		if (isRestrictionEnabled && selectedBaseDomain) {
+			if (subdomain) {
+				form.setValue("host", `${subdomain}.${selectedBaseDomain}`);
+				form.clearErrors("host");
+			} else {
+				form.setValue("host", "");
+				form.setError("host", { message: "Subdomain is required" });
+			}
 		}
 	}, [subdomain, selectedBaseDomain, isRestrictionEnabled, form]);
 
