@@ -221,11 +221,15 @@ export const getAuthConfig = (application: ApplicationNested) => {
 	} = application;
 
 	if (sourceType === "docker") {
-		if (username && password) {
+		// Fall back to linked registry credentials when application-level creds are null
+		const authUser = username ?? registry?.username;
+		const authPass = password ?? registry?.password;
+		const authUrl = registryUrl ?? registry?.registryUrl;
+		if (authUser && authPass) {
 			return {
-				password,
-				username,
-				serveraddress: registryUrl || "",
+				password: authPass,
+				username: authUser,
+				serveraddress: authUrl || "",
 			};
 		}
 	} else if (registry) {

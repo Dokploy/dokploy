@@ -110,3 +110,14 @@ export const apiEnableSelfHostedRegistry = createSchema
 		password: true,
 	})
 	.required();
+
+export const apiGetRegistryImages = z.object({
+	registryId: z.string().min(1),
+	search: z.string().optional(),
+});
+
+export const apiGetRegistryTags = z.object({
+	registryId: z.string().min(1),
+	imageName: z.string().min(1),
+	search: z.string().optional(),
+});

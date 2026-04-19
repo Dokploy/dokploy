@@ -4,6 +4,8 @@ import {
 	execFileAsync,
 	findRegistryById,
 	IS_CLOUD,
+	listRegistryImages,
+	listRegistryTags,
 	removeRegistry,
 	updateRegistry,
 } from "@dokploy/server";
@@ -14,6 +16,8 @@ import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateRegistry,
 	apiFindOneRegistry,
+	apiGetRegistryImages,
+	apiGetRegistryTags,
 	apiRemoveRegistry,
 	apiTestRegistry,
 	apiTestRegistryById,
@@ -201,5 +205,29 @@ export const registryRouter = createTRPCRouter({
 					cause: error,
 				});
 			}
+		}),
+	getImages: withPermission("registry", "read")
+		.input(apiGetRegistryImages)
+		.query(async ({ input, ctx }) => {
+			const reg = await findRegistryById(input.registryId);
+			if (reg.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to access this registry",
+				});
+			}
+			return listRegistryImages(input.registryId, input.search);
+		}),
+	getTags: withPermission("registry", "read")
+		.input(apiGetRegistryTags)
+		.query(async ({ input, ctx }) => {
+			const reg = await findRegistryById(input.registryId);
+			if (reg.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to access this registry",
+				});
+			}
+			return listRegistryTags(input.registryId, input.imageName, input.search);
 		}),
 });

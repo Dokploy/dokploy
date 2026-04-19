@@ -102,8 +102,9 @@ export const getRegistryTag = (registry: Registry, imageName: string) => {
 	const repositoryName = extractRepositoryName(imageName);
 
 	// Build the final tag using registry's username/prefix
-	const targetPrefix = imagePrefix || username;
-	const finalRegistry = registryUrl || "";
+	// Docker requires all image references to be lowercase
+	const targetPrefix = (imagePrefix || username).toLowerCase();
+	const finalRegistry = (registryUrl || "").toLowerCase();
 
 	return finalRegistry
 		? `${finalRegistry}/${targetPrefix}/${repositoryName}`
