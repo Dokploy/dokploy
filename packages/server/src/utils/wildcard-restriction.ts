@@ -38,7 +38,13 @@ export const matchesWildcardPattern = (
 	for (const pattern of wildcardPatterns) {
 		const normalizedPattern = pattern.toLowerCase().trim();
 
-		if (normalizedPattern.startsWith("*.")) {
+		if (normalizedPattern.startsWith("**.")) {
+			// Multi-level wildcard: **.example.com
+			const baseDomain = normalizedPattern.slice(3);
+			if (normalizedDomain.endsWith(`.${baseDomain}`)) {
+				return true;
+			}
+		} else if (normalizedPattern.startsWith("*.")) {
 			// Single-level wildcard: *.example.com
 			const baseDomain = normalizedPattern.slice(2);
 			const domainParts = normalizedDomain.split(".");
@@ -50,6 +56,7 @@ export const matchesWildcardPattern = (
 					return true;
 				}
 			}
+		} else if (normalizedDomain === normalizedPattern) {
 		} else if (normalizedPattern.startsWith("**.")) {
 			// Multi-level wildcard: **.example.com
 			const baseDomain = normalizedPattern.slice(3);
