@@ -250,9 +250,10 @@ export const apiUpdateWebServerMonitoring = z.object({
 // Domain Restriction validation schemas
 export const domainRestrictionConfigSchema = z.object({
 	enabled: z.boolean(),
-	allowedWildcards: z.array(z.string().min(1)),
-});
-
-export const apiUpdateDomainRestriction = z.object({
-	domainRestrictionConfig: domainRestrictionConfigSchema,
+	allowedWildcards: z.array(
+		z.string().min(1).refine(
+			(s) => s.startsWith("*.") || s.startsWith("**."),
+			{ message: "Pattern must start with '*.' or '**.' (e.g. *.example.com)" },
+		),
+	),
 });
