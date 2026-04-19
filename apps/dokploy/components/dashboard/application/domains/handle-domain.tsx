@@ -137,10 +137,23 @@ interface Props {
 	children: React.ReactNode;
 }
 
+const extractBaseDomain = (wildcardPattern: string): string => {
+	const normalized = wildcardPattern.toLowerCase().trim();
+	if (normalized.startsWith("**.")) {
+		return normalized.slice(3);
+	}
+	if (normalized.startsWith("*.")) {
+		return normalized.slice(2);
+	}
+	return normalized;
+};
+
 export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [cacheType, setCacheType] = useState<CacheType>("cache");
 	const [isManualInput, setIsManualInput] = useState(false);
+	const [subdomain, setSubdomain] = useState("");
+	const [selectedBaseDomain, setSelectedBaseDomain] = useState("");
 
 	const utils = api.useUtils();
 	const { data, refetch } = api.domain.one.useQuery(
@@ -182,6 +195,15 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 		api.domain.canGenerateTraefikMeDomains.useQuery({
 			serverId: application?.serverId || "",
 		});
+
+	const { data: restrictionConfig } =
+		api.settings.getDomainRestrictionConfig.useQuery();
+
+	const isRestrictionEnabled =
+		restrictionConfig?.enabled &&
+		(restrictionConfig?.allowedWildcards?.length ?? 0) > 0;
+	const baseDomains =
+		restrictionConfig?.allowedWildcards?.map(extractBaseDomain) ?? [];
 
 	const {
 		data: services,
@@ -270,6 +292,20 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			form.trigger("customCertResolver");
 		}
 	}, [certificateType, form]);
+
+	// Initialize selected base domain when restriction config loads
+	useEffect(() => {
+		if (baseDomains.length > 0 && !selectedBaseDomain) {
+			setSelectedBaseDomain(baseDomains[0] ?? "");
+		}
+	}, [baseDomains, selectedBaseDomain]);
+
+	// Update host field when subdomain or base domain changes (in restriction mode)
+	useEffect(() => {
+		if (isRestrictionEnabled && subdomain && selectedBaseDomain) {
+			form.setValue("host", `${subdomain}.${selectedBaseDomain}`);
+		}
+	}, [subdomain, selectedBaseDomain, isRestrictionEnabled, form]);
 
 	const dictionary = {
 		success: domainId ? "Domain Updated" : "Domain Created",
@@ -512,7 +548,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									name="host"
 									render={({ field }) => (
 										<FormItem>
-											{!canGenerateTraefikMeDomains &&
+											{!isRestrictionEnabled &&
+												!canGenerateTraefikMeDomains &&
 												field.value.includes("traefik.me") && (
 													<AlertBlock type="warning">
 														You need to set an IP address in your{" "}
@@ -527,51 +564,140 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 														to make your traefik.me domain work.
 													</AlertBlock>
 												)}
-											{isTraefikMeDomain && (
+											{!isRestrictionEnabled && isTraefikMeDomain && (
 												<AlertBlock type="info">
 													<strong>Note:</strong> traefik.me is a public HTTP
 													service and does not support SSL/HTTPS. HTTPS and
 													certificate options will not have any effect.
 												</AlertBlock>
 											)}
-											<FormLabel>Host</FormLabel>
-											<div className="flex gap-2">
-												<FormControl>
-													<Input placeholder="api.dokploy.com" {...field} />
-												</FormControl>
-												<TooltipProvider delayDuration={0}>
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<Button
-																variant="secondary"
-																type="button"
-																isLoading={isLoadingGenerate}
-																onClick={() => {
-																	generateDomain({
-																		appName: application?.appName || "",
-																		serverId: application?.serverId || "",
-																	})
-																		.then((domain) => {
-																			field.onChange(domain);
-																		})
-																		.catch((err) => {
-																			toast.error(err.message);
-																		});
-																}}
-															>
-																<Dices className="size-4 text-muted-foreground" />
-															</Button>
-														</TooltipTrigger>
-														<TooltipContent
-															side="left"
-															sideOffset={5}
-															className="max-w-[10rem]"
-														>
-															<p>Generate traefik.me domain</p>
-														</TooltipContent>
-													</Tooltip>
-												</TooltipProvider>
-											</div>
+
+											{isRestrictionEnabled ? (
+												<>
+													<div className="space-y-4">
+														<div>
+															<FormLabel>Subdomain</FormLabel>
+															<div className="flex gap-2">
+																<Input
+																	placeholder="my-app"
+																	value={subdomain}
+																	onChange={(e) =>
+																		setSubdomain(
+																			e.target.value.toLowerCase().trim(),
+																		)
+																	}
+																/>
+																<TooltipProvider delayDuration={0}>
+																	<Tooltip>
+																		<TooltipTrigger asChild>
+																			<Button
+																				variant="secondary"
+																				type="button"
+																				onClick={() => {
+																					const randomSubdomain = `${application?.appName || "app"}-${Math.random().toString(36).substring(2, 8)}`;
+																					setSubdomain(randomSubdomain);
+																				}}
+																			>
+																				<Dices className="size-4 text-muted-foreground" />
+																			</Button>
+																		</TooltipTrigger>
+																		<TooltipContent
+																			side="left"
+																			sideOffset={5}
+																			className="max-w-[10rem]"
+																		>
+																			<p>Generate random subdomain</p>
+																		</TooltipContent>
+																	</Tooltip>
+																</TooltipProvider>
+															</div>
+														</div>
+
+														{baseDomains.length > 1 ? (
+															<div>
+																<FormLabel>Domain</FormLabel>
+																<Select
+																	value={selectedBaseDomain}
+																	onValueChange={setSelectedBaseDomain}
+																>
+																	<SelectTrigger>
+																		<SelectValue placeholder="Select a domain" />
+																	</SelectTrigger>
+																	<SelectContent>
+																		{baseDomains.map((domain) => (
+																			<SelectItem key={domain} value={domain}>
+																				{domain}
+																			</SelectItem>
+																		))}
+																	</SelectContent>
+																</Select>
+															</div>
+														) : (
+															<div>
+																<FormLabel>Domain</FormLabel>
+																<Input
+																	value={selectedBaseDomain}
+																	disabled
+																	className="bg-muted"
+																/>
+															</div>
+														)}
+
+														{subdomain && selectedBaseDomain && (
+															<div className="p-3 bg-muted rounded-lg">
+																<span className="text-sm text-muted-foreground">
+																	Preview:{" "}
+																</span>
+																<span className="font-mono">
+																	{subdomain}.{selectedBaseDomain}
+																</span>
+															</div>
+														)}
+													</div>
+													<input type="hidden" {...field} />
+												</>
+											) : (
+												<>
+													<FormLabel>Host</FormLabel>
+													<div className="flex gap-2">
+														<FormControl>
+															<Input placeholder="api.dokploy.com" {...field} />
+														</FormControl>
+														<TooltipProvider delayDuration={0}>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Button
+																		variant="secondary"
+																		type="button"
+																		isLoading={isLoadingGenerate}
+																		onClick={() => {
+																			generateDomain({
+																				appName: application?.appName || "",
+																				serverId: application?.serverId || "",
+																			})
+																				.then((domain) => {
+																					field.onChange(domain);
+																				})
+																				.catch((err) => {
+																					toast.error(err.message);
+																				});
+																		}}
+																	>
+																		<Dices className="size-4 text-muted-foreground" />
+																	</Button>
+																</TooltipTrigger>
+																<TooltipContent
+																	side="left"
+																	sideOffset={5}
+																	className="max-w-[10rem]"
+																>
+																	<p>Generate traefik.me domain</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													</div>
+												</>
+											)}
 
 											<FormMessage />
 										</FormItem>

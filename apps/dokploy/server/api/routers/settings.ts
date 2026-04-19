@@ -67,6 +67,7 @@ import {
 	apiServerSchema,
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
+	apiUpdateDomainRestriction,
 	projects,
 	server,
 } from "@/server/db/schema";
@@ -1071,4 +1072,34 @@ export const settingsRouter = createTRPCRouter({
 		const ips = process.env.DOKPLOY_CLOUD_IPS?.split(",");
 		return ips;
 	}),
+
+	getDomainRestrictionConfig: protectedProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return { enabled: false, allowedWildcards: [] };
+		}
+		const settings = await getWebServerSettings();
+		return (
+			settings?.domainRestrictionConfig ?? {
+				enabled: false,
+				allowedWildcards: [],
+			}
+		);
+	}),
+
+	updateDomainRestriction: adminProcedure
+		.input(apiUpdateDomainRestriction)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				return true;
+			}
+			await updateWebServerSettings({
+				domainRestrictionConfig: input.domainRestrictionConfig,
+			});
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "domain-restriction",
+			});
+			return true;
+		}),
 });
