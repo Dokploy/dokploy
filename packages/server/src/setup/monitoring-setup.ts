@@ -11,14 +11,14 @@ export const setupMonitoring = async (serverId: string) => {
 	const server = await findServerById(serverId);
 
 	const containerName = "dokploy-monitoring";
-	let imageName = "dokploy/monitoring:latest";
+	let imageName = "ghcr.io/bl4ckbl1zz/dokploy-monitoring:latest";
 
 	if (
 		(getDokployImageTag() !== "latest" ||
 			process.env.NODE_ENV === "development") &&
 		!IS_CLOUD
 	) {
-		imageName = "dokploy/monitoring:canary";
+		imageName = "ghcr.io/bl4ckbl1zz/dokploy-monitoring:canary";
 	}
 
 	const settings: ContainerCreateOptions = {
@@ -87,14 +87,14 @@ export const setupWebMonitoring = async () => {
 	const webServerSettings = await getWebServerSettings();
 
 	const containerName = "dokploy-monitoring";
-	let imageName = "dokploy/monitoring:latest";
+	let imageName = "ghcr.io/bl4ckbl1zz/dokploy-monitoring:latest";
 
 	if (
 		(getDokployImageTag() !== "latest" ||
 			process.env.NODE_ENV === "development") &&
 		!IS_CLOUD
 	) {
-		imageName = "dokploy/monitoring:canary";
+		imageName = "ghcr.io/bl4ckbl1zz/dokploy-monitoring:canary";
 	}
 
 	const settings: ContainerCreateOptions = {

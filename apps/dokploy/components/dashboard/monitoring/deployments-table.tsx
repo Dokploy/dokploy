@@ -80,6 +80,26 @@ export const DeploymentsTable = ({ serverId }: Props) => {
 		return map;
 	}, [metrics]);
 
+	const runningCount = useMemo(
+		() =>
+			(deployments ?? []).filter(
+				(d) => d.status === "running" || d.status === "done",
+			).length,
+		[deployments],
+	);
+
+	const metricsStatus = useMemo<
+		"ok" | "error" | "no-data" | "not-configured" | "idle"
+	>(() => {
+		if (metricsError) return "error";
+		if (runningCount === 0) return "idle";
+		if (!metrics) return "idle";
+		if (metrics.length === 0) return "not-configured";
+		if (metrics.every((m) => !m.ok)) return "error";
+		if (metrics.every((m) => m.ok && m.cpuPct === null)) return "no-data";
+		return "ok";
+	}, [metrics, metricsError, runningCount]);
+
 	if (deploymentsLoading) {
 		return (
 			<div className="flex h-40 items-center justify-center rounded-lg border text-muted-foreground">
@@ -111,10 +131,22 @@ export const DeploymentsTable = ({ serverId }: Props) => {
 				<div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
 					Deployments on this server · {deployments.length}
 				</div>
-				{metricsError && (
+				{metricsStatus === "error" && (
 					<div className="flex items-center gap-1 text-xs text-amber-500">
 						<AlertTriangle className="h-3 w-3" />
 						Live metrics unavailable
+					</div>
+				)}
+				{metricsStatus === "not-configured" && (
+					<div className="flex items-center gap-1 text-xs text-amber-500">
+						<AlertTriangle className="h-3 w-3" />
+						Metrics endpoint not configured
+					</div>
+				)}
+				{metricsStatus === "no-data" && (
+					<div className="flex items-center gap-1 text-xs text-amber-500">
+						<AlertTriangle className="h-3 w-3" />
+						No container metrics recorded yet
 					</div>
 				)}
 			</div>
