@@ -30,6 +30,7 @@ export * from "./redis";
 export * from "./registry";
 export * from "./rollbacks";
 export * from "./schedule";
+export * from "./scim";
 export * from "./security";
 export * from "./server";
 export * from "./session";

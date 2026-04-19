@@ -214,6 +214,7 @@ export const twoFactor = pgTable("two_factor", {
 	userId: text("user_id")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
+	verified: boolean("verified").notNull().default(true),
 });
 
 export const apikey = pgTable("apikey", {
