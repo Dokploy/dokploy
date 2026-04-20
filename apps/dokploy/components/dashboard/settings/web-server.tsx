@@ -1,8 +1,4 @@
-import { 
-	Check,
-	Copy,
-	ServerIcon,
-} from "lucide-react";
+import { Check, Copy, ServerIcon } from "lucide-react";
 import {
 	Card,
 	CardContent,
