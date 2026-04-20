@@ -102,7 +102,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 		return {
 			redirect: {
 				permanent: false,
-				destination: "/dashboard/projects",
+				destination: "/dashboard/home",
 			},
 		};
 	}

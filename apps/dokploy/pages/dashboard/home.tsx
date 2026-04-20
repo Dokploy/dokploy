@@ -1,36 +1,27 @@
-import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
-import { ShowBillingInvoices } from "@/components/dashboard/settings/billing/show-billing-invoices";
+import { ShowHome } from "@/components/dashboard/home/show-home";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
 
-const Page = () => {
-	return <ShowBillingInvoices />;
+const Home = () => {
+	return <ShowHome />;
 };
 
-export default Page;
+export default Home;
 
-Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout metaName="Invoices">{page}</DashboardLayout>;
+Home.getLayout = (page: ReactElement) => {
+	return <DashboardLayout>{page}</DashboardLayout>;
 };
-export async function getServerSideProps(
-	ctx: GetServerSidePropsContext<{ serviceId: string }>,
-) {
-	if (!IS_CLOUD) {
-		return {
-			redirect: {
-				permanent: true,
-				destination: "/dashboard/home",
-			},
-		};
-	}
+
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	const { req, res } = ctx;
 	const { user, session } = await validateRequest(req);
-	if (!user || user.role !== "owner") {
+
+	if (!user) {
 		return {
 			redirect: {
 				permanent: true,
@@ -51,9 +42,8 @@ export async function getServerSideProps(
 		transformer: superjson,
 	});
 
-	await helpers.user.get.prefetch();
-
 	await helpers.settings.isCloud.prefetch();
+	await helpers.user.get.prefetch();
 
 	return {
 		props: {

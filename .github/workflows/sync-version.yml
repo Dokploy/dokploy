@@ -3,6 +3,7 @@ name: Sync version to MCP and CLI repos
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   sync-version:
@@ -15,54 +16,54 @@ jobs:
       - name: Get version
         id: get_version
         run: |
-          VERSION=$(jq -r .version apps/dokploy/package.json)
+          VERSION=$(jq -r .version apps/dokploy/package.json | sed 's/^v//')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
       - name: Sync version to MCP repository
         run: |
-            git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/mcp.git mcp-repo
-            cd mcp-repo
-        
-            # Bump version
-            jq --arg v "${{ steps.get_version.outputs.version }}" '.version = $v' package.json > package.json.tmp
-            mv package.json.tmp package.json
-        
+            git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/mcp.git /tmp/mcp-repo
+            cd /tmp/mcp-repo
+
             # Regenerate tools from latest OpenAPI spec
             npm install -g pnpm
             pnpm install
             pnpm run fetch-openapi
             pnpm run generate
-        
+
+            # Bump version after install so pnpm install doesn't overwrite it
+            jq --arg v "${{ steps.get_version.outputs.version }}" '.version = $v' package.json > package.json.tmp
+            mv package.json.tmp package.json
+
             git config user.name "Dokploy Bot"
             git config user.email "bot@dokploy.com"
-        
+
             git add -A
             git commit -m "chore: bump version to ${{ steps.get_version.outputs.version }}" \
               -m "Source: ${{ github.repository }}@${{ github.sha }}" \
               -m "Release: ${{ github.event.release.html_url }}" \
               --allow-empty
-        
+
             git push
         
 
       - name: Sync version to CLI repository
         run: |
-          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/cli.git cli-repo
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/cli.git /tmp/cli-repo
 
-          cd cli-repo
+          cd /tmp/cli-repo
 
-          # Bump version
+          # Copy latest openapi spec and regenerate commands
+          cp ${{ github.workspace }}/openapi.json ./openapi.json
+          npm install -g pnpm
+          pnpm install
+          pnpm run generate
+
+          # Bump version after install so pnpm install doesn't overwrite it
           if [ -f package.json ]; then
             jq --arg v "${{ steps.get_version.outputs.version }}" '.version = $v' package.json > package.json.tmp
             mv package.json.tmp package.json
           fi
-
-          # Copy latest openapi spec and regenerate commands
-          cp ../openapi.json ./openapi.json
-          npm install -g pnpm
-          pnpm install
-          pnpm run generate
 
           git config user.name "Dokploy Bot"
           git config user.email "bot@dokploy.com"
