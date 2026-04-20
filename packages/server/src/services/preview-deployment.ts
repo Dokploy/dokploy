@@ -30,13 +30,9 @@ export const findPreviewDeploymentById = async (
 		with: {
 			domain: true,
 			application: {
-				with: {
-					server: true,
-					environment: {
-						with: {
-							project: true,
-						},
-					},
+				columns: {
+					applicationId: true,
+					serverId: true,
 				},
 			},
 		},

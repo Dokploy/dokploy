@@ -666,7 +666,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 											<div className="space-y-0.5">
 												<FormLabel>Custom Entrypoint</FormLabel>
 												<FormDescription>
-													Use custom entrypoint for domina
+													Use custom entrypoint for domain
 													<br />
 													"web" and/or "websecure" is used by default.
 												</FormDescription>
