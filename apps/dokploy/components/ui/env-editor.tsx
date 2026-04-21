@@ -85,7 +85,7 @@ export const EnvEditor = ({
 	rawClassName = "h-96",
 	className,
 }: EnvEditorProps) => {
-	const [isObscured, setIsObscured] = useState(true);
+	const [isObscured, setIsObscured] = useState(false);
 	const [viewMode, setViewMode] = useState<ViewMode>("raw");
 	const [rows, setRows] = useState<Row[]>([]);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
