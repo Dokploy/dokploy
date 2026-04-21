@@ -73,8 +73,7 @@ const serializeRows = (rows: Row[]): string =>
 
 const looksLikeEnvPaste = (text: string) => {
 	if (!text.includes("=")) return false;
-	if (/\r?\n/.test(text)) return true;
-	return (text.match(/=/g) ?? []).length >= 1;
+	return /\r?\n/.test(text);
 };
 
 export const EnvEditor = ({
