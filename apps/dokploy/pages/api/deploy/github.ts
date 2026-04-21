@@ -24,6 +24,11 @@ export default async function handler(
 	res: NextApiResponse,
 ) {
 	const signature = req.headers["x-hub-signature-256"];
+	if (!signature) {
+		res.status(401).json({ message: "Missing signature header" });
+		return;
+	}
+
 	const githubBody = req.body;
 
 	if (!githubBody?.installation?.id) {
@@ -50,7 +55,7 @@ export default async function handler(
 
 	const verified = await webhooks.verify(
 		JSON.stringify(githubBody),
-		signature as string,
+		signature,
 	);
 
 	if (!verified) {
