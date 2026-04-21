@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
-import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -17,6 +16,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { EnvEditor } from "@/components/ui/env-editor";
 import {
 	Form,
 	FormControl,
@@ -148,16 +148,12 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 										<FormItem>
 											<FormLabel>Environment variables</FormLabel>
 											<FormControl>
-												<CodeEditor
-													lineWrapping
-													language="properties"
-													readOnly={!canWrite}
-													wrapperClassName="h-[35rem] font-mono"
-													placeholder={`NODE_ENV=production
-PORT=3000
-
-                                                    `}
-													{...field}
+												<EnvEditor
+													value={field.value ?? ""}
+													onChange={field.onChange}
+													disabled={!canWrite}
+													rawClassName="h-[35rem]"
+													placeholder={"NODE_ENV=production\nPORT=3000"}
 												/>
 											</FormControl>
 
