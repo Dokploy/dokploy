@@ -40,6 +40,15 @@ const createId = () =>
 		? crypto.randomUUID()
 		: `row-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
+const unquoteDouble = (raw: string): string =>
+	// Inside double quotes, backslash escapes `"` and `\` (and \n / \r / \t for convenience).
+	raw.replace(/\\(["\\nrt])/g, (_match, ch: string) => {
+		if (ch === "n") return "\n";
+		if (ch === "r") return "\r";
+		if (ch === "t") return "\t";
+		return ch;
+	});
+
 const parseEnv = (text: string): Row[] => {
 	if (!text) return [];
 	const rows: Row[] = [];
@@ -55,9 +64,17 @@ const parseEnv = (text: string): Row[] => {
 		let value = line.slice(eq + 1).trim();
 		if (key.startsWith("export ")) key = key.slice(7).trim();
 		if (
-			(value.startsWith('"') && value.endsWith('"')) ||
-			(value.startsWith("'") && value.endsWith("'"))
+			value.length >= 2 &&
+			value.startsWith('"') &&
+			value.endsWith('"')
 		) {
+			value = unquoteDouble(value.slice(1, -1));
+		} else if (
+			value.length >= 2 &&
+			value.startsWith("'") &&
+			value.endsWith("'")
+		) {
+			// POSIX-style single quotes: content is literal, no escape processing.
 			value = value.slice(1, -1);
 		}
 		rows.push({ id: createId(), key, value });
@@ -65,10 +82,33 @@ const parseEnv = (text: string): Row[] => {
 	return rows;
 };
 
+const needsQuoting = (value: string): boolean => {
+	if (value === "") return false;
+	// Quote whenever the value has whitespace, a leading/trailing space, a
+	// comment marker, quotes, backslash, `$`, or backtick — anything a shell
+	// or dotenv parser could reinterpret if left bare.
+	if (/[\s#"'\\$`]/.test(value)) return true;
+	if (value !== value.trim()) return true;
+	return false;
+};
+
+const quoteValue = (value: string): string => {
+	const escaped = value
+		.replace(/\\/g, "\\\\")
+		.replace(/"/g, '\\"')
+		.replace(/\n/g, "\\n")
+		.replace(/\r/g, "\\r");
+	return `"${escaped}"`;
+};
+
 const serializeRows = (rows: Row[]): string =>
 	rows
 		.filter((r) => r.key.trim() !== "")
-		.map((r) => `${r.key.trim()}=${r.value}`)
+		.map((r) => {
+			const key = r.key.trim();
+			const value = needsQuoting(r.value) ? quoteValue(r.value) : r.value;
+			return `${key}=${value}`;
+		})
 		.join("\n");
 
 const looksLikeEnvPaste = (text: string) => {
