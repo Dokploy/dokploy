@@ -458,66 +458,75 @@ export default async function handler(
 			}
 
 			for (const app of secureApps) {
-				// check for labels
-				if (app?.previewLabels && app?.previewLabels?.length > 0) {
-					let hasLabel = false;
-					const labels = githubBody?.pull_request?.labels;
-					for (const label of labels) {
-						if (app?.previewLabels?.includes(label.name)) {
-							hasLabel = true;
-							break;
+				try {
+					if (app?.previewLabels && app?.previewLabels?.length > 0) {
+						let hasLabel = false;
+						const labels = githubBody?.pull_request?.labels;
+						for (const label of labels) {
+							if (app?.previewLabels?.includes(label.name)) {
+								hasLabel = true;
+								break;
+							}
 						}
+						if (!hasLabel) continue;
 					}
-					if (!hasLabel) continue;
-				}
 
-				const previewLimit = app?.previewLimit || 0;
-				if (app?.previewDeployments?.length > previewLimit) {
-					continue;
-				}
-				const previewDeploymentResult =
-					await findPreviewDeploymentByApplicationId(app.applicationId, prId);
-
-				let previewDeploymentId =
-					previewDeploymentResult?.previewDeploymentId || "";
-
-				if (!previewDeploymentResult && shouldCreateDeployment) {
-					const previewDeployment = await createPreviewDeployment({
-						applicationId: app.applicationId as string,
-						branch: prBranch,
-						pullRequestId: prId,
-						pullRequestNumber: prNumber,
-						pullRequestTitle: prTitle,
-						pullRequestURL: prURL,
-					});
-					previewDeploymentId = previewDeployment.previewDeploymentId;
-				}
-
-				const jobData: DeploymentJob = {
-					applicationId: app.applicationId as string,
-					titleLog: "Preview Deployment",
-					descriptionLog: `Hash: ${deploymentHash}`,
-					type: "deploy",
-					applicationType: "application-preview",
-					server: !!app.serverId,
-					previewDeploymentId,
-				};
-
-				if (previewDeploymentId) {
-					if (IS_CLOUD && app.serverId) {
-						jobData.serverId = app.serverId;
-						deploy(jobData).catch((error) => {
-							console.error("Background deployment failed:", error);
-						});
+					const previewLimit = app?.previewLimit || 0;
+					if (app?.previewDeployments?.length > previewLimit) {
 						continue;
 					}
-					await myQueue.add(
-						"deployments",
-						{ ...jobData },
-						{
-							removeOnComplete: true,
-							removeOnFail: true,
-						},
+					const previewDeploymentResult =
+						await findPreviewDeploymentByApplicationId(app.applicationId, prId);
+
+					let previewDeploymentId =
+						previewDeploymentResult?.previewDeploymentId || "";
+
+					if (!previewDeploymentResult && shouldCreateDeployment) {
+						const previewDeployment = await createPreviewDeployment({
+							applicationId: app.applicationId as string,
+							branch: prBranch,
+							pullRequestId: prId,
+							pullRequestNumber: prNumber,
+							pullRequestTitle: prTitle,
+							pullRequestURL: prURL,
+						});
+						previewDeploymentId = previewDeployment.previewDeploymentId;
+					}
+
+					const jobData: DeploymentJob = {
+						applicationId: app.applicationId as string,
+						titleLog: "Preview Deployment",
+						descriptionLog: `Hash: ${deploymentHash}`,
+						type: "deploy",
+						applicationType: "application-preview",
+						server: !!app.serverId,
+						previewDeploymentId,
+					};
+
+					if (previewDeploymentId) {
+						// BullMQ dedupes by jobId while waiting/active — coalesces concurrent opened+labeled webhooks for the same SHA.
+						const jobId = `preview:${previewDeploymentId}:${deploymentHash || "nosha"}`;
+						if (IS_CLOUD && app.serverId) {
+							jobData.serverId = app.serverId;
+							deploy(jobData).catch((error) => {
+								console.error("Background deployment failed:", error);
+							});
+							continue;
+						}
+						await myQueue.add(
+							"deployments",
+							{ ...jobData },
+							{
+								jobId,
+								removeOnComplete: true,
+								removeOnFail: true,
+							},
+						);
+					}
+				} catch (error) {
+					console.error(
+						`Error processing preview deployment for application=${app.applicationId} pr=${prId} action=${action}:`,
+						error,
 					);
 				}
 			}

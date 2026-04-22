@@ -126,6 +126,21 @@ export const findPreviewDeploymentsByApplicationId = async (
 	return deploymentsList;
 };
 
+const isUniqueViolation = (error: unknown): boolean => {
+	if (!error || typeof error !== "object") return false;
+	const code = (error as { code?: unknown }).code;
+	const cause = (error as { cause?: unknown }).cause;
+	if (code === "23505") return true;
+	if (
+		cause &&
+		typeof cause === "object" &&
+		(cause as { code?: unknown }).code === "23505"
+	) {
+		return true;
+	}
+	return false;
+};
+
 export const createPreviewDeployment = async (
 	schema: z.infer<typeof apiCreatePreviewDeployment>,
 ) => {
@@ -142,36 +157,77 @@ export const createPreviewDeployment = async (
 		org?.ownerId || "",
 	);
 
-	const octokit = authGithub(application?.github as Github);
-
-	const runningComment = getIssueComment(
-		application.name,
-		"initializing",
-		`${application.previewHttps ? "https" : "http"}://${generateDomain}`,
-	);
-
-	const issue = await octokit.rest.issues.createComment({
-		owner: application?.owner || "",
-		repo: application?.repository || "",
-		issue_number: Number.parseInt(schema.pullRequestNumber),
-		body: `### Dokploy Preview Deployment\n\n${runningComment}`,
-	});
-
-	const previewDeployment = await db
-		.insert(previewDeployments)
-		.values({
-			...schema,
-			appName: appName,
-			pullRequestCommentId: `${issue.data.id}`,
-		})
-		.returning()
-		.then((value) => value[0]);
+	// Insert first so the unique index on (applicationId, pullRequestId) resolves concurrent-webhook races.
+	let previewDeployment: typeof previewDeployments.$inferSelect | undefined;
+	try {
+		previewDeployment = await db
+			.insert(previewDeployments)
+			.values({
+				...schema,
+				appName: appName,
+				pullRequestCommentId: "",
+			})
+			.returning()
+			.then((value) => value[0]);
+	} catch (error) {
+		if (isUniqueViolation(error)) {
+			const existing = await findPreviewDeploymentByApplicationId(
+				schema.applicationId,
+				schema.pullRequestId,
+			);
+			if (existing) {
+				console.log(
+					`Preview deployment already exists for application=${schema.applicationId} pr=${schema.pullRequestId}; reusing ${existing.previewDeploymentId}`,
+				);
+				return existing;
+			}
+			console.error(
+				"Preview deployment unique-violation without an existing row — this should not happen",
+				error,
+			);
+		}
+		throw error;
+	}
 
 	if (!previewDeployment) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "Error creating the preview deployment",
 		});
+	}
+
+	// Comment failures must not roll back the row; application.ts recreates missing comments on deploy.
+	try {
+		const octokit = authGithub(application?.github as Github);
+		const runningComment = getIssueComment(
+			application.name,
+			"initializing",
+			`${application.previewHttps ? "https" : "http"}://${generateDomain}`,
+		);
+		const issue = await octokit.rest.issues.createComment({
+			owner: application?.owner || "",
+			repo: application?.repository || "",
+			issue_number: Number.parseInt(schema.pullRequestNumber),
+			body: `### Dokploy Preview Deployment\n\n${runningComment}`,
+		});
+		await db
+			.update(previewDeployments)
+			.set({ pullRequestCommentId: `${issue.data.id}` })
+			.where(
+				eq(
+					previewDeployments.previewDeploymentId,
+					previewDeployment.previewDeploymentId,
+				),
+			);
+		previewDeployment = {
+			...previewDeployment,
+			pullRequestCommentId: `${issue.data.id}`,
+		};
+	} catch (error) {
+		console.error(
+			`Failed to create initial PR comment for preview ${previewDeployment.previewDeploymentId}; deploy will recreate it.`,
+			error,
+		);
 	}
 
 	const newDomain = await createDomain({
