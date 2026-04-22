@@ -172,9 +172,6 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 					},
 				);
 
-	const { data: dnsProviders } = api.dnsProvider.byOrganizationActive.useQuery();
-	const hasActiveDnsProviders = dnsProviders && dnsProviders.length > 0;
-
 	const { mutateAsync, isError, error, isLoading } = domainId
 		? api.domain.update.useMutation()
 		: api.domain.create.useMutation();
@@ -273,12 +270,6 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	};
 
 	const onSubmit = async (data: Domain) => {
-		// Validate wildcard domain + Let's Encrypt combination
-		if (isWildcardDomain(data.host) && data.certificateType === "letsencrypt" && !hasActiveDnsProviders) {
-			toast.error("Wildcard domains require DNS challenge. Please configure a DNS provider first.");
-			return;
-		}
-
 		await mutateAsync({
 			domainId,
 			...(data.domainType === "application" && {
@@ -524,17 +515,6 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 														<strong>Wildcard Domain Detected:</strong> This will cover all subdomains (e.g.,
 														{field.value?.replace("*.", "app.",) || "app.example.com"},
 														{field.value?.replace("*.", "api.",) || "api.example.com"}, etc.).
-														{hasActiveDnsProviders
-															? ` ✅ ${dnsProviders?.length || 0} DNS provider(s) configured - SSL ready!`
-															: " ⚠️ Requires DNS provider setup for SSL certificates."}
-														{!hasActiveDnsProviders && (
-															<Link
-																href="/dashboard/settings/dns-providers"
-																className="text-primary underline ml-1"
-															>
-																Configure DNS Providers
-															</Link>
-														)}
 													</AlertBlock>
 												)}
 												<FormLabel>Host</FormLabel>
@@ -699,11 +679,6 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 												return (
 													<FormItem>
 														<FormLabel>Certificate Provider</FormLabel>
-														{isWildcard && !hasActiveDnsProviders && (
-															<FormDescription className="text-amber-600">
-																⚠️ Wildcard domains require DNS challenge. Configure a DNS provider in settings first.
-															</FormDescription>
-														)}
 														<Select
 															onValueChange={(value) => {
 																field.onChange(value);
@@ -715,7 +690,6 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																}
 															}}
 															value={field.value}
-															disabled={isWildcard && !hasActiveDnsProviders && field.value === "letsencrypt"}
 														>
 															<FormControl>
 																<SelectTrigger>
@@ -724,17 +698,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 															</FormControl>
 															<SelectContent>
 																<SelectItem value={"none"}>None</SelectItem>
-																<SelectItem
-																	value={"letsencrypt"}
-																	disabled={isWildcard && !hasActiveDnsProviders}
-																>
-																	{isWildcard && !hasActiveDnsProviders
-																		? "Let's Encrypt (Requires DNS Setup)"
-																		: isWildcard && hasActiveDnsProviders
-																			? "Let's Encrypt (DNS Challenge Ready)"
-																			: "Let's Encrypt"
-																	}
-																</SelectItem>
+																<SelectItem value={"letsencrypt"}>Let's Encrypt</SelectItem>
 																<SelectItem value={"custom"}>
 																	Custom Certificate
 																</SelectItem>
