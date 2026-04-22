@@ -35,6 +35,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
+import { ConfirmableProviderSave } from "./confirmable-provider-save";
 
 const GitProviderSchema = z.object({
 	buildPath: z.string().min(1, "Path is required").default("/"),
@@ -315,9 +316,17 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 				</div>
 
 				<div className="flex flex-row justify-end">
-					<Button type="submit" className="w-fit" isLoading={isPending}>
+					<ConfirmableProviderSave
+						needsConfirmation={
+							data?.sourceType === "github" &&
+							data?.isPreviewDeploymentsActive === true
+						}
+						isLoading={isPending}
+						onValidate={() => form.trigger()}
+						onConfirm={form.handleSubmit(onSubmit)}
+					>
 						Save
-					</Button>
+					</ConfirmableProviderSave>
 				</div>
 			</form>
 		</Form>
