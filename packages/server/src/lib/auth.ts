@@ -92,7 +92,7 @@ const { handler, api } = betterAuth({
 				process.env.NODE_ENV === "development"
 					? [
 							"http://localhost:3000",
-							"https://select-stuffed-andrea-timeline.trycloudflare.com",
+							"https://absolutely-handy-falcon.ngrok-free.app",
 						]
 					: [];
 			return [
