@@ -28,6 +28,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 		title: "MongoDB Backup",
 		description: "MongoDB Backup",
 	});
+	const startedAt = Date.now();
 	try {
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
@@ -54,6 +55,10 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 			type: "success",
 			organizationId: project.organizationId,
 			databaseName: backup.database,
+			schedule: backup.schedule,
+			destinationBucket: destination.bucket,
+			destinationPrefix: backup.prefix,
+			durationMs: Date.now() - startedAt,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
@@ -67,6 +72,10 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,
+			schedule: backup.schedule,
+			destinationBucket: destination.bucket,
+			destinationPrefix: backup.prefix,
+			durationMs: Date.now() - startedAt,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		throw error;
