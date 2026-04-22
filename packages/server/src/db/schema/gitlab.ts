@@ -18,6 +18,9 @@ export const gitlab = pgTable("gitlab", {
 	refreshToken: text("refresh_token"),
 	groupName: text("group_name"),
 	expiresAt: integer("expires_at"),
+	webhookSecret: text("webhook_secret")
+		.notNull()
+		.$defaultFn(() => nanoid()),
 	gitProviderId: text("gitProviderId")
 		.notNull()
 		.references(() => gitProvider.gitProviderId, { onDelete: "cascade" }),

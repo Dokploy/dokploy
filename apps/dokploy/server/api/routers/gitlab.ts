@@ -51,9 +51,17 @@ export const gitlabRouter = createTRPCRouter({
 				});
 			}
 		}),
-	one: protectedProcedure.input(apiFindOneGitlab).query(async ({ input }) => {
-		return await findGitlabById(input.gitlabId);
-	}),
+	one: protectedProcedure
+		.input(apiFindOneGitlab)
+		.query(async ({ input, ctx }) => {
+			const result = await findGitlabById(input.gitlabId);
+			if (
+				result.gitProvider.organizationId !== ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+			}
+			return result;
+		}),
 	gitlabProviders: protectedProcedure.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
 
