@@ -19,6 +19,21 @@ import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import { extractCommitMessage, extractHash } from "./[refreshToken]";
 
+// In-process dedup for preview deploy dispatches. Covers the same-replica case
+// where opened+labeled webhooks for the same PR+SHA land on one Node process;
+// cross-replica races are still bounded by the DB unique index on (applicationId, pullRequestId).
+const recentPreviewDispatches = new Map<string, number>();
+const PREVIEW_DISPATCH_TTL_MS = 60_000;
+const claimPreviewDispatch = (key: string): boolean => {
+	const now = Date.now();
+	for (const [k, t] of recentPreviewDispatches) {
+		if (now - t > PREVIEW_DISPATCH_TTL_MS) recentPreviewDispatches.delete(k);
+	}
+	if (recentPreviewDispatches.has(key)) return false;
+	recentPreviewDispatches.set(key, now);
+	return true;
+};
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
@@ -504,8 +519,8 @@ export default async function handler(
 					};
 
 					if (previewDeploymentId) {
-						// BullMQ dedupes by jobId while waiting/active — coalesces concurrent opened+labeled webhooks for the same SHA.
 						const jobId = `preview:${previewDeploymentId}:${deploymentHash || "nosha"}`;
+						if (!claimPreviewDispatch(jobId)) continue;
 						if (IS_CLOUD && app.serverId) {
 							jobData.serverId = app.serverId;
 							deploy(jobData).catch((error) => {

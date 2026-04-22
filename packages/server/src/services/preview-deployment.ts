@@ -176,6 +176,7 @@ export const createPreviewDeployment = async (
 				schema.pullRequestId,
 			);
 			if (existing) {
+				// Early return; locally-generated appName/domain values are intentionally discarded (no external resources created yet).
 				console.log(
 					`Preview deployment already exists for application=${schema.applicationId} pr=${schema.pullRequestId}; reusing ${existing.previewDeploymentId}`,
 				);
