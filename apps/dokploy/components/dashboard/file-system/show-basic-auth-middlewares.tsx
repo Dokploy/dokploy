@@ -34,10 +34,10 @@ export const ShowBasicAuthMiddlewares = ({ serverId }: Props) => {
 							Basic Auth Middlewares
 						</CardTitle>
 						<CardDescription>
-							Create reusable basic auth middlewares in{" "}
-							{"'middlewares.yml'"}. Reference one in a Docker Compose label or
-							on a domain's Middlewares field as{" "}
-							<code className="text-xs">name@file</code>, then redeploy.
+							Create reusable basic auth middlewares in {"'middlewares.yml'"}.
+							Reference one in a Docker Compose label or on a domain's
+							Middlewares field as <code className="text-xs">name@file</code>,
+							then redeploy.
 						</CardDescription>
 					</div>
 
