@@ -4,12 +4,18 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { ShowBasicAuthMiddlewares } from "@/components/dashboard/file-system/show-basic-auth-middlewares";
 import { ShowTraefikSystem } from "@/components/dashboard/file-system/show-traefik-system";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
 
 const Dashboard = () => {
-	return <ShowTraefikSystem />;
+	return (
+		<div className="flex flex-col gap-4">
+			<ShowBasicAuthMiddlewares />
+			<ShowTraefikSystem />
+		</div>
+	);
 };
 
 export default Dashboard;
