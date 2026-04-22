@@ -6,10 +6,11 @@ RUN corepack enable
 RUN corepack prepare pnpm@10.22.0 --activate
 
 FROM base AS build
-COPY . /usr/src/app
-WORKDIR /usr/src/app
 
 RUN apt-get update && apt-get install -y python3 make g++ git python3-pip pkg-config libsecret-1-dev && rm -rf /var/lib/apt/lists/*
+
+COPY . /usr/src/app
+WORKDIR /usr/src/app
 
 # Install dependencies
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
