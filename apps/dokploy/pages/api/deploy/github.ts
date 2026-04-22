@@ -53,7 +53,10 @@ export default async function handler(
 		secret: githubResult.githubWebhookSecret,
 	});
 
-	const verified = await webhooks.verify(JSON.stringify(githubBody), signature as string);
+	const verified = await webhooks.verify(
+		JSON.stringify(githubBody),
+		signature as string,
+	);
 
 	if (!verified) {
 		res.status(401).json({ message: "Unauthorized" });
