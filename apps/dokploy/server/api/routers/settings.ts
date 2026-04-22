@@ -525,7 +525,7 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return [];
 			}
-			let config: FileConfig;
+			let config: FileConfig | null;
 			try {
 				config = input?.serverId
 					? await loadRemoteMiddlewares(input.serverId)
@@ -563,14 +563,15 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return true;
 			}
-			let config: FileConfig;
+			let config: FileConfig | null;
 			try {
 				config = input.serverId
 					? await loadRemoteMiddlewares(input.serverId)
 					: loadMiddlewares<FileConfig>();
 			} catch {
-				config = { http: { middlewares: {} } };
+				config = null;
 			}
+			if (!config) config = { http: { middlewares: {} } };
 			if (!config.http) config.http = { middlewares: {} };
 			if (!config.http.middlewares) config.http.middlewares = {};
 
@@ -626,7 +627,7 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return true;
 			}
-			let config: FileConfig;
+			let config: FileConfig | null;
 			try {
 				config = input.serverId
 					? await loadRemoteMiddlewares(input.serverId)
@@ -635,8 +636,8 @@ export const settingsRouter = createTRPCRouter({
 				return true;
 			}
 
-			const entry = config.http?.middlewares?.[input.name];
-			if (!entry || !("basicAuth" in entry)) {
+			const entry = config?.http?.middlewares?.[input.name];
+			if (!config || !entry || !("basicAuth" in entry)) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: `Basic auth middleware "${input.name}" not found`,

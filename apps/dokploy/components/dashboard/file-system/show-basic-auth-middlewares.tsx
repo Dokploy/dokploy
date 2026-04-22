@@ -1,5 +1,6 @@
 import copy from "copy-to-clipboard";
 import { Copy, LockKeyhole, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,10 @@ export const ShowBasicAuthMiddlewares = ({ serverId }: Props) => {
 	const { data, refetch, isLoading } =
 		api.settings.listBasicAuthMiddlewares.useQuery({ serverId });
 
-	const { mutateAsync: deleteMiddleware, isPending: isRemoving } =
+	const { mutateAsync: deleteMiddleware } =
 		api.settings.deleteBasicAuthMiddleware.useMutation();
+
+	const [deletingName, setDeletingName] = useState<string | null>(null);
 
 	return (
 		<Card className="bg-sidebar p-2.5 rounded-xl">
@@ -98,6 +101,7 @@ export const ShowBasicAuthMiddlewares = ({ serverId }: Props) => {
 											description={`Are you sure you want to delete "${middleware.name}"? Any compose services or domains referencing it will stop authenticating until redeployed.`}
 											type="destructive"
 											onClick={async () => {
+												setDeletingName(middleware.name);
 												await deleteMiddleware({
 													name: middleware.name,
 													serverId,
@@ -110,6 +114,9 @@ export const ShowBasicAuthMiddlewares = ({ serverId }: Props) => {
 														toast.error(
 															error?.message ?? "Error deleting middleware",
 														);
+													})
+													.finally(() => {
+														setDeletingName(null);
 													});
 											}}
 										>
@@ -117,7 +124,7 @@ export const ShowBasicAuthMiddlewares = ({ serverId }: Props) => {
 												variant="ghost"
 												size="icon"
 												className="group hover:bg-red-500/10"
-												isLoading={isRemoving}
+												isLoading={deletingName === middleware.name}
 											>
 												<Trash2 className="size-4 text-primary group-hover:text-red-500" />
 											</Button>
