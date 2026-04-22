@@ -105,7 +105,7 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 										disabled={isLoading || serverId === undefined || isChecking}
 									>
 										{isLoading
-											? "Enabling GPU..."
+											? "Loading..."
 											: gpuStatus?.swarmEnabled
 												? "Reconfigure GPU"
 												: "Enable GPU"}

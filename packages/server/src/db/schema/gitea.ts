@@ -11,6 +11,7 @@ export const gitea = pgTable("gitea", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	giteaUrl: text("giteaUrl").default("https://gitea.com").notNull(),
+	giteaInternalUrl: text("giteaInternalUrl"),
 	redirectUri: text("redirect_uri"),
 	clientId: text("client_id"),
 	clientSecret: text("client_secret"),
@@ -40,6 +41,7 @@ export const apiCreateGitea = createSchema.extend({
 	redirectUri: z.string().optional(),
 	name: z.string().min(1),
 	giteaUrl: z.string().min(1),
+	giteaInternalUrl: z.string().optional().nullable(),
 	giteaUsername: z.string().optional(),
 	accessToken: z.string().optional(),
 	refreshToken: z.string().optional(),
@@ -76,6 +78,7 @@ export const apiUpdateGitea = createSchema.extend({
 	name: z.string().min(1),
 	giteaId: z.string().min(1),
 	giteaUrl: z.string().min(1),
+	giteaInternalUrl: z.string().optional().nullable(),
 	giteaUsername: z.string().optional(),
 	accessToken: z.string().optional(),
 	refreshToken: z.string().optional(),

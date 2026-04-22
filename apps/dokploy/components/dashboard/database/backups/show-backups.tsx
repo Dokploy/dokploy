@@ -53,14 +53,16 @@ export const ShowBackups = ({
 	const queryMap =
 		backupType === "database"
 			? {
-					postgres: () =>
-						api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
-					mysql: () =>
-						api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
 					mariadb: () =>
 						api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
 					mongo: () =>
 						api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+					mysql: () =>
+						api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+					postgres: () =>
+						api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+					libsql: () =>
+						api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
 					"web-server": () => api.user.getBackups.useQuery(),
 				}
 			: {
@@ -77,10 +79,11 @@ export const ShowBackups = ({
 	const mutationMap =
 		backupType === "database"
 			? {
-					postgres: api.backup.manualBackupPostgres.useMutation(),
-					mysql: api.backup.manualBackupMySql.useMutation(),
 					mariadb: api.backup.manualBackupMariadb.useMutation(),
 					mongo: api.backup.manualBackupMongo.useMutation(),
+					mysql: api.backup.manualBackupMySql.useMutation(),
+					postgres: api.backup.manualBackupPostgres.useMutation(),
+					libsql: api.backup.manualBackupLibsql.useMutation(),
 					"web-server": api.backup.manualBackupWebServer.useMutation(),
 				}
 			: {
@@ -89,11 +92,11 @@ export const ShowBackups = ({
 
 	const mutation = mutationMap[key as keyof typeof mutationMap];
 
-	const { mutateAsync: manualBackup, isLoading: isManualBackup } = mutation
+	const { mutateAsync: manualBackup, isPending: isManualBackup } = mutation
 		? mutation
 		: api.backup.manualBackupMongo.useMutation();
 
-	const { mutateAsync: deleteBackup, isLoading: isRemoving } =
+	const { mutateAsync: deleteBackup, isPending: isRemoving } =
 		api.backup.remove.useMutation();
 
 	return (

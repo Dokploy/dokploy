@@ -1,13 +1,11 @@
 import { Queue, type RepeatableJob } from "bullmq";
-import IORedis from "ioredis";
 import { logger } from "./logger.js";
 import type { QueueJob } from "./schema.js";
 
-export const connection = new IORedis(process.env.REDIS_URL!, {
-	maxRetriesPerRequest: null,
-});
 export const jobQueue = new Queue("backupQueue", {
-	connection,
+	connection: {
+		url: process.env.REDIS_URL!,
+	},
 	defaultJobOptions: {
 		removeOnComplete: true,
 		removeOnFail: true,
@@ -23,27 +21,28 @@ export const cleanQueue = async () => {
 	}
 };
 
-export const scheduleJob = (job: QueueJob) => {
+export const scheduleJob = async (job: QueueJob) => {
 	if (job.type === "backup") {
-		jobQueue.add(job.backupId, job, {
+		await jobQueue.add(job.backupId, job, {
 			repeat: {
 				pattern: job.cronSchedule,
 			},
 		});
 	} else if (job.type === "server") {
-		jobQueue.add(`${job.serverId}-cleanup`, job, {
+		await jobQueue.add(`${job.serverId}-cleanup`, job, {
 			repeat: {
 				pattern: job.cronSchedule,
 			},
 		});
 	} else if (job.type === "schedule") {
-		jobQueue.add(job.scheduleId, job, {
+		await jobQueue.add(job.scheduleId, job, {
 			repeat: {
 				pattern: job.cronSchedule,
+				tz: job.timezone || "UTC",
 			},
 		});
 	} else if (job.type === "volume-backup") {
-		jobQueue.add(job.volumeBackupId, job, {
+		await jobQueue.add(job.volumeBackupId, job, {
 			repeat: {
 				pattern: job.cronSchedule,
 			},

@@ -2,7 +2,13 @@ import { z } from "zod";
 
 export const domain = z
 	.object({
-		host: z.string().min(1, { message: "Add a hostname" }),
+		host: z
+			.string()
+			.min(1, { message: "Add a hostname" })
+			.refine((val) => val === val.trim(), {
+				message: "Domain name cannot have leading or trailing spaces",
+			})
+			.transform((val) => val.trim()),
 		path: z.string().min(1).optional(),
 		internalPath: z.string().optional(),
 		stripPath: z.boolean().optional(),
@@ -14,6 +20,7 @@ export const domain = z
 		https: z.boolean().optional(),
 		certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 		customCertResolver: z.string(),
+		middlewares: z.array(z.string()).optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {
@@ -58,7 +65,13 @@ export const domain = z
 
 export const domainCompose = z
 	.object({
-		host: z.string().min(1, { message: "Host is required" }),
+		host: z
+			.string()
+			.min(1, { message: "Add a hostname" })
+			.refine((val) => val === val.trim(), {
+				message: "Domain name cannot have leading or trailing spaces",
+			})
+			.transform((val) => val.trim()),
 		path: z.string().min(1).optional(),
 		internalPath: z.string().optional(),
 		stripPath: z.boolean().optional(),
@@ -71,6 +84,7 @@ export const domainCompose = z
 		certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 		customCertResolver: z.string(),
 		serviceName: z.string().min(1, { message: "Service name is required" }),
+		middlewares: z.array(z.string()).optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {

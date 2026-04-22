@@ -28,6 +28,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		databaseUser,
 		databasePassword,
 		command,
+		args,
 		mounts,
 	} = postgres;
 
@@ -46,6 +47,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		Networks,
 		StopGracePeriod,
 		EndpointSpec,
+		Ulimits,
 	} = generateConfigContainer(postgres);
 	const resources = calculateResources({
 		memoryLimit,
@@ -72,12 +74,15 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				...(command
-					? {
-							Command: ["/bin/sh"],
-							Args: ["-c", command],
-						}
-					: {}),
+				StopGracePeriod: StopGracePeriod ?? 30_000_000_000,
+				...(command && {
+					Command: command.split(" "),
+				}),
+				...(args &&
+					args.length > 0 && {
+						Args: args,
+					}),
+				...(Ulimits && { Ulimits }),
 				Labels,
 			},
 			Networks,
@@ -105,8 +110,6 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 						: [],
 				},
 		UpdateConfig,
-		...(StopGracePeriod !== undefined &&
-			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 	try {
 		const service = docker.getService(appName);

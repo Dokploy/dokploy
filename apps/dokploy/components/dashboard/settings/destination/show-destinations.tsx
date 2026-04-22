@@ -13,9 +13,10 @@ import { api } from "@/utils/api";
 import { HandleDestinations } from "./handle-destinations";
 
 export const ShowDestinations = () => {
-	const { data, isLoading, refetch } = api.destination.all.useQuery();
-	const { mutateAsync, isLoading: isRemoving } =
+	const { data, isPending, refetch } = api.destination.all.useQuery();
+	const { mutateAsync, isPending: isRemoving } =
 		api.destination.remove.useMutation();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 	return (
 		<div className="w-full">
 			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
@@ -31,7 +32,7 @@ export const ShowDestinations = () => {
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
-						{isLoading ? (
+						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
 								<Loader2 className="animate-spin size-4" />
@@ -45,7 +46,7 @@ export const ShowDestinations = () => {
 											To create a backup it is required to set at least 1
 											provider.
 										</span>
-										<HandleDestinations />
+										{permissions?.destination.create && <HandleDestinations />}
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
@@ -71,43 +72,49 @@ export const ShowDestinations = () => {
 															<HandleDestinations
 																destinationId={destination.destinationId}
 															/>
-															<DialogAction
-																title="Delete Destination"
-																description="Are you sure you want to delete this destination?"
-																type="destructive"
-																onClick={async () => {
-																	await mutateAsync({
-																		destinationId: destination.destinationId,
-																	})
-																		.then(() => {
-																			toast.success(
-																				"Destination deleted successfully",
-																			);
-																			refetch();
+															{permissions?.destination.delete && (
+																<DialogAction
+																	title="Delete Destination"
+																	description="Are you sure you want to delete this destination?"
+																	type="destructive"
+																	onClick={async () => {
+																		await mutateAsync({
+																			destinationId: destination.destinationId,
 																		})
-																		.catch(() => {
-																			toast.error("Error deleting destination");
-																		});
-																}}
-															>
-																<Button
-																	variant="ghost"
-																	size="icon"
-																	className="group hover:bg-red-500/10 "
-																	isLoading={isRemoving}
+																			.then(() => {
+																				toast.success(
+																					"Destination deleted successfully",
+																				);
+																				refetch();
+																			})
+																			.catch(() => {
+																				toast.error(
+																					"Error deleting destination",
+																				);
+																			});
+																	}}
 																>
-																	<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-																</Button>
-															</DialogAction>
+																	<Button
+																		variant="ghost"
+																		size="icon"
+																		className="group hover:bg-red-500/10 "
+																		isLoading={isRemoving}
+																	>
+																		<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+																	</Button>
+																</DialogAction>
+															)}
 														</div>
 													</div>
 												</div>
 											))}
 										</div>
 
-										<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
-											<HandleDestinations />
-										</div>
+										{permissions?.destination.create && (
+											<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
+												<HandleDestinations />
+											</div>
+										)}
 									</div>
 								)}
 							</>

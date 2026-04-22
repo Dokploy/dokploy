@@ -12,7 +12,7 @@ export const ShowWelcomeDokploy = () => {
 	const { data } = api.user.get.useQuery();
 	const [open, setOpen] = useState(false);
 
-	const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();
+	const { data: isCloud, isPending } = api.settings.isCloud.useQuery();
 
 	if (!isCloud || data?.role !== "admin") {
 		return null;
@@ -20,14 +20,14 @@ export const ShowWelcomeDokploy = () => {
 
 	useEffect(() => {
 		if (
-			!isLoading &&
+			!isPending &&
 			isCloud &&
 			!localStorage.getItem("hasSeenCloudWelcomeModal") &&
 			data?.role === "owner"
 		) {
 			setOpen(true);
 		}
-	}, [isCloud, isLoading]);
+	}, [isCloud, isPending]);
 
 	const handleClose = (isOpen: boolean) => {
 		if (data?.role === "owner") {

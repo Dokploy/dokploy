@@ -38,11 +38,9 @@ const createSchema = createInsertSchema(security, {
 	password: z.string().min(1),
 });
 
-export const apiFindOneSecurity = createSchema
-	.pick({
-		securityId: true,
-	})
-	.required();
+export const apiFindOneSecurity = z.object({
+	securityId: z.string().min(1),
+});
 
 export const apiCreateSecurity = createSchema
 	.pick({

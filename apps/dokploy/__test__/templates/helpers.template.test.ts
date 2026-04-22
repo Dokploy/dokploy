@@ -161,6 +161,50 @@ describe("helpers functions", () => {
 		});
 	});
 
+	describe("Empty string variables", () => {
+		it("should replace variables with empty string values correctly", () => {
+			const variables = {
+				smtp_username: "",
+				smtp_password: "",
+				non_empty: "value",
+			};
+
+			const result1 = processValue("${smtp_username}", variables, mockSchema);
+			expect(result1).toBe("");
+
+			const result2 = processValue("${smtp_password}", variables, mockSchema);
+			expect(result2).toBe("");
+
+			const result3 = processValue("${non_empty}", variables, mockSchema);
+			expect(result3).toBe("value");
+		});
+
+		it("should not replace undefined variables", () => {
+			const variables = {
+				defined_var: "",
+			};
+
+			const result = processValue("${undefined_var}", variables, mockSchema);
+			expect(result).toBe("${undefined_var}");
+		});
+
+		it("should handle mixed empty and non-empty variables in template", () => {
+			const variables = {
+				smtp_address: "smtp.example.com",
+				smtp_port: "2525",
+				smtp_username: "",
+				smtp_password: "",
+			};
+
+			const template =
+				"SMTP_ADDRESS=${smtp_address} SMTP_PORT=${smtp_port} SMTP_USERNAME=${smtp_username} SMTP_PASSWORD=${smtp_password}";
+			const result = processValue(template, variables, mockSchema);
+			expect(result).toBe(
+				"SMTP_ADDRESS=smtp.example.com SMTP_PORT=2525 SMTP_USERNAME= SMTP_PASSWORD=",
+			);
+		});
+	});
+
 	describe("${jwt}", () => {
 		it("should generate a JWT string", () => {
 			const jwt = processValue("${jwt}", {}, mockSchema);

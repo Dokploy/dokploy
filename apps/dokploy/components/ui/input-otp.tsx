@@ -1,70 +1,87 @@
-import { OTPInput, OTPInputContext } from "input-otp";
-import { Dot } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
 const InputOTP = React.forwardRef<
-	React.ElementRef<typeof OTPInput>,
-	React.ComponentPropsWithoutRef<typeof OTPInput>
->(({ className, containerClassName, ...props }, ref) => (
-	<OTPInput
-		ref={ref}
-		containerClassName={cn(
-			"flex items-center gap-2 has-[:disabled]:opacity-50",
-			containerClassName,
-		)}
-		className={cn("disabled:cursor-not-allowed", className)}
-		{...props}
-	/>
-));
-InputOTP.displayName = "InputOTP";
+	HTMLInputElement,
+	Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange"> & {
+		value: string;
+		onChange: (value: string) => void;
+		maxLength: number;
+	}
+>(({ className, value, onChange, maxLength, ...props }, ref) => {
+	const [focusedIndex, setFocusedIndex] = React.useState<number | null>(null);
+	const inputRef = React.useRef<HTMLInputElement>(null);
+	const previousValueRef = React.useRef<string>(value);
 
-const InputOTPGroup = React.forwardRef<
-	React.ElementRef<"div">,
-	React.ComponentPropsWithoutRef<"div">
->(({ className, ...props }, ref) => (
-	<div ref={ref} className={cn("flex items-center", className)} {...props} />
-));
-InputOTPGroup.displayName = "InputOTPGroup";
+	React.useImperativeHandle(ref, () => inputRef.current!);
 
-const InputOTPSlot = React.forwardRef<
-	React.ElementRef<"div">,
-	React.ComponentPropsWithoutRef<"div"> & { index: number }
->(({ index, className, ...props }, ref) => {
-	const inputOTPContext = React.useContext(OTPInputContext);
-	// @ts-ignore
-	const { char, hasFakeCaret, isActive } = inputOTPContext.slots[index];
+	React.useEffect(() => {
+		if (value !== previousValueRef.current) {
+			const newLength = value.length;
+			setFocusedIndex(newLength);
+			previousValueRef.current = value;
+		}
+	}, [value]);
+
+	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const newValue = e.target.value.replace(/\D/g, "").slice(0, maxLength);
+		onChange(newValue);
+	};
+
+	const handleBoxClick = (index: number) => {
+		inputRef.current?.focus();
+		setFocusedIndex(index);
+	};
+
+	const slots = Array.from({ length: maxLength }, (_, i) => {
+		const char = value[i] || "";
+		const isActive =
+			focusedIndex === i || (focusedIndex === null && i === value.length);
+		const isFilled = !!char;
+
+		return (
+			<div
+				key={i}
+				onClick={() => handleBoxClick(i)}
+				className={cn(
+					"relative flex h-11 w-11 items-center justify-center rounded-lg border-2 border-input bg-background text-base font-semibold transition-all cursor-text hover:border-ring/50",
+					isActive && "border-ring ring-2 ring-ring/20 ring-offset-1",
+					isFilled && "border-primary/50 bg-primary/5",
+					className,
+				)}
+			>
+				<span className="text-foreground">{char}</span>
+				{isActive && !char && (
+					<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+						<div className="h-5 w-0.5 animate-caret-blink bg-primary duration-1000" />
+					</div>
+				)}
+			</div>
+		);
+	});
 
 	return (
-		<div
-			ref={ref}
-			className={cn(
-				"relative flex h-10 w-10 items-center justify-center border-y border-r border-input text-sm transition-all first:rounded-l-md first:border-l last:rounded-r-md",
-				isActive && "z-10 ring-2 ring-ring ring-offset-background",
-				className,
-			)}
-			{...props}
-		>
-			{char}
-			{hasFakeCaret && (
-				<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-					<div className="h-4 w-px animate-caret-blink bg-foreground duration-1000" />
-				</div>
-			)}
+		<div className="relative">
+			<input
+				ref={inputRef}
+				type="text"
+				value={value}
+				onChange={handleChange}
+				onFocus={() => setFocusedIndex(value.length)}
+				onBlur={() => setFocusedIndex(null)}
+				autoComplete="one-time-code"
+				inputMode="numeric"
+				pattern="[0-9]*"
+				maxLength={maxLength}
+				className="absolute inset-0 w-full h-full opacity-0 cursor-default"
+				style={{ caretColor: "transparent" }}
+				{...props}
+			/>
+			<div className="flex items-center gap-2">{slots}</div>
 		</div>
 	);
 });
-InputOTPSlot.displayName = "InputOTPSlot";
+InputOTP.displayName = "InputOTP";
 
-const InputOTPSeparator = React.forwardRef<
-	React.ElementRef<"div">,
-	React.ComponentPropsWithoutRef<"div">
->(({ ...props }, ref) => (
-	<div ref={ref} {...props}>
-		<Dot />
-	</div>
-));
-InputOTPSeparator.displayName = "InputOTPSeparator";
-
-export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator };
+export { InputOTP };

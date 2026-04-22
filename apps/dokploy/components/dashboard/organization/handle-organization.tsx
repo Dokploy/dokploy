@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -24,7 +24,6 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 
 const organizationSchema = z.object({
@@ -52,11 +51,9 @@ export function AddOrganization({ organizationId }: Props) {
 			enabled: !!organizationId,
 		},
 	);
-	const { mutateAsync, isLoading } = organizationId
+	const { mutateAsync, isPending } = organizationId
 		? api.organization.update.useMutation()
 		: api.organization.create.useMutation();
-	const { refetch: refetchActiveOrganization } =
-		authClient.useActiveOrganization();
 
 	const form = useForm<OrganizationFormValues>({
 		resolver: zodResolver(organizationSchema),
@@ -89,7 +86,7 @@ export function AddOrganization({ organizationId }: Props) {
 				utils.organization.all.invalidate();
 				if (organizationId) {
 					utils.organization.one.invalidate({ organizationId });
-					refetchActiveOrganization();
+					utils.organization.active.invalidate();
 				}
 				setOpen(false);
 			})
@@ -177,7 +174,7 @@ export function AddOrganization({ organizationId }: Props) {
 							)}
 						/>
 						<DialogFooter>
-							<Button type="submit" isLoading={isLoading}>
+							<Button type="submit" isLoading={isPending}>
 								{organizationId ? "Update organization" : "Create organization"}
 							</Button>
 						</DialogFooter>

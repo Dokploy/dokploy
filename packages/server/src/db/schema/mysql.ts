@@ -23,10 +23,18 @@ import {
 	RestartPolicySwarmSchema,
 	type ServiceModeSwarm,
 	ServiceModeSwarmSchema,
+	type UlimitsSwarm,
+	UlimitsSwarmSchema,
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
-import { generateAppName } from "./utils";
+import {
+	APP_NAME_MESSAGE,
+	APP_NAME_REGEX,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
+	generateAppName,
+} from "./utils";
 
 export const mysql = pgTable("mysql", {
 	mysqlId: text("mysqlId")
@@ -45,6 +53,7 @@ export const mysql = pgTable("mysql", {
 	databaseRootPassword: text("rootPassword").notNull(),
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
+	args: text("args").array(),
 	env: text("env"),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
@@ -62,8 +71,9 @@ export const mysql = pgTable("mysql", {
 	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
-	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "number" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
+	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
 	replicas: integer("replicas").default(1).notNull(),
 	createdAt: text("createdAt")
 		.notNull()
@@ -93,27 +103,29 @@ export const mysqlRelations = relations(mysql, ({ one, many }) => ({
 
 const createSchema = createInsertSchema(mysql, {
 	mysqlId: z.string(),
-	appName: z.string().min(1),
+	appName: z
+		.string()
+		.min(1)
+		.max(63)
+		.regex(APP_NAME_REGEX, APP_NAME_MESSAGE)
+		.optional(),
 	createdAt: z.string(),
 	pausedAt: z.string().optional(),
 	name: z.string().min(1),
 	databaseName: z.string().min(1),
 	databaseUser: z.string().min(1),
-	databasePassword: z
-		.string()
-		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-			message:
-				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-		}),
+	databasePassword: z.string().regex(DATABASE_PASSWORD_REGEX, {
+		message: DATABASE_PASSWORD_MESSAGE,
+	}),
 	databaseRootPassword: z
 		.string()
-		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-			message:
-				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+		.regex(DATABASE_PASSWORD_REGEX, {
+			message: DATABASE_PASSWORD_MESSAGE,
 		})
 		.optional(),
 	dockerImage: z.string().default("mysql:8"),
 	command: z.string().optional(),
+	args: z.array(z.string()).optional(),
 	env: z.string().optional(),
 	memoryReservation: z.string().optional(),
 	memoryLimit: z.string().optional(),
@@ -131,30 +143,27 @@ const createSchema = createInsertSchema(mysql, {
 	modeSwarm: ServiceModeSwarmSchema.nullable(),
 	labelsSwarm: LabelsSwarmSchema.nullable(),
 	networkSwarm: NetworkSwarmSchema.nullable(),
-	stopGracePeriodSwarm: z.bigint().nullable(),
+	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
+	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 });
 
-export const apiCreateMySql = createSchema
-	.pick({
-		name: true,
-		appName: true,
-		dockerImage: true,
-		environmentId: true,
-		description: true,
-		databaseName: true,
-		databaseUser: true,
-		databasePassword: true,
-		databaseRootPassword: true,
-		serverId: true,
-	})
-	.required();
+export const apiCreateMySql = createSchema.pick({
+	name: true,
+	appName: true,
+	dockerImage: true,
+	environmentId: true,
+	description: true,
+	databaseName: true,
+	databaseUser: true,
+	databasePassword: true,
+	databaseRootPassword: true,
+	serverId: true,
+});
 
-export const apiFindOneMySql = createSchema
-	.pick({
-		mysqlId: true,
-	})
-	.required();
+export const apiFindOneMySql = z.object({
+	mysqlId: z.string().min(1),
+});
 
 export const apiChangeMySqlStatus = createSchema
 	.pick({
@@ -194,6 +203,7 @@ export const apiUpdateMySql = createSchema
 	.partial()
 	.extend({
 		mysqlId: z.string().min(1),
+		dockerImage: z.string().optional(),
 	})
 	.omit({ serverId: true });
 

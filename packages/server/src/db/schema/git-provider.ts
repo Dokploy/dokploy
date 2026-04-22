@@ -1,6 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+import { boolean, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
@@ -33,6 +32,9 @@ export const gitProvider = pgTable("git_provider", {
 	userId: text("userId")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
+	sharedWithOrganization: boolean("sharedWithOrganization")
+		.notNull()
+		.default(false),
 });
 
 export const gitProviderRelations = relations(gitProvider, ({ one }) => ({
@@ -62,10 +64,11 @@ export const gitProviderRelations = relations(gitProvider, ({ one }) => ({
 	}),
 }));
 
-const createSchema = createInsertSchema(gitProvider);
+export const apiRemoveGitProvider = z.object({
+	gitProviderId: z.string().min(1),
+});
 
-export const apiRemoveGitProvider = createSchema
-	.extend({
-		gitProviderId: z.string().min(1),
-	})
-	.pick({ gitProviderId: true });
+export const apiToggleShareGitProvider = z.object({
+	gitProviderId: z.string().min(1),
+	sharedWithOrganization: z.boolean(),
+});

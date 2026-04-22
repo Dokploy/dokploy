@@ -54,4 +54,22 @@ describe("processLogs", () => {
 		const result = parseRawConfig(entryWithWhitespace);
 		expect(result.data).toHaveLength(2);
 	});
+
+	it("should filter out Dokploy dashboard requests", () => {
+		const dokployDashboardEntry = `{"ClientAddr":"172.71.187.131:9485","ClientHost":"172.71.187.131","ClientPort":"9485","ClientUsername":"-","DownstreamContentSize":14550,"DownstreamStatus":200,"Duration":57681682,"OriginContentSize":14550,"OriginDuration":57612242,"OriginStatus":200,"Overhead":69440,"RequestAddr":"hostinger.dokploy.com","RequestContentSize":0,"RequestCount":20142,"RequestHost":"hostinger.dokploy.com","RequestMethod":"GET","RequestPath":"/_next/data/cb_zzI4Rp9G7Q7djrFKh0/en/dashboard/traefik.json","RequestPort":"-","RequestProtocol":"HTTP/2.0","RequestScheme":"https","RetryAttempts":0,"RouterName":"dokploy-router-app-secure@file","ServiceAddr":"dokploy:3000","ServiceName":"dokploy-service-app@file","ServiceURL":"http://dokploy:3000","StartLocal":"2025-12-10T05:10:41.957755949Z","StartUTC":"2025-12-10T05:10:41.957755949Z","TLSCipher":"TLS_AES_128_GCM_SHA256","TLSVersion":"1.3","entryPointName":"websecure","level":"info","msg":"","time":"2025-12-10T05:10:42Z"}`;
+
+		// Test with only Dokploy dashboard entry - should be filtered out
+		const resultOnlyDokploy = parseRawConfig(dokployDashboardEntry);
+		expect(resultOnlyDokploy.data).toHaveLength(0);
+		expect(resultOnlyDokploy.totalCount).toBe(0);
+
+		// Test with mixed entries - Dokploy should be filtered, others should remain
+		const mixedEntries = `${dokployDashboardEntry}\n${sampleLogEntry}`;
+		const resultMixed = parseRawConfig(mixedEntries);
+		expect(resultMixed.data).toHaveLength(1);
+		expect(resultMixed.totalCount).toBe(1);
+		expect(resultMixed.data[0]?.ServiceName).not.toBe(
+			"dokploy-service-app@file",
+		);
+	});
 });

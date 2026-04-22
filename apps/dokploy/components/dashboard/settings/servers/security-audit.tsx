@@ -18,7 +18,7 @@ interface Props {
 
 export const SecurityAudit = ({ serverId }: Props) => {
 	const [isRefreshing, setIsRefreshing] = useState(false);
-	const { data, refetch, error, isLoading, isError } =
+	const { data, refetch, error, isPending, isError } =
 		api.server.security.useQuery(
 			{ serverId },
 			{
@@ -68,7 +68,7 @@ export const SecurityAudit = ({ serverId }: Props) => {
 						<AlertBlock type="info" className="w-full">
 							Ubuntu/Debian OS support is currently supported (Experimental)
 						</AlertBlock>
-						{isLoading ? (
+						{isPending ? (
 							<div className="flex items-center justify-center text-muted-foreground py-4">
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 								<span>Checking Server configuration</span>

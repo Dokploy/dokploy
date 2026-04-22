@@ -12,6 +12,7 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { AnalyzeLogs } from "./analyze-logs";
 import { LineCountFilter } from "./line-count-filter";
 import { SinceLogsFilter, type TimeFilter } from "./since-logs-filter";
 import { StatusLogsFilter } from "./status-logs-filter";
@@ -377,6 +378,7 @@ export const DockerLogsId: React.FC<Props> = ({
 								<DownloadIcon className="mr-2 h-4 w-4" />
 								Download logs
 							</Button>
+							<AnalyzeLogs logs={filteredLogs} context="runtime" />
 						</div>
 					</div>
 					{isPaused && (
@@ -402,7 +404,7 @@ export const DockerLogsId: React.FC<Props> = ({
 						{filteredLogs.length > 0 ? (
 							filteredLogs.map((filteredLog: LogLine, index: number) => (
 								<TerminalLine
-									key={index}
+									key={`${filteredLog.rawTimestamp ?? ""}-${index}`}
 									log={filteredLog}
 									searchTerm={search}
 									noTimestamp={!showTimestamp}

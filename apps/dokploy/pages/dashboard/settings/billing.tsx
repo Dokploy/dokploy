@@ -24,13 +24,13 @@ export async function getServerSideProps(
 		return {
 			redirect: {
 				permanent: true,
-				destination: "/dashboard/projects",
+				destination: "/dashboard/home",
 			},
 		};
 	}
 	const { req, res } = ctx;
 	const { user, session } = await validateRequest(req);
-	if (!user || user.role === "member") {
+	if (!user || user.role !== "owner") {
 		return {
 			redirect: {
 				permanent: true,

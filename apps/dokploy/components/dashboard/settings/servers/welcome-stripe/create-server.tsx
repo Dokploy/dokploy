@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -95,6 +95,7 @@ export const CreateServer = ({ stepper }: Props) => {
 			port: data.port || 22,
 			username: data.username || "root",
 			sshKeyId: data.sshKeyId || "",
+			serverType: "deploy",
 		})
 			.then(async (_data) => {
 				toast.success("Server Created");

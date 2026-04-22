@@ -85,6 +85,9 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 	const bashCommand = `
 
 # Ensure we have a builder with containerd
+
+export RAILPACK_VERSION=${application.railpackVersion}
+bash -c "$(curl -fsSL https://railpack.com/install.sh)"
 docker buildx create --use --name builder-containerd --driver docker-container || true
 docker buildx use builder-containerd
 

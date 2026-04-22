@@ -1,15 +1,15 @@
 import { IS_CLOUD, shouldDeploy } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/server/db";
 import { compose } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import {
 	extractBranchName,
-	extractCommitedPaths,
 	extractCommitMessage,
+	extractCommittedPaths,
 	extractHash,
 	getProviderByHeader,
 } from "../[refreshToken]";
@@ -97,15 +97,17 @@ export default async function handler(
 				return;
 			}
 
-			const commitedPaths = await extractCommitedPaths(
+			const committedPaths = await extractCommittedPaths(
 				req.body,
 				composeResult.bitbucket,
-				composeResult.bitbucketRepository || "",
+				composeResult.bitbucketRepositorySlug ||
+					composeResult.bitbucketRepository ||
+					"",
 			);
 
 			const shouldDeployPaths = shouldDeploy(
 				composeResult.watchPaths,
-				commitedPaths,
+				committedPaths,
 			);
 
 			if (!shouldDeployPaths) {
@@ -179,17 +181,19 @@ export default async function handler(
 
 			if (IS_CLOUD && composeResult.serverId) {
 				jobData.serverId = composeResult.serverId;
-				await deploy(jobData);
-				return true;
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
+			} else {
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
 		} catch (error) {
 			res.status(400).json({ message: "Error deploying Compose", error });
 			return;

@@ -7,6 +7,7 @@ import { applications } from "./application";
 import { compose } from "./compose";
 import { deployments } from "./deployment";
 import { destinations } from "./destination";
+import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { serviceType } from "./mount";
@@ -53,6 +54,9 @@ export const volumeBackups = pgTable("volume_backup", {
 	redisId: text("redisId").references(() => redis.redisId, {
 		onDelete: "cascade",
 	}),
+	libsqlId: text("libsqlId").references(() => libsql.libsqlId, {
+		onDelete: "cascade",
+	}),
 	composeId: text("composeId").references(() => compose.composeId, {
 		onDelete: "cascade",
 	}),
@@ -92,6 +96,10 @@ export const volumeBackupsRelations = relations(
 		redis: one(redis, {
 			fields: [volumeBackups.redisId],
 			references: [redis.redisId],
+		}),
+		libsql: one(libsql, {
+			fields: [volumeBackups.libsqlId],
+			references: [libsql.libsqlId],
 		}),
 		compose: one(compose, {
 			fields: [volumeBackups.composeId],

@@ -83,6 +83,14 @@ describe("GitHub Webhook Skip CI", () => {
 				{ commits: [{ message: "[skip ci] test" }] },
 			),
 		).toBe("[skip ci] test");
+
+		// Soft Serve
+		expect(
+			extractCommitMessage(
+				{ "x-softserve-event": "push" },
+				{ commits: [{ message: "[skip ci] test" }] },
+			),
+		).toBe("[skip ci] test");
 	});
 
 	it("should handle missing commit message", () => {
@@ -97,6 +105,9 @@ describe("GitHub Webhook Skip CI", () => {
 			),
 		).toBe("NEW COMMIT");
 		expect(extractCommitMessage({ "x-gitea-event": "push" }, {})).toBe(
+			"NEW COMMIT",
+		);
+		expect(extractCommitMessage({ "x-softserve-event": "push" }, {})).toBe(
 			"NEW COMMIT",
 		);
 	});
@@ -403,6 +414,25 @@ describe("Docker Image Name and Tag Extraction", () => {
 		it("should handle numeric tags", () => {
 			expect(extractImageTag("my-image:123")).toBe("123");
 			expect(extractImageTag("my-image:1")).toBe("1");
+		});
+
+		it("should return 'latest' for registry with port but no tag", () => {
+			expect(extractImageTag("registry.example.com:5000/myimage")).toBe(
+				"latest",
+			);
+			expect(extractImageTag("registry:5000/fedora/httpd")).toBe("latest");
+			expect(extractImageTag("localhost:5000/myapp")).toBe("latest");
+			expect(extractImageTag("my-registry.io:443/org/app")).toBe("latest");
+		});
+
+		it("should extract tag from registry with port and tag", () => {
+			expect(extractImageTag("registry:5000/image:tag")).toBe("tag");
+			expect(extractImageTag("registry.example.com:5000/myimage:v2.0")).toBe(
+				"v2.0",
+			);
+			expect(extractImageTag("localhost:5000/app:sha-abc123")).toBe(
+				"sha-abc123",
+			);
 		});
 	});
 });

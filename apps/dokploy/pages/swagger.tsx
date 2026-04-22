@@ -17,13 +17,19 @@ const Home: NextPage = () => {
 	useEffect(() => {
 		if (data) {
 			const protocolAndHost = `${window.location.protocol}//${window.location.host}/api`;
+			// Force OpenAPI 3.0 so Swagger UI uses the 3.0 parser (avoids ApiDOM 3.1 refract bug)
 			const newSpec = {
 				...data,
+				openapi: "3.0.3",
 				servers: [{ url: protocolAndHost }],
 				externalDocs: {
-					url: `${protocolAndHost}/settings.getOpenApiDocument`,
+					url: `${protocolAndHost}/trpc/settings.getOpenApiDocument`,
 				},
 			};
+			// Remove 3.1-only fields that could confuse the 3.0 parser
+			if ("jsonSchemaDialect" in newSpec) {
+				delete (newSpec as Record<string, unknown>).jsonSchemaDialect;
+			}
 			setSpec(newSpec);
 		}
 	}, [data]);
@@ -92,19 +98,15 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		},
 		transformer: superjson,
 	});
-	if (user.role === "member") {
-		const userR = await helpers.user.one.fetch({
-			userId: user.id,
-		});
+	const userPermissions = await helpers.user.getPermissions.fetch();
 
-		if (!userR?.canAccessToAPI) {
-			return {
-				redirect: {
-					permanent: true,
-					destination: "/",
-				},
-			};
-		}
+	if (!userPermissions?.api.read) {
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/",
+			},
+		};
 	}
 
 	return {

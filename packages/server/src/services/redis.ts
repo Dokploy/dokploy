@@ -10,12 +10,13 @@ import { pullImage } from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import type { z } from "zod";
 import { validUniqueServerAppName } from "./project";
 
 export type Redis = typeof redis.$inferSelect;
 
 // https://github.com/drizzle-team/drizzle-orm/discussions/1483#discussioncomment-7523881
-export const createRedis = async (input: typeof apiCreateRedis._type) => {
+export const createRedis = async (input: z.infer<typeof apiCreateRedis>) => {
 	const appName = buildAppName("redis", input.appName);
 
 	const valid = await validUniqueServerAppName(appName);

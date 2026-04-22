@@ -25,17 +25,17 @@ import {
 import { api } from "@/utils/api";
 
 export type Services = {
-	appName: string;
 	serverId?: string | null;
 	name: string;
 	type:
-		| "mariadb"
 		| "application"
-		| "postgres"
-		| "mysql"
+		| "compose"
+		| "libsql"
+		| "mariadb"
 		| "mongo"
-		| "redis"
-		| "compose";
+		| "mysql"
+		| "postgres"
+		| "redis";
 	description?: string | null;
 	id: string;
 	createdAt: string;
@@ -76,7 +76,7 @@ export const DuplicateProject = ({
 		selectedServiceIds.includes(service.id),
 	);
 
-	const { mutateAsync: duplicateProject, isLoading } =
+	const { mutateAsync: duplicateProject, isPending } =
 		api.project.duplicate.useMutation({
 			onSuccess: async (newProject) => {
 				await utils.project.all.invalidate();
@@ -321,20 +321,20 @@ export const DuplicateProject = ({
 					<Button
 						variant="outline"
 						onClick={() => setOpen(false)}
-						disabled={isLoading}
+						disabled={isPending}
 					>
 						Cancel
 					</Button>
 					<Button
 						onClick={handleDuplicate}
 						disabled={
-							isLoading ||
+							isPending ||
 							(duplicateType === "new-project" && !name) ||
 							(duplicateType === "existing-environment" &&
 								(!selectedTargetProject || !selectedTargetEnvironment))
 						}
 					>
-						{isLoading ? (
+						{isPending ? (
 							<>
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 								{duplicateType === "new-project"

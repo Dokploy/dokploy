@@ -1,8 +1,8 @@
 import { createGithub } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Octokit } from "octokit";
-import { db } from "@/server/db";
 import { github } from "@/server/db/schema";
 
 type Query = {
@@ -10,22 +10,29 @@ type Query = {
 	state: string;
 	installation_id: string;
 	setup_action: string;
-	userId: string;
 };
 
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
 ) {
-	const { code, state, installation_id, userId }: Query = req.query as Query;
+	const { code, state, installation_id }: Query = req.query as Query;
 
 	if (!code) {
 		return res.status(400).json({ error: "Missing code parameter" });
 	}
-	const [action, value] = state?.split(":");
-	// Value could be the organizationId or the githubProviderId
+	const [action, ...rest] = state?.split(":");
+	// For gh_init: rest[0] = organizationId, rest[1] = userId
+	// For gh_setup: rest[0] = githubProviderId
 
 	if (action === "gh_init") {
+		const organizationId = rest[0];
+		const userId = rest[1] || (req.query.userId as string);
+
+		if (!userId) {
+			return res.status(400).json({ error: "Missing userId parameter" });
+		}
+
 		const octokit = new Octokit({});
 		const { data } = await octokit.request(
 			"POST /app-manifests/{code}/conversions",
@@ -44,7 +51,7 @@ export default async function handler(
 				githubWebhookSecret: data.webhook_secret,
 				githubPrivateKey: data.pem,
 			},
-			value as string,
+			organizationId as string,
 			userId,
 		);
 	} else if (action === "gh_setup") {
@@ -53,7 +60,7 @@ export default async function handler(
 			.set({
 				githubInstallationId: installation_id,
 			})
-			.where(eq(github.githubId, value as string))
+			.where(eq(github.githubId, rest[0] as string))
 			.returning();
 	}
 

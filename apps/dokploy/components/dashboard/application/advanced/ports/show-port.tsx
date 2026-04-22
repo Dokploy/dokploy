@@ -25,7 +25,7 @@ export const ShowPorts = ({ applicationId }: Props) => {
 		{ enabled: !!applicationId },
 	);
 
-	const { mutateAsync: deletePort, isLoading: isRemoving } =
+	const { mutateAsync: deletePort, isPending: isRemoving } =
 		api.port.delete.useMutation();
 
 	return (

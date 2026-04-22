@@ -1,4 +1,6 @@
 import os from "node:os";
+import path from "node:path";
+import { paths } from "@dokploy/server/constants";
 import { publicIpv4, publicIpv6 } from "public-ip";
 
 export const getShell = () => {
@@ -32,4 +34,19 @@ export const getPublicIpWithFallback = async () => {
 		}
 	}
 	return ip;
+};
+
+export const readValidDirectory = (
+	directory: string,
+	serverId?: string | null,
+) => {
+	const { BASE_PATH } = paths(!!serverId);
+
+	const resolvedBase = path.resolve(BASE_PATH);
+	const resolvedDir = path.resolve(directory);
+
+	return (
+		resolvedDir === resolvedBase ||
+		resolvedDir.startsWith(resolvedBase + path.sep)
+	);
 };

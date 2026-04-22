@@ -1,6 +1,6 @@
 {
-  "id": "b38ad2ba-4d27-459e-996a-30b1c2abf7fb",
-  "prevId": "36cea77f-fc25-4f70-8242-37280ab963bc",
+  "id": "777101fe-5db7-4975-b3b9-4afa3cf82364",
+  "prevId": "6d1361fc-3a46-4016-b6db-42351c20393c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1390,6 +1390,18 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "buildServerId": {
+          "name": "buildServerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buildRegistryId": {
+          "name": "buildRegistryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -1496,6 +1508,32 @@
             "serverId"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "application_buildServerId_server_serverId_fk": {
+          "name": "application_buildServerId_server_serverId_fk",
+          "tableFrom": "application",
+          "tableTo": "server",
+          "columnsFrom": [
+            "buildServerId"
+          ],
+          "columnsTo": [
+            "serverId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "application_buildRegistryId_registry_registryId_fk": {
+          "name": "application_buildRegistryId_registry_registryId_fk",
+          "tableFrom": "application",
+          "tableTo": "registry",
+          "columnsFrom": [
+            "buildRegistryId"
+          ],
+          "columnsTo": [
+            "registryId"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1898,244 +1936,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.cloud_provider_credentials": {
-      "name": "cloud_provider_credentials",
-      "schema": "",
-      "columns": {
-        "credentialId": {
-          "name": "credentialId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "provider": {
-          "name": "provider",
-          "type": "cloudProvider",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "encryptedApiToken": {
-          "name": "encryptedApiToken",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "additionalConfig": {
-          "name": "additionalConfig",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "lastValidated": {
-          "name": "lastValidated",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "isValid": {
-          "name": "isValid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'unknown'"
-        },
-        "organizationId": {
-          "name": "organizationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "cloud_provider_credentials_organizationId_organization_id_fk": {
-          "name": "cloud_provider_credentials_organizationId_organization_id_fk",
-          "tableFrom": "cloud_provider_credentials",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "organizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.server_provisioning_job": {
-      "name": "server_provisioning_job",
-      "schema": "",
-      "columns": {
-        "jobId": {
-          "name": "jobId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "credentialId": {
-          "name": "credentialId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "serverId": {
-          "name": "serverId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "providerServerId": {
-          "name": "providerServerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "providerSshKeyId": {
-          "name": "providerSshKeyId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "provisioningStatus",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "message": {
-          "name": "message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "error": {
-          "name": "error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "config": {
-          "name": "config",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "result": {
-          "name": "result",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "organizationId": {
-          "name": "organizationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "completedAt": {
-          "name": "completedAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "server_provisioning_job_credentialId_cloud_provider_credentials_credentialId_fk": {
-          "name": "server_provisioning_job_credentialId_cloud_provider_credentials_credentialId_fk",
-          "tableFrom": "server_provisioning_job",
-          "tableTo": "cloud_provider_credentials",
-          "columnsFrom": [
-            "credentialId"
-          ],
-          "columnsTo": [
-            "credentialId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "server_provisioning_job_serverId_server_serverId_fk": {
-          "name": "server_provisioning_job_serverId_server_serverId_fk",
-          "tableFrom": "server_provisioning_job",
-          "tableTo": "server",
-          "columnsFrom": [
-            "serverId"
-          ],
-          "columnsTo": [
-            "serverId"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "server_provisioning_job_organizationId_organization_id_fk": {
-          "name": "server_provisioning_job_organizationId_organization_id_fk",
-          "tableFrom": "server_provisioning_job",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "organizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -2645,6 +2445,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "buildServerId": {
+          "name": "buildServerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2749,6 +2555,19 @@
           ],
           "columnsTo": [
             "volumeBackupId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "deployment_buildServerId_server_serverId_fk": {
+          "name": "deployment_buildServerId_server_serverId_fk",
+          "tableFrom": "deployment",
+          "tableTo": "server",
+          "columnsFrom": [
+            "buildServerId"
+          ],
+          "columnsTo": [
+            "serverId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -6042,6 +5861,14 @@
           "notNull": true,
           "default": "'active'"
         },
+        "serverType": {
+          "name": "serverType",
+          "type": "serverType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'deploy'"
+        },
         "command": {
           "name": "command",
           "type": "text",
@@ -6052,24 +5879,6 @@
         "sshKeyId": {
           "name": "sshKeyId",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cloudProvider": {
-          "name": "cloudProvider",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "providerServerId": {
-          "name": "providerServerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "providerMetadata": {
-          "name": "providerMetadata",
-          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -6803,27 +6612,6 @@
         "web-server"
       ]
     },
-    "public.cloudProvider": {
-      "name": "cloudProvider",
-      "schema": "public",
-      "values": [
-        "hetzner"
-      ]
-    },
-    "public.provisioningStatus": {
-      "name": "provisioningStatus",
-      "schema": "public",
-      "values": [
-        "pending",
-        "generating_ssh_key",
-        "uploading_ssh_key",
-        "creating_server",
-        "configuring_dokploy",
-        "running_setup",
-        "completed",
-        "failed"
-      ]
-    },
     "public.composeType": {
       "name": "composeType",
       "schema": "public",
@@ -6956,6 +6744,14 @@
       "values": [
         "active",
         "inactive"
+      ]
+    },
+    "public.serverType": {
+      "name": "serverType",
+      "schema": "public",
+      "values": [
+        "deploy",
+        "build"
       ]
     },
     "public.applicationStatus": {

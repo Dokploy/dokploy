@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -67,13 +67,13 @@ interface Props {
 	refetch: () => void;
 	serviceType:
 		| "application"
-		| "postgres"
-		| "redis"
-		| "mongo"
-		| "redis"
-		| "mysql"
+		| "compose"
+		| "libsql"
 		| "mariadb"
-		| "compose";
+		| "mongo"
+		| "mysql"
+		| "postgres"
+		| "redis";
 }
 
 export const UpdateVolume = ({
@@ -93,7 +93,7 @@ export const UpdateVolume = ({
 		},
 	);
 
-	const { mutateAsync, isLoading, error, isError } =
+	const { mutateAsync, isPending, error, isError } =
 		api.mounts.update.useMutation();
 
 	const form = useForm<UpdateMount>({
@@ -187,7 +187,7 @@ export const UpdateVolume = ({
 					variant="ghost"
 					size="icon"
 					className="group hover:bg-blue-500/10 "
-					isLoading={isLoading}
+					isLoading={isPending}
 				>
 					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
@@ -253,7 +253,7 @@ export const UpdateVolume = ({
 										control={form.control}
 										name="content"
 										render={({ field }) => (
-											<FormItem className="max-w-full max-w-[45rem]">
+											<FormItem className="w-full max-w-[45rem]">
 												<FormLabel>Content</FormLabel>
 												<FormControl>
 													<FormControl>
@@ -310,7 +310,7 @@ PORT=3000
 						</div>
 						<DialogFooter>
 							<Button
-								isLoading={isLoading}
+								isLoading={isPending}
 								// form="hook-form-update-volume"
 								type="submit"
 							>

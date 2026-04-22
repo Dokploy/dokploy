@@ -1,0 +1,1 @@
+ALTER TABLE "webServerSettings" ADD COLUMN "whitelabelingConfig" jsonb DEFAULT '{"appName":null,"appDescription":null,"logoUrl":null,"faviconUrl":null,"customCss":null,"loginLogoUrl":null,"supportUrl":null,"docsUrl":null,"errorPageTitle":null,"errorPageDescription":null,"metaTitle":null,"footerText":null}'::jsonb;

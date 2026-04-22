@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import copy from "copy-to-clipboard";
 import {
 	CopyIcon,
@@ -356,7 +356,7 @@ export const Configure2FA = () => {
 								<div className="grid grid-cols-2 gap-2">
 									{backupCodes.map((code, index) => (
 										<code
-											key={index}
+											key={`${code}-${index}`}
 											className="bg-background p-2 rounded text-sm font-mono text-center"
 										>
 											{code}

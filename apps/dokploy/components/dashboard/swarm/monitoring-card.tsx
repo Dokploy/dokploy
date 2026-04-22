@@ -23,11 +23,11 @@ interface Props {
 }
 
 export default function SwarmMonitorCard({ serverId }: Props) {
-	const { data: nodes, isLoading } = api.swarm.getNodes.useQuery({
+	const { data: nodes, isPending } = api.swarm.getNodes.useQuery({
 		serverId,
 	});
 
-	if (isLoading) {
+	if (isPending) {
 		return (
 			<div className="w-full max-w-7xl mx-auto">
 				<div className="mb-6 border min-h-[55vh] flex rounded-lg h-full items-center justify-center  text-muted-foreground">

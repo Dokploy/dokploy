@@ -4,11 +4,12 @@ import {
 	deployPreviewApplication,
 	rebuildApplication,
 	rebuildCompose,
+	rebuildPreviewApplication,
 	updateApplicationStatus,
 	updateCompose,
 	updatePreviewDeployment,
 } from "@dokploy/server";
-import type { DeployJob } from "./schema";
+import type { DeployJob } from "./schema.js";
 
 export const deploy = async (job: DeployJob) => {
 	try {
@@ -54,7 +55,14 @@ export const deploy = async (job: DeployJob) => {
 				previewStatus: "running",
 			});
 			if (job.server) {
-				if (job.type === "deploy") {
+				if (job.type === "redeploy") {
+					await rebuildPreviewApplication({
+						applicationId: job.applicationId,
+						titleLog: job.titleLog || "Rebuild Preview Deployment",
+						descriptionLog: job.descriptionLog || "",
+						previewDeploymentId: job.previewDeploymentId,
+					});
+				} else if (job.type === "deploy") {
 					await deployPreviewApplication({
 						applicationId: job.applicationId,
 						titleLog: job.titleLog || "Preview Deployment",

@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CheckIcon, ChevronsUpDown, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -54,6 +54,7 @@ const BitbucketProviderSchema = z.object({
 		.object({
 			repo: z.string().min(1, "Repo is required"),
 			owner: z.string().min(1, "Owner is required"),
+			slug: z.string().optional(),
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
@@ -73,15 +74,16 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 		api.bitbucket.bitbucketProviders.useQuery();
 	const { data, refetch } = api.compose.one.useQuery({ composeId });
 
-	const { mutateAsync, isLoading: isSavingBitbucketProvider } =
+	const { mutateAsync, isPending: isSavingBitbucketProvider } =
 		api.compose.update.useMutation();
 
-	const form = useForm<BitbucketProvider>({
+	const form = useForm({
 		defaultValues: {
 			composePath: "./docker-compose.yml",
 			repository: {
 				owner: "",
 				repo: "",
+				slug: "",
 			},
 			bitbucketId: "",
 			branch: "",
@@ -114,11 +116,14 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 	} = api.bitbucket.getBitbucketBranches.useQuery(
 		{
 			owner: repository?.owner,
-			repo: repository?.repo,
+			repo: repository?.slug || repository?.repo || "",
 			bitbucketId,
 		},
 		{
-			enabled: !!repository?.owner && !!repository?.repo && !!bitbucketId,
+			enabled:
+				!!repository?.owner &&
+				!!(repository?.slug || repository?.repo) &&
+				!!bitbucketId,
 		},
 	);
 
@@ -129,6 +134,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 				repository: {
 					repo: data.bitbucketRepository || "",
 					owner: data.bitbucketOwner || "",
+					slug: data.bitbucketRepositorySlug || "",
 				},
 				composePath: data.composePath,
 				bitbucketId: data.bitbucketId || "",
@@ -142,6 +148,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 		await mutateAsync({
 			bitbucketBranch: data.branch,
 			bitbucketRepository: data.repository.repo,
+			bitbucketRepositorySlug: data.repository.slug || data.repository.repo,
 			bitbucketOwner: data.repository.owner,
 			bitbucketId: data.bitbucketId,
 			composePath: data.composePath,
@@ -183,6 +190,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 											form.setValue("repository", {
 												owner: "",
 												repo: "",
+												slug: "",
 											});
 											form.setValue("branch", "");
 										}}
@@ -219,7 +227,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 										<FormLabel>Repository</FormLabel>
 										{field.value.owner && field.value.repo && (
 											<Link
-												href={`https://bitbucket.org/${field.value.owner}/${field.value.repo}`}
+												href={`https://bitbucket.org/${field.value.owner}/${field.value.slug || field.value.repo}`}
 												target="_blank"
 												rel="noopener noreferrer"
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
@@ -239,13 +247,13 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{isLoadingRepositories
-														? "Loading...."
-														: field.value.owner
-															? repositories?.find(
+													{!field.value.owner
+														? "Select repository"
+														: isLoadingRepositories
+															? "Loading...."
+															: (repositories?.find(
 																	(repo) => repo.name === field.value.repo,
-																)?.name
-															: "Select repository"}
+																)?.name ?? "Select repository")}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -257,11 +265,15 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 													placeholder="Search repository..."
 													className="h-9"
 												/>
-												{isLoadingRepositories && (
+												{!bitbucketId ? (
+													<span className="py-6 text-center text-sm text-muted-foreground">
+														Select a Bitbucket account first
+													</span>
+												) : isLoadingRepositories ? (
 													<span className="py-6 text-center text-sm">
 														Loading Repositories....
 													</span>
-												)}
+												) : null}
 												<CommandEmpty>No repositories found.</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>
@@ -273,6 +285,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 																	form.setValue("repository", {
 																		owner: repo.owner.username as string,
 																		repo: repo.name,
+																		slug: repo.slug,
 																	});
 																	form.setValue("branch", "");
 																}}
@@ -322,7 +335,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{status === "loading" && fetchStatus === "fetching"
+													{status === "pending" && fetchStatus === "fetching"
 														? "Loading...."
 														: field.value
 															? branches?.find(
@@ -339,7 +352,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 													placeholder="Search branch..."
 													className="h-9"
 												/>
-												{status === "loading" && fetchStatus === "fetching" && (
+												{status === "pending" && fetchStatus === "fetching" && (
 													<span className="py-6 text-center text-sm text-muted-foreground">
 														Loading Branches....
 													</span>

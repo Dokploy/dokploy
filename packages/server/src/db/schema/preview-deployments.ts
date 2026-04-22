@@ -58,17 +58,12 @@ export const createSchema = createInsertSchema(previewDeployments, {
 	applicationId: z.string(),
 });
 
-export const apiCreatePreviewDeployment = createSchema
-	.pick({
-		applicationId: true,
-		domainId: true,
-		branch: true,
-		pullRequestId: true,
-		pullRequestNumber: true,
-		pullRequestURL: true,
-		pullRequestTitle: true,
-	})
-	.extend({
-		applicationId: z.string().min(1),
-		// deploymentId: z.string().min(1),
-	});
+export const apiCreatePreviewDeployment = z.object({
+	applicationId: z.string().min(1),
+	domainId: z.string().optional(),
+	branch: z.string().min(1),
+	pullRequestId: z.string().min(1),
+	pullRequestNumber: z.string().min(1),
+	pullRequestURL: z.string().min(1),
+	pullRequestTitle: z.string().min(1),
+});

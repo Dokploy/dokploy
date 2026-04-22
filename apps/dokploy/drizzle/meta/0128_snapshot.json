@@ -1,6 +1,6 @@
 {
-  "id": "a8104e6e-74bc-45b9-a7d0-ea571a28c3eb",
-  "prevId": "58037a47-d3d9-452a-a758-9f019d96fc2b",
+  "id": "44ed41b9-c44b-495d-b210-b3c2ca666544",
+  "prevId": "75e0fdd1-0cdb-4133-b3dd-8018b7de9207",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -607,12 +607,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "wildcardDomain": {
-          "name": "wildcardDomain",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -1014,6 +1008,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "args": {
+          "name": "args",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
         "refreshToken": {
           "name": "refreshToken",
           "type": "text",
@@ -1355,14 +1355,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "pausedAt": {
-          "name": "pausedAt",
+        "registryId": {
+          "name": "registryId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "registryId": {
-          "name": "registryId",
+        "rollbackRegistryId": {
+          "name": "rollbackRegistryId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1402,6 +1402,18 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "buildServerId": {
+          "name": "buildServerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buildRegistryId": {
+          "name": "buildRegistryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -1425,6 +1437,19 @@
           "tableTo": "registry",
           "columnsFrom": [
             "registryId"
+          ],
+          "columnsTo": [
+            "registryId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "application_rollbackRegistryId_registry_registryId_fk": {
+          "name": "application_rollbackRegistryId_registry_registryId_fk",
+          "tableFrom": "application",
+          "tableTo": "registry",
+          "columnsFrom": [
+            "rollbackRegistryId"
           ],
           "columnsTo": [
             "registryId"
@@ -1508,6 +1533,32 @@
             "serverId"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "application_buildServerId_server_serverId_fk": {
+          "name": "application_buildServerId_server_serverId_fk",
+          "tableFrom": "application",
+          "tableTo": "server",
+          "columnsFrom": [
+            "buildServerId"
+          ],
+          "columnsTo": [
+            "serverId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "application_buildRegistryId_registry_registryId_fk": {
+          "name": "application_buildRegistryId_registry_registryId_fk",
+          "tableFrom": "application",
+          "tableTo": "registry",
+          "columnsFrom": [
+            "buildRegistryId"
+          ],
+          "columnsTo": [
+            "registryId"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1914,244 +1965,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.cloud_provider_credentials": {
-      "name": "cloud_provider_credentials",
-      "schema": "",
-      "columns": {
-        "credentialId": {
-          "name": "credentialId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "provider": {
-          "name": "provider",
-          "type": "cloudProvider",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "encryptedApiToken": {
-          "name": "encryptedApiToken",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "additionalConfig": {
-          "name": "additionalConfig",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "lastValidated": {
-          "name": "lastValidated",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "isValid": {
-          "name": "isValid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'unknown'"
-        },
-        "organizationId": {
-          "name": "organizationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "cloud_provider_credentials_organizationId_organization_id_fk": {
-          "name": "cloud_provider_credentials_organizationId_organization_id_fk",
-          "tableFrom": "cloud_provider_credentials",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "organizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.server_provisioning_job": {
-      "name": "server_provisioning_job",
-      "schema": "",
-      "columns": {
-        "jobId": {
-          "name": "jobId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "credentialId": {
-          "name": "credentialId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "serverId": {
-          "name": "serverId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "providerServerId": {
-          "name": "providerServerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "providerSshKeyId": {
-          "name": "providerSshKeyId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "provisioningStatus",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "message": {
-          "name": "message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "error": {
-          "name": "error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "config": {
-          "name": "config",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "result": {
-          "name": "result",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "organizationId": {
-          "name": "organizationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "completedAt": {
-          "name": "completedAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "server_provisioning_job_credentialId_cloud_provider_credentials_credentialId_fk": {
-          "name": "server_provisioning_job_credentialId_cloud_provider_credentials_credentialId_fk",
-          "tableFrom": "server_provisioning_job",
-          "tableTo": "cloud_provider_credentials",
-          "columnsFrom": [
-            "credentialId"
-          ],
-          "columnsTo": [
-            "credentialId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "server_provisioning_job_serverId_server_serverId_fk": {
-          "name": "server_provisioning_job_serverId_server_serverId_fk",
-          "tableFrom": "server_provisioning_job",
-          "tableTo": "server",
-          "columnsFrom": [
-            "serverId"
-          ],
-          "columnsTo": [
-            "serverId"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "server_provisioning_job_organizationId_organization_id_fk": {
-          "name": "server_provisioning_job_organizationId_organization_id_fk",
-          "tableFrom": "server_provisioning_job",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "organizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.compose": {
       "name": "compose",
       "schema": "",
@@ -2399,12 +2212,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "pausedAt": {
-          "name": "pausedAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "watchPaths": {
           "name": "watchPaths",
@@ -2663,6 +2470,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "buildServerId": {
+          "name": "buildServerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2770,6 +2583,19 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "deployment_buildServerId_server_serverId_fk": {
+          "name": "deployment_buildServerId_server_serverId_fk",
+          "tableFrom": "deployment",
+          "tableTo": "server",
+          "columnsFrom": [
+            "buildServerId"
+          ],
+          "columnsTo": [
+            "serverId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2849,102 +2675,6 @@
         "destination_organizationId_organization_id_fk": {
           "name": "destination_organizationId_organization_id_fk",
           "tableFrom": "destination",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "organizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.dns_provider": {
-      "name": "dns_provider",
-      "schema": "",
-      "columns": {
-        "dnsProviderId": {
-          "name": "dnsProviderId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "dnsProviderType",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "apiToken": {
-          "name": "apiToken",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "secretAccessKey": {
-          "name": "secretAccessKey",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "accessKeyId": {
-          "name": "accessKeyId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "region": {
-          "name": "region",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ttl": {
-          "name": "ttl",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'1'"
-        },
-        "organizationId": {
-          "name": "organizationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "active": {
-          "name": "active",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "dns_provider_organizationId_organization_id_fk": {
-          "name": "dns_provider_organizationId_organization_id_fk",
-          "tableFrom": "dns_provider",
           "tableTo": "organization",
           "columnsFrom": [
             "organizationId"
@@ -3109,139 +2839,6 @@
           ],
           "columnsTo": [
             "previewDeploymentId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.domain_provider": {
-      "name": "domain_provider",
-      "schema": "",
-      "columns": {
-        "domainProviderId": {
-          "name": "domainProviderId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "domainProviderType",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "apiKey": {
-          "name": "apiKey",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "apiToken": {
-          "name": "apiToken",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "clientId": {
-          "name": "clientId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "clientSecret": {
-          "name": "clientSecret",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "accessToken": {
-          "name": "accessToken",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "refreshToken": {
-          "name": "refreshToken",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "tokenExpiresAt": {
-          "name": "tokenExpiresAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "authMethod": {
-          "name": "authMethod",
-          "type": "netlifyAuthMethod",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "apiUser": {
-          "name": "apiUser",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "clientIp": {
-          "name": "clientIp",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "enablePurchase": {
-          "name": "enablePurchase",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "organizationId": {
-          "name": "organizationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "active": {
-          "name": "active",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "domain_provider_organizationId_organization_id_fk": {
-          "name": "domain_provider_organizationId_organization_id_fk",
-          "tableFrom": "domain_provider",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "organizationId"
-          ],
-          "columnsTo": [
-            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3723,6 +3320,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "args": {
+          "name": "args",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
         "env": {
           "name": "env",
           "type": "text",
@@ -3839,12 +3442,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "pausedAt": {
-          "name": "pausedAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "environmentId": {
           "name": "environmentId",
@@ -3954,6 +3551,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "args": {
+          "name": "args",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
         "env": {
           "name": "env",
           "type": "text",
@@ -4070,12 +3673,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "pausedAt": {
-          "name": "pausedAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "environmentId": {
           "name": "environmentId",
@@ -4402,6 +3999,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "args": {
+          "name": "args",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
         "env": {
           "name": "env",
           "type": "text",
@@ -4518,12 +4121,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "pausedAt": {
-          "name": "pausedAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "environmentId": {
           "name": "environmentId",
@@ -4773,6 +4370,13 @@
           "notNull": true,
           "default": false
         },
+        "volumeBackup": {
+          "name": "volumeBackup",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "dokployRestart": {
           "name": "dokployRestart",
           "type": "boolean",
@@ -4995,7 +4599,7 @@
           "name": "accessToken",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "priority": {
           "name": "priority",
@@ -5205,6 +4809,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "args": {
+          "name": "args",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
         "env": {
           "name": "env",
           "type": "text",
@@ -5321,12 +4931,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "pausedAt": {
-          "name": "pausedAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "environmentId": {
           "name": "environmentId",
@@ -5552,19 +5156,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "''"
-        },
-        "wildcardDomain": {
-          "name": "wildcardDomain",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "useOrganizationWildcard": {
-          "name": "useOrganizationWildcard",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
         }
       },
       "indexes": {},
@@ -5705,6 +5296,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "args": {
+          "name": "args",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
         "env": {
           "name": "env",
           "type": "text",
@@ -5821,12 +5418,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": 1
-        },
-        "pausedAt": {
-          "name": "pausedAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "environmentId": {
           "name": "environmentId",
@@ -6332,6 +5923,14 @@
           "notNull": true,
           "default": "'active'"
         },
+        "serverType": {
+          "name": "serverType",
+          "type": "serverType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'deploy'"
+        },
         "command": {
           "name": "command",
           "type": "text",
@@ -6342,24 +5941,6 @@
         "sshKeyId": {
           "name": "sshKeyId",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cloudProvider": {
-          "name": "cloudProvider",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "providerServerId": {
-          "name": "providerServerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "providerMetadata": {
-          "name": "providerMetadata",
-          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -6397,164 +5978,6 @@
             "sshKeyId"
           ],
           "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.service_migration": {
-      "name": "service_migration",
-      "schema": "",
-      "columns": {
-        "migrationId": {
-          "name": "migrationId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "serviceId": {
-          "name": "serviceId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "serviceType": {
-          "name": "serviceType",
-          "type": "serviceType",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "serviceName": {
-          "name": "serviceName",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sourceServerId": {
-          "name": "sourceServerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "targetServerId": {
-          "name": "targetServerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "migrationStatus",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "currentStep": {
-          "name": "currentStep",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "progress": {
-          "name": "progress",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "errorMessage": {
-          "name": "errorMessage",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "backupPath": {
-          "name": "backupPath",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "volumesBackedUp": {
-          "name": "volumesBackedUp",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "originalServerId": {
-          "name": "originalServerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "originalReplicas": {
-          "name": "originalReplicas",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "startedAt": {
-          "name": "startedAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "completedAt": {
-          "name": "completedAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "initiatedBy": {
-          "name": "initiatedBy",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "service_migration_sourceServerId_server_serverId_fk": {
-          "name": "service_migration_sourceServerId_server_serverId_fk",
-          "tableFrom": "service_migration",
-          "tableTo": "server",
-          "columnsFrom": [
-            "sourceServerId"
-          ],
-          "columnsTo": [
-            "serverId"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "service_migration_targetServerId_server_serverId_fk": {
-          "name": "service_migration_targetServerId_server_serverId_fk",
-          "tableFrom": "service_migration",
-          "tableTo": "server",
-          "columnsFrom": [
-            "targetServerId"
-          ],
-          "columnsTo": [
-            "serverId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "service_migration_initiatedBy_user_id_fk": {
-          "name": "service_migration_initiatedBy_user_id_fk",
-          "tableFrom": "service_migration",
-          "tableTo": "user",
-          "columnsFrom": [
-            "initiatedBy"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -6745,8 +6168,15 @@
           "primaryKey": true,
           "notNull": true
         },
-        "name": {
-          "name": "name",
+        "firstName": {
+          "name": "firstName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "lastName": {
+          "name": "lastName",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -6870,7 +6300,7 @@
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": false
+          "default": true
         },
         "logCleanupCron": {
           "name": "logCleanupCron",
@@ -6960,64 +6390,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.user_preferences": {
-      "name": "user_preferences",
-      "schema": "",
-      "columns": {
-        "preferenceId": {
-          "name": "preferenceId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "hiddenSidebarItems": {
-          "name": "hiddenSidebarItems",
-          "type": "json",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'[]'::json"
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "user_preferences_userId_user_id_fk": {
-          "name": "user_preferences_userId_user_id_fk",
-          "tableFrom": "user_preferences",
-          "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -7309,27 +6681,6 @@
         "web-server"
       ]
     },
-    "public.cloudProvider": {
-      "name": "cloudProvider",
-      "schema": "public",
-      "values": [
-        "hetzner"
-      ]
-    },
-    "public.provisioningStatus": {
-      "name": "provisioningStatus",
-      "schema": "public",
-      "values": [
-        "pending",
-        "generating_ssh_key",
-        "uploading_ssh_key",
-        "creating_server",
-        "configuring_dokploy",
-        "running_setup",
-        "completed",
-        "failed"
-      ]
-    },
     "public.composeType": {
       "name": "composeType",
       "schema": "public",
@@ -7360,19 +6711,6 @@
         "cancelled"
       ]
     },
-    "public.dnsProviderType": {
-      "name": "dnsProviderType",
-      "schema": "public",
-      "values": [
-        "cloudflare",
-        "route53",
-        "digitalocean",
-        "namecheap",
-        "gandi",
-        "azure",
-        "google"
-      ]
-    },
     "public.domainType": {
       "name": "domainType",
       "schema": "public",
@@ -7380,22 +6718,6 @@
         "compose",
         "application",
         "preview"
-      ]
-    },
-    "public.domainProviderType": {
-      "name": "domainProviderType",
-      "schema": "public",
-      "values": [
-        "netlify",
-        "namecheap"
-      ]
-    },
-    "public.netlifyAuthMethod": {
-      "name": "netlifyAuthMethod",
-      "schema": "public",
-      "values": [
-        "oauth",
-        "direct"
       ]
     },
     "public.gitProviderType": {
@@ -7493,20 +6815,12 @@
         "inactive"
       ]
     },
-    "public.migrationStatus": {
-      "name": "migrationStatus",
+    "public.serverType": {
+      "name": "serverType",
       "schema": "public",
       "values": [
-        "pending",
-        "validating",
-        "pausing_source",
-        "backing_up",
-        "transferring",
-        "recreating",
-        "verifying",
-        "completed",
-        "failed",
-        "rolled_back"
+        "deploy",
+        "build"
       ]
     },
     "public.applicationStatus": {
@@ -7516,8 +6830,7 @@
         "idle",
         "running",
         "done",
-        "error",
-        "paused"
+        "error"
       ]
     },
     "public.certificateType": {

@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -48,10 +48,10 @@ interface Props {
 export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 	const { data: ip } = api.settings.getIp.useQuery();
 	const { data, refetch } = api.mariadb.one.useQuery({ mariadbId });
-	const { mutateAsync, isLoading } = api.mariadb.saveExternalPort.useMutation();
+	const { mutateAsync, isPending } = api.mariadb.saveExternalPort.useMutation();
 	const [connectionUrl, setConnectionUrl] = useState("");
 	const getIp = data?.server?.ipAddress || ip;
-	const form = useForm<DockerProvider>({
+	const form = useForm({
 		defaultValues: {},
 		resolver: zodResolver(DockerProviderSchema),
 	});
@@ -73,8 +73,8 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 				toast.success("External Port updated");
 				await refetch();
 			})
-			.catch(() => {
-				toast.error("Error saving the external port");
+			.catch((error: Error) => {
+				toast.error(error?.message || "Error saving the external port");
 			});
 	};
 
@@ -140,7 +140,7 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 															<Input
 																placeholder="3306"
 																{...field}
-																value={field.value || ""}
+																value={field.value as string}
 															/>
 														</FormControl>
 														<FormMessage />
@@ -161,7 +161,7 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 								)}
 
 								<div className="flex justify-end">
-									<Button type="submit" isLoading={isLoading}>
+									<Button type="submit" isLoading={isPending}>
 										Save
 									</Button>
 								</div>

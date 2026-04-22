@@ -18,6 +18,7 @@ import type { ComposeSpecification } from "@dokploy/server/utils/docker/types";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
 import {
+	ExecError,
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
@@ -32,17 +33,22 @@ import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
 import { getCreateComposeFileCommand } from "@dokploy/server/utils/providers/raw";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import type { z } from "zod";
+import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import {
 	createDeploymentCompose,
 	updateDeployment,
 	updateDeploymentStatus,
 } from "./deployment";
+import { generateApplyPatchesCommand } from "./patch";
 import { validUniqueServerAppName } from "./project";
 
 export type Compose = typeof compose.$inferSelect;
 
-export const createCompose = async (input: typeof apiCreateCompose._type) => {
+export const createCompose = async (
+	input: z.infer<typeof apiCreateCompose>,
+) => {
 	const appName = buildAppName("compose", input.appName);
 
 	const valid = await validUniqueServerAppName(appName);
@@ -245,6 +251,20 @@ export const deployCompose = async ({
 		} else {
 			await execAsync(commandWithLog);
 		}
+		if (compose.sourceType !== "raw") {
+			command = "set -e;";
+			command += await generateApplyPatchesCommand({
+				id: compose.composeId,
+				type: "compose",
+				serverId: compose.serverId,
+			});
+			commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+			if (compose.serverId) {
+				await execAsyncRemote(compose.serverId, commandWithLog);
+			} else {
+				await execAsync(commandWithLog);
+			}
+		}
 
 		command = "set -e;";
 		command += await getBuildComposeCommand(entity);
@@ -270,6 +290,21 @@ export const deployCompose = async ({
 			environmentName: compose.environment.name,
 		});
 	} catch (error) {
+		let command = "";
+
+		// Only log details for non-ExecError errors
+		if (!(error instanceof ExecError)) {
+			const message = error instanceof Error ? error.message : String(error);
+			const encodedMessage = encodeBase64(message);
+			command += `echo "${encodedMessage}" | base64 -d >> "${deployment.logPath}";`;
+		}
+
+		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
+		if (compose.serverId) {
+			await execAsyncRemote(compose.serverId, command);
+		} else {
+			await execAsync(command);
+		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateCompose(composeId, {
 			composeStatus: "error",
@@ -329,6 +364,23 @@ export const rebuildCompose = async ({
 		} else {
 			await execAsync(commandWithLog);
 		}
+
+		if (compose.sourceType !== "raw") {
+			command = "set -e;";
+			command += await generateApplyPatchesCommand({
+				id: compose.composeId,
+				type: "compose",
+				serverId: compose.serverId,
+			});
+			commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+			if (compose.serverId) {
+				await execAsyncRemote(compose.serverId, commandWithLog);
+			} else {
+				await execAsync(commandWithLog);
+			}
+		}
+
+		command = "set -e;";
 		command += await getBuildComposeCommand(compose);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
@@ -342,6 +394,21 @@ export const rebuildCompose = async ({
 			composeStatus: "done",
 		});
 	} catch (error) {
+		let command = "";
+
+		// Only log details for non-ExecError errors
+		if (!(error instanceof ExecError)) {
+			const message = error instanceof Error ? error.message : String(error);
+			const encodedMessage = encodeBase64(message);
+			command += `echo "${encodedMessage}" | base64 -d >> "${deployment.logPath}";`;
+		}
+
+		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
+		if (compose.serverId) {
+			await execAsyncRemote(compose.serverId, command);
+		} else {
+			await execAsync(command);
+		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateCompose(composeId, {
 			composeStatus: "error",
@@ -363,29 +430,26 @@ export const removeCompose = async (
 		if (compose.composeType === "stack") {
 			const command = `
 			docker network disconnect ${compose.appName} dokploy-traefik;
-			cd ${projectPath} && docker stack rm ${compose.appName} && rm -rf ${projectPath}`;
+			docker stack rm ${compose.appName};
+			rm -rf ${projectPath}`;
 
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);
 			} else {
 				await execAsync(command);
 			}
-			await execAsync(command, {
-				cwd: projectPath,
-			});
 		} else {
 			const command = `
-			 docker network disconnect ${compose.appName} dokploy-traefik;
-			cd ${projectPath} && env -i PATH="$PATH" docker compose -p ${compose.appName} down ${
+			docker network disconnect ${compose.appName} dokploy-traefik;
+			env -i PATH="$PATH" docker compose -p ${compose.appName} down ${
 				deleteVolumes ? "--volumes" : ""
-			} && rm -rf ${projectPath}`;
+			};
+			rm -rf ${projectPath}`;
 
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);
 			} else {
-				await execAsync(command, {
-					cwd: projectPath,
-				});
+				await execAsync(command);
 			}
 		}
 	} catch (error) {

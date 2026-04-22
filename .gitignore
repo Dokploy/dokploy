@@ -13,6 +13,8 @@ node_modules
 .env.test.local
 .env.production.local
 
+openapi.json
+
 # Testing
 coverage
 

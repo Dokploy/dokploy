@@ -2,13 +2,17 @@
 	"compilerOptions": {
 		"target": "ESNext",
 		"module": "ESNext",
-		"moduleResolution": "Node",
+		"moduleResolution": "bundler",
 		"strict": true,
 		"skipLibCheck": true,
 		"outDir": "dist",
 		"jsx": "react-jsx",
-		"jsxImportSource": "hono/jsx",
-		"declaration": false
+		"declaration": false,
+		"baseUrl": ".",
+		"paths": {
+			"@dokploy/server/*": ["../../packages/server/src/*"]
+		}
 	},
-	"exclude": ["node_modules", "dist"]
+	"exclude": ["node_modules", "dist"],
+	"include": ["src/**/*"]
 }

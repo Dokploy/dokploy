@@ -17,6 +17,8 @@ export const certificateType = pgEnum("certificateType", [
 
 export const triggerType = pgEnum("triggerType", ["push", "tag"]);
 
+export const sqldNode = pgEnum("sqldNode", ["primary", "replica"]);
+
 export interface HealthCheckSwarm {
 	Test?: string[] | undefined;
 	Interval?: number | undefined;
@@ -86,6 +88,14 @@ export interface EndpointSpecSwarm {
 	Mode?: string | undefined;
 	Ports?: EndpointPortConfigSwarm[] | undefined;
 }
+
+export interface UlimitSwarm {
+	Name: string;
+	Soft: number;
+	Hard: number;
+}
+
+export type UlimitsSwarm = UlimitSwarm[];
 
 export const HealthCheckSwarmSchema = z
 	.object({
@@ -168,12 +178,12 @@ export const NetworkSwarmSchema = z.array(
 		.object({
 			Target: z.string().optional(),
 			Aliases: z.array(z.string()).optional(),
-			DriverOpts: z.object({}).optional(),
+			DriverOpts: z.record(z.string(), z.string()).optional(),
 		})
 		.strict(),
 );
 
-export const LabelsSwarmSchema = z.record(z.string());
+export const LabelsSwarmSchema = z.record(z.string(), z.string());
 
 export const EndpointPortConfigSwarmSchema = z
 	.object({
@@ -190,3 +200,13 @@ export const EndpointSpecSwarmSchema = z
 		Ports: z.array(EndpointPortConfigSwarmSchema).optional(),
 	})
 	.strict();
+
+export const UlimitSwarmSchema = z
+	.object({
+		Name: z.string().min(1),
+		Soft: z.number().int().min(-1),
+		Hard: z.number().int().min(-1),
+	})
+	.strict();
+
+export const UlimitsSwarmSchema = z.array(UlimitSwarmSchema);

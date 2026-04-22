@@ -2,10 +2,11 @@ import { db } from "@dokploy/server/db";
 import { type apiCreatePort, ports } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import type { z } from "zod";
 
 export type Port = typeof ports.$inferSelect;
 
-export const createPort = async (input: typeof apiCreatePort._type) => {
+export const createPort = async (input: z.infer<typeof apiCreatePort>) => {
 	const newPort = await db
 		.insert(ports)
 		.values({

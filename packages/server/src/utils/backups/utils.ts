@@ -4,6 +4,7 @@ import type { Destination } from "@dokploy/server/services/destination";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { keepLatestNBackups } from ".";
 import { runComposeBackup } from "./compose";
+import { runLibsqlBackup } from "./libsql";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
@@ -19,6 +20,7 @@ export const scheduleBackup = (backup: BackupSchedule) => {
 		mysql,
 		mongo,
 		mariadb,
+		libsql,
 		compose,
 	} = backup;
 	scheduleJob(backupId, schedule, async () => {
@@ -35,6 +37,9 @@ export const scheduleBackup = (backup: BackupSchedule) => {
 			} else if (databaseType === "mariadb" && mariadb) {
 				await runMariadbBackup(mariadb, backup);
 				await keepLatestNBackups(backup, mariadb.serverId);
+			} else if (databaseType === "libsql" && libsql) {
+				await runLibsqlBackup(libsql, backup);
+				await keepLatestNBackups(backup, libsql.serverId);
 			} else if (databaseType === "web-server") {
 				await runWebServerBackup(backup);
 				await keepLatestNBackups(backup);
@@ -51,6 +56,9 @@ export const removeScheduleBackup = (backupId: string) => {
 	currentJob?.cancel();
 };
 
+export const getBackupTimestamp = () =>
+	new Date().toISOString().replace(/[:.]/g, "-");
+
 export const normalizeS3Path = (prefix: string) => {
 	// Trim whitespace and remove leading/trailing slashes
 	const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");
@@ -62,16 +70,20 @@ export const getS3Credentials = (destination: Destination) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [
-		`--s3-access-key-id=${accessKey}`,
-		`--s3-secret-access-key=${secretAccessKey}`,
-		`--s3-region=${region}`,
-		`--s3-endpoint=${endpoint}`,
+		`--s3-access-key-id="${accessKey}"`,
+		`--s3-secret-access-key="${secretAccessKey}"`,
+		`--s3-region="${region}"`,
+		`--s3-endpoint="${endpoint}"`,
 		"--s3-no-check-bucket",
 		"--s3-force-path-style",
 	];
 
 	if (provider) {
-		rcloneFlags.unshift(`--s3-provider=${provider}`);
+		rcloneFlags.unshift(`--s3-provider="${provider}"`);
+	}
+
+	if (destination.additionalFlags?.length) {
+		rcloneFlags.push(...destination.additionalFlags);
 	}
 
 	return rcloneFlags;
@@ -107,6 +119,10 @@ export const getMongoBackupCommand = (
 	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}' --archive --authenticationDatabase admin --gzip"`;
 };
 
+export const getLibsqlBackupCommand = (database: string) => {
+	return `docker exec -i $CONTAINER_ID sh -c "tar cf - -C /var/lib/sqld ${database} | gzip"`;
+};
+
 export const getServiceContainerCommand = (appName: string) => {
 	return `docker ps -q --filter "status=running" --filter "label=com.docker.swarm.service.name=${appName}" | head -n 1`;
 };
@@ -123,12 +139,24 @@ export const getComposeContainerCommand = (
 };
 
 const getContainerSearchCommand = (backup: BackupSchedule) => {
-	const { backupType, postgres, mysql, mariadb, mongo, compose, serviceName } =
-		backup;
+	const {
+		backupType,
+		postgres,
+		mysql,
+		mariadb,
+		mongo,
+		libsql,
+		compose,
+		serviceName,
+	} = backup;
 
 	if (backupType === "database") {
 		const appName =
-			postgres?.appName || mysql?.appName || mariadb?.appName || mongo?.appName;
+			postgres?.appName ||
+			mysql?.appName ||
+			mariadb?.appName ||
+			mongo?.appName ||
+			libsql?.appName;
 		return getServiceContainerCommand(appName || "");
 	}
 	if (backupType === "compose") {
@@ -206,6 +234,12 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 					backup.metadata.mongo.databaseUser,
 					backup.metadata.mongo.databasePassword,
 				);
+			}
+			break;
+		}
+		case "libsql": {
+			if (backupType === "database") {
+				return getLibsqlBackupCommand(backup.database);
 			}
 			break;
 		}

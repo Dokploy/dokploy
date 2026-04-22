@@ -35,11 +35,9 @@ const createSchema = createInsertSchema(redirects, {
 	permanent: z.boolean().optional(),
 });
 
-export const apiFindOneRedirect = createSchema
-	.pick({
-		redirectId: true,
-	})
-	.required();
+export const apiFindOneRedirect = z.object({
+	redirectId: z.string().min(1),
+});
 
 export const apiCreateRedirect = createSchema
 	.pick({

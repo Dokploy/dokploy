@@ -6,6 +6,7 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import type { z } from "zod";
 import { IS_CLOUD } from "../constants";
 
 export type Registry = typeof registry.$inferSelect;
@@ -15,7 +16,7 @@ function shEscape(s: string | undefined): string {
 	return `'${s.replace(/'/g, `'\\''`)}'`;
 }
 
-function safeDockerLoginCommand(
+export function safeDockerLoginCommand(
 	registry: string | undefined,
 	user: string | undefined,
 	pass: string | undefined,
@@ -27,7 +28,7 @@ function safeDockerLoginCommand(
 }
 
 export const createRegistry = async (
-	input: typeof apiCreateRegistry._type,
+	input: z.infer<typeof apiCreateRegistry>,
 	organizationId: string,
 ) => {
 	return await db.transaction(async (tx) => {

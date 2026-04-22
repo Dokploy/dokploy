@@ -1,4 +1,3 @@
-import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,31 +15,33 @@ interface Props {
 	serverId?: string;
 }
 export const ShowStorageActions = ({ serverId }: Props) => {
-	const { t } = useTranslation("settings");
-	const { mutateAsync: cleanAll, isLoading: cleanAllIsLoading } =
+	const { mutateAsync: cleanAll, isPending: cleanAllIsLoading } =
 		api.settings.cleanAll.useMutation();
 
 	const {
 		mutateAsync: cleanDockerBuilder,
-		isLoading: cleanDockerBuilderIsLoading,
+		isPending: cleanDockerBuilderIsPending,
 	} = api.settings.cleanDockerBuilder.useMutation();
 
 	const { mutateAsync: cleanMonitoring } =
 		api.settings.cleanMonitoring.useMutation();
 	const {
 		mutateAsync: cleanUnusedImages,
-		isLoading: cleanUnusedImagesIsLoading,
+		isPending: cleanUnusedImagesIsPending,
 	} = api.settings.cleanUnusedImages.useMutation();
 
 	const {
 		mutateAsync: cleanUnusedVolumes,
-		isLoading: cleanUnusedVolumesIsLoading,
+		isPending: cleanUnusedVolumesIsPending,
 	} = api.settings.cleanUnusedVolumes.useMutation();
 
 	const {
 		mutateAsync: cleanStoppedContainers,
-		isLoading: cleanStoppedContainersIsLoading,
+		isPending: cleanStoppedContainersIsPending,
 	} = api.settings.cleanStoppedContainers.useMutation();
+
+	const { mutateAsync: cleanPatchRepos, isPending: cleanPatchReposIsLoading } =
+		api.patch.cleanPatchRepos.useMutation();
 
 	return (
 		<DropdownMenu>
@@ -48,29 +49,29 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 				asChild
 				disabled={
 					cleanAllIsLoading ||
-					cleanDockerBuilderIsLoading ||
-					cleanUnusedImagesIsLoading ||
-					cleanUnusedVolumesIsLoading ||
-					cleanStoppedContainersIsLoading
+					cleanDockerBuilderIsPending ||
+					cleanUnusedImagesIsPending ||
+					cleanUnusedVolumesIsPending ||
+					cleanStoppedContainersIsPending ||
+					cleanPatchReposIsLoading
 				}
 			>
 				<Button
 					isLoading={
 						cleanAllIsLoading ||
-						cleanDockerBuilderIsLoading ||
-						cleanUnusedImagesIsLoading ||
-						cleanUnusedVolumesIsLoading ||
-						cleanStoppedContainersIsLoading
+						cleanDockerBuilderIsPending ||
+						cleanUnusedImagesIsPending ||
+						cleanUnusedVolumesIsPending ||
+						cleanStoppedContainersIsPending ||
+						cleanPatchReposIsLoading
 					}
 					variant="outline"
 				>
-					{t("settings.server.webServer.storage.label")}
+					Space
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="w-64" align="start">
-				<DropdownMenuLabel>
-					{t("settings.server.webServer.actions")}
-				</DropdownMenuLabel>
+				<DropdownMenuLabel>Actions</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
 					<DropdownMenuItem
@@ -87,9 +88,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>
-							{t("settings.server.webServer.storage.cleanUnusedImages")}
-						</span>
+						<span>Clean unused images</span>
 					</DropdownMenuItem>
 					<DropdownMenuItem
 						className="w-full cursor-pointer"
@@ -105,9 +104,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>
-							{t("settings.server.webServer.storage.cleanUnusedVolumes")}
-						</span>
+						<span>Clean unused volumes</span>
 					</DropdownMenuItem>
 
 					<DropdownMenuItem
@@ -124,9 +121,24 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>
-							{t("settings.server.webServer.storage.cleanStoppedContainers")}
-						</span>
+						<span>Clean stopped containers</span>
+					</DropdownMenuItem>
+
+					<DropdownMenuItem
+						className="w-full cursor-pointer"
+						onClick={async () => {
+							await cleanPatchRepos({
+								serverId: serverId,
+							})
+								.then(async () => {
+									toast.success("Cleaned Patch Caches");
+								})
+								.catch(() => {
+									toast.error("Error cleaning Patch Caches");
+								});
+						}}
+					>
+						<span>Clean Patch Caches</span>
 					</DropdownMenuItem>
 
 					<DropdownMenuItem
@@ -143,9 +155,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>
-							{t("settings.server.webServer.storage.cleanDockerBuilder")}
-						</span>
+						<span>Clean Docker Builder & System</span>
 					</DropdownMenuItem>
 					{!serverId && (
 						<DropdownMenuItem
@@ -160,9 +170,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 									});
 							}}
 						>
-							<span>
-								{t("settings.server.webServer.storage.cleanMonitoring")}
-							</span>
+							<span>Clean Monitoring</span>
 						</DropdownMenuItem>
 					)}
 
@@ -173,14 +181,14 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Cleaned all");
+									toast.success("Cleaning in progress... Please wait");
 								})
 								.catch(() => {
 									toast.error("Error cleaning all");
 								});
 						}}
 					>
-						<span>{t("settings.server.webServer.storage.cleanAll")}</span>
+						<span>Clean all</span>
 					</DropdownMenuItem>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>

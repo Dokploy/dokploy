@@ -1,0 +1,1 @@
+ALTER TABLE "application" ALTER COLUMN "dockerfile" SET DEFAULT 'Dockerfile';

@@ -33,7 +33,7 @@ app.use(async (c, next) => {
 
 app.post("/create-backup", zValidator("json", jobQueueSchema), async (c) => {
 	const data = c.req.valid("json");
-	scheduleJob(data);
+	await scheduleJob(data);
 	logger.info({ data }, `[${data.type}]  created successfully`);
 	return c.json({ message: `[${data.type}]  created successfully` });
 });
@@ -47,30 +47,30 @@ app.post("/update-backup", zValidator("json", jobQueueSchema), async (c) => {
 			result = await removeJob({
 				backupId: data.backupId,
 				type: "backup",
-				cronSchedule: job.pattern,
+				cronSchedule: job.pattern || "",
 			});
 		} else if (data.type === "server") {
 			result = await removeJob({
 				serverId: data.serverId,
 				type: "server",
-				cronSchedule: job.pattern,
+				cronSchedule: job.pattern || "",
 			});
 		} else if (data.type === "schedule") {
 			result = await removeJob({
 				scheduleId: data.scheduleId,
 				type: "schedule",
-				cronSchedule: job.pattern,
+				cronSchedule: job.pattern || "",
 			});
 		} else if (data.type === "volume-backup") {
 			result = await removeJob({
 				volumeBackupId: data.volumeBackupId,
 				type: "volume-backup",
-				cronSchedule: job.pattern,
+				cronSchedule: job.pattern || "",
 			});
 		}
 		logger.info({ result }, "Job removed");
 	}
-	scheduleJob(data);
+	await scheduleJob(data);
 	logger.info("Backup updated successfully");
 
 	return c.json({ message: "Backup updated successfully" });
@@ -103,8 +103,11 @@ process.on("uncaughtException", (err) => {
 	logger.error(err, "Uncaught exception");
 });
 
-process.on("unhandledRejection", (reason, promise) => {
-	logger.error({ promise, reason }, "Unhandled Rejection at: Promise");
+process.on("unhandledRejection", (reason, _promise) => {
+	logger.error(
+		reason instanceof Error ? reason : { reason: String(reason) },
+		"Unhandled Rejection at: Promise",
+	);
 });
 
 const port = Number.parseInt(process.env.PORT || "3000");

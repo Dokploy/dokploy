@@ -152,7 +152,15 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 			return JSON.stringify(value, null, 2);
 		}
 		if (key === "Duration" || key === "OriginDuration" || key === "Overhead") {
-			return `${value / 1000000000} s`;
+			const nanos = Number(value);
+			const ms = nanos / 1000000;
+			if (ms < 1) {
+				return `${(nanos / 1000).toFixed(2)} µs`;
+			}
+			if (ms < 1000) {
+				return `${ms.toFixed(2)} ms`;
+			}
+			return `${(ms / 1000).toFixed(2)} s`;
 		}
 		if (key === "level") {
 			return <Badge variant="secondary">{value}</Badge>;
@@ -161,7 +169,11 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 			return <Badge variant="outline">{value}</Badge>;
 		}
 		if (key === "DownstreamStatus" || key === "OriginStatus") {
-			return <Badge variant={getStatusColor(value)}>{value}</Badge>;
+			const num = Number(value);
+			if (num === 0) {
+				return <Badge variant="secondary">N/A</Badge>;
+			}
+			return <Badge variant={getStatusColor(num)}>{value}</Badge>;
 		}
 		return value;
 	};

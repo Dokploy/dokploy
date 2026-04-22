@@ -3,6 +3,10 @@ import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import {
+	ADDITIONAL_FLAG_ERROR,
+	ADDITIONAL_FLAG_REGEX,
+} from "../validations/destination";
 import { organization } from "./account";
 import { backups } from "./backups";
 
@@ -18,6 +22,7 @@ export const destinations = pgTable("destination", {
 	bucket: text("bucket").notNull(),
 	region: text("region").notNull(),
 	endpoint: text("endpoint").notNull(),
+	additionalFlags: text("additionalFlags").array(),
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
@@ -44,6 +49,9 @@ const createSchema = createInsertSchema(destinations, {
 	endpoint: z.string(),
 	secretAccessKey: z.string(),
 	region: z.string(),
+	additionalFlags: z
+		.array(z.string().regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR))
+		.default([]),
 });
 
 export const apiCreateDestination = createSchema
@@ -55,17 +63,16 @@ export const apiCreateDestination = createSchema
 		region: true,
 		endpoint: true,
 		secretAccessKey: true,
+		additionalFlags: true,
 	})
 	.required()
 	.extend({
 		serverId: z.string().optional(),
 	});
 
-export const apiFindOneDestination = createSchema
-	.pick({
-		destinationId: true,
-	})
-	.required();
+export const apiFindOneDestination = z.object({
+	destinationId: z.string().min(1),
+});
 
 export const apiRemoveDestination = createSchema
 	.pick({
@@ -83,6 +90,7 @@ export const apiUpdateDestination = createSchema
 		secretAccessKey: true,
 		destinationId: true,
 		provider: true,
+		additionalFlags: true,
 	})
 	.required()
 	.extend({

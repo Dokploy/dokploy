@@ -1,12 +1,35 @@
 import { buffer } from "node:stream/consumers";
 import { findUserById, type Server } from "@dokploy/server";
-import { asc, eq } from "drizzle-orm";
+import { db } from "@dokploy/server/db";
+import { and, asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
-import { db } from "@/server/db";
 import { organization, server, user } from "@/server/db/schema";
+import {
+	sendInvoiceEmail,
+	sendPaymentFailedEmail,
+} from "@/server/utils/stripe-notifications";
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+const STARTUP_BASE_PRICE_IDS = [
+	process.env.STARTUP_BASE_PRICE_MONTHLY_ID,
+	process.env.STARTUP_BASE_PRICE_ANNUAL_ID,
+].filter(Boolean) as string[];
+
+const STARTUP_SERVERS_INCLUDED = 3;
+
+function getSubscriptionServersQuantity(
+	items: Stripe.SubscriptionItem[],
+): number {
+	return items.reduce((sum, item) => {
+		const priceId = (item.price as Stripe.Price).id;
+		if (STARTUP_BASE_PRICE_IDS.includes(priceId)) {
+			return sum + STARTUP_SERVERS_INCLUDED;
+		}
+		return sum + (item.quantity ?? 0);
+	}, 0);
+}
 
 export const config = {
 	api: {
@@ -63,19 +86,25 @@ export default async function handler(
 			const subscription = await stripe.subscriptions.retrieve(
 				session.subscription as string,
 			);
+			const serversQuantity = getSubscriptionServersQuantity(
+				subscription?.items?.data ?? [],
+			);
 			await db
 				.update(user)
 				.set({
 					stripeCustomerId: session.customer as string,
 					stripeSubscriptionId: session.subscription as string,
-					serversQuantity: subscription?.items?.data?.[0]?.quantity ?? 0,
+					serversQuantity,
 				})
-				.where(eq(user.id, adminId))
+				.where(and(eq(user.id, adminId), eq(user.isEnterpriseCloud, false)))
 				.returning();
 
 			const admin = await findUserById(adminId);
 			if (!admin) {
 				return res.status(400).send("Webhook Error: Admin not found");
+			}
+			if (admin.isEnterpriseCloud) {
+				break;
 			}
 			const newServersQuantity = admin.serversQuantity;
 			await updateServersBasedOnQuantity(admin.id, newServersQuantity);
@@ -90,7 +119,12 @@ export default async function handler(
 					stripeSubscriptionId: newSubscription.id,
 					stripeCustomerId: newSubscription.customer as string,
 				})
-				.where(eq(user.stripeCustomerId, newSubscription.customer as string))
+				.where(
+					and(
+						eq(user.stripeCustomerId, newSubscription.customer as string),
+						eq(user.isEnterpriseCloud, false),
+					),
+				)
 				.returning();
 
 			break;
@@ -105,7 +139,12 @@ export default async function handler(
 					stripeSubscriptionId: null,
 					serversQuantity: 0,
 				})
-				.where(eq(user.stripeCustomerId, newSubscription.customer as string));
+				.where(
+					and(
+						eq(user.stripeCustomerId, newSubscription.customer as string),
+						eq(user.isEnterpriseCloud, false),
+					),
+				);
 
 			const admin = await findUserByStripeCustomerId(
 				newSubscription.customer as string,
@@ -113,6 +152,10 @@ export default async function handler(
 
 			if (!admin) {
 				return res.status(400).send("Webhook Error: Admin not found");
+			}
+
+			if (admin.isEnterpriseCloud) {
+				break;
 			}
 
 			await disableServers(admin.id);
@@ -129,22 +172,36 @@ export default async function handler(
 				return res.status(400).send("Webhook Error: Admin not found");
 			}
 
+			if (admin.isEnterpriseCloud) {
+				break;
+			}
+
 			if (newSubscription.status === "active") {
+				const serversQuantity = getSubscriptionServersQuantity(
+					newSubscription?.items?.data ?? [],
+				);
 				await db
 					.update(user)
-					.set({
-						serversQuantity: newSubscription?.items?.data?.[0]?.quantity ?? 0,
-					})
-					.where(eq(user.stripeCustomerId, newSubscription.customer as string));
+					.set({ serversQuantity })
+					.where(
+						and(
+							eq(user.stripeCustomerId, newSubscription.customer as string),
+							eq(user.isEnterpriseCloud, false),
+						),
+					);
 
-				const newServersQuantity = admin.serversQuantity;
-				await updateServersBasedOnQuantity(admin.id, newServersQuantity);
+				await updateServersBasedOnQuantity(admin.id, serversQuantity);
 			} else {
 				await disableServers(admin.id);
 				await db
 					.update(user)
 					.set({ serversQuantity: 0 })
-					.where(eq(user.stripeCustomerId, newSubscription.customer as string));
+					.where(
+						and(
+							eq(user.stripeCustomerId, newSubscription.customer as string),
+							eq(user.isEnterpriseCloud, false),
+						),
+					);
 			}
 
 			break;
@@ -152,33 +209,47 @@ export default async function handler(
 		case "invoice.payment_succeeded": {
 			const newInvoice = event.data.object as Stripe.Invoice;
 
-			const suscription = await stripe.subscriptions.retrieve(
+			const subscription = await stripe.subscriptions.retrieve(
 				newInvoice.subscription as string,
 			);
 
-			if (suscription.status !== "active") {
+			if (subscription.status !== "active") {
 				console.log(
-					`Skipping invoice.payment_succeeded for subscription ${suscription.id} with status ${suscription.status}`,
+					`Skipping invoice.payment_succeeded for subscription ${subscription.id} with status ${subscription.status}`,
 				);
 				break;
 			}
 
+			const serversQuantity = getSubscriptionServersQuantity(
+				subscription?.items?.data ?? [],
+			);
 			await db
 				.update(user)
-				.set({
-					serversQuantity: suscription?.items?.data?.[0]?.quantity ?? 0,
-				})
-				.where(eq(user.stripeCustomerId, suscription.customer as string));
+				.set({ serversQuantity })
+				.where(
+					and(
+						eq(user.stripeCustomerId, subscription.customer as string),
+						eq(user.isEnterpriseCloud, false),
+					),
+				);
 
 			const admin = await findUserByStripeCustomerId(
-				suscription.customer as string,
+				subscription.customer as string,
 			);
 
 			if (!admin) {
 				return res.status(400).send("Webhook Error: Admin not found");
 			}
+			if (admin.isEnterpriseCloud) {
+				break;
+			}
 			const newServersQuantity = admin.serversQuantity;
 			await updateServersBasedOnQuantity(admin.id, newServersQuantity);
+
+			if (admin.sendInvoiceNotifications) {
+				await sendInvoiceEmail(newInvoice, admin);
+			}
+
 			break;
 		}
 		case "invoice.payment_failed": {
@@ -187,7 +258,6 @@ export default async function handler(
 			const subscription = await stripe.subscriptions.retrieve(
 				newInvoice.subscription as string,
 			);
-
 			if (subscription.status !== "active") {
 				const admin = await findUserByStripeCustomerId(
 					newInvoice.customer as string,
@@ -196,12 +266,26 @@ export default async function handler(
 				if (!admin) {
 					return res.status(400).send("Webhook Error: Admin not found");
 				}
+
+				if (admin.isEnterpriseCloud) {
+					break;
+				}
+
+				if (admin.sendInvoiceNotifications) {
+					await sendPaymentFailedEmail(newInvoice, admin);
+				}
+
 				await db
 					.update(user)
 					.set({
 						serversQuantity: 0,
 					})
-					.where(eq(user.stripeCustomerId, newInvoice.customer as string));
+					.where(
+						and(
+							eq(user.stripeCustomerId, newInvoice.customer as string),
+							eq(user.isEnterpriseCloud, false),
+						),
+					);
 
 				await disableServers(admin.id);
 			}
@@ -217,6 +301,10 @@ export default async function handler(
 				return res.status(400).send("Webhook Error: Admin not found");
 			}
 
+			if (admin.isEnterpriseCloud) {
+				break;
+			}
+
 			await disableServers(admin.id);
 			await db
 				.update(user)
@@ -225,7 +313,12 @@ export default async function handler(
 					stripeSubscriptionId: null,
 					serversQuantity: 0,
 				})
-				.where(eq(user.stripeCustomerId, customer.id));
+				.where(
+					and(
+						eq(user.stripeCustomerId, customer.id),
+						eq(user.isEnterpriseCloud, false),
+					),
+				);
 
 			break;
 		}

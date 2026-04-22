@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "bookmarkedTemplates" text[] DEFAULT ARRAY[]::text[];

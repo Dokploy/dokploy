@@ -7,10 +7,12 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { audit } from "@/server/api/utils/audit";
 import { getLocalServerIp } from "@/server/wss/terminal";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, withPermission } from "../trpc";
+
 export const clusterRouter = createTRPCRouter({
-	getNodes: protectedProcedure
+	getNodes: withPermission("server", "read")
 		.input(
 			z.object({
 				serverId: z.string().optional(),
@@ -19,17 +21,17 @@ export const clusterRouter = createTRPCRouter({
 		.query(async ({ input }) => {
 			const docker = await getRemoteDocker(input.serverId);
 			const workers: DockerNode[] = await docker.listNodes();
-
 			return workers;
 		}),
-	removeWorker: protectedProcedure
+
+	removeWorker: withPermission("server", "delete")
 		.input(
 			z.object({
 				nodeId: z.string(),
 				serverId: z.string().optional(),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const drainCommand = `docker node update --availability drain ${input.nodeId}`;
 				const removeCommand = `docker node rm ${input.nodeId} --force`;
@@ -41,6 +43,12 @@ export const clusterRouter = createTRPCRouter({
 					await execAsync(drainCommand);
 					await execAsync(removeCommand);
 				}
+				await audit(ctx, {
+					action: "delete",
+					resourceType: "cluster",
+					resourceId: input.nodeId,
+					resourceName: input.nodeId,
+				});
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -50,7 +58,8 @@ export const clusterRouter = createTRPCRouter({
 				});
 			}
 		}),
-	addWorker: protectedProcedure
+
+	addWorker: withPermission("server", "create")
 		.input(
 			z.object({
 				serverId: z.string().optional(),
@@ -68,13 +77,12 @@ export const clusterRouter = createTRPCRouter({
 			}
 
 			return {
-				command: `docker swarm join --token ${
-					result.JoinTokens.Worker
-				} ${ip}:2377`,
+				command: `docker swarm join --token ${result.JoinTokens.Worker} ${ip}:2377`,
 				version: docker_version.Version,
 			};
 		}),
-	addManager: protectedProcedure
+
+	addManager: withPermission("server", "create")
 		.input(
 			z.object({
 				serverId: z.string().optional(),
@@ -91,9 +99,7 @@ export const clusterRouter = createTRPCRouter({
 				ip = server?.ipAddress;
 			}
 			return {
-				command: `docker swarm join --token ${
-					result.JoinTokens.Manager
-				} ${ip}:2377`,
+				command: `docker swarm join --token ${result.JoinTokens.Manager} ${ip}:2377`,
 				version: docker_version.Version,
 			};
 		}),

@@ -1,15 +1,8 @@
 import type { findEnvironmentsByProjectId } from "@dokploy/server";
-import {
-	ChevronDownIcon,
-	PencilIcon,
-	PlusIcon,
-	Terminal,
-	TrashIcon,
-} from "lucide-react";
+import { ChevronDownIcon, PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { EnvironmentVariables } from "@/components/dashboard/project/environment-variables";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,19 +57,13 @@ export const AdvancedEnvironmentSelector = ({
 	const [description, setDescription] = useState("");
 
 	// Get current user's permissions
-	const { data: currentUser } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	// Check if user can create environments
-	const canCreateEnvironments =
-		currentUser?.role === "owner" ||
-		currentUser?.role === "admin" ||
-		currentUser?.canCreateEnvironments === true;
+	const canCreateEnvironments = !!permissions?.environment.create;
 
 	// Check if user can delete environments
-	const canDeleteEnvironments =
-		currentUser?.role === "owner" ||
-		currentUser?.role === "admin" ||
-		currentUser?.canDeleteEnvironments === true;
+	const canDeleteEnvironments = !!permissions?.environment.delete;
 
 	const haveServices =
 		selectedEnvironment &&
@@ -100,16 +87,20 @@ export const AdvancedEnvironmentSelector = ({
 			await createEnvironment.mutateAsync({
 				projectId,
 				name: name.trim(),
-				description: description.trim() || null,
+				description: description.trim() || undefined,
 			});
 
 			toast.success("Environment created successfully");
 			utils.environment.byProjectId.invalidate({ projectId });
+			// Invalidate the project query to refresh the project data for the advance-breadcrumb
+			utils.project.all.invalidate();
 			setIsCreateDialogOpen(false);
 			setName("");
 			setDescription("");
 		} catch (error) {
-			toast.error("Failed to create environment");
+			toast.error(
+				`Failed to create environment: ${error instanceof Error ? error.message : error}`,
+			);
 		}
 	};
 
@@ -120,7 +111,7 @@ export const AdvancedEnvironmentSelector = ({
 			await updateEnvironment.mutateAsync({
 				environmentId: selectedEnvironment.environmentId,
 				name: name.trim(),
-				description: description.trim() || null,
+				description: description.trim() || undefined,
 			});
 
 			toast.success("Environment updated successfully");
@@ -130,7 +121,9 @@ export const AdvancedEnvironmentSelector = ({
 			setName("");
 			setDescription("");
 		} catch (error) {
-			toast.error("Failed to update environment");
+			toast.error(
+				`Failed to update environment: ${error instanceof Error ? error.message : error}`,
+			);
 		}
 	};
 
@@ -147,15 +140,18 @@ export const AdvancedEnvironmentSelector = ({
 			setIsDeleteDialogOpen(false);
 			setSelectedEnvironment(null);
 
-			// Redirect to production if we deleted the current environment
+			// Redirect to first available environment if we deleted the current environment
 			if (selectedEnvironment.environmentId === currentEnvironmentId) {
-				const productionEnv = environments?.find(
-					(env) => env.name === "production",
+				const firstEnv = environments?.find(
+					(env) => env.environmentId !== selectedEnvironment.environmentId,
 				);
-				if (productionEnv) {
+				if (firstEnv) {
 					router.push(
-						`/dashboard/project/${projectId}/environment/${productionEnv.environmentId}`,
+						`/dashboard/project/${projectId}/environment/${firstEnv.environmentId}`,
 					);
+				} else {
+					// No other environments, redirect to project page
+					router.push(`/dashboard/project/${projectId}`);
 				}
 			}
 		} catch (error) {
@@ -168,7 +164,7 @@ export const AdvancedEnvironmentSelector = ({
 			const result = await duplicateEnvironment.mutateAsync({
 				environmentId: environment.environmentId,
 				name: `${environment.name}-copy`,
-				description: environment.description,
+				description: environment.description || undefined,
 			});
 
 			toast.success("Environment duplicated successfully");
@@ -246,22 +242,8 @@ export const AdvancedEnvironmentSelector = ({
 										)}
 									</div>
 								</DropdownMenuItem>
-
-								{/* Action buttons for non-production environments */}
-								{/* <EnvironmentVariables environmentId={environment.environmentId}>
-									<Button
-										variant="ghost"
-										size="sm"
-										className="h-6 w-6 p-0"
-										onClick={(e) => {
-											e.stopPropagation();
-										}}
-									>
-										<Terminal className="h-3 w-3" />
-									</Button>
-								</EnvironmentVariables> */}
-								{environment.name !== "production" && (
-									<div className="flex items-center gap-1 px-2">
+								<div className="flex items-center gap-1 px-2">
+									{!environment.isDefault && (
 										<Button
 											variant="ghost"
 											size="sm"
@@ -273,22 +255,21 @@ export const AdvancedEnvironmentSelector = ({
 										>
 											<PencilIcon className="h-3 w-3" />
 										</Button>
-
-										{canDeleteEnvironments && (
-											<Button
-												variant="ghost"
-												size="sm"
-												className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-												onClick={(e) => {
-													e.stopPropagation();
-													openDeleteDialog(environment);
-												}}
-											>
-												<TrashIcon className="h-3 w-3" />
-											</Button>
-										)}
-									</div>
-								)}
+									)}
+									{canDeleteEnvironments && !environment.isDefault && (
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+											onClick={(e) => {
+												e.stopPropagation();
+												openDeleteDialog(environment);
+											}}
+										>
+											<TrashIcon className="h-3 w-3" />
+										</Button>
+									)}
+								</div>
 							</div>
 						);
 					})}
@@ -349,9 +330,9 @@ export const AdvancedEnvironmentSelector = ({
 						</Button>
 						<Button
 							onClick={handleCreateEnvironment}
-							disabled={!name.trim() || createEnvironment.isLoading}
+							disabled={!name.trim() || createEnvironment.isPending}
 						>
-							{createEnvironment.isLoading ? "Creating..." : "Create"}
+							{createEnvironment.isPending ? "Creating..." : "Create"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
@@ -402,9 +383,9 @@ export const AdvancedEnvironmentSelector = ({
 						</Button>
 						<Button
 							onClick={handleUpdateEnvironment}
-							disabled={!name.trim() || updateEnvironment.isLoading}
+							disabled={!name.trim() || updateEnvironment.isPending}
 						>
-							{updateEnvironment.isLoading ? "Updating..." : "Update"}
+							{updateEnvironment.isPending ? "Updating..." : "Update"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
@@ -442,12 +423,12 @@ export const AdvancedEnvironmentSelector = ({
 							variant="destructive"
 							onClick={handleDeleteEnvironment}
 							disabled={
-								deleteEnvironment.isLoading ||
+								deleteEnvironment.isPending ||
 								haveServices ||
 								!selectedEnvironment
 							}
 						>
-							{deleteEnvironment.isLoading ? "Deleting..." : "Delete"}
+							{deleteEnvironment.isPending ? "Deleting..." : "Delete"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

@@ -22,12 +22,12 @@ interface Props {
 }
 
 export function NodeCard({ node, serverId }: Props) {
-	const { data, isLoading } = api.swarm.getNodeInfo.useQuery({
+	const { data, isPending } = api.swarm.getNodeInfo.useQuery({
 		nodeId: node.ID,
 		serverId,
 	});
 
-	if (isLoading) {
+	if (isPending) {
 		return (
 			<Card className="w-full bg-background">
 				<CardHeader>

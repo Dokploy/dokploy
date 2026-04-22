@@ -6,11 +6,12 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import type { z } from "zod";
 
 export type Gitlab = typeof gitlab.$inferSelect;
 
 export const createGitlab = async (
-	input: typeof apiCreateGitlab._type,
+	input: z.infer<typeof apiCreateGitlab>,
 	organizationId: string,
 	userId: string,
 ) => {

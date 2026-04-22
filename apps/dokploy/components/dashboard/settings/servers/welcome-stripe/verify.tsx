@@ -27,7 +27,7 @@ export const Verify = () => {
 	const [serverId, setServerId] = useState<string>(
 		servers?.[0]?.serverId || "",
 	);
-	const { data, refetch, error, isLoading, isError } =
+	const { data, refetch, error, isPending, isError } =
 		api.server.validate.useQuery(
 			{ serverId },
 			{
@@ -91,7 +91,7 @@ export const Verify = () => {
 					</CardHeader>
 
 					<CardContent className="flex flex-col gap-4 min-h-[25vh]">
-						{isLoading ? (
+						{isPending ? (
 							<div className="flex items-center justify-center text-muted-foreground py-4">
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 								<span>Checking Server configuration</span>

@@ -30,6 +30,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 		cpuLimit,
 		cpuReservation,
 		command,
+		args,
 		mounts,
 	} = mysql;
 
@@ -53,6 +54,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 		Networks,
 		StopGracePeriod,
 		EndpointSpec,
+		Ulimits,
 	} = generateConfigContainer(mysql);
 	const resources = calculateResources({
 		memoryLimit,
@@ -79,12 +81,16 @@ export const buildMysql = async (mysql: MysqlNested) => {
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				...(command
-					? {
-							Command: ["/bin/sh"],
-							Args: ["-c", command],
-						}
-					: {}),
+				...(StopGracePeriod !== null &&
+					StopGracePeriod !== undefined && { StopGracePeriod }),
+				...(command && {
+					Command: command.split(" "),
+				}),
+				...(args &&
+					args.length > 0 && {
+						Args: args,
+					}),
+				...(Ulimits && { Ulimits }),
 				Labels,
 			},
 			Networks,
@@ -112,8 +118,6 @@ export const buildMysql = async (mysql: MysqlNested) => {
 						: [],
 				},
 		UpdateConfig,
-		...(StopGracePeriod !== undefined &&
-			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 	try {
 		const service = docker.getService(appName);

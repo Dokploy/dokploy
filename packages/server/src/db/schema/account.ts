@@ -1,6 +1,7 @@
 import { relations, sql } from "drizzle-orm";
 import {
 	boolean,
+	index,
 	integer,
 	pgTable,
 	text,
@@ -9,6 +10,7 @@ import {
 import { nanoid } from "nanoid";
 import { projects } from "./project";
 import { server } from "./server";
+import { ssoProvider } from "./sso";
 import { user } from "./user";
 
 export const account = pgTable("account", {
@@ -71,6 +73,36 @@ export const organization = pgTable("organization", {
 	wildcardDomain: text("wildcardDomain"),
 });
 
+export const organizationRole = pgTable(
+	"organization_role",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => nanoid()),
+		organizationId: text("organization_id")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		role: text("role").notNull(),
+		permission: text("permission").notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("organizationRole_organizationId_idx").on(table.organizationId),
+		index("organizationRole_role_idx").on(table.role),
+	],
+);
+
+export const organizationRoleRelations = relations(
+	organizationRole,
+	({ one }) => ({
+		organization: one(organization, {
+			fields: [organizationRole.organizationId],
+			references: [organization.id],
+		}),
+	}),
+);
+
 export const organizationRelations = relations(
 	organization,
 	({ one, many }) => ({
@@ -81,6 +113,8 @@ export const organizationRelations = relations(
 		servers: many(server),
 		projects: many(projects),
 		members: many(member),
+		ssoProviders: many(ssoProvider),
+		roles: many(organizationRole),
 	}),
 );
 
@@ -94,7 +128,9 @@ export const member = pgTable("member", {
 	userId: text("user_id")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
-	role: text("role").notNull().$type<"owner" | "member" | "admin">(),
+	role: text("role")
+		.notNull()
+		.$type<"owner" | "member" | "admin" | (string & {})>(),
 	createdAt: timestamp("created_at").notNull(),
 	teamId: text("team_id"),
 	isDefault: boolean("is_default").notNull().default(false),
@@ -130,6 +166,14 @@ export const member = pgTable("member", {
 		.array()
 		.notNull()
 		.default(sql`ARRAY[]::text[]`),
+	accessedGitProviders: text("accessedGitProviders")
+		.array()
+		.notNull()
+		.default(sql`ARRAY[]::text[]`),
+	accessedServers: text("accessedServers")
+		.array()
+		.notNull()
+		.default(sql`ARRAY[]::text[]`),
 });
 
 export const memberRelations = relations(member, ({ one }) => ({
@@ -149,13 +193,14 @@ export const invitation = pgTable("invitation", {
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
 	email: text("email").notNull(),
-	role: text("role").$type<"owner" | "member" | "admin">(),
+	role: text("role").$type<"owner" | "member" | "admin" | (string & {})>(),
 	status: text("status").notNull(),
 	expiresAt: timestamp("expires_at").notNull(),
 	inviterId: text("inviter_id")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
 	teamId: text("team_id"),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const invitationRelations = relations(invitation, ({ one }) => ({
@@ -180,7 +225,8 @@ export const apikey = pgTable("apikey", {
 	start: text("start"),
 	prefix: text("prefix"),
 	key: text("key").notNull(),
-	userId: text("user_id")
+	configId: text("config_id").default("default").notNull(),
+	referenceId: text("reference_id")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
 	refillInterval: integer("refill_interval"),
@@ -202,7 +248,7 @@ export const apikey = pgTable("apikey", {
 
 export const apikeyRelations = relations(apikey, ({ one }) => ({
 	user: one(user, {
-		fields: [apikey.userId],
+		fields: [apikey.referenceId],
 		references: [user.id],
 	}),
 }));

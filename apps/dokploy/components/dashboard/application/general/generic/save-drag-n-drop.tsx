@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { TrashIcon } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -24,10 +24,10 @@ interface Props {
 export const SaveDragNDrop = ({ applicationId }: Props) => {
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
-	const { mutateAsync, isLoading } =
+	const { mutateAsync, isPending } =
 		api.application.dropDeployment.useMutation();
 
-	const form = useForm<UploadFile>({
+	const form = useForm({
 		defaultValues: {},
 		resolver: zodResolver(uploadFileSchema),
 	});
@@ -129,8 +129,8 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 					<Button
 						type="submit"
 						className="w-fit"
-						isLoading={isLoading}
-						disabled={!zip || isLoading}
+						isLoading={isPending}
+						disabled={!zip || isPending}
 					>
 						Deploy{" "}
 					</Button>

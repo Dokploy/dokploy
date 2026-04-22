@@ -1,6 +1,7 @@
 import copy from "copy-to-clipboard";
 import { Check, Copy, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { AnalyzeLogs } from "@/components/dashboard/docker/logs/analyze-logs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -165,6 +166,7 @@ export const ShowDeployment = ({
 								<Copy className="h-3.5 w-3.5" />
 							)}
 						</Button>
+						<AnalyzeLogs logs={filteredLogs} context="build" />
 
 						{serverId && (
 							<div className="flex items-center space-x-2">
@@ -194,13 +196,21 @@ export const ShowDeployment = ({
 					{" "}
 					{filteredLogs.length > 0 ? (
 						filteredLogs.map((log: LogLine, index: number) => (
-							<TerminalLine key={index} log={log} noTimestamp />
+							<TerminalLine
+								key={`${log.rawTimestamp ?? ""}-${index}`}
+								log={log}
+								noTimestamp
+							/>
 						))
 					) : (
 						<>
 							{optionalErrors.length > 0 ? (
 								optionalErrors.map((log: LogLine, index: number) => (
-									<TerminalLine key={`extra-${index}`} log={log} noTimestamp />
+									<TerminalLine
+										key={`extra-${log.rawTimestamp ?? ""}-${index}`}
+										log={log}
+										noTimestamp
+									/>
 								))
 							) : (
 								<div className="flex justify-center items-center h-full text-muted-foreground">

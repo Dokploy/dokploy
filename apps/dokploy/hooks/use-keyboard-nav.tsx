@@ -6,11 +6,12 @@ import { useCallback, useEffect, useState } from "react";
 const PAGES = [
 	"compose",
 	"application",
-	"postgres",
-	"redis",
-	"mysql",
+	"libsql",
 	"mariadb",
 	"mongodb",
+	"mysql",
+	"postgres",
+	"redis",
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -63,11 +64,12 @@ const REDIS_SHORTCUTS: Shortcuts = {
 const SHORTCUTS: ShortcutsDictionary = {
 	application: APPLICATION_SHORTCUTS,
 	compose: COMPOSE_SHORTCUTS,
-	postgres: POSTGRES_SHORTCUTS,
-	redis: REDIS_SHORTCUTS,
-	mysql: POSTGRES_SHORTCUTS,
+	libsql: POSTGRES_SHORTCUTS,
 	mariadb: POSTGRES_SHORTCUTS,
 	mongodb: POSTGRES_SHORTCUTS,
+	mysql: POSTGRES_SHORTCUTS,
+	postgres: POSTGRES_SHORTCUTS,
+	redis: REDIS_SHORTCUTS,
 };
 
 /**

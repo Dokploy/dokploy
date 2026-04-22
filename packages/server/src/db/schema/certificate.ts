@@ -56,7 +56,6 @@ export const apiUpdateCertificate = z.object({
 	name: z.string().min(1).optional(),
 	certificateData: z.string().min(1).optional(),
 	privateKey: z.string().min(1).optional(),
-	autoRenew: z.boolean().optional(),
 });
 
 export const apiDeleteCertificate = z.object({

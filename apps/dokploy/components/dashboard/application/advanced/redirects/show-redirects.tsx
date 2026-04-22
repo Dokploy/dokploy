@@ -24,7 +24,7 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 		{ enabled: !!applicationId },
 	);
 
-	const { mutateAsync: deleteRedirect, isLoading: isRemoving } =
+	const { mutateAsync: deleteRedirect, isPending: isRemoving } =
 		api.redirects.delete.useMutation();
 
 	const utils = api.useUtils();
