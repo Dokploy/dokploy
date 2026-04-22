@@ -245,11 +245,12 @@ const Service = (
 													Deployments
 												</TabsTrigger>
 											)}
-											{permissions?.deployment.read && (
-												<TabsTrigger value="preview-deployments">
-													Preview Deployments
-												</TabsTrigger>
-											)}
+											{permissions?.deployment.read &&
+												data?.sourceType === "github" && (
+													<TabsTrigger value="preview-deployments">
+														Preview Deployments
+													</TabsTrigger>
+												)}
 											{permissions?.schedule.read && (
 												<TabsTrigger value="schedules">Schedules</TabsTrigger>
 											)}
@@ -385,13 +386,19 @@ const Service = (
 											</div>
 										</TabsContent>
 									)}
-									{permissions?.deployment.read && (
-										<TabsContent value="preview-deployments" className="w-full">
-											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowPreviewDeployments applicationId={applicationId} />
-											</div>
-										</TabsContent>
-									)}
+									{permissions?.deployment.read &&
+										data?.sourceType === "github" && (
+											<TabsContent
+												value="preview-deployments"
+												className="w-full"
+											>
+												<div className="flex flex-col gap-4 pt-2.5">
+													<ShowPreviewDeployments
+														applicationId={applicationId}
+													/>
+												</div>
+											</TabsContent>
+										)}
 									{permissions?.domain.read && (
 										<TabsContent value="domains" className="w-full">
 											<div className="flex flex-col gap-4 pt-2.5">
