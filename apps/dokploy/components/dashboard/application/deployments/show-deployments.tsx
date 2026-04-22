@@ -232,19 +232,11 @@ export const ShowDeployments = ({
 						<div className="flex flex-row items-center gap-2 flex-wrap">
 							<span>Webhook URL: </span>
 							<div className="flex flex-row items-center gap-2">
-								<Badge
-									role="button"
-									tabIndex={0}
+								<Button
+									type="button"
 									aria-label="Copy webhook URL to clipboard"
-									className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all"
+									className="ml-1 mr-1 h-auto whitespace-normal break-all p-2 text-left"
 									variant="outline"
-									onKeyDown={(event) => {
-										if (event.key === "Enter" || event.key === " ") {
-											event.preventDefault();
-											copy(webhookUrl);
-											toast.success("Copied to clipboard.");
-										}
-									}}
 									onClick={() => {
 										copy(webhookUrl);
 										toast.success("Copied to clipboard.");
@@ -252,7 +244,7 @@ export const ShowDeployments = ({
 								>
 									{webhookUrl}
 									<Copy className="h-4 w-4 ml-2" />
-								</Badge>
+								</Button>
 								{(type === "application" || type === "compose") && (
 									<RefreshToken id={id} type={type} />
 								)}
@@ -284,7 +276,9 @@ export const ShowDeployments = ({
 								deployment.deploymentId,
 							);
 							const canDelete =
-								deployment.status === "done" || deployment.status === "error";
+								deployment.status === "done" ||
+								deployment.status === "error" ||
+								deployment.status === "cancelled";
 
 							return (
 								<div

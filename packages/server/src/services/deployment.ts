@@ -79,6 +79,50 @@ export async function resolveServicePath(
 
 export type Deployment = typeof deployments.$inferSelect;
 
+const finalDeploymentStatuses = new Set<Deployment["status"]>([
+	"done",
+	"error",
+	"cancelled",
+]);
+
+const resolveDeploymentStatus = (status?: Deployment["status"]) =>
+	status ?? "running";
+
+const getDeploymentStartedAt = (status: Deployment["status"]) =>
+	status === "running" ? new Date().toISOString() : null;
+
+const getInitialDeploymentLogLines = (
+	status: Deployment["status"],
+	extraLines: string[] = [],
+) =>
+	status === "queued"
+		? ["Deployment queued", "Waiting for available worker", ...extraLines]
+		: ["Initializing deployment", ...extraLines];
+
+type ApplicationDeploymentInput = Omit<
+	z.infer<typeof apiCreateDeployment>,
+	"deploymentId" | "createdAt" | "status" | "logPath"
+> & {
+	deploymentId?: string;
+	status?: Deployment["status"];
+};
+
+type PreviewDeploymentInput = Omit<
+	z.infer<typeof apiCreateDeploymentPreview>,
+	"deploymentId" | "createdAt" | "status" | "logPath"
+> & {
+	deploymentId?: string;
+	status?: Deployment["status"];
+};
+
+type ComposeDeploymentInput = Omit<
+	z.infer<typeof apiCreateDeploymentCompose>,
+	"deploymentId" | "createdAt" | "status" | "logPath"
+> & {
+	deploymentId?: string;
+	status?: Deployment["status"];
+};
+
 export const findDeploymentById = async (deploymentId: string) => {
 	const deployment = await db.query.deployments.findFirst({
 		where: eq(deployments.deploymentId, deploymentId),
@@ -96,6 +140,137 @@ export const findDeploymentById = async (deploymentId: string) => {
 	return deployment;
 };
 
+const findDeploymentForLogUpdate = async (deploymentId: string) => {
+	return db.query.deployments.findFirst({
+		where: eq(deployments.deploymentId, deploymentId),
+		with: {
+			application: {
+				columns: {
+					serverId: true,
+					buildServerId: true,
+				},
+			},
+			compose: {
+				columns: {
+					serverId: true,
+				},
+			},
+			previewDeployment: {
+				columns: {
+					previewDeploymentId: true,
+				},
+				with: {
+					application: {
+						columns: {
+							serverId: true,
+						},
+					},
+				},
+			},
+		},
+	});
+};
+
+const resolveDeploymentLogServerId = (
+	deployment: Awaited<ReturnType<typeof findDeploymentForLogUpdate>>,
+) => {
+	if (!deployment) {
+		return null;
+	}
+
+	return (
+		deployment.buildServerId ||
+		deployment.serverId ||
+		deployment.application?.buildServerId ||
+		deployment.application?.serverId ||
+		deployment.compose?.serverId ||
+		deployment.previewDeployment?.application?.serverId ||
+		null
+	);
+};
+
+const appendDeploymentLogLines = async (
+	deployment: NonNullable<
+		Awaited<ReturnType<typeof findDeploymentForLogUpdate>>
+	>,
+	lines: string[],
+) => {
+	if (lines.length === 0) {
+		return;
+	}
+
+	const logContent = `${lines.join("\n")}\n`;
+	const logServerId = resolveDeploymentLogServerId(deployment);
+
+	if (logServerId) {
+		const encodedLogContent = Buffer.from(logContent).toString("base64");
+		await execAsyncRemote(
+			logServerId,
+			`mkdir -p ${JSON.stringify(path.dirname(deployment.logPath))}; echo "${encodedLogContent}" | base64 -d >> ${JSON.stringify(deployment.logPath)};`,
+		);
+		return;
+	}
+
+	await fsPromises.mkdir(path.dirname(deployment.logPath), {
+		recursive: true,
+	});
+	await fsPromises.appendFile(deployment.logPath, logContent);
+};
+
+const writeDeploymentLogPreamble = async ({
+	logPath,
+	serverId,
+	lines,
+}: {
+	logPath: string;
+	serverId?: string | null;
+	lines: string[];
+}) => {
+	const encodedLogLines = lines
+		.map(
+			(line) => `echo ${JSON.stringify(line)} >> ${JSON.stringify(logPath)};`,
+		)
+		.join("\n");
+
+	if (serverId) {
+		const server = await findServerById(serverId);
+		await execAsyncRemote(
+			server.serverId,
+			`mkdir -p ${JSON.stringify(path.dirname(logPath))};\n${encodedLogLines}`,
+		);
+		return;
+	}
+
+	await fsPromises.mkdir(path.dirname(logPath), {
+		recursive: true,
+	});
+	await fsPromises.writeFile(logPath, `${lines.join("\n")}\n`);
+};
+
+const failDeployment = async (
+	deploymentId: string,
+	errorMessage: string,
+	currentStatus?: Deployment["status"],
+) => {
+	const conditions = [eq(deployments.deploymentId, deploymentId)];
+
+	if (currentStatus) {
+		conditions.push(eq(deployments.status, currentStatus));
+	}
+
+	const [deployment] = await db
+		.update(deployments)
+		.set({
+			status: "error",
+			errorMessage,
+			finishedAt: new Date().toISOString(),
+		})
+		.where(conditions.length === 1 ? conditions[0]! : and(...conditions))
+		.returning();
+
+	return deployment ?? null;
+};
+
 export const findDeploymentByApplicationId = async (applicationId: string) => {
 	const deployment = await db.query.deployments.findFirst({
 		where: eq(deployments.applicationId, applicationId),
@@ -111,10 +286,7 @@ export const findDeploymentByApplicationId = async (applicationId: string) => {
 };
 
 export const createDeployment = async (
-	deployment: Omit<
-		z.infer<typeof apiCreateDeployment>,
-		"deploymentId" | "createdAt" | "status" | "logPath"
-	>,
+	deployment: ApplicationDeploymentInput,
 ) => {
 	const application = await findApplicationById(deployment.applicationId);
 	await removeLastTenDeployments(
@@ -123,39 +295,37 @@ export const createDeployment = async (
 		application.serverId,
 	);
 	try {
+		const status = resolveDeploymentStatus(deployment.status);
+		const startedAt = getDeploymentStartedAt(status);
 		const serverId = application.buildServerId || application.serverId;
 
 		const { LOGS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${application.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, application.appName, fileName);
+		const serverLabel = serverId ? "Build Server" : "Dokploy Server";
+		const logLines = getInitialDeploymentLogLines(status, [
+			`Building on ${serverLabel}`,
+		]);
 
-		if (serverId) {
-			const server = await findServerById(serverId);
-
-			const command = `
-				mkdir -p ${LOGS_PATH}/${application.appName};
-            	echo "Initializing deployment" >> ${logFilePath};
-			    echo "Building on ${serverId ? "Build Server" : "Dokploy Server"}" >> ${logFilePath};
-			`;
-
-			await execAsyncRemote(server.serverId, command);
-		} else {
-			await fsPromises.mkdir(path.join(LOGS_PATH, application.appName), {
-				recursive: true,
-			});
-			await fsPromises.writeFile(logFilePath, "Initializing deployment\n");
-		}
+		await writeDeploymentLogPreamble({
+			logPath: logFilePath,
+			serverId,
+			lines: logLines,
+		});
 
 		const deploymentCreate = await db
 			.insert(deployments)
 			.values({
+				...(deployment.deploymentId && {
+					deploymentId: deployment.deploymentId,
+				}),
 				applicationId: deployment.applicationId,
 				title: deployment.title || "Deployment",
-				status: "running",
+				status,
 				logPath: logFilePath,
 				description: deployment.description || "",
-				startedAt: new Date().toISOString(),
+				startedAt,
 				...(application.buildServerId && {
 					buildServerId: application.buildServerId,
 				}),
@@ -172,13 +342,18 @@ export const createDeployment = async (
 		await db
 			.insert(deployments)
 			.values({
+				...(deployment.deploymentId && {
+					deploymentId: deployment.deploymentId,
+				}),
 				applicationId: deployment.applicationId,
 				title: deployment.title || "Deployment",
 				status: "error",
 				logPath: "",
 				description: deployment.description || "",
 				errorMessage: `An error have occurred: ${error instanceof Error ? error.message : error}`,
-				startedAt: new Date().toISOString(),
+				startedAt: getDeploymentStartedAt(
+					resolveDeploymentStatus(deployment.status),
+				),
 				finishedAt: new Date().toISOString(),
 			})
 			.returning();
@@ -192,10 +367,7 @@ export const createDeployment = async (
 };
 
 export const createDeploymentPreview = async (
-	deployment: Omit<
-		z.infer<typeof apiCreateDeploymentPreview>,
-		"deploymentId" | "createdAt" | "status" | "logPath"
-	>,
+	deployment: PreviewDeploymentInput,
 ) => {
 	const previewDeployment = await findPreviewDeploymentById(
 		deployment.previewDeploymentId,
@@ -206,39 +378,33 @@ export const createDeploymentPreview = async (
 		previewDeployment?.application?.serverId,
 	);
 	try {
+		const status = resolveDeploymentStatus(deployment.status);
+		const startedAt = getDeploymentStartedAt(status);
 		const appName = `${previewDeployment.appName}`;
 		const { LOGS_PATH } = paths(!!previewDeployment?.application?.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, appName, fileName);
+		const logLines = getInitialDeploymentLogLines(status);
 
-		if (previewDeployment?.application?.serverId) {
-			const server = await findServerById(
-				previewDeployment?.application?.serverId,
-			);
-
-			const command = `
-				mkdir -p ${LOGS_PATH}/${appName};
-            	echo "Initializing deployment" >> ${logFilePath};
-			`;
-
-			await execAsyncRemote(server.serverId, command);
-		} else {
-			await fsPromises.mkdir(path.join(LOGS_PATH, appName), {
-				recursive: true,
-			});
-			await fsPromises.writeFile(logFilePath, "Initializing deployment");
-		}
+		await writeDeploymentLogPreamble({
+			logPath: logFilePath,
+			serverId: previewDeployment?.application?.serverId,
+			lines: logLines,
+		});
 
 		const deploymentCreate = await db
 			.insert(deployments)
 			.values({
+				...(deployment.deploymentId && {
+					deploymentId: deployment.deploymentId,
+				}),
 				title: deployment.title || "Deployment",
-				status: "running",
+				status,
 				logPath: logFilePath,
 				description: deployment.description || "",
 				previewDeploymentId: deployment.previewDeploymentId,
-				startedAt: new Date().toISOString(),
+				startedAt,
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
@@ -252,13 +418,18 @@ export const createDeploymentPreview = async (
 		await db
 			.insert(deployments)
 			.values({
+				...(deployment.deploymentId && {
+					deploymentId: deployment.deploymentId,
+				}),
 				previewDeploymentId: deployment.previewDeploymentId,
 				title: deployment.title || "Deployment",
 				status: "error",
 				logPath: "",
 				description: deployment.description || "",
 				errorMessage: `An error have occurred: ${error instanceof Error ? error.message : error}`,
-				startedAt: new Date().toISOString(),
+				startedAt: getDeploymentStartedAt(
+					resolveDeploymentStatus(deployment.status),
+				),
 				finishedAt: new Date().toISOString(),
 			})
 			.returning();
@@ -274,10 +445,7 @@ export const createDeploymentPreview = async (
 };
 
 export const createDeploymentCompose = async (
-	deployment: Omit<
-		z.infer<typeof apiCreateDeploymentCompose>,
-		"deploymentId" | "createdAt" | "status" | "logPath"
-	>,
+	deployment: ComposeDeploymentInput,
 ) => {
 	const compose = await findComposeById(deployment.composeId);
 	await removeLastTenDeployments(
@@ -286,36 +454,32 @@ export const createDeploymentCompose = async (
 		compose.serverId,
 	);
 	try {
+		const status = resolveDeploymentStatus(deployment.status);
+		const startedAt = getDeploymentStartedAt(status);
 		const { LOGS_PATH } = paths(!!compose.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${compose.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, compose.appName, fileName);
+		const logLines = getInitialDeploymentLogLines(status);
 
-		if (compose.serverId) {
-			const server = await findServerById(compose.serverId);
-
-			const command = `
-mkdir -p ${LOGS_PATH}/${compose.appName};
-echo "Initializing deployment\n" >> ${logFilePath};
-`;
-
-			await execAsyncRemote(server.serverId, command);
-		} else {
-			await fsPromises.mkdir(path.join(LOGS_PATH, compose.appName), {
-				recursive: true,
-			});
-			await fsPromises.writeFile(logFilePath, "Initializing deployment\n");
-		}
+		await writeDeploymentLogPreamble({
+			logPath: logFilePath,
+			serverId: compose.serverId,
+			lines: logLines,
+		});
 
 		const deploymentCreate = await db
 			.insert(deployments)
 			.values({
+				...(deployment.deploymentId && {
+					deploymentId: deployment.deploymentId,
+				}),
 				composeId: deployment.composeId,
 				title: deployment.title || "Deployment",
 				description: deployment.description || "",
-				status: "running",
+				status,
 				logPath: logFilePath,
-				startedAt: new Date().toISOString(),
+				startedAt,
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
@@ -329,13 +493,18 @@ echo "Initializing deployment\n" >> ${logFilePath};
 		await db
 			.insert(deployments)
 			.values({
+				...(deployment.deploymentId && {
+					deploymentId: deployment.deploymentId,
+				}),
 				composeId: deployment.composeId,
 				title: deployment.title || "Deployment",
 				status: "error",
 				logPath: "",
 				description: deployment.description || "",
 				errorMessage: `An error have occurred: ${error instanceof Error ? error.message : error}`,
-				startedAt: new Date().toISOString(),
+				startedAt: getDeploymentStartedAt(
+					resolveDeploymentStatus(deployment.status),
+				),
 				finishedAt: new Date().toISOString(),
 			})
 			.returning();
@@ -942,15 +1111,165 @@ export const updateDeploymentStatus = async (
 		.update(deployments)
 		.set({
 			status: deploymentStatus,
-			finishedAt:
-				deploymentStatus === "done" || deploymentStatus === "error"
-					? new Date().toISOString()
-					: null,
+			finishedAt: finalDeploymentStatuses.has(deploymentStatus)
+				? new Date().toISOString()
+				: null,
 		})
 		.where(eq(deployments.deploymentId, deploymentId))
 		.returning();
 
 	return application;
+};
+
+export const cancelQueuedDeployment = async (
+	deploymentId: string,
+	reason = "User requested cancellation",
+) => {
+	const deployment = await findDeploymentForLogUpdate(deploymentId);
+	if (!deployment || deployment.status !== "queued") {
+		return deployment;
+	}
+
+	const [cancelledDeployment] = await db
+		.update(deployments)
+		.set({
+			status: "cancelled",
+			finishedAt: new Date().toISOString(),
+			errorMessage: null,
+		})
+		.where(
+			and(
+				eq(deployments.deploymentId, deploymentId),
+				eq(deployments.status, "queued"),
+			),
+		)
+		.returning();
+
+	if (!cancelledDeployment) {
+		return null;
+	}
+
+	try {
+		await appendDeploymentLogLines(deployment, [
+			"Deployment cancelled",
+			`Reason: ${reason}`,
+		]);
+	} catch (error) {
+		console.error(
+			`Failed to append cancellation log for deployment ${deploymentId}:`,
+			error,
+		);
+	}
+
+	return cancelledDeployment;
+};
+
+export const failQueuedDeployment = async (
+	deploymentId: string,
+	error: unknown,
+) => {
+	const deployment = await findDeploymentForLogUpdate(deploymentId);
+	if (!deployment || deployment.status !== "queued") {
+		return null;
+	}
+
+	const errorMessage = `Failed to queue deployment: ${
+		error instanceof Error ? error.message : String(error)
+	}`;
+
+	const failedDeployment = await failDeployment(
+		deploymentId,
+		errorMessage,
+		"queued",
+	);
+
+	if (!failedDeployment) {
+		return null;
+	}
+
+	try {
+		await appendDeploymentLogLines(deployment, [errorMessage]);
+	} catch (appendError) {
+		console.error(
+			`Failed to append queue failure log for deployment ${deploymentId}:`,
+			appendError,
+		);
+	}
+
+	return failedDeployment;
+};
+
+export const cancelDeploymentsByStatus = async (
+	statuses: NonNullable<Deployment["status"]>[],
+) => {
+	if (statuses.length === 0) {
+		return [];
+	}
+
+	const cancelledAt = new Date().toISOString();
+
+	return db
+		.update(deployments)
+		.set({
+			status: "cancelled",
+			finishedAt: cancelledAt,
+		})
+		.where(inArray(deployments.status, statuses))
+		.returning();
+};
+
+export const queueApplicationDeployment = async (
+	deployment: Omit<ApplicationDeploymentInput, "deploymentId" | "status">,
+) => {
+	return createDeployment({
+		...deployment,
+		status: "queued",
+	});
+};
+
+export const queuePreviewDeployment = async (
+	deployment: Omit<PreviewDeploymentInput, "deploymentId" | "status">,
+) => {
+	return createDeploymentPreview({
+		...deployment,
+		status: "queued",
+	});
+};
+
+export const queueComposeDeployment = async (
+	deployment: Omit<ComposeDeploymentInput, "deploymentId" | "status">,
+) => {
+	return createDeploymentCompose({
+		...deployment,
+		status: "queued",
+	});
+};
+
+export const startQueuedDeployment = async (deploymentId: string) => {
+	const deployment = await db
+		.update(deployments)
+		.set({
+			status: "running",
+			startedAt: new Date().toISOString(),
+			finishedAt: null,
+			errorMessage: null,
+		})
+		.where(
+			and(
+				eq(deployments.deploymentId, deploymentId),
+				eq(deployments.status, "queued"),
+			),
+		)
+		.returning();
+
+	if (deployment.length === 0 || !deployment[0]) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Queued deployment not found",
+		});
+	}
+
+	return deployment[0];
 };
 
 export const createServerDeployment = async (

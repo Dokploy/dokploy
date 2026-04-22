@@ -38,6 +38,7 @@ import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import {
 	createDeploymentCompose,
+	startQueuedDeployment,
 	updateDeployment,
 	updateDeploymentStatus,
 } from "./deployment";
@@ -209,21 +210,25 @@ export const deployCompose = async ({
 	composeId,
 	titleLog = "Manual deployment",
 	descriptionLog = "",
+	deploymentId,
 }: {
 	composeId: string;
 	titleLog: string;
 	descriptionLog: string;
+	deploymentId?: string;
 }) => {
 	const compose = await findComposeById(composeId);
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.environment.projectId
 	}/environment/${compose.environmentId}/services/compose/${compose.composeId}?tab=deployments`;
-	const deployment = await createDeploymentCompose({
-		composeId: composeId,
-		title: titleLog,
-		description: descriptionLog,
-	});
+	const deployment = deploymentId
+		? await startQueuedDeployment(deploymentId)
+		: await createDeploymentCompose({
+				composeId: composeId,
+				title: titleLog,
+				description: descriptionLog,
+			});
 
 	try {
 		const entity = {
@@ -339,18 +344,22 @@ export const rebuildCompose = async ({
 	composeId,
 	titleLog = "Rebuild deployment",
 	descriptionLog = "",
+	deploymentId,
 }: {
 	composeId: string;
 	titleLog: string;
 	descriptionLog: string;
+	deploymentId?: string;
 }) => {
 	const compose = await findComposeById(composeId);
 
-	const deployment = await createDeploymentCompose({
-		composeId: composeId,
-		title: titleLog,
-		description: descriptionLog,
-	});
+	const deployment = deploymentId
+		? await startQueuedDeployment(deploymentId)
+		: await createDeploymentCompose({
+				composeId: composeId,
+				title: titleLog,
+				description: descriptionLog,
+			});
 
 	try {
 		let command = "set -e;";

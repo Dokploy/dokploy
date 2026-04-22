@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 interface Props {
 	status:
+		| "queued"
 		| "running"
 		| "error"
 		| "done"
@@ -54,6 +55,11 @@ export const StatusTooltip = ({ status, className }: Props) => {
 							className={cn("size-3.5 rounded-full bg-yellow-500", className)}
 						/>
 					)}
+					{status === "queued" && (
+						<div
+							className={cn("size-3.5 rounded-full bg-blue-500", className)}
+						/>
+					)}
 				</TooltipTrigger>
 				<TooltipContent align="center">
 					<span>
@@ -61,6 +67,7 @@ export const StatusTooltip = ({ status, className }: Props) => {
 						{status === "error" && "Error"}
 						{status === "done" && "Done"}
 						{status === "running" && "Running"}
+						{status === "queued" && "Queued"}
 						{status === "cancelled" && "Cancelled"}
 					</span>
 				</TooltipContent>

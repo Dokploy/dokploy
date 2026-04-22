@@ -2,16 +2,14 @@ import {
 	findApplicationById,
 	findPreviewDeploymentById,
 	findPreviewDeploymentsByApplicationId,
-	IS_CLOUD,
 	removePreviewDeployment,
 } from "@dokploy/server";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { apiFindAllByApplication } from "@/server/db/schema";
+import { enqueueDeploymentJob } from "@/server/queues/enqueue-deployment";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { myQueue } from "@/server/queues/queueSetup";
-import { deploy } from "@/server/utils/deploy";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const previewDeploymentRouter = createTRPCRouter({
@@ -86,28 +84,9 @@ export const previewDeploymentRouter = createTRPCRouter({
 				applicationType: "application-preview",
 				previewDeploymentId: input.previewDeploymentId,
 				server: !!application.serverId,
+				serverId: application.serverId || undefined,
 			};
-
-			if (IS_CLOUD && application.serverId) {
-				jobData.serverId = application.serverId;
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
-				});
-				await audit(ctx, {
-					action: "redeploy",
-					resourceType: "previewDeployment",
-					resourceId: input.previewDeploymentId,
-				});
-				return true;
-			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			await enqueueDeploymentJob(jobData);
 			await audit(ctx, {
 				action: "redeploy",
 				resourceType: "previewDeployment",

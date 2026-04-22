@@ -1,11 +1,10 @@
-import { IS_CLOUD } from "@dokploy/server";
+import { cancelQueuedDeployment, IS_CLOUD } from "@dokploy/server";
 import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import type { Job } from "bullmq";
 import { Queue } from "bullmq";
-import { deploymentWorker } from "./deployments-queue";
 import { redisConfig } from "./redis-connection";
 
 /** No-op queue when Redis is disabled (e.g. IS_CLOUD). Avoids BullMQ connection errors. */
@@ -48,29 +47,47 @@ if (!IS_CLOUD) {
 }
 
 export const cleanQueuesByApplication = async (applicationId: string) => {
-	const jobs = await myQueue.getJobs(["waiting", "delayed"]);
-
-	for (const job of jobs) {
-		if (job?.data?.applicationId === applicationId) {
-			await job.remove();
-			console.log(`Removed job ${job.id} for application ${applicationId}`);
-		}
-	}
+	await cancelQueuedJobs(
+		(job) => job?.data?.applicationId === applicationId,
+		"Cancelled from the service queue",
+	);
 };
 
 export const cleanAllDeploymentQueue = async () => {
-	deploymentWorker.cancelAllJobs("User requested cancellation");
+	await cancelQueuedJobs(() => true, "Cancelled from deployment queue cleanup");
 	return true;
 };
 
 export const cleanQueuesByCompose = async (composeId: string) => {
+	await cancelQueuedJobs(
+		(job) => job?.data?.composeId === composeId,
+		"Cancelled from the service queue",
+	);
+};
+
+const cancelQueuedJobs = async (
+	shouldCancel: (job: Job) => boolean,
+	reason: string,
+) => {
 	const jobs = await myQueue.getJobs(["waiting", "delayed"]);
 
 	for (const job of jobs) {
-		if (job?.data?.composeId === composeId) {
-			await job.remove();
-			console.log(`Removed job ${job.id} for compose ${composeId}`);
+		if (!shouldCancel(job)) {
+			continue;
 		}
+
+		await job.remove();
+
+		const deploymentId = job?.data?.deploymentId;
+		if (typeof deploymentId === "string" && deploymentId.length > 0) {
+			await cancelQueuedDeployment(deploymentId, reason);
+		} else {
+			console.warn(
+				`Removed queued job ${job.id} without deploymentId; deployment row was not updated.`,
+			);
+		}
+
+		console.log(`Removed queued deployment job ${job.id}`);
 	}
 };
 

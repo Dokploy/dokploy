@@ -27,12 +27,14 @@ const createDeploymentWorker = () =>
 							applicationId: job.data.applicationId,
 							titleLog: job.data.titleLog,
 							descriptionLog: job.data.descriptionLog,
+							deploymentId: job.data.deploymentId,
 						});
 					} else if (job.data.type === "deploy") {
 						await deployApplication({
 							applicationId: job.data.applicationId,
 							titleLog: job.data.titleLog,
 							descriptionLog: job.data.descriptionLog,
+							deploymentId: job.data.deploymentId,
 						});
 					}
 				} else if (job.data.applicationType === "compose") {
@@ -44,12 +46,14 @@ const createDeploymentWorker = () =>
 							composeId: job.data.composeId,
 							titleLog: job.data.titleLog,
 							descriptionLog: job.data.descriptionLog,
+							deploymentId: job.data.deploymentId,
 						});
 					} else if (job.data.type === "redeploy") {
 						await rebuildCompose({
 							composeId: job.data.composeId,
 							titleLog: job.data.titleLog,
 							descriptionLog: job.data.descriptionLog,
+							deploymentId: job.data.deploymentId,
 						});
 					}
 				} else if (job.data.applicationType === "application-preview") {
@@ -63,6 +67,7 @@ const createDeploymentWorker = () =>
 							titleLog: job.data.titleLog,
 							descriptionLog: job.data.descriptionLog,
 							previewDeploymentId: job.data.previewDeploymentId,
+							deploymentId: job.data.deploymentId,
 						});
 					} else if (job.data.type === "deploy") {
 						await deployPreviewApplication({
@@ -70,6 +75,7 @@ const createDeploymentWorker = () =>
 							titleLog: job.data.titleLog,
 							descriptionLog: job.data.descriptionLog,
 							previewDeploymentId: job.data.previewDeploymentId,
+							deploymentId: job.data.deploymentId,
 						});
 					}
 				}

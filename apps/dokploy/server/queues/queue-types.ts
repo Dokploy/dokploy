@@ -1,31 +1,25 @@
+type DeployJobBase = {
+	titleLog: string;
+	descriptionLog: string;
+	server?: boolean;
+	type: "deploy" | "redeploy";
+	serverId?: string;
+	deploymentId?: string;
+};
+
 type DeployJob =
-	| {
+	| (DeployJobBase & {
 			applicationId: string;
-			titleLog: string;
-			descriptionLog: string;
-			server?: boolean;
-			type: "deploy" | "redeploy";
 			applicationType: "application";
-			serverId?: string;
-	  }
-	| {
+	  })
+	| (DeployJobBase & {
 			composeId: string;
-			titleLog: string;
-			descriptionLog: string;
-			server?: boolean;
-			type: "deploy" | "redeploy";
 			applicationType: "compose";
-			serverId?: string;
-	  }
-	| {
+	  })
+	| (DeployJobBase & {
 			applicationId: string;
-			titleLog: string;
-			descriptionLog: string;
-			server?: boolean;
-			type: "deploy" | "redeploy";
 			applicationType: "application-preview";
 			previewDeploymentId: string;
-			serverId?: string;
-	  };
+	  });
 
 export type DeploymentJob = DeployJob;

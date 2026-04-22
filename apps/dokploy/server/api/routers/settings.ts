@@ -1,5 +1,6 @@
 import {
 	CLEANUP_CRON_JOB,
+	cancelDeploymentsByStatus,
 	checkGPUStatus,
 	checkPortInUse,
 	checkPostgresHealth,
@@ -117,6 +118,7 @@ export const settingsRouter = createTRPCRouter({
 		const redisContainerId = containerId.trim();
 
 		await execAsync(`docker exec -i ${redisContainerId} redis-cli flushall`);
+		await cancelDeploymentsByStatus(["queued"]);
 		await audit(ctx, {
 			action: "update",
 			resourceType: "settings",
@@ -140,7 +142,7 @@ export const settingsRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			return true;
 		}
-		const result = cleanAllDeploymentQueue();
+		const result = await cleanAllDeploymentQueue();
 		await audit(ctx, {
 			action: "update",
 			resourceType: "settings",
