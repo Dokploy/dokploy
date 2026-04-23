@@ -159,7 +159,7 @@ export const runCommand = async (scheduleId: string) => {
 			const { SCHEDULES_PATH } = paths(true);
 			const fullPath = path.join(SCHEDULES_PATH, appName || "");
 			const command = `
-				set -e
+				set -euo pipefail
 				echo "Running script" >> ${deployment.logPath};
 				bash -c ${fullPath}/script.sh 2>&1 | tee -a ${deployment.logPath} || { 
 					echo "❌ Command failed" >> ${deployment.logPath};
