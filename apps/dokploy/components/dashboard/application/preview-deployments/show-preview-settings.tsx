@@ -88,6 +88,17 @@ const schema = z
 				message: "Required",
 			});
 		}
+		if (
+			input.wildcardDomain.includes("*") &&
+			input.wildcardDomain.includes("{")
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["wildcardDomain"],
+				message:
+					'Use either a wildcard "*" or {variables}, not both. Mixed templates leave unresolved tokens in the generated URL.',
+			});
+		}
 		const unknownDomainTokens = findUnknownTokens(input.wildcardDomain);
 		if (unknownDomainTokens.length) {
 			ctx.addIssue({

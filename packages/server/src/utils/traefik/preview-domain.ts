@@ -95,6 +95,11 @@ export const resolveWildcardDomain = (
 	appName: string,
 	slugIp: string,
 ): string => {
+	if (baseDomain.includes("{")) {
+		throw new Error(
+			`Preview domain "${baseDomain}" mixes wildcard "*" with {variables}. Use one or the other.`,
+		);
+	}
 	const suffix = detectDynamicDnsSuffix(baseDomain);
 	if (suffix && slugIp) {
 		const label = `${appName}-${slugIp}`;
