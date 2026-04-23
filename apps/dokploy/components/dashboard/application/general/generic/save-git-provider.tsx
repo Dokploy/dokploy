@@ -55,7 +55,8 @@ interface Props {
 }
 
 export const SaveGitProvider = ({ applicationId }: Props) => {
-	const { data, refetch } = api.application.one.useQuery({ applicationId });
+	const utils = api.useUtils();
+	const { data } = api.application.one.useQuery({ applicationId });
 	const { data: sshKeys } = api.sshKey.allForApps.useQuery();
 	const router = useRouter();
 
@@ -99,7 +100,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Git Provider Saved");
-				await refetch();
+				await utils.application.one.invalidate({ applicationId });
 			})
 			.catch(() => {
 				toast.error("Error saving the Git provider");

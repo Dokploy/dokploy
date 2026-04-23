@@ -23,7 +23,8 @@ interface Props {
 }
 
 export const SaveDragNDrop = ({ applicationId }: Props) => {
-	const { data, refetch } = api.application.one.useQuery({ applicationId });
+	const utils = api.useUtils();
+	const { data } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync, isPending } =
 		api.application.dropDeployment.useMutation();
@@ -54,7 +55,7 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 		await mutateAsync(formData)
 			.then(async () => {
 				toast.success("Deployment saved");
-				await refetch();
+				await utils.application.one.invalidate({ applicationId });
 			})
 			.catch(() => {
 				toast.error("Error saving the deployment");

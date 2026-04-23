@@ -31,7 +31,8 @@ interface Props {
 }
 
 export const SaveDockerProvider = ({ applicationId }: Props) => {
-	const { data, refetch } = api.application.one.useQuery({ applicationId });
+	const utils = api.useUtils();
+	const { data } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync } = api.application.saveDockerProvider.useMutation();
 	const form = useForm<DockerProvider>({
@@ -65,7 +66,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Docker Provider Saved");
-				await refetch();
+				await utils.application.one.invalidate({ applicationId });
 			})
 			.catch(() => {
 				toast.error("Error saving the Docker provider");

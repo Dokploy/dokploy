@@ -72,8 +72,9 @@ interface Props {
 }
 
 export const SaveGitlabProvider = ({ applicationId }: Props) => {
+	const utils = api.useUtils();
 	const { data: gitlabProviders } = api.gitlab.gitlabProviders.useQuery();
-	const { data, refetch } = api.application.one.useQuery({ applicationId });
+	const { data } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync, isPending: isSavingGitlabProvider } =
 		api.application.saveGitlabProvider.useMutation();
@@ -169,7 +170,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
-				await refetch();
+				await utils.application.one.invalidate({ applicationId });
 			})
 			.catch(() => {
 				toast.error("Error saving the gitlab provider");
