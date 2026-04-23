@@ -471,10 +471,6 @@ export default async function handler(
 					if (!hasLabel) continue;
 				}
 
-				const previewLimit = app?.previewLimit || 0;
-				if (app?.previewDeployments?.length > previewLimit) {
-					continue;
-				}
 				const previewDeploymentResult =
 					await findPreviewDeploymentByApplicationId(app.applicationId, prId);
 
@@ -482,6 +478,11 @@ export default async function handler(
 					previewDeploymentResult?.previewDeploymentId || "";
 
 				if (!previewDeploymentResult && shouldCreateDeployment) {
+					// Only enforce the limit for new previews, not updates to existing ones
+					const previewLimit = app?.previewLimit ?? 3;
+					if (app?.previewDeployments?.length >= previewLimit) {
+						continue;
+					}
 					const previewDeployment = await createPreviewDeployment({
 						applicationId: app.applicationId as string,
 						branch: prBranch,

@@ -75,6 +75,19 @@ const createDeploymentWorker = () =>
 				}
 			} catch (error) {
 				console.log("Error", error);
+				if (job.data.applicationType === "application") {
+					await updateApplicationStatus(job.data.applicationId, "error").catch(
+						() => {},
+					);
+				} else if (job.data.applicationType === "compose") {
+					await updateCompose(job.data.composeId, {
+						composeStatus: "error",
+					}).catch(() => {});
+				} else if (job.data.applicationType === "application-preview") {
+					await updatePreviewDeployment(job.data.previewDeploymentId, {
+						previewStatus: "error",
+					}).catch(() => {});
+				}
 			}
 		},
 		{
