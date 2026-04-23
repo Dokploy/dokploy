@@ -3,7 +3,7 @@ import {
 	findApplicationById,
 	findComposeById,
 	findDestinationById,
-	getS3Credentials,
+	getRcloneMultiDestinationCommand,
 	paths,
 } from "../..";
 
@@ -18,12 +18,14 @@ export const restoreVolume = async (
 	const destination = await findDestinationById(destinationId);
 	const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeName);
-	const rcloneFlags = getS3Credentials(destination);
-	const bucketPath = `:s3:${destination.bucket}`;
-	const backupPath = `${bucketPath}/${backupFileName}`;
 
 	// Command to download backup file from S3
-	const downloadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${backupPath}" "${volumeBackupPath}/${backupFileName}"`;
+	const downloadCommand = getRcloneMultiDestinationCommand(
+		destination,
+		"copyto",
+		{ type: "remote", path: backupFileName },
+		{ type: "local", path: `${volumeBackupPath}/${backupFileName}` },
+	);
 
 	// Base restore command that creates the volume and restores data
 	const baseRestoreCommand = `
@@ -31,7 +33,7 @@ export const restoreVolume = async (
 	echo "Volume name: ${volumeName}"
 	echo "Backup file name: ${backupFileName}"
 	echo "Volume backup path: ${volumeBackupPath}"
-	echo "Downloading backup from S3..."
+	echo "Downloading backup..."
 	mkdir -p ${volumeBackupPath}
 	${downloadCommand}
 	echo "Download completed ✅"

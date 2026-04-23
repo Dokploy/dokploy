@@ -10,6 +10,10 @@ import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { runWebServerBackup } from "./web-server";
+import {
+	getDestinationRcloneConfig,
+	type SupportedDestinationType,
+} from "@dokploy/server/services/destination-adapters";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const {
@@ -59,14 +63,68 @@ export const removeScheduleBackup = (backupId: string) => {
 export const getBackupTimestamp = () =>
 	new Date().toISOString().replace(/[:.]/g, "-");
 
-export const normalizeS3Path = (prefix: string) => {
+export const normalizePath = (prefix: string) => {
 	// Trim whitespace and remove leading/trailing slashes
 	const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");
 	// Return empty string if prefix is empty, otherwise append trailing slash
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
-export const getS3Credentials = (destination: Destination) => {
+export const getRcloneCommand = (destination: Destination, command: string, backupDestination: string, additionalFlags: string = "") => {
+	const config = getDestinationRcloneConfig(
+		destination.type as SupportedDestinationType,
+		destination.credentials ?? {},
+	);
+	let rcloneFlags = [...config.flags];
+	const rcloneDestinationPrefix = config.destinationPrefix;
+	const rcloneDestinationPathPrefix = config.destinationPathPrefix
+		? normalizePath(config.destinationPathPrefix)
+		: "";
+
+	if (destination.additionalFlags?.length) {
+		rcloneFlags.push(...destination.additionalFlags);
+	}
+	const rcloneDestination = `:${rcloneDestinationPrefix}:${rcloneDestinationPathPrefix}${backupDestination}`;
+	const rcloneFlagsString = rcloneFlags.join(" ");
+	const rcloneCommand = `rclone ${command} ${rcloneFlagsString} "${rcloneDestination}" ${additionalFlags}`;
+	return rcloneCommand;
+}
+
+type Path = {
+	path: string;
+	type: "remote" | "local";
+};
+
+export const getRcloneMultiDestinationCommand = (destination: Destination, command: string, sourcePath: Path, destinationPath: Path) => {
+	const config = getDestinationRcloneConfig(
+		destination.type as SupportedDestinationType,
+		destination.credentials ?? {},
+	);
+	let rcloneFlags = [...config.flags];
+	if (destination.additionalFlags?.length) {
+		rcloneFlags.push(...destination.additionalFlags);
+	}
+	const rcloneDestinationPrefix = config.destinationPrefix;
+	const rcloneDestinationPathPrefix = config.destinationPathPrefix
+		? normalizePath(config.destinationPathPrefix)
+		: "";
+	const rcloneSource = sourcePath.type === "remote" ? `:${rcloneDestinationPrefix}:${rcloneDestinationPathPrefix}${sourcePath.path}` : sourcePath.path;
+	const rcloneDestination = destinationPath.type === "remote" ? `:${rcloneDestinationPrefix}:${rcloneDestinationPathPrefix}${destinationPath.path}` : destinationPath.path;
+	const rcloneFlagsString = rcloneFlags.join(" ");
+	const rcloneCommand = `rclone ${command} ${rcloneFlagsString} "${rcloneSource}" "${rcloneDestination}"`;
+	return rcloneCommand;
+}
+
+
+type S3CredentialShape = {
+	provider?: string | null;
+	accessKey: string;
+	secretAccessKey: string;
+	region: string;
+	endpoint: string;
+};
+
+export const getS3Credentials = (destination: S3CredentialShape) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [
@@ -80,10 +138,6 @@ export const getS3Credentials = (destination: Destination) => {
 
 	if (provider) {
 		rcloneFlags.unshift(`--s3-provider="${provider}"`);
-	}
-
-	if (destination.additionalFlags?.length) {
-		rcloneFlags.push(...destination.additionalFlags);
 	}
 
 	return rcloneFlags;

@@ -8,15 +8,19 @@ import { and, eq } from "drizzle-orm";
 import type { z } from "zod";
 
 export type Destination = typeof destinations.$inferSelect;
+type CreateDestinationInput = z.infer<typeof apiCreateDestination> & {
+	credentials?: Record<string, unknown>;
+};
 
 export const createDestination = async (
-	input: z.infer<typeof apiCreateDestination>,
+	input: CreateDestinationInput,
 	organizationId: string,
 ) => {
 	const newDestination = await db
 		.insert(destinations)
 		.values({
 			...input,
+			credentials: input.credentials ?? {},
 			organizationId: organizationId,
 		})
 		.returning()
