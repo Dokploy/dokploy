@@ -3,6 +3,7 @@ import {
 	isPreviewTemplateMode,
 	resolvePreviewDomainTemplate,
 	resolvePreviewPathTemplate,
+	resolveWildcardDomain,
 } from "@dokploy/server/utils/traefik/preview-domain";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { HelpCircle, Plus, Settings2, X } from "lucide-react";
@@ -145,33 +146,41 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			".",
 			"-",
 		);
-		let host: string;
-		if (isTemplateMode) {
-			host = resolvePreviewDomainTemplate(wildcardDomain, {
-				appName: sampleAppName,
-				branch: "feat/new-login",
-				pr: "42",
-				hash: "a1b2c3",
-			});
-		} else if (wildcardDomain.includes("*")) {
-			host = wildcardDomain.replace("*", sampleAppName);
-		} else {
-			host = wildcardDomain;
+		try {
+			if (isTemplateMode) {
+				const host = resolvePreviewDomainTemplate(wildcardDomain, {
+					appName: sampleAppName,
+					branch: "feat/new-login",
+					pr: "42",
+					hash: "a1b2c3",
+				});
+				return injectDynamicDnsIp(host, slugIp);
+			}
+			if (wildcardDomain.includes("*")) {
+				return resolveWildcardDomain(wildcardDomain, sampleAppName, slugIp);
+			}
+			return injectDynamicDnsIp(wildcardDomain, slugIp);
+		} catch {
+			return "";
 		}
-		return injectDynamicDnsIp(host, slugIp);
 	})();
 	const previewUrlExample = (() => {
 		if (!previewDomainExample) return "";
 		const scheme = previewHttps && !isTraefikMeDomain ? "https://" : "http://";
-		const resolvedPath = resolvePreviewPathTemplate(
-			watchedPreviewPath?.trim() || "/",
-			{
-				appName: `preview-${data?.appName ?? "app"}-a1b2c3`,
-				branch: "feat/new-login",
-				pr: "42",
-				hash: "a1b2c3",
-			},
-		);
+		let resolvedPath: string;
+		try {
+			resolvedPath = resolvePreviewPathTemplate(
+				watchedPreviewPath?.trim() || "/",
+				{
+					appName: `preview-${data?.appName ?? "app"}-a1b2c3`,
+					branch: "feat/new-login",
+					pr: "42",
+					hash: "a1b2c3",
+				},
+			);
+		} catch {
+			return "";
+		}
 		const path = resolvedPath.startsWith("/")
 			? resolvedPath
 			: `/${resolvedPath}`;

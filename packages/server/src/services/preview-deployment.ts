@@ -21,6 +21,7 @@ import {
 	type PreviewDomainContext,
 	resolvePreviewDomainTemplate,
 	resolvePreviewPathTemplate,
+	resolveWildcardDomain,
 } from "../utils/traefik/preview-domain";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
@@ -268,21 +269,21 @@ const generateWildcardDomain = async (
 	serverIp: string,
 	_userId: string,
 ): Promise<string> => {
-	let host: string;
 	if (isPreviewTemplateMode(baseDomain)) {
-		host = resolvePreviewDomainTemplate(baseDomain, context);
-	} else {
-		if (!baseDomain.startsWith("*.")) {
-			throw new Error(
-				'The base domain must start with "*." or use {variables}',
-			);
+		const host = resolvePreviewDomainTemplate(baseDomain, context);
+		if (isDynamicDnsHost(host)) {
+			const slugIp = await resolveDynamicDnsIpSlug(serverIp);
+			return injectDynamicDnsIp(host, slugIp);
 		}
-		host = baseDomain.replace("*", context.appName);
+		return host;
 	}
 
-	if (isDynamicDnsHost(host)) {
-		const slugIp = await resolveDynamicDnsIpSlug(serverIp);
-		return injectDynamicDnsIp(host, slugIp);
+	if (!baseDomain.startsWith("*.")) {
+		throw new Error('The base domain must start with "*." or use {variables}');
 	}
-	return host;
+
+	const slugIp = isDynamicDnsHost(baseDomain)
+		? await resolveDynamicDnsIpSlug(serverIp)
+		: "";
+	return resolveWildcardDomain(baseDomain, context.appName, slugIp);
 };

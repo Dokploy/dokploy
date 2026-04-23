@@ -20,21 +20,31 @@ const capLabel = (label: string) =>
 		: label.slice(0, MAX_LABEL_LENGTH).replace(/-+$/, "");
 
 const substitute = (template: string, vars: Record<string, string>): string =>
-	template.replace(/\{(\w+)\}/g, (_match, key) => {
+	template.replace(/\{(\w+)\}/g, (match, key) => {
 		const lower = key.toLowerCase();
-		return Object.hasOwn(vars, lower) ? (vars[lower] ?? "") : "";
+		return Object.hasOwn(vars, lower) ? (vars[lower] ?? "") : match;
 	});
+
+const assertNoUnresolvedTokens = (resolved: string, template: string) => {
+	const leftover = resolved.match(/\{\w+\}/g);
+	if (leftover?.length) {
+		throw new Error(
+			`Unknown variable${leftover.length > 1 ? "s" : ""} in preview template "${template}": ${leftover.join(", ")}. Supported: {appname}, {branch}, {pr}, {hash}.`,
+		);
+	}
+};
 
 export const resolvePreviewDomainTemplate = (
 	template: string,
 	context: PreviewDomainContext,
 ): string => {
 	const substituted = substitute(template, {
-		appname: context.appName,
+		appname: slugifyLabel(context.appName),
 		branch: slugifyLabel(context.branch),
 		pr: slugifyLabel(context.pr),
 		hash: slugifyLabel(context.hash),
 	});
+	assertNoUnresolvedTokens(substituted, template);
 
 	return substituted
 		.split(".")
@@ -46,13 +56,16 @@ export const resolvePreviewDomainTemplate = (
 export const resolvePreviewPathTemplate = (
 	template: string,
 	context: PreviewDomainContext,
-): string =>
-	substitute(template, {
-		appname: context.appName,
+): string => {
+	const substituted = substitute(template, {
+		appname: slugifyLabel(context.appName),
 		branch: slugifyLabel(context.branch),
 		pr: context.pr,
 		hash: context.hash,
 	});
+	assertNoUnresolvedTokens(substituted, template);
+	return substituted;
+};
 
 export const isPreviewTemplateMode = (template: string) =>
 	!template.includes("*") && template.includes("{");
@@ -75,4 +88,18 @@ export const injectDynamicDnsIp = (host: string, slugIp: string): string => {
 	if (!suffix || !slugIp) return host;
 	const base = host.slice(0, -suffix.length);
 	return base ? `${base}.${slugIp}${suffix}` : `${slugIp}${suffix}`;
+};
+
+export const resolveWildcardDomain = (
+	baseDomain: string,
+	appName: string,
+	slugIp: string,
+): string => {
+	const suffix = detectDynamicDnsSuffix(baseDomain);
+	if (suffix && slugIp) {
+		const label = `${appName}-${slugIp}`;
+		return baseDomain.replace("*", label);
+	}
+	const host = baseDomain.replace("*", appName);
+	return injectDynamicDnsIp(host, slugIp);
 };
