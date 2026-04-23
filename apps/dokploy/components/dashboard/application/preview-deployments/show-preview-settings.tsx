@@ -54,6 +54,14 @@ import { api } from "@/utils/api";
 
 const PREVIEW_VARIABLES = ["appname", "branch", "pr", "hash"] as const;
 
+const findUnknownTokens = (value: string) => {
+	const matches = value.match(/\{(\w+)\}/g) ?? [];
+	return matches.filter((m) => {
+		const key = m.slice(1, -1).toLowerCase();
+		return !(PREVIEW_VARIABLES as readonly string[]).includes(key);
+	});
+};
+
 const schema = z
 	.object({
 		env: z.string(),
@@ -78,6 +86,22 @@ const schema = z
 				code: z.ZodIssueCode.custom,
 				path: ["previewCustomCertResolver"],
 				message: "Required",
+			});
+		}
+		const unknownDomainTokens = findUnknownTokens(input.wildcardDomain);
+		if (unknownDomainTokens.length) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["wildcardDomain"],
+				message: `Unknown variable${unknownDomainTokens.length > 1 ? "s" : ""} ${unknownDomainTokens.join(", ")}. Supported: {appname}, {branch}, {pr}, {hash}.`,
+			});
+		}
+		const unknownPathTokens = findUnknownTokens(input.previewPath);
+		if (unknownPathTokens.length) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["previewPath"],
+				message: `Unknown variable${unknownPathTokens.length > 1 ? "s" : ""} ${unknownPathTokens.join(", ")}. Supported: {appname}, {branch}, {pr}, {hash}.`,
 			});
 		}
 	});
@@ -139,52 +163,62 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 	const watchedPreviewPath = form.watch("previewPath");
 	const isTraefikMeDomain = wildcardDomain?.includes("traefik.me") || false;
 	const isTemplateMode = isPreviewTemplateMode(wildcardDomain || "");
-	const previewDomainExample = (() => {
-		if (!wildcardDomain) return "";
+	const previewExample = (() => {
+		if (!wildcardDomain) return { url: "", error: "" };
 		const sampleAppName = `preview-${data?.appName ?? "app"}-a1b2c3`;
 		const slugIp = (data?.server?.ipAddress || "127.0.0.1").replaceAll(
 			".",
 			"-",
 		);
+		let host: string;
 		try {
 			if (isTemplateMode) {
-				const host = resolvePreviewDomainTemplate(wildcardDomain, {
-					appName: sampleAppName,
-					branch: "feat/new-login",
-					pr: "42",
-					hash: "a1b2c3",
-				});
-				return injectDynamicDnsIp(host, slugIp);
+				host = injectDynamicDnsIp(
+					resolvePreviewDomainTemplate(wildcardDomain, {
+						appName: sampleAppName,
+						branch: "feat/new-login",
+						pr: "42",
+						hash: "a1b2c3",
+					}),
+					slugIp,
+				);
+			} else if (wildcardDomain.includes("*")) {
+				host = resolveWildcardDomain(wildcardDomain, sampleAppName, slugIp);
+			} else {
+				host = injectDynamicDnsIp(wildcardDomain, slugIp);
 			}
-			if (wildcardDomain.includes("*")) {
-				return resolveWildcardDomain(wildcardDomain, sampleAppName, slugIp);
-			}
-			return injectDynamicDnsIp(wildcardDomain, slugIp);
-		} catch {
-			return "";
+		} catch (err) {
+			return {
+				url: "",
+				error: err instanceof Error ? err.message : "Invalid domain template",
+			};
 		}
-	})();
-	const previewUrlExample = (() => {
-		if (!previewDomainExample) return "";
+
 		const scheme = previewHttps && !isTraefikMeDomain ? "https://" : "http://";
 		let resolvedPath: string;
 		try {
 			resolvedPath = resolvePreviewPathTemplate(
 				watchedPreviewPath?.trim() || "/",
 				{
-					appName: `preview-${data?.appName ?? "app"}-a1b2c3`,
+					appName: sampleAppName,
 					branch: "feat/new-login",
 					pr: "42",
 					hash: "a1b2c3",
 				},
 			);
-		} catch {
-			return "";
+		} catch (err) {
+			return {
+				url: "",
+				error: err instanceof Error ? err.message : "Invalid path template",
+			};
 		}
 		const path = resolvedPath.startsWith("/")
 			? resolvedPath
 			: `/${resolvedPath}`;
-		return `${scheme}${previewDomainExample}${path === "/" ? "" : path}`;
+		return {
+			url: `${scheme}${host}${path === "/" ? "" : path}`,
+			error: "",
+		};
 	})();
 
 	useEffect(() => {
@@ -243,7 +277,8 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewRequireCollaboratorPermissions:
 				formData.previewRequireCollaboratorPermissions,
 		})
-			.then(() => {
+			.then(async () => {
+				await refetch();
 				toast.success("Preview Deployments settings updated");
 				setIsOpen(false);
 			})
@@ -422,20 +457,29 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											</FormItem>
 										)}
 									/>
-									{previewUrlExample && (
+									{previewExample.error ? (
+										<div className="md:col-span-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2">
+											<div className="text-xs font-medium uppercase tracking-wide text-destructive">
+												Invalid template
+											</div>
+											<div className="mt-1 text-sm text-destructive break-words">
+												{previewExample.error}
+											</div>
+										</div>
+									) : previewExample.url ? (
 										<div className="md:col-span-2 rounded-md border bg-muted/40 px-3 py-2">
 											<div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
 												Example preview URL
 											</div>
 											<div className="mt-1 font-mono text-sm break-all text-foreground">
-												{previewUrlExample}
+												{previewExample.url}
 											</div>
 											<div className="mt-1 text-xs text-muted-foreground">
 												Using sample values <code>branch=feat/new-login</code>,{" "}
 												<code>pr=42</code>, <code>hash=a1b2c3</code>.
 											</div>
 										</div>
-									)}
+									) : null}
 									<FormField
 										control={form.control}
 										name="port"
