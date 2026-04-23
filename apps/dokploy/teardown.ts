@@ -34,20 +34,38 @@ const removeContainer = async (name: string) => {
 	}
 };
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const removeNetwork = async (name: string) => {
-	try {
-		await docker.getNetwork(name).remove();
-		console.log(`Removed network ${name}`);
-	} catch (error: any) {
-		if (error?.statusCode === 404) {
-			console.log(`Network ${name} not found`);
+	// Swarm service removal is async — tasks can still be detaching from the
+	// network when we get here, so retry the 403 ("in use") case briefly
+	// instead of forcing the user to run teardown twice.
+	const maxAttempts = 6;
+	const delayMs = 1000;
+	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+		try {
+			await docker.getNetwork(name).remove();
+			console.log(`Removed network ${name}`);
+			return;
+		} catch (error: any) {
+			if (error?.statusCode === 404) {
+				console.log(`Network ${name} not found`);
+				return;
+			}
+			if (error?.statusCode === 403 && attempt < maxAttempts) {
+				await sleep(delayMs);
+				continue;
+			}
+			if (error?.statusCode === 403) {
+				console.log(`Network ${name} still in use, skipping`);
+				return;
+			}
+			console.warn(
+				`Failed to remove network ${name}:`,
+				error?.message ?? error,
+			);
 			return;
 		}
-		if (error?.statusCode === 403) {
-			console.log(`Network ${name} still in use, skipping`);
-			return;
-		}
-		console.warn(`Failed to remove network ${name}:`, error?.message ?? error);
 	}
 };
 
