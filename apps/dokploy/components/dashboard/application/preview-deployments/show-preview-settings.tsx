@@ -1,6 +1,13 @@
+import {
+	injectDynamicDnsIp,
+	isPreviewTemplateMode,
+	resolvePreviewDomainTemplate,
+	resolvePreviewPathTemplate,
+} from "@dokploy/server/utils/traefik/preview-domain";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { HelpCircle, Plus, Settings2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -41,7 +48,10 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+
+const PREVIEW_VARIABLES = ["appname", "branch", "pr", "hash"] as const;
 
 const schema = z
 	.object({
@@ -100,16 +110,94 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 		resolver: zodResolver(schema),
 	});
 
+	const wildcardDomainInputRef = useRef<HTMLInputElement | null>(null);
+	const previewPathInputRef = useRef<HTMLInputElement | null>(null);
+	const insertVariable = (
+		fieldName: "wildcardDomain" | "previewPath",
+		input: HTMLInputElement | null,
+		name: string,
+	) => {
+		const current = form.getValues(fieldName) ?? "";
+		const token = `{${name}}`;
+		const start = input?.selectionStart ?? current.length;
+		const end = input?.selectionEnd ?? current.length;
+		const next = current.slice(0, start) + token + current.slice(end);
+		form.setValue(fieldName, next, {
+			shouldDirty: true,
+			shouldValidate: true,
+		});
+		const cursor = start + token.length;
+		queueMicrotask(() => {
+			input?.focus();
+			input?.setSelectionRange(cursor, cursor);
+		});
+	};
+
 	const previewHttps = form.watch("previewHttps");
 	const wildcardDomain = form.watch("wildcardDomain");
+	const watchedPreviewPath = form.watch("previewPath");
 	const isTraefikMeDomain = wildcardDomain?.includes("traefik.me") || false;
+	const isTemplateMode = isPreviewTemplateMode(wildcardDomain || "");
+	const previewDomainExample = (() => {
+		if (!wildcardDomain) return "";
+		const sampleAppName = `preview-${data?.appName ?? "app"}-a1b2c3`;
+		const slugIp = (data?.server?.ipAddress || "127.0.0.1").replaceAll(
+			".",
+			"-",
+		);
+		let host: string;
+		if (isTemplateMode) {
+			host = resolvePreviewDomainTemplate(wildcardDomain, {
+				appName: sampleAppName,
+				branch: "feat/new-login",
+				pr: "42",
+				hash: "a1b2c3",
+			});
+		} else if (wildcardDomain.includes("*")) {
+			host = wildcardDomain.replace("*", sampleAppName);
+		} else {
+			host = wildcardDomain;
+		}
+		return injectDynamicDnsIp(host, slugIp);
+	})();
+	const previewUrlExample = (() => {
+		if (!previewDomainExample) return "";
+		const scheme = previewHttps && !isTraefikMeDomain ? "https://" : "http://";
+		const resolvedPath = resolvePreviewPathTemplate(
+			watchedPreviewPath?.trim() || "/",
+			{
+				appName: `preview-${data?.appName ?? "app"}-a1b2c3`,
+				branch: "feat/new-login",
+				pr: "42",
+				hash: "a1b2c3",
+			},
+		);
+		const path = resolvedPath.startsWith("/")
+			? resolvedPath
+			: `/${resolvedPath}`;
+		return `${scheme}${previewDomainExample}${path === "/" ? "" : path}`;
+	})();
 
 	useEffect(() => {
 		setIsEnabled(data?.isPreviewDeploymentsActive || false);
 	}, [data?.isPreviewDeploymentsActive]);
 
 	useEffect(() => {
-		if (data) {
+		if (isTraefikMeDomain && form.getValues("previewHttps")) {
+			form.setValue("previewHttps", false, { shouldDirty: true });
+		}
+	}, [isTraefikMeDomain, form]);
+
+	// Only seed the form from server state once per modal open — otherwise
+	// toggling `Enable preview deployments` (which refetches `data`) would wipe
+	// any in-progress edits.
+	const hasSeededForm = useRef(false);
+	useEffect(() => {
+		if (!isOpen) {
+			hasSeededForm.current = false;
+			return;
+		}
+		if (data && !hasSeededForm.current) {
 			form.reset({
 				env: data.previewEnv || "",
 				buildArgs: data.previewBuildArgs || "",
@@ -125,8 +213,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				previewRequireCollaboratorPermissions:
 					data.previewRequireCollaboratorPermissions ?? true,
 			});
+			hasSeededForm.current = true;
 		}
-	}, [data]);
+	}, [isOpen, data, form]);
 
 	const onSubmit = async (formData: Schema) => {
 		updateApplication({
@@ -147,6 +236,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 		})
 			.then(() => {
 				toast.success("Preview Deployments settings updated");
+				setIsOpen(false);
 			})
 			.catch((error) => {
 				toast.error(error.message);
@@ -170,30 +260,108 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 							rules.
 						</DialogDescription>
 					</DialogHeader>
-					<div className="grid gap-4">
-						{isTraefikMeDomain && (
+					<div className="grid gap-6 max-h-[75vh] overflow-y-auto pr-1">
+						<div className="flex flex-row items-center justify-between rounded-lg border p-4">
+							<div className="space-y-0.5">
+								<div className="text-base font-medium leading-none">
+									Enable preview deployments
+								</div>
+								<p className="text-sm text-muted-foreground">
+									Enable or disable preview deployments for this application.
+								</p>
+							</div>
+							<Switch
+								checked={isEnabled}
+								onCheckedChange={(checked) => {
+									updateApplication({
+										isPreviewDeploymentsActive: checked,
+										applicationId,
+									})
+										.then(() => {
+											refetch();
+											toast.success(
+												checked
+													? "Preview deployments enabled"
+													: "Preview deployments disabled",
+											);
+										})
+										.catch((error) => {
+											toast.error(error.message);
+										});
+								}}
+							/>
+						</div>
+						{!isEnabled && (
 							<AlertBlock type="info">
-								<strong>Note:</strong> traefik.me is a public HTTP service and
-								does not support SSL/HTTPS. HTTPS and certificate options will
-								not have any effect.
+								Preview deployments are disabled. Enable them above to configure
+								settings, then press Save.
 							</AlertBlock>
 						)}
 						<Form {...form}>
 							<form
 								onSubmit={form.handleSubmit(onSubmit)}
 								id="hook-form-delete-application"
-								className="grid w-full gap-4"
+								className={cn(
+									"grid w-full gap-4 transition-opacity",
+									!isEnabled && "opacity-50 pointer-events-none select-none",
+								)}
+								aria-disabled={!isEnabled}
 							>
 								<div className="grid gap-4 lg:grid-cols-2">
+									<div className="md:col-span-2 space-y-1">
+										<h3 className="text-sm font-semibold">Routing</h3>
+										<p className="text-xs text-muted-foreground">
+											Configure the hostname, path, and port for each generated
+											preview.
+										</p>
+									</div>
 									<FormField
 										control={form.control}
 										name="wildcardDomain"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Wildcard Domain</FormLabel>
+												<FormLabel>Domain Template</FormLabel>
 												<FormControl>
-													<Input placeholder="*.traefik.me" {...field} />
+													<Input
+														placeholder="*.traefik.me"
+														{...field}
+														ref={(el) => {
+															field.ref(el);
+															wildcardDomainInputRef.current = el;
+														}}
+													/>
 												</FormControl>
+												<FormDescription className="space-y-2">
+													<span className="block">
+														Use <code>*</code> for the legacy wildcard, or{" "}
+														<code>{"{variables}"}</code> for a custom pattern.
+													</span>
+													<span className="flex flex-wrap items-center gap-1.5">
+														<span className="text-xs text-muted-foreground">
+															Insert:
+														</span>
+														{PREVIEW_VARIABLES.map((name) => (
+															<Badge
+																key={name}
+																variant="secondary"
+																className="cursor-pointer font-mono text-xs hover:bg-secondary/80"
+																onClick={() =>
+																	insertVariable(
+																		"wildcardDomain",
+																		wildcardDomainInputRef.current,
+																		name,
+																	)
+																}
+															>
+																{`{${name}}`}
+															</Badge>
+														))}
+													</span>
+													<span className="block text-xs">
+														Dynamic DNS auto-detected for traefik.me, nip.io,
+														sslip.io, backname.io.
+													</span>
+												</FormDescription>
 												<FormMessage />
 											</FormItem>
 										)}
@@ -203,14 +371,62 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										name="previewPath"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Preview Path</FormLabel>
+												<FormLabel>Path</FormLabel>
 												<FormControl>
-													<Input placeholder="/" {...field} />
+													<Input
+														placeholder="/"
+														{...field}
+														ref={(el) => {
+															field.ref(el);
+															previewPathInputRef.current = el;
+														}}
+													/>
 												</FormControl>
+												<FormDescription className="space-y-2">
+													<span className="block">
+														Supports the same <code>{"{variables}"}</code> —
+														e.g. <code>/pr-{"{pr}"}/</code>.
+													</span>
+													<span className="flex flex-wrap items-center gap-1.5">
+														<span className="text-xs text-muted-foreground">
+															Insert:
+														</span>
+														{PREVIEW_VARIABLES.map((name) => (
+															<Badge
+																key={name}
+																variant="secondary"
+																className="cursor-pointer font-mono text-xs hover:bg-secondary/80"
+																onClick={() =>
+																	insertVariable(
+																		"previewPath",
+																		previewPathInputRef.current,
+																		name,
+																	)
+																}
+															>
+																{`{${name}}`}
+															</Badge>
+														))}
+													</span>
+												</FormDescription>
 												<FormMessage />
 											</FormItem>
 										)}
 									/>
+									{previewUrlExample && (
+										<div className="md:col-span-2 rounded-md border bg-muted/40 px-3 py-2">
+											<div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+												Example preview URL
+											</div>
+											<div className="mt-1 font-mono text-sm break-all text-foreground">
+												{previewUrlExample}
+											</div>
+											<div className="mt-1 text-xs text-muted-foreground">
+												Using sample values <code>branch=feat/new-login</code>,{" "}
+												<code>pr=42</code>, <code>hash=a1b2c3</code>.
+											</div>
+										</div>
+									)}
 									<FormField
 										control={form.control}
 										name="port"
@@ -221,6 +437,57 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 													<NumberInput placeholder="3000" {...field} />
 												</FormControl>
 												<FormMessage />
+												<FormDescription>
+													The container port that your application listens on.
+												</FormDescription>
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="previewLimit"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Preview Limit</FormLabel>
+												<FormControl>
+													<NumberInput placeholder="3" {...field} />
+												</FormControl>
+												<FormDescription>
+													Max concurrent preview deployments for this
+													application.
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<div className="md:col-span-2 space-y-1 mt-2">
+										<h3 className="text-sm font-semibold">Triggers & Access</h3>
+										<p className="text-xs text-muted-foreground">
+											Control which pull requests spawn a preview and who can
+											trigger one.
+										</p>
+									</div>
+									<FormField
+										control={form.control}
+										name="previewRequireCollaboratorPermissions"
+										render={({ field }) => (
+											<FormItem className="md:col-span-2 flex flex-row items-center justify-between p-3 border rounded-lg shadow-sm">
+												<div className="space-y-0.5">
+													<FormLabel>
+														Require Collaborator Permissions
+													</FormLabel>
+													<FormDescription>
+														Only collaborators with the Admin, Maintain, or
+														Write role in your GitHub Repository can trigger
+														preview deployments.
+													</FormDescription>
+												</div>
+												<FormControl>
+													<Switch
+														checked={field.value}
+														onCheckedChange={field.onChange}
+													/>
+												</FormControl>
 											</FormItem>
 										)}
 									/>
@@ -308,35 +575,43 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											</FormItem>
 										)}
 									/>
-									<FormField
-										control={form.control}
-										name="previewLimit"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Preview Limit</FormLabel>
-												<FormControl>
-													<NumberInput placeholder="3000" {...field} />
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
+									<div className="md:col-span-2 space-y-1 mt-2">
+										<h3 className="text-sm font-semibold">
+											HTTPS &amp; Certificates
+										</h3>
+										<p className="text-xs text-muted-foreground">
+											Choose how SSL is provisioned for preview domains.
+										</p>
+									</div>
+									{isTraefikMeDomain && (
+										<div className="md:col-span-2">
+											<AlertBlock type="info">
+												<strong>Note:</strong> traefik.me is a public HTTP
+												service and does not support SSL/HTTPS. HTTPS and
+												certificate options are disabled while this domain is in
+												use. To use HTTPS, change your wildcard domain to a
+												supported dynamic DNS provider (e.g.{" "}
+												<code>*.sslip.io</code>) or a custom domain.
+											</AlertBlock>
+										</div>
+									)}
 									<FormField
 										control={form.control}
 										name="previewHttps"
 										render={({ field }) => (
-											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+											<FormItem className="md:col-span-2 flex flex-row items-center justify-between p-3 border rounded-lg shadow-sm">
 												<div className="space-y-0.5">
 													<FormLabel>HTTPS</FormLabel>
 													<FormDescription>
-														Automatically provision SSL Certificate.
+														Automatically provision an SSL certificate.
 													</FormDescription>
 													<FormMessage />
 												</div>
 												<FormControl>
 													<Switch
-														checked={field.value}
+														checked={field.value && !isTraefikMeDomain}
 														onCheckedChange={field.onChange}
+														disabled={isTraefikMeDomain}
 													/>
 												</FormControl>
 											</FormItem>
@@ -347,7 +622,13 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											control={form.control}
 											name="previewCertificateType"
 											render={({ field }) => (
-												<FormItem>
+												<FormItem
+													className={
+														form.watch("previewCertificateType") === "custom"
+															? ""
+															: "md:col-span-2"
+													}
+												>
 													<FormLabel>Certificate Provider</FormLabel>
 													<Select
 														onValueChange={field.onChange}
@@ -358,7 +639,6 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 																<SelectValue placeholder="Select a certificate provider" />
 															</SelectTrigger>
 														</FormControl>
-
 														<SelectContent>
 															<SelectItem value="none">None</SelectItem>
 															<SelectItem value={"letsencrypt"}>
@@ -367,94 +647,46 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 															<SelectItem value={"custom"}>Custom</SelectItem>
 														</SelectContent>
 													</Select>
-													<FormMessage />
-												</FormItem>
-											)}
-										/>
-									)}
-
-									{form.watch("previewCertificateType") === "custom" && (
-										<FormField
-											control={form.control}
-											name="previewCustomCertResolver"
-											render={({ field }) => (
-												<FormItem>
-													<FormLabel>Certificate Provider</FormLabel>
-													<FormControl>
-														<Input
-															placeholder="my-custom-resolver"
-															{...field}
-														/>
-													</FormControl>
-													<FormMessage />
-												</FormItem>
-											)}
-										/>
-									)}
-								</div>
-								<div className="grid gap-4 lg:grid-cols-2">
-									<div className="flex flex-row items-center justify-between rounded-lg border p-4 col-span-2">
-										<div className="space-y-0.5">
-											<FormLabel className="text-base">
-												Enable preview deployments
-											</FormLabel>
-											<FormDescription>
-												Enable or disable preview deployments for this
-												application.
-											</FormDescription>
-										</div>
-										<Switch
-											checked={isEnabled}
-											onCheckedChange={(checked) => {
-												updateApplication({
-													isPreviewDeploymentsActive: checked,
-													applicationId,
-												})
-													.then(() => {
-														refetch();
-														toast.success(
-															checked
-																? "Preview deployments enabled"
-																: "Preview deployments disabled",
-														);
-													})
-													.catch((error) => {
-														toast.error(error.message);
-													});
-											}}
-										/>
-									</div>
-								</div>
-
-								<div className="grid gap-4 lg:grid-cols-2">
-									<FormField
-										control={form.control}
-										name="previewRequireCollaboratorPermissions"
-										render={({ field }) => (
-											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm col-span-2">
-												<div className="space-y-0.5">
-													<FormLabel>
-														Require Collaborator Permissions
-													</FormLabel>
 													<FormDescription>
-														Require collaborator permissions to preview
-														deployments, valid roles are:
-														<ul>
-															<li>Admin</li>
-															<li>Maintain</li>
-															<li>Write</li>
-														</ul>
+														Manage providers under{" "}
+														<Link
+															href="/dashboard/settings/certificates"
+															target="_blank"
+															className="text-primary underline-offset-2 hover:underline"
+														>
+															Settings → Certificates
+														</Link>
+														.
 													</FormDescription>
-												</div>
-												<FormControl>
-													<Switch
-														checked={field.value}
-														onCheckedChange={field.onChange}
-													/>
-												</FormControl>
-											</FormItem>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									)}
+
+									{previewHttps &&
+										form.watch("previewCertificateType") === "custom" && (
+											<FormField
+												control={form.control}
+												name="previewCustomCertResolver"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Custom Certificate Resolver</FormLabel>
+														<FormControl>
+															<Input
+																placeholder="my-custom-resolver"
+																{...field}
+															/>
+														</FormControl>
+														<FormDescription>
+															Name of a Traefik resolver defined in your Dokploy
+															configuration.
+														</FormDescription>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
 										)}
-									/>
 								</div>
 
 								<FormField
@@ -538,6 +770,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 							isLoading={isPending}
 							form="hook-form-delete-application"
 							type="submit"
+							disabled={!isEnabled}
 						>
 							Save
 						</Button>

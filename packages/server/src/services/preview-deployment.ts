@@ -14,6 +14,14 @@ import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
+import {
+	injectDynamicDnsIp,
+	isDynamicDnsHost,
+	isPreviewTemplateMode,
+	type PreviewDomainContext,
+	resolvePreviewDomainTemplate,
+	resolvePreviewPathTemplate,
+} from "../utils/traefik/preview-domain";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
 import { createDomain } from "./domain";
@@ -130,16 +138,27 @@ export const createPreviewDeployment = async (
 	schema: z.infer<typeof apiCreatePreviewDeployment>,
 ) => {
 	const application = await findApplicationById(schema.applicationId);
-	const appName = `preview-${application.appName}-${generatePassword(6)}`;
+	const hash = generatePassword(6);
+	const appName = `preview-${application.appName}-${hash}`;
 
 	const org = await db.query.organization.findFirst({
 		where: eq(organization.id, application.environment.project.organizationId),
 	});
+	const domainContext: PreviewDomainContext = {
+		appName,
+		branch: schema.branch,
+		pr: schema.pullRequestNumber,
+		hash,
+	};
 	const generateDomain = await generateWildcardDomain(
 		application.previewWildcard || "*.traefik.me",
-		appName,
+		domainContext,
 		application.server?.ipAddress || "",
 		org?.ownerId || "",
+	);
+	const resolvedPath = resolvePreviewPathTemplate(
+		application.previewPath || "/",
+		domainContext,
 	);
 
 	const octokit = authGithub(application?.github as Github);
@@ -176,7 +195,7 @@ export const createPreviewDeployment = async (
 
 	const newDomain = await createDomain({
 		host: generateDomain,
-		path: application.previewPath,
+		path: resolvedPath,
 		port: application.previewPort,
 		https: application.previewHttps,
 		certificateType: application.previewCertificateType,
@@ -228,38 +247,42 @@ export const findPreviewDeploymentByApplicationId = async (
 	return previewDeploymentResult;
 };
 
+const resolveDynamicDnsIpSlug = async (serverIp: string): Promise<string> => {
+	let ip = "";
+	if (process.env.NODE_ENV === "development") {
+		ip = "127.0.0.1";
+	}
+	if (serverIp) {
+		ip = serverIp;
+	}
+	if (!ip) {
+		const settings = await getWebServerSettings();
+		ip = settings?.serverIp || "";
+	}
+	return ip.replaceAll(".", "-");
+};
+
 const generateWildcardDomain = async (
 	baseDomain: string,
-	appName: string,
+	context: PreviewDomainContext,
 	serverIp: string,
 	_userId: string,
 ): Promise<string> => {
-	if (!baseDomain.startsWith("*.")) {
-		throw new Error('The base domain must start with "*."');
-	}
-	const hash = `${appName}`;
-	if (baseDomain.includes("traefik.me")) {
-		let ip = "";
-
-		if (process.env.NODE_ENV === "development") {
-			ip = "127.0.0.1";
+	let host: string;
+	if (isPreviewTemplateMode(baseDomain)) {
+		host = resolvePreviewDomainTemplate(baseDomain, context);
+	} else {
+		if (!baseDomain.startsWith("*.")) {
+			throw new Error(
+				'The base domain must start with "*." or use {variables}',
+			);
 		}
-
-		if (serverIp) {
-			ip = serverIp;
-		}
-
-		if (!ip) {
-			const settings = await getWebServerSettings();
-			ip = settings?.serverIp || "";
-		}
-
-		const slugIp = ip.replaceAll(".", "-");
-		return baseDomain.replace(
-			"*",
-			`${hash}${slugIp === "" ? "" : `-${slugIp}`}`,
-		);
+		host = baseDomain.replace("*", context.appName);
 	}
 
-	return baseDomain.replace("*", hash);
+	if (isDynamicDnsHost(host)) {
+		const slugIp = await resolveDynamicDnsIpSlug(serverIp);
+		return injectDynamicDnsIp(host, slugIp);
+	}
+	return host;
 };
