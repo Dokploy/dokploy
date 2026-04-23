@@ -25,6 +25,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { api, type RouterOutputs } from "@/utils/api";
 import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
 import { CancelQueues } from "./cancel-queues";
@@ -63,11 +70,14 @@ export const ShowDeployments = ({
 	const [activeLog, setActiveLog] = useState<
 		RouterOutputs["deployment"]["all"][number] | null
 	>(null);
+	const [deploymentLimit, setDeploymentLimit] = useState<number>(10);
+	const [isCustomLimit, setIsCustomLimit] = useState(false);
 	const { data: deployments, isPending: isLoadingDeployments } =
 		api.deployment.allByType.useQuery(
 			{
 				id,
 				type,
+				limit: deploymentLimit,
 			},
 			{
 				enabled: !!id,
@@ -152,10 +162,60 @@ export const ShowDeployments = ({
 				<div className="flex flex-col gap-2">
 					<CardTitle className="text-xl">Deployments</CardTitle>
 					<CardDescription>
-						See the last 10 deployments for this {type}
+						See the last {deploymentLimit} deployments for this {type}
 					</CardDescription>
 				</div>
 				<div className="flex flex-row items-center flex-wrap gap-2">
+					<div className="flex items-center gap-2">
+						<span className="text-sm text-muted-foreground whitespace-nowrap">
+							Show:
+						</span>
+						{isCustomLimit ? (
+							<input
+								type="number"
+								min={1}
+								max={500}
+								value={deploymentLimit}
+								onChange={(e) => {
+									const val = Number(e.target.value);
+									if (val >= 1 && val <= 500) {
+										setDeploymentLimit(val);
+									}
+								}}
+								onBlur={(e) => {
+									if (!e.target.value || Number(e.target.value) < 1) {
+										setDeploymentLimit(10);
+										setIsCustomLimit(false);
+									}
+								}}
+								className="w-20 h-10 rounded-md border border-input bg-background px-3 text-sm"
+							/>
+						) : (
+							<Select
+								value={deploymentLimit.toString()}
+								onValueChange={(value) => {
+									if (value === "custom") {
+										setIsCustomLimit(true);
+									} else {
+										setDeploymentLimit(Number(value));
+									}
+								}}
+							>
+								<SelectTrigger className="w-24 h-10">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="10">10</SelectItem>
+									<SelectItem value="25">25</SelectItem>
+									<SelectItem value="50">50</SelectItem>
+									<SelectItem value="100">100</SelectItem>
+									<SelectItem value="200">200</SelectItem>
+									<SelectItem value="500">500</SelectItem>
+									<SelectItem value="custom">Custom</SelectItem>
+								</SelectContent>
+							</Select>
+						)}
+					</div>
 					{(type === "application" || type === "compose") && (
 						<ClearDeployments id={id} type={type} />
 					)}
@@ -233,7 +293,6 @@ export const ShowDeployments = ({
 							<span>Webhook URL: </span>
 							<div className="flex flex-row items-center gap-2">
 								<Badge
-									role="button"
 									tabIndex={0}
 									aria-label="Copy webhook URL to clipboard"
 									className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all"
