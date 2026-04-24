@@ -11,6 +11,20 @@ import { audit } from "@/server/api/utils/audit";
 import { getLocalServerIp } from "@/server/wss/terminal";
 import { createTRPCRouter, withPermission } from "../trpc";
 
+const assertServerBelongsToOrg = async (
+	serverId: string | undefined,
+	activeOrganizationId: string,
+) => {
+	if (!serverId) return;
+	const targetServer = await findServerById(serverId);
+	if (targetServer.organizationId !== activeOrganizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You don't have access to this server.",
+		});
+	}
+};
+
 export const clusterRouter = createTRPCRouter({
 	getNodes: withPermission("server", "read")
 		.input(
@@ -18,7 +32,11 @@ export const clusterRouter = createTRPCRouter({
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			await assertServerBelongsToOrg(
+				input.serverId,
+				ctx.session.activeOrganizationId,
+			);
 			const docker = await getRemoteDocker(input.serverId);
 			const workers: DockerNode[] = await docker.listNodes();
 			return workers;
@@ -32,6 +50,10 @@ export const clusterRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerBelongsToOrg(
+				input.serverId,
+				ctx.session.activeOrganizationId,
+			);
 			try {
 				const drainCommand = `docker node update --availability drain ${input.nodeId}`;
 				const removeCommand = `docker node rm ${input.nodeId} --force`;
@@ -65,7 +87,11 @@ export const clusterRouter = createTRPCRouter({
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			await assertServerBelongsToOrg(
+				input.serverId,
+				ctx.session.activeOrganizationId,
+			);
 			const docker = await getRemoteDocker(input.serverId);
 			const result = await docker.swarmInspect();
 			const docker_version = await docker.version();
@@ -88,7 +114,11 @@ export const clusterRouter = createTRPCRouter({
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			await assertServerBelongsToOrg(
+				input.serverId,
+				ctx.session.activeOrganizationId,
+			);
 			const docker = await getRemoteDocker(input.serverId);
 			const result = await docker.swarmInspect();
 			const docker_version = await docker.version();
