@@ -61,6 +61,12 @@ export const setupDockerContainerTerminalWebSocketServer = (
 		try {
 			if (serverId) {
 				const server = await findServerById(serverId);
+
+				if (server.organizationId !== session.activeOrganizationId) {
+					ws.close();
+					return;
+				}
+
 				if (!server.sshKeyId)
 					throw new Error("No SSH key available for this server");
 

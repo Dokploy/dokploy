@@ -16,6 +16,7 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import { findServerById } from "@dokploy/server/services/server";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -52,7 +53,14 @@ export const deploymentRouter = createTRPCRouter({
 		}),
 	allByServer: withPermission("deployment", "read")
 		.input(apiFindAllByServer)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			const targetServer = await findServerById(input.serverId);
+			if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You don't have access to this server.",
+				});
+			}
 			return await findAllDeploymentsByServerId(input.serverId);
 		}),
 	allCentralized: withPermission("deployment", "read").query(
