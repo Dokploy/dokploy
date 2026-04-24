@@ -11,20 +11,6 @@ import { audit } from "@/server/api/utils/audit";
 import { getLocalServerIp } from "@/server/wss/terminal";
 import { createTRPCRouter, withPermission } from "../trpc";
 
-const assertServerBelongsToOrg = async (
-	serverId: string | undefined,
-	activeOrganizationId: string,
-) => {
-	if (!serverId) return;
-	const targetServer = await findServerById(serverId);
-	if (targetServer.organizationId !== activeOrganizationId) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "You don't have access to this server.",
-		});
-	}
-};
-
 export const clusterRouter = createTRPCRouter({
 	getNodes: withPermission("server", "read")
 		.input(
@@ -33,10 +19,15 @@ export const clusterRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
-			await assertServerBelongsToOrg(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			if (input.serverId) {
+				const targetServer = await findServerById(input.serverId);
+				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this server.",
+					});
+				}
+			}
 			const docker = await getRemoteDocker(input.serverId);
 			const workers: DockerNode[] = await docker.listNodes();
 			return workers;
@@ -50,10 +41,15 @@ export const clusterRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			await assertServerBelongsToOrg(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			if (input.serverId) {
+				const targetServer = await findServerById(input.serverId);
+				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this server.",
+					});
+				}
+			}
 			try {
 				const drainCommand = `docker node update --availability drain ${input.nodeId}`;
 				const removeCommand = `docker node rm ${input.nodeId} --force`;
@@ -88,10 +84,15 @@ export const clusterRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
-			await assertServerBelongsToOrg(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			if (input.serverId) {
+				const targetServer = await findServerById(input.serverId);
+				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this server.",
+					});
+				}
+			}
 			const docker = await getRemoteDocker(input.serverId);
 			const result = await docker.swarmInspect();
 			const docker_version = await docker.version();
@@ -115,10 +116,15 @@ export const clusterRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
-			await assertServerBelongsToOrg(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			if (input.serverId) {
+				const targetServer = await findServerById(input.serverId);
+				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this server.",
+					});
+				}
+			}
 			const docker = await getRemoteDocker(input.serverId);
 			const result = await docker.swarmInspect();
 			const docker_version = await docker.version();
