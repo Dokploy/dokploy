@@ -509,6 +509,14 @@ const EnvironmentPage = (
 		deploy: api.mongo.deploy.useMutation(),
 	};
 
+	const libsqlActions = {
+		start: api.libsql.start.useMutation(),
+		stop: api.libsql.stop.useMutation(),
+		move: api.libsql.move.useMutation(),
+		delete: api.libsql.remove.useMutation(),
+		deploy: api.libsql.deploy.useMutation(),
+	};
+
 	const handleBulkStart = async () => {
 		let success = 0;
 		setIsBulkActionLoading(true);
@@ -540,6 +548,9 @@ const EnvironmentPage = (
 						break;
 					case "mongo":
 						await mongoActions.start.mutateAsync({ mongoId: serviceId });
+						break;
+					case "libsql":
+						await libsqlActions.start.mutateAsync({ libsqlId: serviceId });
 						break;
 				}
 				success++;
@@ -587,6 +598,9 @@ const EnvironmentPage = (
 						break;
 					case "mongo":
 						await mongoActions.stop.mutateAsync({ mongoId: serviceId });
+						break;
+					case "libsql":
+						await libsqlActions.stop.mutateAsync({ libsqlId: serviceId });
 						break;
 				}
 				success++;
@@ -664,6 +678,12 @@ const EnvironmentPage = (
 							targetEnvironmentId: selectedTargetEnvironment,
 						});
 						break;
+					case "libsql":
+						await libsqlActions.move.mutateAsync({
+							libsqlId: serviceId,
+							targetEnvironmentId: selectedTargetEnvironment,
+						});
+						break;
 				}
 				await utils.environment.one.invalidate({
 					environmentId,
@@ -733,6 +753,11 @@ const EnvironmentPage = (
 							mongoId: serviceId,
 						});
 						break;
+					case "libsql":
+						await libsqlActions.delete.mutateAsync({
+							libsqlId: serviceId,
+						});
+						break;
 				}
 				await utils.environment.one.invalidate({
 					environmentId,
@@ -797,6 +822,11 @@ const EnvironmentPage = (
 					case "mongo":
 						await mongoActions.deploy.mutateAsync({
 							mongoId: serviceId,
+						});
+						break;
+					case "libsql":
+						await libsqlActions.deploy.mutateAsync({
+							libsqlId: serviceId,
 						});
 						break;
 				}
@@ -1856,7 +1886,7 @@ export async function getServerSideProps(
 				return {
 					redirect: {
 						permanent: false,
-						destination: "/dashboard/projects",
+						destination: "/dashboard/home",
 					},
 				};
 			}

@@ -481,8 +481,10 @@ export const validateRequest = async (request: IncomingMessage) => {
 				};
 			}
 
-			const organizationId = JSON.parse(
-				apiKeyRecord.metadata || "{}",
+			const organizationId = (
+				JSON.parse(apiKeyRecord.metadata || "{}") as {
+					organizationId?: string;
+				}
 			).organizationId;
 
 			if (!organizationId) {

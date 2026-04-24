@@ -417,8 +417,8 @@ importers:
         specifier: ^1.7.4
         version: 1.7.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       ssh2:
-        specifier: 1.15.0
-        version: 1.15.0
+        specifier: ~1.16.0
+        version: 1.16.0
       stripe:
         specifier: 17.2.0
         version: 17.2.0
@@ -758,8 +758,8 @@ importers:
         specifier: ^1.6.6
         version: 1.6.6
       ssh2:
-        specifier: 1.15.0
-        version: 1.15.0
+        specifier: ~1.16.0
+        version: 1.16.0
       toml:
         specifier: 3.0.0
         version: 3.0.0
@@ -4196,6 +4196,7 @@ packages:
   '@xmldom/xmldom@0.8.11':
     resolution: {integrity: sha512-cQzWCtO6C8TQiYl1ruKNn2U6Ao4o4WBBcbL61yJl84x+j5sOWWFU9X7DpND8XZG3daDppSsigMdfAIl2upQBRw==}
     engines: {node: '>=10.0.0'}
+    deprecated: this version has critical issues, please update to the latest version
 
   '@xterm/addon-attach@0.10.0':
     resolution: {integrity: sha512-ES/XO8pC1tPHSkh4j7qzM8ajFt++u8KMvfRc9vKIbjHTDOxjl9IUVo+vcQgLn3FTCM3w2czTvBss8nMWlD83Cg==}
@@ -7599,8 +7600,8 @@ packages:
     resolution: {integrity: sha512-qC9iz2FlN7DQl3+wjwn3802RTyjCx7sDvfQEXchwa6CWOx07/WVfh91gBmQ9fahw8snwGEWU3xGzOt4tFyHLxg==}
     engines: {node: '>= 0.6'}
 
-  ssh2@1.15.0:
-    resolution: {integrity: sha512-C0PHgX4h6lBxYx7hcXwu3QWdh4tg6tZZsTfXcdvc5caW/EMxaB4H9dWsl7qk+F7LAW762hp8VbXOX7x4xUYvEw==}
+  ssh2@1.16.0:
+    resolution: {integrity: sha512-r1X4KsBGedJqo7h8F5c4Ybpcr5RjyP+aWIG007uBPRjmdQWfEiVLzSK71Zji1B9sKxwaCvD8y8cwSkYrlLiRRg==}
     engines: {node: '>=10.16.0'}
 
   stackback@0.0.2:
@@ -13139,7 +13140,7 @@ snapshots:
       debug: 4.4.3
       readable-stream: 3.6.2
       split-ca: 1.0.1
-      ssh2: 1.15.0
+      ssh2: 1.16.0
     transitivePeerDependencies:
       - supports-color
 
@@ -15783,7 +15784,7 @@ snapshots:
 
   sqlstring@2.3.3: {}
 
-  ssh2@1.15.0:
+  ssh2@1.16.0:
     dependencies:
       asn1: 0.2.6
       bcrypt-pbkdf: 1.0.2

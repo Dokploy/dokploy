@@ -19,6 +19,7 @@ import {
 	Forward,
 	GalleryVerticalEnd,
 	GitBranch,
+	House,
 	Key,
 	KeyRound,
 	Loader2,
@@ -148,6 +149,12 @@ type Menu = {
 // The `isEnabled` function is called to determine if the item should be displayed
 const MENU: Menu = {
 	home: [
+		{
+			isSingle: true,
+			title: "Home",
+			url: "/dashboard/home",
+			icon: House,
+		},
 		{
 			isSingle: true,
 			title: "Projects",
