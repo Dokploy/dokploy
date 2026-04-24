@@ -40,6 +40,10 @@ import {
 } from "./deployment";
 import { type Domain, getDomainHost } from "./domain";
 import {
+	createGithubDeployment,
+	setGithubDeploymentStatus,
+} from "./github-deployment";
+import {
 	createPreviewDeploymentComment,
 	getIssueComment,
 	issueCommentExists,
@@ -48,6 +52,7 @@ import {
 import { generateApplyPatchesCommand } from "./patch";
 import {
 	findPreviewDeploymentById,
+	previewDeploymentExists,
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
@@ -188,7 +193,24 @@ export const deployApplication = async ({
 		description: descriptionLog,
 	});
 
+	let githubDeploymentId: number | null = null;
+	const appDomain = application.domains?.[0]
+		? getDomainHost(application.domains[0] as Domain)
+		: undefined;
+
 	try {
+		if (application.sourceType === "github" && application.githubId) {
+			githubDeploymentId = await createGithubDeployment({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				ref: application.branch || "main",
+				environment: application.name,
+				description: `Dokploy deploy of ${application.branch || "main"}`,
+				transient: false,
+			});
+		}
+
 		let command = "set -e;";
 		if (application.sourceType === "github") {
 			command += await cloneGithubRepository(applicationEntity);
@@ -212,6 +234,17 @@ export const deployApplication = async ({
 			});
 		}
 
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				deploymentId: githubDeploymentId,
+				state: "in_progress",
+				environmentUrl: appDomain,
+			});
+		}
+
 		command += await getBuildCommand(application);
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
@@ -224,6 +257,17 @@ export const deployApplication = async ({
 		await mechanizeDockerContainer(application);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
+
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				deploymentId: githubDeploymentId,
+				state: "success",
+				environmentUrl: appDomain,
+			});
+		}
 
 		await sendBuildSuccessNotifications({
 			projectName: application.environment.project.name,
@@ -252,6 +296,17 @@ export const deployApplication = async ({
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
+
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				deploymentId: githubDeploymentId,
+				state: "failure",
+				environmentUrl: appDomain,
+			});
+		}
 
 		await sendBuildErrorNotifications({
 			projectName: application.environment.project.name,
@@ -367,23 +422,45 @@ export const deployPreviewApplication = async ({
 		description: descriptionLog,
 		previewDeploymentId: previewDeploymentId,
 	});
-
-	const previewDeployment =
-		await findPreviewDeploymentById(previewDeploymentId);
-
-	await updatePreviewDeployment(previewDeploymentId, {
-		createdAt: new Date().toISOString(),
-	});
-
-	const previewDomain = getDomainHost(previewDeployment?.domain as Domain);
-	const issueParams = {
-		owner: application?.owner || "",
-		repository: application?.repository || "",
-		issue_number: previewDeployment.pullRequestNumber,
-		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId),
-		githubId: application?.githubId || "",
-	};
+	let previewDomain = "";
+	let issueParams:
+		| {
+				owner: string;
+				repository: string;
+				issue_number: string;
+				comment_id: number;
+				githubId: string;
+		  }
+		| undefined;
+	let githubDeploymentId: number | null = null;
 	try {
+		const previewDeployment =
+			await findPreviewDeploymentById(previewDeploymentId);
+
+		await updatePreviewDeployment(previewDeploymentId, {
+			createdAt: new Date().toISOString(),
+		});
+
+		previewDomain = getDomainHost(previewDeployment?.domain as Domain);
+		issueParams = {
+			owner: application?.owner || "",
+			repository: application?.repository || "",
+			issue_number: previewDeployment.pullRequestNumber,
+			comment_id: Number.parseInt(previewDeployment.pullRequestCommentId),
+			githubId: application?.githubId || "",
+		};
+
+		if (application.sourceType === "github" && application.githubId) {
+			githubDeploymentId = await createGithubDeployment({
+				githubId: application.githubId,
+				owner: issueParams.owner,
+				repository: issueParams.repository,
+				ref: previewDeployment.branch,
+				environment: `${application.name}-pr-${previewDeployment.pullRequestNumber}`,
+				description: `Dokploy preview for PR #${previewDeployment.pullRequestNumber}`,
+			});
+		}
+
 		const commentExists = await issueCommentExists({
 			...issueParams,
 		});
@@ -423,6 +500,17 @@ export const deployPreviewApplication = async ({
 		application.rollbackRegistry = null;
 		application.registry = null;
 
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: issueParams.owner,
+				repository: issueParams.repository,
+				deploymentId: githubDeploymentId,
+				state: "in_progress",
+				environmentUrl: previewDomain || undefined,
+			});
+		}
+
 		let command = "set -e;";
 		if (application.sourceType === "github") {
 			command += await cloneGithubRepository({
@@ -438,6 +526,22 @@ export const deployPreviewApplication = async ({
 			} else {
 				await execAsync(commandWithLog);
 			}
+
+			if (!(await previewDeploymentExists(previewDeploymentId))) {
+				await updateDeploymentStatus(deployment.deploymentId, "error");
+				if (githubDeploymentId && application.githubId) {
+					await setGithubDeploymentStatus({
+						githubId: application.githubId,
+						owner: issueParams.owner,
+						repository: issueParams.repository,
+						deploymentId: githubDeploymentId,
+						state: "failure",
+						description: "Preview deployment was removed during build",
+					});
+				}
+				return false;
+			}
+
 			await mechanizeDockerContainer(application);
 		}
 		const successComment = getIssueComment(
@@ -453,16 +557,38 @@ export const deployPreviewApplication = async ({
 		await updatePreviewDeployment(previewDeploymentId, {
 			previewStatus: "done",
 		});
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: issueParams.owner,
+				repository: issueParams.repository,
+				deploymentId: githubDeploymentId,
+				state: "success",
+				environmentUrl: previewDomain || undefined,
+			});
+		}
 	} catch (error) {
-		const comment = getIssueComment(application.name, "error", previewDomain);
-		await updateIssueComment({
-			...issueParams,
-			body: `### Dokploy Preview Deployment\n\n${comment}`,
-		});
+		if (issueParams && previewDomain) {
+			const comment = getIssueComment(application.name, "error", previewDomain);
+			await updateIssueComment({
+				...issueParams,
+				body: `### Dokploy Preview Deployment\n\n${comment}`,
+			});
+		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updatePreviewDeployment(previewDeploymentId, {
 			previewStatus: "error",
 		});
+		if (githubDeploymentId && issueParams && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: issueParams.owner,
+				repository: issueParams.repository,
+				deploymentId: githubDeploymentId,
+				state: "failure",
+				environmentUrl: previewDomain || undefined,
+			});
+		}
 		throw error;
 	}
 
@@ -481,25 +607,47 @@ export const rebuildPreviewApplication = async ({
 	previewDeploymentId: string;
 }) => {
 	const application = await findApplicationById(applicationId);
-	const previewDeployment =
-		await findPreviewDeploymentById(previewDeploymentId);
-
 	const deployment = await createDeploymentPreview({
 		title: titleLog,
 		description: descriptionLog,
 		previewDeploymentId: previewDeploymentId,
 	});
-
-	const previewDomain = getDomainHost(previewDeployment?.domain as Domain);
-	const issueParams = {
-		owner: application?.owner || "",
-		repository: application?.repository || "",
-		issue_number: previewDeployment.pullRequestNumber,
-		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId),
-		githubId: application?.githubId || "",
-	};
+	let previewDomain = "";
+	let issueParams:
+		| {
+				owner: string;
+				repository: string;
+				issue_number: string;
+				comment_id: number;
+				githubId: string;
+		  }
+		| undefined;
+	let githubDeploymentId: number | null = null;
 
 	try {
+		const previewDeployment =
+			await findPreviewDeploymentById(previewDeploymentId);
+
+		previewDomain = getDomainHost(previewDeployment?.domain as Domain);
+		issueParams = {
+			owner: application?.owner || "",
+			repository: application?.repository || "",
+			issue_number: previewDeployment.pullRequestNumber,
+			comment_id: Number.parseInt(previewDeployment.pullRequestCommentId),
+			githubId: application?.githubId || "",
+		};
+
+		if (application.sourceType === "github" && application.githubId) {
+			githubDeploymentId = await createGithubDeployment({
+				githubId: application.githubId,
+				owner: issueParams.owner,
+				repository: issueParams.repository,
+				ref: previewDeployment.branch,
+				environment: `${application.name}-pr-${previewDeployment.pullRequestNumber}`,
+				description: `Dokploy preview rebuild for PR #${previewDeployment.pullRequestNumber}`,
+			});
+		}
+
 		const commentExists = await issueCommentExists({
 			...issueParams,
 		});
@@ -542,6 +690,17 @@ export const rebuildPreviewApplication = async ({
 		application.rollbackRegistry = null;
 		application.registry = null;
 
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: issueParams.owner,
+				repository: issueParams.repository,
+				deploymentId: githubDeploymentId,
+				state: "in_progress",
+				environmentUrl: previewDomain || undefined,
+			});
+		}
+
 		const serverId = application.serverId;
 		let command = "set -e;";
 		// Only rebuild, don't clone repository
@@ -552,6 +711,22 @@ export const rebuildPreviewApplication = async ({
 		} else {
 			await execAsync(commandWithLog);
 		}
+
+		if (!(await previewDeploymentExists(previewDeploymentId))) {
+			await updateDeploymentStatus(deployment.deploymentId, "error");
+			if (githubDeploymentId && application.githubId) {
+				await setGithubDeploymentStatus({
+					githubId: application.githubId,
+					owner: issueParams.owner,
+					repository: issueParams.repository,
+					deploymentId: githubDeploymentId,
+					state: "failure",
+					description: "Preview deployment was removed during rebuild",
+				});
+			}
+			return false;
+		}
+
 		await mechanizeDockerContainer(application);
 
 		const successComment = getIssueComment(
@@ -567,6 +742,16 @@ export const rebuildPreviewApplication = async ({
 		await updatePreviewDeployment(previewDeploymentId, {
 			previewStatus: "done",
 		});
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: issueParams.owner,
+				repository: issueParams.repository,
+				deploymentId: githubDeploymentId,
+				state: "success",
+				environmentUrl: previewDomain || undefined,
+			});
+		}
 	} catch (error) {
 		let command = "";
 
@@ -585,15 +770,27 @@ export const rebuildPreviewApplication = async ({
 			await execAsync(command);
 		}
 
-		const comment = getIssueComment(application.name, "error", previewDomain);
-		await updateIssueComment({
-			...issueParams,
-			body: `### Dokploy Preview Deployment\n\n${comment}`,
-		});
+		if (issueParams && previewDomain) {
+			const comment = getIssueComment(application.name, "error", previewDomain);
+			await updateIssueComment({
+				...issueParams,
+				body: `### Dokploy Preview Deployment\n\n${comment}`,
+			});
+		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updatePreviewDeployment(previewDeploymentId, {
 			previewStatus: "error",
 		});
+		if (githubDeploymentId && issueParams && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: issueParams.owner,
+				repository: issueParams.repository,
+				deploymentId: githubDeploymentId,
+				state: "failure",
+				environmentUrl: previewDomain || undefined,
+			});
+		}
 		throw error;
 	}
 
