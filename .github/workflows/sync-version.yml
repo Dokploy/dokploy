@@ -3,6 +3,9 @@ name: Sync version to MCP and CLI repos
 on:
   release:
     types: [published]
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
