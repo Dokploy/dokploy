@@ -31,7 +31,7 @@ WORKDIR /app
 # Set production
 ENV NODE_ENV=production
 
-RUN apt-get update && apt-get install -y curl unzip zip apache2-utils iproute2 rsync git-lfs && git lfs install && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y tini curl unzip zip apache2-utils iproute2 rsync git-lfs && git lfs install && rm -rf /var/lib/apt/lists/*
 
 # Copy only the necessary files
 COPY --from=build /prod/dokploy/.next ./.next
@@ -69,4 +69,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=3s --retries=10 \
   CMD curl -fs http://localhost:3000/api/trpc/settings.health || exit 1
 
-  CMD ["sh", "-c", "pnpm run wait-for-postgres && exec pnpm start"]
+# tini reaps HEALTHCHECK child processes that Node (as PID 1) leaves defunct.
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["sh", "-c", "pnpm run wait-for-postgres && exec pnpm start"]
