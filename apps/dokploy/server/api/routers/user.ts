@@ -9,12 +9,12 @@ import {
 	getWebServerSettings,
 	IS_CLOUD,
 	removeUserById,
+	renderInvitationEmail,
 	sendEmailNotification,
 	sendResendNotification,
 	updateUser,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import {
 	account,
 	apiAssignPermissions,
@@ -29,6 +29,7 @@ import {
 	hasPermission,
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
+import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { and, asc, eq, gt } from "drizzle-orm";
@@ -639,27 +640,26 @@ export const userRouter = createTRPCRouter({
 			);
 
 			try {
-				const htmlContent = `
-\t\t\t\t<p>You are invited to join ${organization?.name || "organization"} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
-\t\t\t\t`;
+				const toEmail = currentInvitation?.email || "";
+				const orgName = organization?.name || "organization";
+				const subject = `You've been invited to join ${orgName} on Dokploy`;
+				const html = await renderInvitationEmail({
+					email: toEmail,
+					inviteLink,
+					organizationName: orgName,
+				});
 
 				if (email) {
 					await sendEmailNotification(
-						{
-							...email,
-							toAddresses: [currentInvitation?.email || ""],
-						},
-						"Invitation to join organization",
-						htmlContent,
+						{ ...email, toAddresses: [toEmail] },
+						subject,
+						html,
 					);
 				} else if (resend) {
 					await sendResendNotification(
-						{
-							...resend,
-							toAddresses: [currentInvitation?.email || ""],
-						},
-						"Invitation to join organization",
-						htmlContent,
+						{ ...resend, toAddresses: [toEmail] },
+						subject,
+						html,
 					);
 				}
 			} catch (error) {
