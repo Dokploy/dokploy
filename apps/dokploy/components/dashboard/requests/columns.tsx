@@ -79,8 +79,8 @@ export const columns: ColumnDef<LogEntry>[] = [
 							: log.RequestPath}
 					</div>
 					<div className="flex flex-row gap-3 w-full">
-						<Badge variant={getStatusColor(log.OriginStatus)}>
-							Status: {formatStatusLabel(log.OriginStatus)}
+						<Badge variant={getStatusColor(log.OriginStatus || log.DownstreamStatus)}>
+							Status: {formatStatusLabel(log.OriginStatus || log.DownstreamStatus)}
 						</Badge>
 						<Badge variant={"secondary"}>
 							Exec Time: {formatDuration(log.Duration)}
