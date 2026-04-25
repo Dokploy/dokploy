@@ -57,6 +57,11 @@ export const setupDeploymentLogsWebSocketServer = (
 			if (serverId) {
 				const server = await findServerById(serverId);
 
+				if (server.organizationId !== session.activeOrganizationId) {
+					ws.close();
+					return;
+				}
+
 				if (!server.sshKeyId) {
 					ws.close();
 					return;
