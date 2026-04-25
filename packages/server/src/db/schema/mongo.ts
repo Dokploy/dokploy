@@ -91,6 +91,7 @@ export const mongo = pgTable("mongo", {
 		onDelete: "cascade",
 	}),
 	replicaSets: boolean("replicaSets").default(false),
+	networkIds: text("networkIds").array().default([]),
 });
 
 export const mongoRelations = relations(mongo, ({ one, many }) => ({

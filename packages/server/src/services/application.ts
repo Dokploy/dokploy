@@ -100,6 +100,7 @@ export const findApplicationById = async (applicationId: string) => {
 					project: true,
 				},
 			},
+
 			domains: true,
 			deployments: true,
 			mounts: true,
