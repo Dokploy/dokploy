@@ -3,8 +3,16 @@
  * for Docker builds.
  */
 
+const devAllowedOrigins = (process.env.DEV_ALLOWED_ORIGINS ?? "")
+	.split(",")
+	.map((origin) => origin.trim())
+	.filter(Boolean);
+
 /** @type {import("next").NextConfig} */
 const nextConfig = {
+	...(devAllowedOrigins.length > 0 && {
+		allowedDevOrigins: devAllowedOrigins,
+	}),
 	reactStrictMode: true,
 	typescript: {
 		ignoreBuildErrors: true,
