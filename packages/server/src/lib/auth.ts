@@ -409,23 +409,6 @@ const { handler, api } = betterAuth({
 				enabled: true,
 				maximumRolesPerOrganization: 10,
 			},
-			async sendInvitationEmail(data, _request) {
-				if (IS_CLOUD) {
-					const host =
-						process.env.NODE_ENV === "development"
-							? "http://localhost:3000"
-							: "https://app.dokploy.com";
-					const inviteLink = `${host}/invitation?token=${data.id}`;
-
-					await sendEmail({
-						email: data.email,
-						subject: "Invitation to join organization",
-						text: `
-					<p>You are invited to join ${data.organization.name} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
-					`,
-					});
-				}
-			},
 		}),
 		...(IS_CLOUD
 			? [
