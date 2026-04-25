@@ -80,7 +80,11 @@ export const sendInvitationEmail = async ({
 	inviteLink: string;
 	organizationName: string;
 }) => {
-	const html = await renderInvitationEmail({ email, inviteLink, organizationName });
+	const html = await renderInvitationEmail({
+		email,
+		inviteLink,
+		organizationName,
+	});
 	await sendEmail({
 		email,
 		subject: `You've been invited to join ${organizationName} on Dokploy`,
