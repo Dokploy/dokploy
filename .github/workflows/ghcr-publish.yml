@@ -35,6 +35,7 @@ env:
   # Lowercased at push time via docker/metadata-action
   IMAGE_NAME: ${{ github.repository_owner }}/dokploy
   MONITORING_IMAGE_NAME: ${{ github.repository_owner }}/dokploy-monitoring
+  SCHEDULE_IMAGE_NAME: ${{ github.repository_owner }}/dokploy-schedule
 
 jobs:
   build-amd64:
@@ -227,8 +228,104 @@ jobs:
           cache-from: type=gha,scope=monitoring-arm64
           cache-to: type=gha,mode=max,scope=monitoring-arm64
 
+  build-schedule-amd64:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute version/tag
+        id: meta
+        run: |
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REF="${{ inputs.ref != '' && inputs.ref || github.ref }}"
+          if [[ "$REF" == refs/tags/v* ]]; then
+            VERSION="${REF#refs/tags/v}"
+          elif [[ "$REF" == v*.*.* ]]; then
+            VERSION="${REF#v}"
+          else
+            VERSION=$(node -p "require('./apps/dokploy/package.json').version")
+          fi
+          echo "owner_lc=$OWNER_LC"   >> $GITHUB_OUTPUT
+          echo "version=$VERSION"     >> $GITHUB_OUTPUT
+          echo "image_amd=${{ env.REGISTRY }}/$OWNER_LC/dokploy-schedule:${VERSION}-amd64" >> $GITHUB_OUTPUT
+
+      - name: Build and push schedule (amd64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.schedule
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.image_amd }}
+          cache-from: type=gha,scope=schedule-amd64
+          cache-to: type=gha,mode=max,scope=schedule-amd64
+
+  build-schedule-arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute version/tag
+        id: meta
+        run: |
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REF="${{ inputs.ref != '' && inputs.ref || github.ref }}"
+          if [[ "$REF" == refs/tags/v* ]]; then
+            VERSION="${REF#refs/tags/v}"
+          elif [[ "$REF" == v*.*.* ]]; then
+            VERSION="${REF#v}"
+          else
+            VERSION=$(node -p "require('./apps/dokploy/package.json').version")
+          fi
+          echo "owner_lc=$OWNER_LC"   >> $GITHUB_OUTPUT
+          echo "version=$VERSION"     >> $GITHUB_OUTPUT
+          echo "image_arm=${{ env.REGISTRY }}/$OWNER_LC/dokploy-schedule:${VERSION}-arm64" >> $GITHUB_OUTPUT
+
+      - name: Build and push schedule (arm64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.schedule
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.image_arm }}
+          cache-from: type=gha,scope=schedule-arm64
+          cache-to: type=gha,mode=max,scope=schedule-arm64
+
   combine-manifests:
-    needs: [build-amd64, build-arm64, build-monitoring-amd64, build-monitoring-arm64]
+    needs:
+      - build-amd64
+      - build-arm64
+      - build-monitoring-amd64
+      - build-monitoring-arm64
+      - build-schedule-amd64
+      - build-schedule-arm64
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -272,7 +369,7 @@ jobs:
           EXTRA="${{ inputs.image_tag }}"
           IS_RELEASE="${{ steps.v.outputs.is_release }}"
 
-          for NAME in dokploy dokploy-monitoring; do
+          for NAME in dokploy dokploy-monitoring dokploy-schedule; do
             IMG="${REG}/${NAME}"
 
             # Versioned manifest
