@@ -33,7 +33,14 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+	serviceDetailTabsBarClassName,
+	serviceDetailTabsListClassName,
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from "@/components/ui/tabs";
 import {
 	Tooltip,
 	TooltipContent,
@@ -41,7 +48,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { UseKeyboardNav } from "@/hooks/use-keyboard-nav";
-import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
@@ -187,17 +193,8 @@ const Redis = (
 										router.push(newPath, undefined, { shallow: true });
 									}}
 								>
-									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
-										<TabsList
-											className={cn(
-												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-												isCloud && data?.serverId
-													? "md:grid-cols-5"
-													: data?.serverId
-														? "md:grid-cols-4"
-														: "md:grid-cols-5",
-											)}
-										>
+									<div className={serviceDetailTabsBarClassName}>
+										<TabsList className={serviceDetailTabsListClassName}>
 											<TabsTrigger value="general">General</TabsTrigger>
 											{permissions?.envVars.read && (
 												<TabsTrigger value="environment">
