@@ -11,10 +11,13 @@ export function WhitelabelingProvider() {
 		refetchOnWindowFocus: false,
 	});
 
-	const faviconHref = config?.faviconUrl
-		?? (resolvedTheme === "dark" ? "/icon-dark.svg"
-		: resolvedTheme === "light" ? "/icon-light.svg"
-		: "/icon.svg");
+	const faviconHref =
+		config?.faviconUrl ??
+		(resolvedTheme === "dark"
+			? "/icon-dark.svg"
+			: resolvedTheme === "light"
+				? "/icon-light.svg"
+				: "/icon.svg");
 
 	return (
 		<>
