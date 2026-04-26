@@ -2,7 +2,7 @@ import type { IncomingMessage } from "node:http";
 import { apiKey } from "@better-auth/api-key";
 import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
-import { betterAuth } from "better-auth";
+import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
@@ -28,7 +28,8 @@ import {
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 
-const { handler, api } = betterAuth({
+// Define the configuration separately so it can be used for type inference
+const authConfig = {
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: schema,
@@ -177,7 +178,7 @@ const { handler, api } = betterAuth({
 								});
 							}
 						} else {
-							const isSSORequest = context?.path.includes("/sso");
+							const isSSORequest = context?.path?.includes("/sso");
 							if (isSSORequest) {
 								return;
 							}
@@ -193,7 +194,7 @@ const { handler, api } = betterAuth({
 					}
 				},
 				after: async (user, context) => {
-					const isSSORequest = context?.path.includes("/sso");
+					const isSSORequest = context?.path?.includes("/sso");
 					const isAdminPresent = await db.query.member.findFirst({
 						where: eq(schema.member.role, "owner"),
 					});
@@ -240,7 +241,6 @@ const { handler, api } = betterAuth({
 								})
 								.returning()
 								.then((res) => res[0]);
-
 							await tx.insert(schema.member).values({
 								userId: user.id,
 								organizationId: organization?.id || "",
@@ -295,7 +295,7 @@ const { handler, api } = betterAuth({
 					return {
 						data: {
 							...session,
-							activeOrganizationId: member?.organization.id,
+							activeOrganizationId: member?.organization?.id,
 						},
 					};
 				},
@@ -413,24 +413,53 @@ const { handler, api } = betterAuth({
 		...(IS_CLOUD
 			? [
 					admin({
-						adminUserIds: [process.env.USER_ADMIN_ID as string],
+						adminUserIds: [process.env.USER_ADMIN_ID as string].filter(Boolean),
 					}),
 				]
 			: []),
 	],
-});
+} satisfies BetterAuthOptions;
 
-const _auth = {
-	handler,
-	createApiKey: api.createApiKey,
-	registerSSOProvider: api.registerSSOProvider,
-	updateSSOProvider: api.updateSSOProvider,
-};
+// Type for the auth instance
+type AuthInstance = ReturnType<typeof betterAuth<typeof authConfig>>;
 
-export type AuthType = typeof _auth;
-export const auth: AuthType = _auth;
+let _authInstance: AuthInstance | undefined;
+
+function getAuthInstance(): AuthInstance {
+	if (_authInstance) return _authInstance;
+
+	try {
+		_authInstance = betterAuth(authConfig);
+		return _authInstance;
+	} catch (error) {
+		console.error("Failed to initialize auth instance:", error);
+		throw error;
+	}
+}
+
+// Export properly typed lazy-loaded auth
+export const auth = {
+	get handler() {
+		return getAuthInstance().handler;
+	},
+	get createApiKey() {
+		return getAuthInstance().api.createApiKey;
+	},
+	get registerSSOProvider() {
+		return getAuthInstance().api.registerSSOProvider;
+	},
+	get updateSSOProvider() {
+		return getAuthInstance().api.updateSSOProvider;
+	},
+} as const;
+
+// Export the api for use in validateRequest
+function getApi() {
+	return getAuthInstance().api;
+}
 
 export const validateRequest = async (request: IncomingMessage) => {
+	const api = getApi();
 	const apiKey = request.headers["x-api-key"] as string;
 	if (apiKey) {
 		try {
