@@ -77,6 +77,7 @@ export const createSlackNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "slack",
 				organizationId: organizationId,
 				serverThreshold: input.serverThreshold,
@@ -110,6 +111,7 @@ export const updateSlackNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
@@ -172,6 +174,7 @@ export const createTelegramNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "telegram",
 				organizationId: organizationId,
 				serverThreshold: input.serverThreshold,
@@ -205,6 +208,7 @@ export const updateTelegramNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
@@ -267,6 +271,7 @@ export const createDiscordNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "discord",
 				organizationId: organizationId,
 				serverThreshold: input.serverThreshold,
@@ -300,6 +305,7 @@ export const updateDiscordNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
@@ -365,6 +371,7 @@ export const createEmailNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "email",
 				organizationId: organizationId,
 				serverThreshold: input.serverThreshold,
@@ -398,6 +405,7 @@ export const updateEmailNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
@@ -464,6 +472,7 @@ export const createResendNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "resend",
 				organizationId: organizationId,
 				serverThreshold: input.serverThreshold,
@@ -497,6 +506,7 @@ export const updateResendNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
@@ -561,6 +571,7 @@ export const createGotifyNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "gotify",
 				organizationId: organizationId,
 			})
@@ -593,6 +604,7 @@ export const updateGotifyNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
@@ -655,6 +667,7 @@ export const createNtfyNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "ntfy",
 				organizationId: organizationId,
 			})
@@ -687,6 +700,7 @@ export const updateNtfyNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
@@ -747,6 +761,7 @@ export const createCustomNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "custom",
 				organizationId: organizationId,
 				serverThreshold: input.serverThreshold,
@@ -780,6 +795,7 @@ export const updateCustomNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
@@ -874,6 +890,7 @@ export const createLarkNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "lark",
 				organizationId: organizationId,
 				serverThreshold: input.serverThreshold,
@@ -907,6 +924,7 @@ export const updateLarkNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
@@ -966,6 +984,7 @@ export const createTeamsNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "teams",
 				organizationId: organizationId,
 				serverThreshold: input.serverThreshold,
@@ -999,6 +1018,7 @@ export const updateTeamsNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
@@ -1075,6 +1095,7 @@ export const createMattermostNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "mattermost",
 				organizationId: organizationId,
 				serverThreshold: input.serverThreshold,
@@ -1108,6 +1129,7 @@ export const updateMattermostNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
@@ -1173,6 +1195,7 @@ export const createPushoverNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				serverThreshold: input.serverThreshold,
 				notificationType: "pushover",
 				organizationId: organizationId,
@@ -1206,6 +1229,7 @@ export const updatePushoverNotification = async (
 				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})

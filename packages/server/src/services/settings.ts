@@ -8,7 +8,8 @@ import { and, eq } from "drizzle-orm";
 
 import semver from "semver";
 import { db } from "../db";
-import { compose } from "../db/schema";
+import { compose, notifications, organization } from "../db/schema";
+import { sendUpdateNotifications } from "@dokploy/server/utils/notifications/dokploy-update";
 import {
 	initializeStandaloneTraefik,
 	initializeTraefikService,
@@ -498,5 +499,56 @@ export const reconnectServicesToTraefik = async (serverId?: string) => {
 		await execAsyncRemote(serverId, commands);
 	} else {
 		await execAsync(commands);
+	}
+};
+
+export const checkAndNotifyUpdates = async () => {
+	try {
+		const updateData = await getUpdateData(getDokployImageTag());
+
+		if (!updateData.updateAvailable || !updateData.latestVersion) {
+			console.log("[Cron] No updates available");
+			return;
+		}
+
+		console.log(`[Cron] Update available: ${updateData.latestVersion}`);
+
+		const organizations = await db.query.organization.findMany();
+
+		for (const org of organizations) {
+			const { id: organizationId, lastNotifiedUpdateVersion } = org;
+			if (lastNotifiedUpdateVersion === updateData.latestVersion) {
+				continue;
+			}
+
+			const activeNotifications = await db.query.notifications.findMany({
+				where: eq(notifications.organizationId, organizationId),
+				columns: {
+					dokployUpdate: true,
+				},
+			});
+
+			const hasActiveNotification = activeNotifications.some(
+				(n) => n.dokployUpdate,
+			);
+			if (!hasActiveNotification) {
+				continue;
+			}
+
+			await sendUpdateNotifications({
+				currentVersion: getDokployImageTag(),
+				latestVersion: updateData.latestVersion,
+				organizationId,
+			});
+
+			await db
+				.update(organization)
+				.set({ lastNotifiedUpdateVersion: updateData.latestVersion })
+				.where(eq(organization.id, organizationId));
+		}
+
+		console.log("[Cron] Update check completed");
+	} catch (error) {
+		console.error("[Cron] Error checking updates:", error);
 	}
 };
