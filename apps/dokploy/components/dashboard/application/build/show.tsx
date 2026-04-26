@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 
-
 export enum BuildType {
 	dockerfile = "dockerfile",
 	heroku_buildpacks = "heroku_buildpacks",
@@ -495,7 +494,9 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 													>
 														<SelectTrigger disabled={isLoadingRailpackVersions}>
 															{isLoadingRailpackVersions ? (
-																<span className="text-muted-foreground">Loading versions...</span>
+																<span className="text-muted-foreground">
+																	Loading versions...
+																</span>
 															) : (
 																<SelectValue placeholder="Select Railpack version" />
 															)}
@@ -537,8 +538,8 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 											</FormDescription>
 											{isErrorRailpackVersions && !isManualRailpackVersion && (
 												<p className="text-sm text-destructive">
-													Failed to load Railpack versions. Switch to manual mode
-													to set a custom version.
+													Failed to load Railpack versions. Switch to manual
+													mode to set a custom version.
 												</p>
 											)}
 											<FormMessage />

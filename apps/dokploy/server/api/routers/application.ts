@@ -1117,7 +1117,7 @@ export const applicationRouter = createTRPCRouter({
 		const releases = (await res.json()) as Array<{ tag_name: string }>;
 		return releases.map((r) => r.tag_name.replace(/^v/, ""));
 	}),
-  
+
 	readLogs: protectedProcedure
 		.input(
 			apiFindOneApplication.extend({
