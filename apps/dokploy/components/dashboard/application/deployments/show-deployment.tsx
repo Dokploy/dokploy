@@ -148,7 +148,7 @@ export const ShowDeployment = ({
 					<DialogDescription className="flex items-center gap-2">
 						<span className="flex items-center gap-2">
 							See all the details of this deployment |{" "}
-							<Badge variant="blank" className="text-xs">
+							<Badge variant="blank" className="text-xs tabular-nums">
 								{filteredLogs.length} lines
 							</Badge>
 						</span>
