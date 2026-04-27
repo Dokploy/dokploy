@@ -24,11 +24,13 @@ export const refreshGitlabToken = async (gitlabProviderId: string) => {
 
 	// Use internal URL for token refresh when GitLab is on same instance as Dokploy
 	const baseUrl = gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl;
-	const response = await fetch(`${baseUrl}/oauth/token`, {
+	const tokenUrl = new URL(baseUrl);
+	const response = await fetch(`${tokenUrl.origin}${tokenUrl.pathname.replace(/\/$/, "")}/oauth/token`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/x-www-form-urlencoded",
 		},
+		redirect: "manual",
 		body: new URLSearchParams({
 			grant_type: "refresh_token",
 			refresh_token: gitlabProvider.refreshToken as string,
