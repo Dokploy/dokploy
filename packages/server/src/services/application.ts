@@ -544,7 +544,20 @@ export const rebuildPreviewApplication = async ({
 
 		const serverId = application.serverId;
 		let command = "set -e;";
-		// Only rebuild, don't clone repository
+		// Re-clone the repository at the latest tip of the preview branch
+		// before rebuilding. Without this, every PR `synchronize` event
+		// (i.e., every push to an existing PR) only re-runs `docker build`
+		// against the original snapshot taken at PR open. BuildKit then
+		// cache-hits every layer including `COPY . .` and the deploy
+		// finishes in seconds while still serving the original commit.
+		// Symmetric with `deployPreviewApplication` above.
+		if (application.sourceType === "github") {
+			command += await cloneGithubRepository({
+				...application,
+				appName: previewDeployment.appName,
+				branch: previewDeployment.branch,
+			});
+		}
 		command += await getBuildCommand(application);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
