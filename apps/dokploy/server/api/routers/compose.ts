@@ -13,9 +13,9 @@ import {
 	findComposeById,
 	findDomainsByComposeId,
 	findEnvironmentById,
-	findGitProviderById,
 	findProjectById,
 	findServerById,
+	getAccessibleGitProviderIds,
 	getAccessibleServerIds,
 	getComposeContainer,
 	getContainerLogs,
@@ -169,13 +169,8 @@ export const composeRouter = createTRPCRouter({
 			const gitProviderId = getGitProviderId();
 
 			if (gitProviderId) {
-				try {
-					const gitProvider = await findGitProviderById(gitProviderId);
-					if (gitProvider.userId !== ctx.session.userId) {
-						hasGitProviderAccess = false;
-						unauthorizedProvider = compose.sourceType;
-					}
-				} catch {
+				const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
+				if (!accessibleIds.has(gitProviderId)) {
 					hasGitProviderAccess = false;
 					unauthorizedProvider = compose.sourceType;
 				}
