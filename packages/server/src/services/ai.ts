@@ -136,7 +136,7 @@ export const suggestVariants = async ({
 								filePath: z.string(),
 							}),
 						)
-						.optional(),
+						.nullable().optional(),
 				}),
 			),
 		});
