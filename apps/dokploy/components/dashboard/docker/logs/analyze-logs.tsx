@@ -1,5 +1,13 @@
 "use client";
-import { Bot, Loader2, RotateCcw, Settings, X } from "lucide-react";
+import {
+	Bot,
+	Check,
+	Copy,
+	Loader2,
+	RotateCcw,
+	Settings,
+	X,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -30,6 +38,7 @@ const MAX_LOG_LINES = 200;
 export function AnalyzeLogs({ logs, context }: Props) {
 	const [open, setOpen] = useState(false);
 	const [aiId, setAiId] = useState<string>("");
+	const [copied, setCopied] = useState(false);
 	const { data: providers } = api.ai.getEnabledProviders.useQuery(undefined, {
 		enabled: open,
 	});
@@ -50,6 +59,17 @@ export function AnalyzeLogs({ logs, context }: Props) {
 			.join("\n");
 
 		mutate({ aiId, logs: logsText, context });
+	};
+
+	const handleCopy = async () => {
+		if (!data?.analysis) return;
+		try {
+			await navigator.clipboard.writeText(data.analysis);
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
+		} catch {
+			toast.error("Failed to copy to clipboard");
+		}
 	};
 
 	return (
@@ -167,6 +187,18 @@ export function AnalyzeLogs({ logs, context }: Props) {
 										<RotateCcw className="mr-2 h-3.5 w-3.5" />
 									)}
 									Re-analyze
+								</Button>
+								<Button
+									size="sm"
+									variant="outline"
+									onClick={handleCopy}
+									title="Copy analysis"
+								>
+									{copied ? (
+										<Check className="h-3.5 w-3.5" />
+									) : (
+										<Copy className="h-3.5 w-3.5" />
+									)}
 								</Button>
 								<Button
 									size="sm"
