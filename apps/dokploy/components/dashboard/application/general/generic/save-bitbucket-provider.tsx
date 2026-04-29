@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { ConfirmableProviderSave } from "./confirmable-provider-save";
 
 const BitbucketProviderSchema = z.object({
 	buildPath: z.string().min(1, "Path is required").default("/"),
@@ -70,9 +71,10 @@ interface Props {
 }
 
 export const SaveBitbucketProvider = ({ applicationId }: Props) => {
+	const utils = api.useUtils();
 	const { data: bitbucketProviders } =
 		api.bitbucket.bitbucketProviders.useQuery();
-	const { data, refetch } = api.application.one.useQuery({ applicationId });
+	const { data } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync, isPending: isSavingBitbucketProvider } =
 		api.application.saveBitbucketProvider.useMutation();
@@ -158,7 +160,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
-				await refetch();
+				await utils.application.one.invalidate({ applicationId });
 			})
 			.catch(() => {
 				toast.error("Error saving the Bitbucket provider");
@@ -500,13 +502,17 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 						/>
 					</div>
 					<div className="flex w-full justify-end">
-						<Button
+						<ConfirmableProviderSave
+							needsConfirmation={
+								data?.sourceType === "github" &&
+								data?.isPreviewDeploymentsActive === true
+							}
 							isLoading={isSavingBitbucketProvider}
-							type="submit"
-							className="w-fit"
+							onValidate={() => form.trigger()}
+							onConfirm={form.handleSubmit(onSubmit)}
 						>
 							Save
-						</Button>
+						</ConfirmableProviderSave>
 					</div>
 				</form>
 			</Form>

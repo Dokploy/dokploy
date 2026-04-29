@@ -35,6 +35,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
+import { ConfirmableProviderSave } from "./confirmable-provider-save";
 
 const GitProviderSchema = z.object({
 	buildPath: z.string().min(1, "Path is required").default("/"),
@@ -54,7 +55,8 @@ interface Props {
 }
 
 export const SaveGitProvider = ({ applicationId }: Props) => {
-	const { data, refetch } = api.application.one.useQuery({ applicationId });
+	const utils = api.useUtils();
+	const { data } = api.application.one.useQuery({ applicationId });
 	const { data: sshKeys } = api.sshKey.allForApps.useQuery();
 	const router = useRouter();
 
@@ -98,7 +100,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Git Provider Saved");
-				await refetch();
+				await utils.application.one.invalidate({ applicationId });
 			})
 			.catch(() => {
 				toast.error("Error saving the Git provider");
@@ -315,9 +317,17 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 				</div>
 
 				<div className="flex flex-row justify-end">
-					<Button type="submit" className="w-fit" isLoading={isPending}>
+					<ConfirmableProviderSave
+						needsConfirmation={
+							data?.sourceType === "github" &&
+							data?.isPreviewDeploymentsActive === true
+						}
+						isLoading={isPending}
+						onValidate={() => form.trigger()}
+						onConfirm={form.handleSubmit(onSubmit)}
+					>
 						Save
-					</Button>
+					</ConfirmableProviderSave>
 				</div>
 			</form>
 		</Form>
