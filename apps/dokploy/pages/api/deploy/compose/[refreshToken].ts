@@ -15,6 +15,15 @@ import {
 	logWebhookError,
 } from "../[refreshToken]";
 
+function isGitProviderWebhook(headers: NextApiRequest["headers"]): boolean {
+	return (
+		!!headers["x-github-event"] ||
+		!!headers["x-gitlab-event"] ||
+		!!headers["x-gitea-event"] ||
+		!!headers["x-event-key"] // Bitbucket
+	);
+}
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
@@ -41,7 +50,9 @@ export default async function handler(
 			res.status(404).json({ message: "Compose Not Found" });
 			return;
 		}
-		if (!composeResult?.autoDeploy) {
+		const fromGitProvider = isGitProviderWebhook(req.headers);
+
+		if (fromGitProvider && !composeResult?.autoDeploy) {
 			res.status(400).json({
 				message: "Automatic deployments are disabled for this compose",
 			});
