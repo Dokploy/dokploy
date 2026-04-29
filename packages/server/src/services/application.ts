@@ -30,6 +30,11 @@ import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
+import {
+	parseDeployHooks,
+	runDeployHook,
+	waitForSwarmServiceRunning,
+} from "../utils/docker/hooks";
 import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import {
@@ -221,7 +226,33 @@ export const deployApplication = async ({
 			await execAsync(commandWithLog);
 		}
 
+		const deployHooks = parseDeployHooks(application.deployHooks);
+
+		await runDeployHook({
+			kind: "pre",
+			appName: application.appName,
+			serverId: application.serverId,
+			command: deployHooks.pre,
+			logPath: deployment.logPath,
+		});
+
 		await mechanizeDockerContainer(application);
+
+		if (deployHooks.post?.trim()) {
+			const containerId = await waitForSwarmServiceRunning(
+				application.appName,
+				application.serverId,
+			);
+			await runDeployHook({
+				kind: "post",
+				appName: application.appName,
+				serverId: application.serverId,
+				command: deployHooks.post,
+				logPath: deployment.logPath,
+				containerId,
+			});
+		}
+
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
 
@@ -312,7 +343,34 @@ export const rebuildApplication = async ({
 		} else {
 			await execAsync(commandWithLog);
 		}
+
+		const deployHooks = parseDeployHooks(application.deployHooks);
+
+		await runDeployHook({
+			kind: "pre",
+			appName: application.appName,
+			serverId: application.serverId,
+			command: deployHooks.pre,
+			logPath: deployment.logPath,
+		});
+
 		await mechanizeDockerContainer(application);
+
+		if (deployHooks.post?.trim()) {
+			const containerId = await waitForSwarmServiceRunning(
+				application.appName,
+				application.serverId,
+			);
+			await runDeployHook({
+				kind: "post",
+				appName: application.appName,
+				serverId: application.serverId,
+				command: deployHooks.post,
+				logPath: deployment.logPath,
+				containerId,
+			});
+		}
+
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
 
