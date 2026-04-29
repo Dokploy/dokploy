@@ -121,7 +121,11 @@ export default function Home() {
 												<FormItem>
 													<FormLabel>Email</FormLabel>
 													<FormControl>
-														<Input placeholder="Email" maxLength={255} {...field} />
+														<Input
+															placeholder="Email"
+															maxLength={255}
+															{...field}
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
