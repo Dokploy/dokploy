@@ -66,7 +66,7 @@ COPY --from=buildpacksio/pack:0.39.1 /usr/local/bin/pack /usr/local/bin/pack
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=10s --timeout=3s --retries=10 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
   CMD curl -fs http://localhost:3000/api/trpc/settings.health || exit 1
 
   CMD ["sh", "-c", "pnpm run wait-for-postgres && exec pnpm start"]
