@@ -2,16 +2,63 @@ import { createWriteStream } from "node:fs";
 import path from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Schedule } from "@dokploy/server/db/schema/schedule";
+import { getDokployUrl } from "@dokploy/server/services/admin";
 import {
 	createDeploymentSchedule,
 	updateDeployment,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
-import { findScheduleById } from "@dokploy/server/services/schedule";
+import {
+	findScheduleById,
+	findScheduleOrganizationId,
+} from "@dokploy/server/services/schedule";
 import { scheduledJobs, scheduleJob as scheduleJobNode } from "node-schedule";
 import { getComposeContainer, getServiceContainer } from "../docker/utils";
+import { sendScheduleFailureNotifications } from "../notifications/schedule-failure";
 import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
+
+type ScheduleExtended = Awaited<ReturnType<typeof findScheduleById>>;
+
+const handleScheduleError = async (
+	schedule: ScheduleExtended,
+	deploymentId: string,
+	error: unknown,
+) => {
+	await updateDeploymentStatus(deploymentId, "error");
+	try {
+		const organizationId = await findScheduleOrganizationId(
+			schedule.scheduleId,
+		);
+		if (!organizationId) return;
+
+		const projectName =
+			schedule.application?.environment?.project?.name ||
+			schedule.compose?.environment?.project?.name ||
+			schedule.server?.name ||
+			"Dokploy";
+
+		const errorMessage =
+			error instanceof Error
+				? error.message
+				: typeof error === "string"
+					? error
+					: "Unknown error";
+
+		const scheduleLink = `${await getDokployUrl()}/dashboard/schedules/${schedule.scheduleId}`;
+
+		await sendScheduleFailureNotifications({
+			projectName,
+			scheduleName: schedule.name,
+			scheduleType: schedule.scheduleType,
+			errorMessage,
+			scheduleLink,
+			organizationId,
+		});
+	} catch (notifyError) {
+		console.log("Failed to send schedule failure notification:", notifyError);
+	}
+};
 
 export const scheduleJob = (schedule: Schedule) => {
 	const { cronExpression, scheduleId, timezone } = schedule;
@@ -37,6 +84,7 @@ export const removeScheduleJob = (scheduleId: string) => {
 };
 
 export const runCommand = async (scheduleId: string) => {
+	const schedule = await findScheduleById(scheduleId);
 	const {
 		application,
 		command,
@@ -46,7 +94,7 @@ export const runCommand = async (scheduleId: string) => {
 		serviceName,
 		appName,
 		serverId,
-	} = await findScheduleById(scheduleId);
+	} = schedule;
 
 	const deployment = await createDeploymentSchedule({
 		scheduleId,
@@ -86,7 +134,7 @@ export const runCommand = async (scheduleId: string) => {
 					`,
 				);
 			} catch (error) {
-				await updateDeploymentStatus(deployment.deploymentId, "error");
+				await handleScheduleError(schedule, deployment.deploymentId, error);
 				throw error;
 			}
 		} else {
@@ -120,7 +168,7 @@ export const runCommand = async (scheduleId: string) => {
 					error instanceof Error ? error.message : "Unknown error",
 				);
 				writeStream.end();
-				await updateDeploymentStatus(deployment.deploymentId, "error");
+				await handleScheduleError(schedule, deployment.deploymentId, error);
 				throw error;
 			}
 		}
@@ -151,7 +199,7 @@ export const runCommand = async (scheduleId: string) => {
 				},
 			);
 		} catch (error) {
-			await updateDeploymentStatus(deployment.deploymentId, "error");
+			await handleScheduleError(schedule, deployment.deploymentId, error);
 			throw error;
 		}
 	} else if (scheduleType === "server") {
@@ -177,7 +225,7 @@ export const runCommand = async (scheduleId: string) => {
 				}
 			});
 		} catch (error) {
-			await updateDeploymentStatus(deployment.deploymentId, "error");
+			await handleScheduleError(schedule, deployment.deploymentId, error);
 			throw error;
 		}
 	}
