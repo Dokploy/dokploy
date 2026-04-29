@@ -21,6 +21,8 @@ import {
 	getUpdateData,
 	getWebServerSettings,
 	IS_CLOUD,
+	loadMiddlewares,
+	loadRemoteMiddlewares,
 	parseRawConfig,
 	paths,
 	prepareEnvironmentVariables,
@@ -45,9 +47,13 @@ import {
 	updateWebServerSettings,
 	writeConfig,
 	writeMainConfig,
+	writeMiddleware,
 	writeTraefikConfigInPath,
+	writeTraefikConfigRemote,
 	writeTraefikSetup,
 } from "@dokploy/server";
+import type { FileConfig } from "@dokploy/server";
+import * as bcrypt from "bcrypt";
 import { db } from "@dokploy/server/db";
 import { checkPermission } from "@dokploy/server/services/permission";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
@@ -509,6 +515,160 @@ export const settingsRouter = createTRPCRouter({
 				action: "update",
 				resourceType: "settings",
 				resourceName: "middleware-traefik-config",
+			});
+			return true;
+		}),
+
+	listBasicAuthMiddlewares: adminProcedure
+		.input(apiServerSchema)
+		.query(async ({ input }) => {
+			if (IS_CLOUD) {
+				return [];
+			}
+			let config: FileConfig | null;
+			try {
+				config = input?.serverId
+					? await loadRemoteMiddlewares(input.serverId)
+					: loadMiddlewares<FileConfig>();
+			} catch {
+				return [];
+			}
+			const middlewares = config?.http?.middlewares ?? {};
+			return Object.entries(middlewares)
+				.filter(([, value]) => !!value && "basicAuth" in value)
+				.map(([name, value]) => ({
+					name,
+					users: (
+						(value as { basicAuth: { users?: string[] } }).basicAuth.users ?? []
+					).map((entry) => entry.split(":")[0] ?? ""),
+				}));
+		}),
+
+	createBasicAuthMiddleware: adminProcedure
+		.input(
+			z.object({
+				name: z
+					.string()
+					.min(1, "Name is required")
+					.regex(
+						/^[a-zA-Z0-9_-]+$/,
+						"Only letters, numbers, dashes and underscores are allowed",
+					),
+				username: z.string().min(1, "Username is required"),
+				password: z.string().min(1, "Password is required"),
+				serverId: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				return true;
+			}
+			let config: FileConfig | null;
+			try {
+				config = input.serverId
+					? await loadRemoteMiddlewares(input.serverId)
+					: loadMiddlewares<FileConfig>();
+			} catch {
+				config = null;
+			}
+			if (!config) config = { http: { middlewares: {} } };
+			if (!config.http) config.http = { middlewares: {} };
+			if (!config.http.middlewares) config.http.middlewares = {};
+
+			const existing = config.http.middlewares[input.name];
+			if (existing && !("basicAuth" in existing)) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: `A middleware named "${input.name}" already exists and is not a basic auth middleware`,
+				});
+			}
+
+			const user = `${input.username}:${await bcrypt.hash(input.password, 10)}`;
+
+			if (existing && "basicAuth" in existing) {
+				const basicAuth = (existing as { basicAuth: { users?: string[] } })
+					.basicAuth;
+				const otherUsers = (basicAuth.users ?? []).filter(
+					(entry) => entry.split(":")[0] !== input.username,
+				);
+				basicAuth.users = [...otherUsers, user];
+			} else {
+				config.http.middlewares[input.name] = {
+					basicAuth: {
+						removeHeader: true,
+						users: [user],
+					},
+				};
+			}
+
+			if (input.serverId) {
+				await writeTraefikConfigRemote(config, "middlewares", input.serverId);
+			} else {
+				writeMiddleware(config);
+			}
+
+			await audit(ctx, {
+				action: "create",
+				resourceType: "settings",
+				resourceName: "basic-auth-middleware",
+			});
+			return true;
+		}),
+
+	deleteBasicAuthMiddleware: adminProcedure
+		.input(
+			z.object({
+				name: z.string().min(1),
+				username: z.string().optional(),
+				serverId: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				return true;
+			}
+			let config: FileConfig | null;
+			try {
+				config = input.serverId
+					? await loadRemoteMiddlewares(input.serverId)
+					: loadMiddlewares<FileConfig>();
+			} catch {
+				return true;
+			}
+
+			const entry = config?.http?.middlewares?.[input.name];
+			if (!config || !entry || !("basicAuth" in entry)) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Basic auth middleware "${input.name}" not found`,
+				});
+			}
+
+			if (input.username) {
+				const basicAuth = (entry as { basicAuth: { users?: string[] } })
+					.basicAuth;
+				const remaining = (basicAuth.users ?? []).filter(
+					(u) => u.split(":")[0] !== input.username,
+				);
+				if (remaining.length === 0) {
+					delete config.http!.middlewares![input.name];
+				} else {
+					basicAuth.users = remaining;
+				}
+			} else {
+				delete config.http!.middlewares![input.name];
+			}
+
+			if (input.serverId) {
+				await writeTraefikConfigRemote(config, "middlewares", input.serverId);
+			} else {
+				writeMiddleware(config);
+			}
+
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "settings",
+				resourceName: "basic-auth-middleware",
 			});
 			return true;
 		}),
