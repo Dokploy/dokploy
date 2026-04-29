@@ -30,6 +30,9 @@ const loginSchema = z.object({
 		.min(1, {
 			message: "Email is required",
 		})
+		.max(255, {
+			message: "Email must be at most 255 characters",
+		})
 		.email({
 			message: "Email must be a valid email",
 		}),
@@ -118,7 +121,7 @@ export default function Home() {
 												<FormItem>
 													<FormLabel>Email</FormLabel>
 													<FormControl>
-														<Input placeholder="Email" {...field} />
+														<Input placeholder="Email" maxLength={255} {...field} />
 													</FormControl>
 													<FormMessage />
 												</FormItem>
