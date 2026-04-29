@@ -1,4 +1,4 @@
-import { ServerIcon } from "lucide-react";
+import { Check, Copy, ServerIcon } from "lucide-react";
 import {
 	Card,
 	CardContent,
@@ -6,6 +6,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import React from "react";
 import { api } from "@/utils/api";
 import { ShowDokployActions } from "./servers/actions/show-dokploy-actions";
 import { ShowStorageActions } from "./servers/actions/show-storage-actions";
@@ -18,6 +19,14 @@ export const WebServer = () => {
 		api.settings.getWebServerSettings.useQuery();
 
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
+
+	const [copied, setCopied] = React.useState(false);
+
+	const handleCopy = async () => {
+		await navigator.clipboard.writeText(webServerSettings?.serverIp || "");
+		setCopied(true);
+		setTimeout(() => setCopied(false), 2000);
+	};
 
 	return (
 		<div className="w-full">
@@ -49,9 +58,22 @@ export const WebServer = () => {
 						</div>
 
 						<div className="flex items-center flex-wrap justify-between gap-4">
-							<span className="text-sm text-muted-foreground">
-								Server IP: {webServerSettings?.serverIp}
-							</span>
+							<div className="flex items-center gap-2">
+								<span className="text-sm text-muted-foreground">
+									Server IP: {webServerSettings?.serverIp}
+								</span>
+								<button
+									onClick={handleCopy}
+									className="text-muted-foreground"
+									title="Copy IP to clipboard"
+								>
+									{copied ? (
+										<Check className="size-3.5" />
+									) : (
+										<Copy className="size-3.5" />
+									)}
+								</button>
+							</div>
 							<span className="text-sm text-muted-foreground">
 								Version: {dokployVersion}
 							</span>
