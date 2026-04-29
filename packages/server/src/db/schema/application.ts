@@ -428,9 +428,19 @@ export const apiSaveBuildType = createSchema
 		dockerBuildStage: true,
 		herokuVersion: true,
 		railpackVersion: true,
+		publishDirectory: true,
+		isStaticSpa: true,
 	})
 	.required()
-	.merge(createSchema.pick({ publishDirectory: true, isStaticSpa: true }));
+	.superRefine((data, ctx) => {
+		if (data.buildType === "railpack" && !data.railpackVersion?.trim()) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["railpackVersion"],
+				message: "Railpack version is required",
+			});
+		}
+	});
 
 export const apiSaveGithubProvider = createSchema
 	.pick({
