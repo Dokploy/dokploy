@@ -32,6 +32,7 @@ export const runComposeBackup = async (
 		title: "Compose Backup",
 		description: "Compose Backup",
 	});
+	const startedAt = Date.now();
 
 	try {
 		const rcloneFlags = getS3Credentials(destination);
@@ -58,6 +59,10 @@ export const runComposeBackup = async (
 			type: "success",
 			organizationId: project.organizationId,
 			databaseName: backup.database,
+			schedule: backup.schedule,
+			destinationBucket: destination.bucket,
+			destinationPrefix: backup.prefix,
+			durationMs: Date.now() - startedAt,
 		});
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -72,6 +77,10 @@ export const runComposeBackup = async (
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,
+			schedule: backup.schedule,
+			destinationBucket: destination.bucket,
+			destinationPrefix: backup.prefix,
+			durationMs: Date.now() - startedAt,
 		});
 
 		await updateDeploymentStatus(deployment.deploymentId, "error");

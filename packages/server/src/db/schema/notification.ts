@@ -35,7 +35,8 @@ export const notifications = pgTable("notification", {
 	name: text("name").notNull(),
 	appDeploy: boolean("appDeploy").notNull().default(false),
 	appBuildError: boolean("appBuildError").notNull().default(false),
-	databaseBackup: boolean("databaseBackup").notNull().default(false),
+	backupSuccess: boolean("backupSuccess").notNull().default(false),
+	backupFailure: boolean("backupFailure").notNull().default(true),
 	volumeBackup: boolean("volumeBackup").notNull().default(false),
 	dokployRestart: boolean("dokployRestart").notNull().default(false),
 	dokployBackup: boolean("dokployBackup").notNull().default(false),
@@ -266,7 +267,8 @@ export const notificationsSchema = createInsertSchema(notifications);
 export const apiCreateSlack = notificationsSchema
 	.pick({
 		appBuildError: true,
-		databaseBackup: true,
+		backupSuccess: true,
+		backupFailure: true,
 		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
@@ -295,7 +297,8 @@ export const apiTestSlackConnection = apiCreateSlack.pick({
 export const apiCreateTelegram = notificationsSchema
 	.pick({
 		appBuildError: true,
-		databaseBackup: true,
+		backupSuccess: true,
+		backupFailure: true,
 		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
@@ -326,7 +329,8 @@ export const apiTestTelegramConnection = apiCreateTelegram.pick({
 export const apiCreateDiscord = notificationsSchema
 	.pick({
 		appBuildError: true,
-		databaseBackup: true,
+		backupSuccess: true,
+		backupFailure: true,
 		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
@@ -358,7 +362,8 @@ export const apiTestDiscordConnection = apiCreateDiscord
 export const apiCreateEmail = notificationsSchema
 	.pick({
 		appBuildError: true,
-		databaseBackup: true,
+		backupSuccess: true,
+		backupFailure: true,
 		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
@@ -395,7 +400,8 @@ export const apiTestEmailConnection = apiCreateEmail.pick({
 export const apiCreateResend = notificationsSchema
 	.pick({
 		appBuildError: true,
-		databaseBackup: true,
+		backupSuccess: true,
+		backupFailure: true,
 		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
@@ -426,7 +432,8 @@ export const apiTestResendConnection = apiCreateResend.pick({
 export const apiCreateGotify = notificationsSchema
 	.pick({
 		appBuildError: true,
-		databaseBackup: true,
+		backupSuccess: true,
+		backupFailure: true,
 		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
@@ -461,7 +468,8 @@ export const apiTestGotifyConnection = apiCreateGotify
 export const apiCreateNtfy = notificationsSchema
 	.pick({
 		appBuildError: true,
-		databaseBackup: true,
+		backupSuccess: true,
+		backupFailure: true,
 		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
@@ -493,7 +501,8 @@ export const apiTestNtfyConnection = apiCreateNtfy.pick({
 export const apiCreateMattermost = notificationsSchema
 	.pick({
 		appBuildError: true,
-		databaseBackup: true,
+		backupSuccess: true,
+		backupFailure: true,
 		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
@@ -511,7 +520,8 @@ export const apiCreateMattermost = notificationsSchema
 		name: true,
 		webhookUrl: true,
 		appBuildError: true,
-		databaseBackup: true,
+		backupSuccess: true,
+		backupFailure: true,
 		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
@@ -544,7 +554,8 @@ export const apiFindOneNotification = z.object({
 export const apiCreateCustom = notificationsSchema
 	.pick({
 		appBuildError: true,
-		databaseBackup: true,
+		backupSuccess: true,
+		backupFailure: true,
 		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
@@ -572,7 +583,8 @@ export const apiTestCustomConnection = z.object({
 export const apiCreateLark = notificationsSchema
 	.pick({
 		appBuildError: true,
-		databaseBackup: true,
+		backupSuccess: true,
+		backupFailure: true,
 		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
@@ -599,7 +611,8 @@ export const apiTestLarkConnection = apiCreateLark.pick({
 export const apiCreateTeams = notificationsSchema
 	.pick({
 		appBuildError: true,
-		databaseBackup: true,
+		backupSuccess: true,
+		backupFailure: true,
 		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
@@ -626,7 +639,8 @@ export const apiTestTeamsConnection = apiCreateTeams.pick({
 export const apiCreatePushover = notificationsSchema
 	.pick({
 		appBuildError: true,
-		databaseBackup: true,
+		backupSuccess: true,
+		backupFailure: true,
 		dokployBackup: true,
 		volumeBackup: true,
 		dokployRestart: true,
@@ -661,7 +675,8 @@ export const apiUpdatePushover = z.object({
 	retry: z.number().min(30).nullish(),
 	expire: z.number().min(1).max(10800).nullish(),
 	appBuildError: z.boolean().optional(),
-	databaseBackup: z.boolean().optional(),
+	backupSuccess: z.boolean().optional(),
+	backupFailure: z.boolean().optional(),
 	dokployBackup: z.boolean().optional(),
 	volumeBackup: z.boolean().optional(),
 	dokployRestart: z.boolean().optional(),
