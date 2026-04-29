@@ -14,6 +14,13 @@ import { type Job, Worker } from "bullmq";
 import type { DeploymentJob } from "./queue-types";
 import { redisConfig } from "./redis-connection";
 
+// DEPLOYMENT_QUEUE_CONCURRENCY controls how many deploy jobs run in parallel.
+// Defaults to 1 (original behavior); invalid/non-positive values fall back to 1.
+const deploymentConcurrency = (() => {
+	const n = Number(process.env.DEPLOYMENT_QUEUE_CONCURRENCY);
+	return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+})();
+
 const createDeploymentWorker = () =>
 	new Worker(
 		"deployments",
@@ -80,6 +87,7 @@ const createDeploymentWorker = () =>
 		{
 			autorun: false,
 			connection: redisConfig,
+			concurrency: deploymentConcurrency,
 		},
 	);
 
