@@ -466,7 +466,7 @@ const installUtilities = () => `
 
 	case "$OS_TYPE" in
 	arch)
-		$SUDO_CMD pacman -Sy --noconfirm --needed curl wget git git-lfs jq openssl >/dev/null || true
+		$SUDO_CMD pacman -Sy --noconfirm --needed unzip curl wget git git-lfs jq openssl >/dev/null || true
 		;;
 	alpine)
 		$SUDO_CMD sed -i '/^#.*\/community/s/^#//' /etc/apk/repositories
