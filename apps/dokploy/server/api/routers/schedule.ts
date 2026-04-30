@@ -1,5 +1,6 @@
 import { IS_CLOUD, removeScheduleJob, scheduleJob } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { member } from "@dokploy/server/db/schema";
 import { deployments } from "@dokploy/server/db/schema/deployment";
 import {
 	createScheduleSchema,
@@ -20,7 +21,7 @@ import {
 } from "@dokploy/server/services/schedule";
 import { findServerById } from "@dokploy/server/services/server";
 import { TRPCError } from "@trpc/server";
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { removeJob, schedule } from "@/server/utils/backup";
@@ -163,16 +164,26 @@ export const scheduleRouter = createTRPCRouter({
 					}
 				}
 
-				if (
-					existingSchedule.scheduleType === "dokploy-server" &&
-					existingSchedule.userId &&
-					existingSchedule.userId !== ctx.user.id
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You can only manage your own host-level schedules.",
-					});
+			if (
+				existingSchedule.scheduleType === "dokploy-server" &&
+				existingSchedule.userId &&
+				existingSchedule.userId !== ctx.user.id
+			) {
+				// Admin/owner role already verified above.
+				// Don't use findMemberByUserId here — it would throw if the
+				// schedule owner left the org, making the schedule unmanageable.
+				const scheduleOwnerInOrg = await db.query.member.findFirst({
+					where: and(
+						eq(member.userId, existingSchedule.userId),
+						eq(member.organizationId, ctx.session.activeOrganizationId),
+					),
+					columns: { id: true },
+				});
+				if (scheduleOwnerInOrg) {
+					// Owner is still in org — allowed.
 				}
+				// If owner left the org, still allow the admin/owner to manage it.
+			}
 			}
 			const updatedSchedule = await updateSchedule(input);
 
@@ -262,10 +273,18 @@ export const scheduleRouter = createTRPCRouter({
 					scheduleItem.userId &&
 					scheduleItem.userId !== ctx.user.id
 				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You can only manage your own host-level schedules.",
+					// Admin/owner role already verified above.
+					// Don't throw if the schedule owner left the org.
+					const scheduleOwnerInOrg = await db.query.member.findFirst({
+						where: and(
+							eq(member.userId, scheduleItem.userId),
+							eq(member.organizationId, ctx.session.activeOrganizationId),
+						),
+						columns: { id: true },
 					});
+					if (scheduleOwnerInOrg) {
+						// Owner is still in org — allowed.
+					}
 				}
 			}
 			await deleteSchedule(input.scheduleId);
@@ -322,36 +341,54 @@ export const scheduleRouter = createTRPCRouter({
 						});
 					}
 				}
-
-				if (
-					input.scheduleType === "dokploy-server" &&
-					input.id !== ctx.user.id
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You can only list your own host-level schedules.",
-					});
-				}
 			}
+
+		let listWhere;
+		if (input.scheduleType === "dokploy-server") {
+			const currentMember = await findMemberByUserId(
+				ctx.user.id,
+				ctx.session.activeOrganizationId,
+			);
+			if (
+				currentMember.role === "owner" ||
+				currentMember.role === "admin"
+			) {
+				const orgMembers = await db.query.member.findMany({
+					where: eq(member.organizationId, ctx.session.activeOrganizationId),
+					columns: { userId: true },
+				});
+				const userIds = orgMembers.map((m) => m.userId);
+				if (userIds.length === 0) {
+					return [];
+				}
+				listWhere = and(
+					eq(schedules.scheduleType, "dokploy-server"),
+					inArray(schedules.userId, userIds),
+				);
+			} else {
+				listWhere = eq(schedules.userId, ctx.user.id);
+			}
+		} else {
 			const where = {
 				application: eq(schedules.applicationId, input.id),
 				compose: eq(schedules.composeId, input.id),
 				server: eq(schedules.serverId, input.id),
-				"dokploy-server": eq(schedules.userId, input.id),
 			};
-			return db.query.schedules.findMany({
-				where: where[input.scheduleType],
-				orderBy: [asc(schedules.createdAt)],
-				with: {
-					application: true,
-					server: true,
-					compose: true,
-					deployments: {
-						orderBy: [desc(deployments.createdAt)],
-					},
+			listWhere = where[input.scheduleType];
+		}
+		return db.query.schedules.findMany({
+			where: listWhere,
+			orderBy: [asc(schedules.createdAt)],
+			with: {
+				application: true,
+				server: true,
+				compose: true,
+				deployments: {
+					orderBy: [desc(deployments.createdAt)],
 				},
-			});
-		}),
+			},
+		});
+	}),
 
 	one: protectedProcedure
 		.input(z.object({ scheduleId: z.string() }))
@@ -382,10 +419,30 @@ export const scheduleRouter = createTRPCRouter({
 					schedule.userId &&
 					schedule.userId !== ctx.user.id
 				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You don't have access to this schedule.",
+					const currentMember = await findMemberByUserId(
+						ctx.user.id,
+						ctx.session.activeOrganizationId,
+					);
+					if (
+						currentMember.role !== "owner" &&
+						currentMember.role !== "admin"
+					) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You don't have access to this schedule.",
+						});
+					}
+					// Don't throw if the schedule owner left the org.
+					const scheduleOwnerInOrg = await db.query.member.findFirst({
+						where: and(
+							eq(member.userId, schedule.userId),
+							eq(member.organizationId, ctx.session.activeOrganizationId),
+						),
+						columns: { id: true },
 					});
+					if (scheduleOwnerInOrg) {
+						// Owner is still in org — allowed.
+					}
 				}
 			}
 			return schedule;
@@ -445,10 +502,18 @@ export const scheduleRouter = createTRPCRouter({
 					scheduleItem.userId &&
 					scheduleItem.userId !== ctx.user.id
 				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You can only manage your own host-level schedules.",
+					// Admin/owner role already verified above.
+					// Don't throw if the schedule owner left the org.
+					const scheduleOwnerInOrg = await db.query.member.findFirst({
+						where: and(
+							eq(member.userId, scheduleItem.userId),
+							eq(member.organizationId, ctx.session.activeOrganizationId),
+						),
+						columns: { id: true },
 					});
+					if (scheduleOwnerInOrg) {
+						// Owner is still in org — allowed.
+					}
 				}
 			}
 			try {
