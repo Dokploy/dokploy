@@ -9,8 +9,10 @@
 			{ "changelogFile": "apps/dokploy/CHANGELOG.md" }
 		],
 		[
-			"@semantic-release/npm",
-			{ "npmPublish": false, "pkgRoot": "apps/dokploy" }
+			"@semantic-release/exec",
+			{
+				"prepareCmd": "node -e \"const fs=require('fs');const p='apps/dokploy/package.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.version='${nextRelease.version}';fs.writeFileSync(p,JSON.stringify(j,null,'\\t')+'\\n');\""
+			}
 		],
 		[
 			"@semantic-release/git",
