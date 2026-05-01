@@ -24,7 +24,7 @@ interface DockerOutput {
 	dockerCompose: string;
 	envVariables: Array<{ name: string; value: string }>;
 	domains: Array<{ host: string; port: number; serviceName: string }>;
-	configFiles?: Array<{ content: string; filePath: string }>;
+	configFiles: Array<{ content: string; filePath: string }> | null;
 }
 
 export const getAiSettingsByOrganizationId = async (organizationId: string) => {
@@ -136,7 +136,7 @@ export const suggestVariants = async ({
 								filePath: z.string(),
 							}),
 						)
-						.optional(),
+						.nullable(),
 				}),
 			),
 		});
