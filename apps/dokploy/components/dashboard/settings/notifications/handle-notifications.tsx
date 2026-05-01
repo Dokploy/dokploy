@@ -1996,7 +1996,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 						</div>
 					</form>
 
-					<DialogFooter className="flex flex-row gap-2 !justify-between w-full">
+					<DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 !justify-between w-full">
 						<Button
 							isLoading={
 								isLoadingSlack ||

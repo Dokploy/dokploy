@@ -129,8 +129,8 @@ const DialogContent = React.forwardRef<
 			<DialogPrimitive.Content
 				ref={ref}
 				className={cn(
-					"fixed left-[50%] top-[50%] z-50 pointer-events-auto w-full max-w-lg translate-x-[-50%] translate-y-[-50%] border bg-background shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
-					"flex flex-col max-h-[90vh]",
+					"fixed left-[50%] top-[50%] z-50 pointer-events-auto w-[calc(100vw-1rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-lg border bg-background shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+					"flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh]",
 					className,
 				)}
 				style={{ pointerEvents: "auto" }}
@@ -141,20 +141,19 @@ const DialogContent = React.forwardRef<
 					ref={contentRef}
 					className={cn(
 						"flex flex-col overflow-auto flex-1 min-h-0 overscroll-contain",
-						!hasPaddingOverride && "p-6",
+						!hasPaddingOverride && "p-4 sm:p-6",
 					)}
 				>
 					{otherChildren}
 				</div>
 
-				{/* DialogFooter outside scrollable area with proper spacing */}
 				{dialogFooter && (
-					<div className="p-6 pt-0 border-t border-border/50">
+					<div className="p-4 pt-4 sm:p-6 sm:pt-0 border-t border-border/50">
 						{dialogFooter}
 					</div>
 				)}
 
-				<DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+				<DialogPrimitive.Close className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-md opacity-70 ring-offset-background transition-opacity hover:bg-accent hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground sm:right-4 sm:top-4 sm:h-6 sm:w-6">
 					<X className="h-4 w-4" />
 					<span className="sr-only">Close</span>
 				</DialogPrimitive.Close>
@@ -170,7 +169,7 @@ const DialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
 	<div
 		className={cn(
-			"flex flex-col space-y-1.5 text-center sm:text-left pb-4",
+			"flex flex-col space-y-1.5 text-center sm:text-left pb-4 pr-8 sm:pr-0",
 			className,
 		)}
 		{...props}

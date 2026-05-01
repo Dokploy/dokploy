@@ -72,7 +72,7 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 					<CardHeader>
 						<CardTitle className="text-xl">Deploy Settings</CardTitle>
 					</CardHeader>
-					<CardContent className="flex flex-row gap-4 flex-wrap">
+					<CardContent className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap sm:gap-4 [&>button]:max-sm:w-full max-sm:[&>*:last-child:nth-child(odd)]:col-span-2">
 						<TooltipProvider delayDuration={0}>
 							{canDeploy && (
 								<DialogAction

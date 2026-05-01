@@ -150,7 +150,7 @@ export const ShowBilling = () => {
 
 	const useNewPricing = data?.hobbyProductId && data?.startupProductId;
 	const products = data?.products.filter((product) => {
-		// @ts-ignore
+		// @ts-expect-error
 		const interval = product?.default_price?.recurring?.interval;
 		return isAnnual ? interval === "year" : interval === "month";
 	});

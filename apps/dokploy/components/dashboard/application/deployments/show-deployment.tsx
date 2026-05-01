@@ -142,56 +142,59 @@ export const ShowDeployment = ({
 				}
 			}}
 		>
-			<DialogContent className={"sm:max-w-5xl"}>
+			<DialogContent className={"sm:max-w-5xl flex flex-col max-h-[95vh]"}>
 				<DialogHeader>
-					<DialogTitle>Deployment</DialogTitle>
-					<DialogDescription className="flex items-center gap-2">
-						<span className="flex items-center gap-2">
-							See all the details of this deployment |{" "}
-							<Badge variant="blank" className="text-xs">
-								{filteredLogs.length} lines
-							</Badge>
-						</span>
-
-						<Button
-							variant="outline"
-							size="sm"
-							className="h-7"
-							onClick={handleCopy}
-							disabled={filteredLogs.length === 0}
-						>
-							{copied ? (
-								<Check className="h-3.5 w-3.5" />
-							) : (
-								<Copy className="h-3.5 w-3.5" />
-							)}
-						</Button>
-						<AnalyzeLogs logs={filteredLogs} context="build" />
-
-						{serverId && (
-							<div className="flex items-center space-x-2">
-								<Checkbox
-									id="show-extra-logs"
-									checked={showExtraLogs}
-									onCheckedChange={(checked) =>
-										setShowExtraLogs(checked as boolean)
-									}
-								/>
-								<label
-									htmlFor="show-extra-logs"
-									className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-								>
-									Show Extra Logs
-								</label>
-							</div>
-						)}
+					<DialogTitle className="flex items-center gap-2 flex-wrap">
+						<span>Deployment</span>
+						<Badge variant="blank" className="text-xs">
+							{filteredLogs.length} lines
+						</Badge>
+					</DialogTitle>
+					<DialogDescription>
+						See all the details of this deployment.
 					</DialogDescription>
 				</DialogHeader>
+
+				<div className="flex flex-wrap items-center gap-2">
+					<Button
+						variant="outline"
+						size="sm"
+						className="h-9 flex-1 sm:flex-initial"
+						onClick={handleCopy}
+						disabled={filteredLogs.length === 0}
+					>
+						{copied ? (
+							<Check className="h-3.5 w-3.5" />
+						) : (
+							<Copy className="h-3.5 w-3.5" />
+						)}
+						<span className="ml-1.5">Copy</span>
+					</Button>
+					<div className="flex-1 sm:flex-initial [&>button]:w-full sm:[&>button]:w-auto">
+						<AnalyzeLogs logs={filteredLogs} context="build" />
+					</div>
+
+					{serverId && (
+						<label
+							htmlFor="show-extra-logs"
+							className="flex items-center gap-2 text-sm font-medium leading-none px-3 h-9 rounded-md border bg-background w-full sm:w-auto"
+						>
+							<Checkbox
+								id="show-extra-logs"
+								checked={showExtraLogs}
+								onCheckedChange={(checked) =>
+									setShowExtraLogs(checked as boolean)
+								}
+							/>
+							Show Extra Logs
+						</label>
+					)}
+				</div>
 
 				<div
 					ref={scrollRef}
 					onScroll={handleScroll}
-					className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
+					className="h-[60vh] sm:h-[720px] flex-1 min-h-0 overflow-y-auto space-y-0 border p-3 sm:p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar text-xs sm:text-sm"
 				>
 					{" "}
 					{filteredLogs.length > 0 ? (

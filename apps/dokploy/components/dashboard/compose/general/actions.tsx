@@ -36,7 +36,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 	const { mutateAsync: stop, isPending: isStopping } =
 		api.compose.stop.useMutation();
 	return (
-		<div className="flex flex-row gap-4 w-full flex-wrap ">
+		<div className="grid grid-cols-2 gap-2 w-full sm:flex sm:flex-row sm:flex-wrap sm:gap-4 [&>button]:max-sm:w-full [&>div]:max-sm:col-span-2 max-sm:[&>button:last-child:nth-child(odd)]:col-span-2">
 			<TooltipProvider delayDuration={0} disableHoverableContent={false}>
 				{canDeploy && (
 					<DialogAction

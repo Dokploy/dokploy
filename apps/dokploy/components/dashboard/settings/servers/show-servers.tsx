@@ -234,7 +234,7 @@ export const ShowServers = () => {
 																	</TooltipProvider>
 																</CardHeader>
 																<CardContent className="space-y-3 flex-1 flex flex-col">
-																	<div className="flex items-center gap-2 text-sm">
+																	<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
 																		<Network className="size-4 text-muted-foreground" />
 																		<span className="text-muted-foreground">
 																			IP:

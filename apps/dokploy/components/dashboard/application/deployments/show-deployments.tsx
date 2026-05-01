@@ -148,14 +148,14 @@ export const ShowDeployments = ({
 
 	return (
 		<Card className="bg-background border-none">
-			<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
+			<CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap">
 				<div className="flex flex-col gap-2">
 					<CardTitle className="text-xl">Deployments</CardTitle>
 					<CardDescription>
 						See the last 10 deployments for this {type}
 					</CardDescription>
 				</div>
-				<div className="flex flex-row items-center flex-wrap gap-2">
+				<div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:items-center sm:flex-wrap [&>button]:max-sm:w-full [&_button]:max-sm:w-full max-sm:[&>*:last-child:nth-child(odd)]:col-span-2">
 					{(type === "application" || type === "compose") && (
 						<ClearDeployments id={id} type={type} />
 					)}

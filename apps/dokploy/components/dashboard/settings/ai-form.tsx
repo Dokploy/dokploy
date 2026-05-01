@@ -22,7 +22,7 @@ export const AiForm = () => {
 		<div className="w-full">
 			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
-					<CardHeader className="flex flex-row gap-2 justify-between">
+					<CardHeader className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
 						<div>
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<BotIcon className="size-6 text-muted-foreground self-center" />

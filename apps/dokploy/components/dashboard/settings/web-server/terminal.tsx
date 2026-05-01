@@ -59,9 +59,9 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 		const clipboardAddon = new ClipboardAddon();
 		term.loadAddon(clipboardAddon);
 
-		// @ts-ignore
+		// @ts-expect-error
 		term.open(termRef.current);
-		// @ts-ignore
+		// @ts-expect-error
 		term.loadAddon(addonFit);
 		term.loadAddon(addonAttach);
 		addonFit.fit();

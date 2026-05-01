@@ -458,10 +458,10 @@ export function ShowDeploymentsTable() {
 					placeholder="Search by name, project, environment, server..."
 					value={globalFilter}
 					onChange={(e) => setGlobalFilter(e.target.value)}
-					className="max-w-xs"
+					className="w-full sm:max-w-xs"
 				/>
 				<Select value={statusFilter} onValueChange={setStatusFilter}>
-					<SelectTrigger className="w-[140px]">
+					<SelectTrigger className="flex-1 sm:flex-initial sm:w-[140px]">
 						<SelectValue placeholder="Status" />
 					</SelectTrigger>
 					<SelectContent>
@@ -473,7 +473,7 @@ export function ShowDeploymentsTable() {
 					</SelectContent>
 				</Select>
 				<Select value={typeFilter} onValueChange={setTypeFilter}>
-					<SelectTrigger className="w-[140px]">
+					<SelectTrigger className="flex-1 sm:flex-initial sm:w-[140px]">
 						<SelectValue placeholder="Type" />
 					</SelectTrigger>
 					<SelectContent>
