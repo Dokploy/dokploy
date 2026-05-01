@@ -1,5 +1,6 @@
 import { CLEANUP_CRON_JOB } from "@dokploy/server/constants";
 import { member } from "@dokploy/server/db/schema";
+import { checkAndNotifyUpdates } from "@dokploy/server/services/settings";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { getAllServers } from "@dokploy/server/services/server";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
@@ -27,6 +28,11 @@ export const initCronJobs = async () => {
 	}
 
 	const webServerSettings = await getWebServerSettings();
+
+	scheduleJob("dokploy-update-check", "*/10 * * * *", async () => {
+		console.log(`[Update Check] Running at ${new Date().toLocaleString()}`);
+		await checkAndNotifyUpdates();
+	});
 
 	if (webServerSettings?.enableDockerCleanup) {
 		try {
