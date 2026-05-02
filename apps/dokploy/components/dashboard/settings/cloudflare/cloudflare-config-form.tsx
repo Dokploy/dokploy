@@ -2,6 +2,7 @@ import { Check, Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -88,15 +89,20 @@ export const CloudflareConfigForm = () => {
 							</p>
 						)}
 						<div className="flex gap-2">
-							<Button
-								variant="destructive"
-								size="sm"
+							<DialogAction
+								title="Remove Cloudflare config?"
+								description="This deletes the org token and any zones configured here. Existing CF-managed domains will keep their record IDs but will no longer reconcile."
 								onClick={() => deleteMut.mutate()}
-								disabled={deleteMut.isPending}
 							>
-								<Trash2 className="h-4 w-4" />
-								Remove Config
-							</Button>
+								<Button
+									variant="destructive"
+									size="sm"
+									disabled={deleteMut.isPending}
+								>
+									<Trash2 className="h-4 w-4" />
+									Remove Config
+								</Button>
+							</DialogAction>
 						</div>
 					</div>
 				) : null}

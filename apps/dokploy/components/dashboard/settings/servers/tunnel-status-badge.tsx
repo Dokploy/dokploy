@@ -5,15 +5,11 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { api } from "@/utils/api";
+import { api, type RouterOutputs } from "@/utils/api";
 
-type TunnelStatus =
-	| "disabled"
-	| "provisioning"
-	| "installing"
-	| "registering"
-	| "healthy"
-	| "error";
+type TunnelStatus = NonNullable<
+	RouterOutputs["server"]["getTunnelStatus"]["tunnelStatus"]
+>;
 
 interface Props {
 	serverId: string;
@@ -44,9 +40,9 @@ export const TunnelStatusBadge = ({
 	const { data } = api.server.getTunnelStatus.useQuery(
 		{ serverId },
 		{
+			enabled: !!serverId,
 			refetchInterval: (query) => {
-				const current = (query.state.data?.tunnelStatus ??
-					initialStatus) as TunnelStatus;
+				const current = query.state.data?.tunnelStatus ?? initialStatus;
 				return current === "provisioning" ||
 					current === "installing" ||
 					current === "registering"
@@ -63,7 +59,7 @@ export const TunnelStatusBadge = ({
 		},
 	);
 
-	const status = (data?.tunnelStatus ?? "disabled") as TunnelStatus;
+	const status = data?.tunnelStatus ?? initialStatus;
 	const error = data?.tunnelError ?? null;
 
 	if (status === "disabled") {

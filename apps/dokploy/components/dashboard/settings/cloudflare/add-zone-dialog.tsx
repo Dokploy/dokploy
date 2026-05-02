@@ -1,6 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -20,8 +21,11 @@ interface Props {
 
 export const AddZoneDialog = ({ open, onOpenChange }: Props) => {
 	const utils = api.useUtils();
-	const { data: zones, isFetching } =
-		api.cloudflare.listAvailableZones.useQuery(undefined, { enabled: open });
+	const {
+		data: zones,
+		isFetching,
+		error: zonesError,
+	} = api.cloudflare.listAvailableZones.useQuery(undefined, { enabled: open });
 	const { data: configData } = api.cloudflare.getConfig.useQuery();
 	const [selected, setSelected] = useState<Record<string, boolean>>({});
 
@@ -75,6 +79,10 @@ export const AddZoneDialog = ({ open, onOpenChange }: Props) => {
 					<div className="flex items-center gap-2 text-muted-foreground py-6">
 						<Loader2 className="h-4 w-4 animate-spin" /> Loading zones...
 					</div>
+				) : zonesError ? (
+					<AlertBlock type="error">
+						Couldn't load zones from Cloudflare: {zonesError.message}
+					</AlertBlock>
 				) : available.length === 0 ? (
 					<p className="text-sm text-muted-foreground py-6">
 						No new zones available — every zone on this account is already
@@ -135,6 +143,8 @@ export const AddZoneDialog = ({ open, onOpenChange }: Props) => {
 						onClick={submit}
 						disabled={
 							addMut.isPending ||
+							isFetching ||
+							!!zonesError ||
 							Object.values(selected).every((v) => !v) ||
 							available.length === 0
 						}

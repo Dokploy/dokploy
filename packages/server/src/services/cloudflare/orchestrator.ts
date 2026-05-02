@@ -18,6 +18,7 @@ import {
 	createTunnel,
 	deleteDnsRecord,
 	deleteTunnel,
+	getDnsRecord,
 	getTunnel,
 	type IngressRule,
 	updateIngress,
@@ -72,11 +73,13 @@ const setDomainSync = (
 		cloudflareSyncStatus: "pending" | "synced" | "conflict" | "error";
 		cloudflareSyncError: string | null;
 	}>,
-) =>
-	db
-		.update(domains)
-		.set({ ...state, cloudflareSyncedAt: new Date().toISOString() })
-		.where(eq(domains.domainId, domainId));
+) => {
+	const payload =
+		state.cloudflareSyncStatus === "synced"
+			? { ...state, cloudflareSyncedAt: new Date().toISOString() }
+			: state;
+	return db.update(domains).set(payload).where(eq(domains.domainId, domainId));
+};
 
 const findServer = async (serverId: string) => {
 	const row = await db.query.server.findFirst({
@@ -296,6 +299,22 @@ export const syncDomain = async (domainId: string): Promise<void> => {
 		const cnameTarget = `${srv.tunnelId}.cfargotunnel.com`;
 
 		let recordId = dom.cloudflareRecordId;
+		// Verify the cached record still exists in Cloudflare and points where we expect.
+		// Otherwise the domain row would falsely report "synced" after manual deletion or edit.
+		if (recordId) {
+			const existing = await getDnsRecord(
+				config.apiToken,
+				zone.zoneId,
+				recordId,
+			);
+			const matches =
+				existing &&
+				existing.name === dom.host &&
+				existing.content === cnameTarget;
+			if (!matches) {
+				recordId = null;
+			}
+		}
 		if (!recordId) {
 			const record = await createDnsRecord(config.apiToken, zone.zoneId, {
 				name: dom.host,
@@ -303,13 +322,11 @@ export const syncDomain = async (domainId: string): Promise<void> => {
 				proxied: true,
 			});
 			recordId = record.id;
-			await setDomainSync(domainId, {
-				cloudflareRecordId: recordId,
-				cloudflareSyncStatus: "synced",
-			});
-		} else {
-			await setDomainSync(domainId, { cloudflareSyncStatus: "synced" });
 		}
+		await setDomainSync(domainId, {
+			cloudflareRecordId: recordId,
+			cloudflareSyncStatus: "synced",
+		});
 
 		await reapplyIngress(srv.serverId);
 	} catch (err) {

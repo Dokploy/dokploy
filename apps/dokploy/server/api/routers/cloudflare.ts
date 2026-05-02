@@ -20,6 +20,7 @@ import {
 	verifyToken,
 } from "@dokploy/server/services/cloudflare";
 import { reconcileServer } from "@dokploy/server/services/cloudflare/orchestrator";
+import { checkPermission } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -83,6 +84,8 @@ export const cloudflareRouter = createTRPCRouter({
 			});
 
 			if (existing) {
+				// Overwriting an existing token requires update permission, not just create.
+				await checkPermission(ctx, { cloudflare: ["update"] });
 				await db
 					.update(cloudflareConfig)
 					.set({

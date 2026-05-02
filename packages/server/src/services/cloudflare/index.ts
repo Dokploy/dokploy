@@ -268,6 +268,26 @@ export const listDnsRecords = async (
 	return records;
 };
 
+export const getDnsRecord = async (
+	token: string,
+	zoneId: string,
+	recordId: string,
+): Promise<DnsRecord | null> => {
+	try {
+		const r = await cfFetch<DnsRecord>(
+			token,
+			"GET",
+			`/zones/${zoneId}/dns_records/${recordId}`,
+		);
+		return r.result;
+	} catch (err) {
+		if (err instanceof CloudflareApiError && err.status === 404) {
+			return null;
+		}
+		throw err;
+	}
+};
+
 export const createDnsRecord = async (
 	token: string,
 	zoneId: string,
