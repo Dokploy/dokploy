@@ -16,6 +16,10 @@
     "./constants": {
       "import": "./src/constants/index.ts",
       "require": "./dist/constants.cjs.js"
+    },
+    "./services/cloudflare": {
+      "import": "./src/services/cloudflare/index.ts",
+      "require": "./dist/services/cloudflare/index.cjs.js"
     }
   },
   "scripts": {
