@@ -20,6 +20,10 @@
     "./services/cloudflare": {
       "import": "./src/services/cloudflare/index.ts",
       "require": "./dist/services/cloudflare/index.cjs.js"
+    },
+    "./services/cloudflare/orchestrator": {
+      "import": "./src/services/cloudflare/orchestrator.ts",
+      "require": "./dist/services/cloudflare/orchestrator.cjs.js"
     }
   },
   "scripts": {
