@@ -104,15 +104,13 @@ export const AddZoneDialog = ({ open, onOpenChange }: Props) => {
 							</div>
 						</div>
 						{available.map((z) => (
-							<button
-								type="button"
+							<label
 								key={z.id}
-								onClick={() =>
-									setSelected((prev) => ({ ...prev, [z.id]: !prev[z.id] }))
-								}
+								htmlFor={`zone-${z.id}`}
 								className="flex items-center gap-3 px-2 py-2 rounded hover:bg-muted/40 cursor-pointer text-left"
 							>
 								<Checkbox
+									id={`zone-${z.id}`}
 									checked={!!selected[z.id]}
 									onCheckedChange={(v) =>
 										setSelected((prev) => ({ ...prev, [z.id]: !!v }))
@@ -124,7 +122,7 @@ export const AddZoneDialog = ({ open, onOpenChange }: Props) => {
 										{z.account.name} · {z.status}
 									</span>
 								</div>
-							</button>
+							</label>
 						))}
 					</div>
 				)}

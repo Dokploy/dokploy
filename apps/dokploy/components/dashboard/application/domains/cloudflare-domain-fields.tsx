@@ -65,10 +65,10 @@ export const CloudflareDomainFields = ({
 			: `${debouncedSub.trim()}.${activeZone.zoneName}`);
 
 	useEffect(() => {
-		if (mode === "cloudflare" && activeZone) {
+		if (mode === "cloudflare" && activeZone && fullHost) {
 			onChange({
 				cloudflareZoneId: activeZone.cloudflareZoneId,
-				host: fullHost as string,
+				host: fullHost,
 			});
 		}
 		if (mode === "manual" && cloudflareZoneId) {

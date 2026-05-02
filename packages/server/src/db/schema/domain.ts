@@ -150,9 +150,3 @@ export const apiUpdateDomain = createSchema
 		cloudflareZoneId: true,
 	})
 	.merge(createSchema.pick({ domainId: true }).required());
-
-export const apiCheckDomainAvailability = z.object({
-	cloudflareZoneId: z.string().min(1),
-	subdomain: z.string(),
-	excludeDomainId: z.string().optional(),
-});

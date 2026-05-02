@@ -247,16 +247,25 @@ export const listDnsRecords = async (
 	zoneId: string,
 	params?: { name?: string; type?: string },
 ): Promise<DnsRecord[]> => {
-	const qs = new URLSearchParams();
-	if (params?.name) qs.set("name", params.name);
-	if (params?.type) qs.set("type", params.type);
-	qs.set("per_page", "50");
-	const r = await cfFetch<DnsRecord[]>(
-		token,
-		"GET",
-		`/zones/${zoneId}/dns_records?${qs.toString()}`,
-	);
-	return r.result;
+	const records: DnsRecord[] = [];
+	let page = 1;
+	while (true) {
+		const qs = new URLSearchParams();
+		if (params?.name) qs.set("name", params.name);
+		if (params?.type) qs.set("type", params.type);
+		qs.set("per_page", "50");
+		qs.set("page", String(page));
+		const r = await cfFetch<DnsRecord[]>(
+			token,
+			"GET",
+			`/zones/${zoneId}/dns_records?${qs.toString()}`,
+		);
+		records.push(...r.result);
+		const total = r.result_info?.total_pages ?? 1;
+		if (page >= total) break;
+		page += 1;
+	}
+	return records;
 };
 
 export const createDnsRecord = async (

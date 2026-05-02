@@ -28,7 +28,10 @@ export const CloudflareZoneList = () => {
 	const [addOpen, setAddOpen] = useState(false);
 
 	const toggleMut = api.cloudflare.toggleZone.useMutation({
-		onSuccess: () => utils.cloudflare.getConfig.invalidate(),
+		onSuccess: (_data, variables) => {
+			toast.success(variables.enabled ? "Zone enabled" : "Zone disabled");
+			utils.cloudflare.getConfig.invalidate();
+		},
 		onError: (e) => toast.error(e.message),
 	});
 	const removeMut = api.cloudflare.removeZone.useMutation({
@@ -104,6 +107,7 @@ export const CloudflareZoneList = () => {
 										<Button
 											variant="ghost"
 											size="sm"
+											disabled={toggleMut.isPending}
 											onClick={() =>
 												toggleMut.mutate({
 													cloudflareZoneId: z.cloudflareZoneId,

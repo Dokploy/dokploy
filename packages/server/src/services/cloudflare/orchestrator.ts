@@ -11,7 +11,7 @@ import {
 	installCloudflaredOnServer,
 	uninstallCloudflaredOnServer,
 } from "@dokploy/server/setup/cloudflare-tunnel-setup";
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull, or } from "drizzle-orm";
 import {
 	buildIngress,
 	createDnsRecord,
@@ -167,10 +167,19 @@ export const provisionServerTunnel = async (
 		await setTunnelState(serverId, { tunnelStatus: "registering" });
 		onData?.("Waiting for tunnel to register...\n");
 		const deadline = Date.now() + 60_000;
+		let registered = false;
 		while (Date.now() < deadline) {
 			const info = await getTunnel(config.apiToken, config.accountId, tunnelId);
-			if (info.connections > 0) break;
+			if (info.connections > 0) {
+				registered = true;
+				break;
+			}
 			await new Promise<void>((r) => setTimeout(r, 3000));
+		}
+		if (!registered) {
+			throw new Error(
+				`Tunnel registration timeout: tunnel ${tunnelId} on account ${config.accountId} did not establish any connections within 60s`,
+			);
 		}
 
 		// Push initial ingress (catch-all → local traefik)
@@ -430,19 +439,32 @@ export const reconcileServer = async (serverId: string): Promise<void> => {
 	// Push DB-truth ingress to CF
 	await reapplyIngress(serverId);
 
-	// Re-create any missing CNAMEs based on DB state
+	// Re-create any missing CNAMEs based on DB state, scoped to this server only
 	const cfDomains = await db
-		.select()
+		.select({
+			domainId: domains.domainId,
+			cloudflareRecordId: domains.cloudflareRecordId,
+		})
 		.from(domains)
+		.leftJoin(
+			applications,
+			eq(applications.applicationId, domains.applicationId),
+		)
+		.leftJoin(compose, eq(compose.composeId, domains.composeId))
 		.innerJoin(
 			cloudflareZones,
 			eq(domains.cloudflareZoneId, cloudflareZones.cloudflareZoneId),
+		)
+		.where(
+			and(
+				isNotNull(domains.cloudflareZoneId),
+				or(eq(applications.serverId, serverId), eq(compose.serverId, serverId)),
+			),
 		);
 
 	for (const row of cfDomains) {
-		const dom = row.domain;
-		if (!dom.cloudflareRecordId) {
-			await syncDomain(dom.domainId).catch(() => {});
+		if (!row.cloudflareRecordId) {
+			await syncDomain(row.domainId).catch(() => {});
 		}
 	}
 };
@@ -458,24 +480,39 @@ export const cleanupServer = async (
 	if (!srv) return;
 	const config = await findCloudflareConfigForOrg(srv.organizationId);
 
-	// Delete DNS records for any domain bound to this tunnel
+	// Delete DNS records for domains bound to this server's tunnel
 	if (config && srv.tunnelId) {
 		const ownedDomains = await db
-			.select()
+			.select({
+				cloudflareRecordId: domains.cloudflareRecordId,
+				zoneId: cloudflareZones.zoneId,
+			})
 			.from(domains)
+			.leftJoin(
+				applications,
+				eq(applications.applicationId, domains.applicationId),
+			)
+			.leftJoin(compose, eq(compose.composeId, domains.composeId))
 			.innerJoin(
 				cloudflareZones,
 				eq(domains.cloudflareZoneId, cloudflareZones.cloudflareZoneId),
+			)
+			.where(
+				and(
+					isNotNull(domains.cloudflareZoneId),
+					or(
+						eq(applications.serverId, serverId),
+						eq(compose.serverId, serverId),
+					),
+				),
 			);
 
 		for (const row of ownedDomains) {
-			const dom = row.domain;
-			const zone = row.cloudflare_zone;
-			if (!dom.cloudflareRecordId) continue;
+			if (!row.cloudflareRecordId) continue;
 			await deleteDnsRecord(
 				config.apiToken,
-				zone.zoneId,
-				dom.cloudflareRecordId,
+				row.zoneId,
+				row.cloudflareRecordId,
 			).catch(() => {});
 		}
 

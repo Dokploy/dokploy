@@ -245,16 +245,21 @@ export const cloudflareRouter = createTRPCRouter({
 			});
 			let ok = 0;
 			let failed = 0;
+			const errors: Array<{ serverId: string; error: string }> = [];
 			for (const s of servers) {
 				if (!s.tunnelId) continue;
 				try {
 					await reconcileServer(s.serverId);
 					ok += 1;
-				} catch {
+				} catch (e) {
 					failed += 1;
+					errors.push({
+						serverId: s.serverId,
+						error: e instanceof Error ? e.message : String(e),
+					});
 				}
 			}
-			return { ok, failed };
+			return { ok, failed, errors };
 		},
 	),
 

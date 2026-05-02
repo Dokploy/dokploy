@@ -651,6 +651,13 @@ export const serverRouter = createTRPCRouter({
 	getTunnelStatus: withPermission("server", "read")
 		.input(z.object({ serverId: z.string().min(1) }))
 		.query(async ({ ctx, input }) => {
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			if (!accessibleIds.has(input.serverId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not authorized to access this server",
+				});
+			}
 			const srv = await db.query.server.findFirst({
 				where: and(
 					eq(server.serverId, input.serverId),
@@ -673,6 +680,13 @@ export const serverRouter = createTRPCRouter({
 	setupTunnel: withPermission("cloudflare", "update")
 		.input(z.object({ serverId: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			if (!accessibleIds.has(input.serverId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not authorized to access this server",
+				});
+			}
 			const srv = await db.query.server.findFirst({
 				where: and(
 					eq(server.serverId, input.serverId),
@@ -692,6 +706,13 @@ export const serverRouter = createTRPCRouter({
 	disableTunnel: withPermission("cloudflare", "update")
 		.input(z.object({ serverId: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			if (!accessibleIds.has(input.serverId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not authorized to access this server",
+				});
+			}
 			const srv = await db.query.server.findFirst({
 				where: and(
 					eq(server.serverId, input.serverId),
@@ -709,6 +730,8 @@ export const serverRouter = createTRPCRouter({
 				.update(server)
 				.set({
 					tunnelStatus: "disabled",
+					tunnelId: null,
+					tunnelToken: null,
 					tunnelError: null,
 					tunnelCheckedAt: new Date().toISOString(),
 				})
@@ -719,6 +742,13 @@ export const serverRouter = createTRPCRouter({
 	reconcileTunnel: withPermission("cloudflare", "update")
 		.input(z.object({ serverId: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			if (!accessibleIds.has(input.serverId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not authorized to access this server",
+				});
+			}
 			const srv = await db.query.server.findFirst({
 				where: and(
 					eq(server.serverId, input.serverId),

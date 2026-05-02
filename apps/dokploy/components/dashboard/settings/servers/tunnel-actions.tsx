@@ -52,7 +52,7 @@ export const TunnelActions = ({ serverId, tunnelStatus }: Props) => {
 				}}
 				disabled={isWorking}
 			>
-				{isWorking ? (
+				{setupMut.isPending ? (
 					<Loader2 className="h-4 w-4 animate-spin" />
 				) : (
 					<Wrench className="h-4 w-4" />
@@ -67,7 +67,11 @@ export const TunnelActions = ({ serverId, tunnelStatus }: Props) => {
 					}}
 					disabled={isWorking}
 				>
-					<RefreshCcw className="h-4 w-4" />
+					{reconcileMut.isPending ? (
+						<Loader2 className="h-4 w-4 animate-spin" />
+					) : (
+						<RefreshCcw className="h-4 w-4" />
+					)}
 					Reconcile Tunnel
 				</DropdownMenuItem>
 			)}
@@ -79,7 +83,11 @@ export const TunnelActions = ({ serverId, tunnelStatus }: Props) => {
 					}}
 					disabled={isWorking}
 				>
-					<CloudOff className="h-4 w-4" />
+					{disableMut.isPending ? (
+						<Loader2 className="h-4 w-4 animate-spin" />
+					) : (
+						<CloudOff className="h-4 w-4" />
+					)}
 					Disable Tunnel
 				</DropdownMenuItem>
 			)}

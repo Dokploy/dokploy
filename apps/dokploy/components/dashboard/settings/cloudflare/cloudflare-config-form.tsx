@@ -89,14 +89,6 @@ export const CloudflareConfigForm = () => {
 						)}
 						<div className="flex gap-2">
 							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => setToken("")}
-								disabled={!token}
-							>
-								Replace Token
-							</Button>
-							<Button
 								variant="destructive"
 								size="sm"
 								onClick={() => deleteMut.mutate()}

@@ -1,4 +1,4 @@
-import { AlertCircle, CloudOff, Loader2 } from "lucide-react";
+import { AlertCircle, Cloud, CloudOff, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
 	Tooltip,
@@ -41,15 +41,18 @@ export const TunnelStatusBadge = ({
 	initialStatus,
 	initialError,
 }: Props) => {
-	const isPending =
-		initialStatus === "provisioning" ||
-		initialStatus === "installing" ||
-		initialStatus === "registering";
-
 	const { data } = api.server.getTunnelStatus.useQuery(
 		{ serverId },
 		{
-			refetchInterval: isPending ? 15_000 : false,
+			refetchInterval: (query) => {
+				const current = (query.state.data?.tunnelStatus ??
+					initialStatus) as TunnelStatus;
+				return current === "provisioning" ||
+					current === "installing" ||
+					current === "registering"
+					? 15_000
+					: false;
+			},
 			initialData: {
 				serverId,
 				tunnelStatus: initialStatus,
@@ -79,6 +82,8 @@ export const TunnelStatusBadge = ({
 				<Loader2 className="h-3 w-3 mr-1 animate-spin" />
 			) : status === "error" ? (
 				<AlertCircle className="h-3 w-3 mr-1" />
+			) : status === "healthy" ? (
+				<Cloud className="h-3 w-3 mr-1" />
 			) : (
 				<CloudOff className="h-3 w-3 mr-1" />
 			)}
