@@ -1,10 +1,4 @@
-import {
-	Cloud,
-	CloudOff,
-	Loader2,
-	RefreshCcw,
-	Wrench,
-} from "lucide-react";
+import { CloudOff, Loader2, RefreshCcw, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";

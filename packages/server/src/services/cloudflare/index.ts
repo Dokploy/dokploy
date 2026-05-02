@@ -109,7 +109,9 @@ const cfFetch = async <T>(
 	}
 };
 
-export const verifyToken = async (token: string): Promise<VerifyTokenResult> => {
+export const verifyToken = async (
+	token: string,
+): Promise<VerifyTokenResult> => {
 	try {
 		const verify = await cfFetch<{
 			id: string;

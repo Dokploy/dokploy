@@ -23,7 +23,10 @@ interface Props {
 
 const VARIANTS: Record<
 	TunnelStatus,
-	{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+	{
+		label: string;
+		variant: "default" | "secondary" | "destructive" | "outline";
+	}
 > = {
 	disabled: { label: "Tunnel: Off", variant: "outline" },
 	provisioning: { label: "Tunnel: Provisioning", variant: "secondary" },

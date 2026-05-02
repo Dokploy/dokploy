@@ -1,7 +1,9 @@
 import { db } from "@dokploy/server/db";
 import {
+	applications,
 	cloudflareConfig,
 	cloudflareZones,
+	compose,
 	domains,
 	server,
 } from "@dokploy/server/db/schema";
@@ -84,13 +86,22 @@ const findServer = async (serverId: string) => {
 	return row;
 };
 
-const buildIngressForServer = async (serverId: string): Promise<IngressRule[]> => {
+const buildIngressForServer = async (
+	serverId: string,
+): Promise<IngressRule[]> => {
 	const rows = await db
 		.select({
 			host: domains.host,
 			path: domains.path,
+			appServerId: applications.serverId,
+			composeServerId: compose.serverId,
 		})
 		.from(domains)
+		.leftJoin(
+			applications,
+			eq(applications.applicationId, domains.applicationId),
+		)
+		.leftJoin(compose, eq(compose.composeId, domains.composeId))
 		.innerJoin(
 			cloudflareZones,
 			eq(domains.cloudflareZoneId, cloudflareZones.cloudflareZoneId),
@@ -102,9 +113,13 @@ const buildIngressForServer = async (serverId: string): Promise<IngressRule[]> =
 			),
 		);
 
+	const filtered = rows.filter(
+		(r) => r.appServerId === serverId || r.composeServerId === serverId,
+	);
+
 	// All ingress on a server tunnel routes to local Traefik on :80
 	return buildIngress({
-		hostnames: rows.map((r) => ({
+		hostnames: filtered.map((r) => ({
 			hostname: r.host,
 			service: "http://localhost:80",
 		})),
@@ -118,7 +133,9 @@ export const provisionServerTunnel = async (
 	const srv = await findServer(serverId);
 	const config = await findCloudflareConfigForOrg(srv.organizationId);
 	if (!config) {
-		onData?.("Cloudflare not configured for this organization — skipping tunnel.\n");
+		onData?.(
+			"Cloudflare not configured for this organization — skipping tunnel.\n",
+		);
 		return;
 	}
 
@@ -198,7 +215,9 @@ const buildHostFromDomain = async (
 	if (!zone) throw new Error("CF zone not found");
 	const sub = subdomain ?? row.host.replace(`.${zone.zoneName}`, "").trim();
 	const host =
-		sub === "" || sub === zone.zoneName ? zone.zoneName : `${sub}.${zone.zoneName}`;
+		sub === "" || sub === zone.zoneName
+			? zone.zoneName
+			: `${sub}.${zone.zoneName}`;
 	return { host, zone };
 };
 
@@ -334,7 +353,10 @@ export const renameDomainHost = async (
 	});
 	if (!dom) throw new Error("Domain not found");
 	if (!dom.cloudflareZoneId) {
-		await db.update(domains).set({ host: newHost }).where(eq(domains.domainId, domainId));
+		await db
+			.update(domains)
+			.set({ host: newHost })
+			.where(eq(domains.domainId, domainId));
 		return;
 	}
 	if (dom.host === newHost) return;

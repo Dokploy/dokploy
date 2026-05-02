@@ -26,15 +26,12 @@ export const CloudflareConfigForm = () => {
 	const utils = api.useUtils();
 	const { data, isLoading } = api.cloudflare.getConfig.useQuery();
 	const [token, setToken] = useState("");
-	const [verifyResult, setVerifyResult] = useState<
-		| {
-				ok: boolean;
-				accountId: string | null;
-				scopes: string[];
-				status: string;
-		  }
-		| null
-	>(null);
+	const [verifyResult, setVerifyResult] = useState<{
+		ok: boolean;
+		accountId: string | null;
+		scopes: string[];
+		status: string;
+	} | null>(null);
 
 	const verifyMut = api.cloudflare.verifyToken.useMutation({
 		onSuccess: (r) => setVerifyResult(r),

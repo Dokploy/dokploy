@@ -142,10 +142,7 @@ export const domainRouter = createTRPCRouter({
 			}
 			const result = await updateDomainById(input.domainId, input);
 			const domain = await findDomainById(input.domainId);
-			if (
-				domain.cloudflareZoneId &&
-				domain.cloudflareSyncStatus !== "synced"
-			) {
+			if (domain.cloudflareZoneId && domain.cloudflareSyncStatus !== "synced") {
 				try {
 					const { syncDomain } = await import(
 						"@dokploy/server/services/cloudflare/orchestrator"

@@ -14,12 +14,12 @@ import {
 	apiTestCloudflareZone,
 	apiToggleCloudflareZone,
 } from "@dokploy/server/db/schema/cloudflare-zone";
-import { reconcileServer } from "@dokploy/server/services/cloudflare/orchestrator";
 import {
 	listDnsRecords,
 	listZones,
 	verifyToken,
 } from "@dokploy/server/services/cloudflare";
+import { reconcileServer } from "@dokploy/server/services/cloudflare/orchestrator";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -204,10 +204,7 @@ export const cloudflareRouter = createTRPCRouter({
 			const zone = await db.query.cloudflareZones.findFirst({
 				where: and(
 					eq(cloudflareZones.cloudflareZoneId, input.cloudflareZoneId),
-					eq(
-						cloudflareZones.organizationId,
-						ctx.session.activeOrganizationId,
-					),
+					eq(cloudflareZones.organizationId, ctx.session.activeOrganizationId),
 				),
 			});
 			if (!zone) {
@@ -234,10 +231,7 @@ export const cloudflareRouter = createTRPCRouter({
 			const result = await db
 				.delete(cloudflareConfig)
 				.where(
-					eq(
-						cloudflareConfig.organizationId,
-						ctx.session.activeOrganizationId,
-					),
+					eq(cloudflareConfig.organizationId, ctx.session.activeOrganizationId),
 				)
 				.returning();
 			return { deleted: result.length };
@@ -275,10 +269,7 @@ export const cloudflareRouter = createTRPCRouter({
 			const zone = await db.query.cloudflareZones.findFirst({
 				where: and(
 					eq(cloudflareZones.cloudflareZoneId, input.cloudflareZoneId),
-					eq(
-						cloudflareZones.organizationId,
-						ctx.session.activeOrganizationId,
-					),
+					eq(cloudflareZones.organizationId, ctx.session.activeOrganizationId),
 				),
 			});
 			if (!zone) {

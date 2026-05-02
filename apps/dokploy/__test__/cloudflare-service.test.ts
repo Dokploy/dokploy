@@ -1,4 +1,3 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	buildIngress,
 	CloudflareApiError,
@@ -12,6 +11,7 @@ import {
 	updateIngress,
 	verifyToken,
 } from "@dokploy/server/services/cloudflare";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const TOKEN = "cf-test-token";
 const ACCOUNT = "acc-123";
@@ -199,7 +199,9 @@ describe("cloudflare service", () => {
 		it("PUTs body shape { config: { ingress } }", async () => {
 			fetchMock.mockResolvedValueOnce(okResponse(null));
 			const ingress = buildIngress({
-				hostnames: [{ hostname: "app.example.com", service: "http://localhost:80" }],
+				hostnames: [
+					{ hostname: "app.example.com", service: "http://localhost:80" },
+				],
 			});
 			await updateIngress(TOKEN, ACCOUNT, "tun-1", ingress);
 			const [, init] = fetchMock.mock.calls[0]!;

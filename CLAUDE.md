@@ -31,6 +31,7 @@ The codebase distinguishes between **self-hosted** and **Dokploy Cloud** via the
 - **Schedules / Cron**: Scheduled deployments, redeploys, custom commands (self-hosted).
 - **Notifications**: Slack, Discord, Telegram, Email (Resend/SMTP), Teams, Mattermost, Gotify, Lark, Pushover, Ntfy, custom webhooks.
 - **Git Providers**: GitHub (App + webhooks), GitLab, Gitea, Bitbucket OAuth + webhook integrations.
+- **Cloudflare Integration**: Org-level CF token + multi-zone configuration; per-server auto-provisioned remotely-managed Cloudflare Tunnels (cloudflared installed via SSH on server bootstrap, dokploy-tunnel systemd unit); CF-managed domains create/update/delete CNAMEs and tunnel ingress automatically; one-way reconcile pushes Dokploy DB state to Cloudflare. CF settings live under Settings → Cloudflare. Permission: `cloudflare` resource (free-tier, sibling of `gitProviders`).
 - **Domains & SSL**: Multi-domain per service, Let's Encrypt, custom certs, redirects.
 - **Environment Variables**: Per-service and inherited from project/environment, secure storage.
 - **Volumes & Mounts**: Persistent + bind mounts.

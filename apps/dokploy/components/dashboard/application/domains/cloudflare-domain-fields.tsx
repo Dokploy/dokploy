@@ -11,8 +11,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { useDebounce } from "@/utils/hooks/use-debounce";
 import { api } from "@/utils/api";
+import { useDebounce } from "@/utils/hooks/use-debounce";
 
 const RESERVED_NAMES = new Set(["dokploy", "traefik"]);
 
@@ -59,7 +59,8 @@ export const CloudflareDomainFields = ({
 	const debouncedSub = useDebounce(subdomain, 300);
 
 	const fullHost =
-		activeZone && (debouncedSub.trim() === ""
+		activeZone &&
+		(debouncedSub.trim() === ""
 			? activeZone.zoneName
 			: `${debouncedSub.trim()}.${activeZone.zoneName}`);
 
@@ -85,11 +86,7 @@ export const CloudflareDomainFields = ({
 				subdomain: debouncedSub.trim(),
 			},
 			{
-				enabled:
-					mode === "cloudflare" &&
-					!!zoneId &&
-					labelValid &&
-					!isReserved,
+				enabled: mode === "cloudflare" && !!zoneId && labelValid && !isReserved,
 			},
 		);
 
@@ -137,7 +134,10 @@ export const CloudflareDomainFields = ({
 							</SelectTrigger>
 							<SelectContent>
 								{enabledZones.map((z) => (
-									<SelectItem key={z.cloudflareZoneId} value={z.cloudflareZoneId}>
+									<SelectItem
+										key={z.cloudflareZoneId}
+										value={z.cloudflareZoneId}
+									>
 										{z.zoneName}
 									</SelectItem>
 								))}

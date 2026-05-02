@@ -16,8 +16,6 @@ import { useRouter } from "next/router";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
-import { TunnelActions } from "./tunnel-actions";
-import { TunnelStatusBadge } from "./tunnel-status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,6 +48,8 @@ import { ShowMonitoringModal } from "./show-monitoring-modal";
 import { ShowSchedulesModal } from "./show-schedules-modal";
 import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
+import { TunnelActions } from "./tunnel-actions";
+import { TunnelStatusBadge } from "./tunnel-status-badge";
 import { WelcomeSubscription } from "./welcome-stripe/welcome-subscription";
 
 export const ShowServers = () => {
@@ -185,9 +185,7 @@ export const ShowServers = () => {
 																						/>
 																						<TunnelActions
 																							serverId={server.serverId}
-																							tunnelStatus={
-																								server.tunnelStatus
-																							}
+																							tunnelStatus={server.tunnelStatus}
 																						/>
 																					</DropdownMenuContent>
 																				</DropdownMenu>

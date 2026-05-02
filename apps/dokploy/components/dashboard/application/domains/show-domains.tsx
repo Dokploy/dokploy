@@ -522,10 +522,15 @@ export const ShowDomains = ({ id, type }: Props) => {
 																		</p>
 																	) : item.cloudflareSyncedAt ? (
 																		<p className="text-sm">
-																			Synced {new Date(item.cloudflareSyncedAt).toLocaleString()}
+																			Synced{" "}
+																			{new Date(
+																				item.cloudflareSyncedAt,
+																			).toLocaleString()}
 																		</p>
 																	) : (
-																		<p className="text-sm">Cloudflare-managed</p>
+																		<p className="text-sm">
+																			Cloudflare-managed
+																		</p>
 																	)}
 																</TooltipContent>
 															</Tooltip>

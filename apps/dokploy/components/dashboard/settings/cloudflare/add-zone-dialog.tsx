@@ -20,10 +20,8 @@ interface Props {
 
 export const AddZoneDialog = ({ open, onOpenChange }: Props) => {
 	const utils = api.useUtils();
-	const { data: zones, isFetching } = api.cloudflare.listAvailableZones.useQuery(
-		undefined,
-		{ enabled: open },
-	);
+	const { data: zones, isFetching } =
+		api.cloudflare.listAvailableZones.useQuery(undefined, { enabled: open });
 	const { data: configData } = api.cloudflare.getConfig.useQuery();
 	const [selected, setSelected] = useState<Record<string, boolean>>({});
 
@@ -40,9 +38,7 @@ export const AddZoneDialog = ({ open, onOpenChange }: Props) => {
 		onError: (e) => toast.error(e.message),
 	});
 
-	const existingIds = new Set(
-		(configData?.zones ?? []).map((z) => z.zoneId),
-	);
+	const existingIds = new Set((configData?.zones ?? []).map((z) => z.zoneId));
 	const available = (zones ?? []).filter((z) => !existingIds.has(z.id));
 
 	const toggleAll = (next: boolean) => {
@@ -108,9 +104,13 @@ export const AddZoneDialog = ({ open, onOpenChange }: Props) => {
 							</div>
 						</div>
 						{available.map((z) => (
-							<label
+							<button
+								type="button"
 								key={z.id}
-								className="flex items-center gap-3 px-2 py-2 rounded hover:bg-muted/40 cursor-pointer"
+								onClick={() =>
+									setSelected((prev) => ({ ...prev, [z.id]: !prev[z.id] }))
+								}
+								className="flex items-center gap-3 px-2 py-2 rounded hover:bg-muted/40 cursor-pointer text-left"
 							>
 								<Checkbox
 									checked={!!selected[z.id]}
@@ -124,7 +124,7 @@ export const AddZoneDialog = ({ open, onOpenChange }: Props) => {
 										{z.account.name} · {z.status}
 									</span>
 								</div>
-							</label>
+							</button>
 						))}
 					</div>
 				)}

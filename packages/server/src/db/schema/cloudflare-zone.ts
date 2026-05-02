@@ -38,16 +38,19 @@ export const cloudflareZones = pgTable(
 	}),
 );
 
-export const cloudflareZonesRelations = relations(cloudflareZones, ({ one }) => ({
-	organization: one(organization, {
-		fields: [cloudflareZones.organizationId],
-		references: [organization.id],
+export const cloudflareZonesRelations = relations(
+	cloudflareZones,
+	({ one }) => ({
+		organization: one(organization, {
+			fields: [cloudflareZones.organizationId],
+			references: [organization.id],
+		}),
+		config: one(cloudflareConfig, {
+			fields: [cloudflareZones.cloudflareConfigId],
+			references: [cloudflareConfig.cloudflareConfigId],
+		}),
 	}),
-	config: one(cloudflareConfig, {
-		fields: [cloudflareZones.cloudflareConfigId],
-		references: [cloudflareConfig.cloudflareConfigId],
-	}),
-}));
+);
 
 const createSchema = createInsertSchema(cloudflareZones);
 
