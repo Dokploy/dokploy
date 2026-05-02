@@ -1,9 +1,5 @@
 import { db } from "@dokploy/server/db";
-import {
-	cloudflareConfig,
-	cloudflareZones,
-	server,
-} from "@dokploy/server/db/schema";
+import { cloudflareConfig, cloudflareZones } from "@dokploy/server/db/schema";
 import {
 	apiSaveCloudflareToken,
 	apiVerifyCloudflareToken,
@@ -14,17 +10,18 @@ import {
 	apiTestCloudflareZone,
 	apiToggleCloudflareZone,
 } from "@dokploy/server/db/schema/cloudflare-zone";
+import { listZones, verifyToken } from "@dokploy/server/services/cloudflare";
 import {
-	listDnsRecords,
-	listZones,
-	verifyToken,
-} from "@dokploy/server/services/cloudflare";
-import { reconcileServer } from "@dokploy/server/services/cloudflare/orchestrator";
+	addCloudflareZones,
+	checkSubdomainAvailability,
+	reconcileAllServersForOrg,
+	testCloudflareZone,
+} from "@dokploy/server/services/cloudflare/orchestrator";
 import { checkPermission } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { createTRPCRouter, withPermission } from "../trpc";
+import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
 const redactConfig = <T extends { apiToken: string } | null | undefined>(
 	row: T,
@@ -64,7 +61,7 @@ export const cloudflareRouter = createTRPCRouter({
 			return verifyToken(input.apiToken);
 		}),
 
-	saveToken: withPermission("cloudflare", "create")
+	saveToken: protectedProcedure
 		.input(apiSaveCloudflareToken)
 		.mutation(async ({ ctx, input }) => {
 			const verification = await verifyToken(input.apiToken);
@@ -84,7 +81,6 @@ export const cloudflareRouter = createTRPCRouter({
 			});
 
 			if (existing) {
-				// Overwriting an existing token requires update permission, not just create.
 				await checkPermission(ctx, { cloudflare: ["update"] });
 				await db
 					.update(cloudflareConfig)
@@ -102,6 +98,7 @@ export const cloudflareRouter = createTRPCRouter({
 						),
 					);
 			} else {
+				await checkPermission(ctx, { cloudflare: ["create"] });
 				await db.insert(cloudflareConfig).values({
 					organizationId: ctx.session.activeOrganizationId,
 					apiToken: input.apiToken,
@@ -134,36 +131,9 @@ export const cloudflareRouter = createTRPCRouter({
 
 	addZones: withPermission("cloudflare", "update")
 		.input(apiAddCloudflareZones)
-		.mutation(async ({ ctx, input }) => {
-			const config = await db.query.cloudflareConfig.findFirst({
-				where: eq(
-					cloudflareConfig.organizationId,
-					ctx.session.activeOrganizationId,
-				),
-			});
-			if (!config) {
-				throw new TRPCError({
-					code: "PRECONDITION_FAILED",
-					message: "Cloudflare token not configured",
-				});
-			}
-
-			const inserted = await db
-				.insert(cloudflareZones)
-				.values(
-					input.zones.map((z) => ({
-						organizationId: ctx.session.activeOrganizationId,
-						cloudflareConfigId: config.cloudflareConfigId,
-						zoneId: z.zoneId,
-						zoneName: z.zoneName,
-						accountId: z.accountId,
-						status: z.status ?? null,
-					})),
-				)
-				.onConflictDoNothing()
-				.returning();
-			return inserted;
-		}),
+		.mutation(({ ctx, input }) =>
+			addCloudflareZones(ctx.session.activeOrganizationId, input.zones),
+		),
 
 	toggleZone: withPermission("cloudflare", "update")
 		.input(apiToggleCloudflareZone)
@@ -203,31 +173,12 @@ export const cloudflareRouter = createTRPCRouter({
 
 	testZone: withPermission("cloudflare", "read")
 		.input(apiTestCloudflareZone)
-		.mutation(async ({ ctx, input }) => {
-			const zone = await db.query.cloudflareZones.findFirst({
-				where: and(
-					eq(cloudflareZones.cloudflareZoneId, input.cloudflareZoneId),
-					eq(cloudflareZones.organizationId, ctx.session.activeOrganizationId),
-				),
-			});
-			if (!zone) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Zone not found" });
-			}
-			const config = await db.query.cloudflareConfig.findFirst({
-				where: eq(
-					cloudflareConfig.organizationId,
-					ctx.session.activeOrganizationId,
-				),
-			});
-			if (!config) {
-				throw new TRPCError({
-					code: "PRECONDITION_FAILED",
-					message: "Cloudflare token not configured",
-				});
-			}
-			const records = await listDnsRecords(config.apiToken, zone.zoneId);
-			return { ok: true, recordCount: records.length };
-		}),
+		.mutation(({ ctx, input }) =>
+			testCloudflareZone(
+				ctx.session.activeOrganizationId,
+				input.cloudflareZoneId,
+			),
+		),
 
 	deleteConfig: withPermission("cloudflare", "delete").mutation(
 		async ({ ctx }) => {
@@ -242,28 +193,7 @@ export const cloudflareRouter = createTRPCRouter({
 	),
 
 	reconcileAllServers: withPermission("cloudflare", "update").mutation(
-		async ({ ctx }) => {
-			const servers = await db.query.server.findMany({
-				where: eq(server.organizationId, ctx.session.activeOrganizationId),
-			});
-			let ok = 0;
-			let failed = 0;
-			const errors: Array<{ serverId: string; error: string }> = [];
-			for (const s of servers) {
-				if (!s.tunnelId) continue;
-				try {
-					await reconcileServer(s.serverId);
-					ok += 1;
-				} catch (e) {
-					failed += 1;
-					errors.push({
-						serverId: s.serverId,
-						error: e instanceof Error ? e.message : String(e),
-					});
-				}
-			}
-			return { ok, failed, errors };
-		},
+		({ ctx }) => reconcileAllServersForOrg(ctx.session.activeOrganizationId),
 	),
 
 	checkSubdomainAvailability: withPermission("cloudflare", "read")
@@ -273,40 +203,11 @@ export const cloudflareRouter = createTRPCRouter({
 				subdomain: z.string(),
 			}),
 		)
-		.query(async ({ ctx, input }) => {
-			const zone = await db.query.cloudflareZones.findFirst({
-				where: and(
-					eq(cloudflareZones.cloudflareZoneId, input.cloudflareZoneId),
-					eq(cloudflareZones.organizationId, ctx.session.activeOrganizationId),
-				),
-			});
-			if (!zone) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Zone not found" });
-			}
-			const config = await db.query.cloudflareConfig.findFirst({
-				where: eq(
-					cloudflareConfig.organizationId,
-					ctx.session.activeOrganizationId,
-				),
-			});
-			if (!config) {
-				throw new TRPCError({
-					code: "PRECONDITION_FAILED",
-					message: "Cloudflare token not configured",
-				});
-			}
-			const fullHost =
-				input.subdomain.trim() === ""
-					? zone.zoneName
-					: `${input.subdomain.trim()}.${zone.zoneName}`;
-			const existing = await listDnsRecords(config.apiToken, zone.zoneId, {
-				name: fullHost,
-			});
-			return {
-				host: fullHost,
-				cloudflareConflict: existing.length > 0,
-				existingType: existing[0]?.type ?? null,
-				comment: existing[0]?.comment ?? null,
-			};
-		}),
+		.query(({ ctx, input }) =>
+			checkSubdomainAvailability(
+				ctx.session.activeOrganizationId,
+				input.cloudflareZoneId,
+				input.subdomain,
+			),
+		),
 });

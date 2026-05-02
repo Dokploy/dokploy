@@ -11,6 +11,7 @@ import {
 	installCloudflaredOnServer,
 	uninstallCloudflaredOnServer,
 } from "@dokploy/server/setup/cloudflare-tunnel-setup";
+import { TRPCError } from "@trpc/server";
 import { and, eq, isNotNull, or } from "drizzle-orm";
 import {
 	buildIngress,
@@ -21,6 +22,7 @@ import {
 	getDnsRecord,
 	getTunnel,
 	type IngressRule,
+	listDnsRecords,
 	updateIngress,
 } from "./index";
 
@@ -541,4 +543,112 @@ export const cleanupServer = async (
 	if (withSsh && srv.tunnelToken) {
 		await uninstallCloudflaredOnServer(serverId, onData).catch(() => {});
 	}
+};
+
+const requireConfigForOrg = async (organizationId: string) => {
+	const config = await findCloudflareConfigForOrg(organizationId);
+	if (!config) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: "Cloudflare token not configured",
+		});
+	}
+	return config;
+};
+
+export const addCloudflareZones = async (
+	organizationId: string,
+	zones: Array<{
+		zoneId: string;
+		zoneName: string;
+		accountId: string;
+		status?: string | null;
+	}>,
+) => {
+	const config = await requireConfigForOrg(organizationId);
+	return db
+		.insert(cloudflareZones)
+		.values(
+			zones.map((z) => ({
+				organizationId,
+				cloudflareConfigId: config.cloudflareConfigId,
+				zoneId: z.zoneId,
+				zoneName: z.zoneName,
+				accountId: z.accountId,
+				status: z.status ?? null,
+			})),
+		)
+		.onConflictDoNothing()
+		.returning();
+};
+
+export const testCloudflareZone = async (
+	organizationId: string,
+	cloudflareZoneId: string,
+) => {
+	const zone = await db.query.cloudflareZones.findFirst({
+		where: and(
+			eq(cloudflareZones.cloudflareZoneId, cloudflareZoneId),
+			eq(cloudflareZones.organizationId, organizationId),
+		),
+	});
+	if (!zone) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Zone not found" });
+	}
+	const config = await requireConfigForOrg(organizationId);
+	const records = await listDnsRecords(config.apiToken, zone.zoneId);
+	return { ok: true as const, recordCount: records.length };
+};
+
+export const reconcileAllServersForOrg = async (organizationId: string) => {
+	const servers = await db.query.server.findMany({
+		where: eq(server.organizationId, organizationId),
+	});
+	let ok = 0;
+	let failed = 0;
+	const errors: Array<{ serverId: string; error: string }> = [];
+	for (const s of servers) {
+		if (!s.tunnelId) continue;
+		try {
+			await reconcileServer(s.serverId);
+			ok += 1;
+		} catch (e) {
+			failed += 1;
+			errors.push({
+				serverId: s.serverId,
+				error: e instanceof Error ? e.message : String(e),
+			});
+		}
+	}
+	return { ok, failed, errors };
+};
+
+export const checkSubdomainAvailability = async (
+	organizationId: string,
+	cloudflareZoneId: string,
+	subdomain: string,
+) => {
+	const zone = await db.query.cloudflareZones.findFirst({
+		where: and(
+			eq(cloudflareZones.cloudflareZoneId, cloudflareZoneId),
+			eq(cloudflareZones.organizationId, organizationId),
+		),
+	});
+	if (!zone) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Zone not found" });
+	}
+	const config = await requireConfigForOrg(organizationId);
+	const fullHost =
+		subdomain.trim() === ""
+			? zone.zoneName
+			: `${subdomain.trim()}.${zone.zoneName}`;
+	const existing = await listDnsRecords(config.apiToken, zone.zoneId, {
+		name: fullHost,
+	});
+	return {
+		host: fullHost,
+		cloudflareConflict: existing.length > 0,
+		existingType: existing[0]?.type ?? null,
+		comment: existing[0]?.comment ?? null,
+	};
 };
