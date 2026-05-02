@@ -498,6 +498,44 @@ export const ShowDomains = ({ id, type }: Props) => {
 
 												{/* Domain Details */}
 												<div className="flex flex-wrap gap-3">
+													{item.cloudflareZoneId && (
+														<TooltipProvider>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Badge
+																		variant={
+																			item.cloudflareSyncStatus === "synced"
+																				? "default"
+																				: item.cloudflareSyncStatus === "error"
+																					? "destructive"
+																					: "secondary"
+																		}
+																	>
+																		Cloudflare ·{" "}
+																		{item.cloudflareSyncStatus ?? "pending"}
+																	</Badge>
+																</TooltipTrigger>
+																<TooltipContent className="max-w-xs">
+																	{item.cloudflareSyncError ? (
+																		<p className="text-sm break-words">
+																			{item.cloudflareSyncError}
+																		</p>
+																	) : item.cloudflareSyncedAt ? (
+																		<p className="text-sm">
+																			Synced{" "}
+																			{new Date(
+																				item.cloudflareSyncedAt,
+																			).toLocaleString()}
+																		</p>
+																	) : (
+																		<p className="text-sm">
+																			Cloudflare-managed
+																		</p>
+																	)}
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													)}
 													<TooltipProvider>
 														<Tooltip>
 															<TooltipTrigger asChild>

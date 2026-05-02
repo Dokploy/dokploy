@@ -1,6 +1,7 @@
 import path from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import { getDokployUrl } from "@dokploy/server/services/admin";
+import { provisionServerTunnel } from "@dokploy/server/services/cloudflare/orchestrator";
 import {
 	createServerDeployment,
 	updateDeploymentStatus,
@@ -71,6 +72,13 @@ export const serverSetup = async (
 				: "\nInstalling Server Dependencies: ✅\n",
 		);
 		await installRequirements(serverId, onData);
+
+		try {
+			await provisionServerTunnel(serverId, onData);
+		} catch (tunnelErr) {
+			// Non-fatal: server still works without the CF tunnel
+			console.warn("Cloudflare tunnel provisioning failed:", tunnelErr);
+		}
 
 		if (IS_CLOUD) {
 			onData?.("\nConfiguring Monitoring: 🔄\n");

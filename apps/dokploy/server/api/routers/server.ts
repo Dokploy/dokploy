@@ -424,6 +424,14 @@ export const serverRouter = createTRPCRouter({
 					resourceName: currentServer.name,
 				});
 				await removeDeploymentsByServerId(currentServer);
+				try {
+					const { cleanupServer } = await import(
+						"@dokploy/server/services/cloudflare/orchestrator"
+					);
+					await cleanupServer(input.serverId, true);
+				} catch (cleanupErr) {
+					console.warn("Cloudflare cleanup failed:", cleanupErr);
+				}
 				await deleteServer(input.serverId);
 
 				if (IS_CLOUD) {
@@ -638,6 +646,123 @@ export const serverRouter = createTRPCRouter({
 				endpoint.token,
 				runningAppNames,
 			);
+		}),
+
+	getTunnelStatus: withPermission("server", "read")
+		.input(z.object({ serverId: z.string().min(1) }))
+		.query(async ({ ctx, input }) => {
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			if (!accessibleIds.has(input.serverId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not authorized to access this server",
+				});
+			}
+			const srv = await db.query.server.findFirst({
+				where: and(
+					eq(server.serverId, input.serverId),
+					eq(server.organizationId, ctx.session.activeOrganizationId),
+				),
+				columns: {
+					serverId: true,
+					tunnelStatus: true,
+					tunnelId: true,
+					tunnelError: true,
+					tunnelCheckedAt: true,
+				},
+			});
+			if (!srv) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Server not found" });
+			}
+			return srv;
+		}),
+
+	setupTunnel: withPermission("cloudflare", "update")
+		.input(z.object({ serverId: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			if (!accessibleIds.has(input.serverId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not authorized to access this server",
+				});
+			}
+			const srv = await db.query.server.findFirst({
+				where: and(
+					eq(server.serverId, input.serverId),
+					eq(server.organizationId, ctx.session.activeOrganizationId),
+				),
+			});
+			if (!srv) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Server not found" });
+			}
+			const { provisionServerTunnel } = await import(
+				"@dokploy/server/services/cloudflare/orchestrator"
+			);
+			await provisionServerTunnel(input.serverId);
+			return { ok: true };
+		}),
+
+	disableTunnel: withPermission("cloudflare", "update")
+		.input(z.object({ serverId: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			if (!accessibleIds.has(input.serverId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not authorized to access this server",
+				});
+			}
+			const srv = await db.query.server.findFirst({
+				where: and(
+					eq(server.serverId, input.serverId),
+					eq(server.organizationId, ctx.session.activeOrganizationId),
+				),
+			});
+			if (!srv) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Server not found" });
+			}
+			const { uninstallCloudflaredOnServer } = await import(
+				"@dokploy/server/setup/cloudflare-tunnel-setup"
+			);
+			await uninstallCloudflaredOnServer(input.serverId).catch(() => {});
+			await db
+				.update(server)
+				.set({
+					tunnelStatus: "disabled",
+					tunnelId: null,
+					tunnelToken: null,
+					tunnelError: null,
+					tunnelCheckedAt: new Date().toISOString(),
+				})
+				.where(eq(server.serverId, input.serverId));
+			return { ok: true };
+		}),
+
+	reconcileTunnel: withPermission("cloudflare", "update")
+		.input(z.object({ serverId: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			if (!accessibleIds.has(input.serverId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not authorized to access this server",
+				});
+			}
+			const srv = await db.query.server.findFirst({
+				where: and(
+					eq(server.serverId, input.serverId),
+					eq(server.organizationId, ctx.session.activeOrganizationId),
+				),
+			});
+			if (!srv) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Server not found" });
+			}
+			const { reconcileServer } = await import(
+				"@dokploy/server/services/cloudflare/orchestrator"
+			);
+			await reconcileServer(input.serverId);
+			return { ok: true };
 		}),
 });
 

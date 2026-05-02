@@ -48,6 +48,8 @@ import { ShowMonitoringModal } from "./show-monitoring-modal";
 import { ShowSchedulesModal } from "./show-schedules-modal";
 import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
+import { TunnelActions } from "./tunnel-actions";
+import { TunnelStatusBadge } from "./tunnel-status-badge";
 import { WelcomeSubscription } from "./welcome-stripe/welcome-subscription";
 
 export const ShowServers = () => {
@@ -181,6 +183,10 @@ export const ShowServers = () => {
 																						<ShowSchedulesModal
 																							serverId={server.serverId}
 																						/>
+																						<TunnelActions
+																							serverId={server.serverId}
+																							tunnelStatus={server.tunnelStatus}
+																						/>
 																					</DropdownMenuContent>
 																				</DropdownMenu>
 																			)}
@@ -230,6 +236,11 @@ export const ShowServers = () => {
 																			>
 																				{server.serverType}
 																			</Badge>
+																			<TunnelStatusBadge
+																				serverId={server.serverId}
+																				initialStatus={server.tunnelStatus}
+																				initialError={server.tunnelError}
+																			/>
 																		</div>
 																	</TooltipProvider>
 																</CardHeader>

@@ -13,6 +13,7 @@ import {
 	CircleHelp,
 	ClipboardList,
 	Clock,
+	Cloud,
 	CreditCard,
 	Database,
 	Folder,
@@ -347,6 +348,13 @@ const MENU: Menu = {
 			icon: GitBranch,
 			// Only enabled for users with access to Git providers
 			isEnabled: ({ permissions }) => !!permissions?.gitProviders.read,
+		},
+		{
+			isSingle: true,
+			title: "Cloudflare",
+			url: "/dashboard/settings/cloudflare",
+			icon: Cloud,
+			isEnabled: ({ permissions }) => !!permissions?.cloudflare?.read,
 		},
 		{
 			isSingle: true,

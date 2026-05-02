@@ -52,6 +52,16 @@ export const domainRouter = createTRPCRouter({
 					resourceId: domain.domainId,
 					resourceName: domain.host,
 				});
+				if (domain.cloudflareZoneId) {
+					try {
+						const { syncDomain } = await import(
+							"@dokploy/server/services/cloudflare/orchestrator"
+						);
+						await syncDomain(domain.domainId);
+					} catch (cfErr) {
+						console.warn("Cloudflare sync failed:", cfErr);
+					}
+				}
 				return domain;
 			} catch (error) {
 				throw new TRPCError({
@@ -118,8 +128,30 @@ export const domainRouter = createTRPCRouter({
 				});
 			}
 
+			const hostChanged =
+				typeof input.host === "string" && input.host !== currentDomain.host;
+			if (hostChanged && currentDomain.cloudflareZoneId) {
+				try {
+					const { renameDomainHost } = await import(
+						"@dokploy/server/services/cloudflare/orchestrator"
+					);
+					await renameDomainHost(input.domainId, input.host as string);
+				} catch (cfErr) {
+					console.warn("Cloudflare rename failed:", cfErr);
+				}
+			}
 			const result = await updateDomainById(input.domainId, input);
 			const domain = await findDomainById(input.domainId);
+			if (domain.cloudflareZoneId && domain.cloudflareSyncStatus !== "synced") {
+				try {
+					const { syncDomain } = await import(
+						"@dokploy/server/services/cloudflare/orchestrator"
+					);
+					await syncDomain(domain.domainId);
+				} catch (cfErr) {
+					console.warn("Cloudflare sync failed:", cfErr);
+				}
+			}
 			await audit(ctx, {
 				action: "update",
 				resourceType: "domain",
@@ -176,6 +208,16 @@ export const domainRouter = createTRPCRouter({
 				});
 			}
 
+			if (domain.cloudflareZoneId) {
+				try {
+					const { unsyncDomain } = await import(
+						"@dokploy/server/services/cloudflare/orchestrator"
+					);
+					await unsyncDomain(domain.domainId);
+				} catch (cfErr) {
+					console.warn("Cloudflare unsync failed:", cfErr);
+				}
+			}
 			const result = await removeDomainById(input.domainId);
 			await audit(ctx, {
 				action: "delete",
