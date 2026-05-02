@@ -13,6 +13,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { domain } from "../validations/domain";
 import { applications } from "./application";
+import { cloudflareZones } from "./cloudflare-zone";
 import { compose } from "./compose";
 import { previewDeployments } from "./preview-deployments";
 import { certificateType } from "./shared";
@@ -21,6 +22,13 @@ export const domainType = pgEnum("domainType", [
 	"compose",
 	"application",
 	"preview",
+]);
+
+export const cloudflareSyncStatus = pgEnum("cloudflareSyncStatus", [
+	"pending",
+	"synced",
+	"conflict",
+	"error",
 ]);
 
 export const domains = pgTable("domain", {
@@ -55,6 +63,14 @@ export const domains = pgTable("domain", {
 	internalPath: text("internalPath").default("/"),
 	stripPath: boolean("stripPath").notNull().default(false),
 	middlewares: text("middlewares").array().default(sql`ARRAY[]::text[]`),
+	cloudflareZoneId: text("cloudflareZoneId").references(
+		() => cloudflareZones.cloudflareZoneId,
+		{ onDelete: "set null" },
+	),
+	cloudflareRecordId: text("cloudflareRecordId"),
+	cloudflareSyncStatus: cloudflareSyncStatus("cloudflareSyncStatus"),
+	cloudflareSyncedAt: text("cloudflareSyncedAt"),
+	cloudflareSyncError: text("cloudflareSyncError"),
 });
 
 export const domainsRelations = relations(domains, ({ one }) => ({
@@ -69,6 +85,10 @@ export const domainsRelations = relations(domains, ({ one }) => ({
 	previewDeployment: one(previewDeployments, {
 		fields: [domains.previewDeploymentId],
 		references: [previewDeployments.previewDeploymentId],
+	}),
+	cloudflareZone: one(cloudflareZones, {
+		fields: [domains.cloudflareZoneId],
+		references: [cloudflareZones.cloudflareZoneId],
 	}),
 }));
 
@@ -94,6 +114,7 @@ export const apiCreateDomain = createSchema.pick({
 	internalPath: true,
 	stripPath: true,
 	middlewares: true,
+	cloudflareZoneId: true,
 });
 
 export const apiFindDomain = z.object({
@@ -126,5 +147,12 @@ export const apiUpdateDomain = createSchema
 		internalPath: true,
 		stripPath: true,
 		middlewares: true,
+		cloudflareZoneId: true,
 	})
 	.merge(createSchema.pick({ domainId: true }).required());
+
+export const apiCheckDomainAvailability = z.object({
+	cloudflareZoneId: z.string().min(1),
+	subdomain: z.string(),
+	excludeDomainId: z.string().optional(),
+});

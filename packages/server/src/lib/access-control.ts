@@ -26,6 +26,7 @@ export const statements = {
 	docker: ["read"],
 	sshKeys: ["read", "create", "delete"],
 	gitProviders: ["read", "create", "delete"],
+	cloudflare: ["read", "create", "update", "delete"],
 	traefikFiles: ["read", "write"],
 	api: ["read"],
 
@@ -93,6 +94,7 @@ export const ownerRole = ac.newRole({
 	docker: ["read"],
 	sshKeys: ["read", "create", "delete"],
 	gitProviders: ["read", "create", "delete"],
+	cloudflare: ["read", "create", "update", "delete"],
 	traefikFiles: ["read", "write"],
 	api: ["read"],
 	volume: ["read", "create", "delete"],
@@ -130,6 +132,7 @@ export const adminRole = ac.newRole({
 	docker: ["read"],
 	sshKeys: ["read", "create", "delete"],
 	gitProviders: ["read", "create", "delete"],
+	cloudflare: ["read", "create", "update", "delete"],
 	traefikFiles: ["read", "write"],
 	api: ["read"],
 	volume: ["read", "create", "delete"],
@@ -170,6 +173,7 @@ export const memberRole = ac.newRole({
 	docker: [],
 	sshKeys: [],
 	gitProviders: [],
+	cloudflare: [],
 	traefikFiles: [],
 	api: [],
 	// Service-level enterprise resources — member can do everything within services they have access to

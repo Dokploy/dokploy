@@ -26,6 +26,14 @@ import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
 export const serverType = pgEnum("serverType", ["deploy", "build"]);
+export const tunnelStatus = pgEnum("tunnelStatus", [
+	"disabled",
+	"provisioning",
+	"installing",
+	"registering",
+	"healthy",
+	"error",
+]);
 
 export const server = pgTable("server", {
 	serverId: text("serverId")
@@ -51,6 +59,11 @@ export const server = pgTable("server", {
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
 	}),
+	tunnelStatus: tunnelStatus("tunnelStatus").notNull().default("disabled"),
+	tunnelId: text("tunnelId"),
+	tunnelToken: text("tunnelToken"),
+	tunnelError: text("tunnelError"),
+	tunnelCheckedAt: text("tunnelCheckedAt"),
 	metricsConfig: jsonb("metricsConfig")
 		.$type<{
 			server: {

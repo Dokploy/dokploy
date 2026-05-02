@@ -5,6 +5,8 @@ export * from "./audit-log";
 export * from "./backups";
 export * from "./bitbucket";
 export * from "./certificate";
+export * from "./cloudflare-config";
+export * from "./cloudflare-zone";
 export * from "./compose";
 export * from "./deployment";
 export * from "./destination";
