@@ -42,6 +42,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
+import { CloudflareDomainFields } from "./cloudflare-domain-fields";
 
 export type CacheType = "fetch" | "cache";
 
@@ -70,6 +71,7 @@ export const domain = z
 		serviceName: z.string().optional(),
 		domainType: z.enum(["application", "compose", "preview"]).optional(),
 		middlewares: z.array(z.string()).optional(),
+		cloudflareZoneId: z.string().nullable().optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {
@@ -216,6 +218,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			serviceName: undefined,
 			domainType: type,
 			middlewares: [],
+			cloudflareZoneId: null,
 		},
 		mode: "onChange",
 	});
@@ -243,6 +246,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				serviceName: data?.serviceName || undefined,
 				domainType: data?.domainType || type,
 				middlewares: data?.middlewares || [],
+				cloudflareZoneId: data?.cloudflareZoneId ?? null,
 			});
 		}
 
@@ -260,6 +264,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				customCertResolver: undefined,
 				domainType: type,
 				middlewares: [],
+				cloudflareZoneId: null,
 			});
 		}
 	}, [form, data, isPending, domainId]);
@@ -507,6 +512,20 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 										</div>
 									)}
 								</div>
+								<CloudflareDomainFields
+									cloudflareZoneId={form.watch("cloudflareZoneId")}
+									host={form.watch("host")}
+									onChange={({ cloudflareZoneId, host }) => {
+										form.setValue("cloudflareZoneId", cloudflareZoneId, {
+											shouldDirty: true,
+										});
+										form.setValue("host", host, {
+											shouldDirty: true,
+											shouldValidate: true,
+										});
+									}}
+									disabled={isPending}
+								/>
 								<FormField
 									control={form.control}
 									name="host"
