@@ -1,3 +1,23 @@
+# [0.33.0](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.32.0...v0.33.0) (2026-05-02)
+
+
+### Bug Fixes
+
+* **cloudflare:** address PR review findings ([5456ab4](https://github.com/Bl4ckBl1zZ/dokploy/commit/5456ab4e2fb752b9c2bc1aa06d321f0da35a7d43))
+* **cloudflare:** register cloudflare in free-tier permissions test fixture ([e400330](https://github.com/Bl4ckBl1zZ/dokploy/commit/e400330ab727cfcda05390b5bab17263239e5591))
+* **cloudflare:** second pass on PR review findings ([5de95bf](https://github.com/Bl4ckBl1zZ/dokploy/commit/5de95bf2875b84054d059b4731a1b86cf862904b))
+
+
+### Features
+
+* **cloudflare:** domain modal CF picker + list view CF badge ([749d784](https://github.com/Bl4ckBl1zZ/dokploy/commit/749d784d133869e59a7d2d9fc825a29326b88537))
+* **cloudflare:** HTTP service module + SSH tunnel installer ([16abd2f](https://github.com/Bl4ckBl1zZ/dokploy/commit/16abd2f0e62d32fb9b6d330763e5adbd2817181e))
+* **cloudflare:** orchestrator + auto-provision on server setup ([12c05eb](https://github.com/Bl4ckBl1zZ/dokploy/commit/12c05ebdab2b9940288940b11dec37de8e83c8f7))
+* **cloudflare:** schema foundation for CF tunnels + managed domains ([dd0aaa3](https://github.com/Bl4ckBl1zZ/dokploy/commit/dd0aaa359e79ec80126aeab9e6917e0637b2f498))
+* **cloudflare:** server card tunnel pill + actions menu ([19beccf](https://github.com/Bl4ckBl1zZ/dokploy/commit/19beccf968aba141511388c53fbfe1db52b5ba86))
+* **cloudflare:** settings page + sidebar nav ([9715ceb](https://github.com/Bl4ckBl1zZ/dokploy/commit/9715ceb9a19ffd4fd473958270be04ba54ddee60))
+* **cloudflare:** tRPC routers + tunnel/domain hooks ([1f77aa5](https://github.com/Bl4ckBl1zZ/dokploy/commit/1f77aa53dad04bf149bbdf915b8f999372b4c252))
+
 # [0.32.0](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.31.1...v0.32.0) (2026-05-02)
 
 
