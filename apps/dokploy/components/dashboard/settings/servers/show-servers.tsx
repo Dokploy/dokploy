@@ -16,6 +16,8 @@ import { useRouter } from "next/router";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { TunnelActions } from "./tunnel-actions";
+import { TunnelStatusBadge } from "./tunnel-status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -181,6 +183,12 @@ export const ShowServers = () => {
 																						<ShowSchedulesModal
 																							serverId={server.serverId}
 																						/>
+																						<TunnelActions
+																							serverId={server.serverId}
+																							tunnelStatus={
+																								server.tunnelStatus
+																							}
+																						/>
 																					</DropdownMenuContent>
 																				</DropdownMenu>
 																			)}
@@ -230,6 +238,11 @@ export const ShowServers = () => {
 																			>
 																				{server.serverType}
 																			</Badge>
+																			<TunnelStatusBadge
+																				serverId={server.serverId}
+																				initialStatus={server.tunnelStatus}
+																				initialError={server.tunnelError}
+																			/>
 																		</div>
 																	</TooltipProvider>
 																</CardHeader>
