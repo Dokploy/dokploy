@@ -47,7 +47,7 @@ export const DrawerLogs = ({ isOpen, onClose, filteredLogs }: Props) => {
 				onClose();
 			}}
 		>
-			<SheetContent className="sm:max-w-[740px] flex flex-col">
+			<SheetContent className="sm:max-w-[740px] flex w-[95vw] max-w-[95vw] flex-col">
 				<SheetHeader>
 					<SheetTitle>Deployment Logs</SheetTitle>
 					<SheetDescription>Details of the request log entry.</SheetDescription>
@@ -55,7 +55,7 @@ export const DrawerLogs = ({ isOpen, onClose, filteredLogs }: Props) => {
 				<div
 					ref={scrollRef}
 					onScroll={handleScroll}
-					className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
+					className="flex-1 min-h-0 overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
 				>
 					{" "}
 					{filteredLogs.length > 0 ? (

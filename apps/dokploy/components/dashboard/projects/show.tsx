@@ -206,7 +206,7 @@ export const ShowProjects = () => {
 			<div className="w-full">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl  ">
 					<div className="rounded-xl bg-background shadow-md ">
-						<div className="flex justify-between gap-4 w-full items-center flex-wrap p-6">
+						<div className="flex justify-between gap-4 w-full items-center flex-wrap p-4 sm:p-6">
 							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
@@ -388,7 +388,7 @@ export const ShowProjects = () => {
 																				<Button
 																					variant="ghost"
 																					size="icon"
-																					className="px-2"
+																					className="px-2 max-sm:h-10 max-sm:w-10"
 																				>
 																					<MoreHorizontalIcon className="size-5" />
 																				</Button>

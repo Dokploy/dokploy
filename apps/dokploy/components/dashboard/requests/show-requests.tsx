@@ -195,11 +195,11 @@ export const ShowRequests = () => {
 
 							{isActive ? (
 								<>
-									<div className="flex justify-end mb-4 gap-2">
+									<div className="flex flex-col sm:flex-row sm:justify-end mb-4 gap-2">
 										<Button
 											variant="outline"
 											onClick={() => setDateRange(getDefaultDateRange())}
-											className="px-3"
+											className="px-3 w-full sm:w-auto"
 										>
 											Reset to Last 3 Days
 										</Button>
@@ -207,7 +207,7 @@ export const ShowRequests = () => {
 											<PopoverTrigger asChild>
 												<Button
 													variant="outline"
-													className="w-[300px] justify-start text-left font-normal"
+													className="w-full sm:w-[300px] justify-start text-left font-normal"
 												>
 													<CalendarIcon className="mr-2 h-4 w-4" />
 													{dateRange.from ? (

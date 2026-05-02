@@ -1034,17 +1034,19 @@ const EnvironmentPage = (
 			<div className="w-full">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl">
 					<div className="rounded-xl bg-background shadow-md">
-						<div className="flex justify-between gap-4 w-full items-center flex-wrap p-6">
-							<CardHeader className="p-0">
-								<CardTitle className="text-xl flex flex-row gap-2 items-center">
-									<FolderInput className="size-6 text-muted-foreground self-center" />
-									{currentEnvironment.project.name}
+						<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 w-full p-4 sm:p-6">
+							<CardHeader className="p-0 min-w-0 flex-1">
+								<CardTitle className="text-xl flex flex-row gap-2 items-center min-w-0 flex-wrap">
+									<FolderInput className="size-6 text-muted-foreground self-center shrink-0" />
+									<span className="truncate min-w-0">
+										{currentEnvironment.project.name}
+									</span>
 									<AdvancedEnvironmentSelector
 										projectId={projectId}
 										currentEnvironmentId={environmentId}
 									/>
 									<EnvironmentVariables environmentId={environmentId}>
-										<Button variant="ghost" size="icon">
+										<Button variant="ghost" size="icon" className="shrink-0">
 											<SquareTerminal className="size-5 text-muted-foreground cursor-pointer" />
 										</Button>
 									</EnvironmentVariables>
@@ -1053,15 +1055,20 @@ const EnvironmentPage = (
 									{currentEnvironment.description || "No description provided"}
 								</CardDescription>
 							</CardHeader>
-							<div className="flex flex-row gap-4 flex-wrap justify-between items-center">
-								<div className="flex flex-row gap-4 flex-wrap">
+							<div className="flex flex-row gap-2 sm:gap-4 flex-wrap sm:justify-end items-center w-full sm:w-auto">
+								<div className="flex flex-row gap-2 sm:gap-4 flex-wrap w-full sm:w-auto">
 									<ProjectEnvironment projectId={projectId}>
-										<Button variant="outline">Project Environment</Button>
+										<Button
+											variant="outline"
+											className="flex-1 sm:flex-initial"
+										>
+											Project Environment
+										</Button>
 									</ProjectEnvironment>
 									{permissions?.service.create && (
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
-												<Button>
+												<Button className="flex-1 sm:flex-initial">
 													<PlusIcon className="h-4 w-4" />
 													Create Service
 												</Button>

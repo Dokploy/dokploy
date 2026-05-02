@@ -112,7 +112,7 @@ export const AddGithubProvider = () => {
 								/>
 								<br />
 
-								<div className="flex w-full items-center justify-between">
+								<div className="flex w-full flex-wrap items-center justify-between gap-3">
 									<a
 										href={
 											isOrganization && organizationName

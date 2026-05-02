@@ -432,7 +432,7 @@ export const RestoreBackup = ({
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													<span className="truncate text-left flex-1 w-52">
+													<span className="truncate text-left flex-1 min-w-0">
 														{field.value || "Search and select a backup file"}
 													</span>
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

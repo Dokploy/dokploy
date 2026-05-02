@@ -164,7 +164,7 @@ export const ShowHome = () => {
 	return (
 		<div className="w-full">
 			<Card className="h-full bg-sidebar p-2.5 rounded-xl min-h-[85vh]">
-				<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-6 h-full">
+				<div className="rounded-xl bg-background shadow-md p-4 sm:p-6 flex flex-col gap-6 h-full">
 					<div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
 						<h1 className="text-3xl font-semibold tracking-tight">
 							{firstName ? `Welcome back, ${firstName}` : "Welcome back"}

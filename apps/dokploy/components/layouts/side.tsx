@@ -1171,17 +1171,23 @@ export default function Page({ children }: Props) {
 			<SidebarInset>
 				{!includesProjects && (
 					<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-						<div className="flex items-center justify-between w-full px-4">
-							<div className="flex items-center gap-2">
-								<SidebarTrigger className="-ml-1" />
-								<Separator orientation="vertical" className="mr-2 h-4" />
-								<Breadcrumb>
-									<BreadcrumbList>
-										<BreadcrumbItem className="block">
-											<BreadcrumbLink asChild>
+						<div className="flex items-center justify-between w-full gap-2 px-2 sm:px-4">
+							<div className="flex min-w-0 flex-1 items-center gap-2">
+								<SidebarTrigger className="shrink-0 sm:-ml-1" />
+								<Separator
+									orientation="vertical"
+									className="mr-2 h-4 shrink-0"
+								/>
+								<Breadcrumb className="min-w-0 flex-1">
+									<BreadcrumbList className="flex-nowrap">
+										<BreadcrumbItem className="block min-w-0">
+											<BreadcrumbLink
+												asChild
+												className="block max-w-[14rem] truncate"
+											>
 												<Link
 													href={activeItem?.url || "/"}
-													className="flex items-center gap-1.5"
+													className="flex items-center gap-1.5 truncate"
 												>
 													{activeItem?.title}
 												</Link>
@@ -1190,12 +1196,18 @@ export default function Page({ children }: Props) {
 									</BreadcrumbList>
 								</Breadcrumb>
 							</div>
-							{!isCloud && <TimeBadge />}
+							{!isCloud && (
+								<div className="hidden shrink-0 sm:block">
+									<TimeBadge />
+								</div>
+							)}
 						</div>
 					</header>
 				)}
 
-				<div className="flex flex-col w-full p-4 pt-0">{children}</div>
+				<div className="flex w-full min-w-0 flex-col overflow-x-hidden p-2 pt-0 sm:p-4 sm:pt-0">
+					{children}
+				</div>
 			</SidebarInset>
 		</SidebarProvider>
 	);

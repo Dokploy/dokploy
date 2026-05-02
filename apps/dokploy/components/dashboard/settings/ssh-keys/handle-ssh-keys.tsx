@@ -267,8 +267,8 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 								</FormItem>
 							)}
 						/>
-						<DialogFooter className="flex items-center justify-between">
-							<div className="flex items-center gap-4">
+						<DialogFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+							<div className="flex flex-wrap items-center gap-2 sm:gap-4">
 								{form.watch("privateKey") && (
 									<Button
 										type="button"

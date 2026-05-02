@@ -410,7 +410,7 @@ export const ShowResources = ({ id, type }: Props) => {
 									{fields.map((field, index) => (
 										<div
 											key={field.id}
-											className="flex items-start gap-3 p-3 border rounded-lg bg-muted/30"
+											className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3 p-3 border rounded-lg bg-muted/30"
 										>
 											<FormField
 												control={form.control}
@@ -446,7 +446,7 @@ export const ShowResources = ({ id, type }: Props) => {
 												control={form.control}
 												name={`ulimitsSwarm.${index}.Soft`}
 												render={({ field }) => (
-													<FormItem className="w-32">
+													<FormItem className="flex-1 sm:w-32 sm:flex-initial">
 														<FormLabel className="text-xs">
 															Soft Limit
 														</FormLabel>
@@ -474,7 +474,7 @@ export const ShowResources = ({ id, type }: Props) => {
 												control={form.control}
 												name={`ulimitsSwarm.${index}.Hard`}
 												render={({ field }) => (
-													<FormItem className="w-32">
+													<FormItem className="flex-1 sm:w-32 sm:flex-initial">
 														<FormLabel className="text-xs">
 															Hard Limit
 														</FormLabel>

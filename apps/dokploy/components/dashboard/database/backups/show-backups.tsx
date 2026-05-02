@@ -101,7 +101,7 @@ export const ShowBackups = ({
 
 	return (
 		<Card className="bg-background">
-			<CardHeader className="flex flex-row justify-between gap-4  flex-wrap">
+			<CardHeader className="flex flex-col sm:flex-row sm:justify-between gap-3 sm:gap-4 sm:flex-wrap">
 				<div className="flex flex-col gap-0.5">
 					<CardTitle className="text-xl flex flex-row gap-2">
 						<Database className="size-6 text-muted-foreground" />
