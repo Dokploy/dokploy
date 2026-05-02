@@ -16,6 +16,7 @@ const FREE_TIER_RESOURCES = [
 	"docker",
 	"sshKeys",
 	"gitProviders",
+	"cloudflare",
 	"traefikFiles",
 	"api",
 ];
