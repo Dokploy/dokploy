@@ -53,12 +53,24 @@ export const domainRouter = createTRPCRouter({
 					resourceName: domain.host,
 				});
 				if (domain.cloudflareZoneId) {
+					const { syncDomain, LOCAL_TUNNEL_NOT_CONFIGURED } = await import(
+						"@dokploy/server/services/cloudflare/orchestrator"
+					);
 					try {
-						const { syncDomain } = await import(
-							"@dokploy/server/services/cloudflare/orchestrator"
-						);
 						await syncDomain(domain.domainId);
 					} catch (cfErr) {
+						const message =
+							cfErr instanceof Error ? cfErr.message : String(cfErr);
+						// Local-tunnel-missing is a real failure the user must act on.
+						// Other CF errors are non-fatal — domain still exists in error state.
+						if (message === LOCAL_TUNNEL_NOT_CONFIGURED) {
+							throw new TRPCError({
+								code: "PRECONDITION_FAILED",
+								message:
+									"Local Cloudflare tunnel is not configured. Set one up in Settings → Cloudflare → Local Tunnel before adding Cloudflare-managed domains for panel-host services.",
+								cause: cfErr,
+							});
+						}
 						console.warn("Cloudflare sync failed:", cfErr);
 					}
 				}

@@ -17,6 +17,7 @@ export * from "./gitea";
 export * from "./github";
 export * from "./gitlab";
 export * from "./libsql";
+export * from "./local-server";
 export * from "./mariadb";
 export * from "./mongo";
 export * from "./mount";

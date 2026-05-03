@@ -27,6 +27,12 @@ interface Props {
 	host: string;
 	onChange: (next: { cloudflareZoneId: string | null; host: string }) => void;
 	disabled?: boolean;
+	/**
+	 * The serverId of the service this domain is being attached to. `null` /
+	 * `undefined` / `""` means the service runs on the Dokploy panel host, in
+	 * which case CF-managed domains require a local tunnel binding.
+	 */
+	serverId?: string | null;
 }
 
 export const CloudflareDomainFields = ({
@@ -34,9 +40,15 @@ export const CloudflareDomainFields = ({
 	host,
 	onChange,
 	disabled,
+	serverId,
 }: Props) => {
 	const { data, isLoading } = api.cloudflare.getConfig.useQuery();
 	const enabledZones = (data?.zones ?? []).filter((z) => z.enabled);
+	const isLocalHost = !serverId;
+	const { data: localTunnel } = api.cloudflare.getLocalTunnel.useQuery(
+		undefined,
+		{ enabled: isLocalHost && enabledZones.length > 0 },
+	);
 
 	const [mode, setMode] = useState<"manual" | "cloudflare">(
 		cloudflareZoneId ? "cloudflare" : "manual",
@@ -119,6 +131,20 @@ export const CloudflareDomainFields = ({
 					Cloudflare-managed
 				</Button>
 			</div>
+
+			{mode === "cloudflare" &&
+			isLocalHost &&
+			(!localTunnel || localTunnel.tunnelStatus !== "healthy") ? (
+				<div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
+					<AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+					<div>
+						Cloudflare-managed domains for services on this panel host need a
+						local tunnel. Set one up in{" "}
+						<strong>Settings → Cloudflare → Local Tunnel</strong>, then come
+						back to this dialog.
+					</div>
+				</div>
+			) : null}
 
 			{mode === "cloudflare" ? (
 				<div className="flex flex-col gap-3">

@@ -1177,6 +1177,13 @@
       "when": 1777767507745,
       "tag": "0167_loud_tana_nile",
       "breakpoints": true
+    },
+    {
+      "idx": 168,
+      "version": "7",
+      "when": 1777772034802,
+      "tag": "0168_thick_paibok",
+      "breakpoints": true
     }
   ]
 }

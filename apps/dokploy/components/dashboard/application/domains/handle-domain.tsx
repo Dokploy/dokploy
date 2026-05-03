@@ -515,6 +515,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 								<CloudflareDomainFields
 									cloudflareZoneId={form.watch("cloudflareZoneId")}
 									host={form.watch("host")}
+									serverId={application?.serverId ?? null}
 									onChange={({ cloudflareZoneId, host }) => {
 										form.setValue("cloudflareZoneId", cloudflareZoneId, {
 											shouldDirty: true,

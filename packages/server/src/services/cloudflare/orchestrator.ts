@@ -7,6 +7,17 @@ import {
 	domains,
 	server,
 } from "@dokploy/server/db/schema";
+import type { LocalServer } from "@dokploy/server/db/schema/local-server";
+import {
+	clearLocalTunnel,
+	ensureLocalServer,
+	findLocalServerByOrg,
+	setLocalTunnelState,
+} from "@dokploy/server/services/local-server";
+import {
+	installLocalCloudflared,
+	uninstallLocalCloudflared,
+} from "@dokploy/server/setup/cloudflare-local-tunnel-setup";
 import {
 	installCloudflaredOnServer,
 	uninstallCloudflaredOnServer,
@@ -24,6 +35,7 @@ import {
 	getTunnel,
 	type IngressRule,
 	listDnsRecords,
+	patchDnsRecord,
 	updateIngress,
 } from "./index";
 
@@ -41,6 +53,34 @@ interface ServerWithOrg {
 		| "healthy"
 		| "error";
 }
+
+/**
+ * Discriminated union representing where a domain's tunnel lives. "remote" is a
+ * managed Server row; "local" is a localServer row representing the panel host.
+ */
+export type TunnelHost =
+	| { kind: "remote"; server: typeof server.$inferSelect }
+	| { kind: "local"; localServer: LocalServer; organizationId: string };
+
+const tunnelHostId = (h: TunnelHost): string =>
+	h.kind === "remote" ? h.server.serverId : h.localServer.localServerId;
+
+const tunnelHostName = (h: TunnelHost): string =>
+	h.kind === "remote" ? h.server.name : "Dokploy Server";
+
+const tunnelHostOrg = (h: TunnelHost): string =>
+	h.kind === "remote" ? h.server.organizationId : h.organizationId;
+
+/**
+ * Local tunnel lives in the dokploy-network with traefik, so ingress targets
+ * the traefik service by name. Remote tunnels run as systemd on the host
+ * directly, so they target localhost. Picking the wrong one means cloudflared
+ * sees connection refused on every request.
+ */
+const ingressTargetForHost = (h: TunnelHost): string =>
+	h.kind === "remote" ? "http://localhost:80" : "http://dokploy-traefik:80";
+
+export const LOCAL_TUNNEL_NOT_CONFIGURED = "LOCAL_TUNNEL_NOT_CONFIGURED";
 
 export const findCloudflareConfigForOrg = async (organizationId: string) => {
 	return db.query.cloudflareConfig.findFirst({
@@ -114,7 +154,7 @@ const findServer = async (serverId: string) => {
 	return row;
 };
 
-const buildIngressForServer = async (
+const buildIngressForRemoteServer = async (
 	serverId: string,
 ): Promise<IngressRule[]> => {
 	const rows = await db
@@ -145,13 +185,61 @@ const buildIngressForServer = async (
 		(r) => r.appServerId === serverId || r.composeServerId === serverId,
 	);
 
-	// All ingress on a server tunnel routes to local Traefik on :80
 	return buildIngress({
 		hostnames: filtered.map((r) => ({
 			hostname: r.host,
 			service: "http://localhost:80",
 		})),
 	});
+};
+
+const buildIngressForLocalHost = async (
+	organizationId: string,
+): Promise<IngressRule[]> => {
+	const rows = await db
+		.select({
+			host: domains.host,
+			path: domains.path,
+			appServerId: applications.serverId,
+			composeServerId: compose.serverId,
+		})
+		.from(domains)
+		.leftJoin(
+			applications,
+			eq(applications.applicationId, domains.applicationId),
+		)
+		.leftJoin(compose, eq(compose.composeId, domains.composeId))
+		.innerJoin(
+			cloudflareZones,
+			eq(domains.cloudflareZoneId, cloudflareZones.cloudflareZoneId),
+		)
+		.where(
+			and(
+				isNotNull(domains.cloudflareZoneId),
+				eq(domains.cloudflareSyncStatus, "synced"),
+				eq(cloudflareZones.organizationId, organizationId),
+			),
+		);
+
+	// "Local host" services have no serverId on either application or compose.
+	const filtered = rows.filter(
+		(r) => r.appServerId === null && r.composeServerId === null,
+	);
+
+	return buildIngress({
+		hostnames: filtered.map((r) => ({
+			hostname: r.host,
+			service: "http://dokploy-traefik:80",
+		})),
+	});
+};
+
+const buildIngressForTunnelHost = (
+	host: TunnelHost,
+): Promise<IngressRule[]> => {
+	if (host.kind === "remote")
+		return buildIngressForRemoteServer(host.server.serverId);
+	return buildIngressForLocalHost(host.organizationId);
 };
 
 export const provisionServerTunnel = async (
@@ -269,55 +357,209 @@ export const provisionServerTunnel = async (
 	}
 };
 
-const buildHostFromDomain = async (
-	domainId: string,
-	subdomain?: string,
-): Promise<{
-	host: string;
-	zone: typeof cloudflareZones.$inferSelect;
-}> => {
-	const row = await db.query.domains.findFirst({
-		where: eq(domains.domainId, domainId),
-	});
-	if (!row?.cloudflareZoneId)
-		throw new Error("Domain is not Cloudflare-managed");
-	const zone = await db.query.cloudflareZones.findFirst({
-		where: eq(cloudflareZones.cloudflareZoneId, row.cloudflareZoneId),
-	});
-	if (!zone) throw new Error("CF zone not found");
-	const sub = subdomain ?? row.host.replace(`.${zone.zoneName}`, "").trim();
-	const host =
-		sub === "" || sub === zone.zoneName
-			? zone.zoneName
-			: `${sub}.${zone.zoneName}`;
-	return { host, zone };
+/**
+ * Provision the org's local panel-host tunnel. Mirrors provisionServerTunnel
+ * but uses dockerode-based installer instead of SSH, and stores the binding
+ * on the localServer row instead of a server row.
+ */
+export const provisionLocalTunnel = async (
+	organizationId: string,
+	options?: {
+		explicitAccountId?: string | null;
+		onData?: (data: string) => void;
+	},
+): Promise<void> => {
+	const onData = options?.onData;
+	const config = await findCloudflareConfigForOrg(organizationId);
+	if (!config) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: "Cloudflare token not configured",
+		});
+	}
+
+	const local = await ensureLocalServer(organizationId);
+
+	try {
+		await setLocalTunnelState(organizationId, {
+			tunnelStatus: "provisioning",
+			tunnelError: null,
+		});
+
+		let tunnelId = local.tunnelId;
+		let tunnelToken = local.tunnelToken;
+		let tunnelAccountId = local.tunnelAccountId;
+
+		if (!tunnelId || !tunnelToken) {
+			const zones = await db
+				.select({ accountId: cloudflareZones.accountId })
+				.from(cloudflareZones)
+				.where(
+					and(
+						eq(cloudflareZones.organizationId, organizationId),
+						eq(cloudflareZones.enabled, true),
+					),
+				);
+			const pick = pickTunnelAccount({
+				accounts: config.accounts,
+				zoneAccountIds: zones.map((z) => z.accountId),
+				explicitAccountId: options?.explicitAccountId ?? tunnelAccountId,
+			});
+			if (pick.kind !== "ok") {
+				const msg =
+					pick.kind === "ambiguous"
+						? "Cloudflare account is ambiguous for the local tunnel. Pick one explicitly before provisioning."
+						: pick.message;
+				throw new TRPCError({ code: "BAD_REQUEST", message: msg });
+			}
+			tunnelAccountId = pick.accountId;
+
+			onData?.("Creating Cloudflare tunnel...\n");
+			const created = await createTunnel(
+				config.apiToken,
+				tunnelAccountId,
+				`dokploy-local-${organizationId.slice(0, 8)}`,
+			);
+			tunnelId = created.id;
+			tunnelToken = created.token;
+			await setLocalTunnelState(organizationId, {
+				tunnelId,
+				tunnelToken,
+				tunnelAccountId,
+			});
+		}
+
+		if (!tunnelAccountId) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Tunnel exists but has no bound Cloudflare account",
+			});
+		}
+
+		await setLocalTunnelState(organizationId, { tunnelStatus: "installing" });
+		onData?.("Installing local cloudflared container...\n");
+		await installLocalCloudflared(tunnelToken, onData);
+
+		await setLocalTunnelState(organizationId, { tunnelStatus: "registering" });
+		onData?.("Waiting for tunnel to register...\n");
+		const deadline = Date.now() + 60_000;
+		let registered = false;
+		while (Date.now() < deadline) {
+			const info = await getTunnel(config.apiToken, tunnelAccountId, tunnelId);
+			if (info.connections > 0) {
+				registered = true;
+				break;
+			}
+			await new Promise<void>((r) => setTimeout(r, 3000));
+		}
+		if (!registered) {
+			throw new Error(
+				`Local tunnel registration timeout: tunnel ${tunnelId} did not establish any connections within 60s. Check 'docker logs dokploy-tunnel'.`,
+			);
+		}
+
+		await updateIngress(
+			config.apiToken,
+			tunnelAccountId,
+			tunnelId,
+			buildIngress({ hostnames: [] }),
+		);
+
+		await setLocalTunnelState(organizationId, {
+			tunnelStatus: "healthy",
+			tunnelError: null,
+		});
+		onData?.("Local Cloudflare tunnel healthy ✅\n");
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		await setLocalTunnelState(organizationId, {
+			tunnelStatus: "error",
+			tunnelError: message.slice(0, 500),
+		});
+		onData?.(`Local tunnel provisioning failed: ${message}\n`);
+		throw err;
+	}
 };
 
-const findServerForDomain = async (domainId: string) => {
+export const deprovisionLocalTunnel = async (
+	organizationId: string,
+	onData?: (data: string) => void,
+): Promise<void> => {
+	const local = await findLocalServerByOrg(organizationId);
+	if (!local) return;
+	const config = await findCloudflareConfigForOrg(organizationId);
+
+	if (config && local.tunnelAccountId && local.tunnelId) {
+		await deleteTunnel(
+			config.apiToken,
+			local.tunnelAccountId,
+			local.tunnelId,
+		).catch(() => {});
+	}
+
+	await uninstallLocalCloudflared(onData).catch(() => {});
+	await clearLocalTunnel(organizationId);
+};
+
+const findTunnelHostForDomain = async (
+	domainId: string,
+): Promise<TunnelHost> => {
 	const row = await db.query.domains.findFirst({
 		where: eq(domains.domainId, domainId),
 		with: { application: true, compose: true },
 	});
 	if (!row) throw new Error("Domain not found");
 	const serverId = row.application?.serverId ?? row.compose?.serverId ?? null;
-	if (!serverId) {
-		throw new Error("Domain is not attached to a remote server");
+	if (serverId) {
+		const srv = await findServer(serverId);
+		return { kind: "remote", server: srv };
 	}
-	return findServer(serverId);
+
+	// Panel-host service. Resolve organizationId via the domain's CF zone (the only
+	// link we have without a server).
+	const zoneId = row.cloudflareZoneId;
+	if (!zoneId) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: LOCAL_TUNNEL_NOT_CONFIGURED,
+		});
+	}
+	const zone = await db.query.cloudflareZones.findFirst({
+		where: eq(cloudflareZones.cloudflareZoneId, zoneId),
+	});
+	if (!zone) throw new Error("CF zone not found");
+
+	const local = await findLocalServerByOrg(zone.organizationId);
+	if (!local || local.tunnelStatus !== "healthy" || !local.tunnelId) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: LOCAL_TUNNEL_NOT_CONFIGURED,
+		});
+	}
+	return {
+		kind: "local",
+		localServer: local,
+		organizationId: zone.organizationId,
+	};
+};
+
+const reapplyIngressForHost = async (host: TunnelHost): Promise<void> => {
+	const tunnelId =
+		host.kind === "remote" ? host.server.tunnelId : host.localServer.tunnelId;
+	const tunnelAccountId =
+		host.kind === "remote"
+			? host.server.tunnelAccountId
+			: host.localServer.tunnelAccountId;
+	if (!tunnelId || !tunnelAccountId) return;
+	const config = await findCloudflareConfigForOrg(tunnelHostOrg(host));
+	if (!config) return;
+	const ingress = await buildIngressForTunnelHost(host);
+	await updateIngress(config.apiToken, tunnelAccountId, tunnelId, ingress);
 };
 
 const reapplyIngress = async (serverId: string) => {
 	const srv = await findServer(serverId);
-	if (!srv.tunnelId || !srv.tunnelAccountId) return;
-	const config = await findCloudflareConfigForOrg(srv.organizationId);
-	if (!config) return;
-	const ingress = await buildIngressForServer(serverId);
-	await updateIngress(
-		config.apiToken,
-		srv.tunnelAccountId,
-		srv.tunnelId,
-		ingress,
-	);
+	await reapplyIngressForHost({ kind: "remote", server: srv });
 };
 
 export const syncDomain = async (domainId: string): Promise<void> => {
@@ -326,16 +568,37 @@ export const syncDomain = async (domainId: string): Promise<void> => {
 	});
 	if (!dom?.cloudflareZoneId) return;
 
-	const srv = await findServerForDomain(domainId);
-	if (!srv.tunnelId) {
+	let host: TunnelHost;
+	try {
+		host = await findTunnelHostForDomain(domainId);
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
 		await setDomainSync(domainId, {
 			cloudflareSyncStatus: "error",
-			cloudflareSyncError: "Server has no Cloudflare tunnel",
+			cloudflareSyncError: message,
+		});
+		throw err;
+	}
+
+	const tunnelId =
+		host.kind === "remote" ? host.server.tunnelId : host.localServer.tunnelId;
+	const tunnelAccountId =
+		host.kind === "remote"
+			? host.server.tunnelAccountId
+			: host.localServer.tunnelAccountId;
+
+	if (!tunnelId || !tunnelAccountId) {
+		await setDomainSync(domainId, {
+			cloudflareSyncStatus: "error",
+			cloudflareSyncError:
+				host.kind === "remote"
+					? "Server has no Cloudflare tunnel"
+					: "Local tunnel is not provisioned",
 		});
 		return;
 	}
 
-	const config = await findCloudflareConfigForOrg(srv.organizationId);
+	const config = await findCloudflareConfigForOrg(tunnelHostOrg(host));
 	if (!config) {
 		await setDomainSync(domainId, {
 			cloudflareSyncStatus: "error",
@@ -364,15 +627,26 @@ export const syncDomain = async (domainId: string): Promise<void> => {
 		assertZoneTunnelAccountMatch({
 			zoneName: zone.zoneName,
 			zoneAccountId: zone.accountId,
-			serverName: srv.name,
-			tunnelAccountId: srv.tunnelAccountId,
+			serverName: tunnelHostName(host),
+			tunnelAccountId,
 		});
 
-		const cnameTarget = `${srv.tunnelId}.cfargotunnel.com`;
+		const cnameTarget = `${tunnelId}.cfargotunnel.com`;
+
+		// Push ingress to the tunnel BEFORE the DNS swap so traffic flips to the
+		// new tunnel the instant DNS lands.
+		await reapplyIngressForHost(host);
+		// Add this domain into ingress now (it might not be in the synced set yet).
+		const preSyncIngress = await buildIngressForTunnelHost(host);
+		const target = ingressTargetForHost(host);
+		const overlap = preSyncIngress
+			.filter((r) => !("hostname" in r && r.hostname === dom.host))
+			.filter((r) => r.service !== "http_status:404");
+		overlap.push({ hostname: dom.host, service: target });
+		overlap.push({ service: "http_status:404" });
+		await updateIngress(config.apiToken, tunnelAccountId, tunnelId, overlap);
 
 		let recordId = dom.cloudflareRecordId;
-		// Verify the cached record still exists in Cloudflare and points where we expect.
-		// Otherwise the domain row would falsely report "synced" after manual deletion or edit.
 		if (recordId) {
 			const existing = await getDnsRecord(
 				config.apiToken,
@@ -387,20 +661,48 @@ export const syncDomain = async (domainId: string): Promise<void> => {
 				recordId = null;
 			}
 		}
+
 		if (!recordId) {
-			const record = await createDnsRecord(config.apiToken, zone.zoneId, {
+			// Look for a pre-existing CNAME on this name owned by some other actor
+			// (e.g., a hand-managed cloudflared tunnel, a different Dokploy install).
+			const existing = await listDnsRecords(config.apiToken, zone.zoneId, {
 				name: dom.host,
-				content: cnameTarget,
-				proxied: true,
 			});
-			recordId = record.id;
+			const cnameMatch = existing.find((r) => r.type === "CNAME");
+			if (cnameMatch) {
+				if (cnameMatch.content === cnameTarget) {
+					recordId = cnameMatch.id;
+				} else {
+					// Atomic swap: PATCH the record content from old tunnel UUID to ours.
+					// Ingress was already pushed above, so traffic flips when this lands.
+					const updated = await patchDnsRecord(
+						config.apiToken,
+						zone.zoneId,
+						cnameMatch.id,
+						{
+							content: cnameTarget,
+							type: "CNAME",
+							proxied: true,
+							comment: "Managed by Dokploy",
+						},
+					);
+					recordId = updated.id;
+				}
+			} else {
+				const record = await createDnsRecord(config.apiToken, zone.zoneId, {
+					name: dom.host,
+					content: cnameTarget,
+					proxied: true,
+				});
+				recordId = record.id;
+			}
 		}
 		await setDomainSync(domainId, {
 			cloudflareRecordId: recordId,
 			cloudflareSyncStatus: "synced",
 		});
 
-		await reapplyIngress(srv.serverId);
+		await reapplyIngressForHost(host);
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		await setDomainSync(domainId, {
@@ -431,9 +733,9 @@ export const unsyncDomain = async (domainId: string): Promise<void> => {
 		// best-effort: record may already be gone
 	}
 
-	const srv = await findServerForDomain(domainId).catch(() => null);
-	if (srv) {
-		await reapplyIngress(srv.serverId).catch(() => {});
+	const host = await findTunnelHostForDomain(domainId).catch(() => null);
+	if (host) {
+		await reapplyIngressForHost(host).catch(() => {});
 	}
 };
 
@@ -467,39 +769,42 @@ export const renameDomainHost = async (
 	const config = await findCloudflareConfigForOrg(zone.organizationId);
 	if (!config) throw new Error("Cloudflare not configured");
 
-	const srv = await findServerForDomain(domainId);
-	if (!srv.tunnelId) throw new Error("Server has no tunnel");
+	const host = await findTunnelHostForDomain(domainId);
+	const tunnelId =
+		host.kind === "remote" ? host.server.tunnelId : host.localServer.tunnelId;
+	const tunnelAccountId =
+		host.kind === "remote"
+			? host.server.tunnelAccountId
+			: host.localServer.tunnelAccountId;
+	if (!tunnelId) throw new Error("Server has no tunnel");
 
 	assertZoneTunnelAccountMatch({
 		zoneName: zone.zoneName,
 		zoneAccountId: zone.accountId,
-		serverName: srv.name,
-		tunnelAccountId: srv.tunnelAccountId,
+		serverName: tunnelHostName(host),
+		tunnelAccountId,
 	});
 
 	const oldHost = dom.host;
 	const oldRecordId = dom.cloudflareRecordId;
-	const cnameTarget = `${srv.tunnelId}.cfargotunnel.com`;
+	const cnameTarget = `${tunnelId}.cfargotunnel.com`;
+	const target = ingressTargetForHost(host);
 
 	// Step 1: ingress with both
-	const baseIngress = await buildIngressForServer(srv.serverId);
-	const filtered = baseIngress.filter((r) => r.hostname !== oldHost);
+	const baseIngress = await buildIngressForTunnelHost(host);
+	const filtered = baseIngress.filter(
+		(r) => !("hostname" in r) || r.hostname !== oldHost,
+	);
 	const overlap = [
 		...filtered,
-		{ hostname: oldHost, service: "http://localhost:80" },
-		{ hostname: newHost, service: "http://localhost:80" },
+		{ hostname: oldHost, service: target },
+		{ hostname: newHost, service: target },
 		{ service: "http_status:404" },
 	].filter((r, i, arr) => {
-		// Drop the original terminator from baseIngress; keep the one we just appended
 		if (r.service === "http_status:404") return i === arr.length - 1;
 		return true;
 	});
-	await updateIngress(
-		config.apiToken,
-		srv.tunnelAccountId!,
-		srv.tunnelId,
-		overlap,
-	);
+	await updateIngress(config.apiToken, tunnelAccountId!, tunnelId, overlap);
 
 	// Step 2: create new DNS
 	const newRecord = await createDnsRecord(config.apiToken, zone.zoneId, {
@@ -528,7 +833,7 @@ export const renameDomainHost = async (
 	}
 
 	// Step 5: PUT ingress without the old entry
-	await reapplyIngress(srv.serverId);
+	await reapplyIngressForHost(host);
 };
 
 export const pushServerToCloudflare = async (
@@ -539,12 +844,8 @@ export const pushServerToCloudflare = async (
 	if (!config) return;
 	if (!srv.tunnelId || !srv.tunnelAccountId) return;
 
-	// Push DB-truth ingress to CF
 	await reapplyIngress(serverId);
 
-	// Re-create any missing CNAMEs based on DB state, scoped to this server only.
-	// Domains whose zone is in a different account than the server's tunnel are
-	// skipped with a warning — they need a Repair flow before they can route.
 	const cfDomains = await db
 		.select({
 			domainId: domains.domainId,
@@ -582,6 +883,61 @@ export const pushServerToCloudflare = async (
 	}
 };
 
+export const pushLocalTunnelToCloudflare = async (
+	organizationId: string,
+): Promise<void> => {
+	const local = await findLocalServerByOrg(organizationId);
+	if (!local || !local.tunnelId || !local.tunnelAccountId) return;
+	const config = await findCloudflareConfigForOrg(organizationId);
+	if (!config) return;
+
+	await reapplyIngressForHost({
+		kind: "local",
+		localServer: local,
+		organizationId,
+	});
+
+	const cfDomains = await db
+		.select({
+			domainId: domains.domainId,
+			cloudflareRecordId: domains.cloudflareRecordId,
+			zoneAccountId: cloudflareZones.accountId,
+			zoneName: cloudflareZones.zoneName,
+			appServerId: applications.serverId,
+			composeServerId: compose.serverId,
+		})
+		.from(domains)
+		.leftJoin(
+			applications,
+			eq(applications.applicationId, domains.applicationId),
+		)
+		.leftJoin(compose, eq(compose.composeId, domains.composeId))
+		.innerJoin(
+			cloudflareZones,
+			eq(domains.cloudflareZoneId, cloudflareZones.cloudflareZoneId),
+		)
+		.where(
+			and(
+				isNotNull(domains.cloudflareZoneId),
+				eq(cloudflareZones.organizationId, organizationId),
+			),
+		);
+
+	for (const row of cfDomains) {
+		// Local tunnel only owns domains for services running on the panel host.
+		if (row.appServerId !== null || row.composeServerId !== null) continue;
+		if (row.zoneAccountId !== local.tunnelAccountId) {
+			console.warn(
+				`[cloudflare] skipping local domain ${row.domainId}: zone ${row.zoneName} is in account ${row.zoneAccountId} but local tunnel is in ${local.tunnelAccountId}`,
+			);
+			continue;
+		}
+		if (!row.cloudflareRecordId) {
+			await syncDomain(row.domainId).catch(() => {});
+		}
+	}
+};
+
 export const cleanupServer = async (
 	serverId: string,
 	withSsh: boolean,
@@ -593,7 +949,6 @@ export const cleanupServer = async (
 	if (!srv) return;
 	const config = await findCloudflareConfigForOrg(srv.organizationId);
 
-	// Delete DNS records for domains bound to this server's tunnel
 	if (config && srv.tunnelId) {
 		const ownedDomains = await db
 			.select({
@@ -720,6 +1075,22 @@ export const pushAllServersToCloudflareForOrg = async (
 			});
 		}
 	}
+	// Also push the local tunnel if present.
+	const localOk = await pushLocalTunnelToCloudflare(organizationId)
+		.then(() => true)
+		.catch((e) => {
+			errors.push({
+				serverId: "local",
+				error: e instanceof Error ? e.message : String(e),
+			});
+			return false;
+		});
+	if (localOk) {
+		const local = await findLocalServerByOrg(organizationId);
+		if (local?.tunnelId) ok += 1;
+	} else {
+		failed += 1;
+	}
 	return { ok, failed, errors };
 };
 
@@ -751,4 +1122,12 @@ export const checkSubdomainAvailability = async (
 		existingType: existing[0]?.type ?? null,
 		comment: existing[0]?.comment ?? null,
 	};
+};
+
+// Re-export for tests.
+export {
+	findTunnelHostForDomain as _findTunnelHostForDomain,
+	tunnelHostId as _tunnelHostId,
+	tunnelHostName as _tunnelHostName,
+	ingressTargetForHost as _ingressTargetForHost,
 };
