@@ -1,5 +1,12 @@
 import { db } from "@dokploy/server/db";
-import { cloudflareConfig, cloudflareZones } from "@dokploy/server/db/schema";
+import {
+	applications,
+	cloudflareConfig,
+	cloudflareZones,
+	compose,
+	domains,
+	server,
+} from "@dokploy/server/db/schema";
 import {
 	apiSaveCloudflareToken,
 	apiVerifyCloudflareToken,
@@ -10,17 +17,19 @@ import {
 	apiTestCloudflareZone,
 	apiToggleCloudflareZone,
 } from "@dokploy/server/db/schema/cloudflare-zone";
+import { pickTunnelAccount } from "@dokploy/server/services/cloudflare/account-picker";
 import { listZones, verifyToken } from "@dokploy/server/services/cloudflare";
 import {
 	addCloudflareZones,
 	checkSubdomainAvailability,
-	reconcileAllServersForOrg,
+	pushAllServersToCloudflareForOrg,
 	testCloudflareZone,
 } from "@dokploy/server/services/cloudflare/orchestrator";
 import { checkPermission } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull, or } from "drizzle-orm";
 import { z } from "zod";
+import { getAccessibleServerIds } from "@dokploy/server/services/server";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
 const redactConfig = <T extends { apiToken: string } | null | undefined>(
@@ -65,10 +74,11 @@ export const cloudflareRouter = createTRPCRouter({
 		.input(apiSaveCloudflareToken)
 		.mutation(async ({ ctx, input }) => {
 			const verification = await verifyToken(input.apiToken);
-			if (!verification.ok || !verification.accountId) {
+			if (!verification.ok || verification.accounts.length === 0) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Cloudflare token is invalid or missing required scopes",
+					message:
+						"Cloudflare token is invalid or has no accessible accounts",
 				});
 			}
 
@@ -86,7 +96,7 @@ export const cloudflareRouter = createTRPCRouter({
 					.update(cloudflareConfig)
 					.set({
 						apiToken: input.apiToken,
-						accountId: verification.accountId,
+						accounts: verification.accounts,
 						tokenScopes: verification.scopes,
 						verifiedAt: now,
 						updatedAt: now,
@@ -102,13 +112,13 @@ export const cloudflareRouter = createTRPCRouter({
 				await db.insert(cloudflareConfig).values({
 					organizationId: ctx.session.activeOrganizationId,
 					apiToken: input.apiToken,
-					accountId: verification.accountId,
+					accounts: verification.accounts,
 					tokenScopes: verification.scopes,
 					verifiedAt: now,
 				});
 			}
 
-			return { ok: true, accountId: verification.accountId };
+			return { ok: true, accounts: verification.accounts };
 		}),
 
 	listAvailableZones: withPermission("cloudflare", "read").query(
@@ -192,9 +202,104 @@ export const cloudflareRouter = createTRPCRouter({
 		},
 	),
 
-	reconcileAllServers: withPermission("cloudflare", "update").mutation(
-		({ ctx }) => reconcileAllServersForOrg(ctx.session.activeOrganizationId),
+	pushAllServersToCloudflare: withPermission("cloudflare", "update").mutation(
+		({ ctx }) =>
+			pushAllServersToCloudflareForOrg(ctx.session.activeOrganizationId),
 	),
+
+	getServerTunnelAccountChoice: withPermission("cloudflare", "read")
+		.input(z.object({ serverId: z.string().optional() }))
+		.query(async ({ ctx }) => {
+			const config = await db.query.cloudflareConfig.findFirst({
+				where: eq(
+					cloudflareConfig.organizationId,
+					ctx.session.activeOrganizationId,
+				),
+			});
+			if (!config) {
+				return {
+					candidate: null as string | null,
+					ambiguous: false,
+					accounts: [] as { id: string; name: string }[],
+				};
+			}
+			const zoneRows = await db
+				.select({ accountId: cloudflareZones.accountId })
+				.from(cloudflareZones)
+				.where(
+					and(
+						eq(
+							cloudflareZones.organizationId,
+							ctx.session.activeOrganizationId,
+						),
+						eq(cloudflareZones.enabled, true),
+					),
+				);
+			const r = pickTunnelAccount({
+				accounts: config.accounts,
+				zoneAccountIds: zoneRows.map((z) => z.accountId),
+				explicitAccountId: null,
+			});
+			return {
+				candidate: r.kind === "ok" ? r.accountId : null,
+				ambiguous: r.kind === "ambiguous",
+				accounts: config.accounts,
+			};
+		}),
+
+	listMismatchedDomains: withPermission("cloudflare", "read")
+		.input(z.object({ serverId: z.string().min(1) }))
+		.query(async ({ ctx, input }) => {
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			if (!accessibleIds.has(input.serverId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not authorized for this server",
+				});
+			}
+			const srv = await db.query.server.findFirst({
+				where: and(
+					eq(server.serverId, input.serverId),
+					eq(server.organizationId, ctx.session.activeOrganizationId),
+				),
+			});
+			if (!srv?.tunnelAccountId) return [];
+			const rows = await db
+				.select({
+					domainId: domains.domainId,
+					host: domains.host,
+					zoneName: cloudflareZones.zoneName,
+					zoneAccountId: cloudflareZones.accountId,
+				})
+				.from(domains)
+				.leftJoin(
+					applications,
+					eq(applications.applicationId, domains.applicationId),
+				)
+				.leftJoin(compose, eq(compose.composeId, domains.composeId))
+				.innerJoin(
+					cloudflareZones,
+					eq(domains.cloudflareZoneId, cloudflareZones.cloudflareZoneId),
+				)
+				.where(
+					and(
+						isNotNull(domains.cloudflareZoneId),
+						or(
+							eq(applications.serverId, input.serverId),
+							eq(compose.serverId, input.serverId),
+						),
+					),
+				);
+			return rows
+				.filter((r) => r.zoneAccountId !== srv.tunnelAccountId)
+				.map((r) => ({
+					domainId: r.domainId,
+					host: r.host,
+					zoneName: r.zoneName,
+					zoneAccountId: r.zoneAccountId,
+					tunnelAccountId: srv.tunnelAccountId!,
+				}));
+		}),
 
 	checkSubdomainAvailability: withPermission("cloudflare", "read")
 		.input(

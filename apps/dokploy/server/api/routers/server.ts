@@ -38,6 +38,7 @@ import {
 	apiRemoveServer,
 	apiUpdateServer,
 	apiUpdateServerMonitoring,
+	apiUpdateServerTunnelAccount,
 	applications,
 	compose,
 	mariadb,
@@ -739,7 +740,7 @@ export const serverRouter = createTRPCRouter({
 			return { ok: true };
 		}),
 
-	reconcileTunnel: withPermission("cloudflare", "update")
+	pushTunnelToCloudflare: withPermission("cloudflare", "update")
 		.input(z.object({ serverId: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
 			const accessibleIds = await getAccessibleServerIds(ctx.session);
@@ -758,10 +759,32 @@ export const serverRouter = createTRPCRouter({
 			if (!srv) {
 				throw new TRPCError({ code: "NOT_FOUND", message: "Server not found" });
 			}
-			const { reconcileServer } = await import(
+			const { pushServerToCloudflare } = await import(
 				"@dokploy/server/services/cloudflare/orchestrator"
 			);
-			await reconcileServer(input.serverId);
+			await pushServerToCloudflare(input.serverId);
+			return { ok: true };
+		}),
+
+	setTunnelAccount: withPermission("cloudflare", "update")
+		.input(apiUpdateServerTunnelAccount)
+		.mutation(async ({ ctx, input }) => {
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			if (!accessibleIds.has(input.serverId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not authorized to access this server",
+				});
+			}
+			await db
+				.update(server)
+				.set({ tunnelAccountId: input.tunnelAccountId })
+				.where(
+					and(
+						eq(server.serverId, input.serverId),
+						eq(server.organizationId, ctx.session.activeOrganizationId),
+					),
+				);
 			return { ok: true };
 		}),
 });
