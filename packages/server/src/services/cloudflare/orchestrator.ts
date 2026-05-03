@@ -522,7 +522,9 @@ export const renameDomainHost = async (
 	await reapplyIngress(srv.serverId);
 };
 
-export const reconcileServer = async (serverId: string): Promise<void> => {
+export const pushServerToCloudflare = async (
+	serverId: string,
+): Promise<void> => {
 	const srv = await findServer(serverId);
 	const config = await findCloudflareConfigForOrg(srv.organizationId);
 	if (!config) return;
@@ -687,7 +689,9 @@ export const testCloudflareZone = async (
 	return { ok: true as const, recordCount: records.length };
 };
 
-export const reconcileAllServersForOrg = async (organizationId: string) => {
+export const pushAllServersToCloudflareForOrg = async (
+	organizationId: string,
+) => {
 	const servers = await db.query.server.findMany({
 		where: eq(server.organizationId, organizationId),
 	});
@@ -697,7 +701,7 @@ export const reconcileAllServersForOrg = async (organizationId: string) => {
 	for (const s of servers) {
 		if (!s.tunnelId) continue;
 		try {
-			await reconcileServer(s.serverId);
+			await pushServerToCloudflare(s.serverId);
 			ok += 1;
 		} catch (e) {
 			failed += 1;
