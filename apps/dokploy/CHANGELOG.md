@@ -1,3 +1,18 @@
+# [0.34.0](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.33.0...v0.34.0) (2026-05-03)
+
+
+### Features
+
+* **cloudflare:** account-aware orchestrator (picker + pre-flight) ([1368f20](https://github.com/Bl4ckBl1zZ/dokploy/commit/1368f2077a8e1176ef4929a6abedf893aa152850))
+* **cloudflare:** group available zones by account in add dialog ([8465875](https://github.com/Bl4ckBl1zZ/dokploy/commit/84658759f98de548418c892671b0307ad21c1fce))
+* **cloudflare:** multi-account schema (accounts jsonb, server.tunnelAccountId) ([f9ea950](https://github.com/Bl4ckBl1zZ/dokploy/commit/f9ea950b66e0bb3d221e8c96eef1199697134af1))
+* **cloudflare:** per-server account picker + rename Reconcile to Push ([3f654d0](https://github.com/Bl4ckBl1zZ/dokploy/commit/3f654d0185a5b8083d7dbd6b434e4ea1fb41cd3d))
+* **cloudflare:** pickTunnelAccount derivation helper ([9444468](https://github.com/Bl4ckBl1zZ/dokploy/commit/944446885e51272bcb45739121a9a84b6cf0ccc0))
+* **cloudflare:** show all accessible accounts on settings page ([2258e8f](https://github.com/Bl4ckBl1zZ/dokploy/commit/2258e8ffa30e7faadeede20a6b409ceaf76d633a))
+* **cloudflare:** surface zone/tunnel account mismatches on server card ([212fb49](https://github.com/Bl4ckBl1zZ/dokploy/commit/212fb49e4aae60015d9770675bdbeee75713deaf))
+* **cloudflare:** tRPC procedures for accounts + picker + tunnel-account binding ([1ccee10](https://github.com/Bl4ckBl1zZ/dokploy/commit/1ccee105e5162d31744033ebc93b076d48d21cfe))
+* **cloudflare:** verifyToken returns full accounts list ([e3de1b3](https://github.com/Bl4ckBl1zZ/dokploy/commit/e3de1b3dcbaee40d9643b677c9ad4a6d854045cf))
+
 # [0.33.0](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.32.0...v0.33.0) (2026-05-02)
 
 
