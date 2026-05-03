@@ -81,9 +81,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 					<CardTitle className="text-xl">Preview Deployments</CardTitle>
 					<CardDescription>See all the preview deployments</CardDescription>
 				</div>
-				{data?.isPreviewDeploymentsActive && (
-					<ShowPreviewSettings applicationId={applicationId} />
-				)}
+				<ShowPreviewSettings applicationId={applicationId} />
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				{data?.isPreviewDeploymentsActive ? (
@@ -303,7 +301,6 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 							Preview deployments are disabled for this application, please
 							enable it
 						</span>
-						<ShowPreviewSettings applicationId={applicationId} />
 					</div>
 				)}
 			</CardContent>
