@@ -7,7 +7,6 @@ import {
 	Hr,
 	Html,
 	Img,
-	Link,
 	Preview,
 	Section,
 	Tailwind,
@@ -90,16 +89,8 @@ export const InvitationEmail = ({
 							<Hr className="border border-solid border-[#e4e4e7] my-0 mb-[16px] mx-0 w-full" />
 							<Text className="text-[#a1a1aa] text-[12px] leading-[18px] m-0">
 								This invitation was intended for{" "}
-								<span className="text-[#71717a]">{toEmail}</span>. This invite
-								was sent from{" "}
-								<Link
-									href="https://dokploy.com"
-									className="text-[#71717a] underline"
-								>
-									Dokploy Cloud
-								</Link>
-								. If you were not expecting this invitation, you can safely
-								ignore this email.
+								<span className="text-[#71717a]">{toEmail}</span>. If you were
+								not expecting this invitation, you can safely ignore this email.
 							</Text>
 						</Section>
 					</Container>

@@ -593,7 +593,7 @@ function HandleCustomRole({
 			setPermissions(initialPermissions ? { ...initialPermissions } : {});
 			form.reset({ roleName: isEdit ? (roleName ?? "") : "" });
 		}
-	}, [open]);
+	}, [open, initialPermissions, form, isEdit, roleName]);
 
 	const { mutateAsync: createRole, isPending: isCreating } =
 		api.customRole.create.useMutation();

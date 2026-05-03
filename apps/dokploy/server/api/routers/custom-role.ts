@@ -155,15 +155,17 @@ export const customRoleRouter = createTRPCRouter({
 			}
 
 			const effectiveRoleName = input.newRoleName ?? input.roleName;
+			const isRename =
+				!!input.newRoleName && input.newRoleName !== input.roleName;
 
-			if (input.newRoleName && input.newRoleName !== input.roleName) {
+			if (isRename) {
 				const existing = await db.query.organizationRole.findFirst({
 					where: and(
 						eq(
 							organizationRole.organizationId,
 							ctx.session.activeOrganizationId,
 						),
-						eq(organizationRole.role, input.newRoleName),
+						eq(organizationRole.role, input.newRoleName as string),
 					),
 				});
 				if (existing) {
@@ -172,16 +174,6 @@ export const customRoleRouter = createTRPCRouter({
 						message: `Role "${input.newRoleName}" already exists`,
 					});
 				}
-
-				await db
-					.update(member)
-					.set({ role: input.newRoleName })
-					.where(
-						and(
-							eq(member.organizationId, ctx.session.activeOrganizationId),
-							eq(member.role, input.roleName),
-						),
-					);
 			}
 
 			validatePermissions(input.permissions);
@@ -208,6 +200,18 @@ export const customRoleRouter = createTRPCRouter({
 					code: "NOT_FOUND",
 					message: `Role "${input.roleName}" not found`,
 				});
+			}
+
+			if (isRename) {
+				await db
+					.update(member)
+					.set({ role: input.newRoleName as string })
+					.where(
+						and(
+							eq(member.organizationId, ctx.session.activeOrganizationId),
+							eq(member.role, input.roleName),
+						),
+					);
 			}
 
 			await audit(ctx, {

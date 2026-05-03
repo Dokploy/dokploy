@@ -58,8 +58,10 @@ echo "▸ Starting Dokploy dev server on http://127.0.0.1:3001"
 DEV_PID=$!
 
 echo "▸ Waiting for server to respond"
+HEALTH_OK=0
 for _ in $(seq 1 120); do
 	if curl -sf http://127.0.0.1:3001/api/health >/dev/null 2>&1; then
+		HEALTH_OK=1
 		break
 	fi
 	if ! kill -0 "$DEV_PID" 2>/dev/null; then
@@ -68,6 +70,10 @@ for _ in $(seq 1 120); do
 	fi
 	sleep 1
 done
+if [ "$HEALTH_OK" != "1" ]; then
+	echo "❌ Health check timed out after 120s"
+	exit 1
+fi
 
 echo "▸ Seeding admin user (idempotent)"
 curl -s -o /dev/null -X POST http://127.0.0.1:3001/api/auth/sign-up/email \
