@@ -32,16 +32,16 @@ export const TunnelActions = ({ serverId, tunnelStatus }: Props) => {
 		},
 		onError: (e) => toast.error(e.message),
 	});
-	const reconcileMut = api.server.reconcileTunnel.useMutation({
+	const pushMut = api.server.pushTunnelToCloudflare.useMutation({
 		onSuccess: () => {
-			toast.success("Reconcile complete");
+			toast.success("Pushed to Cloudflare");
 			utils.server.getTunnelStatus.invalidate({ serverId });
 		},
 		onError: (e) => toast.error(e.message),
 	});
 
 	const isWorking =
-		setupMut.isPending || disableMut.isPending || reconcileMut.isPending;
+		setupMut.isPending || disableMut.isPending || pushMut.isPending;
 
 	return (
 		<>
@@ -63,16 +63,16 @@ export const TunnelActions = ({ serverId, tunnelStatus }: Props) => {
 				<DropdownMenuItem
 					onClick={(e) => {
 						e.preventDefault();
-						reconcileMut.mutate({ serverId });
+						pushMut.mutate({ serverId });
 					}}
 					disabled={isWorking}
 				>
-					{reconcileMut.isPending ? (
+					{pushMut.isPending ? (
 						<Loader2 className="h-4 w-4 animate-spin" />
 					) : (
 						<RefreshCcw className="h-4 w-4" />
 					)}
-					Reconcile Tunnel
+					Push to Cloudflare
 				</DropdownMenuItem>
 			)}
 			{tunnelStatus !== "disabled" && (

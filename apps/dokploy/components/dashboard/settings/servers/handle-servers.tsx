@@ -53,6 +53,7 @@ const Schema = z.object({
 		message: "SSH Key is required",
 	}),
 	serverType: z.enum(["deploy", "build"]).default("deploy"),
+	cloudflareAccountId: z.string().optional(),
 });
 
 type Schema = z.infer<typeof Schema>;
@@ -78,9 +79,15 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 	);
 
 	const { data: sshKeys } = api.sshKey.all.useQuery();
+	const { data: tunnelAccountChoice } =
+		api.cloudflare.getServerTunnelAccountChoice.useQuery(
+			{ serverId: serverId ?? undefined },
+			{ enabled: !serverId },
+		);
 	const { mutateAsync, error, isPending, isError } = serverId
 		? api.server.update.useMutation()
 		: api.server.create.useMutation();
+	const setTunnelAccountMut = api.server.setTunnelAccount.useMutation();
 	const form = useForm({
 		defaultValues: {
 			description: "",
@@ -90,6 +97,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			username: "root",
 			sshKeyId: "",
 			serverType: "deploy",
+			cloudflareAccountId: "",
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -103,35 +111,51 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			username: data?.username || "root",
 			sshKeyId: data?.sshKeyId || "",
 			serverType: data?.serverType || "deploy",
+			cloudflareAccountId: "",
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
+
+	useEffect(() => {
+		if (!serverId && tunnelAccountChoice?.candidate) {
+			form.setValue("cloudflareAccountId", tunnelAccountChoice.candidate);
+		}
+	}, [serverId, tunnelAccountChoice?.candidate, form.setValue]);
 
 	useEffect(() => {
 		refetch();
 	}, [isOpen]);
 
 	const onSubmit = async (data: Schema) => {
-		await mutateAsync({
-			name: data.name,
-			description: data.description || "",
-			ipAddress: data.ipAddress?.trim() || "",
-			port: data.port || 22,
-			username: data.username || "root",
-			sshKeyId: data.sshKeyId || "",
-			serverType: data.serverType || "deploy",
-			serverId: serverId || "",
-		})
-			.then(async (_data) => {
-				await utils.server.all.invalidate();
-				refetchServer();
-				toast.success(serverId ? "Server Updated" : "Server Created");
-				setIsOpen(false);
-			})
-			.catch(() => {
-				toast.error(
-					serverId ? "Error updating a server" : "Error creating a server",
-				);
+		try {
+			const result = await mutateAsync({
+				name: data.name,
+				description: data.description || "",
+				ipAddress: data.ipAddress?.trim() || "",
+				port: data.port || 22,
+				username: data.username || "root",
+				sshKeyId: data.sshKeyId || "",
+				serverType: data.serverType || "deploy",
+				serverId: serverId || "",
 			});
+
+			const newServerId =
+				!serverId && result && "serverId" in result ? result.serverId : null;
+			if (newServerId && data.cloudflareAccountId) {
+				await setTunnelAccountMut.mutateAsync({
+					serverId: newServerId,
+					tunnelAccountId: data.cloudflareAccountId,
+				});
+			}
+
+			await utils.server.all.invalidate();
+			refetchServer();
+			toast.success(serverId ? "Server Updated" : "Server Created");
+			setIsOpen(false);
+		} catch {
+			toast.error(
+				serverId ? "Error updating a server" : "Error creating a server",
+			);
+		}
 	};
 
 	return (
@@ -356,6 +380,48 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 								</FormItem>
 							)}
 						/>
+						{!serverId &&
+						tunnelAccountChoice &&
+						tunnelAccountChoice.accounts.length > 0 ? (
+							<FormField
+								control={form.control}
+								name="cloudflareAccountId"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>
+											Cloudflare account
+											{tunnelAccountChoice.ambiguous ? " (required)" : null}
+										</FormLabel>
+										<Select
+											value={field.value ?? ""}
+											onValueChange={field.onChange}
+										>
+											<FormControl>
+												<SelectTrigger>
+													<SelectValue placeholder="Pick a Cloudflare account" />
+												</SelectTrigger>
+											</FormControl>
+											<SelectContent>
+												{tunnelAccountChoice.accounts.map((a) => (
+													<SelectItem key={a.id} value={a.id}>
+														{a.name}{" "}
+														<span className="text-muted-foreground">
+															· {a.id.slice(0, 8)}
+														</span>
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+										<FormDescription>
+											{tunnelAccountChoice.ambiguous
+												? "Your zones span multiple accounts — pick which account this server's tunnel should live in."
+												: "Auto-detected; change only if you want this server's tunnel in a different account."}
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						) : null}
 						<div className="grid grid-cols-2 gap-4">
 							<FormField
 								control={form.control}
