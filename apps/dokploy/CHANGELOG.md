@@ -1,3 +1,10 @@
+## [0.35.2](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.35.1...v0.35.2) (2026-05-03)
+
+
+### Bug Fixes
+
+* **cloudflare:** prevent infinite render loop in domain fields ([f046514](https://github.com/Bl4ckBl1zZ/dokploy/commit/f04651425741eaf881821e05b5df0ff3154602e8))
+
 ## [0.35.1](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.35.0...v0.35.1) (2026-05-03)
 
 
