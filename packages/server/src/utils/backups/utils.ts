@@ -272,7 +272,7 @@ export const getBackupCommand = (
 	set -eo pipefail;
 	echo "[$(date)] Starting backup process..." >> ${logPath};
 	echo "[$(date)] Executing backup command..." >> ${logPath};
-	CONTAINER_ID=$(${containerSearch})
+	CONTAINER_ID=$(${containerSearch});
 
 	if [ -z "$CONTAINER_ID" ]; then
 		echo "[$(date)] ❌ Error: Container not found" >> ${logPath};
@@ -280,25 +280,16 @@ export const getBackupCommand = (
 	fi
 
 	echo "[$(date)] Container Up: $CONTAINER_ID" >> ${logPath};
+	echo "[$(date)] Starting backup and upload to S3..." >> ${logPath};
 
-	# Run the backup command and capture the exit status
-	BACKUP_OUTPUT=$(${backupCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
-		echo "Error: $BACKUP_OUTPUT" >> ${logPath};
-		exit 1;
-	}
-
-	echo "[$(date)] ✅ backup completed successfully" >> ${logPath};
-	echo "[$(date)] Starting upload to S3..." >> ${logPath};
-
-	# Run the upload command and capture the exit status
-	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
+	# Run the backup and pipe directly to rclone in a single pass
+	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1) || {
+		echo "[$(date)] ❌ Error: Backup or upload to S3 failed" >> ${logPath};
 		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
 		exit 1;
 	}
 
-	echo "[$(date)] ✅ Upload to S3 completed successfully" >> ${logPath};
+	echo "[$(date)] ✅ Backup and upload to S3 completed successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };
