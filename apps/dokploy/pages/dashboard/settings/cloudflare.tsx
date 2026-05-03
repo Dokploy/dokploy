@@ -51,7 +51,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 		if (!userPermissions?.cloudflare?.read) {
 			return {
 				redirect: {
-					permanent: true,
+					permanent: false,
 					destination: "/",
 				},
 			};

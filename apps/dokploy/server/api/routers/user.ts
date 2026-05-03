@@ -633,7 +633,13 @@ export const userRouter = createTRPCRouter({
 			);
 
 			try {
-				const toEmail = currentInvitation?.email || "";
+				const toEmail = currentInvitation?.email;
+				if (!toEmail) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Invitation has no recipient email",
+					});
+				}
 				const orgName = organization?.name || "organization";
 				const subject = `You've been invited to join ${orgName} on Dokploy`;
 				const html = await renderInvitationEmail({

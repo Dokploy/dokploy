@@ -415,14 +415,10 @@ export const serverRouter = createTRPCRouter({
 					resourceName: currentServer.name,
 				});
 				await removeDeploymentsByServerId(currentServer);
-				try {
-					const { cleanupServer } = await import(
-						"@dokploy/server/services/cloudflare/orchestrator"
-					);
-					await cleanupServer(input.serverId, true);
-				} catch (cleanupErr) {
-					console.warn("Cloudflare cleanup failed:", cleanupErr);
-				}
+				const { cleanupServer } = await import(
+					"@dokploy/server/services/cloudflare/orchestrator"
+				);
+				await cleanupServer(input.serverId, true);
 				await deleteServer(input.serverId);
 
 				if (IS_CLOUD) {
@@ -609,8 +605,8 @@ export const serverRouter = createTRPCRouter({
 		)
 		.query(async ({ ctx, input }) => {
 			if (input.serverId !== null) {
-				const target = await findServerById(input.serverId);
-				if (target.organizationId !== ctx.session.activeOrganizationId) {
+				const accessibleIds = await getAccessibleServerIds(ctx.session);
+				if (!accessibleIds.has(input.serverId)) {
 					throw new TRPCError({
 						code: "FORBIDDEN",
 						message: "You do not have access to this server",
@@ -626,6 +622,15 @@ export const serverRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
+			if (input.serverId !== null) {
+				const accessibleIds = await getAccessibleServerIds(ctx.session);
+				if (!accessibleIds.has(input.serverId)) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You do not have access to this server",
+					});
+				}
+			}
 			const endpoint = await resolveMetricsEndpoint(input.serverId, ctx);
 			if (!endpoint) return [];
 			const deployments = await listDeploymentsByServer(input.serverId);
@@ -716,7 +721,7 @@ export const serverRouter = createTRPCRouter({
 			const { uninstallCloudflaredOnServer } = await import(
 				"@dokploy/server/setup/cloudflare-tunnel-setup"
 			);
-			await uninstallCloudflaredOnServer(input.serverId).catch(() => {});
+			await uninstallCloudflaredOnServer(input.serverId);
 			await db
 				.update(server)
 				.set({

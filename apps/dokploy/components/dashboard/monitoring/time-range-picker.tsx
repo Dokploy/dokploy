@@ -11,7 +11,7 @@ export const TIME_RANGES = {
 export type TimeRange = keyof typeof TIME_RANGES;
 
 export const isTimeRange = (value: string): value is TimeRange =>
-	value in TIME_RANGES;
+	Object.hasOwn(TIME_RANGES, value);
 
 interface Props {
 	value: TimeRange;

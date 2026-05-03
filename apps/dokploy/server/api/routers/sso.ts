@@ -185,7 +185,6 @@ export const ssoRouter = createTRPCRouter({
 	deleteProvider: adminProcedure
 		.input(z.object({ providerId: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
-			// Obtener el provider antes de eliminarlo para obtener sus dominios
 			const providerToDelete = await db.query.ssoProvider.findFirst({
 				where: and(
 					eq(ssoProvider.providerId, input.providerId),
