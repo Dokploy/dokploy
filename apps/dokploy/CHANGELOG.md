@@ -1,3 +1,13 @@
+## [0.35.1](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.35.0...v0.35.1) (2026-05-03)
+
+
+### Bug Fixes
+
+* address coderabbit review findings ([16f4e04](https://github.com/Bl4ckBl1zZ/dokploy/commit/16f4e04e18f27634f69f101687e4166b57f7e098))
+* address second coderabbit review pass ([023be2b](https://github.com/Bl4ckBl1zZ/dokploy/commit/023be2b06d3c2407e5b8177731c6c1853a179462))
+* address third coderabbit review pass ([bcc6eda](https://github.com/Bl4ckBl1zZ/dokploy/commit/bcc6eda3533bdf15bc21801460459731f3f18076))
+* **cloudflare:** cleanup DNS records when deleting application or compose ([e8fae25](https://github.com/Bl4ckBl1zZ/dokploy/commit/e8fae256f0b19537e946657403cfd15b4daca844))
+
 # [0.35.0](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.34.0...v0.35.0) (2026-05-03)
 
 
