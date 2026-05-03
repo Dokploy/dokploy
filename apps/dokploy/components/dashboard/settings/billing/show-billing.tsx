@@ -9,7 +9,6 @@ import {
 	Loader2,
 	MinusIcon,
 	PlusIcon,
-	ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -155,7 +154,6 @@ export const ShowBilling = () => {
 		return isAnnual ? interval === "year" : interval === "month";
 	});
 
-	const isEnterpriseCloud = admin?.user.isEnterpriseCloud ?? false;
 	const maxServers = admin?.user.serversQuantity ?? 1;
 	const percentage = ((servers ?? 0) / maxServers) * 100;
 	const safePercentage = Math.min(percentage, 100);
@@ -174,7 +172,7 @@ export const ShowBilling = () => {
 								Manage your subscription and invoices
 							</CardDescription>
 						</div>
-						{(admin?.user.stripeSubscriptionId || isEnterpriseCloud) && (
+						{admin?.user.stripeSubscriptionId && (
 							<Dialog>
 								<DialogTrigger asChild>
 									<Button variant="outline" size="icon">
@@ -249,7 +247,7 @@ export const ShowBilling = () => {
 						</nav>
 
 						<div className="flex flex-col gap-4 w-full mt-6">
-							{(admin?.user.stripeSubscriptionId || isEnterpriseCloud) && (
+							{admin?.user.stripeSubscriptionId && (
 								<div className="space-y-2 flex flex-col">
 									<h3 className="text-lg font-medium">Servers Plan</h3>
 									<p className="text-sm text-muted-foreground">
@@ -270,36 +268,8 @@ export const ShowBilling = () => {
 									)}
 								</div>
 							)}
-							{isEnterpriseCloud && (
-								<div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 max-w-2xl">
-									<ShieldCheck className="h-6 w-6 text-primary shrink-0 mt-0.5" />
-									<div className="flex flex-col gap-1">
-										<h3 className="text-base font-semibold text-foreground">
-											Enterprise Cloud Plan
-										</h3>
-										<p className="text-sm text-muted-foreground">
-											Your organization is on a managed Enterprise plan. Billing
-											is handled separately — contact your account manager for
-											any changes.
-										</p>
-										{admin?.user.stripeCustomerId && (
-											<Button
-												variant="secondary"
-												className="w-fit mt-2"
-												onClick={async () => {
-													const session = await createCustomerPortalSession();
-													window.open(session.url);
-												}}
-											>
-												Manage Subscription
-											</Button>
-										)}
-									</div>
-								</div>
-							)}
 							{/* Upgrade: solo para usuarios en plan legacy con nuevos planes disponibles */}
-							{!isEnterpriseCloud &&
-								useNewPricing &&
+							{useNewPricing &&
 								data?.currentPlan === "legacy" &&
 								data?.subscriptions?.length > 0 && (
 									<div className="rounded-xl border border-border bg-primary/5 p-4 space-y-4 max-w-2xl">
@@ -489,8 +459,7 @@ export const ShowBilling = () => {
 									</div>
 								)}
 							{/* Cambiar plan o cantidad de servidores (usuarios en Hobby o Startup; el portal no permite esto) */}
-							{!isEnterpriseCloud &&
-								useNewPricing &&
+							{useNewPricing &&
 								(data?.currentPlan === "hobby" ||
 									data?.currentPlan === "startup") &&
 								data?.subscriptions?.length > 0 && (
@@ -875,18 +844,17 @@ export const ShowBilling = () => {
 															Manage Subscription
 														</Button>
 													)}
-													{!isEnterpriseCloud &&
-														(data?.subscriptions?.length ?? 0) === 0 && (
-															<Button
-																className="w-full"
-																onClick={() =>
-																	handleCheckout("hobby", data!.hobbyProductId!)
-																}
-																disabled={hobbyServerQuantity < 1}
-															>
-																Get Started
-															</Button>
-														)}
+													{(data?.subscriptions?.length ?? 0) === 0 && (
+														<Button
+															className="w-full"
+															onClick={() =>
+																handleCheckout("hobby", data!.hobbyProductId!)
+															}
+															disabled={hobbyServerQuantity < 1}
+														>
+															Get Started
+														</Button>
+													)}
 												</div>
 											</div>
 										</section>
@@ -1020,24 +988,22 @@ export const ShowBilling = () => {
 															Manage Subscription
 														</Button>
 													)}
-													{!isEnterpriseCloud &&
-														(data?.subscriptions?.length ?? 0) === 0 && (
-															<Button
-																className="w-full"
-																onClick={() =>
-																	handleCheckout(
-																		"startup",
-																		data!.startupProductId!,
-																	)
-																}
-																disabled={
-																	startupServerQuantity <
-																	STARTUP_SERVERS_INCLUDED
-																}
-															>
-																Get Started
-															</Button>
-														)}
+													{(data?.subscriptions?.length ?? 0) === 0 && (
+														<Button
+															className="w-full"
+															onClick={() =>
+																handleCheckout(
+																	"startup",
+																	data!.startupProductId!,
+																)
+															}
+															disabled={
+																startupServerQuantity < STARTUP_SERVERS_INCLUDED
+															}
+														>
+															Get Started
+														</Button>
+													)}
 												</div>
 											</div>
 										</section>
@@ -1242,18 +1208,17 @@ export const ShowBilling = () => {
 																	Manage Subscription
 																</Button>
 															)}
-															{!isEnterpriseCloud &&
-																(data?.subscriptions?.length ?? 0) === 0 && (
-																	<Button
-																		className="w-full"
-																		onClick={async () => {
-																			handleCheckout("legacy", product.id);
-																		}}
-																		disabled={hobbyServerQuantity < 1}
-																	>
-																		Subscribe
-																	</Button>
-																)}
+															{(data?.subscriptions?.length ?? 0) === 0 && (
+																<Button
+																	className="w-full"
+																	onClick={async () => {
+																		handleCheckout("legacy", product.id);
+																	}}
+																	disabled={hobbyServerQuantity < 1}
+																>
+																	Subscribe
+																</Button>
+															)}
 														</div>
 													</div>
 												</section>

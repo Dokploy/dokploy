@@ -25,8 +25,6 @@ export const user = pgTable("user", {
 	ownerId: text("owner_id"),
 	allowImpersonation: boolean("allow_impersonation").default(false),
 	lastName: text("last_name").default(""),
-	enableEnterpriseFeatures: boolean("enable_enterprise_features"),
-	isValidEnterpriseLicense: boolean("is_valid_enterprise_license"),
 });
 
 export const session = pgTable(

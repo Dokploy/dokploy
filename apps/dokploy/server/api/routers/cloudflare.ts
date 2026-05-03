@@ -20,6 +20,7 @@ import {
 import {
 	apiProvisionLocalTunnel,
 	apiUpdateLocalTunnelAccount,
+	localServer,
 } from "@dokploy/server/db/schema/local-server";
 import { listZones, verifyToken } from "@dokploy/server/services/cloudflare";
 import { pickTunnelAccount } from "@dokploy/server/services/cloudflare/account-picker";
@@ -214,9 +215,8 @@ export const cloudflareRouter = createTRPCRouter({
 			pushAllServersToCloudflareForOrg(ctx.session.activeOrganizationId),
 	),
 
-	getServerTunnelAccountChoice: withPermission("cloudflare", "read")
-		.input(z.object({ serverId: z.string().optional() }))
-		.query(async ({ ctx }) => {
+	getServerTunnelAccountChoice: withPermission("cloudflare", "read").query(
+		async ({ ctx }) => {
 			const config = await db.query.cloudflareConfig.findFirst({
 				where: eq(
 					cloudflareConfig.organizationId,
@@ -252,7 +252,8 @@ export const cloudflareRouter = createTRPCRouter({
 				ambiguous: r.kind === "ambiguous",
 				accounts: config.accounts,
 			};
-		}),
+		},
+	),
 
 	listMismatchedDomains: withPermission("cloudflare", "read")
 		.input(z.object({ serverId: z.string().min(1) }))
@@ -424,6 +425,10 @@ export const cloudflareRouter = createTRPCRouter({
 					message: "Account is not on this Cloudflare token",
 				});
 			}
+			await db
+				.update(localServer)
+				.set({ tunnelAccountId: input.tunnelAccountId })
+				.where(eq(localServer.localServerId, local.localServerId));
 			return { ok: true as const };
 		}),
 

@@ -19,7 +19,6 @@ import {
 	updateServerById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
@@ -133,18 +132,8 @@ export const serverRouter = createTRPCRouter({
 
 		return result.filter((s) => accessibleIds.has(s.serverId));
 	}),
-	allForPermissions: withPermission("member", "update")
-		.use(async ({ ctx, next }) => {
-			const licensed = await hasValidLicense(ctx.session.activeOrganizationId);
-			if (!licensed) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "Valid enterprise license required",
-				});
-			}
-			return next();
-		})
-		.query(async ({ ctx }) => {
+	allForPermissions: withPermission("member", "update").query(
+		async ({ ctx }) => {
 			return await db.query.server.findMany({
 				columns: {
 					serverId: true,
@@ -155,7 +144,8 @@ export const serverRouter = createTRPCRouter({
 				orderBy: desc(server.createdAt),
 				where: eq(server.organizationId, ctx.session.activeOrganizationId),
 			});
-		}),
+		},
+	),
 	count: protectedProcedure.query(async ({ ctx }) => {
 		const organizations = await db.query.organization.findMany({
 			where: eq(organization.ownerId, ctx.user.id),
@@ -425,14 +415,10 @@ export const serverRouter = createTRPCRouter({
 					resourceName: currentServer.name,
 				});
 				await removeDeploymentsByServerId(currentServer);
-				try {
-					const { cleanupServer } = await import(
-						"@dokploy/server/services/cloudflare/orchestrator"
-					);
-					await cleanupServer(input.serverId, true);
-				} catch (cleanupErr) {
-					console.warn("Cloudflare cleanup failed:", cleanupErr);
-				}
+				const { cleanupServer } = await import(
+					"@dokploy/server/services/cloudflare/orchestrator"
+				);
+				await cleanupServer(input.serverId, true);
 				await deleteServer(input.serverId);
 
 				if (IS_CLOUD) {
@@ -619,8 +605,8 @@ export const serverRouter = createTRPCRouter({
 		)
 		.query(async ({ ctx, input }) => {
 			if (input.serverId !== null) {
-				const target = await findServerById(input.serverId);
-				if (target.organizationId !== ctx.session.activeOrganizationId) {
+				const accessibleIds = await getAccessibleServerIds(ctx.session);
+				if (!accessibleIds.has(input.serverId)) {
 					throw new TRPCError({
 						code: "FORBIDDEN",
 						message: "You do not have access to this server",
@@ -636,6 +622,15 @@ export const serverRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
+			if (input.serverId !== null) {
+				const accessibleIds = await getAccessibleServerIds(ctx.session);
+				if (!accessibleIds.has(input.serverId)) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You do not have access to this server",
+					});
+				}
+			}
 			const endpoint = await resolveMetricsEndpoint(input.serverId, ctx);
 			if (!endpoint) return [];
 			const deployments = await listDeploymentsByServer(input.serverId);
@@ -726,7 +721,7 @@ export const serverRouter = createTRPCRouter({
 			const { uninstallCloudflaredOnServer } = await import(
 				"@dokploy/server/setup/cloudflare-tunnel-setup"
 			);
-			await uninstallCloudflaredOnServer(input.serverId).catch(() => {});
+			await uninstallCloudflaredOnServer(input.serverId);
 			await db
 				.update(server)
 				.set({

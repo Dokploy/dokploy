@@ -1,7 +1,6 @@
 import { normalizeTrustedOrigin } from "@dokploy/server";
-import { IS_CLOUD } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
-import { member, ssoProvider, user } from "@dokploy/server/db/schema";
+import { ssoProvider, user } from "@dokploy/server/db/schema";
 import { ssoProviderBodySchema } from "@dokploy/server/db/schema/sso";
 import {
 	getOrganizationOwnerId,
@@ -12,38 +11,19 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
+	adminProcedure,
 	createTRPCRouter,
-	enterpriseProcedure,
 	publicProcedure,
 } from "@/server/api/trpc";
 
 export const ssoRouter = createTRPCRouter({
 	showSignInWithSSO: publicProcedure.query(async () => {
-		if (IS_CLOUD) {
-			return true;
-		}
-		const owner = await db.query.member.findFirst({
-			where: eq(member.role, "owner"),
-			with: {
-				user: {
-					columns: {
-						enableEnterpriseFeatures: true,
-						isValidEnterpriseLicense: true,
-					},
-				},
-			},
-			orderBy: [asc(member.createdAt)],
+		const provider = await db.query.ssoProvider.findFirst({
+			columns: { id: true },
 		});
-
-		if (!owner) {
-			return false;
-		}
-
-		return (
-			owner.user.enableEnterpriseFeatures && owner.user.isValidEnterpriseLicense
-		);
+		return !!provider;
 	}),
-	listProviders: enterpriseProcedure.query(async ({ ctx }) => {
+	listProviders: adminProcedure.query(async ({ ctx }) => {
 		const providers = await db.query.ssoProvider.findMany({
 			where: and(
 				eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
@@ -62,7 +42,7 @@ export const ssoRouter = createTRPCRouter({
 		});
 		return providers;
 	}),
-	getTrustedOrigins: enterpriseProcedure.query(async ({ ctx }) => {
+	getTrustedOrigins: adminProcedure.query(async ({ ctx }) => {
 		const ownerId = await getOrganizationOwnerId(
 			ctx.session.activeOrganizationId,
 		);
@@ -73,7 +53,7 @@ export const ssoRouter = createTRPCRouter({
 		});
 		return ownerUser?.trustedOrigins ?? [];
 	}),
-	one: enterpriseProcedure
+	one: adminProcedure
 		.input(z.object({ providerId: z.string().min(1) }))
 		.query(async ({ ctx, input }) => {
 			const provider = await db.query.ssoProvider.findFirst({
@@ -101,7 +81,7 @@ export const ssoRouter = createTRPCRouter({
 			}
 			return provider;
 		}),
-	update: enterpriseProcedure
+	update: adminProcedure
 		.input(ssoProviderBodySchema)
 		.mutation(async ({ ctx, input }) => {
 			const existing = await db.query.ssoProvider.findFirst({
@@ -202,10 +182,9 @@ export const ssoRouter = createTRPCRouter({
 			});
 			return { success: true };
 		}),
-	deleteProvider: enterpriseProcedure
+	deleteProvider: adminProcedure
 		.input(z.object({ providerId: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
-			// Obtener el provider antes de eliminarlo para obtener sus dominios
 			const providerToDelete = await db.query.ssoProvider.findFirst({
 				where: and(
 					eq(ssoProvider.providerId, input.providerId),
@@ -248,12 +227,13 @@ export const ssoRouter = createTRPCRouter({
 
 			return { success: true };
 		}),
-	register: enterpriseProcedure
+	register: adminProcedure
 		.input(ssoProviderBodySchema)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = ctx.session.activeOrganizationId;
 
 			const providers = await db.query.ssoProvider.findMany({
+				where: eq(ssoProvider.organizationId, organizationId),
 				columns: {
 					domain: true,
 				},
@@ -284,7 +264,7 @@ export const ssoRouter = createTRPCRouter({
 			});
 			return { success: true };
 		}),
-	addTrustedOrigin: enterpriseProcedure
+	addTrustedOrigin: adminProcedure
 		.input(z.object({ origin: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
 			const ownerId = await getOrganizationOwnerId(
@@ -312,7 +292,7 @@ export const ssoRouter = createTRPCRouter({
 				.where(eq(user.id, ownerId));
 			return { success: true };
 		}),
-	removeTrustedOrigin: enterpriseProcedure
+	removeTrustedOrigin: adminProcedure
 		.input(z.object({ origin: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
 			const ownerId = await getOrganizationOwnerId(
@@ -339,7 +319,7 @@ export const ssoRouter = createTRPCRouter({
 				.where(eq(user.id, ownerId));
 			return { success: true };
 		}),
-	updateTrustedOrigin: enterpriseProcedure
+	updateTrustedOrigin: adminProcedure
 		.input(
 			z.object({
 				oldOrigin: z.string().min(1),

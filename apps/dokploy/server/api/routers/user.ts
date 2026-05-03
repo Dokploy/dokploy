@@ -29,7 +29,6 @@ import {
 	hasPermission,
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
-import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { and, asc, eq, gt } from "drizzle-orm";
@@ -350,20 +349,14 @@ export const userRouter = createTRPCRouter({
 
 				const { id, accessedGitProviders, accessedServers, ...rest } = input;
 
-				const licensed = await hasValidLicense(
-					ctx.session?.activeOrganizationId || "",
-				);
-
 				await db
 					.update(member)
 					.set({
 						...rest,
-						...(licensed && accessedGitProviders !== undefined
+						...(accessedGitProviders !== undefined
 							? { accessedGitProviders }
 							: {}),
-						...(licensed && accessedServers !== undefined
-							? { accessedServers }
-							: {}),
+						...(accessedServers !== undefined ? { accessedServers } : {}),
 					})
 					.where(
 						and(
@@ -640,7 +633,13 @@ export const userRouter = createTRPCRouter({
 			);
 
 			try {
-				const toEmail = currentInvitation?.email || "";
+				const toEmail = currentInvitation?.email;
+				if (!toEmail) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Invitation has no recipient email",
+					});
+				}
 				const orgName = organization?.name || "organization";
 				const subject = `You've been invited to join ${orgName} on Dokploy`;
 				const html = await renderInvitationEmail({

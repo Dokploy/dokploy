@@ -43,16 +43,31 @@ vi.mock("@dokploy/server/db", () => ({
 	},
 }));
 
-vi.mock("@dokploy/server/services/proprietary/license-key", () => ({
-	hasValidLicense: vi.fn(() => Promise.resolve(false)),
-}));
-
 const { resolvePermissions } = await import(
 	"@dokploy/server/services/permission"
 );
-const { enterpriseOnlyResources, statements } = await import(
-	"@dokploy/server/lib/access-control"
-);
+const { statements } = await import("@dokploy/server/lib/access-control");
+
+const formerlyEnterpriseResources = [
+	"volume",
+	"deployment",
+	"envVars",
+	"projectEnvVars",
+	"environmentEnvVars",
+	"server",
+	"registry",
+	"certificate",
+	"backup",
+	"volumeBackup",
+	"schedule",
+	"domain",
+	"destination",
+	"notification",
+	"tag",
+	"logs",
+	"monitoring",
+	"auditLog",
+] as const;
 
 const ctx = {
 	user: { id: "user-1" },
@@ -68,7 +83,7 @@ describe("enterprise resources for static roles", () => {
 		memberToReturn = mockMemberData("owner");
 		const perms = await resolvePermissions(ctx);
 
-		for (const resource of enterpriseOnlyResources) {
+		for (const resource of formerlyEnterpriseResources) {
 			const actions = statements[resource as keyof typeof statements];
 			for (const action of actions) {
 				expect((perms as any)[resource][action]).toBe(true);
@@ -80,7 +95,7 @@ describe("enterprise resources for static roles", () => {
 		memberToReturn = mockMemberData("admin");
 		const perms = await resolvePermissions(ctx);
 
-		for (const resource of enterpriseOnlyResources) {
+		for (const resource of formerlyEnterpriseResources) {
 			const actions = statements[resource as keyof typeof statements];
 			for (const action of actions) {
 				expect((perms as any)[resource][action]).toBe(true);

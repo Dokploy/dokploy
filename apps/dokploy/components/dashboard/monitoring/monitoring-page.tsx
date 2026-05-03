@@ -46,8 +46,11 @@ export const MonitoringPage = () => {
 		);
 	}
 
+	const firstConfigured = fleet.find((s) => s.configured);
 	const activeServer =
-		fleet.find((s) => s.serverId === activeServerId) ?? fleet[0];
+		fleet.find((s) => s.serverId === activeServerId) ??
+		firstConfigured ??
+		fleet[0];
 
 	if (!activeServer) return null;
 

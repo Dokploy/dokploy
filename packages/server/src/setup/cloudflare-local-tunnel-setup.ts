@@ -87,7 +87,7 @@ export const uninstallLocalCloudflared = async (
 		onData?.("dokploy-tunnel removed ✅\n");
 	} catch (err) {
 		onData?.(
-			`dokploy-tunnel was not running: ${
+			`failed to remove dokploy-tunnel: ${
 				err instanceof Error ? err.message : String(err)
 			}\n`,
 		);

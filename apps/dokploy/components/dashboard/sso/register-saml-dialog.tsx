@@ -162,14 +162,19 @@ export function RegisterSamlDialog({
 	const isSubmitting = form.formState.isSubmitting;
 
 	const onSubmit = async (data: SamlProviderForm) => {
+		const resolvedBaseURL =
+			baseURL ||
+			(typeof window !== "undefined" ? window.location.origin : "");
+		if (!resolvedBaseURL) {
+			toast.error("Cannot determine application base URL");
+			return;
+		}
 		try {
-			// maybe add the /saml/metadata endpoint to the baseURL
-			const baseURLWithMetadata = `${baseURL}/saml/metadata`;
 			const generateSpMetadata = (providerId: string) => {
 				return `<?xml version="1.0" encoding="UTF-8"?>
-<md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="${baseURL}">
+<md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="${resolvedBaseURL}">
     <md:SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
-        <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="${baseURL}/api/auth/sso/saml2/callback/${providerId}" index="1"/>
+        <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="${resolvedBaseURL}/api/auth/sso/saml2/callback/${providerId}" index="1"/>
     </md:SPSSODescriptor>
 </md:EntityDescriptor>`;
 			};
@@ -181,8 +186,8 @@ export function RegisterSamlDialog({
 				samlConfig: {
 					entryPoint: data.entryPoint,
 					cert: data.cert,
-					callbackUrl: `${baseURL}/api/auth/sso/saml2/callback/${data.providerId}`,
-					audience: baseURL,
+					callbackUrl: `${resolvedBaseURL}/api/auth/sso/saml2/callback/${data.providerId}`,
+					audience: resolvedBaseURL,
 					idpMetadata: data.idpMetadataXml?.trim()
 						? { metadata: data.idpMetadataXml.trim() }
 						: undefined,

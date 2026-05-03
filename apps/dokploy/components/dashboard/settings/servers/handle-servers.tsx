@@ -80,10 +80,9 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 
 	const { data: sshKeys } = api.sshKey.all.useQuery();
 	const { data: tunnelAccountChoice } =
-		api.cloudflare.getServerTunnelAccountChoice.useQuery(
-			{ serverId: serverId ?? undefined },
-			{ enabled: !serverId },
-		);
+		api.cloudflare.getServerTunnelAccountChoice.useQuery(undefined, {
+			enabled: !serverId,
+		});
 	const { mutateAsync, error, isPending, isError } = serverId
 		? api.server.update.useMutation()
 		: api.server.create.useMutation();

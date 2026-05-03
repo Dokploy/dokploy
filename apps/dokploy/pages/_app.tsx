@@ -8,7 +8,7 @@ import { ThemeProvider } from "next-themes";
 import NextTopLoader from "nextjs-toploader";
 import type { ReactElement, ReactNode } from "react";
 import { SearchCommand } from "@/components/dashboard/search-command";
-import { WhitelabelingProvider } from "@/components/proprietary/whitelabeling/whitelabeling-provider";
+import { WhitelabelingProvider } from "@/components/dashboard/whitelabeling/whitelabeling-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/utils/api";
 

@@ -7,9 +7,6 @@ import { createAccessControl } from "better-auth/plugins/access";
  * The first 5 (organization, member, invitation, team, ac) are better-auth defaults
  * used internally by the organization plugin.
  * The rest are Dokploy-specific resources.
- *
- * Enterprise-only resources (only assignable via custom roles):
- * deployment, envVars, server, registry, certificate, backup, domain, logs, monitoring
  */
 export const statements = {
 	// better-auth organization plugin defaults
@@ -19,7 +16,7 @@ export const statements = {
 	team: ["create", "update", "delete"],
 	ac: ["create", "read", "update", "delete"],
 
-	// Dokploy core resources (free tier)
+	// Dokploy resources
 	project: ["create", "delete"],
 	service: ["create", "read", "delete"],
 	environment: ["create", "read", "delete"],
@@ -29,8 +26,6 @@ export const statements = {
 	cloudflare: ["read", "create", "update", "delete"],
 	traefikFiles: ["read", "write"],
 	api: ["read"],
-
-	// Enterprise-only resources (custom roles only)
 	volume: ["read", "create", "delete"],
 	deployment: ["read", "create", "cancel"],
 	envVars: ["read", "write"],
@@ -50,32 +45,6 @@ export const statements = {
 	monitoring: ["read"],
 	auditLog: ["read"],
 } as const;
-
-/**
- * Enterprise-only resources. For static roles (owner/admin/member),
- * permission checks on these resources are bypassed — they only apply
- * when using custom roles with an enterprise license.
- */
-export const enterpriseOnlyResources = new Set<string>([
-	"volume",
-	"deployment",
-	"envVars",
-	"projectEnvVars",
-	"environmentEnvVars",
-	"server",
-	"registry",
-	"certificate",
-	"backup",
-	"volumeBackup",
-	"schedule",
-	"domain",
-	"destination",
-	"notification",
-	"tag",
-	"logs",
-	"monitoring",
-	"auditLog",
-]);
 
 export const ac = createAccessControl(statements);
 
@@ -156,10 +125,8 @@ export const adminRole = ac.newRole({
 });
 
 /**
- * Member role (free tier) — read-only base permissions.
- * Members can read projects/services/environments they have access to,
- * but cannot create, delete, or access admin resources.
- * Enterprise resources are not available to the base member role.
+ * Member role — read-only base permissions for org-level resources,
+ * full access for service-level operations on services they have access to.
  */
 export const memberRole = ac.newRole({
 	organization: [],
@@ -176,7 +143,7 @@ export const memberRole = ac.newRole({
 	cloudflare: [],
 	traefikFiles: [],
 	api: [],
-	// Service-level enterprise resources — member can do everything within services they have access to
+	// Service-level — member can do everything within services they have access to
 	volume: ["read", "create", "delete"],
 	deployment: ["read", "create", "cancel"],
 	envVars: ["read", "write"],
@@ -188,7 +155,7 @@ export const memberRole = ac.newRole({
 	domain: ["read", "create", "delete"],
 	logs: ["read"],
 	monitoring: ["read"],
-	// Org-level enterprise resources — member cannot manage these
+	// Org-level — member cannot manage these
 	server: [],
 	registry: [],
 	certificate: [],

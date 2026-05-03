@@ -44,7 +44,7 @@ Container name `dokploy-tunnel` cannot collide with the operator's manual system
 
 A new Drizzle table `localServer` with one row per `organizationId`:
 
-```
+```text
 localServerId          text PK
 organizationId         text FK → organization.id  (unique)
 tunnelStatus           enum (disabled|provisioning|installing|registering|healthy|error)

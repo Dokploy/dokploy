@@ -70,6 +70,26 @@ export const CloudflareDomainFields = ({
 	const [subdomain, setSubdomain] = useState<string>(initialSub);
 	const debouncedSub = useDebounce(subdomain, 300);
 
+	// Re-sync internal state when the parent supplies different prop values
+	// (e.g., switching between domains in an edit flow).
+	useEffect(() => {
+		setMode(cloudflareZoneId ? "cloudflare" : "manual");
+		const nextZoneId =
+			cloudflareZoneId ?? enabledZones[0]?.cloudflareZoneId ?? "";
+		setZoneId(nextZoneId);
+		const nextZone = enabledZones.find(
+			(z) => z.cloudflareZoneId === nextZoneId,
+		);
+		const nextSub =
+			nextZone && host
+				? host === nextZone.zoneName
+					? ""
+					: host.replace(`.${nextZone.zoneName}`, "")
+				: "";
+		setSubdomain(nextSub);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [cloudflareZoneId, host]);
+
 	const fullHost =
 		activeZone &&
 		(debouncedSub.trim() === ""
@@ -86,7 +106,7 @@ export const CloudflareDomainFields = ({
 		if (mode === "manual" && cloudflareZoneId) {
 			onChange({ cloudflareZoneId: null, host });
 		}
-	}, [mode, fullHost, activeZone?.cloudflareZoneId]);
+	}, [mode, fullHost, activeZone?.cloudflareZoneId, onChange, cloudflareZoneId, host]);
 
 	const labelValid = isValidLabel(subdomain.trim());
 	const isReserved = RESERVED_NAMES.has(subdomain.trim().toLowerCase());

@@ -11,7 +11,6 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { EnterpriseFeatureGate } from "@/components/proprietary/enterprise-feature-gate";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
@@ -561,16 +560,7 @@ export const ManageCustomRoles = () => {
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="border-t pt-6">
-					<EnterpriseFeatureGate
-						lockedProps={{
-							title: "Custom Roles",
-							description:
-								"Custom roles with fine-grained permissions are part of Dokploy Enterprise. Add a valid license to create and assign custom roles.",
-							ctaLabel: "Go to License",
-						}}
-					>
-						<CustomRolesContent />
-					</EnterpriseFeatureGate>
+					<CustomRolesContent />
 				</CardContent>
 			</div>
 		</Card>
@@ -603,7 +593,7 @@ function HandleCustomRole({
 			setPermissions(initialPermissions ? { ...initialPermissions } : {});
 			form.reset({ roleName: isEdit ? (roleName ?? "") : "" });
 		}
-	}, [open]);
+	}, [open, initialPermissions, form, isEdit, roleName]);
 
 	const { mutateAsync: createRole, isPending: isCreating } =
 		api.customRole.create.useMutation();
@@ -1024,6 +1014,7 @@ function PermissionEditor({
 												checked={
 													permissions[resource]?.includes(action) ?? false
 												}
+												onClick={(e) => e.stopPropagation()}
 												onCheckedChange={() => onToggle(resource, action)}
 											/>
 											<div className="flex flex-col">

@@ -5,7 +5,6 @@ import {
 	updateGitProvider,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import { desc, eq, inArray } from "drizzle-orm";
 import {
@@ -72,18 +71,8 @@ export const gitProviderRouter = createTRPCRouter({
 			});
 		}),
 
-	allForPermissions: withPermission("member", "update")
-		.use(async ({ ctx, next }) => {
-			const licensed = await hasValidLicense(ctx.session.activeOrganizationId);
-			if (!licensed) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "Valid enterprise license required",
-				});
-			}
-			return next();
-		})
-		.query(async ({ ctx }) => {
+	allForPermissions: withPermission("member", "update").query(
+		async ({ ctx }) => {
 			return await db.query.gitProvider.findMany({
 				columns: {
 					gitProviderId: true,
@@ -93,7 +82,8 @@ export const gitProviderRouter = createTRPCRouter({
 				orderBy: desc(gitProvider.createdAt),
 				where: eq(gitProvider.organizationId, ctx.session.activeOrganizationId),
 			});
-		}),
+		},
+	),
 
 	remove: withPermission("gitProviders", "delete")
 		.input(apiRemoveGitProvider)

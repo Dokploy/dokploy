@@ -86,6 +86,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 				const server = await findServerById(serverId);
 
 				if (server.organizationId !== session.activeOrganizationId) {
+					clearInterval(pingInterval);
 					ws.close();
 					return;
 				}

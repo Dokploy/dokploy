@@ -1,7 +1,6 @@
 import { db } from "@dokploy/server/db";
 import type { AuditAction, AuditResourceType } from "@dokploy/server/db/schema";
 import { auditLog } from "@dokploy/server/db/schema";
-import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { and, desc, eq, gte, ilike, lte } from "drizzle-orm";
 
 export type { AuditAction, AuditResourceType };
@@ -24,9 +23,6 @@ export interface CreateAuditLogInput {
  */
 export const createAuditLog = async (input: CreateAuditLogInput) => {
 	try {
-		const licensed = await hasValidLicense(input.organizationId);
-		if (!licensed) return;
-
 		await db.insert(auditLog).values({
 			organizationId: input.organizationId,
 			userId: input.userId,

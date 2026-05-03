@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { EnterpriseFeatureLocked } from "@/components/proprietary/enterprise-feature-gate";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -199,18 +198,16 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 	const { data: projects } = api.project.allForPermissions.useQuery(undefined, {
 		enabled: isOpen,
 	});
-	const { data: haveValidLicense } =
-		api.licenseKey.haveValidLicenseKey.useQuery();
 
 	const { data: gitProviders } = api.gitProvider.allForPermissions.useQuery(
 		undefined,
 		{
-			enabled: isOpen && !!haveValidLicense,
+			enabled: isOpen,
 		},
 	);
 
 	const { data: servers } = api.server.allForPermissions.useQuery(undefined, {
-		enabled: isOpen && !!haveValidLicense,
+		enabled: isOpen,
 	});
 
 	const { data, refetch } = api.user.one.useQuery(
@@ -892,151 +889,131 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 								</FormItem>
 							)}
 						/>
-						{haveValidLicense ? (
-							<FormField
-								control={form.control}
-								name="accessedGitProviders"
-								render={() => (
-									<FormItem className="md:col-span-2">
-										<div className="mb-4">
-											<FormLabel className="text-base">Git Providers</FormLabel>
-											<FormDescription>
-												Select the Git Providers that the user can access
-											</FormDescription>
-										</div>
-										{gitProviders?.length === 0 && (
-											<p className="text-sm text-muted-foreground">
-												No git providers found
-											</p>
-										)}
-										<div className="grid md:grid-cols-1 gap-2">
-											{gitProviders?.map((provider) => (
-												<FormField
-													key={provider.gitProviderId}
-													control={form.control}
-													name="accessedGitProviders"
-													render={({ field }) => (
-														<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
-															<FormControl>
-																<Checkbox
-																	checked={field.value?.includes(
-																		provider.gitProviderId,
-																	)}
-																	onCheckedChange={(checked) => {
-																		if (checked) {
-																			field.onChange([
-																				...(field.value || []),
-																				provider.gitProviderId,
-																			]);
-																		} else {
-																			field.onChange(
-																				field.value?.filter(
-																					(v) => v !== provider.gitProviderId,
-																				),
-																			);
-																		}
-																	}}
-																/>
-															</FormControl>
-															<div className="flex items-center gap-2">
-																<FormLabel className="text-sm cursor-pointer">
-																	{provider.name}
-																</FormLabel>
-																<span className="text-xs text-muted-foreground capitalize">
-																	({provider.providerType})
-																</span>
-															</div>
-														</FormItem>
-													)}
-												/>
-											))}
-										</div>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						) : (
-							<div className="md:col-span-2">
-								<EnterpriseFeatureLocked
-									compact
-									title="Git Provider Assignment"
-									description="Assign specific Git Providers to users with an Enterprise license."
-								/>
-							</div>
-						)}
-						{haveValidLicense ? (
-							<FormField
-								control={form.control}
-								name="accessedServers"
-								render={() => (
-									<FormItem className="md:col-span-2">
-										<div className="mb-4">
-											<FormLabel className="text-base">Servers</FormLabel>
-											<FormDescription>
-												Select the Servers that the user can access
-											</FormDescription>
-										</div>
-										{servers?.length === 0 && (
-											<p className="text-sm text-muted-foreground">
-												No servers found
-											</p>
-										)}
-										<div className="grid md:grid-cols-1 gap-2">
-											{servers?.map((s) => (
-												<FormField
-													key={s.serverId}
-													control={form.control}
-													name="accessedServers"
-													render={({ field }) => (
-														<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
-															<FormControl>
-																<Checkbox
-																	checked={field.value?.includes(s.serverId)}
-																	onCheckedChange={(checked) => {
-																		if (checked) {
-																			field.onChange([
-																				...(field.value || []),
-																				s.serverId,
-																			]);
-																		} else {
-																			field.onChange(
-																				field.value?.filter(
-																					(v) => v !== s.serverId,
-																				),
-																			);
-																		}
-																	}}
-																/>
-															</FormControl>
-															<div className="flex items-center gap-2">
-																<FormLabel className="text-sm cursor-pointer">
-																	{s.name}
-																</FormLabel>
-																<span className="text-xs text-muted-foreground">
-																	({s.ipAddress})
-																</span>
-																<span className="text-xs text-muted-foreground capitalize">
-																	{s.serverType}
-																</span>
-															</div>
-														</FormItem>
-													)}
-												/>
-											))}
-										</div>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						) : (
-							<div className="md:col-span-2">
-								<EnterpriseFeatureLocked
-									compact
-									title="Server Assignment"
-									description="Assign specific Servers to users with an Enterprise license."
-								/>
-							</div>
-						)}
+						<FormField
+							control={form.control}
+							name="accessedGitProviders"
+							render={() => (
+								<FormItem className="md:col-span-2">
+									<div className="mb-4">
+										<FormLabel className="text-base">Git Providers</FormLabel>
+										<FormDescription>
+											Select the Git Providers that the user can access
+										</FormDescription>
+									</div>
+									{gitProviders?.length === 0 && (
+										<p className="text-sm text-muted-foreground">
+											No git providers found
+										</p>
+									)}
+									<div className="grid md:grid-cols-1 gap-2">
+										{gitProviders?.map((provider) => (
+											<FormField
+												key={provider.gitProviderId}
+												control={form.control}
+												name="accessedGitProviders"
+												render={({ field }) => (
+													<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
+														<FormControl>
+															<Checkbox
+																checked={field.value?.includes(
+																	provider.gitProviderId,
+																)}
+																onCheckedChange={(checked) => {
+																	if (checked) {
+																		field.onChange([
+																			...(field.value || []),
+																			provider.gitProviderId,
+																		]);
+																	} else {
+																		field.onChange(
+																			field.value?.filter(
+																				(v) => v !== provider.gitProviderId,
+																			),
+																		);
+																	}
+																}}
+															/>
+														</FormControl>
+														<div className="flex items-center gap-2">
+															<FormLabel className="text-sm cursor-pointer">
+																{provider.name}
+															</FormLabel>
+															<span className="text-xs text-muted-foreground capitalize">
+																({provider.providerType})
+															</span>
+														</div>
+													</FormItem>
+												)}
+											/>
+										))}
+									</div>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="accessedServers"
+							render={() => (
+								<FormItem className="md:col-span-2">
+									<div className="mb-4">
+										<FormLabel className="text-base">Servers</FormLabel>
+										<FormDescription>
+											Select the Servers that the user can access
+										</FormDescription>
+									</div>
+									{servers?.length === 0 && (
+										<p className="text-sm text-muted-foreground">
+											No servers found
+										</p>
+									)}
+									<div className="grid md:grid-cols-1 gap-2">
+										{servers?.map((s) => (
+											<FormField
+												key={s.serverId}
+												control={form.control}
+												name="accessedServers"
+												render={({ field }) => (
+													<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
+														<FormControl>
+															<Checkbox
+																checked={field.value?.includes(s.serverId)}
+																onCheckedChange={(checked) => {
+																	if (checked) {
+																		field.onChange([
+																			...(field.value || []),
+																			s.serverId,
+																		]);
+																	} else {
+																		field.onChange(
+																			field.value?.filter(
+																				(v) => v !== s.serverId,
+																			),
+																		);
+																	}
+																}}
+															/>
+														</FormControl>
+														<div className="flex items-center gap-2">
+															<FormLabel className="text-sm cursor-pointer">
+																{s.name}
+															</FormLabel>
+															<span className="text-xs text-muted-foreground">
+																({s.ipAddress})
+															</span>
+															<span className="text-xs text-muted-foreground capitalize">
+																{s.serverType}
+															</span>
+														</div>
+													</FormItem>
+												)}
+											/>
+										))}
+									</div>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2">
 							<Button
 								isLoading={isPending}

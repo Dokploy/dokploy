@@ -233,6 +233,15 @@ export const applicationRouter = createTRPCRouter({
 				});
 			}
 
+			try {
+				const { unsyncDomainsForApplication } = await import(
+					"@dokploy/server/services/cloudflare/orchestrator"
+				);
+				await unsyncDomainsForApplication(input.applicationId);
+			} catch (cfErr) {
+				console.warn("Cloudflare unsync failed:", cfErr);
+			}
+
 			const result = await db
 				.delete(applications)
 				.where(eq(applications.applicationId, input.applicationId))

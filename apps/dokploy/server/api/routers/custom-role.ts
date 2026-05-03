@@ -4,12 +4,8 @@ import { statements } from "@dokploy/server/lib/access-control";
 import { TRPCError } from "@trpc/server";
 import { and, count, eq } from "drizzle-orm";
 import { z } from "zod";
-import {
-	createTRPCRouter,
-	enterpriseProcedure,
-	protectedProcedure,
-} from "../../trpc";
-import { audit } from "../../utils/audit";
+import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
+import { audit } from "../utils/audit";
 
 const permissionsSchema = z.record(z.string(), z.array(z.string()));
 
@@ -46,7 +42,15 @@ export const customRoleRouter = createTRPCRouter({
 
 		for (const entry of roles) {
 			const existing = roleMap.get(entry.role);
-			const parsed = JSON.parse(entry.permission) as Record<string, string[]>;
+			let parsed: Record<string, string[]>;
+			try {
+				parsed = JSON.parse(entry.permission) as Record<string, string[]>;
+			} catch {
+				console.warn(
+					`[custom-role] Skipping role entry ${entry.id} (${entry.role}): malformed permission JSON`,
+				);
+				continue;
+			}
 
 			if (existing) {
 				for (const [resource, actions] of Object.entries(parsed)) {
@@ -69,7 +73,7 @@ export const customRoleRouter = createTRPCRouter({
 		return Array.from(roleMap.values());
 	}),
 
-	create: enterpriseProcedure
+	create: adminProcedure
 		.input(
 			z.object({
 				roleName: z
@@ -126,7 +130,7 @@ export const customRoleRouter = createTRPCRouter({
 			return created;
 		}),
 
-	update: enterpriseProcedure
+	update: adminProcedure
 		.input(
 			z.object({
 				roleName: z.string().min(1),
@@ -151,15 +155,17 @@ export const customRoleRouter = createTRPCRouter({
 			}
 
 			const effectiveRoleName = input.newRoleName ?? input.roleName;
+			const isRename =
+				!!input.newRoleName && input.newRoleName !== input.roleName;
 
-			if (input.newRoleName && input.newRoleName !== input.roleName) {
+			if (isRename) {
 				const existing = await db.query.organizationRole.findFirst({
 					where: and(
 						eq(
 							organizationRole.organizationId,
 							ctx.session.activeOrganizationId,
 						),
-						eq(organizationRole.role, input.newRoleName),
+						eq(organizationRole.role, input.newRoleName as string),
 					),
 				});
 				if (existing) {
@@ -168,16 +174,6 @@ export const customRoleRouter = createTRPCRouter({
 						message: `Role "${input.newRoleName}" already exists`,
 					});
 				}
-
-				await db
-					.update(member)
-					.set({ role: input.newRoleName })
-					.where(
-						and(
-							eq(member.organizationId, ctx.session.activeOrganizationId),
-							eq(member.role, input.roleName),
-						),
-					);
 			}
 
 			validatePermissions(input.permissions);
@@ -199,6 +195,25 @@ export const customRoleRouter = createTRPCRouter({
 				)
 				.returning();
 
+			if (!updated) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Role "${input.roleName}" not found`,
+				});
+			}
+
+			if (isRename) {
+				await db
+					.update(member)
+					.set({ role: input.newRoleName as string })
+					.where(
+						and(
+							eq(member.organizationId, ctx.session.activeOrganizationId),
+							eq(member.role, input.roleName),
+						),
+					);
+			}
+
 			await audit(ctx, {
 				action: "update",
 				resourceType: "customRole",
@@ -207,7 +222,7 @@ export const customRoleRouter = createTRPCRouter({
 			return updated;
 		}),
 
-	remove: enterpriseProcedure
+	remove: adminProcedure
 		.input(
 			z.object({
 				roleName: z.string().min(1),

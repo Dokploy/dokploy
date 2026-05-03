@@ -1,36 +1,22 @@
-import {
-	getWebServerSettings,
-	IS_CLOUD,
-	updateWebServerSettings,
-} from "@dokploy/server";
+import { getWebServerSettings, updateWebServerSettings } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { apiUpdateWhitelabeling } from "@/server/db/schema";
 import {
+	adminProcedure,
 	createTRPCRouter,
-	enterpriseProcedure,
 	protectedProcedure,
 	publicProcedure,
-} from "../../trpc";
+} from "../trpc";
 
 export const whitelabelingRouter = createTRPCRouter({
 	get: protectedProcedure.query(async () => {
-		if (IS_CLOUD) {
-			return null;
-		}
 		const settings = await getWebServerSettings();
 		return settings?.whitelabelingConfig ?? null;
 	}),
 
-	update: enterpriseProcedure
+	update: adminProcedure
 		.input(apiUpdateWhitelabeling)
 		.mutation(async ({ input, ctx }) => {
-			if (IS_CLOUD) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Whitelabeling is not available in Cloud",
-				});
-			}
-
 			if (ctx.user.role !== "owner") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
@@ -45,14 +31,7 @@ export const whitelabelingRouter = createTRPCRouter({
 			return { success: true };
 		}),
 
-	reset: enterpriseProcedure.mutation(async ({ ctx }) => {
-		if (IS_CLOUD) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Whitelabeling is not available in Cloud",
-			});
-		}
-
+	reset: adminProcedure.mutation(async ({ ctx }) => {
 		if (ctx.user.role !== "owner") {
 			throw new TRPCError({
 				code: "FORBIDDEN",
@@ -83,9 +62,6 @@ export const whitelabelingRouter = createTRPCRouter({
 	// Public endpoint only for unauthenticated pages (login, register, error)
 	// Returns only the fields needed for public pages
 	getPublic: publicProcedure.query(async () => {
-		if (IS_CLOUD) {
-			return null;
-		}
 		const settings = await getWebServerSettings();
 		const config = settings?.whitelabelingConfig;
 		if (!config) return null;

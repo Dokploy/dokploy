@@ -244,6 +244,15 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 
+			try {
+				const { unsyncDomainsForCompose } = await import(
+					"@dokploy/server/services/cloudflare/orchestrator"
+				);
+				await unsyncDomainsForCompose(input.composeId);
+			} catch (cfErr) {
+				console.warn("Cloudflare unsync failed:", cfErr);
+			}
+
 			const result = await db
 				.delete(composeTable)
 				.where(eq(composeTable.composeId, input.composeId))

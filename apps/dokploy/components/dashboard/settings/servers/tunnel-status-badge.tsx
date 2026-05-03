@@ -91,7 +91,13 @@ export const TunnelStatusBadge = ({
 		return (
 			<Tooltip delayDuration={0}>
 				<TooltipTrigger asChild>
-					<span>{badge}</span>
+					<button
+						type="button"
+						aria-label={`Tunnel error: ${error}`}
+						className="inline-flex"
+					>
+						{badge}
+					</button>
 				</TooltipTrigger>
 				<TooltipContent className="max-w-xs">
 					<p className="text-sm break-words">{error}</p>
