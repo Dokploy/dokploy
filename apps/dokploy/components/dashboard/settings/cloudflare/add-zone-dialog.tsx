@@ -89,7 +89,7 @@ export const AddZoneDialog = ({ open, onOpenChange }: Props) => {
 						configured.
 					</p>
 				) : (
-					<div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
+					<div className="flex flex-col gap-3 max-h-80 overflow-y-auto">
 						<div className="flex items-center justify-between border-b pb-2">
 							<span className="text-xs text-muted-foreground">
 								{available.length} available
@@ -111,26 +111,40 @@ export const AddZoneDialog = ({ open, onOpenChange }: Props) => {
 								</Button>
 							</div>
 						</div>
-						{available.map((z) => (
-							<label
-								key={z.id}
-								htmlFor={`zone-${z.id}`}
-								className="flex items-center gap-3 px-2 py-2 rounded hover:bg-muted/40 cursor-pointer text-left"
-							>
-								<Checkbox
-									id={`zone-${z.id}`}
-									checked={!!selected[z.id]}
-									onCheckedChange={(v) =>
-										setSelected((prev) => ({ ...prev, [z.id]: !!v }))
-									}
-								/>
-								<div className="flex flex-col flex-1">
-									<span className="font-mono text-sm">{z.name}</span>
-									<span className="text-xs text-muted-foreground">
-										{z.account.name} · {z.status}
-									</span>
+						{Object.entries(
+							available.reduce<Record<string, typeof available>>((acc, z) => {
+								const key = `${z.account.name} · ${z.account.id}`;
+								acc[key] = acc[key] ?? [];
+								acc[key]!.push(z);
+								return acc;
+							}, {}),
+						).map(([groupLabel, groupZones]) => (
+							<div key={groupLabel} className="flex flex-col gap-1">
+								<div className="text-xs font-medium uppercase tracking-wide text-muted-foreground px-2">
+									{groupLabel}
 								</div>
-							</label>
+								{groupZones.map((z) => (
+									<label
+										key={z.id}
+										htmlFor={`zone-${z.id}`}
+										className="flex items-center gap-3 px-2 py-2 rounded hover:bg-muted/40 cursor-pointer text-left"
+									>
+										<Checkbox
+											id={`zone-${z.id}`}
+											checked={!!selected[z.id]}
+											onCheckedChange={(v) =>
+												setSelected((prev) => ({ ...prev, [z.id]: !!v }))
+											}
+										/>
+										<div className="flex flex-col flex-1">
+											<span className="font-mono text-sm">{z.name}</span>
+											<span className="text-xs text-muted-foreground">
+												{z.status}
+											</span>
+										</div>
+									</label>
+								))}
+							</div>
 						))}
 					</div>
 				)}
