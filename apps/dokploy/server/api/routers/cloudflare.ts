@@ -17,14 +17,22 @@ import {
 	apiTestCloudflareZone,
 	apiToggleCloudflareZone,
 } from "@dokploy/server/db/schema/cloudflare-zone";
+import {
+	apiProvisionLocalTunnel,
+	apiUpdateLocalTunnelAccount,
+} from "@dokploy/server/db/schema/local-server";
 import { listZones, verifyToken } from "@dokploy/server/services/cloudflare";
 import { pickTunnelAccount } from "@dokploy/server/services/cloudflare/account-picker";
 import {
 	addCloudflareZones,
 	checkSubdomainAvailability,
+	deprovisionLocalTunnel,
+	provisionLocalTunnel,
 	pushAllServersToCloudflareForOrg,
+	pushLocalTunnelToCloudflare,
 	testCloudflareZone,
 } from "@dokploy/server/services/cloudflare/orchestrator";
+import { findLocalServerByOrg } from "@dokploy/server/services/local-server";
 import { checkPermission } from "@dokploy/server/services/permission";
 import { getAccessibleServerIds } from "@dokploy/server/services/server";
 import { TRPCError } from "@trpc/server";
@@ -298,6 +306,125 @@ export const cloudflareRouter = createTRPCRouter({
 					zoneAccountId: r.zoneAccountId,
 					tunnelAccountId: srv.tunnelAccountId!,
 				}));
+		}),
+
+	getLocalTunnel: withPermission("cloudflare", "read").query(
+		async ({ ctx }) => {
+			const local = await findLocalServerByOrg(
+				ctx.session.activeOrganizationId,
+			);
+			if (!local) return null;
+			// Don't ship the tunnel token to the client.
+			return {
+				localServerId: local.localServerId,
+				tunnelStatus: local.tunnelStatus,
+				tunnelId: local.tunnelId,
+				tunnelAccountId: local.tunnelAccountId,
+				tunnelError: local.tunnelError,
+				tunnelCheckedAt: local.tunnelCheckedAt,
+				createdAt: local.createdAt,
+			};
+		},
+	),
+
+	getLocalTunnelAccountChoice: withPermission("cloudflare", "read").query(
+		async ({ ctx }) => {
+			const config = await db.query.cloudflareConfig.findFirst({
+				where: eq(
+					cloudflareConfig.organizationId,
+					ctx.session.activeOrganizationId,
+				),
+			});
+			if (!config) {
+				return {
+					candidate: null as string | null,
+					ambiguous: false,
+					accounts: [] as { id: string; name: string }[],
+				};
+			}
+			const zoneRows = await db
+				.select({ accountId: cloudflareZones.accountId })
+				.from(cloudflareZones)
+				.where(
+					and(
+						eq(
+							cloudflareZones.organizationId,
+							ctx.session.activeOrganizationId,
+						),
+						eq(cloudflareZones.enabled, true),
+					),
+				);
+			const r = pickTunnelAccount({
+				accounts: config.accounts,
+				zoneAccountIds: zoneRows.map((z) => z.accountId),
+				explicitAccountId: null,
+			});
+			return {
+				candidate: r.kind === "ok" ? r.accountId : null,
+				ambiguous: r.kind === "ambiguous",
+				accounts: config.accounts,
+			};
+		},
+	),
+
+	provisionLocalTunnel: withPermission("cloudflare", "update")
+		.input(apiProvisionLocalTunnel)
+		.mutation(async ({ ctx, input }) => {
+			await provisionLocalTunnel(ctx.session.activeOrganizationId, {
+				explicitAccountId: input.tunnelAccountId ?? null,
+			});
+			return { ok: true as const };
+		}),
+
+	deprovisionLocalTunnel: withPermission("cloudflare", "update").mutation(
+		async ({ ctx }) => {
+			await deprovisionLocalTunnel(ctx.session.activeOrganizationId);
+			return { ok: true as const };
+		},
+	),
+
+	pushLocalTunnelToCloudflare: withPermission("cloudflare", "update").mutation(
+		async ({ ctx }) => {
+			await pushLocalTunnelToCloudflare(ctx.session.activeOrganizationId);
+			return { ok: true as const };
+		},
+	),
+
+	updateLocalTunnelAccount: withPermission("cloudflare", "update")
+		.input(apiUpdateLocalTunnelAccount)
+		.mutation(async ({ ctx, input }) => {
+			const local = await findLocalServerByOrg(
+				ctx.session.activeOrganizationId,
+			);
+			if (!local) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Local tunnel is not provisioned",
+				});
+			}
+			if (local.tunnelId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Local tunnel already exists. Disable it first to change the Cloudflare account.",
+				});
+			}
+			const config = await db.query.cloudflareConfig.findFirst({
+				where: eq(
+					cloudflareConfig.organizationId,
+					ctx.session.activeOrganizationId,
+				),
+			});
+			const known = config?.accounts.some(
+				(a) => a.id === input.tunnelAccountId,
+			);
+			if (!known) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Account is not on this Cloudflare token",
+				});
+			}
+			return { ok: true as const };
 		}),
 
 	checkSubdomainAvailability: withPermission("cloudflare", "read")

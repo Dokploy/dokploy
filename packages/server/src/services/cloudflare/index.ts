@@ -333,6 +333,37 @@ export const deleteDnsRecord = async (
 	);
 };
 
+/**
+ * Atomic in-place update. Used to swap a CNAME from one tunnel UUID to another
+ * without dropping DNS — flip is one PATCH call rather than DELETE+CREATE.
+ */
+export const patchDnsRecord = async (
+	token: string,
+	zoneId: string,
+	recordId: string,
+	input: {
+		name?: string;
+		content?: string;
+		type?: "CNAME";
+		proxied?: boolean;
+		comment?: string;
+	},
+): Promise<DnsRecord> => {
+	const body: Record<string, unknown> = {};
+	if (input.name !== undefined) body.name = input.name;
+	if (input.content !== undefined) body.content = input.content;
+	if (input.type !== undefined) body.type = input.type;
+	if (input.proxied !== undefined) body.proxied = input.proxied;
+	if (input.comment !== undefined) body.comment = input.comment;
+	const r = await cfFetch<DnsRecord>(
+		token,
+		"PATCH",
+		`/zones/${zoneId}/dns_records/${recordId}`,
+		body,
+	);
+	return r.result;
+};
+
 export const buildIngress = (opts: {
 	hostnames: { hostname: string; service: string; path?: string }[];
 }): IngressRule[] => {
