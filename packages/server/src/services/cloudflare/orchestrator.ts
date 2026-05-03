@@ -5,6 +5,7 @@ import {
 	cloudflareZones,
 	compose,
 	domains,
+	previewDeployments,
 	server,
 } from "@dokploy/server/db/schema";
 import type { LocalServer } from "@dokploy/server/db/schema/local-server";
@@ -23,7 +24,7 @@ import {
 	uninstallCloudflaredOnServer,
 } from "@dokploy/server/setup/cloudflare-tunnel-setup";
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNotNull, or } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, or } from "drizzle-orm";
 import { pickTunnelAccount } from "./account-picker";
 import {
 	buildIngress,
@@ -737,6 +738,80 @@ export const unsyncDomain = async (domainId: string): Promise<void> => {
 	if (host) {
 		await reapplyIngressForHost(host).catch(() => {});
 	}
+};
+
+const unsyncDomainsBestEffort = async (
+	domainIds: string[],
+): Promise<void> => {
+	for (const domainId of domainIds) {
+		try {
+			await unsyncDomain(domainId);
+		} catch (err) {
+			console.warn(
+				`Cloudflare unsync failed for domain ${domainId}:`,
+				err,
+			);
+		}
+	}
+};
+
+/**
+ * Unsync all Cloudflare-managed domains owned by an application, including
+ * domains attached to its preview deployments. Must be called BEFORE the
+ * application row is deleted, because the cascade drops the domain rows
+ * (and their cloudflareRecordId) along with them.
+ */
+export const unsyncDomainsForApplication = async (
+	applicationId: string,
+): Promise<void> => {
+	const directDomains = await db.query.domains.findMany({
+		where: and(
+			eq(domains.applicationId, applicationId),
+			isNotNull(domains.cloudflareZoneId),
+		),
+		columns: { domainId: true },
+	});
+
+	const previews = await db.query.previewDeployments.findMany({
+		where: eq(previewDeployments.applicationId, applicationId),
+		columns: { previewDeploymentId: true },
+	});
+
+	const previewDomains = previews.length
+		? await db.query.domains.findMany({
+				where: and(
+					inArray(
+						domains.previewDeploymentId,
+						previews.map((p) => p.previewDeploymentId),
+					),
+					isNotNull(domains.cloudflareZoneId),
+				),
+				columns: { domainId: true },
+			})
+		: [];
+
+	await unsyncDomainsBestEffort([
+		...directDomains.map((d) => d.domainId),
+		...previewDomains.map((d) => d.domainId),
+	]);
+};
+
+/**
+ * Unsync all Cloudflare-managed domains owned by a compose service. Must be
+ * called BEFORE the compose row is deleted (cascade drops the domain rows).
+ */
+export const unsyncDomainsForCompose = async (
+	composeId: string,
+): Promise<void> => {
+	const composeDomains = await db.query.domains.findMany({
+		where: and(
+			eq(domains.composeId, composeId),
+			isNotNull(domains.cloudflareZoneId),
+		),
+		columns: { domainId: true },
+	});
+
+	await unsyncDomainsBestEffort(composeDomains.map((d) => d.domainId));
 };
 
 /**
