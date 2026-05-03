@@ -1,3 +1,10 @@
+# [0.35.0](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.34.0...v0.35.0) (2026-05-03)
+
+
+### Features
+
+* **cloudflare:** local tunnel for Dokploy panel host ([76b3a67](https://github.com/Bl4ckBl1zZ/dokploy/commit/76b3a671bb93c88d8fff007dc611b0e609188f67))
+
 # [0.34.0](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.33.0...v0.34.0) (2026-05-03)
 
 
