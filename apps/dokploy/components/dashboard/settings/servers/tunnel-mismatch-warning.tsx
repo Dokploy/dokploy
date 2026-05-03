@@ -12,6 +12,7 @@ export const TunnelMismatchWarning = ({ serverId, tunnelAccountId }: Props) => {
 		{ enabled: !!tunnelAccountId },
 	);
 
+	if (!tunnelAccountId) return null;
 	if (!mismatches || mismatches.length === 0) return null;
 
 	return (
@@ -19,10 +20,8 @@ export const TunnelMismatchWarning = ({ serverId, tunnelAccountId }: Props) => {
 			<p className="font-medium">Cloudflare account mismatch</p>
 			<p className="text-xs">
 				This server's tunnel is in account{" "}
-				<code className="font-mono">
-					{mismatches[0]!.tunnelAccountId.slice(0, 8)}
-				</code>
-				, but the following domains route through zones in a different account.
+				<code className="font-mono">{tunnelAccountId.slice(0, 8)}</code>, but
+				the following domains route through zones in a different account.
 				Requests to these hosts will return Cloudflare error 1033 until the
 				tunnel is recreated in the correct account (Repair flow coming soon):
 			</p>

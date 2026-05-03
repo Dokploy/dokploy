@@ -86,7 +86,7 @@ export const CloudflareDomainFields = ({
 		if (mode === "manual" && cloudflareZoneId) {
 			onChange({ cloudflareZoneId: null, host });
 		}
-	}, [mode, fullHost, activeZone?.cloudflareZoneId]);
+	}, [mode, fullHost, activeZone?.cloudflareZoneId, onChange, cloudflareZoneId, host]);
 
 	const labelValid = isValidLabel(subdomain.trim());
 	const isReserved = RESERVED_NAMES.has(subdomain.trim().toLowerCase());

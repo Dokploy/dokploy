@@ -1014,6 +1014,7 @@ function PermissionEditor({
 												checked={
 													permissions[resource]?.includes(action) ?? false
 												}
+												onClick={(e) => e.stopPropagation()}
 												onCheckedChange={() => onToggle(resource, action)}
 											/>
 											<div className="flex flex-col">

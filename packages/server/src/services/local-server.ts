@@ -1,14 +1,9 @@
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { type LocalServer, localServer } from "../db/schema/local-server";
+import type { TunnelStatus } from "../db/schema/server";
 
-export type TunnelStatus =
-	| "disabled"
-	| "provisioning"
-	| "installing"
-	| "registering"
-	| "healthy"
-	| "error";
+export type { TunnelStatus };
 
 export const findLocalServerByOrg = async (
 	organizationId: string,
@@ -22,16 +17,17 @@ export const findLocalServerByOrg = async (
 export const ensureLocalServer = async (
 	organizationId: string,
 ): Promise<LocalServer> => {
-	const existing = await findLocalServerByOrg(organizationId);
-	if (existing) return existing;
 	const inserted = await db
 		.insert(localServer)
 		.values({ organizationId })
+		.onConflictDoNothing({ target: localServer.organizationId })
 		.returning();
-	if (!inserted[0]) {
-		throw new Error("Failed to create localServer row");
+	if (inserted[0]) return inserted[0];
+	const existing = await findLocalServerByOrg(organizationId);
+	if (!existing) {
+		throw new Error("Failed to create or fetch localServer row");
 	}
-	return inserted[0];
+	return existing;
 };
 
 export const setLocalTunnelState = async (

@@ -49,7 +49,7 @@ export const CloudflareZoneList = () => {
 	const zones = data?.zones ?? [];
 	const hasConfig = !!data?.config;
 
-	if (!hasConfig) {
+	if (!isLoading && !hasConfig) {
 		return null;
 	}
 

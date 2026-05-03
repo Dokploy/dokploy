@@ -142,6 +142,7 @@ export const domainRouter = createTRPCRouter({
 
 			const hostChanged =
 				typeof input.host === "string" && input.host !== currentDomain.host;
+			const result = await updateDomainById(input.domainId, input);
 			if (hostChanged && currentDomain.cloudflareZoneId) {
 				try {
 					const { renameDomainHost } = await import(
@@ -152,7 +153,6 @@ export const domainRouter = createTRPCRouter({
 					console.warn("Cloudflare rename failed:", cfErr);
 				}
 			}
-			const result = await updateDomainById(input.domainId, input);
 			const domain = await findDomainById(input.domainId);
 			if (domain.cloudflareZoneId && domain.cloudflareSyncStatus !== "synced") {
 				try {

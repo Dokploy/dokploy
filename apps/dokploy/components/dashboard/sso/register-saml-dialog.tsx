@@ -163,8 +163,6 @@ export function RegisterSamlDialog({
 
 	const onSubmit = async (data: SamlProviderForm) => {
 		try {
-			// maybe add the /saml/metadata endpoint to the baseURL
-			const baseURLWithMetadata = `${baseURL}/saml/metadata`;
 			const generateSpMetadata = (providerId: string) => {
 				return `<?xml version="1.0" encoding="UTF-8"?>
 <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="${baseURL}">

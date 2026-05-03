@@ -17,7 +17,7 @@ import {
 interface InvitationEmailProps {
 	inviteLink: string;
 	toEmail: string;
-	organizationName: string;
+	organizationName?: string;
 }
 
 export const InvitationEmail = ({

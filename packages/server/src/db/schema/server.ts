@@ -35,6 +35,8 @@ export const tunnelStatus = pgEnum("tunnelStatus", [
 	"error",
 ]);
 
+export type TunnelStatus = (typeof tunnelStatus.enumValues)[number];
+
 export const server = pgTable("server", {
 	serverId: text("serverId")
 		.notNull()

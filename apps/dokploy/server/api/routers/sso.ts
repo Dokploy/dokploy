@@ -18,7 +18,10 @@ import {
 
 export const ssoRouter = createTRPCRouter({
 	showSignInWithSSO: publicProcedure.query(async () => {
-		return true;
+		const provider = await db.query.ssoProvider.findFirst({
+			columns: { id: true },
+		});
+		return !!provider;
 	}),
 	listProviders: adminProcedure.query(async ({ ctx }) => {
 		const providers = await db.query.ssoProvider.findMany({
@@ -231,6 +234,7 @@ export const ssoRouter = createTRPCRouter({
 			const organizationId = ctx.session.activeOrganizationId;
 
 			const providers = await db.query.ssoProvider.findMany({
+				where: eq(ssoProvider.organizationId, organizationId),
 				columns: {
 					domain: true,
 				},

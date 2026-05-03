@@ -42,7 +42,15 @@ export const customRoleRouter = createTRPCRouter({
 
 		for (const entry of roles) {
 			const existing = roleMap.get(entry.role);
-			const parsed = JSON.parse(entry.permission) as Record<string, string[]>;
+			let parsed: Record<string, string[]>;
+			try {
+				parsed = JSON.parse(entry.permission) as Record<string, string[]>;
+			} catch {
+				console.warn(
+					`[custom-role] Skipping role entry ${entry.id} (${entry.role}): malformed permission JSON`,
+				);
+				continue;
+			}
 
 			if (existing) {
 				for (const [resource, actions] of Object.entries(parsed)) {
@@ -194,6 +202,13 @@ export const customRoleRouter = createTRPCRouter({
 					),
 				)
 				.returning();
+
+			if (!updated) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Role "${input.roleName}" not found`,
+				});
+			}
 
 			await audit(ctx, {
 				action: "update",
