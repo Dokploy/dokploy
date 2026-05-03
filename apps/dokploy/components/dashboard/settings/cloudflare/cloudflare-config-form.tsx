@@ -29,7 +29,7 @@ export const CloudflareConfigForm = () => {
 	const [token, setToken] = useState("");
 	const [verifyResult, setVerifyResult] = useState<{
 		ok: boolean;
-		accountId: string | null;
+		accounts: { id: string; name: string }[];
 		scopes: string[];
 		status: string;
 	} | null>(null);
@@ -76,12 +76,16 @@ export const CloudflareConfigForm = () => {
 					</div>
 				) : hasConfig ? (
 					<div className="flex flex-col gap-3">
-						<div className="flex items-center gap-2">
+						<div className="flex flex-wrap items-center gap-2">
 							<Badge variant="secondary">Configured</Badge>
 							<span className="text-sm text-muted-foreground">
-								Account ID:{" "}
-								<code className="font-mono">{data.config?.accountId}</code>
+								Accessible accounts:
 							</span>
+							{(data.config?.accounts ?? []).map((a) => (
+								<Badge key={a.id} variant="outline" className="font-mono">
+									{a.name} · {a.id.slice(0, 8)}
+								</Badge>
+							))}
 						</div>
 						{data.config?.verifiedAt && (
 							<p className="text-xs text-muted-foreground">
@@ -143,9 +147,23 @@ export const CloudflareConfigForm = () => {
 				</div>
 				{verifyResult ? (
 					verifyResult.ok ? (
-						<div className="flex items-center gap-2 text-sm text-green-600">
-							<Check className="h-4 w-4" /> Token valid · account{" "}
-							<code className="font-mono">{verifyResult.accountId}</code>
+						<div className="flex flex-col gap-1 text-sm text-green-600">
+							<div className="flex items-center gap-2">
+								<Check className="h-4 w-4" /> Token valid ·{" "}
+								{verifyResult.accounts.length === 1
+									? "1 account"
+									: `${verifyResult.accounts.length} accounts`}
+							</div>
+							<ul className="ml-6 list-disc text-xs">
+								{verifyResult.accounts.map((a) => (
+									<li key={a.id}>
+										<span className="font-medium">{a.name}</span>{" "}
+										<code className="font-mono text-muted-foreground">
+											{a.id}
+										</code>
+									</li>
+								))}
+							</ul>
 						</div>
 					) : (
 						<AlertBlock type="error">
