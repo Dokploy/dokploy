@@ -22,10 +22,9 @@ export const TunnelMismatchWarning = ({ serverId, tunnelAccountId }: Props) => {
 				<code className="font-mono">
 					{mismatches[0]!.tunnelAccountId.slice(0, 8)}
 				</code>
-				, but the following domains route through zones in a different
-				account. Requests to these hosts will return Cloudflare error 1033
-				until the tunnel is recreated in the correct account (Repair flow
-				coming soon):
+				, but the following domains route through zones in a different account.
+				Requests to these hosts will return Cloudflare error 1033 until the
+				tunnel is recreated in the correct account (Repair flow coming soon):
 			</p>
 			<ul className="list-disc pl-5 text-xs">
 				{mismatches.map((m) => (

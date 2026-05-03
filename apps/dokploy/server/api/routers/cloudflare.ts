@@ -17,8 +17,8 @@ import {
 	apiTestCloudflareZone,
 	apiToggleCloudflareZone,
 } from "@dokploy/server/db/schema/cloudflare-zone";
-import { pickTunnelAccount } from "@dokploy/server/services/cloudflare/account-picker";
 import { listZones, verifyToken } from "@dokploy/server/services/cloudflare";
+import { pickTunnelAccount } from "@dokploy/server/services/cloudflare/account-picker";
 import {
 	addCloudflareZones,
 	checkSubdomainAvailability,
@@ -26,10 +26,10 @@ import {
 	testCloudflareZone,
 } from "@dokploy/server/services/cloudflare/orchestrator";
 import { checkPermission } from "@dokploy/server/services/permission";
+import { getAccessibleServerIds } from "@dokploy/server/services/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq, isNotNull, or } from "drizzle-orm";
 import { z } from "zod";
-import { getAccessibleServerIds } from "@dokploy/server/services/server";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
 const redactConfig = <T extends { apiToken: string } | null | undefined>(
@@ -77,8 +77,7 @@ export const cloudflareRouter = createTRPCRouter({
 			if (!verification.ok || verification.accounts.length === 0) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message:
-						"Cloudflare token is invalid or has no accessible accounts",
+					message: "Cloudflare token is invalid or has no accessible accounts",
 				});
 			}
 

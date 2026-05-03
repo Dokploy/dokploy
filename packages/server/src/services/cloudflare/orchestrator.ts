@@ -209,7 +209,11 @@ export const provisionServerTunnel = async (
 			);
 			tunnelId = created.id;
 			tunnelToken = created.token;
-			await setTunnelState(serverId, { tunnelId, tunnelToken, tunnelAccountId });
+			await setTunnelState(serverId, {
+				tunnelId,
+				tunnelToken,
+				tunnelAccountId,
+			});
 		}
 
 		if (!tunnelAccountId) {
@@ -308,7 +312,12 @@ const reapplyIngress = async (serverId: string) => {
 	const config = await findCloudflareConfigForOrg(srv.organizationId);
 	if (!config) return;
 	const ingress = await buildIngressForServer(serverId);
-	await updateIngress(config.apiToken, srv.tunnelAccountId, srv.tunnelId, ingress);
+	await updateIngress(
+		config.apiToken,
+		srv.tunnelAccountId,
+		srv.tunnelId,
+		ingress,
+	);
 };
 
 export const syncDomain = async (domainId: string): Promise<void> => {
