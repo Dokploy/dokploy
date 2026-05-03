@@ -119,21 +119,27 @@ export const verifyToken = async (
 			expires_on: string | null;
 		}>(token, "GET", "/user/tokens/verify");
 
-		let accountId: string | null = null;
+		const accounts: { id: string; name: string }[] = [];
 		try {
-			const accounts = await cfFetch<Array<{ id: string; name: string }>>(
-				token,
-				"GET",
-				"/accounts?per_page=1",
-			);
-			accountId = accounts.result[0]?.id ?? null;
+			let page = 1;
+			while (true) {
+				const r = await cfFetch<Array<{ id: string; name: string }>>(
+					token,
+					"GET",
+					`/accounts?per_page=50&page=${page}`,
+				);
+				accounts.push(...r.result.map((a) => ({ id: a.id, name: a.name })));
+				const total = r.result_info?.total_pages ?? 1;
+				if (page >= total) break;
+				page += 1;
+			}
 		} catch {
 			// Accounts list may fail with insufficient scopes; verify still succeeded
 		}
 
 		return {
 			ok: verify.result.status === "active",
-			accountId,
+			accounts,
 			scopes: [],
 			expiresOn: verify.result.expires_on,
 			status: verify.result.status,
@@ -142,7 +148,7 @@ export const verifyToken = async (
 		if (err instanceof CloudflareApiError) {
 			return {
 				ok: false,
-				accountId: null,
+				accounts: [],
 				scopes: [],
 				expiresOn: null,
 				status: err.status === 401 ? "invalid" : "error",

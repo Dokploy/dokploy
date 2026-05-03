@@ -49,6 +49,7 @@ import { ShowSchedulesModal } from "./show-schedules-modal";
 import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { TunnelActions } from "./tunnel-actions";
+import { TunnelMismatchWarning } from "./tunnel-mismatch-warning";
 import { TunnelStatusBadge } from "./tunnel-status-badge";
 import { WelcomeSubscription } from "./welcome-stripe/welcome-subscription";
 
@@ -245,6 +246,10 @@ export const ShowServers = () => {
 																	</TooltipProvider>
 																</CardHeader>
 																<CardContent className="space-y-3 flex-1 flex flex-col">
+																	<TunnelMismatchWarning
+																		serverId={server.serverId}
+																		tunnelAccountId={server.tunnelAccountId}
+																	/>
 																	<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
 																		<Network className="size-4 text-muted-foreground" />
 																		<span className="text-muted-foreground">

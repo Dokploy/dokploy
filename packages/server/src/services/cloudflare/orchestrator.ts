@@ -13,6 +13,7 @@ import {
 } from "@dokploy/server/setup/cloudflare-tunnel-setup";
 import { TRPCError } from "@trpc/server";
 import { and, eq, isNotNull, or } from "drizzle-orm";
+import { pickTunnelAccount } from "./account-picker";
 import {
 	buildIngress,
 	createDnsRecord,
@@ -31,6 +32,7 @@ interface ServerWithOrg {
 	organizationId: string;
 	tunnelId: string | null;
 	tunnelToken: string | null;
+	tunnelAccountId: string | null;
 	tunnelStatus:
 		| "disabled"
 		| "provisioning"
@@ -53,12 +55,33 @@ export const hasCloudflareConfig = async (
 	return Boolean(config);
 };
 
+export const assertZoneTunnelAccountMatch = (args: {
+	zoneName: string;
+	zoneAccountId: string;
+	serverName: string;
+	tunnelAccountId: string | null;
+}): void => {
+	if (!args.tunnelAccountId) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Server ${args.serverName} has no Cloudflare account bound to its tunnel.`,
+		});
+	}
+	if (args.zoneAccountId !== args.tunnelAccountId) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Cannot route ${args.zoneName} via ${args.serverName}: zone is in Cloudflare account ${args.zoneAccountId}, server's tunnel is in ${args.tunnelAccountId}.`,
+		});
+	}
+};
+
 const setTunnelState = (
 	serverId: string,
 	state: Partial<{
 		tunnelStatus: ServerWithOrg["tunnelStatus"];
 		tunnelId: string | null;
 		tunnelToken: string | null;
+		tunnelAccountId: string | null;
 		tunnelError: string | null;
 		tunnelCheckedAt: string | null;
 	}>,
@@ -152,17 +175,52 @@ export const provisionServerTunnel = async (
 
 		let tunnelId = srv.tunnelId;
 		let tunnelToken = srv.tunnelToken;
+		let tunnelAccountId = srv.tunnelAccountId;
 
 		if (!tunnelId || !tunnelToken) {
+			const zones = await db
+				.select({ accountId: cloudflareZones.accountId })
+				.from(cloudflareZones)
+				.where(
+					and(
+						eq(cloudflareZones.organizationId, srv.organizationId),
+						eq(cloudflareZones.enabled, true),
+					),
+				);
+			const pick = pickTunnelAccount({
+				accounts: config.accounts,
+				zoneAccountIds: zones.map((z) => z.accountId),
+				explicitAccountId: tunnelAccountId,
+			});
+			if (pick.kind !== "ok") {
+				const msg =
+					pick.kind === "ambiguous"
+						? "Cloudflare account is ambiguous for this server. Set the server's Cloudflare account explicitly before provisioning the tunnel."
+						: pick.message;
+				throw new TRPCError({ code: "BAD_REQUEST", message: msg });
+			}
+			tunnelAccountId = pick.accountId;
+
 			onData?.("Creating Cloudflare tunnel...\n");
 			const created = await createTunnel(
 				config.apiToken,
-				config.accountId,
+				tunnelAccountId,
 				`dokploy-${srv.organizationId.slice(0, 8)}-${srv.serverId.slice(0, 8)}`,
 			);
 			tunnelId = created.id;
 			tunnelToken = created.token;
-			await setTunnelState(serverId, { tunnelId, tunnelToken });
+			await setTunnelState(serverId, {
+				tunnelId,
+				tunnelToken,
+				tunnelAccountId,
+			});
+		}
+
+		if (!tunnelAccountId) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Tunnel exists but has no bound Cloudflare account",
+			});
 		}
 
 		await setTunnelState(serverId, { tunnelStatus: "installing" });
@@ -174,7 +232,7 @@ export const provisionServerTunnel = async (
 		const deadline = Date.now() + 60_000;
 		let registered = false;
 		while (Date.now() < deadline) {
-			const info = await getTunnel(config.apiToken, config.accountId, tunnelId);
+			const info = await getTunnel(config.apiToken, tunnelAccountId, tunnelId);
 			if (info.connections > 0) {
 				registered = true;
 				break;
@@ -183,14 +241,14 @@ export const provisionServerTunnel = async (
 		}
 		if (!registered) {
 			throw new Error(
-				`Tunnel registration timeout: tunnel ${tunnelId} on account ${config.accountId} did not establish any connections within 60s`,
+				`Tunnel registration timeout: tunnel ${tunnelId} on account ${tunnelAccountId} did not establish any connections within 60s`,
 			);
 		}
 
 		// Push initial ingress (catch-all → local traefik)
 		await updateIngress(
 			config.apiToken,
-			config.accountId,
+			tunnelAccountId,
 			tunnelId,
 			buildIngress({ hostnames: [] }),
 		);
@@ -250,11 +308,16 @@ const findServerForDomain = async (domainId: string) => {
 
 const reapplyIngress = async (serverId: string) => {
 	const srv = await findServer(serverId);
-	if (!srv.tunnelId) return;
+	if (!srv.tunnelId || !srv.tunnelAccountId) return;
 	const config = await findCloudflareConfigForOrg(srv.organizationId);
 	if (!config) return;
 	const ingress = await buildIngressForServer(serverId);
-	await updateIngress(config.apiToken, config.accountId, srv.tunnelId, ingress);
+	await updateIngress(
+		config.apiToken,
+		srv.tunnelAccountId,
+		srv.tunnelId,
+		ingress,
+	);
 };
 
 export const syncDomain = async (domainId: string): Promise<void> => {
@@ -296,6 +359,13 @@ export const syncDomain = async (domainId: string): Promise<void> => {
 		await setDomainSync(domainId, {
 			cloudflareSyncStatus: "pending",
 			cloudflareSyncError: null,
+		});
+
+		assertZoneTunnelAccountMatch({
+			zoneName: zone.zoneName,
+			zoneAccountId: zone.accountId,
+			serverName: srv.name,
+			tunnelAccountId: srv.tunnelAccountId,
 		});
 
 		const cnameTarget = `${srv.tunnelId}.cfargotunnel.com`;
@@ -400,6 +470,13 @@ export const renameDomainHost = async (
 	const srv = await findServerForDomain(domainId);
 	if (!srv.tunnelId) throw new Error("Server has no tunnel");
 
+	assertZoneTunnelAccountMatch({
+		zoneName: zone.zoneName,
+		zoneAccountId: zone.accountId,
+		serverName: srv.name,
+		tunnelAccountId: srv.tunnelAccountId,
+	});
+
 	const oldHost = dom.host;
 	const oldRecordId = dom.cloudflareRecordId;
 	const cnameTarget = `${srv.tunnelId}.cfargotunnel.com`;
@@ -417,7 +494,12 @@ export const renameDomainHost = async (
 		if (r.service === "http_status:404") return i === arr.length - 1;
 		return true;
 	});
-	await updateIngress(config.apiToken, config.accountId, srv.tunnelId, overlap);
+	await updateIngress(
+		config.apiToken,
+		srv.tunnelAccountId!,
+		srv.tunnelId,
+		overlap,
+	);
 
 	// Step 2: create new DNS
 	const newRecord = await createDnsRecord(config.apiToken, zone.zoneId, {
@@ -449,20 +531,26 @@ export const renameDomainHost = async (
 	await reapplyIngress(srv.serverId);
 };
 
-export const reconcileServer = async (serverId: string): Promise<void> => {
+export const pushServerToCloudflare = async (
+	serverId: string,
+): Promise<void> => {
 	const srv = await findServer(serverId);
 	const config = await findCloudflareConfigForOrg(srv.organizationId);
 	if (!config) return;
-	if (!srv.tunnelId) return;
+	if (!srv.tunnelId || !srv.tunnelAccountId) return;
 
 	// Push DB-truth ingress to CF
 	await reapplyIngress(serverId);
 
-	// Re-create any missing CNAMEs based on DB state, scoped to this server only
+	// Re-create any missing CNAMEs based on DB state, scoped to this server only.
+	// Domains whose zone is in a different account than the server's tunnel are
+	// skipped with a warning — they need a Repair flow before they can route.
 	const cfDomains = await db
 		.select({
 			domainId: domains.domainId,
 			cloudflareRecordId: domains.cloudflareRecordId,
+			zoneAccountId: cloudflareZones.accountId,
+			zoneName: cloudflareZones.zoneName,
 		})
 		.from(domains)
 		.leftJoin(
@@ -482,6 +570,12 @@ export const reconcileServer = async (serverId: string): Promise<void> => {
 		);
 
 	for (const row of cfDomains) {
+		if (row.zoneAccountId !== srv.tunnelAccountId) {
+			console.warn(
+				`[cloudflare] skipping domain ${row.domainId}: zone ${row.zoneName} is in account ${row.zoneAccountId} but server tunnel is in ${srv.tunnelAccountId}`,
+			);
+			continue;
+		}
 		if (!row.cloudflareRecordId) {
 			await syncDomain(row.domainId).catch(() => {});
 		}
@@ -535,9 +629,13 @@ export const cleanupServer = async (
 			).catch(() => {});
 		}
 
-		await deleteTunnel(config.apiToken, config.accountId, srv.tunnelId).catch(
-			() => {},
-		);
+		if (srv.tunnelAccountId) {
+			await deleteTunnel(
+				config.apiToken,
+				srv.tunnelAccountId,
+				srv.tunnelId,
+			).catch(() => {});
+		}
 	}
 
 	if (withSsh && srv.tunnelToken) {
@@ -600,7 +698,9 @@ export const testCloudflareZone = async (
 	return { ok: true as const, recordCount: records.length };
 };
 
-export const reconcileAllServersForOrg = async (organizationId: string) => {
+export const pushAllServersToCloudflareForOrg = async (
+	organizationId: string,
+) => {
 	const servers = await db.query.server.findMany({
 		where: eq(server.organizationId, organizationId),
 	});
@@ -610,7 +710,7 @@ export const reconcileAllServersForOrg = async (organizationId: string) => {
 	for (const s of servers) {
 		if (!s.tunnelId) continue;
 		try {
-			await reconcileServer(s.serverId);
+			await pushServerToCloudflare(s.serverId);
 			ok += 1;
 		} catch (e) {
 			failed += 1;

@@ -31,7 +31,7 @@ export interface CloudflareErrorEntry {
 
 export interface VerifyTokenResult {
 	ok: boolean;
-	accountId: string | null;
+	accounts: { id: string; name: string }[];
 	scopes: string[];
 	expiresOn: string | null;
 	status: string;

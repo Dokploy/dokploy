@@ -60,17 +60,25 @@ describe("cloudflare service", () => {
 	});
 
 	describe("verifyToken", () => {
-		it("returns ok=true with active status", async () => {
+		it("returns ok=true with all accounts the token can see", async () => {
 			fetchMock
 				.mockResolvedValueOnce(
 					okResponse({ id: "t1", status: "active", expires_on: null }),
 				)
-				.mockResolvedValueOnce(okResponse([{ id: ACCOUNT, name: "acme" }]));
+				.mockResolvedValueOnce(
+					okResponse([
+						{ id: "acc-1", name: "Personal" },
+						{ id: "acc-2", name: "Work" },
+					]),
+				);
 
 			const result = await verifyToken(TOKEN);
 			expect(result.ok).toBe(true);
 			expect(result.status).toBe("active");
-			expect(result.accountId).toBe(ACCOUNT);
+			expect(result.accounts).toEqual([
+				{ id: "acc-1", name: "Personal" },
+				{ id: "acc-2", name: "Work" },
+			]);
 		});
 
 		it("returns ok=false on 401 without throwing", async () => {
@@ -81,6 +89,21 @@ describe("cloudflare service", () => {
 			const result = await verifyToken(TOKEN);
 			expect(result.ok).toBe(false);
 			expect(result.status).toBe("invalid");
+			expect(result.accounts).toEqual([]);
+		});
+
+		it("returns ok=true with empty accounts when /accounts call fails", async () => {
+			fetchMock
+				.mockResolvedValueOnce(
+					okResponse({ id: "t1", status: "active", expires_on: null }),
+				)
+				.mockResolvedValueOnce(
+					errResponse(403, [{ code: 9109, message: "Insufficient scopes" }]),
+				);
+
+			const result = await verifyToken(TOKEN);
+			expect(result.ok).toBe(true);
+			expect(result.accounts).toEqual([]);
 		});
 	});
 
