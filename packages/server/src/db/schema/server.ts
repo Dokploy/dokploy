@@ -62,6 +62,7 @@ export const server = pgTable("server", {
 	tunnelStatus: tunnelStatus("tunnelStatus").notNull().default("disabled"),
 	tunnelId: text("tunnelId"),
 	tunnelToken: text("tunnelToken"),
+	tunnelAccountId: text("tunnelAccountId"),
 	tunnelError: text("tunnelError"),
 	tunnelCheckedAt: text("tunnelCheckedAt"),
 	metricsConfig: jsonb("metricsConfig")

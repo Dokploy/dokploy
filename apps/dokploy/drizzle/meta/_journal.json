@@ -1170,6 +1170,13 @@
       "when": 1777754603584,
       "tag": "0166_windy_norrin_radd",
       "breakpoints": true
+    },
+    {
+      "idx": 167,
+      "version": "7",
+      "when": 1777767507745,
+      "tag": "0167_loud_tana_nile",
+      "breakpoints": true
     }
   ]
 }

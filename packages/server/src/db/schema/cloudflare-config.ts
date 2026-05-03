@@ -1,10 +1,15 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { jsonb, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
 import { cloudflareZones } from "./cloudflare-zone";
+
+export interface CloudflareAccount {
+	id: string;
+	name: string;
+}
 
 export const cloudflareConfig = pgTable(
 	"cloudflare_config",
@@ -17,8 +22,10 @@ export const cloudflareConfig = pgTable(
 			.notNull()
 			.references(() => organization.id, { onDelete: "cascade" }),
 		apiToken: text("apiToken").notNull(),
-		accountId: text("accountId").notNull(),
-		accountName: text("accountName"),
+		accounts: jsonb("accounts")
+			.$type<CloudflareAccount[]>()
+			.notNull()
+			.default([]),
 		tokenScopes: text("tokenScopes").array(),
 		verifiedAt: text("verifiedAt"),
 		createdAt: text("createdAt")
