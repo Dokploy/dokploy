@@ -1,5 +1,5 @@
 import { AlertCircle, Check, Cloud, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,17 +96,23 @@ export const CloudflareDomainFields = ({
 			? activeZone.zoneName
 			: `${debouncedSub.trim()}.${activeZone.zoneName}`);
 
+	const onChangeRef = useRef(onChange);
+	onChangeRef.current = onChange;
+
 	useEffect(() => {
 		if (mode === "cloudflare" && activeZone && fullHost) {
-			onChange({
+			if (cloudflareZoneId === activeZone.cloudflareZoneId && host === fullHost) {
+				return;
+			}
+			onChangeRef.current({
 				cloudflareZoneId: activeZone.cloudflareZoneId,
 				host: fullHost,
 			});
 		}
 		if (mode === "manual" && cloudflareZoneId) {
-			onChange({ cloudflareZoneId: null, host });
+			onChangeRef.current({ cloudflareZoneId: null, host });
 		}
-	}, [mode, fullHost, activeZone?.cloudflareZoneId, onChange, cloudflareZoneId, host]);
+	}, [mode, fullHost, activeZone?.cloudflareZoneId, cloudflareZoneId, host]);
 
 	const labelValid = isValidLabel(subdomain.trim());
 	const isReserved = RESERVED_NAMES.has(subdomain.trim().toLowerCase());
