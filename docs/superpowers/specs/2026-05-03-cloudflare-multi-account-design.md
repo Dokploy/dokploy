@@ -89,8 +89,8 @@ New logic for picking the account to create the tunnel in:
 1. If `server.tunnelAccountId` is already set (e.g. by the picker at server creation), use it.
 2. Else if `config.accounts.length === 1`, use that account.
 3. Else if `config.accounts.length > 1`:
-   - If all of the org's enabled zones live in one account, use that account.
-   - If zones span accounts, throw `TRPCError({ code: "BAD_REQUEST", message: "Org has zones in multiple Cloudflare accounts. Set the server's Cloudflare account explicitly before provisioning the tunnel." })`.
+   - If the org has at least one enabled zone and all enabled zones live in one account, use that account.
+   - If zones span accounts, **or** the org has zero enabled zones (no signal to derive from), throw `TRPCError({ code: "BAD_REQUEST", message: "Cloudflare account is ambiguous for this server. Set the server's Cloudflare account explicitly before provisioning the tunnel." })`.
 
 The chosen ID is passed to `createTunnel`, `getTunnel`, `updateIngress` and persisted to `server.tunnelAccountId`.
 
