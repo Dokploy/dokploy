@@ -270,13 +270,16 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiServerSchema)
 		.mutation(async ({ input, ctx }) => {
 			// Execute cleanup in background and return immediately to avoid gateway timeouts
-			const result = void cleanupAll(input?.serverId);
+			void cleanupAll(input?.serverId);
 			await audit(ctx, {
 				action: "delete",
 				resourceType: "settings",
 				resourceName: "clean-all",
 			});
-			return result;
+			return {
+				status: "scheduled",
+				message: "Docker cleanup has been initiated in the background",
+			};
 		}),
 	cleanMonitoring: adminProcedure.mutation(async ({ ctx }) => {
 		if (IS_CLOUD) {
