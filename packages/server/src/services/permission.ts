@@ -1,12 +1,10 @@
 import { db } from "@dokploy/server/db";
 import { member, organizationRole } from "@dokploy/server/db/schema";
-import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import {
 	ac,
 	adminRole,
-	enterpriseOnlyResources,
 	memberRole,
 	ownerRole,
 	statements,
@@ -44,11 +42,6 @@ const resolveRole = async (
 		return staticRoles[roleName];
 	}
 
-	const licensed = await hasValidLicense(organizationId);
-	if (!licensed) {
-		return null;
-	}
-
 	const customRoles = await db.query.organizationRole.findMany({
 		where: and(
 			eq(organizationRole.organizationId, organizationId),
@@ -80,14 +73,6 @@ export const checkPermission = async (
 	const { id: userId } = ctx.user;
 	const { activeOrganizationId: organizationId } = ctx.session;
 	const memberRecord = await findMemberByUserId(userId, organizationId);
-	const isStaticRole = memberRecord.role in staticRoles;
-
-	if (isStaticRole) {
-		const allEnterprise = Object.keys(permissions).every((r) =>
-			enterpriseOnlyResources.has(r),
-		);
-		if (allEnterprise) return;
-	}
 
 	const role = await resolveRole(memberRecord.role, organizationId);
 
@@ -182,17 +167,11 @@ export const resolvePermissions = async (
 	const legacyOverrides =
 		memberRecord.role === "member" ? getLegacyOverrides(memberRecord) : {};
 
-	const isPrivilegedRole =
-		memberRecord.role === "owner" || memberRecord.role === "admin";
 	const result = {} as ResolvedPermissions;
 
 	for (const [resource, actions] of Object.entries(statements)) {
 		const resourcePerms = {} as Record<string, boolean>;
 		for (const action of actions) {
-			if (isPrivilegedRole && enterpriseOnlyResources.has(resource)) {
-				resourcePerms[action] = true;
-				continue;
-			}
 			if (!role) {
 				resourcePerms[action] = false;
 				continue;

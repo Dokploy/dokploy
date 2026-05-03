@@ -1,5 +1,5 @@
 import type { AuditAction, AuditResourceType } from "@dokploy/server/db/schema";
-import { createAuditLog } from "@dokploy/server/services/proprietary/audit-log";
+import { createAuditLog } from "@dokploy/server/services/audit-log";
 
 interface AuditCtx {
 	user: { id: string; email: string; role: string };

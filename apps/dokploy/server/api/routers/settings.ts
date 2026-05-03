@@ -674,7 +674,6 @@ export const settingsRouter = createTRPCRouter({
 					"customRole",
 					"whitelabeling",
 					"sso",
-					"licenseKey",
 					"organization",
 					"previewDeployment",
 				],

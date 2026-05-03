@@ -21,7 +21,6 @@ import {
 	GalleryVerticalEnd,
 	GitBranch,
 	House,
-	Key,
 	KeyRound,
 	Loader2,
 	LogIn,
@@ -405,18 +404,9 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "License",
-			url: "/dashboard/settings/license",
-			icon: Key,
-			// Only enabled for owners
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
-		},
-		{
-			isSingle: true,
 			title: "SSO",
 			url: "/dashboard/settings/sso",
 			icon: LogIn,
-			// Enabled for admins in both cloud and self-hosted (enterprise)
 			isEnabled: ({ permissions }) => !!permissions?.organization.update,
 		},
 		{
@@ -424,8 +414,7 @@ const MENU: Menu = {
 			title: "Whitelabeling",
 			url: "/dashboard/settings/whitelabeling",
 			icon: Palette,
-			// Only enabled for owners in non-cloud environments (enterprise)
-			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && !isCloud),
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 	],
 

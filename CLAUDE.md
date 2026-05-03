@@ -14,7 +14,7 @@
 - **Tagline / Description**: Open Source Alternative to Vercel, Heroku and Netlify.
 - **Core Purpose**: A free, self-hostable Platform as a Service (PaaS) that simplifies deployment and management of applications, databases, and infrastructure on user-owned VPSs. Targets developers and teams who want Heroku/Vercel-like ergonomics on their own servers, with optional managed offering via Dokploy Cloud.
 
-The codebase distinguishes between **self-hosted** and **Dokploy Cloud** via the `IS_CLOUD` env flag. Cloud disables monitoring, schedules, Docker/Swarm management, Traefik FS editor, and adds Stripe billing. Enterprise features (SSO, whitelabeling, license keys, custom roles, audit logs) live under `proprietary/` directories and are gated by license validation.
+The codebase distinguishes between **self-hosted** and **Dokploy Cloud** via the `IS_CLOUD` env flag. Cloud disables monitoring, schedules, Docker/Swarm management, Traefik FS editor, and adds Stripe billing. All other features (SSO, whitelabeling, custom roles, audit logs, etc.) are available to every install with no licensing gate.
 
 ### Features
 
@@ -38,9 +38,9 @@ The codebase distinguishes between **self-hosted** and **Dokploy Cloud** via the
 - **CLI/API**: tRPC + OpenAPI (`@dokploy/trpc-openapi`) for programmatic management; Swagger UI at `/swagger`.
 - **AI Configuration**: Multi-provider LLM integration (Anthropic, OpenAI, Azure, Cohere, Mistral, DeepInfra, Ollama) for assistance features.
 - **Users / Teams / Orgs**: Multi-tenant orgs, RBAC (owner/admin/member + custom roles), invitations.
-- **Audit Logs**: Compliance trail (enterprise/proprietary).
-- **SSO**: SAML/OIDC (enterprise/proprietary).
-- **Whitelabeling**: Custom branding (enterprise/proprietary, self-hosted only).
+- **Audit Logs**: Compliance trail.
+- **SSO**: SAML/OIDC.
+- **Whitelabeling**: Custom branding.
 - **Billing**: Stripe subscription management (cloud only).
 
 ## TypeScript Rules
@@ -109,17 +109,17 @@ istanbul-v3/
         accept-invitation/     #   Token-based invite acceptance
       components/
         ui/                    #   shadcn/ui primitives (~44 components)
-        dashboard/             #   Feature components (application, compose, database, docker, monitoring, postgres, mysql, mongo, mariadb, redis, libsql, project, projects, settings, swarm, deployments, requests, file-system, organization, impersonation, shared)
+        dashboard/             #   Feature components (application, compose, database, docker, monitoring, postgres, mysql, mongo, mariadb, redis, libsql, project, projects, settings, swarm, deployments, requests, file-system, organization, impersonation, shared, audit-logs, sso, whitelabeling, roles)
+        auth/                  #   Sign-in providers (github, google, sso)
         layouts/               #   DashboardLayout, OnboardingLayout, sidebar, user-nav
         shared/                #   Cross-feature composed components (DialogAction, code-editor, drawer-logs, breadcrumb, alert-block, tag-selector)
-        proprietary/           #   Enterprise-only UI (audit-logs, sso, whitelabeling, roles, license-keys, enterprise-feature-gate)
         icons/                 #   Custom icon components
       server/                  # tRPC server + Express boot
         server.ts              #   Node entry point
         api/
           root.ts              #   Aggregated app router
-          trpc.ts              #   Procedures: publicProcedure, protectedProcedure, adminProcedure, cliProcedure, enterpriseProcedure, withPermission
-          routers/             #   ~47 domain routers (admin, ai, application, backup, certificate, cluster, compose, deployment, destination, docker, domain, environment, git-provider, github, gitlab, gitea, bitbucket, libsql, mariadb, mongo, mount, mysql, notification, organization, patch, port, postgres, preview-deployment, project, redirects, redis, registry, rollbacks, schedule, security, server, settings, ssh-key, stripe, swarm, tag, user, volume-backups, proprietary/*)
+          trpc.ts              #   Procedures: publicProcedure, protectedProcedure, adminProcedure, cliProcedure, withPermission
+          routers/             #   ~47 domain routers (admin, ai, application, audit-log, backup, certificate, cluster, compose, custom-role, deployment, destination, docker, domain, environment, git-provider, github, gitlab, gitea, bitbucket, libsql, mariadb, mongo, mount, mysql, notification, organization, patch, port, postgres, preview-deployment, project, redirects, redis, registry, rollbacks, schedule, security, server, settings, ssh-key, sso, stripe, swarm, tag, user, volume-backups, whitelabeling)
         db/
           drizzle.config.ts    #   Drizzle config
         queues/                #   BullMQ queue definitions
@@ -156,8 +156,7 @@ istanbul-v3/
           validations/         #   Zod validation schemas (domain, destination, etc.)
         emails/                #   React Email templates
         lib/                   #   auth.ts (better-auth setup), access-control.ts (RBAC statements)
-        services/              #   Business logic per resource (mysql, postgres, github, gitea, ssh-key, project, schedule, …)
-          proprietary/         #   Enterprise services (audit-log, license-key, sso, custom-role)
+        services/              #   Business logic per resource (mysql, postgres, github, gitea, ssh-key, project, schedule, audit-log, sso, …)
         utils/                 #   Domain utilities organized by topic:
           access-log/, ai/, backups/, builders/, cluster/, crons/, databases/,
           docker/, filesystem/, notifications/, process/, providers/, restore/,
@@ -191,7 +190,7 @@ istanbul-v3/
 - **Sidebar** (`apps/dokploy/components/layouts/side.tsx` + `components/ui/sidebar.tsx`): `SidebarProvider` context wraps the dashboard. Collapsible on desktop (toggle: ⌘B), Sheet overlay on mobile. State persisted in `sidebar:state` cookie (7-day TTL). Structure: Header → Content (groups w/ `SidebarMenu` + `SidebarMenuSub`) → Footer.
 - **Sections (sidebar)**:
   - **Home**: Home, Projects, Deployments, Monitoring*, Schedules*, Traefik FS*, Docker*, Swarm*, Requests* (* = self-hosted only).
-  - **Settings**: Web Server*, Profile, Remote Servers, Users, Audit Logs, SSH Keys, AI, Tags, Git Providers, Registry, Destinations, Certificates, Cluster*, Notifications, Billing (cloud), License (owner), SSO (admin/enterprise), Whitelabeling (owner/self-hosted enterprise).
+  - **Settings**: Web Server*, Profile, Remote Servers, Users, Audit Logs, SSH Keys, AI, Tags, Git Providers, Registry, Destinations, Certificates, Cluster*, Notifications, Billing (cloud), SSO (admin), Whitelabeling (owner).
   - **Help**: Documentation, Support Discord (external links).
 - **Top of page**: Breadcrumb trail (`components/shared/breadcrumb-sidebar.tsx`, `advance-breadcrumb.tsx`) + `UserNav` with theme toggle.
 
@@ -209,9 +208,9 @@ istanbul-v3/
 - **Database**: PostgreSQL via `postgres` driver. Drizzle ORM (`drizzle-orm` + `drizzle-kit`). Schema-first — all tables defined in `packages/server/src/db/schema/`. Migrations run on boot via `apps/dokploy/migration.ts`.
 - **Auth**: `better-auth` configured in `packages/server/src/lib/auth.ts`. Plugins: organization (multi-tenant), API key, SSO (SAML/OIDC), 2FA. Methods: email/password (bcrypt), OAuth (GitHub, Google, custom). Sessions: 3-day expiration, active-org tracking. Email verification + auto sign-in.
 - **API layer**: tRPC 11 is the **primary** API. Root router `apps/dokploy/server/api/root.ts` aggregates ~47 routers. Client mounts `/api/[...trpc]`. OpenAPI spec generated by `@dokploy/trpc-openapi` (see `pnpm generate:openapi` and `openapi.json`); Swagger UI at `/swagger`. SuperJSON serialization. tRPC subscriptions over WebSocket for real-time logs/terminal.
-- **Procedure types** (`apps/dokploy/server/api/trpc.ts`): `publicProcedure`, `protectedProcedure` (session required), `adminProcedure` (owner/admin), `cliProcedure`, `enterpriseProcedure` (license required), `withPermission(resource, action)` factory for RBAC.
-- **Permissions**: Declarative resource × action statements in `packages/server/src/lib/access-control.ts`. Role hierarchy: owner > admin > custom roles > member. Enterprise resources gated by `hasValidLicense(organizationId)`.
-- **Services / business logic**: `packages/server/src/services/` — one module per resource (project, application, deployment, postgres, mysql, mariadb, mongo, redis, libsql, compose, server, ssh-key, registry, github, gitlab, gitea, bitbucket, notification, schedule, backup, volume-backup, …). Proprietary in `services/proprietary/`.
+- **Procedure types** (`apps/dokploy/server/api/trpc.ts`): `publicProcedure`, `protectedProcedure` (session required), `adminProcedure` (owner/admin), `cliProcedure`, `withPermission(resource, action)` factory for RBAC.
+- **Permissions**: Declarative resource × action statements in `packages/server/src/lib/access-control.ts`. Role hierarchy: owner > admin > custom roles > member. All resources are available to every install — no license gating.
+- **Services / business logic**: `packages/server/src/services/` — one module per resource (project, application, deployment, postgres, mysql, mariadb, mongo, redis, libsql, compose, server, ssh-key, registry, github, gitlab, gitea, bitbucket, notification, schedule, backup, volume-backup, audit-log, sso, …).
 - **Domain utilities**: `packages/server/src/utils/` grouped by topic (docker, databases, traefik, builders, cluster, notifications, providers, backups, restore, schedules, servers, watch-paths, …).
 - **External integrations**: `dockerode` for Docker socket; `ssh2` for `execAsyncRemote()` against managed servers; Octokit (GitHub App + webhooks); GitLab/Gitea/Bitbucket OAuth; Resend / SMTP; 13 notification providers (Discord, Slack, Telegram, Email, Teams, Mattermost, Lark, Ntfy, Gotify, Pushover, custom webhooks); S3 destinations for backups; Stripe billing.
 - **Background jobs**: BullMQ workers run inside `apps/dokploy` (queues in `apps/dokploy/server/queues/`). The dedicated **`apps/schedules`** Hono service (port 4001, secured with `X-API-Key`) manages cron / repeatable jobs (backups, server cleanup, custom schedules, timezone-aware).
@@ -277,7 +276,7 @@ Living section for reusable knowledge discovered during development. Add entries
 - `apps/dokploy/utils/hooks/use-debounce.ts`, `use-url.ts`, `use-whitelabeling.ts`.
 - `apps/dokploy/hooks/use-mobile.tsx`, `useLocalStorage.tsx`, `use-keyboard-nav.tsx`, `use-health-check-after-mutation.ts`.
 - `packages/server/src/lib/auth.ts` — better-auth setup (SSO, API keys, organization, 2FA).
-- `packages/server/src/lib/access-control.ts` — RBAC statements + enterprise-only resources set.
+- `packages/server/src/lib/access-control.ts` — RBAC statements (resource × action) and built-in roles.
 - `packages/server/src/db/validations/*` — shared Zod schemas (domain, destination, …).
 - `packages/server/src/utils/docker/*` — compose helpers, port collision detection.
 - `packages/server/src/utils/traefik/*` — dynamic config generation.
@@ -293,7 +292,6 @@ Living section for reusable knowledge discovered during development. Add entries
 - **Logs drawer**: `apps/dokploy/components/shared/drawer-logs.tsx`.
 - **Breadcrumbs**: `apps/dokploy/components/shared/breadcrumb-sidebar.tsx`, `advance-breadcrumb.tsx`.
 - **Common shared**: `tag-selector.tsx`, `tag-badge.tsx`, `date-tooltip.tsx`, `alert-block.tsx`, `toggle-visibility-input.tsx`, `focus-shortcut-input.tsx`, `update-database-password.tsx`.
-- **Enterprise gate**: `apps/dokploy/components/proprietary/enterprise-feature-gate.tsx` — wrap features that require a license.
 - **Terminal**: `xterm` integration in `components/dashboard/docker/` (search `DockerTerminal`).
 - **tRPC router root**: `apps/dokploy/server/api/root.ts`. Procedures: `apps/dokploy/server/api/trpc.ts`.
 
@@ -303,13 +301,12 @@ Living section for reusable knowledge discovered during development. Add entries
 - **tRPC query (conditional)**: `api.<router>.<proc>.useQuery({ id }, { enabled: !!id })`.
 - **SSR prefetch**: in `getServerSideProps` build `helpers = createServerSideHelpers({...})`, call `helpers.<router>.<proc>.prefetch(...)`, then `return { props: { trpcState: helpers.dehydrate() } }`. Client tRPC has `ssr: false`.
 - **Form**: `useForm({ resolver: standardSchemaResolver(schema) })` (or `zodResolver`) → `<Form {...form}>` + `<FormField control={form.control} name=... render=...>`. Reset on dialog open via `useEffect` + `form.reset(initialValues)`.
-- **Procedure choice**: prefer the most-restrictive procedure that fits — `withPermission(resource, action)` for RBAC-gated mutations; `enterpriseProcedure` for license-gated features; `adminProcedure` for org-admin-only; `protectedProcedure` for any signed-in user; `cliProcedure` for CLI/API key access.
+- **Procedure choice**: prefer the most-restrictive procedure that fits — `withPermission(resource, action)` for RBAC-gated mutations; `adminProcedure` for org-admin-only; `protectedProcedure` for any signed-in user; `cliProcedure` for CLI/API key access.
 - **DB schema → API types**: define table in `packages/server/src/db/schema/<entity>.ts`; create Zod via `createInsertSchema(table)` and export as `apiCreate<Entity>` / `apiUpdate<Entity>`; consume in router `.input(apiCreateEntity)`. Client gets types via `RouterInputs` / `RouterOutputs` from `apps/dokploy/utils/api.ts`. Never duplicate types.
 - **Service layer**: routers stay thin and call into `packages/server/src/services/<entity>.ts`. Put domain logic in services, not routers.
 - **Errors**: throw `TRPCError({ code: "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "INTERNAL_SERVER_ERROR", message })` from server. Errors arrive at the client formatted with Zod issues attached via the tRPC error formatter middleware.
 - **Page composition**: each page exports `getLayout` to wrap with `DashboardLayout`. Auth + prefetch happens in `getServerSideProps`.
 - **Cloud vs self-hosted gating**: import `IS_CLOUD` from server constants; sidebar items and pages render conditionally. Always check both flag and role for sensitive routes.
-- **Enterprise feature gating**: wrap UI in `<EnterpriseFeatureGate>`; on the server use `enterpriseProcedure` or call `hasValidLicense(organizationId)`.
 - **Remote execution**: never `exec` directly on a managed server — use `execAsyncRemote()` (SSH wrapper) from `packages/server/src/utils/`.
 - **Realtime logs / terminal**: use the WebSocket setup in `server/wss/`; client mounts via tRPC subscriptions or direct `ws` for `xterm` PTY bridges.
 - **Toasts**: `sonner` only (`import { toast } from "sonner"`). Do not introduce another toast lib.
