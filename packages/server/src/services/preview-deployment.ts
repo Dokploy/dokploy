@@ -126,21 +126,67 @@ export const findPreviewDeploymentsByApplicationId = async (
 	return deploymentsList;
 };
 
+const slugify = (value: string): string => {
+	return value
+		.toLowerCase()
+		.replace(/[^a-z0-9-]/g, "-")
+		.replace(/-+/g, "-")
+		.replace(/^-|-$/g, "")
+		.slice(0, 63);
+};
+
+export const interpolateSubdomainTemplate = (
+	template: string,
+	vars: {
+		appName: string;
+		prNumber: string;
+		branchName: string;
+		uniqueId: string;
+	},
+): string => {
+	return template
+		.replace(/\$\{appName\}/g, vars.appName)
+		.replace(/\$\{prNumber\}/g, vars.prNumber)
+		.replace(/\$\{branchName\}/g, slugify(vars.branchName))
+		.replace(/\$\{uniqueId\}/g, vars.uniqueId);
+};
+
 export const createPreviewDeployment = async (
 	schema: z.infer<typeof apiCreatePreviewDeployment>,
 ) => {
 	const application = await findApplicationById(schema.applicationId);
-	const appName = `preview-${application.appName}-${generatePassword(6)}`;
+	const uniqueId = generatePassword(6);
+	const domainTemplate = application.previewWildcard || "*.traefik.me";
 
-	const org = await db.query.organization.findFirst({
-		where: eq(organization.id, application.environment.project.organizationId),
-	});
-	const generateDomain = await generateWildcardDomain(
-		application.previewWildcard || "*.traefik.me",
-		appName,
-		application.server?.ipAddress || "",
-		org?.ownerId || "",
-	);
+	const hasIdentifier =
+		domainTemplate.includes("${prNumber}") ||
+		domainTemplate.includes("${branchName}") ||
+		domainTemplate.includes("${uniqueId}");
+
+	let appName: string;
+	let generateDomain: string;
+
+	if (hasIdentifier) {
+		const interpolated = interpolateSubdomainTemplate(domainTemplate, {
+			appName: application.appName,
+			prNumber: schema.pullRequestNumber,
+			branchName: schema.branch,
+			uniqueId,
+		});
+		generateDomain = interpolated.replace("*", application.appName);
+		appName = `preview-${application.appName}-${uniqueId}`;
+	} else {
+		appName = `preview-${application.appName}-${uniqueId}`;
+		const org = await db.query.organization.findFirst({
+			where: eq(organization.id, application.environment.project.organizationId),
+		});
+		generateDomain = await generateWildcardDomain(
+			domainTemplate,
+			appName,
+			application.server?.ipAddress || "",
+			org?.ownerId || "",
+		);
+	}
 
 	const octokit = authGithub(application?.github as Github);
 
