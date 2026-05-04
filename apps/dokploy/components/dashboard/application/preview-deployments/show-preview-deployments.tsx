@@ -30,6 +30,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { api } from "@/utils/api";
 import { ShowModalLogs } from "../../settings/web-server/show-modal-logs";
 import { ShowDeploymentsModal } from "../deployments/show-deployments-modal";
@@ -74,6 +75,8 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 			});
 	};
 
+	const hasGitIntegration = data?.sourceType === "github";
+
 	return (
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
@@ -81,12 +84,21 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 					<CardTitle className="text-xl">Preview Deployments</CardTitle>
 					<CardDescription>See all the preview deployments</CardDescription>
 				</div>
-				{data?.isPreviewDeploymentsActive && (
+				{hasGitIntegration && data?.isPreviewDeploymentsActive && (
 					<ShowPreviewSettings applicationId={applicationId} />
 				)}
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
-				{data?.isPreviewDeploymentsActive ? (
+				{!hasGitIntegration ? (
+					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
+						<GitPullRequest className="size-8 text-muted-foreground" />
+						<span className="text-base text-muted-foreground text-center max-w-md">
+							Preview deployments require a GitHub integration to be configured.
+							Connect your repository via GitHub in the General tab to enable
+							automatic preview deployments for pull requests.
+						</span>
+					</div>
+				) : data?.isPreviewDeploymentsActive ? (
 					<>
 						<div className="flex flex-col gap-2 text-sm">
 							<span>
