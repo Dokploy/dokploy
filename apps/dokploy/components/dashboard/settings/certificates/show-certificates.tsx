@@ -4,6 +4,7 @@ import {
 	ChevronRight,
 	Link,
 	Loader2,
+	Server,
 	ShieldCheck,
 	Trash2,
 } from "lucide-react";
@@ -20,7 +21,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { AddCertificate } from "./add-certificate";
+import { HandleCertificate } from "./handle-certificate";
 import {
 	extractLeafCommonName,
 	getCertificateChainExpirationDetails,
@@ -69,7 +70,7 @@ export const ShowCertificates = () => {
 										<span className="text-base text-muted-foreground text-center">
 											You don't have any certificates created
 										</span>
-										{permissions?.certificate.create && <AddCertificate />}
+										{permissions?.certificate.create && <HandleCertificate />}
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
@@ -121,6 +122,12 @@ export const ShowCertificates = () => {
 																			CN: {commonName}
 																		</span>
 																	)}
+																	<span className="text-xs text-muted-foreground flex items-center gap-1">
+																		<Server className="size-3" />
+																		{certificate.server
+																			? `${certificate.server.name} (${certificate.server.ipAddress})`
+																			: "Dokploy (Local)"}
+																	</span>
 																	{chainInfo.isChain && (
 																		<div className="flex flex-col gap-1.5 mt-1">
 																			<button
@@ -181,8 +188,14 @@ export const ShowCertificates = () => {
 																</div>
 															</div>
 
-															{permissions?.certificate.delete && (
-																<div className="flex flex-row gap-1">
+															<div className="flex flex-row gap-1">
+																{permissions?.certificate.update && (
+																	<HandleCertificate
+																		certificateId={certificate.certificateId}
+																	/>
+																)}
+
+																{permissions?.certificate.delete && (
 																	<DialogAction
 																		title="Delete Certificate"
 																		description="Are you sure you want to delete this certificate?"
@@ -208,14 +221,14 @@ export const ShowCertificates = () => {
 																		<Button
 																			variant="ghost"
 																			size="icon"
-																			className="group hover:bg-red-500/10 "
+																			className="group hover:bg-red-500/10"
 																			isLoading={isRemoving}
 																		>
 																			<Trash2 className="size-4 text-primary group-hover:text-red-500" />
 																		</Button>
 																	</DialogAction>
-																</div>
-															)}
+																)}
+															</div>
 														</div>
 													</div>
 												);
@@ -224,7 +237,7 @@ export const ShowCertificates = () => {
 
 										{permissions?.certificate.create && (
 											<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
-												<AddCertificate />
+												<HandleCertificate />
 											</div>
 										)}
 									</div>

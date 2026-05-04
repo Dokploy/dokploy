@@ -3,10 +3,15 @@ import {
 	createMariadb,
 	createMount,
 	deployMariadb,
+	execAsync,
+	execAsyncRemote,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findMariadbById,
 	findProjectById,
+	getAccessibleServerIds,
+	getContainerLogs,
+	getServiceContainerCommand,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeMariadbById,
@@ -40,6 +45,8 @@ import {
 	apiSaveEnvironmentVariablesMariaDB,
 	apiSaveExternalPortMariaDB,
 	apiUpdateMariaDB,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
 	environments,
 	mariadb as mariadbTable,
 	projects,
@@ -68,6 +75,17 @@ export const mariadbRouter = createTRPCRouter({
 						message: "You are not authorized to access this project",
 					});
 				}
+
+				if (input.serverId) {
+					const accessibleIds = await getAccessibleServerIds(ctx.session);
+					if (!accessibleIds.has(input.serverId)) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this server",
+						});
+					}
+				}
+
 				const newMariadb = await createMariadb({
 					...input,
 				});
@@ -368,6 +386,63 @@ export const mariadbRouter = createTRPCRouter({
 			});
 			return true;
 		}),
+	changePassword: protectedProcedure
+		.input(
+			z.object({
+				mariadbId: z.string().min(1),
+				password: z.string().min(1).regex(DATABASE_PASSWORD_REGEX, {
+					message: DATABASE_PASSWORD_MESSAGE,
+				}),
+				type: z.enum(["user", "root"]).default("user"),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { mariadbId, password, type } = input;
+			await checkServicePermissionAndAccess(ctx, mariadbId, {
+				service: ["create"],
+			});
+
+			const maria = await findMariadbById(mariadbId);
+			const { appName, serverId, databaseUser, databaseRootPassword } = maria;
+
+			const containerCmd = getServiceContainerCommand(appName);
+			const targetUser = type === "root" ? "root" : databaseUser;
+
+			const command = `
+				CONTAINER_ID=$(${containerCmd})
+				if [ -z "$CONTAINER_ID" ]; then
+					echo "No running container found for ${appName}" >&2
+					exit 1
+				fi
+				docker exec "$CONTAINER_ID" mariadb -u root -p'${databaseRootPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"
+			`;
+
+			await db.transaction(async (tx) => {
+				const setData =
+					type === "root"
+						? { databaseRootPassword: password }
+						: { databasePassword: password };
+				await tx
+					.update(mariadbTable)
+					.set(setData)
+					.where(eq(mariadbTable.mariadbId, mariadbId));
+
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command, { shell: "/bin/bash" });
+				}
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: mariadbId,
+				resourceName: appName,
+			});
+
+			return true;
+		}),
 	move: protectedProcedure
 		.input(
 			z.object({
@@ -515,5 +590,40 @@ export const mariadbRouter = createTRPCRouter({
 					.where(where),
 			]);
 			return { items, total: countResult[0]?.count ?? 0 };
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			apiFindOneMariaDB.extend({
+				tail: z.number().int().min(1).max(10000).default(100),
+				since: z
+					.string()
+					.regex(/^(all|\d+[smhd])$/, "Invalid since format")
+					.default("all"),
+				search: z
+					.string()
+					.regex(/^[a-zA-Z0-9 ._-]{0,500}$/)
+					.optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.mariadbId, "read");
+			const mariadb = await findMariadbById(input.mariadbId);
+			if (
+				mariadb.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this MariaDB",
+				});
+			}
+			return await getContainerLogs(
+				mariadb.appName,
+				input.tail,
+				input.since,
+				input.search,
+				mariadb.serverId,
+			);
 		}),
 });

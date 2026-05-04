@@ -336,7 +336,7 @@ export async function getServerSideProps(
 	if (!user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -372,7 +372,7 @@ export async function getServerSideProps(
 			return {
 				redirect: {
 					permanent: false,
-					destination: "/dashboard/projects",
+					destination: "/dashboard/home",
 				},
 			};
 		}

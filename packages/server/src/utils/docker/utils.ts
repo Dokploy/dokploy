@@ -554,11 +554,6 @@ export const generateConfigContainer = (
 		ulimitsSwarm,
 	} = application;
 
-	const sanitizedStopGracePeriodSwarm =
-		typeof stopGracePeriodSwarm === "bigint"
-			? Number(stopGracePeriodSwarm)
-			: stopGracePeriodSwarm;
-
 	const haveMounts = mounts && mounts.length > 0;
 
 	return {
@@ -593,9 +588,15 @@ export const generateConfigContainer = (
 						},
 					},
 				}),
-		...(rollbackConfigSwarm && {
-			RollbackConfig: rollbackConfigSwarm,
-		}),
+		...(rollbackConfigSwarm
+			? { RollbackConfig: rollbackConfigSwarm }
+			: {
+					// default rollback config to match update config
+					RollbackConfig: {
+						Parallelism: 1,
+						Order: "start-first",
+					},
+				}),
 		...(updateConfigSwarm
 			? { UpdateConfig: updateConfigSwarm }
 			: {
@@ -603,11 +604,12 @@ export const generateConfigContainer = (
 					UpdateConfig: {
 						Parallelism: 1,
 						Order: "start-first",
+						FailureAction: "rollback",
 					},
 				}),
-		...(sanitizedStopGracePeriodSwarm !== null &&
-			sanitizedStopGracePeriodSwarm !== undefined && {
-				StopGracePeriod: sanitizedStopGracePeriodSwarm,
+		...(stopGracePeriodSwarm !== null &&
+			stopGracePeriodSwarm !== undefined && {
+				StopGracePeriod: stopGracePeriodSwarm,
 			}),
 		...(networkSwarm
 			? {

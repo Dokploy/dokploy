@@ -185,7 +185,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 					<div className="flex flex-col gap-4  w-full overflow-auto">
 						<div className="flex items-center gap-2 max-sm:flex-wrap">
 							<Input
-								placeholder="Filter by name..."
+								placeholder="Filter by hostname..."
 								value={search}
 								onChange={(event) => setSearch(event.target.value)}
 								className="md:max-w-sm"

@@ -82,7 +82,8 @@ export const ShowExternalMongoCredentials = ({ mongoId }: Props) => {
 		const buildConnectionUrl = () => {
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `mongodb://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${port}`;
+			const params = `authSource=admin${data?.replicaSets ? "" : "&directConnection=true"}`;
+			return `mongodb://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${port}/?${params}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());

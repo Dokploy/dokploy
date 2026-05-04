@@ -115,6 +115,7 @@ export const applications = pgTable("application", {
 	subtitle: text("subtitle"),
 	command: text("command"),
 	args: text("args").array(),
+	icon: text("icon"),
 	refreshToken: text("refreshToken").$defaultFn(() => nanoid()),
 	sourceType: sourceType("sourceType").notNull().default("github"),
 	cleanCache: boolean("cleanCache").default(false),
@@ -173,7 +174,7 @@ export const applications = pgTable("application", {
 	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
-	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "number" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
 	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
 	//
@@ -368,10 +369,15 @@ const createSchema = createInsertSchema(applications, {
 	watchPaths: z.array(z.string()).optional().optional(),
 	previewLabels: z.array(z.string()).optional(),
 	cleanCache: z.boolean().optional(),
-	stopGracePeriodSwarm: z.bigint().nullable(),
+	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 	enableSubmodules: z.boolean().optional(),
+	icon: z
+		.string()
+		.max(2 * 1024 * 1024, "Icon must be less than 2MB")
+		.nullable()
+		.optional(),
 });
 
 export const apiCreateApplication = createSchema.pick({

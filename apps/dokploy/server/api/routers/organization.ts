@@ -1,5 +1,5 @@
 import { db } from "@dokploy/server/db";
-import { IS_CLOUD } from "@dokploy/server/index";
+import { IS_CLOUD, sendInvitationEmail } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -324,6 +324,24 @@ export const organizationRouter = createTRPCRouter({
 					inviterId: ctx.user.id,
 				})
 				.returning();
+
+			if (IS_CLOUD && created) {
+				const host =
+					process.env.NODE_ENV === "development"
+						? "http://localhost:3000"
+						: "https://app.dokploy.com";
+				const inviteLink = `${host}/invitation?token=${created.id}`;
+
+				const org = await db.query.organization.findFirst({
+					where: eq(organization.id, orgId),
+				});
+
+				await sendInvitationEmail({
+					email,
+					inviteLink,
+					organizationName: org?.name || "organization",
+				});
+			}
 
 			await audit(ctx, {
 				action: "create",

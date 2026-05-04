@@ -5,11 +5,33 @@ import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import SwarmMonitorCard from "@/components/dashboard/swarm/monitoring-card";
+import { ShowSwarmContainers } from "@/components/dashboard/swarm/containers/show-swarm-containers";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { appRouter } from "@/server/api/root";
 
 const Dashboard = () => {
-	return <SwarmMonitorCard />;
+	return (
+		<div className="space-y-4">
+			<Tabs defaultValue="overview">
+				<TabsList>
+					<TabsTrigger value="overview">Overview</TabsTrigger>
+					<TabsTrigger value="containers">Containers</TabsTrigger>
+				</TabsList>
+				<TabsContent value="overview">
+					<SwarmMonitorCard />
+				</TabsContent>
+				<TabsContent value="containers">
+					<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
+						<div className="rounded-xl bg-background shadow-md p-6">
+							<ShowSwarmContainers />
+						</div>
+					</Card>
+				</TabsContent>
+			</Tabs>
+		</div>
+	);
 };
 
 export default Dashboard;
@@ -23,8 +45,8 @@ export async function getServerSideProps(
 	if (IS_CLOUD) {
 		return {
 			redirect: {
-				permanent: true,
-				destination: "/dashboard/projects",
+				permanent: false,
+				destination: "/dashboard/home",
 			},
 		};
 	}
@@ -32,7 +54,7 @@ export async function getServerSideProps(
 	if (!user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -58,7 +80,7 @@ export async function getServerSideProps(
 		if (!userPermissions?.docker.read) {
 			return {
 				redirect: {
-					permanent: true,
+					permanent: false,
 					destination: "/",
 				},
 			};

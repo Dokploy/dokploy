@@ -52,12 +52,13 @@ import {
 } from "@/components/ui/tooltip";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
+import { APP_NAME_MESSAGE, APP_NAME_REGEX } from "@/utils/schema";
 
 type DbType = z.infer<typeof mySchema>["type"];
 
 const dockerImageDefaultPlaceholder: Record<DbType, string> = {
+	mongo: "mongo:8",
 	libsql: "ghcr.io/tursodatabase/libsql-server:v0.24.32",
-	mongo: "mongo:7",
 	mariadb: "mariadb:11",
 	mysql: "mysql:8",
 	postgres: "postgres:18",
@@ -82,9 +83,8 @@ const baseDatabaseSchema = z.object({
 		.min(1, {
 			message: "App name is required",
 		})
-		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
-			message:
-				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
+		.regex(APP_NAME_REGEX, {
+			message: APP_NAME_MESSAGE,
 		}),
 	databasePassword: z
 		.string()

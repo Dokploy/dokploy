@@ -172,6 +172,7 @@ const addPermissions = z.object({
 	accessedEnvironments: z.array(z.string()).optional(),
 	accessedServices: z.array(z.string()).optional(),
 	accessedGitProviders: z.array(z.string()).optional(),
+	accessedServers: z.array(z.string()).optional(),
 	canCreateProjects: z.boolean().optional().default(false),
 	canCreateServices: z.boolean().optional().default(false),
 	canDeleteProjects: z.boolean().optional().default(false),
@@ -208,6 +209,10 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 		},
 	);
 
+	const { data: servers } = api.server.allForPermissions.useQuery(undefined, {
+		enabled: isOpen && !!haveValidLicense,
+	});
+
 	const { data, refetch } = api.user.one.useQuery(
 		{
 			userId,
@@ -226,6 +231,7 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 			accessedEnvironments: [],
 			accessedServices: [],
 			accessedGitProviders: [],
+			accessedServers: [],
 			canDeleteEnvironments: false,
 			canCreateProjects: false,
 			canCreateServices: false,
@@ -248,6 +254,7 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 				accessedEnvironments: data.accessedEnvironments || [],
 				accessedServices: data.accessedServices || [],
 				accessedGitProviders: data.accessedGitProviders || [],
+				accessedServers: data.accessedServers || [],
 				canCreateProjects: data.canCreateProjects,
 				canCreateServices: data.canCreateServices,
 				canDeleteProjects: data.canDeleteProjects,
@@ -276,6 +283,7 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 			accessedEnvironments: data.accessedEnvironments || [],
 			accessedServices: data.accessedServices || [],
 			accessedGitProviders: data.accessedGitProviders || [],
+			accessedServers: data.accessedServers || [],
 			canAccessToDocker: data.canAccessToDocker,
 			canAccessToAPI: data.canAccessToAPI,
 			canAccessToSSHKeys: data.canAccessToSSHKeys,
@@ -953,6 +961,79 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 									compact
 									title="Git Provider Assignment"
 									description="Assign specific Git Providers to users with an Enterprise license."
+								/>
+							</div>
+						)}
+						{haveValidLicense ? (
+							<FormField
+								control={form.control}
+								name="accessedServers"
+								render={() => (
+									<FormItem className="md:col-span-2">
+										<div className="mb-4">
+											<FormLabel className="text-base">Servers</FormLabel>
+											<FormDescription>
+												Select the Servers that the user can access
+											</FormDescription>
+										</div>
+										{servers?.length === 0 && (
+											<p className="text-sm text-muted-foreground">
+												No servers found
+											</p>
+										)}
+										<div className="grid md:grid-cols-1 gap-2">
+											{servers?.map((s) => (
+												<FormField
+													key={s.serverId}
+													control={form.control}
+													name="accessedServers"
+													render={({ field }) => (
+														<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
+															<FormControl>
+																<Checkbox
+																	checked={field.value?.includes(s.serverId)}
+																	onCheckedChange={(checked) => {
+																		if (checked) {
+																			field.onChange([
+																				...(field.value || []),
+																				s.serverId,
+																			]);
+																		} else {
+																			field.onChange(
+																				field.value?.filter(
+																					(v) => v !== s.serverId,
+																				),
+																			);
+																		}
+																	}}
+																/>
+															</FormControl>
+															<div className="flex items-center gap-2">
+																<FormLabel className="text-sm cursor-pointer">
+																	{s.name}
+																</FormLabel>
+																<span className="text-xs text-muted-foreground">
+																	({s.ipAddress})
+																</span>
+																<span className="text-xs text-muted-foreground capitalize">
+																	{s.serverType}
+																</span>
+															</div>
+														</FormItem>
+													)}
+												/>
+											))}
+										</div>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						) : (
+							<div className="md:col-span-2">
+								<EnterpriseFeatureLocked
+									compact
+									title="Server Assignment"
+									description="Assign specific Servers to users with an Enterprise license."
 								/>
 							</div>
 						)}

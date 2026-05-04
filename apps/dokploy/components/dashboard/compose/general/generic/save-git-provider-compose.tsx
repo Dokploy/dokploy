@@ -55,7 +55,7 @@ interface Props {
 
 export const SaveGitProviderCompose = ({ composeId }: Props) => {
 	const { data, refetch } = api.compose.one.useQuery({ composeId });
-	const { data: sshKeys } = api.sshKey.all.useQuery();
+	const { data: sshKeys } = api.sshKey.allForApps.useQuery();
 	const router = useRouter();
 
 	const { mutateAsync, isPending } = api.compose.update.useMutation();

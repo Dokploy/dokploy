@@ -63,7 +63,7 @@ export const SearchCommand = () => {
 
 	React.useEffect(() => {
 		const down = (e: KeyboardEvent) => {
-			if (e.key === "j" && (e.metaKey || e.ctrlKey)) {
+			if (e.code === "KeyJ" && (e.metaKey || e.ctrlKey)) {
 				e.preventDefault();
 				setOpen((open) => !open);
 			}
@@ -167,7 +167,7 @@ export const SearchCommand = () => {
 					<CommandGroup heading={"Application"} hidden={true}>
 						<CommandItem
 							onSelect={() => {
-								router.push("/dashboard/projects");
+								router.push("/dashboard/home");
 								setOpen(false);
 							}}
 						>

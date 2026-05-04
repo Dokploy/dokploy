@@ -68,3 +68,45 @@ jobs:
           
           echo "✅ OpenAPI synced to website successfully"
 
+      - name: Sync to MCP repository
+        run: |
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/mcp.git mcp-repo
+
+          cd mcp-repo
+
+          cp -f ../openapi.json openapi.json
+
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+
+          git add openapi.json
+          git commit -m "chore: sync OpenAPI specification [skip ci]" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --allow-empty
+
+          git push
+
+          echo "✅ OpenAPI synced to MCP repository successfully"
+
+      - name: Sync to CLI repository
+        run: |
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/cli.git cli-repo
+
+          cd cli-repo
+
+          cp -f ../openapi.json openapi.json
+
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+
+          git add openapi.json
+          git commit -m "chore: sync OpenAPI specification [skip ci]" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --allow-empty
+
+          git push
+
+          echo "✅ OpenAPI synced to CLI repository successfully"
+

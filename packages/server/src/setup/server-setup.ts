@@ -519,7 +519,7 @@ echo -e "3. Check Docker Installation. "
 if ! [ -x "$(command -v docker)" ]; then
     echo " - Docker is not installed. Installing Docker. It may take a while."
     case "$OS_TYPE" in
-        "almalinux")
+        "almalinux" | "rocky" | "centos" | "rhel" | "ol")
             $SUDO_CMD dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo >/dev/null 2>&1
             $SUDO_CMD dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then

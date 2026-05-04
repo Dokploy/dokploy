@@ -55,25 +55,22 @@ interface TemplateMetadata {
 export async function fetchTemplatesList(
 	baseUrl = "https://templates.dokploy.com",
 ): Promise<TemplateMetadata[]> {
-	try {
-		const response = await fetch(`${baseUrl}/meta.json`);
-		if (!response.ok) {
-			throw new Error(`Failed to fetch templates: ${response.statusText}`);
-		}
-		const templates = (await response.json()) as TemplateMetadata[];
-		return templates.map((template) => ({
-			id: template.id,
-			name: template.name,
-			description: template.description,
-			version: template.version,
-			logo: template.logo,
-			links: template.links,
-			tags: template.tags,
-		}));
-	} catch (error) {
-		console.error("Error fetching templates list:", error);
-		throw error;
+	const response = await fetch(`${baseUrl}/meta.json`, {
+		signal: AbortSignal.timeout(10000),
+	});
+	if (!response.ok) {
+		throw new Error(`Failed to fetch templates: ${response.statusText}`);
 	}
+	const templates = (await response.json()) as TemplateMetadata[];
+	return templates.map((template) => ({
+		id: template.id,
+		name: template.name,
+		description: template.description,
+		version: template.version,
+		logo: template.logo,
+		links: template.links,
+		tags: template.tags,
+	}));
 }
 
 /**
@@ -83,27 +80,26 @@ export async function fetchTemplateFiles(
 	templateId: string,
 	baseUrl = "https://templates.dokploy.com",
 ): Promise<{ config: CompleteTemplate; dockerCompose: string }> {
-	try {
-		// Fetch both files in parallel
-		const [templateYmlResponse, dockerComposeResponse] = await Promise.all([
-			fetch(`${baseUrl}/blueprints/${templateId}/template.toml`),
-			fetch(`${baseUrl}/blueprints/${templateId}/docker-compose.yml`),
-		]);
+	const timeout = AbortSignal.timeout(10000);
+	const [templateYmlResponse, dockerComposeResponse] = await Promise.all([
+		fetch(`${baseUrl}/blueprints/${templateId}/template.toml`, {
+			signal: timeout,
+		}),
+		fetch(`${baseUrl}/blueprints/${templateId}/docker-compose.yml`, {
+			signal: timeout,
+		}),
+	]);
 
-		if (!templateYmlResponse.ok || !dockerComposeResponse.ok) {
-			throw new Error("Template files not found");
-		}
-
-		const [templateYml, dockerCompose] = await Promise.all([
-			templateYmlResponse.text(),
-			dockerComposeResponse.text(),
-		]);
-
-		const config = parse(templateYml) as CompleteTemplate;
-
-		return { config, dockerCompose };
-	} catch (error) {
-		console.error(`Error fetching template ${templateId}:`, error);
-		throw error;
+	if (!templateYmlResponse.ok || !dockerComposeResponse.ok) {
+		throw new Error("Template files not found");
 	}
+
+	const [templateYml, dockerCompose] = await Promise.all([
+		templateYmlResponse.text(),
+		dockerComposeResponse.text(),
+	]);
+
+	const config = parse(templateYml) as CompleteTemplate;
+
+	return { config, dockerCompose };
 }

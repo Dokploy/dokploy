@@ -55,7 +55,7 @@ interface Props {
 
 export const SaveGitProvider = ({ applicationId }: Props) => {
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
-	const { data: sshKeys } = api.sshKey.all.useQuery();
+	const { data: sshKeys } = api.sshKey.allForApps.useQuery();
 	const router = useRouter();
 
 	const { mutateAsync, isPending } =

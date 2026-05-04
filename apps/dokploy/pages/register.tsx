@@ -302,8 +302,8 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		if (user) {
 			return {
 				redirect: {
-					permanent: true,
-					destination: "/dashboard/projects",
+					permanent: false,
+					destination: "/dashboard/home",
 				},
 			};
 		}

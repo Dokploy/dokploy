@@ -143,22 +143,26 @@ export const createRouterConfig = async (
 		entryPoints: [entryPoint],
 	};
 
-	// Add path rewriting middleware if needed
-	if (internalPath && internalPath !== "/" && internalPath !== path) {
-		const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
-		routerConfig.middlewares?.push(pathMiddleware);
-	}
+	const isRedirectRouter = entryPoint === "web" && https && !customEntrypoint;
 
-	if (stripPath && path && path !== "/") {
-		const stripMiddleware = `stripprefix-${appName}-${uniqueConfigKey}`;
-		routerConfig.middlewares?.push(stripMiddleware);
-	}
+	// Web router with HTTPS only needs redirect — all other middlewares
+	// run on the websecure router where the request actually lands.
+	if (isRedirectRouter) {
+		routerConfig.middlewares?.push("redirect-to-https");
+	} else {
+		// Add path rewriting middleware if needed
+		// stripPrefix must come before addPrefix so Traefik strips the
+		// public path first, then prepends the internal path.
+		if (stripPath && path && path !== "/") {
+			const stripMiddleware = `stripprefix-${appName}-${uniqueConfigKey}`;
+			routerConfig.middlewares?.push(stripMiddleware);
+		}
 
-	if (entryPoint === "web" && https) {
-		routerConfig.middlewares = ["redirect-to-https"];
-	}
+		if (internalPath && internalPath !== "/" && internalPath !== path) {
+			const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
+			routerConfig.middlewares?.push(pathMiddleware);
+		}
 
-	if ((entryPoint === "websecure" && https) || !https) {
 		// redirects - skip for preview deployments as wildcard subdomains
 		// should not inherit parent redirect rules (e.g., www-redirect)
 		if (domain.domainType !== "preview") {
@@ -178,6 +182,11 @@ export const createRouterConfig = async (
 				)}`;
 			}
 			routerConfig.middlewares?.push(middlewareName);
+		}
+
+		// custom middlewares from domain
+		if (domain.middlewares && domain.middlewares.length > 0) {
+			routerConfig.middlewares?.push(...domain.middlewares);
 		}
 	}
 

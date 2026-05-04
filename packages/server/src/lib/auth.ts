@@ -21,7 +21,10 @@ import {
 	updateWebServerSettings,
 } from "../services/web-server-settings";
 import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
-import { sendEmail } from "../verification/send-verification-email";
+import {
+	sendEmail,
+	sendVerificationEmail,
+} from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 
@@ -106,14 +109,13 @@ const { handler, api } = betterAuth({
 	emailVerification: {
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
+		sendOnSignIn: true,
 		sendVerificationEmail: async ({ user, url }) => {
 			if (IS_CLOUD) {
-				await sendEmail({
+				await sendVerificationEmail({
+					userName: user.name || "User",
 					email: user.email,
-					subject: "Verify your email",
-					text: `
-				<p>Click the link to verify your email: <a href="${url}">Verify Email</a></p>
-				`,
+					verificationUrl: url,
 				});
 			}
 		},
@@ -148,10 +150,30 @@ const { handler, api } = betterAuth({
 						const xDokployToken =
 							context?.request?.headers?.get("x-dokploy-token");
 						if (xDokployToken) {
-							const user = await getUserByToken(xDokployToken);
-							if (!user) {
+							let invitation: Awaited<ReturnType<typeof getUserByToken>>;
+							try {
+								invitation = await getUserByToken(xDokployToken);
+							} catch {
 								throw new APIError("BAD_REQUEST", {
-									message: "User not found",
+									message: "Invalid invitation token",
+								});
+							}
+							if (invitation.isExpired) {
+								throw new APIError("BAD_REQUEST", {
+									message: "Invitation has expired",
+								});
+							}
+							if (invitation.status !== "pending") {
+								throw new APIError("BAD_REQUEST", {
+									message: "Invitation has already been used",
+								});
+							}
+							if (
+								_user.email.toLowerCase().trim() !==
+								invitation.email.toLowerCase().trim()
+							) {
+								throw new APIError("BAD_REQUEST", {
+									message: "Email does not match invitation",
 								});
 							}
 						} else {
@@ -176,7 +198,7 @@ const { handler, api } = betterAuth({
 						where: eq(schema.member.role, "owner"),
 					});
 
-					if (!IS_CLOUD) {
+					if (!IS_CLOUD && !isAdminPresent) {
 						await updateWebServerSettings({
 							serverIp: await getPublicIpWithFallback(),
 						});
@@ -387,23 +409,6 @@ const { handler, api } = betterAuth({
 				enabled: true,
 				maximumRolesPerOrganization: 10,
 			},
-			async sendInvitationEmail(data, _request) {
-				if (IS_CLOUD) {
-					const host =
-						process.env.NODE_ENV === "development"
-							? "http://localhost:3000"
-							: "https://app.dokploy.com";
-					const inviteLink = `${host}/invitation?token=${data.id}`;
-
-					await sendEmail({
-						email: data.email,
-						subject: "Invitation to join organization",
-						text: `
-					<p>You are invited to join ${data.organization.name} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
-					`,
-					});
-				}
-			},
 		}),
 		...(IS_CLOUD
 			? [
@@ -459,8 +464,10 @@ export const validateRequest = async (request: IncomingMessage) => {
 				};
 			}
 
-			const organizationId = JSON.parse(
-				apiKeyRecord.metadata || "{}",
+			const organizationId = (
+				JSON.parse(apiKeyRecord.metadata || "{}") as {
+					organizationId?: string;
+				}
 			).organizationId;
 
 			if (!organizationId) {

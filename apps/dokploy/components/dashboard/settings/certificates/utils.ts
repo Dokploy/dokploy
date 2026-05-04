@@ -36,11 +36,11 @@ export const extractExpirationDate = (certData: string): Date | null => {
 		}
 
 		// Skip the outer certificate sequence
-		if (der[offset++] !== 0x30) throw new Error("Expected sequence");
+		if (der[offset++] !== 0x30) return null;
 		({ offset } = readLength(offset));
 
 		// Skip tbsCertificate sequence
-		if (der[offset++] !== 0x30) throw new Error("Expected tbsCertificate");
+		if (der[offset++] !== 0x30) return null;
 		({ offset } = readLength(offset));
 
 		// Check for optional version field (context-specific tag [0])
@@ -52,15 +52,14 @@ export const extractExpirationDate = (certData: string): Date | null => {
 
 		// Skip serialNumber, signature, issuer
 		for (let i = 0; i < 3; i++) {
-			if (der[offset] !== 0x30 && der[offset] !== 0x02)
-				throw new Error("Unexpected structure");
+			if (der[offset] !== 0x30 && der[offset] !== 0x02) return null;
 			offset++;
 			const fieldLen = readLength(offset);
 			offset = fieldLen.offset + fieldLen.length;
 		}
 
 		// Validity sequence (notBefore and notAfter)
-		if (der[offset++] !== 0x30) throw new Error("Expected validity sequence");
+		if (der[offset++] !== 0x30) return null;
 		const validityLen = readLength(offset);
 		offset = validityLen.offset;
 
@@ -138,11 +137,11 @@ export const extractCommonName = (certData: string): string | null => {
 		}
 
 		// Skip the outer certificate sequence
-		if (der[offset++] !== 0x30) throw new Error("Expected sequence");
+		if (der[offset++] !== 0x30) return null;
 		({ offset } = readLength(offset));
 
 		// Skip tbsCertificate sequence
-		if (der[offset++] !== 0x30) throw new Error("Expected tbsCertificate");
+		if (der[offset++] !== 0x30) return null;
 		({ offset } = readLength(offset));
 
 		// Check for optional version field (context-specific tag [0])
@@ -165,7 +164,7 @@ export const extractCommonName = (certData: string): string | null => {
 		offset = skipField(offset);
 
 		// Subject sequence - where we find the CN
-		if (der[offset++] !== 0x30) throw new Error("Expected subject sequence");
+		if (der[offset++] !== 0x30) return null;
 		const subjectLen = readLength(offset);
 		const subjectEnd = subjectLen.offset + subjectLen.length;
 		offset = subjectLen.offset;

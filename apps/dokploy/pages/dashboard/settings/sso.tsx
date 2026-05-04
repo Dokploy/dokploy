@@ -46,7 +46,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	if (!user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -54,7 +54,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	if (user.role === "member") {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/dashboard/settings/profile",
 			},
 		};

@@ -1,5 +1,6 @@
 import {
 	createApiKey,
+	createOrganizationUserWithCredentials,
 	findNotificationById,
 	findOrganizationById,
 	findUserById,
@@ -8,12 +9,12 @@ import {
 	getWebServerSettings,
 	IS_CLOUD,
 	removeUserById,
+	renderInvitationEmail,
 	sendEmailNotification,
 	sendResendNotification,
 	updateUser,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import {
 	account,
 	apiAssignPermissions,
@@ -28,6 +29,7 @@ import {
 	hasPermission,
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
+import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { and, asc, eq, gt } from "drizzle-orm";
@@ -346,7 +348,7 @@ export const userRouter = createTRPCRouter({
 					});
 				}
 
-				const { id, accessedGitProviders, ...rest } = input;
+				const { id, accessedGitProviders, accessedServers, ...rest } = input;
 
 				const licensed = await hasValidLicense(
 					ctx.session?.activeOrganizationId || "",
@@ -358,6 +360,9 @@ export const userRouter = createTRPCRouter({
 						...rest,
 						...(licensed && accessedGitProviders !== undefined
 							? { accessedGitProviders }
+							: {}),
+						...(licensed && accessedServers !== undefined
+							? { accessedServers }
 							: {}),
 					})
 					.where(
@@ -565,6 +570,37 @@ export const userRouter = createTRPCRouter({
 
 			return organizations.length;
 		}),
+	createUserWithCredentials: withPermission("member", "create")
+		.input(
+			z.object({
+				email: z.string().email(),
+				password: z.string().min(8),
+				role: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"Creating users with initial credentials is only available in self-hosted mode",
+				});
+			}
+
+			if (!ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Active organization is required",
+				});
+			}
+
+			return await createOrganizationUserWithCredentials({
+				organizationId: ctx.session.activeOrganizationId,
+				email: input.email,
+				password: input.password,
+				role: input.role,
+			});
+		}),
 	sendInvitation: withPermission("member", "create")
 		.input(
 			z.object({
@@ -604,27 +640,26 @@ export const userRouter = createTRPCRouter({
 			);
 
 			try {
-				const htmlContent = `
-\t\t\t\t<p>You are invited to join ${organization?.name || "organization"} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
-\t\t\t\t`;
+				const toEmail = currentInvitation?.email || "";
+				const orgName = organization?.name || "organization";
+				const subject = `You've been invited to join ${orgName} on Dokploy`;
+				const html = await renderInvitationEmail({
+					email: toEmail,
+					inviteLink,
+					organizationName: orgName,
+				});
 
 				if (email) {
 					await sendEmailNotification(
-						{
-							...email,
-							toAddresses: [currentInvitation?.email || ""],
-						},
-						"Invitation to join organization",
-						htmlContent,
+						{ ...email, toAddresses: [toEmail] },
+						subject,
+						html,
 					);
 				} else if (resend) {
 					await sendResendNotification(
-						{
-							...resend,
-							toAddresses: [currentInvitation?.email || ""],
-						},
-						"Invitation to join organization",
-						htmlContent,
+						{ ...resend, toAddresses: [toEmail] },
+						subject,
+						html,
 					);
 				}
 			} catch (error) {

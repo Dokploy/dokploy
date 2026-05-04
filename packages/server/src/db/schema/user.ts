@@ -65,6 +65,10 @@ export const user = pgTable("user", {
 	stripeCustomerId: text("stripeCustomerId"),
 	stripeSubscriptionId: text("stripeSubscriptionId"),
 	serversQuantity: integer("serversQuantity").notNull().default(0),
+	sendInvoiceNotifications: boolean("sendInvoiceNotifications")
+		.notNull()
+		.default(false),
+	isEnterpriseCloud: boolean("isEnterpriseCloud").notNull().default(false),
 	trustedOrigins: text("trustedOrigins").array(),
 	bookmarkedTemplates: text("bookmarkedTemplates")
 		.array()
@@ -92,6 +96,7 @@ const createSchema = createInsertSchema(user, {
 	trustedOrigins: true,
 	bookmarkedTemplates: true,
 	isValidEnterpriseLicense: true,
+	isEnterpriseCloud: true,
 });
 
 export const apiCreateUserInvitation = createSchema.pick({}).extend({
@@ -131,6 +136,7 @@ export const apiAssignPermissions = createSchema
 		accessedEnvironments: z.array(z.string()).optional(),
 		accessedServices: z.array(z.string()).optional(),
 		accessedGitProviders: z.array(z.string()).optional(),
+		accessedServers: z.array(z.string()).optional(),
 		canCreateProjects: z.boolean().optional(),
 		canCreateServices: z.boolean().optional(),
 		canDeleteProjects: z.boolean().optional(),
