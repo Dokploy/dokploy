@@ -178,7 +178,10 @@ export const createPreviewDeployment = async (
 	} else {
 		appName = `preview-${application.appName}-${uniqueId}`;
 		const org = await db.query.organization.findFirst({
-			where: eq(organization.id, application.environment.project.organizationId),
+			where: eq(
+				organization.id,
+				application.environment.project.organizationId,
+			),
 		});
 		generateDomain = await generateWildcardDomain(
 			domainTemplate,

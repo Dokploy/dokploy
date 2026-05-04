@@ -210,44 +210,44 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 								className="grid w-full gap-4"
 							>
 								<div className="grid gap-4 lg:grid-cols-2">
-								<FormField
-									control={form.control}
-									name="wildcardDomain"
-									render={({ field }) => (
-										<FormItem className="lg:col-span-2">
-											<FormLabel>Preview Domain Template</FormLabel>
-											<FormControl>
-												<Input
-													placeholder="*.traefik.me or ${prNumber}.example.com"
-													{...field}
-												/>
-											</FormControl>
-											<FormDescription className="flex flex-col gap-1.5">
-												<span>
-													Use <code className="text-xs">*.</code> for auto-generated subdomains,
-													or template variables for custom patterns.
-													If the template includes{" "}
-													<code className="text-xs">{"${prNumber}"}</code> or{" "}
-													<code className="text-xs">{"${branchName}"}</code>,
-													no random suffix is appended.
-												</span>
-												<span className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-mono">
-													<code>{"${appName}"}</code>
-													<code>{"${prNumber}"}</code>
-													<code>{"${branchName}"}</code>
-													<code>{"${uniqueId}"}</code>
-												</span>
-												<span className="text-xs mt-1 px-2 py-1 rounded bg-muted font-mono truncate">
-													Example: {templatePreview}
-												</span>
-											</FormDescription>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="previewPath"
+									<FormField
+										control={form.control}
+										name="wildcardDomain"
+										render={({ field }) => (
+											<FormItem className="lg:col-span-2">
+												<FormLabel>Preview Domain Template</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="*.traefik.me or ${prNumber}.example.com"
+														{...field}
+													/>
+												</FormControl>
+												<FormDescription className="flex flex-col gap-1.5">
+													<span>
+														Use <code className="text-xs">*.</code> for
+														auto-generated subdomains, or template variables for
+														custom patterns. If the template includes{" "}
+														<code className="text-xs">{"${prNumber}"}</code> or{" "}
+														<code className="text-xs">{"${branchName}"}</code>,
+														no random suffix is appended.
+													</span>
+													<span className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-mono">
+														<code>{"${appName}"}</code>
+														<code>{"${prNumber}"}</code>
+														<code>{"${branchName}"}</code>
+														<code>{"${uniqueId}"}</code>
+													</span>
+													<span className="text-xs mt-1 px-2 py-1 rounded bg-muted font-mono truncate">
+														Example: {templatePreview}
+													</span>
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="previewPath"
 										render={({ field }) => (
 											<FormItem>
 												<FormLabel>Preview Path</FormLabel>

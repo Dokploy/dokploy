@@ -49,27 +49,24 @@ test("replaces all variables in a complex template", () => {
 });
 
 test("leaves template unchanged when no variables present", () => {
-	const result = interpolateSubdomainTemplate(
-		"*.traefik.me",
-		baseVars,
-	);
+	const result = interpolateSubdomainTemplate("*.traefik.me", baseVars);
 	expect(result).toBe("*.traefik.me");
 });
 
 test("slugifies branch names with special characters", () => {
-	const result = interpolateSubdomainTemplate(
-		"${branchName}.example.com",
-		{ ...baseVars, branchName: "feat/SOME_THING@v2.0" },
-	);
+	const result = interpolateSubdomainTemplate("${branchName}.example.com", {
+		...baseVars,
+		branchName: "feat/SOME_THING@v2.0",
+	});
 	expect(result).toBe("feat-some-thing-v2-0.example.com");
 });
 
 test("truncates slugified branch to 63 chars for DNS compliance", () => {
 	const longBranch = "a".repeat(100);
-	const result = interpolateSubdomainTemplate(
-		"${branchName}.example.com",
-		{ ...baseVars, branchName: longBranch },
-	);
+	const result = interpolateSubdomainTemplate("${branchName}.example.com", {
+		...baseVars,
+		branchName: longBranch,
+	});
 	const subdomain = result.split(".")[0]!;
 	expect(subdomain.length).toBeLessThanOrEqual(63);
 });
