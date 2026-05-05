@@ -31,6 +31,7 @@ import { projectRouter } from "./routers/project";
 import { auditLogRouter } from "./routers/proprietary/audit-log";
 import { customRoleRouter } from "./routers/proprietary/custom-role";
 import { licenseKeyRouter } from "./routers/proprietary/license-key";
+import { managedServerRouter } from "./routers/proprietary/managed-server";
 import { ssoRouter } from "./routers/proprietary/sso";
 import { whitelabelingRouter } from "./routers/proprietary/whitelabeling";
 import { redirectsRouter } from "./routers/redirects";
@@ -102,6 +103,7 @@ export const appRouter = createTRPCRouter({
 	environment: environmentRouter,
 	tag: tagRouter,
 	patch: patchRouter,
+	managedServer: managedServerRouter,
 });
 
 // export type definition of API

@@ -1,4 +1,4 @@
-import { CreditCard, FileText } from "lucide-react";
+import { CreditCard, FileText, Server } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import {
@@ -16,6 +16,11 @@ const navigationItems = [
 		name: "Subscription",
 		href: "/dashboard/settings/billing",
 		icon: CreditCard,
+	},
+	{
+		name: "Managed Servers",
+		href: "/dashboard/settings/managed-servers",
+		icon: Server,
 	},
 	{
 		name: "Invoices",
