@@ -126,7 +126,7 @@
 		"next-themes": "^0.2.1",
 		"nextjs-toploader": "^3.9.17",
 		"node-os-utils": "2.0.1",
-		"node-pty": "1.0.0",
+		"node-pty": "1.1.0",
 		"node-schedule": "2.1.1",
 		"nodemailer": "6.9.14",
 		"octokit": "3.1.2",
