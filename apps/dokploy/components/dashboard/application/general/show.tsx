@@ -58,10 +58,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 				<CardHeader>
 					<CardTitle className="text-xl">Deploy Settings</CardTitle>
 				</CardHeader>
-				<CardContent
-					// className="flex flex-row gap-4 flex-wrap"
-					className="grid grid-cols-2 lg:flex lg:flex-row lg:flex-wrap gap-4"
-				>
+				<CardContent className="grid grid-cols-2 lg:flex lg:flex-row lg:flex-wrap gap-4">
 					<TooltipProvider delayDuration={0} disableHoverableContent={false}>
 						{canDeploy && (
 							<DialogAction
