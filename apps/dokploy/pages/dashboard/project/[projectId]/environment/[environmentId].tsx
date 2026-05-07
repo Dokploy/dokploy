@@ -1099,7 +1099,7 @@ const EnvironmentPage = (
 						</div>
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
 							<>
-								<div className="flex flex-col gap-4 xl:flex-row 2xl:items-center 2xl:justify-between">
+								<div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
 									<div className="flex items-center gap-4">
 										<div className="flex items-center gap-2">
 											<Checkbox
