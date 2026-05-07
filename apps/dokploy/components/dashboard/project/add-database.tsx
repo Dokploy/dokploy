@@ -632,7 +632,6 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										control={form.control}
 										name="enableNamespaces"
 										render={({ field }) => {
-											console.log(field.value);
 											return (
 												<FormItem>
 													<FormLabel>Enable Namespaces</FormLabel>
