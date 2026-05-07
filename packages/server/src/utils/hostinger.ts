@@ -29,9 +29,13 @@ function getVmApi() {
 }
 
 export async function getHostingerDataCenters() {
-	const api = new VPSDataCentersApi(getConfig());
-	const res = await api.getDataCenterListV1();
-	return res.data;
+	try {
+		const api = new VPSDataCentersApi(getConfig());
+		const res = await api.getDataCenterListV1();
+		return res.data;
+	} catch (error) {
+		console.log(error);
+	}
 }
 
 export async function getHostingerVpsCatalog() {
@@ -86,7 +90,12 @@ export interface ManagedServerPlan {
 }
 
 /** KVM plan IDs offered through Dokploy (excludes Game Panel plans) */
-const OFFERED_PLAN_IDS = ["hostingercom-vps-kvm1", "hostingercom-vps-kvm2", "hostingercom-vps-kvm4", "hostingercom-vps-kvm8"];
+const OFFERED_PLAN_IDS = [
+	"hostingercom-vps-kvm1",
+	"hostingercom-vps-kvm2",
+	"hostingercom-vps-kvm4",
+	"hostingercom-vps-kvm8",
+];
 
 /**
  * Fetches live VPS plans from Hostinger catalog and applies Dokploy markup.
