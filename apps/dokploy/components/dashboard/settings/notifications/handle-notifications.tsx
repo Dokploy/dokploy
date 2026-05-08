@@ -53,7 +53,8 @@ const notificationBaseSchema = z.object({
 	}),
 	appDeploy: z.boolean().default(false),
 	appBuildError: z.boolean().default(false),
-	databaseBackup: z.boolean().default(false),
+	backupSuccess: z.boolean().default(false),
+	backupFailure: z.boolean().default(true),
 	dokployBackup: z.boolean().default(false),
 	volumeBackup: z.boolean().default(false),
 	dokployRestart: z.boolean().default(false),
@@ -355,7 +356,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
+					backupSuccess: notification.backupSuccess,
+					backupFailure: notification.backupFailure,
 					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					dockerCleanup: notification.dockerCleanup,
@@ -370,7 +372,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
+					backupSuccess: notification.backupSuccess,
+					backupFailure: notification.backupFailure,
 					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					botToken: notification.telegram?.botToken,
@@ -386,7 +389,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
+					backupSuccess: notification.backupSuccess,
+					backupFailure: notification.backupFailure,
 					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
@@ -401,7 +405,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
+					backupSuccess: notification.backupSuccess,
+					backupFailure: notification.backupFailure,
 					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
@@ -420,7 +425,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
+					backupSuccess: notification.backupSuccess,
+					backupFailure: notification.backupFailure,
 					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
@@ -436,7 +442,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
+					backupSuccess: notification.backupSuccess,
+					backupFailure: notification.backupFailure,
 					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
@@ -452,7 +459,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
+					backupSuccess: notification.backupSuccess,
+					backupFailure: notification.backupFailure,
 					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
@@ -469,7 +477,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
+					backupSuccess: notification.backupSuccess,
+					backupFailure: notification.backupFailure,
 					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
@@ -485,7 +494,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
+					backupSuccess: notification.backupSuccess,
+					backupFailure: notification.backupFailure,
 					dokployBackup: notification.dokployBackup,
 					type: notification.notificationType,
 					webhookUrl: notification.lark?.webhookUrl,
@@ -499,7 +509,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
+					backupSuccess: notification.backupSuccess,
+					backupFailure: notification.backupFailure,
 					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
@@ -513,7 +524,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
+					backupSuccess: notification.backupSuccess,
+					backupFailure: notification.backupFailure,
 					dokployBackup: notification.dokployBackup,
 					type: notification.notificationType,
 					endpoint: notification.custom?.endpoint || "",
@@ -535,7 +547,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
+					backupSuccess: notification.backupSuccess,
+					backupFailure: notification.backupFailure,
 					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
@@ -574,7 +587,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			appBuildError,
 			appDeploy,
 			dokployRestart,
-			databaseBackup,
+			backupSuccess,
+			backupFailure,
 			dokployBackup,
 			volumeBackup,
 			dockerCleanup,
@@ -586,7 +600,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
-				databaseBackup: databaseBackup,
+				backupSuccess: backupSuccess,
+				backupFailure: backupFailure,
 				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
@@ -602,7 +617,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
-				databaseBackup: databaseBackup,
+				backupSuccess: backupSuccess,
+				backupFailure: backupFailure,
 				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				botToken: data.botToken,
@@ -619,7 +635,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
-				databaseBackup: databaseBackup,
+				backupSuccess: backupSuccess,
+				backupFailure: backupFailure,
 				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
@@ -635,7 +652,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
-				databaseBackup: databaseBackup,
+				backupSuccess: backupSuccess,
+				backupFailure: backupFailure,
 				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				smtpServer: data.smtpServer,
@@ -655,7 +673,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
-				databaseBackup: databaseBackup,
+				backupSuccess: backupSuccess,
+				backupFailure: backupFailure,
 				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				apiKey: data.apiKey,
@@ -672,7 +691,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
-				databaseBackup: databaseBackup,
+				backupSuccess: backupSuccess,
+				backupFailure: backupFailure,
 				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				serverUrl: data.serverUrl,
@@ -689,7 +709,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
-				databaseBackup: databaseBackup,
+				backupSuccess: backupSuccess,
+				backupFailure: backupFailure,
 				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				serverUrl: data.serverUrl,
@@ -706,7 +727,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
-				databaseBackup: databaseBackup,
+				backupSuccess: backupSuccess,
+				backupFailure: backupFailure,
 				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
@@ -723,7 +745,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
-				databaseBackup: databaseBackup,
+				backupSuccess: backupSuccess,
+				backupFailure: backupFailure,
 				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
@@ -738,7 +761,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
-				databaseBackup: databaseBackup,
+				backupSuccess: backupSuccess,
+				backupFailure: backupFailure,
 				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
@@ -765,7 +789,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
-				databaseBackup: databaseBackup,
+				backupSuccess: backupSuccess,
+				backupFailure: backupFailure,
 				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				endpoint: data.endpoint,
@@ -785,7 +810,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
-				databaseBackup: databaseBackup,
+				backupSuccess: backupSuccess,
+				backupFailure: backupFailure,
 				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				userKey: data.userKey,
@@ -1863,13 +1889,34 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 
 								<FormField
 									control={form.control}
-									name="databaseBackup"
+									name="backupSuccess"
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
 											<div className="space-y-0.5">
-												<FormLabel>Database Backup</FormLabel>
+												<FormLabel>Backup Success</FormLabel>
 												<FormDescription>
-													Trigger the action when a database backup is created.
+													Trigger when a scheduled database backup completes.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="backupFailure"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<div className="space-y-0.5">
+												<FormLabel>Backup Failure</FormLabel>
+												<FormDescription>
+													Trigger when a scheduled database backup fails.
 												</FormDescription>
 											</div>
 											<FormControl>

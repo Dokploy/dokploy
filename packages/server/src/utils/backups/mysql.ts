@@ -28,6 +28,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 		title: "MySQL Backup",
 		description: "MySQL Backup",
 	});
+	const startedAt = Date.now();
 
 	try {
 		const rcloneFlags = getS3Credentials(destination);
@@ -55,6 +56,10 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 			type: "success",
 			organizationId: project.organizationId,
 			databaseName: backup.database,
+			schedule: backup.schedule,
+			destinationBucket: destination.bucket,
+			destinationPrefix: backup.prefix,
+			durationMs: Date.now() - startedAt,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
@@ -68,6 +73,10 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,
+			schedule: backup.schedule,
+			destinationBucket: destination.bucket,
+			destinationPrefix: backup.prefix,
+			durationMs: Date.now() - startedAt,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		throw error;

@@ -19,6 +19,18 @@ import {
 	sendTelegramNotification,
 } from "./utils";
 
+const ERROR_MESSAGE_LIMIT = 500;
+
+const formatDuration = (durationMs?: number) => {
+	if (typeof durationMs !== "number") return undefined;
+	return `${(durationMs / 1000).toFixed(2)}s`;
+};
+
+const formatDestination = (bucket?: string, prefix?: string) => {
+	if (!bucket) return undefined;
+	return prefix ? `${bucket}/${prefix}` : bucket;
+};
+
 export const sendDatabaseBackupNotifications = async ({
 	projectName,
 	applicationName,
@@ -27,6 +39,10 @@ export const sendDatabaseBackupNotifications = async ({
 	errorMessage,
 	organizationId,
 	databaseName,
+	schedule,
+	destinationBucket,
+	destinationPrefix,
+	durationMs,
 }: {
 	projectName: string;
 	applicationName: string;
@@ -35,12 +51,27 @@ export const sendDatabaseBackupNotifications = async ({
 	organizationId: string;
 	errorMessage?: string;
 	databaseName: string;
+	schedule?: string;
+	destinationBucket?: string;
+	destinationPrefix?: string;
+	durationMs?: number;
 }) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
+	const truncatedError =
+		errorMessage && errorMessage.length > ERROR_MESSAGE_LIMIT
+			? `${errorMessage.slice(0, ERROR_MESSAGE_LIMIT)}…`
+			: errorMessage;
+	const destination = formatDestination(destinationBucket, destinationPrefix);
+	const duration = formatDuration(durationMs);
+	const toggleColumn =
+		type === "error"
+			? notifications.backupFailure
+			: notifications.backupSuccess;
+
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
-			eq(notifications.databaseBackup, true),
+			eq(toggleColumn, true),
 			eq(notifications.organizationId, organizationId),
 		),
 		with: {
@@ -82,8 +113,11 @@ export const sendDatabaseBackupNotifications = async ({
 						applicationName,
 						databaseType,
 						type,
-						errorMessage,
+						errorMessage: truncatedError,
 						date: date.toLocaleString(),
+						schedule,
+						destination,
+						durationMs,
 					}),
 				).catch();
 
@@ -135,6 +169,33 @@ export const sendDatabaseBackupNotifications = async ({
 							value: databaseName,
 							inline: true,
 						},
+						...(schedule
+							? [
+									{
+										name: decorate("`⏰`", "Schedule"),
+										value: `\`${schedule}\``,
+										inline: true,
+									},
+								]
+							: []),
+						...(destination
+							? [
+									{
+										name: decorate("`☁️`", "Destination"),
+										value: destination,
+										inline: true,
+									},
+								]
+							: []),
+						...(duration
+							? [
+									{
+										name: decorate("`⏱️`", "Duration"),
+										value: duration,
+										inline: true,
+									},
+								]
+							: []),
 						{
 							name: decorate("`📅`", "Date"),
 							value: `<t:${unixDate}:D>`,
@@ -152,11 +213,11 @@ export const sendDatabaseBackupNotifications = async ({
 								.replace("success", "Successful"),
 							inline: true,
 						},
-						...(type === "error" && errorMessage
+						...(type === "error" && truncatedError
 							? [
 									{
 										name: decorate("`⚠️`", "Error Message"),
-										value: `\`\`\`${errorMessage.length > 1010 ? `${errorMessage.substring(0, 1010)}...` : errorMessage}\`\`\``,
+										value: `\`\`\`${truncatedError}\`\`\``,
 									},
 								]
 							: []),
@@ -182,8 +243,11 @@ export const sendDatabaseBackupNotifications = async ({
 						`${decorate("⚙️", `Application: ${applicationName}`)}` +
 						`${decorate("❔", `Type: ${databaseType}`)}` +
 						`${decorate("📂", `Database Name: ${databaseName}`)}` +
+						`${schedule ? decorate("⏰", `Schedule: ${schedule}`) : ""}` +
+						`${destination ? decorate("☁️", `Destination: ${destination}`) : ""}` +
+						`${duration ? decorate("⏱️", `Duration: ${duration}`) : ""}` +
 						`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
-						`${type === "error" && errorMessage ? decorate("❌", `Error:\n${errorMessage}`) : ""}`,
+						`${type === "error" && truncatedError ? decorate("❌", `Error:\n${truncatedError}`) : ""}`,
 				);
 			}
 
@@ -196,22 +260,32 @@ export const sendDatabaseBackupNotifications = async ({
 					`🛠Project: ${projectName}\n` +
 						`⚙️Application: ${applicationName}\n` +
 						`❔Type: ${databaseType}\n` +
-						`📂Database Name: ${databaseName}` +
+						`📂Database Name: ${databaseName}\n` +
+						`${schedule ? `⏰Schedule: ${schedule}\n` : ""}` +
+						`${destination ? `☁️Destination: ${destination}\n` : ""}` +
+						`${duration ? `⏱️Duration: ${duration}\n` : ""}` +
 						`🕒Date: ${date.toLocaleString()}\n` +
-						`${type === "error" && errorMessage ? `❌Error:\n${errorMessage}` : ""}`,
+						`${type === "error" && truncatedError ? `❌Error:\n${truncatedError}` : ""}`,
 				);
 			}
 
 			if (telegram) {
-				const isError = type === "error" && errorMessage;
+				const isError = type === "error" && truncatedError;
 
 				const statusEmoji = type === "success" ? "✅" : "❌";
 				const typeStatus = type === "success" ? "Successful" : "Failed";
 				const errorMsg = isError
-					? `\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`
+					? `\n\n<b>Error:</b>\n<pre>${truncatedError}</pre>`
 					: "";
+				const scheduleLine = schedule
+					? `\n<b>Schedule:</b> <code>${schedule}</code>`
+					: "";
+				const destinationLine = destination
+					? `\n<b>Destination:</b> ${destination}`
+					: "";
+				const durationLine = duration ? `\n<b>Duration:</b> ${duration}` : "";
 
-				const messageText = `<b>${statusEmoji} Database Backup ${typeStatus}</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${databaseType}\n<b>Database Name:</b> ${databaseName}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;
+				const messageText = `<b>${statusEmoji} Database Backup ${typeStatus}</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${databaseType}\n<b>Database Name:</b> ${databaseName}${scheduleLine}${destinationLine}${durationLine}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;
 
 				await sendTelegramNotification(telegram, messageText);
 			}
@@ -228,11 +302,11 @@ export const sendDatabaseBackupNotifications = async ({
 									? ":white_check_mark: *Database Backup Successful*"
 									: ":x: *Database Backup Failed*",
 							fields: [
-								...(type === "error" && errorMessage
+								...(type === "error" && truncatedError
 									? [
 											{
 												title: "Error Message",
-												value: errorMessage,
+												value: truncatedError,
 												short: false,
 											},
 										]
@@ -256,14 +330,19 @@ export const sendDatabaseBackupNotifications = async ({
 									title: "Database Name",
 									value: databaseName,
 								},
+								...(schedule
+									? [{ title: "Schedule", value: schedule, short: true }]
+									: []),
+								...(destination
+									? [{ title: "Destination", value: destination, short: true }]
+									: []),
+								...(duration
+									? [{ title: "Duration", value: duration, short: true }]
+									: []),
 								{
 									title: "Time",
 									value: date.toLocaleString(),
 									short: true,
-								},
-								{
-									title: "Type",
-									value: type,
 								},
 								{
 									title: "Status",
@@ -279,12 +358,17 @@ export const sendDatabaseBackupNotifications = async ({
 				const statusEmoji = type === "success" ? "✅" : "❌";
 				const typeStatus = type === "success" ? "Successful" : "Failed";
 				const errorMsg =
-					type === "error" && errorMessage
-						? `\n\n**Error:**\n\`\`\`\n${errorMessage}\n\`\`\``
+					type === "error" && truncatedError
+						? `\n\n**Error:**\n\`\`\`\n${truncatedError}\n\`\`\``
 						: "";
+				const scheduleLine = schedule ? `\n**Schedule:** \`${schedule}\`` : "";
+				const destinationLine = destination
+					? `\n**Destination:** ${destination}`
+					: "";
+				const durationLine = duration ? `\n**Duration:** ${duration}` : "";
 
 				await sendMattermostNotification(mattermost, {
-					text: `**${statusEmoji} Database Backup ${typeStatus}**\n\n**Project:** ${projectName}\n**Application:** ${applicationName}\n**Type:** ${databaseType}\n**Database Name:** ${databaseName}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}${errorMsg}`,
+					text: `**${statusEmoji} Database Backup ${typeStatus}**\n\n**Project:** ${projectName}\n**Application:** ${applicationName}\n**Type:** ${databaseType}\n**Database Name:** ${databaseName}${scheduleLine}${destinationLine}${durationLine}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}${errorMsg}`,
 					channel: mattermost.channel,
 					username: mattermost.username || "Dokploy",
 				});
@@ -302,7 +386,10 @@ export const sendDatabaseBackupNotifications = async ({
 					databaseType,
 					databaseName,
 					type,
-					errorMessage: errorMessage || "",
+					errorMessage: truncatedError || "",
+					schedule: schedule || "",
+					destination: destination || "",
+					durationMs: durationMs ?? null,
 					timestamp: date.toISOString(),
 					date: date.toLocaleString(),
 					status: type,
@@ -310,12 +397,6 @@ export const sendDatabaseBackupNotifications = async ({
 			}
 
 			if (lark) {
-				const limitCharacter = 800;
-				const truncatedErrorMessage =
-					errorMessage && errorMessage.length > limitCharacter
-						? errorMessage.substring(0, limitCharacter)
-						: errorMessage;
-
 				await sendLarkNotification(lark, {
 					msg_type: "interactive",
 					card: {
@@ -376,6 +457,16 @@ export const sendDatabaseBackupNotifications = async ({
 													text_align: "left",
 													text_size: "normal_v2",
 												},
+												...(schedule
+													? [
+															{
+																tag: "markdown",
+																content: `**Schedule:**\n\`${schedule}\``,
+																text_align: "left",
+																text_size: "normal_v2",
+															},
+														]
+													: []),
 											],
 											vertical_align: "top",
 											weight: 1,
@@ -402,17 +493,37 @@ export const sendDatabaseBackupNotifications = async ({
 													text_align: "left",
 													text_size: "normal_v2",
 												},
+												...(destination
+													? [
+															{
+																tag: "markdown",
+																content: `**Destination:**\n${destination}`,
+																text_align: "left",
+																text_size: "normal_v2",
+															},
+														]
+													: []),
+												...(duration
+													? [
+															{
+																tag: "markdown",
+																content: `**Duration:**\n${duration}`,
+																text_align: "left",
+																text_size: "normal_v2",
+															},
+														]
+													: []),
 											],
 											vertical_align: "top",
 											weight: 1,
 										},
 									],
 								},
-								...(type === "error" && truncatedErrorMessage
+								...(type === "error" && truncatedError
 									? [
 											{
 												tag: "markdown",
-												content: `**Error Message:**\n\`\`\`\n${truncatedErrorMessage}\n\`\`\``,
+												content: `**Error Message:**\n\`\`\`\n${truncatedError}\n\`\`\``,
 												text_align: "left",
 												text_size: "normal_v2",
 											},
@@ -428,7 +539,7 @@ export const sendDatabaseBackupNotifications = async ({
 				await sendPushoverNotification(
 					pushover,
 					`Database Backup ${type === "success" ? "Successful" : "Failed"}`,
-					`Project: ${projectName}\nApplication: ${applicationName}\nDatabase: ${databaseType}\nDatabase Name: ${databaseName}\nDate: ${date.toLocaleString()}${type === "error" && errorMessage ? `\nError: ${errorMessage}` : ""}`,
+					`Project: ${projectName}\nApplication: ${applicationName}\nDatabase: ${databaseType}\nDatabase Name: ${databaseName}${schedule ? `\nSchedule: ${schedule}` : ""}${destination ? `\nDestination: ${destination}` : ""}${duration ? `\nDuration: ${duration}` : ""}\nDate: ${date.toLocaleString()}${type === "error" && truncatedError ? `\nError: ${truncatedError}` : ""}`,
 				);
 			}
 
@@ -438,14 +549,18 @@ export const sendDatabaseBackupNotifications = async ({
 					{ name: "Application", value: applicationName },
 					{ name: "Database Type", value: databaseType },
 					{ name: "Database Name", value: databaseName },
-					{ name: "Date", value: format(date, "PP pp") },
-					{
-						name: "Status",
-						value: type === "success" ? "Successful" : "Failed",
-					},
 				];
-				if (type === "error" && errorMessage) {
-					facts.push({ name: "Error", value: errorMessage.substring(0, 500) });
+				if (schedule) facts.push({ name: "Schedule", value: schedule });
+				if (destination)
+					facts.push({ name: "Destination", value: destination });
+				if (duration) facts.push({ name: "Duration", value: duration });
+				facts.push({ name: "Date", value: format(date, "PP pp") });
+				facts.push({
+					name: "Status",
+					value: type === "success" ? "Successful" : "Failed",
+				});
+				if (type === "error" && truncatedError) {
+					facts.push({ name: "Error", value: truncatedError });
 				}
 				await sendTeamsNotification(teams, {
 					title:

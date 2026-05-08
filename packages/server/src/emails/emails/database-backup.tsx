@@ -18,6 +18,9 @@ export type TemplateProps = {
 	type: "error" | "success";
 	errorMessage?: string;
 	date: string;
+	schedule?: string;
+	destination?: string;
+	durationMs?: number;
 };
 
 export const DatabaseBackupEmail = ({
@@ -27,6 +30,9 @@ export const DatabaseBackupEmail = ({
 	type = "success",
 	errorMessage,
 	date = "2023-05-01T00:00:00.000Z",
+	schedule,
+	destination,
+	durationMs,
 }: TemplateProps) => {
 	const previewText = `Database backup for ${applicationName} was ${type === "success" ? "successful ✅" : "failed ❌"}`;
 	return (
@@ -85,6 +91,21 @@ export const DatabaseBackupEmail = ({
 							<Text className="!leading-3">
 								Date: <strong>{date}</strong>
 							</Text>
+							{schedule ? (
+								<Text className="!leading-3">
+									Schedule: <strong>{schedule}</strong>
+								</Text>
+							) : null}
+							{destination ? (
+								<Text className="!leading-3">
+									Destination: <strong>{destination}</strong>
+								</Text>
+							) : null}
+							{typeof durationMs === "number" ? (
+								<Text className="!leading-3">
+									Duration: <strong>{(durationMs / 1000).toFixed(2)}s</strong>
+								</Text>
+							) : null}
 						</Section>
 						{type === "error" && errorMessage ? (
 							<Section className="flex text-black text-[14px]  mt-4 leading-[24px] bg-[#F4F4F5] rounded-lg p-2">

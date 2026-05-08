@@ -32,6 +32,7 @@ export const runLibsqlBackup = async (
 	const destination = backup.destination;
 	const backupFileName = `${getBackupTimestamp()}.sql.gz`;
 	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
+	const startedAt = Date.now();
 	try {
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
@@ -58,6 +59,10 @@ export const runLibsqlBackup = async (
 			type: "success",
 			organizationId: project.organizationId,
 			databaseName: backup.database,
+			schedule: backup.schedule,
+			destinationBucket: destination.bucket,
+			destinationPrefix: backup.prefix,
+			durationMs: Date.now() - startedAt,
 		});
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -71,6 +76,10 @@ export const runLibsqlBackup = async (
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,
+			schedule: backup.schedule,
+			destinationBucket: destination.bucket,
+			destinationPrefix: backup.prefix,
+			durationMs: Date.now() - startedAt,
 		});
 
 		await updateDeploymentStatus(deployment.deploymentId, "error");
