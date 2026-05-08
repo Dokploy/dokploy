@@ -1,0 +1,1 @@
+ALTER TABLE "notification" ADD COLUMN "scheduleFailure" boolean DEFAULT false NOT NULL;

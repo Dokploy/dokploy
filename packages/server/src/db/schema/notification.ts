@@ -41,6 +41,7 @@ export const notifications = pgTable("notification", {
 	dokployBackup: boolean("dokployBackup").notNull().default(false),
 	dockerCleanup: boolean("dockerCleanup").notNull().default(false),
 	serverThreshold: boolean("serverThreshold").notNull().default(false),
+	scheduleFailure: boolean("scheduleFailure").notNull().default(false),
 	notificationType: notificationType("notificationType").notNull(),
 	createdAt: text("createdAt")
 		.notNull()
@@ -273,6 +274,7 @@ export const apiCreateSlack = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		scheduleFailure: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -302,6 +304,7 @@ export const apiCreateTelegram = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		scheduleFailure: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -333,6 +336,7 @@ export const apiCreateDiscord = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		scheduleFailure: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -365,6 +369,7 @@ export const apiCreateEmail = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		scheduleFailure: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -402,6 +407,7 @@ export const apiCreateResend = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		scheduleFailure: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -433,6 +439,7 @@ export const apiCreateGotify = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		scheduleFailure: true,
 	})
 	.extend({
 		serverUrl: z.string().min(1),
@@ -468,6 +475,7 @@ export const apiCreateNtfy = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		scheduleFailure: true,
 	})
 	.extend({
 		serverUrl: z.string().min(1),
@@ -500,6 +508,7 @@ export const apiCreateMattermost = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		scheduleFailure: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -517,6 +526,7 @@ export const apiCreateMattermost = notificationsSchema
 		dokployRestart: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		scheduleFailure: true,
 		serverThreshold: true,
 	});
 
@@ -551,6 +561,7 @@ export const apiCreateCustom = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		scheduleFailure: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -579,6 +590,7 @@ export const apiCreateLark = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		scheduleFailure: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -606,6 +618,7 @@ export const apiCreateTeams = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		scheduleFailure: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -633,6 +646,7 @@ export const apiCreatePushover = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		scheduleFailure: true,
 		serverThreshold: true,
 	})
 	.extend({
@@ -669,6 +683,7 @@ export const apiUpdatePushover = z.object({
 	appDeploy: z.boolean().optional(),
 	dockerCleanup: z.boolean().optional(),
 	serverThreshold: z.boolean().optional(),
+	scheduleFailure: z.boolean().optional(),
 });
 
 export const apiTestPushoverConnection = z
