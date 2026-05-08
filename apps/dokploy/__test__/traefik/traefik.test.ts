@@ -82,6 +82,7 @@ const baseApp: ApplicationNested = {
 	gitlabRepository: "",
 	gitlabOwner: "",
 	command: null,
+	deployHooks: null,
 	cpuLimit: null,
 	cpuReservation: null,
 	createdAt: "",

@@ -101,6 +101,7 @@ const createMockApplication = (
 		customGitUrl: "https://github.com/Dokploy/examples.git",
 		customGitBranch: "main",
 		customGitSSHKeyId: null,
+		deployHooks: null,
 		customGitBuildPath: "/astro",
 		buildType: "nixpacks" as const,
 		env: "NODE_ENV=production",
