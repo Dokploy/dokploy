@@ -53,6 +53,7 @@ const Schema = z.object({
 		message: "SSH Key is required",
 	}),
 	serverType: z.enum(["deploy", "build"]).default("deploy"),
+	defaultDomain: z.string().optional(),
 });
 
 type Schema = z.infer<typeof Schema>;
@@ -90,6 +91,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			username: "root",
 			sshKeyId: "",
 			serverType: "deploy",
+			defaultDomain: "",
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -103,6 +105,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			username: data?.username || "root",
 			sshKeyId: data?.sshKeyId || "",
 			serverType: data?.serverType || "deploy",
+			defaultDomain: data?.defaultDomain || "",
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
@@ -119,6 +122,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			username: data.username || "root",
 			sshKeyId: data.sshKeyId || "",
 			serverType: data.serverType || "deploy",
+			defaultDomain: data.defaultDomain?.trim() || null,
 			serverId: serverId || "",
 		})
 			.then(async (_data) => {
@@ -413,6 +417,29 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 									<FormDescription>
 										Use &quot;root&quot; or a non-root user with passwordless
 										sudo access.
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="defaultDomain"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Default Domain</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="ex: w0.app.syit.fr"
+											{...field}
+											value={field.value ?? ""}
+										/>
+									</FormControl>
+									<FormDescription>
+										Optional. Wildcard base domain used to auto-generate
+										application domains for this server (e.g.
+										&quot;abc123.w0.app.syit.fr&quot;). If empty, falls back to
+										traefik.me.
 									</FormDescription>
 									<FormMessage />
 								</FormItem>

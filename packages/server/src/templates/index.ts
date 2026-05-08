@@ -9,6 +9,7 @@ import { fetchTemplateFiles } from "./github";
 export interface Schema {
 	serverIp: string;
 	projectName: string;
+	baseDomain?: string | null;
 }
 
 export type DomainSchema = Pick<Domain, "host" | "port" | "serviceName"> & {
@@ -33,19 +34,25 @@ export interface GenerateJWTOptions {
 export const generateRandomDomain = ({
 	serverIp,
 	projectName,
+	baseDomain,
 }: Schema): string => {
 	const hash = randomBytes(3).toString("hex");
-	const slugIp = serverIp.replaceAll(".", "-").replaceAll(":", "-");
 
-	// Domain labels have a max length of 63 characters
-	// Reserve space for: hash (6) + separators (1-2) + ip section + dot + traefik.me (10)
-	// Approx: 6 + 2 + (variable ip length) + 11 = ~19-30 chars for other parts
 	const maxProjectNameLength = 40;
 	const truncatedProjectName =
 		projectName.length > maxProjectNameLength
 			? projectName.substring(0, maxProjectNameLength)
 			: projectName;
 
+	if (baseDomain) {
+		return `${truncatedProjectName}-${hash}.${baseDomain}`;
+	}
+
+	const slugIp = serverIp.replaceAll(".", "-").replaceAll(":", "-");
+
+	// Domain labels have a max length of 63 characters
+	// Reserve space for: hash (6) + separators (1-2) + ip section + dot + traefik.me (10)
+	// Approx: 6 + 2 + (variable ip length) + 11 = ~19-30 chars for other parts
 	return `${truncatedProjectName}-${hash}${slugIp === "" ? "" : `-${slugIp}`}.traefik.me`;
 };
 

@@ -48,6 +48,7 @@ export const server = pgTable("server", {
 	serverStatus: serverStatus("serverStatus").notNull().default("active"),
 	serverType: serverType("serverType").notNull().default("deploy"),
 	command: text("command").notNull().default(""),
+	defaultDomain: text("default_domain"),
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
 	}),
@@ -148,7 +149,10 @@ export const apiCreateServer = createSchema
 		sshKeyId: true,
 		serverType: true,
 	})
-	.required();
+	.required()
+	.extend({
+		defaultDomain: z.string().optional().nullable(),
+	});
 
 export const apiFindOneServer = z.object({
 	serverId: z.string().min(1),
@@ -174,6 +178,7 @@ export const apiUpdateServer = createSchema
 	.required()
 	.extend({
 		command: z.string().optional(),
+		defaultDomain: z.string().optional().nullable(),
 	});
 
 export const apiUpdateServerMonitoring = createSchema

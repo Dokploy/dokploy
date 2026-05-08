@@ -85,6 +85,17 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
+	const { data: server } = api.server.one.useQuery(
+		{ serverId: data?.serverId || "" },
+		{ enabled: !!data?.serverId },
+	);
+
+	const defaultWildcard = data?.serverId
+		? server?.defaultDomain
+			? `*.${server.defaultDomain}`
+			: "*.traefik.me"
+		: "*.traefik.me";
+
 	const form = useForm<Schema>({
 		defaultValues: {
 			env: "",
@@ -114,7 +125,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				env: data.previewEnv || "",
 				buildArgs: data.previewBuildArgs || "",
 				buildSecrets: data.previewBuildSecrets || "",
-				wildcardDomain: data.previewWildcard || "*.traefik.me",
+				wildcardDomain: data.previewWildcard || defaultWildcard,
 				port: data.previewPort || 3000,
 				previewLabels: data.previewLabels || [],
 				previewLimit: data.previewLimit || 3,
@@ -126,7 +137,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 					data.previewRequireCollaboratorPermissions ?? true,
 			});
 		}
-	}, [data]);
+	}, [data, defaultWildcard]);
 
 	const onSubmit = async (formData: Schema) => {
 		updateApplication({
@@ -192,7 +203,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											<FormItem>
 												<FormLabel>Wildcard Domain</FormLabel>
 												<FormControl>
-													<Input placeholder="*.traefik.me" {...field} />
+													<Input placeholder={defaultWildcard} {...field} />
 												</FormControl>
 												<FormMessage />
 											</FormItem>
