@@ -134,4 +134,5 @@ export * from "./utils/traefik/types";
 export * from "./utils/traefik/web-server";
 export * from "./utils/volume-backups/index";
 export * from "./utils/watch-paths/should-deploy";
+export * from "./utils/wildcard-restriction";
 export * from "./wss/utils";
