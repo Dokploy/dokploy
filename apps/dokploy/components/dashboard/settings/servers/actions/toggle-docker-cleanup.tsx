@@ -1,3 +1,5 @@
+import { HelpCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -7,8 +9,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { HelpCircle } from "lucide-react";
-import { toast } from "sonner";
 
 interface Props {
 	serverId?: string;

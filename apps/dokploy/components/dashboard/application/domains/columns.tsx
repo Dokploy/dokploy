@@ -21,9 +21,9 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { RouterOutputs } from "@/utils/api";
-import type { ValidationStates } from "./show-domains";
-import { AddDomain } from "./handle-domain";
 import { DnsHelperModal } from "./dns-helper-modal";
+import { AddDomain } from "./handle-domain";
+import type { ValidationStates } from "./show-domains";
 
 export type Domain =
 	| RouterOutputs["domain"]["byApplicationId"][0]

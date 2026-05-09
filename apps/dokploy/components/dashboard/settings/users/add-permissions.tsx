@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { EnterpriseFeatureLocked } from "@/components/proprietary/enterprise-feature-gate";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,7 +27,6 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
-import { EnterpriseFeatureLocked } from "@/components/proprietary/enterprise-feature-gate";
 import { api, type RouterOutputs } from "@/utils/api";
 
 /** Shape returned by project.allForPermissions (admin only). Used for the permissions UI. */
