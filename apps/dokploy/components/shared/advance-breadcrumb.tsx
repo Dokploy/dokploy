@@ -342,7 +342,7 @@ export const AdvanceBreadcrumb = () => {
 								className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
 							>
 								<FolderInput className="size-4 text-muted-foreground" />
-								<span className="font-medium max-w-[150px] truncate">
+								<span className="font-medium max-w-[50px] md:max-w-[150px] truncate">
 									{currentProject?.name || "Select Project"}
 								</span>
 								<ChevronDown className="size-4 text-muted-foreground" />
@@ -478,7 +478,7 @@ export const AdvanceBreadcrumb = () => {
 									aria-expanded={environmentOpen}
 									className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
 								>
-									<span className="font-medium max-w-[150px] truncate">
+									<span className="font-medium max-w-[50px] md:max-w-[150px] truncate">
 										{currentEnvironment?.name || "production"}
 									</span>
 									<ChevronDown className="size-4 text-muted-foreground" />
@@ -533,7 +533,7 @@ export const AdvanceBreadcrumb = () => {
 					)}
 
 					{projectEnvironments && projectEnvironments.length === 1 && (
-						<p className="text-sm font-normal ml-1">
+						<p className="text-sm font-normal ml-1 max-w-[50px] md:max-w-[150px] truncate">
 							{currentEnvironment?.name || "production"}
 						</p>
 					)}
@@ -551,7 +551,7 @@ export const AdvanceBreadcrumb = () => {
 										className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
 									>
 										{getServiceIcon(currentService.type)}
-										<span className="font-medium max-w-[150px] truncate">
+										<span className="font-medium max-w-[50px] md:max-w-[150px] truncate">
 											{currentService.name}
 										</span>
 										<ChevronDown className="size-4 text-muted-foreground" />
@@ -617,7 +617,7 @@ export const AdvanceBreadcrumb = () => {
 							<Button
 								variant="ghost"
 								size="icon"
-								className="size-7 ml-1"
+								className="size-7 ml-1 hidden md:flex"
 								onClick={() => {
 									router.push(
 										`/dashboard/project/${projectId}/environment/${environmentId}`,

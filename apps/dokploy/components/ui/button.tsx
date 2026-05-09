@@ -63,6 +63,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 					className={cn(
 						buttonVariants({ variant, size, className }),
 						"flex gap-2",
+						className,
 					)}
 					ref={ref}
 					{...props}

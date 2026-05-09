@@ -25,8 +25,8 @@ import { findProjectById } from "@dokploy/server/services/project";
 import {
 	getProviderHeaders,
 	getProviderName,
-	selectAIProvider,
 	type Model,
+	selectAIProvider,
 } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { generateText } from "ai";
