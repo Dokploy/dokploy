@@ -31,7 +31,7 @@ describe("helpers functions", () => {
 			expect(domain.startsWith(`${mockSchema.projectName}-`)).toBeTruthy();
 			expect(
 				domain.endsWith(
-					`${mockSchema.serverIp.replaceAll(".", "-")}.traefik.me`,
+					`${mockSchema.serverIp.replaceAll(".", "-")}.sslip.io`,
 				),
 			).toBeTruthy();
 		});
