@@ -288,7 +288,6 @@ export const RestoreBackup = ({
 			toast.error("Please select a database type");
 			return;
 		}
-		console.log({ data });
 		setIsDeploying(true);
 	};
 
