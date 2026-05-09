@@ -1,6 +1,14 @@
 "use client";
 import copy from "copy-to-clipboard";
-import { Bot, Check, Copy, Loader2, RotateCcw, Settings, X } from "lucide-react";
+import {
+	Bot,
+	Check,
+	Copy,
+	Loader2,
+	RotateCcw,
+	Settings,
+	X,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
