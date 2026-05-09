@@ -30,9 +30,7 @@ describe("helpers functions", () => {
 			const domain = processValue("${domain}", {}, mockSchema);
 			expect(domain.startsWith(`${mockSchema.projectName}-`)).toBeTruthy();
 			expect(
-				domain.endsWith(
-					`${mockSchema.serverIp.replaceAll(".", "-")}.sslip.io`,
-				),
+				domain.endsWith(`${mockSchema.serverIp.replaceAll(".", "-")}.sslip.io`),
 			).toBeTruthy();
 		});
 	});
