@@ -168,7 +168,7 @@ export const createColumns = ({
 							{domain.certificateType}
 						</Badge>
 					)}
-					{!domain.host.includes("traefik.me") && (
+					{!domain.host.includes("sslip.io") && (
 						<TooltipProvider>
 							<Tooltip>
 								<TooltipTrigger asChild>
@@ -256,7 +256,7 @@ export const createColumns = ({
 
 			return (
 				<div className="flex items-center gap-2">
-					{!domain.host.includes("traefik.me") && (
+					{!domain.host.includes("sslip.io") && (
 						<DnsHelperModal
 							domain={{
 								host: domain.host,
