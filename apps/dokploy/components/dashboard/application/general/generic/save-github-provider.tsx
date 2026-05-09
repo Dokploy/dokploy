@@ -56,7 +56,10 @@ const GithubProviderSchema = z.object({
 			owner: z.string().min(1, "Owner is required"),
 		})
 		.required(),
-	branch: z.string().min(1, "Branch is required").regex(VALID_BRANCH_REGEX, "Invalid branch name"),
+	branch: z
+		.string()
+		.min(1, "Branch is required")
+		.regex(VALID_BRANCH_REGEX, "Invalid branch name"),
 	githubId: z.string().min(1, "Github Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
 	triggerType: z.enum(["push", "tag"]).default("push"),

@@ -59,7 +59,10 @@ const GitlabProviderSchema = z.object({
 			id: z.number().nullable(),
 		})
 		.required(),
-	branch: z.string().min(1, "Branch is required").regex(VALID_BRANCH_REGEX, "Invalid branch name"),
+	branch: z
+		.string()
+		.min(1, "Branch is required")
+		.regex(VALID_BRANCH_REGEX, "Invalid branch name"),
 	gitlabId: z.string().min(1, "Gitlab Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
 	enableSubmodules: z.boolean().default(false),

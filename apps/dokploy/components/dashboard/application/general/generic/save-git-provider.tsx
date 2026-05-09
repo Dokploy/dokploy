@@ -42,7 +42,10 @@ const GitProviderSchema = z.object({
 	repositoryURL: z.string().min(1, {
 		message: "Repository URL is required",
 	}),
-	branch: z.string().min(1, "Branch required").regex(VALID_BRANCH_REGEX, "Invalid branch name"),
+	branch: z
+		.string()
+		.min(1, "Branch required")
+		.regex(VALID_BRANCH_REGEX, "Invalid branch name"),
 	sshKey: z.string().optional(),
 	watchPaths: z.array(z.string()).optional(),
 	enableSubmodules: z.boolean().default(false),
