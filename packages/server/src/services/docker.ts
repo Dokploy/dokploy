@@ -670,7 +670,9 @@ export const uploadFileToContainer = async (
 	}
 
 	if (!destinationPathRegex.test(destinationPath)) {
-		throw new Error("Invalid destination path: shell metacharacters are not allowed");
+		throw new Error(
+			"Invalid destination path: shell metacharacters are not allowed",
+		);
 	}
 
 	const normalizedPath = destinationPath.startsWith("/")

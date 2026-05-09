@@ -58,7 +58,10 @@ const BitbucketProviderSchema = z.object({
 			slug: z.string().optional(),
 		})
 		.required(),
-	branch: z.string().min(1, "Branch is required").regex(VALID_BRANCH_REGEX, "Invalid branch name"),
+	branch: z
+		.string()
+		.min(1, "Branch is required")
+		.regex(VALID_BRANCH_REGEX, "Invalid branch name"),
 	bitbucketId: z.string().min(1, "Bitbucket Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
 	enableSubmodules: z.boolean().optional(),

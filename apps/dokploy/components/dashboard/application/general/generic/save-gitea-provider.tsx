@@ -73,7 +73,10 @@ const GiteaProviderSchema = z.object({
 			owner: z.string().min(1, "Owner is required"),
 		})
 		.required(),
-	branch: z.string().min(1, "Branch is required").regex(VALID_BRANCH_REGEX, "Invalid branch name"),
+	branch: z
+		.string()
+		.min(1, "Branch is required")
+		.regex(VALID_BRANCH_REGEX, "Invalid branch name"),
 	giteaId: z.string().min(1, "Gitea Provider is required"),
 	watchPaths: z.array(z.string()).default([]),
 	enableSubmodules: z.boolean().optional(),

@@ -72,7 +72,7 @@ export const setupDeploymentLogsWebSocketServer = (
 				sshClient
 					.on("ready", () => {
 						const encodedPath = encodeBase64(logPath);
-					const command = `tail -n +1 -f "$(echo '${encodedPath}' | base64 -d)"`;
+						const command = `tail -n +1 -f "$(echo '${encodedPath}' | base64 -d)"`;
 
 						sshClient!.exec(command, (err, stream) => {
 							if (err) {
