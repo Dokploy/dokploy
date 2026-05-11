@@ -14,7 +14,7 @@
 		"wait-for-postgres-dev": "tsx -r dotenv/config wait-for-postgres.ts",
 		"reset-password": "node -r dotenv/config dist/reset-password.mjs",
 		"reset-2fa": "node -r dotenv/config dist/reset-2fa.mjs",
-		"migrate-auth-secret": "tsx -r dotenv/config scripts/migrate-auth-secret.ts",
+		"migrate-auth-secret": "node -r dotenv/config dist/migrate-auth-secret.mjs",
 		"dev": "tsx -r dotenv/config ./server/server.ts  --project tsconfig.server.json ",
 		"studio": "drizzle-kit studio --config ./server/db/drizzle.config.ts",
 		"migration:generate": "drizzle-kit generate --config ./server/db/drizzle.config.ts",
