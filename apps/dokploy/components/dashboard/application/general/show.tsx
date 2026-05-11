@@ -58,7 +58,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 				<CardHeader>
 					<CardTitle className="text-xl">Deploy Settings</CardTitle>
 				</CardHeader>
-				<CardContent className="flex flex-row gap-4 flex-wrap">
+				<CardContent className="grid grid-cols-2 lg:flex lg:flex-row lg:flex-wrap gap-4">
 					<TooltipProvider delayDuration={0} disableHoverableContent={false}>
 						{canDeploy && (
 							<DialogAction
@@ -274,14 +274,14 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 					>
 						<Button
 							variant="outline"
-							className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+							className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2 col-span-2"
 						>
 							<Terminal className="size-4 mr-1" />
 							Open Terminal
 						</Button>
 					</DockerTerminalModal>
 					{canUpdateService && (
-						<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
+						<div className="flex flex-row items-center gap-2 justify-between rounded-md px-4 py-2 border col-span-2 md:col-span-1">
 							<span className="text-sm font-medium">Autodeploy</span>
 							<Switch
 								aria-label="Toggle autodeploy"
@@ -305,7 +305,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 					)}
 
 					{canUpdateService && (
-						<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
+						<div className="flex flex-row items-center gap-2 justify-between rounded-md px-4 py-2 border col-span-2 md:col-span-1">
 							<span className="text-sm font-medium">Clean Cache</span>
 							<Switch
 								aria-label="Toggle clean cache"

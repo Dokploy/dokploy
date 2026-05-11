@@ -82,7 +82,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (!user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -103,7 +103,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (!userPermissions?.api.read) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};

@@ -655,6 +655,8 @@ export const getAllContainerStats = async (serverId?: string) => {
 	}
 };
 
+const destinationPathRegex = /^[a-zA-Z0-9.\-_/]+$/;
+
 export const uploadFileToContainer = async (
 	containerId: string,
 	fileBuffer: Buffer,
@@ -667,7 +669,12 @@ export const uploadFileToContainer = async (
 		throw new Error("Invalid container ID");
 	}
 
-	// Ensure destination path starts with /
+	if (!destinationPathRegex.test(destinationPath)) {
+		throw new Error(
+			"Invalid destination path: shell metacharacters are not allowed",
+		);
+	}
+
 	const normalizedPath = destinationPath.startsWith("/")
 		? destinationPath
 		: `/${destinationPath}`;
