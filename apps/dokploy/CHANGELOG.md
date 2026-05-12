@@ -1,3 +1,47 @@
+# [0.36.0](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.35.2...v0.36.0) (2026-05-12)
+
+
+### Bug Fixes
+
+* align card footers to bottom on project and service cards ([1ed41fe](https://github.com/Bl4ckBl1zZ/dokploy/commit/1ed41fe2f8c2ad6283179d6a7f8e06af87c1061c))
+* broken layout in project/[projectId]/environment/[environmentId].tsx ([9d6bc4c](https://github.com/Bl4ckBl1zZ/dokploy/commit/9d6bc4cd18bd4ddeaab141cb61fedd4f09973eca))
+* broken layout in project/[projectId]/environment/[environmentId].tsx ([65b27af](https://github.com/Bl4ckBl1zZ/dokploy/commit/65b27af0f524e58de6b10665e459eff42813ade2))
+* broken layout in project/[projectId]/environment/[environmentId].tsx ([6165114](https://github.com/Bl4ckBl1zZ/dokploy/commit/6165114bc3ba1d5124ecc40fa1226f2c34c10125))
+* broken layout in project/[projectId]/environment/[environmentId].tsx ([d310935](https://github.com/Bl4ckBl1zZ/dokploy/commit/d3109359fb34c529759fad2884c76cb4bb21e075))
+* broken layout in project/[projectId]/environment/[environmentId].tsx ([58f527d](https://github.com/Bl4ckBl1zZ/dokploy/commit/58f527d029d4bb94a09ff61d0499e80013a13d9d))
+* **compose-file-editor:** simplify form reset logic in ComposeFileEditor component ([15296d5](https://github.com/Bl4ckBl1zZ/dokploy/commit/15296d5c858faab106a40aa0d5a234bf3fc6c498))
+* enforce email length validation in reset password form ([ed006dc](https://github.com/Bl4ckBl1zZ/dokploy/commit/ed006dc5f9ffb16378ad2dbe2b14dfa0c9fedd83))
+* **esbuild:** update path for migrate-auth-secret script ([62aeed5](https://github.com/Bl4ckBl1zZ/dokploy/commit/62aeed5aedd757e75cf3da8ae49fb96e328d8d0d))
+* reduce healthcheck frequency to lower memory pressure ([8f3d824](https://github.com/Bl4ckBl1zZ/dokploy/commit/8f3d824ea6e4573472206af6ff3ef0a8fcac0754)), closes [#3909](https://github.com/Bl4ckBl1zZ/dokploy/issues/3909)
+* remove leftover debug console.log statements ([7417928](https://github.com/Bl4ckBl1zZ/dokploy/commit/741792883aacd8c4e9e52cda797e0dbd5062c6d1))
+* reorder imports and clean up unused ones across various components ([4a3fa6e](https://github.com/Bl4ckBl1zZ/dokploy/commit/4a3fa6e63f7bee6f02a47b32ae1b7fd47e092264))
+* replace traefik.me with sslip.io for auto-generated domains ([f5ddc36](https://github.com/Bl4ckBl1zZ/dokploy/commit/f5ddc36f24e4289f4f27f1c27c1f566159e6a70d)), closes [#4365](https://github.com/Bl4ckBl1zZ/dokploy/issues/4365)
+* responsiveness in components/dashboard/settings/web-domain.tsx ([de7d6f8](https://github.com/Bl4ckBl1zZ/dokploy/commit/de7d6f81474e02f0e04d1cfd74d2930140b97308))
+* **sidebar:** close mobile sidebar on navigation ([096b8b3](https://github.com/Bl4ckBl1zZ/dokploy/commit/096b8b33fc69d3d910dff3ead86183f35dd3b380)), closes [#4340](https://github.com/Bl4ckBl1zZ/dokploy/issues/4340)
+* **templates:** add fetch timeout and handle network errors gracefully ([5f5ed0f](https://github.com/Bl4ckBl1zZ/dokploy/commit/5f5ed0f2c2b24f2c48d5a998d6304137a9e5fc5b)), closes [#4282](https://github.com/Bl4ckBl1zZ/dokploy/issues/4282)
+* **traefik:** update remote config writing to use base64 encoding ([06a3491](https://github.com/Bl4ckBl1zZ/dokploy/commit/06a349152f20a6e12f56cbb24c8e332acae33a7c))
+* ui responsiveness for mobile, tab and desktop screens ([bca62d4](https://github.com/Bl4ckBl1zZ/dokploy/commit/bca62d43d24d4e258f758c82c7eb09141caecff1))
+* ui responsiveness for mobile, tab and desktop screens ([d502f4a](https://github.com/Bl4ckBl1zZ/dokploy/commit/d502f4a206a0ea9d34c6360fbc9c03e86da97adc))
+* use temporary redirects for auth checks in getServerSideProps ([c854a38](https://github.com/Bl4ckBl1zZ/dokploy/commit/c854a38adb1a2bd2e350fd045721ca13aaf16868)), closes [#4220](https://github.com/Bl4ckBl1zZ/dokploy/issues/4220)
+* **validation:** update regex for directory validation in WebSocket utility ([282d358](https://github.com/Bl4ckBl1zZ/dokploy/commit/282d358d048cef0ef648e872bab5418b819e10fc))
+* **webhook:** cast signature to string to fix TS2345 ([fc6df3a](https://github.com/Bl4ckBl1zZ/dokploy/commit/fc6df3ae0528d3a2fc63acc0e592cabd238738e5))
+* **webhook:** return 401 when signature header is missing ([ba3591b](https://github.com/Bl4ckBl1zZ/dokploy/commit/ba3591b3acab0bb8f185830f6329d201ed89c03f))
+
+
+### Features
+
+* add copy button to AI log analysis result ([ad490dc](https://github.com/Bl4ckBl1zZ/dokploy/commit/ad490dca3fc60aee4470a669d886bfd2149f462f))
+* **auth:** implement migration script for auth secret and refactor secret handling ([9c71458](https://github.com/Bl4ckBl1zZ/dokploy/commit/9c71458eff439e45bcccd9ea8248a3c3f9020dcf))
+* **deployment:** enhance log retrieval by encoding log path in base64 ([a4e2317](https://github.com/Bl4ckBl1zZ/dokploy/commit/a4e2317f3e0612a13a4fde5c4ca4f599cf9a2f61))
+* **schedules:** add optional description field to schedule form and display ([d3292a2](https://github.com/Bl4ckBl1zZ/dokploy/commit/d3292a28109d896c37ab61e185607727a4c51fed))
+* **sync:** add job to sync OpenAPI specification to SDK repository ([2f08b33](https://github.com/Bl4ckBl1zZ/dokploy/commit/2f08b33931e37677a36633f6e7772501f44cabd4))
+* **templates:** add isolated deployment configuration to CompleteTemplate ([ffd51cf](https://github.com/Bl4ckBl1zZ/dokploy/commit/ffd51cf32fb081b2fa406eea4c57a0b000d43d01))
+* **templates:** support isolated = false opt-out in template.toml ([c182755](https://github.com/Bl4ckBl1zZ/dokploy/commit/c182755591dcad5f6d035a25b5753434c645b7bb)), closes [#4366](https://github.com/Bl4ckBl1zZ/dokploy/issues/4366)
+* **validation:** add branch name validation across provider schemas ([fef2de1](https://github.com/Bl4ckBl1zZ/dokploy/commit/fef2de1ec587c9b4da37e5548dc9a5e0ce8732f1))
+* **validation:** enhance destination path validation in file upload schema ([b9e97eb](https://github.com/Bl4ckBl1zZ/dokploy/commit/b9e97eb321358145d6aed0bad67d3ac789ae69c4))
+* **validation:** enhance registry URL validation in schema ([547ba2d](https://github.com/Bl4ckBl1zZ/dokploy/commit/547ba2d04bc66f820e3635826a85d6141a233b7e))
+* **validation:** standardize branch name validation across provider schemas ([5e02179](https://github.com/Bl4ckBl1zZ/dokploy/commit/5e021797f3cdce3b268de72a925f99d789b80110))
+
 ## [0.35.2](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.35.1...v0.35.2) (2026-05-03)
 
 
