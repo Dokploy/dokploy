@@ -64,10 +64,9 @@ export interface Template {
 }
 
 export const isIsolatedDeployment = (template: {
-	config?: { isolated?: boolean; config?: { isolated?: boolean } };
+	config: { isolated?: boolean; config?: { isolated?: boolean } };
 }): boolean => {
-	const isolated =
-		template.config?.isolated ?? template.config?.config?.isolated;
+	const isolated = template.config.isolated ?? template.config.config?.isolated;
 	return isolated !== false;
 };
 
