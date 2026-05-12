@@ -152,6 +152,7 @@ export const domainRouter = createTRPCRouter({
 			let result: Awaited<ReturnType<typeof updateDomainById>>;
 			let didSync = false;
 			let cloudflarePending = false;
+			let cloudflareUnsyncError: string | null = null;
 
 			if (zoneChanged) {
 				if (oldZoneId) {
@@ -162,13 +163,19 @@ export const domainRouter = createTRPCRouter({
 						await unsyncDomain(input.domainId);
 					} catch (cfErr) {
 						console.warn("Cloudflare unsync failed:", cfErr);
+						cloudflareUnsyncError =
+							cfErr instanceof Error ? cfErr.message : String(cfErr);
 					}
 				}
 				result = await updateDomainById(input.domainId, {
 					...input,
 					cloudflareRecordId: null,
-					cloudflareSyncStatus: newZoneId ? "pending" : null,
-					cloudflareSyncError: null,
+					cloudflareSyncStatus: cloudflareUnsyncError
+						? "error"
+						: newZoneId
+							? "pending"
+							: null,
+					cloudflareSyncError: cloudflareUnsyncError,
 					cloudflareSyncedAt: null,
 				});
 				if (newZoneId) {
@@ -198,6 +205,7 @@ export const domainRouter = createTRPCRouter({
 						? {
 								cloudflareSyncStatus: "pending" as const,
 								cloudflareSyncError: null,
+								cloudflareSyncedAt: null,
 							}
 						: {}),
 				});

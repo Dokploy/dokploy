@@ -9,7 +9,7 @@ function resolveBetterAuthSecret(): string {
 	if (BETTER_AUTH_SECRET_FILE) return readSecret(BETTER_AUTH_SECRET_FILE);
 	if (process.env.NODE_ENV === "test") return HARDCODED_LEGACY_SECRET;
 	throw new Error(
-		"BETTER_AUTH_SECRET or BETTER_AUTH_SECRET_FILE is required in non-test environments. Configure Docker secrets with POSTGRES_PASSWORD_FILE/BETTER_AUTH_SECRET_FILE or run: curl -sSL https://dokploy.com/security/0.29.4.sh | bash",
+		"BETTER_AUTH_SECRET or BETTER_AUTH_SECRET_FILE is required in non-test environments. Configure Docker secrets with BETTER_AUTH_SECRET_FILE or run: curl -sSL https://dokploy.com/security/0.29.4.sh | bash",
 	);
 }
 

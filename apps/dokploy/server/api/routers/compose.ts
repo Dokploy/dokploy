@@ -652,7 +652,7 @@ export const composeRouter = createTRPCRouter({
 				name: input.id,
 				sourceType: "raw",
 				appName: appName,
-				isolatedDeployment: isIsolatedDeployment(template.config),
+				isolatedDeployment: isIsolatedDeployment(template),
 			});
 
 			await addNewService(ctx, compose.composeId);

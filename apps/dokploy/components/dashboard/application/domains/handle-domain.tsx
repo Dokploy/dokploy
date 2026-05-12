@@ -133,7 +133,7 @@ export const domain = z
 type Domain = z.infer<typeof domain>;
 
 const isSslipIoHost = (host?: string) => {
-	const normalizedHost = host?.toLowerCase();
+	const normalizedHost = host?.trim().toLowerCase();
 	return (
 		normalizedHost === "sslip.io" ||
 		normalizedHost?.endsWith(".sslip.io") ||
@@ -193,6 +193,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 		api.domain.canGenerateTraefikMeDomains.useQuery({
 			serverId: application?.serverId || "",
 		});
+	const cannotGenerateSslipDomains =
+		canGenerateTraefikMeDomains !== undefined && !canGenerateTraefikMeDomains;
 
 	const {
 		data: services,
@@ -541,7 +543,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									name="host"
 									render={({ field }) => (
 										<FormItem>
-											{!canGenerateTraefikMeDomains &&
+											{cannotGenerateSslipDomains &&
 												isSslipIoHost(field.value) && (
 													<AlertBlock type="warning">
 														You need to set an IP address in your{" "}
