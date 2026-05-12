@@ -45,7 +45,10 @@ import {
 	fetchTemplateFiles,
 	fetchTemplatesList,
 } from "@dokploy/server/templates/github";
-import { processTemplate } from "@dokploy/server/templates/processors";
+import {
+	isIsolatedDeployment,
+	processTemplate,
+} from "@dokploy/server/templates/processors";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import _ from "lodash";
@@ -649,7 +652,7 @@ export const composeRouter = createTRPCRouter({
 				name: input.id,
 				sourceType: "raw",
 				appName: appName,
-				isolatedDeployment: true,
+				isolatedDeployment: isIsolatedDeployment(template),
 			});
 
 			await addNewService(ctx, compose.composeId);
@@ -709,11 +712,14 @@ export const composeRouter = createTRPCRouter({
 	getTags: protectedProcedure
 		.input(z.object({ baseUrl: z.string().optional() }))
 		.query(async ({ input }) => {
-			const githubTemplates = await fetchTemplatesList(input.baseUrl);
-
-			const allTags = githubTemplates.flatMap((template) => template.tags);
-			const uniqueTags = _.uniq(allTags);
-			return uniqueTags;
+			try {
+				const githubTemplates = await fetchTemplatesList(input.baseUrl);
+				const allTags = githubTemplates.flatMap((template) => template.tags);
+				return _.uniq(allTags);
+			} catch (error) {
+				console.warn("Failed to fetch template tags:", error);
+				return [];
+			}
 		}),
 	disconnectGitProvider: protectedProcedure
 		.input(apiFindCompose)

@@ -865,6 +865,19 @@ function SidebarLogo() {
 	);
 }
 
+function MobileCloser() {
+	const pathname = usePathname();
+	const { setOpenMobile, isMobile } = useSidebar();
+
+	useEffect(() => {
+		if (isMobile) {
+			setOpenMobile(false);
+		}
+	}, [pathname, isMobile, setOpenMobile]);
+
+	return null;
+}
+
 export default function Page({ children }: Props) {
 	const [defaultOpen, setDefaultOpen] = useState<boolean | undefined>(
 		undefined,
@@ -930,6 +943,7 @@ export default function Page({ children }: Props) {
 				} as React.CSSProperties
 			}
 		>
+			<MobileCloser />
 			<Sidebar collapsible="icon" variant="floating">
 				<SidebarHeader>
 					{/* <SidebarMenuButton

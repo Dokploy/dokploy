@@ -1,0 +1,135 @@
+name: Generate and Sync OpenAPI
+
+on:
+  push:
+    branches:
+      - canary
+      - main
+    paths:
+      - 'apps/dokploy/server/api/routers/**'
+      - 'packages/server/src/services/**'
+      - 'packages/server/src/db/schema/**'
+
+  workflow_dispatch:
+
+jobs:
+  generate-and-commit:
+    name: Generate OpenAPI and commit to Dokploy repo
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout Dokploy repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.4.0
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate OpenAPI specification
+        run: |
+          pnpm generate:openapi
+
+          # Verifica que se generó correctamente
+          if [ ! -f openapi.json ]; then
+            echo "❌ openapi.json not found"
+            exit 1
+          fi
+
+          echo "✅ OpenAPI specification generated successfully"
+
+      - name: Sync to website repository
+        run: |
+          # Clona el repositorio de website
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/website.git website-repo
+
+          cd website-repo
+
+          # Copia el openapi.json al website (sobrescribe)
+          mkdir -p apps/docs/public
+          cp -f ../openapi.json apps/docs/public/openapi.json
+
+          # Configura git
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+
+          # Agrega y commitea siempre
+          git add apps/docs/public/openapi.json
+          git commit -m "chore: sync OpenAPI specification [skip ci]" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --allow-empty
+
+          git push
+
+          echo "✅ OpenAPI synced to website successfully"
+
+      - name: Sync to MCP repository
+        run: |
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/mcp.git mcp-repo
+
+          cd mcp-repo
+
+          cp -f ../openapi.json openapi.json
+
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+
+          git add openapi.json
+          git commit -m "chore: sync OpenAPI specification [skip ci]" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --allow-empty
+
+          git push
+
+          echo "✅ OpenAPI synced to MCP repository successfully"
+
+      - name: Sync to CLI repository
+        run: |
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/cli.git cli-repo
+
+          cd cli-repo
+
+          cp -f ../openapi.json openapi.json
+
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+
+          git add openapi.json
+          git commit -m "chore: sync OpenAPI specification [skip ci]" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --allow-empty
+
+          git push
+
+          echo "✅ OpenAPI synced to CLI repository successfully"
+
+      - name: Sync to SDK repository
+        run: |
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/sdk.git sdk-repo
+
+          cd sdk-repo
+
+          cp -f ../openapi.json openapi.json
+
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+
+          git add openapi.json
+          git commit -m "chore: sync OpenAPI specification [skip ci]" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --allow-empty
+
+          git push
+
+          echo "✅ OpenAPI synced to SDK repository successfully"

@@ -132,6 +132,15 @@ export const domain = z
 
 type Domain = z.infer<typeof domain>;
 
+const isSslipIoHost = (host?: string) => {
+	const normalizedHost = host?.trim().toLowerCase();
+	return (
+		normalizedHost === "sslip.io" ||
+		normalizedHost?.endsWith(".sslip.io") ||
+		false
+	);
+};
+
 interface Props {
 	id: string;
 	type: "application" | "compose";
@@ -184,6 +193,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 		api.domain.canGenerateTraefikMeDomains.useQuery({
 			serverId: application?.serverId || "",
 		});
+	const cannotGenerateSslipDomains =
+		canGenerateTraefikMeDomains !== undefined && !canGenerateTraefikMeDomains;
 
 	const {
 		data: services,
@@ -228,7 +239,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const https = form.watch("https");
 	const domainType = form.watch("domainType");
 	const host = form.watch("host");
-	const isTraefikMeDomain = host?.includes("traefik.me") || false;
+	const isSslipDomain = isSslipIoHost(host);
 
 	useEffect(() => {
 		if (data) {
@@ -532,8 +543,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									name="host"
 									render={({ field }) => (
 										<FormItem>
-											{!canGenerateTraefikMeDomains &&
-												field.value.includes("traefik.me") && (
+											{cannotGenerateSslipDomains &&
+												isSslipIoHost(field.value) && (
 													<AlertBlock type="warning">
 														You need to set an IP address in your{" "}
 														<Link
@@ -544,12 +555,12 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																? "Remote Servers -> Server -> Edit Server -> Update IP Address"
 																: "Web Server -> Server -> Update Server IP"}
 														</Link>{" "}
-														to make your traefik.me domain work.
+														to make your sslip.io domain work.
 													</AlertBlock>
 												)}
-											{isTraefikMeDomain && (
+											{isSslipDomain && (
 												<AlertBlock type="info">
-													<strong>Note:</strong> traefik.me is a public HTTP
+													<strong>Note:</strong> sslip.io is a public HTTP
 													service and does not support SSL/HTTPS. HTTPS and
 													certificate options will not have any effect.
 												</AlertBlock>
@@ -587,7 +598,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 															sideOffset={5}
 															className="max-w-[10rem]"
 														>
-															<p>Generate traefik.me domain</p>
+															<p>Generate sslip.io domain</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>

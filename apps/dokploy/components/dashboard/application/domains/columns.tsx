@@ -25,6 +25,11 @@ import { DnsHelperModal } from "./dns-helper-modal";
 import { AddDomain } from "./handle-domain";
 import type { ValidationStates } from "./show-domains";
 
+const isSslipIoHost = (host: string) => {
+	const normalizedHost = host.toLowerCase();
+	return normalizedHost === "sslip.io" || normalizedHost.endsWith(".sslip.io");
+};
+
 export type Domain =
 	| RouterOutputs["domain"]["byApplicationId"][0]
 	| RouterOutputs["domain"]["byComposeId"][0];
@@ -168,7 +173,7 @@ export const createColumns = ({
 							{domain.certificateType}
 						</Badge>
 					)}
-					{!domain.host.includes("traefik.me") && (
+					{!isSslipIoHost(domain.host) && (
 						<TooltipProvider>
 							<Tooltip>
 								<TooltipTrigger asChild>
@@ -256,7 +261,7 @@ export const createColumns = ({
 
 			return (
 				<div className="flex items-center gap-2">
-					{!domain.host.includes("traefik.me") && (
+					{!isSslipIoHost(domain.host) && (
 						<DnsHelperModal
 							domain={{
 								host: domain.host,

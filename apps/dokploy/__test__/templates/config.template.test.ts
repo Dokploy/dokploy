@@ -1,6 +1,9 @@
 import type { Schema } from "@dokploy/server/templates";
 import type { CompleteTemplate } from "@dokploy/server/templates/processors";
-import { processTemplate } from "@dokploy/server/templates/processors";
+import {
+	isIsolatedDeployment,
+	processTemplate,
+} from "@dokploy/server/templates/processors";
 import { describe, expect, it } from "vitest";
 
 describe("processTemplate", () => {
@@ -492,6 +495,51 @@ describe("processTemplate", () => {
 			expect(result.envs).toHaveLength(3);
 			expect(result.domains).toHaveLength(1);
 			expect(result.mounts).toHaveLength(1);
+		});
+	});
+
+	describe("isolated deployment config", () => {
+		it("should default to isolated=true when not specified", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {},
+				config: {
+					domains: [],
+					env: {},
+				},
+			};
+
+			expect(template.config.isolated).toBeUndefined();
+			// Templates stay isolated by default for backward-compatible safety.
+			expect(isIsolatedDeployment(template)).toBe(true);
+		});
+
+		it("should be isolated when isolated=true is explicitly set", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {},
+				config: {
+					isolated: true,
+					domains: [],
+					env: {},
+				},
+			};
+
+			expect(isIsolatedDeployment(template)).toBe(true);
+		});
+
+		it("should disable isolated deployment when isolated=false", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {},
+				config: {
+					isolated: false,
+					domains: [],
+					env: {},
+				},
+			};
+
+			expect(isIsolatedDeployment(template)).toBe(false);
 		});
 	});
 });

@@ -407,7 +407,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 			if (user) {
 				return {
 					redirect: {
-						permanent: true,
+						permanent: false,
 						destination: "/dashboard/home",
 					},
 				};
@@ -425,7 +425,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (!hasAdmin) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/register",
 			},
 		};
@@ -436,7 +436,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/dashboard/home",
 			},
 		};

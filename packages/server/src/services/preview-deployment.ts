@@ -136,7 +136,7 @@ export const createPreviewDeployment = async (
 		where: eq(organization.id, application.environment.project.organizationId),
 	});
 	const generateDomain = await generateWildcardDomain(
-		application.previewWildcard || "*.traefik.me",
+		application.previewWildcard || "*.sslip.io",
 		appName,
 		application.server?.ipAddress || "",
 		org?.ownerId || "",
@@ -238,7 +238,11 @@ const generateWildcardDomain = async (
 		throw new Error('The base domain must start with "*."');
 	}
 	const hash = `${appName}`;
-	if (baseDomain.includes("traefik.me")) {
+	const normalizedBaseDomain = baseDomain.toLowerCase();
+	if (
+		normalizedBaseDomain === "*.sslip.io" ||
+		normalizedBaseDomain.endsWith(".sslip.io")
+	) {
 		let ip = "";
 
 		if (process.env.NODE_ENV === "development") {

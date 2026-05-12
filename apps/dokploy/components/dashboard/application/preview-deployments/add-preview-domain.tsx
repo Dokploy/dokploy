@@ -44,6 +44,15 @@ import { api } from "@/utils/api";
 
 type Domain = z.infer<typeof domain>;
 
+const isSslipIoHost = (host?: string) => {
+	const normalizedHost = host?.toLowerCase();
+	return (
+		normalizedHost === "sslip.io" ||
+		normalizedHost?.endsWith(".sslip.io") ||
+		false
+	);
+};
+
 interface Props {
 	previewDeploymentId: string;
 	domainId?: string;
@@ -87,7 +96,7 @@ export const AddPreviewDomain = ({
 	});
 
 	const host = form.watch("host");
-	const isTraefikMeDomain = host?.includes("traefik.me") || false;
+	const isSslipDomain = isSslipIoHost(host);
 
 	useEffect(() => {
 		if (data) {
@@ -160,9 +169,9 @@ export const AddPreviewDomain = ({
 									name="host"
 									render={({ field }) => (
 										<FormItem>
-											{isTraefikMeDomain && (
+											{isSslipDomain && (
 												<AlertBlock type="info">
-													<strong>Note:</strong> traefik.me is a public HTTP
+													<strong>Note:</strong> sslip.io is a public HTTP
 													service and does not support SSL/HTTPS. HTTPS and
 													certificate options will not have any effect.
 												</AlertBlock>
@@ -202,7 +211,7 @@ export const AddPreviewDomain = ({
 															sideOffset={5}
 															className="max-w-[10rem]"
 														>
-															<p>Generate traefik.me domain</p>
+															<p>Generate sslip.io domain</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>

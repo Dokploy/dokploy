@@ -1106,7 +1106,7 @@ const EnvironmentPage = (
 						</div>
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
 							<>
-								<div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+								<div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
 									<div className="flex items-center gap-4">
 										<div className="flex items-center gap-2">
 											<Checkbox
@@ -1627,9 +1627,9 @@ const EnvironmentPage = (
 														<ContextMenuTrigger asChild>
 															<Link
 																href={`/dashboard/project/${projectId}/environment/${environmentId}/services/${service.type}/${service.id}`}
-																className="block"
+																className="block h-full"
 															>
-																<Card className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-border">
+																<Card className="flex flex-col h-full group relative cursor-pointer bg-transparent transition-colors hover:bg-border">
 																	{service.serverId && (
 																		<div className="absolute -left-1 -top-2">
 																			<ServerIcon className="size-4 text-muted-foreground" />
@@ -1834,7 +1834,7 @@ export async function getServerSideProps(
 	if (!user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};

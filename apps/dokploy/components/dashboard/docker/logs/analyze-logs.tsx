@@ -1,7 +1,16 @@
 "use client";
-import { Bot, Loader2, RotateCcw, Settings, X } from "lucide-react";
+import copy from "copy-to-clipboard";
+import {
+	Bot,
+	Check,
+	Copy,
+	Loader2,
+	RotateCcw,
+	Settings,
+	X,
+} from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -30,6 +39,10 @@ const MAX_LOG_LINES = 200;
 export function AnalyzeLogs({ logs, context }: Props) {
 	const [open, setOpen] = useState(false);
 	const [aiId, setAiId] = useState<string>("");
+	const [copied, setCopied] = useState(false);
+	const copyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
 	const { data: providers } = api.ai.getEnabledProviders.useQuery(undefined, {
 		enabled: open,
 	});
@@ -52,14 +65,50 @@ export function AnalyzeLogs({ logs, context }: Props) {
 		mutate({ aiId, logs: logsText, context });
 	};
 
+	const handleCopy = () => {
+		if (!data?.analysis) return;
+		const success = copy(data.analysis);
+		if (success) {
+			if (copyResetTimeoutRef.current) {
+				clearTimeout(copyResetTimeoutRef.current);
+			}
+			setCopied(true);
+			copyResetTimeoutRef.current = setTimeout(() => {
+				setCopied(false);
+				copyResetTimeoutRef.current = null;
+			}, 2000);
+		}
+	};
+
+	const resetCopyState = () => {
+		setCopied(false);
+		if (copyResetTimeoutRef.current) {
+			clearTimeout(copyResetTimeoutRef.current);
+			copyResetTimeoutRef.current = null;
+		}
+	};
+
+	const resetAnalysis = () => {
+		reset();
+		setAiId("");
+		resetCopyState();
+	};
+
+	useEffect(() => {
+		return () => {
+			if (copyResetTimeoutRef.current) {
+				clearTimeout(copyResetTimeoutRef.current);
+			}
+		};
+	}, []);
+
 	return (
 		<Popover
 			open={open}
 			onOpenChange={(isOpen) => {
 				setOpen(isOpen);
 				if (!isOpen) {
-					reset();
-					setAiId("");
+					resetAnalysis();
 				}
 			}}
 		>
@@ -157,6 +206,7 @@ export function AnalyzeLogs({ logs, context }: Props) {
 									className="flex-1"
 									onClick={() => {
 										reset();
+										resetCopyState();
 										handleAnalyze();
 									}}
 									disabled={isPending}
@@ -170,11 +220,20 @@ export function AnalyzeLogs({ logs, context }: Props) {
 								</Button>
 								<Button
 									size="sm"
+									variant="outline"
+									onClick={handleCopy}
+									title="Copy analysis to clipboard"
+								>
+									{copied ? (
+										<Check className="h-3.5 w-3.5" />
+									) : (
+										<Copy className="h-3.5 w-3.5" />
+									)}
+								</Button>
+								<Button
+									size="sm"
 									variant="ghost"
-									onClick={() => {
-										reset();
-										setAiId("");
-									}}
+									onClick={resetAnalysis}
 									title="Change provider"
 								>
 									<X className="h-3.5 w-3.5" />

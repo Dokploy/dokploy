@@ -218,7 +218,11 @@ export const writeConfigRemote = async (
 	try {
 		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-		await execAsyncRemote(serverId, `echo '${traefikConfig}' > ${configPath}`);
+		const encoded = encodeBase64(traefikConfig);
+		await execAsyncRemote(
+			serverId,
+			`echo "${encoded}" | base64 -d > "${configPath}"`,
+		);
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
 	}
@@ -268,7 +272,11 @@ export const writeTraefikConfigRemote = async (
 		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
 		const yamlStr = stringify(traefikConfig);
-		await execAsyncRemote(serverId, `echo '${yamlStr}' > ${configPath}`);
+		const encoded = encodeBase64(yamlStr);
+		await execAsyncRemote(
+			serverId,
+			`echo "${encoded}" | base64 -d > "${configPath}"`,
+		);
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
 	}

@@ -27,9 +27,14 @@ export const generateRandomDomain = ({
 	projectName: string;
 }): string => {
 	const hash = randomBytes(3).toString("hex");
-	const slugIp = serverIp.replaceAll(".", "-");
+	const slugIp = serverIp
+		.replace(/^\[|\]$/g, "")
+		.replace(/%.+$/, "")
+		.replace(/[.:]/g, "-")
+		.replace(/-+/g, "-")
+		.replace(/^-|-$/g, "");
 
-	return `${projectName}-${hash}${slugIp === "" ? "" : `-${slugIp}`}.traefik.me`;
+	return `${projectName}-${hash}${slugIp === "" ? "" : `-${slugIp}`}.sslip.io`;
 };
 
 export const generateHash = (projectName: string, quantity = 3): string => {

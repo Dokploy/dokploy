@@ -141,14 +141,14 @@ export const WebDomain = () => {
 						<Form {...form}>
 							<form
 								onSubmit={form.handleSubmit(onSubmit)}
-								className="grid w-full gap-4 md:grid-cols-2"
+								className="grid w-full gap-4 grid-cols-2"
 							>
 								<FormField
 									control={form.control}
 									name="domain"
 									render={({ field }) => {
 										return (
-											<FormItem>
+											<FormItem className="col-span-2 md:col-span-1">
 												<FormLabel>Domain</FormLabel>
 												<FormControl>
 													<Input
@@ -168,7 +168,7 @@ export const WebDomain = () => {
 									name="letsEncryptEmail"
 									render={({ field }) => {
 										return (
-											<FormItem>
+											<FormItem className="col-span-2 md:col-span-1">
 												<FormLabel>Let's Encrypt Email</FormLabel>
 												<FormControl>
 													<Input
@@ -209,7 +209,7 @@ export const WebDomain = () => {
 										name="certificateType"
 										render={({ field }) => {
 											return (
-												<FormItem className="md:col-span-2">
+												<FormItem className="col-span-2">
 													<FormLabel>Certificate Provider</FormLabel>
 													<Select
 														onValueChange={field.onChange}

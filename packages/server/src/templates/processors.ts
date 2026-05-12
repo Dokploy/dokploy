@@ -45,6 +45,7 @@ export interface CompleteTemplate {
 	};
 	variables: Record<string, string>;
 	config: {
+		isolated?: boolean;
 		domains: DomainConfig[];
 		env:
 			| Record<string, string | boolean | number>
@@ -61,6 +62,13 @@ export interface Template {
 	envs: string[];
 	mounts: MountConfig[];
 }
+
+export const isIsolatedDeployment = (template: {
+	config: { isolated?: boolean; config?: { isolated?: boolean } };
+}): boolean => {
+	const isolated = template.config.isolated ?? template.config.config?.isolated;
+	return isolated !== false;
+};
 
 /**
  * Process a string value and replace variables
