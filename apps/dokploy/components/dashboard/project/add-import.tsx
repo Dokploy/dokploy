@@ -226,8 +226,7 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 												<Tooltip>
 													<TooltipTrigger asChild>
 														<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-															Select a Server{" "}
-															{!isCloud ? "(Optional)" : ""}
+															Select a Server {!isCloud ? "(Optional)" : ""}
 															<HelpCircle className="size-4 text-muted-foreground" />
 														</FormLabel>
 													</TooltipTrigger>
@@ -238,7 +237,8 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 													>
 														<span>
 															If no server is selected, the compose will be
-															deployed on the server where the user is logged in.
+															deployed on the server where the user is logged
+															in.
 														</span>
 													</TooltipContent>
 												</Tooltip>
@@ -341,7 +341,10 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 			</Dialog>
 
 			{/* Preview modal */}
-			<Dialog open={previewOpen} onOpenChange={(open) => !open && handleCancelPreview()}>
+			<Dialog
+				open={previewOpen}
+				onOpenChange={(open) => !open && handleCancelPreview()}
+			>
 				<DialogContent className="max-w-[60vw]">
 					<DialogHeader>
 						<DialogTitle className="text-2xl font-bold">
@@ -385,7 +388,9 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 													key={index}
 													className="rounded-lg border bg-card p-3 text-card-foreground shadow-sm"
 												>
-													<div className="font-medium">{domain.serviceName}</div>
+													<div className="font-medium">
+														{domain.serviceName}
+													</div>
 													<div className="text-sm text-muted-foreground space-y-1">
 														<div>Port: {domain.port}</div>
 														{domain.host && <div>Host: {domain.host}</div>}
