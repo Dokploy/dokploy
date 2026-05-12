@@ -526,13 +526,12 @@ export const settingsRouter = createTRPCRouter({
 
 		const data = await getUpdateData(packageInfo.version);
 		if (data.updateAvailable && data.latestVersion) {
-			const imageTag = data.latestVersion.replace(/^v/, "");
 			void spawnAsync("docker", [
 				"service",
 				"update",
 				"--force",
 				"--image",
-				`ghcr.io/bl4ckbl1zz/dokploy:${imageTag}`,
+				"ghcr.io/bl4ckbl1zz/dokploy:latest",
 				"dokploy",
 			]);
 			await audit(ctx, {

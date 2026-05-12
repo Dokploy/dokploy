@@ -245,14 +245,14 @@ fi`;
 export const reloadDockerResource = async (
 	resourceName: string,
 	serverId?: string,
-	version?: string,
+	_version?: string,
 ) => {
 	const resourceType = await getDockerResourceType(resourceName, serverId);
 	let command = "";
 	if (resourceType === "service") {
 		if (resourceName === "dokploy") {
 			const currentImageTag = getDokployImageTag();
-			let imageTag = version;
+			let imageTag = "latest";
 			if (currentImageTag === "canary" || currentImageTag === "feature") {
 				imageTag = currentImageTag;
 			}
