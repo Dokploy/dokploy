@@ -49,12 +49,12 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 	const composeFile = form.watch("composeFile");
 
 	useEffect(() => {
-		if (data) {
+		if (data && !form.formState.isDirty) {
 			form.reset({
 				composeFile: data.composeFile || "",
 			});
 		}
-	}, [form, data]);
+	}, [form, data?.composeFile, form.formState.isDirty]);
 
 	useEffect(() => {
 		if (data?.composeFile !== undefined) {

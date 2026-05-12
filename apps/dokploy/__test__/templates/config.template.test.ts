@@ -1,6 +1,9 @@
 import type { Schema } from "@dokploy/server/templates";
 import type { CompleteTemplate } from "@dokploy/server/templates/processors";
-import { processTemplate } from "@dokploy/server/templates/processors";
+import {
+	isIsolatedDeployment,
+	processTemplate,
+} from "@dokploy/server/templates/processors";
 import { describe, expect, it } from "vitest";
 
 describe("processTemplate", () => {
@@ -507,8 +510,8 @@ describe("processTemplate", () => {
 			};
 
 			expect(template.config.isolated).toBeUndefined();
-			// undefined !== false => isolatedDeployment = true
-			expect(template.config.isolated !== false).toBe(true);
+			// Templates stay isolated by default for backward-compatible safety.
+			expect(isIsolatedDeployment(template)).toBe(true);
 		});
 
 		it("should be isolated when isolated=true is explicitly set", () => {
@@ -522,7 +525,7 @@ describe("processTemplate", () => {
 				},
 			};
 
-			expect(template.config.isolated !== false).toBe(true);
+			expect(isIsolatedDeployment(template)).toBe(true);
 		});
 
 		it("should disable isolated deployment when isolated=false", () => {
@@ -536,7 +539,7 @@ describe("processTemplate", () => {
 				},
 			};
 
-			expect(template.config.isolated !== false).toBe(false);
+			expect(isIsolatedDeployment(template)).toBe(false);
 		});
 	});
 });

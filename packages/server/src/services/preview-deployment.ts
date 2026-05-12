@@ -238,7 +238,11 @@ const generateWildcardDomain = async (
 		throw new Error('The base domain must start with "*."');
 	}
 	const hash = `${appName}`;
-	if (baseDomain.includes("sslip.io")) {
+	const normalizedBaseDomain = baseDomain.toLowerCase();
+	if (
+		normalizedBaseDomain === "*.sslip.io" ||
+		normalizedBaseDomain.endsWith(".sslip.io")
+	) {
 		let ip = "";
 
 		if (process.env.NODE_ENV === "development") {

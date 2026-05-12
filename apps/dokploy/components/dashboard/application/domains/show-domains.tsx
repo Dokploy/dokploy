@@ -74,6 +74,11 @@ export type ValidationState = {
 
 export type ValidationStates = Record<string, ValidationState>;
 
+const isSslipIoHost = (host: string) => {
+	const normalizedHost = host.toLowerCase();
+	return normalizedHost === "sslip.io" || normalizedHost.endsWith(".sslip.io");
+};
+
 interface Props {
 	id: string;
 	type: "application" | "compose";
@@ -425,7 +430,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 														</Badge>
 													)}
 													<div className="flex gap-2 flex-wrap">
-														{!item.host.includes("sslip.io") && (
+														{!isSslipIoHost(item.host) && (
 															<DnsHelperModal
 																domain={{
 																	host: item.host,

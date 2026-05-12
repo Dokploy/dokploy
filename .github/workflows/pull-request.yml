@@ -10,6 +10,8 @@ permissions:
 jobs:
   pr-check:
     runs-on: ubuntu-latest
+    env:
+      BETTER_AUTH_SECRET: pr-check-better-auth-secret
     strategy:
       matrix:
         job: [build, test, typecheck]

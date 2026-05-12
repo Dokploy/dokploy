@@ -85,7 +85,10 @@ export const removeRegistry = async (registryId: string) => {
 		}
 
 		if (!IS_CLOUD) {
-			await execAsync(`docker logout ${shEscape(response.registryUrl)}`);
+			const logoutCommand = response.registryUrl
+				? `docker logout ${shEscape(response.registryUrl)}`
+				: "docker logout";
+			await execAsync(logoutCommand);
 		}
 
 		return response;

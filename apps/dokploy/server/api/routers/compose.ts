@@ -45,7 +45,10 @@ import {
 	fetchTemplateFiles,
 	fetchTemplatesList,
 } from "@dokploy/server/templates/github";
-import { processTemplate } from "@dokploy/server/templates/processors";
+import {
+	isIsolatedDeployment,
+	processTemplate,
+} from "@dokploy/server/templates/processors";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import _ from "lodash";
@@ -649,7 +652,7 @@ export const composeRouter = createTRPCRouter({
 				name: input.id,
 				sourceType: "raw",
 				appName: appName,
-				isolatedDeployment: template.config.config?.isolated !== false,
+				isolatedDeployment: isIsolatedDeployment(template.config),
 			});
 
 			await addNewService(ctx, compose.composeId);

@@ -433,7 +433,7 @@ export const apiSaveBuildType = createSchema
 	.required()
 	.merge(createSchema.pick({ publishDirectory: true, isStaticSpa: true }));
 
-const branchField = z
+const BRANCH_FIELD = z
 	.string()
 	.min(1)
 	.regex(VALID_BRANCH_REGEX, "Invalid branch name");
@@ -448,7 +448,7 @@ export const apiSaveGithubProvider = createSchema
 	})
 	.required()
 	.extend({
-		branch: branchField,
+		branch: BRANCH_FIELD,
 		triggerType: z.enum(["push", "tag"]).default("push"),
 	})
 	.required()
@@ -465,7 +465,7 @@ export const apiSaveGitlabProvider = createSchema
 		gitlabPathNamespace: true,
 	})
 	.required()
-	.extend({ gitlabBranch: branchField })
+	.extend({ gitlabBranch: BRANCH_FIELD })
 	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
 
 export const apiSaveBitbucketProvider = createSchema
@@ -478,7 +478,7 @@ export const apiSaveBitbucketProvider = createSchema
 		applicationId: true,
 	})
 	.required()
-	.extend({ bitbucketBranch: branchField })
+	.extend({ bitbucketBranch: BRANCH_FIELD })
 	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
 
 export const apiSaveGiteaProvider = createSchema
@@ -490,7 +490,7 @@ export const apiSaveGiteaProvider = createSchema
 		giteaId: true,
 	})
 	.required()
-	.extend({ giteaBranch: branchField })
+	.extend({ giteaBranch: BRANCH_FIELD })
 	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
 
 export const apiSaveDockerProvider = createSchema
@@ -512,7 +512,7 @@ export const apiSaveGitProvider = createSchema
 		enableSubmodules: true,
 	})
 	.required()
-	.extend({ customGitBranch: branchField })
+	.extend({ customGitBranch: BRANCH_FIELD })
 	.merge(
 		createSchema.pick({
 			customGitSSHKeyId: true,

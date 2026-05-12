@@ -132,6 +132,15 @@ export const domain = z
 
 type Domain = z.infer<typeof domain>;
 
+const isSslipIoHost = (host?: string) => {
+	const normalizedHost = host?.toLowerCase();
+	return (
+		normalizedHost === "sslip.io" ||
+		normalizedHost?.endsWith(".sslip.io") ||
+		false
+	);
+};
+
 interface Props {
 	id: string;
 	type: "application" | "compose";
@@ -228,7 +237,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const https = form.watch("https");
 	const domainType = form.watch("domainType");
 	const host = form.watch("host");
-	const isTraefikMeDomain = host?.includes("sslip.io") || false;
+	const isSslipDomain = isSslipIoHost(host);
 
 	useEffect(() => {
 		if (data) {
@@ -533,7 +542,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											{!canGenerateTraefikMeDomains &&
-												field.value.includes("sslip.io") && (
+												isSslipIoHost(field.value) && (
 													<AlertBlock type="warning">
 														You need to set an IP address in your{" "}
 														<Link
@@ -547,7 +556,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 														to make your sslip.io domain work.
 													</AlertBlock>
 												)}
-											{isTraefikMeDomain && (
+											{isSslipDomain && (
 												<AlertBlock type="info">
 													<strong>Note:</strong> sslip.io is a public HTTP
 													service and does not support SSL/HTTPS. HTTPS and

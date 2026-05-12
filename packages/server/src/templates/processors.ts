@@ -63,6 +63,10 @@ export interface Template {
 	mounts: MountConfig[];
 }
 
+export const isIsolatedDeployment = (template: {
+	config?: { isolated?: boolean };
+}): boolean => template.config?.isolated !== false;
+
 /**
  * Process a string value and replace variables
  */

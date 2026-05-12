@@ -1,5 +1,5 @@
 /**
- * Use this command to automatically migrate the auth secret: curl -sSL https://dokploy.com/security/0.29.3.sh | bash
+ * Use this command to automatically migrate the auth secret: curl -sSL https://dokploy.com/security/0.29.4.sh | bash
  * Migration script: re-encrypt 2FA secrets after rotating BETTER_AUTH_SECRET.
  *
  * Usage:

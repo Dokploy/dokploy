@@ -150,6 +150,8 @@ export const domainRouter = createTRPCRouter({
 				typeof input.host === "string" && input.host !== currentDomain.host;
 
 			let result: Awaited<ReturnType<typeof updateDomainById>>;
+			let didSync = false;
+			let cloudflarePending = false;
 
 			if (zoneChanged) {
 				if (oldZoneId) {
@@ -175,6 +177,7 @@ export const domainRouter = createTRPCRouter({
 							"@dokploy/server/services/cloudflare/orchestrator"
 						);
 						await syncDomain(input.domainId);
+						didSync = true;
 					} catch (cfErr) {
 						console.warn("Cloudflare sync failed:", cfErr);
 					}
@@ -187,19 +190,33 @@ export const domainRouter = createTRPCRouter({
 					await renameDomainHost(input.domainId, input.host as string);
 				} catch (cfErr) {
 					console.warn("Cloudflare rename failed:", cfErr);
+					cloudflarePending = true;
 				}
-				result = await updateDomainById(input.domainId, input);
+				result = await updateDomainById(input.domainId, {
+					...input,
+					...(cloudflarePending
+						? {
+								cloudflareSyncStatus: "pending" as const,
+								cloudflareSyncError: null,
+							}
+						: {}),
+				});
 			} else {
 				result = await updateDomainById(input.domainId, input);
 			}
 
 			const domain = await findDomainById(input.domainId);
-			if (domain.cloudflareZoneId && domain.cloudflareSyncStatus !== "synced") {
+			if (
+				!didSync &&
+				domain.cloudflareZoneId &&
+				domain.cloudflareSyncStatus !== "synced"
+			) {
 				try {
 					const { syncDomain } = await import(
 						"@dokploy/server/services/cloudflare/orchestrator"
 					);
 					await syncDomain(domain.domainId);
+					didSync = true;
 				} catch (cfErr) {
 					console.warn("Cloudflare sync failed:", cfErr);
 				}

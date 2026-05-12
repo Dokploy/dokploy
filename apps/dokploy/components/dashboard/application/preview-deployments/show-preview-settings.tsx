@@ -102,7 +102,11 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 
 	const previewHttps = form.watch("previewHttps");
 	const wildcardDomain = form.watch("wildcardDomain");
-	const isTraefikMeDomain = wildcardDomain?.includes("sslip.io") || false;
+	const normalizedWildcardDomain = wildcardDomain?.toLowerCase();
+	const isSslipDomain =
+		normalizedWildcardDomain === "sslip.io" ||
+		normalizedWildcardDomain?.endsWith(".sslip.io") ||
+		false;
 
 	useEffect(() => {
 		setIsEnabled(data?.isPreviewDeploymentsActive || false);
@@ -171,7 +175,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 						</DialogDescription>
 					</DialogHeader>
 					<div className="grid gap-4">
-						{isTraefikMeDomain && (
+						{isSslipDomain && (
 							<AlertBlock type="info">
 								<strong>Note:</strong> sslip.io is a public HTTP service and
 								does not support SSL/HTTPS. HTTPS and certificate options will

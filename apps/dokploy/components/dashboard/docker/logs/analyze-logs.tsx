@@ -10,7 +10,7 @@ import {
 	X,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,9 @@ export function AnalyzeLogs({ logs, context }: Props) {
 	const [open, setOpen] = useState(false);
 	const [aiId, setAiId] = useState<string>("");
 	const [copied, setCopied] = useState(false);
+	const copyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
 	const { data: providers } = api.ai.getEnabledProviders.useQuery(undefined, {
 		enabled: open,
 	});
@@ -66,10 +69,38 @@ export function AnalyzeLogs({ logs, context }: Props) {
 		if (!data?.analysis) return;
 		const success = copy(data.analysis);
 		if (success) {
+			if (copyResetTimeoutRef.current) {
+				clearTimeout(copyResetTimeoutRef.current);
+			}
 			setCopied(true);
-			setTimeout(() => setCopied(false), 2000);
+			copyResetTimeoutRef.current = setTimeout(() => {
+				setCopied(false);
+				copyResetTimeoutRef.current = null;
+			}, 2000);
 		}
 	};
+
+	const resetCopyState = () => {
+		setCopied(false);
+		if (copyResetTimeoutRef.current) {
+			clearTimeout(copyResetTimeoutRef.current);
+			copyResetTimeoutRef.current = null;
+		}
+	};
+
+	const resetAnalysis = () => {
+		reset();
+		setAiId("");
+		resetCopyState();
+	};
+
+	useEffect(() => {
+		return () => {
+			if (copyResetTimeoutRef.current) {
+				clearTimeout(copyResetTimeoutRef.current);
+			}
+		};
+	}, []);
 
 	return (
 		<Popover
@@ -77,8 +108,7 @@ export function AnalyzeLogs({ logs, context }: Props) {
 			onOpenChange={(isOpen) => {
 				setOpen(isOpen);
 				if (!isOpen) {
-					reset();
-					setAiId("");
+					resetAnalysis();
 				}
 			}}
 		>
@@ -176,6 +206,7 @@ export function AnalyzeLogs({ logs, context }: Props) {
 									className="flex-1"
 									onClick={() => {
 										reset();
+										resetCopyState();
 										handleAnalyze();
 									}}
 									disabled={isPending}
@@ -202,10 +233,7 @@ export function AnalyzeLogs({ logs, context }: Props) {
 								<Button
 									size="sm"
 									variant="ghost"
-									onClick={() => {
-										reset();
-										setAiId("");
-									}}
+									onClick={resetAnalysis}
 									title="Change provider"
 								>
 									<X className="h-3.5 w-3.5" />

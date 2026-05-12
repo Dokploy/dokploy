@@ -229,7 +229,7 @@ export const suggestVariants = async ({
 
 		    Domain Rules - For each service that needs to be exposed to the internet:
 		    1. Define a domain with:
-		       - host: {service-name}-{random-3-chars-hex}-${ip ? ip.replaceAll(".", "-") : ""}.sslip.io
+		       - host: {service-name}-{random-3-chars-hex}-${ip ? ip.replaceAll(".", "-").replaceAll(":", "-") : ""}.sslip.io
 		       - port: the internal port the service runs on
 		       - serviceName: the name of the service in the docker-compose
 		    2. Make sure the service is properly configured to work with the specified port
