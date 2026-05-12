@@ -71,7 +71,7 @@ export function AnalyzeLogs({ logs, context }: Props) {
 					disabled={logs.length === 0}
 					title="Analyze logs with AI"
 				>
-					<Bot className="mr-2 h-4 w-4" />
+					<Bot className="mr-2 size-4" />
 					AI
 				</Button>
 			</PopoverTrigger>
