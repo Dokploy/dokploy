@@ -228,7 +228,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const https = form.watch("https");
 	const domainType = form.watch("domainType");
 	const host = form.watch("host");
-	const isTraefikMeDomain = host?.includes("traefik.me") || false;
+	const isTraefikMeDomain = host?.includes("sslip.io") || false;
 
 	useEffect(() => {
 		if (data) {
@@ -533,7 +533,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											{!canGenerateTraefikMeDomains &&
-												field.value.includes("traefik.me") && (
+												field.value.includes("sslip.io") && (
 													<AlertBlock type="warning">
 														You need to set an IP address in your{" "}
 														<Link
@@ -544,12 +544,12 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																? "Remote Servers -> Server -> Edit Server -> Update IP Address"
 																: "Web Server -> Server -> Update Server IP"}
 														</Link>{" "}
-														to make your traefik.me domain work.
+														to make your sslip.io domain work.
 													</AlertBlock>
 												)}
 											{isTraefikMeDomain && (
 												<AlertBlock type="info">
-													<strong>Note:</strong> traefik.me is a public HTTP
+													<strong>Note:</strong> sslip.io is a public HTTP
 													service and does not support SSL/HTTPS. HTTPS and
 													certificate options will not have any effect.
 												</AlertBlock>
@@ -587,7 +587,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 															sideOffset={5}
 															className="max-w-[10rem]"
 														>
-															<p>Generate traefik.me domain</p>
+															<p>Generate sslip.io domain</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>

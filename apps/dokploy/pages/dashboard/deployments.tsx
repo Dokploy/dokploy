@@ -84,7 +84,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	if (!user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};

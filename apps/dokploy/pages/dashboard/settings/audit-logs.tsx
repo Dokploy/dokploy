@@ -27,7 +27,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 
 	if (!user) {
 		return {
-			redirect: { destination: "/", permanent: true },
+			redirect: { destination: "/", permanent: false },
 		};
 	}
 

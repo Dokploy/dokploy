@@ -125,6 +125,11 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 													{schedule.enabled ? "Enabled" : "Disabled"}
 												</Badge>
 											</div>
+											{schedule.description && (
+												<p className="text-xs text-muted-foreground/70 [overflow-wrap:anywhere] line-clamp-2">
+													{schedule.description}
+												</p>
+											)}
 											<div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
 												<Badge
 													variant="outline"

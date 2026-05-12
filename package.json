@@ -49,6 +49,16 @@
 		"overrides": {
 			"esbuild": "0.20.2"
 		},
+		"peerDependencyRules": {
+			"ignoreMissing": [
+				"prisma",
+				"@prisma/client",
+				"@prisma/engines",
+				"@electric-sql/pglite",
+				"typescript",
+				"drizzle-kit"
+			]
+		},
 		"onlyBuiltDependencies": [
 			"@scarf/scarf",
 			"@tree-sitter-grammars/tree-sitter-yaml",
@@ -63,9 +73,7 @@
 			"sharp",
 			"ssh2",
 			"tree-sitter",
-			"tree-sitter-json",
-			"@prisma/engines",
-			"prisma"
+			"tree-sitter-json"
 		]
 	}
 }

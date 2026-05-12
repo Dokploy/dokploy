@@ -87,7 +87,7 @@ export const AddPreviewDomain = ({
 	});
 
 	const host = form.watch("host");
-	const isTraefikMeDomain = host?.includes("traefik.me") || false;
+	const isTraefikMeDomain = host?.includes("sslip.io") || false;
 
 	useEffect(() => {
 		if (data) {
@@ -162,7 +162,7 @@ export const AddPreviewDomain = ({
 										<FormItem>
 											{isTraefikMeDomain && (
 												<AlertBlock type="info">
-													<strong>Note:</strong> traefik.me is a public HTTP
+													<strong>Note:</strong> sslip.io is a public HTTP
 													service and does not support SSL/HTTPS. HTTPS and
 													certificate options will not have any effect.
 												</AlertBlock>
@@ -202,7 +202,7 @@ export const AddPreviewDomain = ({
 															sideOffset={5}
 															className="max-w-[10rem]"
 														>
-															<p>Generate traefik.me domain</p>
+															<p>Generate sslip.io domain</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
