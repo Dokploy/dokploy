@@ -21,6 +21,7 @@ export interface CompleteTemplate {
 		[key: string]: string;
 	};
 	config: {
+		isolated?: boolean;
 		domains: Array<{
 			serviceName: string;
 			port: number;

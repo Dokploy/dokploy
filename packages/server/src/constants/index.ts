@@ -83,11 +83,6 @@ const getDockerConfig = (): Docker => {
 
 export const docker = getDockerConfig();
 
-// When not set, use the legacy default so 2FA remains working for users who
-// enabled it before BETTER_AUTH_SECRET was introduced.
-export const BETTER_AUTH_SECRET =
-	process.env.BETTER_AUTH_SECRET || "better-auth-secret-123456789";
-
 export const paths = (isServer = false) => {
 	const BASE_PATH =
 		isServer || process.env.NODE_ENV === "production"

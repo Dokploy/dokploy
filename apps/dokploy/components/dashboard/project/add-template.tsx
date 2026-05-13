@@ -1,6 +1,6 @@
 import {
-	BookText,
 	Bookmark,
+	BookText,
 	CheckIcon,
 	ChevronsUpDown,
 	Globe,

@@ -2,6 +2,10 @@ import { Loader2, MoreHorizontal, RefreshCw } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ShowContainerConfig } from "@/components/dashboard/docker/config/show-container-config";
+import { ShowContainerMounts } from "@/components/dashboard/docker/mounts/show-container-mounts";
+import { ShowContainerNetworks } from "@/components/dashboard/docker/networks/show-container-networks";
+import { DockerTerminalModal } from "@/components/dashboard/docker/terminal/docker-terminal-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,10 +40,6 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api } from "@/utils/api";
-import { ShowContainerConfig } from "@/components/dashboard/docker/config/show-container-config";
-import { ShowContainerMounts } from "@/components/dashboard/docker/mounts/show-container-mounts";
-import { ShowContainerNetworks } from "@/components/dashboard/docker/networks/show-container-networks";
-import { DockerTerminalModal } from "@/components/dashboard/docker/terminal/docker-terminal-modal";
 
 const DockerLogsId = dynamic(
 	() =>

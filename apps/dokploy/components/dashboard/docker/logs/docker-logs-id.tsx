@@ -347,11 +347,13 @@ export const DockerLogsId: React.FC<Props> = ({
 								title={isPaused ? "Resume logs" : "Pause logs"}
 							>
 								{isPaused ? (
-									<Play className="mr-2 h-4 w-4" />
+									<Play className="size-4" />
 								) : (
-									<Pause className="mr-2 h-4 w-4" />
+									<Pause className="size-4" />
 								)}
-								{isPaused ? "Resume" : "Pause"}
+								<span className="hidden lg:ml-2 lg:inline">
+									{isPaused ? "Resume" : "Pause"}
+								</span>
 							</Button>
 							<Button
 								variant="outline"
@@ -362,11 +364,13 @@ export const DockerLogsId: React.FC<Props> = ({
 								title="Copy logs to clipboard"
 							>
 								{copied ? (
-									<Check className="mr-2 h-4 w-4" />
+									<Check className="size-4" />
 								) : (
-									<Copy className="mr-2 h-4 w-4" />
+									<Copy className="size-4" />
 								)}
-								Copy
+								<span className="hidden lg:ml-2 lg:inline">
+									{copied ? "Copied" : "Copy"}
+								</span>
 							</Button>
 							<Button
 								variant="outline"
@@ -374,17 +378,18 @@ export const DockerLogsId: React.FC<Props> = ({
 								className="h-9 sm:w-auto w-full"
 								onClick={handleDownload}
 								disabled={filteredLogs.length === 0 || !data?.Name}
+								title="Download logs as text file"
 							>
-								<DownloadIcon className="mr-2 h-4 w-4" />
-								Download logs
+								<DownloadIcon className="size-4" />
+								<span className="hidden lg:ml-2 lg:inline">Download logs</span>
 							</Button>
 							<AnalyzeLogs logs={filteredLogs} context="runtime" />
 						</div>
 					</div>
 					{isPaused && (
-						<AlertBlock type="warning">
+						<AlertBlock type="warning" className="items-center">
 							<div className="flex items-center gap-2">
-								<Pause className="h-4 w-4" />
+								<Pause className="size-4" />
 								<span>
 									Logs paused
 									{messageBuffer.length > 0 && (
