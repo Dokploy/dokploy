@@ -1170,13 +1170,6 @@
       "when": 1777967101978,
       "tag": "0166_lame_meltdown",
       "breakpoints": true
-    },
-    {
-      "idx": 167,
-      "version": "7",
-      "when": 1777967443440,
-      "tag": "0167_cultured_captain_cross",
-      "breakpoints": true
     }
   ]
 }
