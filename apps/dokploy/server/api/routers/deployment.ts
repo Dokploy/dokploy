@@ -151,6 +151,14 @@ export const deploymentRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					deployment: ["cancel"],
 				});
+			} else if (deployment.schedule?.serverId) {
+				const targetServer = await findServerById(deployment.schedule.serverId);
+				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this deployment.",
+					});
+				}
 			}
 
 			if (!deployment.pid) {
@@ -188,6 +196,14 @@ export const deploymentRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					deployment: ["cancel"],
 				});
+			} else if (deployment.schedule?.serverId) {
+				const targetServer = await findServerById(deployment.schedule.serverId);
+				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this deployment.",
+					});
+				}
 			}
 			const result = await removeDeployment(input.deploymentId);
 			await audit(ctx, {
@@ -212,6 +228,14 @@ export const deploymentRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					deployment: ["read"],
 				});
+			} else if (deployment.schedule?.serverId) {
+				const targetServer = await findServerById(deployment.schedule.serverId);
+				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this deployment.",
+					});
+				}
 			}
 
 			if (!deployment.logPath) {
