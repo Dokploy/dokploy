@@ -197,4 +197,39 @@ export const deploymentRouter = createTRPCRouter({
 			});
 			return result;
 		}),
+
+	readLogs: protectedProcedure
+		.input(
+			z.object({
+				deploymentId: z.string().min(1),
+				tail: z.number().int().min(1).max(10000).default(100),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			const deployment = await findDeploymentById(input.deploymentId);
+			const serviceId = deployment.applicationId || deployment.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					deployment: ["read"],
+				});
+			}
+
+			if (!deployment.logPath) {
+				return "";
+			}
+
+			const command = `tail -n ${input.tail} "${deployment.logPath}" 2>/dev/null || echo ""`;
+			const serverId = deployment.serverId || deployment.schedule?.serverId;
+			if (serverId) {
+				const { stdout } = await execAsyncRemote(serverId, command);
+				return stdout;
+			}
+
+			if (IS_CLOUD) {
+				return "";
+			}
+
+			const { stdout } = await execAsync(command);
+			return stdout;
+		}),
 });
