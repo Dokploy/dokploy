@@ -167,7 +167,12 @@ export const CodeEditor = ({
 								? css()
 								: language === "shell"
 									? StreamLanguage.define(shell)
-									: StreamLanguage.define(properties),
+									: StreamLanguage.define({
+											...properties,
+											languageData: {
+												commentTokens: { line: "#" },
+											},
+										}),
 					props.lineWrapping ? EditorView.lineWrapping : [],
 					language === "yaml"
 						? autocompletion({
