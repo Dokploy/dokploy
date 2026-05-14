@@ -79,7 +79,7 @@ export const destinationRouter = createTRPCRouter({
 					message:
 						error instanceof Error
 							? error?.message
-							: "Error connecting to bucket",
+							: "Error connecting to destination",
 					cause: error,
 				});
 			}
@@ -157,7 +157,7 @@ export const destinationRouter = createTRPCRouter({
 					message:
 						error instanceof Error
 							? error?.message
-							: "Error connecting to bucket",
+							: "Error connecting to destination",
 					cause: error,
 				});
 			}
