@@ -2,7 +2,12 @@ import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Libsql } from "@dokploy/server/services/libsql";
 import type { z } from "zod";
-import { getS3Credentials, getServiceContainerCommand } from "../backups/utils";
+import {
+	getRcloneDestination,
+	getRcloneFlags,
+	getServiceContainerCommand,
+	shellQuote,
+} from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 
 export const restoreLibsqlBackup = async (
@@ -14,12 +19,13 @@ export const restoreLibsqlBackup = async (
 	try {
 		const { appName, serverId } = libsql;
 
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
+		const rcloneFlags = getRcloneFlags(destination);
+		const backupPath = getRcloneDestination(
+			destination,
+			backupInput.backupFile,
+		);
 
-		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
-
-		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}"`;
+		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} ${shellQuote(backupPath)}`;
 
 		emit("Starting restore...");
 		emit(`Backup path: ${backupPath}`);

@@ -1,3 +1,38 @@
+export const RCLONE_DESTINATION_PROVIDERS = [
+	{
+		key: "ftp",
+		name: "FTP",
+	},
+	{
+		key: "sftp",
+		name: "SFTP",
+	},
+	{
+		key: "drive",
+		name: "Google Drive",
+	},
+	{
+		key: "onedrive",
+		name: "Microsoft OneDrive",
+	},
+] as const;
+
+const RCLONE_DESTINATION_PROVIDER_KEYS = new Set(
+	RCLONE_DESTINATION_PROVIDERS.map((provider) => provider.key),
+);
+
+export const getDestinationProviderType = (provider: string) => {
+	const normalizedProvider = provider.trim().toLowerCase();
+	if (
+		RCLONE_DESTINATION_PROVIDER_KEYS.has(
+			normalizedProvider as (typeof RCLONE_DESTINATION_PROVIDERS)[number]["key"],
+		)
+	) {
+		return normalizedProvider as (typeof RCLONE_DESTINATION_PROVIDERS)[number]["key"];
+	}
+	return "s3";
+};
+
 export const S3_PROVIDERS: Array<{
 	key: string;
 	name: string;

@@ -11,8 +11,10 @@ import { execAsync, execAsyncRemote } from "../process/execAsync";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
-	getS3Credentials,
+	getRcloneDestination,
+	getRcloneFlags,
 	normalizeS3Path,
+	shellQuote,
 } from "./utils";
 
 export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
@@ -30,10 +32,13 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	});
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneDestination = getRcloneDestination(
+			destination,
+			bucketDestination,
+		);
 
-		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} ${shellQuote(rcloneDestination)}`;
 
 		const backupCommand = getBackupCommand(
 			backup,

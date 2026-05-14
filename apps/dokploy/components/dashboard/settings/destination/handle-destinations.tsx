@@ -37,32 +37,159 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { S3_PROVIDERS } from "./constants";
+import {
+	getDestinationProviderType,
+	RCLONE_DESTINATION_PROVIDERS,
+	S3_PROVIDERS,
+} from "./constants";
 
-const addDestination = z.object({
-	name: z.string().min(1, "Name is required"),
-	provider: z.string().min(1, "Provider is required"),
-	accessKeyId: z.string().min(1, "Access Key Id is required"),
-	secretAccessKey: z.string().min(1, "Secret Access Key is required"),
-	bucket: z.string().min(1, "Bucket is required"),
-	region: z.string(),
-	endpoint: z.string().min(1, "Endpoint is required"),
-	serverId: z.string().optional(),
-	additionalFlags: z
-		.array(
-			z.object({
-				value: z
-					.string()
-					.min(1, "Flag cannot be empty")
-					.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR),
-			}),
-		)
-		.optional(),
-});
+type DestinationFieldName =
+	| "accessKeyId"
+	| "secretAccessKey"
+	| "bucket"
+	| "region"
+	| "endpoint";
+
+const addDestination = z
+	.object({
+		name: z.string().min(1, "Name is required"),
+		provider: z.string().min(1, "Provider is required"),
+		accessKeyId: z.string(),
+		secretAccessKey: z.string(),
+		bucket: z.string(),
+		region: z.string(),
+		endpoint: z.string(),
+		serverId: z.string().optional(),
+		additionalFlags: z
+			.array(
+				z.object({
+					value: z
+						.string()
+						.min(1, "Flag cannot be empty")
+						.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR),
+				}),
+			)
+			.optional(),
+	})
+	.superRefine((data, ctx) => {
+		const providerType = getDestinationProviderType(data.provider);
+		const addRequiredIssue = (path: DestinationFieldName, message: string) => {
+			ctx.addIssue({ code: "custom", path: [path], message });
+		};
+
+		if (providerType === "s3") {
+			if (!data.accessKeyId.trim()) {
+				addRequiredIssue("accessKeyId", "Access Key Id is required");
+			}
+			if (!data.secretAccessKey.trim()) {
+				addRequiredIssue("secretAccessKey", "Secret Access Key is required");
+			}
+			if (!data.bucket.trim()) {
+				addRequiredIssue("bucket", "Bucket is required");
+			}
+			if (!data.endpoint.trim()) {
+				addRequiredIssue("endpoint", "Endpoint is required");
+			}
+			return;
+		}
+
+		if (providerType === "ftp" || providerType === "sftp") {
+			if (!data.endpoint.trim()) {
+				addRequiredIssue("endpoint", "Host is required");
+			}
+			if (!data.accessKeyId.trim()) {
+				addRequiredIssue("accessKeyId", "Username is required");
+			}
+			if (!data.secretAccessKey.trim()) {
+				addRequiredIssue("secretAccessKey", "Password is required");
+			}
+			if (data.region.trim()) {
+				const port = Number(data.region);
+				if (!Number.isInteger(port) || port < 1 || port > 65535) {
+					addRequiredIssue("region", "Port must be between 1 and 65535");
+				}
+			}
+			return;
+		}
+
+		if (!data.endpoint.trim()) {
+			addRequiredIssue("endpoint", "OAuth token JSON is required");
+			return;
+		}
+
+		try {
+			JSON.parse(data.endpoint);
+		} catch {
+			addRequiredIssue("endpoint", "OAuth token must be valid JSON");
+		}
+	});
 
 type AddDestination = z.infer<typeof addDestination>;
+
+const getFieldLabels = (provider: string) => {
+	const providerType = getDestinationProviderType(provider);
+	if (providerType === "ftp" || providerType === "sftp") {
+		return {
+			namePlaceholder: `${providerType.toUpperCase()} Backups`,
+			accessKeyLabel: "Username",
+			accessKeyPlaceholder: "dokploy",
+			secretLabel: "Password",
+			secretPlaceholder: "password",
+			bucketLabel: "Base Path",
+			bucketPlaceholder: "/backups",
+			regionLabel: "Port",
+			regionPlaceholder: providerType === "ftp" ? "21" : "22",
+			endpointLabel: "Host",
+			endpointPlaceholder: "backup.example.com",
+			additionalFlagPlaceholder:
+				providerType === "ftp"
+					? "--ftp-explicit-tls=true"
+					: "--sftp-known-hosts-file=/root/.ssh/known_hosts",
+		};
+	}
+	if (providerType === "drive" || providerType === "onedrive") {
+		return {
+			namePlaceholder:
+				providerType === "drive" ? "Google Drive Backups" : "OneDrive Backups",
+			accessKeyLabel: "Client ID (Optional)",
+			accessKeyPlaceholder: "client-id",
+			secretLabel: "Client Secret (Optional)",
+			secretPlaceholder: "client-secret",
+			bucketLabel: "Base Folder",
+			bucketPlaceholder: "dokploy-backups",
+			regionLabel:
+				providerType === "drive"
+					? "Root Folder ID (Optional)"
+					: "Drive ID (Optional)",
+			regionPlaceholder:
+				providerType === "drive" ? "root-folder-id" : "drive-id",
+			endpointLabel: "OAuth Token JSON",
+			endpointPlaceholder:
+				'{"access_token":"...","token_type":"Bearer","refresh_token":"...","expiry":"..."}',
+			additionalFlagPlaceholder:
+				providerType === "drive"
+					? "--drive-scope=drive"
+					: "--onedrive-drive-type=business",
+		};
+	}
+	return {
+		namePlaceholder: "S3 Bucket",
+		accessKeyLabel: "Access Key Id",
+		accessKeyPlaceholder: "xcas41dasde",
+		secretLabel: "Secret Access Key",
+		secretPlaceholder: "asd123asdasw",
+		bucketLabel: "Bucket",
+		bucketPlaceholder: "dokploy-bucket",
+		regionLabel: "Region",
+		regionPlaceholder: "us-east-1",
+		endpointLabel: "Endpoint",
+		endpointPlaceholder: "https://us.bucket.aws/s3",
+		additionalFlagPlaceholder: "--s3-sign-accept-encoding=false",
+	};
+};
 
 interface Props {
 	destinationId?: string;
@@ -112,6 +239,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		control: form.control,
 		name: "additionalFlags",
 	});
+	const selectedProvider = form.watch("provider");
+	const selectedProviderType = getDestinationProviderType(selectedProvider);
+	const fieldLabels = getFieldLabels(selectedProvider);
 
 	useEffect(() => {
 		if (destination) {
@@ -161,12 +291,35 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			});
 	};
 
+	const handleProviderChange = (value: string) => {
+		const previousType = getDestinationProviderType(form.getValues("provider"));
+		const nextType = getDestinationProviderType(value);
+		form.setValue("provider", value);
+		if (previousType !== nextType) {
+			form.setValue("accessKeyId", "");
+			form.setValue("secretAccessKey", "");
+			form.setValue("bucket", "");
+			form.setValue("region", "");
+			form.setValue("endpoint", "");
+			form.setValue("additionalFlags", []);
+			form.clearErrors([
+				"accessKeyId",
+				"secretAccessKey",
+				"bucket",
+				"region",
+				"endpoint",
+				"additionalFlags",
+			]);
+		}
+	};
+
 	const handleTestConnection = async (serverId?: string) => {
 		const result = await form.trigger([
 			"provider",
 			"accessKeyId",
 			"secretAccessKey",
 			"bucket",
+			"region",
 			"endpoint",
 			"additionalFlags",
 		]);
@@ -195,8 +348,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		const bucket = form.getValues("bucket");
 		const endpoint = form.getValues("endpoint");
 		const region = form.getValues("region");
-
-		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
+		const providerType = getDestinationProviderType(provider);
+		const connectionString =
+			providerType === "s3"
+				? `:s3,provider=${provider},access_key_id=***,secret_access_key=***,endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`
+				: `:${providerType}:${bucket}`;
 
 		await testConnection({
 			provider,
@@ -269,7 +425,10 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									<FormItem>
 										<FormLabel>Name</FormLabel>
 										<FormControl>
-											<Input placeholder={"S3 Bucket"} {...field} />
+											<Input
+												placeholder={fieldLabels.namePlaceholder}
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -285,24 +444,38 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 										<FormLabel>Provider</FormLabel>
 										<FormControl>
 											<Select
-												onValueChange={field.onChange}
+												onValueChange={handleProviderChange}
 												defaultValue={field.value}
 												value={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a S3 Provider" />
+														<SelectValue placeholder="Select a destination type" />
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
-													{S3_PROVIDERS.map((s3Provider) => (
-														<SelectItem
-															key={s3Provider.key}
-															value={s3Provider.key}
-														>
-															{s3Provider.name}
-														</SelectItem>
-													))}
+													<SelectGroup>
+														<SelectLabel>Destination Types</SelectLabel>
+														{RCLONE_DESTINATION_PROVIDERS.map((provider) => (
+															<SelectItem
+																key={provider.key}
+																value={provider.key}
+															>
+																{provider.name}
+															</SelectItem>
+														))}
+													</SelectGroup>
+													<SelectGroup>
+														<SelectLabel>S3 Compatible Providers</SelectLabel>
+														{S3_PROVIDERS.map((s3Provider) => (
+															<SelectItem
+																key={s3Provider.key}
+																value={s3Provider.key}
+															>
+																{s3Provider.name}
+															</SelectItem>
+														))}
+													</SelectGroup>
 												</SelectContent>
 											</Select>
 										</FormControl>
@@ -318,9 +491,12 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
+										<FormLabel>{fieldLabels.accessKeyLabel}</FormLabel>
 										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
+											<Input
+												placeholder={fieldLabels.accessKeyPlaceholder}
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -333,10 +509,13 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
+										<FormLabel>{fieldLabels.secretLabel}</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={"asd123asdasw"} {...field} />
+										<Input
+											placeholder={fieldLabels.secretPlaceholder}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -348,10 +527,13 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
+										<FormLabel>{fieldLabels.bucketLabel}</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
+										<Input
+											placeholder={fieldLabels.bucketPlaceholder}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -363,10 +545,13 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
+										<FormLabel>{fieldLabels.regionLabel}</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
+										<Input
+											placeholder={fieldLabels.regionPlaceholder}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -377,12 +562,21 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							name="endpoint"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
+									<FormLabel>{fieldLabels.endpointLabel}</FormLabel>
 									<FormControl>
-										<Input
-											placeholder={"https://us.bucket.aws/s3"}
-											{...field}
-										/>
+										{selectedProviderType === "drive" ||
+										selectedProviderType === "onedrive" ? (
+											<Textarea
+												className="min-h-24 font-mono text-xs"
+												placeholder={fieldLabels.endpointPlaceholder}
+												{...field}
+											/>
+										) : (
+											<Input
+												placeholder={fieldLabels.endpointPlaceholder}
+												{...field}
+											/>
+										)}
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -411,7 +605,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 											<div className="flex items-center gap-2">
 												<FormControl>
 													<Input
-														placeholder="--s3-sign-accept-encoding=false"
+														placeholder={fieldLabels.additionalFlagPlaceholder}
 														{...field}
 													/>
 												</FormControl>

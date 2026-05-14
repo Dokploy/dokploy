@@ -60,26 +60,126 @@ export const getBackupTimestamp = () =>
 	new Date().toISOString().replace(/[:.]/g, "-");
 
 export const normalizeS3Path = (prefix: string) => {
-	// Trim whitespace and remove leading/trailing slashes
-	const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");
-	// Return empty string if prefix is empty, otherwise append trailing slash
-	return normalizedPrefix ? `${normalizedPrefix}/` : "";
+	return normalizeRclonePath(prefix);
 };
 
-export const getS3Credentials = (destination: Destination) => {
+export const RCLONE_DESTINATION_PROVIDERS = [
+	"ftp",
+	"sftp",
+	"drive",
+	"onedrive",
+] as const;
+
+export type RcloneDestinationProvider =
+	| "s3"
+	| (typeof RCLONE_DESTINATION_PROVIDERS)[number];
+
+const RCLONE_PROVIDER_SET = new Set<string>(RCLONE_DESTINATION_PROVIDERS);
+
+export const shellQuote = (value: string) =>
+	`'${value.replace(/'/g, "'\\''")}'`;
+
+export const normalizeRclonePath = (
+	prefix: string,
+	options?: { preserveLeadingSlash?: boolean },
+) => {
+	const trimmed = prefix.trim();
+	const hasLeadingSlash =
+		options?.preserveLeadingSlash === true && trimmed.startsWith("/");
+	const normalizedPrefix = trimmed.replace(/^\/+|\/+$/g, "");
+	if (!normalizedPrefix) {
+		return hasLeadingSlash ? "/" : "";
+	}
+	return `${hasLeadingSlash ? "/" : ""}${normalizedPrefix}/`;
+};
+
+export const getRcloneDestinationProvider = (
+	destination: Pick<Destination, "provider">,
+): RcloneDestinationProvider => {
+	const provider = destination.provider?.trim().toLowerCase();
+	if (provider && RCLONE_PROVIDER_SET.has(provider)) {
+		return provider as RcloneDestinationProvider;
+	}
+	return "s3";
+};
+
+const joinRclonePath = (
+	basePath: string,
+	path = "",
+	options?: { preserveLeadingSlash?: boolean },
+) => {
+	const normalizedBase = normalizeRclonePath(basePath, options);
+	const normalizedPath = path.trim().replace(/^\/+/, "");
+	if (!normalizedPath) {
+		return normalizedBase === "/"
+			? normalizedBase
+			: normalizedBase.slice(0, -1);
+	}
+	return `${normalizedBase}${normalizedPath}`;
+};
+
+export const getRcloneDestination = (destination: Destination, path = "") => {
+	const provider = getRcloneDestinationProvider(destination);
+	const basePath = destination.bucket || "";
+	const remotePath = joinRclonePath(basePath, path, {
+		preserveLeadingSlash: provider === "ftp" || provider === "sftp",
+	});
+
+	return `:${provider}:${remotePath}`;
+};
+
+const getOptionalFlag = (flag: string, value?: string | null) => {
+	const trimmedValue = value?.trim();
+	return trimmedValue ? [`${flag}=${shellQuote(trimmedValue)}`] : [];
+};
+
+const getObscuredPasswordFlag = (flag: string, value: string) =>
+	`${flag}=$(rclone obscure ${shellQuote(value)})`;
+
+export const getRcloneFlags = (destination: Destination) => {
+	const providerType = getRcloneDestinationProvider(destination);
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
-	const rcloneFlags = [
-		`--s3-access-key-id="${accessKey}"`,
-		`--s3-secret-access-key="${secretAccessKey}"`,
-		`--s3-region="${region}"`,
-		`--s3-endpoint="${endpoint}"`,
-		"--s3-no-check-bucket",
-		"--s3-force-path-style",
-	];
+	let rcloneFlags: string[] = [];
 
-	if (provider) {
-		rcloneFlags.unshift(`--s3-provider="${provider}"`);
+	if (providerType === "s3") {
+		rcloneFlags = [
+			...getOptionalFlag("--s3-provider", provider),
+			`--s3-access-key-id=${shellQuote(accessKey)}`,
+			`--s3-secret-access-key=${shellQuote(secretAccessKey)}`,
+			`--s3-region=${shellQuote(region)}`,
+			`--s3-endpoint=${shellQuote(endpoint)}`,
+			"--s3-no-check-bucket",
+			"--s3-force-path-style",
+		];
+	} else if (providerType === "ftp") {
+		rcloneFlags = [
+			`--ftp-host=${shellQuote(endpoint)}`,
+			`--ftp-user=${shellQuote(accessKey)}`,
+			...getOptionalFlag("--ftp-port", region),
+			getObscuredPasswordFlag("--ftp-pass", secretAccessKey),
+		];
+	} else if (providerType === "sftp") {
+		rcloneFlags = [
+			`--sftp-host=${shellQuote(endpoint)}`,
+			`--sftp-user=${shellQuote(accessKey)}`,
+			...getOptionalFlag("--sftp-port", region),
+			getObscuredPasswordFlag("--sftp-pass", secretAccessKey),
+		];
+	} else if (providerType === "drive") {
+		rcloneFlags = [
+			...getOptionalFlag("--drive-client-id", accessKey),
+			...getOptionalFlag("--drive-client-secret", secretAccessKey),
+			`--drive-token=${shellQuote(endpoint)}`,
+			...getOptionalFlag("--drive-root-folder-id", region),
+		];
+	} else if (providerType === "onedrive") {
+		rcloneFlags = [
+			...getOptionalFlag("--onedrive-client-id", accessKey),
+			...getOptionalFlag("--onedrive-client-secret", secretAccessKey),
+			`--onedrive-token=${shellQuote(endpoint)}`,
+			...getOptionalFlag("--onedrive-drive-id", region),
+		];
 	}
 
 	if (destination.additionalFlags?.length) {
@@ -88,6 +188,17 @@ export const getS3Credentials = (destination: Destination) => {
 
 	return rcloneFlags;
 };
+
+export const getRcloneTestFlags = (destination: Destination) => [
+	...getRcloneFlags(destination),
+	"--retries 1",
+	"--low-level-retries 1",
+	"--timeout 10s",
+	"--contimeout 5s",
+];
+
+export const getS3Credentials = (destination: Destination) =>
+	getRcloneFlags(destination);
 
 export const getPostgresBackupCommand = (
 	database: string,
@@ -289,16 +400,16 @@ export const getBackupCommand = (
 	}
 
 	echo "[$(date)] ✅ backup completed successfully" >> ${logPath};
-	echo "[$(date)] Starting upload to S3..." >> ${logPath};
+	echo "[$(date)] Starting upload to backup destination..." >> ${logPath};
 
 	# Run the upload command and capture the exit status
 	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
+		echo "[$(date)] ❌ Error: Upload to backup destination failed" >> ${logPath};
 		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
 		exit 1;
 	}
 
-	echo "[$(date)] ✅ Upload to S3 completed successfully" >> ${logPath};
+	echo "[$(date)] ✅ Upload to backup destination completed successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };

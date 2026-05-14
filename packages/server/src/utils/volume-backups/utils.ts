@@ -10,7 +10,12 @@ import {
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { scheduledJobs, scheduleJob } from "node-schedule";
-import { getS3Credentials, normalizeS3Path } from "../backups/utils";
+import {
+	getRcloneDestination,
+	getRcloneFlags,
+	normalizeS3Path,
+	shellQuote,
+} from "../backups/utils";
 import { sendVolumeBackupNotifications } from "../notifications/volume-backup";
 import { backupVolume, getVolumeServiceAppName } from "./backup";
 
@@ -61,6 +66,9 @@ const getOrganizationId = (
 	return "";
 };
 
+const escapeRcloneGlob = (value: string) =>
+	value.replace(/([\\[\]{}?*])/g, "\\$1");
+
 export const scheduleVolumeBackup = async (volumeBackupId: string) => {
 	const volumeBackup = await findVolumeBackupById(volumeBackupId);
 	scheduleJob(volumeBackupId, volumeBackup.cronExpression, async () => {
@@ -82,12 +90,16 @@ const cleanupOldVolumeBackups = async (
 	if (!keepLatestCount) return;
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
+		const rcloneFlags = getRcloneFlags(destination);
 		const s3AppName = getVolumeServiceAppName(volumeBackup);
-		const backupFilesPath = `:s3:${destination.bucket}/${s3AppName}/${normalizeS3Path(prefix || "")}`;
-		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include \"${volumeName}-*.tar\" ${backupFilesPath}`;
+		const backupFilesPath = getRcloneDestination(
+			destination,
+			`${s3AppName}/${normalizeS3Path(prefix || "")}`,
+		);
+		const includePattern = `${escapeRcloneGlob(volumeName)}-*.tar`;
+		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include ${shellQuote(includePattern)} ${shellQuote(backupFilesPath)}`;
 		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
-		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
+		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} ${shellQuote(`${backupFilesPath}{}`)}`;
 		const fullCommand = `${listCommand} | ${sortAndPick} ${deleteCommand}`;
 
 		if (serverId) {
