@@ -83,8 +83,10 @@ const cleanupOldVolumeBackups = async (
 
 	try {
 		const rcloneFlags = getS3Credentials(destination);
-		const s3AppName = getVolumeServiceAppName(volumeBackup);
-		const backupFilesPath = `:s3:${destination.bucket}/${s3AppName}/${normalizeS3Path(prefix || "")}`;
+		const effectivePrefix = prefix
+			? normalizeS3Path(prefix)
+			: `${getVolumeServiceAppName(volumeBackup)}/`;
+		const backupFilesPath = `:s3:${destination.bucket}/${effectivePrefix}`;
 		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include \"${volumeName}-*.tar\" ${backupFilesPath}`;
 		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
 		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;

@@ -16,13 +16,13 @@ import {
 } from "./utils";
 
 export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
-	const { environmentId, name, appName } = mongo;
+	const { environmentId, name } = mongo;
 	const environment = await findEnvironmentById(environmentId);
 	const project = await findProjectById(environment.projectId);
 	const { prefix } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${getBackupTimestamp()}.bson.gz`;
-	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
+	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
 		title: "MongoDB Backup",
