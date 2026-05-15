@@ -325,6 +325,94 @@ export const getGiteaRepositories = async (giteaId?: string) => {
 	);
 };
 
+interface CreateGiteaWebhookInput {
+	giteaId: string;
+	owner: string;
+	repository: string;
+	refreshToken: string;
+	type: "application" | "compose";
+	dokployUrl: string;
+}
+
+export const createGiteaWebhook = async (input: CreateGiteaWebhookInput) => {
+	const { giteaId, owner, repository, refreshToken, type, dokployUrl } = input;
+
+	await refreshGiteaToken(giteaId);
+	const giteaProvider = await findGiteaById(giteaId);
+
+	if (!giteaProvider?.accessToken) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "No Gitea access token available",
+		});
+	}
+
+	const baseUrl = (giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl).replace(
+		/\/+$/,
+		"",
+	);
+
+	const deployPath =
+		type === "compose"
+			? `/api/deploy/compose/${refreshToken}`
+			: `/api/deploy/${refreshToken}`;
+	const webhookUrl = `${dokployUrl}${deployPath}`;
+
+	// Check if a webhook to this Dokploy instance already exists
+	const listResponse = await fetch(
+		`${baseUrl}/api/v1/repos/${owner}/${repository}/hooks`,
+		{
+			headers: {
+				Accept: "application/json",
+				Authorization: `token ${giteaProvider.accessToken}`,
+			},
+		},
+	);
+
+	if (listResponse.ok) {
+		const existingHooks: Array<{ config?: { url?: string } }> =
+			await listResponse.json();
+		const alreadyExists = existingHooks.some(
+			(h) => h.config?.url?.includes(deployPath),
+		);
+		if (alreadyExists) {
+			return;
+		}
+	}
+
+	const response = await fetch(
+		`${baseUrl}/api/v1/repos/${owner}/${repository}/hooks`,
+		{
+			method: "POST",
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `token ${giteaProvider.accessToken}`,
+			},
+			body: JSON.stringify({
+				active: true,
+				config: {
+					content_type: "json",
+					url: webhookUrl,
+				},
+				events: ["push"],
+				type: "gitea",
+			}),
+		},
+	);
+
+	if (!response.ok) {
+		const errorText = await response.text();
+		console.error(
+			`Failed to create Gitea webhook: ${response.status} ${errorText}`,
+		);
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Failed to create Gitea webhook: ${response.status} ${response.statusText}`,
+		});
+	}
+};
+
 export const getGiteaBranches = async (input: {
 	giteaId?: string;
 	owner: string;

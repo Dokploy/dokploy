@@ -77,6 +77,7 @@ import {
 	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
+import { createGiteaWebhook } from "@dokploy/server/utils/providers/gitea";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { audit } from "../utils/audit";
@@ -195,6 +196,23 @@ export const composeRouter = createTRPCRouter({
 				service: ["create"],
 			});
 			const updated = await updateCompose(input.composeId, input);
+			if (input.sourceType === "gitea" && updated?.refreshToken && input.giteaId) {
+				try {
+					const protocol =
+						ctx.req.headers["x-forwarded-proto"] || "https";
+					const dokployUrl = `${protocol}://${ctx.req.headers.host}`;
+					await createGiteaWebhook({
+						giteaId: input.giteaId,
+						owner: input.giteaOwner || "",
+						repository: input.giteaRepository || "",
+						refreshToken: updated.refreshToken,
+						type: "compose",
+						dokployUrl,
+					});
+				} catch (error) {
+					console.error("Failed to create Gitea webhook:", error);
+				}
+			}
 			await audit(ctx, {
 				action: "update",
 				resourceType: "compose",

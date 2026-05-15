@@ -76,6 +76,7 @@ import {
 	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
+import { createGiteaWebhook } from "@dokploy/server/utils/providers/gitea";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -512,6 +513,23 @@ export const applicationRouter = createTRPCRouter({
 				enableSubmodules: input.enableSubmodules,
 			});
 			const application = await findApplicationById(input.applicationId);
+			if (application?.refreshToken && input.giteaId) {
+				try {
+					const protocol =
+						ctx.req.headers["x-forwarded-proto"] || "https";
+					const dokployUrl = `${protocol}://${ctx.req.headers.host}`;
+					await createGiteaWebhook({
+						giteaId: input.giteaId,
+						owner: input.giteaOwner,
+						repository: input.giteaRepository,
+						refreshToken: application.refreshToken,
+						type: "application",
+						dokployUrl,
+					});
+				} catch (error) {
+					console.error("Failed to create Gitea webhook:", error);
+				}
+			}
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
