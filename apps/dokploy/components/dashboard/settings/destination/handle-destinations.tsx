@@ -39,28 +39,60 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { S3_PROVIDERS } from "./constants";
+import { CUSTOM_PROVIDER_KEY, S3_PROVIDERS } from "./constants";
 
-const addDestination = z.object({
-	name: z.string().min(1, "Name is required"),
-	provider: z.string().min(1, "Provider is required"),
-	accessKeyId: z.string().min(1, "Access Key Id is required"),
-	secretAccessKey: z.string().min(1, "Secret Access Key is required"),
-	bucket: z.string().min(1, "Bucket is required"),
-	region: z.string(),
-	endpoint: z.string().min(1, "Endpoint is required"),
-	serverId: z.string().optional(),
-	additionalFlags: z
-		.array(
-			z.object({
-				value: z
-					.string()
-					.min(1, "Flag cannot be empty")
-					.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR),
-			}),
-		)
-		.optional(),
-});
+const addDestination = z
+	.object({
+		name: z.string().min(1, "Name is required"),
+		provider: z.string().min(1, "Provider is required"),
+		accessKeyId: z.string(),
+		secretAccessKey: z.string(),
+		bucket: z.string(),
+		region: z.string(),
+		endpoint: z.string(),
+		serverId: z.string().optional(),
+		additionalFlags: z
+			.array(
+				z.object({
+					value: z
+						.string()
+						.min(1, "Flag cannot be empty")
+						.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR),
+				}),
+			)
+			.optional(),
+	})
+	.superRefine((value, ctx) => {
+		if (value.provider === CUSTOM_PROVIDER_KEY) {
+			if (!value.endpoint || value.endpoint.trim().length === 0) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["endpoint"],
+					message:
+						"Connection string is required (e.g. :sftp,host=foo,user=bar:)",
+				});
+			}
+			return;
+		}
+		const required: Array<{
+			key: "accessKeyId" | "secretAccessKey" | "bucket" | "endpoint";
+			label: string;
+		}> = [
+			{ key: "accessKeyId", label: "Access Key Id" },
+			{ key: "secretAccessKey", label: "Secret Access Key" },
+			{ key: "bucket", label: "Bucket" },
+			{ key: "endpoint", label: "Endpoint" },
+		];
+		for (const { key, label } of required) {
+			if (!value[key] || value[key].trim().length === 0) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: [key],
+					message: `${label} is required`,
+				});
+			}
+		}
+	});
 
 type AddDestination = z.infer<typeof addDestination>;
 
@@ -113,6 +145,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		name: "additionalFlags",
 	});
 
+	const provider = form.watch("provider");
+	const isCustomProvider = provider === CUSTOM_PROVIDER_KEY;
+
 	useEffect(() => {
 		if (destination) {
 			form.reset({
@@ -162,14 +197,24 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 	};
 
 	const handleTestConnection = async (serverId?: string) => {
-		const result = await form.trigger([
-			"provider",
-			"accessKeyId",
-			"secretAccessKey",
-			"bucket",
-			"endpoint",
-			"additionalFlags",
-		]);
+		const fieldsToTrigger: Array<
+			| "provider"
+			| "accessKeyId"
+			| "secretAccessKey"
+			| "bucket"
+			| "endpoint"
+			| "additionalFlags"
+		> = isCustomProvider
+			? ["provider", "endpoint", "additionalFlags"]
+			: [
+					"provider",
+					"accessKeyId",
+					"secretAccessKey",
+					"bucket",
+					"endpoint",
+					"additionalFlags",
+				];
+		const result = await form.trigger(fieldsToTrigger);
 
 		if (!result) {
 			const errors = form.formState.errors;
@@ -196,7 +241,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		const endpoint = form.getValues("endpoint");
 		const region = form.getValues("region");
 
-		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
+		const connectionString = isCustomProvider
+			? `${endpoint}${(bucket || "").replace(/^\/+/, "")}`
+			: `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
 
 		await testConnection({
 			provider,
@@ -312,82 +359,137 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							}}
 						/>
 
-						<FormField
-							control={form.control}
-							name="accessKeyId"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
-										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
-						<FormField
-							control={form.control}
-							name="secretAccessKey"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"asd123asdasw"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="bucket"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="region"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="endpoint"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
-									<FormControl>
-										<Input
-											placeholder={"https://us.bucket.aws/s3"}
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{isCustomProvider ? (
+							<>
+								<FormField
+									control={form.control}
+									name="endpoint"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Rclone Connection String</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={
+														":sftp,host=example.com,user=foo,pass=$(rclone obscure bar):"
+													}
+													{...field}
+												/>
+											</FormControl>
+											<p className="text-xs text-muted-foreground">
+												Full rclone connection string for any backend (FTP,
+												SFTP, Google Drive, Dropbox, OneDrive, etc.). See{" "}
+												<a
+													href="https://rclone.org/docs/#connection-strings"
+													target="_blank"
+													rel="noreferrer"
+													className="underline"
+												>
+													rclone docs
+												</a>
+												. Must end with a colon.
+											</p>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="bucket"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Path / Folder (Optional)</FormLabel>
+											<FormControl>
+												<Input placeholder={"backups"} {...field} />
+											</FormControl>
+											<p className="text-xs text-muted-foreground">
+												Optional folder on the remote where backups will be
+												stored.
+											</p>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						) : (
+							<>
+								<FormField
+									control={form.control}
+									name="accessKeyId"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Access Key Id</FormLabel>
+												<FormControl>
+													<Input placeholder={"xcas41dasde"} {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+								<FormField
+									control={form.control}
+									name="secretAccessKey"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Secret Access Key</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"asd123asdasw"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="bucket"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Bucket</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"dokploy-bucket"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="region"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Region</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"us-east-1"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="endpoint"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Endpoint</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={"https://us.bucket.aws/s3"}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
 						<div className="flex flex-col gap-2">
 							<div className="flex items-center justify-between">
 								<FormLabel>Additional Flags (Optional)</FormLabel>

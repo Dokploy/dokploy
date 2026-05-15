@@ -66,7 +66,19 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
+export const isCustomProvider = (destination: Pick<Destination, "provider">) =>
+	destination.provider === "Custom";
+
 export const getS3Credentials = (destination: Destination) => {
+	// In Custom mode the user supplies a full rclone connection string in the
+	// `endpoint` field (e.g. `:sftp,host=foo,user=bar:`), so the S3 backend
+	// flags are not applicable — only forward the additional flags.
+	if (isCustomProvider(destination)) {
+		return destination.additionalFlags?.length
+			? [...destination.additionalFlags]
+			: [];
+	}
+
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [
@@ -87,6 +99,22 @@ export const getS3Credentials = (destination: Destination) => {
 	}
 
 	return rcloneFlags;
+};
+
+// Returns the rclone path prefix up to (but not including) the trailing slash
+// for the destination. For S3 it produces `:s3:my-bucket`. For the Custom
+// provider it concatenates the user-supplied connection string (stored in
+// `endpoint`, e.g. `:sftp,host=foo,user=bar:`) with the optional `bucket`
+// field, which is treated as a path/folder prefix on the remote.
+export const getRcloneBucketPath = (destination: Destination) => {
+	if (isCustomProvider(destination)) {
+		const remote = destination.endpoint || "";
+		const bucket = destination.bucket
+			? destination.bucket.replace(/^\/+/, "")
+			: "";
+		return `${remote}${bucket}`;
+	}
+	return `:s3:${destination.bucket}`;
 };
 
 export const getPostgresBackupCommand = (

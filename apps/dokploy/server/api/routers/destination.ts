@@ -57,26 +57,38 @@ export const destinationRouter = createTRPCRouter({
 				additionalFlags,
 			} = input;
 			try {
-				const rcloneFlags = [
-					`--s3-access-key-id="${accessKey}"`,
-					`--s3-secret-access-key="${secretAccessKey}"`,
-					`--s3-region="${region}"`,
-					`--s3-endpoint="${endpoint}"`,
-					"--s3-no-check-bucket",
-					"--s3-force-path-style",
-					"--retries 1",
-					"--low-level-retries 1",
-					"--timeout 10s",
-					"--contimeout 5s",
-				];
-				if (provider) {
+				const isCustom = provider === "Custom";
+				const rcloneFlags = isCustom
+					? [
+							"--retries 1",
+							"--low-level-retries 1",
+							"--timeout 10s",
+							"--contimeout 5s",
+						]
+					: [
+							`--s3-access-key-id="${accessKey}"`,
+							`--s3-secret-access-key="${secretAccessKey}"`,
+							`--s3-region="${region}"`,
+							`--s3-endpoint="${endpoint}"`,
+							"--s3-no-check-bucket",
+							"--s3-force-path-style",
+							"--retries 1",
+							"--low-level-retries 1",
+							"--timeout 10s",
+							"--contimeout 5s",
+						];
+				if (!isCustom && provider) {
 					rcloneFlags.unshift(`--s3-provider="${provider}"`);
 				}
 				if (additionalFlags?.length) {
 					rcloneFlags.push(...additionalFlags);
 				}
-				const rcloneDestination = `:s3:${bucket}`;
-				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+				const rcloneDestination = isCustom
+					? `${endpoint || ""}${(bucket || "").replace(/^\/+/, "")}`
+					: `:s3:${bucket}`;
+				const rcloneCommand = isCustom
+					? `rclone lsd ${rcloneFlags.join(" ")} "${rcloneDestination}"`
+					: `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({

@@ -1,7 +1,13 @@
+export const CUSTOM_PROVIDER_KEY = "Custom";
+
 export const S3_PROVIDERS: Array<{
 	key: string;
 	name: string;
 }> = [
+	{
+		key: CUSTOM_PROVIDER_KEY,
+		name: "Custom (rclone connection string — FTP/SFTP/Google Drive/etc.)",
+	},
 	{
 		key: "AWS",
 		name: "Amazon Web Services (AWS) S3",

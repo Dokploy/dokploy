@@ -11,6 +11,7 @@ import { execAsync, execAsyncRemote } from "../process/execAsync";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
+	getRcloneBucketPath,
 	getS3Credentials,
 	normalizeS3Path,
 } from "./utils";
@@ -35,7 +36,7 @@ export const runComposeBackup = async (
 
 	try {
 		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+		const rcloneDestination = `${getRcloneBucketPath(destination)}/${bucketDestination}`;
 		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 
 		const backupCommand = getBackupCommand(

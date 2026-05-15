@@ -54,6 +54,50 @@ const createSchema = createInsertSchema(destinations, {
 		.default([]),
 });
 
+// In Custom mode the user supplies a raw rclone connection string in the
+// `endpoint` field (e.g. `:sftp,host=foo,user=bar,pass=baz:`) and only the
+// endpoint is required — the S3-specific fields (accessKey, secretAccessKey,
+// region, bucket) are unused and may be empty.
+type DestinationRefineInput = {
+	provider?: string | null;
+	endpoint?: string;
+	accessKey?: string;
+	secretAccessKey?: string;
+	bucket?: string;
+};
+
+const requireFieldsForProvider = (
+	value: DestinationRefineInput,
+	ctx: z.RefinementCtx,
+) => {
+	if (value.provider === "Custom") {
+		if (!value.endpoint || value.endpoint.trim().length === 0) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["endpoint"],
+				message:
+					"Connection string is required (e.g. :sftp,host=foo,user=bar:)",
+			});
+		}
+		return;
+	}
+	for (const field of [
+		"accessKey",
+		"secretAccessKey",
+		"bucket",
+		"endpoint",
+	] as const) {
+		const fieldValue = value[field];
+		if (!fieldValue || fieldValue.trim().length === 0) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: [field],
+				message: `${field} is required`,
+			});
+		}
+	}
+};
+
 export const apiCreateDestination = createSchema
 	.pick({
 		name: true,
@@ -68,7 +112,8 @@ export const apiCreateDestination = createSchema
 	.required()
 	.extend({
 		serverId: z.string().optional(),
-	});
+	})
+	.superRefine(requireFieldsForProvider);
 
 export const apiFindOneDestination = z.object({
 	destinationId: z.string().min(1),
@@ -95,4 +140,5 @@ export const apiUpdateDestination = createSchema
 	.required()
 	.extend({
 		serverId: z.string().optional(),
-	});
+	})
+	.superRefine(requireFieldsForProvider);
