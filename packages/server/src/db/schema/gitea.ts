@@ -21,7 +21,7 @@ export const gitea = pgTable("gitea", {
 	accessToken: text("access_token"),
 	refreshToken: text("refresh_token"),
 	expiresAt: integer("expires_at"),
-	scopes: text("scopes").default("repo,repo:status,read:user,read:org"),
+	scopes: text("scopes").default("repo,repo:status,read:user,read:org,write:repository"),
 	lastAuthenticatedAt: integer("last_authenticated_at"),
 });
 
