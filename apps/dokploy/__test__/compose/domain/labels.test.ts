@@ -23,6 +23,7 @@ describe("createDomainLabels", () => {
 		internalPath: "/",
 		stripPath: false,
 		middlewares: null,
+		accessRules: [],
 	};
 
 	it("should create basic labels for web entrypoint", async () => {
@@ -496,5 +497,31 @@ describe("createDomainLabels", () => {
 		const middlewareLabel = labels.find((l) => l.includes(".middlewares="));
 		// Should not contain redirect-to-https since there's only one router
 		expect(middlewareLabel).toBeUndefined();
+	});
+
+	it("should add router priority when access rules exist", async () => {
+		const labels = await createDomainLabels(appName, baseDomain, "web", {
+			hasAccessRules: true,
+		});
+
+		expect(labels).toContain("traefik.http.routers.test-app-1-web.priority=1");
+	});
+
+	it("should add access rule middlewares and priority", async () => {
+		const labels = await createDomainLabels(appName, baseDomain, "websecure", {
+			additionalRule: "Path(`/redirect`)",
+			additionalMiddlewares: ["rule-auth", "rule-ipallow"],
+			priority: 220,
+		});
+
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-websecure.rule=Host(`example.com`) && (Path(`/redirect`))",
+		);
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-websecure.middlewares=rule-auth,rule-ipallow",
+		);
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-websecure.priority=220",
+		);
 	});
 });

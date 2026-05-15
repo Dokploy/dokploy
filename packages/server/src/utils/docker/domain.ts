@@ -11,6 +11,11 @@ import { cloneGiteaRepository } from "../providers/gitea";
 import { cloneGithubRepository } from "../providers/github";
 import { cloneGitlabRepository } from "../providers/gitlab";
 import { getCreateComposeFileCommand } from "../providers/raw";
+import {
+	buildAccessRuleMatches,
+	createComposeAccessRuleMiddlewareLabels,
+	getAccessRuleRouterName,
+} from "../traefik/access-rules";
 import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
 import type {
@@ -163,6 +168,10 @@ export const addDomainToCompose = async (
 
 	for (const domain of domains) {
 		const { serviceName, https } = domain;
+		const { matches, middlewareDefinitions } = await buildAccessRuleMatches(
+			appName,
+			domain,
+		);
 		if (!serviceName) {
 			throw new Error(`Domain "${domain.host}" is missing a service name`);
 		}
@@ -176,11 +185,54 @@ export const addDomainToCompose = async (
 			appName,
 			domain,
 			domain.customEntrypoint || "web",
+			{
+				hasAccessRules: matches.length > 0,
+			},
 		);
+		for (const [index, match] of matches.entries()) {
+			httpLabels.push(
+				...createDomainLabels(
+					appName,
+					domain,
+					domain.customEntrypoint || "web",
+					{
+						routerNameOverride: getAccessRuleRouterName(
+							appName,
+							domain.uniqueConfigKey,
+							domain.customEntrypoint || "web",
+							index,
+						),
+						additionalRule: match.rule,
+						additionalMiddlewares: match.middlewares,
+						priority: match.priority,
+					},
+				),
+			);
+		}
 		if (!domain.customEntrypoint && https) {
-			const httpsLabels = createDomainLabels(appName, domain, "websecure");
+			const httpsLabels = createDomainLabels(appName, domain, "websecure", {
+				hasAccessRules: matches.length > 0,
+			});
+			for (const [index, match] of matches.entries()) {
+				httpsLabels.push(
+					...createDomainLabels(appName, domain, "websecure", {
+						routerNameOverride: getAccessRuleRouterName(
+							appName,
+							domain.uniqueConfigKey,
+							"websecure",
+							index,
+						),
+						additionalRule: match.rule,
+						additionalMiddlewares: match.middlewares,
+						priority: match.priority,
+					}),
+				);
+			}
 			httpLabels.push(...httpsLabels);
 		}
+		httpLabels.push(
+			...createComposeAccessRuleMiddlewareLabels(middlewareDefinitions),
+		);
 
 		let labels: DefinitionsService["labels"] = [];
 		if (compose.composeType === "docker-compose") {
@@ -256,6 +308,24 @@ export const createDomainLabels = (
 	appName: string,
 	domain: Domain,
 	entrypoint: string,
+	options?: CreateDomainLabelOptions,
+) => {
+	return createDomainLabelsWithOptions(appName, domain, entrypoint, options);
+};
+
+type CreateDomainLabelOptions = {
+	routerNameOverride?: string;
+	additionalRule?: string;
+	additionalMiddlewares?: string[];
+	priority?: number;
+	hasAccessRules?: boolean;
+};
+
+const createDomainLabelsWithOptions = (
+	appName: string,
+	domain: Domain,
+	entrypoint: string,
+	options?: CreateDomainLabelOptions,
 ) => {
 	const {
 		host,
@@ -269,13 +339,27 @@ export const createDomainLabels = (
 		stripPath,
 		internalPath,
 	} = domain;
-	const routerName = `${appName}-${uniqueConfigKey}-${entrypoint}`;
+	const routerName =
+		options?.routerNameOverride ||
+		`${appName}-${uniqueConfigKey}-${entrypoint}`;
+	const baseRule = `Host(\`${host}\`)${path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`;
+	const fullRule = options?.additionalRule
+		? `${baseRule} && (${options.additionalRule})`
+		: baseRule;
 	const labels = [
-		`traefik.http.routers.${routerName}.rule=Host(\`${host}\`)${path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
+		`traefik.http.routers.${routerName}.rule=${fullRule}`,
 		`traefik.http.routers.${routerName}.entrypoints=${entrypoint}`,
 		`traefik.http.services.${routerName}.loadbalancer.server.port=${port}`,
 		`traefik.http.routers.${routerName}.service=${routerName}`,
 	];
+
+	if (options?.priority) {
+		labels.push(
+			`traefik.http.routers.${routerName}.priority=${options.priority}`,
+		);
+	} else if (options?.hasAccessRules) {
+		labels.push(`traefik.http.routers.${routerName}.priority=1`);
+	}
 
 	// Collect middlewares for this router
 	const middlewares: string[] = [];
@@ -313,6 +397,10 @@ export const createDomainLabels = (
 		if (!isRedirectRouter) {
 			middlewares.push(middlewareName);
 		}
+	}
+
+	if (!isRedirectRouter && options?.additionalMiddlewares?.length) {
+		middlewares.push(...options.additionalMiddlewares);
 	}
 
 	// Add custom middlewares (skip for redirect-only router)

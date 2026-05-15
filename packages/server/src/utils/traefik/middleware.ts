@@ -5,6 +5,11 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { parse, stringify } from "yaml";
 import type { ApplicationNested } from "../builders";
 import { execAsyncRemote } from "../process/execAsync";
+import {
+	attachAccessRuleMiddlewaresToConfig,
+	buildAccessRuleMatches,
+	removeAccessRuleMiddlewaresFromConfig,
+} from "./access-rules";
 import { writeTraefikConfigRemote } from "./application";
 import type { FileConfig } from "./file-types";
 
@@ -66,6 +71,16 @@ export const deleteAllMiddlewares = async (application: ApplicationNested) => {
 			const middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
 			delete config.http.middlewares[middlewareName];
 		}
+
+		for (const middlewareName of Object.keys(config.http.middlewares)) {
+			if (
+				middlewareName.startsWith(`addprefix-${appName}-`) ||
+				middlewareName.startsWith(`stripprefix-${appName}-`) ||
+				middlewareName.startsWith(`access-${appName}-`)
+			) {
+				delete config.http.middlewares[middlewareName];
+			}
+		}
 	}
 
 	if (serverId) {
@@ -119,13 +134,23 @@ export const createPathMiddlewares = async (
 ) => {
 	const { appName } = app;
 	const { uniqueConfigKey, internalPath, stripPath, path } = domain;
+	const { middlewareDefinitions } = await buildAccessRuleMatches(
+		appName,
+		domain,
+	);
 
 	// Early return if there's no path middleware to create
 	const needsInternalPathMiddleware =
 		internalPath && internalPath !== "/" && internalPath !== path;
 	const needsStripPathMiddleware = stripPath && path && path !== "/";
+	const hasAccessRuleMiddlewares =
+		Object.keys(middlewareDefinitions).length > 0;
 
-	if (!needsInternalPathMiddleware && !needsStripPathMiddleware) {
+	if (
+		!needsInternalPathMiddleware &&
+		!needsStripPathMiddleware &&
+		!hasAccessRuleMiddlewares
+	) {
 		return;
 	}
 
@@ -154,10 +179,16 @@ export const createPathMiddlewares = async (
 		config.http!.middlewares = {};
 	}
 
+	const addPrefixMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
+	const stripPrefixMiddleware = `stripprefix-${appName}-${uniqueConfigKey}`;
+
+	delete config.http!.middlewares![addPrefixMiddleware];
+	delete config.http!.middlewares![stripPrefixMiddleware];
+	removeAccessRuleMiddlewaresFromConfig(config, appName, uniqueConfigKey);
+
 	// Add internal path prefix middleware
 	if (internalPath && internalPath !== "/" && internalPath !== path) {
-		const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
-		config.http!.middlewares[middlewareName] = {
+		config.http!.middlewares[addPrefixMiddleware] = {
 			addPrefix: {
 				prefix: internalPath,
 			},
@@ -166,13 +197,14 @@ export const createPathMiddlewares = async (
 
 	// Strip external path middleware if needed
 	if (stripPath && path && path !== "/") {
-		const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
-		config.http!.middlewares[middlewareName] = {
+		config.http!.middlewares[stripPrefixMiddleware] = {
 			stripPrefix: {
 				prefixes: [path],
 			},
 		};
 	}
+
+	attachAccessRuleMiddlewaresToConfig(config, middlewareDefinitions);
 
 	if (app.serverId) {
 		await writeTraefikConfigRemote(config, "middlewares", app.serverId);
@@ -213,6 +245,7 @@ export const removePathMiddlewares = async (
 
 		delete config.http.middlewares[addPrefixMiddleware];
 		delete config.http.middlewares[stripPrefixMiddleware];
+		removeAccessRuleMiddlewaresFromConfig(config, appName, uniqueConfigKey);
 	}
 
 	if (
