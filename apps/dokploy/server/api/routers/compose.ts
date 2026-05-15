@@ -196,15 +196,21 @@ export const composeRouter = createTRPCRouter({
 				service: ["create"],
 			});
 			const updated = await updateCompose(input.composeId, input);
-			if (input.sourceType === "gitea" && updated?.refreshToken && input.giteaId) {
+			if (
+				input.sourceType === "gitea" &&
+				updated?.refreshToken &&
+				input.giteaId &&
+				input.giteaOwner &&
+				input.giteaRepository
+			) {
 				try {
 					const protocol =
 						ctx.req.headers["x-forwarded-proto"] || "https";
 					const dokployUrl = `${protocol}://${ctx.req.headers.host}`;
 					await createGiteaWebhook({
 						giteaId: input.giteaId,
-						owner: input.giteaOwner || "",
-						repository: input.giteaRepository || "",
+						owner: input.giteaOwner,
+						repository: input.giteaRepository,
 						refreshToken: updated.refreshToken,
 						type: "compose",
 						dokployUrl,
