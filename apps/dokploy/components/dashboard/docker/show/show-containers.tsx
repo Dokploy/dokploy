@@ -35,7 +35,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api, type RouterOutputs } from "@/utils/api";
-import { columns } from "./colums";
+import { columns } from "./columns";
 export type Container = NonNullable<
 	RouterOutputs["docker"]["getContainers"]
 >[0];

@@ -85,6 +85,11 @@ export const setupDockerContainerLogsWebSocketServer = (
 			if (serverId) {
 				const server = await findServerById(serverId);
 
+				if (server.organizationId !== session.activeOrganizationId) {
+					ws.close();
+					return;
+				}
+
 				if (!server.sshKeyId) return;
 				const client = new Client();
 				client

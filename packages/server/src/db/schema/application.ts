@@ -1,3 +1,4 @@
+import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { relations } from "drizzle-orm";
 import {
 	bigint,
@@ -115,6 +116,7 @@ export const applications = pgTable("application", {
 	subtitle: text("subtitle"),
 	command: text("command"),
 	args: text("args").array(),
+	icon: text("icon"),
 	refreshToken: text("refreshToken").$defaultFn(() => nanoid()),
 	sourceType: sourceType("sourceType").notNull().default("github"),
 	cleanCache: boolean("cleanCache").default(false),
@@ -173,7 +175,7 @@ export const applications = pgTable("application", {
 	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
-	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "number" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
 	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
 	//
@@ -368,10 +370,15 @@ const createSchema = createInsertSchema(applications, {
 	watchPaths: z.array(z.string()).optional().optional(),
 	previewLabels: z.array(z.string()).optional(),
 	cleanCache: z.boolean().optional(),
-	stopGracePeriodSwarm: z.bigint().nullable(),
+	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 	enableSubmodules: z.boolean().optional(),
+	icon: z
+		.string()
+		.max(2 * 1024 * 1024, "Icon must be less than 2MB")
+		.nullable()
+		.optional(),
 });
 
 export const apiCreateApplication = createSchema.pick({
@@ -426,17 +433,22 @@ export const apiSaveBuildType = createSchema
 	.required()
 	.merge(createSchema.pick({ publishDirectory: true, isStaticSpa: true }));
 
+const branchField = z
+	.string()
+	.min(1)
+	.regex(VALID_BRANCH_REGEX, "Invalid branch name");
+
 export const apiSaveGithubProvider = createSchema
 	.pick({
 		applicationId: true,
 		repository: true,
-		branch: true,
 		owner: true,
 		buildPath: true,
 		githubId: true,
 	})
 	.required()
 	.extend({
+		branch: branchField,
 		triggerType: z.enum(["push", "tag"]).default("push"),
 	})
 	.required()
@@ -445,7 +457,6 @@ export const apiSaveGithubProvider = createSchema
 export const apiSaveGitlabProvider = createSchema
 	.pick({
 		applicationId: true,
-		gitlabBranch: true,
 		gitlabBuildPath: true,
 		gitlabOwner: true,
 		gitlabRepository: true,
@@ -454,11 +465,11 @@ export const apiSaveGitlabProvider = createSchema
 		gitlabPathNamespace: true,
 	})
 	.required()
+	.extend({ gitlabBranch: branchField })
 	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
 
 export const apiSaveBitbucketProvider = createSchema
 	.pick({
-		bitbucketBranch: true,
 		bitbucketBuildPath: true,
 		bitbucketOwner: true,
 		bitbucketRepository: true,
@@ -467,18 +478,19 @@ export const apiSaveBitbucketProvider = createSchema
 		applicationId: true,
 	})
 	.required()
+	.extend({ bitbucketBranch: branchField })
 	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
 
 export const apiSaveGiteaProvider = createSchema
 	.pick({
 		applicationId: true,
-		giteaBranch: true,
 		giteaBuildPath: true,
 		giteaOwner: true,
 		giteaRepository: true,
 		giteaId: true,
 	})
 	.required()
+	.extend({ giteaBranch: branchField })
 	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
 
 export const apiSaveDockerProvider = createSchema
@@ -493,7 +505,6 @@ export const apiSaveDockerProvider = createSchema
 
 export const apiSaveGitProvider = createSchema
 	.pick({
-		customGitBranch: true,
 		applicationId: true,
 		customGitBuildPath: true,
 		customGitUrl: true,
@@ -501,6 +512,7 @@ export const apiSaveGitProvider = createSchema
 		enableSubmodules: true,
 	})
 	.required()
+	.extend({ customGitBranch: branchField })
 	.merge(
 		createSchema.pick({
 			customGitSSHKeyId: true,

@@ -5,8 +5,8 @@ import { findGithubById, type Github } from "@dokploy/server/services/github";
 import type { InferResultType } from "@dokploy/server/types/with";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
-import type { z } from "zod";
 import { Octokit } from "octokit";
+import type { z } from "zod";
 
 export const authGithub = (githubProvider: Github): Octokit => {
 	if (!haveGithubRequirements(githubProvider)) {

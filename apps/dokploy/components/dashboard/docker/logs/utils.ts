@@ -74,6 +74,18 @@ export function parseLogs(logString: string): LogLine[] {
 
 // Detect log type based on message content
 export const getLogType = (message: string): LogStyle => {
+	// Detect HTTP statusCode
+	const statusMatch = message.match(/"statusCode"\s*:\s*"?(\d{3})"?/);
+
+	if (statusMatch) {
+		const statusCode = Number(statusMatch[1]);
+
+		if (statusCode >= 500) return LOG_STYLES.error;
+		if (statusCode >= 400) return LOG_STYLES.warning;
+		if (statusCode >= 200 && statusCode < 300) return LOG_STYLES.success;
+		return LOG_STYLES.info;
+	}
+
 	const lowerMessage = message.toLowerCase();
 
 	if (

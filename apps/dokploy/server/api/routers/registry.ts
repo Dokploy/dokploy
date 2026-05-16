@@ -10,6 +10,7 @@ import {
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateRegistry,
 	apiFindOneRegistry,
@@ -19,7 +20,6 @@ import {
 	apiUpdateRegistry,
 	registry,
 } from "@/server/db/schema";
-import { audit } from "@/server/api/utils/audit";
 import { createTRPCRouter, withPermission } from "../trpc";
 export const registryRouter = createTRPCRouter({
 	create: withPermission("registry", "create")

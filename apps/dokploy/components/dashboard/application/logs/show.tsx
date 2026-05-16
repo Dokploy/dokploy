@@ -91,7 +91,7 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 	}, [option, services, containers]);
 
 	const isLoading = option === "native" ? containersLoading : servicesLoading;
-	const containersLenght =
+	const containersLength =
 		option === "native" ? containers?.length : services?.length;
 
 	return (
@@ -167,7 +167,7 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 								</>
 							)}
 
-							<SelectLabel>Containers ({containersLenght})</SelectLabel>
+							<SelectLabel>Containers ({containersLength})</SelectLabel>
 						</SelectGroup>
 					</SelectContent>
 				</Select>

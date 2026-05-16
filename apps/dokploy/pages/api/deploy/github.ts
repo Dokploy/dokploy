@@ -17,13 +17,22 @@ import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
-import { extractCommitMessage, extractHash } from "./[refreshToken]";
+import {
+	extractCommitMessage,
+	extractHash,
+	logWebhookError,
+} from "./[refreshToken]";
 
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
 ) {
 	const signature = req.headers["x-hub-signature-256"];
+	if (!signature) {
+		res.status(401).json({ message: "Missing signature header" });
+		return;
+	}
+
 	const githubBody = req.body;
 
 	if (!githubBody?.installation?.id) {
@@ -197,10 +206,8 @@ export default async function handler(
 			});
 			return;
 		} catch (error) {
-			console.error("Error deploying applications on tag:", error);
-			res
-				.status(400)
-				.json({ message: "Error deploying applications on tag", error });
+			logWebhookError("Error deploying applications on tag:", error);
+			res.status(400).json({ message: "Error deploying applications on tag" });
 			return;
 		}
 	}
@@ -322,7 +329,8 @@ export default async function handler(
 			}
 			res.status(200).json({ message: `Deployed ${totalApps} apps` });
 		} catch (error) {
-			res.status(400).json({ message: "Error deploying Application", error });
+			logWebhookError("Error deploying Application:", error);
+			res.status(400).json({ message: "Error deploying Application" });
 		}
 	} else if (req.headers["x-github-event"] === "pull_request") {
 		const prId = githubBody?.pull_request?.id;

@@ -59,6 +59,7 @@ export const findEnvironmentById = async (environmentId: string) => {
 					applicationStatus: true,
 					description: true,
 					serverId: true,
+					icon: true,
 				},
 			},
 			mariadb: {

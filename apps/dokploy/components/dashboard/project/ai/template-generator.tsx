@@ -298,7 +298,19 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 					<div className="flex items-center justify-between w-full">
 						<div className="flex items-center gap-2 w-full justify-end">
 							<Button
-								onClick={stepper.prev}
+								onClick={() => {
+									if (
+										stepper.current.id === "variant" &&
+										templateInfo.details
+									) {
+										setTemplateInfo((prev) => ({
+											...prev,
+											details: null,
+										}));
+										return;
+									}
+									stepper.prev();
+								}}
 								disabled={stepper.isFirst}
 								variant="secondary"
 							>

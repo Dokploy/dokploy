@@ -49,12 +49,12 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 	const composeFile = form.watch("composeFile");
 
 	useEffect(() => {
-		if (data && !composeFile) {
+		if (data) {
 			form.reset({
 				composeFile: data.composeFile || "",
 			});
 		}
-	}, [form, form.reset, data]);
+	}, [form, data]);
 
 	useEffect(() => {
 		if (data?.composeFile !== undefined) {
@@ -95,7 +95,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isPending) {
+			if ((e.ctrlKey || e.metaKey) && e.code === "KeyS" && !isPending) {
 				e.preventDefault();
 				form.handleSubmit(onSubmit)();
 			}

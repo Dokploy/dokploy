@@ -1,10 +1,10 @@
 import { db } from "@dokploy/server/db";
-import { IS_CLOUD } from "@dokploy/server/index";
-import { audit } from "@/server/api/utils/audit";
+import { IS_CLOUD, sendInvitationEmail } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { audit } from "@/server/api/utils/audit";
 import {
 	invitation,
 	member,
@@ -295,6 +295,14 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
+			// Owner role is non-delegable — no one can invite as owner
+			if (input.role === "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Cannot invite a user with the owner role",
+				});
+			}
+
 			// If assigning a custom role, verify it exists
 			if (!["owner", "admin", "member"].includes(input.role)) {
 				const customRole = await db.query.organizationRole.findFirst({
@@ -324,6 +332,24 @@ export const organizationRouter = createTRPCRouter({
 					inviterId: ctx.user.id,
 				})
 				.returning();
+
+			if (IS_CLOUD && created) {
+				const host =
+					process.env.NODE_ENV === "development"
+						? "http://localhost:3000"
+						: "https://app.dokploy.com";
+				const inviteLink = `${host}/invitation?token=${created.id}`;
+
+				const org = await db.query.organization.findFirst({
+					where: eq(organization.id, orgId),
+				});
+
+				await sendInvitationEmail({
+					email,
+					inviteLink,
+					organizationName: org?.name || "organization",
+				});
+			}
 
 			await audit(ctx, {
 				action: "create",
@@ -409,11 +435,11 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			// Owner role is intransferible - cannot change to or from owner
+			// Owner role is nontransferable - cannot change to or from owner
 			if (target.role === "owner" || input.role === "owner") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "The owner role is intransferible",
+					message: "The owner role is nontransferable",
 				});
 			}
 

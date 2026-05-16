@@ -1,5 +1,5 @@
 import {
-	createDestintation,
+	createDestination,
 	execAsync,
 	execAsyncRemote,
 	findDestinationById,
@@ -25,7 +25,7 @@ export const destinationRouter = createTRPCRouter({
 		.input(apiCreateDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const result = await createDestintation(
+				const result = await createDestination(
 					input,
 					ctx.session.activeOrganizationId,
 				);
@@ -47,8 +47,15 @@ export const destinationRouter = createTRPCRouter({
 	testConnection: withPermission("destination", "create")
 		.input(apiCreateDestination)
 		.mutation(async ({ input }) => {
-			const { secretAccessKey, bucket, region, endpoint, accessKey, provider } =
-				input;
+			const {
+				secretAccessKey,
+				bucket,
+				region,
+				endpoint,
+				accessKey,
+				provider,
+				additionalFlags,
+			} = input;
 			try {
 				const rcloneFlags = [
 					`--s3-access-key-id="${accessKey}"`,
@@ -64,6 +71,9 @@ export const destinationRouter = createTRPCRouter({
 				];
 				if (provider) {
 					rcloneFlags.unshift(`--s3-provider="${provider}"`);
+				}
+				if (additionalFlags?.length) {
+					rcloneFlags.push(...additionalFlags);
 				}
 				const rcloneDestination = `:s3:${bucket}`;
 				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
@@ -159,7 +169,14 @@ export const destinationRouter = createTRPCRouter({
 				});
 				return result;
 			} catch (error) {
-				throw error;
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? error?.message
+							: "Error connecting to bucket",
+					cause: error,
+				});
 			}
 		}),
 });

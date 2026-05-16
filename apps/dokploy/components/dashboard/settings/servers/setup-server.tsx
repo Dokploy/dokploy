@@ -161,7 +161,7 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 									<ul>
 										<li>
 											1. Add the public SSH Key when you create a server in your
-											preffered provider (Hostinger, Digital Ocean, Hetzner,
+											preferred provider (Hostinger, Digital Ocean, Hetzner,
 											etc){" "}
 										</li>
 										<li>2. Add The SSH Key to Server Manually</li>

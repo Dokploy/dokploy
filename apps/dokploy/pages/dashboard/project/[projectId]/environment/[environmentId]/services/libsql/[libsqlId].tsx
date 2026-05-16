@@ -1,3 +1,4 @@
+import copy from "copy-to-clipboard";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { HelpCircle, ServerOff } from "lucide-react";
@@ -10,7 +11,8 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
 import superjson from "superjson";
-import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
+import { toast } from "sonner";
+import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
@@ -61,6 +63,7 @@ const Libsql = (
 	const { data: auth } = api.user.get.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: serverIp } = api.settings.getIp.useQuery();
 
 	return (
 		<div className="pb-10">
@@ -99,6 +102,14 @@ const Libsql = (
 							<div className="flex flex-col h-fit w-fit gap-2">
 								<div className="flex flex-row h-fit w-fit gap-2">
 									<Badge
+										className="cursor-pointer"
+										onClick={() => {
+											const ip = data?.server?.ipAddress || serverIp;
+											if (ip) {
+												copy(ip);
+												toast.success("IP Address Copied!");
+											}
+										}}
 										variant={
 											!data?.serverId
 												? "default"
@@ -307,7 +318,7 @@ export async function getServerSideProps(
 	if (!user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -343,7 +354,7 @@ export async function getServerSideProps(
 			return {
 				redirect: {
 					permanent: false,
-					destination: "/dashboard/projects",
+					destination: "/dashboard/home",
 				},
 			};
 		}

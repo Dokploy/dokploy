@@ -24,6 +24,7 @@ export const schedules = pgTable("schedule", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	name: text("name").notNull(),
+	description: text("description"),
 	cronExpression: text("cronExpression").notNull(),
 	appName: text("appName")
 		.notNull()

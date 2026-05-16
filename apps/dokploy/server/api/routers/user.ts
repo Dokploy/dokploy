@@ -1,5 +1,6 @@
 import {
 	createApiKey,
+	createOrganizationUserWithCredentials,
 	findNotificationById,
 	findOrganizationById,
 	findUserById,
@@ -8,6 +9,7 @@ import {
 	getWebServerSettings,
 	IS_CLOUD,
 	removeUserById,
+	renderInvitationEmail,
 	sendEmailNotification,
 	sendResendNotification,
 	updateUser,
@@ -21,14 +23,17 @@ import {
 	apiUpdateUser,
 	invitation,
 	member,
+	session,
+	user,
 } from "@dokploy/server/db/schema";
 import {
 	hasPermission,
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
+import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
-import { and, asc, eq, gt } from "drizzle-orm";
+import { and, asc, eq, gt, ne } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import {
@@ -225,6 +230,15 @@ export const userRouter = createTRPCRouter({
 						password: bcrypt.hashSync(input.password, 10),
 					})
 					.where(eq(account.userId, ctx.user.id));
+
+				await db
+					.delete(session)
+					.where(
+						and(
+							eq(session.userId, ctx.user.id),
+							ne(session.id, ctx.session.id),
+						),
+					);
 			}
 
 			try {
@@ -344,12 +358,22 @@ export const userRouter = createTRPCRouter({
 					});
 				}
 
-				const { id, ...rest } = input;
+				const { id, accessedGitProviders, accessedServers, ...rest } = input;
+
+				const licensed = await hasValidLicense(
+					ctx.session?.activeOrganizationId || "",
+				);
 
 				await db
 					.update(member)
 					.set({
 						...rest,
+						...(licensed && accessedGitProviders !== undefined
+							? { accessedGitProviders }
+							: {}),
+						...(licensed && accessedServers !== undefined
+							? { accessedServers }
+							: {}),
 					})
 					.where(
 						and(
@@ -556,6 +580,44 @@ export const userRouter = createTRPCRouter({
 
 			return organizations.length;
 		}),
+	createUserWithCredentials: withPermission("member", "create")
+		.input(
+			z.object({
+				email: z.string().email(),
+				password: z.string().min(8),
+				role: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"Creating users with initial credentials is only available in self-hosted mode",
+				});
+			}
+
+			if (!ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Active organization is required",
+				});
+			}
+
+			if (input.role === "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Cannot create a user with the owner role",
+				});
+			}
+
+			return await createOrganizationUserWithCredentials({
+				organizationId: ctx.session.activeOrganizationId,
+				email: input.email,
+				password: input.password,
+				role: input.role,
+			});
+		}),
 	sendInvitation: withPermission("member", "create")
 		.input(
 			z.object({
@@ -595,27 +657,26 @@ export const userRouter = createTRPCRouter({
 			);
 
 			try {
-				const htmlContent = `
-\t\t\t\t<p>You are invited to join ${organization?.name || "organization"} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
-\t\t\t\t`;
+				const toEmail = currentInvitation?.email || "";
+				const orgName = organization?.name || "organization";
+				const subject = `You've been invited to join ${orgName} on Dokploy`;
+				const html = await renderInvitationEmail({
+					email: toEmail,
+					inviteLink,
+					organizationName: orgName,
+				});
 
 				if (email) {
 					await sendEmailNotification(
-						{
-							...email,
-							toAddresses: [currentInvitation?.email || ""],
-						},
-						"Invitation to join organization",
-						htmlContent,
+						{ ...email, toAddresses: [toEmail] },
+						subject,
+						html,
 					);
 				} else if (resend) {
 					await sendResendNotification(
-						{
-							...resend,
-							toAddresses: [currentInvitation?.email || ""],
-						},
-						"Invitation to join organization",
-						htmlContent,
+						{ ...resend, toAddresses: [toEmail] },
+						subject,
+						html,
 					);
 				}
 			} catch (error) {
@@ -630,5 +691,41 @@ export const userRouter = createTRPCRouter({
 				metadata: { type: "sendInvitation" },
 			});
 			return inviteLink;
+		}),
+
+	getBookmarkedTemplates: protectedProcedure.query(async ({ ctx }) => {
+		const result = await db.query.user.findFirst({
+			where: eq(user.id, ctx.user.id),
+			columns: { bookmarkedTemplates: true },
+		});
+
+		return result?.bookmarkedTemplates ?? [];
+	}),
+
+	toggleTemplateBookmark: protectedProcedure
+		.input(
+			z.object({
+				templateId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const result = await db.query.user.findFirst({
+				where: eq(user.id, ctx.user.id),
+				columns: { bookmarkedTemplates: true },
+			});
+
+			const current = result?.bookmarkedTemplates ?? [];
+			const isBookmarked = current.includes(input.templateId);
+
+			const updated = isBookmarked
+				? current.filter((id) => id !== input.templateId)
+				: [...current, input.templateId];
+
+			await db
+				.update(user)
+				.set({ bookmarkedTemplates: updated })
+				.where(eq(user.id, ctx.user.id));
+
+			return { isBookmarked: !isBookmarked };
 		}),
 });

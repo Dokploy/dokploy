@@ -1,6 +1,7 @@
 import {
 	createGitlab,
 	findGitlabById,
+	getAccessibleGitProviderIds,
 	getGitlabBranches,
 	getGitlabRepositories,
 	haveGitlabRequirements,
@@ -54,6 +55,8 @@ export const gitlabRouter = createTRPCRouter({
 		return await findGitlabById(input.gitlabId);
 	}),
 	gitlabProviders: protectedProcedure.query(async ({ ctx }) => {
+		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
+
 		let result = await db.query.gitlab.findMany({
 			with: {
 				gitProvider: true,
@@ -64,7 +67,7 @@ export const gitlabRouter = createTRPCRouter({
 			return (
 				provider.gitProvider.organizationId ===
 					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId
+				accessibleIds.has(provider.gitProvider.gitProviderId)
 			);
 		});
 		const filtered = result

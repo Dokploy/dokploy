@@ -101,8 +101,8 @@ export const getRegistryTag = (registry: Registry, imageName: string) => {
 	// Extract the repository name (last part after '/')
 	const repositoryName = extractRepositoryName(imageName);
 
-	// Build the final tag using registry's username/prefix
-	const targetPrefix = imagePrefix || username;
+	// Build the final tag using registry's username/prefix (must be lowercase for valid image refs)
+	const targetPrefix = (imagePrefix || username).toLowerCase();
 	const finalRegistry = registryUrl || "";
 
 	return finalRegistry

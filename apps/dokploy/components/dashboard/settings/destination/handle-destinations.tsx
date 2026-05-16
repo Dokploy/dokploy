@@ -1,7 +1,11 @@
+import {
+	ADDITIONAL_FLAG_ERROR,
+	ADDITIONAL_FLAG_REGEX,
+} from "@dokploy/server/db/validations/destination";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { PenBoxIcon, PlusIcon } from "lucide-react";
+import { PenBoxIcon, PlusIcon, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -46,6 +50,16 @@ const addDestination = z.object({
 	region: z.string(),
 	endpoint: z.string().min(1, "Endpoint is required"),
 	serverId: z.string().optional(),
+	additionalFlags: z
+		.array(
+			z.object({
+				value: z
+					.string()
+					.min(1, "Flag cannot be empty")
+					.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR),
+			}),
+		)
+		.optional(),
 });
 
 type AddDestination = z.infer<typeof addDestination>;
@@ -89,9 +103,16 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			region: "",
 			secretAccessKey: "",
 			endpoint: "",
+			additionalFlags: [],
 		},
 		resolver: zodResolver(addDestination),
 	});
+
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: "additionalFlags",
+	});
+
 	useEffect(() => {
 		if (destination) {
 			form.reset({
@@ -102,6 +123,8 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 				bucket: destination.bucket,
 				region: destination.region,
 				endpoint: destination.endpoint,
+				additionalFlags:
+					destination.additionalFlags?.map((f) => ({ value: f })) ?? [],
 			});
 		} else {
 			form.reset();
@@ -118,6 +141,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			region: data.region,
 			secretAccessKey: data.secretAccessKey,
 			destinationId: destinationId || "",
+			additionalFlags: data.additionalFlags?.map((f) => f.value) ?? [],
 		})
 			.then(async () => {
 				toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
@@ -127,9 +151,12 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 				}
 				setOpen(false);
 			})
-			.catch(() => {
+			.catch((e) => {
 				toast.error(
 					`Error ${destinationId ? "Updating" : "Creating"} the Destination`,
+					{
+						description: e.message,
+					},
 				);
 			});
 	};
@@ -141,6 +168,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			"secretAccessKey",
 			"bucket",
 			"endpoint",
+			"additionalFlags",
 		]);
 
 		if (!result) {
@@ -179,6 +207,8 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			region,
 			secretAccessKey: secretKey,
 			serverId,
+			additionalFlags:
+				form.getValues("additionalFlags")?.map((f) => f.value) ?? [],
 		})
 			.then(() => {
 				toast.success("Connection Success");
@@ -358,6 +388,48 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 								</FormItem>
 							)}
 						/>
+						<div className="flex flex-col gap-2">
+							<div className="flex items-center justify-between">
+								<FormLabel>Additional Flags (Optional)</FormLabel>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									onClick={() => append({ value: "" })}
+								>
+									<PlusIcon className="size-4" />
+									Add Flag
+								</Button>
+							</div>
+							{fields.map((field, index) => (
+								<FormField
+									key={field.id}
+									control={form.control}
+									name={`additionalFlags.${index}.value`}
+									render={({ field }) => (
+										<FormItem>
+											<div className="flex items-center gap-2">
+												<FormControl>
+													<Input
+														placeholder="--s3-sign-accept-encoding=false"
+														{...field}
+													/>
+												</FormControl>
+												<Button
+													type="button"
+													variant="ghost"
+													size="icon"
+													onClick={() => remove(index)}
+												>
+													<Trash2 className="size-4 text-muted-foreground" />
+												</Button>
+											</div>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							))}
+						</div>
 					</form>
 
 					<DialogFooter

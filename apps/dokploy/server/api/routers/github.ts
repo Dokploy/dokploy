@@ -1,5 +1,6 @@
 import {
 	findGithubById,
+	getAccessibleGitProviderIds,
 	getGithubBranches,
 	getGithubRepositories,
 	haveGithubRequirements,
@@ -35,6 +36,8 @@ export const githubRouter = createTRPCRouter({
 			return await getGithubBranches(input);
 		}),
 	githubProviders: protectedProcedure.query(async ({ ctx }) => {
+		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
+
 		let result = await db.query.github.findMany({
 			with: {
 				gitProvider: true,
@@ -45,7 +48,7 @@ export const githubRouter = createTRPCRouter({
 			(provider) =>
 				provider.gitProvider.organizationId ===
 					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId,
+				accessibleIds.has(provider.gitProvider.gitProviderId),
 		);
 
 		const filtered = result

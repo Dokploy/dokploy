@@ -195,7 +195,7 @@ services:
       - dokploy-network
 `;
 
-test("It shoudn't add suffix to dokploy-network in services", () => {
+test("It shouldn't add suffix to dokploy-network in services", () => {
 	const composeData = parse(composeFile7) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
@@ -241,10 +241,10 @@ services:
       dokploy-network:
         aliases:
           - apid
-	
+
 `;
 
-test("It shoudn't add suffix to dokploy-network in services multiples cases", () => {
+test("It shouldn't add suffix to dokploy-network in services multiples cases", () => {
 	const composeData = parse(composeFile8) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
