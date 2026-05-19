@@ -110,3 +110,24 @@ jobs:
 
           echo "✅ OpenAPI synced to CLI repository successfully"
 
+      - name: Sync to SDK repository
+        run: |
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/sdk.git sdk-repo
+
+          cd sdk-repo
+
+          cp -f ../openapi.json openapi.json
+
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+
+          git add openapi.json
+          git commit -m "chore: sync OpenAPI specification [skip ci]" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --allow-empty
+
+          git push
+
+          echo "✅ OpenAPI synced to SDK repository successfully"
+

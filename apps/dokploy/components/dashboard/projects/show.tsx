@@ -344,7 +344,7 @@ export const ShowProjects = () => {
 															}
 														}}
 													>
-														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border">
+														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border flex flex-col">
 															<CardHeader>
 																<CardTitle className="flex items-center justify-between gap-2 overflow-clip">
 																	<span className="flex flex-col gap-1.5 ">
@@ -491,7 +491,7 @@ export const ShowProjects = () => {
 																	</div>
 																</CardTitle>
 															</CardHeader>
-															<CardFooter className="pt-4">
+															<CardFooter className="pt-4 mt-auto">
 																<div className="space-y-1 text-xs flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
 																	<DateTooltip date={project.createdAt}>
 																		Created

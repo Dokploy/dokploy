@@ -156,7 +156,7 @@ export const createPreviewDeployment = async (
 ) => {
 	const application = await findApplicationById(schema.applicationId);
 	const uniqueId = generatePassword(6);
-	const domainTemplate = application.previewWildcard || "*.traefik.me";
+	const domainTemplate = application.previewWildcard || "*.sslip.io";
 
 	const hasIdentifier =
 		domainTemplate.includes("${prNumber}") ||
@@ -166,6 +166,8 @@ export const createPreviewDeployment = async (
 	let appName: string;
 	let generateDomain: string;
 
+	appName = `preview-${application.appName}-${uniqueId}`;
+
 	if (hasIdentifier) {
 		const interpolated = interpolateSubdomainTemplate(domainTemplate, {
 			appName: application.appName,
@@ -173,10 +175,13 @@ export const createPreviewDeployment = async (
 			branchName: schema.branch,
 			uniqueId,
 		});
-		generateDomain = interpolated.replace("*", application.appName);
-		appName = `preview-${application.appName}-${uniqueId}`;
+		generateDomain = await generateWildcardDomain(
+			interpolated,
+			appName,
+			application.server?.ipAddress || "",
+			"",
+		);
 	} else {
-		appName = `preview-${application.appName}-${uniqueId}`;
 		const org = await db.query.organization.findFirst({
 			where: eq(
 				organization.id,
@@ -287,7 +292,7 @@ const generateWildcardDomain = async (
 		throw new Error('The base domain must start with "*."');
 	}
 	const hash = `${appName}`;
-	if (baseDomain.includes("traefik.me")) {
+	if (baseDomain.includes("sslip.io")) {
 		let ip = "";
 
 		if (process.env.NODE_ENV === "development") {

@@ -1,4 +1,4 @@
-import { ServerIcon } from "lucide-react";
+import { CopyIcon, ServerIcon } from "lucide-react";
 import {
 	Card,
 	CardContent,
@@ -7,6 +7,8 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
+import copy from "copy-to-clipboard";
+import { toast } from "sonner";
 import { ShowDokployActions } from "./servers/actions/show-dokploy-actions";
 import { ShowStorageActions } from "./servers/actions/show-storage-actions";
 import { ShowTraefikActions } from "./servers/actions/show-traefik-actions";
@@ -49,8 +51,17 @@ export const WebServer = () => {
 						</div>
 
 						<div className="flex items-center flex-wrap justify-between gap-4">
-							<span className="text-sm text-muted-foreground">
+							<span className="text-sm text-muted-foreground flex items-center gap-1.5">
 								Server IP: {webServerSettings?.serverIp}
+								{webServerSettings?.serverIp && (
+									<CopyIcon
+										className="size-3.5 cursor-pointer hover:text-foreground transition-colors"
+										onClick={() => {
+											copy(webServerSettings.serverIp ?? "");
+											toast.success("Copied to clipboard");
+										}}
+									/>
+								)}
 							</span>
 							<span className="text-sm text-muted-foreground">
 								Version: {dokployVersion}

@@ -88,7 +88,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 	const form = useForm<Schema>({
 		defaultValues: {
 			env: "",
-			wildcardDomain: "*.traefik.me",
+			wildcardDomain: "*.sslip.io",
 			port: 3000,
 			previewLimit: 3,
 			previewLabels: [],
@@ -101,11 +101,11 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 	});
 
 	const previewHttps = form.watch("previewHttps");
-	const watchedWildcard = form.watch("wildcardDomain");
-	const isTraefikMeDomain = watchedWildcard?.includes("traefik.me") || false;
+	const wildcardDomain = form.watch("wildcardDomain");
+	const isSslipDomain = wildcardDomain?.includes("sslip.io") || false;
 
 	const templatePreview = useMemo(() => {
-		const template = watchedWildcard || "*.traefik.me";
+		const template = wildcardDomain || "*.sslip.io";
 		const appName = data?.appName || "my-app";
 		const exampleVars: Record<string, string> = {
 			appName,
@@ -127,7 +127,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			result = result.replace("*", appName);
 		}
 		return result;
-	}, [watchedWildcard, data?.appName]);
+	}, [wildcardDomain, data?.appName]);
 
 	useEffect(() => {
 		setIsEnabled(data?.isPreviewDeploymentsActive || false);
@@ -139,7 +139,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				env: data.previewEnv || "",
 				buildArgs: data.previewBuildArgs || "",
 				buildSecrets: data.previewBuildSecrets || "",
-				wildcardDomain: data.previewWildcard || "*.traefik.me",
+				wildcardDomain: data.previewWildcard || "*.sslip.io",
 				port: data.previewPort || 3000,
 				previewLabels: data.previewLabels || [],
 				previewLimit: data.previewLimit || 3,
@@ -196,9 +196,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 						</DialogDescription>
 					</DialogHeader>
 					<div className="grid gap-4">
-						{isTraefikMeDomain && (
+						{isSslipDomain && (
 							<AlertBlock type="info">
-								<strong>Note:</strong> traefik.me is a public HTTP service and
+								<strong>Note:</strong> sslip.io is a public HTTP service and
 								does not support SSL/HTTPS. HTTPS and certificate options will
 								not have any effect.
 							</AlertBlock>
@@ -218,7 +218,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 												<FormLabel>Preview Domain Template</FormLabel>
 												<FormControl>
 													<Input
-														placeholder="*.traefik.me or ${prNumber}.example.com"
+														placeholder="*.sslip.io or ${prNumber}.example.com"
 														{...field}
 													/>
 												</FormControl>

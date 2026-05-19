@@ -295,6 +295,14 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
+			// Owner role is non-delegable — no one can invite as owner
+			if (input.role === "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Cannot invite a user with the owner role",
+				});
+			}
+
 			// If assigning a custom role, verify it exists
 			if (!["owner", "admin", "member"].includes(input.role)) {
 				const customRole = await db.query.organizationRole.findFirst({

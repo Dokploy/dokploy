@@ -25,7 +25,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { NumberInput } from "@/components/ui/input";
 import {
 	Dialog,
 	DialogContent,
@@ -34,6 +33,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { NumberInput } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
