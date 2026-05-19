@@ -1,7 +1,8 @@
 import copy from "copy-to-clipboard";
 import { format, isPast } from "date-fns";
-import { Loader2, Mail, MoreHorizontal, Users } from "lucide-react";
+import { Loader2, Mail, MoreHorizontal, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +38,18 @@ export const ShowInvitations = () => {
 
 	const { mutateAsync: removeInvitation } =
 		api.organization.removeInvitation.useMutation();
+	const {
+		mutateAsync: removeInactiveInvitations,
+		isPending: isRemovingInactive,
+	} = api.organization.removeInactiveInvitations.useMutation();
+
+	const inactiveInvitations =
+		data?.filter(
+			(invitation) =>
+				invitation.status === "canceled" ||
+				isPast(new Date(invitation.expiresAt)),
+		) ?? [];
+	const inactiveInvitationCount = inactiveInvitations.length;
 
 	return (
 		<div className="w-full">
@@ -209,6 +222,37 @@ export const ShowInvitations = () => {
 										</Table>
 
 										<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
+											{inactiveInvitationCount > 0 && (
+												<DialogAction
+													title="Remove inactive invitations"
+													description={`Remove ${inactiveInvitationCount} expired or canceled invitation${inactiveInvitationCount === 1 ? "" : "s"} from this organization? This action cannot be undone.`}
+													type="destructive"
+													disabled={isRemovingInactive}
+													onClick={async () => {
+														await removeInactiveInvitations()
+															.then(async ({ count }) => {
+																await refetch();
+																toast.success(
+																	`${count} inactive invitation${count === 1 ? "" : "s"} removed`,
+																);
+															})
+															.catch((error) => {
+																toast.error(
+																	error?.message ||
+																		"Error removing inactive invitations",
+																);
+															});
+													}}
+												>
+													<Button
+														variant="outline"
+														isLoading={isRemovingInactive}
+													>
+														<Trash2 className="size-4" />
+														Remove inactive
+													</Button>
+												</DialogAction>
+											)}
 											<AddInvitation />
 										</div>
 									</div>

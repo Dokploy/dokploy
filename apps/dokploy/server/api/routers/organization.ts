@@ -1,7 +1,7 @@
 import { db } from "@dokploy/server/db";
 import { IS_CLOUD, sendInvitationEmail } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, exists } from "drizzle-orm";
+import { and, desc, eq, exists, lt, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
@@ -402,6 +402,42 @@ export const organizationRouter = createTRPCRouter({
 			});
 			return result;
 		}),
+	removeInactiveInvitations: withPermission("member", "create").mutation(
+		async ({ ctx }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			const removed = await db
+				.delete(invitation)
+				.where(
+					and(
+						eq(invitation.organizationId, orgId),
+						or(
+							eq(invitation.status, "canceled"),
+							lt(invitation.expiresAt, new Date()),
+						),
+					),
+				)
+				.returning({
+					id: invitation.id,
+					email: invitation.email,
+				});
+
+			if (removed.length > 0) {
+				await audit(ctx, {
+					action: "delete",
+					resourceType: "organization",
+					resourceId: orgId,
+					resourceName: "inactive invitations",
+					metadata: {
+						type: "removeInactiveInvitations",
+						count: removed.length,
+						invitationIds: removed.map((invite) => invite.id),
+					},
+				});
+			}
+
+			return { count: removed.length };
+		},
+	),
 	updateMemberRole: withPermission("member", "update")
 		.input(
 			z.object({
