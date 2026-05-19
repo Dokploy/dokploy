@@ -31,7 +31,21 @@ const organizationSchema = z.object({
 		message: "Organization name is required",
 	}),
 	logo: z.string().optional(),
+	description: z.string().max(280).optional(),
 });
+
+const getOrganizationDescription = (metadata?: string | null) => {
+	if (!metadata) {
+		return "";
+	}
+
+	try {
+		const parsed = JSON.parse(metadata);
+		return typeof parsed?.description === "string" ? parsed.description : "";
+	} catch {
+		return "";
+	}
+};
 
 type OrganizationFormValues = z.infer<typeof organizationSchema>;
 
@@ -60,6 +74,7 @@ export function AddOrganization({ organizationId }: Props) {
 		defaultValues: {
 			name: "",
 			logo: "",
+			description: "",
 		},
 	});
 
@@ -68,6 +83,7 @@ export function AddOrganization({ organizationId }: Props) {
 			form.reset({
 				name: organization.name,
 				logo: organization.logo || "",
+				description: getOrganizationDescription(organization.metadata),
 			});
 		}
 	}, [organization, form]);
@@ -76,6 +92,7 @@ export function AddOrganization({ organizationId }: Props) {
 		await mutateAsync({
 			name: values.name,
 			logo: values.logo,
+			description: values.description,
 			organizationId: organizationId ?? "",
 		})
 			.then(() => {
@@ -129,7 +146,7 @@ export function AddOrganization({ organizationId }: Props) {
 					</DialogTitle>
 					<DialogDescription>
 						{organizationId
-							? "Update the organization name and logo"
+							? "Update the organization name, logo, and description"
 							: "Create a new organization to manage your projects."}
 					</DialogDescription>
 				</DialogHeader>
@@ -164,6 +181,24 @@ export function AddOrganization({ organizationId }: Props) {
 									<FormControl>
 										<Input
 											placeholder="https://example.com/logo.png"
+											{...field}
+											value={field.value || ""}
+											className="col-span-3"
+										/>
+									</FormControl>
+									<FormMessage className="col-span-3 col-start-2" />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="description"
+							render={({ field }) => (
+								<FormItem className="gap-4">
+									<FormLabel className="text-right">Description</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="What this organization is for"
 											{...field}
 											value={field.value || ""}
 											className="col-span-3"
