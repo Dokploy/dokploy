@@ -194,7 +194,8 @@ interface Props {
 }
 
 export const AddUserPermissions = ({ userId, role }: Props) => {
-	const isCustomRole = !!role && !["owner", "admin", "member"].includes(role);
+	const isCustomRole =
+		!!role && !["owner", "admin", "member", "user"].includes(role);
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: projects } = api.project.allForPermissions.useQuery(undefined, {
 		enabled: isOpen,

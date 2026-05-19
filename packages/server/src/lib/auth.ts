@@ -26,7 +26,13 @@ import {
 	sendVerificationEmail,
 } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
-import { ac, adminRole, memberRole, ownerRole } from "./access-control";
+import {
+	ac,
+	adminRole,
+	memberRole,
+	ownerRole,
+	userRole,
+} from "./access-control";
 import { betterAuthSecret } from "./auth-secret";
 
 const { handler, api } = betterAuth({
@@ -406,6 +412,7 @@ const { handler, api } = betterAuth({
 				owner: ownerRole,
 				admin: adminRole,
 				member: memberRole,
+				user: userRole,
 			},
 			dynamicAccessControl: {
 				enabled: true,

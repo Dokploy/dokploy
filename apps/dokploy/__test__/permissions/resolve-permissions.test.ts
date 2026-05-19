@@ -145,6 +145,43 @@ describe("free-tier resources for member", () => {
 	});
 });
 
+describe("view-only user role", () => {
+	it("gets assigned-resource read permissions", async () => {
+		memberToReturn = mockMemberData("user");
+		const perms = await resolvePermissions(ctx);
+
+		expect(perms.service.read).toBe(true);
+		expect(perms.environment.read).toBe(true);
+		expect(perms.deployment.read).toBe(true);
+		expect(perms.domain.read).toBe(true);
+		expect(perms.logs.read).toBe(true);
+		expect(perms.monitoring.read).toBe(true);
+	});
+
+	it("cannot create projects, deployments, or domains", async () => {
+		memberToReturn = mockMemberData("user");
+		const perms = await resolvePermissions(ctx);
+
+		expect(perms.project.create).toBe(false);
+		expect(perms.service.create).toBe(false);
+		expect(perms.deployment.create).toBe(false);
+		expect(perms.deployment.cancel).toBe(false);
+		expect(perms.domain.create).toBe(false);
+		expect(perms.domain.delete).toBe(false);
+	});
+
+	it("does not inherit member legacy boolean overrides", async () => {
+		memberToReturn = mockMemberData("user", {
+			canCreateProjects: true,
+			canAccessToDocker: true,
+		});
+		const perms = await resolvePermissions(ctx);
+
+		expect(perms.project.create).toBe(false);
+		expect(perms.docker.read).toBe(false);
+	});
+});
+
 describe("free-tier resources for owner", () => {
 	it("owner gets all free-tier permissions as true", async () => {
 		memberToReturn = mockMemberData("owner");

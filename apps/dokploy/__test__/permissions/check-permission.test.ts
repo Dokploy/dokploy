@@ -120,6 +120,48 @@ describe("static roles validate free-tier resources", () => {
 			checkPermission(ctx, { service: ["create"] }),
 		).rejects.toThrow();
 	});
+
+	it("user passes service.read", async () => {
+		memberToReturn = mockMemberData("user");
+		await expect(
+			checkPermission(ctx, { service: ["read"] }),
+		).resolves.toBeUndefined();
+	});
+
+	it("user fails project.create", async () => {
+		memberToReturn = mockMemberData("user");
+		await expect(
+			checkPermission(ctx, { project: ["create"] }),
+		).rejects.toThrow();
+	});
+
+	it("user fails deployment.create", async () => {
+		memberToReturn = mockMemberData("user");
+		await expect(
+			checkPermission(ctx, { deployment: ["create"] }),
+		).rejects.toThrow();
+	});
+
+	it("user passes deployment.read", async () => {
+		memberToReturn = mockMemberData("user");
+		await expect(
+			checkPermission(ctx, { deployment: ["read"] }),
+		).resolves.toBeUndefined();
+	});
+
+	it("user passes domain.read", async () => {
+		memberToReturn = mockMemberData("user");
+		await expect(
+			checkPermission(ctx, { domain: ["read"] }),
+		).resolves.toBeUndefined();
+	});
+
+	it("user fails domain.create", async () => {
+		memberToReturn = mockMemberData("user");
+		await expect(
+			checkPermission(ctx, { domain: ["create"] }),
+		).rejects.toThrow();
+	});
 });
 
 describe("legacy boolean overrides for member", () => {

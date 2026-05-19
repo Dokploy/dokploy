@@ -77,8 +77,8 @@ export const customRoleRouter = createTRPCRouter({
 					.min(1)
 					.max(50)
 					.refine(
-						(name) => !["owner", "admin", "member"].includes(name),
-						"Cannot use reserved role names (owner, admin, member)",
+						(name) => !["owner", "admin", "member", "user"].includes(name),
+						"Cannot use reserved role names (owner, admin, member, user)",
 					),
 				permissions: permissionsSchema,
 			}),
@@ -135,15 +135,15 @@ export const customRoleRouter = createTRPCRouter({
 					.min(1)
 					.max(50)
 					.refine(
-						(name) => !["owner", "admin", "member"].includes(name),
-						"Cannot use reserved role names (owner, admin, member)",
+						(name) => !["owner", "admin", "member", "user"].includes(name),
+						"Cannot use reserved role names (owner, admin, member, user)",
 					)
 					.optional(),
 				permissions: permissionsSchema,
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			if (["owner", "admin", "member"].includes(input.roleName)) {
+			if (["owner", "admin", "member", "user"].includes(input.roleName)) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Cannot modify built-in roles",
@@ -214,7 +214,7 @@ export const customRoleRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			if (["owner", "admin", "member"].includes(input.roleName)) {
+			if (["owner", "admin", "member", "user"].includes(input.roleName)) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Cannot delete built-in roles",

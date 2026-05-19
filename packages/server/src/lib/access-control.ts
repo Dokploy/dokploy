@@ -53,7 +53,8 @@ export const statements = {
 /**
  * Enterprise-only resources. For static roles (owner/admin/member),
  * permission checks on these resources are bypassed — they only apply
- * when using custom roles with an enterprise license.
+ * when using custom roles with an enterprise license. The view-only user role is
+ * intentionally excluded from that bypass in the permission resolver.
  */
 export const enterpriseOnlyResources = new Set<string>([
 	"volume",
@@ -191,5 +192,44 @@ export const memberRole = ac.newRole({
 	destination: [],
 	notification: [],
 	tag: ["read"],
+	auditLog: [],
+});
+
+/**
+ * User role — view-only access to assigned services.
+ * Users can inspect assigned resources, domains, deployments, logs, and metrics,
+ * but cannot create projects, deploy/cancel, or manage organization-level assets.
+ */
+export const userRole = ac.newRole({
+	organization: [],
+	member: [],
+	invitation: [],
+	team: [],
+	ac: ["read"],
+	project: [],
+	service: ["read"],
+	environment: ["read"],
+	docker: [],
+	sshKeys: [],
+	gitProviders: [],
+	traefikFiles: [],
+	api: [],
+	volume: ["read"],
+	deployment: ["read"],
+	envVars: ["read"],
+	projectEnvVars: ["read"],
+	environmentEnvVars: ["read"],
+	server: [],
+	registry: [],
+	certificate: [],
+	backup: ["read"],
+	volumeBackup: ["read"],
+	schedule: ["read"],
+	domain: ["read"],
+	destination: [],
+	notification: [],
+	tag: ["read"],
+	logs: ["read"],
+	monitoring: ["read"],
 	auditLog: [],
 });
