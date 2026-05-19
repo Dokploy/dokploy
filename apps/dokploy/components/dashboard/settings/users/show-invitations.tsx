@@ -2,6 +2,7 @@ import copy from "copy-to-clipboard";
 import { format, isPast } from "date-fns";
 import { Loader2, Mail, MoreHorizontal, Users } from "lucide-react";
 import { toast } from "sonner";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { authClient } from "@/lib/auth-client";
+import { canRemoveInvitation } from "@/lib/invitations";
 import { api } from "@/utils/api";
 import { AddInvitation } from "./add-invitation";
 
@@ -87,6 +89,7 @@ export const ShowInvitations = () => {
 													const isExpired = isPast(
 														new Date(invitation.expiresAt),
 													);
+													const canRemove = canRemoveInvitation(invitation);
 													return (
 														<TableRow key={invitation.id}>
 															<TableCell className="w-[100px]">
@@ -175,7 +178,7 @@ export const ShowInvitations = () => {
 																								);
 																							} else {
 																								toast.success(
-																									"Invitation deleted",
+																									"Invitation canceled",
 																								);
 																								refetch();
 																							}
@@ -186,19 +189,37 @@ export const ShowInvitations = () => {
 																				)}
 																			</>
 																		)}
-																		<DropdownMenuItem
-																			className="w-full cursor-pointer"
-																			onSelect={async () => {
-																				await removeInvitation({
-																					invitationId: invitation.id,
-																				}).then(() => {
-																					refetch();
-																					toast.success("Invitation removed");
-																				});
-																			}}
-																		>
-																			Remove Invitation
-																		</DropdownMenuItem>
+																		{canRemove && (
+																			<DialogAction
+																				title="Remove Invitation"
+																				description={`Remove the invitation for ${invitation.email}? This cannot be undone.`}
+																				type="destructive"
+																				onClick={async () => {
+																					await removeInvitation({
+																						invitationId: invitation.id,
+																					})
+																						.then(() => {
+																							refetch();
+																							toast.success(
+																								"Invitation removed",
+																							);
+																						})
+																						.catch((err) => {
+																							toast.error(
+																								err?.message ||
+																									"Error removing invitation",
+																							);
+																						});
+																				}}
+																			>
+																				<DropdownMenuItem
+																					className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																					onSelect={(e) => e.preventDefault()}
+																				>
+																					Remove Invitation
+																				</DropdownMenuItem>
+																			</DialogAction>
+																		)}
 																	</DropdownMenuContent>
 																</DropdownMenu>
 															</TableCell>

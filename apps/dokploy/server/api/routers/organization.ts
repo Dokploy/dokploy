@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { canRemoveInvitation } from "@/lib/invitations";
 import { audit } from "@/server/api/utils/audit";
 import {
 	invitation,
@@ -390,6 +391,13 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
+			if (!canRemoveInvitation(invitationResult)) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Cancel active invitations before removing them",
+				});
+			}
+
 			const result = await db
 				.delete(invitation)
 				.where(eq(invitation.id, input.invitationId));
@@ -398,7 +406,10 @@ export const organizationRouter = createTRPCRouter({
 				resourceType: "organization",
 				resourceId: input.invitationId,
 				resourceName: invitationResult.email,
-				metadata: { type: "removeInvitation" },
+				metadata: {
+					type: "removeInvitation",
+					status: invitationResult.status,
+				},
 			});
 			return result;
 		}),
