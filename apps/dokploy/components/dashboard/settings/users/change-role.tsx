@@ -153,7 +153,8 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 										)}
 										<br />
 										<em className="text-muted-foreground text-xs">
-											Note: Owner role is nontransferable.
+											Note: Owner role can only be changed with Transfer
+											Ownership.
 										</em>
 									</FormDescription>
 									<FormMessage />
