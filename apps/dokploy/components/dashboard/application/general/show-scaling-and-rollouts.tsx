@@ -19,49 +19,17 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
+import {
+	buildUpdateConfigSwarm,
+	type DeploymentStrategy,
+	getDeploymentStrategy,
+	getEffectiveInstances,
+	isValidInstanceCount,
+} from "./scaling-and-rollouts";
 
 interface Props {
 	applicationId: string;
 }
-
-type DeploymentStrategy = "standard" | "zero-downtime";
-
-type UpdateConfigSwarm = {
-	Parallelism?: number;
-	Delay?: number;
-	FailureAction?: string;
-	Monitor?: number;
-	MaxFailureRatio?: number;
-	Order?: string;
-} | null;
-
-const getDeploymentStrategy = (
-	updateConfigSwarm: UpdateConfigSwarm | undefined,
-): DeploymentStrategy =>
-	updateConfigSwarm?.Order === "stop-first" ? "standard" : "zero-downtime";
-
-const getEffectiveInstances = (
-	replicas?: number,
-	modeSwarm?: {
-		Replicated?: { Replicas?: number };
-	} | null,
-) => modeSwarm?.Replicated?.Replicas ?? replicas ?? 1;
-
-const buildUpdateConfigSwarm = (
-	currentUpdateConfigSwarm: UpdateConfigSwarm | undefined,
-	strategy: DeploymentStrategy,
-) => {
-	const baseConfig = currentUpdateConfigSwarm ?? {
-		FailureAction: "rollback",
-		Parallelism: 1,
-	};
-
-	return {
-		...baseConfig,
-		Parallelism: currentUpdateConfigSwarm?.Parallelism ?? 1,
-		Order: strategy === "standard" ? "stop-first" : "start-first",
-	};
-};
 
 export const ShowScalingAndRollouts = ({ applicationId }: Props) => {
 	const { data: permissions } = api.user.getPermissions.useQuery();
@@ -105,8 +73,8 @@ export const ShowScalingAndRollouts = ({ applicationId }: Props) => {
 	}, [effectiveInstances, currentStrategy]);
 
 	const onSave = async () => {
-		if (instances < 1) {
-			toast.error("Instances must be at least 1");
+		if (!isValidInstanceCount(instances)) {
+			toast.error("Instances must be a whole number of at least 1");
 			return;
 		}
 
@@ -147,6 +115,7 @@ export const ShowScalingAndRollouts = ({ applicationId }: Props) => {
 							id="application-instances"
 							type="number"
 							min={1}
+							step={1}
 							value={instances}
 							disabled={!canUpdateService}
 							onChange={(event) => {
