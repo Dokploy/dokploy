@@ -31,6 +31,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { AddInvitation } from "./add-invitation";
+import { isInactiveInvitation } from "./invitation-status";
 
 export const ShowInvitations = () => {
 	const { data, isPending, refetch } =
@@ -44,11 +45,7 @@ export const ShowInvitations = () => {
 	} = api.organization.removeInactiveInvitations.useMutation();
 
 	const inactiveInvitations =
-		data?.filter(
-			(invitation) =>
-				invitation.status === "canceled" ||
-				isPast(new Date(invitation.expiresAt)),
-		) ?? [];
+		data?.filter((invitation) => isInactiveInvitation(invitation)) ?? [];
 	const inactiveInvitationCount = inactiveInvitations.length;
 
 	return (
