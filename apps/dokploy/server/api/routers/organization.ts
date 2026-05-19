@@ -488,6 +488,88 @@ export const organizationRouter = createTRPCRouter({
 			});
 			return true;
 		}),
+	transferOwnership: protectedProcedure
+		.input(
+			z.object({
+				memberId: z.string(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const orgId = ctx.session.activeOrganizationId;
+
+			const org = await db.query.organization.findFirst({
+				where: eq(organization.id, orgId),
+			});
+
+			if (!org) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Organization not found",
+				});
+			}
+
+			if (org.ownerId !== ctx.user.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only the current organization owner can transfer ownership",
+				});
+			}
+
+			const target = await db.query.member.findFirst({
+				where: eq(member.id, input.memberId),
+				with: { user: true },
+			});
+
+			if (!target || target.organizationId !== orgId) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Member not found in this organization",
+				});
+			}
+
+			if (target.userId === ctx.user.id) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "You already own this organization",
+				});
+			}
+
+			await db.transaction(async (tx) => {
+				await tx
+					.update(organization)
+					.set({ ownerId: target.userId })
+					.where(eq(organization.id, orgId));
+
+				await tx
+					.update(member)
+					.set({ role: "admin" })
+					.where(
+						and(
+							eq(member.organizationId, orgId),
+							eq(member.userId, ctx.user.id),
+						),
+					);
+
+				await tx
+					.update(member)
+					.set({ role: "owner" })
+					.where(eq(member.id, target.id));
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: orgId,
+				resourceName: org.name,
+				metadata: {
+					type: "transferOwnership",
+					fromUserId: ctx.user.id,
+					toUserId: target.userId,
+				},
+			});
+
+			return true;
+		}),
 	setDefault: protectedProcedure
 		.input(
 			z.object({
