@@ -127,7 +127,7 @@ export const member = pgTable("member", {
 		.references(() => user.id, { onDelete: "cascade" }),
 	role: text("role")
 		.notNull()
-		.$type<"owner" | "member" | "admin" | (string & {})>(),
+		.$type<"owner" | "member" | "admin" | "viewer" | (string & {})>(),
 	createdAt: timestamp("created_at").notNull(),
 	teamId: text("team_id"),
 	isDefault: boolean("is_default").notNull().default(false),
@@ -190,7 +190,9 @@ export const invitation = pgTable("invitation", {
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
 	email: text("email").notNull(),
-	role: text("role").$type<"owner" | "member" | "admin" | (string & {})>(),
+	role: text("role").$type<
+		"owner" | "member" | "admin" | "viewer" | (string & {})
+	>(),
 	status: text("status").notNull(),
 	expiresAt: timestamp("expires_at").notNull(),
 	inviterId: text("inviter_id")

@@ -111,6 +111,18 @@ describe("enterprise resources for static roles", () => {
 		expect(perms.notification.read).toBe(false);
 		expect(perms.auditLog.read).toBe(false);
 	});
+
+	it("viewer gets read-only service-scoped enterprise permissions", async () => {
+		memberToReturn = mockMemberData("viewer");
+		const perms = await resolvePermissions(ctx);
+
+		expect(perms.deployment.read).toBe(true);
+		expect(perms.deployment.create).toBe(false);
+		expect(perms.domain.read).toBe(true);
+		expect(perms.logs.read).toBe(true);
+		expect(perms.monitoring.read).toBe(true);
+		expect(perms.server.read).toBe(false);
+	});
 });
 
 describe("free-tier resources for member", () => {
@@ -142,6 +154,21 @@ describe("free-tier resources for member", () => {
 		memberToReturn = mockMemberData("member", { canAccessToDocker: true });
 		const perms = await resolvePermissions(ctx);
 		expect(perms.docker.read).toBe(true);
+	});
+
+	it("viewer gets read-only runtime access without project creation", async () => {
+		memberToReturn = mockMemberData("viewer");
+		const perms = await resolvePermissions(ctx);
+		expect(perms.service.read).toBe(true);
+		expect(perms.environment.read).toBe(true);
+		expect(perms.project.create).toBe(false);
+		expect(perms.member.read).toBe(false);
+	});
+
+	it("viewer ignores legacy member overrides", async () => {
+		memberToReturn = mockMemberData("viewer", { canCreateProjects: true });
+		const perms = await resolvePermissions(ctx);
+		expect(perms.project.create).toBe(false);
 	});
 });
 

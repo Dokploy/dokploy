@@ -112,7 +112,7 @@ export const AddInvitation = () => {
 		defaultValues: {
 			mode: "invitation",
 			email: "",
-			role: "member",
+			role: "viewer",
 			notificationId: "",
 			password: "",
 			confirmPassword: "",
@@ -277,6 +277,7 @@ export const AddInvitation = () => {
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
+												<SelectItem value="viewer">Viewer</SelectItem>
 												<SelectItem value="member">Member</SelectItem>
 												<SelectItem value="admin">Admin</SelectItem>
 												{customRoles?.map((role) => (
@@ -287,7 +288,7 @@ export const AddInvitation = () => {
 											</SelectContent>
 										</Select>
 										<FormDescription>
-											Select the role for the new user
+											Viewer has read-only access to assigned runtime resources.
 										</FormDescription>
 										<FormMessage />
 									</FormItem>

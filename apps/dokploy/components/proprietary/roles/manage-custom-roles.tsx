@@ -432,8 +432,8 @@ const ROLE_PRESETS: {
 	permissions: Record<string, string[]>;
 }[] = [
 	{
-		name: "viewer",
-		label: "Viewer",
+		name: "auditor",
+		label: "Auditor",
 		description: "Read-only access across all resources",
 		permissions: {
 			service: ["read"],
@@ -704,7 +704,7 @@ function HandleCustomRole({
 									<FormLabel>Role Name</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="e.g. developer, viewer, deployer"
+											placeholder="e.g. developer, auditor, deployer"
 											{...field}
 										/>
 									</FormControl>

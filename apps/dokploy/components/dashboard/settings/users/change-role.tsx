@@ -128,6 +128,7 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 										</FormControl>
 										<SelectContent>
 											<SelectItem value="admin">Admin</SelectItem>
+											<SelectItem value="viewer">Viewer</SelectItem>
 											<SelectItem value="member">Member</SelectItem>
 											{customRoles?.map((customRole) => (
 												<SelectItem
@@ -141,6 +142,9 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 									</Select>
 									<FormDescription>
 										<strong>Admin:</strong> Can manage users and settings.
+										<br />
+										<strong>Viewer:</strong> Read-only access to assigned
+										runtime resources.
 										<br />
 										<strong>Member:</strong> Limited permissions, can be
 										customized.

@@ -33,7 +33,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	if (user.role === "member") {
+	if (user.role === "member" || user.role === "viewer") {
 		return {
 			redirect: {
 				permanent: false,

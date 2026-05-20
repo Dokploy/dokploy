@@ -51,9 +51,8 @@ export const statements = {
 } as const;
 
 /**
- * Enterprise-only resources. For static roles (owner/admin/member),
- * permission checks on these resources are bypassed — they only apply
- * when using custom roles with an enterprise license.
+ * Enterprise-only resources. Built-in roles can reference these resources
+ * without requiring an enterprise license.
  */
 export const enterpriseOnlyResources = new Set<string>([
 	"volume",
@@ -185,6 +184,44 @@ export const memberRole = ac.newRole({
 	logs: ["read"],
 	monitoring: ["read"],
 	// Org-level enterprise resources — member cannot manage these
+	server: [],
+	registry: [],
+	certificate: [],
+	destination: [],
+	notification: [],
+	tag: ["read"],
+	auditLog: [],
+});
+
+/**
+ * Viewer role — read-only access to assigned runtime resources.
+ * Unlike member, viewer never inherits the legacy boolean write toggles.
+ */
+export const viewerRole = ac.newRole({
+	organization: [],
+	member: [],
+	invitation: [],
+	team: [],
+	ac: [],
+	project: [],
+	service: ["read"],
+	environment: ["read"],
+	docker: [],
+	sshKeys: [],
+	gitProviders: [],
+	traefikFiles: [],
+	api: [],
+	volume: ["read"],
+	deployment: ["read"],
+	envVars: ["read"],
+	projectEnvVars: ["read"],
+	environmentEnvVars: ["read"],
+	backup: ["read"],
+	volumeBackup: ["read"],
+	schedule: ["read"],
+	domain: ["read"],
+	logs: ["read"],
+	monitoring: ["read"],
 	server: [],
 	registry: [],
 	certificate: [],

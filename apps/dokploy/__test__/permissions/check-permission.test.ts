@@ -90,6 +90,13 @@ describe("static roles bypass enterprise resources", () => {
 			}),
 		).resolves.toBeUndefined();
 	});
+
+	it("viewer does not bypass enterprise write permissions", async () => {
+		memberToReturn = mockMemberData("viewer");
+		await expect(
+			checkPermission(ctx, { deployment: ["create"] }),
+		).rejects.toThrow();
+	});
 });
 
 describe("static roles validate free-tier resources", () => {
@@ -120,6 +127,27 @@ describe("static roles validate free-tier resources", () => {
 			checkPermission(ctx, { service: ["create"] }),
 		).rejects.toThrow();
 	});
+
+	it("viewer passes service.read", async () => {
+		memberToReturn = mockMemberData("viewer");
+		await expect(
+			checkPermission(ctx, { service: ["read"] }),
+		).resolves.toBeUndefined();
+	});
+
+	it("viewer fails project.create", async () => {
+		memberToReturn = mockMemberData("viewer");
+		await expect(
+			checkPermission(ctx, { project: ["create"] }),
+		).rejects.toThrow();
+	});
+
+	it("viewer passes deployment.read", async () => {
+		memberToReturn = mockMemberData("viewer");
+		await expect(
+			checkPermission(ctx, { deployment: ["read"] }),
+		).resolves.toBeUndefined();
+	});
 });
 
 describe("legacy boolean overrides for member", () => {
@@ -140,5 +168,12 @@ describe("legacy boolean overrides for member", () => {
 	it("member fails docker.read with canAccessToDocker=false", async () => {
 		memberToReturn = mockMemberData("member");
 		await expect(checkPermission(ctx, { docker: ["read"] })).rejects.toThrow();
+	});
+
+	it("viewer ignores member legacy overrides", async () => {
+		memberToReturn = mockMemberData("viewer", { canCreateProjects: true });
+		await expect(
+			checkPermission(ctx, { project: ["create"] }),
+		).rejects.toThrow();
 	});
 });

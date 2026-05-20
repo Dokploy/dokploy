@@ -304,7 +304,7 @@ export const organizationRouter = createTRPCRouter({
 			}
 
 			// If assigning a custom role, verify it exists
-			if (!["owner", "admin", "member"].includes(input.role)) {
+			if (!["owner", "admin", "member", "viewer"].includes(input.role)) {
 				const customRole = await db.query.organizationRole.findFirst({
 					where: and(
 						eq(organizationRole.organizationId, orgId),
@@ -453,8 +453,12 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			// If assigning a custom role (not admin/member), verify it exists
-			if (input.role !== "admin" && input.role !== "member") {
+			// If assigning a custom role, verify it exists
+			if (
+				input.role !== "admin" &&
+				input.role !== "member" &&
+				input.role !== "viewer"
+			) {
 				const customRole = await db.query.organizationRole.findFirst({
 					where: and(
 						eq(
@@ -468,7 +472,7 @@ export const organizationRouter = createTRPCRouter({
 				if (!customRole) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
-						message: `Custom role "${input.role}" not found`,
+						message: `Role "${input.role}" not found`,
 					});
 				}
 			}

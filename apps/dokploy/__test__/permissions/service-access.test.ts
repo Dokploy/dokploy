@@ -106,6 +106,24 @@ describe("checkServicePermissionAndAccess", () => {
 			}),
 		).rejects.toThrow("You don't have access to this service");
 	});
+
+	it("viewer with access to service passes read-only deployment checks", async () => {
+		memberToReturn = mockMemberData("viewer", ["service-123"]);
+		await expect(
+			checkServicePermissionAndAccess(ctx, "service-123", {
+				deployment: ["read"],
+			}),
+		).resolves.toBeUndefined();
+	});
+
+	it("viewer cannot create deployments even with service access", async () => {
+		memberToReturn = mockMemberData("viewer", ["service-123"]);
+		await expect(
+			checkServicePermissionAndAccess(ctx, "service-123", {
+				deployment: ["create"],
+			}),
+		).rejects.toThrow();
+	});
 });
 
 describe("checkServiceAccess", () => {
@@ -127,6 +145,13 @@ describe("checkServiceAccess", () => {
 		memberToReturn = mockMemberData("owner", [], []);
 		await expect(
 			checkServiceAccess(ctx, "project-1", "create"),
+		).resolves.toBeUndefined();
+	});
+
+	it("viewer with service access passes read check", async () => {
+		memberToReturn = mockMemberData("viewer", ["app-1"]);
+		await expect(
+			checkServiceAccess(ctx, "app-1", "read"),
 		).resolves.toBeUndefined();
 	});
 });

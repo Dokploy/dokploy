@@ -10,6 +10,7 @@ import {
 	memberRole,
 	ownerRole,
 	statements,
+	viewerRole,
 } from "../lib/access-control";
 
 type Statements = typeof statements;
@@ -34,7 +35,10 @@ const staticRoles: Record<string, ReturnType<typeof ac.newRole>> = {
 	owner: ownerRole,
 	admin: adminRole,
 	member: memberRole,
+	viewer: viewerRole,
 };
+
+const enterpriseBypassRoles = new Set(["owner", "admin", "member"]);
 
 const resolveRole = async (
 	roleName: string,
@@ -82,7 +86,7 @@ export const checkPermission = async (
 	const memberRecord = await findMemberByUserId(userId, organizationId);
 	const isStaticRole = memberRecord.role in staticRoles;
 
-	if (isStaticRole) {
+	if (isStaticRole && enterpriseBypassRoles.has(memberRecord.role)) {
 		const allEnterprise = Object.keys(permissions).every((r) =>
 			enterpriseOnlyResources.has(r),
 		);
