@@ -410,6 +410,15 @@ const { handler, api } = betterAuth({
 			teams: {
 				enabled: true,
 			},
+			organizationHooks: {
+				afterCreateTeam: async ({ team, user }) => {
+					if (!user?.id) return;
+					await db.insert(schema.teamMember).values({
+						teamId: team.id,
+						userId: user.id,
+					});
+				},
+			},
 			dynamicAccessControl: {
 				enabled: true,
 				maximumRolesPerOrganization: 10,

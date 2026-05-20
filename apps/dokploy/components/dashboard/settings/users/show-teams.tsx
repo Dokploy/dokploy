@@ -104,9 +104,7 @@ export const ShowTeams = () => {
 						query: { teamId: team.id },
 					});
 					if (result.error) {
-						throw new Error(
-							result.error.message || `Error loading ${team.name} members`,
-						);
+						return [team.id, [] as TeamMember[]] as const;
 					}
 					return [team.id, (result.data ?? []) as TeamMember[]] as const;
 				}),
