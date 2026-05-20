@@ -8,6 +8,22 @@ export const isDokployRegistrationAllowed = (value?: string) =>
 export const DOKPLOY_ALLOW_REGISTRATION = isDokployRegistrationAllowed(
 	process.env.DOKPLOY_ALLOW_REGISTRATION,
 );
+export const shouldCreateDefaultOrganizationForSignUp = ({
+	isCloud,
+	hasOwner,
+	isSSORequest,
+	hasInvitation,
+	registrationAllowed,
+}: {
+	isCloud: boolean;
+	hasOwner: boolean;
+	isSSORequest: boolean;
+	hasInvitation: boolean;
+	registrationAllowed: boolean;
+}) =>
+	isCloud ||
+	!hasOwner ||
+	(!isSSORequest && !hasInvitation && registrationAllowed);
 
 export const DOKPLOY_DOCKER_API_VERSION =
 	process.env.DOKPLOY_DOCKER_API_VERSION;
