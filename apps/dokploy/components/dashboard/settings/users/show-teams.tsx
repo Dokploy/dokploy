@@ -79,7 +79,6 @@ export const ShowTeams = () => {
 	const canCreateTeams = permissions?.team.create ?? false;
 	const canUpdateTeams = permissions?.team.update ?? false;
 	const canDeleteTeams = permissions?.team.delete ?? false;
-	const canUseTeamActions = canUpdateTeams || canDeleteTeams;
 
 	const membersByUserId = useMemo(() => {
 		return new Map(members?.map((member) => [member.user.id, member]) ?? []);
@@ -282,7 +281,7 @@ export const ShowTeams = () => {
 										<TableHead>Name</TableHead>
 										<TableHead>Members</TableHead>
 										<TableHead className="text-center">Created At</TableHead>
-										{canUseTeamActions && (
+										{canDeleteTeams && (
 											<TableHead className="text-right">Actions</TableHead>
 										)}
 									</TableRow>
@@ -394,7 +393,7 @@ export const ShowTeams = () => {
 														{format(new Date(team.createdAt), "PPpp")}
 													</span>
 												</TableCell>
-												{canUseTeamActions && (
+												{canDeleteTeams && (
 													<TableCell className="text-right flex justify-end">
 														<DropdownMenu>
 															<DropdownMenuTrigger asChild>
@@ -405,31 +404,19 @@ export const ShowTeams = () => {
 															</DropdownMenuTrigger>
 															<DropdownMenuContent align="end">
 																<DropdownMenuLabel>Actions</DropdownMenuLabel>
-																{canUpdateTeams && (
+																<DialogAction
+																	title="Delete Team"
+																	description="Are you sure you want to delete this team?"
+																	type="destructive"
+																	onClick={() => removeTeam(team.id)}
+																>
 																	<DropdownMenuItem
-																		className="w-full cursor-pointer"
-																		onSelect={() => renameTeam(team)}
+																		className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																		onSelect={(event) => event.preventDefault()}
 																	>
-																		Save Name
+																		Delete Team
 																	</DropdownMenuItem>
-																)}
-																{canDeleteTeams && (
-																	<DialogAction
-																		title="Delete Team"
-																		description="Are you sure you want to delete this team?"
-																		type="destructive"
-																		onClick={() => removeTeam(team.id)}
-																	>
-																		<DropdownMenuItem
-																			className="w-full cursor-pointer text-red-500 hover:!text-red-600"
-																			onSelect={(event) =>
-																				event.preventDefault()
-																			}
-																		>
-																			Delete Team
-																		</DropdownMenuItem>
-																	</DialogAction>
-																)}
+																</DialogAction>
 															</DropdownMenuContent>
 														</DropdownMenu>
 													</TableCell>
