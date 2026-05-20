@@ -23,12 +23,4 @@ export default defineConfig({
 			projects: [path.resolve(__dirname, "../tsconfig.json")],
 		}),
 	],
-	resolve: {
-		alias: {
-			"@dokploy/server": path.resolve(
-				__dirname,
-				"../../../packages/server/src",
-			),
-		},
-	},
 });

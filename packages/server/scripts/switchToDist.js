@@ -19,6 +19,54 @@ pkg.exports = {
 		import: "./dist/db/index.js",
 		require: "./dist/db/index.cjs.js",
 	},
+	"./db/schema": {
+		import: "./dist/db/schema/index.js",
+		require: "./dist/db/schema/index.js",
+	},
+	"./db/*": {
+		import: "./dist/db/*.js",
+		require: "./dist/db/*.js",
+	},
+	"./setup/*": {
+		import: "./dist/setup/*.js",
+		require: "./dist/setup/*.js",
+	},
+	"./services/*": {
+		import: "./dist/services/*.js",
+		require: "./dist/services/*.js",
+	},
+	"./lib/*": {
+		import: "./dist/lib/*.js",
+		require: "./dist/lib/*.js",
+	},
+	"./utils/*": {
+		import: "./dist/utils/*.js",
+		require: "./dist/utils/*.js",
+	},
+	"./monitoring/*": {
+		import: "./dist/monitoring/*.js",
+		require: "./dist/monitoring/*.js",
+	},
+	"./emails/*": {
+		import: "./dist/emails/*.js",
+		require: "./dist/emails/*.js",
+	},
+	"./templates": {
+		import: "./dist/templates/index.js",
+		require: "./dist/templates/index.js",
+	},
+	"./types/*": {
+		import: "./dist/types/*.js",
+		require: "./dist/types/*.js",
+	},
+	"./wss/*": {
+		import: "./dist/wss/*.js",
+		require: "./dist/wss/*.js",
+	},
+	"./constants": {
+		import: "./dist/constants/index.js",
+		require: "./dist/constants/index.js",
+	},
 	"./*": {
 		import: "./dist/*",
 		require: "./dist/*.cjs",

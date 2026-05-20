@@ -1,4 +1,4 @@
-import { IS_CLOUD, removeScheduleJob, scheduleJob } from "@dokploy/server";
+import { IS_CLOUD } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { deployments } from "@dokploy/server/db/schema/deployment";
 import {
@@ -6,7 +6,6 @@ import {
 	schedules,
 	updateScheduleSchema,
 } from "@dokploy/server/db/schema/schedule";
-import { runCommand } from "@dokploy/server/index";
 import {
 	checkPermission,
 	checkServicePermissionAndAccess,
@@ -19,6 +18,11 @@ import {
 	updateSchedule,
 } from "@dokploy/server/services/schedule";
 import { findServerById } from "@dokploy/server/services/server";
+import {
+	removeScheduleJob,
+	runCommand,
+	scheduleJob,
+} from "@dokploy/server/utils/schedules/utils";
 import { TRPCError } from "@trpc/server";
 import { asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
