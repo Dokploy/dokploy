@@ -10,16 +10,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@dokploy/server/db", () => {
 	const createChainableMock = (): any => {
-		const chain = {
-			set: vi.fn(() => chain),
-			where: vi.fn(() => chain),
-			returning: vi.fn().mockResolvedValue([{}] as any),
-			from: vi.fn(() => chain),
-			innerJoin: vi.fn(() => chain),
-			then: (resolve: (v: any) => void) => {
-				resolve([]);
-			},
-		} as any;
+		const chain = Promise.resolve([]) as any;
+		chain.set = vi.fn(() => chain);
+		chain.where = vi.fn(() => chain);
+		chain.returning = vi.fn().mockResolvedValue([{}] as any);
+		chain.from = vi.fn(() => chain);
+		chain.innerJoin = vi.fn(() => chain);
 		return chain;
 	};
 

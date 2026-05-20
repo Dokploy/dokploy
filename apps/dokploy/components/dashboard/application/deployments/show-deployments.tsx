@@ -232,12 +232,10 @@ export const ShowDeployments = ({
 						<div className="flex flex-row items-center gap-2 flex-wrap">
 							<span>Webhook URL: </span>
 							<div className="flex flex-row items-center gap-2">
-								<Badge
-									role="button"
-									tabIndex={0}
+								<button
+									type="button"
 									aria-label="Copy webhook URL to clipboard"
-									className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all"
-									variant="outline"
+									className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors p-2 ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all"
 									onKeyDown={(event) => {
 										if (event.key === "Enter" || event.key === " ") {
 											event.preventDefault();
@@ -252,7 +250,7 @@ export const ShowDeployments = ({
 								>
 									{webhookUrl}
 									<Copy className="h-4 w-4 ml-2" />
-								</Badge>
+								</button>
 								{(type === "application" || type === "compose") && (
 									<RefreshToken id={id} type={type} />
 								)}

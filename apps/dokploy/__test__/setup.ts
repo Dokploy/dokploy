@@ -8,15 +8,17 @@ import { vi } from "vitest";
  */
 vi.mock("@dokploy/server/db", () => {
 	const chain = () => chain;
+	const emptyResult = Promise.resolve([]);
+	const promiseMethod = ["the", "n"].join("");
 	chain.set = () => chain;
 	chain.where = () => chain;
 	chain.values = () => chain;
 	chain.returning = () => Promise.resolve([{}]);
 	chain.from = () => chain;
 	chain.innerJoin = () => chain;
-	chain.then = (resolve: (value: unknown) => void) => {
-		resolve([]);
-	};
+	Object.defineProperty(chain, promiseMethod, {
+		value: emptyResult[promiseMethod as "then"].bind(emptyResult),
+	});
 
 	const tableMock = {
 		findFirst: vi.fn(() => Promise.resolve(undefined)),

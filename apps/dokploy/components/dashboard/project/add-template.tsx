@@ -147,7 +147,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 
 				return { previousBookmarks };
 			},
-			onError: (err, variables, context) => {
+			onError: (_err, _variables, context) => {
 				if (context?.previousBookmarks) {
 					utils.user.getBookmarkedTemplates.setData(
 						undefined,

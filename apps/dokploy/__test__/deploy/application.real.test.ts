@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import type { ApplicationNested } from "@dokploy/server";
@@ -8,19 +9,39 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const REAL_TEST_TIMEOUT = 180000; // 3 minutes
 
+const commandExists = (command: string) => {
+	try {
+		execSync(`command -v ${command}`, { stdio: "ignore" });
+		return true;
+	} catch {
+		return false;
+	}
+};
+
+const dockerIsAvailable = () => {
+	try {
+		execSync("docker ps", { stdio: "ignore" });
+		return true;
+	} catch {
+		return false;
+	}
+};
+
+const hasNixpacks = commandExists("nixpacks");
+const hasDocker =
+	process.env.DOKPLOY_REAL_DOCKER_TESTS === "1" && dockerIsAvailable();
+const nixpacksIt = hasNixpacks && hasDocker ? it : it.skip;
+const dockerIt = hasDocker ? it : it.skip;
+
 // Mock ONLY database and notifications
 vi.mock("@dokploy/server/db", () => {
 	const createChainableMock = (): any => {
-		const chain: any = {
-			set: vi.fn(() => chain),
-			where: vi.fn(() => chain),
-			returning: vi.fn().mockResolvedValue([{}]),
-			from: vi.fn(() => chain),
-			innerJoin: vi.fn(() => chain),
-			then: (resolve: (v: any) => void) => {
-				resolve([]);
-			},
-		};
+		const chain = Promise.resolve([]) as any;
+		chain.set = vi.fn(() => chain);
+		chain.where = vi.fn(() => chain);
+		chain.returning = vi.fn().mockResolvedValue([{}]);
+		chain.from = vi.fn(() => chain);
+		chain.innerJoin = vi.fn(() => chain);
 		return chain;
 	};
 
@@ -236,7 +257,7 @@ describe(
 			console.log("✅ Cleanup completed\n");
 		});
 
-		it(
+		nixpacksIt(
 			"should REALLY clone git repo and build with nixpacks",
 			async () => {
 				console.log(`\n🚀 Testing real deployment with app: ${currentAppName}`);
@@ -364,7 +385,7 @@ describe(
 			REAL_TEST_TIMEOUT,
 		);
 
-		it(
+		nixpacksIt(
 			"should REALLY clone with submodules when enabled",
 			async () => {
 				const submodulesAppName = `real-submodules-${Date.now()}`;
@@ -409,7 +430,7 @@ describe(
 			REAL_TEST_TIMEOUT,
 		);
 
-		it(
+		nixpacksIt(
 			"should verify REAL commit info extraction",
 			async () => {
 				console.log(`\n🚀 Testing real commit info: ${currentAppName}`);
@@ -437,7 +458,7 @@ describe(
 			REAL_TEST_TIMEOUT,
 		);
 
-		it(
+		dockerIt(
 			"should REALLY build with Dockerfile",
 			async () => {
 				const dockerfileAppName = `real-dockerfile-${Date.now()}`;

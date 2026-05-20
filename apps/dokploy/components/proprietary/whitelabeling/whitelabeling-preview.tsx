@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
 	Card,
 	CardContent,
@@ -32,10 +33,13 @@ export function WhitelabelingPreview({ config }: WhitelabelingPreviewProps) {
 					{/* Simulated sidebar header */}
 					<div className="flex items-center gap-3 p-4 border-b bg-sidebar">
 						{config.logoUrl ? (
-							<img
+							<Image
 								src={config.logoUrl}
 								alt="Preview Logo"
+								width={32}
+								height={32}
 								className="size-8 rounded-sm object-contain"
+								unoptimized
 							/>
 						) : (
 							<div className="size-8 rounded-sm flex items-center justify-center bg-primary text-primary-foreground font-bold text-sm">

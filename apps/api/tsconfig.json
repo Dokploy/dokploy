@@ -2,12 +2,13 @@
 	"compilerOptions": {
 		"target": "ESNext",
 		"module": "ESNext",
-		"moduleResolution": "Node",
+		"moduleResolution": "Bundler",
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
 		"strict": true,
 		"skipLibCheck": true,
 		"outDir": "dist",
 		"jsx": "react-jsx",
-		"jsxImportSource": "hono/jsx",
 		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./*"],
