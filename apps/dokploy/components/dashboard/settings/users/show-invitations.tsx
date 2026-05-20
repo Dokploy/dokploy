@@ -28,6 +28,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { authClient } from "@/lib/auth-client";
+import { isInvitationRemovable } from "@/lib/invitations";
 import { api } from "@/utils/api";
 import { AddInvitation } from "./add-invitation";
 
@@ -86,6 +87,10 @@ export const ShowInvitations = () => {
 												{data?.map((invitation) => {
 													const isExpired = isPast(
 														new Date(invitation.expiresAt),
+													);
+													const canRemoveInvitation = isInvitationRemovable(
+														invitation.status,
+														invitation.expiresAt,
 													);
 													return (
 														<TableRow key={invitation.id}>
@@ -186,19 +191,28 @@ export const ShowInvitations = () => {
 																				)}
 																			</>
 																		)}
-																		<DropdownMenuItem
-																			className="w-full cursor-pointer"
-																			onSelect={async () => {
-																				await removeInvitation({
-																					invitationId: invitation.id,
-																				}).then(() => {
-																					refetch();
-																					toast.success("Invitation removed");
-																				});
-																			}}
-																		>
-																			Remove Invitation
-																		</DropdownMenuItem>
+																		{canRemoveInvitation && (
+																			<DropdownMenuItem
+																				className="w-full cursor-pointer"
+																				onSelect={async () => {
+																					try {
+																						await removeInvitation({
+																							invitationId: invitation.id,
+																						});
+																						refetch();
+																						toast.success("Invitation removed");
+																					} catch (error) {
+																						toast.error(
+																							error instanceof Error
+																								? error.message
+																								: "Failed to remove invitation",
+																						);
+																					}
+																				}}
+																			>
+																				Remove Invitation
+																			</DropdownMenuItem>
+																		)}
 																	</DropdownMenuContent>
 																</DropdownMenu>
 															</TableCell>

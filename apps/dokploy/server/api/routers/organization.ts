@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { isInvitationRemovable } from "@/lib/invitations";
 import { audit } from "@/server/api/utils/audit";
 import {
 	invitation,
@@ -387,6 +388,18 @@ export const organizationRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You are not allowed to remove this invitation",
+				});
+			}
+
+			if (
+				!isInvitationRemovable(
+					invitationResult.status,
+					invitationResult.expiresAt,
+				)
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Only expired or inactive invitations can be removed",
 				});
 			}
 
