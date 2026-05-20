@@ -35,7 +35,9 @@ import { ChangeRole } from "./change-role";
 export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isPending, refetch } = api.user.all.useQuery();
-	const { mutateAsync } = api.user.remove.useMutation();
+	const { mutateAsync: removeUser } = api.user.remove.useMutation();
+	const { mutateAsync: transferOwnership } =
+		api.organization.transferOwnership.useMutation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: hasValidLicense } =
 		api.licenseKey.haveValidLicenseKey.useQuery();
@@ -122,13 +124,18 @@ export const ShowUsers = () => {
 													// Can change role based on hierarchy:
 													// - Owner: Can change anyone's role (except themselves and other owners)
 													// - Admin: Can only change member/custom roles (not other admins or owners)
-													// - Owner role is nontransferable
+													// - Owner role changes use the dedicated transfer flow
 													const canChangeRole =
 														member.role !== "owner" &&
 														member.user.id !== session?.user?.id &&
 														(currentUserRole === "owner" ||
 															(currentUserRole === "admin" &&
 																member.role !== "admin"));
+
+													const canTransferOwnership =
+														currentUserRole === "owner" &&
+														member.role !== "owner" &&
+														member.user.id !== session?.user?.id;
 
 													const canDeleteMember =
 														permissions?.member.delete ?? false;
@@ -149,6 +156,7 @@ export const ShowUsers = () => {
 													const hasAnyAction =
 														canEditPermissions ||
 														canChangeRole ||
+														canTransferOwnership ||
 														canDelete ||
 														canUnlink;
 
@@ -211,6 +219,37 @@ export const ShowUsers = () => {
 																				/>
 																			)}
 
+																			{canTransferOwnership && (
+																				<DialogAction
+																					title="Transfer Ownership"
+																					description={`Transfer organization ownership to ${member.user.email}? Your role will become Admin.`}
+																					onClick={async () => {
+																						await transferOwnership({
+																							memberId: member.id,
+																						})
+																							.then(() => {
+																								toast.success(
+																									"Ownership transferred successfully",
+																								);
+																								refetch();
+																							})
+																							.catch((err) => {
+																								toast.error(
+																									err?.message ||
+																										"Error transferring ownership",
+																								);
+																							});
+																					}}
+																				>
+																					<DropdownMenuItem
+																						className="w-full cursor-pointer"
+																						onSelect={(e) => e.preventDefault()}
+																					>
+																						Transfer Ownership
+																					</DropdownMenuItem>
+																				</DialogAction>
+																			)}
+
 																			{canEditPermissions && (
 																				<AddUserPermissions
 																					userId={member.user.id}
@@ -224,7 +263,7 @@ export const ShowUsers = () => {
 																					description="Are you sure you want to delete this user?"
 																					type="destructive"
 																					onClick={async () => {
-																						await mutateAsync({
+																						await removeUser({
 																							userId: member.user.id,
 																						})
 																							.then(() => {
@@ -265,7 +304,7 @@ export const ShowUsers = () => {
 																								);
 
 																							if (orgCount === 1) {
-																								await mutateAsync({
+																								await removeUser({
 																									userId: member.user.id,
 																								})
 																									.then(() => {

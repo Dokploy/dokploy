@@ -488,6 +488,97 @@ export const organizationRouter = createTRPCRouter({
 			});
 			return true;
 		}),
+	transferOwnership: protectedProcedure
+		.input(
+			z.object({
+				memberId: z.string(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = ctx.session.activeOrganizationId;
+
+			const org = await db.query.organization.findFirst({
+				where: eq(organization.id, organizationId),
+			});
+
+			if (!org) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Organization not found",
+				});
+			}
+
+			if (org.ownerId !== ctx.user.id || ctx.user.role !== "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only the current organization owner can transfer ownership",
+				});
+			}
+
+			const target = await db.query.member.findFirst({
+				where: and(
+					eq(member.id, input.memberId),
+					eq(member.organizationId, organizationId),
+				),
+				with: { user: true },
+			});
+
+			if (!target) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
+			}
+
+			if (target.userId === ctx.user.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You cannot transfer ownership to yourself",
+				});
+			}
+
+			const currentOwner = await db.query.member.findFirst({
+				where: and(
+					eq(member.userId, ctx.user.id),
+					eq(member.organizationId, organizationId),
+				),
+			});
+
+			if (!currentOwner || currentOwner.role !== "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Current owner membership not found",
+				});
+			}
+
+			await db.transaction(async (tx) => {
+				await tx
+					.update(organization)
+					.set({ ownerId: target.userId })
+					.where(eq(organization.id, organizationId));
+
+				await tx
+					.update(member)
+					.set({ role: "admin" })
+					.where(eq(member.id, currentOwner.id));
+
+				await tx
+					.update(member)
+					.set({ role: "owner" })
+					.where(eq(member.id, target.id));
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: organizationId,
+				resourceName: org.name,
+				metadata: {
+					type: "transferOwnership",
+					from: ctx.user.id,
+					to: target.userId,
+				},
+			});
+
+			return true;
+		}),
 	setDefault: protectedProcedure
 		.input(
 			z.object({
