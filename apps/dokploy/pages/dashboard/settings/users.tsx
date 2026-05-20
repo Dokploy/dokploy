@@ -4,6 +4,7 @@ import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import { ShowInvitations } from "@/components/dashboard/settings/users/show-invitations";
+import { ShowTeams } from "@/components/dashboard/settings/users/show-teams";
 import { ShowUsers } from "@/components/dashboard/settings/users/show-users";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { ManageCustomRoles } from "@/components/proprietary/roles/manage-custom-roles";
@@ -15,10 +16,15 @@ const Page = () => {
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const isOwnerOrAdmin = auth?.role === "owner" || auth?.role === "admin";
 	const canCreateMembers = permissions?.member.create ?? false;
+	const canManageTeams =
+		permissions?.team.create ||
+		permissions?.team.update ||
+		permissions?.team.delete;
 
 	return (
 		<div className="flex flex-col gap-4 w-full">
 			<ShowUsers />
+			{canManageTeams && <ShowTeams />}
 			{canCreateMembers && <ShowInvitations />}
 			{isOwnerOrAdmin && <ManageCustomRoles />}
 		</div>
