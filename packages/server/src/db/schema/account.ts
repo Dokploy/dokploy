@@ -110,6 +110,7 @@ export const organizationRelations = relations(
 		servers: many(server),
 		projects: many(projects),
 		members: many(member),
+		teams: many(team),
 		ssoProviders: many(ssoProvider),
 		roles: many(organizationRole),
 	}),
@@ -180,6 +181,61 @@ export const memberRelations = relations(member, ({ one }) => ({
 	}),
 	user: one(user, {
 		fields: [member.userId],
+		references: [user.id],
+	}),
+}));
+
+export const team = pgTable(
+	"team",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => nanoid()),
+		name: text("name").notNull(),
+		organizationId: text("organization_id")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+	},
+	(table) => [index("team_organizationId_idx").on(table.organizationId)],
+);
+
+export const teamRelations = relations(team, ({ one, many }) => ({
+	organization: one(organization, {
+		fields: [team.organizationId],
+		references: [organization.id],
+	}),
+	members: many(teamMember),
+}));
+
+export const teamMember = pgTable(
+	"team_member",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => nanoid()),
+		teamId: text("team_id")
+			.notNull()
+			.references(() => team.id, { onDelete: "cascade" }),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		index("teamMember_teamId_idx").on(table.teamId),
+		index("teamMember_userId_idx").on(table.userId),
+	],
+);
+
+export const teamMemberRelations = relations(teamMember, ({ one }) => ({
+	team: one(team, {
+		fields: [teamMember.teamId],
+		references: [team.id],
+	}),
+	user: one(user, {
+		fields: [teamMember.userId],
 		references: [user.id],
 	}),
 }));

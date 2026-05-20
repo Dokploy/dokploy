@@ -407,6 +407,9 @@ const { handler, api } = betterAuth({
 				admin: adminRole,
 				member: memberRole,
 			},
+			teams: {
+				enabled: true,
+			},
 			dynamicAccessControl: {
 				enabled: true,
 				maximumRolesPerOrganization: 10,
