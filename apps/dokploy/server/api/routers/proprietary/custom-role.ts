@@ -199,6 +199,13 @@ export const customRoleRouter = createTRPCRouter({
 				)
 				.returning();
 
+			if (!updated) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Role "${input.roleName}" not found`,
+				});
+			}
+
 			await audit(ctx, {
 				action: "update",
 				resourceType: "customRole",
