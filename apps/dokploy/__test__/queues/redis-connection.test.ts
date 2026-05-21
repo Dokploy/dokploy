@@ -1,4 +1,4 @@
-﻿import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 
 // Mock fs for readSecret tests
@@ -107,7 +107,7 @@ describe("redis-connection", () => {
 		expect((redisConfig as any).db).toBe(0);
 	});
 
-	it("should verify initializeRedis creates service with correct Command and Args when password is set", async () => {
+	it("should verify initializeRedis creates service with correct Args (no Command override) when password is set", async () => {
 		vi.stubEnv("REDIS_PASSWORD", "test-pass");
 		vi.stubEnv("NODE_ENV", "production");
 		
@@ -118,10 +118,13 @@ describe("redis-connection", () => {
 		expect(mockCreateService).toHaveBeenCalledWith(expect.objectContaining({
 			TaskTemplate: expect.objectContaining({
 				ContainerSpec: expect.objectContaining({
-					Command: ["redis-server"],
-					Args: ["--requirepass", "test-pass"],
+					Args: ["redis-server", "--requirepass", "test-pass"],
 				})
 			})
 		}));
+		
+		// Ensure Command is NOT set to avoid overriding ENTRYPOINT
+		const lastCall = mockCreateService.mock.calls[0][0];
+		expect(lastCall.TaskTemplate.ContainerSpec.Command).toBeUndefined();
 	}, 30000);
 });

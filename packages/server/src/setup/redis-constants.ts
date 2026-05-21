@@ -1,4 +1,4 @@
-﻿import fs from "node:fs";
+import fs from "node:fs";
 
 export const {
 	REDIS_URL,
@@ -31,6 +31,10 @@ const redisPassword = REDIS_PASSWORD_FILE
 	? readSecret(REDIS_PASSWORD_FILE)
 	: REDIS_PASSWORD;
 
+/**
+ * Common Redis configuration used across the workspace.
+ * Matches BullMQ ConnectionOptions shape.
+ */
 export const redisConfig = REDIS_URL
 	? { url: REDIS_URL }
 	: {

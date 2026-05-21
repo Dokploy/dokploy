@@ -28,8 +28,7 @@ export const initializeRedis = async () => {
 					},
 				],
 				...(redisPassword && {
-					Command: ["redis-server"],
-					Args: ["--requirepass", redisPassword],
+					Args: ["redis-server", "--requirepass", redisPassword],
 				}),
 			},
 			Networks: [{ Target: "dokploy-network" }],
