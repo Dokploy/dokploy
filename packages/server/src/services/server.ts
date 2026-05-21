@@ -145,6 +145,7 @@ export const getAccessibleServerIds = async (session: {
 			serverId: true,
 		},
 	});
+	const orgServerIds = new Set(allOrgServers.map((s) => s.serverId));
 
 	const memberRecord = await db.query.member.findFirst({
 		where: and(
@@ -155,14 +156,18 @@ export const getAccessibleServerIds = async (session: {
 	});
 
 	if (memberRecord?.role === "owner" || memberRecord?.role === "admin") {
-		return new Set(allOrgServers.map((s) => s.serverId));
+		return orgServerIds;
 	}
 
 	const licensed = await hasValidLicense(activeOrganizationId);
 
 	if (!licensed) {
-		return new Set(allOrgServers.map((s) => s.serverId));
+		return orgServerIds;
 	}
 
-	return new Set(memberRecord?.accessedServers ?? []);
+	return new Set(
+		(memberRecord?.accessedServers ?? []).filter((serverId) =>
+			orgServerIds.has(serverId),
+		),
+	);
 };
