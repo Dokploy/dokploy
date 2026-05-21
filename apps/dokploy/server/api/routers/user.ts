@@ -604,13 +604,6 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			if (input.role === "owner") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "Cannot create a user with the owner role",
-				});
-			}
-
 			return await createOrganizationUserWithCredentials({
 				organizationId: ctx.session.activeOrganizationId,
 				email: input.email,

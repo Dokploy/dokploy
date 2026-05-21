@@ -4,6 +4,7 @@ import {
 	apikey,
 	invitation,
 	member,
+	organizationRole,
 	user,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
@@ -396,6 +397,36 @@ export const findMemberById = async (
 	return result;
 };
 
+export const assertAssignableOrganizationRole = async (
+	organizationId: string,
+	role: string,
+) => {
+	if (role === "owner") {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Cannot create a user with the owner role",
+		});
+	}
+
+	if (role === "admin" || role === "member") {
+		return;
+	}
+
+	const customRole = await db.query.organizationRole.findFirst({
+		where: and(
+			eq(organizationRole.organizationId, organizationId),
+			eq(organizationRole.role, role),
+		),
+	});
+
+	if (!customRole) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `Role "${role}" not found`,
+		});
+	}
+};
+
 export const createOrganizationUserWithCredentials = async ({
 	organizationId,
 	email,
@@ -409,6 +440,8 @@ export const createOrganizationUserWithCredentials = async ({
 }) => {
 	const normalizedEmail = email.trim().toLowerCase();
 	const now = new Date();
+
+	await assertAssignableOrganizationRole(organizationId, role);
 
 	return await db.transaction(async (tx) => {
 		const existingUser = await tx.query.user.findFirst({
