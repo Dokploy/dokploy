@@ -35,6 +35,7 @@ import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { and, asc, eq, gt, ne } from "drizzle-orm";
 import { z } from "zod";
+import { assertPermissionsAssignableTarget } from "@/lib/permission-assignment";
 import { audit } from "@/server/api/utils/audit";
 import {
 	adminProcedure,
@@ -347,9 +348,8 @@ export const userRouter = createTRPCRouter({
 		.input(apiAssignPermissions)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const organization = await findOrganizationById(
-					ctx.session?.activeOrganizationId || "",
-				);
+				const activeOrganizationId = ctx.session?.activeOrganizationId || "";
+				const organization = await findOrganizationById(activeOrganizationId);
 
 				if (organization?.ownerId !== ctx.user.ownerId) {
 					throw new TRPCError({
@@ -358,11 +358,18 @@ export const userRouter = createTRPCRouter({
 					});
 				}
 
+				const targetMember = await db.query.member.findFirst({
+					where: and(
+						eq(member.userId, input.id),
+						eq(member.organizationId, activeOrganizationId),
+					),
+					columns: { userId: true, role: true },
+				});
+				assertPermissionsAssignableTarget(targetMember, ctx.user.id);
+
 				const { id, accessedGitProviders, accessedServers, ...rest } = input;
 
-				const licensed = await hasValidLicense(
-					ctx.session?.activeOrganizationId || "",
-				);
+				const licensed = await hasValidLicense(activeOrganizationId);
 
 				await db
 					.update(member)
@@ -378,10 +385,7 @@ export const userRouter = createTRPCRouter({
 					.where(
 						and(
 							eq(member.userId, input.id),
-							eq(
-								member.organizationId,
-								ctx.session?.activeOrganizationId || "",
-							),
+							eq(member.organizationId, activeOrganizationId),
 						),
 					);
 				await audit(ctx, {
