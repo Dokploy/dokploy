@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { assertMemberRoleUpdateAllowed } from "@/lib/member-role";
 import { audit } from "@/server/api/utils/audit";
 import {
 	invitation,
@@ -427,31 +428,13 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			// Prevent users from changing their own role
-			if (target.userId === ctx.user.id) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You cannot change your own role",
-				});
-			}
-
-			// Owner role is nontransferable - cannot change to or from owner
-			if (target.role === "owner" || input.role === "owner") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "The owner role is nontransferable",
-				});
-			}
-
-			// Only owners can change admin roles
-			// Admins can only change member roles
-			if (ctx.user.role === "admin" && target.role === "admin") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message:
-						"Only the organization owner can change admin roles. Admins can only modify member roles.",
-				});
-			}
+			assertMemberRoleUpdateAllowed({
+				actorRole: ctx.user.role,
+				actorUserId: ctx.user.id,
+				targetUserId: target.userId,
+				targetRole: target.role,
+				nextRole: input.role,
+			});
 
 			// If assigning a custom role (not admin/member), verify it exists
 			if (input.role !== "admin" && input.role !== "member") {
