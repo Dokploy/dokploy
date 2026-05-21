@@ -35,6 +35,7 @@ import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { and, asc, eq, gt, ne } from "drizzle-orm";
 import { z } from "zod";
+import { assertInvitationCanBeEmailed } from "@/lib/invitation-email";
 import { audit } from "@/server/api/utils/audit";
 import {
 	adminProcedure,
@@ -630,14 +631,19 @@ export const userRouter = createTRPCRouter({
 				return;
 			}
 
+			const currentInvitation = await db.query.invitation.findFirst({
+				where: eq(invitation.id, input.invitationId),
+			});
+
+			assertInvitationCanBeEmailed(
+				currentInvitation,
+				ctx.session.activeOrganizationId,
+			);
+
 			const notification = await findNotificationById(input.notificationId);
 
 			const email = notification.email;
 			const resend = notification.resend;
-
-			const currentInvitation = await db.query.invitation.findFirst({
-				where: eq(invitation.id, input.invitationId),
-			});
 
 			if (!email && !resend) {
 				throw new TRPCError({
@@ -657,7 +663,7 @@ export const userRouter = createTRPCRouter({
 			);
 
 			try {
-				const toEmail = currentInvitation?.email || "";
+				const toEmail = currentInvitation.email;
 				const orgName = organization?.name || "organization";
 				const subject = `You've been invited to join ${orgName} on Dokploy`;
 				const html = await renderInvitationEmail({
@@ -687,7 +693,7 @@ export const userRouter = createTRPCRouter({
 				action: "create",
 				resourceType: "user",
 				resourceId: input.invitationId,
-				resourceName: currentInvitation?.email || "",
+				resourceName: currentInvitation.email,
 				metadata: { type: "sendInvitation" },
 			});
 			return inviteLink;
