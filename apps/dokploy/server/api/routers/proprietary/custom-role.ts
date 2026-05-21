@@ -10,6 +10,10 @@ import {
 	protectedProcedure,
 } from "../../trpc";
 import { audit } from "../../utils/audit";
+import {
+	customRoleNameSchema,
+	isReservedRoleName,
+} from "./custom-role-validation";
 
 const permissionsSchema = z.record(z.string(), z.array(z.string()));
 
@@ -72,14 +76,7 @@ export const customRoleRouter = createTRPCRouter({
 	create: enterpriseProcedure
 		.input(
 			z.object({
-				roleName: z
-					.string()
-					.min(1)
-					.max(50)
-					.refine(
-						(name) => !["owner", "admin", "member"].includes(name),
-						"Cannot use reserved role names (owner, admin, member)",
-					),
+				roleName: customRoleNameSchema,
 				permissions: permissionsSchema,
 			}),
 		)
@@ -130,20 +127,12 @@ export const customRoleRouter = createTRPCRouter({
 		.input(
 			z.object({
 				roleName: z.string().min(1),
-				newRoleName: z
-					.string()
-					.min(1)
-					.max(50)
-					.refine(
-						(name) => !["owner", "admin", "member"].includes(name),
-						"Cannot use reserved role names (owner, admin, member)",
-					)
-					.optional(),
+				newRoleName: customRoleNameSchema.optional(),
 				permissions: permissionsSchema,
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			if (["owner", "admin", "member"].includes(input.roleName)) {
+			if (isReservedRoleName(input.roleName)) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Cannot modify built-in roles",
@@ -214,7 +203,7 @@ export const customRoleRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			if (["owner", "admin", "member"].includes(input.roleName)) {
+			if (isReservedRoleName(input.roleName)) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Cannot delete built-in roles",

@@ -537,6 +537,7 @@ const ROLE_PRESETS: {
 const createRoleSchema = z.object({
 	roleName: z
 		.string()
+		.trim()
 		.min(1, "Role name is required")
 		.max(50, "Role name must be 50 characters or less")
 		.regex(
