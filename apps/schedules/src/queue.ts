@@ -1,11 +1,10 @@
 import { Queue, type RepeatableJob } from "bullmq";
+import { redisConfig } from "@dokploy/server";
 import { logger } from "./logger.js";
 import type { QueueJob } from "./schema.js";
 
 export const jobQueue = new Queue("backupQueue", {
-	connection: {
-		url: process.env.REDIS_URL!,
-	},
+	connection: redisConfig,
 	defaultJobOptions: {
 		removeOnComplete: true,
 		removeOnFail: true,

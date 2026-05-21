@@ -84,11 +84,12 @@ export const buildRedis = async (redis: RedisNested) => {
 									Args: args,
 								}),
 						}
-					: {
-							Command: ["/bin/sh"],
-							Args: ["-c", `redis-server --requirepass ${databasePassword}`],
+						: {
+						Command: ["redis-server"],
+						Args: ["--requirepass", databasePassword],
 						}),
-				...(Ulimits && { Ulimits }),
+						...(Ulimits && { Ulimits }),
+
 				Labels,
 			},
 			Networks,

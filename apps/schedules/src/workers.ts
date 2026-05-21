@@ -1,4 +1,5 @@
 import { type Job, Worker } from "bullmq";
+import { redisConfig } from "@dokploy/server";
 import { logger } from "./logger.js";
 import type { QueueJob } from "./schema.js";
 import { runJobs } from "./utils.js";
@@ -11,9 +12,7 @@ export const firstWorker = new Worker(
 	},
 	{
 		concurrency: 100,
-		connection: {
-			url: process.env.REDIS_URL!,
-		},
+		connection: redisConfig,
 	},
 );
 export const secondWorker = new Worker(
@@ -24,9 +23,7 @@ export const secondWorker = new Worker(
 	},
 	{
 		concurrency: 100,
-		connection: {
-			url: process.env.REDIS_URL!,
-		},
+		connection: redisConfig,
 	},
 );
 
@@ -38,8 +35,6 @@ export const thirdWorker = new Worker(
 	},
 	{
 		concurrency: 100,
-		connection: {
-			url: process.env.REDIS_URL!,
-		},
+		connection: redisConfig,
 	},
 );

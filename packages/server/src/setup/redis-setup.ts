@@ -1,10 +1,15 @@
 import type { CreateServiceOptions } from "dockerode";
 import { docker } from "../constants";
+import { REDIS_PASSWORD, REDIS_PASSWORD_FILE, readSecret } from "../db/constants";
 import { pullImage } from "../utils/docker/utils";
 
 export const initializeRedis = async () => {
 	const imageName = "redis:7";
 	const containerName = "dokploy-redis";
+
+	const redisPassword = REDIS_PASSWORD_FILE
+		? readSecret(REDIS_PASSWORD_FILE)
+		: REDIS_PASSWORD;
 
 	const settings: CreateServiceOptions = {
 		Name: containerName,
@@ -18,6 +23,10 @@ export const initializeRedis = async () => {
 						Target: "/data",
 					},
 				],
+				...(redisPassword && {
+					Command: ["redis-server"],
+					Args: ["--requirepass", redisPassword],
+				}),
 			},
 			Networks: [{ Target: "dokploy-network" }],
 			Placement: {
