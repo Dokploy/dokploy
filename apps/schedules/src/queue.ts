@@ -1,5 +1,5 @@
 import { Queue, type RepeatableJob } from "bullmq";
-import { redisConfig } from "@dokploy/server/db/redis-constants";
+import { redisConfig } from "@dokploy/server/setup/redis-constants";
 import { logger } from "./logger.js";
 import type { QueueJob } from "./schema.js";
 

@@ -4,7 +4,7 @@ import {
 	REDIS_PASSWORD,
 	REDIS_PASSWORD_FILE,
 	readSecret,
-} from "../db/redis-constants";
+} from "./redis-constants";
 import { pullImage } from "../utils/docker/utils";
 
 export const initializeRedis = async () => {

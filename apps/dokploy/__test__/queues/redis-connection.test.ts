@@ -1,8 +1,13 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+﻿import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 
 // Mock fs for readSecret tests
 vi.mock("node:fs");
+
+// Mock pullImage to avoid actual docker commands in unit tests
+vi.mock("@dokploy/server/utils/docker/utils", () => ({
+	pullImage: vi.fn().mockResolvedValue({}),
+}));
 
 // Mock dockerode to verify service settings
 const mockCreateService = vi.fn().mockResolvedValue({});
@@ -64,7 +69,7 @@ describe("redis-connection", () => {
 
 		const { redisConfig } = await import("../../server/queues/redis-connection");
 
-		expect(redisConfig.password).toBe("file-secret");
+		expect((redisConfig as any).password).toBe("file-secret");
 		expect(fs.readFileSync).toHaveBeenCalledWith("/tmp/password.txt", "utf8");
 	});
 
@@ -92,11 +97,20 @@ describe("redis-connection", () => {
 		});
 	});
 
+	it("should fallback to defaults on non-numeric env vars", async () => {
+		vi.stubEnv("REDIS_PORT", "invalid");
+		vi.stubEnv("REDIS_DB_INDEX", "not-a-number");
+
+		const { redisConfig } = await import("../../server/queues/redis-connection");
+
+		expect((redisConfig as any).port).toBe(6379);
+		expect((redisConfig as any).db).toBe(0);
+	});
+
 	it("should verify initializeRedis creates service with correct Command and Args when password is set", async () => {
 		vi.stubEnv("REDIS_PASSWORD", "test-pass");
 		vi.stubEnv("NODE_ENV", "production");
 		
-		// We need to import initializeRedis AFTER stubbing the env
 		const { initializeRedis } = await import("@dokploy/server/setup/redis-setup");
 		
 		await initializeRedis();
