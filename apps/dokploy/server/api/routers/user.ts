@@ -35,6 +35,7 @@ import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { and, asc, eq, gt, ne } from "drizzle-orm";
 import { z } from "zod";
+import { assertPermissionAssignmentTargetAllowed } from "@/lib/member-permissions";
 import { audit } from "@/server/api/utils/audit";
 import {
 	adminProcedure,
@@ -347,9 +348,8 @@ export const userRouter = createTRPCRouter({
 		.input(apiAssignPermissions)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const organization = await findOrganizationById(
-					ctx.session?.activeOrganizationId || "",
-				);
+				const activeOrganizationId = ctx.session?.activeOrganizationId || "";
+				const organization = await findOrganizationById(activeOrganizationId);
 
 				if (organization?.ownerId !== ctx.user.ownerId) {
 					throw new TRPCError({
@@ -360,9 +360,27 @@ export const userRouter = createTRPCRouter({
 
 				const { id, accessedGitProviders, accessedServers, ...rest } = input;
 
-				const licensed = await hasValidLicense(
-					ctx.session?.activeOrganizationId || "",
-				);
+				const targetMember = await db.query.member.findFirst({
+					where: and(
+						eq(member.userId, id),
+						eq(member.organizationId, activeOrganizationId),
+					),
+				});
+
+				if (!targetMember) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Member not found in this organization",
+					});
+				}
+
+				assertPermissionAssignmentTargetAllowed({
+					actorUserId: ctx.user.id,
+					targetUserId: targetMember.userId,
+					targetRole: targetMember.role,
+				});
+
+				const licensed = await hasValidLicense(activeOrganizationId);
 
 				await db
 					.update(member)
@@ -377,17 +395,14 @@ export const userRouter = createTRPCRouter({
 					})
 					.where(
 						and(
-							eq(member.userId, input.id),
-							eq(
-								member.organizationId,
-								ctx.session?.activeOrganizationId || "",
-							),
+							eq(member.userId, id),
+							eq(member.organizationId, activeOrganizationId),
 						),
 					);
 				await audit(ctx, {
 					action: "update",
 					resourceType: "user",
-					resourceId: input.id,
+					resourceId: id,
 					metadata: { permissions: rest },
 				});
 			} catch (error) {
