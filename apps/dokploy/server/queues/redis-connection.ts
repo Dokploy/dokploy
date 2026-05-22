@@ -2,4 +2,12 @@ import { redisConfig as sharedRedisConfig } from "@dokploy/server/setup/redis-co
 import type { ConnectionOptions } from "bullmq";
 
 export const redisConfig: ConnectionOptions =
-	sharedRedisConfig as unknown as ConnectionOptions;
+	"url" in sharedRedisConfig
+		? { url: sharedRedisConfig.url as string }
+		: {
+				host: sharedRedisConfig.host as string,
+				port: sharedRedisConfig.port as number,
+				db: sharedRedisConfig.db as number,
+				password: sharedRedisConfig.password as string | undefined,
+				username: sharedRedisConfig.username as string | undefined,
+			};
