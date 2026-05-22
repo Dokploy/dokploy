@@ -8,6 +8,7 @@ import {
 	createTRPCRouter,
 	enterpriseProcedure,
 	protectedProcedure,
+	withPermission,
 } from "../../trpc";
 import { audit } from "../../utils/audit";
 
@@ -263,7 +264,7 @@ export const customRoleRouter = createTRPCRouter({
 			return { deleted: deleted.length };
 		}),
 
-	membersByRole: protectedProcedure
+	membersByRole: withPermission("member", "read")
 		.input(z.object({ roleName: z.string().min(1) }))
 		.query(async ({ input, ctx }) => {
 			const members = await db
