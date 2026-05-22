@@ -31,6 +31,7 @@ import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { AddUserPermissions } from "./add-permissions";
 import { ChangeRole } from "./change-role";
+import { TransferOwnership } from "./transfer-ownership";
 
 export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -145,12 +146,17 @@ export const ShowUsers = () => {
 
 													const canDelete = canRemove && !isCloud;
 													const canUnlink = canRemove && !!isCloud;
+													const canTransferOwnership =
+														currentUserRole === "owner" &&
+														member.role !== "owner" &&
+														member.user.id !== session?.user?.id;
 
 													const hasAnyAction =
 														canEditPermissions ||
 														canChangeRole ||
 														canDelete ||
-														canUnlink;
+														canUnlink ||
+														canTransferOwnership;
 
 													return (
 														<TableRow key={member.id}>
@@ -215,6 +221,13 @@ export const ShowUsers = () => {
 																				<AddUserPermissions
 																					userId={member.user.id}
 																					role={member.role}
+																				/>
+																			)}
+
+																			{canTransferOwnership && (
+																				<TransferOwnership
+																					memberId={member.id}
+																					userEmail={member.user.email}
 																				/>
 																			)}
 

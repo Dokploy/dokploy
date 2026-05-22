@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { assertCanTransferOwnership } from "@/lib/organization-ownership";
 import { audit } from "@/server/api/utils/audit";
 import {
 	invitation,
@@ -401,6 +402,94 @@ export const organizationRouter = createTRPCRouter({
 				metadata: { type: "removeInvitation" },
 			});
 			return result;
+		}),
+	transferOwnership: protectedProcedure
+		.input(z.object({ memberId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const orgId = ctx.session.activeOrganizationId;
+
+			if (!orgId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No active organization selected",
+				});
+			}
+
+			const org = await db.query.organization.findFirst({
+				where: eq(organization.id, orgId),
+			});
+
+			if (!org) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Organization not found",
+				});
+			}
+
+			const [currentOwnerMember, target] = await Promise.all([
+				db.query.member.findFirst({
+					where: and(
+						eq(member.organizationId, org.id),
+						eq(member.userId, ctx.user.id),
+					),
+				}),
+				db.query.member.findFirst({
+					where: eq(member.id, input.memberId),
+					with: { user: true },
+				}),
+			]);
+
+			if (!target) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
+			}
+
+			const currentOwnerMemberId = currentOwnerMember?.id;
+			if (!currentOwnerMemberId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Current owner membership not found",
+				});
+			}
+
+			assertCanTransferOwnership({
+				activeOrganizationId: orgId,
+				organizationOwnerId: org.ownerId,
+				currentUserId: ctx.user.id,
+				currentOwnerMemberId,
+				targetUserId: target.userId,
+				targetOrganizationId: target.organizationId,
+			});
+
+			await db.transaction(async (tx) => {
+				await tx
+					.update(organization)
+					.set({ ownerId: target.userId })
+					.where(eq(organization.id, org.id));
+
+				await tx
+					.update(member)
+					.set({ role: "owner" })
+					.where(eq(member.id, target.id));
+
+				await tx
+					.update(member)
+					.set({ role: "admin" })
+					.where(eq(member.id, currentOwnerMemberId));
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: org.id,
+				resourceName: org.name,
+				metadata: {
+					type: "transferOwnership",
+					before: org.ownerId,
+					after: target.userId,
+				},
+			});
+
+			return true;
 		}),
 	updateMemberRole: withPermission("member", "update")
 		.input(
