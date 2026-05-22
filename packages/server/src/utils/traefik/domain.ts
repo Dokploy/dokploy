@@ -196,10 +196,7 @@ export const createRouterConfig = async (
 		} else if (certificateType === "custom" && domain.customCertResolver) {
 			routerConfig.tls = { certResolver: domain.customCertResolver };
 		} else if (certificateType === "none") {
-			// Enable TLS without a cert resolver so the router serves HTTPS
-			// using a manually uploaded/default certificate. An empty tls object
-			// is the file-provider equivalent of the `tls=true` Docker label.
-			routerConfig.tls = {};
+			routerConfig.tls = undefined;
 		}
 	}
 
