@@ -6,6 +6,7 @@ import {
 	updateSSHKeyById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { managedServer } from "@dokploy/server/db/schema/managed-server";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import {
@@ -54,6 +55,16 @@ export const sshRouter = createTRPCRouter({
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to delete this SSH key",
+					});
+				}
+
+				const linkedManagedServer = await db.query.managedServer.findFirst({
+					where: eq(managedServer.sshKeyId, input.sshKeyId),
+				});
+				if (linkedManagedServer) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "This SSH key is used by a managed server and cannot be deleted.",
 					});
 				}
 

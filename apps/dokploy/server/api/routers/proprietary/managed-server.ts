@@ -15,17 +15,21 @@ import {
 	findManagedServersByOrg,
 	updateManagedServer,
 } from "@dokploy/server/services/managed-server";
+import { createSshKey } from "@dokploy/server/services/ssh-key";
+import { generateSSHKey } from "@dokploy/server/utils/filesystem/ssh";
 import {
-	getHostingerDataCenters,
-	getHostingerVm,
-	getManagedServerPlans,
-	purchaseHostingerVps,
-	stopHostingerVm,
-	UBUNTU_22_TEMPLATE_ID,
-} from "@dokploy/server/utils/hostinger";
+	DOKPLOY_PLANS,
+	createUpCloudServer,
+	deleteUpCloudServer,
+	getPublicIPv4,
+	getUpCloudServer,
+	getUpCloudZones,
+	stopUpCloudServer,
+} from "@dokploy/server/utils/upcloud";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { adminProcedure, createTRPCRouter } from "../../trpc";
+
 
 export const managedServerRouter = createTRPCRouter({
 	getPlans: adminProcedure.query(async () => {
@@ -35,7 +39,7 @@ export const managedServerRouter = createTRPCRouter({
 				message: "Managed servers are only available in Dokploy Cloud",
 			});
 		}
-		return getManagedServerPlans();
+		return DOKPLOY_PLANS;
 	}),
 
 	getDataCenters: adminProcedure.query(async () => {
@@ -45,7 +49,7 @@ export const managedServerRouter = createTRPCRouter({
 				message: "Managed servers are only available in Dokploy Cloud",
 			});
 		}
-		return getHostingerDataCenters();
+		return getUpCloudZones();
 	}),
 
 	list: adminProcedure.query(async ({ ctx }) => {
@@ -76,8 +80,7 @@ export const managedServerRouter = createTRPCRouter({
 				});
 			}
 
-			const plans = await getManagedServerPlans();
-			const plan = plans.find((p) => p.id === input.plan);
+			const plan = DOKPLOY_PLANS.find((p) => p.id === input.plan);
 			if (!plan) {
 				throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid plan" });
 			}
@@ -88,24 +91,29 @@ export const managedServerRouter = createTRPCRouter({
 			const managedRecord = await createManagedServer({
 				organizationId: ctx.session.activeOrganizationId,
 				plan: input.plan,
-				dataCenterId: input.dataCenterId,
+				zone: input.zone,
 				status: "provisioning",
 			});
 
-			const hostingerItemId = input.isAnnual
-				? plan.hostingerItemIdAnnual
-				: plan.hostingerItemIdMonthly;
-
 			provisionManagedServer(
 				managedRecord.managedServerId,
-				hostingerItemId,
-				input.dataCenterId,
+				plan.upcloudPlan,
+				input.zone,
 				hostname,
 				ctx.session.activeOrganizationId,
 			).catch(async (err) => {
+				const responseBody = err?.response?.data;
+				const detail =
+					responseBody?.message ??
+					responseBody?.error ??
+					(typeof responseBody === "string" ? responseBody : null);
+				const errorMessage = detail
+					? `${err?.message}: ${typeof detail === "object" ? JSON.stringify(detail) : detail}`
+					: (err?.message ?? "Unknown error during provisioning");
+				console.error("[managed-server] provisioning failed:", errorMessage, responseBody);
 				await updateManagedServer(managedRecord.managedServerId, {
 					status: "error",
-					errorMessage: err?.message ?? "Unknown error during provisioning",
+					errorMessage,
 				});
 			});
 
@@ -127,16 +135,65 @@ export const managedServerRouter = createTRPCRouter({
 				status: "terminating",
 			});
 
-			if (record.hostingerVmId) {
-				try {
-					await stopHostingerVm(record.hostingerVmId);
-				} catch (_) {
-					// Best-effort
-				}
+			const upcloudUuid = record.providerVmId;
+			terminateManagedServer(input.managedServerId, upcloudUuid ?? null).catch(
+				(err) => console.error("[managed-server] termination failed:", err),
+			);
+
+			return { ok: true };
+		}),
+
+	reconnect: adminProcedure
+		.input(apiFindOneManagedServer)
+		.mutation(async ({ input, ctx }) => {
+			if (!IS_CLOUD) {
+				throw new TRPCError({ code: "BAD_REQUEST", message: "Cloud only" });
+			}
+			const record = await findManagedServerById(input.managedServerId);
+			if (record.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({ code: "UNAUTHORIZED" });
+			}
+			if (record.serverId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Server is already linked",
+				});
+			}
+			if (!record.ipAddress) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No IP address available to reconnect",
+				});
 			}
 
-			await deleteManagedServer(input.managedServerId);
-			return { ok: true };
+			if (!record.sshKeyId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No SSH key found for this managed server",
+				});
+			}
+
+			const name = record.hostname ?? record.managedServerId;
+
+			const serverRecord = await createServer(
+				{
+					name: `Managed • ${name}`,
+					description: "Managed server provisioned by Dokploy Cloud",
+					ipAddress: record.ipAddress,
+					port: 22,
+					username: "root",
+					serverType: "deploy",
+					sshKeyId: record.sshKeyId,
+				},
+				ctx.session.activeOrganizationId,
+			);
+
+			await updateManagedServer(input.managedServerId, {
+				serverId: serverRecord.serverId,
+				status: "ready",
+			});
+
+			return findManagedServerById(input.managedServerId);
 		}),
 
 	syncStatus: adminProcedure
@@ -149,16 +206,18 @@ export const managedServerRouter = createTRPCRouter({
 			if (record.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
-			if (!record.hostingerVmId) return record;
 
-			const vm = await getHostingerVm(record.hostingerVmId);
-			const ipAddress = vm.ipv4?.[0]?.address ?? record.ipAddress;
+			const upcloudUuid = record.providerVmId;
+			if (!upcloudUuid) return record;
+
+			const vm = await getUpCloudServer(upcloudUuid);
+			const ipAddress = getPublicIPv4(vm) ?? record.ipAddress ?? undefined;
 
 			await updateManagedServer(input.managedServerId, {
-				ipAddress: ipAddress ?? undefined,
+				ipAddress,
 				hostname: vm.hostname ?? undefined,
 				status:
-					vm.state === "running"
+					vm.state === "started"
 						? record.serverId
 							? "ready"
 							: "configuring"
@@ -171,41 +230,43 @@ export const managedServerRouter = createTRPCRouter({
 
 async function provisionManagedServer(
 	managedServerId: string,
-	hostingerItemId: string,
-	dataCenterId: number,
+	upcloudPlan: string,
+	zone: string,
 	hostname: string,
 	organizationId: string,
 ) {
-	const result = await purchaseHostingerVps({
-		item_id: hostingerItemId,
-		payment_method_id: 0,
-		setup: {
-			template_id: UBUNTU_22_TEMPLATE_ID,
-			data_center_id: dataCenterId,
-			hostname,
-			enable_backups: false,
-		},
-		coupons: [],
+	const { publicKey, privateKey } = await generateSSHKey("rsa");
+
+	const vm = await createUpCloudServer({
+		hostname,
+		upcloudPlan,
+		zone,
+		sshKey: publicKey,
 	});
 
-	const vm = result.virtual_machine;
-
 	await updateManagedServer(managedServerId, {
-		hostingerVmId: vm.id,
-		hostingerSubscriptionId: vm.subscription_id ?? undefined,
-		ipAddress: vm.ipv4?.[0]?.address ?? undefined,
-		hostname: vm.hostname ?? undefined,
+		providerVmId: vm.uuid,
+		hostname: vm.hostname,
 		status: "configuring",
 	});
 
-	await waitForVmRunning(vm.id!, managedServerId);
+	await waitForServerStarted(vm.uuid, managedServerId);
 
-	const finalVm = await getHostingerVm(vm.id!);
-	const finalIp = finalVm.ipv4?.[0]?.address;
+	const finalVm = await getUpCloudServer(vm.uuid);
+	const finalIp = getPublicIPv4(finalVm);
 
 	if (!finalIp) {
-		throw new Error("VM is running but has no IPv4 address");
+		throw new Error("VM is started but has no public IPv4 address");
 	}
+
+	const sshKey = await createSshKey({
+		name: hostname,
+		publicKey,
+		privateKey,
+		organizationId,
+	});
+
+	if (!sshKey) throw new Error("Failed to create SSH key");
 
 	const serverRecord = await createServer(
 		{
@@ -215,33 +276,56 @@ async function provisionManagedServer(
 			port: 22,
 			username: "root",
 			serverType: "deploy",
+			sshKeyId: sshKey.sshKeyId,
 		},
 		organizationId,
 	);
 
 	await updateManagedServer(managedServerId, {
 		serverId: serverRecord.serverId,
+		sshKeyId: sshKey.sshKeyId,
 		ipAddress: finalIp,
 	});
 
 	await serverSetup(serverRecord.serverId);
-
 	await updateManagedServer(managedServerId, { status: "ready" });
 }
 
-async function waitForVmRunning(
-	vmId: number,
+async function waitForServerStarted(
+	uuid: string,
 	_managedServerId: string,
 	maxAttempts = 30,
 	intervalMs = 10_000,
 ) {
 	for (let i = 0; i < maxAttempts; i++) {
 		await new Promise((r) => setTimeout(r, intervalMs));
-		const vm = await getHostingerVm(vmId);
-		if (vm.state === "running") return;
-		if (vm.state === "error") {
-			throw new Error("VM entered error state");
-		}
+		const vm = await getUpCloudServer(uuid);
+		if (vm.state === "started") return;
+		if (vm.state === "error") throw new Error("VM entered error state");
 	}
-	throw new Error("Timed out waiting for VM to become running");
+	throw new Error("Timed out waiting for VM to start");
+}
+
+async function waitForServerStopped(
+	uuid: string,
+	maxAttempts = 18,
+	intervalMs = 10_000,
+) {
+	for (let i = 0; i < maxAttempts; i++) {
+		await new Promise((r) => setTimeout(r, intervalMs));
+		const vm = await getUpCloudServer(uuid);
+		if (vm.state === "stopped") return;
+	}
+}
+
+async function terminateManagedServer(
+	managedServerId: string,
+	upcloudUuid: string | null,
+) {
+	if (upcloudUuid) {
+		await stopUpCloudServer(upcloudUuid);
+		await waitForServerStopped(upcloudUuid);
+		await deleteUpCloudServer(upcloudUuid);
+	}
+	await deleteManagedServer(managedServerId);
 }

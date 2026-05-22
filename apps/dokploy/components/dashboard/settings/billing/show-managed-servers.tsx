@@ -7,6 +7,7 @@ import {
 	FileText,
 	Loader2,
 	Plus,
+	RefreshCw,
 	Server,
 	Trash2,
 	XCircle,
@@ -107,28 +108,27 @@ const STATUS_MAP: Record<
 	},
 };
 
-function formatSpecs(cpus: number, memoryMb: number, diskMb: number, bandwidthMb: number) {
-	const bandwidthTb = bandwidthMb / 1024 / 1024;
-	const bandwidthLabel = bandwidthTb >= 1 ? `${bandwidthTb.toFixed(0)} TB` : `${Math.round(bandwidthMb / 1024)} GB`;
-	return `${cpus} vCPU · ${Math.round(memoryMb / 1024)} GB RAM · ${Math.round(diskMb / 1024)} GB NVMe · ${bandwidthLabel} bandwidth`;
+function formatSpecs(cpus: number, memoryGb: number, storageGb: number) {
+	return `${cpus} vCPU · ${memoryGb} GB RAM · ${storageGb} GB NVMe`;
 }
 
-function centsToDisplay(cents: number) {
-	return (cents / 100).toFixed(2).replace(/\.00$/, "");
+function formatPrice(priceCents: number) {
+	return `$${(priceCents / 100).toFixed(2)}/mo`;
 }
+
+const CONTINENT_ORDER = ["Europe", "Americas", "Asia-Pacific"];
 
 function OrderServerDialog({ onSuccess }: { onSuccess: () => void }) {
 	const [open, setOpen] = useState(false);
 	const [selectedPlan, setSelectedPlan] = useState<string>("");
-	const [selectedDc, setSelectedDc] = useState<string>("");
-	const [isAnnual, setIsAnnual] = useState(false);
+	const [selectedZone, setSelectedZone] = useState<string>("");
 
 	const { data: plans, isLoading: loadingPlans } =
 		api.managedServer.getPlans.useQuery(undefined, { enabled: open });
-	const { data: dataCenters, isLoading: loadingDcs } =
+	const { data: zones, isLoading: loadingZones } =
 		api.managedServer.getDataCenters.useQuery(undefined, { enabled: open });
 
-	const isLoadingOptions = loadingPlans || loadingDcs;
+	const isLoadingOptions = loadingPlans || loadingZones;
 
 	const purchase = api.managedServer.purchase.useMutation({
 		onSuccess: () => {
@@ -143,15 +143,11 @@ function OrderServerDialog({ onSuccess }: { onSuccess: () => void }) {
 
 	const plan = plans?.find((p) => p.id === selectedPlan);
 
-	const displayPrice = (p: NonNullable<typeof plan>) =>
-		isAnnual
-			? `$${centsToDisplay(p.dokployPriceCentsAnnual)}/yr`
-			: `$${centsToDisplay(p.dokployPriceCentsMonthly)}/mo`;
-
-	const displayPriceSmall = (p: NonNullable<typeof plan>) =>
-		isAnnual
-			? `$${centsToDisplay(Math.round(p.dokployPriceCentsAnnual / 12))}/mo billed annually`
-			: `$${centsToDisplay(p.dokployPriceCentsAnnual)}/yr if annual`;
+	const groupedZones = zones?.reduce<Record<string, typeof zones>>((acc, z) => {
+		if (!acc[z.continent]) acc[z.continent] = [];
+		acc[z.continent]!.push(z);
+		return acc;
+	}, {});
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -177,116 +173,99 @@ function OrderServerDialog({ onSuccess }: { onSuccess: () => void }) {
 							<p className="text-sm">Loading available plans...</p>
 						</div>
 					) : (
-						<div className="space-y-4">
-							{/* Billing period toggle */}
-							<div className="flex items-center gap-1 rounded-lg border p-1 bg-muted/40 w-fit">
-								<button
-									type="button"
-									onClick={() => setIsAnnual(false)}
-									className={cn(
-										"px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
-										!isAnnual
-											? "bg-background shadow-sm text-foreground"
-											: "text-muted-foreground hover:text-foreground",
-									)}
-								>
-									Monthly
-								</button>
-								<button
-									type="button"
-									onClick={() => setIsAnnual(true)}
-									className={cn(
-										"px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5",
-										isAnnual
-											? "bg-background shadow-sm text-foreground"
-											: "text-muted-foreground hover:text-foreground",
-									)}
-								>
-									Annual
-									<span className="text-xs bg-green-500/15 text-green-600 dark:text-green-400 px-1.5 py-0.5 rounded font-semibold">
-										Save ~20%
-									</span>
-								</button>
-							</div>
-
-							{/* Plan selector */}
+						<div className="space-y-5">
+							{/* Plan cards */}
 							<div className="space-y-2">
 								<Label>Plan</Label>
-								<div className="grid gap-2">
+								<div className="grid grid-cols-2 gap-2">
 									{plans?.map((p) => (
 										<button
 											key={p.id}
 											type="button"
 											onClick={() => setSelectedPlan(p.id)}
 											className={cn(
-												"flex items-center justify-between rounded-lg border p-3 text-left transition-colors",
+												"flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors",
 												selectedPlan === p.id
 													? "border-primary bg-primary/5"
 													: "border-border hover:border-muted-foreground",
 											)}
 										>
-											<div>
-												<p className="font-medium text-sm">{p.name}</p>
-												<p className="text-xs text-muted-foreground">
-													{formatSpecs(p.cpus, p.memoryMb, p.diskMb, p.bandwidthMb)}
+											<div className="flex items-center justify-between">
+												<p className="font-semibold text-sm">{p.name}</p>
+												<p className="text-sm font-medium text-primary">
+													{formatPrice(p.priceCents)}
 												</p>
 											</div>
-											<div className="text-right">
-												<p className="font-semibold text-sm">
-													{displayPrice(p)}
-												</p>
-												<p className="text-xs text-muted-foreground">
-													{displayPriceSmall(p)}
-												</p>
-											</div>
+											<p className="text-xs text-muted-foreground">
+												{formatSpecs(p.cpus, p.memoryGb, p.storageGb)}
+											</p>
 										</button>
 									))}
 								</div>
 							</div>
 
-							{/* Data center selector */}
+							{/* Zone selector grouped by continent */}
 							<div className="space-y-2">
-								<Label>Data Center</Label>
-								<Select value={selectedDc} onValueChange={setSelectedDc}>
+								<Label>Location</Label>
+								<Select value={selectedZone} onValueChange={setSelectedZone}>
 									<SelectTrigger>
 										<SelectValue placeholder="Select a location..." />
 									</SelectTrigger>
-									<SelectContent position="popper" side="bottom" sideOffset={4} className="max-h-56 overflow-y-auto">
-										{dataCenters?.map((dc) => (
-											<SelectItem key={dc.id} value={String(dc.id)}>
-												{dc.city} — {dc.continent}
-											</SelectItem>
+									<SelectContent
+										position="popper"
+										side="bottom"
+										sideOffset={4}
+										className="max-h-64 overflow-y-auto"
+									>
+										{CONTINENT_ORDER.filter((c) => groupedZones?.[c]).map((continent) => (
+											<div key={continent}>
+												<div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+													{continent}
+												</div>
+												{groupedZones?.[continent]?.map((z) => (
+													<SelectItem key={z.id} value={z.id}>
+														{z.description}
+													</SelectItem>
+												))}
+											</div>
 										))}
 									</SelectContent>
 								</Select>
 							</div>
 
-							{plan && selectedDc && (
+							{plan && selectedZone && (
 								<div className="rounded-lg bg-muted p-3 text-sm space-y-1">
 									<div className="flex justify-between">
 										<span className="text-muted-foreground">Plan</span>
 										<span className="font-medium">{plan.name}</span>
 									</div>
 									<div className="flex justify-between">
-										<span className="text-muted-foreground">Billing</span>
-										<span className="font-medium">{isAnnual ? "Annual" : "Monthly"}</span>
+										<span className="text-muted-foreground">Specs</span>
+										<span className="font-medium">
+											{formatSpecs(plan.cpus, plan.memoryGb, plan.storageGb)}
+										</span>
 									</div>
 									<div className="flex justify-between">
-										<span className="text-muted-foreground">Total</span>
-										<span className="font-semibold">{displayPrice(plan)}</span>
+										<span className="text-muted-foreground">Price</span>
+										<span className="font-medium">{formatPrice(plan.priceCents)}</span>
+									</div>
+									<div className="flex justify-between">
+										<span className="text-muted-foreground">Zone</span>
+										<span className="font-medium">
+											{zones?.find((z) => z.id === selectedZone)?.description ?? selectedZone}
+										</span>
 									</div>
 								</div>
 							)}
 
 							<Button
 								className="w-full"
-								disabled={!selectedPlan || !selectedDc || purchase.isPending}
+								disabled={!selectedPlan || !selectedZone || purchase.isPending}
 								onClick={() => {
-									if (!selectedPlan || !selectedDc) return;
+									if (!selectedPlan || !selectedZone) return;
 									purchase.mutate({
 										plan: selectedPlan,
-										dataCenterId: Number(selectedDc),
-										isAnnual,
+										zone: selectedZone,
 									});
 								}}
 							>
@@ -307,6 +286,13 @@ function OrderServerDialog({ onSuccess }: { onSuccess: () => void }) {
 	);
 }
 
+const PLAN_LABELS: Record<string, string> = {
+	hobby: "Hobby",
+	starter: "Starter",
+	pro: "Pro",
+	business: "Business",
+};
+
 export const ShowManagedServers = () => {
 	const router = useRouter();
 	const utils = api.useUtils();
@@ -315,6 +301,14 @@ export const ShowManagedServers = () => {
 
 	const syncStatus = api.managedServer.syncStatus.useMutation({
 		onSuccess: () => utils.managedServer.list.invalidate(),
+	});
+
+	const reconnect = api.managedServer.reconnect.useMutation({
+		onSuccess: () => {
+			toast.success("Server reconnected successfully.");
+			utils.managedServer.list.invalidate();
+		},
+		onError: (err) => toast.error(err.message),
 	});
 
 	const deleteServer = api.managedServer.delete.useMutation({
@@ -397,11 +391,6 @@ export const ShowManagedServers = () => {
 											"provisioning",
 											"configuring",
 										].includes(s.status);
-										const planLabel = s.plan
-											.split("-")
-											.slice(-2)
-											.join(" ")
-											.toUpperCase();
 
 										return (
 											<div
@@ -413,7 +402,7 @@ export const ShowManagedServers = () => {
 													<div className="space-y-0.5">
 														<div className="flex items-center gap-2">
 															<span className="font-medium text-sm">
-																{planLabel}
+																{PLAN_LABELS[s.plan] ?? s.plan}
 															</span>
 															<Badge
 																variant={status?.variant}
@@ -426,6 +415,7 @@ export const ShowManagedServers = () => {
 														<p className="text-xs text-muted-foreground">
 															{s.hostname ?? ""}
 															{s.ipAddress ? ` · ${s.ipAddress}` : ""}
+															{s.zone ? ` · ${s.zone}` : ""}
 														</p>
 													</div>
 												</div>
@@ -448,6 +438,25 @@ export const ShowManagedServers = () => {
 																	syncStatus.isPending && "animate-spin",
 																)}
 															/>
+														</Button>
+													)}
+													{s.status === "ready" && !s.serverId && (
+														<Button
+															variant="outline"
+															size="sm"
+															onClick={() =>
+																reconnect.mutate({
+																	managedServerId: s.managedServerId,
+																})
+															}
+															disabled={reconnect.isPending}
+														>
+															{reconnect.isPending ? (
+																<Loader2 className="size-3.5 mr-1.5 animate-spin" />
+															) : (
+																<RefreshCw className="size-3.5 mr-1.5" />
+															)}
+															Reconnect
 														</Button>
 													)}
 													{s.status === "ready" && s.server && (

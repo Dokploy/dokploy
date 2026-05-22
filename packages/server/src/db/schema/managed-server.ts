@@ -1,9 +1,10 @@
 import { relations } from "drizzle-orm";
-import { integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
 import { server } from "./server";
+import { sshKeys } from "./ssh-key";
 
 export const managedServerStatus = pgEnum("managedServerStatus", [
 	"pending",
@@ -26,17 +27,21 @@ export const managedServer = pgTable("managed_server", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "set null",
 	}),
-	/** Hostinger catalog item id, e.g. "hostingercom-vps-kvm2" */
+	/** UpCloud plan name, e.g. "2xCPU-4GB" */
 	plan: text("plan").notNull(),
 	status: managedServerStatus("status").notNull().default("pending"),
-	hostingerVmId: integer("hostingerVmId"),
-	hostingerSubscriptionId: text("hostingerSubscriptionId"),
-	dataCenterId: integer("dataCenterId").notNull(),
+	/** UpCloud server UUID */
+	providerVmId: text("providerVmId"),
+	/** UpCloud zone ID, e.g. "fi-hel1" */
+	zone: text("zone").notNull(),
+	/** SSH key used to access this server */
+	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
+		onDelete: "set null",
+	}),
 	ipAddress: text("ipAddress"),
 	hostname: text("hostname"),
 	stripeSubscriptionId: text("stripeSubscriptionId"),
 	stripePriceId: text("stripePriceId"),
-	rootPassword: text("rootPassword"),
 	errorMessage: text("errorMessage"),
 	createdAt: text("createdAt")
 		.notNull()
@@ -59,8 +64,7 @@ export const managedServerRelations = relations(managedServer, ({ one }) => ({
 
 export const apiCreateManagedServer = z.object({
 	plan: z.string().min(1),
-	dataCenterId: z.number().int().positive(),
-	isAnnual: z.boolean().default(false),
+	zone: z.string().min(1),
 });
 
 export const apiFindOneManagedServer = z.object({

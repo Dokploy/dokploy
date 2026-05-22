@@ -1,6 +1,6 @@
 {
-  "id": "7d5052b1-2fca-4b0f-986e-7efbf8ac4841",
-  "prevId": "887c0c81-4af9-477a-ab29-b3ad16f08451",
+  "id": "0a54b83b-635f-4acd-874b-84ca77596380",
+  "prevId": "7d5052b1-2fca-4b0f-986e-7efbf8ac4841",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3934,6 +3934,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "sshKeyId": {
+          "name": "sshKeyId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "ipAddress": {
           "name": "ipAddress",
           "type": "text",
@@ -4001,6 +4007,19 @@
           ],
           "columnsTo": [
             "serverId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "managed_server_sshKeyId_ssh-key_sshKeyId_fk": {
+          "name": "managed_server_sshKeyId_ssh-key_sshKeyId_fk",
+          "tableFrom": "managed_server",
+          "tableTo": "ssh-key",
+          "columnsFrom": [
+            "sshKeyId"
+          ],
+          "columnsTo": [
+            "sshKeyId"
           ],
           "onDelete": "set null",
           "onUpdate": "no action"

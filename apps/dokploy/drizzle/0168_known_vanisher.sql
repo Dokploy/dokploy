@@ -1,0 +1,2 @@
+ALTER TABLE "managed_server" ADD COLUMN "sshKeyId" text;--> statement-breakpoint
+ALTER TABLE "managed_server" ADD CONSTRAINT "managed_server_sshKeyId_ssh-key_sshKeyId_fk" FOREIGN KEY ("sshKeyId") REFERENCES "public"."ssh-key"("sshKeyId") ON DELETE set null ON UPDATE no action;
