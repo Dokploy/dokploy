@@ -8,6 +8,7 @@ import {
 	createTRPCRouter,
 	enterpriseProcedure,
 	protectedProcedure,
+	withPermission,
 } from "../../trpc";
 import { audit } from "../../utils/audit";
 
@@ -285,7 +286,7 @@ export const customRoleRouter = createTRPCRouter({
 			return members;
 		}),
 
-	getStatements: protectedProcedure.query(() => {
+	getStatements: withPermission("member", "update").query(() => {
 		return statements;
 	}),
 });
