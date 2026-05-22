@@ -90,6 +90,49 @@ export const serverRouter = createTRPCRouter({
 
 			return server;
 		}),
+	getMonitoringConfig: withPermission("monitoring", "read")
+		.input(apiFindOneServer)
+		.query(async ({ input, ctx }) => {
+			// Collapse both "server doesn't exist" and "server belongs to another
+			// org" into the same error so callers cannot enumerate serverIds across
+			// organizations.
+			const notFound = new TRPCError({
+				code: "NOT_FOUND",
+				message: "Server not found",
+			});
+			let targetServer: Awaited<ReturnType<typeof findServerById>>;
+			try {
+				targetServer = await findServerById(input.serverId);
+			} catch {
+				throw notFound;
+			}
+			if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+				throw notFound;
+			}
+			return {
+				ipAddress: targetServer.ipAddress,
+				port: targetServer.metricsConfig?.server?.port,
+				token: targetServer.metricsConfig?.server?.token,
+			};
+		}),
+	getServersForMonitoring: withPermission("monitoring", "read").query(
+		async ({ ctx }) => {
+			// Minimal org-scoped server list for the monitoring page dropdown.
+			// Gated on `monitoring:read` so users with that permission but without
+			// `server:read` still see their org's servers (without sensitive fields
+			// like the metrics token).
+			const result = await db
+				.select({
+					serverId: server.serverId,
+					name: server.name,
+					ipAddress: server.ipAddress,
+				})
+				.from(server)
+				.where(eq(server.organizationId, ctx.session.activeOrganizationId))
+				.orderBy(desc(server.createdAt));
+			return result;
+		},
+	),
 	getDefaultCommand: withPermission("server", "read")
 		.input(apiFindOneServer)
 		.query(async ({ input }) => {

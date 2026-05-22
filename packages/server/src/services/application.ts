@@ -600,8 +600,19 @@ export const rebuildPreviewApplication = async ({
 	return true;
 };
 
+// Matches the literal `dokploy` bucket plus `dokploy-<serverId>` where the
+// suffix is the same character set as a nanoid (alphanumeric + `_`/`-`).
+// Used as a defense-in-depth guard before treating `appName` as a host-stats
+// directory under MONITORING_PATH.
+// The {21} length constraint matches the default nanoid() output exactly, so
+// names like `dokploy-traefik` cannot be mis-routed through host-stats lookup.
+const DOKPLOY_HOST_STATS_PATTERN = /^dokploy(-[A-Za-z0-9_-]{21})?$/;
+
 export const getApplicationStats = async (appName: string) => {
-	if (appName === "dokploy") {
+	// "dokploy" = main server host stats; "dokploy-<serverId>" = remote
+	// server host stats. Both read from MONITORING_PATH/<appName>/*.json
+	// directly without going through a Docker container lookup.
+	if (DOKPLOY_HOST_STATS_PATTERN.test(appName)) {
 		return await getAdvancedStats(appName);
 	}
 	const filter = {
