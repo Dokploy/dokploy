@@ -8,13 +8,14 @@ import {
 	createTRPCRouter,
 	enterpriseProcedure,
 	protectedProcedure,
+	withPermission,
 } from "../../trpc";
 import { audit } from "../../utils/audit";
 
 const permissionsSchema = z.record(z.string(), z.array(z.string()));
 
 export const customRoleRouter = createTRPCRouter({
-	all: protectedProcedure.query(async ({ ctx }) => {
+	all: withPermission("member", "read").query(async ({ ctx }) => {
 		const [roles, memberCounts] = await Promise.all([
 			db.query.organizationRole.findMany({
 				where: eq(
