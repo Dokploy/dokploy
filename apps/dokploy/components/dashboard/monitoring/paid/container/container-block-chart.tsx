@@ -153,7 +153,8 @@ export const ContainerBlockChart = ({ data }: Props) => {
 						<Area
 							name="Write"
 							dataKey="write"
-							type="monotone"
+							type="linear"
+							isAnimationActive={false}
 							fill="url(#fillWrite)"
 							stroke="hsl(142, 71%, 45%)"
 							strokeWidth={2}
@@ -162,7 +163,8 @@ export const ContainerBlockChart = ({ data }: Props) => {
 						<Area
 							name="Read"
 							dataKey="read"
-							type="monotone"
+							type="linear"
+							isAnimationActive={false}
 							fill="url(#fillRead)"
 							stroke="hsl(217, 91%, 60%)"
 							strokeWidth={2}

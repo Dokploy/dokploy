@@ -68,7 +68,8 @@ export const DockerCpuChart = ({ accumulativeData }: Props) => {
 					}
 				/>
 				<Area
-					type="monotone"
+					type="linear"
+					isAnimationActive={false}
 					dataKey="usage"
 					stroke="var(--color-usage)"
 					fill="url(#fillCpu)"

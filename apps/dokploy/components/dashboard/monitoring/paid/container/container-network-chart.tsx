@@ -160,7 +160,8 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 						<Area
 							name="Input"
 							dataKey="input"
-							type="monotone"
+							type="linear"
+							isAnimationActive={false}
 							fill="url(#fillInput)"
 							stroke="hsl(var(--chart-3))"
 							strokeWidth={2}
@@ -168,7 +169,8 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 						<Area
 							name="Output"
 							dataKey="output"
-							type="monotone"
+							type="linear"
+							isAnimationActive={false}
 							fill="url(#fillOutput)"
 							stroke="hsl(var(--chart-4))"
 							strokeWidth={2}

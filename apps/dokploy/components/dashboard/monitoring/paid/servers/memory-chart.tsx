@@ -114,7 +114,8 @@ export function MemoryChart({ data }: MemoryChartProps) {
 						<Area
 							yAxisId="left"
 							dataKey="memUsed"
-							type="monotone"
+							type="linear"
+							isAnimationActive={false}
 							fill="url(#fillMemory)"
 							stroke="hsl(var(--chart-2))"
 							strokeWidth={2}

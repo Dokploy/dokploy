@@ -83,14 +83,16 @@ export const DockerBlockChart = ({ accumulativeData }: Props) => {
 					}
 				/>
 				<Area
-					type="monotone"
+					type="linear"
+					isAnimationActive={false}
 					dataKey="readMb"
 					stroke="var(--color-readMb)"
 					fill="url(#fillBlockRead)"
 					strokeWidth={2}
 				/>
 				<Area
-					type="monotone"
+					type="linear"
+					isAnimationActive={false}
 					dataKey="writeMb"
 					stroke="var(--color-writeMb)"
 					fill="url(#fillBlockWrite)"

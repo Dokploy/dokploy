@@ -119,7 +119,8 @@ export function NetworkChart({ data }: NetworkChartProps) {
 						<Area
 							name="Network In"
 							dataKey="networkIn"
-							type="monotone"
+							type="linear"
+							isAnimationActive={false}
 							fill="url(#fillNetworkIn)"
 							stroke="hsl(var(--chart-3))"
 							strokeWidth={2}
@@ -127,7 +128,8 @@ export function NetworkChart({ data }: NetworkChartProps) {
 						<Area
 							name="Network Out"
 							dataKey="networkOut"
-							type="monotone"
+							type="linear"
+							isAnimationActive={false}
 							fill="url(#fillNetworkOut)"
 							stroke="hsl(var(--chart-4))"
 							strokeWidth={2}

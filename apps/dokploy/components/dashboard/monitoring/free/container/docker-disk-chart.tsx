@@ -70,7 +70,8 @@ export const DockerDiskChart = ({ accumulativeData, diskTotal }: Props) => {
 					}
 				/>
 				<Area
-					type="monotone"
+					type="linear"
+					isAnimationActive={false}
 					dataKey="usedGb"
 					stroke="var(--color-usedGb)"
 					fill="url(#fillDiskUsed)"

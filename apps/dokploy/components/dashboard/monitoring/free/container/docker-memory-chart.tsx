@@ -74,7 +74,8 @@ export const DockerMemoryChart = ({
 					}
 				/>
 				<Area
-					type="monotone"
+					type="linear"
+					isAnimationActive={false}
 					dataKey="usage"
 					stroke="var(--color-usage)"
 					fill="url(#fillMemory)"

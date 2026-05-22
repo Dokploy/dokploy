@@ -131,7 +131,8 @@ export const ContainerMemoryChart = ({ data }: Props) => {
 						<Area
 							name="Memory"
 							dataKey="memory"
-							type="monotone"
+							type="linear"
+							isAnimationActive={false}
 							fill="url(#fillMemory)"
 							stroke="hsl(var(--chart-2))"
 							strokeWidth={2}

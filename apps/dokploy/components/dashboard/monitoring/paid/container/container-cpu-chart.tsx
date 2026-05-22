@@ -110,7 +110,8 @@ export const ContainerCPUChart = ({ data }: Props) => {
 						<Area
 							name="CPU"
 							dataKey="cpu"
-							type="monotone"
+							type="linear"
+							isAnimationActive={false}
 							fill="url(#fillCPU)"
 							stroke="hsl(var(--chart-1))"
 							strokeWidth={2}
