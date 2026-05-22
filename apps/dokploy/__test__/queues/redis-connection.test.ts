@@ -5,6 +5,7 @@ import fs from "node:fs";
 vi.mock("node:fs");
 
 // Mock pullImage to avoid actual docker commands in unit tests
+// We mock the relative path used in redis-setup.ts to ensure it is caught
 vi.mock("@dokploy/server/utils/docker/utils", () => ({
 	pullImage: vi.fn().mockResolvedValue({}),
 }));
@@ -18,7 +19,7 @@ const mockGetService = vi.fn().mockReturnValue({
 
 vi.mock("dockerode", () => {
 	return {
-		default: vi.fn().mockImplementation(function() {
+		default: vi.fn().mockImplementation(function () {
 			return {
 				createService: mockCreateService,
 				getService: mockGetService,
@@ -37,9 +38,9 @@ describe("redis-connection", () => {
 
 	it("should use REDIS_URL if provided", async () => {
 		vi.stubEnv("REDIS_URL", "redis://user:pass@remote-host:6379/1");
-		
+
 		const { redisConfig } = await import("../../server/queues/redis-connection");
-		
+
 		expect(redisConfig).toEqual({
 			url: "redis://user:pass@remote-host:6379/1",
 		});
@@ -110,19 +111,21 @@ describe("redis-connection", () => {
 	it("should verify initializeRedis creates service with correct Args (no Command override) when password is set", async () => {
 		vi.stubEnv("REDIS_PASSWORD", "test-pass");
 		vi.stubEnv("NODE_ENV", "production");
-		
+
 		const { initializeRedis } = await import("@dokploy/server/setup/redis-setup");
-		
+
 		await initializeRedis();
-		
-		expect(mockCreateService).toHaveBeenCalledWith(expect.objectContaining({
-			TaskTemplate: expect.objectContaining({
-				ContainerSpec: expect.objectContaining({
-					Args: ["redis-server", "--requirepass", "test-pass"],
-				})
-			})
-		}));
-		
+
+		expect(mockCreateService).toHaveBeenCalledWith(
+			expect.objectContaining({
+				TaskTemplate: expect.objectContaining({
+					ContainerSpec: expect.objectContaining({
+						Args: ["redis-server", "--requirepass", "test-pass"],
+					}),
+				}),
+			}),
+		);
+
 		// Ensure Command is NOT set to avoid overriding ENTRYPOINT
 		const lastCall = mockCreateService.mock.calls[0][0];
 		expect(lastCall.TaskTemplate.ContainerSpec.Command).toBeUndefined();
