@@ -5,7 +5,6 @@ import fs from "node:fs";
 vi.mock("node:fs");
 
 // Mock pullImage to avoid actual docker commands in unit tests
-// We mock the relative path used in redis-setup.ts to ensure it is caught
 vi.mock("@dokploy/server/utils/docker/utils", () => ({
 	pullImage: vi.fn().mockResolvedValue({}),
 }));
@@ -130,4 +129,24 @@ describe("redis-connection", () => {
 		const lastCall = mockCreateService.mock.calls[0][0];
 		expect(lastCall.TaskTemplate.ContainerSpec.Command).toBeUndefined();
 	}, 30000);
+
+	it("should skip initializeRedis if an external REDIS_URL is provided", async () => {
+		vi.stubEnv("REDIS_URL", "redis://remote-redis:6379");
+		const { initializeRedis } = await import("@dokploy/server/setup/redis-setup");
+
+		await initializeRedis();
+
+		expect(mockCreateService).not.toHaveBeenCalled();
+		expect(mockGetService).not.toHaveBeenCalled();
+	});
+
+	it("should skip initializeRedis if an external REDIS_HOST is provided", async () => {
+		vi.stubEnv("REDIS_HOST", "external-redis.com");
+		const { initializeRedis } = await import("@dokploy/server/setup/redis-setup");
+
+		await initializeRedis();
+
+		expect(mockCreateService).not.toHaveBeenCalled();
+		expect(mockGetService).not.toHaveBeenCalled();
+	});
 });
