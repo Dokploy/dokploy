@@ -6,6 +6,7 @@ import {
 	findEnvironmentById,
 	findGitProviderById,
 	findProjectById,
+	getAccessibleGitProviderIds,
 	getAccessibleServerIds,
 	getApplicationStats,
 	getContainerLogs,
@@ -170,8 +171,10 @@ export const applicationRouter = createTRPCRouter({
 
 			if (gitProviderId) {
 				try {
-					const gitProvider = await findGitProviderById(gitProviderId);
-					if (gitProvider.userId !== ctx.session.userId) {
+					const accessibleIds = await getAccessibleGitProviderIds(
+						ctx.session,
+					);
+					if (!accessibleIds.has(gitProviderId)) {
 						hasGitProviderAccess = false;
 						unauthorizedProvider = application.sourceType;
 					}
