@@ -80,8 +80,18 @@ describe("readValidDirectory (path traversal)", () => {
 	});
 
 	it("returns true for Next.js dynamic route paths with square brackets", () => {
-		expect(readValidDirectory(`${BASE}/applications/myapp/code/app/api/[id]/route.ts`)).toBe(true);
-		expect(readValidDirectory(`${BASE}/applications/myapp/code/pages/[slug].tsx`)).toBe(true);
-		expect(readValidDirectory(`${BASE}/applications/myapp/code/app/[...catch]/page.tsx`)).toBe(true);
+		expect(
+			readValidDirectory(
+				`${BASE}/applications/myapp/code/app/api/[id]/route.ts`,
+			),
+		).toBe(true);
+		expect(
+			readValidDirectory(`${BASE}/applications/myapp/code/pages/[slug].tsx`),
+		).toBe(true);
+		expect(
+			readValidDirectory(
+				`${BASE}/applications/myapp/code/app/[...catch]/page.tsx`,
+			),
+		).toBe(true);
 	});
 });
