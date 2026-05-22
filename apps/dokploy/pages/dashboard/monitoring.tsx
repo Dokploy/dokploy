@@ -195,7 +195,9 @@ const Dashboard = () => {
 							/>
 						</div>
 					)} */}
-					{toggleMonitoring ? paidMonitoringContent : (
+					{toggleMonitoring ? (
+						paidMonitoringContent
+					) : (
 						<Card className="h-full bg-sidebar  p-2.5 rounded-xl">
 							<div className="rounded-xl bg-background shadow-md p-6">
 								<ContainerFreeMonitoring
