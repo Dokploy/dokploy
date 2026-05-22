@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Dokploy member.delete permission demo</title>
+  <desc id="desc">A demo snapshot showing that custom roles with member.delete can reach user.remove while hierarchy protections remain in place.</desc>
+  <rect width="1280" height="720" fill="#121826"/>
+  <rect x="72" y="64" width="1136" height="592" rx="8" fill="#f8fafc"/>
+  <rect x="72" y="64" width="1136" height="88" rx="8" fill="#0f766e"/>
+  <text x="112" y="118" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#ffffff">Dokploy #1413: member.delete</text>
+  <text x="112" y="198" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" fill="#111827">Focused slice</text>
+  <text x="112" y="242" font-family="Arial, Helvetica, sans-serif" font-size="23" fill="#374151">UI already shows delete for custom roles with member.delete.</text>
+  <text x="112" y="282" font-family="Arial, Helvetica, sans-serif" font-size="23" fill="#374151">Server mutation now uses the same permission gate.</text>
+  <rect x="112" y="334" width="960" height="64" rx="8" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
+  <text x="144" y="375" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#065f46">Allowed: custom role can remove regular members.</text>
+  <rect x="112" y="426" width="960" height="64" rx="8" fill="#fff7ed" stroke="#f97316" stroke-width="2"/>
+  <text x="144" y="467" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#9a3412">Still blocked: self, owner, and admin deletion paths.</text>
+  <text x="112" y="554" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="#374151">Validation passed: Vitest, Biome, TypeScript, and diff check.</text>
+  <text x="112" y="600" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="#6b7280">Scope: server permission alignment plus regression tests.</text>
+</svg>

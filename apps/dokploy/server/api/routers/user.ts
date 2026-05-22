@@ -35,6 +35,7 @@ import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { and, asc, eq, gt, ne } from "drizzle-orm";
 import { z } from "zod";
+import { assertCanRemoveMemberTarget } from "@/lib/member-removal";
 import { audit } from "@/server/api/utils/audit";
 import {
 	adminProcedure,
@@ -274,7 +275,7 @@ export const userRouter = createTRPCRouter({
 			};
 		},
 	),
-	remove: protectedProcedure
+	remove: withPermission("member", "delete")
 		.input(
 			z.object({
 				userId: z.string(),
@@ -283,14 +284,6 @@ export const userRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
 				return true;
-			}
-
-			// Ensure the acting user has admin privileges in the active organization
-			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "Only owners or admins can delete users",
-				});
 			}
 
 			// Fetch target member within the active organization
@@ -308,32 +301,12 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			// Never allow deleting the organization owner via this endpoint
-			if (targetMember.role === "owner") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You cannot delete the organization owner",
-				});
-			}
-
-			// Admin self-protection: an admin cannot delete themselves
-			if (targetMember.role === "admin" && input.userId === ctx.user.id) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message:
-						"Admins cannot delete themselves. Ask the owner or another admin.",
-				});
-			}
-
-			// Only owners can delete admins
-			// Admins can only delete members
-			if (ctx.user.role === "admin" && targetMember.role === "admin") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message:
-						"Only the organization owner can delete admins. Admins can only delete members.",
-				});
-			}
+			assertCanRemoveMemberTarget({
+				actorRole: ctx.user.role,
+				actorUserId: ctx.user.id,
+				targetRole: targetMember.role,
+				targetUserId: targetMember.userId,
+			});
 
 			const result = await removeUserById(input.userId);
 			await audit(ctx, {
