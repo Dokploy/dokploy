@@ -171,9 +171,7 @@ export const composeRouter = createTRPCRouter({
 
 			if (gitProviderId) {
 				try {
-					const accessibleIds = await getAccessibleGitProviderIds(
-						ctx.session,
-					);
+					const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
 					if (!accessibleIds.has(gitProviderId)) {
 						hasGitProviderAccess = false;
 						unauthorizedProvider = compose.sourceType;
