@@ -24,6 +24,8 @@ import type { RouterOutputs } from "@/utils/api";
 import { DnsHelperModal } from "./dns-helper-modal";
 import { AddDomain } from "./handle-domain";
 import type { ValidationStates } from "./show-domains";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 
 export type Domain =
 	| RouterOutputs["domain"]["byApplicationId"][0]
@@ -39,6 +41,7 @@ interface ColumnsProps {
 	serverIp?: string;
 	canCreateDomain: boolean;
 	canDeleteDomain: boolean;
+	handleToggleDomain: (domainId: string, enabled: boolean) => Promise<void>;
 }
 
 export const createColumns = ({
@@ -47,6 +50,7 @@ export const createColumns = ({
 	validationStates,
 	handleValidateDomain,
 	handleDeleteDomain,
+	handleToggleDomain,
 	isDeleting,
 	serverIp,
 	canCreateDomain,
@@ -222,6 +226,24 @@ export const createColumns = ({
 						</TooltipProvider>
 					)}
 				</div>
+			);
+		},
+	},
+	{
+		accessorKey: "enabled",
+		header: "Enabled",
+		cell: ({ row }) => {
+			const domain = row.original;
+			return (
+				<Switch
+					checked={domain.enabled}
+					onCheckedChange={async (checked) => {
+						await handleToggleDomain(domain.domainId, checked);
+					}}
+					className={cn("bg-white", {
+						"bg-muted-foreground": !domain.enabled,
+					})}
+				/>
 			);
 		},
 	},

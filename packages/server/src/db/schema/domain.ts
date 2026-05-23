@@ -54,6 +54,7 @@ export const domains = pgTable("domain", {
 	certificateType: certificateType("certificateType").notNull().default("none"),
 	internalPath: text("internalPath").default("/"),
 	stripPath: boolean("stripPath").notNull().default(false),
+	enabled: boolean("enabled").notNull().default(true),
 	middlewares: text("middlewares").array().default(sql`ARRAY[]::text[]`),
 });
 
@@ -93,6 +94,7 @@ export const apiCreateDomain = createSchema.pick({
 	previewDeploymentId: true,
 	internalPath: true,
 	stripPath: true,
+	enabled: true,
 	middlewares: true,
 });
 
@@ -125,6 +127,8 @@ export const apiUpdateDomain = createSchema
 		domainType: true,
 		internalPath: true,
 		stripPath: true,
+		enabled: true,
 		middlewares: true,
 	})
+	.partial()
 	.merge(createSchema.pick({ domainId: true }).required());

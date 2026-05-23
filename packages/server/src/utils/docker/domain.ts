@@ -162,6 +162,9 @@ export const addDomainToCompose = async (
 	}
 
 	for (const domain of domains) {
+		if (domain.enabled === false) {
+			continue;
+		}
 		const { serviceName, https } = domain;
 		if (!serviceName) {
 			throw new Error(`Domain "${domain.host}" is missing a service name`);

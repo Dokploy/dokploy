@@ -1,6 +1,7 @@
 import {
 	createDomain,
 	findApplicationById,
+	findComposeById,
 	findDomainById,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
@@ -13,6 +14,7 @@ import {
 	removeDomainById,
 	updateDomainById,
 	validateDomain,
+	IS_CLOUD,
 } from "@dokploy/server";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
@@ -23,6 +25,9 @@ import {
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { deploy } from "@/server/utils/deploy";
+import { myQueue } from "@/server/queues/queueSetup";
+import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	apiCreateDomain,
 	apiFindCompose,
@@ -30,6 +35,33 @@ import {
 	apiFindOneApplication,
 	apiUpdateDomain,
 } from "@/server/db/schema";
+
+const triggerComposeReload = async (composeId: string, title: string, description: string) => {
+	const compose = await findComposeById(composeId);
+	const jobData: DeploymentJob = {
+		composeId: composeId,
+		titleLog: title,
+		descriptionLog: description,
+		type: "redeploy",
+		applicationType: "compose",
+		server: !!compose.serverId,
+	};
+	if (IS_CLOUD && compose.serverId) {
+		jobData.serverId = compose.serverId;
+		deploy(jobData).catch((error) => {
+			console.error("Background deployment failed:", error);
+		});
+	} else {
+		await myQueue.add(
+			"deployments",
+			{ ...jobData },
+			{
+				removeOnComplete: true,
+				removeOnFail: true,
+			},
+		);
+	}
+};
 
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -52,6 +84,13 @@ export const domainRouter = createTRPCRouter({
 					resourceId: domain.domainId,
 					resourceName: domain.host,
 				});
+				if (domain.composeId) {
+					await triggerComposeReload(
+						domain.composeId,
+						"Domain creation deployment",
+						`Domain ${domain.host} created`
+					);
+				}
 				return domain;
 			} catch (error) {
 				throw new TRPCError({
@@ -138,6 +177,12 @@ export const domainRouter = createTRPCRouter({
 				);
 				application.appName = previewDeployment.appName;
 				await manageDomain(application, domain);
+			} else if (domain.composeId) {
+				await triggerComposeReload(
+					domain.composeId,
+					"Domain update deployment",
+					`Domain ${domain.host} updated`
+				);
 			}
 			return result;
 		}),
@@ -187,6 +232,12 @@ export const domainRouter = createTRPCRouter({
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
 				await removeDomain(application, domain.uniqueConfigKey);
+			} else if (domain.composeId) {
+				await triggerComposeReload(
+					domain.composeId,
+					"Domain deletion deployment",
+					`Domain ${domain.host} deleted`
+				);
 			}
 
 			return result;

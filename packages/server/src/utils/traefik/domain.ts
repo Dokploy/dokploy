@@ -13,6 +13,10 @@ import type { FileConfig, HttpRouter } from "./file-types";
 import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
+	if (domain.enabled === false) {
+		await removeDomain(app, domain.uniqueConfigKey);
+		return;
+	}
 	const { appName } = app;
 	let config: FileConfig;
 

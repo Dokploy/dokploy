@@ -19,6 +19,7 @@ describe("Host rule format regression tests", () => {
 		host: "example.com",
 		port: 8080,
 		https: false,
+		enabled: true,
 		uniqueConfigKey: 1,
 		customCertResolver: null,
 		certificateType: "none",
