@@ -150,6 +150,20 @@ export const customRoleRouter = createTRPCRouter({
 				});
 			}
 
+			const currentRole = await db.query.organizationRole.findFirst({
+				where: and(
+					eq(organizationRole.organizationId, ctx.session.activeOrganizationId),
+					eq(organizationRole.role, input.roleName),
+				),
+			});
+
+			if (!currentRole) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Role "${input.roleName}" not found`,
+				});
+			}
+
 			const effectiveRoleName = input.newRoleName ?? input.roleName;
 
 			if (input.newRoleName && input.newRoleName !== input.roleName) {
