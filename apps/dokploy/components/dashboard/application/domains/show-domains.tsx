@@ -25,7 +25,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +62,8 @@ import { api } from "@/utils/api";
 import { createColumns } from "./columns";
 import { DnsHelperModal } from "./dns-helper-modal";
 import { AddDomain } from "./handle-domain";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 
 export type ValidationState = {
 	isLoading: boolean;
@@ -80,6 +82,7 @@ interface Props {
 }
 
 export const ShowDomains = ({ id, type }: Props) => {
+
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canCreateDomain = permissions?.domain.create ?? false;
 	const canDeleteDomain = permissions?.domain.delete ?? false;
@@ -145,6 +148,18 @@ export const ShowDomains = ({ id, type }: Props) => {
 		api.domain.validateDomain.useMutation();
 	const { mutateAsync: deleteDomain, isPending: isRemoving } =
 		api.domain.delete.useMutation();
+	const { mutateAsync: updateDomain } =
+		api.domain.update.useMutation();
+
+	const handleToggleDomain = async (domainId: string, enabled: boolean) => {
+		try {
+			await updateDomain({ domainId, enabled });
+			refetch();
+			toast.success(`Domain ${enabled ? "enabled" : "disabled"} successfully`);
+		} catch {
+			toast.error(`Error ${enabled ? "enabling" : "disabling"} domain`);
+		}
+	};
 
 	const handleDeleteDomain = async (domainId: string) => {
 		try {
@@ -193,17 +208,30 @@ export const ShowDomains = ({ id, type }: Props) => {
 		}
 	};
 
-	const columns = createColumns({
+	const columns = useMemo(() => createColumns({
 		id,
 		type,
 		validationStates,
 		handleValidateDomain,
 		handleDeleteDomain,
+		handleToggleDomain,
 		isDeleting: isRemoving,
 		serverIp: application?.server?.ipAddress?.toString() || ip?.toString(),
 		canCreateDomain,
 		canDeleteDomain,
-	});
+	}), [
+		id,
+		type,
+		validationStates,
+		handleValidateDomain,
+		handleDeleteDomain,
+		handleToggleDomain,
+		isRemoving,
+		application?.server?.ipAddress,
+		ip,
+		canCreateDomain,
+		canDeleteDomain,
+	]);
 
 	const table = useReactTable({
 		data: data ?? [],
@@ -424,7 +452,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 															{item.serviceName}
 														</Badge>
 													)}
-													<div className="flex gap-2 flex-wrap">
+													<div className="flex gap-2 flex-wrap items-center">
 														{!item.host.includes("sslip.io") && (
 															<DnsHelperModal
 																domain={{
@@ -438,6 +466,26 @@ export const ShowDomains = ({ id, type }: Props) => {
 																}
 															/>
 														)}
+
+														<TooltipProvider>
+															<Tooltip delayDuration={0}>
+																<TooltipTrigger asChild>
+																	<Switch
+																		checked={item.enabled}
+																		onCheckedChange={async (checked) => {
+																			await handleToggleDomain(item.domainId, checked);
+																		}}
+																		className={cn("bg-white", {
+																			"bg-muted-foreground": !item.enabled,
+																		})}
+																	/>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>Enable or disable the domain.</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+
 														{canCreateDomain && (
 															<AddDomain
 																id={id}

@@ -136,6 +136,7 @@ const baseDomain: Domain = {
 	domainId: "",
 	host: "",
 	https: false,
+	enabled: true,
 	path: null,
 	port: null,
 	customEntrypoint: null,
