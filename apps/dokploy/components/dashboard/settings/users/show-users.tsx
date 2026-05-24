@@ -31,6 +31,7 @@ import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { AddUserPermissions } from "./add-permissions";
 import { ChangeRole } from "./change-role";
+import { MoveToTeam } from "./move-to-team";
 
 export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -203,20 +204,28 @@ export const ShowUsers = () => {
 																				Actions
 																			</DropdownMenuLabel>
 
-																			{canChangeRole && (
-																				<ChangeRole
-																					memberId={member.id}
-																					currentRole={member.role}
-																					userEmail={member.user.email}
-																				/>
-																			)}
+								{canChangeRole && (
+												<ChangeRole
+													memberId={member.id}
+													currentRole={member.role}
+													userEmail={member.user.email}
+												/>
+											)}
 
-																			{canEditPermissions && (
-																				<AddUserPermissions
-																					userId={member.user.id}
-																					role={member.role}
-																				/>
-																			)}
+											{canEditPermissions && (
+												<AddUserPermissions
+													userId={member.user.id}
+													role={member.role}
+												/>
+											)}
+
+											{canChangeRole && (
+												<MoveToTeam
+													memberId={member.id}
+													userEmail={member.user.email}
+													currentTeamId={member.teamId}
+												/>
+											)}
 
 																			{canDelete && (
 																				<DialogAction
