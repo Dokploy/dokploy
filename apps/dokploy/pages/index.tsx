@@ -1,4 +1,8 @@
-import { IS_CLOUD, isAdminPresent } from "@dokploy/server";
+import {
+	DOKPLOY_ALLOW_REGISTRATION,
+	IS_CLOUD,
+	isAdminPresent,
+} from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
@@ -52,8 +56,9 @@ type LoginForm = z.infer<typeof LoginSchema>;
 
 interface Props {
 	IS_CLOUD: boolean;
+	registrationEnabled: boolean;
 }
-export default function Home({ IS_CLOUD }: Props) {
+export default function Home({ IS_CLOUD, registrationEnabled }: Props) {
 	const router = useRouter();
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const { data: showSignInWithSSO } = api.sso.showSignInWithSSO.useQuery();
@@ -362,7 +367,7 @@ export default function Home({ IS_CLOUD }: Props) {
 
 				<div className="flex flex-row justify-between flex-wrap">
 					<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
-						{IS_CLOUD && (
+						{(IS_CLOUD || registrationEnabled) && (
 							<Link
 								className="hover:underline text-muted-foreground"
 								href="/register"
@@ -417,6 +422,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		return {
 			props: {
 				IS_CLOUD: IS_CLOUD,
+				registrationEnabled: true,
 			},
 		};
 	}
@@ -444,7 +450,8 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
 	return {
 		props: {
-			hasAdmin,
+			IS_CLOUD: IS_CLOUD,
+			registrationEnabled: DOKPLOY_ALLOW_REGISTRATION,
 		},
 	};
 }

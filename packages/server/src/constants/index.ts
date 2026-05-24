@@ -3,6 +3,27 @@ import path from "node:path";
 import Docker from "dockerode";
 
 export const IS_CLOUD = process.env.IS_CLOUD === "true";
+export const isDokployRegistrationAllowed = (value?: string) =>
+	value === "true";
+export const DOKPLOY_ALLOW_REGISTRATION = isDokployRegistrationAllowed(
+	process.env.DOKPLOY_ALLOW_REGISTRATION,
+);
+export const shouldCreateDefaultOrganizationForSignUp = ({
+	isCloud,
+	hasOwner,
+	isSSORequest,
+	hasInvitation,
+	registrationAllowed,
+}: {
+	isCloud: boolean;
+	hasOwner: boolean;
+	isSSORequest: boolean;
+	hasInvitation: boolean;
+	registrationAllowed: boolean;
+}) =>
+	isCloud ||
+	!hasOwner ||
+	(!isSSORequest && !hasInvitation && registrationAllowed);
 
 export const DOKPLOY_DOCKER_API_VERSION =
 	process.env.DOKPLOY_DOCKER_API_VERSION;

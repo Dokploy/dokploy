@@ -1,4 +1,9 @@
-import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/server";
+import {
+	DOKPLOY_ALLOW_REGISTRATION,
+	IS_CLOUD,
+	isAdminPresent,
+	validateRequest,
+} from "@dokploy/server";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
@@ -74,14 +79,16 @@ type Register = z.infer<typeof registerSchema>;
 interface Props {
 	hasAdmin: boolean;
 	isCloud: boolean;
+	registrationEnabled: boolean;
 }
 
-const Register = ({ isCloud }: Props) => {
+const Register = ({ hasAdmin, isCloud, registrationEnabled }: Props) => {
 	const router = useRouter();
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const [isError, setIsError] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [data, setData] = useState<any>(null);
+	const isAccountRegistration = isCloud || (hasAdmin && registrationEnabled);
 
 	const form = useForm<Register>({
 		defaultValues: {
@@ -135,11 +142,11 @@ const Register = ({ isCloud }: Props) => {
 								}
 							/>
 						</Link>
-						{isCloud ? "Sign Up" : "Setup the server"}
+						{isAccountRegistration ? "Sign Up" : "Setup the server"}
 					</CardTitle>
 					<CardDescription>
 						Enter your email and password to{" "}
-						{isCloud ? "create an account" : "setup the server"}
+						{isAccountRegistration ? "create an account" : "setup the server"}
 					</CardDescription>
 					<div className="mx-auto w-full max-w-lg bg-transparent">
 						{isError && (
@@ -262,7 +269,7 @@ const Register = ({ isCloud }: Props) => {
 								</form>
 							</Form>
 							<div className="flex flex-row justify-between flex-wrap">
-								{isCloud && (
+								{isAccountRegistration && (
 									<div className="mt-4 text-center text-sm flex gap-2 text-muted-foreground">
 										Already have account?
 										<Link className="underline" href="/">
@@ -310,12 +317,14 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		return {
 			props: {
 				isCloud: true,
+				hasAdmin: true,
+				registrationEnabled: true,
 			},
 		};
 	}
 	const hasAdmin = await isAdminPresent();
 
-	if (hasAdmin) {
+	if (hasAdmin && !DOKPLOY_ALLOW_REGISTRATION) {
 		return {
 			redirect: {
 				permanent: false,
@@ -326,6 +335,8 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	return {
 		props: {
 			isCloud: false,
+			hasAdmin,
+			registrationEnabled: DOKPLOY_ALLOW_REGISTRATION,
 		},
 	};
 }

@@ -7,7 +7,11 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
-import { IS_CLOUD } from "../constants";
+import {
+	DOKPLOY_ALLOW_REGISTRATION,
+	IS_CLOUD,
+	shouldCreateDefaultOrganizationForSignUp,
+} from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import {
@@ -186,7 +190,7 @@ const { handler, api } = betterAuth({
 							const isAdminPresent = await db.query.member.findFirst({
 								where: eq(schema.member.role, "owner"),
 							});
-							if (isAdminPresent) {
+							if (isAdminPresent && !DOKPLOY_ALLOW_REGISTRATION) {
 								throw new APIError("BAD_REQUEST", {
 									message: "Admin is already created",
 								});
@@ -195,12 +199,14 @@ const { handler, api } = betterAuth({
 					}
 				},
 				after: async (user, context) => {
-					const isSSORequest = context?.path.includes("/sso");
+					const isSSORequest = Boolean(context?.path.includes("/sso"));
+					const hasInvitation = Boolean(context?.body?.invitationId);
 					const isAdminPresent = await db.query.member.findFirst({
 						where: eq(schema.member.role, "owner"),
 					});
+					const hasOwner = Boolean(isAdminPresent);
 
-					if (!IS_CLOUD && !isAdminPresent) {
+					if (!IS_CLOUD && !hasOwner) {
 						await updateWebServerSettings({
 							serverIp: await getPublicIpWithFallback(),
 						});
@@ -231,7 +237,15 @@ const { handler, api } = betterAuth({
 						}
 					}
 
-					if (IS_CLOUD || !isAdminPresent) {
+					if (
+						shouldCreateDefaultOrganizationForSignUp({
+							isCloud: IS_CLOUD,
+							hasOwner,
+							isSSORequest,
+							hasInvitation,
+							registrationAllowed: DOKPLOY_ALLOW_REGISTRATION,
+						})
+					) {
 						await db.transaction(async (tx) => {
 							const organization = await tx
 								.insert(schema.organization)
