@@ -2,7 +2,7 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import { DatabaseZap, Dices, RefreshCw, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -27,6 +27,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input, NumberInput } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Select,
 	SelectContent,
@@ -35,6 +36,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
 	Tooltip,
 	TooltipContent,
@@ -44,6 +46,84 @@ import {
 import { api } from "@/utils/api";
 
 export type CacheType = "fetch" | "cache";
+
+const accessRuleFormSchema = z
+	.object({
+		enabled: z.boolean().optional(),
+		name: z.string().optional(),
+		priority: z.number().int().min(1).max(1000).optional(),
+		path: z.string().optional(),
+		pathType: z.enum(["exact", "prefix", "regexp"]).optional(),
+		matcherExpression: z.string().optional(),
+		basicAuthUsername: z.string().optional(),
+		basicAuthPassword: z.string().optional(),
+		basicAuthConfigured: z.boolean().optional(),
+		ipAllowList: z.array(z.string()).optional(),
+		ipStrategyDepth: z.number().int().min(0).optional(),
+		excludedIPs: z.array(z.string()).optional(),
+	})
+	.superRefine((input, ctx) => {
+		if (
+			input.path &&
+			input.pathType !== "regexp" &&
+			input.path !== "/" &&
+			!input.path.startsWith("/")
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["path"],
+				message: "Rule path must start with '/'",
+			});
+		}
+
+		if (input.pathType === "regexp" && input.path) {
+			try {
+				new RegExp(input.path);
+			} catch {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["path"],
+					message: "Rule path must be a valid regular expression",
+				});
+			}
+		}
+
+		const hasBasicAuth =
+			!!input.basicAuthUsername?.trim() || !!input.basicAuthPassword?.trim();
+		const hasConfiguredBasicAuth =
+			!!input.basicAuthUsername?.trim() && input.basicAuthConfigured === true;
+		const hasIpAllowList = (input.ipAllowList || []).length > 0;
+
+		if (hasBasicAuth && !input.basicAuthUsername?.trim()) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["basicAuthUsername"],
+				message: "Username is required when basic auth is enabled",
+			});
+		}
+
+		if (
+			hasBasicAuth &&
+			!input.basicAuthPassword?.trim() &&
+			!hasConfiguredBasicAuth
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["basicAuthPassword"],
+				message: "Password is required when basic auth is enabled",
+			});
+		}
+
+		if (!hasBasicAuth && !hasConfiguredBasicAuth && !hasIpAllowList) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["basicAuthUsername"],
+				message: "Add basic auth and/or IP allow list",
+			});
+		}
+	});
+
+type DomainAccessRule = z.infer<typeof accessRuleFormSchema>;
 
 export const domain = z
 	.object({
@@ -70,6 +150,7 @@ export const domain = z
 		serviceName: z.string().optional(),
 		domainType: z.enum(["application", "compose", "preview"]).optional(),
 		middlewares: z.array(z.string()).optional(),
+		accessRules: z.array(accessRuleFormSchema).optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {
@@ -216,8 +297,14 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			serviceName: undefined,
 			domainType: type,
 			middlewares: [],
+			accessRules: [],
 		},
 		mode: "onChange",
+	});
+
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: "accessRules",
 	});
 
 	const certificateType = form.watch("certificateType");
@@ -243,6 +330,12 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				serviceName: data?.serviceName || undefined,
 				domainType: data?.domainType || type,
 				middlewares: data?.middlewares || [],
+				accessRules:
+					data?.accessRules?.map((rule) => ({
+						...rule,
+						basicAuthPassword: "",
+						basicAuthConfigured: !!rule.basicAuthConfigured,
+					})) || [],
 			});
 		}
 
@@ -260,9 +353,42 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				customCertResolver: undefined,
 				domainType: type,
 				middlewares: [],
+				accessRules: [],
 			});
 		}
 	}, [form, data, isPending, domainId]);
+
+	const addAccessRule = () => {
+		append({
+			enabled: true,
+			name: "",
+			priority: 100,
+			path: "/",
+			pathType: "prefix",
+			matcherExpression: "",
+			basicAuthUsername: "",
+			basicAuthPassword: "",
+			basicAuthConfigured: false,
+			ipAllowList: [],
+			ipStrategyDepth: undefined,
+			excludedIPs: [],
+		});
+	};
+
+	const updateListField = (
+		index: number,
+		fieldName: "ipAllowList" | "excludedIPs",
+		value: string,
+	) => {
+		const items = value
+			.split(/\r?\n|,/)
+			.map((item) => item.trim())
+			.filter(Boolean);
+		form.setValue(`accessRules.${index}.${fieldName}`, items, {
+			shouldDirty: true,
+			shouldValidate: true,
+		});
+	};
 
 	// Separate effect for handling custom cert resolver validation
 	useEffect(() => {
@@ -318,6 +444,276 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				toast.error(dictionary.error);
 			});
 	};
+
+	const renderAccessRuleCard = (
+		field: { id: string } & DomainAccessRule,
+		index: number,
+	) => (
+		<div key={field.id} className="border rounded-lg p-4 space-y-4">
+			<div className="flex items-center justify-between gap-4">
+				<div>
+					<p className="font-medium">Rule {index + 1}</p>
+					<p className="text-sm text-muted-foreground">
+						Match path and apply basic auth and/or IP allow list.
+					</p>
+				</div>
+				<div className="flex items-center gap-2">
+					<FormField
+						control={form.control}
+						name={`accessRules.${index}.enabled`}
+						render={({ field }) => (
+							<Switch
+								checked={field.value ?? true}
+								onCheckedChange={field.onChange}
+							/>
+						)}
+					/>
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						onClick={() => remove(index)}
+					>
+						<X className="size-4" />
+					</Button>
+				</div>
+			</div>
+
+			<div className="grid md:grid-cols-2 gap-4">
+				<FormField
+					control={form.control}
+					name={`accessRules.${index}.name`}
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Name</FormLabel>
+							<FormControl>
+								<Input
+									placeholder="Admin area"
+									{...field}
+									value={field.value || ""}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+				<FormField
+					control={form.control}
+					name={`accessRules.${index}.priority`}
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Priority</FormLabel>
+							<FormControl>
+								<NumberInput placeholder="100" {...field} />
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+			</div>
+
+			<div className="grid md:grid-cols-2 gap-4">
+				<FormField
+					control={form.control}
+					name={`accessRules.${index}.pathType`}
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Path Match</FormLabel>
+							<Select
+								onValueChange={field.onChange}
+								value={field.value || "prefix"}
+							>
+								<FormControl>
+									<SelectTrigger>
+										<SelectValue placeholder="Select path match" />
+									</SelectTrigger>
+								</FormControl>
+								<SelectContent>
+									<SelectItem value="prefix">Prefix</SelectItem>
+									<SelectItem value="exact">Exact</SelectItem>
+									<SelectItem value="regexp">Regex</SelectItem>
+								</SelectContent>
+							</Select>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+				<FormField
+					control={form.control}
+					name={`accessRules.${index}.path`}
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Path</FormLabel>
+							<FormControl>
+								<Input
+									placeholder={
+										form.watch(`accessRules.${index}.pathType`) === "regexp"
+											? "^/admin(/.*)?$"
+											: "/admin"
+									}
+									{...field}
+									value={field.value || ""}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+			</div>
+
+			<FormField
+				control={form.control}
+				name={`accessRules.${index}.matcherExpression`}
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Advanced Matchers</FormLabel>
+						<FormDescription>
+							Optional Traefik matcher expression. Example:
+							ClientIP(`10.0.0.0/8`) || Method(`POST`)
+						</FormDescription>
+						<FormControl>
+							<Input
+								placeholder="ClientIP(`10.0.0.0/8`)"
+								{...field}
+								value={field.value || ""}
+							/>
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+
+			<div className="grid md:grid-cols-2 gap-4">
+				<FormField
+					control={form.control}
+					name={`accessRules.${index}.basicAuthUsername`}
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Basic Auth Username</FormLabel>
+							{form.watch(`accessRules.${index}.basicAuthConfigured`) && (
+								<FormDescription>
+									Password already configured. Enter new password only if you
+									want to rotate it.
+								</FormDescription>
+							)}
+							<FormControl>
+								<Input
+									placeholder="admin"
+									{...field}
+									value={field.value || ""}
+									onChange={(event) => {
+										field.onChange(event);
+										form.setValue(
+											`accessRules.${index}.basicAuthConfigured`,
+											!!event.target.value &&
+												!!form.getValues(
+													`accessRules.${index}.basicAuthConfigured`,
+												),
+										);
+									}}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+				<FormField
+					control={form.control}
+					name={`accessRules.${index}.basicAuthPassword`}
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Basic Auth Password</FormLabel>
+							<FormDescription>
+								Leave empty to keep existing password.
+							</FormDescription>
+							<FormControl>
+								<Input
+									type="password"
+									placeholder="••••••••"
+									{...field}
+									value={field.value || ""}
+									onChange={(event) => {
+										field.onChange(event);
+										if (event.target.value) {
+											form.setValue(
+												`accessRules.${index}.basicAuthConfigured`,
+												true,
+											);
+										}
+									}}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+			</div>
+
+			<div className="grid md:grid-cols-2 gap-4">
+				<FormField
+					control={form.control}
+					name={`accessRules.${index}.ipAllowList`}
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>IP Allow List</FormLabel>
+							<FormDescription>
+								One CIDR or IP per line. Example: 192.168.1.0/24
+							</FormDescription>
+							<FormControl>
+								<Textarea
+									rows={4}
+									value={(field.value || []).join("\n")}
+									onChange={(event) =>
+										updateListField(index, "ipAllowList", event.target.value)
+									}
+									placeholder={"192.168.1.0/24\n10.0.0.5/32"}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+				<div className="space-y-4">
+					<FormField
+						control={form.control}
+						name={`accessRules.${index}.ipStrategyDepth`}
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>IP Strategy Depth</FormLabel>
+								<FormDescription>
+									Use forwarded IP depth when behind proxy.
+								</FormDescription>
+								<FormControl>
+									<NumberInput placeholder="0" {...field} />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					<FormField
+						control={form.control}
+						name={`accessRules.${index}.excludedIPs`}
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Excluded Proxy IPs</FormLabel>
+								<FormControl>
+									<Textarea
+										rows={3}
+										value={(field.value || []).join("\n")}
+										onChange={(event) =>
+											updateListField(index, "excludedIPs", event.target.value)
+										}
+										placeholder={"10.0.0.1\n10.0.0.2"}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+				</div>
+			</div>
+		</div>
+	);
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="" asChild>
@@ -797,6 +1193,40 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 										)}
 									</>
 								)}
+								<FormItem>
+									<div className="flex items-center justify-between gap-4">
+										<div>
+											<FormLabel>Access Rules</FormLabel>
+											<FormDescription>
+												Protect path patterns with basic auth, IP allow list,
+												and advanced Traefik matchers.
+											</FormDescription>
+										</div>
+										<Button
+											type="button"
+											variant="secondary"
+											onClick={addAccessRule}
+										>
+											Add Rule
+										</Button>
+									</div>
+									{fields.length === 0 ? (
+										<div className="border rounded-lg border-dashed p-4 text-sm text-muted-foreground">
+											No access rules yet.
+										</div>
+									) : (
+										<ScrollArea className="max-h-[34rem] pr-4">
+											<div className="space-y-4">
+												{fields.map((field, index) =>
+													renderAccessRuleCard(
+														field as typeof field & DomainAccessRule,
+														index,
+													),
+												)}
+											</div>
+										</ScrollArea>
+									)}
+								</FormItem>
 								<FormField
 									control={form.control}
 									name="middlewares"

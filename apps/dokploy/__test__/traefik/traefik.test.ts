@@ -148,6 +148,7 @@ const baseDomain: Domain = {
 	internalPath: "/",
 	stripPath: false,
 	middlewares: null,
+	accessRules: [],
 };
 
 const baseRedirect: Redirect = {
@@ -523,4 +524,25 @@ test("Subdomain with Russian IDN TLD converts non-ASCII part to punycode", async
 	// app stays ASCII, тест.рф becomes xn--e1aybc.xn--p1ai
 	expect(router.rule).toContain("Host(`app.xn--e1aybc.xn--p1ai`)");
 	expect(router.rule).not.toContain("тест.рф");
+});
+
+test("Access rule adds exact path and priority", async () => {
+	const router = await createRouterConfig(baseApp, baseDomain, "websecure", {
+		additionalRule: "Path(`/redirect`)",
+		additionalMiddlewares: ["access-app-1-0-rule-auth"],
+		priority: 150,
+	});
+
+	expect(router.rule).toContain("Host(``)");
+	expect(router.rule).toContain("Path(`/redirect`)");
+	expect(router.priority).toBe(150);
+	expect(router.middlewares).toContain("access-app-1-0-rule-auth");
+});
+
+test("Base router lowered when access rules exist", async () => {
+	const router = await createRouterConfig(baseApp, baseDomain, "websecure", {
+		hasAccessRules: true,
+	});
+
+	expect(router.priority).toBe(1);
 });

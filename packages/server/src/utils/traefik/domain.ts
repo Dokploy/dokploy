@@ -1,6 +1,10 @@
 import type { Domain } from "@dokploy/server/services/domain";
 import type { ApplicationNested } from "../builders";
 import {
+	buildAccessRuleMatches,
+	getAccessRuleRouterName,
+} from "./access-rules";
+import {
 	createServiceConfig,
 	loadOrCreateConfig,
 	loadOrCreateConfigRemote,
@@ -11,6 +15,24 @@ import {
 } from "./application";
 import type { FileConfig, HttpRouter } from "./file-types";
 import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
+
+const removeAccessRuleRouters = (
+	config: FileConfig,
+	appName: string,
+	uniqueConfigKey: number,
+) => {
+	if (!config.http?.routers) {
+		return;
+	}
+
+	const prefix = `${appName}-access-${uniqueConfigKey}-`;
+
+	for (const routerName of Object.keys(config.http.routers)) {
+		if (routerName.startsWith(prefix)) {
+			delete config.http.routers[routerName];
+		}
+	}
+};
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
@@ -24,23 +46,69 @@ export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	const serviceName = `${appName}-service-${domain.uniqueConfigKey}`;
 	const routerName = `${appName}-router-${domain.uniqueConfigKey}`;
 	const routerNameSecure = `${appName}-router-websecure-${domain.uniqueConfigKey}`;
+	const { matches } = await buildAccessRuleMatches(appName, domain);
 
 	config.http = config.http || { routers: {}, services: {} };
 	config.http.routers = config.http.routers || {};
 	config.http.services = config.http.services || {};
+	removeAccessRuleRouters(config, appName, domain.uniqueConfigKey);
 
 	config.http.routers[routerName] = await createRouterConfig(
 		app,
 		domain,
 		domain.customEntrypoint || "web",
+		{
+			hasAccessRules: matches.length > 0,
+		},
 	);
+
+	for (const [index, match] of matches.entries()) {
+		const accessRouterName = getAccessRuleRouterName(
+			appName,
+			domain.uniqueConfigKey,
+			domain.customEntrypoint || "web",
+			index,
+		);
+		config.http.routers[accessRouterName] = await createRouterConfig(
+			app,
+			domain,
+			domain.customEntrypoint || "web",
+			{
+				additionalRule: match.rule,
+				additionalMiddlewares: match.middlewares,
+				priority: match.priority,
+			},
+		);
+	}
 
 	if (!domain.customEntrypoint && domain.https) {
 		config.http.routers[routerNameSecure] = await createRouterConfig(
 			app,
 			domain,
 			"websecure",
+			{
+				hasAccessRules: matches.length > 0,
+			},
 		);
+
+		for (const [index, match] of matches.entries()) {
+			const accessRouterName = getAccessRuleRouterName(
+				appName,
+				domain.uniqueConfigKey,
+				"websecure",
+				index,
+			);
+			config.http.routers[accessRouterName] = await createRouterConfig(
+				app,
+				domain,
+				"websecure",
+				{
+					additionalRule: match.rule,
+					additionalMiddlewares: match.middlewares,
+					priority: match.priority,
+				},
+			);
+		}
 	} else {
 		delete config.http.routers[routerNameSecure];
 	}
@@ -79,6 +147,7 @@ export const removeDomain = async (
 	if (config.http?.routers?.[routerSecureKey]) {
 		delete config.http.routers[routerSecureKey];
 	}
+	removeAccessRuleRouters(config, appName, uniqueKey);
 	if (config.http?.services?.[serviceKey]) {
 		delete config.http.services[serviceKey];
 	}
@@ -122,6 +191,12 @@ export const createRouterConfig = async (
 	app: ApplicationNested,
 	domain: Domain,
 	entryPoint: string,
+	options?: {
+		additionalRule?: string;
+		additionalMiddlewares?: string[];
+		priority?: number;
+		hasAccessRules?: boolean;
+	},
 ) => {
 	const { appName, redirects, security } = app;
 	const { certificateType } = domain;
@@ -136,11 +211,18 @@ export const createRouterConfig = async (
 		customEntrypoint,
 	} = domain;
 	const punycodeHost = toPunycode(host);
+	const baseRule = `Host(\`${punycodeHost}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`;
+	const additionalRule = options?.additionalRule?.trim();
 	const routerConfig: HttpRouter = {
-		rule: `Host(\`${punycodeHost}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
+		rule: additionalRule ? `${baseRule} && (${additionalRule})` : baseRule,
 		service: `${appName}-service-${uniqueConfigKey}`,
 		middlewares: [],
 		entryPoints: [entryPoint],
+		...(options?.priority
+			? { priority: options.priority }
+			: options?.hasAccessRules
+				? { priority: 1 }
+				: {}),
 	};
 
 	const isRedirectRouter = entryPoint === "web" && https && !customEntrypoint;
@@ -170,6 +252,10 @@ export const createRouterConfig = async (
 				const middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
 				routerConfig.middlewares?.push(middlewareName);
 			}
+		}
+
+		if (options?.additionalMiddlewares?.length) {
+			routerConfig.middlewares?.push(...options.additionalMiddlewares);
 		}
 
 		// security

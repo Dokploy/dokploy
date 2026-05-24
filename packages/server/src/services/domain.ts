@@ -5,22 +5,95 @@ import { getWebServerSettings } from "@dokploy/server/services/web-server-settin
 import { generateRandomDomain } from "@dokploy/server/templates";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
+import * as bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import type { z } from "zod";
 import { type apiCreateDomain, domains } from "../db/schema";
+import type { DomainAccessRule } from "../db/validations/domain";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
 import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
 
+const findDomainByIdRaw = async (domainId: string) => {
+	const domain = await db.query.domains.findFirst({
+		where: eq(domains.domainId, domainId),
+		with: {
+			application: true,
+		},
+	});
+	if (!domain) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Domain not found",
+		});
+	}
+	return domain;
+};
+
+const prepareAccessRulesForStorage = async (
+	rules: DomainAccessRule[] = [],
+	currentRules: DomainAccessRule[] = [],
+) => {
+	const currentRulesMap = new Map(
+		currentRules
+			.filter((rule) => rule.ruleId)
+			.map((rule) => [rule.ruleId as string, rule]),
+	);
+
+	return Promise.all(
+		rules.map(async (rule) => {
+			const username = rule.basicAuthUsername?.trim();
+			const password = rule.basicAuthPassword?.trim();
+			const ruleId = rule.ruleId || nanoid();
+			const currentRule = currentRulesMap.get(ruleId);
+			const hasBasicAuth =
+				!!username ||
+				!!password ||
+				!!rule.basicAuthPasswordHash ||
+				!!currentRule?.basicAuthPasswordHash;
+
+			let passwordHash =
+				rule.basicAuthPasswordHash?.trim() ||
+				currentRule?.basicAuthPasswordHash?.trim();
+			if (password) {
+				passwordHash = await bcrypt.hash(password, 10);
+			}
+
+			return {
+				...rule,
+				ruleId,
+				basicAuthUsername: username,
+				basicAuthPassword: undefined,
+				basicAuthPasswordHash: passwordHash,
+				basicAuthConfigured: hasBasicAuth && !!username && !!passwordHash,
+			};
+		}),
+	);
+};
+
+const sanitizeAccessRulesForOutput = (rules: DomainAccessRule[] = []) => {
+	return rules.map((rule) => ({
+		...rule,
+		basicAuthPassword: undefined,
+		basicAuthPasswordHash: undefined,
+		basicAuthConfigured: !!rule.basicAuthConfigured,
+	}));
+};
+
 export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
 	const result = await db.transaction(async (tx) => {
+		const accessRules = await prepareAccessRulesForStorage(
+			input.accessRules || [],
+		);
 		const domain = await tx
 			.insert(domains)
 			.values({
 				...input,
 				host: input.host?.trim(),
+				accessRules,
 			} as typeof domains.$inferInsert)
 			.returning()
 			.then((response) => response[0]);
@@ -37,7 +110,10 @@ export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
 			await manageDomain(application, domain);
 		}
 
-		return domain;
+		return {
+			...domain,
+			accessRules: sanitizeAccessRulesForOutput(domain.accessRules || []),
+		};
 	});
 
 	return result;
@@ -77,19 +153,11 @@ export const generateWildcardDomain = (
 };
 
 export const findDomainById = async (domainId: string) => {
-	const domain = await db.query.domains.findFirst({
-		where: eq(domains.domainId, domainId),
-		with: {
-			application: true,
-		},
-	});
-	if (!domain) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Domain not found",
-		});
-	}
-	return domain;
+	const domain = await findDomainByIdRaw(domainId);
+	return {
+		...domain,
+		accessRules: sanitizeAccessRulesForOutput(domain.accessRules || []),
+	};
 };
 
 export const findDomainsByApplicationId = async (applicationId: string) => {
@@ -100,7 +168,10 @@ export const findDomainsByApplicationId = async (applicationId: string) => {
 		},
 	});
 
-	return domainsArray;
+	return domainsArray.map((domain) => ({
+		...domain,
+		accessRules: sanitizeAccessRulesForOutput(domain.accessRules || []),
+	}));
 };
 
 export const findDomainsByComposeId = async (composeId: string) => {
@@ -111,24 +182,41 @@ export const findDomainsByComposeId = async (composeId: string) => {
 		},
 	});
 
-	return domainsArray;
+	return domainsArray.map((domain) => ({
+		...domain,
+		accessRules: sanitizeAccessRulesForOutput(domain.accessRules || []),
+	}));
 };
 
 export const updateDomainById = async (
 	domainId: string,
 	domainData: Partial<Domain>,
 ) => {
+	const accessRules = domainData.accessRules
+		? await prepareAccessRulesForStorage(
+				domainData.accessRules,
+				(await findDomainByIdRaw(domainId)).accessRules || [],
+			)
+		: undefined;
 	const domain = await db
 		.update(domains)
 		.set({
 			...domainData,
 			...(domainData.host && { host: domainData.host.trim() }),
+			...(accessRules ? { accessRules } : {}),
 		})
 		.where(eq(domains.domainId, domainId))
 		.returning();
 
-	return domain[0];
+	return domain[0]
+		? {
+				...domain[0],
+				accessRules: sanitizeAccessRulesForOutput(domain[0].accessRules || []),
+			}
+		: undefined;
 };
+
+export { findDomainByIdRaw };
 
 export const removeDomainById = async (domainId: string) => {
 	await findDomainById(domainId);
@@ -137,7 +225,12 @@ export const removeDomainById = async (domainId: string) => {
 		.where(eq(domains.domainId, domainId))
 		.returning();
 
-	return result[0];
+	return result[0]
+		? {
+				...result[0],
+				accessRules: sanitizeAccessRulesForOutput(result[0].accessRules || []),
+			}
+		: undefined;
 };
 
 export const getDomainHost = (domain: Domain) => {
