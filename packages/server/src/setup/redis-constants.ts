@@ -10,19 +10,20 @@ export const {
 	REDIS_USERNAME,
 } = process.env;
 
-export function readSecret(path: string): string {
+export function readSecret(path: string): string | undefined {
 	try {
 		return fs.readFileSync(path, "utf8").trim();
 	} catch (error) {
-		throw new Error(
+		console.error(
 			`Cannot read secret at ${path}: ${error instanceof Error ? error.message : String(error)}`,
 		);
+		return undefined;
 	}
 }
 
 export const getRedisPassword = (): string | undefined => {
 	return REDIS_PASSWORD_FILE
-		? readSecret(REDIS_PASSWORD_FILE)
+		? (readSecret(REDIS_PASSWORD_FILE) ?? REDIS_PASSWORD)
 		: REDIS_PASSWORD;
 };
 

@@ -1,20 +1,18 @@
 import type { CreateServiceOptions } from "dockerode";
 import { docker } from "../constants";
-import {
-	REDIS_HOST,
-	REDIS_URL,
-	getRedisPassword,
-} from "./redis-constants";
 import { pullImage } from "../utils/docker/utils";
+import { getRedisPassword, REDIS_HOST, REDIS_URL } from "./redis-constants";
 
 export const initializeRedis = async () => {
 	// Skip provisioning local Redis if an external one is configured
+	const normalizedHost = REDIS_HOST?.toLowerCase();
 	const isExternalRedis =
 		REDIS_URL ||
-		(REDIS_HOST &&
-			REDIS_HOST !== "dokploy-redis" &&
-			REDIS_HOST !== "127.0.0.1" &&
-			REDIS_HOST !== "localhost");
+		(normalizedHost &&
+			normalizedHost !== "dokploy-redis" &&
+			normalizedHost !== "127.0.0.1" &&
+			normalizedHost !== "localhost" &&
+			normalizedHost !== "::1");
 
 	if (isExternalRedis) {
 		console.log("External Redis detected: Skipping local Redis setup. ✅");
