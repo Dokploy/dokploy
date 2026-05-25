@@ -136,7 +136,8 @@ export function processValue(
 			if (params.length === 1 && params[0] && params[0].match(/^\d{1,3}$/)) {
 				return generateJwt({ length: Number.parseInt(params[0], 10) });
 			}
-			let [secret, payload]: [string, any] = params as [string, any];
+			const [secret, rawPayload] = params;
+			let payload: any = rawPayload;
 			if (typeof payload === "string" && variables[payload]) {
 				payload = variables[payload];
 			}

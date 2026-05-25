@@ -126,8 +126,11 @@ describe("redis-connection", () => {
 		);
 
 		// Ensure Command is NOT set to avoid overriding ENTRYPOINT
-		const lastCall = mockCreateService.mock.calls[0][0];
-		expect(lastCall.TaskTemplate.ContainerSpec.Command).toBeUndefined();
+		const lastCall = mockCreateService.mock.calls[0]?.[0];
+		if (!lastCall) {
+			throw new Error("mockCreateService was not called");
+		}
+		expect(lastCall.TaskTemplate?.ContainerSpec?.Command).toBeUndefined();
 	}, 30000);
 
 	it("should skip initializeRedis if an external REDIS_URL is provided", async () => {
