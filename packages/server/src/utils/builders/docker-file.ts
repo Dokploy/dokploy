@@ -2,11 +2,11 @@ import {
 	getEnvironmentVariablesObject,
 	prepareEnvironmentVariablesForShell,
 } from "@dokploy/server/utils/docker/utils";
-import { quote } from "shell-quote";
 import {
 	getBuildAppDirectory,
 	getDockerContextPath,
 } from "../filesystem/directory";
+import { createSecretTempFile } from "../process/secrets";
 import type { ApplicationNested } from ".";
 import { createEnvFileCommand } from "./utils";
 
@@ -58,9 +58,15 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			application.environment.env,
 		);
 
-		const joinedSecrets = Object.entries(secrets)
-			.map(([key, value]) => `${key}=${quote([value])}`)
-			.join(" ");
+		const secretEntries = Object.entries(secrets);
+		const secretFiles = secretEntries.map(([key, value]) => ({
+			key,
+			secret: createSecretTempFile(
+				"dokploy-build-secrets-",
+				Buffer.from(key).toString("base64url"),
+				value,
+			),
+		}));
 
 		/*
 			Do not generate an environment file when publishDirectory is specified,
@@ -77,11 +83,15 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			);
 		}
 
-		for (const key in secrets) {
-			// Although buildx is smart enough to know we may be referring to an environment variable name,
-			// we still make sure it doesn't fall back to `type=file`.
-			// See: https://docs.docker.com/reference/cli/docker/buildx/build/#secret
-			commandArgs.push("--secret", `type=env,id=${key}`);
+		for (const { key, secret } of secretFiles) {
+			commandArgs.push("--secret", `id=${key},src=${secret.path}`);
+		}
+
+		if (secretFiles.length > 0) {
+			const cleanupCommand = secretFiles
+				.map(({ secret }) => `rm -rf ${secret.quotedDir}`)
+				.join(";");
+			command += `trap "${cleanupCommand.replace(/"/g, '\\"')}" EXIT;`;
 		}
 
 		command += `
@@ -91,7 +101,7 @@ cd ${dockerContextPath} || {
   exit 1;
 }
 
-${joinedSecrets} docker ${commandArgs.join(" ")} || {
+docker ${commandArgs.join(" ")} || {
   echo "❌ Docker build failed" ;
   exit 1;
 }

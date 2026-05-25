@@ -1,4 +1,6 @@
+import { quote } from "shell-quote";
 import type { ApplicationNested } from "../builders";
+import { createSecretTempFile } from "../process/secrets";
 
 export const buildRemoteDocker = async (application: ApplicationNested) => {
 	const { registryUrl, dockerImage, username, password } = application;
@@ -12,11 +14,18 @@ echo "Pulling ${dockerImage}";
 		`;
 
 		if (username && password) {
+			const passwordFile = createSecretTempFile(
+				"dokploy-registry-password-",
+				"password",
+				password,
+			);
 			command += `
-if ! echo "${password}" | docker login --username "${username}" --password-stdin "${registryUrl || ""}" 2>&1; then
+if ! docker login --username ${quote([username])} --password-stdin ${quote([registryUrl || ""])} < ${passwordFile.quotedPath} 2>&1; then
+	rm -rf ${passwordFile.quotedDir};
 	echo "❌ Login failed";
 	exit 1;
 fi
+rm -rf ${passwordFile.quotedDir};
 `;
 		}
 

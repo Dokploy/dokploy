@@ -6,7 +6,9 @@ import type { InferResultType } from "@dokploy/server/types/with";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { Octokit } from "octokit";
+import { quote } from "shell-quote";
 import type { z } from "zod";
+import { createGitAskPassScript } from "../process/secrets";
 
 export const authGithub = (githubProvider: Github): Octokit => {
 	if (!haveGithubRequirements(githubProvider)) {
@@ -164,10 +166,11 @@ export const cloneGithubRepository = async ({
 	const repoclone = `github.com/${owner}/${repository}.git`;
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
-	const cloneUrl = `https://oauth2:${token}@${repoclone}`;
+	const askPass = createGitAskPassScript(token);
+	const cloneUrl = `https://${repoclone}`;
 
 	command += `echo "Cloning Repo ${repoclone} to ${outputPath}: ✅";`;
-	command += `git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	command += `if ! GIT_ASKPASS=${askPass.quotedPath} GIT_TERMINAL_PROMPT=0 git clone --branch ${quote([branch || ""])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([cloneUrl])} ${quote([outputPath])} --progress; then rm -rf ${askPass.quotedDir}; exit 1; fi; rm -rf ${askPass.quotedDir};`;
 
 	return command;
 };

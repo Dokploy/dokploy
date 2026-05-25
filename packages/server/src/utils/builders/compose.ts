@@ -1,3 +1,5 @@
+import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { InferResultType } from "@dokploy/server/types/with";
@@ -5,7 +7,6 @@ import boxen from "boxen";
 import { quote } from "shell-quote";
 import { writeDomainsToCompose } from "../docker/domain";
 import {
-	encodeBase64,
 	getEnvironmentVariablesObject,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
@@ -122,10 +123,14 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 		compose.environment.env,
 	).join("\n");
 
-	const encodedContent = encodeBase64(envFileContent);
+	const tempDir = mkdtempSync(join(tmpdir(), "dokploy-compose-env-"));
+	chmodSync(tempDir, 0o700);
+	const tempPath = join(tempDir, "env");
+	writeFileSync(tempPath, envFileContent || "", { mode: 0o600 });
 	return `
 touch ${envFilePath};
-echo "${encodedContent}" | base64 -d > "${envFilePath}";
+install -m 600 ${quote([tempPath])} "${envFilePath}";
+rm -rf ${quote([tempDir])};
 	`;
 };
 

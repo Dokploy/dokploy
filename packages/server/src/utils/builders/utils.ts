@@ -1,5 +1,6 @@
 import { dirname, join } from "node:path";
-import { encodeBase64, prepareEnvironmentVariables } from "../docker/utils";
+import { prepareEnvironmentVariables } from "../docker/utils";
+import { createSecretTempFile } from "../process/secrets";
 
 export const createEnvFileCommand = (
 	directory: string,
@@ -13,8 +14,8 @@ export const createEnvFileCommand = (
 		environmentEnv,
 	).join("\n");
 
-	const encodedContent = encodeBase64(envFileContent || "");
 	const envFilePath = join(dirname(directory), ".env");
+	const secret = createSecretTempFile("dokploy-env-", "env", envFileContent);
 
-	return `echo "${encodedContent}" | base64 -d > "${envFilePath}";`;
+	return `install -m 600 ${secret.quotedPath} "${envFilePath}"; rm -rf ${secret.quotedDir};`;
 };
