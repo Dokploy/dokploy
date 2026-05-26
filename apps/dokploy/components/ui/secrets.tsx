@@ -21,11 +21,13 @@ interface Props {
 	title: string;
 	description: ReactNode;
 	placeholder: string;
+	showDiffGutter?: boolean;
 }
 
 export const Secrets = (props: Props) => {
 	const [isVisible, setIsVisible] = useState(true);
 	const form = useFormContext<Record<string, string>>();
+	const diffOriginalValue = form.formState.defaultValues?.[props.name] ?? "";
 
 	return (
 		<>
@@ -62,6 +64,8 @@ export const Secrets = (props: Props) => {
 									}
 									language="properties"
 									disabled={isVisible}
+									showDiffGutter={props.showDiffGutter ?? true}
+									diffOriginalValue={diffOriginalValue}
 									lineWrapping
 									placeholder={props.placeholder}
 									className="h-96 font-mono"

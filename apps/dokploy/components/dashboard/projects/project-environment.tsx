@@ -152,6 +152,8 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 													lineWrapping
 													language="properties"
 													readOnly={!canWrite}
+													showDiffGutter
+													diffOriginalValue={data?.env ?? ""}
 													wrapperClassName="h-[35rem] font-mono"
 													placeholder={`NODE_ENV=production
 PORT=3000
