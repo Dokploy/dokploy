@@ -6,6 +6,7 @@ import { z } from "zod";
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	CUSTOM_DESTINATION_PROVIDER,
 } from "../validations/destination";
 import { organization } from "./account";
 import { backups } from "./backups";
@@ -54,7 +55,67 @@ const createSchema = createInsertSchema(destinations, {
 		.default([]),
 });
 
-export const apiCreateDestination = createSchema
+const validateDestination = <
+	T extends {
+		provider?: string | null;
+		accessKey: string;
+		secretAccessKey: string;
+		region: string;
+		bucket: string;
+		endpoint: string;
+	},
+>(
+	data: T,
+	ctx: z.RefinementCtx,
+) => {
+	const isCustomDestination = data.provider === CUSTOM_DESTINATION_PROVIDER;
+
+	if (isCustomDestination) {
+		if (!data.endpoint.trim()) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Remote root is required for custom destinations",
+				path: ["endpoint"],
+			});
+		}
+
+		if (!data.bucket.trim()) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Destination path is required for custom destinations",
+				path: ["bucket"],
+			});
+		}
+
+		return;
+	}
+
+	if (!data.accessKey.trim()) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			message: "Access Key Id is required",
+			path: ["accessKey"],
+		});
+	}
+
+	if (!data.secretAccessKey.trim()) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			message: "Secret Access Key is required",
+			path: ["secretAccessKey"],
+		});
+	}
+
+	if (!data.region.trim()) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			message: "Region is required",
+			path: ["region"],
+		});
+	}
+};
+
+const destinationInputSchema = createSchema
 	.pick({
 		name: true,
 		provider: true,
@@ -68,7 +129,10 @@ export const apiCreateDestination = createSchema
 	.required()
 	.extend({
 		serverId: z.string().optional(),
-	});
+	})
+	.superRefine(validateDestination);
+
+export const apiCreateDestination = destinationInputSchema;
 
 export const apiFindOneDestination = z.object({
 	destinationId: z.string().min(1),
@@ -95,4 +159,5 @@ export const apiUpdateDestination = createSchema
 	.required()
 	.extend({
 		serverId: z.string().optional(),
-	});
+	})
+	.superRefine(validateDestination);

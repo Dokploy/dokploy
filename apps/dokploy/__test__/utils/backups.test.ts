@@ -1,4 +1,9 @@
-import { normalizeS3Path } from "@dokploy/server/utils/backups/utils";
+import {
+	buildRcloneDestination,
+	getDestinationRoot,
+	getS3Credentials,
+	normalizeS3Path,
+} from "@dokploy/server/utils/backups/utils";
 import { describe, expect, test } from "vitest";
 
 describe("normalizeS3Path", () => {
@@ -57,5 +62,48 @@ describe("normalizeS3Path", () => {
 		expect(normalizeS3Path("instance-backups/")).toBe("instance-backups/");
 		expect(normalizeS3Path("/instance-backups/")).toBe("instance-backups/");
 		expect(normalizeS3Path("instance-backups")).toBe("instance-backups/");
+	});
+});
+
+describe("buildRcloneDestination", () => {
+	test("should append relative paths to remote roots", () => {
+		expect(buildRcloneDestination(":s3:bucket", "app/file.tar.gz")).toBe(
+			":s3:bucket/app/file.tar.gz",
+		);
+		expect(
+			buildRcloneDestination(":sftp,host=example.com:backups", "app"),
+		).toBe(":sftp,host=example.com:backups/app");
+		expect(buildRcloneDestination("remote/root/", "app")).toBe(
+			"remote/root/app",
+		);
+	});
+
+	test("should preserve bare roots when no path is provided", () => {
+		expect(buildRcloneDestination(":s3:bucket", "")).toBe(":s3:bucket");
+		expect(buildRcloneDestination("remote/root", "")).toBe("remote/root");
+	});
+});
+
+describe("custom destination helpers", () => {
+	const customDestination = {
+		provider: "Custom",
+		bucket: "backups",
+		endpoint: ":sftp,host=example.com:backups",
+		additionalFlags: ["--ssh-no-check-known-hosts"],
+		accessKey: "",
+		secretAccessKey: "",
+		region: "",
+	};
+
+	test("should use the endpoint as the destination root for custom remotes", () => {
+		expect(getDestinationRoot(customDestination)).toBe(
+			":sftp,host=example.com:backups",
+		);
+	});
+
+	test("should only return additional flags for custom destinations", () => {
+		expect(getS3Credentials(customDestination)).toEqual([
+			"--ssh-no-check-known-hosts",
+		]);
 	});
 });

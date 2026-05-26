@@ -17,7 +17,10 @@ import {
 	apiFindOneDestination,
 	apiRemoveDestination,
 	apiUpdateDestination,
+	buildRcloneDestination,
+	CUSTOM_DESTINATION_PROVIDER,
 	destinations,
+	getDestinationRoot,
 } from "@/server/db/schema";
 
 export const destinationRouter = createTRPCRouter({
@@ -57,25 +60,32 @@ export const destinationRouter = createTRPCRouter({
 				additionalFlags,
 			} = input;
 			try {
-				const rcloneFlags = [
-					`--s3-access-key-id="${accessKey}"`,
-					`--s3-secret-access-key="${secretAccessKey}"`,
-					`--s3-region="${region}"`,
-					`--s3-endpoint="${endpoint}"`,
-					"--s3-no-check-bucket",
-					"--s3-force-path-style",
-					"--retries 1",
-					"--low-level-retries 1",
-					"--timeout 10s",
-					"--contimeout 5s",
-				];
-				if (provider) {
+				const isCustomDestination = provider === CUSTOM_DESTINATION_PROVIDER;
+				const rcloneFlags = isCustomDestination
+					? [...(additionalFlags ?? []), "--retries 1", "--low-level-retries 1"]
+					: [
+							`--s3-access-key-id="${accessKey}"`,
+							`--s3-secret-access-key="${secretAccessKey}"`,
+							`--s3-region="${region}"`,
+							`--s3-endpoint="${endpoint}"`,
+							"--s3-no-check-bucket",
+							"--s3-force-path-style",
+							"--retries 1",
+							"--low-level-retries 1",
+							"--timeout 10s",
+							"--contimeout 5s",
+						];
+				if (!isCustomDestination && provider) {
 					rcloneFlags.unshift(`--s3-provider="${provider}"`);
 				}
-				if (additionalFlags?.length) {
+				if (!isCustomDestination && additionalFlags?.length) {
 					rcloneFlags.push(...additionalFlags);
 				}
-				const rcloneDestination = `:s3:${bucket}`;
+				const destinationRoot = getDestinationRoot(input);
+				const rcloneDestination = buildRcloneDestination(
+					destinationRoot,
+					bucket,
+				);
 				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 
 				if (IS_CLOUD && !input.serverId) {

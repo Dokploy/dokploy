@@ -1,6 +1,5 @@
 import { logger } from "@dokploy/server/lib/logger";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
-import type { Destination } from "@dokploy/server/services/destination";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { keepLatestNBackups } from ".";
 import { runComposeBackup } from "./compose";
@@ -10,6 +9,16 @@ import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { runWebServerBackup } from "./web-server";
+
+export type RcloneDestinationConfig = {
+	provider?: string | null;
+	accessKey?: string | null;
+	secretAccessKey?: string | null;
+	bucket: string;
+	region?: string | null;
+	endpoint: string;
+	additionalFlags?: string[] | null;
+};
 
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const {
@@ -66,7 +75,49 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
-export const getS3Credentials = (destination: Destination) => {
+export const CUSTOM_DESTINATION_PROVIDER = "Custom";
+
+export const isCustomDestination = (destination: RcloneDestinationConfig) =>
+	destination.provider === CUSTOM_DESTINATION_PROVIDER;
+
+export const getDestinationRoot = (destination: RcloneDestinationConfig) => {
+	if (isCustomDestination(destination)) {
+		const endpoint = destination.endpoint.trim();
+		if (!endpoint) {
+			throw new Error("Custom destinations require a remote root");
+		}
+		return endpoint;
+	}
+
+	return `:s3:${destination.bucket}`;
+};
+
+export const buildRcloneDestination = (root: string, relativePath: string) => {
+	const normalizedRoot = root.trim();
+	const normalizedRelativePath = relativePath.replace(/^\/+/, "");
+
+	if (!normalizedRelativePath) {
+		return normalizedRoot;
+	}
+
+	if (normalizedRoot.endsWith(":") || normalizedRoot.endsWith("/")) {
+		return `${normalizedRoot}${normalizedRelativePath}`;
+	}
+
+	return `${normalizedRoot}/${normalizedRelativePath}`;
+};
+
+export const joinRclonePath = (root: string, relativePath: string) => {
+	return buildRcloneDestination(root, relativePath);
+};
+
+export const getS3Credentials = (destination: RcloneDestinationConfig) => {
+	if (isCustomDestination(destination)) {
+		return destination.additionalFlags?.length
+			? destination.additionalFlags
+			: [];
+	}
+
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [
