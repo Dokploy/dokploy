@@ -9,6 +9,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { getDockerCommand } from "./docker-file";
 import { getHerokuCommand } from "./heroku";
@@ -124,6 +125,8 @@ export const mechanizeDockerContainer = async (
 	const image = getImageName(application);
 	const authConfig = getAuthConfig(application);
 	const docker = await getRemoteDocker(application.serverId);
+
+	await dockerLoginForApplication(application);
 
 	const settings: CreateServiceOptions = {
 		authconfig: authConfig,
@@ -243,4 +246,43 @@ export const getAuthConfig = (application: ApplicationNested) => {
 	}
 
 	return undefined;
+};
+
+const shEscape = (s: string | undefined): string => {
+	if (!s) return "''";
+	return `'${s.replace(/'/g, `'\\''`)}'`;
+};
+
+const dockerLoginForApplication = async (
+	application: ApplicationNested,
+) => {
+	const { sourceType, username, password, registryUrl, serverId, registry, buildRegistry } = application;
+
+	let loginUsername: string | undefined;
+	let loginPassword: string | undefined;
+	let loginRegistry: string | undefined;
+
+	if (sourceType === "docker" && username && password) {
+		loginUsername = username;
+		loginPassword = password;
+		loginRegistry = registryUrl || undefined;
+	} else if (registry) {
+		loginUsername = registry.username;
+		loginPassword = registry.password;
+		loginRegistry = registry.registryUrl;
+	} else if (buildRegistry) {
+		loginUsername = buildRegistry.username;
+		loginPassword = buildRegistry.password;
+		loginRegistry = buildRegistry.registryUrl;
+	}
+
+	if (!loginUsername || !loginPassword) return;
+
+	const loginCommand = `printf %s ${shEscape(loginPassword)} | docker login ${shEscape(loginRegistry)} -u ${shEscape(loginUsername)} --password-stdin`;
+
+	if (serverId) {
+		await execAsyncRemote(serverId, loginCommand);
+	} else {
+		await execAsync(loginCommand);
+	}
 };
