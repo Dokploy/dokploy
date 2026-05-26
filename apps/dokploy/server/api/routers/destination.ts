@@ -8,6 +8,7 @@ import {
 	updateDestinationById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { CUSTOM_DESTINATION_PROVIDER } from "@dokploy/server/db/validations/destination";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { createTRPCRouter, withPermission } from "@/server/api/trpc";
@@ -18,7 +19,6 @@ import {
 	apiRemoveDestination,
 	apiUpdateDestination,
 	buildRcloneDestination,
-	CUSTOM_DESTINATION_PROVIDER,
 	destinations,
 	getDestinationRoot,
 } from "@/server/db/schema";
