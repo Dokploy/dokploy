@@ -189,6 +189,7 @@ export const applications = pgTable("application", {
 	publishDirectory: text("publishDirectory"),
 	isStaticSpa: boolean("isStaticSpa"),
 	createEnvFile: boolean("createEnvFile").notNull().default(true),
+	envFileName: text("envFileName").notNull().default(".env"),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -348,6 +349,7 @@ const createSchema = createInsertSchema(applications, {
 	publishDirectory: z.string().optional(),
 	isStaticSpa: z.boolean().optional(),
 	createEnvFile: z.boolean().optional(),
+	envFileName: z.string().optional(),
 	owner: z.string(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
 	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
@@ -528,7 +530,10 @@ export const apiSaveEnvironmentVariables = createSchema
 		buildSecrets: true,
 		createEnvFile: true,
 	})
-	.required();
+	.required()
+	.extend({
+		envFileName: z.string().min(1).optional(),
+	});
 
 export const apiFindMonitoringStats = z.object({
 	appName: z.string().min(1),

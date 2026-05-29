@@ -13,6 +13,7 @@ import {
 	FormItem,
 	FormLabel,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Secrets } from "@/components/ui/secrets";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
@@ -22,7 +23,10 @@ const addEnvironmentSchema = z.object({
 	buildArgs: z.string(),
 	buildSecrets: z.string(),
 	createEnvFile: z.boolean(),
+	envFileName: z.string().min(1),
 });
+
+const DEFAULT_ENV_FILE_NAME = ".env";
 
 type EnvironmentSchema = z.infer<typeof addEnvironmentSchema>;
 
@@ -51,6 +55,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 			buildArgs: "",
 			buildSecrets: "",
 			createEnvFile: true,
+			envFileName: DEFAULT_ENV_FILE_NAME,
 		},
 		resolver: zodResolver(addEnvironmentSchema),
 	});
@@ -60,11 +65,13 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	const currentBuildArgs = form.watch("buildArgs");
 	const currentBuildSecrets = form.watch("buildSecrets");
 	const currentCreateEnvFile = form.watch("createEnvFile");
+	const currentEnvFileName = form.watch("envFileName");
 	const hasChanges =
 		currentEnv !== (data?.env || "") ||
 		currentBuildArgs !== (data?.buildArgs || "") ||
 		currentBuildSecrets !== (data?.buildSecrets || "") ||
-		currentCreateEnvFile !== (data?.createEnvFile ?? true);
+		currentCreateEnvFile !== (data?.createEnvFile ?? true) ||
+		currentEnvFileName !== (data?.envFileName ?? DEFAULT_ENV_FILE_NAME);
 
 	useEffect(() => {
 		if (data) {
@@ -73,6 +80,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 				buildArgs: data.buildArgs || "",
 				buildSecrets: data.buildSecrets || "",
 				createEnvFile: data.createEnvFile ?? true,
+				envFileName: data.envFileName ?? DEFAULT_ENV_FILE_NAME,
 			});
 		}
 	}, [data, form]);
@@ -83,6 +91,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 			buildArgs: formData.buildArgs,
 			buildSecrets: formData.buildSecrets,
 			createEnvFile: formData.createEnvFile,
+			envFileName: formData.envFileName,
 			applicationId,
 		})
 			.then(async () => {
@@ -100,6 +109,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 			buildArgs: data?.buildArgs || "",
 			buildSecrets: data?.buildSecrets || "",
 			createEnvFile: data?.createEnvFile ?? true,
+			envFileName: data?.envFileName ?? DEFAULT_ENV_FILE_NAME,
 		});
 	};
 
@@ -205,6 +215,26 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 											onCheckedChange={field.onChange}
 											disabled={!canWrite}
 										/>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
+					)}
+					{data?.buildType === "dockerfile" && currentCreateEnvFile && (
+						<FormField
+							control={form.control}
+							name="envFileName"
+							render={({ field }) => (
+								<FormItem className="p-3 border rounded-lg shadow-sm space-y-2">
+									<FormLabel>Environment File Name</FormLabel>
+									<FormDescription>
+										Path of the generated env file, relative to the Dockerfile
+										directory. Useful when you want Dokploy to write to a file
+										that has higher precedence than a committed{" "}
+										<code>.env</code> (e.g. <code>.env.local</code>).
+									</FormDescription>
+									<FormControl>
+										<Input placeholder=".env" {...field} disabled={!canWrite} />
 									</FormControl>
 								</FormItem>
 							)}

@@ -377,6 +377,7 @@ export const applicationRouter = createTRPCRouter({
 				buildArgs: input.buildArgs,
 				buildSecrets: input.buildSecrets,
 				createEnvFile: input.createEnvFile,
+				envFileName: input.envFileName,
 			});
 			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
