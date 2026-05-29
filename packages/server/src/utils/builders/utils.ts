@@ -6,6 +6,7 @@ export const createEnvFileCommand = (
 	env: string | null,
 	projectEnv?: string | null,
 	environmentEnv?: string | null,
+	fileName = ".env",
 ) => {
 	const envFileContent = prepareEnvironmentVariables(
 		env,
@@ -14,7 +15,7 @@ export const createEnvFileCommand = (
 	).join("\n");
 
 	const encodedContent = encodeBase64(envFileContent || "");
-	const envFilePath = join(dirname(directory), ".env");
+	const envFilePath = join(dirname(directory), fileName);
 
 	return `echo "${encodedContent}" | base64 -d > "${envFilePath}";`;
 };
