@@ -35,6 +35,7 @@ const baseApp: ApplicationNested = {
 	networkIds: [],
 	detachDokployNetwork: false,
 	createEnvFile: true,
+	envFileName: ".env",
 	bitbucketRepositorySlug: "",
 	herokuVersion: "",
 	giteaBranch: "",
