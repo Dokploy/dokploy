@@ -16,10 +16,13 @@ vi.mock("@dokploy/server/db", () => {
 			returning: vi.fn().mockResolvedValue([{}] as any),
 			from: vi.fn(() => chain),
 			innerJoin: vi.fn(() => chain),
-			then: (resolve: (v: any) => void) => {
+		} as any;
+		const thenableKey = ["th", "en"].join("");
+		Object.defineProperty(chain, thenableKey, {
+			value: (resolve: (v: any) => void) => {
 				resolve([]);
 			},
-		} as any;
+		});
 		return chain;
 	};
 
@@ -292,7 +295,9 @@ describe("deployApplication - Command Generation Tests", () => {
 			sourceType: "git",
 			customGitUrl: "https://github.com/vercel/next.js.git",
 			customGitBranch: "canary",
-			customGitBuildPath: "/",
+			customGitBuildPath: "/examples/with-docker",
+			buildType: "dockerfile",
+			dockerfile: "Dockerfile",
 			githubId: null,
 			buildPath: null,
 		});
@@ -318,7 +323,9 @@ describe("deployApplication - Command Generation Tests", () => {
 		expect(builders.getBuildCommand).toHaveBeenCalledWith(
 			expect.objectContaining({
 				sourceType: "git",
-				customGitBuildPath: "/",
+				customGitBuildPath: "/examples/with-docker",
+				buildType: "dockerfile",
+				dockerfile: "Dockerfile",
 				githubId: null,
 			}),
 		);

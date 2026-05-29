@@ -203,10 +203,12 @@ describe("seedDevelopmentProjectData", () => {
 					sourceType: "git",
 					customGitUrl: "https://github.com/vercel/next.js.git",
 					customGitBranch: "canary",
+					customGitBuildPath: "/examples/with-docker",
 					customGitSSHKeyId: null,
 					githubId: null,
 					serverId: null,
-					buildType: "nixpacks",
+					buildType: "dockerfile",
+					dockerfile: "Dockerfile",
 				}),
 				expect.objectContaining({
 					applicationId: "dev-seed-laravel",
@@ -215,6 +217,10 @@ describe("seedDevelopmentProjectData", () => {
 						"Development seed app cloned from the public Laravel repository.",
 					customGitUrl: "https://github.com/laravel/laravel.git",
 					customGitBranch: "13.x",
+					customGitBuildPath: "/",
+					env: expect.stringContaining(
+						"APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+					),
 					buildType: "nixpacks",
 				}),
 			]),
@@ -268,6 +274,11 @@ describe("seedDevelopmentProjectData", () => {
 		expect(state.applications[0].customGitUrl).toBe(
 			"https://github.com/vercel/next.js.git",
 		);
+		expect(state.applications[0].customGitBuildPath).toBe(
+			"/examples/with-docker",
+		);
+		expect(state.applications[0].buildType).toBe("dockerfile");
+		expect(state.applications[0].dockerfile).toBe("Dockerfile");
 	});
 
 	it("refuses to seed in production or cloud mode", async () => {

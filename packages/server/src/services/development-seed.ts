@@ -31,8 +31,9 @@ const developmentApplications = [
 			"Development seed app cloned from the public Next.js repository.",
 		customGitUrl: "https://github.com/vercel/next.js.git",
 		customGitBranch: "canary",
-		customGitBuildPath: "/",
-		buildType: "nixpacks" as const,
+		customGitBuildPath: "/examples/with-docker",
+		buildType: "dockerfile" as const,
+		dockerfile: "Dockerfile",
 	},
 	{
 		applicationId: "dev-seed-laravel",
@@ -44,6 +45,15 @@ const developmentApplications = [
 		customGitBranch: "13.x",
 		customGitBuildPath: "/",
 		buildType: "nixpacks" as const,
+		env: [
+			"APP_ENV=production",
+			"APP_DEBUG=false",
+			"APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+			"SESSION_DRIVER=file",
+			"CACHE_STORE=file",
+			"QUEUE_CONNECTION=sync",
+			"LOG_CHANNEL=stderr",
+		].join("\n"),
 	},
 ];
 
@@ -208,8 +218,10 @@ const upsertApplication = async (
 		customGitSSHKeyId: null,
 		githubId: null,
 		serverId: null,
+		env: "env" in seedApplication ? seedApplication.env : null,
 		buildType: seedApplication.buildType,
-		dockerfile: null,
+		dockerfile:
+			"dockerfile" in seedApplication ? seedApplication.dockerfile : null,
 		applicationStatus: "idle" as const,
 		enableSubmodules: false,
 	};
