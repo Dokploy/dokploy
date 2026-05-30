@@ -1,6 +1,8 @@
 import {
 	createDomain,
+	deprovisionCloudflareForDomain,
 	findApplicationById,
+	findCloudflareById,
 	findDomainById,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
@@ -8,7 +10,10 @@ import {
 	findServerById,
 	generateTraefikMeDomain,
 	getWebServerSettings,
+	isCloudflarePublished,
 	manageDomain,
+	provisionCloudflareForDomain,
+	removeCloudflareRoute,
 	removeDomain,
 	removeDomainById,
 	updateDomainById,
@@ -31,19 +36,68 @@ import {
 	apiUpdateDomain,
 } from "@/server/db/schema";
 
+/**
+ * Publishing a domain via Cloudflare triggers org-wide DNS/Tunnel changes, so it
+ * requires an owner/admin even when the caller has service-level `domain:create`.
+ * (`checkPermission` would bypass an enterprise-resource check for static roles,
+ * so the role is asserted directly here.)
+ */
+const requireCloudflareAdmin = (ctx: { user: { role: string } }) => {
+	if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message:
+				"Only organization owners or admins can publish domains via Cloudflare",
+		});
+	}
+};
+
+/**
+ * Confirms the selected Cloudflare integration belongs to the caller's active
+ * organization, preventing an admin from publishing through another org's
+ * credentials by passing a foreign `cloudflareId`.
+ */
+const assertCloudflareIntegrationInOrg = async (
+	cloudflareId: string,
+	activeOrganizationId: string,
+) => {
+	const integration = await findCloudflareById(cloudflareId);
+	if (integration.organizationId !== activeOrganizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Cloudflare integration not found in this organization",
+		});
+	}
+};
+
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateDomain)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (input.domainType === "compose" && input.composeId) {
+				// Gate by the service the domain attaches to, keyed off the id(s)
+				// present rather than `domainType` (which is optional and defaults to
+				// "application"). Both ids are checked independently so a caller can't
+				// pass an authorized composeId alongside an unauthorized applicationId
+				// to skip the application check.
+				if (input.composeId) {
 					await checkServicePermissionAndAccess(ctx, input.composeId, {
 						domain: ["create"],
 					});
-				} else if (input.domainType === "application" && input.applicationId) {
+				}
+				if (input.applicationId) {
 					await checkServicePermissionAndAccess(ctx, input.applicationId, {
 						domain: ["create"],
 					});
+				}
+				if (input.publishToCloudflare) {
+					requireCloudflareAdmin(ctx);
+					if (input.cloudflareId) {
+						await assertCloudflareIntegrationInOrg(
+							input.cloudflareId,
+							ctx.session.activeOrganizationId,
+						);
+					}
 				}
 				const domain = await createDomain(input);
 				await audit(ctx, {
@@ -52,6 +106,9 @@ export const domainRouter = createTRPCRouter({
 					resourceId: domain.domainId,
 					resourceName: domain.host,
 				});
+				if (isCloudflarePublished(domain)) {
+					await provisionCloudflareForDomain(domain);
+				}
 				return domain;
 			} catch (error) {
 				throw new TRPCError({
@@ -118,6 +175,25 @@ export const domainRouter = createTRPCRouter({
 				});
 			}
 
+			if (
+				input.publishToCloudflare ||
+				currentDomain.publishToCloudflare ||
+				input.cloudflareId
+			) {
+				requireCloudflareAdmin(ctx);
+				// Validate whenever an integration id is supplied — not only when
+				// publishToCloudflare is also set. An already-published domain could
+				// otherwise be repointed at another org's integration by omitting
+				// publishToCloudflare, since the row stays published and then
+				// provisions against the foreign token.
+				if (input.cloudflareId) {
+					await assertCloudflareIntegrationInOrg(
+						input.cloudflareId,
+						ctx.session.activeOrganizationId,
+					);
+				}
+			}
+
 			const result = await updateDomainById(input.domainId, input);
 			const domain = await findDomainById(input.domainId);
 			await audit(ctx, {
@@ -138,6 +214,48 @@ export const domainRouter = createTRPCRouter({
 				);
 				application.appName = previewDeployment.appName;
 				await manageDomain(application, domain);
+			}
+
+			// Reconcile Cloudflare publishing for this domain.
+			if (isCloudflarePublished(domain)) {
+				// If the Cloudflare target changed on an already-published domain
+				// (host, integration, zone, tunnel, or mode), clean the old route
+				// before publishing the new one.
+				const targetChanged =
+					currentDomain.publishToCloudflare &&
+					(currentDomain.host !== domain.host ||
+						currentDomain.cloudflareId !== domain.cloudflareId ||
+						currentDomain.cloudflareZoneId !== domain.cloudflareZoneId ||
+						currentDomain.cloudflareTunnelId !== domain.cloudflareTunnelId ||
+						currentDomain.cloudflareTunnelMode !== domain.cloudflareTunnelMode);
+				if (targetChanged) {
+					const tunnelIdentityChanged =
+						currentDomain.cloudflareId !== domain.cloudflareId ||
+						currentDomain.cloudflareTunnelId !== domain.cloudflareTunnelId ||
+						currentDomain.cloudflareTunnelMode !== domain.cloudflareTunnelMode;
+					if (tunnelIdentityChanged) {
+						// The domain now points at a different tunnel/integration, so the
+						// old shared connector + tunnel may be orphaned — fully deprovision
+						// (route removal + tunnel teardown), not just the per-host route.
+						await deprovisionCloudflareForDomain(currentDomain);
+					} else {
+						// Same tunnel, only host/zone moved — drop the old route only so a
+						// shared tunnel still used by siblings stays up.
+						await removeCloudflareRoute(currentDomain);
+					}
+				}
+				await provisionCloudflareForDomain(domain);
+			} else if (currentDomain.publishToCloudflare) {
+				// Publishing was turned off — deprovision and clear status fields,
+				// including the resolved zone so a later re-enable can't reuse a stale
+				// zone against a different integration.
+				await deprovisionCloudflareForDomain(currentDomain);
+				await updateDomainById(domain.domainId, {
+					cloudflareIngressApplied: false,
+					cloudflareDnsRecordId: null,
+					cloudflareTunnelId: null,
+					cloudflareZoneId: null,
+				});
 			}
 			return result;
 		}),
@@ -175,6 +293,10 @@ export const domainRouter = createTRPCRouter({
 					domain: ["delete"],
 				});
 			}
+
+			// Remove external Cloudflare state BEFORE the row is deleted so the
+			// stored tunnel/zone/record IDs are still available.
+			await deprovisionCloudflareForDomain(domain);
 
 			const result = await removeDomainById(input.domainId);
 			await audit(ctx, {

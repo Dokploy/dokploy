@@ -1,5 +1,11 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+	pgEnum,
+	pgTable,
+	text,
+	timestamp,
+	uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -27,12 +33,83 @@ export const cloudflare = pgTable("cloudflare", {
 	createdAt: timestamp("createdAt").notNull().defaultNow(),
 });
 
-export const cloudflareRelations = relations(cloudflare, ({ one }) => ({
+export const cloudflareRelations = relations(cloudflare, ({ one, many }) => ({
 	organization: one(organization, {
 		fields: [cloudflare.organizationId],
 		references: [organization.id],
 	}),
+	tunnelRuntimes: many(cloudflareTunnelRuntime),
 }));
+
+/** Only `shared-managed` connectors are deployed by Dokploy today. */
+export const cloudflareTunnelRuntimeMode = pgEnum(
+	"cloudflareTunnelRuntimeMode",
+	["shared-managed"],
+);
+
+export const cloudflareTunnelRuntimeStatus = pgEnum(
+	"cloudflareTunnelRuntimeStatus",
+	["pending", "running", "error", "stopped"],
+);
+
+/**
+ * Tracks a Dokploy-managed `cloudflared` connector for a (organization, server,
+ * integration) tuple. `serverId` is null for the Dokploy host. The unique index
+ * plus the deterministic `dockerResourceName` keep a single connector per tuple
+ * even under concurrent publishes.
+ */
+export const cloudflareTunnelRuntime = pgTable(
+	"cloudflare_tunnel_runtime",
+	{
+		id: text("id")
+			.notNull()
+			.primaryKey()
+			.$defaultFn(() => nanoid()),
+		organizationId: text("organizationId")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		cloudflareId: text("cloudflareId")
+			.notNull()
+			.references(() => cloudflare.cloudflareId, { onDelete: "cascade" }),
+		// Server the connector runs on; null = Dokploy host. Kept as plain text
+		// (no FK) so the runtime survives independent reconciliation.
+		serverId: text("serverId"),
+		tunnelId: text("tunnelId").notNull(),
+		tunnelName: text("tunnelName").notNull(),
+		dockerResourceName: text("dockerResourceName").notNull(),
+		runtimeMode: cloudflareTunnelRuntimeMode("runtimeMode")
+			.notNull()
+			.default("shared-managed"),
+		status: cloudflareTunnelRuntimeStatus("status")
+			.notNull()
+			.default("pending"),
+		lastError: text("lastError"),
+		lastStartedAt: timestamp("lastStartedAt"),
+		lastSeenAt: timestamp("lastSeenAt"),
+		createdAt: timestamp("createdAt").notNull().defaultNow(),
+	},
+	(table) => [
+		uniqueIndex("cloudflare_tunnel_runtime_org_server_cf_unique").on(
+			table.organizationId,
+			table.serverId,
+			table.cloudflareId,
+		),
+	],
+);
+
+export const cloudflareTunnelRuntimeRelations = relations(
+	cloudflareTunnelRuntime,
+	({ one }) => ({
+		organization: one(organization, {
+			fields: [cloudflareTunnelRuntime.organizationId],
+			references: [organization.id],
+		}),
+		cloudflare: one(cloudflare, {
+			fields: [cloudflareTunnelRuntime.cloudflareId],
+			references: [cloudflare.cloudflareId],
+		}),
+	}),
+);
 
 const createSchema = createInsertSchema(cloudflare, {
 	name: z.string().min(1),

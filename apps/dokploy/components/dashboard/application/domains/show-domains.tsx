@@ -12,6 +12,7 @@ import {
 import {
 	CheckCircle2,
 	ChevronDown,
+	Cloud,
 	ExternalLink,
 	GlobeIcon,
 	InfoIcon,
@@ -555,6 +556,35 @@ export const ShowDomains = ({ id, type }: Props) => {
 																</TooltipTrigger>
 																<TooltipContent>
 																	<p>SSL Certificate Provider</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													)}
+
+													{item.publishToCloudflare && (
+														<TooltipProvider>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Badge
+																		variant="outline"
+																		className={
+																			item.cloudflareIngressApplied
+																				? "bg-orange-500/10 text-orange-500"
+																				: "bg-yellow-500/10 text-yellow-500"
+																		}
+																	>
+																		<Cloud className="size-3 mr-1" />
+																		{item.cloudflareIngressApplied
+																			? "Cloudflare Tunnel"
+																			: "Cloudflare Tunnel (pending)"}
+																	</Badge>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>
+																		{item.cloudflareIngressApplied
+																			? "Published via Cloudflare Tunnel"
+																			: "Cloudflare publishing is not fully provisioned yet"}
+																	</p>
 																</TooltipContent>
 															</Tooltip>
 														</TooltipProvider>
