@@ -11,6 +11,7 @@ import {
 	getAccessibleServerIds,
 	getContainerLogs,
 	getServiceContainerCommand,
+	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeRedisById,
@@ -59,7 +60,8 @@ export const redisRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if ((IS_CLOUD || webServerSettings?.remoteServersOnly) && !input.serverId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a Redis",

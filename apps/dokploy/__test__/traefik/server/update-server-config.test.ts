@@ -65,6 +65,7 @@ const baseSettings: WebServerSettings = {
 	cleanupCacheApplications: false,
 	cleanupCacheOnCompose: false,
 	cleanupCacheOnPreviews: false,
+	remoteServersOnly: false,
 	createdAt: null,
 	updatedAt: new Date(),
 };

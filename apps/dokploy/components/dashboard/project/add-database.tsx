@@ -219,6 +219,9 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: webServerSettings } =
+		api.settings.getWebServerSettings.useQuery();
+	const showLocalOption = !isCloud && !webServerSettings?.remoteServersOnly;
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const libsqlMutation = api.libsql.create.useMutation();
 	const mariadbMutation = api.mariadb.create.useMutation();
@@ -470,19 +473,19 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 												<Select
 													onValueChange={field.onChange}
 													defaultValue={
-														field.value || (!isCloud ? "dokploy" : undefined)
+														field.value || (showLocalOption ? "dokploy" : undefined)
 													}
 												>
 													<SelectTrigger>
 														<SelectValue
 															placeholder={
-																!isCloud ? "Dokploy" : "Select a Server"
+																showLocalOption ? "Dokploy" : "Select a Server"
 															}
 														/>
 													</SelectTrigger>
 													<SelectContent>
 														<SelectGroup>
-															{!isCloud && (
+															{showLocalOption && (
 																<SelectItem value="dokploy">
 																	<span className="flex items-center gap-2 justify-between w-full">
 																		<span>Dokploy</span>
@@ -501,7 +504,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 																</SelectItem>
 															))}
 															<SelectLabel>
-																Servers ({servers?.length + (!isCloud ? 1 : 0)})
+																Servers ({servers?.length + (showLocalOption ? 1 : 0)})
 															</SelectLabel>
 														</SelectGroup>
 													</SelectContent>

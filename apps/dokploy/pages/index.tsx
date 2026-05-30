@@ -1,4 +1,4 @@
-import { IS_CLOUD, isAdminPresent } from "@dokploy/server";
+import { getWebServerSettings, IS_CLOUD, isAdminPresent } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
@@ -52,8 +52,9 @@ type LoginForm = z.infer<typeof LoginSchema>;
 
 interface Props {
 	IS_CLOUD: boolean;
+	enforceSSO: boolean;
 }
-export default function Home({ IS_CLOUD }: Props) {
+export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 	const router = useRouter();
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const { data: showSignInWithSSO } = api.sso.showSignInWithSSO.useQuery();
@@ -247,7 +248,9 @@ export default function Home({ IS_CLOUD }: Props) {
 			<CardContent className="p-0">
 				{!isTwoFactor ? (
 					<>
-						{showSignInWithSSO ? (
+						{enforceSSO ? (
+							<SignInWithSSO enforce />
+						) : showSignInWithSSO ? (
 							<SignInWithSSO>{loginContent}</SignInWithSSO>
 						) : (
 							loginContent
@@ -417,6 +420,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		return {
 			props: {
 				IS_CLOUD: IS_CLOUD,
+				enforceSSO: false,
 			},
 		};
 	}
@@ -442,9 +446,12 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		};
 	}
 
+	const webServerSettings = await getWebServerSettings();
+
 	return {
 		props: {
 			hasAdmin,
+			enforceSSO: webServerSettings?.enforceSSO ?? false,
 		},
 	};
 }
