@@ -1,5 +1,6 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
+	boolean,
 	pgEnum,
 	pgTable,
 	text,
@@ -27,6 +28,32 @@ export const cloudflare = pgTable("cloudflare", {
 	apiToken: text("apiToken").notNull(),
 	accountId: text("accountId").notNull(),
 	defaultTunnelId: text("defaultTunnelId"),
+	// --- Org-level Cloudflare Access defaults & policy (admin-configured) ---
+	// Default Access session lifetime applied to newly protected domains, in
+	// Cloudflare duration syntax ("168h" = 1 week).
+	defaultSessionDuration: text("defaultSessionDuration")
+		.notNull()
+		.default("168h"),
+	// When true, new domains are auto-published via Tunnel and gated with Access
+	// using the org defaults below.
+	protectDomainsByDefault: boolean("protectDomainsByDefault")
+		.notNull()
+		.default(false),
+	// When true, members may only create protected (Tunnel + Access) domains;
+	// owners/admins may still create an unprotected one.
+	requireProtectedDomains: boolean("requireProtectedDomains")
+		.notNull()
+		.default(false),
+	// Default Access allow-list used when a protected domain specifies none of
+	// its own identities.
+	defaultAllowEmails: text("defaultAllowEmails")
+		.array()
+		.notNull()
+		.default(sql`ARRAY[]::text[]`),
+	defaultAllowEmailDomains: text("defaultAllowEmailDomains")
+		.array()
+		.notNull()
+		.default(sql`ARRAY[]::text[]`),
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
@@ -111,6 +138,11 @@ export const cloudflareTunnelRuntimeRelations = relations(
 	}),
 );
 
+/** Cloudflare Access session duration syntax: "0" or number+unit segments. */
+export const cloudflareSessionDurationSchema = z
+	.string()
+	.regex(/^(0|(\d+(ms|s|m|h))+)$/, "Use a duration like 24h, 168h, or 0");
+
 const createSchema = createInsertSchema(cloudflare, {
 	name: z.string().min(1),
 	// Trim before validating so a whitespace-only token can't pass `.min(1)`
@@ -120,6 +152,10 @@ const createSchema = createInsertSchema(cloudflare, {
 	// `nullish` so the optional default can be both omitted (create) and
 	// explicitly cleared with `null` (update sets the column back to NULL).
 	defaultTunnelId: z.string().nullish(),
+	defaultSessionDuration: cloudflareSessionDurationSchema.default("168h"),
+	// Trim identities so whitespace-only entries can't create junk Access rules.
+	defaultAllowEmails: z.array(z.string().trim().email()).default([]),
+	defaultAllowEmailDomains: z.array(z.string().trim().min(1)).default([]),
 });
 
 export const apiCreateCloudflare = createSchema.pick({
@@ -142,11 +178,20 @@ export const apiUpdateCloudflare = createSchema
 		name: true,
 		accountId: true,
 		defaultTunnelId: true,
+		protectDomainsByDefault: true,
+		requireProtectedDomains: true,
 	})
 	.extend({
 		cloudflareId: z.string().min(1),
 		// Token is write-only on update: omit it to keep the stored value.
 		apiToken: z.string().trim().min(1).optional(),
+		// Optional WITHOUT a default: these carry a `.default()` in createSchema, so
+		// picking them would re-apply the default on a partial update and silently
+		// reset the stored value (and could trip the lockout guard on an unrelated
+		// edit). Omitting a field here leaves the stored value untouched.
+		defaultSessionDuration: cloudflareSessionDurationSchema.optional(),
+		defaultAllowEmails: z.array(z.string().trim().email()).optional(),
+		defaultAllowEmailDomains: z.array(z.string().trim().min(1)).optional(),
 	});
 
 export const apiTestCloudflareConnection = z

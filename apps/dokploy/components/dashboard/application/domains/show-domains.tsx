@@ -22,6 +22,7 @@ import {
 	PenBoxIcon,
 	RefreshCw,
 	Server,
+	ShieldCheck,
 	Trash2,
 	XCircle,
 } from "lucide-react";
@@ -62,6 +63,7 @@ import {
 import { api } from "@/utils/api";
 import { createColumns } from "./columns";
 import { DnsHelperModal } from "./dns-helper-modal";
+import { DomainAccessPolicyEditor } from "./domain-access-policy-editor";
 import { AddDomain } from "./handle-domain";
 
 export type ValidationState = {
@@ -439,6 +441,13 @@ export const ShowDomains = ({ id, type }: Props) => {
 																}
 															/>
 														)}
+														{item.publishToCloudflare &&
+															permissions?.cloudflare.read && (
+																<DomainAccessPolicyEditor
+																	domainId={item.domainId}
+																	host={item.host}
+																/>
+															)}
 														{canCreateDomain && (
 															<AddDomain
 																id={id}
@@ -590,6 +599,24 @@ export const ShowDomains = ({ id, type }: Props) => {
 														</TooltipProvider>
 													)}
 
+													{item.enableCloudflareAccess && (
+														<TooltipProvider>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Badge
+																		variant="outline"
+																		className="bg-green-500/10 text-green-500"
+																	>
+																		<ShieldCheck className="size-3 mr-1" />
+																		Cloudflare Access
+																	</Badge>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>Protected by Cloudflare Access</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													)}
 													{item.middlewares?.map((middleware, index) => (
 														<TooltipProvider key={`${middleware}-${index}`}>
 															<Tooltip>

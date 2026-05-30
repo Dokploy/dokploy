@@ -4,6 +4,7 @@ import {
 	findCloudflareById,
 	listTunnels,
 	removeCloudflareById,
+	resolveOrgCloudflarePolicy,
 	testCloudflareConnection,
 	updateCloudflareById,
 } from "@dokploy/server";
@@ -11,7 +12,11 @@ import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+} from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateCloudflare,
@@ -174,6 +179,36 @@ export const cloudflareRouter = createTRPCRouter({
 				tunnelId: input.tunnelId,
 			});
 		}),
+	// Full org Access defaults for admin UIs (settings form + per-domain editor
+	// prefill). Returns null when the org has no Cloudflare integration.
+	accessDefaults: adminProcedure.query(async ({ ctx }) => {
+		const policy = await resolveOrgCloudflarePolicy(
+			ctx.session.activeOrganizationId,
+		);
+		if (!policy) {
+			return null;
+		}
+		const [primary] = policy.integrations;
+		return {
+			protectDomainsByDefault: policy.protectDomainsByDefault,
+			requireProtectedDomains: policy.requireProtectedDomains,
+			defaultSessionDuration: primary?.defaultSessionDuration ?? "168h",
+			defaultAllowEmails: primary?.defaultAllowEmails ?? [],
+			defaultAllowEmailDomains: primary?.defaultAllowEmailDomains ?? [],
+		};
+	}),
+	// Non-secret booleans any org member may read, so the domain form can explain
+	// that domains will be auto-protected by policy (members can't call the
+	// admin-only procedures above).
+	domainProtectionPolicy: protectedProcedure.query(async ({ ctx }) => {
+		const policy = await resolveOrgCloudflarePolicy(
+			ctx.session.activeOrganizationId,
+		);
+		return {
+			protectDomainsByDefault: policy?.protectDomainsByDefault ?? false,
+			requireProtectedDomains: policy?.requireProtectedDomains ?? false,
+		};
+	}),
 	tunnelRuntimes: adminProcedure
 		.input(z.object({ cloudflareId: z.string().min(1) }).optional())
 		.query(async ({ input, ctx }) => {
@@ -235,6 +270,31 @@ export const cloudflareRouter = createTRPCRouter({
 				input.cloudflareId,
 				ctx.session.activeOrganizationId,
 			);
+			// Lockout / exposure guard: both "protect by default" and "require
+			// protected" auto-protect new domains with Access, and an Access app with
+			// no allow rules would lock everyone out — so without default identities,
+			// auto-protect would publish a domain with no Access gate (i.e. exposed).
+			// Either policy therefore requires at least one default identity. Check
+			// the post-update state (input value if supplied, else stored).
+			const protectAfter =
+				input.protectDomainsByDefault ?? integration.protectDomainsByDefault;
+			const requireAfter =
+				input.requireProtectedDomains ?? integration.requireProtectedDomains;
+			const emailsAfter =
+				input.defaultAllowEmails ?? integration.defaultAllowEmails;
+			const domainsAfter =
+				input.defaultAllowEmailDomains ?? integration.defaultAllowEmailDomains;
+			if (
+				(protectAfter || requireAfter) &&
+				emailsAfter.length === 0 &&
+				domainsAfter.length === 0
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Add at least one default allowed email or email domain before enabling automatic protection — otherwise new domains would be published without an Access gate.",
+				});
+			}
 			// Changing the Cloudflare account strands everything already
 			// provisioned under the old account: published domains keep their old
 			// zone/tunnel/record ids, but cleanup would then run with credentials

@@ -6,6 +6,7 @@ export * from "./backups";
 export * from "./bitbucket";
 export * from "./certificate";
 export * from "./cloudflare";
+export * from "./cloudflare-access";
 export * from "./compose";
 export * from "./deployment";
 export * from "./destination";
