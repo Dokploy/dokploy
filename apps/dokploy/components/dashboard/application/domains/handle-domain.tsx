@@ -285,6 +285,11 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				cloudflareTunnelMode === "existing-instance",
 		},
 	);
+	// Non-secret booleans every member may read, so we can tell a member their
+	// new domain will be auto-protected by org policy (the publish/Access controls
+	// below are admin-only and hidden for members).
+	const { data: domainProtectionPolicy } =
+		api.cloudflare.domainProtectionPolicy.useQuery();
 
 	// Debounce the host so the advisory availability pre-check fires once the
 	// user pauses typing, not on every keystroke.
@@ -888,6 +893,17 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 										)}
 									</>
 								)}
+
+								{!canPublishCloudflare &&
+									(domainProtectionPolicy?.protectDomainsByDefault ||
+										domainProtectionPolicy?.requireProtectedDomains) && (
+										<div className="mt-4 border-t pt-4">
+											<AlertBlock type="info">
+												New domains are automatically protected with Cloudflare
+												Access per your organization's policy.
+											</AlertBlock>
+										</div>
+									)}
 
 								{canPublishCloudflare && (
 									<div className="flex flex-col gap-4 mt-4 border-t pt-4">

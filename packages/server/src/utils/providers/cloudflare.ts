@@ -477,3 +477,119 @@ export const deleteTunnelDnsRecord = async (
 		await deleteDnsRecord(apiToken, zoneId, existing.id);
 	}
 };
+
+// ---------------------------------------------------------------------------
+// Access (Zero Trust)
+// ---------------------------------------------------------------------------
+
+export interface CloudflareAccessApplicationResponse {
+	id: string;
+	name: string;
+	domain: string;
+	type: string;
+	session_duration?: string;
+}
+
+export interface CloudflareAccessPolicy {
+	id: string;
+	name: string;
+	decision: string;
+}
+
+/** A single include rule for an Access allow policy. */
+export type CloudflareAccessInclude =
+	| { email: { email: string } }
+	| { email_domain: { domain: string } };
+
+/**
+ * Builds Access policy `include` rules from allow-lists. An empty result means
+ * the policy would allow no one — callers should validate before sending.
+ */
+export const buildAccessIncludeRules = (
+	allowEmails: string[],
+	allowEmailDomains: string[],
+): CloudflareAccessInclude[] => [
+	...allowEmails.map((email) => ({ email: { email } })),
+	...allowEmailDomains.map((domain) => ({ email_domain: { domain } })),
+];
+
+const accessApplicationBody = (input: {
+	name: string;
+	domain: string;
+	sessionDuration?: string;
+}) => ({
+	name: input.name,
+	type: "self_hosted",
+	domain: input.domain,
+	session_duration: input.sessionDuration ?? "24h",
+});
+
+const accessPolicyBody = (input: {
+	name: string;
+	include: CloudflareAccessInclude[];
+}) => ({
+	name: input.name,
+	decision: "allow",
+	include: input.include,
+});
+
+export const createAccessApplication = async (
+	apiToken: string,
+	accountId: string,
+	input: { name: string; domain: string; sessionDuration?: string },
+): Promise<CloudflareAccessApplicationResponse> =>
+	cloudflareRequest<CloudflareAccessApplicationResponse>(
+		apiToken,
+		`/accounts/${encodeURIComponent(accountId)}/access/apps`,
+		{ method: "POST", body: JSON.stringify(accessApplicationBody(input)) },
+	);
+
+export const updateAccessApplication = async (
+	apiToken: string,
+	accountId: string,
+	appId: string,
+	input: { name: string; domain: string; sessionDuration?: string },
+): Promise<CloudflareAccessApplicationResponse> =>
+	cloudflareRequest<CloudflareAccessApplicationResponse>(
+		apiToken,
+		`/accounts/${encodeURIComponent(accountId)}/access/apps/${encodeURIComponent(appId)}`,
+		{ method: "PUT", body: JSON.stringify(accessApplicationBody(input)) },
+	);
+
+/** Deleting the application also removes its app-scoped policies. */
+export const deleteAccessApplication = async (
+	apiToken: string,
+	accountId: string,
+	appId: string,
+): Promise<void> => {
+	await cloudflareRequest(
+		apiToken,
+		`/accounts/${encodeURIComponent(accountId)}/access/apps/${encodeURIComponent(appId)}`,
+		{ method: "DELETE" },
+	);
+};
+
+export const createAccessPolicy = async (
+	apiToken: string,
+	accountId: string,
+	appId: string,
+	input: { name: string; include: CloudflareAccessInclude[] },
+): Promise<CloudflareAccessPolicy> =>
+	cloudflareRequest<CloudflareAccessPolicy>(
+		apiToken,
+		`/accounts/${encodeURIComponent(accountId)}/access/apps/${encodeURIComponent(appId)}/policies`,
+		{ method: "POST", body: JSON.stringify(accessPolicyBody(input)) },
+	);
+
+export const updateAccessPolicy = async (
+	apiToken: string,
+	accountId: string,
+	appId: string,
+	policyId: string,
+	input: { name: string; include: CloudflareAccessInclude[] },
+): Promise<CloudflareAccessPolicy> =>
+	cloudflareRequest<CloudflareAccessPolicy>(
+		apiToken,
+		`/accounts/${encodeURIComponent(accountId)}/access/apps/${encodeURIComponent(appId)}/policies/${encodeURIComponent(policyId)}`,
+		{ method: "PUT", body: JSON.stringify(accessPolicyBody(input)) },
+	);

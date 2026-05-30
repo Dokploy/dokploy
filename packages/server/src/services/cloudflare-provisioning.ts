@@ -1,7 +1,11 @@
 import { db } from "@dokploy/server/db";
 import { domains } from "@dokploy/server/db/schema";
 import { findApplicationById } from "@dokploy/server/services/application";
-import { findCloudflareById } from "@dokploy/server/services/cloudflare";
+import {
+	type Cloudflare,
+	findCloudflareById,
+} from "@dokploy/server/services/cloudflare";
+import { deprovisionCloudflareAccessForDomain } from "@dokploy/server/services/cloudflare-access";
 import {
 	ensureSharedManagedTunnel,
 	findRuntimeByTunnelId,
@@ -50,11 +54,27 @@ const hasProvisionedState = (domain: Partial<Domain>): boolean =>
 		!!domain.cloudflareTunnelId);
 
 /**
+ * Thrown by `resolveZoneIdForHost` when no zone in the account matches the host
+ * — a definitive "this token does not own the zone" answer, as opposed to a
+ * Cloudflare API/transport failure (which leaves ownership *undetermined*).
+ * `selectIntegrationForHost` swallows only this to try the next integration;
+ * any other error fails closed.
+ */
+export class NoMatchingZoneError extends Error {
+	constructor(host: string) {
+		super(
+			`No Cloudflare zone in this account matches "${host}". Add the domain to Cloudflare first.`,
+		);
+		this.name = "NoMatchingZoneError";
+	}
+}
+
+/**
  * Resolves the Cloudflare zone that owns `host` by matching it against the
  * account's zones. The most specific (longest) matching zone name wins, so a
  * subdomain zone takes precedence over its parent. A published host belongs to
  * exactly one zone, so the zone is fully derived from the host — callers never
- * specify it.
+ * specify it. Throws {@link NoMatchingZoneError} when no zone matches.
  */
 export const resolveZoneIdForHost = async (
 	apiToken: string,
@@ -73,11 +93,44 @@ export const resolveZoneIdForHost = async (
 		})
 		.sort((a, b) => b.name.length - a.name.length)[0];
 	if (!match) {
-		throw new Error(
-			`No Cloudflare zone in this account matches "${host}". Add the domain to Cloudflare first.`,
-		);
+		throw new NoMatchingZoneError(host);
 	}
 	return match.id;
+};
+
+/**
+ * Picks the org Cloudflare integration whose token owns the zone for `host`.
+ * Auto-protect must provision through the account that can actually manage the
+ * host's DNS/zone, so selection is by zone ownership rather than by recency.
+ *
+ * Returns null ONLY when every token gave a definitive "no matching zone"
+ * answer. If any token's lookup failed for another reason (Cloudflare API error,
+ * network/transport failure) and no token matched, it fails closed by rethrowing
+ * that error: callers gate a protection policy on the result, so a null from an
+ * *undetermined* lookup would silently treat the host as unprotectable.
+ */
+export const selectIntegrationForHost = async (
+	integrations: Cloudflare[],
+	host: string,
+): Promise<Cloudflare | null> => {
+	let undetermined: unknown;
+	for (const integration of integrations) {
+		try {
+			await resolveZoneIdForHost(integration.apiToken, host);
+			return integration;
+		} catch (error) {
+			// "No matching zone" just means this token doesn't own the host's zone —
+			// try the next. Any OTHER failure means ownership is undetermined for
+			// this token; remember it so we can fail closed if nothing matches.
+			if (!(error instanceof NoMatchingZoneError)) {
+				undetermined = error;
+			}
+		}
+	}
+	if (undetermined) {
+		throw undetermined;
+	}
+	return null;
 };
 
 const resolveServerId = async (domain: Domain): Promise<string | null> => {
@@ -369,6 +422,13 @@ export const deprovisionCloudflareForDomain = async (
 	domain: Domain,
 	options: DeprovisionOptions = {},
 ): Promise<void> => {
+	// Always tear down Access first (it depends on the published host); it is a
+	// no-op when no Access application exists.
+	try {
+		await deprovisionCloudflareAccessForDomain(domain);
+	} catch {
+		// best-effort
+	}
 	if (!hasProvisionedState(domain)) {
 		return;
 	}

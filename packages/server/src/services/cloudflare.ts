@@ -9,10 +9,47 @@ import {
 	verifyToken,
 } from "@dokploy/server/utils/providers/cloudflare";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { z } from "zod";
 
 export type Cloudflare = typeof cloudflare.$inferSelect;
+
+export interface OrgCloudflarePolicy {
+	/** The org's integrations, most-recent first (for per-host selection). */
+	integrations: Cloudflare[];
+	/** OR-ed across integrations so the most-restrictive setting wins. */
+	protectDomainsByDefault: boolean;
+	requireProtectedDomains: boolean;
+}
+
+/**
+ * Resolves the org-wide Cloudflare Access policy. The policy is conceptually
+ * organization-level; with the supported single-integration setup it is just
+ * that integration's settings. If an org somehow has several integrations the
+ * policy booleans are OR-ed (most-restrictive wins) and the actual provisioning
+ * credentials are chosen per-host by zone ownership (`selectIntegrationForHost`).
+ * Returns null when the org has no Cloudflare integration (policy inactive).
+ */
+export const resolveOrgCloudflarePolicy = async (
+	organizationId: string,
+): Promise<OrgCloudflarePolicy | null> => {
+	const integrations = await db.query.cloudflare.findMany({
+		where: eq(cloudflare.organizationId, organizationId),
+		orderBy: [desc(cloudflare.createdAt)],
+	});
+	if (integrations.length === 0) {
+		return null;
+	}
+	return {
+		integrations,
+		protectDomainsByDefault: integrations.some(
+			(i) => i.protectDomainsByDefault,
+		),
+		requireProtectedDomains: integrations.some(
+			(i) => i.requireProtectedDomains,
+		),
+	};
+};
 
 export const createCloudflare = async (
 	input: z.infer<typeof apiCreateCloudflare>,

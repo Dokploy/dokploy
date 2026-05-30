@@ -1,10 +1,11 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { PenBoxIcon, PlusIcon } from "lucide-react";
+import { PenBoxIcon, PlusIcon, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -25,13 +26,30 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
+import { CLOUDFLARE_SESSION_DURATIONS } from "./session-durations";
+
+const isValidEmail = (value: string) =>
+	/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
 const cloudflareSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	apiToken: z.string(),
 	accountId: z.string().min(1, "Account ID is required"),
 	defaultTunnelId: z.string().optional(),
+	defaultSessionDuration: z.string().optional(),
+	protectDomainsByDefault: z.boolean().optional(),
+	requireProtectedDomains: z.boolean().optional(),
+	defaultAllowEmails: z.array(z.string()).optional(),
+	defaultAllowEmailDomains: z.array(z.string()).optional(),
 });
 
 type CloudflareForm = z.infer<typeof cloudflareSchema>;
@@ -62,12 +80,20 @@ export const HandleCloudflare = ({ cloudflareId }: Props) => {
 		isError: isErrorConnection,
 	} = api.cloudflare.testConnection.useMutation();
 
+	const [emailInput, setEmailInput] = useState("");
+	const [emailDomainInput, setEmailDomainInput] = useState("");
+
 	const form = useForm<CloudflareForm>({
 		defaultValues: {
 			name: "",
 			apiToken: "",
 			accountId: "",
 			defaultTunnelId: "",
+			defaultSessionDuration: "168h",
+			protectDomainsByDefault: false,
+			requireProtectedDomains: false,
+			defaultAllowEmails: [],
+			defaultAllowEmailDomains: [],
 		},
 		resolver: zodResolver(cloudflareSchema),
 	});
@@ -80,6 +106,11 @@ export const HandleCloudflare = ({ cloudflareId }: Props) => {
 				apiToken: "",
 				accountId: integration.accountId,
 				defaultTunnelId: integration.defaultTunnelId ?? "",
+				defaultSessionDuration: integration.defaultSessionDuration ?? "168h",
+				protectDomainsByDefault: integration.protectDomainsByDefault ?? false,
+				requireProtectedDomains: integration.requireProtectedDomains ?? false,
+				defaultAllowEmails: integration.defaultAllowEmails ?? [],
+				defaultAllowEmailDomains: integration.defaultAllowEmailDomains ?? [],
 			});
 		} else {
 			form.reset();
@@ -106,6 +137,12 @@ export const HandleCloudflare = ({ cloudflareId }: Props) => {
 					// Only send the token when the user typed a new one.
 					...(data.apiToken ? { apiToken: data.apiToken } : {}),
 					...payload,
+					// Org Access defaults & policy (edit-only section below).
+					defaultSessionDuration: data.defaultSessionDuration || "168h",
+					protectDomainsByDefault: data.protectDomainsByDefault ?? false,
+					requireProtectedDomains: data.requireProtectedDomains ?? false,
+					defaultAllowEmails: data.defaultAllowEmails ?? [],
+					defaultAllowEmailDomains: data.defaultAllowEmailDomains ?? [],
 				})
 			: createMutation.mutateAsync({ apiToken: data.apiToken, ...payload });
 
@@ -274,6 +311,230 @@ export const HandleCloudflare = ({ cloudflareId }: Props) => {
 								</FormItem>
 							)}
 						/>
+
+						{/* Org-level Access defaults & policy. Edit-only: the create flow
+						    saves credentials first, then these are configured here. */}
+						{cloudflareId && (
+							<div className="flex flex-col gap-4 border-t pt-4">
+								<div className="flex flex-col gap-0.5">
+									<span className="text-sm font-medium">
+										Access defaults & policy
+									</span>
+									<span className="text-xs text-muted-foreground">
+										Defaults applied when domains are protected with Cloudflare
+										Access, plus organization-wide protection policy.
+									</span>
+								</div>
+
+								<FormField
+									control={form.control}
+									name="defaultSessionDuration"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Default Access Session Duration</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value || "168h"}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													{CLOUDFLARE_SESSION_DURATIONS.map((duration) => (
+														<SelectItem
+															key={duration.value}
+															value={duration.value}
+														>
+															{duration.label}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="defaultAllowEmails"
+									render={({ field }) => {
+										const values = field.value ?? [];
+										const add = () => {
+											const value = emailInput.trim();
+											if (!value) return;
+											if (!isValidEmail(value)) {
+												toast.error("Enter a valid email address");
+												return;
+											}
+											if (!values.includes(value)) {
+												field.onChange([...values, value]);
+											}
+											setEmailInput("");
+										};
+										return (
+											<FormItem>
+												<FormLabel>Default Allowed Emails</FormLabel>
+												{values.length > 0 && (
+													<div className="flex flex-wrap gap-2">
+														{values.map((email) => (
+															<Badge key={email} variant="secondary">
+																{email}
+																<X
+																	className="ml-1 size-3 cursor-pointer"
+																	onClick={() =>
+																		field.onChange(
+																			values.filter((e) => e !== email),
+																		)
+																	}
+																/>
+															</Badge>
+														))}
+													</div>
+												)}
+												<div className="flex gap-2">
+													<Input
+														placeholder="user@example.com"
+														value={emailInput}
+														onChange={(e) => setEmailInput(e.target.value)}
+														onKeyDown={(e) => {
+															if (e.key === "Enter") {
+																e.preventDefault();
+																add();
+															}
+														}}
+													/>
+													<Button
+														type="button"
+														variant="secondary"
+														onClick={add}
+													>
+														Add
+													</Button>
+												</div>
+												<FormDescription>
+													Used to gate auto-protected domains when they have no
+													identities of their own.
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="defaultAllowEmailDomains"
+									render={({ field }) => {
+										const values = field.value ?? [];
+										const add = () => {
+											const value = emailDomainInput.trim();
+											if (!value) return;
+											if (!values.includes(value)) {
+												field.onChange([...values, value]);
+											}
+											setEmailDomainInput("");
+										};
+										return (
+											<FormItem>
+												<FormLabel>Default Allowed Email Domains</FormLabel>
+												{values.length > 0 && (
+													<div className="flex flex-wrap gap-2">
+														{values.map((domain) => (
+															<Badge key={domain} variant="secondary">
+																{domain}
+																<X
+																	className="ml-1 size-3 cursor-pointer"
+																	onClick={() =>
+																		field.onChange(
+																			values.filter((d) => d !== domain),
+																		)
+																	}
+																/>
+															</Badge>
+														))}
+													</div>
+												)}
+												<div className="flex gap-2">
+													<Input
+														placeholder="example.com"
+														value={emailDomainInput}
+														onChange={(e) =>
+															setEmailDomainInput(e.target.value)
+														}
+														onKeyDown={(e) => {
+															if (e.key === "Enter") {
+																e.preventDefault();
+																add();
+															}
+														}}
+													/>
+													<Button
+														type="button"
+														variant="secondary"
+														onClick={add}
+													>
+														Add
+													</Button>
+												</div>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="protectDomainsByDefault"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Protect new domains by default</FormLabel>
+												<FormDescription>
+													New domains are automatically published via Cloudflare
+													Tunnel and gated with Cloudflare Access using the
+													defaults above.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={!!field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="requireProtectedDomains"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>
+													Require all domains to be protected
+												</FormLabel>
+												<FormDescription>
+													Members can only create protected (Tunnel + Access)
+													domains; owners and admins may still create an
+													unprotected one. Configure at least one default
+													identity above first.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={!!field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							</div>
+						)}
 					</form>
 
 					<DialogFooter className="flex w-full !justify-between gap-4 flex-row">

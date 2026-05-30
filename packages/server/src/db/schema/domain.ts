@@ -75,6 +75,12 @@ export const domains = pgTable("domain", {
 	cloudflareIngressApplied: boolean("cloudflareIngressApplied")
 		.notNull()
 		.default(false),
+	// --- Cloudflare Access (Zero Trust) ---
+	// Managed by the cloudflareAccess router (server-managed status):
+	enableCloudflareAccess: boolean("enableCloudflareAccess")
+		.notNull()
+		.default(false),
+	cloudflareAccessApplicationId: text("cloudflareAccessApplicationId"),
 });
 
 export const domainsRelations = relations(domains, ({ one }) => ({
