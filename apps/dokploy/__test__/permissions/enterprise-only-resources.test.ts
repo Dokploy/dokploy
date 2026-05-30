@@ -34,6 +34,7 @@ const ENTERPRISE_RESOURCES = [
 	"schedule",
 	"domain",
 	"destination",
+	"cloudflare",
 	"notification",
 	"tag",
 	"logs",
