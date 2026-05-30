@@ -1,13 +1,16 @@
 import {
+	checkCloudflareDomainAvailability,
 	createCloudflare,
 	findCloudflareById,
+	listTunnels,
 	removeCloudflareById,
 	testCloudflareConnection,
 	updateCloudflareById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
+import { z } from "zod";
 import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import {
@@ -17,6 +20,8 @@ import {
 	apiTestCloudflareConnection,
 	apiUpdateCloudflare,
 	cloudflare,
+	cloudflareTunnelRuntime,
+	domains,
 } from "@/server/db/schema";
 
 /**
@@ -133,6 +138,61 @@ export const cloudflareRouter = createTRPCRouter({
 		});
 		return rows.map(redactCloudflare);
 	}),
+	tunnels: adminProcedure
+		.input(apiFindOneCloudflare)
+		.query(async ({ input, ctx }) => {
+			const integration = await getCloudflareInOrg(
+				input.cloudflareId,
+				ctx.session.activeOrganizationId,
+			);
+			const tunnels = await listTunnels(
+				integration.apiToken,
+				integration.accountId,
+			);
+			// Only remotely-managed tunnels can be driven by Dokploy.
+			return tunnels.filter((tunnel) => tunnel.config_src === "cloudflare");
+		}),
+	// Advisory pre-check the domain form runs before submit: would publishing
+	// this host collide with a Cloudflare record/route Dokploy doesn't own?
+	checkDomainAvailability: adminProcedure
+		.input(
+			z.object({
+				cloudflareId: z.string().min(1),
+				host: z.string().trim().min(1),
+				tunnelId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			const integration = await getCloudflareInOrg(
+				input.cloudflareId,
+				ctx.session.activeOrganizationId,
+			);
+			return checkCloudflareDomainAvailability({
+				apiToken: integration.apiToken,
+				accountId: integration.accountId,
+				host: input.host,
+				tunnelId: input.tunnelId,
+			});
+		}),
+	tunnelRuntimes: adminProcedure
+		.input(z.object({ cloudflareId: z.string().min(1) }).optional())
+		.query(async ({ input, ctx }) => {
+			return db.query.cloudflareTunnelRuntime.findMany({
+				where: input?.cloudflareId
+					? and(
+							eq(
+								cloudflareTunnelRuntime.organizationId,
+								ctx.session.activeOrganizationId,
+							),
+							eq(cloudflareTunnelRuntime.cloudflareId, input.cloudflareId),
+						)
+					: eq(
+							cloudflareTunnelRuntime.organizationId,
+							ctx.session.activeOrganizationId,
+						),
+				orderBy: [desc(cloudflareTunnelRuntime.createdAt)],
+			});
+		}),
 	remove: adminProcedure
 		.input(apiRemoveCloudflare)
 		.mutation(async ({ input, ctx }) => {
@@ -140,6 +200,22 @@ export const cloudflareRouter = createTRPCRouter({
 				input.cloudflareId,
 				ctx.session.activeOrganizationId,
 			);
+			// Block deletion while domains are still published through this
+			// integration — otherwise the FK sets domain.cloudflareId to null and
+			// their live DNS/ingress/connector state can no longer be cleaned up.
+			const published = await db.query.domains.findMany({
+				where: and(
+					eq(domains.cloudflareId, input.cloudflareId),
+					eq(domains.publishToCloudflare, true),
+				),
+				columns: { domainId: true, host: true },
+			});
+			if (published.length > 0) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: `Cannot delete this Cloudflare integration: ${published.length} domain(s) are still published through it (e.g. ${published[0]?.host}). Unpublish them first.`,
+				});
+			}
 			const result = await removeCloudflareById(
 				input.cloudflareId,
 				ctx.session.activeOrganizationId,
@@ -155,10 +231,30 @@ export const cloudflareRouter = createTRPCRouter({
 	update: adminProcedure
 		.input(apiUpdateCloudflare)
 		.mutation(async ({ input, ctx }) => {
-			await getCloudflareInOrg(
+			const integration = await getCloudflareInOrg(
 				input.cloudflareId,
 				ctx.session.activeOrganizationId,
 			);
+			// Changing the Cloudflare account strands everything already
+			// provisioned under the old account: published domains keep their old
+			// zone/tunnel/record ids, but cleanup would then run with credentials
+			// for a different account and silently fail. Block it (like delete)
+			// while any domain is still published through this integration.
+			if (input.accountId && input.accountId !== integration.accountId) {
+				const published = await db.query.domains.findMany({
+					where: and(
+						eq(domains.cloudflareId, input.cloudflareId),
+						eq(domains.publishToCloudflare, true),
+					),
+					columns: { host: true },
+				});
+				if (published.length > 0) {
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message: `Cannot change the Cloudflare account while ${published.length} domain(s) are published through this integration (e.g. ${published[0]?.host}). Unpublish them first.`,
+					});
+				}
+			}
 			try {
 				const { cloudflareId, apiToken, ...rest } = input;
 				const result = await updateCloudflareById(

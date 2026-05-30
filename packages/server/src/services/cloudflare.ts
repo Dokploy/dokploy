@@ -3,7 +3,11 @@ import {
 	type apiCreateCloudflare,
 	cloudflare,
 } from "@dokploy/server/db/schema";
-import { verifyToken } from "@dokploy/server/utils/providers/cloudflare";
+import {
+	CloudflareApiError,
+	listTunnels,
+	verifyToken,
+} from "@dokploy/server/utils/providers/cloudflare";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -85,17 +89,32 @@ export const updateCloudflareById = async (
 };
 
 /**
- * Validates a set of Cloudflare credentials without persisting them by
- * confirming the API token is valid and active (`GET /user/tokens/verify`).
+ * Validates a set of Cloudflare credentials without persisting them:
+ *  1. the API token is valid and active (`GET /user/tokens/verify`), and
+ *  2. it can actually operate on the account by listing its tunnels.
  *
- * Deliberately avoids `GET /accounts/{id}`: that endpoint returns a misleading
- * "Account not found" for single-account-scoped tokens, and reading the account
- * object would require an extra "Account Settings: Read" permission the
- * integration never otherwise uses.
+ * Step 2 probes the integration's core capability instead of reading the
+ * account object (`GET /accounts/{id}`) — that endpoint returns a misleading
+ * "Account not found" for single-account-scoped tokens and needs an extra
+ * "Account Settings: Read" permission the integration never uses. Listing
+ * tunnels exercises the exact permission + network path publishing relies on,
+ * so the test fails up-front (rather than at publish time) when the token lacks
+ * Cloudflare Tunnel access, the account has API access disabled, or a token IP
+ * allowlist excludes this server.
  */
 export const testCloudflareConnection = async (input: {
 	apiToken: string;
 	accountId: string;
 }) => {
 	await verifyToken(input.apiToken);
+	try {
+		await listTunnels(input.apiToken, input.accountId);
+	} catch (error) {
+		const detail = error instanceof Error ? error.message : String(error);
+		throw new CloudflareApiError(
+			`The API token is valid, but it can't manage tunnels in account ${input.accountId} (${detail}). ` +
+				`Check that the token has the "Cloudflare Tunnel" permission scoped to this account, ` +
+				"that the account has API access enabled, and that any IP allowlist on the token includes this server.",
+		);
+	}
 };

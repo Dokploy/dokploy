@@ -20,7 +20,10 @@ export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
 			.insert(domains)
 			.values({
 				...input,
-				host: input.host?.trim(),
+				// Hostnames are case-insensitive; store them canonically lowercased so
+				// Traefik routing and (case-sensitive) Cloudflare zone/DNS/ingress
+				// matching all agree on a single form.
+				host: input.host?.trim().toLowerCase(),
 			} as typeof domains.$inferInsert)
 			.returning()
 			.then((response) => response[0]);
@@ -122,7 +125,8 @@ export const updateDomainById = async (
 		.update(domains)
 		.set({
 			...domainData,
-			...(domainData.host && { host: domainData.host.trim() }),
+			// Keep the stored host canonically lowercased (see createDomain).
+			...(domainData.host && { host: domainData.host.trim().toLowerCase() }),
 		})
 		.where(eq(domains.domainId, domainId))
 		.returning();
