@@ -473,7 +473,8 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 												<Select
 													onValueChange={field.onChange}
 													defaultValue={
-														field.value || (showLocalOption ? "dokploy" : undefined)
+														field.value ||
+														(showLocalOption ? "dokploy" : undefined)
 													}
 												>
 													<SelectTrigger>
@@ -504,7 +505,8 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 																</SelectItem>
 															))}
 															<SelectLabel>
-																Servers ({servers?.length + (showLocalOption ? 1 : 0)})
+																Servers (
+																{servers?.length + (showLocalOption ? 1 : 0)})
 															</SelectLabel>
 														</SelectGroup>
 													</SelectContent>

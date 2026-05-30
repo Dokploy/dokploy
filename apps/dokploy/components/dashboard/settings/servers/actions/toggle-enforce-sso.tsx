@@ -26,10 +26,7 @@ export const ToggleEnforceSSO = () => {
 
 	return (
 		<div className="flex items-center gap-4">
-			<Switch
-				checked={!!data?.enforceSSO}
-				onCheckedChange={handleToggle}
-			/>
+			<Switch checked={!!data?.enforceSSO} onCheckedChange={handleToggle} />
 			<TooltipProvider delayDuration={0}>
 				<Tooltip>
 					<TooltipTrigger asChild>

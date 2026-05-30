@@ -34,7 +34,10 @@ interface SignInWithSSOProps {
 	enforce?: boolean;
 }
 
-export function SignInWithSSO({ children, enforce = false }: SignInWithSSOProps) {
+export function SignInWithSSO({
+	children,
+	enforce = false,
+}: SignInWithSSOProps) {
 	const [expanded, setExpanded] = useState(false);
 
 	const form = useForm<SSOEmailForm>({

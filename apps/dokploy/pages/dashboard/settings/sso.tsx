@@ -8,7 +8,13 @@ import { ToggleRemoteServersOnly } from "@/components/dashboard/settings/servers
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { EnterpriseFeatureGate } from "@/components/proprietary/enterprise-feature-gate";
 import { SSOSettings } from "@/components/proprietary/sso/sso-settings";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { appRouter } from "@/server/api/root";
 
 interface Props {
@@ -47,7 +53,9 @@ const Page = ({ isCloud }: Props) => {
 								}}
 							>
 								<CardHeader>
-									<CardTitle className="text-xl">Self-hosted Restrictions</CardTitle>
+									<CardTitle className="text-xl">
+										Self-hosted Restrictions
+									</CardTitle>
 									<CardDescription>
 										Control deployment targets and authentication behavior.
 									</CardDescription>

@@ -1,4 +1,8 @@
-import { getWebServerSettings, IS_CLOUD, isAdminPresent } from "@dokploy/server";
+import {
+	getWebServerSettings,
+	IS_CLOUD,
+	isAdminPresent,
+} from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { REGEXP_ONLY_DIGITS } from "input-otp";

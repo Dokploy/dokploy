@@ -185,7 +185,8 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 											<Tooltip>
 												<TooltipTrigger asChild>
 													<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-														Select a Server {showLocalOption ? "(Optional)" : ""}
+														Select a Server{" "}
+														{showLocalOption ? "(Optional)" : ""}
 														<HelpCircle className="size-4 text-muted-foreground" />
 													</FormLabel>
 												</TooltipTrigger>
@@ -210,7 +211,9 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 										>
 											<SelectTrigger>
 												<SelectValue
-													placeholder={showLocalOption ? "Dokploy" : "Select a Server"}
+													placeholder={
+														showLocalOption ? "Dokploy" : "Select a Server"
+													}
 												/>
 											</SelectTrigger>
 											<SelectContent>
@@ -239,7 +242,8 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 														</SelectItem>
 													))}
 													<SelectLabel>
-														Servers ({servers?.length + (showLocalOption ? 1 : 0)})
+														Servers (
+														{servers?.length + (showLocalOption ? 1 : 0)})
 													</SelectLabel>
 												</SelectGroup>
 											</SelectContent>

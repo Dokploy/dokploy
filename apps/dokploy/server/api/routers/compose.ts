@@ -92,7 +92,10 @@ export const composeRouter = createTRPCRouter({
 				await checkServiceAccess(ctx, project.projectId, "create");
 
 				const webServerSettings = await getWebServerSettings();
-				if ((IS_CLOUD || webServerSettings?.remoteServersOnly) && !input.serverId) {
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a compose",
@@ -587,7 +590,10 @@ export const composeRouter = createTRPCRouter({
 			await checkServiceAccess(ctx, environment.projectId, "create");
 
 			const webServerSettings = await getWebServerSettings();
-			if ((IS_CLOUD || webServerSettings?.remoteServersOnly) && !input.serverId) {
+			if (
+				(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+				!input.serverId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You need to use a server to create a compose",
