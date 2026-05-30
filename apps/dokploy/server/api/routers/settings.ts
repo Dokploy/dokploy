@@ -77,6 +77,7 @@ import { appRouter } from "../root";
 import {
 	adminProcedure,
 	createTRPCRouter,
+	enterpriseProcedure,
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
@@ -441,6 +442,50 @@ export const settingsRouter = createTRPCRouter({
 				action: "update",
 				resourceType: "settings",
 				resourceName: "docker-cleanup",
+			});
+			return true;
+		}),
+
+	updateRemoteServersOnly: enterpriseProcedure
+		.input(z.object({ remoteServersOnly: z.boolean() }))
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				remoteServersOnly: input.remoteServersOnly,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "remote-servers-only",
+			});
+			return true;
+		}),
+
+	updateEnforceSSO: enterpriseProcedure
+		.input(z.object({ enforceSSO: z.boolean() }))
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				enforceSSO: input.enforceSSO,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "enforce-sso",
 			});
 			return true;
 		}),
