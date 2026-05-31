@@ -45,7 +45,7 @@ jobs:
               --allow-empty
 
             git push
-        
+
 
       - name: Sync version to CLI repository
         run: |
@@ -77,4 +77,3 @@ jobs:
           git push
 
           echo "CLI repo synced to version ${{ steps.get_version.outputs.version }}"
-
