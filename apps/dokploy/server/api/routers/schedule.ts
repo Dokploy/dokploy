@@ -76,11 +76,11 @@ export const scheduleRouter = createTRPCRouter({
 				}
 			}
 			const newSchedule = await createSchedule({
-					...input,
-					...(input.scheduleType === "dokploy-server" && {
-						organizationId: ctx.session.activeOrganizationId,
-					}),
-				});
+				...input,
+				...(input.scheduleType === "dokploy-server" && {
+					organizationId: ctx.session.activeOrganizationId,
+				}),
+			});
 
 			if (newSchedule?.enabled) {
 				if (IS_CLOUD) {
@@ -167,7 +167,6 @@ export const scheduleRouter = createTRPCRouter({
 						});
 					}
 				}
-
 			}
 			const updatedSchedule = await updateSchedule(input);
 
@@ -251,7 +250,6 @@ export const scheduleRouter = createTRPCRouter({
 						});
 					}
 				}
-
 			}
 			await deleteSchedule(input.scheduleId);
 
@@ -367,7 +365,6 @@ export const scheduleRouter = createTRPCRouter({
 						});
 					}
 				}
-
 			}
 			return schedule;
 		}),
@@ -420,7 +417,6 @@ export const scheduleRouter = createTRPCRouter({
 						});
 					}
 				}
-
 			}
 			try {
 				await runCommand(input.scheduleId);
