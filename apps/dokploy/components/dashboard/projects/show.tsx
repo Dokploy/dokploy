@@ -290,7 +290,7 @@ export const ShowProjects = () => {
 											</span>
 										</div>
 									)}
-									<div className="w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 flex-wrap gap-5">
+									<div className="w-full grid grid-cols-1 gap-5 sm:grid-cols-[repeat(auto-fill,minmax(280px,280px))]">
 										{filteredProjects?.map((project) => {
 											const emptyServices = project?.environments
 												.map(
@@ -328,10 +328,7 @@ export const ShowProjects = () => {
 											const hasNoEnvironments = !accessibleEnvironment;
 
 											return (
-												<div
-													key={project.projectId}
-													className="w-full lg:max-w-md"
-												>
+												<div key={project.projectId} className="w-full">
 													<Link
 														href={
 															hasNoEnvironments
