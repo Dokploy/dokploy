@@ -75,7 +75,12 @@ export const scheduleRouter = createTRPCRouter({
 					}
 				}
 			}
-			const newSchedule = await createSchedule(input);
+			const newSchedule = await createSchedule({
+					...input,
+					...(input.scheduleType === "dokploy-server" && {
+						organizationId: ctx.session.activeOrganizationId,
+					}),
+				});
 
 			if (newSchedule?.enabled) {
 				if (IS_CLOUD) {
@@ -163,16 +168,6 @@ export const scheduleRouter = createTRPCRouter({
 					}
 				}
 
-				if (
-					existingSchedule.scheduleType === "dokploy-server" &&
-					existingSchedule.userId &&
-					existingSchedule.userId !== ctx.user.id
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You can only manage your own host-level schedules.",
-					});
-				}
 			}
 			const updatedSchedule = await updateSchedule(input);
 
@@ -257,16 +252,6 @@ export const scheduleRouter = createTRPCRouter({
 					}
 				}
 
-				if (
-					scheduleItem.scheduleType === "dokploy-server" &&
-					scheduleItem.userId &&
-					scheduleItem.userId !== ctx.user.id
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You can only manage your own host-level schedules.",
-					});
-				}
 			}
 			await deleteSchedule(input.scheduleId);
 
@@ -323,21 +308,27 @@ export const scheduleRouter = createTRPCRouter({
 					}
 				}
 
-				if (
-					input.scheduleType === "dokploy-server" &&
-					input.id !== ctx.user.id
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You can only list your own host-level schedules.",
-					});
+				if (input.scheduleType === "dokploy-server") {
+					const member = await findMemberByUserId(
+						ctx.user.id,
+						ctx.session.activeOrganizationId,
+					);
+					if (member.role !== "owner" && member.role !== "admin") {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "Only owners and admins can list host-level schedules.",
+						});
+					}
 				}
 			}
 			const where = {
 				application: eq(schedules.applicationId, input.id),
 				compose: eq(schedules.composeId, input.id),
 				server: eq(schedules.serverId, input.id),
-				"dokploy-server": eq(schedules.userId, input.id),
+				"dokploy-server": eq(
+					schedules.organizationId,
+					ctx.session.activeOrganizationId,
+				),
 			};
 			return db.query.schedules.findMany({
 				where: where[input.scheduleType],
@@ -377,16 +368,6 @@ export const scheduleRouter = createTRPCRouter({
 					}
 				}
 
-				if (
-					schedule.scheduleType === "dokploy-server" &&
-					schedule.userId &&
-					schedule.userId !== ctx.user.id
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You don't have access to this schedule.",
-					});
-				}
 			}
 			return schedule;
 		}),
@@ -440,16 +421,6 @@ export const scheduleRouter = createTRPCRouter({
 					}
 				}
 
-				if (
-					scheduleItem.scheduleType === "dokploy-server" &&
-					scheduleItem.userId &&
-					scheduleItem.userId !== ctx.user.id
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You can only manage your own host-level schedules.",
-					});
-				}
 			}
 			try {
 				await runCommand(input.scheduleId);
