@@ -63,6 +63,7 @@ export const volumeBackups = pgTable("volume_backup", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+	excludePaths: text("excludePaths").default("").notNull(),
 	destinationId: text("destinationId")
 		.notNull()
 		.references(() => destinations.destinationId, { onDelete: "cascade" }),

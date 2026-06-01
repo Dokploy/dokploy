@@ -42,6 +42,13 @@ export const backupVolume = async (
 	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
 
+	const excludeFlags = (volumeBackup.excludePaths || '')
+		.split('\n')
+		.map(p => p.trim())
+		.filter(Boolean)
+		.map(p => `--exclude=${p.replace(/^\//, '')}`)
+		.join(' ');
+
 	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
 
 	const backupCommand = `
@@ -55,7 +62,7 @@ export const backupVolume = async (
   -v ${volumeName}:/volume_data \
   -v ${volumeBackupPath}:/backup \
   ubuntu \
-  bash -c "cd /volume_data && tar cvf /backup/${backupFileName} ."
+  bash -c "cd /volume_data && tar cvf /backup/${backupFileName} ${excludeFlags} ."
   echo "Volume backup done ✅"
   `;
 
