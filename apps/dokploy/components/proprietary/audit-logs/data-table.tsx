@@ -68,6 +68,7 @@ const RESOURCE_OPTIONS = [
 	{ value: "server", label: "Remote Servers" },
 	{ value: "sshKey", label: "SSH Keys" },
 	{ value: "gitProvider", label: "Git Providers" },
+	{ value: "cloudflare", label: "Cloudflare" },
 	{ value: "notification", label: "Notifications" },
 	{ value: "settings", label: "Settings" },
 	{ value: "session", label: "Sessions (Login/Logout)" },
@@ -97,6 +98,7 @@ type AuditResourceType =
 	| "server"
 	| "sshKey"
 	| "gitProvider"
+	| "cloudflare"
 	| "notification"
 	| "settings"
 	| "session";
