@@ -47,6 +47,7 @@ export const auditLogRouter = createTRPCRouter({
 						"server",
 						"sshKey",
 						"gitProvider",
+						"cloudflare",
 						"notification",
 						"settings",
 						"session",

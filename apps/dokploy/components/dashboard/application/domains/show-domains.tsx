@@ -12,6 +12,7 @@ import {
 import {
 	CheckCircle2,
 	ChevronDown,
+	Cloud,
 	ExternalLink,
 	GlobeIcon,
 	InfoIcon,
@@ -21,6 +22,7 @@ import {
 	PenBoxIcon,
 	RefreshCw,
 	Server,
+	ShieldCheck,
 	Trash2,
 	XCircle,
 } from "lucide-react";
@@ -61,6 +63,7 @@ import {
 import { api } from "@/utils/api";
 import { createColumns } from "./columns";
 import { DnsHelperModal } from "./dns-helper-modal";
+import { DomainAccessPolicyEditor } from "./domain-access-policy-editor";
 import { AddDomain } from "./handle-domain";
 
 export type ValidationState = {
@@ -438,6 +441,13 @@ export const ShowDomains = ({ id, type }: Props) => {
 																}
 															/>
 														)}
+														{item.publishToCloudflare &&
+															permissions?.cloudflare.read && (
+																<DomainAccessPolicyEditor
+																	domainId={item.domainId}
+																	host={item.host}
+																/>
+															)}
 														{canCreateDomain && (
 															<AddDomain
 																id={id}
@@ -560,6 +570,53 @@ export const ShowDomains = ({ id, type }: Props) => {
 														</TooltipProvider>
 													)}
 
+													{item.publishToCloudflare && (
+														<TooltipProvider>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Badge
+																		variant="outline"
+																		className={
+																			item.cloudflareIngressApplied
+																				? "bg-orange-500/10 text-orange-500"
+																				: "bg-yellow-500/10 text-yellow-500"
+																		}
+																	>
+																		<Cloud className="size-3 mr-1" />
+																		{item.cloudflareIngressApplied
+																			? "Cloudflare Tunnel"
+																			: "Cloudflare Tunnel (pending)"}
+																	</Badge>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>
+																		{item.cloudflareIngressApplied
+																			? "Published via Cloudflare Tunnel"
+																			: "Cloudflare publishing is not fully provisioned yet"}
+																	</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													)}
+
+													{item.enableCloudflareAccess && (
+														<TooltipProvider>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Badge
+																		variant="outline"
+																		className="bg-green-500/10 text-green-500"
+																	>
+																		<ShieldCheck className="size-3 mr-1" />
+																		Cloudflare Access
+																	</Badge>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>Protected by Cloudflare Access</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													)}
 													{item.middlewares?.map((middleware, index) => (
 														<TooltipProvider key={`${middleware}-${index}`}>
 															<Tooltip>

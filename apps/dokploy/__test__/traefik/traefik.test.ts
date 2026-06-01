@@ -148,6 +148,15 @@ const baseDomain: Domain = {
 	internalPath: "/",
 	stripPath: false,
 	middlewares: null,
+	publishToCloudflare: false,
+	cloudflareTunnelMode: null,
+	cloudflareId: null,
+	cloudflareZoneId: null,
+	cloudflareTunnelId: null,
+	cloudflareDnsRecordId: null,
+	cloudflareIngressApplied: false,
+	enableCloudflareAccess: false,
+	cloudflareAccessApplicationId: null,
 };
 
 const baseRedirect: Redirect = {

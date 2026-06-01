@@ -422,7 +422,16 @@ const ACTION_META: Record<
 };
 
 /** Resources that should be hidden from the custom role editor (better-auth internals) */
-const HIDDEN_RESOURCES = ["organization", "invitation", "team", "ac"];
+const HIDDEN_RESOURCES = [
+	"organization",
+	"invitation",
+	"team",
+	"ac",
+	// Cloudflare credentials are gated to owner/admin via `adminProcedure`, so
+	// granting them to a custom role would have no effect — hide them here to
+	// avoid offering a permission the API will reject.
+	"cloudflare",
+];
 
 /** Predefined role presets with sensible permission defaults */
 const ROLE_PRESETS: {

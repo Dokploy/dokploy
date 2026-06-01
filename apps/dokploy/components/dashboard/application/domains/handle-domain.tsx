@@ -70,6 +70,12 @@ export const domain = z
 		serviceName: z.string().optional(),
 		domainType: z.enum(["application", "compose", "preview"]).optional(),
 		middlewares: z.array(z.string()).optional(),
+		publishToCloudflare: z.boolean().optional(),
+		cloudflareId: z.string().optional(),
+		cloudflareTunnelMode: z
+			.enum(["existing-instance", "shared-managed"])
+			.optional(),
+		cloudflareTunnelId: z.string().optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {
@@ -126,6 +132,33 @@ export const domain = z
 				message: "Custom entry point must be specified",
 			});
 		}
+
+		if (input.publishToCloudflare) {
+			if (!input.cloudflareId) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["cloudflareId"],
+					message: "Select a Cloudflare integration",
+				});
+			}
+			if (!input.cloudflareTunnelMode) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["cloudflareTunnelMode"],
+					message: "Select a tunnel mode",
+				});
+			}
+			if (
+				input.cloudflareTunnelMode === "existing-instance" &&
+				!input.cloudflareTunnelId
+			) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["cloudflareTunnelId"],
+					message: "Select an existing tunnel",
+				});
+			}
+		}
 	});
 
 type Domain = z.infer<typeof domain>;
@@ -170,6 +203,9 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 						enabled: !!id,
 					},
 				);
+
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canPublishCloudflare = !!permissions?.cloudflare.read;
 
 	const { mutateAsync, isError, error, isPending } = domainId
 		? api.domain.update.useMutation()
@@ -216,6 +252,10 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			serviceName: undefined,
 			domainType: type,
 			middlewares: [],
+			publishToCloudflare: false,
+			cloudflareId: undefined,
+			cloudflareTunnelMode: undefined,
+			cloudflareTunnelId: undefined,
 		},
 		mode: "onChange",
 	});
@@ -226,6 +266,58 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const domainType = form.watch("domainType");
 	const host = form.watch("host");
 	const isTraefikMeDomain = host?.includes("sslip.io") || false;
+
+	const publishToCloudflare = form.watch("publishToCloudflare");
+	const cloudflareId = form.watch("cloudflareId");
+	const cloudflareTunnelMode = form.watch("cloudflareTunnelMode");
+	const cloudflareTunnelId = form.watch("cloudflareTunnelId");
+
+	const { data: cloudflareIntegrations } = api.cloudflare.all.useQuery(
+		undefined,
+		{ enabled: canPublishCloudflare },
+	);
+	const { data: cloudflareTunnels } = api.cloudflare.tunnels.useQuery(
+		{ cloudflareId: cloudflareId || "" },
+		{
+			enabled:
+				canPublishCloudflare &&
+				!!cloudflareId &&
+				cloudflareTunnelMode === "existing-instance",
+		},
+	);
+	// Non-secret booleans every member may read, so we can tell a member their
+	// new domain will be auto-protected by org policy (the publish/Access controls
+	// below are admin-only and hidden for members).
+	const { data: domainProtectionPolicy } =
+		api.cloudflare.domainProtectionPolicy.useQuery();
+
+	// Debounce the host so the advisory availability pre-check fires once the
+	// user pauses typing, not on every keystroke.
+	const [debouncedHost, setDebouncedHost] = useState("");
+	useEffect(() => {
+		const timer = setTimeout(() => setDebouncedHost(host ?? ""), 500);
+		return () => clearTimeout(timer);
+	}, [host]);
+
+	const cloudflareCheckEnabled =
+		canPublishCloudflare &&
+		!!publishToCloudflare &&
+		!!cloudflareId &&
+		debouncedHost.length > 0 &&
+		(cloudflareTunnelMode !== "existing-instance" || !!cloudflareTunnelId);
+
+	const { data: cloudflareAvailability } =
+		api.cloudflare.checkDomainAvailability.useQuery(
+			{
+				cloudflareId: cloudflareId || "",
+				host: debouncedHost,
+				tunnelId:
+					cloudflareTunnelMode === "existing-instance"
+						? cloudflareTunnelId || undefined
+						: undefined,
+			},
+			{ enabled: cloudflareCheckEnabled, retry: false },
+		);
 
 	useEffect(() => {
 		if (data) {
@@ -243,6 +335,10 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				serviceName: data?.serviceName || undefined,
 				domainType: data?.domainType || type,
 				middlewares: data?.middlewares || [],
+				publishToCloudflare: data?.publishToCloudflare || false,
+				cloudflareId: data?.cloudflareId || undefined,
+				cloudflareTunnelMode: data?.cloudflareTunnelMode || undefined,
+				cloudflareTunnelId: data?.cloudflareTunnelId || undefined,
 			});
 		}
 
@@ -797,6 +893,180 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 										)}
 									</>
 								)}
+
+								{!canPublishCloudflare &&
+									(domainProtectionPolicy?.protectDomainsByDefault ||
+										domainProtectionPolicy?.requireProtectedDomains) && (
+										<div className="mt-4 border-t pt-4">
+											<AlertBlock type="info">
+												New domains are automatically protected with Cloudflare
+												Access per your organization's policy.
+											</AlertBlock>
+										</div>
+									)}
+
+								{canPublishCloudflare && (
+									<div className="flex flex-col gap-4 mt-4 border-t pt-4">
+										<FormField
+											control={form.control}
+											name="publishToCloudflare"
+											render={({ field }) => (
+												<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-sm">
+													<div className="space-y-0.5">
+														<FormLabel>Publish via Cloudflare Tunnel</FormLabel>
+														<FormDescription>
+															Expose this domain through Cloudflare Tunnel — no
+															open origin ports, with TLS terminated at
+															Cloudflare's edge.
+														</FormDescription>
+														<FormMessage />
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+
+										{publishToCloudflare && (
+											<>
+												<AlertBlock type="info">
+													Cloudflare terminates TLS at the edge and forwards to
+													your app over HTTP. Set your Cloudflare SSL/TLS mode
+													to <strong>Full</strong>; the HTTP→HTTPS redirect is
+													skipped automatically for published domains.
+												</AlertBlock>
+
+												{(cloudflareIntegrations?.length ?? 0) === 0 ? (
+													<AlertBlock type="warning">
+														No Cloudflare integration found. Add one in{" "}
+														<Link
+															href="/dashboard/settings/cloudflare"
+															className="text-primary"
+														>
+															Settings → Cloudflare Tunnel & Access
+														</Link>
+														.
+													</AlertBlock>
+												) : (
+													<>
+														<FormField
+															control={form.control}
+															name="cloudflareId"
+															render={({ field }) => (
+																<FormItem>
+																	<FormLabel>Cloudflare Integration</FormLabel>
+																	<Select
+																		onValueChange={field.onChange}
+																		value={field.value || ""}
+																	>
+																		<FormControl>
+																			<SelectTrigger>
+																				<SelectValue placeholder="Select an integration" />
+																			</SelectTrigger>
+																		</FormControl>
+																		<SelectContent>
+																			{cloudflareIntegrations?.map(
+																				(integration) => (
+																					<SelectItem
+																						key={integration.cloudflareId}
+																						value={integration.cloudflareId}
+																					>
+																						{integration.name}
+																					</SelectItem>
+																				),
+																			)}
+																		</SelectContent>
+																	</Select>
+																	<FormMessage />
+																</FormItem>
+															)}
+														/>
+
+														<FormField
+															control={form.control}
+															name="cloudflareTunnelMode"
+															render={({ field }) => (
+																<FormItem>
+																	<FormLabel>Tunnel Mode</FormLabel>
+																	<Select
+																		onValueChange={field.onChange}
+																		value={field.value || ""}
+																	>
+																		<FormControl>
+																			<SelectTrigger>
+																				<SelectValue placeholder="Select a mode" />
+																			</SelectTrigger>
+																		</FormControl>
+																		<SelectContent>
+																			<SelectItem value="shared-managed">
+																				Shared (Dokploy-managed connector)
+																			</SelectItem>
+																			<SelectItem value="existing-instance">
+																				Existing tunnel
+																			</SelectItem>
+																		</SelectContent>
+																	</Select>
+																	<FormDescription>
+																		Shared lets Dokploy create and run the
+																		connector. Existing routes through one of
+																		your remotely-managed tunnels.
+																	</FormDescription>
+																	<FormMessage />
+																</FormItem>
+															)}
+														/>
+
+														{cloudflareTunnelMode === "existing-instance" && (
+															<FormField
+																control={form.control}
+																name="cloudflareTunnelId"
+																render={({ field }) => (
+																	<FormItem>
+																		<FormLabel>Existing Tunnel</FormLabel>
+																		<Select
+																			onValueChange={field.onChange}
+																			value={field.value || ""}
+																		>
+																			<FormControl>
+																				<SelectTrigger>
+																					<SelectValue placeholder="Select a tunnel" />
+																				</SelectTrigger>
+																			</FormControl>
+																			<SelectContent>
+																				{cloudflareTunnels?.map((tunnel) => (
+																					<SelectItem
+																						key={tunnel.id}
+																						value={tunnel.id}
+																					>
+																						{tunnel.name}
+																					</SelectItem>
+																				))}
+																			</SelectContent>
+																		</Select>
+																		<FormMessage />
+																	</FormItem>
+																)}
+															/>
+														)}
+
+														{cloudflareAvailability &&
+															!cloudflareAvailability.available && (
+																<AlertBlock type="warning">
+																	{cloudflareAvailability.reason ??
+																		"This host can't be published through Cloudflare."}
+																</AlertBlock>
+															)}
+													</>
+												)}
+											</>
+										)}
+									</div>
+								)}
+
 								<FormField
 									control={form.control}
 									name="middlewares"

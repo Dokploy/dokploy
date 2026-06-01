@@ -143,7 +143,14 @@ export const createRouterConfig = async (
 		entryPoints: [entryPoint],
 	};
 
-	const isRedirectRouter = entryPoint === "web" && https && !customEntrypoint;
+	// Cloudflare-published domains terminate TLS at the Cloudflare edge and reach
+	// Traefik over plain HTTP via cloudflared, so the web->websecure redirect must
+	// NOT be applied — otherwise the connector hits a 301 loop / 502s.
+	const isRedirectRouter =
+		entryPoint === "web" &&
+		https &&
+		!customEntrypoint &&
+		!domain.publishToCloudflare;
 
 	// Web router with HTTPS only needs redirect — all other middlewares
 	// run on the websecure router where the request actually lands.

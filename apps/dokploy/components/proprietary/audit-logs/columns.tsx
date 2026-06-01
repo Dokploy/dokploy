@@ -92,6 +92,7 @@ const RESOURCE_LABELS: Record<string, string> = {
 	server: "Server",
 	sshKey: "SSH Key",
 	gitProvider: "Git Provider",
+	cloudflare: "Cloudflare",
 	notification: "Notification",
 	settings: "Settings",
 	session: "Session",

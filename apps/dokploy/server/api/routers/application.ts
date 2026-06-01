@@ -2,7 +2,9 @@ import {
 	clearOldDeployments,
 	createApplication,
 	deleteAllMiddlewares,
+	deprovisionCloudflareForDomains,
 	findApplicationById,
+	findDomainsByApplicationId,
 	findEnvironmentById,
 	findGitProviderById,
 	findProjectById,
@@ -237,6 +239,11 @@ export const applicationRouter = createTRPCRouter({
 					message: "You are not authorized to delete this application",
 				});
 			}
+
+			// Domains are FK-cascade deleted with the application, so de-provision
+			// any Cloudflare publishing BEFORE the row (and its domains) is removed.
+			const appDomains = await findDomainsByApplicationId(input.applicationId);
+			await deprovisionCloudflareForDomains(appDomains);
 
 			const result = await db
 				.delete(applications)
