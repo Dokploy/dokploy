@@ -24,7 +24,7 @@ Dokploy includes multiple features to make your life easier.
 - **Docker Compose**: Native support for Docker Compose to manage complex applications.
 - **Multi Node**: Scale applications to multiple nodes using Docker Swarm to manage the cluster.
 - **Templates**: Deploy open-source templates (Plausible, Pocketbase, Calcom, etc.) with a single click.
-- **Web Server Integration**: Choose between Traefik or Caddy for automatic routing, load balancing, and SSL/TLS certificate management. Includes migration tooling for switching providers.
+- **Web Server Integration**: Choose between Traefik (default) or Caddy for routing, load balancing, and SSL/TLS certificates.
 - **Real-time Monitoring**: Monitor CPU, memory, storage, and network usage for every resource.
 - **Docker Management**: Easily deploy and manage Docker containers.
 - **CLI/API**: Manage your applications and databases using the command line or through the API.
