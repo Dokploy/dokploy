@@ -40,7 +40,10 @@ export const deploymentRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				deployment: ["read"],
 			});
-			return await findAllDeploymentsByApplicationId(input.applicationId, input.limit);
+			return await findAllDeploymentsByApplicationId(
+				input.applicationId,
+				input.limit,
+			);
 		}),
 
 	allByCompose: protectedProcedure
