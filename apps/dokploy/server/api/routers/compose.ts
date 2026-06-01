@@ -8,6 +8,7 @@ import {
 	createDomain,
 	createMount,
 	deleteMount,
+	deprovisionCloudflareForDomains,
 	execAsync,
 	execAsyncRemote,
 	findComposeById,
@@ -247,6 +248,11 @@ export const composeRouter = createTRPCRouter({
 					message: "You are not authorized to delete this compose",
 				});
 			}
+
+			// Domains are FK-cascade deleted with the compose, so de-provision any
+			// Cloudflare publishing BEFORE the row (and its domains) is removed.
+			const composeDomains = await findDomainsByComposeId(input.composeId);
+			await deprovisionCloudflareForDomains(composeDomains);
 
 			const result = await db
 				.delete(composeTable)
@@ -961,6 +967,9 @@ export const composeRouter = createTRPCRouter({
 					await deleteMount(mount.mountId);
 				}
 
+				// Tear down Cloudflare publishing before the domain rows are deleted,
+				// otherwise the stored tunnel/DNS/ingress state is orphaned.
+				await deprovisionCloudflareForDomains(compose.domains);
 				for (const domain of compose.domains) {
 					await removeDomainById(domain.domainId);
 				}

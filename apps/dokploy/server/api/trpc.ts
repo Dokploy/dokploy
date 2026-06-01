@@ -142,6 +142,14 @@ const t = initTRPC
 export const createTRPCRouter = t.router;
 
 /**
+ * Factory for building a server-side caller for a router. Primarily used in
+ * tests to invoke procedures directly with a synthetic context.
+ *
+ * @see https://trpc.io/docs/server/server-side-calls
+ */
+export const createCallerFactory = t.createCallerFactory;
+
+/**
  * Public (unauthenticated) procedure
  *
  * This is the base piece you use to build new queries and mutations on your tRPC API. It does not

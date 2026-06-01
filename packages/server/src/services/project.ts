@@ -13,6 +13,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
+import { deprovisionCloudflareForDomains } from "./cloudflare-provisioning";
 import { createProductionEnvironment } from "./environment";
 
 export type Project = typeof projects.$inferSelect;
@@ -80,6 +81,27 @@ export const findProjectById = async (projectId: string) => {
 };
 
 export const deleteProject = async (projectId: string) => {
+	// Domains are FK-cascade deleted through environments -> applications/compose
+	// when the project is removed, with no per-row hook. Gather every
+	// Cloudflare-published domain under the project and tear down its external
+	// Cloudflare state (DNS/ingress/connector) BEFORE the cascade drops the rows.
+	const projectTree = await db.query.projects.findFirst({
+		where: eq(projects.projectId, projectId),
+		with: {
+			environments: {
+				with: {
+					applications: { with: { domains: true } },
+					compose: { with: { domains: true } },
+				},
+			},
+		},
+	});
+	const cloudflareDomains = (projectTree?.environments ?? []).flatMap((env) => [
+		...env.applications.flatMap((application) => application.domains),
+		...env.compose.flatMap((compose) => compose.domains),
+	]);
+	await deprovisionCloudflareForDomains(cloudflareDomains);
+
 	const project = await db
 		.delete(projects)
 		.where(eq(projects.projectId, projectId))

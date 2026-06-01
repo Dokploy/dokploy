@@ -279,7 +279,14 @@ export const createDomainLabels = (
 
 	// Collect middlewares for this router
 	const middlewares: string[] = [];
-	const isRedirectRouter = entrypoint === "web" && https && !customEntrypoint;
+	// Cloudflare-published domains terminate TLS at the edge and reach Traefik
+	// over plain HTTP via cloudflared; skip the web->websecure redirect to avoid
+	// redirect loops / 502s.
+	const isRedirectRouter =
+		entrypoint === "web" &&
+		https &&
+		!customEntrypoint &&
+		!domain.publishToCloudflare;
 
 	// Web router with HTTPS only needs redirect — all other middlewares
 	// run on the websecure router where the request actually lands.

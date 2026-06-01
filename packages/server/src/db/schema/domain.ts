@@ -13,6 +13,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { domain } from "../validations/domain";
 import { applications } from "./application";
+import { cloudflare } from "./cloudflare";
 import { compose } from "./compose";
 import { previewDeployments } from "./preview-deployments";
 import { certificateType } from "./shared";
@@ -21,6 +22,11 @@ export const domainType = pgEnum("domainType", [
 	"compose",
 	"application",
 	"preview",
+]);
+
+export const cloudflareTunnelMode = pgEnum("cloudflareTunnelMode", [
+	"existing-instance",
+	"shared-managed",
 ]);
 
 export const domains = pgTable("domain", {
@@ -55,6 +61,20 @@ export const domains = pgTable("domain", {
 	internalPath: text("internalPath").default("/"),
 	stripPath: boolean("stripPath").notNull().default(false),
 	middlewares: text("middlewares").array().default(sql`ARRAY[]::text[]`),
+	// --- Cloudflare Tunnel publishing ---
+	// User-settable intent + selection (validated as admin-only at the router):
+	publishToCloudflare: boolean("publishToCloudflare").notNull().default(false),
+	cloudflareTunnelMode: cloudflareTunnelMode("cloudflareTunnelMode"),
+	cloudflareId: text("cloudflareId").references(() => cloudflare.cloudflareId, {
+		onDelete: "set null",
+	}),
+	cloudflareZoneId: text("cloudflareZoneId"),
+	cloudflareTunnelId: text("cloudflareTunnelId"),
+	// Server-managed provisioning status (set by the provisioning module):
+	cloudflareDnsRecordId: text("cloudflareDnsRecordId"),
+	cloudflareIngressApplied: boolean("cloudflareIngressApplied")
+		.notNull()
+		.default(false),
 });
 
 export const domainsRelations = relations(domains, ({ one }) => ({
@@ -70,12 +90,23 @@ export const domainsRelations = relations(domains, ({ one }) => ({
 		fields: [domains.previewDeploymentId],
 		references: [previewDeployments.previewDeploymentId],
 	}),
+	cloudflare: one(cloudflare, {
+		fields: [domains.cloudflareId],
+		references: [cloudflare.cloudflareId],
+	}),
 }));
 
 const createSchema = createInsertSchema(domains, {
 	...domain.shape,
 	// Override pgEnum so Zod 4 infers only string literals, not numeric enum index
 	domainType: z.enum(["compose", "application", "preview"]).optional(),
+	cloudflareTunnelMode: z
+		.enum(["existing-instance", "shared-managed"])
+		.optional(),
+	publishToCloudflare: z.boolean().optional(),
+	cloudflareId: z.string().nullish(),
+	cloudflareZoneId: z.string().nullish(),
+	cloudflareTunnelId: z.string().nullish(),
 });
 
 export const apiCreateDomain = createSchema.pick({
@@ -94,6 +125,11 @@ export const apiCreateDomain = createSchema.pick({
 	internalPath: true,
 	stripPath: true,
 	middlewares: true,
+	publishToCloudflare: true,
+	cloudflareTunnelMode: true,
+	cloudflareId: true,
+	cloudflareZoneId: true,
+	cloudflareTunnelId: true,
 });
 
 export const apiFindDomain = z.object({
@@ -126,5 +162,10 @@ export const apiUpdateDomain = createSchema
 		internalPath: true,
 		stripPath: true,
 		middlewares: true,
+		publishToCloudflare: true,
+		cloudflareTunnelMode: true,
+		cloudflareId: true,
+		cloudflareZoneId: true,
+		cloudflareTunnelId: true,
 	})
 	.merge(createSchema.pick({ domainId: true }).required());

@@ -23,6 +23,13 @@ describe("createDomainLabels", () => {
 		internalPath: "/",
 		stripPath: false,
 		middlewares: null,
+		publishToCloudflare: false,
+		cloudflareTunnelMode: null,
+		cloudflareId: null,
+		cloudflareZoneId: null,
+		cloudflareTunnelId: null,
+		cloudflareDnsRecordId: null,
+		cloudflareIngressApplied: false,
 	};
 
 	it("should create basic labels for web entrypoint", async () => {
