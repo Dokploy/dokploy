@@ -40,15 +40,15 @@ import {
 } from "./deployment";
 import { type Domain, getDomainHost } from "./domain";
 import {
-	createGithubDeployment,
-	setGithubDeploymentStatus,
-} from "./github-deployment";
-import {
 	createPreviewDeploymentComment,
 	getIssueComment,
 	issueCommentExists,
 	updateIssueComment,
 } from "./github";
+import {
+	createGithubDeployment,
+	setGithubDeploymentStatus,
+} from "./github-deployment";
 import { generateApplyPatchesCommand } from "./patch";
 import {
 	findPreviewDeploymentById,

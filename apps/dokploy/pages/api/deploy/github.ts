@@ -349,7 +349,11 @@ export default async function handler(
 							previewDeployment.applicationId,
 						);
 
-						if (application?.githubId && application.owner && application.repository) {
+						if (
+							application?.githubId &&
+							application.owner &&
+							application.repository
+						) {
 							await deactivateGithubDeployments({
 								githubId: application.githubId,
 								owner: application.owner,
