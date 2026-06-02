@@ -1,0 +1,2 @@
+ALTER TABLE "forward_auth_settings" ADD COLUMN "providerId" text;--> statement-breakpoint
+ALTER TABLE "forward_auth_settings" ADD CONSTRAINT "forward_auth_settings_providerId_sso_provider_provider_id_fk" FOREIGN KEY ("providerId") REFERENCES "public"."sso_provider"("provider_id") ON DELETE set null ON UPDATE no action;

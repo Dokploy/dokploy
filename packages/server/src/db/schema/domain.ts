@@ -16,6 +16,7 @@ import { applications } from "./application";
 import { compose } from "./compose";
 import { previewDeployments } from "./preview-deployments";
 import { certificateType } from "./shared";
+import { ssoProvider } from "./sso";
 
 export const domainType = pgEnum("domainType", [
 	"compose",
@@ -55,6 +56,10 @@ export const domains = pgTable("domain", {
 	internalPath: text("internalPath").default("/"),
 	stripPath: boolean("stripPath").notNull().default(false),
 	middlewares: text("middlewares").array().default(sql`ARRAY[]::text[]`),
+	forwardAuthProviderId: text("forwardAuthProviderId").references(
+		() => ssoProvider.providerId,
+		{ onDelete: "set null" },
+	),
 });
 
 export const domainsRelations = relations(domains, ({ one }) => ({
@@ -69,6 +74,10 @@ export const domainsRelations = relations(domains, ({ one }) => ({
 	previewDeployment: one(previewDeployments, {
 		fields: [domains.previewDeploymentId],
 		references: [previewDeployments.previewDeploymentId],
+	}),
+	forwardAuthProvider: one(ssoProvider, {
+		fields: [domains.forwardAuthProviderId],
+		references: [ssoProvider.providerId],
 	}),
 }));
 
@@ -94,6 +103,7 @@ export const apiCreateDomain = createSchema.pick({
 	internalPath: true,
 	stripPath: true,
 	middlewares: true,
+	forwardAuthProviderId: true,
 });
 
 export const apiFindDomain = z.object({
@@ -126,5 +136,6 @@ export const apiUpdateDomain = createSchema
 		internalPath: true,
 		stripPath: true,
 		middlewares: true,
+		forwardAuthProviderId: true,
 	})
 	.merge(createSchema.pick({ domainId: true }).required());

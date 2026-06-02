@@ -1191,6 +1191,27 @@
       "when": 1780127552074,
       "tag": "0169_parched_johnny_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 170,
+      "version": "7",
+      "when": 1780264266301,
+      "tag": "0170_nostalgic_joshua_kane",
+      "breakpoints": true
+    },
+    {
+      "idx": 171,
+      "version": "7",
+      "when": 1780352857424,
+      "tag": "0171_normal_sleepwalker",
+      "breakpoints": true
+    },
+    {
+      "idx": 172,
+      "version": "7",
+      "when": 1780353694755,
+      "tag": "0172_nice_impossible_man",
+      "breakpoints": true
     }
   ]
 }
