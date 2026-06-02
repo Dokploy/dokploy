@@ -1,3 +1,4 @@
+import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { HelpCircle, KeyRoundIcon, LockIcon, X } from "lucide-react";
 import Link from "next/link";
@@ -6,7 +7,6 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { GitIcon } from "@/components/icons/data-tools-icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
