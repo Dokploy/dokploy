@@ -8,7 +8,7 @@ CI builds, humans deploy. GitHub Actions never reaches production; it only publi
 
 ### 1. CI (automatic on push)
 
-`.github/workflows/ctd-image.yml` builds a multi-arch image on every push to `feat/*`, `fix/*`, or `canary-ctd`, and pushes it to GHCR.
+`.github/workflows/ctd-image.yml` builds an amd64 image on every push to `feat/*`, `fix/*`, or `canary-ctd`, and pushes it to GHCR.
 
 Two tags per build:
 
@@ -42,7 +42,7 @@ The deploy script already passes `--with-registry-auth`, so either path works.
 ## Branch conventions
 
 - `canary` — tracks upstream, don't commit here directly.
-- `fix/preview-teardown-race` — current long-lived fork patch stack on top of upstream canary. New features branch off this.
+- `fix/preview-teardown-race` — current long-lived fork patch stack on top of the latest upstream release we have adopted. New features branch off this.
 - `feat/*`, `fix/*` — per-change branches. PR against `fix/preview-teardown-race`.
 
 ## Rebasing on upstream
@@ -52,7 +52,7 @@ When upstream cuts a new release worth taking:
 ```sh
 git fetch upstream
 git checkout fix/preview-teardown-race
-git rebase upstream/canary
+git rebase vX.Y.Z
 # resolve conflicts in packages/server/src/services/application.ts
 # and apps/dokploy/pages/api/deploy/github.ts, the usual suspects
 git push --force-with-lease origin fix/preview-teardown-race
@@ -67,6 +67,7 @@ Then rebuild and redeploy via the steps above.
 | Preview teardown race fixes | `packages/server/src/services/application.ts`, related | Upstream lost preview deployments under teardown+redeploy races |
 | GitHub Deployments API | `packages/server/src/services/github-deployment.ts`, `application.ts`, `apps/dokploy/pages/api/deploy/github.ts` | Upstream only writes commit statuses; we want the "This branch is being deployed" panel populated |
 | GitHub App manifest | `apps/dokploy/components/dashboard/settings/git/github/add-github-provider.tsx` | Adds `deployments: write` for the above |
+| Deploy secret hygiene | `packages/server/src/utils/process/secrets.ts`, provider/build/registry helpers | Keeps deploy tokens and registry passwords out of process arguments |
 | Fork CI | `.github/workflows/ctd-image.yml` | Upstream workflows target their Docker Hub namespace; ours pushes to GHCR |
 
 ## When to remove this file
