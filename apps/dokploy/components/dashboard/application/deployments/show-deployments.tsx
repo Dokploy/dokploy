@@ -4,6 +4,9 @@ import {
 	ChevronUp,
 	Clock,
 	Copy,
+	EyeClosedIcon,
+	EyeIcon,
+	EyeOffIcon,
 	Loader2,
 	RefreshCcw,
 	RocketIcon,
@@ -98,11 +101,17 @@ export const ShowDeployments = ({
 	const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
 		new Set(),
 	);
+	const [showWebhookUrl, setShowWebhookUrl] = useState(false);
 
 	const webhookUrl = useMemo(
 		() =>
 			`${url}/api/deploy${type === "compose" ? "/compose" : ""}/${refreshToken}`,
 		[url, refreshToken, type],
+	);
+
+	const webhookUrlMasked = useMemo(
+		() => "•".repeat(webhookUrl.length),
+		[webhookUrl],
 	);
 
 	const MAX_DESCRIPTION_LENGTH = 200;
@@ -231,7 +240,7 @@ export const ShowDeployments = ({
 						</span>
 						<div className="flex flex-row items-center gap-2 flex-wrap">
 							<span>Webhook URL: </span>
-							<div className="flex flex-row items-center gap-2">
+							<div className="flex flex-row items-center gap-1">
 								<Badge
 									role="button"
 									tabIndex={0}
@@ -250,9 +259,24 @@ export const ShowDeployments = ({
 										toast.success("Copied to clipboard.");
 									}}
 								>
-									{webhookUrl}
+									<span className="font-mono">
+										{showWebhookUrl ? webhookUrl : webhookUrlMasked}
+									</span>
 									<Copy className="h-4 w-4 ml-2" />
 								</Badge>
+								<Button
+									variant="ghost"
+									size="icon"
+									onClick={() => {
+										setShowWebhookUrl((v) => !v);
+									}}
+								>
+									{showWebhookUrl ? (
+										<EyeIcon className="h-4 w-4 cursor-pointer text-muted-foreground" />
+									) : (
+										<EyeOffIcon className="h-4 w-4 cursor-pointer text-muted-foreground" />
+									)}
+								</Button>
 								{(type === "application" || type === "compose") && (
 									<RefreshToken id={id} type={type} />
 								)}
