@@ -94,5 +94,6 @@ export const processDeploymentJob = async (job: InMemoryJob) => {
 		}
 	} catch (error) {
 		console.log("Error", error);
+		throw error;
 	}
 };

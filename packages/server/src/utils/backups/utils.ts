@@ -10,7 +10,6 @@ import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
-import { redactRcloneCredentials } from "./redact";
 import { runWebServerBackup } from "./web-server";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
@@ -268,8 +267,8 @@ export const getBackupCommand = (
 	logger.info(
 		{
 			containerSearch,
-			backupCommand,
-			rcloneCommand: redactRcloneCredentials(rcloneCommand),
+			backupCommand: backupCommand ? "[redacted command]" : null,
+			rcloneCommand: rcloneCommand ? "[redacted command]" : null,
 			logPath,
 		},
 		`Executing backup command: ${backup.databaseType} ${backup.backupType}`,
