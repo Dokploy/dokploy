@@ -80,9 +80,10 @@ export const checkPermission = async (
 	const { id: userId } = ctx.user;
 	const { activeOrganizationId: organizationId } = ctx.session;
 	const memberRecord = await findMemberByUserId(userId, organizationId);
-	const isStaticRole = memberRecord.role in staticRoles;
 
-	if (isStaticRole) {
+	const isPrivilegedStaticRole =
+		memberRecord.role === "owner" || memberRecord.role === "admin";
+	if (isPrivilegedStaticRole) {
 		const allEnterprise = Object.keys(permissions).every((r) =>
 			enterpriseOnlyResources.has(r),
 		);
