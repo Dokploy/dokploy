@@ -2,13 +2,13 @@ import { normalizeTrustedOrigin } from "@dokploy/server";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { member, ssoProvider, user } from "@dokploy/server/db/schema";
-import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { ssoProviderBodySchema } from "@dokploy/server/db/schema/sso";
 import {
 	getOrganizationOwnerId,
 	requestToHeaders,
 } from "@dokploy/server/index";
 import { auth } from "@dokploy/server/lib/auth";
+import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
