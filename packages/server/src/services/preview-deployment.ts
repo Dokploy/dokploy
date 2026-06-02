@@ -198,15 +198,58 @@ export const createPreviewDeployment = async (
 		body: `### Dokploy Preview Deployment\n\n${runningComment}`,
 	});
 
-	const previewDeployment = await db
-		.insert(previewDeployments)
-		.values({
-			...schema,
-			appName: appName,
-			pullRequestCommentId: `${issue.data.id}`,
-		})
-		.returning()
-		.then((value) => value[0]);
+	let previewDeployment: PreviewDeployment | undefined;
+
+	try {
+		previewDeployment = await db
+			.insert(previewDeployments)
+			.values({
+				...schema,
+				appName: appName,
+				pullRequestCommentId: `${issue.data.id}`,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!previewDeployment) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error creating the preview deployment",
+			});
+		}
+
+		const newDomain = await createDomain({
+			host: generateDomain,
+			path: application.previewPath,
+			port: application.previewPort,
+			https: application.previewHttps,
+			certificateType: application.previewCertificateType,
+			customCertResolver: application.previewCustomCertResolver,
+			domainType: "preview",
+			previewDeploymentId: previewDeployment.previewDeploymentId,
+		});
+
+		application.appName = appName;
+
+		await manageDomain(application, newDomain);
+
+		await db
+			.update(previewDeployments)
+			.set({
+				domainId: newDomain.domainId,
+			})
+			.where(
+				eq(
+					previewDeployments.previewDeploymentId,
+					previewDeployment.previewDeploymentId,
+				),
+			);
+	} catch (error) {
+		if (previewDeployment?.previewDeploymentId) {
+			await removePreviewDeployment(previewDeployment.previewDeploymentId);
+		}
+		throw error;
+	}
 
 	if (!previewDeployment) {
 		throw new TRPCError({
@@ -214,33 +257,6 @@ export const createPreviewDeployment = async (
 			message: "Error creating the preview deployment",
 		});
 	}
-
-	const newDomain = await createDomain({
-		host: generateDomain,
-		path: application.previewPath,
-		port: application.previewPort,
-		https: application.previewHttps,
-		certificateType: application.previewCertificateType,
-		customCertResolver: application.previewCustomCertResolver,
-		domainType: "preview",
-		previewDeploymentId: previewDeployment.previewDeploymentId,
-	});
-
-	application.appName = appName;
-
-	await manageDomain(application, newDomain);
-
-	await db
-		.update(previewDeployments)
-		.set({
-			domainId: newDomain.domainId,
-		})
-		.where(
-			eq(
-				previewDeployments.previewDeploymentId,
-				previewDeployment.previewDeploymentId,
-			),
-		);
 
 	return previewDeployment;
 };

@@ -96,6 +96,7 @@ const createDeploymentWorker = () =>
 				}
 			} catch (error) {
 				console.log("Error", error);
+				throw error;
 			}
 		},
 		{

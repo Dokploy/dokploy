@@ -10,6 +10,7 @@ import {
 	IS_CLOUD,
 	removePreviewDeployment,
 	shouldDeploy,
+	updatePreviewDeployment,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { Webhooks } from "@octokit/webhooks";
@@ -511,48 +512,95 @@ export default async function handler(
 				}
 				const previewDeploymentResult =
 					await findPreviewDeploymentByApplicationId(app.applicationId, prId);
+				let createdPreviewDeploymentId = "";
 
 				let previewDeploymentId =
 					previewDeploymentResult?.previewDeploymentId || "";
 
-				if (!previewDeploymentResult && shouldCreateDeployment) {
-					const previewDeployment = await createPreviewDeployment({
-						applicationId: app.applicationId as string,
-						branch: prBranch,
-						pullRequestId: prId,
-						pullRequestNumber: prNumber,
-						pullRequestTitle: prTitle,
-						pullRequestURL: prURL,
-					});
-					previewDeploymentId = previewDeployment.previewDeploymentId;
-				}
-
-				const jobData: DeploymentJob = {
-					applicationId: app.applicationId as string,
-					titleLog: "Preview Deployment",
-					descriptionLog: `Hash: ${deploymentHash}`,
-					type: "deploy",
-					applicationType: "application-preview",
-					server: !!app.serverId,
-					previewDeploymentId,
-				};
-
-				if (previewDeploymentId) {
-					if (IS_CLOUD && app.serverId) {
-						jobData.serverId = app.serverId;
-						deploy(jobData).catch((error) => {
-							console.error("Background deployment failed:", error);
+				try {
+					if (!previewDeploymentResult && shouldCreateDeployment) {
+						const previewDeployment = await createPreviewDeployment({
+							applicationId: app.applicationId as string,
+							branch: prBranch,
+							pullRequestId: prId,
+							pullRequestNumber: prNumber,
+							pullRequestTitle: prTitle,
+							pullRequestURL: prURL,
 						});
-						continue;
+						previewDeploymentId = previewDeployment.previewDeploymentId;
+						createdPreviewDeploymentId = previewDeployment.previewDeploymentId;
 					}
-					await myQueue.add(
-						"deployments",
-						{ ...jobData },
-						{
-							removeOnComplete: true,
-							removeOnFail: true,
-						},
-					);
+
+					const jobData: DeploymentJob = {
+						applicationId: app.applicationId as string,
+						titleLog: "Preview Deployment",
+						descriptionLog: `Hash: ${deploymentHash}`,
+						type: "deploy",
+						applicationType: "application-preview",
+						server: !!app.serverId,
+						previewDeploymentId,
+					};
+
+					if (previewDeploymentId) {
+						if (IS_CLOUD && app.serverId) {
+							jobData.serverId = app.serverId;
+							await updatePreviewDeployment(previewDeploymentId, {
+								previewStatus: "running",
+							});
+							deploy(jobData).catch(async (error) => {
+								await updatePreviewDeployment(previewDeploymentId, {
+									previewStatus: "error",
+								}).catch((updateError) => {
+									console.error(
+										"Failed to mark background preview deployment as errored",
+										updateError,
+									);
+								});
+								console.error("Background deployment failed:", error);
+							});
+							continue;
+						}
+						const job = await myQueue.add(
+							"deployments",
+							{ ...jobData },
+							{
+								removeOnComplete: true,
+								removeOnFail: true,
+							},
+						);
+						await updatePreviewDeployment(previewDeploymentId, {
+							previewStatus: "running",
+						});
+						console.log("Queued preview deployment job", {
+							jobId: job.id,
+							action,
+							applicationId: app.applicationId,
+							previewDeploymentId,
+							pullRequestId: prId,
+							type: jobData.type,
+						});
+					}
+				} catch (error) {
+					console.error("Failed to create or queue preview deployment", {
+						action,
+						applicationId: app.applicationId,
+						previewDeploymentId,
+						pullRequestId: prId,
+						error,
+					});
+					if (previewDeploymentId) {
+						await updatePreviewDeployment(previewDeploymentId, {
+							previewStatus: "error",
+						}).catch((updateError) => {
+							console.error(
+								"Failed to mark preview deployment as errored",
+								updateError,
+							);
+						});
+					}
+					if (createdPreviewDeploymentId) {
+						await removePreviewDeployment(createdPreviewDeploymentId);
+					}
 				}
 			}
 			return res.status(200).json({ message: "Apps Deployed" });
