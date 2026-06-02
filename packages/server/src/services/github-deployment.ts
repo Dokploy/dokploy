@@ -1,5 +1,5 @@
-import { findGithubById } from "./github";
 import { authGithub } from "../utils/providers/github";
+import { findGithubById } from "./github";
 
 export type GithubDeploymentState =
 	| "queued"
