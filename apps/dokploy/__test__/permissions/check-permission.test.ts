@@ -58,7 +58,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 });
 
-describe("static roles bypass enterprise resources", () => {
+describe("owner and admin bypass enterprise resources", () => {
 	it("owner bypasses deployment.read", async () => {
 		memberToReturn = mockMemberData("owner");
 		await expect(
@@ -73,15 +73,8 @@ describe("static roles bypass enterprise resources", () => {
 		).resolves.toBeUndefined();
 	});
 
-	it("member bypasses schedule.delete", async () => {
-		memberToReturn = mockMemberData("member");
-		await expect(
-			checkPermission(ctx, { schedule: ["delete"] }),
-		).resolves.toBeUndefined();
-	});
-
-	it("member bypasses multiple enterprise permissions at once", async () => {
-		memberToReturn = mockMemberData("member");
+	it("owner bypasses multiple enterprise permissions at once", async () => {
+		memberToReturn = mockMemberData("owner");
 		await expect(
 			checkPermission(ctx, {
 				deployment: ["read"],
@@ -89,6 +82,57 @@ describe("static roles bypass enterprise resources", () => {
 				domain: ["delete"],
 			}),
 		).resolves.toBeUndefined();
+	});
+});
+
+describe("member is denied org-level enterprise resources (CVE: bypass via staticRoles)", () => {
+	it("member is denied registry.read", async () => {
+		memberToReturn = mockMemberData("member");
+		await expect(
+			checkPermission(ctx, { registry: ["read"] }),
+		).rejects.toThrow();
+	});
+
+	it("member is denied certificate.read", async () => {
+		memberToReturn = mockMemberData("member");
+		await expect(
+			checkPermission(ctx, { certificate: ["read"] }),
+		).rejects.toThrow();
+	});
+
+	it("member is denied destination.read", async () => {
+		memberToReturn = mockMemberData("member");
+		await expect(
+			checkPermission(ctx, { destination: ["read"] }),
+		).rejects.toThrow();
+	});
+
+	it("member is denied notification.read", async () => {
+		memberToReturn = mockMemberData("member");
+		await expect(
+			checkPermission(ctx, { notification: ["read"] }),
+		).rejects.toThrow();
+	});
+
+	it("member is denied auditLog.read", async () => {
+		memberToReturn = mockMemberData("member");
+		await expect(
+			checkPermission(ctx, { auditLog: ["read"] }),
+		).rejects.toThrow();
+	});
+
+	it("member is denied server.read", async () => {
+		memberToReturn = mockMemberData("member");
+		await expect(
+			checkPermission(ctx, { server: ["read"] }),
+		).rejects.toThrow();
+	});
+
+	it("member is denied registry.create", async () => {
+		memberToReturn = mockMemberData("member");
+		await expect(
+			checkPermission(ctx, { registry: ["create"] }),
+		).rejects.toThrow();
 	});
 });
 
