@@ -35,7 +35,7 @@ export const restoreMongoBackup = async (
 
 		emit("Starting restore...");
 
-		emit(`Executing command: ${command}`);
+		emit("Executing restore command...");
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);

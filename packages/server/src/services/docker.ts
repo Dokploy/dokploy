@@ -174,7 +174,6 @@ export const getStackContainersByAppName = async (
 
 		const command = `docker stack ps ${appName} --no-trunc --format 'CONTAINER ID : {{.ID}} | Name: {{.Name}} | State: {{.DesiredState}} | Node: {{.Node}} | CurrentState: {{.CurrentState}} | Error: {{.Error}}'`;
 
-		console.log("command	", command);
 		if (serverId) {
 			const { stdout, stderr } = await execAsyncRemote(serverId, command);
 
