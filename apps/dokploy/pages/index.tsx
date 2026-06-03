@@ -6,6 +6,7 @@ import {
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
+import { KeyRound } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -63,6 +64,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const { data: showSignInWithSSO } = api.sso.showSignInWithSSO.useQuery();
 	const [isLoginLoading, setIsLoginLoading] = useState(false);
+	const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
 	const [isTwoFactorLoading, setIsTwoFactorLoading] = useState(false);
 	const [isBackupCodeLoading, setIsBackupCodeLoading] = useState(false);
 	const [isTwoFactor, setIsTwoFactor] = useState(false);
@@ -77,6 +79,34 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 			password: "",
 		},
 	});
+
+	const onPasskeySignIn = async () => {
+		setIsPasskeyLoading(true);
+		setError(null);
+		try {
+			const { data, error } = await authClient.signIn.passkey();
+
+			if (error) {
+				toast.error(error.message);
+				setError(error.message || "Passkey sign-in failed");
+				return;
+			}
+
+			if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
+				setTwoFactorCode("");
+				setIsTwoFactor(true);
+				toast.info("Please enter your 2FA code");
+				return;
+			}
+
+			toast.success("Logged in successfully");
+			router.push("/dashboard/home");
+		} catch {
+			toast.error("An error occurred while signing in with passkey");
+		} finally {
+			setIsPasskeyLoading(false);
+		}
+	};
 
 	const onSubmit = async (values: LoginForm) => {
 		setIsLoginLoading(true);
@@ -180,6 +210,16 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 		<>
 			{IS_CLOUD && <SignInWithGithub />}
 			{IS_CLOUD && <SignInWithGoogle />}
+			<Button
+				type="button"
+				variant="outline"
+				className="w-full"
+				onClick={onPasskeySignIn}
+				isLoading={isPasskeyLoading}
+			>
+				<KeyRound className="size-4 mr-2" />
+				Sign in with passkey
+			</Button>
 			<Form {...loginForm}>
 				<form
 					onSubmit={loginForm.handleSubmit(onSubmit)}

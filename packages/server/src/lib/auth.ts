@@ -1,5 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import { apiKey } from "@better-auth/api-key";
+import { passkey } from "@better-auth/passkey";
 import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
@@ -28,6 +29,9 @@ import {
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 import { betterAuthSecret } from "./auth-secret";
+import { resolvePasskeyRpConfig } from "./passkey-rp";
+
+const passkeyRp = resolvePasskeyRpConfig();
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -400,6 +404,11 @@ const { handler, api } = betterAuth({
 		}),
 		sso(),
 		twoFactor(),
+		passkey({
+			rpID: passkeyRp.rpID,
+			rpName: passkeyRp.rpName,
+			origin: passkeyRp.origin,
+		}),
 		organization({
 			ac,
 			roles: {

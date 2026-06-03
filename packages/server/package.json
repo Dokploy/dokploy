@@ -38,6 +38,7 @@
     "@ai-sdk/openai": "^3.0.29",
     "@ai-sdk/openai-compatible": "^2.0.30",
     "@better-auth/api-key": "1.5.4",
+    "@better-auth/passkey": "1.5.4",
     "@better-auth/sso": "1.5.4",
     "@better-auth/utils": "0.3.1",
     "@faker-js/faker": "^8.4.1",
