@@ -5,7 +5,11 @@ import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError } from "better-auth/api";
+import {
+	APIError,
+	createAuthMiddleware,
+	isAPIError,
+} from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
@@ -31,7 +35,62 @@ import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 import { betterAuthSecret } from "./auth-secret";
 import { resolvePasskeyRpConfig } from "./passkey-rp";
 
-const passkeyRp = resolvePasskeyRpConfig();
+const passkeyRp = await resolvePasskeyRpConfig();
+
+type PasskeyAuditSnapshot = { id: string; name?: string | null };
+
+const resolveMemberForPasskeyAudit = async (
+	userId: string,
+	activeOrganizationId?: string | null,
+) => {
+	const memberRecord = await db.query.member.findFirst({
+		where: and(
+			eq(schema.member.userId, userId),
+			...(activeOrganizationId
+				? [eq(schema.member.organizationId, activeOrganizationId)]
+				: []),
+		),
+		...(!activeOrganizationId
+			? {
+					orderBy: [
+						desc(schema.member.isDefault),
+						desc(schema.member.createdAt),
+					],
+				}
+			: {}),
+		with: { user: true },
+	});
+	if (!memberRecord) return null;
+	return {
+		organizationId: memberRecord.organizationId,
+		userId,
+		userEmail: memberRecord.user.email,
+		userRole: memberRecord.role,
+	};
+};
+
+const auditPasskeyEvent = async (
+	userId: string,
+	activeOrganizationId: string | null | undefined,
+	action: "create" | "delete",
+	passkey: PasskeyAuditSnapshot,
+) => {
+	const member = await resolveMemberForPasskeyAudit(
+		userId,
+		activeOrganizationId,
+	);
+	if (!member) return;
+	await createAuditLog({
+		organizationId: member.organizationId,
+		userId: member.userId,
+		userEmail: member.userEmail,
+		userRole: member.userRole,
+		action,
+		resourceType: "passkey",
+		resourceId: passkey.id,
+		resourceName: passkey.name ?? undefined,
+	});
+};
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -353,6 +412,65 @@ const { handler, api } = betterAuth({
 				},
 			},
 		},
+	},
+	hooks: {
+		before: createAuthMiddleware(async (ctx) => {
+			if (ctx.path !== "/passkey/delete-passkey") return;
+			const id = (ctx.body as { id?: string } | undefined)?.id;
+			if (!id) return;
+			const record = await db.query.passkey.findFirst({
+				where: eq(schema.passkey.id, id),
+			});
+			if (!record) return;
+			(
+				ctx.context as typeof ctx.context & {
+					passkeyAuditSnapshot?: PasskeyAuditSnapshot;
+				}
+			).passkeyAuditSnapshot = {
+				id: record.id,
+				name: record.name,
+			};
+		}),
+		after: createAuthMiddleware(async (ctx) => {
+			if (isAPIError(ctx.context.returned)) return;
+
+			const session = ctx.context.session;
+			const activeOrganizationId = session?.session?.activeOrganizationId;
+
+			if (ctx.path === "/passkey/verify-registration") {
+				const passkey = ctx.context.returned as
+					| PasskeyAuditSnapshot
+					| undefined;
+				if (!passkey?.id) return;
+				if (!session?.user?.id) return;
+				await auditPasskeyEvent(
+					session.user.id,
+					activeOrganizationId,
+					"create",
+					passkey,
+				);
+				return;
+			}
+
+			if (ctx.path === "/passkey/delete-passkey") {
+				const result = ctx.context.returned as { status?: boolean } | undefined;
+				if (!result?.status) return;
+				const snapshot = (
+					ctx.context as typeof ctx.context & {
+						passkeyAuditSnapshot?: PasskeyAuditSnapshot;
+					}
+				).passkeyAuditSnapshot;
+				const id =
+					snapshot?.id ?? (ctx.body as { id?: string } | undefined)?.id;
+				if (!id || !session?.user?.id) return;
+				await auditPasskeyEvent(
+					session.user.id,
+					activeOrganizationId,
+					"delete",
+					{ id, name: snapshot?.name },
+				);
+			}
+		}),
 	},
 	session: {
 		expiresIn: 60 * 60 * 24 * 3,

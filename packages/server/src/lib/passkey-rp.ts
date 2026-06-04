@@ -1,4 +1,5 @@
 import { IS_CLOUD } from "../constants";
+import { getWebServerSettings } from "../services/web-server-settings";
 
 export type PasskeyRpConfig = {
 	rpID: string;
@@ -6,21 +7,36 @@ export type PasskeyRpConfig = {
 	origin: string;
 };
 
-/**
- * Resolves WebAuthn RP ID and origin for the passkey plugin at init time.
- * Mirrors {@link getDokployUrl} when `BETTER_AUTH_URL` is set to the public Dokploy URL.
- * Self-hosted installs should set `BETTER_AUTH_URL` (e.g. `https://dokploy.example.com`)
- * so rpID/origin match the browser origin users sign in from.
- */
-export const resolvePasskeyRpConfig = (): PasskeyRpConfig => {
-	const rpName = "Dokploy";
+const RP_NAME = "Dokploy";
 
+/**
+ * Builds WebAuthn RP config from a public Dokploy URL (no trailing slash).
+ * Mirrors hostname → rpID rules used by {@link getDokployUrl}.
+ */
+export const passkeyRpFromOrigin = (origin: string): PasskeyRpConfig => {
+	const normalized = origin.replace(/\/$/, "");
+	const { hostname } = new URL(normalized);
+	return {
+		rpID: hostname === "localhost" ? "localhost" : hostname,
+		rpName: RP_NAME,
+		origin: normalized,
+	};
+};
+
+const localhostFallback = (): PasskeyRpConfig => {
+	const port = process.env.PORT ?? "3000";
+	return passkeyRpFromOrigin(`http://localhost:${port}`);
+};
+
+/**
+ * Resolves passkey RP from env / cloud / dev only (no DB).
+ * Returns `null` when self-hosted production should read web server settings.
+ *
+ * Operator guide: `plans/passkey-auth.md`
+ */
+export const resolvePasskeyRpConfigFromEnv = (): PasskeyRpConfig | null => {
 	if (IS_CLOUD) {
-		return {
-			rpID: "app.dokploy.com",
-			rpName,
-			origin: "https://app.dokploy.com",
-		};
+		return passkeyRpFromOrigin("https://app.dokploy.com");
 	}
 
 	const configuredUrl =
@@ -29,25 +45,48 @@ export const resolvePasskeyRpConfig = (): PasskeyRpConfig => {
 		"";
 
 	if (configuredUrl) {
-		const origin = configuredUrl.replace(/\/$/, "");
-		const hostname = new URL(origin).hostname;
-		const rpID = hostname === "localhost" ? "localhost" : hostname;
-		return { rpID, rpName, origin };
+		return passkeyRpFromOrigin(configuredUrl);
 	}
 
 	if (process.env.NODE_ENV === "development") {
-		const port = process.env.PORT ?? "3000";
-		return {
-			rpID: "localhost",
-			rpName,
-			origin: `http://localhost:${port}`,
-		};
+		return localhostFallback();
 	}
 
-	const port = process.env.PORT ?? "3000";
-	return {
-		rpID: "localhost",
-		rpName,
-		origin: `http://localhost:${port}`,
-	};
+	return null;
+};
+
+/**
+ * Resolves WebAuthn RP ID and origin for the passkey plugin at init time.
+ *
+ * Priority: cloud hardcode → `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` → dev
+ * localhost → web server settings (`host` + `https`, else `serverIp` + PORT) →
+ * localhost fallback.
+ *
+ * `@better-auth/passkey` only accepts static `rpID` / `origin`; values are loaded
+ * once when `auth.ts` initializes (restart required after host changes).
+ */
+export const resolvePasskeyRpConfig = async (): Promise<PasskeyRpConfig> => {
+	const fromEnv = resolvePasskeyRpConfigFromEnv();
+	if (fromEnv) {
+		return fromEnv;
+	}
+
+	try {
+		const settings = await getWebServerSettings();
+		if (settings?.host) {
+			const protocol = settings.https ? "https" : "http";
+			return passkeyRpFromOrigin(`${protocol}://${settings.host}`);
+		}
+		if (settings?.serverIp) {
+			const port = process.env.PORT ?? "3000";
+			return passkeyRpFromOrigin(`http://${settings.serverIp}:${port}`);
+		}
+	} catch (error) {
+		console.error(
+			"Failed to load web server settings for passkey RP config:",
+			error,
+		);
+	}
+
+	return localhostFallback();
 };

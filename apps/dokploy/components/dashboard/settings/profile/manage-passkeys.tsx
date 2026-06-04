@@ -137,6 +137,11 @@ export const ManagePasskeys = () => {
 						</DialogDescription>
 					</DialogHeader>
 
+					<p className="text-xs text-muted-foreground">
+						Passkeys require HTTPS in production and must be registered on the
+						same site URL you use to sign in.
+					</p>
+
 					<div className="space-y-4">
 						{isLoading ? (
 							<p className="text-sm text-muted-foreground">Loading passkeys…</p>
