@@ -5,6 +5,7 @@ import {
 	extractImageTag,
 	extractImageTagFromRequest,
 } from "@/pages/api/deploy/[refreshToken]";
+import { shouldDeployPreviewDeployment } from "@/pages/api/deploy/github";
 
 describe("GitHub Webhook Skip CI", () => {
 	const mockGithubHeaders = {
@@ -434,5 +435,44 @@ describe("Docker Image Name and Tag Extraction", () => {
 				"sha-abc123",
 			);
 		});
+	});
+});
+
+describe("Preview Deployment duplicate prevention", () => {
+	// GitHub fires `opened` + `labeled` together when a PR is opened with a label.
+	// `opened` creates and deploys the preview; `labeled` must not deploy it again.
+	it("deploys on code-changing pull_request events", () => {
+		for (const action of ["opened", "synchronize", "reopened"]) {
+			expect(
+				shouldDeployPreviewDeployment({
+					action,
+					createdPreviewDeployment: false,
+				}),
+			).toBe(true);
+		}
+	});
+
+	it("does NOT redeploy an existing preview on label events", () => {
+		// This is the duplicate that regressed: a label change on a PR that
+		// already has a preview must not trigger a second deployment.
+		for (const action of ["labeled", "unlabeled"]) {
+			expect(
+				shouldDeployPreviewDeployment({
+					action,
+					createdPreviewDeployment: false,
+				}),
+			).toBe(false);
+		}
+	});
+
+	it("deploys on a label event only when it just created the preview", () => {
+		// Adding the required label to an already-open PR should still spin up the
+		// preview that did not exist yet.
+		expect(
+			shouldDeployPreviewDeployment({
+				action: "labeled",
+				createdPreviewDeployment: true,
+			}),
+		).toBe(true);
 	});
 });

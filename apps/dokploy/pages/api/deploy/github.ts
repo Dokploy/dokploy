@@ -23,6 +23,28 @@ import {
 	logWebhookError,
 } from "./[refreshToken]";
 
+/**
+ * Decides whether a `pull_request` webhook should (re)deploy a preview.
+ *
+ * Code-changing events (`opened`, `synchronize`, `reopened`) always deploy.
+ * Label events (`labeled`, `unlabeled`) only deploy when they just created a
+ * preview that was missing — they must never redeploy an existing one.
+ *
+ * Without this, opening a PR that already has a label deploys twice: GitHub
+ * fires `opened` and `labeled` together, and both used to trigger a deployment.
+ */
+export const shouldDeployPreviewDeployment = ({
+	action,
+	createdPreviewDeployment,
+}: {
+	action: string | undefined;
+	createdPreviewDeployment: boolean;
+}) => {
+	const isCodeEvent =
+		action === "opened" || action === "synchronize" || action === "reopened";
+	return isCodeEvent || createdPreviewDeployment;
+};
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
@@ -488,6 +510,7 @@ export default async function handler(
 
 				let previewDeploymentId =
 					previewDeploymentResult?.previewDeploymentId || "";
+				let createdPreviewDeployment = false;
 
 				if (!previewDeploymentResult && shouldCreateDeployment) {
 					const previewDeployment = await createPreviewDeployment({
@@ -499,6 +522,7 @@ export default async function handler(
 						pullRequestURL: prURL,
 					});
 					previewDeploymentId = previewDeployment.previewDeploymentId;
+					createdPreviewDeployment = true;
 				}
 
 				const jobData: DeploymentJob = {
@@ -511,7 +535,10 @@ export default async function handler(
 					previewDeploymentId,
 				};
 
-				if (previewDeploymentId) {
+				if (
+					previewDeploymentId &&
+					shouldDeployPreviewDeployment({ action, createdPreviewDeployment })
+				) {
 					if (IS_CLOUD && app.serverId) {
 						jobData.serverId = app.serverId;
 						deploy(jobData).catch((error) => {

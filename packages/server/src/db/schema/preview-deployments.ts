@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text } from "drizzle-orm/pg-core";
+import { pgTable, text, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -9,35 +9,45 @@ import { domains } from "./domain";
 import { applicationStatus } from "./shared";
 import { generateAppName } from "./utils";
 
-export const previewDeployments = pgTable("preview_deployments", {
-	previewDeploymentId: text("previewDeploymentId")
-		.notNull()
-		.primaryKey()
-		.$defaultFn(() => nanoid()),
-	branch: text("branch").notNull(),
-	pullRequestId: text("pullRequestId").notNull(),
-	pullRequestNumber: text("pullRequestNumber").notNull(),
-	pullRequestURL: text("pullRequestURL").notNull(),
-	pullRequestTitle: text("pullRequestTitle").notNull(),
-	pullRequestCommentId: text("pullRequestCommentId").notNull(),
-	previewStatus: applicationStatus("previewStatus").notNull().default("idle"),
-	appName: text("appName")
-		.notNull()
-		.$defaultFn(() => generateAppName("preview"))
-		.unique(),
-	applicationId: text("applicationId")
-		.notNull()
-		.references(() => applications.applicationId, {
+export const previewDeployments = pgTable(
+	"preview_deployments",
+	{
+		previewDeploymentId: text("previewDeploymentId")
+			.notNull()
+			.primaryKey()
+			.$defaultFn(() => nanoid()),
+		branch: text("branch").notNull(),
+		pullRequestId: text("pullRequestId").notNull(),
+		pullRequestNumber: text("pullRequestNumber").notNull(),
+		pullRequestURL: text("pullRequestURL").notNull(),
+		pullRequestTitle: text("pullRequestTitle").notNull(),
+		pullRequestCommentId: text("pullRequestCommentId").notNull(),
+		previewStatus: applicationStatus("previewStatus").notNull().default("idle"),
+		appName: text("appName")
+			.notNull()
+			.$defaultFn(() => generateAppName("preview"))
+			.unique(),
+		applicationId: text("applicationId")
+			.notNull()
+			.references(() => applications.applicationId, {
+				onDelete: "cascade",
+			}),
+		domainId: text("domainId").references(() => domains.domainId, {
 			onDelete: "cascade",
 		}),
-	domainId: text("domainId").references(() => domains.domainId, {
-		onDelete: "cascade",
+		createdAt: text("createdAt")
+			.notNull()
+			.$defaultFn(() => new Date().toISOString()),
+		expiresAt: text("expiresAt"),
+	},
+	// A pull request can only have a single preview deployment per application.
+	// This unique constraint serializes the concurrent webhooks GitHub fires when
+	// a PR is opened with a label (`opened` + `labeled`), preventing duplicate
+	// preview deployments for the same PR.
+	(t) => ({
+		unqApplicationPullRequest: unique().on(t.applicationId, t.pullRequestId),
 	}),
-	createdAt: text("createdAt")
-		.notNull()
-		.$defaultFn(() => new Date().toISOString()),
-	expiresAt: text("expiresAt"),
-});
+);
 
 export const previewDeploymentsRelations = relations(
 	previewDeployments,

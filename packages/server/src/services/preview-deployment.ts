@@ -132,6 +132,44 @@ export const createPreviewDeployment = async (
 	const application = await findApplicationById(schema.applicationId);
 	const appName = `preview-${application.appName}-${generatePassword(6)}`;
 
+	// Insert the row first so the unique (applicationId, pullRequestId) constraint
+	// serializes the concurrent webhooks GitHub fires when a PR is opened with a
+	// label (`opened` + `labeled`). Whoever wins the insert performs the expensive
+	// side effects (GitHub comment, domain); the loser short-circuits and returns
+	// the already-created preview deployment instead of creating a duplicate.
+	const previewDeployment = await db
+		.insert(previewDeployments)
+		.values({
+			...schema,
+			appName: appName,
+			// Filled in below once the GitHub comment is created.
+			pullRequestCommentId: "",
+		})
+		.onConflictDoNothing({
+			target: [
+				previewDeployments.applicationId,
+				previewDeployments.pullRequestId,
+			],
+		})
+		.returning()
+		.then((value) => value[0]);
+
+	// Lost the race: a concurrent webhook already created the preview deployment
+	// for this pull request. Return the existing one without duplicating any work.
+	if (!previewDeployment) {
+		const existing = await findPreviewDeploymentByApplicationId(
+			schema.applicationId,
+			schema.pullRequestId,
+		);
+		if (!existing) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error creating the preview deployment",
+			});
+		}
+		return existing;
+	}
+
 	const org = await db.query.organization.findFirst({
 		where: eq(organization.id, application.environment.project.organizationId),
 	});
@@ -157,23 +195,6 @@ export const createPreviewDeployment = async (
 		body: `### Dokploy Preview Deployment\n\n${runningComment}`,
 	});
 
-	const previewDeployment = await db
-		.insert(previewDeployments)
-		.values({
-			...schema,
-			appName: appName,
-			pullRequestCommentId: `${issue.data.id}`,
-		})
-		.returning()
-		.then((value) => value[0]);
-
-	if (!previewDeployment) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Error creating the preview deployment",
-		});
-	}
-
 	const newDomain = await createDomain({
 		host: generateDomain,
 		path: application.previewPath,
@@ -193,6 +214,7 @@ export const createPreviewDeployment = async (
 		.update(previewDeployments)
 		.set({
 			domainId: newDomain.domainId,
+			pullRequestCommentId: `${issue.data.id}`,
 		})
 		.where(
 			eq(
