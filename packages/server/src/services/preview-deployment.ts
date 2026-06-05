@@ -132,6 +132,39 @@ export const createPreviewDeployment = async (
 	const application = await findApplicationById(schema.applicationId);
 	const appName = `preview-${application.appName}-${generatePassword(6)}`;
 
+	// Insert first so the unique (applicationId, pullRequestId) constraint
+	// serializes concurrent webhooks (opened + labeled); the winner does the side
+	// effects below, the loser returns the existing preview without duplicating.
+	const previewDeployment = await db
+		.insert(previewDeployments)
+		.values({
+			...schema,
+			appName: appName,
+			pullRequestCommentId: "",
+		})
+		.onConflictDoNothing({
+			target: [
+				previewDeployments.applicationId,
+				previewDeployments.pullRequestId,
+			],
+		})
+		.returning()
+		.then((value) => value[0]);
+
+	if (!previewDeployment) {
+		const existing = await findPreviewDeploymentByApplicationId(
+			schema.applicationId,
+			schema.pullRequestId,
+		);
+		if (!existing) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error creating the preview deployment",
+			});
+		}
+		return existing;
+	}
+
 	const org = await db.query.organization.findFirst({
 		where: eq(organization.id, application.environment.project.organizationId),
 	});
@@ -157,23 +190,6 @@ export const createPreviewDeployment = async (
 		body: `### Dokploy Preview Deployment\n\n${runningComment}`,
 	});
 
-	const previewDeployment = await db
-		.insert(previewDeployments)
-		.values({
-			...schema,
-			appName: appName,
-			pullRequestCommentId: `${issue.data.id}`,
-		})
-		.returning()
-		.then((value) => value[0]);
-
-	if (!previewDeployment) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Error creating the preview deployment",
-		});
-	}
-
 	const newDomain = await createDomain({
 		host: generateDomain,
 		path: application.previewPath,
@@ -193,6 +209,7 @@ export const createPreviewDeployment = async (
 		.update(previewDeployments)
 		.set({
 			domainId: newDomain.domainId,
+			pullRequestCommentId: `${issue.data.id}`,
 		})
 		.where(
 			eq(
