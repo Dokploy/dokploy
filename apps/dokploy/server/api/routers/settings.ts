@@ -36,7 +36,6 @@ import {
 	reloadDockerResource,
 	sendDockerCleanupNotifications,
 	setupGPUSupport,
-	spawnAsync,
 	startLogCleanup,
 	stopLogCleanup,
 	updateLetsEncryptEmail,
@@ -93,7 +92,7 @@ export const settingsRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			return true;
 		}
-		await reloadDockerResource("dokploy", undefined, packageInfo.version);
+		await reloadDockerResource("dokploy");
 		await audit(ctx, {
 			action: "reload",
 			resourceType: "settings",
@@ -526,14 +525,11 @@ export const settingsRouter = createTRPCRouter({
 
 		const data = await getUpdateData(packageInfo.version);
 		if (data.updateAvailable && data.latestVersion) {
-			void spawnAsync("docker", [
-				"service",
-				"update",
-				"--force",
-				"--image",
-				"ghcr.io/bl4ckbl1zz/dokploy:latest",
-				"dokploy",
-			]);
+			void reloadDockerResource("dokploy", undefined, data.latestVersion).catch(
+				(err) => {
+					console.error("updateServer background:", err);
+				},
+			);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "settings",

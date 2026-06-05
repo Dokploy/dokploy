@@ -16,6 +16,8 @@
 
 The codebase distinguishes between **self-hosted** and **Dokploy Cloud** via the `IS_CLOUD` env flag. Cloud disables monitoring, schedules, Docker/Swarm management, Traefik FS editor, and adds Stripe billing. All other features (SSO, whitelabeling, custom roles, audit logs, etc.) are available to every install with no licensing gate.
 
+Self-hosted Dokploy updates preserve the currently running `dokploy` Docker image repository so forks keep updating from their own package namespace. Swarm updates for the Dokploy service use `start-first` with rollback to avoid stopping the old task before the replacement is viable.
+
 ### Features
 
 - **Applications**: Deploy Node.js, PHP, Python, Go, Ruby, Java, etc. from Git or Docker images with build logs, rollback, and preview deployments.

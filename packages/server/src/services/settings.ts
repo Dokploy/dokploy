@@ -29,6 +29,88 @@ export const getDokployImageTag = () => {
 	return process.env.RELEASE_TAG || "latest";
 };
 
+const getDockerImageTagSeparatorIndex = (image: string) => {
+	const lastSlashIndex = image.lastIndexOf("/");
+	const lastColonIndex = image.lastIndexOf(":");
+
+	return lastColonIndex > lastSlashIndex ? lastColonIndex : -1;
+};
+
+const stripDockerImageDigest = (image: string) => {
+	return image.trim().split("@")[0] || "";
+};
+
+export const getDockerImageRepository = (image: string) => {
+	const imageWithoutDigest = stripDockerImageDigest(image);
+	const tagSeparatorIndex = getDockerImageTagSeparatorIndex(imageWithoutDigest);
+
+	if (tagSeparatorIndex === -1) {
+		return imageWithoutDigest;
+	}
+
+	return imageWithoutDigest.slice(0, tagSeparatorIndex);
+};
+
+export const getDockerImageTagFromReference = (image: string) => {
+	const imageWithoutDigest = stripDockerImageDigest(image);
+	const tagSeparatorIndex = getDockerImageTagSeparatorIndex(imageWithoutDigest);
+
+	if (tagSeparatorIndex === -1) {
+		return "latest";
+	}
+
+	return imageWithoutDigest.slice(tagSeparatorIndex + 1) || "latest";
+};
+
+export const getDokployTargetImageTag = (
+	targetVersion?: string | null,
+	releaseTag = getDokployImageTag(),
+) => {
+	if (releaseTag === "canary" || releaseTag === "feature") {
+		return releaseTag;
+	}
+
+	return semver.clean(targetVersion ?? "") ?? "latest";
+};
+
+export const resolveDokployUpdateImage = (
+	currentImage: string,
+	targetVersion?: string | null,
+	releaseTag = getDokployImageTag(),
+) => {
+	const imageRepository = getDockerImageRepository(currentImage);
+
+	if (!imageRepository) {
+		throw new Error("Could not resolve current Dokploy image repository");
+	}
+
+	return `${imageRepository}:${getDokployTargetImageTag(targetVersion, releaseTag)}`;
+};
+
+export const buildDokployServiceUpdateCommand = (
+	resourceName: string,
+	currentImage: string,
+	targetVersion?: string | null,
+	releaseTag = getDokployImageTag(),
+) => {
+	const image = resolveDokployUpdateImage(
+		currentImage,
+		targetVersion,
+		releaseTag,
+	);
+
+	return [
+		"docker service update",
+		"--detach=true",
+		"--force",
+		"--with-registry-auth",
+		"--update-order start-first",
+		"--update-failure-action rollback",
+		`--image ${image}`,
+		resourceName,
+	].join(" ");
+};
+
 /** Returns Dokploy docker service image digest */
 export const getServiceImageDigest = async () => {
 	const { stdout } = await execAsync(
@@ -245,19 +327,21 @@ fi`;
 export const reloadDockerResource = async (
 	resourceName: string,
 	serverId?: string,
-	_version?: string,
+	targetVersion?: string | null,
 ) => {
 	const resourceType = await getDockerResourceType(resourceName, serverId);
 	let command = "";
 	if (resourceType === "service") {
 		if (resourceName === "dokploy") {
-			const currentImageTag = getDokployImageTag();
-			let imageTag = "latest";
-			if (currentImageTag === "canary" || currentImageTag === "feature") {
-				imageTag = currentImageTag;
-			}
-
-			command = `docker service update --force --image ghcr.io/bl4ckbl1zz/dokploy:${imageTag} ${resourceName}`;
+			const imageInspectCommand = `docker service inspect ${resourceName} --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'`;
+			const { stdout } = serverId
+				? await execAsyncRemote(serverId, imageInspectCommand)
+				: await execAsync(imageInspectCommand);
+			command = buildDokployServiceUpdateCommand(
+				resourceName,
+				stdout.trim(),
+				targetVersion,
+			);
 		} else {
 			command = `docker service update --force ${resourceName}`;
 		}
