@@ -1,3 +1,10 @@
+## [0.36.1](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.36.0...v0.36.1) (2026-06-05)
+
+
+### Bug Fixes
+
+* preserve fork image during Dokploy updates ([87dcdaf](https://github.com/Bl4ckBl1zZ/dokploy/commit/87dcdafa4bd557ba5610cfbe2b84eb748f8254be))
+
 # [0.36.0](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.35.2...v0.36.0) (2026-05-12)
 
 
