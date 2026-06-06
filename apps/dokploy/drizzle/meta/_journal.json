@@ -1170,48 +1170,6 @@
       "when": 1778303519111,
       "tag": "0166_nosy_slapstick",
       "breakpoints": true
-    },
-    {
-      "idx": 167,
-      "version": "7",
-      "when": 1780122576214,
-      "tag": "0167_fresh_goliath",
-      "breakpoints": true
-    },
-    {
-      "idx": 168,
-      "version": "7",
-      "when": 1780122833339,
-      "tag": "0168_long_justice",
-      "breakpoints": true
-    },
-    {
-      "idx": 169,
-      "version": "7",
-      "when": 1780127552074,
-      "tag": "0169_parched_johnny_storm",
-      "breakpoints": true
-    },
-    {
-      "idx": 170,
-      "version": "7",
-      "when": 1780264266301,
-      "tag": "0170_nostalgic_joshua_kane",
-      "breakpoints": true
-    },
-    {
-      "idx": 171,
-      "version": "7",
-      "when": 1780352857424,
-      "tag": "0171_normal_sleepwalker",
-      "breakpoints": true
-    },
-    {
-      "idx": 172,
-      "version": "7",
-      "when": 1780353694755,
-      "tag": "0172_nice_impossible_man",
-      "breakpoints": true
     }
   ]
 }
