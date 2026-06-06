@@ -1,6 +1,7 @@
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	GENERIC_RCLONE_PROVIDER,
 } from "@dokploy/server/db/validations/destination";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon, PlusIcon, Trash2 } from "lucide-react";
@@ -44,11 +45,11 @@ import { S3_PROVIDERS } from "./constants";
 const addDestination = z.object({
 	name: z.string().min(1, "Name is required"),
 	provider: z.string().min(1, "Provider is required"),
-	accessKeyId: z.string().min(1, "Access Key Id is required"),
-	secretAccessKey: z.string().min(1, "Secret Access Key is required"),
+	accessKeyId: z.string(),
+	secretAccessKey: z.string(),
 	bucket: z.string().min(1, "Bucket is required"),
 	region: z.string(),
-	endpoint: z.string().min(1, "Endpoint is required"),
+	endpoint: z.string(),
 	serverId: z.string().optional(),
 	additionalFlags: z
 		.array(
@@ -60,6 +61,32 @@ const addDestination = z.object({
 			}),
 		)
 		.optional(),
+}).superRefine((data, ctx) => {
+	const isGenericRclone = data.provider === GENERIC_RCLONE_PROVIDER;
+
+	if (!isGenericRclone && !data.accessKeyId.trim()) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["accessKeyId"],
+			message: "Access Key Id is required",
+		});
+	}
+
+	if (!isGenericRclone && !data.secretAccessKey.trim()) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["secretAccessKey"],
+			message: "Secret Access Key is required",
+		});
+	}
+
+	if (!isGenericRclone && !data.endpoint.trim()) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["endpoint"],
+			message: "Endpoint is required",
+		});
+	}
 });
 
 type AddDestination = z.infer<typeof addDestination>;
@@ -107,6 +134,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		},
 		resolver: zodResolver(addDestination),
 	});
+	const selectedProvider = form.watch("provider");
 
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
@@ -196,7 +224,10 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		const endpoint = form.getValues("endpoint");
 		const region = form.getValues("region");
 
-		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
+		const connectionString =
+			provider === GENERIC_RCLONE_PROVIDER
+				? bucket
+				: `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
 
 		await testConnection({
 			provider,
@@ -291,7 +322,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a S3 Provider" />
+														<SelectValue placeholder="Select a provider" />
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
@@ -307,6 +338,13 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 											</Select>
 										</FormControl>
 										<FormMessage />
+										{selectedProvider === GENERIC_RCLONE_PROVIDER && (
+											<p className="text-xs text-muted-foreground">
+												Use a preconfigured rclone remote such as{" "}
+												<code>gdrive:backups</code> or <code>ftp:archives</code>.
+												Leave S3 credentials blank for this mode.
+											</p>
+										)}
 									</FormItem>
 								);
 							}}
@@ -318,7 +356,12 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
+										<FormLabel>
+											Access Key Id
+											{selectedProvider === GENERIC_RCLONE_PROVIDER
+												? " (optional)"
+												: ""}
+										</FormLabel>
 										<FormControl>
 											<Input placeholder={"xcas41dasde"} {...field} />
 										</FormControl>
@@ -333,7 +376,12 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
+										<FormLabel>
+											Secret Access Key
+											{selectedProvider === GENERIC_RCLONE_PROVIDER
+												? " (optional)"
+												: ""}
+										</FormLabel>
 									</div>
 									<FormControl>
 										<Input placeholder={"asd123asdasw"} {...field} />
@@ -348,10 +396,21 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
+										<FormLabel>
+											{selectedProvider === GENERIC_RCLONE_PROVIDER
+												? "Remote path"
+												: "Bucket"}
+										</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
+										<Input
+											placeholder={
+												selectedProvider === GENERIC_RCLONE_PROVIDER
+													? "gdrive:backups"
+													: "dokploy-bucket"
+											}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -377,7 +436,12 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							name="endpoint"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
+									<FormLabel>
+										Endpoint
+										{selectedProvider === GENERIC_RCLONE_PROVIDER
+											? " (optional)"
+											: ""}
+									</FormLabel>
 									<FormControl>
 										<Input
 											placeholder={"https://us.bucket.aws/s3"}
