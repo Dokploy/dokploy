@@ -1,4 +1,3 @@
-import { paths } from "@dokploy/server/constants";
 import { relations, sql } from "drizzle-orm";
 import {
 	boolean,
