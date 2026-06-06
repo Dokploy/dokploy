@@ -148,6 +148,7 @@ const baseDomain: Domain = {
 	internalPath: "/",
 	stripPath: false,
 	middlewares: null,
+	forwardAuthEnabled: false,
 };
 
 const baseRedirect: Redirect = {
