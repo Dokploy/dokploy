@@ -1,0 +1,1 @@
+ALTER TABLE "volume_backup" ADD COLUMN "excludePaths" text DEFAULT '' NOT NULL;

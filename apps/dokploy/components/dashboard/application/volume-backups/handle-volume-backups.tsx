@@ -24,6 +24,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
 	Select,
 	SelectContent,
@@ -75,6 +76,7 @@ const formSchema = z
 		]),
 		serviceName: z.string(),
 		destinationId: z.string().min(1, "Destination required"),
+		excludePaths: z.string().default(""),
 	})
 	.superRefine((data, ctx) => {
 		if (data.serviceType === "compose" && !data.serviceName) {
@@ -129,6 +131,7 @@ export const HandleVolumeBackups = ({
 			enabled: true,
 			serviceName: "",
 			serviceType: volumeBackupType,
+			excludePaths: "",
 		},
 	});
 
@@ -186,6 +189,7 @@ export const HandleVolumeBackups = ({
 				serviceName: volumeBackup.serviceName || "",
 				destinationId: volumeBackup.destinationId,
 				serviceType: volumeBackup.serviceType,
+				excludePaths: volumeBackup.excludePaths || "",
 			});
 			setKeepLatestCountInput(
 				volumeBackup.keepLatestCount !== null &&
@@ -588,6 +592,29 @@ export const HandleVolumeBackups = ({
 									</FormControl>
 									<FormDescription>
 										How many recent backups to keep. Empty means no cleanup.
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={form.control}
+							name="excludePaths"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Excluded Paths</FormLabel>
+									<FormControl>
+										<Textarea
+											placeholder="logs
+cache
+tmp"
+											className="min-h-[100px] font-mono text-xs"
+											{...field}
+										/>
+									</FormControl>
+									<FormDescription>
+										Paths to exclude from backup (one per line, glob patterns supported)
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
