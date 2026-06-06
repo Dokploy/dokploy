@@ -326,19 +326,16 @@ export const assertApplicationDomainAccess = async (
 
 export const enableForwardAuthOnDomain = async (input: {
 	domainId: string;
-	providerId: string;
-	organizationId: string;
 }) => {
 	const { application } = await resolveApplicationDomain(input.domainId);
-	await findProviderForOrg(input.providerId, input.organizationId);
 	const serverId = application.serverId ?? undefined;
 
 	const settings = await getForwardAuthSettings(serverId ?? null);
-	if (!settings) {
+	if (!settings?.providerId) {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
 			message:
-				"Set the authentication domain and deploy the proxy for this server first.",
+				"Deploy the authentication proxy for this server in SSO settings first.",
 		});
 	}
 
@@ -352,7 +349,7 @@ export const enableForwardAuthOnDomain = async (input: {
 	}
 
 	await updateDomainById(input.domainId, {
-		forwardAuthProviderId: input.providerId,
+		forwardAuthProviderId: settings.providerId,
 	});
 	const domain = await findDomainById(input.domainId);
 	await manageDomain(application, domain);

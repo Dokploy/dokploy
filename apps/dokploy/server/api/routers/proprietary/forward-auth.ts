@@ -124,12 +124,7 @@ export const forwardAuthRouter = createTRPCRouter({
 		.query(({ ctx, input }) => getDomainSsoStatus(ctx, input.domainId)),
 
 	enable: enterpriseProcedure
-		.input(
-			z.object({
-				domainId: z.string().min(1),
-				providerId: z.string().min(1),
-			}),
-		)
+		.input(z.object({ domainId: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
 			const domain = await assertApplicationDomainAccess(
 				ctx,
@@ -138,8 +133,6 @@ export const forwardAuthRouter = createTRPCRouter({
 			);
 			const result = await enableForwardAuthOnDomain({
 				domainId: input.domainId,
-				providerId: input.providerId,
-				organizationId: ctx.session.activeOrganizationId,
 			});
 			await audit(ctx, {
 				action: "update",
