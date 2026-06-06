@@ -1055,11 +1055,21 @@ export const clearOldDeployments = async (
 		(d) => d.deploymentId !== currentDeployment.deploymentId,
 	);
 
+	const remoteLogCommands: string[] = [];
+
 	for (const oldDeployment of deploymentsToDelete) {
 		try {
 			if (oldDeployment.rollbackId) {
 				await removeRollbackById(oldDeployment.rollbackId);
 			}
+
+			const logPath = path.join(oldDeployment.logPath);
+			const hasLogPath = logPath && logPath !== ".";
+
+			if (serverId) {
+				if (hasLogPath) remoteLogCommands.push(`rm -f "${logPath}"`);
+			}
+
 			await removeDeployment(oldDeployment.deploymentId);
 		} catch (err) {
 			console.error(
@@ -1067,5 +1077,9 @@ export const clearOldDeployments = async (
 				err,
 			);
 		}
+	}
+
+	if (serverId && remoteLogCommands.length > 0) {
+		await execAsyncRemote(serverId, remoteLogCommands.join(";"));
 	}
 };
