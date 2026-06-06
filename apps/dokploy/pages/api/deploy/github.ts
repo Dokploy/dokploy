@@ -23,6 +23,20 @@ import {
 	logWebhookError,
 } from "./[refreshToken]";
 
+// Code events (opened/synchronize/reopened) always (re)deploy; label events
+// only deploy a preview they just created, never redeploy an existing one.
+export const shouldDeployPreviewDeployment = ({
+	action,
+	createdPreviewDeployment,
+}: {
+	action: string | undefined;
+	createdPreviewDeployment: boolean;
+}) => {
+	const isCodeEvent =
+		action === "opened" || action === "synchronize" || action === "reopened";
+	return isCodeEvent || createdPreviewDeployment;
+};
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
@@ -488,6 +502,7 @@ export default async function handler(
 
 				let previewDeploymentId =
 					previewDeploymentResult?.previewDeploymentId || "";
+				let createdPreviewDeployment = false;
 
 				if (!previewDeploymentResult && shouldCreateDeployment) {
 					const previewDeployment = await createPreviewDeployment({
@@ -499,6 +514,7 @@ export default async function handler(
 						pullRequestURL: prURL,
 					});
 					previewDeploymentId = previewDeployment.previewDeploymentId;
+					createdPreviewDeployment = true;
 				}
 
 				const jobData: DeploymentJob = {
@@ -511,7 +527,10 @@ export default async function handler(
 					previewDeploymentId,
 				};
 
-				if (previewDeploymentId) {
+				if (
+					previewDeploymentId &&
+					shouldDeployPreviewDeployment({ action, createdPreviewDeployment })
+				) {
 					if (IS_CLOUD && app.serverId) {
 						jobData.serverId = app.serverId;
 						deploy(jobData).catch((error) => {

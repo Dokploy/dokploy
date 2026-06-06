@@ -5,6 +5,7 @@ import {
 	extractImageTag,
 	extractImageTagFromRequest,
 } from "@/pages/api/deploy/[refreshToken]";
+import { shouldDeployPreviewDeployment } from "@/pages/api/deploy/github";
 
 describe("GitHub Webhook Skip CI", () => {
 	const mockGithubHeaders = {
@@ -434,5 +435,38 @@ describe("Docker Image Name and Tag Extraction", () => {
 				"sha-abc123",
 			);
 		});
+	});
+});
+
+describe("Preview Deployment duplicate prevention", () => {
+	it("deploys on code-changing pull_request events", () => {
+		for (const action of ["opened", "synchronize", "reopened"]) {
+			expect(
+				shouldDeployPreviewDeployment({
+					action,
+					createdPreviewDeployment: false,
+				}),
+			).toBe(true);
+		}
+	});
+
+	it("does NOT redeploy an existing preview on label events", () => {
+		for (const action of ["labeled", "unlabeled"]) {
+			expect(
+				shouldDeployPreviewDeployment({
+					action,
+					createdPreviewDeployment: false,
+				}),
+			).toBe(false);
+		}
+	});
+
+	it("deploys on a label event only when it just created the preview", () => {
+		expect(
+			shouldDeployPreviewDeployment({
+				action: "labeled",
+				createdPreviewDeployment: true,
+			}),
+		).toBe(true);
 	});
 });
