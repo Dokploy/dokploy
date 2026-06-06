@@ -19,14 +19,13 @@ export const runComposeBackup = async (
 	compose: Compose,
 	backup: BackupSchedule,
 ) => {
-	const { environmentId, name, appName } = compose;
+	const { environmentId, name } = compose;
 	const environment = await findEnvironmentById(environmentId);
 	const project = await findProjectById(environment.projectId);
-	const { prefix, databaseType, serviceName } = backup;
+	const { prefix, databaseType } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${getBackupTimestamp()}.${databaseType === "mongo" ? "bson" : "sql"}.gz`;
-	const s3AppName = serviceName ? `${appName}_${serviceName}` : appName;
-	const bucketDestination = `${s3AppName}/${normalizeS3Path(prefix)}${backupFileName}`;
+	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
 		title: "Compose Backup",
