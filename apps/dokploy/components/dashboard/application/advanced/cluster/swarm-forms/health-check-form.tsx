@@ -200,7 +200,12 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 								Time between health checks (e.g., 10000000000 for 10 seconds)
 							</FormDescription>
 							<FormControl>
-								<Input type="number" placeholder="10000000000" {...field} value={field.value ?? ""} />
+								<Input
+									type="number"
+									placeholder="10000000000"
+									{...field}
+									value={field.value ?? ""}
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -217,7 +222,12 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 								Maximum time to wait for health check response
 							</FormDescription>
 							<FormControl>
-								<Input type="number" placeholder="10000000000" {...field} value={field.value ?? ""} />
+								<Input
+									type="number"
+									placeholder="10000000000"
+									{...field}
+									value={field.value ?? ""}
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -234,7 +244,12 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 								Initial grace period before health checks begin
 							</FormDescription>
 							<FormControl>
-								<Input type="number" placeholder="10000000000" {...field} value={field.value ?? ""} />
+								<Input
+									type="number"
+									placeholder="10000000000"
+									{...field}
+									value={field.value ?? ""}
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -252,7 +267,12 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 								unhealthy
 							</FormDescription>
 							<FormControl>
-								<Input type="number" placeholder="3" {...field} value={field.value ?? ""} />
+								<Input
+									type="number"
+									placeholder="3"
+									{...field}
+									value={field.value ?? ""}
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
