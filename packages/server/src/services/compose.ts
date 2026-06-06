@@ -131,7 +131,12 @@ export const findComposeById = async (composeId: string) => {
 			server: true,
 			backups: {
 				with: {
-					destination: true,
+					destination: {
+						columns: {
+							accessKey: false,
+							secretAccessKey: false,
+						},
+					},
 					deployments: true,
 				},
 			},

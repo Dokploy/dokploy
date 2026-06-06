@@ -162,6 +162,19 @@ export const findRegistryById = async (registryId: string) => {
 	return registryResponse;
 };
 
+export const findRegistryByIdWithCredentials = async (registryId: string) => {
+	const registryResponse = await db.query.registry.findFirst({
+		where: eq(registry.registryId, registryId),
+	});
+	if (!registryResponse) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Registry not found",
+		});
+	}
+	return registryResponse;
+};
+
 export const findAllRegistryByOrganizationId = async (
 	organizationId: string,
 ) => {
