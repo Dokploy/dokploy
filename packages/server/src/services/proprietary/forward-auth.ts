@@ -84,14 +84,10 @@ const findProviderForOrg = async (
 	return provider;
 };
 
-export const listSsoProvidersForOrg = async (
-	organizationId: string,
-	userId: string,
-) => {
+export const listSsoProvidersForOrg = async (organizationId: string) => {
 	return db.query.ssoProvider.findMany({
 		where: and(
 			eq(ssoProvider.organizationId, organizationId),
-			eq(ssoProvider.userId, userId),
 			isNotNull(ssoProvider.oidcConfig),
 		),
 		columns: { providerId: true, issuer: true, domain: true },

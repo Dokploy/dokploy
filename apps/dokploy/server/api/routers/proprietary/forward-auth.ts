@@ -19,13 +19,27 @@ import {
 	apiForwardAuthServerTarget,
 	apiSetForwardAuthSettings,
 } from "@dokploy/server/db/schema";
-import { createTRPCRouter, enterpriseProcedure } from "@/server/api/trpc";
+import { TRPCError } from "@trpc/server";
+import {
+	createTRPCRouter,
+	enterpriseProcedure,
+	withPermission,
+} from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 
 export const forwardAuthRouter = createTRPCRouter({
 	getAuthDomain: enterpriseProcedure
 		.input(apiForwardAuthServerTarget)
-		.query(async ({ input }) => {
+		.query(async ({ ctx, input }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+			}
 			const settings = await getForwardAuthSettings(input.serverId);
 			if (!settings) return null;
 			return {
@@ -43,7 +57,15 @@ export const forwardAuthRouter = createTRPCRouter({
 	setAuthDomain: enterpriseProcedure
 		.input(apiSetForwardAuthSettings)
 		.mutation(async ({ ctx, input }) => {
-			if (input.serverId) await findServerById(input.serverId);
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+			}
 			const result = await setForwardAuthSettings({
 				organizationId: ctx.session.activeOrganizationId,
 				serverId: input.serverId,
@@ -64,7 +86,15 @@ export const forwardAuthRouter = createTRPCRouter({
 	removeAuthDomain: enterpriseProcedure
 		.input(apiForwardAuthServerTarget)
 		.mutation(async ({ ctx, input }) => {
-			if (input.serverId) await findServerById(input.serverId);
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+			}
 			const result = await removeForwardAuthSettings(input.serverId);
 			await audit(ctx, {
 				action: "delete",
@@ -76,10 +106,7 @@ export const forwardAuthRouter = createTRPCRouter({
 		}),
 
 	listProviders: enterpriseProcedure.query(({ ctx }) =>
-		listSsoProvidersForOrg(
-			ctx.session.activeOrganizationId,
-			ctx.session.userId,
-		),
+		listSsoProvidersForOrg(ctx.session.activeOrganizationId),
 	),
 
 	serverStatus: enterpriseProcedure.query(({ ctx }) =>
@@ -89,7 +116,15 @@ export const forwardAuthRouter = createTRPCRouter({
 	deployOnServer: enterpriseProcedure
 		.input(apiDeployForwardAuthOnServer)
 		.mutation(async ({ ctx, input }) => {
-			if (input.serverId) await findServerById(input.serverId);
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+			}
 			const result = await deployForwardAuthOnServer({
 				serverId: input.serverId ?? undefined,
 				providerId: input.providerId,
@@ -107,7 +142,15 @@ export const forwardAuthRouter = createTRPCRouter({
 	removeOnServer: enterpriseProcedure
 		.input(apiForwardAuthServerTarget)
 		.mutation(async ({ ctx, input }) => {
-			if (input.serverId) await findServerById(input.serverId);
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+			}
 			const result = await removeForwardAuthProxy(input.serverId);
 			await audit(ctx, {
 				action: "delete",
@@ -118,11 +161,11 @@ export const forwardAuthRouter = createTRPCRouter({
 			return result;
 		}),
 
-	status: enterpriseProcedure
+	status: withPermission("domain", "read")
 		.input(apiForwardAuthDomainTarget)
 		.query(({ ctx, input }) => getDomainSsoStatus(ctx, input.domainId)),
 
-	enable: enterpriseProcedure
+	enable: withPermission("domain", "create")
 		.input(apiForwardAuthDomainTarget)
 		.mutation(async ({ ctx, input }) => {
 			const domain = await assertApplicationDomainAccess(
@@ -142,7 +185,7 @@ export const forwardAuthRouter = createTRPCRouter({
 			return result;
 		}),
 
-	disable: enterpriseProcedure
+	disable: withPermission("domain", "create")
 		.input(apiForwardAuthDomainTarget)
 		.mutation(async ({ ctx, input }) => {
 			const domain = await assertApplicationDomainAccess(
