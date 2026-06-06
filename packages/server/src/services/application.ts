@@ -122,7 +122,6 @@ export const findApplicationById = async (applicationId: string) => {
 	return application;
 };
 
-
 export const findApplicationByName = async (appName: string) => {
 	const application = await db.query.applications.findFirst({
 		where: eq(applications.appName, appName),

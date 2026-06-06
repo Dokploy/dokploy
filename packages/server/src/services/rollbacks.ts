@@ -267,7 +267,9 @@ const rollbackApplication = async (
 		UpdateConfig,
 		Networks,
 		Ulimits,
-	} = generateConfigContainer(fullContext as Parameters<typeof generateConfigContainer>[0]);
+	} = generateConfigContainer(
+		fullContext as Parameters<typeof generateConfigContainer>[0],
+	);
 
 	const bindsMount = generateBindMounts(mounts);
 	const envVariables = prepareEnvironmentVariables(
