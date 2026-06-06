@@ -1,3 +1,10 @@
+## [0.36.2](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.36.1...v0.36.2) (2026-06-06)
+
+
+### Bug Fixes
+
+* provide build auth secret for GHCR image ([3e53940](https://github.com/Bl4ckBl1zZ/dokploy/commit/3e5394091080e0ce1ada30799d2573cbbbe36185))
+
 ## [0.36.1](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.36.0...v0.36.1) (2026-06-05)
 
 
