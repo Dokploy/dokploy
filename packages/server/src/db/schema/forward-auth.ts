@@ -47,6 +47,14 @@ export const forwardAuthSettingsRelations = relations(
 
 const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
 
+export const apiForwardAuthServerTarget = z.object({
+	serverId: z.string().nullable(),
+});
+
+export const apiForwardAuthDomainTarget = z.object({
+	domainId: z.string().min(1),
+});
+
 export const apiSetForwardAuthSettings = z.object({
 	serverId: z.string().nullable(),
 	authDomain: z
@@ -59,4 +67,9 @@ export const apiSetForwardAuthSettings = z.object({
 		.enum(["none", "letsencrypt", "custom"])
 		.default("letsencrypt"),
 	customCertResolver: z.string().optional(),
+});
+
+export const apiDeployForwardAuthOnServer = z.object({
+	serverId: z.string().nullable(),
+	providerId: z.string().min(1),
 });

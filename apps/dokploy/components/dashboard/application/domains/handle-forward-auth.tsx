@@ -97,12 +97,28 @@ export const HandleForwardAuth = ({ domainId, applicationId }: Props) => {
 					</DialogDescription>
 				</DialogHeader>
 
-				<AlertBlock type="info">
-					The authentication proxy must be deployed for this app's server in SSO
-					settings. The domain must share its base domain.
+				<AlertBlock type="warning">
+					<div className="flex flex-col gap-1">
+						<span className="font-medium">Requirements</span>
+						<ol className="list-decimal pl-4 text-sm">
+							<li>
+								The authentication proxy container must be deployed and running
+								on this app's server. Configure it under{" "}
+								<span className="font-medium">
+									Settings → SSO → Application Authentication
+								</span>
+								.
+							</li>
+							<li>
+								This domain must share the same base domain as the
+								authentication domain (e.g. <code>app.acme.com</code> and{" "}
+								<code>auth.acme.com</code>).
+							</li>
+						</ol>
+					</div>
 				</AlertBlock>
 
-				<div className="flex items-center justify-between rounded-lg border p-4">
+				<div className="flex items-center justify-between rounded-lg border p-4 mt-2">
 					<div className="flex flex-col">
 						<span className="text-sm font-medium">
 							Protect this domain with SSO

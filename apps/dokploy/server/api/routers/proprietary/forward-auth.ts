@@ -13,14 +13,18 @@ import {
 	removeForwardAuthSettings,
 	setForwardAuthSettings,
 } from "@dokploy/server";
-import { apiSetForwardAuthSettings } from "@dokploy/server/db/schema";
-import { z } from "zod";
+import {
+	apiDeployForwardAuthOnServer,
+	apiForwardAuthDomainTarget,
+	apiForwardAuthServerTarget,
+	apiSetForwardAuthSettings,
+} from "@dokploy/server/db/schema";
 import { createTRPCRouter, enterpriseProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 
 export const forwardAuthRouter = createTRPCRouter({
 	getAuthDomain: enterpriseProcedure
-		.input(z.object({ serverId: z.string().nullable() }))
+		.input(apiForwardAuthServerTarget)
 		.query(async ({ input }) => {
 			const settings = await getForwardAuthSettings(input.serverId);
 			if (!settings) return null;
@@ -58,7 +62,7 @@ export const forwardAuthRouter = createTRPCRouter({
 		}),
 
 	removeAuthDomain: enterpriseProcedure
-		.input(z.object({ serverId: z.string().nullable() }))
+		.input(apiForwardAuthServerTarget)
 		.mutation(async ({ ctx, input }) => {
 			if (input.serverId) await findServerById(input.serverId);
 			const result = await removeForwardAuthSettings(input.serverId);
@@ -83,12 +87,7 @@ export const forwardAuthRouter = createTRPCRouter({
 	),
 
 	deployOnServer: enterpriseProcedure
-		.input(
-			z.object({
-				serverId: z.string().nullable(),
-				providerId: z.string().min(1),
-			}),
-		)
+		.input(apiDeployForwardAuthOnServer)
 		.mutation(async ({ ctx, input }) => {
 			if (input.serverId) await findServerById(input.serverId);
 			const result = await deployForwardAuthOnServer({
@@ -106,7 +105,7 @@ export const forwardAuthRouter = createTRPCRouter({
 		}),
 
 	removeOnServer: enterpriseProcedure
-		.input(z.object({ serverId: z.string().nullable() }))
+		.input(apiForwardAuthServerTarget)
 		.mutation(async ({ ctx, input }) => {
 			if (input.serverId) await findServerById(input.serverId);
 			const result = await removeForwardAuthProxy(input.serverId);
@@ -120,11 +119,11 @@ export const forwardAuthRouter = createTRPCRouter({
 		}),
 
 	status: enterpriseProcedure
-		.input(z.object({ domainId: z.string().min(1) }))
+		.input(apiForwardAuthDomainTarget)
 		.query(({ ctx, input }) => getDomainSsoStatus(ctx, input.domainId)),
 
 	enable: enterpriseProcedure
-		.input(z.object({ domainId: z.string().min(1) }))
+		.input(apiForwardAuthDomainTarget)
 		.mutation(async ({ ctx, input }) => {
 			const domain = await assertApplicationDomainAccess(
 				ctx,
@@ -144,7 +143,7 @@ export const forwardAuthRouter = createTRPCRouter({
 		}),
 
 	disable: enterpriseProcedure
-		.input(z.object({ domainId: z.string().min(1) }))
+		.input(apiForwardAuthDomainTarget)
 		.mutation(async ({ ctx, input }) => {
 			const domain = await assertApplicationDomainAccess(
 				ctx,

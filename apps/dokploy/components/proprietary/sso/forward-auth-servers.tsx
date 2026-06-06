@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { DnsHelperModal } from "@/components/dashboard/application/domains/dns-helper-modal";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +62,7 @@ export const ForwardAuthServers = () => {
 		return () => clearTimeout(id);
 	}, []);
 
+	const { data: hostIp } = api.settings.getIp.useQuery();
 	const { data: servers, isPending } = api.forwardAuth.serverStatus.useQuery(
 		undefined,
 		{ enabled, refetchOnWindowFocus: false, staleTime: 30_000 },
@@ -236,6 +238,10 @@ export const ForwardAuthServers = () => {
 					domain (e.g. auth.acme.com) per server, register its callback URL once
 					in your identity provider, then deploy the proxy. Apps on that server
 					under the same base domain are then one click to protect.
+					<span className="mt-2 block font-medium">
+						Only OIDC providers are supported — SAML is not compatible with the
+						forward-auth proxy.
+					</span>
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -289,6 +295,17 @@ export const ForwardAuthServers = () => {
 													}
 													className="font-mono text-sm"
 												/>
+												{f?.host && !f.host.includes("sslip.io") && (
+													<DnsHelperModal
+														domain={{
+															host: f.host,
+															https: f.https,
+														}}
+														serverIp={
+															srv.ipAddress ?? hostIp?.toString() ?? undefined
+														}
+													/>
+												)}
 												<Button
 													type="button"
 													variant="secondary"

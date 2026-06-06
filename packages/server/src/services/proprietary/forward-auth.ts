@@ -1,3 +1,4 @@
+import { IS_CLOUD } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
 	forwardAuthSettings,
@@ -253,13 +254,29 @@ export const getForwardAuthServerStatus = async (organizationId: string) => {
 			isNotNull(server.sshKeyId),
 			eq(server.serverType, "deploy"),
 		),
-		columns: { serverId: true, name: true },
+		columns: { serverId: true, name: true, ipAddress: true },
 		orderBy: [desc(server.createdAt)],
 	});
 
-	const targets: { serverId: string | null; name: string }[] = [
-		{ serverId: null, name: "Dokploy Server (local)" },
-		...servers.map((s) => ({ serverId: s.serverId, name: s.name })),
+	const targets: {
+		serverId: string | null;
+		name: string;
+		ipAddress: string | null;
+	}[] = [
+		...(IS_CLOUD
+			? []
+			: [
+					{
+						serverId: null,
+						name: "Dokploy Server (local)",
+						ipAddress: null,
+					},
+				]),
+		...servers.map((s) => ({
+			serverId: s.serverId,
+			name: s.name,
+			ipAddress: s.ipAddress,
+		})),
 	];
 
 	return Promise.all(
