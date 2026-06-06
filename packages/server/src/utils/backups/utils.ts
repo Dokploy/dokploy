@@ -261,8 +261,8 @@ export const getBackupCommand = (
 	logger.info(
 		{
 			containerSearch,
-			backupCommand,
-			rcloneCommand,
+			backupCommand: backupCommand ? "[redacted command]" : null,
+			rcloneCommand: rcloneCommand ? "[redacted command]" : null,
 			logPath,
 		},
 		`Executing backup command: ${backup.databaseType} ${backup.backupType}`,

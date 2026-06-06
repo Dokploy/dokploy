@@ -1,6 +1,7 @@
 import {
 	findApplicationById,
 	findPreviewDeploymentById,
+	findPreviewDeploymentRecordById,
 	findPreviewDeploymentsByApplicationId,
 	IS_CLOUD,
 	removePreviewDeployment,
@@ -41,9 +42,14 @@ export const previewDeploymentRouter = createTRPCRouter({
 	delete: protectedProcedure
 		.input(z.object({ previewDeploymentId: z.string() }))
 		.mutation(async ({ input, ctx }) => {
-			const previewDeployment = await findPreviewDeploymentById(
+			const previewDeployment = await findPreviewDeploymentRecordById(
 				input.previewDeploymentId,
 			);
+
+			if (!previewDeployment) {
+				return true;
+			}
+
 			await checkServicePermissionAndAccess(
 				ctx,
 				previewDeployment.applicationId,

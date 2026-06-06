@@ -1,3 +1,5 @@
+import { redactError, redactSecrets } from "./redactSecrets";
+
 export interface ExecErrorDetails {
 	command: string;
 	stdout?: string;
@@ -16,13 +18,15 @@ export class ExecError extends Error {
 	public readonly serverId?: string | null;
 
 	constructor(message: string, details: ExecErrorDetails) {
-		super(message);
+		super(redactSecrets(message));
 		this.name = "ExecError";
-		this.command = details.command;
-		this.stdout = details.stdout;
-		this.stderr = details.stderr;
+		this.command = redactSecrets(details.command);
+		this.stdout = details.stdout ? redactSecrets(details.stdout) : details.stdout;
+		this.stderr = details.stderr ? redactSecrets(details.stderr) : details.stderr;
 		this.exitCode = details.exitCode;
-		this.originalError = details.originalError;
+		this.originalError = details.originalError
+			? redactError(details.originalError)
+			: undefined;
 		this.serverId = details.serverId;
 
 		// Maintains proper stack trace for where our error was thrown (only available on V8)

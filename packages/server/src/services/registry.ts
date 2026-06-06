@@ -8,6 +8,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
 import { IS_CLOUD } from "../constants";
+import { createSecretTempFile } from "../utils/process/secrets";
 
 export type Registry = typeof registry.$inferSelect;
 
@@ -23,8 +24,12 @@ export function safeDockerLoginCommand(
 ) {
 	const escapedRegistry = shEscape(registry);
 	const escapedUser = shEscape(user);
-	const escapedPassword = shEscape(pass);
-	return `printf %s ${escapedPassword} | docker login ${escapedRegistry} -u ${escapedUser} --password-stdin`;
+	const password = createSecretTempFile(
+		"dokploy-registry-password-",
+		"password",
+		pass,
+	);
+	return `docker login ${escapedRegistry} -u ${escapedUser} --password-stdin < ${password.quotedPath}; status=$?; rm -rf ${password.quotedDir}; exit $status`;
 }
 
 export const createRegistry = async (

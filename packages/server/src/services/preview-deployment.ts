@@ -1,7 +1,9 @@
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreatePreviewDeployment,
+	applications,
 	deployments,
+	domains,
 	organization,
 	previewDeployments,
 } from "@dokploy/server/db/schema";
@@ -22,58 +24,97 @@ import { getWebServerSettings } from "./web-server-settings";
 
 export type PreviewDeployment = typeof previewDeployments.$inferSelect;
 
+export const findPreviewDeploymentRecordById = async (
+	previewDeploymentId: string,
+) => {
+	return await db.query.previewDeployments.findFirst({
+		where: eq(previewDeployments.previewDeploymentId, previewDeploymentId),
+	});
+};
+
 export const findPreviewDeploymentById = async (
 	previewDeploymentId: string,
 ) => {
-	const application = await db.query.previewDeployments.findFirst({
-		where: eq(previewDeployments.previewDeploymentId, previewDeploymentId),
-		with: {
-			domain: true,
-			application: {
-				columns: {
-					applicationId: true,
-					serverId: true,
-				},
-			},
-		},
-	});
-	if (!application) {
+	const previewDeployment =
+		await findPreviewDeploymentRecordById(previewDeploymentId);
+
+	if (!previewDeployment) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Preview Deployment not found",
 		});
 	}
-	return application;
+
+	const [domain, application] = await Promise.all([
+		previewDeployment.domainId
+			? db.query.domains.findFirst({
+					where: eq(domains.domainId, previewDeployment.domainId),
+				})
+			: Promise.resolve(null),
+		findApplicationById(previewDeployment.applicationId),
+	]);
+
+	return {
+		...previewDeployment,
+		domain,
+		application,
+	};
+};
+
+export const previewDeploymentExists = async (previewDeploymentId: string) => {
+	const previewDeployment = await db.query.previewDeployments.findFirst({
+		where: eq(previewDeployments.previewDeploymentId, previewDeploymentId),
+		columns: {
+			previewDeploymentId: true,
+		},
+	});
+
+	return Boolean(previewDeployment);
 };
 
 export const removePreviewDeployment = async (previewDeploymentId: string) => {
 	try {
 		const previewDeployment =
-			await findPreviewDeploymentById(previewDeploymentId);
-		const application = await findApplicationById(
-			previewDeployment.applicationId,
-		);
+			await findPreviewDeploymentRecordById(previewDeploymentId);
 
-		application.appName = previewDeployment.appName;
+		if (!previewDeployment) {
+			return null;
+		}
+
+		const application = await db.query.applications.findFirst({
+			where: eq(applications.applicationId, previewDeployment.applicationId),
+			columns: {
+				serverId: true,
+			},
+		});
+
+		const appName = previewDeployment.appName;
+		const serverId = application?.serverId ?? null;
+
 		const cleanupOperations = [
-			async () =>
-				await removeService(application?.appName, application?.serverId),
+			async () => await removeService(appName, serverId),
 			async () =>
 				await removeDeploymentsByPreviewDeploymentId(
 					previewDeployment,
-					application?.serverId,
+					serverId,
 				),
-			async () =>
-				await removeDirectoryCode(application?.appName, application?.serverId),
-			async () =>
-				await removeTraefikConfig(application?.appName, application?.serverId),
+			async () => await removeDirectoryCode(appName, serverId),
+			async () => await removeTraefikConfig(appName, serverId),
+			async () => {
+				if (!previewDeployment.domainId) {
+					return;
+				}
+
+				await db
+					.delete(domains)
+					.where(eq(domains.domainId, previewDeployment.domainId));
+			},
 			async () =>
 				await db
 					.delete(previewDeployments)
 					.where(
 						eq(previewDeployments.previewDeploymentId, previewDeploymentId),
-					)
-					.returning(),
+					),
 		];
 		for (const operation of cleanupOperations) {
 			try {
@@ -157,15 +198,58 @@ export const createPreviewDeployment = async (
 		body: `### Dokploy Preview Deployment\n\n${runningComment}`,
 	});
 
-	const previewDeployment = await db
-		.insert(previewDeployments)
-		.values({
-			...schema,
-			appName: appName,
-			pullRequestCommentId: `${issue.data.id}`,
-		})
-		.returning()
-		.then((value) => value[0]);
+	let previewDeployment: PreviewDeployment | undefined;
+
+	try {
+		previewDeployment = await db
+			.insert(previewDeployments)
+			.values({
+				...schema,
+				appName: appName,
+				pullRequestCommentId: `${issue.data.id}`,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!previewDeployment) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error creating the preview deployment",
+			});
+		}
+
+		const newDomain = await createDomain({
+			host: generateDomain,
+			path: application.previewPath,
+			port: application.previewPort,
+			https: application.previewHttps,
+			certificateType: application.previewCertificateType,
+			customCertResolver: application.previewCustomCertResolver,
+			domainType: "preview",
+			previewDeploymentId: previewDeployment.previewDeploymentId,
+		});
+
+		application.appName = appName;
+
+		await manageDomain(application, newDomain);
+
+		await db
+			.update(previewDeployments)
+			.set({
+				domainId: newDomain.domainId,
+			})
+			.where(
+				eq(
+					previewDeployments.previewDeploymentId,
+					previewDeployment.previewDeploymentId,
+				),
+			);
+	} catch (error) {
+		if (previewDeployment?.previewDeploymentId) {
+			await removePreviewDeployment(previewDeployment.previewDeploymentId);
+		}
+		throw error;
+	}
 
 	if (!previewDeployment) {
 		throw new TRPCError({
@@ -174,41 +258,16 @@ export const createPreviewDeployment = async (
 		});
 	}
 
-	const newDomain = await createDomain({
-		host: generateDomain,
-		path: application.previewPath,
-		port: application.previewPort,
-		https: application.previewHttps,
-		certificateType: application.previewCertificateType,
-		customCertResolver: application.previewCustomCertResolver,
-		domainType: "preview",
-		previewDeploymentId: previewDeployment.previewDeploymentId,
-	});
-
-	application.appName = appName;
-
-	await manageDomain(application, newDomain);
-
-	await db
-		.update(previewDeployments)
-		.set({
-			domainId: newDomain.domainId,
-		})
-		.where(
-			eq(
-				previewDeployments.previewDeploymentId,
-				previewDeployment.previewDeploymentId,
-			),
-		);
-
 	return previewDeployment;
 };
 
 export const findPreviewDeploymentsByPullRequestId = async (
-	pullRequestId: string,
+	pullRequestId: string | number,
 ) => {
+	const normalizedPullRequestId = String(pullRequestId);
+
 	const previewDeploymentResult = await db.query.previewDeployments.findMany({
-		where: eq(previewDeployments.pullRequestId, pullRequestId),
+		where: eq(previewDeployments.pullRequestId, normalizedPullRequestId),
 	});
 
 	return previewDeploymentResult;
@@ -216,12 +275,14 @@ export const findPreviewDeploymentsByPullRequestId = async (
 
 export const findPreviewDeploymentByApplicationId = async (
 	applicationId: string,
-	pullRequestId: string,
+	pullRequestId: string | number,
 ) => {
+	const normalizedPullRequestId = String(pullRequestId);
+
 	const previewDeploymentResult = await db.query.previewDeployments.findFirst({
 		where: and(
 			eq(previewDeployments.applicationId, applicationId),
-			eq(previewDeployments.pullRequestId, pullRequestId),
+			eq(previewDeployments.pullRequestId, normalizedPullRequestId),
 		),
 	});
 

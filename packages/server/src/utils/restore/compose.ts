@@ -79,7 +79,7 @@ export const restoreComposeBackup = async (
 		emit("Starting restore...");
 		emit(`Backup path: ${backupPath}`);
 
-		emit(`Executing command: ${restoreCommand}`);
+		emit("Executing restore command...");
 
 		if (serverId) {
 			await execAsyncRemote(serverId, restoreCommand);

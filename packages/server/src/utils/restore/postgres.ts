@@ -36,7 +36,7 @@ export const restorePostgresBackup = async (
 			restoreType: "database",
 		});
 
-		emit(`Executing command: ${command}`);
+		emit("Executing restore command...");
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);

@@ -7,6 +7,8 @@ import {
 } from "@dokploy/server/services/gitea";
 import type { InferResultType } from "@dokploy/server/types/with";
 import { TRPCError } from "@trpc/server";
+import { quote } from "shell-quote";
+import { createGitAskPassScript } from "../process/secrets";
 
 export const getErrorCloneRequirements = (entity: {
 	giteaRepository?: string | null;
@@ -98,14 +100,13 @@ export const refreshGiteaToken = async (giteaProviderId: string) => {
 
 const buildGiteaCloneUrl = (
 	giteaUrl: string,
-	accessToken: string,
 	owner: string,
 	repository: string,
 ) => {
 	const protocol = giteaUrl.startsWith("http://") ? "http" : "https";
 	const baseUrl = giteaUrl.replace(/^https?:\/\//, "");
 	const repoClone = `${owner}/${repository}.git`;
-	const cloneUrl = `${protocol}://oauth2:${accessToken}@${baseUrl}/${repoClone}`;
+	const cloneUrl = `${protocol}://${baseUrl}/${repoClone}`;
 	return cloneUrl;
 };
 
@@ -171,13 +172,13 @@ export const cloneGiteaRepository = async ({
 	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
 	const cloneUrl = buildGiteaCloneUrl(
 		giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl,
-		giteaProvider.accessToken!,
 		giteaOwner!,
 		giteaRepository!,
 	);
+	const askPass = createGitAskPassScript(giteaProvider.accessToken);
 
 	command += `echo "Cloning Repo ${repoClone} to ${outputPath}: ✅";`;
-	command += `git clone --branch ${giteaBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	command += `if ! GIT_ASKPASS=${askPass.quotedPath} GIT_TERMINAL_PROMPT=0 git clone --branch ${quote([giteaBranch || ""])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([cloneUrl])} ${quote([outputPath])} --progress; then rm -rf ${askPass.quotedDir}; exit 1; fi; rm -rf ${askPass.quotedDir};`;
 	return command;
 };
 
