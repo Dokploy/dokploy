@@ -24,11 +24,11 @@ export const ShowDestinations = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Database className="size-6 text-muted-foreground self-center" />
-							S3 Destinations
+							Backup Destinations
 						</CardTitle>
 						<CardDescription>
 							Add your providers like AWS S3, Cloudflare R2, Wasabi,
-							DigitalOcean Spaces etc.
+							DigitalOcean Spaces, or a generic rclone remote.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -44,7 +44,7 @@ export const ShowDestinations = () => {
 										<FolderUp className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground">
 											To create a backup it is required to set at least 1
-											provider.
+											provider or remote.
 										</span>
 										{permissions?.destination.create && <HandleDestinations />}
 									</div>
