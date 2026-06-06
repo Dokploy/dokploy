@@ -49,7 +49,11 @@ export const ShowGitProviders = () => {
 		api.gitProvider.remove.useMutation();
 	const { mutateAsync: toggleShare, isPending: isToggling } =
 		api.gitProvider.toggleShare.useMutation();
+	const { data: currentMember } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 	const url = useUrl();
+	const isOrgAdmin =
+		currentMember?.role === "owner" || currentMember?.role === "admin";
 
 	const getGitlabUrl = (
 		clientId: string,
@@ -87,18 +91,20 @@ export const ShowGitProviders = () => {
 									<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 										<GitBranch className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
-											Create your first Git Provider
+											No Git Providers configured
 										</span>
-										<div>
-											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
-												<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
-													<AddGithubProvider />
-													<AddGitlabProvider />
-													<AddBitbucketProvider />
-													<AddGiteaProvider />
+										{permissions?.gitProviders.create && (
+											<div>
+												<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
+													<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
+														<AddGithubProvider />
+														<AddGitlabProvider />
+														<AddBitbucketProvider />
+														<AddGiteaProvider />
+													</div>
 												</div>
 											</div>
-										</div>
+										)}
 									</div>
 								) : (
 									<div className="flex flex-col gap-4 min-h-[25vh]">
@@ -106,14 +112,16 @@ export const ShowGitProviders = () => {
 											<span className="text-base font-medium">
 												Available Providers
 											</span>
-											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
-												<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
-													<AddGithubProvider />
-													<AddGitlabProvider />
-													<AddBitbucketProvider />
-													<AddGiteaProvider />
+											{permissions?.gitProviders.create && (
+												<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
+													<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
+														<AddGithubProvider />
+														<AddGitlabProvider />
+														<AddBitbucketProvider />
+														<AddGiteaProvider />
+													</div>
 												</div>
-											</div>
+											)}
 										</div>
 
 										<div className="flex flex-col gap-4 rounded-lg ">
@@ -123,6 +131,7 @@ export const ShowGitProviders = () => {
 												const isBitbucket =
 													gitProvider.providerType === "bitbucket";
 												const isGitea = gitProvider.providerType === "gitea";
+												const canManage = gitProvider.isOwner || isOrgAdmin;
 
 												const haveGithubRequirements =
 													isGithub &&
@@ -284,7 +293,7 @@ export const ShowGitProviders = () => {
 																	</div>
 																)}
 
-																{gitProvider.isOwner && (
+																{canManage && (
 																	<>
 																		{isGithub && haveGithubRequirements && (
 																			<EditGithubProvider
