@@ -108,10 +108,7 @@ export const getDomainSsoStatus = async (
 			domain: ["read"],
 		});
 	}
-	return {
-		enabled: !!domain.forwardAuthProviderId,
-		providerId: domain.forwardAuthProviderId ?? null,
-	};
+	return { enabled: !!domain.forwardAuthEnabled };
 };
 
 const settingsWhere = (serverId: string | null) =>
@@ -348,9 +345,7 @@ export const enableForwardAuthOnDomain = async (input: {
 		});
 	}
 
-	await updateDomainById(input.domainId, {
-		forwardAuthProviderId: settings.providerId,
-	});
+	await updateDomainById(input.domainId, { forwardAuthEnabled: true });
 	const domain = await findDomainById(input.domainId);
 	await manageDomain(application, domain);
 
@@ -365,7 +360,7 @@ export const disableForwardAuthOnDomain = async (input: {
 	);
 	const uniqueConfigKey = domain.uniqueConfigKey;
 
-	await updateDomainById(input.domainId, { forwardAuthProviderId: null });
+	await updateDomainById(input.domainId, { forwardAuthEnabled: false });
 	const updated = await findDomainById(input.domainId);
 	await manageDomain(application, updated);
 	await removeForwardAuthMiddleware(application, uniqueConfigKey);

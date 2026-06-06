@@ -73,7 +73,7 @@ export const createForwardAuthMiddleware = async (
 	app: ApplicationNested,
 	domain: Domain,
 ) => {
-	if (!domain.forwardAuthProviderId) {
+	if (!domain.forwardAuthEnabled) {
 		return;
 	}
 

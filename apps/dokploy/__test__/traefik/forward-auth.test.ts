@@ -34,7 +34,7 @@ const baseDomain: Domain = {
 	internalPath: "/",
 	stripPath: false,
 	middlewares: null,
-	forwardAuthProviderId: null,
+	forwardAuthEnabled: false,
 };
 
 describe("forwardAuthMiddlewareName", () => {
@@ -62,7 +62,7 @@ describe("createRouterConfig forward-auth wiring", () => {
 	test("adds forward-auth middleware when a provider is linked", async () => {
 		const domain: Domain = {
 			...baseDomain,
-			forwardAuthProviderId: "provider-abc",
+			forwardAuthEnabled: true,
 		};
 		const config = await createRouterConfig(app, domain, "websecure");
 		expect(config.middlewares).toContain(
@@ -73,7 +73,7 @@ describe("createRouterConfig forward-auth wiring", () => {
 	test("forward-auth runs before custom domain middlewares", async () => {
 		const domain: Domain = {
 			...baseDomain,
-			forwardAuthProviderId: "provider-abc",
+			forwardAuthEnabled: true,
 			middlewares: ["rate-limit@file"],
 		};
 		const config = await createRouterConfig(app, domain, "websecure");
@@ -89,7 +89,7 @@ describe("createRouterConfig forward-auth wiring", () => {
 		const domain: Domain = {
 			...baseDomain,
 			https: true,
-			forwardAuthProviderId: "provider-abc",
+			forwardAuthEnabled: true,
 		};
 		const config = await createRouterConfig(app, domain, "web");
 		expect(config.middlewares).toContain("redirect-to-https");
