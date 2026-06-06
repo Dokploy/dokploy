@@ -18,7 +18,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 ENV NODE_ENV=production
 RUN pnpm --filter=@dokploy/server build
-RUN pnpm --filter=./apps/dokploy run build
+# Next.js imports server auth while collecting page data during the Docker build.
+# Runtime deployments must still provide a real secret or BETTER_AUTH_SECRET_FILE.
+RUN BETTER_AUTH_SECRET=dokploy-build-placeholder pnpm --filter=./apps/dokploy run build
 
 RUN pnpm --filter=./apps/dokploy --prod deploy --legacy /prod/dokploy
 
