@@ -1,4 +1,10 @@
-import { normalizeS3Path } from "@dokploy/server/utils/backups/utils";
+import {
+	GENERIC_RCLONE_PROVIDER,
+	getRcloneCredentials,
+	getRcloneDestination,
+	getRcloneTestFlags,
+	normalizeS3Path,
+} from "@dokploy/server/utils/backups/utils";
 import { describe, expect, test } from "vitest";
 
 describe("normalizeS3Path", () => {
@@ -57,5 +63,59 @@ describe("normalizeS3Path", () => {
 		expect(normalizeS3Path("instance-backups/")).toBe("instance-backups/");
 		expect(normalizeS3Path("/instance-backups/")).toBe("instance-backups/");
 		expect(normalizeS3Path("instance-backups")).toBe("instance-backups/");
+	});
+});
+
+describe("rclone destination helpers", () => {
+	const s3Destination = {
+		provider: "AWS",
+		accessKey: "access",
+		secretAccessKey: "secret",
+		bucket: "dokploy-backups",
+		region: "us-east-1",
+		endpoint: "https://s3.example.com",
+		additionalFlags: ["--s3-no-head"],
+	} as const;
+
+	const genericDestination = {
+		provider: GENERIC_RCLONE_PROVIDER,
+		accessKey: "",
+		secretAccessKey: "",
+		bucket: "gdrive:backups",
+		region: "",
+		endpoint: "",
+		additionalFlags: ["--drive-root-folder-id=abc123"],
+	} as const;
+
+	test("should keep s3 destinations on the s3 remote path", () => {
+		expect(getRcloneDestination(s3Destination as never)).toBe(
+			":s3:dokploy-backups",
+		);
+		expect(getRcloneCredentials(s3Destination as never)).toEqual([
+			'--s3-provider="AWS"',
+			'--s3-access-key-id="access"',
+			'--s3-secret-access-key="secret"',
+			'--s3-region="us-east-1"',
+			'--s3-endpoint="https://s3.example.com"',
+			"--s3-no-check-bucket",
+			"--s3-force-path-style",
+			"--s3-no-head",
+		]);
+	});
+
+	test("should allow generic rclone remotes", () => {
+		expect(getRcloneDestination(genericDestination as never)).toBe(
+			"gdrive:backups",
+		);
+		expect(getRcloneCredentials(genericDestination as never)).toEqual([
+			"--drive-root-folder-id=abc123",
+		]);
+		expect(getRcloneTestFlags(genericDestination as never)).toEqual([
+			"--drive-root-folder-id=abc123",
+			"--retries 1",
+			"--low-level-retries 1",
+			"--timeout 10s",
+			"--contimeout 5s",
+		]);
 	});
 });

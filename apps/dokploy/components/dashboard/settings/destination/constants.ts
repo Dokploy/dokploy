@@ -95,6 +95,10 @@ export const S3_PROVIDERS: Array<{
 		name: "Rclone S3 Server",
 	},
 	{
+		key: "GenericRclone",
+		name: "Generic rclone remote",
+	},
+	{
 		key: "Scaleway",
 		name: "Scaleway Object Storage",
 	},

@@ -11,7 +11,12 @@ import {
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { sendDokployBackupNotifications } from "../notifications/dokploy-backup";
 import { execAsync } from "../process/execAsync";
-import { getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	getBackupTimestamp,
+	getRcloneCredentials,
+	getRcloneDestination,
+	normalizeS3Path,
+} from "./utils";
 
 function formatBytes(bytes?: number) {
 	if (bytes === undefined) return "Unknown size";
@@ -36,12 +41,12 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 	let computedBackupSize: number | undefined;
 	try {
 		const destination = await findDestinationById(backup.destinationId);
-		const rcloneFlags = getS3Credentials(destination);
+		const rcloneFlags = getRcloneCredentials(destination);
 		const timestamp = getBackupTimestamp();
 		const { BASE_PATH } = paths();
 		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-backup-"));
 		const backupFileName = `webserver-backup-${timestamp}.zip`;
-		const s3Path = `:s3:${destination.bucket}/${backup.appName}/${normalizeS3Path(backup.prefix)}${backupFileName}`;
+		const s3Path = `${getRcloneDestination(destination)}/${backup.appName}/${normalizeS3Path(backup.prefix)}${backupFileName}`;
 
 		try {
 			await execAsync(`mkdir -p ${tempDir}/filesystem`);
@@ -99,9 +104,9 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			}
 
 			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${zipPath}" "${s3Path}"`;
-			writeStream.write("Running command to upload backup to S3\n");
+			writeStream.write("Running command to upload backup to destination\n");
 			await execAsync(uploadCommand);
-			writeStream.write("Uploaded backup to S3 ✅\n");
+			writeStream.write("Uploaded backup to destination ✅\n");
 			writeStream.end();
 			await sendDokployBackupNotifications({
 				type: "success",
