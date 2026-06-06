@@ -1,6 +1,7 @@
 import copy from "copy-to-clipboard";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import copy from "copy-to-clipboard";
 import { HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
@@ -10,6 +11,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
+import { toast } from "sonner";
 import superjson from "superjson";
 import { toast } from "sonner";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";

@@ -3,11 +3,11 @@ import { boolean, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { organization } from "./account";
 import { applications } from "./application";
 import { compose } from "./compose";
 import { deployments } from "./deployment";
 import { server } from "./server";
-import { user } from "./user";
 import { generateAppName } from "./utils";
 export const shellTypes = pgEnum("shellType", ["bash", "sh"]);
 
@@ -46,7 +46,7 @@ export const schedules = pgTable("schedule", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
-	userId: text("userId").references(() => user.id, {
+	organizationId: text("organizationId").references(() => organization.id, {
 		onDelete: "cascade",
 	}),
 	enabled: boolean("enabled").notNull().default(true),
@@ -71,9 +71,9 @@ export const schedulesRelations = relations(schedules, ({ one, many }) => ({
 		fields: [schedules.serverId],
 		references: [server.serverId],
 	}),
-	user: one(user, {
-		fields: [schedules.userId],
-		references: [user.id],
+	organization: one(organization, {
+		fields: [schedules.organizationId],
+		references: [organization.id],
 	}),
 	deployments: many(deployments),
 }));

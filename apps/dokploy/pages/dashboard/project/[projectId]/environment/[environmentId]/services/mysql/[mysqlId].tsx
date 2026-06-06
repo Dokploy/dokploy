@@ -10,6 +10,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
+import { toast } from "sonner";
 import superjson from "superjson";
 import { toast } from "sonner";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";

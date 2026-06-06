@@ -1,4 +1,6 @@
+import copy from "copy-to-clipboard";
 import { CopyIcon, ServerIcon } from "lucide-react";
+import { toast } from "sonner";
 import {
 	Card,
 	CardContent,

@@ -1,3 +1,4 @@
+import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CheckIcon, ChevronsUpDown, X } from "lucide-react";
 import Link from "next/link";
@@ -5,7 +6,6 @@ import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { GitlabIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
@@ -440,7 +440,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 										<FormLabel>Watch Paths</FormLabel>
 										<TooltipProvider>
 											<Tooltip>
-												<TooltipTrigger>
+												<TooltipTrigger type="button">
 													<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
 														?
 													</div>

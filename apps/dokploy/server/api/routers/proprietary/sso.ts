@@ -8,6 +8,7 @@ import {
 	requestToHeaders,
 } from "@dokploy/server/index";
 import { auth } from "@dokploy/server/lib/auth";
+import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -42,6 +43,13 @@ export const ssoRouter = createTRPCRouter({
 		return (
 			owner.user.enableEnterpriseFeatures && owner.user.isValidEnterpriseLicense
 		);
+	}),
+	enforceSSO: publicProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return false;
+		}
+		const settings = await getWebServerSettings();
+		return settings?.enforceSSO ?? false;
 	}),
 	listProviders: enterpriseProcedure.query(async ({ ctx }) => {
 		const providers = await db.query.ssoProvider.findMany({
