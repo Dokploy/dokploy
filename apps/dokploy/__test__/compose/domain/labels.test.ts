@@ -108,6 +108,51 @@ describe("createDomainLabels", () => {
 		);
 	});
 
+	it("should add tls=true for certificateType none on websecure entrypoint", async () => {
+		const noneDomain = {
+			...baseDomain,
+			https: true,
+			certificateType: "none" as const,
+		};
+		const labels = await createDomainLabels(appName, noneDomain, "websecure");
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-websecure.tls=true",
+		);
+		// no cert resolver should be set when relying on a default/custom cert
+		expect(labels).not.toContain(
+			"traefik.http.routers.test-app-1-websecure.tls.certresolver=letsencrypt",
+		);
+	});
+
+	it("should not add tls=true for certificateType none on web entrypoint", async () => {
+		const noneDomain = {
+			...baseDomain,
+			https: true,
+			certificateType: "none" as const,
+		};
+		const labels = await createDomainLabels(appName, noneDomain, "web");
+		expect(labels).not.toContain(
+			"traefik.http.routers.test-app-1-web.tls=true",
+		);
+	});
+
+	it("should add tls=true for certificateType none on a custom https entrypoint", async () => {
+		const noneDomain = {
+			...baseDomain,
+			https: true,
+			customEntrypoint: "websecure-custom",
+			certificateType: "none" as const,
+		};
+		const labels = await createDomainLabels(
+			appName,
+			noneDomain,
+			"websecure-custom",
+		);
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-websecure-custom.tls=true",
+		);
+	});
+
 	it("should handle different ports correctly", async () => {
 		const customPortDomain = { ...baseDomain, port: 3000 };
 		const labels = await createDomainLabels(appName, customPortDomain, "web");

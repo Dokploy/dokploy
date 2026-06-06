@@ -93,6 +93,7 @@ const Service = (
 	);
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: serverIp } = api.settings.getIp.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 
@@ -147,8 +148,9 @@ const Service = (
 									<Badge
 										className="cursor-pointer"
 										onClick={() => {
-											if (data?.server?.ipAddress) {
-												copy(data.server.ipAddress);
+											const ip = data?.server?.ipAddress || serverIp;
+											if (ip) {
+												copy(ip);
 												toast.success("IP Address Copied!");
 											}
 										}}

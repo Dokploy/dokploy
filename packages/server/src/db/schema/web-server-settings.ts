@@ -96,6 +96,10 @@ export const webServerSettings = pgTable("webServerSettings", {
 			metaTitle: null,
 			footerText: null,
 		}),
+	// Deployment Configuration (self-hosted only)
+	remoteServersOnly: boolean("remoteServersOnly").notNull().default(false),
+	// Auth Configuration (self-hosted only)
+	enforceSSO: boolean("enforceSSO").notNull().default(false),
 	// Cache Cleanup Configuration
 	cleanupCacheApplications: boolean("cleanupCacheApplications")
 		.notNull()
@@ -155,6 +159,8 @@ export const apiUpdateWebServerSettings = createSchema.partial().extend({
 	cleanupCacheApplications: z.boolean().optional(),
 	cleanupCacheOnPreviews: z.boolean().optional(),
 	cleanupCacheOnCompose: z.boolean().optional(),
+	remoteServersOnly: z.boolean().optional(),
+	enforceSSO: z.boolean().optional(),
 });
 
 export const apiAssignDomain = z

@@ -46,6 +46,27 @@ export const statements = {
 	auditLog: ["read"],
 } as const;
 
+export const enterpriseOnlyResources = new Set<string>([
+	"volume",
+	"deployment",
+	"envVars",
+	"projectEnvVars",
+	"environmentEnvVars",
+	"server",
+	"registry",
+	"certificate",
+	"backup",
+	"volumeBackup",
+	"schedule",
+	"domain",
+	"destination",
+	"notification",
+	"tag",
+	"logs",
+	"monitoring",
+	"auditLog",
+]);
+
 export const ac = createAccessControl(statements);
 
 /**

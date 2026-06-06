@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import {
 	ac,
 	adminRole,
+	enterpriseOnlyResources,
 	memberRole,
 	ownerRole,
 	statements,
@@ -73,6 +74,15 @@ export const checkPermission = async (
 	const { id: userId } = ctx.user;
 	const { activeOrganizationId: organizationId } = ctx.session;
 	const memberRecord = await findMemberByUserId(userId, organizationId);
+
+	const isPrivilegedStaticRole =
+		memberRecord.role === "owner" || memberRecord.role === "admin";
+	if (isPrivilegedStaticRole) {
+		const allEnterprise = Object.keys(permissions).every((r) =>
+			enterpriseOnlyResources.has(r),
+		);
+		if (allEnterprise) return;
+	}
 
 	const role = await resolveRole(memberRecord.role, organizationId);
 
@@ -149,6 +159,8 @@ const getLegacyOverrides = (
 		},
 		sshKeys: {
 			read: !!memberRecord.canAccessToSSHKeys,
+			create: !!memberRecord.canAccessToSSHKeys,
+			delete: !!memberRecord.canAccessToSSHKeys,
 		},
 		gitProviders: {
 			read: !!memberRecord.canAccessToGitProviders,

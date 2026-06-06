@@ -829,6 +829,7 @@ table rollback {
 table schedule {
   scheduleId text [pk, not null]
   name text [not null]
+  description text
   cronExpression text [not null]
   appName text [not null]
   serviceName text
@@ -839,8 +840,9 @@ table schedule {
   applicationId text
   composeId text
   serverId text
-  userId text
+  organizationId text
   enabled boolean [not null, default: true]
+  timezone text
   createdAt text [not null]
 }
 
@@ -1148,7 +1150,7 @@ ref: schedule.composeId > compose.composeId
 
 ref: schedule.serverId > server.serverId
 
-ref: schedule.userId > user_temp.id
+ref: schedule.organizationId > organization.id
 
 ref: security.applicationId > application.applicationId
 

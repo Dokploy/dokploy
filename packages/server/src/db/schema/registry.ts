@@ -44,6 +44,13 @@ export const registryRelations = relations(registry, ({ many }) => ({
 	}),
 }));
 
+// Image references require a lowercase namespace (e.g. Docker Hub username).
+const registryUsernameSchema = z
+	.string()
+	.trim()
+	.min(1)
+	.transform((s) => s.toLowerCase());
+
 // Registry URLs must be hostname[:port] only — no shell metacharacters
 // Empty string is allowed (means default/Docker Hub registry)
 const registryUrlSchema = z.string().refine((val) => {
@@ -60,7 +67,7 @@ const registryUrlSchema = z.string().refine((val) => {
 
 const createSchema = createInsertSchema(registry, {
 	registryName: z.string().min(1),
-	username: z.string().min(1),
+	username: registryUsernameSchema,
 	password: z.string().min(1),
 	registryUrl: registryUrlSchema,
 	organizationId: z.string().min(1),
@@ -73,7 +80,7 @@ export const apiCreateRegistry = createSchema
 	.pick({})
 	.extend({
 		registryName: z.string().min(1),
-		username: z.string().min(1),
+		username: registryUsernameSchema,
 		password: z.string().min(1),
 		registryUrl: registryUrlSchema,
 		registryType: z.enum(["cloud"]),
@@ -86,7 +93,7 @@ export const apiCreateRegistry = createSchema
 
 export const apiTestRegistry = createSchema.pick({}).extend({
 	registryName: z.string().optional(),
-	username: z.string().min(1),
+	username: registryUsernameSchema,
 	password: z.string().min(1),
 	registryUrl: registryUrlSchema,
 	registryType: z.enum(["cloud"]),

@@ -224,7 +224,7 @@ export const ShowResources = ({ id, type }: Props) => {
 												<FormLabel>Memory Limit</FormLabel>
 												<TooltipProvider>
 													<Tooltip delayDuration={0}>
-														<TooltipTrigger>
+														<TooltipTrigger type="button">
 															<InfoIcon className="h-4 w-4 text-muted-foreground" />
 														</TooltipTrigger>
 														<TooltipContent>
@@ -263,7 +263,7 @@ export const ShowResources = ({ id, type }: Props) => {
 											<FormLabel>Memory Reservation</FormLabel>
 											<TooltipProvider>
 												<Tooltip delayDuration={0}>
-													<TooltipTrigger>
+													<TooltipTrigger type="button">
 														<InfoIcon className="h-4 w-4 text-muted-foreground" />
 													</TooltipTrigger>
 													<TooltipContent>
@@ -303,7 +303,7 @@ export const ShowResources = ({ id, type }: Props) => {
 												<FormLabel>CPU Limit</FormLabel>
 												<TooltipProvider>
 													<Tooltip delayDuration={0}>
-														<TooltipTrigger>
+														<TooltipTrigger type="button">
 															<InfoIcon className="h-4 w-4 text-muted-foreground" />
 														</TooltipTrigger>
 														<TooltipContent>
@@ -343,7 +343,7 @@ export const ShowResources = ({ id, type }: Props) => {
 												<FormLabel>CPU Reservation</FormLabel>
 												<TooltipProvider>
 													<Tooltip delayDuration={0}>
-														<TooltipTrigger>
+														<TooltipTrigger type="button">
 															<InfoIcon className="h-4 w-4 text-muted-foreground" />
 														</TooltipTrigger>
 														<TooltipContent>
@@ -379,7 +379,7 @@ export const ShowResources = ({ id, type }: Props) => {
 									<FormLabel className="text-base">Ulimits</FormLabel>
 									<TooltipProvider>
 										<Tooltip delayDuration={0}>
-											<TooltipTrigger>
+											<TooltipTrigger type="button">
 												<InfoIcon className="h-4 w-4 text-muted-foreground" />
 											</TooltipTrigger>
 											<TooltipContent className="max-w-xs">

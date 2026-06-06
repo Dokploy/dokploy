@@ -46,7 +46,7 @@ async function main() {
 
 	if (records.length === 0) {
 		console.log("✅ No 2FA records found, nothing to migrate.");
-		return;
+		process.exit(0);
 	}
 
 	console.log(`📦 Found ${records.length} 2FA record(s) to migrate.`);

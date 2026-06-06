@@ -23,6 +23,7 @@ import {
 	apiUpdateUser,
 	invitation,
 	member,
+	session,
 	user,
 } from "@dokploy/server/db/schema";
 import {
@@ -31,7 +32,7 @@ import {
 } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
-import { and, asc, eq, gt } from "drizzle-orm";
+import { and, asc, eq, gt, ne } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import {
@@ -228,6 +229,15 @@ export const userRouter = createTRPCRouter({
 						password: bcrypt.hashSync(input.password, 10),
 					})
 					.where(eq(account.userId, ctx.user.id));
+
+				await db
+					.delete(session)
+					.where(
+						and(
+							eq(session.userId, ctx.user.id),
+							ne(session.id, ctx.session.id),
+						),
+					);
 			}
 
 			try {
@@ -584,6 +594,13 @@ export const userRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Active organization is required",
+				});
+			}
+
+			if (input.role === "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Cannot create a user with the owner role",
 				});
 			}
 

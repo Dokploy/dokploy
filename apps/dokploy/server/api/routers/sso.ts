@@ -1,4 +1,4 @@
-import { normalizeTrustedOrigin } from "@dokploy/server";
+import { IS_CLOUD, normalizeTrustedOrigin } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { ssoProvider, user } from "@dokploy/server/db/schema";
 import { ssoProviderBodySchema } from "@dokploy/server/db/schema/sso";
@@ -7,6 +7,7 @@ import {
 	requestToHeaders,
 } from "@dokploy/server/index";
 import { auth } from "@dokploy/server/lib/auth";
+import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -22,6 +23,13 @@ export const ssoRouter = createTRPCRouter({
 			columns: { id: true },
 		});
 		return !!provider;
+	}),
+	enforceSSO: publicProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return false;
+		}
+		const settings = await getWebServerSettings();
+		return settings?.enforceSSO ?? false;
 	}),
 	listProviders: adminProcedure.query(async ({ ctx }) => {
 		const providers = await db.query.ssoProvider.findMany({

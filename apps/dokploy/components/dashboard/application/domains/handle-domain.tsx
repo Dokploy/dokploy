@@ -837,7 +837,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 												<FormLabel>Middlewares</FormLabel>
 												<TooltipProvider>
 													<Tooltip>
-														<TooltipTrigger>
+														<TooltipTrigger type="button">
 															<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
 																?
 															</div>

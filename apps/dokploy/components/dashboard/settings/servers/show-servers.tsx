@@ -134,10 +134,10 @@ export const ShowServers = () => {
 																className="relative hover:shadow-lg transition-shadow flex flex-col bg-transparent"
 															>
 																<CardHeader className="pb-3">
-																	<div className="flex items-start justify-between">
-																		<div className="flex items-center gap-2">
-																			<ServerIcon className="size-5 text-muted-foreground" />
-																			<CardTitle className="text-lg">
+																	<div className="flex items-start justify-between gap-2">
+																		<div className="flex min-w-0 items-center gap-2">
+																			<ServerIcon className="size-5 shrink-0 text-muted-foreground" />
+																			<CardTitle className="text-lg break-words min-w-0">
 																				{server.name}
 																			</CardTitle>
 																		</div>
@@ -148,7 +148,7 @@ export const ShowServers = () => {
 																					<DropdownMenuTrigger asChild>
 																						<Button
 																							variant="ghost"
-																							className="h-8 w-8 p-0"
+																							className="h-8 w-8 shrink-0 p-0"
 																						>
 																							<span className="sr-only">
 																								More options
