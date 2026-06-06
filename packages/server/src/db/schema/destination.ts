@@ -6,6 +6,7 @@ import { z } from "zod";
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	GENERIC_RCLONE_PROVIDER,
 } from "../validations/destination";
 import { organization } from "./account";
 import { backups } from "./backups";
@@ -52,6 +53,48 @@ const createSchema = createInsertSchema(destinations, {
 	additionalFlags: z
 		.array(z.string().regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR))
 		.default([]),
+}).superRefine((data, ctx) => {
+	const isGenericRclone = data.provider === GENERIC_RCLONE_PROVIDER;
+
+	if (!data.provider?.trim()) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["provider"],
+			message: "Provider is required",
+		});
+	}
+
+	if (!data.bucket?.trim()) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["bucket"],
+			message: "Bucket is required",
+		});
+	}
+
+	if (!isGenericRclone && !data.accessKey?.trim()) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["accessKey"],
+			message: "Access Key Id is required",
+		});
+	}
+
+	if (!isGenericRclone && !data.secretAccessKey?.trim()) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["secretAccessKey"],
+			message: "Secret Access Key is required",
+		});
+	}
+
+	if (!isGenericRclone && !data.endpoint?.trim()) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["endpoint"],
+			message: "Endpoint is required",
+		});
+	}
 });
 
 export const apiCreateDestination = createSchema
