@@ -298,7 +298,7 @@ export const composeRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const compose = await findComposeById(input.composeId);
-			await clearOldDeployments(compose.composeId, "compose", compose.serverId);
+			await clearOldDeployments(compose.composeId, "compose");
 			await audit(ctx, {
 				action: "update",
 				resourceType: "compose",
