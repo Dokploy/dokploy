@@ -27,7 +27,10 @@ import {
 	getPasskeyErrorMessage,
 	getPasskeyOriginPreflightError,
 	isPasskeyCeremonyAbort,
+	isPasskeyNotAllowed,
+	preemptConditionalPasskeyCeremony,
 	runPasskeyCeremony,
+	settleWebAuthnSlot,
 } from "@/lib/passkey-ceremony";
 
 type UserPasskey = {
@@ -45,7 +48,6 @@ export const ManagePasskeys = () => {
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const [passkeyName, setPasskeyName] = useState("");
 	const [isAdding, setIsAdding] = useState(false);
-	const [pendingAdd, setPendingAdd] = useState(false);
 	const [authenticatorAttachment, setAuthenticatorAttachment] =
 		useState<AuthenticatorAttachment>("platform");
 	const [deleteTarget, setDeleteTarget] = useState<UserPasskey | null>(null);
@@ -84,17 +86,36 @@ export const ManagePasskeys = () => {
 		setIsAdding(true);
 		toast.info("Waiting for device passkey prompt…");
 
+		preemptConditionalPasskeyCeremony();
+		await settleWebAuthnSlot();
+
 		try {
 			await runPasskeyCeremony(async () => {
-				const { error } = await authClient.passkey.addPasskey({
-					name,
-					authenticatorAttachment,
-				});
+				try {
+					const { error } = await authClient.passkey.addPasskey({
+						name,
+						authenticatorAttachment,
+					});
 
-				if (error) {
-					throw new Error(
-						getPasskeyErrorMessage({ error, flow: "register" }),
-					);
+					if (error) {
+						throw new Error(
+							getPasskeyErrorMessage({ error, flow: "register" }),
+						);
+					}
+				} catch (err) {
+					if (isPasskeyCeremonyAbort(err)) {
+						throw err;
+					}
+					if (isPasskeyNotAllowed(err)) {
+						throw new Error(
+							getPasskeyErrorMessage({
+								error: { code: "UNKNOWN_ERROR" },
+								caught: err,
+								flow: "register",
+							}),
+						);
+					}
+					throw err;
 				}
 			});
 
@@ -120,12 +141,6 @@ export const ManagePasskeys = () => {
 
 	const handleDialogOpenChange = (open: boolean) => {
 		setIsDialogOpen(open);
-		if (!open && pendingAdd) {
-			setPendingAdd(false);
-			requestAnimationFrame(() => {
-				void startAddPasskeyCeremony();
-			});
-		}
 	};
 
 	const handleAddPasskeyClick = () => {
@@ -135,8 +150,13 @@ export const ManagePasskeys = () => {
 			return;
 		}
 
-		setPendingAdd(true);
 		setIsDialogOpen(false);
+		// Close the dialog before WebAuthn; double rAF ensures the overlay is gone.
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				void startAddPasskeyCeremony();
+			});
+		});
 	};
 
 	const handleDeletePasskey = async () => {
