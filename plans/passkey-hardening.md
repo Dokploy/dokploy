@@ -96,7 +96,7 @@ Addresses race conditions, error surfaces, origin/rpID mismatches, and security 
   - **Self-hosted prod:** show actionable message when origin not in expected set (link to `plans/passkey-auth.md`)
 - [ ] **3.4** Startup logging (dev only):
   - Log resolved `passkeyRp` once at auth init: `{ rpID, origin }` — aids debugging without guessing
-- [ ] **3.5** Document restart requirement when Server → Host / `BETTER_AUTH_URL` changes (`plans/passkey-auth.md` update)
+- [x] **3.5** Document restart requirement when Server → Host / optional env URL changes (`plans/passkey-auth.md` update)
 
 ### Out of scope (document only)
 

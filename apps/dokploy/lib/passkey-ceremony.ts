@@ -8,6 +8,9 @@ export type PasskeyError = {
 const CEREMONY_BUSY_MESSAGE =
 	"A passkey operation is already in progress. Wait for the device prompt to finish.";
 
+const PASSKEY_ORIGIN_MISMATCH_MESSAGE =
+	"Origin mismatch. Use the same URL as Settings → Server (Host + HTTPS), or BETTER_AUTH_URL if you set that optional override. See passkey setup docs for origin alignment.";
+
 let inFlight = false;
 let conditionalSessionId = 0;
 
@@ -122,7 +125,7 @@ export function getPasskeyOriginPreflightError(): string | null {
 
 			return `Use ${expectedOrigin} to sign in — you are on ${browserOrigin}. See passkey setup docs for origin alignment.`;
 		} catch {
-			return "Passkey origin is misconfigured. Check NEXT_PUBLIC_APP_URL matches your browser URL.";
+			return "Passkey origin is misconfigured. Match Settings → Server (Host + HTTPS), or the optional NEXT_PUBLIC_APP_URL override if you set it.";
 		}
 	}
 
@@ -174,7 +177,7 @@ export function getPasskeyErrorMessage({
 		case "SESSION_NOT_FRESH":
 			return "Your session expired. Sign out, sign in again, then add a passkey.";
 		case "INVALID_ORIGIN":
-			return "Origin mismatch. Use the same URL configured in BETTER_AUTH_URL. See passkey setup docs for origin alignment.";
+			return PASSKEY_ORIGIN_MISMATCH_MESSAGE;
 		case "EMAIL_NOT_VERIFIED":
 			return "Your email is not verified. We've sent a new verification link to your email.";
 		default:
@@ -199,7 +202,7 @@ export function getPasskeyErrorMessage({
 				error.message?.toLowerCase().includes("origin") ||
 				error.message?.toLowerCase().includes("forbidden")
 			) {
-				return "Origin mismatch. Use the same URL configured in BETTER_AUTH_URL. See passkey setup docs for origin alignment.";
+				return PASSKEY_ORIGIN_MISMATCH_MESSAGE;
 			}
 			if (error.message && error.message !== "auth cancelled") {
 				return error.message;

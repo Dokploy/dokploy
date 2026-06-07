@@ -4,12 +4,12 @@ Self-hosted Dokploy supports WebAuthn passkeys for passwordless sign-in. This do
 
 ## Execution checklist
 
-- [x] Document `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` for self-hosted
+- [x] Document optional `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` overrides (default: Settings → Server)
 - [x] Document HTTPS requirement for WebAuthn
 - [x] Document origin matching (scheme, hostname, port)
 - [x] Document passkey registration flow (Profile → Manage passkeys)
 - [x] Document SSO enforce mode hiding passkey login
-- [x] Add `BETTER_AUTH_URL` to env example files
+- [x] Mark env URL overrides as optional in example files
 - [x] Add code comment in `packages/server/src/lib/passkey-rp.ts` pointing here
 - [x] Resolve RP from web server settings (`host` + `https`, else `serverIp`) when env unset
 - [x] Unit tests for RP resolution (`apps/dokploy/__test__/lib/passkey-rp.test.ts`)
@@ -21,43 +21,75 @@ Self-hosted Dokploy supports WebAuthn passkeys for passwordless sign-in. This do
 
 ---
 
-## Environment variables (self-hosted)
+## Public URL for passkeys (self-hosted)
 
-Dokploy resolves the WebAuthn **relying party ID** (`rpID`) and **origin** once at server startup. Priority:
+Passkeys need a single **canonical public URL** (scheme + hostname + port if non-default). That URL must match what users type in the browser.
+
+### Default — most operators do not set env vars
+
+**Most self-hosted installs do not need `BETTER_AUTH_URL`.** Dokploy already stores the public URL in **Settings → Server** (Host + HTTPS). Passkey `rpID` and `origin` use the same logic as `getDokployUrl()` when no env override is set.
+
+Checklist for the default path:
+
+1. **Settings → Server** — Host is your public hostname (e.g. `fleet.example.com`), HTTPS enabled for non-localhost.
+2. Users open that exact URL in the browser (not the Droplet IP if you also have a domain).
+3. **Restart Dokploy** after changing Host or HTTPS (RP config loads once at startup).
+
+If that is already how you run Dokploy, passkeys should work without any new environment variables.
+
+### Optional env overrides
+
+`BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` are **optional**. They exist for operators who want the public URL in container env (Better Auth convention) instead of — or ahead of — the UI setting.
+
+Resolution priority at server startup (`packages/server/src/lib/passkey-rp.ts`):
 
 1. **Cloud** — `https://app.dokploy.com` (fixed)
-2. **`BETTER_AUTH_URL`** — then **`NEXT_PUBLIC_APP_URL`**
-3. **Development** — `http://localhost:$PORT` when no env URL
-4. **Web server settings** (self-hosted production, no env URL) — `https?://${host}` from **Settings → Server** (`host` + HTTPS toggle), else `http://${serverIp}:$PORT` (same logic as `getDokployUrl`)
-5. **Fallback** — `http://localhost:$PORT`
+2. **`BETTER_AUTH_URL`** — if set
+3. **`NEXT_PUBLIC_APP_URL`** — if set and `BETTER_AUTH_URL` is unset
+4. **Development** — `http://localhost:$PORT` when neither env var is set
+5. **Settings → Server** — `https?://${host}`, else `http://${serverIp}:$PORT` (same as `getDokployUrl`)
+6. **Fallback** — `http://localhost:$PORT`
 
-Set env vars on the Dokploy container / process when you need an override that differs from UI host settings.
+| Variable | Required? | Purpose |
+|----------|-----------|---------|
+| *(none)* | **Default** | Use **Settings → Server** Host + HTTPS. Sufficient for typical installs. |
+| `BETTER_AUTH_URL` | Optional | Override public URL for Better Auth / passkey `rpID` and `origin`. **Wins over Server settings when set.** |
+| `NEXT_PUBLIC_APP_URL` | Optional | Same URL shape; used when `BETTER_AUTH_URL` is unset. Also used client-side for dev origin preflight when set at build time. |
 
-| Variable | Required | Purpose |
-|----------|----------|---------|
-| `BETTER_AUTH_URL` | **Recommended** | Public URL of your Dokploy instance, e.g. `https://dokploy.example.com`. Primary source for passkey `rpID` and `origin`. Should match the URL users type in the browser. |
-| `NEXT_PUBLIC_APP_URL` | Fallback | Used only when `BETTER_AUTH_URL` is unset. Same format as above. Prefer setting `BETTER_AUTH_URL` so server-side auth and passkey config stay aligned. |
+**Warning:** If `BETTER_AUTH_URL` is set to the wrong value, it **overrides** correct Server settings and passkeys will fail. Leave it unset unless you have a reason to pin the URL in env.
+
+#### When you *should* set `BETTER_AUTH_URL`
+
+- **Local development** — pin `http://localhost:3000` (or your dev port) explicitly.
+- **Env-as-source-of-truth deploys** — Swarm/Kubernetes/manifests define the public URL and you do not rely on the UI host field.
+- **Host not yet in the UI** — first boot or automation before Server settings are saved, but you know the canonical URL.
+- **Deliberate override** — Server Host is wrong or stale and you need a known-good URL until the UI is fixed (then align UI and remove the override).
+- **Non-default port in the public URL** — e.g. `https://dokploy.example.com:8443` and you want that exact origin in env.
+
+#### When you should *not* set it
+
+- **Standard VPS + domain** — Host and HTTPS are already correct in **Settings → Server** (typical Dokploy install).
+- **“Just in case”** — duplicating Server Host in env adds drift risk with no benefit.
+- **Different value than Server Host** — unless intentional, this causes origin mismatches.
 
 ### Examples
 
 ```bash
-# Production behind Traefik with a custom domain
+# Optional — local development only (HTTP allowed on localhost)
+BETTER_AUTH_URL=http://localhost:3000
+
+# Optional — production override when env, not UI, owns the public URL
 BETTER_AUTH_URL=https://dokploy.example.com
 
-# Local development (HTTP allowed on localhost only)
-BETTER_AUTH_URL=http://localhost:3000
+# Typical production — omit both vars; set Host + HTTPS in Settings → Server instead
 ```
 
 ### How values are derived
 
-From `packages/server/src/lib/passkey-rp.ts`:
-
-- **origin** — `BETTER_AUTH_URL` with any trailing slash removed (e.g. `https://dokploy.example.com`).
+- **origin** — chosen URL with trailing slash removed (e.g. `https://dokploy.example.com`).
 - **rpID** — hostname of that URL (`dokploy.example.com`). For `localhost`, `rpID` is `localhost`.
-- If neither env var is set in **development**, defaults to `http://localhost:$PORT` (`PORT` defaults to `3000`).
-- If neither env var is set in **production**, Dokploy reads **Server → Host** and HTTPS from the database (restart still required after changing host/HTTPS in the UI).
 
-After changing env vars, **Server → Host**, HTTPS, or `serverIp`, **restart the Dokploy service** so the passkey plugin picks up the new RP configuration. Existing passkeys registered under a different origin will not work until re-registered.
+After changing env vars, **Settings → Server** (Host / HTTPS / server IP), **restart the Dokploy service** so the passkey plugin picks up the new RP configuration. Existing passkeys registered under a different origin will not work until re-registered.
 
 ---
 
@@ -78,8 +110,8 @@ Self-hosted Dokploy on a VPS or custom domain **must** be served over HTTPS (Tra
 
 WebAuthn checks that the page **origin** (scheme + hostname + port) matches what the server configured. All three must align:
 
-| Browser address bar | `BETTER_AUTH_URL` | Result |
-|---------------------|-------------------|--------|
+| Browser address bar | Canonical URL (Server Host or env override) | Result |
+|---------------------|---------------------------------------------|--------|
 | `https://dokploy.example.com` | `https://dokploy.example.com` | Works |
 | `https://dokploy.example.com:8443` | `https://dokploy.example.com` | **Fails** (port mismatch) |
 | `http://dokploy.example.com` | `https://dokploy.example.com` | **Fails** (scheme mismatch) |
@@ -88,9 +120,9 @@ WebAuthn checks that the page **origin** (scheme + hostname + port) matches what
 
 **Operator checklist:**
 
-1. Set `BETTER_AUTH_URL` to exactly what users open in the browser (including port if non-default).
-2. Configure Dokploy **Server → Host** (web server settings) to the same hostname and enable HTTPS when not on localhost.
-3. Avoid accessing the same instance by IP and by domain — pick one canonical URL and stick to it for passkeys.
+1. Pick one canonical URL and use it everywhere (browser, **Settings → Server**, and optional `BETTER_AUTH_URL` if you set it).
+2. Configure **Settings → Server** Host + HTTPS to that URL (default path — no env var needed).
+3. Avoid accessing the same instance by IP and by domain — pick one and stick to it for passkeys.
 
 Symptoms of a mismatch: "SecurityError", "NotAllowedError", or generic passkey registration/sign-in failures in the browser console; server-side WebAuthn verification rejects the ceremony.
 
@@ -158,17 +190,17 @@ When SSO is configured but **not** enforced, the login page shows "Sign in with 
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| Passkey button does nothing / immediate error | HTTP on non-localhost | Enable HTTPS; set `BETTER_AUTH_URL` to `https://…` |
-| Worked once, fails after domain change | Origin / rpID changed | Update `BETTER_AUTH_URL`, restart, re-register passkeys |
+| Passkey button does nothing / immediate error | HTTP on non-localhost | Enable HTTPS in **Settings → Server** (or set optional `BETTER_AUTH_URL`) |
+| Worked once, fails after domain change | Origin / rpID changed | Update **Settings → Server** Host (or env override), restart, re-register passkeys |
 | "No passkeys" on sign-in | User never registered | Sign in another way → Profile → Manage passkeys |
 | No passkey button on login | SSO enforce mode | Disable Enforce SSO or use SSO only |
-| Dev works, prod fails | Missing `BETTER_AUTH_URL` in prod | Set env var to public HTTPS URL and restart |
+| Dev works, prod fails | Server Host / HTTPS wrong or HTTP on prod | Fix **Settings → Server**; restart (env override optional) |
 | `AbortError` / Next.js error overlay on login | Concurrent WebAuthn ceremonies | Refresh; only one passkey operation at a time (mutex prevents double-click) |
 | "Already in progress" toast | Double-clicked sign-in or add-passkey | Wait for device prompt to finish |
 | `NotAllowedError` / timeout on sign-in | No passkey registered, or prompt denied | Register in Settings → Profile, or use email/password |
 | `CHALLENGE_NOT_FOUND` | Stale WebAuthn challenge cookie | Refresh the page and try again |
 | `SESSION_NOT_FRESH` on register | Session too old for passkey add | Sign out, sign in again, then add passkey |
-| Origin / `INVALID_ORIGIN` errors | Browser URL ≠ `BETTER_AUTH_URL` | Use exact canonical URL (e.g. `localhost` not `127.0.0.1` in dev) |
+| Origin / `INVALID_ORIGIN` errors | Browser URL ≠ canonical URL | Match **Settings → Server** Host (or unset wrong `BETTER_AUTH_URL`); use `localhost` not `127.0.0.1` in dev |
 | Passkey bypasses 2FA | Outdated server (pre-hardening) | Upgrade to build with passkey 2FA hook; restart server |
 | 2FA shown after passkey (expected) | User has TOTP enabled | Enter authenticator code — same as email login |
 | Security key not offered | Platform-only default | Click **Use security key instead** before Add passkey |

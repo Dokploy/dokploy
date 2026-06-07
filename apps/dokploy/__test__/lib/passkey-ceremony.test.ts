@@ -145,6 +145,6 @@ describe("getPasskeyErrorMessage", () => {
 				error: { code: "INVALID_ORIGIN" },
 				flow: "sign-in",
 			}),
-		).toContain("BETTER_AUTH_URL");
+		).toContain("Settings → Server");
 	});
 });
