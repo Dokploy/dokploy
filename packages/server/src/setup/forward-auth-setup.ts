@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import type { CreateServiceOptions } from "dockerode";
+import { betterAuthSecret } from "../lib/auth-secret";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 
 export const FORWARD_AUTH_SERVICE_NAME = "dokploy-forward-auth";
@@ -37,13 +38,7 @@ export const forwardAuthCallbackUrl = (
 ): string => `${https ? "https" : "http"}://${authDomain}/oauth2/callback`;
 
 export const deriveCookieSecret = (salt: string): string => {
-	const rootSecret = process.env.BETTER_AUTH_SECRET;
-	if (!rootSecret) {
-		throw new Error(
-			"BETTER_AUTH_SECRET is required to derive the forward-auth cookie secret",
-		);
-	}
-	return createHmac("sha256", rootSecret)
+	return createHmac("sha256", betterAuthSecret)
 		.update(`forward-auth:${salt}`)
 		.digest("base64");
 };
