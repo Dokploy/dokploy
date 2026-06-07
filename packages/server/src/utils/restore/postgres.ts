@@ -22,9 +22,6 @@ export const restorePostgresBackup = async (
 
 		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
 
-		emit("Starting restore...");
-		emit(`Backup path: ${backupPath}`);
-
 		const command = getRestoreCommand({
 			appName,
 			credentials: {
@@ -36,7 +33,8 @@ export const restorePostgresBackup = async (
 			restoreType: "database",
 		});
 
-		emit(`Executing command: ${command}`);
+		emit("Starting restore...");
+		emit(`Restoring database: ${backupInput.databaseName} from ${backupInput.backupFile}`);
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);

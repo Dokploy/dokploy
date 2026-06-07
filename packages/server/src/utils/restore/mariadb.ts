@@ -34,8 +34,7 @@ export const restoreMariadbBackup = async (
 		});
 
 		emit("Starting restore...");
-
-		emit(`Executing command: ${command}`);
+		emit(`Restoring database: ${backupInput.databaseName} from ${backupInput.backupFile}`);
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
