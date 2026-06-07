@@ -34,7 +34,9 @@ export const restoreMongoBackup = async (
 		});
 
 		emit("Starting restore...");
-		emit(`Restoring database: ${backupInput.databaseName} from ${backupInput.backupFile}`);
+		emit(
+			`Restoring database: ${backupInput.databaseName} from ${backupInput.backupFile}`,
+		);
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
