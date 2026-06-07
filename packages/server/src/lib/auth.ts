@@ -1,5 +1,4 @@
 import type { IncomingMessage } from "node:http";
-import { createHMAC } from "@better-auth/utils/hmac";
 import { apiKey } from "@better-auth/api-key";
 import { passkey } from "@better-auth/passkey";
 import { sso } from "@better-auth/sso";
@@ -12,14 +11,8 @@ import {
 	createEmailVerificationToken,
 	isAPIError,
 } from "better-auth/api";
-import { generateRandomString } from "better-auth/crypto";
-import { deleteSessionCookie, expireCookie } from "better-auth/cookies";
+import { deleteSessionCookie } from "better-auth/cookies";
 import { admin, organization, twoFactor } from "better-auth/plugins";
-
-// Mirrors better-auth/plugins/two-factor/constant.mjs
-const TWO_FACTOR_COOKIE_NAME = "two_factor";
-const TRUST_DEVICE_COOKIE_NAME = "trust_device";
-const TRUST_DEVICE_COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 import { and, desc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 import { db } from "../db";
@@ -52,9 +45,6 @@ if (process.env.NODE_ENV === "development") {
 		origin: passkeyRp.origin,
 	});
 }
-
-const TWO_FACTOR_COOKIE_MAX_AGE = 600;
-const trustDeviceMaxAge = TRUST_DEVICE_COOKIE_MAX_AGE;
 
 type PasskeyAuditSnapshot = { id: string; name?: string | null };
 
@@ -152,81 +142,12 @@ const handlePasskeyVerifyAuthenticationAfter = async (
 		});
 	}
 
-	if (!user.twoFactorEnabled) return;
-
-	const trustDeviceCookieAttrs = ctx.context.createAuthCookie(
-		TRUST_DEVICE_COOKIE_NAME,
-		{ maxAge: trustDeviceMaxAge },
-	);
-	const trustDeviceCookie = await ctx.getSignedCookie(
-		trustDeviceCookieAttrs.name,
-		ctx.context.secret,
-	);
-	if (trustDeviceCookie) {
-		const [token, trustIdentifier] = trustDeviceCookie.split("!");
-		if (token && trustIdentifier) {
-			const expectedToken = await createHMAC("SHA-256", "base64urlnopad").sign(
-				ctx.context.secret,
-				`${user.id}!${trustIdentifier}`,
-			);
-			if (token === expectedToken) {
-				const verificationRecord =
-					await ctx.context.internalAdapter.findVerificationValue(
-						trustIdentifier,
-					);
-				if (
-					verificationRecord &&
-					verificationRecord.value === user.id &&
-					verificationRecord.expiresAt > new Date()
-				) {
-					await ctx.context.internalAdapter.deleteVerificationByIdentifier(
-						trustIdentifier,
-					);
-					const newTrustIdentifier = `trust-device-${generateRandomString(32)}`;
-					const newToken = await createHMAC(
-						"SHA-256",
-						"base64urlnopad",
-					).sign(ctx.context.secret, `${user.id}!${newTrustIdentifier}`);
-					await ctx.context.internalAdapter.createVerificationValue({
-						value: user.id,
-						identifier: newTrustIdentifier,
-						expiresAt: new Date(Date.now() + trustDeviceMaxAge * 1000),
-					});
-					const newTrustDeviceCookie = ctx.context.createAuthCookie(
-						TRUST_DEVICE_COOKIE_NAME,
-						{ maxAge: trustDeviceMaxAge },
-					);
-					await ctx.setSignedCookie(
-						newTrustDeviceCookie.name,
-						`${newToken}!${newTrustIdentifier}`,
-						ctx.context.secret,
-						trustDeviceCookieAttrs.attributes,
-					);
-					return;
-				}
-			}
-		}
-		expireCookie(ctx, trustDeviceCookieAttrs);
-	}
-
-	deleteSessionCookie(ctx, true);
-	await ctx.context.internalAdapter.deleteSession(returned.session.token);
-	const twoFactorCookie = ctx.context.createAuthCookie(TWO_FACTOR_COOKIE_NAME, {
-		maxAge: TWO_FACTOR_COOKIE_MAX_AGE,
-	});
-	const identifier = `2fa-${generateRandomString(20)}`;
-	await ctx.context.internalAdapter.createVerificationValue({
-		value: user.id,
-		identifier,
-		expiresAt: new Date(Date.now() + TWO_FACTOR_COOKIE_MAX_AGE * 1000),
-	});
-	await ctx.setSignedCookie(
-		twoFactorCookie.name,
-		identifier,
-		ctx.context.secret,
-		twoFactorCookie.attributes,
-	);
-	return ctx.json({ twoFactorRedirect: true });
+	// A user-verifying passkey is already phishing-resistant multi-factor auth
+	// (possession of the authenticator + biometric/PIN), so it satisfies 2FA on
+	// its own. We intentionally do NOT issue a twoFactorRedirect here — the
+	// session completes directly, matching how Google/Microsoft/GitHub/Apple
+	// treat passkey sign-in. TOTP remains required for the email/password flow.
+	return;
 };
 
 const auditPasskeyEvent = async (
@@ -253,7 +174,6 @@ const auditPasskeyEvent = async (
 };
 
 const { handler, api } = betterAuth({
-	baseURL: passkeyRp.origin,
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: schema,
