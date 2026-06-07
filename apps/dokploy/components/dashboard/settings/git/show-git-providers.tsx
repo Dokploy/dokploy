@@ -289,23 +289,29 @@ export const ShowGitProviders = () => {
 
 																{canManage && (
 																	<>
-																		{isGithub && haveGithubRequirements && gitProvider.github?.githubId && (
-																			<EditGithubProvider
-																				githubId={gitProvider.github.githubId}
-																			/>
-																		)}
+																		{isGithub &&
+																			haveGithubRequirements &&
+																			gitProvider.github?.githubId && (
+																				<EditGithubProvider
+																					githubId={gitProvider.github.githubId}
+																				/>
+																			)}
 
-																		{isGitlab && gitProvider.gitlab?.gitlabId && (
-																			<EditGitlabProvider
-																				gitlabId={gitProvider.gitlab.gitlabId}
-																			/>
-																		)}
+																		{isGitlab &&
+																			gitProvider.gitlab?.gitlabId && (
+																				<EditGitlabProvider
+																					gitlabId={gitProvider.gitlab.gitlabId}
+																				/>
+																			)}
 
-																		{isBitbucket && gitProvider.bitbucket?.bitbucketId && (
-																			<EditBitbucketProvider
-																				bitbucketId={gitProvider.bitbucket.bitbucketId}
-																			/>
-																		)}
+																		{isBitbucket &&
+																			gitProvider.bitbucket?.bitbucketId && (
+																				<EditBitbucketProvider
+																					bitbucketId={
+																						gitProvider.bitbucket.bitbucketId
+																					}
+																				/>
+																			)}
 
 																		{isGitea && gitProvider.gitea?.giteaId && (
 																			<EditGiteaProvider
