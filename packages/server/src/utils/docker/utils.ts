@@ -164,7 +164,7 @@ while true; do
 
     break
   else
-    echo "Docker is busy. Will check again in \${check_interval} seconds..."
+    echo "Docker is busy. It will check again in \${check_interval} seconds..."
 
     sleep "\${check_interval}"
   fi
