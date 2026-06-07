@@ -1,5 +1,5 @@
 {
-  "id": "2dcc71c8-44b5-4ead-8b2d-050abf7f005c",
+  "id": "5f332a4e-009c-4b16-a6c0-1edd379145a4",
   "prevId": "f3f22c15-d2d1-4ed1-9561-24aa98e30231",
   "version": "7",
   "dialect": "postgresql",
@@ -3146,6 +3146,13 @@
           "primaryKey": false,
           "notNull": false,
           "default": "ARRAY[]::text[]"
+        },
+        "forwardAuthEnabled": {
+          "name": "forwardAuthEnabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},
@@ -3263,6 +3270,111 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.forward_auth_settings": {
+      "name": "forward_auth_settings",
+      "schema": "",
+      "columns": {
+        "forwardAuthSettingsId": {
+          "name": "forwardAuthSettingsId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "authDomain": {
+          "name": "authDomain",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "baseDomain": {
+          "name": "baseDomain",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "https": {
+          "name": "https",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "certificateType": {
+          "name": "certificateType",
+          "type": "certificateType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'letsencrypt'"
+        },
+        "customCertResolver": {
+          "name": "customCertResolver",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "providerId": {
+          "name": "providerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "serverId": {
+          "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "forward_auth_settings_providerId_sso_provider_provider_id_fk": {
+          "name": "forward_auth_settings_providerId_sso_provider_provider_id_fk",
+          "tableFrom": "forward_auth_settings",
+          "tableTo": "sso_provider",
+          "columnsFrom": [
+            "providerId"
+          ],
+          "columnsTo": [
+            "provider_id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "forward_auth_settings_serverId_server_serverId_fk": {
+          "name": "forward_auth_settings_serverId_server_serverId_fk",
+          "tableFrom": "forward_auth_settings",
+          "tableTo": "server",
+          "columnsFrom": [
+            "serverId"
+          ],
+          "columnsTo": [
+            "serverId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "forward_auth_settings_serverId_unique": {
+          "name": "forward_auth_settings_serverId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "serverId"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -5629,130 +5741,6 @@
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.passkey": {
-      "name": "passkey",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "public_key": {
-          "name": "public_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "credential_id": {
-          "name": "credential_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "counter": {
-          "name": "counter",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "device_type": {
-          "name": "device_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "backed_up": {
-          "name": "backed_up",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "transports": {
-          "name": "transports",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "aaguid": {
-          "name": "aaguid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "passkey_userId_idx": {
-          "name": "passkey_userId_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "passkey_credentialID_idx": {
-          "name": "passkey_credentialID_idx",
-          "columns": [
-            {
-              "expression": "credential_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "passkey_user_id_user_id_fk": {
-          "name": "passkey_user_id_user_id_fk",
-          "tableFrom": "passkey",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},

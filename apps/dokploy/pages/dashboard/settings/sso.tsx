@@ -7,6 +7,7 @@ import { ToggleEnforceSSO } from "@/components/dashboard/settings/servers/action
 import { ToggleRemoteServersOnly } from "@/components/dashboard/settings/servers/actions/toggle-remote-servers-only";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { EnterpriseFeatureGate } from "@/components/proprietary/enterprise-feature-gate";
+import { ForwardAuthServers } from "@/components/proprietary/sso/forward-auth-servers";
 import { SSOSettings } from "@/components/proprietary/sso/sso-settings";
 import {
 	Card,
@@ -39,6 +40,20 @@ const Page = ({ isCloud }: Props) => {
 								<SSOSettings />
 							</EnterpriseFeatureGate>
 						</div>
+					</div>
+				</Card>
+				<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
+					<div className="rounded-xl bg-background shadow-md">
+						<EnterpriseFeatureGate
+							lockedProps={{
+								title: "Application Authentication",
+								description:
+									"Protect deployed applications behind an OIDC SSO gate (oauth2-proxy). Part of Dokploy Enterprise.",
+								ctaLabel: "Go to License",
+							}}
+						>
+							<ForwardAuthServers />
+						</EnterpriseFeatureGate>
 					</div>
 				</Card>
 				{!isCloud && (

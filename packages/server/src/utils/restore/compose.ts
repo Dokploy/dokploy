@@ -77,9 +77,9 @@ export const restoreComposeBackup = async (
 		});
 
 		emit("Starting restore...");
-		emit(`Backup path: ${backupPath}`);
-
-		emit(`Executing command: ${restoreCommand}`);
+		emit(
+			`Restoring database: ${backupInput.databaseName} from ${backupInput.backupFile}`,
+		);
 
 		if (serverId) {
 			await execAsyncRemote(serverId, restoreCommand);
