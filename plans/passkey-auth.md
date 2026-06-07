@@ -15,6 +15,9 @@ Self-hosted Dokploy supports WebAuthn passkeys for passwordless sign-in. This do
 - [x] Unit tests for RP resolution (`apps/dokploy/__test__/lib/passkey-rp.test.ts`)
 - [x] Login UX: copy, SSO note, conditional autofill, clearer errors
 - [x] Audit logs for passkey create/delete (`resourceType: passkey`)
+- [x] Document 2FA behavior (passkey sign-in respects TOTP)
+- [x] Document platform vs security key registration
+- [x] Troubleshooting matrix for ceremony errors
 
 ---
 
@@ -108,6 +111,30 @@ Passkeys are **per-user credentials** bound to the Dokploy origin. Users must re
 
 Users can register multiple passkeys and remove old ones from the same dialog.
 
+### Platform passkeys vs security keys
+
+By default, **Add passkey** registers a **platform** authenticator (Touch ID, Windows Hello, device PIN). To register a **cross-platform** security key (YubiKey, etc.), click **Use security key instead** in the Manage passkeys dialog before adding.
+
+---
+
+## Two-factor authentication (2FA)
+
+Passkey sign-in **respects TOTP 2FA** the same way email/password sign-in does:
+
+1. User completes passkey verification.
+2. If 2FA is enabled and no valid **trust device** cookie is present, the server returns `{ twoFactorRedirect: true }` and the login page shows the TOTP screen.
+3. After entering a valid 6-digit code (or backup code), the session is created.
+
+If the user previously checked **Trust this device** during a 2FA verification, subsequent passkey (and email) sign-ins skip the TOTP prompt until the trust cookie expires.
+
+---
+
+## Conditional passkey autofill (login page)
+
+On supported browsers, the login page preloads passkey conditional mediation so the email field may offer a passkey autofill suggestion. This runs silently — no toast on failure or when no passkeys exist. Manual **Sign in with passkey** waits for any in-flight conditional ceremony to finish before starting.
+
+Conditional autofill is disabled when SSO enforce mode is on or when the 2FA screen is showing.
+
 ---
 
 ## SSO enforce mode
@@ -136,13 +163,25 @@ When SSO is configured but **not** enforced, the login page shows "Sign in with 
 | "No passkeys" on sign-in | User never registered | Sign in another way → Profile → Manage passkeys |
 | No passkey button on login | SSO enforce mode | Disable Enforce SSO or use SSO only |
 | Dev works, prod fails | Missing `BETTER_AUTH_URL` in prod | Set env var to public HTTPS URL and restart |
+| `AbortError` / Next.js error overlay on login | Concurrent WebAuthn ceremonies | Refresh; only one passkey operation at a time (mutex prevents double-click) |
+| "Already in progress" toast | Double-clicked sign-in or add-passkey | Wait for device prompt to finish |
+| `NotAllowedError` / timeout on sign-in | No passkey registered, or prompt denied | Register in Settings → Profile, or use email/password |
+| `CHALLENGE_NOT_FOUND` | Stale WebAuthn challenge cookie | Refresh the page and try again |
+| `SESSION_NOT_FRESH` on register | Session too old for passkey add | Sign out, sign in again, then add passkey |
+| Origin / `INVALID_ORIGIN` errors | Browser URL ≠ `BETTER_AUTH_URL` | Use exact canonical URL (e.g. `localhost` not `127.0.0.1` in dev) |
+| Passkey bypasses 2FA | Outdated server (pre-hardening) | Upgrade to build with passkey 2FA hook; restart server |
+| 2FA shown after passkey (expected) | User has TOTP enabled | Enter authenticator code — same as email login |
+| Security key not offered | Platform-only default | Click **Use security key instead** before Add passkey |
 
 ---
 
 ## Related code
 
 - RP / origin resolution: `packages/server/src/lib/passkey-rp.ts`
-- Auth plugin wiring: `packages/server/src/lib/auth.ts`
+- Auth plugin wiring + passkey 2FA hook: `packages/server/src/lib/auth.ts`
+- Ceremony mutex + error mapping: `apps/dokploy/lib/passkey-ceremony.ts`
+- Conditional autofill hook: `apps/dokploy/utils/hooks/use-passkey-conditional-ui.ts`
 - Login UI: `apps/dokploy/pages/index.tsx`
 - Passkey management UI: `apps/dokploy/components/dashboard/settings/profile/manage-passkeys.tsx`
 - SSO enforce toggle: `apps/dokploy/components/dashboard/settings/servers/actions/toggle-enforce-sso.tsx`
+- Unit tests: `apps/dokploy/__test__/lib/passkey-rp.test.ts`, `apps/dokploy/__test__/lib/passkey-ceremony.test.ts`

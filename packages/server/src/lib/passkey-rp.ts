@@ -90,3 +90,18 @@ export const resolvePasskeyRpConfig = async (): Promise<PasskeyRpConfig> => {
 
 	return localhostFallback();
 };
+
+/**
+ * Dev origins accepted by Better Auth trustedOrigins (only one rpID is active;
+ * canonical URL is chosen via BETTER_AUTH_URL / NEXT_PUBLIC_APP_URL).
+ */
+export const getPasskeyDevOrigins = (port: string): string[] => [
+	`http://localhost:${port}`,
+	`http://127.0.0.1:${port}`,
+];
+
+/** Whether the browser origin matches the resolved passkey RP config (exact match). */
+export const originMatchesRpConfig = (
+	browserOrigin: string,
+	config: PasskeyRpConfig,
+): boolean => browserOrigin.replace(/\/$/, "") === config.origin;

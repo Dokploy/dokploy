@@ -1,5 +1,5 @@
 import { KeyRound, Plus, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -23,6 +23,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import {
+	getPasskeyErrorMessage,
+	getPasskeyOriginPreflightError,
+	isPasskeyCeremonyAbort,
+	runPasskeyCeremony,
+} from "@/lib/passkey-ceremony";
 
 type UserPasskey = {
 	id: string;
@@ -31,30 +37,41 @@ type UserPasskey = {
 	deviceType?: string;
 };
 
+type AuthenticatorAttachment = "platform" | "cross-platform";
+
 export const ManagePasskeys = () => {
 	const [passkeys, setPasskeys] = useState<UserPasskey[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const [passkeyName, setPasskeyName] = useState("");
 	const [isAdding, setIsAdding] = useState(false);
+	const [pendingAdd, setPendingAdd] = useState(false);
+	const [authenticatorAttachment, setAuthenticatorAttachment] =
+		useState<AuthenticatorAttachment>("platform");
 	const [deleteTarget, setDeleteTarget] = useState<UserPasskey | null>(null);
 	const [isDeleting, setIsDeleting] = useState(false);
+	const loadGenerationRef = useRef(0);
 
 	const loadPasskeys = useCallback(async () => {
+		const generation = ++loadGenerationRef.current;
 		setIsLoading(true);
 		try {
 			const { data, error } = await authClient.passkey.listUserPasskeys();
+			if (generation !== loadGenerationRef.current) return;
 			if (error) {
 				throw new Error(error.message ?? "Failed to load passkeys");
 			}
 			setPasskeys((data ?? []) as UserPasskey[]);
 		} catch (error) {
+			if (generation !== loadGenerationRef.current) return;
 			toast.error(
 				error instanceof Error ? error.message : "Failed to load passkeys",
 			);
 			setPasskeys([]);
 		} finally {
-			setIsLoading(false);
+			if (generation === loadGenerationRef.current) {
+				setIsLoading(false);
+			}
 		}
 	}, []);
 
@@ -62,78 +79,68 @@ export const ManagePasskeys = () => {
 		void loadPasskeys();
 	}, [loadPasskeys]);
 
-	const getPasskeyRegisterErrorMessage = (error: {
-		code?: string;
-		message?: string;
-	}) => {
-		switch (error.code) {
-			case "SESSION_NOT_FRESH":
-				return "Your session expired. Sign out, sign in again, then add a passkey.";
-			case "CHALLENGE_NOT_FOUND":
-				return "Passkey session expired. Close this dialog and try again.";
-			case "ERROR_CEREMONY_ABORTED":
-			case "AUTH_CANCELLED":
-				return "Passkey registration was cancelled.";
-			case "UNKNOWN_ERROR":
-				if (error.message?.toLowerCase().includes("timeout")) {
-					return "Passkey registration timed out. Use http://localhost:3000 (not 127.0.0.1 or your LAN IP), complete Touch ID when prompted, and try again.";
-				}
-				break;
-		}
-		if (error.message?.toLowerCase().includes("timeout")) {
-			return "Passkey registration timed out. Use http://localhost:3000 (not 127.0.0.1 or your LAN IP), complete Touch ID when prompted, and try again.";
-		}
-		return error.message ?? "Failed to register passkey";
-	};
-
-	const handleAddPasskey = async () => {
+	const startAddPasskeyCeremony = async () => {
 		const name = passkeyName.trim() || undefined;
-
-		if (
-			typeof window !== "undefined" &&
-			window.location.hostname !== "localhost"
-		) {
-			toast.error(
-				`Register passkeys at http://localhost:${window.location.port || "3000"} — not ${window.location.host} (WebAuthn rpID is tied to localhost in dev).`,
-			);
-			return;
-		}
-
-		// WebAuthn/Touch ID prompts often fail or time out behind modal overlays.
-		setIsDialogOpen(false);
 		setIsAdding(true);
-		toast.info("Complete the passkey prompt from your device…");
-
-		await new Promise<void>((resolve) => {
-			requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-		});
+		toast.info("Waiting for device passkey prompt…");
 
 		try {
-			const { error } = await authClient.passkey.addPasskey({
-				name,
-				authenticatorAttachment: "platform",
-			});
+			await runPasskeyCeremony(async () => {
+				const { error } = await authClient.passkey.addPasskey({
+					name,
+					authenticatorAttachment,
+				});
 
-			if (error) {
-				throw new Error(getPasskeyRegisterErrorMessage(error));
-			}
+				if (error) {
+					throw new Error(
+						getPasskeyErrorMessage({ error, flow: "register" }),
+					);
+				}
+			});
 
 			toast.success("Passkey added successfully");
 			setPasskeyName("");
+			setAuthenticatorAttachment("platform");
 			await loadPasskeys();
 		} catch (error) {
+			if (isPasskeyCeremonyAbort(error)) return;
 			toast.error(
-				error instanceof Error
-					? error.message
-					: "Failed to register passkey",
+				getPasskeyErrorMessage({
+					error: {
+						message: error instanceof Error ? error.message : undefined,
+					},
+					caught: error,
+					flow: "register",
+				}),
 			);
 		} finally {
 			setIsAdding(false);
 		}
 	};
 
+	const handleDialogOpenChange = (open: boolean) => {
+		setIsDialogOpen(open);
+		if (!open && pendingAdd) {
+			setPendingAdd(false);
+			requestAnimationFrame(() => {
+				void startAddPasskeyCeremony();
+			});
+		}
+	};
+
+	const handleAddPasskeyClick = () => {
+		const originError = getPasskeyOriginPreflightError();
+		if (originError) {
+			toast.error(originError);
+			return;
+		}
+
+		setPendingAdd(true);
+		setIsDialogOpen(false);
+	};
+
 	const handleDeletePasskey = async () => {
-		if (!deleteTarget) return;
+		if (!deleteTarget || isAdding) return;
 		setIsDeleting(true);
 		try {
 			const { error } = await authClient.passkey.deletePasskey({
@@ -165,11 +172,13 @@ export const ManagePasskeys = () => {
 		});
 	};
 
+	const ceremonyInFlight = isAdding || isDeleting;
+
 	return (
 		<>
-			<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+			<Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
 				<DialogTrigger asChild>
-					<Button variant="ghost">
+					<Button variant="ghost" disabled={ceremonyInFlight}>
 						<KeyRound className="size-4 text-muted-foreground" />
 						Manage passkeys
 					</Button>
@@ -178,8 +187,9 @@ export const ManagePasskeys = () => {
 					<DialogHeader>
 						<DialogTitle>Passkeys</DialogTitle>
 						<DialogDescription>
-							Register passkeys for passwordless sign-in on this device or a
-							security key.
+							Register passkeys for passwordless sign-in. Platform passkeys use
+							Touch ID or Windows Hello; security keys are cross-platform
+							devices like YubiKey.
 						</DialogDescription>
 					</DialogHeader>
 
@@ -215,7 +225,11 @@ export const ManagePasskeys = () => {
 											type="button"
 											variant="ghost"
 											size="icon"
-											onClick={() => setDeleteTarget(item)}
+											disabled={isAdding}
+											onClick={() => {
+												if (isAdding) return;
+												setDeleteTarget(item);
+											}}
 											aria-label={`Remove passkey ${item.name ?? item.id}`}
 										>
 											<Trash2 className="size-4 text-destructive" />
@@ -238,18 +252,42 @@ export const ManagePasskeys = () => {
 						<Button
 							type="button"
 							className="w-full"
-							onClick={handleAddPasskey}
-							isLoading={isAdding}
+							onClick={handleAddPasskeyClick}
+							disabled={isAdding}
 						>
 							<Plus className="size-4 mr-2" />
 							Add passkey
 						</Button>
+
+						{authenticatorAttachment === "platform" ? (
+							<button
+								type="button"
+								className="text-sm text-muted-foreground hover:underline w-full text-center"
+								onClick={() => setAuthenticatorAttachment("cross-platform")}
+							>
+								Use security key instead
+							</button>
+						) : (
+							<button
+								type="button"
+								className="text-sm text-muted-foreground hover:underline w-full text-center"
+								onClick={() => setAuthenticatorAttachment("platform")}
+							>
+								Use Touch ID / Windows Hello instead
+							</button>
+						)}
 					</div>
 				</DialogContent>
 			</Dialog>
 
+			{isAdding ? (
+				<p className="text-xs text-muted-foreground mt-1">
+					Waiting for device passkey prompt…
+				</p>
+			) : null}
+
 			<AlertDialog
-				open={deleteTarget !== null}
+				open={deleteTarget !== null && !isAdding}
 				onOpenChange={(open) => {
 					if (!open) setDeleteTarget(null);
 				}}
@@ -270,7 +308,7 @@ export const ManagePasskeys = () => {
 								e.preventDefault();
 								void handleDeletePasskey();
 							}}
-							disabled={isDeleting}
+							disabled={isDeleting || isAdding}
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
 							Remove

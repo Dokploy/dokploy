@@ -322,6 +322,43 @@ describe("resolvePasskeyRpConfig", () => {
 	});
 });
 
+describe("getPasskeyDevOrigins", () => {
+	it("returns localhost and 127.0.0.1 origins for a port", async () => {
+		const { getPasskeyDevOrigins } = await loadPasskeyRpModule();
+
+		expect(getPasskeyDevOrigins("3000")).toEqual([
+			"http://localhost:3000",
+			"http://127.0.0.1:3000",
+		]);
+	});
+});
+
+describe("originMatchesRpConfig", () => {
+	it("matches when browser origin equals config origin", async () => {
+		const { originMatchesRpConfig } = await loadPasskeyRpModule();
+
+		expect(
+			originMatchesRpConfig("https://dokploy.example.com", {
+				rpID: "dokploy.example.com",
+				rpName: "Dokploy",
+				origin: "https://dokploy.example.com",
+			}),
+		).toBe(true);
+	});
+
+	it("rejects mismatched origins", async () => {
+		const { originMatchesRpConfig } = await loadPasskeyRpModule();
+
+		expect(
+			originMatchesRpConfig("http://127.0.0.1:3000", {
+				rpID: "localhost",
+				rpName: "Dokploy",
+				origin: "http://localhost:3000",
+			}),
+		).toBe(false);
+	});
+});
+
 describe("passkeyRpFromOrigin", () => {
 	it("maps a public HTTPS URL to rpID and origin", async () => {
 		const { passkeyRpFromOrigin } = await loadPasskeyRpModule();

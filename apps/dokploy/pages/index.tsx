@@ -10,7 +10,7 @@ import { KeyRound } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { type ReactElement, useState } from "react";
+import { type ReactElement, useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -41,7 +41,16 @@ import { Input } from "@/components/ui/input";
 import { InputOTP } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import {
+	getPasskeyErrorMessage,
+	getPasskeyOriginPreflightError,
+	isPasskeyCeremonyAbort,
+	runPasskeyCeremony,
+	waitForPasskeyCeremonyIdle,
+	type PasskeyError,
+} from "@/lib/passkey-ceremony";
 import { api } from "@/utils/api";
+import { usePasskeyConditionalUI } from "@/utils/hooks/use-passkey-conditional-ui";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const LoginSchema = z.object({
@@ -54,53 +63,6 @@ const _TwoFactorSchema = z.object({
 });
 
 type LoginForm = z.infer<typeof LoginSchema>;
-
-type PasskeySignInError = {
-	code?: string;
-	message?: string;
-};
-
-function isPasskeyCeremonyAbort(err: unknown): boolean {
-	if (!(err instanceof Error)) return false;
-	return (
-		err.name === "AbortError" ||
-		err.message.includes("abort signal") ||
-		err.message.includes("Cancelling existing WebAuthn")
-	);
-}
-
-function isPasskeyNotAllowed(err: unknown): boolean {
-	if (!(err instanceof Error)) return false;
-	return (
-		err.name === "NotAllowedError" ||
-		err.message.includes("timed out or was not allowed")
-	);
-}
-
-function getPasskeySignInErrorMessage(
-	error: PasskeySignInError,
-	caught?: unknown,
-): string {
-	switch (error.code) {
-		case "AUTH_CANCELLED":
-		case "ERROR_CEREMONY_ABORTED":
-			return "Passkey sign-in was cancelled. Try again or use email and password.";
-		case "PASSKEY_NOT_FOUND":
-			return "No passkey registered yet. Sign in with email and password, then add one in Settings → Profile.";
-		case "AUTHENTICATION_FAILED":
-			return "Passkey verification failed. Try again or use email and password.";
-		case "CHALLENGE_NOT_FOUND":
-			return "Passkey session expired. Refresh the page and try again.";
-		default:
-			if (caught && isPasskeyNotAllowed(caught)) {
-				return "No passkey registered yet. Sign in with email and password, then add one in Settings → Profile.";
-			}
-			if (error.message && error.message !== "auth cancelled") {
-				return error.message;
-			}
-			return "Passkey sign-in failed. Try again or use email and password.";
-	}
-}
 
 interface Props {
 	IS_CLOUD: boolean;
@@ -127,51 +89,78 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 		},
 	});
 
-	const handlePasskeySignInResult = async (result: {
-		data: unknown;
-		error: PasskeySignInError | null;
-	}) => {
-		const { data, error } = result;
+	const handlePasskeySignInResult = useCallback(
+		async (result: {
+			data: unknown;
+			error: PasskeyError | null;
+		}) => {
+			const { data, error } = result;
 
-		if (error) {
-			if (
-				error.code === "AUTH_CANCELLED" ||
-				error.code === "ERROR_CEREMONY_ABORTED"
-			) {
+			if (error) {
+				if (
+					error.code === "AUTH_CANCELLED" ||
+					error.code === "ERROR_CEREMONY_ABORTED"
+				) {
+					return;
+				}
+				const msg = getPasskeyErrorMessage({
+					error,
+					flow: "sign-in",
+				});
+				if (error.code === "EMAIL_NOT_VERIFIED") {
+					toast.info(msg);
+				} else {
+					toast.error(msg);
+				}
+				setError(msg);
 				return;
 			}
-			const msg = getPasskeySignInErrorMessage(error);
-			toast.error(msg);
-			setError(msg);
+
+			if (data && typeof data === "object" && "twoFactorRedirect" in data) {
+				if (data.twoFactorRedirect) {
+					setTwoFactorCode("");
+					setIsTwoFactor(true);
+					toast.info("Please enter your 2FA code");
+					return;
+				}
+			}
+
+			toast.success("Logged in successfully");
+			await router.push("/dashboard/home");
+		},
+		[router],
+	);
+
+	const { conditionalActive } = usePasskeyConditionalUI({
+		enabled: !enforceSSO && !isTwoFactor,
+		onSignInResult: handlePasskeySignInResult,
+	});
+
+	const onPasskeySignIn = async () => {
+		const originError = getPasskeyOriginPreflightError();
+		if (originError) {
+			toast.error(originError);
+			setError(originError);
 			return;
 		}
 
-		if (data && typeof data === "object" && "twoFactorRedirect" in data) {
-			if (data.twoFactorRedirect) {
-				setTwoFactorCode("");
-				setIsTwoFactor(true);
-				toast.info("Please enter your 2FA code");
-				return;
-			}
-		}
+		await waitForPasskeyCeremonyIdle();
 
-		toast.success("Logged in successfully");
-		await router.push("/dashboard/home");
-	};
-
-	const onPasskeySignIn = async () => {
 		setIsPasskeyLoading(true);
 		setError(null);
 		try {
-			await handlePasskeySignInResult(await authClient.signIn.passkey());
+			await handlePasskeySignInResult(
+				await runPasskeyCeremony(() => authClient.signIn.passkey()),
+			);
 		} catch (err) {
 			if (isPasskeyCeremonyAbort(err)) return;
-			const msg = getPasskeySignInErrorMessage(
-				{
+			const msg = getPasskeyErrorMessage({
+				error: {
 					message: err instanceof Error ? err.message : undefined,
 				},
-				err,
-			);
+				caught: err,
+				flow: "sign-in",
+			});
 			toast.error(msg);
 			setError(msg);
 		} finally {
@@ -287,6 +276,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 				className="w-full"
 				onClick={onPasskeySignIn}
 				isLoading={isPasskeyLoading}
+				disabled={isLoginLoading || isTwoFactor}
 			>
 				<KeyRound className="size-4 mr-2" />
 				Sign in with passkey
@@ -306,7 +296,9 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 								<FormControl>
 									<Input
 										placeholder="john@example.com"
-										autoComplete="username webauthn"
+										autoComplete={
+											conditionalActive ? "username webauthn" : "username"
+										}
 										{...field}
 									/>
 								</FormControl>
@@ -324,7 +316,11 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 									<Input
 										type="password"
 										placeholder="Enter your password"
-										autoComplete="current-password webauthn"
+										autoComplete={
+											conditionalActive
+												? "current-password webauthn"
+												: "current-password"
+										}
 										{...field}
 									/>
 								</FormControl>
@@ -332,7 +328,12 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 							</FormItem>
 						)}
 					/>
-					<Button className="w-full" type="submit" isLoading={isLoginLoading}>
+					<Button
+						className="w-full"
+						type="submit"
+						isLoading={isLoginLoading}
+						disabled={isPasskeyLoading}
+					>
 						Login
 					</Button>
 				</form>

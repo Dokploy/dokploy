@@ -1,4 +1,5 @@
 import type { IncomingMessage } from "node:http";
+import { createHMAC } from "@better-auth/utils/hmac";
 import { apiKey } from "@better-auth/api-key";
 import { passkey } from "@better-auth/passkey";
 import { sso } from "@better-auth/sso";
@@ -8,9 +9,17 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import {
 	APIError,
 	createAuthMiddleware,
+	createEmailVerificationToken,
 	isAPIError,
 } from "better-auth/api";
+import { generateRandomString } from "better-auth/crypto";
+import { deleteSessionCookie, expireCookie } from "better-auth/cookies";
 import { admin, organization, twoFactor } from "better-auth/plugins";
+
+// Mirrors better-auth/plugins/two-factor/constant.mjs
+const TWO_FACTOR_COOKIE_NAME = "two_factor";
+const TRUST_DEVICE_COOKIE_NAME = "trust_device";
+const TRUST_DEVICE_COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 import { and, desc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 import { db } from "../db";
@@ -36,6 +45,16 @@ import { betterAuthSecret } from "./auth-secret";
 import { resolvePasskeyRpConfig } from "./passkey-rp";
 
 const passkeyRp = await resolvePasskeyRpConfig();
+
+if (process.env.NODE_ENV === "development") {
+	console.log("[passkey] resolved RP config:", {
+		rpID: passkeyRp.rpID,
+		origin: passkeyRp.origin,
+	});
+}
+
+const TWO_FACTOR_COOKIE_MAX_AGE = 600;
+const trustDeviceMaxAge = TRUST_DEVICE_COOKIE_MAX_AGE;
 
 type PasskeyAuditSnapshot = { id: string; name?: string | null };
 
@@ -67,6 +86,147 @@ const resolveMemberForPasskeyAudit = async (
 		userEmail: memberRecord.user.email,
 		userRole: memberRecord.role,
 	};
+};
+
+type PasskeyVerifyReturned = {
+	session?: { token: string; userId: string };
+};
+
+const handlePasskeyVerifyAuthenticationAfter = async (
+	ctx: Parameters<Parameters<typeof createAuthMiddleware>[0]>[0],
+) => {
+	const returned = ctx.context.returned as PasskeyVerifyReturned | undefined;
+	if (!returned?.session?.token || !returned.session.userId) return;
+
+	const user = await db.query.user.findFirst({
+		where: eq(schema.user.id, returned.session.userId),
+	});
+	if (!user) return;
+
+	if (
+		IS_CLOUD &&
+		process.env.NODE_ENV === "production" &&
+		ctx.context.options?.emailAndPassword?.requireEmailVerification &&
+		!user.emailVerified
+	) {
+		if (!ctx.context.options?.emailVerification?.sendVerificationEmail) {
+			deleteSessionCookie(ctx, true);
+			await ctx.context.internalAdapter.deleteSession(returned.session.token);
+			throw new APIError("FORBIDDEN", {
+				code: "EMAIL_NOT_VERIFIED",
+				message: "Email not verified",
+			});
+		}
+		if (ctx.context.options?.emailVerification?.sendOnSignIn) {
+			const token = await createEmailVerificationToken(
+				ctx.context.secret,
+				user.email,
+				undefined,
+				ctx.context.options.emailVerification?.expiresIn,
+			);
+			const url = `${ctx.context.baseURL}/verify-email?token=${token}&callbackURL=${encodeURIComponent("/")}`;
+			await ctx.context.runInBackgroundOrAwait(
+				ctx.context.options.emailVerification.sendVerificationEmail(
+					{
+						user: {
+							id: user.id,
+							email: user.email,
+							emailVerified: user.emailVerified,
+							name: user.firstName,
+							image: user.image,
+							createdAt: user.createdAt ?? new Date(),
+							updatedAt: user.updatedAt,
+						},
+						url,
+						token,
+					},
+					ctx.request,
+				),
+			);
+		}
+		deleteSessionCookie(ctx, true);
+		await ctx.context.internalAdapter.deleteSession(returned.session.token);
+		throw new APIError("FORBIDDEN", {
+			code: "EMAIL_NOT_VERIFIED",
+			message: "Email not verified",
+		});
+	}
+
+	if (!user.twoFactorEnabled) return;
+
+	const trustDeviceCookieAttrs = ctx.context.createAuthCookie(
+		TRUST_DEVICE_COOKIE_NAME,
+		{ maxAge: trustDeviceMaxAge },
+	);
+	const trustDeviceCookie = await ctx.getSignedCookie(
+		trustDeviceCookieAttrs.name,
+		ctx.context.secret,
+	);
+	if (trustDeviceCookie) {
+		const [token, trustIdentifier] = trustDeviceCookie.split("!");
+		if (token && trustIdentifier) {
+			const expectedToken = await createHMAC("SHA-256", "base64urlnopad").sign(
+				ctx.context.secret,
+				`${user.id}!${trustIdentifier}`,
+			);
+			if (token === expectedToken) {
+				const verificationRecord =
+					await ctx.context.internalAdapter.findVerificationValue(
+						trustIdentifier,
+					);
+				if (
+					verificationRecord &&
+					verificationRecord.value === user.id &&
+					verificationRecord.expiresAt > new Date()
+				) {
+					await ctx.context.internalAdapter.deleteVerificationByIdentifier(
+						trustIdentifier,
+					);
+					const newTrustIdentifier = `trust-device-${generateRandomString(32)}`;
+					const newToken = await createHMAC(
+						"SHA-256",
+						"base64urlnopad",
+					).sign(ctx.context.secret, `${user.id}!${newTrustIdentifier}`);
+					await ctx.context.internalAdapter.createVerificationValue({
+						value: user.id,
+						identifier: newTrustIdentifier,
+						expiresAt: new Date(Date.now() + trustDeviceMaxAge * 1000),
+					});
+					const newTrustDeviceCookie = ctx.context.createAuthCookie(
+						TRUST_DEVICE_COOKIE_NAME,
+						{ maxAge: trustDeviceMaxAge },
+					);
+					await ctx.setSignedCookie(
+						newTrustDeviceCookie.name,
+						`${newToken}!${newTrustIdentifier}`,
+						ctx.context.secret,
+						trustDeviceCookieAttrs.attributes,
+					);
+					return;
+				}
+			}
+		}
+		expireCookie(ctx, trustDeviceCookieAttrs);
+	}
+
+	deleteSessionCookie(ctx, true);
+	await ctx.context.internalAdapter.deleteSession(returned.session.token);
+	const twoFactorCookie = ctx.context.createAuthCookie(TWO_FACTOR_COOKIE_NAME, {
+		maxAge: TWO_FACTOR_COOKIE_MAX_AGE,
+	});
+	const identifier = `2fa-${generateRandomString(20)}`;
+	await ctx.context.internalAdapter.createVerificationValue({
+		value: user.id,
+		identifier,
+		expiresAt: new Date(Date.now() + TWO_FACTOR_COOKIE_MAX_AGE * 1000),
+	});
+	await ctx.setSignedCookie(
+		twoFactorCookie.name,
+		identifier,
+		ctx.context.secret,
+		twoFactorCookie.attributes,
+	);
+	return ctx.json({ twoFactorRedirect: true });
 };
 
 const auditPasskeyEvent = async (
@@ -155,6 +315,7 @@ const { handler, api } = betterAuth({
 			]);
 			if (!settings) return [];
 			const port = process.env.PORT ?? "3000";
+			const portSuffix = port !== "3000" ? `:${port}` : "";
 			const envPublicUrl =
 				process.env.BETTER_AUTH_URL?.trim() ||
 				process.env.NEXT_PUBLIC_APP_URL?.trim() ||
@@ -172,19 +333,20 @@ const { handler, api } = betterAuth({
 					: [];
 			const hostOrigins = settings?.host
 				? [
-						...(settings.https
-							? [`https://${settings.host}`]
-							: [`http://${settings.host}`]),
+						`https://${settings.host}${portSuffix}`,
+						`http://${settings.host}${portSuffix}`,
 					]
 				: [];
-			return [
+			const origins = [
 				...(settings?.serverIp
 					? [`http://${settings.serverIp}:${port}`]
 					: []),
 				...hostOrigins,
 				...devOrigins,
 				...trustedOrigins,
+				passkeyRp.origin,
 			];
+			return [...new Set(origins)];
 		} catch (error) {
 			console.error("Failed to resolve trusted origins:", error);
 			return [];
@@ -452,6 +614,11 @@ const { handler, api } = betterAuth({
 		}),
 		after: createAuthMiddleware(async (ctx) => {
 			if (isAPIError(ctx.context.returned)) return;
+
+			if (ctx.path === "/passkey/verify-authentication") {
+				const passkeyResult = await handlePasskeyVerifyAuthenticationAfter(ctx);
+				if (passkeyResult !== undefined) return passkeyResult;
+			}
 
 			const session = ctx.context.session;
 			const activeOrganizationId = session?.session?.activeOrganizationId;

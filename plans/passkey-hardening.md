@@ -6,12 +6,12 @@ Addresses race conditions, error surfaces, origin/rpID mismatches, and security 
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| 1 | Client ceremony mutex + error hardening | pending |
-| 2 | Registration UX + parallel auth guards | pending |
-| 3 | Origin / rpID alignment (server) | pending |
-| 4 | 2FA + passkey integration (security) | pending |
-| 5 | Conditional autofill (safe reintroduction) | pending |
-| 6 | Tests + docs + verification | pending |
+| 1 | Client ceremony mutex + error hardening | done |
+| 2 | Registration UX + parallel auth guards | done |
+| 3 | Origin / rpID alignment (server) | done |
+| 4 | 2FA + passkey integration (security) | done |
+| 5 | Conditional autofill (safe reintroduction) | done |
+| 6 | Tests + docs + verification | done |
 
 ---
 
