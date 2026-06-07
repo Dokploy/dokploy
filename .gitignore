@@ -12,6 +12,10 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
+
+# Personal / local planning notes (not part of upstream OSS)
+plans/
 
 openapi.json
 

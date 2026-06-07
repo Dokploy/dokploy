@@ -9,7 +9,7 @@ const CEREMONY_BUSY_MESSAGE =
 	"A passkey operation is already in progress. Wait for the device prompt to finish.";
 
 const PASSKEY_ORIGIN_MISMATCH_MESSAGE =
-	"Origin mismatch. Use the same URL as Settings → Server (Host + HTTPS), or BETTER_AUTH_URL if you set that optional override. See passkey setup docs for origin alignment.";
+	"Origin mismatch. Use the same URL as Settings → Server (Host + HTTPS), or BETTER_AUTH_URL if you set that optional override.";
 
 let inFlight = false;
 let conditionalSessionId = 0;
@@ -123,7 +123,7 @@ export function getPasskeyOriginPreflightError(): string | null {
 				return `Use ${expectedOrigin} — not ${browserOrigin} (origins must match exactly).`;
 			}
 
-			return `Use ${expectedOrigin} to sign in — you are on ${browserOrigin}. See passkey setup docs for origin alignment.`;
+			return `Use ${expectedOrigin} to sign in — you are on ${browserOrigin}.`;
 		} catch {
 			return "Passkey origin is misconfigured. Match Settings → Server (Host + HTTPS), or the optional NEXT_PUBLIC_APP_URL override if you set it.";
 		}

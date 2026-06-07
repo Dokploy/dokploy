@@ -32,7 +32,7 @@ const localhostFallback = (): PasskeyRpConfig => {
  * Resolves passkey RP from optional env overrides only (no DB).
  * Returns `null` when self-hosted production should read Settings → Server.
  *
- * Most operators do not need BETTER_AUTH_URL — see `plans/passkey-auth.md`.
+ * Most operators use Settings → Server (Host + HTTPS); BETTER_AUTH_URL is optional.
  */
 export const resolvePasskeyRpConfigFromEnv = (): PasskeyRpConfig | null => {
 	if (IS_CLOUD) {
