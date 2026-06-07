@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import {
+	beginConditionalPasskeySession,
+	endConditionalPasskeySession,
 	getPasskeyOriginPreflightError,
+	isConditionalPasskeySessionStale,
 	isPasskeyCeremonyAbort,
-	runPasskeyCeremony,
 	type PasskeyError,
 } from "@/lib/passkey-ceremony";
 
@@ -46,49 +48,50 @@ export function usePasskeyConditionalUI({
 			return;
 		}
 
-		let cancelled = false;
+		const sessionId = beginConditionalPasskeySession();
 
 		const startConditionalSignIn = async () => {
 			if (typeof window === "undefined") return;
+			if (isConditionalPasskeySessionStale(sessionId)) return;
 			if (!window.PublicKeyCredential?.isConditionalMediationAvailable) return;
 
 			const available =
 				await PublicKeyCredential.isConditionalMediationAvailable();
-			if (!available || cancelled) return;
+			if (!available || isConditionalPasskeySessionStale(sessionId)) return;
 
 			if (getPasskeyOriginPreflightError()) return;
 
 			setConditionalActive(true);
 			try {
-				await runPasskeyCeremony(async () => {
-					const result = await authClient.signIn.passkey({ autoFill: true });
-					if (cancelled) return;
+				// Passive conditional mediation — do not use the explicit-action mutex.
+				// It waits silently for email-field autofill and would block the manual
+				// "Sign in with passkey" button with no visible browser prompt.
+				const result = await authClient.signIn.passkey({ autoFill: true });
+				if (isConditionalPasskeySessionStale(sessionId)) return;
 
-					if (result.error) {
-						if (isSilentConditionalFailure(result.error)) return;
-						return;
-					}
+				if (result.error) {
+					if (isSilentConditionalFailure(result.error)) return;
+					return;
+				}
 
-					if (result.data) {
-						await onSignInResultRef.current(result);
-					}
-				});
+				if (result.data) {
+					await onSignInResultRef.current(result);
+				}
 			} catch (error) {
 				if (isPasskeyCeremonyAbort(error)) return;
 			} finally {
-				if (!cancelled) {
-					setConditionalActive(false);
-				}
+				endConditionalPasskeySession(sessionId);
+				setConditionalActive(false);
 			}
 		};
 
 		void startConditionalSignIn();
 
 		return () => {
-			cancelled = true;
+			endConditionalPasskeySession(sessionId);
 			setConditionalActive(false);
 		};
 	}, [enabled]);
 
 	return { conditionalActive };
-}
+};

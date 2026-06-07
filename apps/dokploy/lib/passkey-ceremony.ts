@@ -9,6 +9,22 @@ const CEREMONY_BUSY_MESSAGE =
 	"A passkey operation is already in progress. Wait for the device prompt to finish.";
 
 let inFlight = false;
+let conditionalSessionId = 0;
+
+export function beginConditionalPasskeySession(): number {
+	conditionalSessionId += 1;
+	return conditionalSessionId;
+}
+
+export function isConditionalPasskeySessionStale(sessionId: number): boolean {
+	return sessionId !== conditionalSessionId;
+}
+
+export function endConditionalPasskeySession(sessionId: number): void {
+	if (sessionId === conditionalSessionId) {
+		conditionalSessionId += 1;
+	}
+}
 
 export class PasskeyCeremonyBusyError extends Error {
 	constructor() {

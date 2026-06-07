@@ -46,7 +46,6 @@ import {
 	getPasskeyOriginPreflightError,
 	isPasskeyCeremonyAbort,
 	runPasskeyCeremony,
-	waitForPasskeyCeremonyIdle,
 	type PasskeyError,
 } from "@/lib/passkey-ceremony";
 import { api } from "@/utils/api";
@@ -143,8 +142,6 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 			setError(originError);
 			return;
 		}
-
-		await waitForPasskeyCeremonyIdle();
 
 		setIsPasskeyLoading(true);
 		setError(null);
