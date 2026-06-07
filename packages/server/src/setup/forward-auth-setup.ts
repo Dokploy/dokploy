@@ -38,9 +38,12 @@ export const forwardAuthCallbackUrl = (
 ): string => `${https ? "https" : "http"}://${authDomain}/oauth2/callback`;
 
 export const deriveCookieSecret = (salt: string): string => {
+	// oauth2-proxy requires cookie_secret to be exactly 16, 24, or 32 bytes.
+	// Take the first 32 hex chars (= 16 bytes) to satisfy that constraint.
 	return createHmac("sha256", betterAuthSecret)
 		.update(`forward-auth:${salt}`)
-		.digest("base64");
+		.digest("hex")
+		.slice(0, 32);
 };
 
 export const buildForwardAuthEnv = (
