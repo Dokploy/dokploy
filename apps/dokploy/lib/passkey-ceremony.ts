@@ -162,7 +162,9 @@ export function getPasskeyErrorMessage({
 				? "Passkey registration was cancelled."
 				: "Passkey sign-in was cancelled. Try again or use email and password.";
 		case "PASSKEY_NOT_FOUND":
-			return "No passkey registered yet. Sign in with email and password, then add one in Settings → Profile.";
+			return "This passkey is no longer registered with Dokploy. Remove it from your device (Passwords or iCloud Keychain), then sign in with email and password.";
+		case "PASSKEY_UNAVAILABLE":
+			return "No passkey is set up for this site yet. Sign in with email and password, then add one in Settings → Profile.";
 		case "AUTHENTICATION_FAILED":
 			return "Passkey verification failed. Try again or use email and password.";
 		case "CHALLENGE_NOT_FOUND":
@@ -179,7 +181,7 @@ export function getPasskeyErrorMessage({
 			if (caught && isPasskeyNotAllowed(caught)) {
 				return flow === "register"
 					? "Passkey registration timed out or was denied. Complete the device prompt when it appears."
-					: "No passkey registered yet. Sign in with email and password, then add one in Settings → Profile.";
+					: "No passkey is set up for this site yet. Sign in with email and password, then add one in Settings → Profile.";
 			}
 			if (caught && isPasskeySecurityError(caught)) {
 				return "Passkey is not available on this page. Check that you are using HTTPS (or localhost in dev) and the correct site URL.";

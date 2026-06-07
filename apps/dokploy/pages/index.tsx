@@ -165,7 +165,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 					if (isPasskeyNotAllowed(err)) {
 						return {
 							data: null,
-							error: { code: "PASSKEY_NOT_FOUND" },
+							error: { code: "PASSKEY_UNAVAILABLE" },
 						};
 					}
 					throw err;

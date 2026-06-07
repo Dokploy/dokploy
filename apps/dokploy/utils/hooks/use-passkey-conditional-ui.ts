@@ -25,7 +25,7 @@ const isSilentConditionalFailure = (error: PasskeyError): boolean => {
 	if (
 		error.code === "AUTH_CANCELLED" ||
 		error.code === "ERROR_CEREMONY_ABORTED" ||
-		error.code === "PASSKEY_NOT_FOUND"
+		error.code === "PASSKEY_UNAVAILABLE"
 	) {
 		return true;
 	}

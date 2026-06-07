@@ -111,14 +111,32 @@ describe("getPasskeyErrorMessage", () => {
 		).toContain("already in progress");
 	});
 
-	it("maps NotAllowedError to no-passkey guidance on sign-in", () => {
+	it("maps NotAllowedError to no-passkey-set-up guidance on sign-in", () => {
 		expect(
 			getPasskeyErrorMessage({
 				error: {},
 				caught: new DOMException("denied", "NotAllowedError"),
 				flow: "sign-in",
 			}),
-		).toContain("No passkey registered yet");
+		).toContain("No passkey is set up for this site yet");
+	});
+
+	it("maps PASSKEY_NOT_FOUND to stale passkey guidance on sign-in", () => {
+		expect(
+			getPasskeyErrorMessage({
+				error: { code: "PASSKEY_NOT_FOUND" },
+				flow: "sign-in",
+			}),
+		).toContain("no longer registered");
+	});
+
+	it("maps PASSKEY_UNAVAILABLE to first-time setup guidance on sign-in", () => {
+		expect(
+			getPasskeyErrorMessage({
+				error: { code: "PASSKEY_UNAVAILABLE" },
+				flow: "sign-in",
+			}),
+		).toContain("No passkey is set up for this site yet");
 	});
 
 	it("maps INVALID_ORIGIN to origin alignment guidance", () => {
