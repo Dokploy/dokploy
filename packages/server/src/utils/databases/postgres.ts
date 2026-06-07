@@ -109,7 +109,11 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 							]
 						: [],
 				},
-		UpdateConfig,
+		UpdateConfig: postgres.updateConfigSwarm ?? {
+			Parallelism: 1,
+			Order: "stop-first" as const,
+			FailureAction: "rollback" as const,
+		},
 	};
 	try {
 		const service = docker.getService(appName);

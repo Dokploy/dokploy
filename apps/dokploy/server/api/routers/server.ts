@@ -45,6 +45,7 @@ import {
 	redis,
 	server,
 } from "@/server/db/schema";
+import { applyDockerCleanupSchedule } from "@/server/utils/docker-cleanup";
 
 export const serverRouter = createTRPCRouter({
 	create: withPermission("server", "create")
@@ -62,6 +63,11 @@ export const serverRouter = createTRPCRouter({
 				const project = await createServer(
 					input,
 					ctx.session.activeOrganizationId,
+				);
+				await applyDockerCleanupSchedule(
+					project.serverId,
+					ctx.session.activeOrganizationId,
+					input.enableDockerCleanup,
 				);
 				await audit(ctx, {
 					action: "create",
@@ -455,6 +461,12 @@ export const serverRouter = createTRPCRouter({
 				const currentServer = await updateServerById(input.serverId, {
 					...input,
 				});
+
+				await applyDockerCleanupSchedule(
+					input.serverId,
+					ctx.session.activeOrganizationId,
+					input.enableDockerCleanup,
+				);
 
 				await audit(ctx, {
 					action: "update",

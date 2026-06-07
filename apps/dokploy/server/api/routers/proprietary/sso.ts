@@ -2,13 +2,13 @@ import { normalizeTrustedOrigin } from "@dokploy/server";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { member, ssoProvider, user } from "@dokploy/server/db/schema";
-import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { ssoProviderBodySchema } from "@dokploy/server/db/schema/sso";
 import {
 	getOrganizationOwnerId,
 	requestToHeaders,
 } from "@dokploy/server/index";
 import { auth } from "@dokploy/server/lib/auth";
+import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -53,10 +53,7 @@ export const ssoRouter = createTRPCRouter({
 	}),
 	listProviders: enterpriseProcedure.query(async ({ ctx }) => {
 		const providers = await db.query.ssoProvider.findMany({
-			where: and(
-				eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
-				eq(ssoProvider.userId, ctx.session.userId),
-			),
+			where: eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
 			columns: {
 				id: true,
 				providerId: true,
@@ -88,7 +85,6 @@ export const ssoRouter = createTRPCRouter({
 				where: and(
 					eq(ssoProvider.providerId, input.providerId),
 					eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
-					eq(ssoProvider.userId, ctx.session.userId),
 				),
 				columns: {
 					id: true,
@@ -116,12 +112,12 @@ export const ssoRouter = createTRPCRouter({
 				where: and(
 					eq(ssoProvider.providerId, input.providerId),
 					eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
-					eq(ssoProvider.userId, ctx.session.userId),
 				),
 				columns: {
 					id: true,
 					issuer: true,
 					domain: true,
+					userId: true,
 				},
 			});
 
@@ -131,6 +127,13 @@ export const ssoRouter = createTRPCRouter({
 					message:
 						"SSO provider not found or you do not have permission to update it",
 				});
+			}
+
+			if (existing.userId !== ctx.session.userId) {
+				await db
+					.update(ssoProvider)
+					.set({ userId: ctx.session.userId })
+					.where(eq(ssoProvider.id, existing.id));
 			}
 
 			const providers = await db.query.ssoProvider.findMany({
@@ -218,7 +221,6 @@ export const ssoRouter = createTRPCRouter({
 				where: and(
 					eq(ssoProvider.providerId, input.providerId),
 					eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
-					eq(ssoProvider.userId, ctx.session.userId),
 				),
 				columns: {
 					id: true,
@@ -241,7 +243,6 @@ export const ssoRouter = createTRPCRouter({
 					and(
 						eq(ssoProvider.providerId, input.providerId),
 						eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
-						eq(ssoProvider.userId, ctx.session.userId),
 					),
 				)
 				.returning({ id: ssoProvider.id });

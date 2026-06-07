@@ -7,7 +7,6 @@ import {
 	deployments as deploymentsSchema,
 	rollbacks,
 } from "../db/schema";
-import type { ApplicationNested } from "../utils/builders";
 import { getRegistryTag } from "../utils/cluster/upload";
 import {
 	calculateResources,
@@ -23,7 +22,11 @@ import { findDeploymentById } from "./deployment";
 import type { Mount } from "./mount";
 import type { Port } from "./port";
 import type { Project } from "./project";
-import { type Registry, safeDockerLoginCommand } from "./registry";
+import {
+	findRegistryByIdWithCredentials,
+	type Registry,
+	safeDockerLoginCommand,
+} from "./registry";
 
 export const createRollback = async (
 	input: z.infer<typeof createRollbackSchema>,
@@ -56,11 +59,29 @@ export const createRollback = async (
 			...rest
 		} = await findApplicationById(deployment.applicationId);
 
+		const registry = rest.registryId
+			? await findRegistryByIdWithCredentials(rest.registryId)
+			: rest.registry;
+		const buildRegistry = rest.buildRegistryId
+			? await findRegistryByIdWithCredentials(rest.buildRegistryId)
+			: rest.buildRegistry;
+		const rollbackRegistry = rest.rollbackRegistryId
+			? await findRegistryByIdWithCredentials(rest.rollbackRegistryId)
+			: rest.rollbackRegistry;
+
+		const fullContextWithCredentials = {
+			...rest,
+			registry,
+			buildRegistry,
+			rollbackRegistry,
+		};
+
 		await tx
 			.update(rollbacks)
 			.set({
 				image: tagImage,
-				fullContext: rest,
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				fullContext: fullContextWithCredentials as any,
 			})
 			.where(eq(rollbacks.rollbackId, rollback.rollbackId));
 
@@ -162,7 +183,6 @@ export const rollback = async (rollbackId: string) => {
 	if (!result.fullContext) {
 		throw new Error("Rollback context not found");
 	}
-	// Use the full context for rollback
 	await rollbackApplication(
 		application.appName,
 		result.image || "",
@@ -198,24 +218,25 @@ const rollbackApplication = async (
 		};
 		mounts: Mount[];
 		ports: Port[];
-		rollbackRegistry?: Registry;
+		rollbackRegistry?: Registry | null;
 	},
 ) => {
 	if (!fullContext) {
 		throw new Error("Full context is required for rollback");
 	}
 
+	const rollbackRegistry = fullContext.rollbackRegistry ?? undefined;
+
 	// Ensure Docker daemon is authenticated with the rollback registry
 	// before updating the swarm service. The authconfig in CreateServiceOptions
 	// alone is not sufficient — Docker Swarm also relies on the daemon's
 	// cached credentials (~/.docker/config.json) to distribute auth to nodes.
-	if (fullContext.rollbackRegistry) {
-		await dockerLoginForRegistry(fullContext.rollbackRegistry, serverId);
+	if (rollbackRegistry) {
+		await dockerLoginForRegistry(rollbackRegistry, serverId);
 	}
 
 	const docker = await getRemoteDocker(serverId);
 
-	// Use the same configuration as mechanizeDockerContainer
 	const {
 		env,
 		mounts,
@@ -246,7 +267,9 @@ const rollbackApplication = async (
 		UpdateConfig,
 		Networks,
 		Ulimits,
-	} = generateConfigContainer(fullContext as ApplicationNested);
+	} = generateConfigContainer(
+		fullContext as Parameters<typeof generateConfigContainer>[0],
+	);
 
 	const bindsMount = generateBindMounts(mounts);
 	const envVariables = prepareEnvironmentVariables(
@@ -254,18 +277,16 @@ const rollbackApplication = async (
 		fullContext.environment.project.env,
 	);
 
-	// Build the full registry image path if rollbackRegistry is available
-	// e.g., "appName:v5" -> "siumauricio/appName:v5" or "registry.com/prefix/appName:v5"
 	let rollbackImage = image;
-	if (fullContext.rollbackRegistry) {
-		rollbackImage = getRegistryTag(fullContext.rollbackRegistry, image);
+	if (rollbackRegistry) {
+		rollbackImage = getRegistryTag(rollbackRegistry, image);
 	}
 
 	const settings: CreateServiceOptions = {
 		authconfig: {
-			password: fullContext.rollbackRegistry?.password || "",
-			username: fullContext.rollbackRegistry?.username || "",
-			serveraddress: fullContext.rollbackRegistry?.registryUrl || "",
+			password: rollbackRegistry?.password || "",
+			username: rollbackRegistry?.username || "",
+			serveraddress: rollbackRegistry?.registryUrl || "",
 		},
 		Name: appName,
 		TaskTemplate: {
