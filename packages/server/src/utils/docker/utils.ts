@@ -159,7 +159,7 @@ echo "Preparing for execution..."
 while true; do
   docker_processes=$(pgrep -af "(docker|podman) [a-zA-Z]")
 
-  if test -z "\${docker_processes}"; then
+  if [ -z "\${docker_processes}" ]; then
     echo "Docker is idle. Starting execution..."
 
     break
