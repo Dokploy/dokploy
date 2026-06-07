@@ -29,12 +29,33 @@ const USER_ADMIN = "user-admin";
 const USER_MEMBER = "user-member";
 const USER_MEMBER_2 = "user-member-2";
 
-const providerOwned = { gitProviderId: "gp-owned", userId: USER_MEMBER, sharedWithOrganization: false };
-const providerShared = { gitProviderId: "gp-shared", userId: USER_OWNER, sharedWithOrganization: true };
-const providerPrivate = { gitProviderId: "gp-private", userId: USER_OWNER, sharedWithOrganization: false };
-const providerOtherMember = { gitProviderId: "gp-other", userId: USER_MEMBER_2, sharedWithOrganization: false };
+const providerOwned = {
+	gitProviderId: "gp-owned",
+	userId: USER_MEMBER,
+	sharedWithOrganization: false,
+};
+const providerShared = {
+	gitProviderId: "gp-shared",
+	userId: USER_OWNER,
+	sharedWithOrganization: true,
+};
+const providerPrivate = {
+	gitProviderId: "gp-private",
+	userId: USER_OWNER,
+	sharedWithOrganization: false,
+};
+const providerOtherMember = {
+	gitProviderId: "gp-other",
+	userId: USER_MEMBER_2,
+	sharedWithOrganization: false,
+};
 
-const allProviders = [providerOwned, providerShared, providerPrivate, providerOtherMember];
+const allProviders = [
+	providerOwned,
+	providerShared,
+	providerPrivate,
+	providerOtherMember,
+];
 
 function session(userId: string) {
 	return { userId, activeOrganizationId: ORG_ID };
@@ -231,7 +252,10 @@ describe("canEditDeployGitSource", () => {
 	describe("owner", () => {
 		it("can edit deploy using any provider", async () => {
 			mockDb.query.member.findFirst.mockResolvedValue({ role: "owner" });
-			const result = await canEditDeployGitSource(providerPrivate.gitProviderId, session(USER_OWNER));
+			const result = await canEditDeployGitSource(
+				providerPrivate.gitProviderId,
+				session(USER_OWNER),
+			);
 			expect(result).toBe(true);
 		});
 	});
@@ -246,7 +270,10 @@ describe("canEditDeployGitSource", () => {
 				userId: USER_OWNER,
 				sharedWithOrganization: false,
 			});
-			const result = await canEditDeployGitSource(providerPrivate.gitProviderId, session(USER_ADMIN));
+			const result = await canEditDeployGitSource(
+				providerPrivate.gitProviderId,
+				session(USER_ADMIN),
+			);
 			expect(result).toBe(false);
 		});
 
@@ -255,7 +282,10 @@ describe("canEditDeployGitSource", () => {
 				userId: USER_OWNER,
 				sharedWithOrganization: true,
 			});
-			const result = await canEditDeployGitSource(providerShared.gitProviderId, session(USER_ADMIN));
+			const result = await canEditDeployGitSource(
+				providerShared.gitProviderId,
+				session(USER_ADMIN),
+			);
 			expect(result).toBe(true);
 		});
 
@@ -264,7 +294,10 @@ describe("canEditDeployGitSource", () => {
 				userId: USER_ADMIN,
 				sharedWithOrganization: false,
 			});
-			const result = await canEditDeployGitSource("gp-admin-owned", session(USER_ADMIN));
+			const result = await canEditDeployGitSource(
+				"gp-admin-owned",
+				session(USER_ADMIN),
+			);
 			expect(result).toBe(true);
 		});
 	});
@@ -279,7 +312,10 @@ describe("canEditDeployGitSource", () => {
 				userId: USER_MEMBER,
 				sharedWithOrganization: false,
 			});
-			const result = await canEditDeployGitSource(providerOwned.gitProviderId, session(USER_MEMBER));
+			const result = await canEditDeployGitSource(
+				providerOwned.gitProviderId,
+				session(USER_MEMBER),
+			);
 			expect(result).toBe(true);
 		});
 
@@ -288,7 +324,10 @@ describe("canEditDeployGitSource", () => {
 				userId: USER_OWNER,
 				sharedWithOrganization: true,
 			});
-			const result = await canEditDeployGitSource(providerShared.gitProviderId, session(USER_MEMBER));
+			const result = await canEditDeployGitSource(
+				providerShared.gitProviderId,
+				session(USER_MEMBER),
+			);
 			expect(result).toBe(true);
 		});
 
@@ -299,7 +338,10 @@ describe("canEditDeployGitSource", () => {
 				userId: USER_OWNER,
 				sharedWithOrganization: false,
 			});
-			const result = await canEditDeployGitSource(providerPrivate.gitProviderId, session(USER_MEMBER));
+			const result = await canEditDeployGitSource(
+				providerPrivate.gitProviderId,
+				session(USER_MEMBER),
+			);
 			expect(result).toBe(false);
 		});
 
@@ -308,13 +350,19 @@ describe("canEditDeployGitSource", () => {
 				userId: USER_MEMBER_2,
 				sharedWithOrganization: false,
 			});
-			const result = await canEditDeployGitSource(providerOtherMember.gitProviderId, session(USER_MEMBER));
+			const result = await canEditDeployGitSource(
+				providerOtherMember.gitProviderId,
+				session(USER_MEMBER),
+			);
 			expect(result).toBe(false);
 		});
 
 		it("returns false if provider does not exist", async () => {
 			mockDb.query.gitProvider.findFirst.mockResolvedValue(null);
-			const result = await canEditDeployGitSource("nonexistent-id", session(USER_MEMBER));
+			const result = await canEditDeployGitSource(
+				"nonexistent-id",
+				session(USER_MEMBER),
+			);
 			expect(result).toBe(false);
 		});
 	});
