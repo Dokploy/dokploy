@@ -10,7 +10,7 @@ import { KeyRound } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { type ReactElement, useEffect, useState } from "react";
+import { type ReactElement, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -60,18 +60,41 @@ type PasskeySignInError = {
 	message?: string;
 };
 
-function getPasskeySignInErrorMessage(error: PasskeySignInError): string {
+function isPasskeyCeremonyAbort(err: unknown): boolean {
+	if (!(err instanceof Error)) return false;
+	return (
+		err.name === "AbortError" ||
+		err.message.includes("abort signal") ||
+		err.message.includes("Cancelling existing WebAuthn")
+	);
+}
+
+function isPasskeyNotAllowed(err: unknown): boolean {
+	if (!(err instanceof Error)) return false;
+	return (
+		err.name === "NotAllowedError" ||
+		err.message.includes("timed out or was not allowed")
+	);
+}
+
+function getPasskeySignInErrorMessage(
+	error: PasskeySignInError,
+	caught?: unknown,
+): string {
 	switch (error.code) {
 		case "AUTH_CANCELLED":
 		case "ERROR_CEREMONY_ABORTED":
 			return "Passkey sign-in was cancelled. Try again or use email and password.";
 		case "PASSKEY_NOT_FOUND":
-			return "No passkey found for this site. Sign in with email and password, then add a passkey in Settings.";
+			return "No passkey registered yet. Sign in with email and password, then add one in Settings → Profile.";
 		case "AUTHENTICATION_FAILED":
 			return "Passkey verification failed. Try again or use email and password.";
 		case "CHALLENGE_NOT_FOUND":
 			return "Passkey session expired. Refresh the page and try again.";
 		default:
+			if (caught && isPasskeyNotAllowed(caught)) {
+				return "No passkey registered yet. Sign in with email and password, then add one in Settings → Profile.";
+			}
 			if (error.message && error.message !== "auth cancelled") {
 				return error.message;
 			}
@@ -142,36 +165,19 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 		try {
 			await handlePasskeySignInResult(await authClient.signIn.passkey());
 		} catch (err) {
-			const msg = getPasskeySignInErrorMessage({
-				message: err instanceof Error ? err.message : undefined,
-			});
+			if (isPasskeyCeremonyAbort(err)) return;
+			const msg = getPasskeySignInErrorMessage(
+				{
+					message: err instanceof Error ? err.message : undefined,
+				},
+				err,
+			);
 			toast.error(msg);
 			setError(msg);
 		} finally {
 			setIsPasskeyLoading(false);
 		}
 	};
-
-	useEffect(() => {
-		if (enforceSSO || isTwoFactor) return;
-
-		let cancelled = false;
-
-		void (async () => {
-			if (typeof PublicKeyCredential === "undefined") return;
-			const isAvailable =
-				await PublicKeyCredential.isConditionalMediationAvailable?.();
-			if (!isAvailable || cancelled) return;
-
-			await handlePasskeySignInResult(
-				await authClient.signIn.passkey({ autoFill: true }),
-			);
-		})();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [enforceSSO, isTwoFactor]);
 
 	const onSubmit = async (values: LoginForm) => {
 		setIsLoginLoading(true);

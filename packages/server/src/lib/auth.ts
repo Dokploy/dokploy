@@ -93,6 +93,7 @@ const auditPasskeyEvent = async (
 };
 
 const { handler, api } = betterAuth({
+	baseURL: passkeyRp.origin,
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: schema,
@@ -153,16 +154,34 @@ const { handler, api } = betterAuth({
 				getWebServerSettings(),
 			]);
 			if (!settings) return [];
+			const port = process.env.PORT ?? "3000";
+			const envPublicUrl =
+				process.env.BETTER_AUTH_URL?.trim() ||
+				process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+				"";
 			const devOrigins =
 				process.env.NODE_ENV === "development"
 					? [
-							"http://localhost:3000",
+							`http://localhost:${port}`,
+							`http://127.0.0.1:${port}`,
+							...(envPublicUrl
+								? [envPublicUrl.replace(/\/$/, "")]
+								: []),
 							"https://absolutely-handy-falcon.ngrok-free.app",
 						]
 					: [];
+			const hostOrigins = settings?.host
+				? [
+						...(settings.https
+							? [`https://${settings.host}`]
+							: [`http://${settings.host}`]),
+					]
+				: [];
 			return [
-				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
-				...(settings?.host ? [`https://${settings?.host}`] : []),
+				...(settings?.serverIp
+					? [`http://${settings.serverIp}:${port}`]
+					: []),
+				...hostOrigins,
 				...devOrigins,
 				...trustedOrigins,
 			];
@@ -525,7 +544,7 @@ const { handler, api } = betterAuth({
 		passkey({
 			rpID: passkeyRp.rpID,
 			rpName: passkeyRp.rpName,
-			origin: passkeyRp.origin,
+			// null origin: verify step uses the request Origin header (must match browser URL)
 		}),
 		organization({
 			ac,

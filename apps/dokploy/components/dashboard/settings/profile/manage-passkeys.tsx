@@ -62,24 +62,70 @@ export const ManagePasskeys = () => {
 		void loadPasskeys();
 	}, [loadPasskeys]);
 
+	const getPasskeyRegisterErrorMessage = (error: {
+		code?: string;
+		message?: string;
+	}) => {
+		switch (error.code) {
+			case "SESSION_NOT_FRESH":
+				return "Your session expired. Sign out, sign in again, then add a passkey.";
+			case "CHALLENGE_NOT_FOUND":
+				return "Passkey session expired. Close this dialog and try again.";
+			case "ERROR_CEREMONY_ABORTED":
+			case "AUTH_CANCELLED":
+				return "Passkey registration was cancelled.";
+			case "UNKNOWN_ERROR":
+				if (error.message?.toLowerCase().includes("timeout")) {
+					return "Passkey registration timed out. Use http://localhost:3000 (not 127.0.0.1 or your LAN IP), complete Touch ID when prompted, and try again.";
+				}
+				break;
+		}
+		if (error.message?.toLowerCase().includes("timeout")) {
+			return "Passkey registration timed out. Use http://localhost:3000 (not 127.0.0.1 or your LAN IP), complete Touch ID when prompted, and try again.";
+		}
+		return error.message ?? "Failed to register passkey";
+	};
+
 	const handleAddPasskey = async () => {
+		const name = passkeyName.trim() || undefined;
+
+		if (
+			typeof window !== "undefined" &&
+			window.location.hostname !== "localhost"
+		) {
+			toast.error(
+				`Register passkeys at http://localhost:${window.location.port || "3000"} — not ${window.location.host} (WebAuthn rpID is tied to localhost in dev).`,
+			);
+			return;
+		}
+
+		// WebAuthn/Touch ID prompts often fail or time out behind modal overlays.
+		setIsDialogOpen(false);
 		setIsAdding(true);
+		toast.info("Complete the passkey prompt from your device…");
+
+		await new Promise<void>((resolve) => {
+			requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+		});
+
 		try {
 			const { error } = await authClient.passkey.addPasskey({
-				name: passkeyName.trim() || undefined,
+				name,
+				authenticatorAttachment: "platform",
 			});
 
 			if (error) {
-				throw new Error(error.message ?? "Failed to register passkey");
+				throw new Error(getPasskeyRegisterErrorMessage(error));
 			}
 
 			toast.success("Passkey added successfully");
-			setIsDialogOpen(false);
 			setPasskeyName("");
 			await loadPasskeys();
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Failed to register passkey",
+				error instanceof Error
+					? error.message
+					: "Failed to register passkey",
 			);
 		} finally {
 			setIsAdding(false);
