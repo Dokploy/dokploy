@@ -226,8 +226,8 @@ describe("deriveCookieSecret", () => {
 		);
 	});
 
-	test("produces a 32-byte base64 secret (oauth2-proxy requirement)", () => {
+	test("produces a 16-byte hex secret (oauth2-proxy requirement)", () => {
 		const secret = deriveCookieSecret(".acme.com");
-		expect(Buffer.from(secret, "base64")).toHaveLength(32);
+		expect(Buffer.from(secret, "hex")).toHaveLength(16);
 	});
 });
