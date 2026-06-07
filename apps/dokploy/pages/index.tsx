@@ -45,7 +45,10 @@ import {
 	getPasskeyErrorMessage,
 	getPasskeyOriginPreflightError,
 	isPasskeyCeremonyAbort,
+	isPasskeyNotAllowed,
+	preemptConditionalPasskeyCeremony,
 	runPasskeyCeremony,
+	settleWebAuthnSlot,
 	type PasskeyError,
 } from "@/lib/passkey-ceremony";
 import { api } from "@/utils/api";
@@ -130,7 +133,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 		[router],
 	);
 
-	const { conditionalActive } = usePasskeyConditionalUI({
+	const { armConditional, conditionalActive } = usePasskeyConditionalUI({
 		enabled: !enforceSSO && !isTwoFactor,
 		onSignInResult: handlePasskeySignInResult,
 	});
@@ -143,12 +146,32 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 			return;
 		}
 
+		preemptConditionalPasskeyCeremony();
+		await settleWebAuthnSlot();
+
 		setIsPasskeyLoading(true);
 		setError(null);
 		try {
-			await handlePasskeySignInResult(
-				await runPasskeyCeremony(() => authClient.signIn.passkey()),
-			);
+			const result = await runPasskeyCeremony(async () => {
+				try {
+					return await authClient.signIn.passkey();
+				} catch (err) {
+					if (isPasskeyCeremonyAbort(err)) {
+						return {
+							data: null,
+							error: { code: "AUTH_CANCELLED", message: "auth cancelled" },
+						};
+					}
+					if (isPasskeyNotAllowed(err)) {
+						return {
+							data: null,
+							error: { code: "PASSKEY_NOT_FOUND" },
+						};
+					}
+					throw err;
+				}
+			});
+			await handlePasskeySignInResult(result);
 		} catch (err) {
 			if (isPasskeyCeremonyAbort(err)) return;
 			const msg = getPasskeyErrorMessage({
@@ -297,6 +320,10 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 											conditionalActive ? "username webauthn" : "username"
 										}
 										{...field}
+										onFocus={(event) => {
+											armConditional();
+											field.onFocus(event);
+										}}
 									/>
 								</FormControl>
 								<FormMessage />

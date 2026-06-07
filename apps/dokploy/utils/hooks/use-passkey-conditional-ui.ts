@@ -5,7 +5,7 @@ import {
 	endConditionalPasskeySession,
 	getPasskeyOriginPreflightError,
 	isConditionalPasskeySessionStale,
-	isPasskeyCeremonyAbort,
+	isPasskeySilentConditionalFailure,
 	type PasskeyError,
 } from "@/lib/passkey-ceremony";
 
@@ -15,6 +15,8 @@ type PasskeySignInResult = {
 };
 
 type UsePasskeyConditionalUIOptions = {
+	/** When true, conditional mediation starts only after the user focuses the email field. */
+	deferUntilEmailFocus?: boolean;
 	enabled: boolean;
 	onSignInResult: (result: PasskeySignInResult) => Promise<void>;
 };
@@ -32,10 +34,12 @@ const isSilentConditionalFailure = (error: PasskeyError): boolean => {
 };
 
 export function usePasskeyConditionalUI({
+	deferUntilEmailFocus = true,
 	enabled,
 	onSignInResult,
 }: UsePasskeyConditionalUIOptions) {
 	const [conditionalActive, setConditionalActive] = useState(false);
+	const [armed, setArmed] = useState(!deferUntilEmailFocus);
 	const onSignInResultRef = useRef(onSignInResult);
 
 	useEffect(() => {
@@ -43,7 +47,7 @@ export function usePasskeyConditionalUI({
 	}, [onSignInResult]);
 
 	useEffect(() => {
-		if (!enabled) {
+		if (!enabled || !armed) {
 			setConditionalActive(false);
 			return;
 		}
@@ -63,9 +67,7 @@ export function usePasskeyConditionalUI({
 
 			setConditionalActive(true);
 			try {
-				// Passive conditional mediation — do not use the explicit-action mutex.
-				// It waits silently for email-field autofill and would block the manual
-				// "Sign in with passkey" button with no visible browser prompt.
+				// Passive conditional mediation — never use the explicit-action mutex.
 				const result = await authClient.signIn.passkey({ autoFill: true });
 				if (isConditionalPasskeySessionStale(sessionId)) return;
 
@@ -78,20 +80,27 @@ export function usePasskeyConditionalUI({
 					await onSignInResultRef.current(result);
 				}
 			} catch (error) {
-				if (isPasskeyCeremonyAbort(error)) return;
+				if (isPasskeySilentConditionalFailure(error)) return;
+				if (isConditionalPasskeySessionStale(sessionId)) return;
 			} finally {
 				endConditionalPasskeySession(sessionId);
 				setConditionalActive(false);
 			}
 		};
 
-		void startConditionalSignIn();
+		void startConditionalSignIn().catch(() => {
+			// Swallow stray rejections from browser preemption (manual button, unmount).
+		});
 
 		return () => {
 			endConditionalPasskeySession(sessionId);
 			setConditionalActive(false);
 		};
-	}, [enabled]);
+	}, [armed, enabled]);
 
-	return { conditionalActive };
+	const armConditional = () => {
+		setArmed(true);
+	};
+
+	return { armConditional, conditionalActive };
 };

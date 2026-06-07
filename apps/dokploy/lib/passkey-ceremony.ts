@@ -20,6 +20,10 @@ export function isConditionalPasskeySessionStale(sessionId: number): boolean {
 	return sessionId !== conditionalSessionId;
 }
 
+export function preemptConditionalPasskeyCeremony(): void {
+	conditionalSessionId += 1;
+}
+
 export function endConditionalPasskeySession(sessionId: number): void {
 	if (sessionId === conditionalSessionId) {
 		conditionalSessionId += 1;
@@ -58,12 +62,17 @@ export async function runPasskeyCeremony<T>(fn: () => Promise<T>): Promise<T> {
 	}
 }
 
+export async function settleWebAuthnSlot(ms = 150): Promise<void> {
+	await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export function isPasskeyCeremonyAbort(err: unknown): boolean {
 	if (!(err instanceof Error)) return false;
 	return (
 		err.name === "AbortError" ||
 		err.message.includes("abort signal") ||
-		err.message.includes("Cancelling existing WebAuthn")
+		err.message.includes("Cancelling existing WebAuthn") ||
+		err.message.includes("Authentication ceremony was sent")
 	);
 }
 
@@ -73,6 +82,12 @@ export function isPasskeyNotAllowed(err: unknown): boolean {
 		err.name === "NotAllowedError" ||
 		err.message.includes("timed out or was not allowed")
 	);
+}
+
+export function isPasskeySilentConditionalFailure(err: unknown): boolean {
+	if (isPasskeyCeremonyAbort(err)) return true;
+	if (isPasskeyNotAllowed(err)) return true;
+	return false;
 }
 
 export function isPasskeySecurityError(err: unknown): boolean {
