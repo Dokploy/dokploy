@@ -7,12 +7,13 @@ Deploy the iyobo fork (`feat/native-passkeys`) to the production fleet Droplet i
 | Step | Status | Notes |
 |------|--------|-------|
 | Plan written | done | This file |
-| Confirm Server → Host in UI | pending | `fleet.opsific.com` + HTTPS (no env override needed) |
-| Build `linux/amd64` image | pending | From repo root `Dockerfile` |
-| Push to DOCR | pending | `registry.digitalocean.com/opsific-fleet/dokploy:v0.29.8-passkeys` |
-| DOCR login on Droplet | pending | Swarm must pull private image |
-| `docker service update` dokploy | pending | Image + env on `dokploy-manager-1` |
-| Post-deploy verify | pending | Health, login, passkey migration 0172 |
+| Fix build (esbuild + `@better-auth/utils`) | done | `Dockerfile`, `apps/dokploy/package.json` |
+| Set `BETTER_AUTH_URL` in build env | done | `https://fleet.opsific.com` |
+| Build `linux/amd64` image | done | digest `sha256:4fd470bea287…` |
+| Push to DOCR | done | `registry.digitalocean.com/opsific-fleet/dokploy:v0.29.8-passkeys` |
+| DOCR login on Droplet | done | `/root/.docker/config.json` on manager |
+| `docker service update` dokploy | done | Converged 1/1 Running |
+| Post-deploy verify | done | Health 204; `Running DokployVersion: v0.29.8` |
 
 ## Target environment
 
@@ -20,7 +21,7 @@ Deploy the iyobo fork (`feat/native-passkeys`) to the production fleet Droplet i
 |------|--------|
 | Droplet | `dokploy-manager-1` — `68.183.149.141` |
 | Public URL | `https://fleet.opsific.com` |
-| Current image | `dokploy/dokploy:v0.29.5` |
+| Current image | `registry.digitalocean.com/opsific-fleet/dokploy:v0.29.8-passkeys` |
 | Target image | `registry.digitalocean.com/opsific-fleet/dokploy:v0.29.8-passkeys` |
 | Branch | `feat/native-passkeys` @ `v0.29.8` |
 | Registry | `opsific-fleet` (`registry.digitalocean.com`) |
