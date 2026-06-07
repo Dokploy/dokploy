@@ -134,15 +134,10 @@ export const ShowGitProviders = () => {
 												const canManage = gitProvider.isOwner || isOrgAdmin;
 
 												const haveGithubRequirements =
-													isGithub &&
-													gitProvider.github?.githubPrivateKey &&
-													gitProvider.github?.githubAppId &&
-													gitProvider.github?.githubInstallationId;
+													isGithub && gitProvider.github?.isConfigured;
 
 												const haveGitlabRequirements =
-													isGitlab &&
-													gitProvider.gitlab?.accessToken &&
-													gitProvider.gitlab?.refreshToken;
+													isGitlab && gitProvider.gitlab?.isConfigured;
 
 												return (
 													<div
@@ -230,8 +225,7 @@ export const ShowGitProviders = () => {
 																)}
 
 																{isBitbucket &&
-																gitProvider.bitbucket?.appPassword &&
-																!gitProvider.bitbucket?.apiToken ? (
+																gitProvider.bitbucket?.isDeprecated ? (
 																	<Badge variant="yellow">Deprecated</Badge>
 																) : null}
 
@@ -244,7 +238,7 @@ export const ShowGitProviders = () => {
 																			Action Required
 																		</Badge>
 																		<Link
-																			href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github.githubId}`}
+																			href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github?.githubId}`}
 																			className={buttonVariants({
 																				size: "icon",
 																				variant: "ghost",
@@ -280,7 +274,7 @@ export const ShowGitProviders = () => {
 																			href={getGitlabUrl(
 																				gitProvider.gitlab?.applicationId || "",
 																				gitProvider.gitlab?.gitlabId || "",
-																				gitProvider.gitlab?.gitlabUrl,
+																				gitProvider.gitlab?.gitlabUrl || "",
 																			)}
 																			target="_blank"
 																			className={buttonVariants({
@@ -295,29 +289,33 @@ export const ShowGitProviders = () => {
 
 																{canManage && (
 																	<>
-																		{isGithub && haveGithubRequirements && (
-																			<EditGithubProvider
-																				githubId={gitProvider.github?.githubId}
-																			/>
-																		)}
+																		{isGithub &&
+																			haveGithubRequirements &&
+																			gitProvider.github?.githubId && (
+																				<EditGithubProvider
+																					githubId={gitProvider.github.githubId}
+																				/>
+																			)}
 
-																		{isGitlab && (
-																			<EditGitlabProvider
-																				gitlabId={gitProvider.gitlab?.gitlabId}
-																			/>
-																		)}
+																		{isGitlab &&
+																			gitProvider.gitlab?.gitlabId && (
+																				<EditGitlabProvider
+																					gitlabId={gitProvider.gitlab.gitlabId}
+																				/>
+																			)}
 
-																		{isBitbucket && (
-																			<EditBitbucketProvider
-																				bitbucketId={
-																					gitProvider.bitbucket?.bitbucketId
-																				}
-																			/>
-																		)}
+																		{isBitbucket &&
+																			gitProvider.bitbucket?.bitbucketId && (
+																				<EditBitbucketProvider
+																					bitbucketId={
+																						gitProvider.bitbucket.bitbucketId
+																					}
+																				/>
+																			)}
 
-																		{isGitea && (
+																		{isGitea && gitProvider.gitea?.giteaId && (
 																			<EditGiteaProvider
-																				giteaId={gitProvider.gitea?.giteaId}
+																				giteaId={gitProvider.gitea.giteaId}
 																			/>
 																		)}
 

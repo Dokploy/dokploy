@@ -42,6 +42,43 @@ export const gitProviderRouter = createTRPCRouter({
 		return results.map((r) => ({
 			...r,
 			isOwner: r.userId === ctx.session.userId,
+			github: r.github
+				? {
+						githubId: r.github.githubId,
+						githubAppName: r.github.githubAppName,
+						githubAppId: r.github.githubAppId,
+						githubInstallationId: r.github.githubInstallationId,
+						isConfigured: !!(
+							r.github.githubPrivateKey &&
+							r.github.githubAppId &&
+							r.github.githubInstallationId
+						),
+					}
+				: null,
+			gitlab: r.gitlab
+				? {
+						gitlabId: r.gitlab.gitlabId,
+						applicationId: r.gitlab.applicationId,
+						gitlabUrl: r.gitlab.gitlabUrl,
+						isConfigured: !!(r.gitlab.accessToken && r.gitlab.refreshToken),
+					}
+				: null,
+			bitbucket: r.bitbucket
+				? {
+						bitbucketId: r.bitbucket.bitbucketId,
+						bitbucketUsername: r.bitbucket.bitbucketUsername,
+						isConfigured: false,
+						isDeprecated: !!(r.bitbucket.appPassword && !r.bitbucket.apiToken),
+					}
+				: null,
+			gitea: r.gitea
+				? {
+						giteaId: r.gitea.giteaId,
+						giteaUrl: r.gitea.giteaUrl,
+						clientId: r.gitea.clientId,
+						isConfigured: !!(r.gitea.accessToken && r.gitea.refreshToken),
+					}
+				: null,
 		}));
 	}),
 
