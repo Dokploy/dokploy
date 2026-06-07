@@ -328,7 +328,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 										</FormLabel>
 										<FormControl>
 											<Input
-												placeholder={isSftpOrFtp ? "username" : "xcas41dasde"}
+												placeholder={isSftpOrFtp ? "username" : "Access Key ID"}
 												{...field}
 											/>
 										</FormControl>
@@ -350,7 +350,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									<FormControl>
 										<Input
 											type={isSftpOrFtp ? "password" : "text"}
-											placeholder={isSftpOrFtp ? "password" : "asd123asdasw"}
+											placeholder={
+												isSftpOrFtp ? "password" : "Secret Access Key"
+											}
 											{...field}
 										/>
 									</FormControl>
