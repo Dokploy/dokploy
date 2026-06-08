@@ -27,6 +27,16 @@ export function safeDockerLoginCommand(
 	return `printf %s ${escapedPassword} | docker login ${escapedRegistry} -u ${escapedUser} --password-stdin`;
 }
 
+function sanitizeRegistryError(
+	error: unknown,
+	password: string | null | undefined,
+): string {
+	const message =
+		error instanceof Error ? error.message : "Error with registry login";
+	if (!password) return message;
+	return message.split(password).join("***");
+}
+
 export const createRegistry = async (
 	input: z.infer<typeof apiCreateRegistry>,
 	organizationId: string,
@@ -59,10 +69,15 @@ export const createRegistry = async (
 			input.username,
 			input.password,
 		);
-		if (input.serverId && input.serverId !== "none") {
-			await execAsyncRemote(input.serverId, loginCommand);
-		} else if (newRegistry.registryType === "cloud") {
-			await execAsync(loginCommand);
+		try {
+			if (input.serverId && input.serverId !== "none") {
+				await execAsyncRemote(input.serverId, loginCommand);
+			} else if (newRegistry.registryType === "cloud") {
+				await execAsync(loginCommand);
+			}
+		} catch (error) {
+			const sanitized = sanitizeRegistryError(error, input.password);
+			throw new TRPCError({ code: "BAD_REQUEST", message: sanitized });
 		}
 
 		return newRegistry;
@@ -129,16 +144,24 @@ export const updateRegistry = async (
 			});
 		}
 
-		if (registryData?.serverId && registryData?.serverId !== "none") {
-			await execAsyncRemote(registryData.serverId, loginCommand);
-		} else if (response?.registryType === "cloud") {
-			await execAsync(loginCommand);
+		try {
+			if (registryData?.serverId && registryData?.serverId !== "none") {
+				await execAsyncRemote(registryData.serverId, loginCommand);
+			} else if (response?.registryType === "cloud") {
+				await execAsync(loginCommand);
+			}
+		} catch (execError) {
+			throw new Error(sanitizeRegistryError(execError, response?.password));
 		}
 
 		return response;
 	} catch (error) {
 		const message =
-			error instanceof Error ? error.message : "Error updating this registry";
+			error instanceof TRPCError
+				? error.message
+				: error instanceof Error
+					? error.message
+					: "Error updating this registry";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message,
