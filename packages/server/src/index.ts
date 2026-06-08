@@ -100,6 +100,7 @@ export * from "./utils/docker/compose/volume";
 export * from "./utils/docker/domain";
 export * from "./utils/docker/types";
 export * from "./utils/docker/utils";
+export * from "./utils/env-upsert";
 export * from "./utils/filesystem/directory";
 export * from "./utils/filesystem/ssh";
 export * from "./utils/git-branch-validation";

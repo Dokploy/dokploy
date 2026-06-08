@@ -530,6 +530,43 @@ export const apiSaveEnvironmentVariables = createSchema
 	})
 	.required();
 
+const ENV_VARIABLE_NAME_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+export const apiUpsertApplicationEnv = z.object({
+	applicationId: z.string().min(1),
+	variables: z
+		.record(
+			z
+				.string()
+				.regex(
+					ENV_VARIABLE_NAME_REGEX,
+					"Environment variable names must start with a letter or underscore and contain only letters, numbers, and underscores",
+				),
+			z.string(),
+		)
+		.refine((variables) => Object.keys(variables).length > 0, {
+			message: "At least one environment variable is required",
+		}),
+	redeploy: z.boolean().optional(),
+	dryRun: z.boolean().optional(),
+	expectedRevision: z.string().optional(),
+});
+
+export const apiUpsertApplicationEnvResponse = z.object({
+	applicationId: z.string(),
+	changed: z.boolean(),
+	revision: z.string(),
+	dryRun: z.boolean(),
+	redeployed: z.boolean(),
+	variables: z.array(
+		z.object({
+			name: z.string(),
+			action: z.enum(["created", "updated", "unchanged"]),
+			secret: z.boolean(),
+		}),
+	),
+});
+
 export const apiFindMonitoringStats = z.object({
 	appName: z.string().min(1),
 });
