@@ -1,0 +1,1 @@
+ALTER TABLE "compose" ADD COLUMN "composeWorkingDir" text DEFAULT '' NOT NULL;
