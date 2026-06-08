@@ -66,7 +66,12 @@ export const findMySqlById = async (mysqlId: string) => {
 			server: true,
 			backups: {
 				with: {
-					destination: true,
+					destination: {
+						columns: {
+							accessKey: false,
+							secretAccessKey: false,
+						},
+					},
 					deployments: true,
 				},
 			},

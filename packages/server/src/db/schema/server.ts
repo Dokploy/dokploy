@@ -147,8 +147,12 @@ export const apiCreateServer = createSchema
 		username: true,
 		sshKeyId: true,
 		serverType: true,
+		enableDockerCleanup: true,
 	})
-	.required();
+	.required()
+	.extend({
+		enableDockerCleanup: z.boolean().default(true),
+	});
 
 export const apiFindOneServer = z.object({
 	serverId: z.string().min(1),
@@ -170,10 +174,12 @@ export const apiUpdateServer = createSchema
 		username: true,
 		sshKeyId: true,
 		serverType: true,
+		enableDockerCleanup: true,
 	})
 	.required()
 	.extend({
 		command: z.string().optional(),
+		enableDockerCleanup: z.boolean().default(true),
 	});
 
 export const apiUpdateServerMonitoring = createSchema
