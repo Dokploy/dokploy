@@ -1,6 +1,7 @@
 import { findAllDeploymentsByApplicationId } from "@dokploy/server/services/deployment";
 import {
 	findRegistryByIdWithCredentials,
+	safeDockerLoginCommand,
 	type Registry,
 } from "@dokploy/server/services/registry";
 import { createRollback } from "@dokploy/server/services/rollbacks";
@@ -117,9 +118,14 @@ const getRegistryCommands = (
 	imageName: string,
 	registryTag: string,
 ): string => {
+	const loginCmd = safeDockerLoginCommand(
+		registry.registryUrl,
+		registry.username,
+		registry.password,
+	);
 	return `
 echo "📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'" ;
-echo "${registry.password}" | docker login ${registry.registryUrl} -u '${registry.username}' --password-stdin || {
+${loginCmd} || {
 	echo "❌ DockerHub Failed" ;
 	exit 1;
 }
