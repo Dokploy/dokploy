@@ -290,7 +290,7 @@ export const ShowProjects = () => {
 											</span>
 										</div>
 									)}
-									<div className="w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 flex-wrap gap-5">
+									<div className="w-full grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-5">
 										{filteredProjects?.map((project) => {
 											const emptyServices = project?.environments
 												.map(
@@ -330,7 +330,7 @@ export const ShowProjects = () => {
 											return (
 												<div
 													key={project.projectId}
-													className="w-full lg:max-w-md"
+													className="w-full"
 												>
 													<Link
 														href={
