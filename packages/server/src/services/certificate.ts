@@ -16,6 +16,19 @@ import { execAsyncRemote } from "../utils/process/execAsync";
 
 export type Certificate = typeof certificates.$inferSelect;
 
+/**
+ * Returns the path to the per-certificate Traefik registration YAML.
+ *
+ * The file MUST live at the TOP LEVEL of the dynamic Traefik directory, because
+ * Traefik's `file.directory` provider is non-recursive and never loads files
+ * nested in subdirectories. The PEM files referenced by this YAML can still live
+ * in a per-certificate subdirectory since they are referenced by absolute path.
+ */
+export const getCertificateConfigPath = (
+	dynamicTraefikPath: string,
+	certificatePath: string,
+) => path.join(dynamicTraefikPath, `${certificatePath}-certificate.yml`);
+
 export const findCertificateById = async (certificateId: string) => {
 	const certificate = await db.query.certificates.findFirst({
 		where: eq(certificates.certificateId, certificateId),
@@ -59,13 +72,25 @@ export const createCertificate = async (
 
 export const removeCertificateById = async (certificateId: string) => {
 	const certificate = await findCertificateById(certificateId);
-	const { CERTIFICATES_PATH } = paths(!!certificate.serverId);
+	const { CERTIFICATES_PATH, DYNAMIC_TRAEFIK_PATH } = paths(
+		!!certificate.serverId,
+	);
 	const certDir = path.join(CERTIFICATES_PATH, certificate.certificatePath);
+	const configFile = getCertificateConfigPath(
+		DYNAMIC_TRAEFIK_PATH,
+		certificate.certificatePath,
+	);
 
 	if (certificate.serverId) {
-		await execAsyncRemote(certificate.serverId, `rm -rf ${certDir}`);
+		await execAsyncRemote(
+			certificate.serverId,
+			`rm -rf ${certDir}; rm -f ${configFile}`,
+		);
 	} else {
 		await removeDirectoryIfExistsContent(certDir);
+		if (fs.existsSync(configFile)) {
+			fs.rmSync(configFile);
+		}
 	}
 
 	const result = await db
@@ -84,7 +109,9 @@ export const removeCertificateById = async (certificateId: string) => {
 };
 
 const createCertificateFiles = async (certificate: Certificate) => {
-	const { CERTIFICATES_PATH } = paths(!!certificate.serverId);
+	const { CERTIFICATES_PATH, DYNAMIC_TRAEFIK_PATH } = paths(
+		!!certificate.serverId,
+	);
 	const certDir = path.join(CERTIFICATES_PATH, certificate.certificatePath);
 	const crtPath = path.join(certDir, "chain.crt");
 	const keyPath = path.join(certDir, "privkey.key");
@@ -102,7 +129,13 @@ const createCertificateFiles = async (certificate: Certificate) => {
 		},
 	};
 	const yamlConfig = stringify(traefikConfig);
-	const configFile = path.join(certDir, "certificate.yml");
+	// The registration YAML must live at the top level of the dynamic Traefik
+	// directory; Traefik's file.directory provider does not recurse into the
+	// per-certificate subdirectory where the PEM files live.
+	const configFile = getCertificateConfigPath(
+		DYNAMIC_TRAEFIK_PATH,
+		certificate.certificatePath,
+	);
 
 	if (certificate.serverId) {
 		const certificateData = encodeBase64(certificate.certificateData);
