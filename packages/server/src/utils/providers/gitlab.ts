@@ -102,6 +102,124 @@ const getGitlabCloneUrl = (gitlab: GitlabInfo, repoClone: string) => {
 	return cloneUrl;
 };
 
+interface GitlabProjectHook {
+	id: number;
+	url: string;
+}
+
+interface RegisterGitlabDeployWebhookInput {
+	gitlabId: string;
+	gitlabProjectId: number | null;
+	branch: string;
+	deployWebhookUrl: string;
+}
+
+const createGitlabHookPayload = ({
+	branch,
+	deployWebhookUrl,
+}: Pick<RegisterGitlabDeployWebhookInput, "branch" | "deployWebhookUrl">) => ({
+	url: deployWebhookUrl,
+	push_events: true,
+	enable_ssl_verification: true,
+	push_events_branch_filter: branch,
+	branch_filter_strategy: "wildcard",
+});
+
+const getGitlabApiBaseUrl = (gitlabProvider: Gitlab) => {
+	return (gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl).replace(
+		/\/+$/,
+		"",
+	);
+};
+
+const getGitlabApiHeaders = (accessToken: string | null) => {
+	if (!accessToken) {
+		throw new Error("GitLab provider access token not found");
+	}
+
+	return {
+		Authorization: `Bearer ${accessToken}`,
+		"Content-Type": "application/json",
+	};
+};
+
+const getGitlabHookErrorMessage = async (response: Response) => {
+	const body = await response.text();
+
+	if (!body) {
+		return response.statusText;
+	}
+
+	try {
+		const parsed = JSON.parse(body);
+		if (typeof parsed.message === "string") {
+			return parsed.message;
+		}
+		if (parsed.message) {
+			return JSON.stringify(parsed.message);
+		}
+		return body;
+	} catch {
+		return body;
+	}
+};
+
+const throwGitlabHookError = async (action: string, response: Response) => {
+	const message = await getGitlabHookErrorMessage(response);
+	throw new Error(
+		`Failed to ${action}: ${response.status} ${response.statusText}${message ? ` - ${message}` : ""}`,
+	);
+};
+
+export const registerGitlabDeployWebhook = async ({
+	gitlabId,
+	gitlabProjectId,
+	branch,
+	deployWebhookUrl,
+}: RegisterGitlabDeployWebhookInput) => {
+	if (!gitlabProjectId) {
+		throw new Error("GitLab project ID is required to register webhook");
+	}
+
+	await refreshGitlabToken(gitlabId);
+	const gitlabProvider = await findGitlabById(gitlabId);
+	const baseUrl = getGitlabApiBaseUrl(gitlabProvider);
+	const hooksUrl = `${baseUrl}/api/v4/projects/${gitlabProjectId}/hooks`;
+	const headers = getGitlabApiHeaders(gitlabProvider.accessToken);
+	const payload = createGitlabHookPayload({ branch, deployWebhookUrl });
+
+	const hooksResponse = await fetch(`${hooksUrl}?per_page=100`, {
+		headers,
+	});
+
+	if (!hooksResponse.ok) {
+		await throwGitlabHookError("fetch GitLab project hooks", hooksResponse);
+	}
+
+	const hooks = (await hooksResponse.json()) as GitlabProjectHook[];
+	const existingHook = hooks.find((hook) => hook.url === deployWebhookUrl);
+
+	const response = await fetch(
+		existingHook ? `${hooksUrl}/${existingHook.id}` : hooksUrl,
+		{
+			method: existingHook ? "PUT" : "POST",
+			headers,
+			body: JSON.stringify(payload),
+		},
+	);
+
+	if (!response.ok) {
+		await throwGitlabHookError(
+			existingHook
+				? "update GitLab project webhook"
+				: "create GitLab project webhook",
+			response,
+		);
+	}
+
+	return await response.json();
+};
+
 interface CloneGitlabRepository {
 	appName: string;
 	gitlabBranch: string | null;

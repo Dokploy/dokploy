@@ -8,11 +8,13 @@ import {
 	getAccessibleServerIds,
 	getApplicationStats,
 	getContainerLogs,
+	getDokployUrl,
 	getWebServerSettings,
 	IS_CLOUD,
 	mechanizeDockerContainer,
 	readConfig,
 	readRemoteConfig,
+	registerGitlabDeployWebhook,
 	removeDeployments,
 	removeDirectoryCode,
 	removeMonitoringDirectory,
@@ -448,6 +450,12 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			if (!input.gitlabId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "GitLab provider is required",
+				});
+			}
 			await updateApplication(input.applicationId, {
 				gitlabRepository: input.gitlabRepository,
 				gitlabOwner: input.gitlabOwner,
@@ -462,6 +470,13 @@ export const applicationRouter = createTRPCRouter({
 				enableSubmodules: input.enableSubmodules,
 			});
 			const application = await findApplicationById(input.applicationId);
+			const dokployUrl = await getDokployUrl();
+			await registerGitlabDeployWebhook({
+				gitlabId: input.gitlabId,
+				gitlabProjectId: input.gitlabProjectId,
+				branch: input.gitlabBranch,
+				deployWebhookUrl: `${dokployUrl}/api/deploy/${application.refreshToken}`,
+			});
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
