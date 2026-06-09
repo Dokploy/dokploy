@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { CopyInput } from "@/components/shared/copy-input";
 import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 import { UpdateDatabasePassword } from "@/components/shared/update-database-password";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,11 +26,11 @@ export const ShowInternalMysqlCredentials = ({ mysqlId }: Props) => {
 						<div className="grid w-full md:grid-cols-2 gap-4 md:gap-8">
 							<div className="flex flex-col gap-2">
 								<Label>User</Label>
-								<Input disabled value={data?.databaseUser} />
+								<CopyInput disabled value={data?.databaseUser} />
 							</div>
 							<div className="flex flex-col gap-2">
 								<Label>Database Name</Label>
-								<Input disabled value={data?.databaseName} />
+								<CopyInput disabled value={data?.databaseName} />
 							</div>
 							<div className="flex flex-col gap-2">
 								<Label>Password</Label>
