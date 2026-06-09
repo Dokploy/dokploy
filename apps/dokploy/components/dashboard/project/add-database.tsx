@@ -53,17 +53,9 @@ import {
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 import { APP_NAME_MESSAGE, APP_NAME_REGEX } from "@/utils/schema";
+import { dockerImageDefaultPlaceholder } from "./database-default-images";
 
 type DbType = z.infer<typeof mySchema>["type"];
-
-const dockerImageDefaultPlaceholder: Record<DbType, string> = {
-	mongo: "mongo:8",
-	libsql: "ghcr.io/tursodatabase/libsql-server:v0.24.32",
-	mariadb: "mariadb:11",
-	mysql: "mysql:8",
-	postgres: "postgres:18",
-	redis: "redis:7",
-};
 
 const databasesUserDefaultPlaceholder: Record<
 	Exclude<DbType, "redis">,
