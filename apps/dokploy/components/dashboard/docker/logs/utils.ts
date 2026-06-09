@@ -97,9 +97,16 @@ export const getLogType = (message: string): LogStyle => {
 		return LOG_STYLES.info;
 	}
 
+	// Strip "no-error" key/value pairs so success lines that merely contain the
+	// words "error" or "failed" (e.g. ofelia's "failed: false, error: none")
+	// are not misclassified as errors based on the key alone.
+	const withoutNoErrorPairs = lowerMessage
+		.replace(/\berror:?\s*(?:none|null|nil|false|0|-|""|'')\b/gi, "")
+		.replace(/\bfail(?:ed|ure)?:?\s*(?:false|no|none|0)\b/gi, "");
+
 	if (
-		/(?:^|\s)(?:error|err):?\s/i.test(lowerMessage) ||
-		/\b(?:exception|failed|failure)\b/i.test(lowerMessage) ||
+		/(?:^|\s)(?:error|err):?\s/i.test(withoutNoErrorPairs) ||
+		/\b(?:exception|failed|failure)\b/i.test(withoutNoErrorPairs) ||
 		/(?:stack\s?trace):\s*$/i.test(lowerMessage) ||
 		/^\s*at\s+[\w.]+\s*\(?.+:\d+:\d+\)?/.test(lowerMessage) ||
 		/\b(?:uncaught|unhandled)\s+(?:exception|error)\b/i.test(lowerMessage) ||
@@ -107,7 +114,7 @@ export const getLogType = (message: string): LogStyle => {
 		/\b(?:errno|code):\s*(?:\d+|[A-Z_]+)\b/i.test(lowerMessage) ||
 		/\[(?:error|err|fatal)\]/i.test(lowerMessage) ||
 		/\b(?:crash|critical|fatal)\b/i.test(lowerMessage) ||
-		/\b(?:fail(?:ed|ure)?|broken|dead)\b/i.test(lowerMessage)
+		/\b(?:fail(?:ed|ure)?|broken|dead)\b/i.test(withoutNoErrorPairs)
 	) {
 		return LOG_STYLES.error;
 	}
