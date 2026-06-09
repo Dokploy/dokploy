@@ -1212,6 +1212,13 @@
       "when": 1780937925507,
       "tag": "0172_silky_maestro",
       "breakpoints": true
+    },
+    {
+      "idx": 173,
+      "version": "7",
+      "when": 1781020046095,
+      "tag": "0173_public_sentinels",
+      "breakpoints": true
     }
   ]
 }
