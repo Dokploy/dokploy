@@ -95,10 +95,12 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 						"Your email is not verified. We've sent a new verification link to your email.";
 					toast.info(msg);
 					setError(msg);
+					setIsLoginLoading(false);
 					return;
 				}
 				toast.error(error.message);
 				setError(error.message || "An error occurred while logging in");
+				setIsLoginLoading(false);
 				return;
 			}
 
@@ -107,14 +109,14 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 				setTwoFactorCode("");
 				setIsTwoFactor(true);
 				toast.info("Please enter your 2FA code");
+				setIsLoginLoading(false);
 				return;
 			}
 
 			toast.success("Logged in successfully");
-			router.push("/dashboard/home");
+			await router.push("/dashboard/home");
 		} catch {
 			toast.error("An error occurred while logging in");
-		} finally {
 			setIsLoginLoading(false);
 		}
 	};
@@ -134,14 +136,14 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 			if (error) {
 				toast.error(error.message);
 				setError(error.message || "An error occurred while verifying 2FA code");
+				setIsTwoFactorLoading(false);
 				return;
 			}
 
 			toast.success("Logged in successfully");
-			router.push("/dashboard/home");
+			await router.push("/dashboard/home");
 		} catch {
 			toast.error("An error occurred while verifying 2FA code");
-		} finally {
 			setIsTwoFactorLoading(false);
 		}
 	};
@@ -164,14 +166,14 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 				setError(
 					error.message || "An error occurred while verifying backup code",
 				);
+				setIsBackupCodeLoading(false);
 				return;
 			}
 
 			toast.success("Logged in successfully");
-			router.push("/dashboard/home");
+			await router.push("/dashboard/home");
 		} catch {
 			toast.error("An error occurred while verifying backup code");
-		} finally {
 			setIsBackupCodeLoading(false);
 		}
 	};
