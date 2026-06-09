@@ -25,6 +25,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
 const Schema = z.object({
@@ -39,6 +40,7 @@ const Schema = z.object({
 		.optional()
 		.transform((v) => (v === "" ? undefined : v)),
 	groupName: z.string().optional(),
+	enableAutoDeploy: z.boolean().default(true),
 });
 
 type Schema = z.infer<typeof Schema>;
@@ -67,6 +69,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 			name: "",
 			gitlabUrl: "https://gitlab.com",
 			gitlabInternalUrl: "",
+			enableAutoDeploy: true,
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -79,6 +82,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 			name: gitlab?.gitProvider.name || "",
 			gitlabUrl: gitlab?.gitlabUrl || "",
 			gitlabInternalUrl: gitlab?.gitlabInternalUrl || "",
+			enableAutoDeploy: gitlab?.enableAutoDeploy ?? true,
 		});
 	}, [form, isOpen]);
 
@@ -90,6 +94,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 			name: data.name || "",
 			gitlabUrl: data.gitlabUrl || "",
 			gitlabInternalUrl: data.gitlabInternalUrl ?? null,
+			enableAutoDeploy: data.enableAutoDeploy,
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
@@ -197,6 +202,29 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 												/>
 											</FormControl>
 											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="enableAutoDeploy"
+									render={({ field }) => (
+										<FormItem className="flex items-center justify-between gap-4 rounded-lg border p-4">
+											<div className="space-y-0.5">
+												<FormLabel>Enable Automatic Deployments</FormLabel>
+												<FormDescription>
+													Automatically configure deploy webhooks when this
+													GitLab provider is used by an application or compose
+													service.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
 										</FormItem>
 									)}
 								/>

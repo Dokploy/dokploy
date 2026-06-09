@@ -34,6 +34,7 @@ const mockGitlabProvider = (overrides = {}) => ({
 	refreshToken: "refresh-token",
 	groupName: null,
 	expiresAt: Math.floor(Date.now() / 1000) + 3600,
+	enableAutoDeploy: true,
 	gitProviderId: "git-provider-id",
 	...overrides,
 });
@@ -143,5 +144,24 @@ describe("registerGitlabDeployWebhook", () => {
 		expect(fetchMock.mock.calls[1]?.[0]).toBe(
 			"http://gitlab:8080/api/v4/projects/123/hooks",
 		);
+	});
+
+	it("skips project hook registration when automatic deployments are disabled", async () => {
+		mocks.findGitlabById.mockResolvedValue(
+			mockGitlabProvider({
+				enableAutoDeploy: false,
+			}),
+		);
+		const fetchMock = vi.spyOn(globalThis, "fetch");
+
+		const result = await registerGitlabDeployWebhook({
+			gitlabId: "gitlab-id",
+			gitlabProjectId: 123,
+			branch: "main",
+			deployWebhookUrl,
+		});
+
+		expect(result).toBeNull();
+		expect(fetchMock).not.toHaveBeenCalled();
 	});
 });

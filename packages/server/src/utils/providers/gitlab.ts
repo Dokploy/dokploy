@@ -181,8 +181,12 @@ export const registerGitlabDeployWebhook = async ({
 		throw new Error("GitLab project ID is required to register webhook");
 	}
 
-	await refreshGitlabToken(gitlabId);
 	const gitlabProvider = await findGitlabById(gitlabId);
+	if (!gitlabProvider.enableAutoDeploy) {
+		return null;
+	}
+
+	await refreshGitlabToken(gitlabId);
 	const baseUrl = getGitlabApiBaseUrl(gitlabProvider);
 	const hooksUrl = `${baseUrl}/api/v4/projects/${gitlabProjectId}/hooks`;
 	const headers = getGitlabApiHeaders(gitlabProvider.accessToken);
