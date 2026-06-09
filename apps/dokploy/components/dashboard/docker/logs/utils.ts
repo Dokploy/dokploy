@@ -100,9 +100,27 @@ export const getLogType = (message: string): LogStyle => {
 	// Strip "no-error" key/value pairs so success lines that merely contain the
 	// words "error" or "failed" (e.g. ofelia's "failed: false, error: none")
 	// are not misclassified as errors based on the key alone.
+	// Only strip when the no-error value is the COMPLETE value of the pair
+	// (terminated by end-of-line, comma or semicolon) — never when it is merely
+	// the prefix of a longer phrase, otherwise genuine errors like
+	// "failed: no route to host" or "error: none of the nodes responded" would
+	// be wrongly cleared.
+	const noErrorTerminator = "(?=\\s*(?:$|[,;]))";
 	const withoutNoErrorPairs = lowerMessage
-		.replace(/\berror:?\s*(?:none|null|nil|false|0|-|""|'')\b/gi, "")
-		.replace(/\bfail(?:ed|ure)?:?\s*(?:false|no|none|0)\b/gi, "");
+		.replace(
+			new RegExp(
+				`\\berror:?\\s*(?:none|null|nil|false|0|-|""|'')${noErrorTerminator}`,
+				"gi",
+			),
+			"",
+		)
+		.replace(
+			new RegExp(
+				`\\bfail(?:ed|ure)?:?\\s*(?:none|false|no|0)${noErrorTerminator}`,
+				"gi",
+			),
+			"",
+		);
 
 	if (
 		/(?:^|\s)(?:error|err):?\s/i.test(withoutNoErrorPairs) ||
