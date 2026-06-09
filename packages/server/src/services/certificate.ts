@@ -84,7 +84,7 @@ export const removeCertificateById = async (certificateId: string) => {
 	if (certificate.serverId) {
 		await execAsyncRemote(
 			certificate.serverId,
-			`rm -rf ${certDir}; rm -f ${configFile}`,
+			`rm -rf "${certDir}"; rm -f "${configFile}"`,
 		);
 	} else {
 		await removeDirectoryIfExistsContent(certDir);
@@ -141,7 +141,7 @@ const createCertificateFiles = async (certificate: Certificate) => {
 		const certificateData = encodeBase64(certificate.certificateData);
 		const privateKey = encodeBase64(certificate.privateKey);
 		const command = `
-			mkdir -p ${certDir};
+			mkdir -p "${certDir}";
 			echo "${certificateData}" | base64 -d > "${crtPath}";
 			echo "${privateKey}" | base64 -d > "${keyPath}";
 			echo "${yamlConfig}" > "${configFile}";
