@@ -76,7 +76,7 @@ function getServiceInfo(d: DeploymentRow) {
 			projectName: app.environment.project.name,
 			environmentName: app.environment.name,
 			serviceId: app.applicationId,
-			href: `/dashboard/project/${app.environment.project.projectId}/environment/${app.environment.environmentId}/services/application/${app.applicationId}`,
+			href: `/dashboard/project/${app.environment.project.projectId}/environment/${app.environment.environmentId}/services/application/${app.applicationId}?tab=deployments`,
 		};
 	}
 	if (comp?.environment?.project && comp.environment) {
@@ -88,7 +88,7 @@ function getServiceInfo(d: DeploymentRow) {
 			projectName: comp.environment.project.name,
 			environmentName: comp.environment.name,
 			serviceId: comp.composeId,
-			href: `/dashboard/project/${comp.environment.project.projectId}/environment/${comp.environment.environmentId}/services/compose/${comp.composeId}`,
+			href: `/dashboard/project/${comp.environment.project.projectId}/environment/${comp.environment.environmentId}/services/compose/${comp.composeId}?tab=deployments`,
 		};
 	}
 	return null;
