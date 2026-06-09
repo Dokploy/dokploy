@@ -16,6 +16,7 @@ export const CopyInput = ({ ...props }: InputProps) => {
 		<div className="flex w-full items-center space-x-2">
 			<Input {...props} />
 			<Button
+				type="button"
 				variant={"secondary"}
 				onClick={() => copyToClipboard(props.value?.toString())}
 			>
