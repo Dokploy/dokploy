@@ -18,6 +18,9 @@ import {
 	sendSlackNotification,
 	sendTeamsNotification,
 	sendTelegramNotification,
+	sendPagerdutyNotification,
+	sendOpsgenieNotification,
+	sendMatrixNotification,
 } from "./utils";
 
 interface Props {
@@ -59,6 +62,9 @@ export const sendBuildSuccessNotifications = async ({
 			lark: true,
 			pushover: true,
 			teams: true,
+			pagerduty: true,
+			opsgenie: true,
+			matrix: true,
 		},
 	});
 
@@ -76,6 +82,9 @@ export const sendBuildSuccessNotifications = async ({
 			lark,
 			pushover,
 			teams,
+			pagerduty,
+			opsgenie,
+			matrix,
 		} = notification;
 		try {
 			if (email || resend) {
@@ -426,6 +435,29 @@ export const sendBuildSuccessNotifications = async ({
 						url: buildLink,
 					},
 				});
+			}
+
+			if (pagerduty) {
+				await sendPagerdutyNotification(
+					pagerduty,
+					"Build Success",
+					`Project: ${projectName}\nApplication: ${applicationName}\nEnvironment: ${environmentName}\nType: ${applicationType}\nDate: ${date.toLocaleString()}`,
+				);
+			}
+
+			if (opsgenie) {
+				await sendOpsgenieNotification(
+					opsgenie,
+					"Build Success",
+					`Project: ${projectName}\nApplication: ${applicationName}\nEnvironment: ${environmentName}\nType: ${applicationType}\nDate: ${date.toLocaleString()}`,
+				);
+			}
+
+			if (matrix) {
+				await sendMatrixNotification(
+					matrix,
+					`✅ Build Success\n\nProject: ${projectName}\nApplication: ${applicationName}\nEnvironment: ${environmentName}\nType: ${applicationType}\nDate: ${date.toLocaleString()}`,
+				);
 			}
 		} catch (error) {
 			console.log(error);

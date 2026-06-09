@@ -40,6 +40,15 @@ import {
 	updateSlackNotification,
 	updateTeamsNotification,
 	updateTelegramNotification,
+	createPagerdutyNotification,
+	createOpsgenieNotification,
+	createMatrixNotification,
+	updatePagerdutyNotification,
+	updateOpsgenieNotification,
+	updateMatrixNotification,
+	sendPagerdutyNotification,
+	sendOpsgenieNotification,
+	sendMatrixNotification,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
@@ -89,6 +98,15 @@ import {
 	apiUpdateSlack,
 	apiUpdateTeams,
 	apiUpdateTelegram,
+	apiCreatePagerduty,
+	apiCreateOpsgenie,
+	apiCreateMatrix,
+	apiUpdatePagerduty,
+	apiUpdateOpsgenie,
+	apiUpdateMatrix,
+	apiTestPagerdutyConnection,
+	apiTestOpsgenieConnection,
+	apiTestMatrixConnection,
 	notifications,
 	server,
 } from "@/server/db/schema";
@@ -484,6 +502,9 @@ export const notificationRouter = createTRPCRouter({
 				lark: true,
 				pushover: true,
 				teams: true,
+				pagerduty: true,
+				opsgenie: true,
+				matrix: true,
 			},
 			orderBy: desc(notifications.createdAt),
 			where: eq(notifications.organizationId, ctx.session.activeOrganizationId),
@@ -1027,4 +1048,178 @@ export const notificationRouter = createTRPCRouter({
 			});
 		},
 	),
+	createPagerduty: withPermission("notification", "create")
+		.input(apiCreatePagerduty)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				await createPagerdutyNotification(input, ctx.session.activeOrganizationId);
+				await audit(ctx, {
+					action: "create",
+					resourceType: "notification",
+					resourceName: input.name,
+				});
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error creating the notification",
+					cause: error,
+				});
+			}
+		}),
+	updatePagerduty: withPermission("notification", "update")
+		.input(apiUpdatePagerduty)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const notification = await findNotificationById(input.notificationId);
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this notification",
+					});
+				}
+				const result = await updatePagerdutyNotification({
+					...input,
+					organizationId: ctx.session.activeOrganizationId,
+				});
+				await audit(ctx, {
+					action: "update",
+					resourceType: "notification",
+					resourceId: input.notificationId,
+					resourceName: notification.name,
+				});
+				return result;
+			} catch (error) {
+				throw error;
+			}
+		}),
+	testPagerdutyConnection: withPermission("notification", "create")
+		.input(apiTestPagerdutyConnection)
+		.mutation(async ({ input }) => {
+			try {
+				await sendPagerdutyNotification(input, "Dokploy Test", "Hi, From Dokploy 👋");
+				return true;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `${error instanceof Error ? error.message : "Unknown error"}`,
+					cause: error,
+				});
+			}
+		}),
+	createOpsgenie: withPermission("notification", "create")
+		.input(apiCreateOpsgenie)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				await createOpsgenieNotification(input, ctx.session.activeOrganizationId);
+				await audit(ctx, {
+					action: "create",
+					resourceType: "notification",
+					resourceName: input.name,
+				});
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error creating the notification",
+					cause: error,
+				});
+			}
+		}),
+	updateOpsgenie: withPermission("notification", "update")
+		.input(apiUpdateOpsgenie)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const notification = await findNotificationById(input.notificationId);
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this notification",
+					});
+				}
+				const result = await updateOpsgenieNotification({
+					...input,
+					organizationId: ctx.session.activeOrganizationId,
+				});
+				await audit(ctx, {
+					action: "update",
+					resourceType: "notification",
+					resourceId: input.notificationId,
+					resourceName: notification.name,
+				});
+				return result;
+			} catch (error) {
+				throw error;
+			}
+		}),
+	testOpsgenieConnection: withPermission("notification", "create")
+		.input(apiTestOpsgenieConnection)
+		.mutation(async ({ input }) => {
+			try {
+				await sendOpsgenieNotification(input, "Dokploy Test", "Hi, From Dokploy 👋");
+				return true;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `${error instanceof Error ? error.message : "Unknown error"}`,
+					cause: error,
+				});
+			}
+		}),
+	createMatrix: withPermission("notification", "create")
+		.input(apiCreateMatrix)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				await createMatrixNotification(input, ctx.session.activeOrganizationId);
+				await audit(ctx, {
+					action: "create",
+					resourceType: "notification",
+					resourceName: input.name,
+				});
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error creating the notification",
+					cause: error,
+				});
+			}
+		}),
+	updateMatrix: withPermission("notification", "update")
+		.input(apiUpdateMatrix)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const notification = await findNotificationById(input.notificationId);
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this notification",
+					});
+				}
+				const result = await updateMatrixNotification({
+					...input,
+					organizationId: ctx.session.activeOrganizationId,
+				});
+				await audit(ctx, {
+					action: "update",
+					resourceType: "notification",
+					resourceId: input.notificationId,
+					resourceName: notification.name,
+				});
+				return result;
+			} catch (error) {
+				throw error;
+			}
+		}),
+	testMatrixConnection: withPermission("notification", "create")
+		.input(apiTestMatrixConnection)
+		.mutation(async ({ input }) => {
+			try {
+				await sendMatrixNotification(input, "Hi, From Dokploy 👋");
+				return true;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `${error instanceof Error ? error.message : "Unknown error"}`,
+					cause: error,
+				});
+			}
+		}),
 });

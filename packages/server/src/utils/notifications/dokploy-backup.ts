@@ -16,6 +16,9 @@ import {
 	sendResendNotification,
 	sendSlackNotification,
 	sendTeamsNotification,
+	sendPagerdutyNotification,
+	sendOpsgenieNotification,
+	sendMatrixNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -45,6 +48,9 @@ export const sendDokployBackupNotifications = async ({
 			lark: true,
 			pushover: true,
 			teams: true,
+			pagerduty: true,
+			opsgenie: true,
+			matrix: true,
 		},
 	});
 
@@ -62,6 +68,9 @@ export const sendDokployBackupNotifications = async ({
 			lark,
 			pushover,
 			teams,
+			pagerduty,
+			opsgenie,
+			matrix,
 		} = notification;
 
 		try {
@@ -408,6 +417,29 @@ export const sendDokployBackupNotifications = async ({
 							: []),
 					],
 				});
+			}
+
+			if (pagerduty) {
+				await sendPagerdutyNotification(
+					pagerduty,
+					"Dokploy Backup",
+					"System event occurred. Please check Dokploy dashboard."
+				);
+			}
+
+			if (opsgenie) {
+				await sendOpsgenieNotification(
+					opsgenie,
+					"Dokploy Backup",
+					"System event occurred. Please check Dokploy dashboard."
+				);
+			}
+
+			if (matrix) {
+				await sendMatrixNotification(
+					matrix,
+					"Dokploy Backup\n\nSystem event occurred. Please check Dokploy dashboard."
+				);
 			}
 		} catch (error) {
 			console.error(error);

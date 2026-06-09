@@ -181,6 +181,28 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
 		})
 		.merge(notificationBaseSchema),
+
+	z
+		.object({
+			type: z.literal("pagerduty"),
+			routingKey: z.string().min(1, { message: "Routing Key is required" }),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("opsgenie"),
+			apiKey: z.string().min(1, { message: "API Key is required" }),
+			region: z.string().optional(),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("matrix"),
+			homeServerUrl: z.string().min(1, { message: "Homeserver URL is required" }),
+			accessToken: z.string().min(1, { message: "Access Token is required" }),
+			roomId: z.string().min(1, { message: "Room ID is required" }),
+		})
+		.merge(notificationBaseSchema),
 ]);
 
 export const notificationsMap = {
@@ -280,7 +302,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const { mutateAsync: testPushoverConnection, isPending: isLoadingPushover } =
 		api.notification.testPushoverConnection.useMutation();
 
-	const customMutation = notificationId
+	
+	const { mutateAsync: testPagerdutyConnection, isPending: isLoadingPagerduty } = api.notification.testPagerdutyConnection.useMutation();
+	const { mutateAsync: testOpsgenieConnection, isPending: isLoadingOpsgenie } = api.notification.testOpsgenieConnection.useMutation();
+	const { mutateAsync: testMatrixConnection, isPending: isLoadingMatrix } = api.notification.testMatrixConnection.useMutation();
+const customMutation = notificationId
 		? api.notification.updateCustom.useMutation()
 		: api.notification.createCustom.useMutation();
 	const slackMutation = notificationId
@@ -317,7 +343,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		? api.notification.updatePushover.useMutation()
 		: api.notification.createPushover.useMutation();
 
-	const form = useForm({
+	
+	const pagerdutyMutation = notificationId ? api.notification.updatePagerduty.useMutation() : api.notification.createPagerduty.useMutation();
+	const opsgenieMutation = notificationId ? api.notification.updateOpsgenie.useMutation() : api.notification.createOpsgenie.useMutation();
+	const matrixMutation = notificationId ? api.notification.updateMatrix.useMutation() : api.notification.createMatrix.useMutation();
+const form = useForm({
 		defaultValues: {
 			type: "slack",
 			webhookUrl: "",
@@ -530,6 +560,52 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
 				});
+
+			} else if (notification.notificationType === "pagerduty") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					dokployBackup: notification.dokployBackup,
+					volumeBackup: notification.volumeBackup,
+					type: notification.notificationType,
+					routingKey: notification.pagerduty?.routingKey,
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
+			} else if (notification.notificationType === "opsgenie") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					dokployBackup: notification.dokployBackup,
+					volumeBackup: notification.volumeBackup,
+					type: notification.notificationType,
+					apiKey: notification.opsgenie?.apiKey,
+					region: notification.opsgenie?.region || "",
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
+			} else if (notification.notificationType === "matrix") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					dokployBackup: notification.dokployBackup,
+					volumeBackup: notification.volumeBackup,
+					type: notification.notificationType,
+					homeServerUrl: notification.matrix?.homeServerUrl,
+					accessToken: notification.matrix?.accessToken,
+					roomId: notification.matrix?.roomId,
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
 			} else if (notification.notificationType === "pushover") {
 				form.reset({
 					appBuildError: notification.appBuildError,
@@ -567,6 +643,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		teams: teamsMutation,
 		custom: customMutation,
 		pushover: pushoverMutation,
+		pagerduty: pagerdutyMutation,
+		opsgenie: opsgenieMutation,
+		matrix: matrixMutation,
 	};
 
 	const onSubmit = async (data: NotificationSchema) => {
@@ -775,6 +854,55 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				customId: notification?.customId || "",
+			});
+
+		} else if (data.type === "pagerduty") {
+			promise = pagerdutyMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				dokployBackup: dokployBackup,
+				volumeBackup: volumeBackup,
+				routingKey: data.routingKey,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
+				notificationId: notificationId || "",
+				pagerdutyId: notification?.pagerdutyId || "",
+			});
+		} else if (data.type === "opsgenie") {
+			promise = opsgenieMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				dokployBackup: dokployBackup,
+				volumeBackup: volumeBackup,
+				apiKey: data.apiKey,
+				region: data.region || "US",
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
+				notificationId: notificationId || "",
+				opsgenieId: notification?.opsgenieId || "",
+			});
+		} else if (data.type === "matrix") {
+			promise = matrixMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				dokployBackup: dokployBackup,
+				volumeBackup: volumeBackup,
+				homeServerUrl: data.homeServerUrl,
+				accessToken: data.accessToken,
+				roomId: data.roomId,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
+				notificationId: notificationId || "",
+				matrixId: notification?.matrixId || "",
 			});
 		} else if (data.type === "pushover") {
 			if (data.priority === 2 && (data.retry == null || data.expire == null)) {
@@ -1671,6 +1799,99 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										/>
 									</>
 								)}
+
+								{type === "pagerduty" && (
+									<div className="flex flex-col gap-4">
+										<FormField
+											control={form.control}
+											name="routingKey"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Routing Key</FormLabel>
+													<FormControl>
+														<Input placeholder="Integration Key" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</div>
+								)}
+
+								{type === "opsgenie" && (
+									<div className="flex flex-col gap-4">
+										<FormField
+											control={form.control}
+											name="apiKey"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>API Key</FormLabel>
+													<FormControl>
+														<Input placeholder="Integration API Key" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="region"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Region</FormLabel>
+													<FormControl>
+														<Input placeholder="us or eu" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</div>
+								)}
+
+								{type === "matrix" && (
+									<div className="flex flex-col gap-4">
+										<FormField
+											control={form.control}
+											name="homeServerUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Homeserver URL</FormLabel>
+													<FormControl>
+														<Input placeholder="https://matrix.org" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="accessToken"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Access Token</FormLabel>
+													<FormControl>
+														<Input placeholder="syt_..." {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="roomId"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Room ID</FormLabel>
+													<FormControl>
+														<Input placeholder="!roomid:matrix.org" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</div>
+								)}
 								{type === "pushover" && (
 									<>
 										<FormField
@@ -2094,6 +2315,22 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										await testCustomConnection({
 											endpoint: data.endpoint,
 											headers: headersRecord,
+										});
+
+									} else if (data.type === "pagerduty") {
+										await testPagerdutyConnection({
+											routingKey: data.routingKey,
+										});
+									} else if (data.type === "opsgenie") {
+										await testOpsgenieConnection({
+											apiKey: data.apiKey,
+											region: data.region || "",
+										});
+									} else if (data.type === "matrix") {
+										await testMatrixConnection({
+											homeServerUrl: data.homeServerUrl,
+											accessToken: data.accessToken,
+											roomId: data.roomId,
 										});
 									} else if (data.type === "pushover") {
 										if (

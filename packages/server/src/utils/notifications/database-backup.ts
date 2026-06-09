@@ -16,6 +16,9 @@ import {
 	sendResendNotification,
 	sendSlackNotification,
 	sendTeamsNotification,
+	sendPagerdutyNotification,
+	sendOpsgenieNotification,
+	sendMatrixNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -56,6 +59,9 @@ export const sendDatabaseBackupNotifications = async ({
 			lark: true,
 			pushover: true,
 			teams: true,
+			pagerduty: true,
+			opsgenie: true,
+			matrix: true,
 		},
 	});
 
@@ -73,6 +79,9 @@ export const sendDatabaseBackupNotifications = async ({
 			lark,
 			pushover,
 			teams,
+			pagerduty,
+			opsgenie,
+			matrix,
 		} = notification;
 		try {
 			if (email || resend) {
@@ -454,6 +463,29 @@ export const sendDatabaseBackupNotifications = async ({
 							: "❌ Database Backup Failed",
 					facts,
 				});
+			}
+
+			if (pagerduty) {
+				await sendPagerdutyNotification(
+					pagerduty,
+					"Database Backup",
+					"System event occurred. Please check Dokploy dashboard."
+				);
+			}
+
+			if (opsgenie) {
+				await sendOpsgenieNotification(
+					opsgenie,
+					"Database Backup",
+					"System event occurred. Please check Dokploy dashboard."
+				);
+			}
+
+			if (matrix) {
+				await sendMatrixNotification(
+					matrix,
+					"Database Backup\n\nSystem event occurred. Please check Dokploy dashboard."
+				);
 			}
 		} catch (error) {
 			console.log(error);

@@ -1205,6 +1205,13 @@
       "when": 1780775037209,
       "tag": "0171_lucky_echo",
       "breakpoints": true
+    },
+    {
+      "idx": 172,
+      "version": "7",
+      "when": 1780995860745,
+      "tag": "0172_bent_husk",
+      "breakpoints": true
     }
   ]
 }

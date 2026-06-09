@@ -16,6 +16,9 @@ import {
 	sendResendNotification,
 	sendSlackNotification,
 	sendTeamsNotification,
+	sendPagerdutyNotification,
+	sendOpsgenieNotification,
+	sendMatrixNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -38,7 +41,10 @@ export const sendDokployRestartNotifications = async () => {
 				lark: true,
 				pushover: true,
 				teams: true,
-			},
+			pagerduty: true,
+			opsgenie: true,
+			matrix: true,
+		},
 		});
 
 		for (const notification of notificationList) {
@@ -55,7 +61,10 @@ export const sendDokployRestartNotifications = async () => {
 				lark,
 				pushover,
 				teams,
-			} = notification;
+			pagerduty,
+			opsgenie,
+			matrix,
+		} = notification;
 
 			try {
 				if (email || resend) {
@@ -179,7 +188,30 @@ export const sendDokployRestartNotifications = async () => {
 							status: "success",
 							type: "dokploy-restart",
 						});
-					} catch (error) {
+			
+			if (pagerduty) {
+				await sendPagerdutyNotification(
+					pagerduty,
+					"Dokploy Restart",
+					"System event occurred. Please check Dokploy dashboard."
+				);
+			}
+
+			if (opsgenie) {
+				await sendOpsgenieNotification(
+					opsgenie,
+					"Dokploy Restart",
+					"System event occurred. Please check Dokploy dashboard."
+				);
+			}
+
+			if (matrix) {
+				await sendMatrixNotification(
+					matrix,
+					"Dokploy Restart\n\nSystem event occurred. Please check Dokploy dashboard."
+				);
+			}
+		} catch (error) {
 						console.log(error);
 					}
 				}

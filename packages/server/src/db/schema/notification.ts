@@ -25,6 +25,9 @@ export const notificationType = pgEnum("notificationType", [
 	"custom",
 	"lark",
 	"teams",
+	"pagerduty",
+	"opsgenie",
+	"matrix",
 ]);
 
 export const notifications = pgTable("notification", {
@@ -79,6 +82,15 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	teamsId: text("teamsId").references(() => teams.teamsId, {
+		onDelete: "cascade",
+	}),
+	pagerdutyId: text("pagerdutyId").references(() => pagerduty.pagerdutyId, {
+		onDelete: "cascade",
+	}),
+	opsgenieId: text("opsgenieId").references(() => opsgenie.opsgenieId, {
+		onDelete: "cascade",
+	}),
+	matrixId: text("matrixId").references(() => matrix.matrixId, {
 		onDelete: "cascade",
 	}),
 	organizationId: text("organizationId")
@@ -206,6 +218,33 @@ export const teams = pgTable("teams", {
 	webhookUrl: text("webhookUrl").notNull(),
 });
 
+export const pagerduty = pgTable("pagerduty", {
+	pagerdutyId: text("pagerdutyId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	routingKey: text("routingKey").notNull(),
+});
+
+export const opsgenie = pgTable("opsgenie", {
+	opsgenieId: text("opsgenieId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	apiKey: text("apiKey").notNull(),
+	region: text("region").notNull().default("US"),
+});
+
+export const matrix = pgTable("matrix", {
+	matrixId: text("matrixId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	homeServerUrl: text("homeServerUrl").notNull(),
+	accessToken: text("accessToken").notNull(),
+	roomId: text("roomId").notNull(),
+});
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
 	slack: one(slack, {
 		fields: [notifications.slackId],
@@ -254,6 +293,18 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	teams: one(teams, {
 		fields: [notifications.teamsId],
 		references: [teams.teamsId],
+	}),
+	pagerduty: one(pagerduty, {
+		fields: [notifications.pagerdutyId],
+		references: [pagerduty.pagerdutyId],
+	}),
+	opsgenie: one(opsgenie, {
+		fields: [notifications.opsgenieId],
+		references: [opsgenie.opsgenieId],
+	}),
+	matrix: one(matrix, {
+		fields: [notifications.matrixId],
+		references: [matrix.matrixId],
 	}),
 	organization: one(organization, {
 		fields: [notifications.organizationId],
@@ -688,6 +739,93 @@ export const apiTestPushoverConnection = z
 		},
 	);
 
+export const apiCreatePagerduty = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployBackup: true,
+		volumeBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		routingKey: z.string().min(1),
+	})
+	.required();
+
+export const apiUpdatePagerduty = apiCreatePagerduty.partial().extend({
+	notificationId: z.string().min(1),
+	pagerdutyId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestPagerdutyConnection = apiCreatePagerduty.pick({
+	routingKey: true,
+});
+
+export const apiCreateOpsgenie = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployBackup: true,
+		volumeBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		apiKey: z.string().min(1),
+		region: z.string().min(1).default("US"),
+	})
+	.required();
+
+export const apiUpdateOpsgenie = apiCreateOpsgenie.partial().extend({
+	notificationId: z.string().min(1),
+	opsgenieId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestOpsgenieConnection = apiCreateOpsgenie.pick({
+	apiKey: true,
+	region: true,
+});
+
+export const apiCreateMatrix = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployBackup: true,
+		volumeBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		homeServerUrl: z.string().url(),
+		accessToken: z.string().min(1),
+		roomId: z.string().min(1),
+	})
+	.required();
+
+export const apiUpdateMatrix = apiCreateMatrix.partial().extend({
+	notificationId: z.string().min(1),
+	matrixId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestMatrixConnection = apiCreateMatrix.pick({
+	homeServerUrl: true,
+	accessToken: true,
+	roomId: true,
+});
+
 export const apiSendTest = notificationsSchema
 	.extend({
 		botToken: z.string(),
@@ -708,5 +846,9 @@ export const apiSendTest = notificationsSchema
 		priority: z.number(),
 		endpoint: z.string(),
 		headers: z.string(),
+		routingKey: z.string(),
+		region: z.string(),
+		homeServerUrl: z.string(),
+		roomId: z.string(),
 	})
 	.partial();
