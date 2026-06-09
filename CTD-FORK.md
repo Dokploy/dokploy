@@ -65,7 +65,7 @@ Then rebuild and redeploy via the steps above.
 | Area | Files | Why |
 |---|---|---|
 | Preview teardown race fixes | `packages/server/src/services/application.ts`, related | Upstream lost preview deployments under teardown+redeploy races |
-| GitHub Deployments API | `packages/server/src/services/github-deployment.ts`, `application.ts`, `apps/dokploy/pages/api/deploy/github.ts` | Upstream only writes commit statuses; we want the "This branch is being deployed" panel populated |
+| GitHub Deployments API | `packages/server/src/services/github-deployment.ts`, `application.ts`, `apps/dokploy/pages/api/deploy/github.ts` | Upstream only writes commit statuses; we want the "This branch is being deployed" panel populated for deploys and redeploys |
 | GitHub App manifest | `apps/dokploy/components/dashboard/settings/git/github/add-github-provider.tsx` | Adds `deployments: write` for the above |
 | Deploy secret hygiene | `packages/server/src/utils/process/secrets.ts`, provider/build/registry helpers | Keeps deploy tokens and registry passwords out of process arguments |
 | Fork CI | `.github/workflows/ctd-image.yml` | Upstream workflows target their Docker Hub namespace; ours pushes to GHCR |

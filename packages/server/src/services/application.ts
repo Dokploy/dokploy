@@ -350,6 +350,10 @@ export const rebuildApplication = async ({
 	const application = await findApplicationById(applicationId);
 	const serverId = application.buildServerId || application.serverId;
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
+	let githubDeploymentId: number | null = null;
+	const appDomain = application.domains?.[0]
+		? getDomainHost(application.domains[0] as Domain)
+		: undefined;
 
 	const deployment = await createDeployment({
 		applicationId: applicationId,
@@ -358,9 +362,33 @@ export const rebuildApplication = async ({
 	});
 
 	try {
+		if (application.sourceType === "github" && application.githubId) {
+			githubDeploymentId = await createGithubDeployment({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				ref: application.branch || "main",
+				environment: application.name,
+				description: `Dokploy redeploy of ${application.branch || "main"}`,
+				transient: false,
+			});
+		}
+
 		let command = "set -e;";
 		// Check case for docker only
 		command += await getBuildCommand(application);
+
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				deploymentId: githubDeploymentId,
+				state: "in_progress",
+				environmentUrl: appDomain,
+			});
+		}
+
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
 			await execAsyncRemote(serverId, commandWithLog);
@@ -370,6 +398,17 @@ export const rebuildApplication = async ({
 		await mechanizeDockerContainer(application);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
+
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				deploymentId: githubDeploymentId,
+				state: "success",
+				environmentUrl: appDomain,
+			});
+		}
 
 		await sendBuildSuccessNotifications({
 			projectName: application.environment.project.name,
@@ -398,6 +437,18 @@ export const rebuildApplication = async ({
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
+
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				deploymentId: githubDeploymentId,
+				state: "failure",
+				environmentUrl: appDomain,
+			});
+		}
+
 		throw error;
 	}
 
