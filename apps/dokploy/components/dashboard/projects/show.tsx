@@ -290,7 +290,7 @@ export const ShowProjects = () => {
 											</span>
 										</div>
 									)}
-									<div className="w-full grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-5">
+									<div className="w-full grid grid-cols-[repeat(auto-fill,minmax(min(20rem,100%),1fr))] gap-5">
 										{filteredProjects?.map((project) => {
 											const emptyServices = project?.environments
 												.map(
