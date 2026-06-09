@@ -1,4 +1,9 @@
-import { normalizeS3Path } from "@dokploy/server/utils/backups/utils";
+import type { BackupSchedule } from "@dokploy/server/services/backup";
+import {
+	generateBackupCommand,
+	getBackupCommand,
+	normalizeS3Path,
+} from "@dokploy/server/utils/backups/utils";
 import { describe, expect, test } from "vitest";
 
 describe("normalizeS3Path", () => {
@@ -57,5 +62,41 @@ describe("normalizeS3Path", () => {
 		expect(normalizeS3Path("instance-backups/")).toBe("instance-backups/");
 		expect(normalizeS3Path("/instance-backups/")).toBe("instance-backups/");
 		expect(normalizeS3Path("instance-backups")).toBe("instance-backups/");
+	});
+});
+
+describe("getBackupCommand", () => {
+	const backup = {
+		backupType: "database",
+		databaseType: "postgres",
+		database: "mydb",
+		postgres: {
+			appName: "my-app",
+			databaseUser: "postgres",
+			serverId: null,
+		},
+	} as unknown as BackupSchedule;
+
+	const rcloneCommand = 'rclone rcat --s3-provider="AWS" ":s3:bucket/key.sql.gz"';
+	const logPath = "/tmp/backup.log";
+
+	// Regression test for #4222: the database dump was executed twice — once
+	// discarded to /dev/null, then again piped to rclone — doubling load and
+	// risking inconsistent backups on busy databases.
+	test("runs the database dump exactly once", () => {
+		const dumpCommand = generateBackupCommand(backup);
+		expect(dumpCommand).not.toBeNull();
+
+		const script = getBackupCommand(backup, rcloneCommand, logPath);
+
+		const occurrences = script.split(dumpCommand as string).length - 1;
+		expect(occurrences).toBe(1);
+	});
+
+	test("pipes the single dump straight into the rclone upload", () => {
+		const dumpCommand = generateBackupCommand(backup) as string;
+		const script = getBackupCommand(backup, rcloneCommand, logPath);
+
+		expect(script).toContain(`${dumpCommand} | ${rcloneCommand}`);
 	});
 });
