@@ -16,6 +16,7 @@ import type { RedisNested } from "../databases/redis";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
+import type { WebServerProvider } from "../web-server/providers";
 
 interface RegistryAuth {
 	username: string;
@@ -788,7 +789,7 @@ export const getComposeContainer = async (
 	}
 };
 
-type ServiceHealthStatus = {
+export type ServiceHealthStatus = {
 	status: "healthy" | "unhealthy";
 	message?: string;
 };
@@ -944,10 +945,11 @@ export const checkRedisHealth = async (): Promise<ServiceHealthStatus> => {
 	}
 };
 
-export const checkTraefikHealth = async (): Promise<ServiceHealthStatus> => {
-	// Traefik can run as a standalone container or a swarm service
+const checkDockerResourceHealth = async (
+	resourceName: string,
+): Promise<ServiceHealthStatus> => {
 	try {
-		const container = docker.getContainer("dokploy-traefik");
+		const container = docker.getContainer(resourceName);
 		const info = await container.inspect();
 		if (!info.State.Running) {
 			return {
@@ -958,6 +960,21 @@ export const checkTraefikHealth = async (): Promise<ServiceHealthStatus> => {
 		return { status: "healthy" };
 	} catch {
 		// Not a standalone container, check as swarm service
-		return checkSwarmServiceRunning("dokploy-traefik");
+		return checkSwarmServiceRunning(resourceName);
 	}
+};
+
+export const checkTraefikHealth = async (): Promise<ServiceHealthStatus> => {
+	return checkDockerResourceHealth("dokploy-traefik");
+};
+
+export const checkWebServerHealth = async (
+	provider: WebServerProvider,
+): Promise<ServiceHealthStatus & { provider: WebServerProvider }> => {
+	const resourceName =
+		provider === "caddy" ? "dokploy-caddy" : "dokploy-traefik";
+	return {
+		provider,
+		...(await checkDockerResourceHealth(resourceName)),
+	};
 };

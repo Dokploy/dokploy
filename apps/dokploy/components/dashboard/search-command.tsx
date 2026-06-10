@@ -197,7 +197,7 @@ export const SearchCommand = () => {
 										setOpen(false);
 									}}
 								>
-									Traefik
+									Web Server Files
 								</CommandItem>
 								<CommandItem
 									onSelect={() => {

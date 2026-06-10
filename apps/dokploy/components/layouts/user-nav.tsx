@@ -102,7 +102,7 @@ export const UserNav = () => {
 										router.push("/dashboard/traefik");
 									}}
 								>
-									Traefik
+									Web Server Files
 								</DropdownMenuItem>
 							)}
 							{permissions?.docker.read && (
