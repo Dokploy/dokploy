@@ -1205,6 +1205,13 @@
       "when": 1780775037209,
       "tag": "0171_lucky_echo",
       "breakpoints": true
+    },
+    {
+      "idx": 172,
+      "version": "7",
+      "when": 1780956904039,
+      "tag": "0172_parched_ares",
+      "breakpoints": true
     }
   ]
 }
