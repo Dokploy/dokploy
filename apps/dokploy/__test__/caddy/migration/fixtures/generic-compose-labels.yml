@@ -1,0 +1,58 @@
+# Representative Traefik compose labels for Caddy migration tests.
+services:
+  frontend:
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.compose-sample-stack-frontend-web.rule=Host(`app.example.com`)
+        - traefik.http.routers.compose-sample-stack-frontend-web.entrypoints=web
+        - traefik.http.services.compose-sample-stack-frontend-web.loadbalancer.server.port=3000
+        - traefik.http.routers.compose-sample-stack-frontend-web.service=compose-sample-stack-frontend-web
+        - traefik.http.routers.compose-sample-stack-frontend-web.middlewares=redirect-to-https@file
+        - traefik.http.routers.compose-sample-stack-frontend-websecure.rule=Host(`app.example.com`)
+        - traefik.http.routers.compose-sample-stack-frontend-websecure.entrypoints=websecure
+        - traefik.http.services.compose-sample-stack-frontend-websecure.loadbalancer.server.port=3000
+        - traefik.http.routers.compose-sample-stack-frontend-websecure.service=compose-sample-stack-frontend-websecure
+        - traefik.http.routers.compose-sample-stack-frontend-websecure.tls.certresolver=letsencrypt
+        - traefik.http.routers.compose-sample-stack-frontend-websecure.middlewares=security-headers@file
+        - traefik.docker.network=dokploy-network
+  cms:
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=dokploy-network
+        - traefik.http.routers.cms-prod.rule=Host(`example.com`) || Host(`www.example.com`)
+        - traefik.http.routers.cms-prod.entrypoints=websecure
+        - traefik.http.routers.cms-prod.tls.certresolver=letsencrypt
+        - traefik.http.routers.cms-prod.middlewares=cms-security-headers@file
+        - traefik.http.routers.cms-prod.service=cms-prod
+        - traefik.http.routers.cms-preview.rule=Host(`cms.test.example.com`) || Host(`preview.test.example.com`)
+        - traefik.http.routers.cms-preview.entrypoints=websecure
+        - traefik.http.routers.cms-preview.tls.certresolver=letsencrypt
+        - traefik.http.routers.cms-preview.middlewares=cms-security-headers@file
+        - traefik.http.routers.cms-preview.service=cms-prod
+        - traefik.http.services.cms-prod.loadbalancer.server.port=8080
+  admin:
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.admin.rule=Host(`admin.example.com`)
+        - traefik.http.routers.admin.entrypoints=websecure
+        - traefik.http.routers.admin.service=admin
+        - traefik.http.routers.admin.tls.certresolver=letsencrypt
+        - traefik.http.routers.admin.middlewares=security-headers@file
+        - traefik.http.routers.admin-console.rule=Host(`admin.example.com`) && (PathPrefix(`/admin`) || Path(`/login`))
+        - traefik.http.routers.admin-console.entrypoints=websecure
+        - traefik.http.routers.admin-console.service=admin
+        - traefik.http.routers.admin-console.tls.certresolver=letsencrypt
+        - traefik.http.routers.admin-console.middlewares=security-headers@file,admin-no-store@file
+        - traefik.http.routers.admin-console.priority=100
+        - traefik.http.services.admin.loadbalancer.server.port=80
+  unsupported:
+    labels:
+      - traefik.http.routers.unsupported.rule=HostRegexp(`{subdomain:[a-z]+}.example.com`)
+      - traefik.http.routers.unsupported.entrypoints=websecure
+      - traefik.http.routers.unsupported.service=unsupported
+      - traefik.http.services.unsupported.loadbalancer.server.port=9000
+      - traefik.http.routers.unsupported.middlewares=plugin-only
+      - traefik.http.middlewares.plugin-only.plugin.demo.enabled=true

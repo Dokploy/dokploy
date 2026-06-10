@@ -1,0 +1,54 @@
+http:
+  routers:
+    tool:
+      rule: "Host(`tools.example.com`) && PathPrefix(`/public`)"
+      entryPoints:
+        - websecure
+      service: tool
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - tool-chain
+    unsupported-plugin:
+      rule: "Host(`blocked.example.com`)"
+      entryPoints:
+        - websecure
+      service: tool
+      tls:
+        certResolver: customresolver
+      middlewares:
+        - plugin-auth
+  services:
+    tool:
+      loadBalancer:
+        servers:
+          - url: http://tool:8080
+        passHostHeader: false
+  middlewares:
+    tool-chain:
+      chain:
+        middlewares:
+          - strip-public
+          - add-internal
+          - basic-users
+          - response-headers
+    strip-public:
+      stripPrefix:
+        prefixes:
+          - /public
+    add-internal:
+      addPrefix:
+        prefix: /internal
+    basic-users:
+      basicAuth:
+        users:
+          - admin:$2y$05$abcdef
+    response-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+        customResponseHeaders:
+          X-Test: "true"
+    plugin-auth:
+      plugin:
+        unsupported: {}
