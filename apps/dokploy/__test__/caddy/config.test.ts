@@ -331,7 +331,9 @@ test("compiles Cloudflare trusted proxy settings with safe client IP headers", (
 			"CF-Connecting-IP",
 			"X-Forwarded-For",
 		]);
-		expect(server.trusted_proxies_strict).toBe(true);
+		// Caddy's trusted_proxies_strict is an int field; booleans fail
+		// `caddy validate`.
+		expect(server.trusted_proxies_strict).toBe(1);
 	}
 });
 

@@ -300,9 +300,12 @@ const createTrustedProxyServerOptions = (
 			ranges,
 		},
 		client_ip_headers: clientIpHeaders,
+		// Caddy's Server.trusted_proxies_strict field is an int, not a bool:
+		// emitting JSON `true` makes `caddy validate` reject the config when
+		// strict mode is enabled. Emit 1 and omit the field entirely otherwise.
 		...(trustedProxies.strict === false
 			? {}
-			: { trusted_proxies_strict: true }),
+			: { trusted_proxies_strict: 1 }),
 	};
 };
 
