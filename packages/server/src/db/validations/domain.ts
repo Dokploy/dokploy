@@ -1,5 +1,62 @@
 import { z } from "zod";
 
+type DomainSettingsValidationInput = {
+	https?: boolean | null;
+	certificateType?: "letsencrypt" | "none" | "custom" | null;
+	customCertResolver?: string | null;
+	stripPath?: boolean | null;
+	path?: string | null;
+	internalPath?: string | null;
+};
+
+export const validateDomainSettings = (
+	input: DomainSettingsValidationInput,
+	ctx: z.RefinementCtx,
+) => {
+	if (input.https && !input.certificateType) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["certificateType"],
+			message: "Required",
+		});
+	}
+
+	if (
+		input.https &&
+		input.certificateType === "custom" &&
+		!input.customCertResolver
+	) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["customCertResolver"],
+			message: "Required when certificate type is custom",
+		});
+	}
+
+	// Validate stripPath requires a valid path
+	if (input.stripPath && (!input.path || input.path === "/")) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["stripPath"],
+			message:
+				"Strip path can only be enabled when a path other than '/' is specified",
+		});
+	}
+
+	// Validate internalPath starts with /
+	if (
+		input.internalPath &&
+		input.internalPath !== "/" &&
+		!input.internalPath.startsWith("/")
+	) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["internalPath"],
+			message: "Internal path must start with '/'",
+		});
+	}
+};
+
 export const domain = z
 	.object({
 		host: z
@@ -19,49 +76,10 @@ export const domain = z
 			.optional(),
 		https: z.boolean().optional(),
 		certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
-		customCertResolver: z.string(),
+		customCertResolver: z.string().optional(),
 		middlewares: z.array(z.string()).optional(),
 	})
-	.superRefine((input, ctx) => {
-		if (input.https && !input.certificateType) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["certificateType"],
-				message: "Required",
-			});
-		}
-
-		if (input.certificateType === "custom" && !input.customCertResolver) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["customCertResolver"],
-				message: "Required when certificate type is custom",
-			});
-		}
-
-		// Validate stripPath requires a valid path
-		if (input.stripPath && (!input.path || input.path === "/")) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["stripPath"],
-				message:
-					"Strip path can only be enabled when a path other than '/' is specified",
-			});
-		}
-
-		// Validate internalPath starts with /
-		if (
-			input.internalPath &&
-			input.internalPath !== "/" &&
-			!input.internalPath.startsWith("/")
-		) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["internalPath"],
-				message: "Internal path must start with '/'",
-			});
-		}
-	});
+	.superRefine(validateDomainSettings);
 
 export const domainCompose = z
 	.object({
@@ -82,47 +100,8 @@ export const domainCompose = z
 			.optional(),
 		https: z.boolean().optional(),
 		certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
-		customCertResolver: z.string(),
+		customCertResolver: z.string().optional(),
 		serviceName: z.string().min(1, { message: "Service name is required" }),
 		middlewares: z.array(z.string()).optional(),
 	})
-	.superRefine((input, ctx) => {
-		if (input.https && !input.certificateType) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["certificateType"],
-				message: "Required",
-			});
-		}
-
-		if (input.certificateType === "custom" && !input.customCertResolver) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["customCertResolver"],
-				message: "Required when certificate type is custom",
-			});
-		}
-
-		// Validate stripPath requires a valid path
-		if (input.stripPath && (!input.path || input.path === "/")) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["stripPath"],
-				message:
-					"Strip path can only be enabled when a path other than '/' is specified",
-			});
-		}
-
-		// Validate internalPath starts with /
-		if (
-			input.internalPath &&
-			input.internalPath !== "/" &&
-			!input.internalPath.startsWith("/")
-		) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["internalPath"],
-				message: "Internal path must start with '/'",
-			});
-		}
-	});
+	.superRefine(validateDomainSettings);

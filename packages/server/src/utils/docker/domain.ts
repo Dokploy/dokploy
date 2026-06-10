@@ -3,7 +3,11 @@ import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Domain } from "@dokploy/server/services/domain";
+import { resolveWebServerProvider } from "@dokploy/server/services/web-server-settings";
 import { parse, stringify } from "yaml";
+import { writeCaddyComposeRouteFragments } from "../caddy/compose";
+import { assertCaddyDomainSupported } from "../caddy/domain";
+import { getCaddyComposeNetworkAlias } from "../caddy/upstream-targets";
 import { execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
@@ -11,11 +15,13 @@ import { cloneGiteaRepository } from "../providers/gitea";
 import { cloneGithubRepository } from "../providers/github";
 import { cloneGitlabRepository } from "../providers/gitlab";
 import { getCreateComposeFileCommand } from "../providers/raw";
+import type { WebServerProvider } from "../web-server/providers";
 import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
 import type {
 	ComposeSpecification,
 	DefinitionsService,
+	ListOrDict,
 	PropertiesNetworks,
 } from "./types";
 import { encodeBase64 } from "./utils";
@@ -106,12 +112,187 @@ export const readComposeFile = async (compose: Compose) => {
 	return null;
 };
 
+export type CaddyComposeRouteTarget = {
+	domain: Domain;
+	finalServiceName: string;
+};
+
+const loadComposeSpecification = async (compose: Compose) => {
+	if (compose.serverId) {
+		return loadDockerComposeRemote(compose);
+	}
+	return loadDockerCompose(compose);
+};
+
+const finalizeComposeSpecification = (
+	compose: Compose,
+	composeSpec: ComposeSpecification,
+) => {
+	let result = composeSpec;
+
+	if (compose.isolatedDeployment) {
+		result = randomizeDeployableSpecificationFile(
+			result,
+			compose.isolatedDeploymentsVolume,
+			compose.suffix || compose.appName,
+		);
+	} else if (compose.randomize) {
+		result = randomizeSpecificationFile(result, compose.suffix);
+	}
+
+	return result;
+};
+
+const resolveFinalServiceName = (
+	compose: Compose,
+	composeSpec: ComposeSpecification,
+	serviceName: string,
+) => {
+	if (composeSpec.services?.[serviceName]) {
+		return serviceName;
+	}
+
+	const suffix = compose.randomize
+		? compose.suffix
+		: compose.isolatedDeployment
+			? compose.suffix || compose.appName
+			: null;
+	if (suffix) {
+		const suffixedServiceName = `${serviceName}-${suffix}`;
+		if (composeSpec.services?.[suffixedServiceName]) {
+			return suffixedServiceName;
+		}
+	}
+
+	return serviceName;
+};
+
+const addDomainToComposeForCaddyWithRoutes = async (
+	compose: Compose,
+	domains: Domain[],
+): Promise<{
+	composeSpec: ComposeSpecification | null;
+	caddyRouteTargets: CaddyComposeRouteTarget[];
+}> => {
+	const result = await loadComposeSpecification(compose);
+	if (!result) {
+		return { composeSpec: null, caddyRouteTargets: [] };
+	}
+
+	for (const domain of domains) {
+		assertCaddyDomainSupported(domain);
+	}
+
+	const finalizedCompose = finalizeComposeSpecification(compose, result);
+	const caddyRouteTargets: CaddyComposeRouteTarget[] = [];
+
+	for (const domain of domains) {
+		const { serviceName } = domain;
+		if (!serviceName) {
+			throw new Error(`Domain "${domain.host}" is missing a service name`);
+		}
+
+		const finalServiceName = resolveFinalServiceName(
+			compose,
+			finalizedCompose,
+			serviceName,
+		);
+		if (!finalizedCompose.services?.[finalServiceName]) {
+			throw new Error(
+				`Domain "${domain.host}" is attached to service "${serviceName}" which does not exist in the compose`,
+			);
+		}
+
+		const service = finalizedCompose.services[finalServiceName];
+		if (compose.composeType === "docker-compose") {
+			if (service.labels) {
+				service.labels = removeDokployGeneratedTraefikLabels(service.labels, {
+					appName: compose.appName,
+					domains,
+				});
+			}
+		} else if (service.deploy?.labels) {
+			service.deploy.labels = removeDokployGeneratedTraefikLabels(
+				service.deploy.labels,
+				{
+					appName: compose.appName,
+					domains,
+				},
+			);
+		}
+
+		if (!compose.isolatedDeployment) {
+			service.networks = addDokployNetworkToService(service.networks, {
+				aliases:
+					compose.composeType === "docker-compose"
+						? [getCaddyComposeNetworkAlias(compose.appName, finalServiceName)]
+						: undefined,
+			});
+		}
+
+		caddyRouteTargets.push({ domain, finalServiceName });
+	}
+
+	if (!compose.isolatedDeployment) {
+		finalizedCompose.networks = addDokployNetworkToRoot(
+			finalizedCompose.networks,
+		);
+	}
+
+	return { composeSpec: finalizedCompose, caddyRouteTargets };
+};
+
+export const getCaddyComposeRouteTargetsForWebServer = async (
+	compose: Compose,
+	domains: Domain[],
+	provider?: WebServerProvider,
+) => {
+	const resolvedProvider =
+		provider ?? (await resolveWebServerProvider(compose.serverId));
+	if (resolvedProvider !== "caddy") {
+		return null;
+	}
+
+	return (await addDomainToComposeForCaddyWithRoutes(compose, domains))
+		.caddyRouteTargets;
+};
+
+export const writeCaddyComposeRoutesForTargets = async (
+	compose: Compose,
+	caddyRouteTargets: CaddyComposeRouteTarget[],
+	options: {
+		organizationId?: string | null;
+	} = {},
+) => {
+	await writeCaddyComposeRouteFragments(compose, caddyRouteTargets, options);
+};
+
+export const addDomainToComposeForWebServer = async (
+	compose: Compose,
+	domains: Domain[],
+	provider?: WebServerProvider,
+) => {
+	const resolvedProvider =
+		provider ?? (await resolveWebServerProvider(compose.serverId));
+	if (resolvedProvider === "caddy") {
+		return (await addDomainToComposeForCaddyWithRoutes(compose, domains))
+			.composeSpec;
+	}
+
+	return addDomainToCompose(compose, domains);
+};
+
 export const writeDomainsToCompose = async (
 	compose: Compose,
 	domains: Domain[],
 ) => {
 	try {
-		const composeConverted = await addDomainToCompose(compose, domains);
+		const provider = await resolveWebServerProvider(compose.serverId);
+		const composeConverted =
+			provider === "caddy"
+				? (await addDomainToComposeForCaddyWithRoutes(compose, domains))
+						.composeSpec
+				: await addDomainToCompose(compose, domains);
 		const path = getComposePath(compose);
 
 		if (!composeConverted) {
@@ -347,8 +528,156 @@ export const createDomainLabels = (
 	return labels;
 };
 
+export type DokployTraefikLabelClassifierContext = {
+	appName?: string;
+	domains?: Pick<Domain, "uniqueConfigKey" | "customEntrypoint" | "https">[];
+	includeGenericLabels?: boolean;
+};
+
+const getLabelKey = (label: string) => label.split("=")[0] ?? label;
+
+const getLabelValue = (label: string) => {
+	const separatorIndex = label.indexOf("=");
+	return separatorIndex === -1 ? undefined : label.slice(separatorIndex + 1);
+};
+
+const getDomainEntrypoints = (
+	domain: Pick<Domain, "customEntrypoint" | "https">,
+) => {
+	if (domain.customEntrypoint) {
+		return [domain.customEntrypoint];
+	}
+	return domain.https ? ["web", "websecure"] : ["web"];
+};
+
+const isGenericDokployTraefikLabel = (label: string) => {
+	const key = getLabelKey(label);
+	const value = getLabelValue(label);
+
+	if (key === "traefik.enable") {
+		return value === undefined || value === "true";
+	}
+
+	if (key === "traefik.docker.network" || key === "traefik.swarm.network") {
+		return value === undefined || value === "dokploy-network";
+	}
+
+	return false;
+};
+
+const isDomainSpecificDokployTraefikLabel = (
+	label: string,
+	context: DokployTraefikLabelClassifierContext = {},
+) => {
+	const key = getLabelKey(label);
+	const { appName, domains } = context;
+
+	if (appName && domains) {
+		for (const domain of domains) {
+			for (const entrypoint of getDomainEntrypoints(domain)) {
+				const routerName = `${appName}-${domain.uniqueConfigKey}-${entrypoint}`;
+				if (
+					key.startsWith(`traefik.http.routers.${routerName}.`) ||
+					key.startsWith(`traefik.http.services.${routerName}.`)
+				) {
+					return true;
+				}
+			}
+
+			if (
+				key.startsWith(
+					`traefik.http.middlewares.stripprefix-${appName}-${domain.uniqueConfigKey}.`,
+				) ||
+				key.startsWith(
+					`traefik.http.middlewares.addprefix-${appName}-${domain.uniqueConfigKey}.`,
+				)
+			) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	if (appName) {
+		const appRouterPattern = new RegExp(
+			`^traefik\\.http\\.(routers|services)\\.${appName.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}.+-(web|websecure)\\.`,
+		);
+		if (appRouterPattern.test(key)) {
+			return true;
+		}
+	}
+
+	return (
+		/^traefik\.http\.(routers|services)\.[^.]+-\d+-[^.]+\./.test(key) ||
+		/^traefik\.http\.middlewares\.(stripprefix|addprefix)-.+-\d+\./.test(key)
+	);
+};
+
+export const isDokployGeneratedTraefikLabel = (
+	label: string,
+	context: DokployTraefikLabelClassifierContext = {},
+) => {
+	return (
+		isDomainSpecificDokployTraefikLabel(label, context) ||
+		(context.includeGenericLabels !== false &&
+			isGenericDokployTraefikLabel(label))
+	);
+};
+
+const stringifyLabelObjectEntry = (
+	key: string,
+	value: string | number | boolean | null,
+) => (value === null ? key : `${key}=${value}`);
+
+export const removeDokployGeneratedTraefikLabels = (
+	labels: ListOrDict | undefined,
+	context: DokployTraefikLabelClassifierContext = {},
+): ListOrDict | undefined => {
+	if (!labels) {
+		return labels;
+	}
+
+	if (Array.isArray(labels)) {
+		const removedSpecificLabel = labels.some((label) =>
+			isDomainSpecificDokployTraefikLabel(label, context),
+		);
+		return labels.filter((label) => {
+			if (isDomainSpecificDokployTraefikLabel(label, context)) {
+				return false;
+			}
+			if (removedSpecificLabel && isGenericDokployTraefikLabel(label)) {
+				return false;
+			}
+			return true;
+		});
+	}
+
+	const entries = Object.entries(labels);
+	const removedSpecificLabel = entries.some(([key, value]) =>
+		isDomainSpecificDokployTraefikLabel(
+			stringifyLabelObjectEntry(key, value),
+			context,
+		),
+	);
+
+	return Object.fromEntries(
+		entries.filter(([key, value]) => {
+			const label = stringifyLabelObjectEntry(key, value);
+			if (isDomainSpecificDokployTraefikLabel(label, context)) {
+				return false;
+			}
+			if (removedSpecificLabel && isGenericDokployTraefikLabel(label)) {
+				return false;
+			}
+			return true;
+		}),
+	);
+};
+
 export const addDokployNetworkToService = (
 	networkService: DefinitionsService["networks"],
+	options: { aliases?: string[] } = {},
 ) => {
 	let networks = networkService;
 	const network = "dokploy-network";
@@ -364,12 +693,34 @@ export const addDokployNetworkToService = (
 		if (!networks.includes(defaultNetwork)) {
 			networks.push(defaultNetwork);
 		}
+		if (options.aliases?.length) {
+			const nextNetworks: Record<string, { aliases?: string[] }> = {};
+			for (const item of networks) {
+				nextNetworks[item] = {};
+			}
+			nextNetworks[network] = {
+				...nextNetworks[network],
+				aliases: [...new Set(options.aliases)],
+			};
+			networks = nextNetworks;
+		}
 	} else if (networks && typeof networks === "object") {
 		if (!(network in networks)) {
 			networks[network] = {};
 		}
 		if (!(defaultNetwork in networks)) {
 			networks[defaultNetwork] = {};
+		}
+		if (options.aliases?.length) {
+			const current = networks[network];
+			const currentAliases =
+				current && typeof current === "object" && "aliases" in current
+					? ((current.aliases as string[] | undefined) ?? [])
+					: [];
+			networks[network] = {
+				...(current && typeof current === "object" ? current : {}),
+				aliases: [...new Set([...currentAliases, ...options.aliases])],
+			};
 		}
 	}
 

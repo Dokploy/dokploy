@@ -7,13 +7,21 @@ import {
 import { and, eq } from "drizzle-orm";
 
 import semver from "semver";
+import { quote } from "shell-quote";
 import { db } from "../db";
 import { compose } from "../db/schema";
+import {
+	type CaddyOptions,
+	initializeCaddyService,
+	initializeStandaloneCaddy,
+} from "../setup/caddy-setup";
 import {
 	initializeStandaloneTraefik,
 	initializeTraefikService,
 	type TraefikOptions,
 } from "../setup/traefik-setup";
+import type { CaddyMigrationResourceSnapshot } from "../utils/caddy/migration/types";
+import type { WebServerProvider } from "../utils/web-server/providers";
 export interface IUpdateData {
 	latestVersion: string | null;
 	updateAvailable: boolean;
@@ -311,6 +319,304 @@ export const reloadDockerResource = async (
 	}
 };
 
+const runDockerResourceCommand = async (command: string, serverId?: string) => {
+	if (serverId) {
+		return execAsyncRemote(serverId, command);
+	}
+	return execAsync(command);
+};
+
+const readDockerResourceJson = async <T = Record<string, unknown>>(
+	command: string,
+	serverId?: string,
+): Promise<T | undefined> => {
+	const { stdout } = await runDockerResourceCommand(command, serverId);
+	const trimmed = stdout.trim();
+	return trimmed ? (JSON.parse(trimmed) as T) : undefined;
+};
+
+const asRecord = (value: unknown): Record<string, unknown> | undefined =>
+	value && typeof value === "object"
+		? (value as Record<string, unknown>)
+		: undefined;
+
+const asStringRecord = (value: unknown): Record<string, string> | undefined => {
+	const record = asRecord(value);
+	if (!record) return undefined;
+	return Object.fromEntries(
+		Object.entries(record).filter(
+			(entry): entry is [string, string] => typeof entry[1] === "string",
+		),
+	);
+};
+
+const asRecordArray = (
+	value: unknown,
+): Array<Record<string, unknown>> | undefined =>
+	Array.isArray(value)
+		? value.filter(
+				(item): item is Record<string, unknown> =>
+					!!item && typeof item === "object",
+			)
+		: undefined;
+
+const asStringArray = (value: unknown): string[] | undefined =>
+	Array.isArray(value)
+		? value.filter((item): item is string => typeof item === "string")
+		: undefined;
+
+const readDockerResourceImage = async (
+	resourceName: string,
+	resourceType: "service" | "standalone",
+	serverId?: string,
+) => {
+	const command =
+		resourceType === "service"
+			? `docker service inspect ${resourceName} --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'`
+			: `docker container inspect ${resourceName} --format '{{.Config.Image}}'`;
+	const { stdout } = await runDockerResourceCommand(command, serverId);
+	return stdout.trim() || undefined;
+};
+
+export const getDockerResourceSnapshot = async (
+	resourceName: string,
+	serverId?: string,
+): Promise<CaddyMigrationResourceSnapshot> => {
+	const resourceType = await getDockerResourceType(resourceName, serverId);
+	if (resourceType === "unknown") {
+		return { resourceName, resourceType, running: false };
+	}
+
+	if (resourceType === "service") {
+		const spec =
+			(await readDockerResourceJson<Record<string, unknown>>(
+				`docker service inspect ${resourceName} --format '{{json .Spec}}'`,
+				serverId,
+			).catch(() => undefined)) ?? {};
+		const mode = asRecord(spec.Mode);
+		const replicated = asRecord(mode?.Replicated);
+		const replicas = Number(replicated?.Replicas ?? 1);
+		const taskTemplate = asRecord(spec.TaskTemplate);
+		const containerSpec = asRecord(taskTemplate?.ContainerSpec);
+		const endpointSpec = asRecord(spec.EndpointSpec);
+		return {
+			resourceName,
+			resourceType,
+			replicas,
+			running: replicas > 0,
+			env: await readEnvironmentVariables(resourceName, serverId).catch(
+				() => undefined,
+			),
+			additionalPorts: await readPorts(resourceName, serverId).catch(() => []),
+			image: await readDockerResourceImage(
+				resourceName,
+				resourceType,
+				serverId,
+			).catch(() => undefined),
+			mounts: asRecordArray(containerSpec?.Mounts),
+			networks: asRecordArray(taskTemplate?.Networks),
+			labels: asStringRecord(spec.Labels),
+			containerLabels: asStringRecord(containerSpec?.Labels),
+			placement: asRecord(taskTemplate?.Placement),
+			endpointPorts: asRecordArray(endpointSpec?.Ports),
+		};
+	}
+
+	const inspect =
+		(await readDockerResourceJson<Record<string, unknown>>(
+			`docker container inspect ${resourceName} --format '{{json .}}'`,
+			serverId,
+		).catch(() => undefined)) ?? {};
+	const state = asRecord(inspect.State);
+	const hostConfig = asRecord(inspect.HostConfig);
+	const networkSettings = asRecord(inspect.NetworkSettings);
+	const networksRecord = asRecord(networkSettings?.Networks);
+	const config = asRecord(inspect.Config);
+	return {
+		resourceName,
+		resourceType,
+		running: state?.Running === true,
+		env: await readEnvironmentVariables(resourceName, serverId).catch(
+			() => undefined,
+		),
+		additionalPorts: await readPorts(resourceName, serverId).catch(() => []),
+		image: await readDockerResourceImage(
+			resourceName,
+			resourceType,
+			serverId,
+		).catch(() => undefined),
+		binds: asStringArray(hostConfig?.Binds),
+		networks: networksRecord ? Object.keys(networksRecord) : undefined,
+		labels: asStringRecord(config?.Labels),
+		restartPolicy: asRecord(hostConfig?.RestartPolicy),
+	};
+};
+
+export const stopDockerResource = async (
+	resourceName: string,
+	serverId?: string,
+) => {
+	const resourceType = await getDockerResourceType(resourceName, serverId);
+	if (resourceType === "service") {
+		await runDockerResourceCommand(
+			`docker service scale ${resourceName}=0`,
+			serverId,
+		);
+		return;
+	}
+	if (resourceType === "standalone") {
+		await runDockerResourceCommand(`docker stop ${resourceName}`, serverId);
+	}
+};
+
+export const startDockerResourceFromSnapshot = async (
+	snapshot: CaddyMigrationResourceSnapshot,
+	serverId?: string,
+) => {
+	if (!snapshot.running) {
+		return;
+	}
+	if (snapshot.resourceType === "service") {
+		await runDockerResourceCommand(
+			`docker service scale ${snapshot.resourceName}=${snapshot.replicas ?? 1}`,
+			serverId,
+		);
+		return;
+	}
+	if (snapshot.resourceType === "standalone") {
+		await runDockerResourceCommand(
+			`docker start ${snapshot.resourceName}`,
+			serverId,
+		);
+	}
+};
+
+const envStringToArray = (env?: string) =>
+	env && env !== "[redacted]" ? env.split("\n").filter(Boolean) : undefined;
+
+export const ensureTraefikRunningFromSnapshot = async (
+	snapshot?: CaddyMigrationResourceSnapshot,
+	serverId?: string,
+) => {
+	let restartError: unknown;
+	if (snapshot?.running) {
+		try {
+			await startDockerResourceFromSnapshot(snapshot, serverId);
+			await waitForDockerResourceRunning("dokploy-traefik", serverId, {
+				retries: 10,
+				intervalMs: 1000,
+			});
+			return;
+		} catch (error) {
+			restartError = error;
+		}
+	}
+
+	const recreateInput: TraefikOptions = {
+		env: envStringToArray(snapshot?.env),
+		additionalPorts: snapshot?.additionalPorts ?? [],
+		image: snapshot?.image,
+		serverId,
+		binds: snapshot?.binds,
+		networks: snapshot?.networks?.filter(
+			(item): item is string => typeof item === "string",
+		),
+		labels: snapshot?.labels,
+		restartPolicy: snapshot?.restartPolicy as TraefikOptions["restartPolicy"],
+		replicas: snapshot?.replicas,
+		serviceMounts: snapshot?.mounts as TraefikOptions["serviceMounts"],
+		serviceNetworks: snapshot?.networks?.filter(
+			(item): item is Record<string, unknown> => typeof item === "object",
+		) as TraefikOptions["serviceNetworks"],
+		servicePlacement: snapshot?.placement as TraefikOptions["servicePlacement"],
+		serviceLabels: snapshot?.labels,
+		serviceContainerLabels: snapshot?.containerLabels,
+		serviceEndpointPorts:
+			snapshot?.endpointPorts as TraefikOptions["serviceEndpointPorts"],
+	};
+
+	const runExactRecreate = async () => {
+		if (snapshot?.resourceType === "service") {
+			await initializeTraefikService(recreateInput);
+			await reconnectServicesToTraefik(serverId);
+			return;
+		}
+		if (snapshot?.resourceType === "standalone") {
+			await initializeStandaloneTraefik(recreateInput);
+			await reconnectServicesToTraefik(serverId);
+			return;
+		}
+		await writeTraefikSetup(recreateInput);
+	};
+
+	try {
+		try {
+			await runExactRecreate();
+		} catch (exactError) {
+			if (snapshot?.resourceType === "unknown") {
+				throw exactError;
+			}
+			try {
+				await writeTraefikSetup(recreateInput);
+			} catch (fallbackError) {
+				const exactMessage =
+					exactError instanceof Error
+						? exactError.message
+						: "exact Traefik recreation failed";
+				const fallbackMessage =
+					fallbackError instanceof Error
+						? fallbackError.message
+						: "generic Traefik recreation failed";
+				throw new Error(
+					`Exact Traefik recreation failed: ${exactMessage}; generic recreation failed: ${fallbackMessage}`,
+				);
+			}
+		}
+		await waitForDockerResourceRunning("dokploy-traefik", serverId, {
+			retries: 20,
+			intervalMs: 1000,
+		});
+	} catch (error) {
+		const recreateMessage =
+			error instanceof Error ? error.message : "Traefik recreation failed";
+		if (restartError) {
+			const restartMessage =
+				restartError instanceof Error
+					? restartError.message
+					: "Traefik restart failed";
+			throw new Error(
+				`Unable to restore Traefik. Restart failed: ${restartMessage}; recreate failed: ${recreateMessage}`,
+			);
+		}
+		throw error;
+	}
+};
+
+export const waitForDockerResourceRunning = async (
+	resourceName: string,
+	serverId?: string,
+	options: { retries?: number; intervalMs?: number } = {},
+) => {
+	const retries = options.retries ?? 20;
+	const intervalMs = options.intervalMs ?? 1000;
+	for (let attempt = 0; attempt < retries; attempt++) {
+		const snapshot = await getDockerResourceSnapshot(resourceName, serverId);
+		if (snapshot.resourceType === "service" && snapshot.running) {
+			const { stdout } = await runDockerResourceCommand(
+				`docker service ps ${resourceName} --filter desired-state=running --format '{{.CurrentState}}' | grep -m1 '^Running' || true`,
+				serverId,
+			);
+			if (stdout.trim()) {
+				return snapshot;
+			}
+		} else if (snapshot.running) {
+			return snapshot;
+		}
+		await new Promise((resolve) => setTimeout(resolve, intervalMs));
+	}
+	throw new Error(`Docker resource ${resourceName} did not become running`);
+};
+
 export const readEnvironmentVariables = async (
 	resourceName: string,
 	serverId?: string,
@@ -414,7 +720,7 @@ export const checkPortInUse = async (
 ): Promise<{ isInUse: boolean; conflictingContainer?: string }> => {
 	try {
 		// Check if port is in use by a Docker container
-		const dockerCommand = `docker ps -a --format '{{.Names}}' | grep -v '^dokploy-traefik$' | while read name; do docker port "$name" 2>/dev/null | grep -q ':${port}' && echo "$name" && break; done || true`;
+		const dockerCommand = `docker ps -a --format '{{.Names}}' | grep -Ev '^(dokploy-traefik|dokploy-caddy)$' | while read name; do docker port "$name" 2>/dev/null | grep -q ':${port}' && echo "$name" && break; done || true`;
 		const { stdout: dockerOut } = serverId
 			? await execAsyncRemote(serverId, dockerCommand)
 			: await execAsync(dockerCommand);
@@ -451,33 +757,83 @@ export const checkPortInUse = async (
 	}
 };
 
+export const writeCaddySetup = async (input: CaddyOptions) => {
+	const resourceType = await getDockerResourceType(
+		"dokploy-caddy",
+		input.serverId,
+	);
+	const traefikResourceType =
+		resourceType === "unknown"
+			? await getDockerResourceType("dokploy-traefik", input.serverId)
+			: resourceType;
+	const fallbackResourceType =
+		traefikResourceType === "unknown"
+			? await getDockerResourceType("dokploy", input.serverId)
+			: traefikResourceType;
+	const setupType =
+		fallbackResourceType === "service" ? "service" : "standalone";
+
+	if (setupType === "service") {
+		await initializeCaddyService({
+			env: input.env,
+			additionalPorts: input.additionalPorts,
+			serverId: input.serverId,
+			letsEncryptEmail: input.letsEncryptEmail,
+			trustedProxies: input.trustedProxies,
+			accessLogs: input.accessLogs,
+		});
+		await reconnectServicesToWebServer("dokploy-caddy", input.serverId);
+	} else {
+		await initializeStandaloneCaddy({
+			env: input.env,
+			additionalPorts: input.additionalPorts,
+			serverId: input.serverId,
+			letsEncryptEmail: input.letsEncryptEmail,
+			trustedProxies: input.trustedProxies,
+			accessLogs: input.accessLogs,
+		});
+
+		await reconnectServicesToWebServer("dokploy-caddy", input.serverId);
+	}
+};
+
+export const writeWebServerSetup = async (
+	provider: WebServerProvider,
+	input: TraefikOptions | CaddyOptions,
+) => {
+	if (provider === "caddy") {
+		return writeCaddySetup(input as CaddyOptions);
+	}
+
+	return writeTraefikSetup(input as TraefikOptions);
+};
+
 export const writeTraefikSetup = async (input: TraefikOptions) => {
 	const resourceType = await getDockerResourceType(
 		"dokploy-traefik",
 		input.serverId,
 	);
+	const fallbackResourceType =
+		resourceType === "unknown"
+			? await getDockerResourceType("dokploy", input.serverId)
+			: resourceType;
+	const setupType =
+		fallbackResourceType === "service" ? "service" : "standalone";
 
-	if (resourceType === "service") {
-		await initializeTraefikService({
-			env: input.env,
-			additionalPorts: input.additionalPorts,
-			serverId: input.serverId,
-		});
-		await reconnectServicesToTraefik(input.serverId);
-	} else if (resourceType === "standalone") {
-		await initializeStandaloneTraefik({
-			env: input.env,
-			additionalPorts: input.additionalPorts,
-			serverId: input.serverId,
-		});
-
+	if (setupType === "service") {
+		await initializeTraefikService(input);
 		await reconnectServicesToTraefik(input.serverId);
 	} else {
-		throw new Error("Traefik resource type not found");
+		await initializeStandaloneTraefik(input);
+
+		await reconnectServicesToTraefik(input.serverId);
 	}
 };
 
-export const reconnectServicesToTraefik = async (serverId?: string) => {
+export const reconnectServicesToWebServer = async (
+	resourceName: "dokploy-traefik" | "dokploy-caddy",
+	serverId?: string,
+) => {
 	const composeResult = await db.query.compose.findMany({
 		where: and(
 			...(serverId ? [eq(compose.serverId, serverId)] : []),
@@ -491,7 +847,13 @@ export const reconnectServicesToTraefik = async (serverId?: string) => {
 	let commands = "";
 
 	for (const compose of composeResult) {
-		commands += `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1\n`;
+		const networkName = quote([compose.appName]);
+		const quotedResourceName = quote([resourceName]);
+		commands += `if docker service inspect ${quotedResourceName} >/dev/null 2>&1; then\n`;
+		commands += `  docker service inspect ${quotedResourceName} --format '{{range .Spec.TaskTemplate.Networks}}{{println .Target}}{{end}}' | grep -qx ${networkName} || docker service update --network-add ${networkName} ${quotedResourceName} >/dev/null\n`;
+		commands += "else\n";
+		commands += `  docker network connect ${networkName} $(docker ps --filter "name=${resourceName}" -q) >/dev/null 2>&1 || true\n`;
+		commands += "fi\n";
 	}
 
 	if (serverId) {
@@ -499,4 +861,8 @@ export const reconnectServicesToTraefik = async (serverId?: string) => {
 	} else {
 		await execAsync(commands);
 	}
+};
+
+export const reconnectServicesToTraefik = async (serverId?: string) => {
+	await reconnectServicesToWebServer("dokploy-traefik", serverId);
 };

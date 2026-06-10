@@ -13,10 +13,13 @@ import { removeService } from "../utils/docker/utils";
 import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
-import { manageDomain } from "../utils/traefik/domain";
+import {
+	manageWebServerDomain,
+	removeWebServerDomain,
+} from "../utils/web-server/domain";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
-import { createDomain } from "./domain";
+import { createDomain, removeDomainById } from "./domain";
 import { type Github, getIssueComment } from "./github";
 import { getWebServerSettings } from "./web-server-settings";
 
@@ -55,6 +58,15 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 		);
 
 		application.appName = previewDeployment.appName;
+		if (previewDeployment.domain) {
+			await removeWebServerDomain(
+				application,
+				previewDeployment.domain.uniqueConfigKey,
+			);
+		} else {
+			await removeTraefikConfig(application?.appName, application?.serverId);
+		}
+
 		const cleanupOperations = [
 			async () =>
 				await removeService(application?.appName, application?.serverId),
@@ -65,8 +77,6 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 				),
 			async () =>
 				await removeDirectoryCode(application?.appName, application?.serverId),
-			async () =>
-				await removeTraefikConfig(application?.appName, application?.serverId),
 			async () =>
 				await db
 					.delete(previewDeployments)
@@ -174,32 +184,64 @@ export const createPreviewDeployment = async (
 		});
 	}
 
-	const newDomain = await createDomain({
-		host: generateDomain,
-		path: application.previewPath,
-		port: application.previewPort,
-		https: application.previewHttps,
-		certificateType: application.previewCertificateType,
-		customCertResolver: application.previewCustomCertResolver,
-		domainType: "preview",
-		previewDeploymentId: previewDeployment.previewDeploymentId,
-	});
-
 	application.appName = appName;
+	let newDomain: Awaited<ReturnType<typeof createDomain>> | undefined;
+	let routeCreated = false;
 
-	await manageDomain(application, newDomain);
+	try {
+		newDomain = await createDomain({
+			host: generateDomain,
+			path: application.previewPath,
+			port: application.previewPort,
+			https: application.previewHttps,
+			certificateType: application.previewCertificateType,
+			customCertResolver: application.previewCustomCertResolver,
+			domainType: "preview",
+			previewDeploymentId: previewDeployment.previewDeploymentId,
+		});
 
-	await db
-		.update(previewDeployments)
-		.set({
-			domainId: newDomain.domainId,
-		})
-		.where(
-			eq(
-				previewDeployments.previewDeploymentId,
-				previewDeployment.previewDeploymentId,
-			),
-		);
+		await manageWebServerDomain(application, newDomain);
+		routeCreated = true;
+
+		await db
+			.update(previewDeployments)
+			.set({
+				domainId: newDomain.domainId,
+			})
+			.where(
+				eq(
+					previewDeployments.previewDeploymentId,
+					previewDeployment.previewDeploymentId,
+				),
+			);
+	} catch (error) {
+		if (routeCreated && newDomain) {
+			await removeWebServerDomain(application, newDomain.uniqueConfigKey).catch(
+				() => undefined,
+			);
+		}
+		if (newDomain) {
+			await removeDomainById(newDomain.domainId).catch(() => undefined);
+		}
+		await db
+			.delete(previewDeployments)
+			.where(
+				eq(
+					previewDeployments.previewDeploymentId,
+					previewDeployment.previewDeploymentId,
+				),
+			)
+			.returning()
+			.catch(() => undefined);
+		await octokit.rest.issues
+			.deleteComment({
+				owner: application?.owner || "",
+				repo: application?.repository || "",
+				comment_id: issue.data.id,
+			})
+			.catch(() => undefined);
+		throw error;
+	}
 
 	return previewDeployment;
 };
