@@ -41,10 +41,13 @@ export type LogEntry = NonNullable<
 >[0];
 
 export const ShowRequests = () => {
-	const { data: isActive, refetch } =
-		api.settings.haveActivateRequests.useQuery();
+	const { data: requestAnalyticsState, refetch } =
+		api.settings.getRequestAnalyticsState.useQuery();
 	const { mutateAsync: toggleRequests } =
 		api.settings.toggleRequests.useMutation();
+	const isActive = requestAnalyticsState?.enabled ?? false;
+	const providerLabel =
+		requestAnalyticsState?.provider === "caddy" ? "Caddy" : "Traefik";
 
 	const { data: logCleanupStatus } =
 		api.settings.getLogCleanupStatus.useQuery();
@@ -101,13 +104,13 @@ export const ShowRequests = () => {
 								Requests
 							</CardTitle>
 							<CardDescription>
-								See all the incoming requests that pass trough Traefik
+								See incoming requests handled by the active web server.
 							</CardDescription>
 
 							{shouldShowWarning && (
 								<AlertBlock type="warning">
-									When you activate, you need to reload traefik to apply the
-									changes, you can reload traefik in{" "}
+									After activation, reload {providerLabel} to apply access-log
+									changes. You can reload the active web server in{" "}
 									<Link
 										href="/dashboard/settings/server"
 										className="text-primary"
@@ -133,8 +136,8 @@ export const ShowRequests = () => {
 													<p className="max-w-80">
 														At the scheduled time, the cleanup job will keep
 														only the last 1000 entries in the access log file
-														and signal Traefik to reopen its log files. The
-														default schedule is daily at midnight (0 0 * * *).
+														for the active web server. The default schedule is
+														daily at midnight (0 0 * * *).
 													</p>
 												</TooltipContent>
 											</Tooltip>
@@ -174,7 +177,7 @@ export const ShowRequests = () => {
 								</div>
 								<DialogAction
 									title={isActive ? "Deactivate Requests" : "Activate Requests"}
-									description="You will also need to restart Traefik to apply the changes"
+									description={`You will also need to reload ${providerLabel} to apply the changes`}
 									type={isActive ? "destructive" : "default"}
 									onClick={async () => {
 										await toggleRequests({ enable: !isActive })
@@ -256,8 +259,8 @@ export const ShowRequests = () => {
 										</h3>
 										<p className="text-sm max-w-md">
 											Activate requests to see incoming traffic statistics and
-											monitor your application's usage. After activation, you'll
-											need to reload Traefik for the changes to take effect.
+											monitor your application's usage. After activation, reload
+											the active web server for the changes to take effect.
 										</p>
 									</div>
 								</div>
