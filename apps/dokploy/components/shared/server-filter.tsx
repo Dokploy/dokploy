@@ -126,7 +126,10 @@ export const ServerFilter = ({ children }: Props) => {
 									<SelectItem value={DOKPLOY_SERVER}>
 										<div className="flex items-center gap-2">
 											<span>Dokploy Server</span>
-											<Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+											<Badge
+												variant="secondary"
+												className="text-[10px] px-1.5 py-0"
+											>
 												Local
 											</Badge>
 										</div>
