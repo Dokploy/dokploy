@@ -727,6 +727,7 @@ export const composeRouter = createTRPCRouter({
 				branch: null,
 				owner: null,
 				composePath: undefined,
+				composeWorkingDir: "",
 				githubId: null,
 				triggerType: "push",
 

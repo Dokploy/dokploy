@@ -3,6 +3,8 @@ import { paths } from "@dokploy/server/constants";
 import type { InferResultType } from "@dokploy/server/types/with";
 import boxen from "boxen";
 import { quote } from "shell-quote";
+import { sanitizeComposeProfiles } from "../compose/profiles";
+import { sanitizeComposeWorkingDir } from "../compose/working-dir";
 import { writeDomainsToCompose } from "../docker/domain";
 import {
 	encodeBase64,
@@ -10,17 +12,45 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 
+export {
+	sanitizeComposeProfiles,
+	VALID_COMPOSE_PROFILE_REGEX,
+} from "../compose/profiles";
+export { sanitizeComposeWorkingDir } from "../compose/working-dir";
+
 export type ComposeNested = InferResultType<
 	"compose",
 	{ environment: { with: { project: true } }; mounts: true; domains: true }
 >;
+
+// Resolves the absolute directory from which `docker compose` should run.
+export const getComposeRunPath = (
+	compose: Pick<ComposeNested, "appName" | "composeWorkingDir">,
+	composePath: string,
+) => {
+	const base = join(composePath, compose.appName, "code");
+	const workingDir = sanitizeComposeWorkingDir(compose.composeWorkingDir);
+	return workingDir ? join(base, workingDir) : base;
+};
+
+// Builds the `--profile foo --profile bar` fragment that's inserted right
+// after `compose` so only the requested service set is brought up. Stack mode
+// is ignored because Swarm's `stack deploy` doesn't honor compose profiles.
+export const buildComposeProfilesFlags = (
+	compose: Pick<ComposeNested, "composeProfiles" | "composeType">,
+) => {
+	if (compose.composeType !== "docker-compose") return "";
+	const profiles = sanitizeComposeProfiles(compose.composeProfiles);
+	if (!profiles.length) return "";
+	return profiles.map((p) => `--profile ${p}`).join(" ");
+};
 
 export const getBuildComposeCommand = async (compose: ComposeNested) => {
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { sourceType, appName, mounts, composeType, domains } = compose;
 	const command = createCommand(compose);
 	const envCommand = getCreateEnvFileCommand(compose);
-	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+	const projectPath = getComposeRunPath(compose, COMPOSE_PATH);
 	const exportEnvCommand = getExportEnvCommand(compose);
 
 	const newCompose = await writeDomainsToCompose(compose, domains);
@@ -88,7 +118,9 @@ export const createCommand = (compose: ComposeNested) => {
 	let command = "";
 
 	if (composeType === "docker-compose") {
-		command = `compose -p ${appName} -f ${path} up -d --build --remove-orphans`;
+		const profilesFlags = buildComposeProfilesFlags(compose);
+		const profilesPart = profilesFlags ? `${profilesFlags} ` : "";
+		command = `compose ${profilesPart}-p ${appName} -f ${path} up -d --build --remove-orphans`;
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${path} ${appName} --prune --with-registry-auth`;
 	}
@@ -99,8 +131,9 @@ export const createCommand = (compose: ComposeNested) => {
 export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { env, composePath, appName } = compose;
+	const runPath = getComposeRunPath(compose, COMPOSE_PATH);
 	const composeFilePath =
-		join(COMPOSE_PATH, appName, "code", composePath) ||
+		join(runPath, composePath) ||
 		join(COMPOSE_PATH, appName, "code", "docker-compose.yml");
 
 	const envFilePath = join(dirname(composeFilePath), ".env");

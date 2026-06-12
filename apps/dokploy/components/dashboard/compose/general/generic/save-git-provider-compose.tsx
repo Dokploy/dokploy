@@ -39,6 +39,7 @@ import { api } from "@/utils/api";
 
 const GitProviderSchema = z.object({
 	composePath: z.string().min(1),
+	composeWorkingDir: z.string().optional(),
 	repositoryURL: z.string().min(1, {
 		message: "Repository URL is required",
 	}),
@@ -69,6 +70,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 			branch: "",
 			repositoryURL: "",
 			composePath: "./docker-compose.yml",
+			composeWorkingDir: "",
 			sshKey: undefined,
 			watchPaths: [],
 			enableSubmodules: false,
@@ -83,6 +85,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 				branch: data.customGitBranch || "",
 				repositoryURL: data.customGitUrl || "",
 				composePath: data.composePath,
+				composeWorkingDir: data.composeWorkingDir || "",
 				watchPaths: data.watchPaths || [],
 				enableSubmodules: data.enableSubmodules ?? false,
 			});
@@ -97,6 +100,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 			composeId,
 			sourceType: "git",
 			composePath: values.composePath,
+			composeWorkingDir: values.composeWorkingDir ?? "",
 			composeStatus: "idle",
 			watchPaths: values.watchPaths || [],
 			enableSubmodules: values.enableSubmodules,
@@ -219,6 +223,43 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 								<FormLabel>Compose Path</FormLabel>
 								<FormControl>
 									<Input placeholder="docker-compose.yml" {...field} />
+								</FormControl>
+
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					<FormField
+						control={form.control}
+						name="composeWorkingDir"
+						render={({ field }) => (
+							<FormItem>
+								<div className="flex items-center gap-2">
+									<FormLabel>Working Directory</FormLabel>
+									<TooltipProvider>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+											</TooltipTrigger>
+											<TooltipContent className="max-w-[320px]">
+												<p>
+													Optional subdirectory (relative to the repository
+													root) from which docker compose will be launched.
+													Useful when the compose file relies on a local .env,
+													build contexts or volumes that are colocated inside a
+													subfolder. Leave empty to run from the repository
+													root.
+												</p>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+								</div>
+								<FormControl>
+									<Input
+										placeholder="e.g. apps/my-app"
+										{...field}
+										value={field.value ?? ""}
+									/>
 								</FormControl>
 
 								<FormMessage />

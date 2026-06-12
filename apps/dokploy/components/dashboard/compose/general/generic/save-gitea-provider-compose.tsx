@@ -52,6 +52,7 @@ import type { Repository } from "@/utils/gitea-utils";
 
 const GiteaProviderSchema = z.object({
 	composePath: z.string().min(1),
+	composeWorkingDir: z.string().optional(),
 	repository: z
 		.object({
 			repo: z.string().min(1, "Repo is required"),
@@ -82,6 +83,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 	const form = useForm({
 		defaultValues: {
 			composePath: "./docker-compose.yml",
+			composeWorkingDir: "",
 			repository: {
 				owner: "",
 				repo: "",
@@ -141,6 +143,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 					owner: data.giteaOwner || "",
 				},
 				composePath: data.composePath || "./docker-compose.yml",
+				composeWorkingDir: data.composeWorkingDir || "",
 				giteaId: data.giteaId || "",
 				watchPaths: data.watchPaths || [],
 				enableSubmodules: data.enableSubmodules ?? false,
@@ -154,6 +157,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 			giteaRepository: data.repository.repo,
 			giteaOwner: data.repository.owner,
 			composePath: data.composePath,
+			composeWorkingDir: data.composeWorkingDir ?? "",
 			giteaId: data.giteaId,
 			composeId,
 			sourceType: "gitea",
@@ -398,6 +402,43 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 									<FormLabel>Compose Path</FormLabel>
 									<FormControl>
 										<Input placeholder="docker-compose.yml" {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={form.control}
+							name="composeWorkingDir"
+							render={({ field }) => (
+								<FormItem>
+									<div className="flex items-center gap-2">
+										<FormLabel>Working Directory</FormLabel>
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+												</TooltipTrigger>
+												<TooltipContent className="max-w-[320px]">
+													<p>
+														Optional subdirectory (relative to the repository
+														root) from which docker compose will be launched.
+														Useful when the compose file relies on a local .env,
+														build contexts or volumes that are colocated inside
+														a subfolder. Leave empty to run from the repository
+														root.
+													</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									</div>
+									<FormControl>
+										<Input
+											placeholder="e.g. apps/my-app"
+											{...field}
+											value={field.value ?? ""}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>

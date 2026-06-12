@@ -7,7 +7,11 @@ import {
 	cleanAppName,
 	compose,
 } from "@dokploy/server/db/schema";
-import { getBuildComposeCommand } from "@dokploy/server/utils/builders/compose";
+import {
+	buildComposeProfilesFlags,
+	getBuildComposeCommand,
+	getComposeRunPath,
+} from "@dokploy/server/utils/builders/compose";
 import { randomizeSpecificationFile } from "@dokploy/server/utils/docker/compose";
 import {
 	cloneCompose,
@@ -469,10 +473,12 @@ export const startCompose = async (composeId: string) => {
 	try {
 		const { COMPOSE_PATH } = paths(!!compose.serverId);
 
-		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+		const projectPath = getComposeRunPath(compose, COMPOSE_PATH);
 		const path =
 			compose.sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
-		const baseCommand = `env -i PATH="$PATH" docker compose -p ${compose.appName} -f ${path} up -d`;
+		const profilesFlags = buildComposeProfilesFlags(compose);
+		const profilesPart = profilesFlags ? `${profilesFlags} ` : "";
+		const baseCommand = `env -i PATH="$PATH" docker compose ${profilesPart}-p ${compose.appName} -f ${path} up -d`;
 		if (compose.composeType === "docker-compose") {
 			if (compose.serverId) {
 				await execAsyncRemote(

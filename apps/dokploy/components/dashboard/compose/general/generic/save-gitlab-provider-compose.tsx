@@ -1,6 +1,6 @@
 import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { CheckIcon, ChevronsUpDown, X } from "lucide-react";
+import { CheckIcon, ChevronsUpDown, HelpCircle, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
@@ -51,6 +51,7 @@ import { api } from "@/utils/api";
 
 const GitlabProviderSchema = z.object({
 	composePath: z.string().min(1),
+	composeWorkingDir: z.string().optional(),
 	repository: z
 		.object({
 			repo: z.string().min(1, "Repo is required"),
@@ -84,6 +85,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 	const form = useForm({
 		defaultValues: {
 			composePath: "./docker-compose.yml",
+			composeWorkingDir: "",
 			repository: {
 				owner: "",
 				repo: "",
@@ -151,6 +153,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 					gitlabPathNamespace: data.gitlabPathNamespace || "",
 				},
 				composePath: data.composePath,
+				composeWorkingDir: data.composeWorkingDir || "",
 				gitlabId: data.gitlabId || "",
 				watchPaths: data.watchPaths || [],
 				enableSubmodules: data.enableSubmodules ?? false,
@@ -164,6 +167,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 			gitlabRepository: data.repository.repo,
 			gitlabOwner: data.repository.owner,
 			composePath: data.composePath,
+			composeWorkingDir: data.composeWorkingDir ?? "",
 			gitlabId: data.gitlabId,
 			composeId,
 			gitlabProjectId: data.repository.id,
@@ -425,6 +429,43 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 									<FormLabel>Compose Path</FormLabel>
 									<FormControl>
 										<Input placeholder="docker-compose.yml" {...field} />
+									</FormControl>
+
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="composeWorkingDir"
+							render={({ field }) => (
+								<FormItem>
+									<div className="flex items-center gap-2">
+										<FormLabel>Working Directory</FormLabel>
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+												</TooltipTrigger>
+												<TooltipContent className="max-w-[320px]">
+													<p>
+														Optional subdirectory (relative to the repository
+														root) from which docker compose will be launched.
+														Useful when the compose file relies on a local .env,
+														build contexts or volumes that are colocated inside
+														a subfolder. Leave empty to run from the repository
+														root.
+													</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									</div>
+									<FormControl>
+										<Input
+											placeholder="e.g. apps/my-app"
+											{...field}
+											value={field.value ?? ""}
+										/>
 									</FormControl>
 
 									<FormMessage />
