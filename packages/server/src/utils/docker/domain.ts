@@ -4,6 +4,7 @@ import { paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Domain } from "@dokploy/server/services/domain";
 import { parse, stringify } from "yaml";
+import { sanitizeComposeWorkingDir } from "../compose/working-dir";
 import { execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
@@ -53,7 +54,12 @@ export const getComposePath = (compose: Compose) => {
 		path = composePath;
 	}
 
-	return join(COMPOSE_PATH, appName, "code", path);
+	const workingDir = sanitizeComposeWorkingDir(compose.composeWorkingDir);
+	const base = workingDir
+		? join(COMPOSE_PATH, appName, "code", workingDir)
+		: join(COMPOSE_PATH, appName, "code");
+
+	return join(base, path);
 };
 
 export const loadDockerCompose = async (

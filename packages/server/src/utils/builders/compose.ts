@@ -3,6 +3,7 @@ import { paths } from "@dokploy/server/constants";
 import type { InferResultType } from "@dokploy/server/types/with";
 import boxen from "boxen";
 import { quote } from "shell-quote";
+import { sanitizeComposeWorkingDir } from "../compose/working-dir";
 import { writeDomainsToCompose } from "../docker/domain";
 import {
 	encodeBase64,
@@ -10,17 +11,29 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 
+export { sanitizeComposeWorkingDir } from "../compose/working-dir";
+
 export type ComposeNested = InferResultType<
 	"compose",
 	{ environment: { with: { project: true } }; mounts: true; domains: true }
 >;
+
+// Resolves the absolute directory from which `docker compose` should run.
+export const getComposeRunPath = (
+	compose: Pick<ComposeNested, "appName" | "composeWorkingDir">,
+	composePath: string,
+) => {
+	const base = join(composePath, compose.appName, "code");
+	const workingDir = sanitizeComposeWorkingDir(compose.composeWorkingDir);
+	return workingDir ? join(base, workingDir) : base;
+};
 
 export const getBuildComposeCommand = async (compose: ComposeNested) => {
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { sourceType, appName, mounts, composeType, domains } = compose;
 	const command = createCommand(compose);
 	const envCommand = getCreateEnvFileCommand(compose);
-	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+	const projectPath = getComposeRunPath(compose, COMPOSE_PATH);
 	const exportEnvCommand = getExportEnvCommand(compose);
 
 	const newCompose = await writeDomainsToCompose(compose, domains);
@@ -99,8 +112,9 @@ export const createCommand = (compose: ComposeNested) => {
 export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { env, composePath, appName } = compose;
+	const runPath = getComposeRunPath(compose, COMPOSE_PATH);
 	const composeFilePath =
-		join(COMPOSE_PATH, appName, "code", composePath) ||
+		join(runPath, composePath) ||
 		join(COMPOSE_PATH, appName, "code", "docker-compose.yml");
 
 	const envFilePath = join(dirname(composeFilePath), ".env");

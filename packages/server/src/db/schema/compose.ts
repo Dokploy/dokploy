@@ -77,6 +77,7 @@ export const compose = pgTable("compose", {
 	//
 	enableSubmodules: boolean("enableSubmodules").notNull().default(false),
 	composePath: text("composePath").notNull().default("./docker-compose.yml"),
+	composeWorkingDir: text("composeWorkingDir").notNull().default(""),
 	suffix: text("suffix").notNull().default(""),
 	randomize: boolean("randomize").notNull().default(false),
 	isolatedDeployment: boolean("isolatedDeployment").notNull().default(false),
@@ -162,6 +163,7 @@ const createSchema = createInsertSchema(compose, {
 	customGitSSHKeyId: z.string().optional(),
 	command: z.string().optional(),
 	composePath: z.string().min(1),
+	composeWorkingDir: z.string().optional(),
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
 	watchPaths: z.array(z.string()).optional(),
 	sourceType: z
