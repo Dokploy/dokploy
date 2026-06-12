@@ -25,6 +25,7 @@ import { z } from "zod";
 import { updateServersBasedOnQuantity } from "@/pages/api/stripe/webhook";
 import {
 	createTRPCRouter,
+	enterpriseProcedure,
 	protectedProcedure,
 	withPermission,
 } from "@/server/api/trpc";
@@ -34,6 +35,7 @@ import {
 	apiFindOneServer,
 	apiRemoveServer,
 	apiUpdateServer,
+	apiUpdateServerBuildsConcurrency,
 	apiUpdateServerMonitoring,
 	applications,
 	compose,
@@ -478,6 +480,20 @@ export const serverRouter = createTRPCRouter({
 			} catch (error) {
 				throw error;
 			}
+		}),
+	updateBuildsConcurrency: enterpriseProcedure
+		.input(apiUpdateServerBuildsConcurrency)
+		.mutation(async ({ input, ctx }) => {
+			const currentServer = await findServerById(input.serverId);
+			if (currentServer.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to update this server",
+				});
+			}
+			return await updateServerById(input.serverId, {
+				buildsConcurrency: input.buildsConcurrency,
+			});
 		}),
 	publicIp: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {

@@ -3,6 +3,7 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { BuildsConcurrency } from "@/components/dashboard/settings/servers/actions/builds-concurrency";
 import { ToggleEnforceSSO } from "@/components/dashboard/settings/servers/actions/toggle-enforce-sso";
 import { ToggleRemoteServersOnly } from "@/components/dashboard/settings/servers/actions/toggle-remote-servers-only";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -78,6 +79,7 @@ const Page = ({ isCloud }: Props) => {
 								<CardContent className="flex flex-col gap-4">
 									<ToggleRemoteServersOnly />
 									<ToggleEnforceSSO />
+									<BuildsConcurrency />
 								</CardContent>
 							</EnterpriseFeatureGate>
 						</div>
