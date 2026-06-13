@@ -34,9 +34,19 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
+const apiKeyPrefixRegex = /^[A-Za-z0-9_-]+$/;
+const apiKeyPrefixErrorMessage =
+	"Prefix can only contain ASCII letters, numbers, underscores, and hyphens";
+
 const formSchema = z.object({
 	name: z.string().min(1, "Name is required"),
-	prefix: z.string().optional(),
+	prefix: z
+		.string()
+		.trim()
+		.refine((value) => value === "" || apiKeyPrefixRegex.test(value), {
+			message: apiKeyPrefixErrorMessage,
+		})
+		.optional(),
 	expiresIn: z.number().nullable(),
 	organizationId: z.string().min(1, "Organization is required"),
 	// Rate limiting fields

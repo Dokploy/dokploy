@@ -509,6 +509,30 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
 	return userResult;
 };
 
+const apiKeyPrefixRegex = /^[A-Za-z0-9_-]+$/;
+const apiKeyPrefixErrorMessage =
+	"Prefix can only contain ASCII letters, numbers, underscores, and hyphens";
+
+const normalizeApiKeyPrefix = (prefix?: string) => {
+	if (prefix === undefined) {
+		return undefined;
+	}
+
+	const trimmedPrefix = prefix.trim();
+	if (trimmedPrefix === "") {
+		return undefined;
+	}
+
+	if (!apiKeyPrefixRegex.test(trimmedPrefix)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: apiKeyPrefixErrorMessage,
+		});
+	}
+
+	return trimmedPrefix;
+};
+
 export const createApiKey = async (
 	userId: string,
 	input: {
@@ -526,11 +550,13 @@ export const createApiKey = async (
 		refillInterval?: number;
 	},
 ) => {
+	const prefix = normalizeApiKeyPrefix(input.prefix);
+
 	const result = await auth.createApiKey({
 		body: {
 			name: input.name,
 			expiresIn: input.expiresIn,
-			prefix: input.prefix,
+			prefix,
 			rateLimitEnabled: input.rateLimitEnabled,
 			rateLimitTimeWindow: input.rateLimitTimeWindow,
 			rateLimitMax: input.rateLimitMax,
