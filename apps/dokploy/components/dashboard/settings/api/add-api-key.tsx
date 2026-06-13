@@ -33,10 +33,12 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
-
-const apiKeyPrefixRegex = /^[A-Za-z0-9_-]+$/;
-const apiKeyPrefixErrorMessage =
-	"Prefix can only contain ASCII letters, numbers, underscores, and hyphens";
+import {
+	apiKeyPrefixErrorMessage,
+	apiKeyPrefixRegex,
+	getCreateApiKeyErrorMessage,
+	getCreateApiKeyPrefixError,
+} from "./api-key-errors";
 
 const formSchema = z.object({
 	name: z.string().min(1, "Name is required"),
@@ -104,8 +106,16 @@ export const AddApiKey = () => {
 			form.reset();
 			void refetch();
 		},
-		onError: () => {
-			toast.error("Failed to generate API key");
+		onError: (error) => {
+			const prefixError = getCreateApiKeyPrefixError(error);
+			if (prefixError) {
+				form.setError("prefix", {
+					type: "server",
+					message: prefixError,
+				});
+			}
+
+			toast.error(getCreateApiKeyErrorMessage(error));
 		},
 	});
 
