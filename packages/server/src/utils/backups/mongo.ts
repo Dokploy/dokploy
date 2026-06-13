@@ -58,7 +58,10 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
-		console.log(error);
+		console.error(
+			"MongoDB backup failed:",
+			error instanceof Error ? error.message : "Unknown error",
+		);
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,

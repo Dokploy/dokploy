@@ -13,6 +13,7 @@ import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup"
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getS3Credentials, normalizeS3Path, scheduleBackup } from "./utils";
 
+
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
 
@@ -153,6 +154,9 @@ export const keepLatestNBackups = async (
 			await execAsync(rcloneCommand);
 		}
 	} catch (error) {
-		console.error(error);
+		console.error(
+			"Failed to cleanup old backups:",
+			error instanceof Error ? error.message : "Unknown error",
+		);
 	}
 };

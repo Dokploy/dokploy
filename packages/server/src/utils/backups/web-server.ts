@@ -113,11 +113,19 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			try {
 				await rm(tempDir, { recursive: true, force: true });
 			} catch (cleanupError) {
-				console.error("Cleanup error:", cleanupError);
+				console.error(
+					"Cleanup error:",
+					cleanupError instanceof Error
+						? cleanupError.message
+						: "Unknown error",
+				);
 			}
 		}
 	} catch (error) {
-		console.error("Backup error:", error);
+		console.error(
+			"Backup error:",
+			error instanceof Error ? error.message : "Unknown error",
+		);
 		writeStream.write("Backup error❌\n");
 		writeStream.write(
 			error instanceof Error ? error.message : "Unknown error\n",

@@ -60,7 +60,10 @@ export const runMariadbBackup = async (
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
-		console.log(error);
+		console.error(
+			"MariaDB backup failed:",
+			error instanceof Error ? error.message : "Unknown error",
+		);
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,

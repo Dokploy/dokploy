@@ -59,7 +59,10 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
-		console.log(error);
+		console.error(
+			"MySQL backup failed:",
+			error instanceof Error ? error.message : "Unknown error",
+		);
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,
