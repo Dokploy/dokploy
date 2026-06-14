@@ -48,8 +48,8 @@ export const registryRelations = relations(registry, ({ many }) => ({
 const registryUsernameSchema = z
 	.string()
 	.trim()
-	.min(1)
-	.transform((s) => s.toLowerCase());
+	.min(1);
+
 
 // Registry URLs must be hostname[:port] only — no shell metacharacters
 // Empty string is allowed (means default/Docker Hub registry)
