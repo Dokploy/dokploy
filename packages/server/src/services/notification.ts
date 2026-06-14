@@ -12,6 +12,9 @@ import {
 	type apiCreateSlack,
 	type apiCreateTeams,
 	type apiCreateTelegram,
+	type apiCreatePagerduty,
+	type apiCreateOpsgenie,
+	type apiCreateMatrix,
 	type apiUpdateCustom,
 	type apiUpdateDiscord,
 	type apiUpdateEmail,
@@ -24,6 +27,9 @@ import {
 	type apiUpdateSlack,
 	type apiUpdateTeams,
 	type apiUpdateTelegram,
+	type apiUpdatePagerduty,
+	type apiUpdateOpsgenie,
+	type apiUpdateMatrix,
 	custom,
 	discord,
 	email,
@@ -37,6 +43,9 @@ import {
 	slack,
 	teams,
 	telegram,
+	pagerduty,
+	opsgenie,
+	matrix,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -822,6 +831,9 @@ export const findNotificationById = async (notificationId: string) => {
 			lark: true,
 			pushover: true,
 			teams: true,
+			pagerduty: true,
+			opsgenie: true,
+			matrix: true,
 		},
 	});
 	if (!notification) {
@@ -1230,6 +1242,282 @@ export const updatePushoverNotification = async (
 				expire: input.expire,
 			})
 			.where(eq(pushover.pushoverId, input.pushoverId));
+
+		return newDestination;
+	});
+};
+
+export const createPagerdutyNotification = async (
+	input: z.infer<typeof apiCreatePagerduty>,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newPagerduty = await tx
+			.insert(pagerduty)
+			.values({
+				routingKey: input.routingKey,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newPagerduty) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting pagerduty",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				pagerdutyId: newPagerduty.pagerdutyId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "pagerduty",
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updatePagerdutyNotification = async (
+	input: z.infer<typeof apiUpdatePagerduty>,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(pagerduty)
+			.set({
+				routingKey: input.routingKey,
+			})
+			.where(eq(pagerduty.pagerdutyId, input.pagerdutyId));
+
+		return newDestination;
+	});
+};
+
+export const createOpsgenieNotification = async (
+	input: z.infer<typeof apiCreateOpsgenie>,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newOpsgenie = await tx
+			.insert(opsgenie)
+			.values({
+				apiKey: input.apiKey,
+				region: input.region,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newOpsgenie) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting opsgenie",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				opsgenieId: newOpsgenie.opsgenieId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "opsgenie",
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateOpsgenieNotification = async (
+	input: z.infer<typeof apiUpdateOpsgenie>,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(opsgenie)
+			.set({
+				apiKey: input.apiKey,
+				region: input.region,
+			})
+			.where(eq(opsgenie.opsgenieId, input.opsgenieId));
+
+		return newDestination;
+	});
+};
+
+export const createMatrixNotification = async (
+	input: z.infer<typeof apiCreateMatrix>,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newMatrix = await tx
+			.insert(matrix)
+			.values({
+				homeServerUrl: input.homeServerUrl,
+				accessToken: input.accessToken,
+				roomId: input.roomId,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newMatrix) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting matrix",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				matrixId: newMatrix.matrixId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "matrix",
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateMatrixNotification = async (
+	input: z.infer<typeof apiUpdateMatrix>,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployBackup: input.dokployBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(matrix)
+			.set({
+				homeServerUrl: input.homeServerUrl,
+				accessToken: input.accessToken,
+				roomId: input.roomId,
+			})
+			.where(eq(matrix.matrixId, input.matrixId));
 
 		return newDestination;
 	});

@@ -11,6 +11,9 @@ import type {
 	slack,
 	teams,
 	telegram,
+	pagerduty,
+	opsgenie,
+	matrix,
 } from "@dokploy/server/db/schema";
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
@@ -389,5 +392,94 @@ export const sendPushoverNotification = async (
 		throw new Error(
 			`Failed to send Pushover notification: ${response.statusText}`,
 		);
+	}
+};
+
+export const sendPagerdutyNotification = async (
+	connection: typeof pagerduty.$inferInsert,
+	title: string,
+	message: string,
+) => {
+	const response = await fetch("https://events.pagerduty.com/v2/enqueue", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			routing_key: connection.routingKey,
+			event_action: "trigger",
+			payload: {
+				summary: title,
+				source: "Dokploy",
+				severity: "error",
+				custom_details: {
+					message,
+				},
+			},
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(
+			`Failed to send PagerDuty notification: ${response.statusText}`,
+		);
+	}
+};
+
+export const sendOpsgenieNotification = async (
+	connection: typeof opsgenie.$inferInsert,
+	title: string,
+	message: string,
+) => {
+	const baseUrl =
+		connection.region === "EU"
+			? "https://api.eu.opsgenie.com/v2/alerts"
+			: "https://api.opsgenie.com/v2/alerts";
+
+	const response = await fetch(baseUrl, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `GenieKey ${connection.apiKey}`,
+		},
+		body: JSON.stringify({
+			message: title,
+			description: message,
+			source: "Dokploy",
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(
+			`Failed to send Opsgenie notification: ${response.statusText}`,
+		);
+	}
+};
+
+export const sendMatrixNotification = async (
+	connection: typeof matrix.$inferInsert,
+	message: string,
+) => {
+	const txnId = Date.now().toString();
+	// Format room ID properly if needed, but assuming user provides full !roomid:server.com
+	const response = await fetch(
+		`${connection.homeServerUrl}/_matrix/client/v3/rooms/${encodeURIComponent(
+			connection.roomId,
+		)}/send/m.room.message/${txnId}`,
+		{
+			method: "PUT",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${connection.accessToken}`,
+			},
+			body: JSON.stringify({
+				msgtype: "m.text",
+				body: message,
+			}),
+		},
+	);
+
+	if (!response.ok) {
+		throw new Error(`Failed to send Matrix notification: ${response.statusText}`);
 	}
 };

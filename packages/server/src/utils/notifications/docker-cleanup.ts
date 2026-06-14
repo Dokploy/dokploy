@@ -16,6 +16,9 @@ import {
 	sendResendNotification,
 	sendSlackNotification,
 	sendTeamsNotification,
+	sendPagerdutyNotification,
+	sendOpsgenieNotification,
+	sendMatrixNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -43,6 +46,9 @@ export const sendDockerCleanupNotifications = async (
 			lark: true,
 			pushover: true,
 			teams: true,
+			pagerduty: true,
+			opsgenie: true,
+			matrix: true,
 		},
 	});
 
@@ -60,6 +66,9 @@ export const sendDockerCleanupNotifications = async (
 			lark,
 			pushover,
 			teams,
+			pagerduty,
+			opsgenie,
+			matrix,
 		} = notification;
 		try {
 			if (email || resend) {
@@ -285,6 +294,29 @@ export const sendDockerCleanupNotifications = async (
 						{ name: "Message", value: message },
 					],
 				});
+			}
+
+			if (pagerduty) {
+				await sendPagerdutyNotification(
+					pagerduty,
+					"Docker Cleanup",
+					"System event occurred. Please check Dokploy dashboard."
+				);
+			}
+
+			if (opsgenie) {
+				await sendOpsgenieNotification(
+					opsgenie,
+					"Docker Cleanup",
+					"System event occurred. Please check Dokploy dashboard."
+				);
+			}
+
+			if (matrix) {
+				await sendMatrixNotification(
+					matrix,
+					"Docker Cleanup\n\nSystem event occurred. Please check Dokploy dashboard."
+				);
 			}
 		} catch (error) {
 			console.log(error);

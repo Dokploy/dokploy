@@ -16,6 +16,9 @@ import {
 	sendResendNotification,
 	sendSlackNotification,
 	sendTeamsNotification,
+	sendPagerdutyNotification,
+	sendOpsgenieNotification,
+	sendMatrixNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -66,6 +69,9 @@ export const sendVolumeBackupNotifications = async ({
 			lark: true,
 			pushover: true,
 			teams: true,
+			pagerduty: true,
+			opsgenie: true,
+			matrix: true,
 		},
 	});
 
@@ -83,6 +89,9 @@ export const sendVolumeBackupNotifications = async ({
 			lark,
 			pushover,
 			teams,
+			pagerduty,
+			opsgenie,
+			matrix,
 		} = notification;
 
 		try {
@@ -489,6 +498,29 @@ export const sendVolumeBackupNotifications = async ({
 					date: date.toLocaleString(),
 					status: type,
 				});
+			}
+
+			if (pagerduty) {
+				await sendPagerdutyNotification(
+					pagerduty,
+					"Volume Backup",
+					"System event occurred. Please check Dokploy dashboard."
+				);
+			}
+
+			if (opsgenie) {
+				await sendOpsgenieNotification(
+					opsgenie,
+					"Volume Backup",
+					"System event occurred. Please check Dokploy dashboard."
+				);
+			}
+
+			if (matrix) {
+				await sendMatrixNotification(
+					matrix,
+					"Volume Backup\n\nSystem event occurred. Please check Dokploy dashboard."
+				);
 			}
 		} catch (error) {
 			console.log(error);

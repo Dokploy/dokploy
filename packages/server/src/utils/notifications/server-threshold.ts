@@ -9,6 +9,9 @@ import {
 	sendPushoverNotification,
 	sendSlackNotification,
 	sendTeamsNotification,
+	sendPagerdutyNotification,
+	sendOpsgenieNotification,
+	sendMatrixNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -44,6 +47,9 @@ export const sendServerThresholdNotifications = async (
 			lark: true,
 			pushover: true,
 			teams: true,
+			pagerduty: true,
+			opsgenie: true,
+			matrix: true,
 		},
 	});
 
@@ -60,6 +66,9 @@ export const sendServerThresholdNotifications = async (
 			lark,
 			pushover,
 			teams,
+			pagerduty,
+			opsgenie,
+			matrix,
 		} = notification;
 
 		try {
@@ -296,6 +305,29 @@ export const sendServerThresholdNotifications = async (
 					pushover,
 					`Server ${payload.Type} Alert`,
 					`Server: ${payload.ServerName}\nType: ${payload.Type}\nCurrent: ${payload.Value.toFixed(2)}%\nThreshold: ${payload.Threshold.toFixed(2)}%\nMessage: ${payload.Message}\nTime: ${date.toLocaleString()}`,
+				);
+			}
+
+			if (pagerduty) {
+				await sendPagerdutyNotification(
+					pagerduty,
+					"Server Threshold Alert",
+					"System event occurred. Please check Dokploy dashboard."
+				);
+			}
+
+			if (opsgenie) {
+				await sendOpsgenieNotification(
+					opsgenie,
+					"Server Threshold Alert",
+					"System event occurred. Please check Dokploy dashboard."
+				);
+			}
+
+			if (matrix) {
+				await sendMatrixNotification(
+					matrix,
+					"Server Threshold Alert\n\nSystem event occurred. Please check Dokploy dashboard."
 				);
 			}
 		} catch (error) {
