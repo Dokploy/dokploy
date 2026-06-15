@@ -28,6 +28,7 @@ import {
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 import { betterAuthSecret } from "./auth-secret";
+import { resolveOrgMembershipLimit } from "./membership-limit";
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -402,6 +403,9 @@ const { handler, api } = betterAuth({
 		twoFactor(),
 		organization({
 			ac,
+			...(resolveOrgMembershipLimit() !== undefined
+				? { membershipLimit: resolveOrgMembershipLimit() }
+				: {}),
 			roles: {
 				owner: ownerRole,
 				admin: adminRole,
