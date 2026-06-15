@@ -9,9 +9,7 @@ describe("resolveOrgMembershipLimit", () => {
 	});
 
 	async function importFresh() {
-		const mod = await import(
-			"@dokploy/server/lib/membership-limit"
-		);
+		const mod = await import("@dokploy/server/lib/membership-limit");
 		return mod.resolveOrgMembershipLimit;
 	}
 
