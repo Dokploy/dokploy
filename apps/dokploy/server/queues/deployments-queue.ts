@@ -44,12 +44,14 @@ const createDeploymentWorker = () =>
 							composeId: job.data.composeId,
 							titleLog: job.data.titleLog,
 							descriptionLog: job.data.descriptionLog,
+							freshVolumes: job.data.freshVolumes,
 						});
 					} else if (job.data.type === "redeploy") {
 						await rebuildCompose({
 							composeId: job.data.composeId,
 							titleLog: job.data.titleLog,
 							descriptionLog: job.data.descriptionLog,
+							freshVolumes: job.data.freshVolumes,
 						});
 					}
 				} else if (job.data.applicationType === "application-preview") {

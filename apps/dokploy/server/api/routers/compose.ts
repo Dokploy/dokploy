@@ -430,6 +430,7 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
+				freshVolumes: input.freshVolumes,
 			};
 
 			if (IS_CLOUD && compose.serverId) {
@@ -479,6 +480,7 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
+				freshVolumes: input.freshVolumes,
 			};
 			if (IS_CLOUD && compose.serverId) {
 				jobData.serverId = compose.serverId;
