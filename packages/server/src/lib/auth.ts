@@ -1,10 +1,17 @@
 import type { IncomingMessage } from "node:http";
 import { apiKey } from "@better-auth/api-key";
+import { passkey } from "@better-auth/passkey";
 import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError } from "better-auth/api";
+import {
+	APIError,
+	createAuthMiddleware,
+	createEmailVerificationToken,
+	isAPIError,
+} from "better-auth/api";
+import { deleteSessionCookie } from "better-auth/cookies";
 import { admin, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
@@ -28,6 +35,143 @@ import {
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 import { betterAuthSecret } from "./auth-secret";
+import { resolvePasskeyRpConfig } from "./passkey-rp";
+
+const passkeyRp = await resolvePasskeyRpConfig();
+
+if (process.env.NODE_ENV === "development") {
+	console.log("[passkey] resolved RP config:", {
+		rpID: passkeyRp.rpID,
+		origin: passkeyRp.origin,
+	});
+}
+
+type PasskeyAuditSnapshot = { id: string; name?: string | null };
+
+const resolveMemberForPasskeyAudit = async (
+	userId: string,
+	activeOrganizationId?: string | null,
+) => {
+	const memberRecord = await db.query.member.findFirst({
+		where: and(
+			eq(schema.member.userId, userId),
+			...(activeOrganizationId
+				? [eq(schema.member.organizationId, activeOrganizationId)]
+				: []),
+		),
+		...(!activeOrganizationId
+			? {
+					orderBy: [
+						desc(schema.member.isDefault),
+						desc(schema.member.createdAt),
+					],
+				}
+			: {}),
+		with: { user: true },
+	});
+	if (!memberRecord) return null;
+	return {
+		organizationId: memberRecord.organizationId,
+		userId,
+		userEmail: memberRecord.user.email,
+		userRole: memberRecord.role,
+	};
+};
+
+type PasskeyVerifyReturned = {
+	session?: { token: string; userId: string };
+};
+
+const handlePasskeyVerifyAuthenticationAfter = async (
+	ctx: Parameters<Parameters<typeof createAuthMiddleware>[0]>[0],
+) => {
+	const returned = ctx.context.returned as PasskeyVerifyReturned | undefined;
+	if (!returned?.session?.token || !returned.session.userId) return;
+
+	const user = await db.query.user.findFirst({
+		where: eq(schema.user.id, returned.session.userId),
+	});
+	if (!user) return;
+
+	if (
+		IS_CLOUD &&
+		process.env.NODE_ENV === "production" &&
+		ctx.context.options?.emailAndPassword?.requireEmailVerification &&
+		!user.emailVerified
+	) {
+		if (!ctx.context.options?.emailVerification?.sendVerificationEmail) {
+			deleteSessionCookie(ctx, true);
+			await ctx.context.internalAdapter.deleteSession(returned.session.token);
+			throw new APIError("FORBIDDEN", {
+				code: "EMAIL_NOT_VERIFIED",
+				message: "Email not verified",
+			});
+		}
+		if (ctx.context.options?.emailVerification?.sendOnSignIn) {
+			const token = await createEmailVerificationToken(
+				ctx.context.secret,
+				user.email,
+				undefined,
+				ctx.context.options.emailVerification?.expiresIn,
+			);
+			const url = `${ctx.context.baseURL}/verify-email?token=${token}&callbackURL=${encodeURIComponent("/")}`;
+			await ctx.context.runInBackgroundOrAwait(
+				ctx.context.options.emailVerification.sendVerificationEmail(
+					{
+						user: {
+							id: user.id,
+							email: user.email,
+							emailVerified: user.emailVerified,
+							name: user.firstName,
+							image: user.image,
+							createdAt: user.createdAt ?? new Date(),
+							updatedAt: user.updatedAt,
+						},
+						url,
+						token,
+					},
+					ctx.request,
+				),
+			);
+		}
+		deleteSessionCookie(ctx, true);
+		await ctx.context.internalAdapter.deleteSession(returned.session.token);
+		throw new APIError("FORBIDDEN", {
+			code: "EMAIL_NOT_VERIFIED",
+			message: "Email not verified",
+		});
+	}
+
+	// A user-verifying passkey is already phishing-resistant multi-factor auth
+	// (possession of the authenticator + biometric/PIN), so it satisfies 2FA on
+	// its own. We intentionally do NOT issue a twoFactorRedirect here — the
+	// session completes directly, matching how Google/Microsoft/GitHub/Apple
+	// treat passkey sign-in. TOTP remains required for the email/password flow.
+	return;
+};
+
+const auditPasskeyEvent = async (
+	userId: string,
+	activeOrganizationId: string | null | undefined,
+	action: "create" | "delete",
+	passkey: PasskeyAuditSnapshot,
+) => {
+	const member = await resolveMemberForPasskeyAudit(
+		userId,
+		activeOrganizationId,
+	);
+	if (!member) return;
+	await createAuditLog({
+		organizationId: member.organizationId,
+		userId: member.userId,
+		userEmail: member.userEmail,
+		userRole: member.userRole,
+		action,
+		resourceType: "passkey",
+		resourceId: passkey.id,
+		resourceName: passkey.name ?? undefined,
+	});
+};
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -90,19 +234,39 @@ const { handler, api } = betterAuth({
 				getWebServerSettings(),
 			]);
 			if (!settings) return [];
+			const port = process.env.PORT ?? "3000";
+			const portSuffix = port !== "3000" ? `:${port}` : "";
+			const envPublicUrl =
+				process.env.BETTER_AUTH_URL?.trim() ||
+				process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+				"";
 			const devOrigins =
 				process.env.NODE_ENV === "development"
 					? [
-							"http://localhost:3000",
+							`http://localhost:${port}`,
+							`http://127.0.0.1:${port}`,
+							...(envPublicUrl
+								? [envPublicUrl.replace(/\/$/, "")]
+								: []),
 							"https://absolutely-handy-falcon.ngrok-free.app",
 						]
 					: [];
-			return [
-				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
-				...(settings?.host ? [`https://${settings?.host}`] : []),
+			const hostOrigins = settings?.host
+				? [
+						`https://${settings.host}${portSuffix}`,
+						`http://${settings.host}${portSuffix}`,
+					]
+				: [];
+			const origins = [
+				...(settings?.serverIp
+					? [`http://${settings.serverIp}:${port}`]
+					: []),
+				...hostOrigins,
 				...devOrigins,
 				...trustedOrigins,
+				passkeyRp.origin,
 			];
+			return [...new Set(origins)];
 		} catch (error) {
 			console.error("Failed to resolve trusted origins:", error);
 			return [];
@@ -350,6 +514,70 @@ const { handler, api } = betterAuth({
 			},
 		},
 	},
+	hooks: {
+		before: createAuthMiddleware(async (ctx) => {
+			if (ctx.path !== "/passkey/delete-passkey") return;
+			const id = (ctx.body as { id?: string } | undefined)?.id;
+			if (!id) return;
+			const record = await db.query.passkey.findFirst({
+				where: eq(schema.passkey.id, id),
+			});
+			if (!record) return;
+			(
+				ctx.context as typeof ctx.context & {
+					passkeyAuditSnapshot?: PasskeyAuditSnapshot;
+				}
+			).passkeyAuditSnapshot = {
+				id: record.id,
+				name: record.name,
+			};
+		}),
+		after: createAuthMiddleware(async (ctx) => {
+			if (isAPIError(ctx.context.returned)) return;
+
+			if (ctx.path === "/passkey/verify-authentication") {
+				const passkeyResult = await handlePasskeyVerifyAuthenticationAfter(ctx);
+				if (passkeyResult !== undefined) return passkeyResult;
+			}
+
+			const session = ctx.context.session;
+			const activeOrganizationId = session?.session?.activeOrganizationId;
+
+			if (ctx.path === "/passkey/verify-registration") {
+				const passkey = ctx.context.returned as
+					| PasskeyAuditSnapshot
+					| undefined;
+				if (!passkey?.id) return;
+				if (!session?.user?.id) return;
+				await auditPasskeyEvent(
+					session.user.id,
+					activeOrganizationId,
+					"create",
+					passkey,
+				);
+				return;
+			}
+
+			if (ctx.path === "/passkey/delete-passkey") {
+				const result = ctx.context.returned as { status?: boolean } | undefined;
+				if (!result?.status) return;
+				const snapshot = (
+					ctx.context as typeof ctx.context & {
+						passkeyAuditSnapshot?: PasskeyAuditSnapshot;
+					}
+				).passkeyAuditSnapshot;
+				const id =
+					snapshot?.id ?? (ctx.body as { id?: string } | undefined)?.id;
+				if (!id || !session?.user?.id) return;
+				await auditPasskeyEvent(
+					session.user.id,
+					activeOrganizationId,
+					"delete",
+					{ id, name: snapshot?.name },
+				);
+			}
+		}),
+	},
 	session: {
 		expiresIn: 60 * 60 * 24 * 3,
 		updateAge: 60 * 60 * 24,
@@ -400,6 +628,11 @@ const { handler, api } = betterAuth({
 		}),
 		sso(),
 		twoFactor(),
+		passkey({
+			rpID: passkeyRp.rpID,
+			rpName: passkeyRp.rpName,
+			// null origin: verify step uses the request Origin header (must match browser URL)
+		}),
 		organization({
 			ac,
 			roles: {

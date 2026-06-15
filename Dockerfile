@@ -17,7 +17,8 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # Deploy only the dokploy app
 
 ENV NODE_ENV=production
-RUN pnpm --filter=@dokploy/server build
+# tsc hits stack overflow on this tree; esbuild bundles server dist reliably
+RUN pnpm --filter=@dokploy/server run switch:prod && pnpm --filter=@dokploy/server exec tsx esbuild.config.ts
 RUN pnpm --filter=./apps/dokploy run build
 
 RUN pnpm --filter=./apps/dokploy --prod deploy --legacy /prod/dokploy

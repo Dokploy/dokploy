@@ -78,6 +78,7 @@ export type AuditResourceType =
 	| "notification"
 	| "settings"
 	| "session"
+	| "passkey"
 	| "port"
 	| "redirect"
 	| "security"

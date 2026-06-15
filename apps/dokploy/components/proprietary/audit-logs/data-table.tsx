@@ -71,6 +71,7 @@ const RESOURCE_OPTIONS = [
 	{ value: "notification", label: "Notifications" },
 	{ value: "settings", label: "Settings" },
 	{ value: "session", label: "Sessions (Login/Logout)" },
+	{ value: "passkey", label: "Passkeys" },
 ];
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
@@ -99,7 +100,8 @@ type AuditResourceType =
 	| "gitProvider"
 	| "notification"
 	| "settings"
-	| "session";
+	| "session"
+	| "passkey";
 
 export interface AuditLogFilters {
 	userEmail: string;
