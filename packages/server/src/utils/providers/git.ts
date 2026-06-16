@@ -4,6 +4,7 @@ import {
 	findSSHKeyById,
 	updateSSHKeyById,
 } from "@dokploy/server/services/ssh-key";
+import { quote } from "shell-quote";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 
 interface CloneGitRepository {
@@ -78,7 +79,7 @@ export const cloneGitRepository = async ({
 		command += "chmod 600 /tmp/id_rsa;";
 		command += `export GIT_SSH_COMMAND="${gitSshCommand}";`;
 	}
-	command += `if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath}; then
+	command += `if ! git clone --branch ${quote([customGitBranch ?? ""])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath}; then
 				echo "❌ [ERROR] Fail to clone the repository ${customGitUrl}";
 				exit 1;
 			fi
