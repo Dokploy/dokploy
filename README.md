@@ -1,64 +1,98 @@
-<div align="center">
-  <a href="https://dokploy.com">
-    <img src=".github/sponsors/logo.png" alt="Dokploy - Open Source Alternative to Vercel, Heroku and Netlify." width="100%"  />
-  </a>
-  </br>
-  </br>
-  <p>Join us on Discord for help, feedback, and discussions!</p>
-  <a href="https://discord.gg/2tBnJ3jDJc">
-    <img src="https://discordapp.com/api/guilds/1234073262418563112/widget.png?style=banner2" alt="Discord Shield"/>
-  </a>
-</div>
-<br />
+# Dokploy Community Edition
 
+> **This is a community fork of [Dokploy](https://github.com/Dokploy/dokploy).** We are **not** affiliated with or competing against the Dokploy project. This fork exists to make new features available faster while upstream PRs are under review. All features here are submitted as PRs to the official repository.
 
-Dokploy is a free, self-hostable Platform as a Service (PaaS) that simplifies the deployment and management of applications and databases.
+Based on **Dokploy v0.29.8** | Fork version **v0.29.8-devino.1**
 
-## ✨ Features
+## What's different
 
-Dokploy includes multiple features to make your life easier.
+This fork adds two features on top of the official Dokploy release:
 
-- **Applications**: Deploy any type of application (Node.js, PHP, Python, Go, Ruby, etc.).
-- **Databases**: Create and manage databases with support for MySQL, PostgreSQL, MongoDB, MariaDB, libsql, and Redis.
-- **Backups**: Automate backups for databases to an external storage destination.
-- **Docker Compose**: Native support for Docker Compose to manage complex applications.
-- **Multi Node**: Scale applications to multiple nodes using Docker Swarm to manage the cluster.
-- **Templates**: Deploy open-source templates (Plausible, Pocketbase, Calcom, etc.) with a single click.
-- **Traefik Integration**: Automatically integrates with Traefik for routing and load balancing.
-- **Real-time Monitoring**: Monitor CPU, memory, storage, and network usage for every resource.
-- **Docker Management**: Easily deploy and manage Docker containers.
-- **CLI/API**: Manage your applications and databases using the command line or through the API.
-- **Notifications**: Get notified when your deployments succeed or fail (via Slack, Discord, Telegram, Email, etc.).
-- **Multi Server**: Deploy and manage your applications remotely to external servers.
-- **Self-Hosted**: Self-host Dokploy on your VPS.
+### Concurrent Deployments ([PR #5](https://github.com/DevinoSolutions/dokploy-community/pull/5))
+- Per-server deployment queues with configurable concurrency (default: 1 = serial, same as stock)
+- Cancel deployments mid-build (queued or active)
+- Process-group isolation — cancelling one build doesn't affect others
 
-## 🚀 Getting Started
+### Docker Network Management ([PR #6](https://github.com/DevinoSolutions/dokploy-community/pull/6))
+- New Networks page in the sidebar
+- Create, delete, and manage Docker overlay networks
+- Attach networks to any application or database service
+- Per-resource network picker in the Advanced tab
 
-To get started, run the following command on a VPS:
+Both features are submitted as upstream PRs and will be removed from this fork once officially merged.
 
-Want to skip the installation process? [Try the Dokploy Cloud](https://app.dokploy.com).
+## Install
+
+Fresh install on a clean server (same requirements as Dokploy — Linux, root access):
 
 ```bash
-curl -sSL https://dokploy.com/install.sh | bash
+curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 ```
 
-For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
+Install a specific version:
 
+```bash
+export DOKPLOY_VERSION=v0.29.8-devino.1
+curl -sSL https://dokploy-community.devino.ca/install.sh | sh
+```
 
-[Github Sponsors](https://github.com/sponsors/Siumauricio)
+Update an existing installation:
 
-### Contributors 🤝
+```bash
+curl -sSL https://dokploy-community.devino.ca/install.sh | sh -s update
+```
 
-<a href="https://github.com/dokploy/dokploy/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=dokploy/dokploy" alt="Contributors" />
-</a>
+## Upgrade from official Dokploy
 
-## 📺 Video Tutorial
+If you're already running official `dokploy/dokploy`, you can switch to this fork:
 
-<a href="https://youtu.be/mznYKPvhcfw">
-  <img src="https://dokploy.com/banner.png" alt="Watch the video" width="400"/>
-</a>
+```bash
+docker service update \
+  --image ghcr.io/devinosolutions/dokploy-community:v0.29.8-devino.1 \
+  --with-registry-auth \
+  dokploy
+```
 
-## 🤝 Contributing
+The new migrations are additive (new table + new columns with defaults). Rollback to official is safe:
 
-Check out the [Contributing Guide](CONTRIBUTING.md) for more information.
+```bash
+docker service update --image dokploy/dokploy:v0.29.8 --with-registry-auth dokploy
+```
+
+## Docker Image
+
+```
+ghcr.io/devinosolutions/dokploy-community:v0.29.8-devino.1   # versioned (recommended)
+ghcr.io/devinosolutions/dokploy-community:canary              # latest build
+```
+
+The image is public — no authentication required.
+
+## Versioning
+
+We follow the scheme `v<upstream-version>-devino.<release>`:
+
+| Upstream | Fork release | Tag |
+|---|---|---|
+| v0.29.8 | 1st release | `v0.29.8-devino.1` |
+| v0.29.8 | 2nd fix | `v0.29.8-devino.2` |
+| v0.30.0 | 1st release | `v0.30.0-devino.1` |
+
+## Contributing
+
+This fork tracks upstream Dokploy's `canary` branch. To contribute:
+
+1. Fork this repo
+2. Create a feature branch from `canary`
+3. Open a PR targeting `canary`
+
+For features that should go upstream, please also open a PR on the [official Dokploy repo](https://github.com/Dokploy/dokploy).
+
+## Credits
+
+- [Dokploy](https://dokploy.com) — the original project by [@siumauricio](https://github.com/siumauricio)
+- This fork is maintained by [Devino Solutions](https://devino.ca)
+
+## License
+
+Same as upstream — [Apache 2.0](LICENSE)
