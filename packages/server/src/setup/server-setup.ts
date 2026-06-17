@@ -162,6 +162,17 @@ else
 	OS_VERSION=$(grep -w "VERSION_ID" /etc/os-release | cut -d "=" -f 2 | tr -d '"')
 fi
 
+# Ubuntu 26.04 (resolute) ships a docker-ce repo that has no 28.5.0, so the
+# default pin is absent from apt-cache madison and get.docker.com aborts before
+# installing Docker. Repin to a version present on every architecture Docker
+# ships resolute for: amd64/arm64/armhf start at 29.3.1, but s390x only carries
+# 29.4.0-29.4.2, so 29.4.2 is the newest version common to all of them. This
+# must run after OS_VERSION is resolved and before the banner so the reported
+# Docker version stays accurate.
+if [ "$OS_TYPE" = "ubuntu" ] && [ "$OS_VERSION" = "26.04" ]; then
+	DOCKER_VERSION=29.4.2
+fi
+
 if [ "$OS_TYPE" = 'amzn' ]; then
     $SUDO_CMD dnf install -y findutils >/dev/null
 fi
