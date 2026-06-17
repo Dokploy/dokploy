@@ -160,7 +160,7 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>
 						{certificateId ? "Update" : "Add New"} Certificate
@@ -200,7 +200,7 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 									<FormLabel>Certificate Data</FormLabel>
 									<FormControl>
 										<Textarea
-											className="h-32"
+											className="h-32 max-h-32 resize-none overflow-y-auto field-sizing-fixed"
 											placeholder={certificateDataHolder}
 											{...field}
 										/>
@@ -217,7 +217,7 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 									<FormLabel>Private Key</FormLabel>
 									<FormControl>
 										<Textarea
-											className="h-32"
+											className="h-32 max-h-32 resize-none overflow-y-auto field-sizing-fixed"
 											placeholder={privateKeyDataHolder}
 											{...field}
 										/>

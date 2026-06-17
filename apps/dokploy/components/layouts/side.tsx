@@ -653,7 +653,7 @@ function SidebarLogo() {
 										const isDefault = org.members?.[0]?.isDefault ?? false;
 										return (
 											<div
-												className="flex flex-row justify-between"
+												className="flex flex-row items-center justify-between gap-1"
 												key={org.name}
 											>
 												<DropdownMenuItem
@@ -663,25 +663,21 @@ function SidebarLogo() {
 														});
 														window.location.reload();
 													}}
-													className="w-full gap-2 p-2"
+													className="flex min-w-0 flex-1 gap-2 p-2"
 												>
-													<div className="flex flex-col gap-1">
-														<div className="flex items-center gap-2">
-															{org.name}
-														</div>
-													</div>
-													<div className="flex size-6 items-center justify-center rounded-sm border">
+													<div className="flex size-6 shrink-0 items-center justify-center rounded-sm border">
 														<Logo
 															className={cn(
 																"transition-all",
-																state === "collapsed" ? "size-6" : "size-10",
+																state === "collapsed" ? "size-4" : "size-5",
 															)}
 															logoUrl={org.logo ?? undefined}
 														/>
 													</div>
+													<span className="truncate">{org.name}</span>
 												</DropdownMenuItem>
 
-												<div className="flex items-center gap-2">
+												<div className="flex shrink-0 items-center gap-2">
 													<Button
 														variant="ghost"
 														size="icon"
