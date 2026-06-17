@@ -8,7 +8,7 @@ const execFileAsync = promisify(execFile);
 // Distroless cosign release image, entrypoint `cosign`, reads ~/.docker/config.json.
 // Pinned by digest because it is part of the verification TCB.
 export const DEFAULT_COSIGN_IMAGE =
-	"ghcr.io/sigstore/cosign/cosign:v2.4.1@sha256:REPLACE_WITH_PINNED_DIGEST";
+	"ghcr.io/sigstore/cosign/cosign:v2.4.1@sha256:b03690aa52bfe94054187142fba24dc54137650682810633901767d8a3e15b31";
 
 export type TrustPolicyVerification = {
 	mode: "keyed" | "keyless";
