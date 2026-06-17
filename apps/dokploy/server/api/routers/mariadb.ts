@@ -1,4 +1,5 @@
 import {
+	assertNetworkIdsAttachableToResource,
 	checkPortInUse,
 	createMariadb,
 	createMount,
@@ -372,6 +373,14 @@ export const mariadbRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mariadbId, {
 				service: ["create"],
 			});
+			if (input.networkIds !== undefined) {
+				const mariadb = await findMariadbById(mariadbId);
+				rest.networkIds = await assertNetworkIdsAttachableToResource(
+					input.networkIds,
+					ctx.session.activeOrganizationId,
+					mariadb.serverId,
+				);
+			}
 			const service = await updateMariadbById(mariadbId, {
 				...rest,
 			});

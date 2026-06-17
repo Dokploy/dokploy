@@ -71,7 +71,6 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 		undefined,
 		{ refetchInterval: 3000 },
 	);
-	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const utils = api.useUtils();
 	const {
 		mutateAsync: cancelApplicationDeployment,
@@ -157,8 +156,7 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 															—
 														</span>
 													)}
-													{isCloud &&
-														row.state === "active" &&
+													{row.state === "active" &&
 														(d?.applicationId != null ||
 															d?.composeId != null) && (
 															<Button

@@ -14,6 +14,7 @@ import { api } from "@/utils/api";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
 import { TerminalModal } from "../../web-server/terminal-modal";
 import { GPUSupportModal } from "../gpu-support-modal";
+import { ChangeConcurrencyModal } from "./change-concurrency-modal";
 
 export const ShowDokployActions = () => {
 	const { mutateAsync: reloadServer, isPending } =
@@ -61,6 +62,7 @@ export const ShowDokployActions = () => {
 						</DropdownMenuItem>
 					</ShowModalLogs>
 					<GPUSupportModal />
+					<ChangeConcurrencyModal serverId={null} />
 					<UpdateServerIp>
 						<DropdownMenuItem
 							className="cursor-pointer"

@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { ShowDeployment } from "../../application/deployments/show-deployment";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
+import { DeploymentConcurrencySection } from "./deployment-concurrency-section";
 import { EditScript } from "./edit-script";
 import { GPUSupport } from "./gpu-support";
 import { SecurityAudit } from "./security-audit";
@@ -320,6 +321,10 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 												/>
 											</CardContent>
 										</Card>
+
+										{!isBuildServer && (
+											<DeploymentConcurrencySection serverId={serverId} />
+										)}
 									</div>
 								</CardContent>
 							</TabsContent>

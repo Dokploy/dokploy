@@ -34,6 +34,7 @@ import {
 	apiFindOneServer,
 	apiRemoveServer,
 	apiUpdateServer,
+	apiUpdateServerDeploymentConcurrency,
 	apiUpdateServerMonitoring,
 	applications,
 	compose,
@@ -46,6 +47,7 @@ import {
 	server,
 } from "@/server/db/schema";
 import { applyDockerCleanupSchedule } from "@/server/utils/docker-cleanup";
+import { deploymentQueueManager } from "@/server/queues/queueSetup";
 
 export const serverRouter = createTRPCRouter({
 	create: withPermission("server", "create")
@@ -428,6 +430,11 @@ export const serverRouter = createTRPCRouter({
 				});
 				await removeDeploymentsByServerId(currentServer);
 				await deleteServer(input.serverId);
+				// Tear down the deleted server's in-process deployment queue + worker
+				// so it doesn't keep polling an orphaned Redis queue. Best-effort.
+				try {
+					await deploymentQueueManager.removeTarget(input.serverId);
+				} catch (_) {}
 
 				if (IS_CLOUD) {
 					const admin = await findUserById(ctx.user.ownerId);
@@ -478,6 +485,45 @@ export const serverRouter = createTRPCRouter({
 			} catch (error) {
 				throw error;
 			}
+		}),
+	updateDeploymentConcurrency: withPermission("server", "create")
+		.input(apiUpdateServerDeploymentConcurrency)
+		.mutation(async ({ input, ctx }) => {
+			const target = await findServerById(input.serverId);
+			if (target.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to update this server",
+				});
+			}
+
+			const updated = await updateServerById(input.serverId, {
+				deploymentConcurrency: input.deploymentConcurrency,
+			});
+
+			// Apply immediately to the in-process queue. In-flight jobs keep
+			// running; pending jobs stay queued.
+			if (!IS_CLOUD) {
+				try {
+					await deploymentQueueManager.updateConcurrency(
+						input.serverId,
+						input.deploymentConcurrency,
+					);
+				} catch (error) {
+					console.error(
+						"Failed to propagate concurrency change to queue manager",
+						error,
+					);
+				}
+			}
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "server",
+				resourceId: input.serverId,
+				resourceName: target.name,
+			});
+			return updated;
 		}),
 	publicIp: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {

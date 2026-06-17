@@ -1,4 +1,5 @@
 import {
+	assertNetworkIdsAttachableToResource,
 	checkPortInUse,
 	createLibsql,
 	createMount,
@@ -402,6 +403,14 @@ export const libsqlRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, libsqlId, {
 				service: ["create"],
 			});
+			if (input.networkIds !== undefined) {
+				const libsql = await findLibsqlById(libsqlId);
+				rest.networkIds = await assertNetworkIdsAttachableToResource(
+					input.networkIds,
+					ctx.session.activeOrganizationId,
+					libsql.serverId,
+				);
+			}
 			const libsql = await updateLibsqlById(libsqlId, {
 				...rest,
 			});

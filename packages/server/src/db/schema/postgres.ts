@@ -85,6 +85,7 @@ export const postgres = pgTable("postgres", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	networkIds: text("networkIds").array().default([]),
 });
 
 export const postgresRelations = relations(postgres, ({ one, many }) => ({
@@ -139,6 +140,7 @@ const createSchema = createInsertSchema(postgres, {
 	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
+	networkIds: z.array(z.string()).optional(),
 });
 
 export const apiCreatePostgres = createSchema.pick({

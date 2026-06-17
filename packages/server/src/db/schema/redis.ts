@@ -75,6 +75,7 @@ export const redis = pgTable("redis", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	networkIds: text("networkIds").array().default([]),
 });
 
 export const redisRelations = relations(redis, ({ one, many }) => ({
@@ -124,6 +125,7 @@ const createSchema = createInsertSchema(redis, {
 	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
+	networkIds: z.array(z.string()).optional(),
 });
 
 export const apiCreateRedis = createSchema.pick({

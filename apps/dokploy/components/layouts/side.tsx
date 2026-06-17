@@ -25,6 +25,7 @@ import {
 	Loader2,
 	LogIn,
 	type LucideIcon,
+	Network,
 	Package,
 	Palette,
 	PieChart,
@@ -207,6 +208,15 @@ const MENU: Menu = {
 			icon: PieChart,
 			// Only enabled for users with access to Docker
 			isEnabled: ({ permissions }) => !!permissions?.docker.read,
+		},
+		{
+			isSingle: true,
+			title: "Networks",
+			url: "/dashboard/networks",
+			icon: Network,
+			// Only enabled for users with network permission in non-cloud environments
+			isEnabled: ({ permissions, isCloud }) =>
+				!!(permissions?.network?.read && !isCloud),
 		},
 		{
 			isSingle: true,

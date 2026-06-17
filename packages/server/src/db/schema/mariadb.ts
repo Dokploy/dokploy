@@ -87,6 +87,7 @@ export const mariadb = pgTable("mariadb", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	networkIds: text("networkIds").array().default([]),
 });
 
 export const mariadbRelations = relations(mariadb, ({ one, many }) => ({
@@ -147,6 +148,7 @@ const createSchema = createInsertSchema(mariadb, {
 	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
+	networkIds: z.array(z.string()).optional(),
 });
 
 export const apiCreateMariaDB = createSchema.pick({

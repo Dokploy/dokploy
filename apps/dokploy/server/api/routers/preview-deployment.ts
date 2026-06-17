@@ -88,8 +88,11 @@ export const previewDeploymentRouter = createTRPCRouter({
 				server: !!application.serverId,
 			};
 
-			if (IS_CLOUD && application.serverId) {
+			if (application.serverId) {
 				jobData.serverId = application.serverId;
+			}
+
+			if (IS_CLOUD && application.serverId) {
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});

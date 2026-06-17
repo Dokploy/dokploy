@@ -3,12 +3,19 @@ import esbuild from "esbuild";
 
 const result = dotenv.config({ path: ".env.production" });
 
+// Keys whose value must be read from process.env at runtime, not baked in at
+// build time. Add a key here when an operator should be able to tune it from
+// docker-compose env / systemd unit / shell without rebuilding the bundle.
+const RUNTIME_ONLY_ENV_KEYS = new Set([
+	"DATABASE_URL",
+	"DEPLOYMENT_SHUTDOWN_GRACE_MS",
+]);
+
 function prepareDefine(config: DotenvParseOutput | undefined) {
 	const define = {};
 	// @ts-ignore
 	for (const [key, value] of Object.entries(config)) {
-		// Skip DATABASE_URL to allow runtime environment variable override
-		if (key === "DATABASE_URL") {
+		if (RUNTIME_ONLY_ENV_KEYS.has(key)) {
 			continue;
 		}
 		// @ts-ignore

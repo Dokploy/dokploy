@@ -67,6 +67,7 @@ const baseSettings: WebServerSettings = {
 	cleanupCacheOnPreviews: false,
 	remoteServersOnly: false,
 	enforceSSO: false,
+	deploymentConcurrency: 1,
 	createdAt: null,
 	updatedAt: new Date(),
 };

@@ -75,8 +75,6 @@ export const ShowDeployments = ({
 			},
 		);
 
-	const { data: isCloud } = api.settings.isCloud.useQuery();
-
 	const { mutateAsync: rollback, isPending: isRollingBack } =
 		api.rollback.rollback.useMutation();
 	const { mutateAsync: killProcess, isPending: isKillingProcess } =
@@ -121,7 +119,7 @@ export const ShowDeployments = ({
 
 	// Check for stuck deployment (more than 9 minutes) - only for the most recent deployment
 	const stuckDeployment = useMemo(() => {
-		if (!isCloud || !deployments || deployments.length === 0) return null;
+		if (!deployments || deployments.length === 0) return null;
 
 		const now = Date.now();
 		const NINE_MINUTES = 10 * 60 * 1000; // 9 minutes in milliseconds
@@ -141,7 +139,7 @@ export const ShowDeployments = ({
 		const elapsed = now - startTime;
 
 		return elapsed > NINE_MINUTES ? mostRecentDeployment : null;
-	}, [isCloud, deployments]);
+	}, [deployments]);
 	useEffect(() => {
 		setUrl(document.location.origin);
 	}, []);

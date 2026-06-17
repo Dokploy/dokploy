@@ -133,10 +133,10 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "application",
 					server: !!app.serverId,
+					...(app.serverId && { serverId: app.serverId }),
 				};
 
 				if (IS_CLOUD && app.serverId) {
-					jobData.serverId = app.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -172,10 +172,10 @@ export default async function handler(
 					applicationType: "compose",
 					descriptionLog: `Hash: ${deploymentHash}`,
 					server: !!composeApp.serverId,
+					...(composeApp.serverId && { serverId: composeApp.serverId }),
 				};
 
 				if (IS_CLOUD && composeApp.serverId) {
-					jobData.serverId = composeApp.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -244,6 +244,7 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "application",
 					server: !!app.serverId,
+					...(app.serverId && { serverId: app.serverId }),
 				};
 
 				const shouldDeployPaths = shouldDeploy(
@@ -256,7 +257,6 @@ export default async function handler(
 				}
 
 				if (IS_CLOUD && app.serverId) {
-					jobData.serverId = app.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -292,6 +292,7 @@ export default async function handler(
 					applicationType: "compose",
 					descriptionLog: `Hash: ${deploymentHash}`,
 					server: !!composeApp.serverId,
+					...(composeApp.serverId && { serverId: composeApp.serverId }),
 				};
 
 				const shouldDeployPaths = shouldDeploy(
@@ -303,7 +304,6 @@ export default async function handler(
 					continue;
 				}
 				if (IS_CLOUD && composeApp.serverId) {
-					jobData.serverId = composeApp.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -508,12 +508,12 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "application-preview",
 					server: !!app.serverId,
+					...(app.serverId && { serverId: app.serverId }),
 					previewDeploymentId,
 				};
 
 				if (previewDeploymentId) {
 					if (IS_CLOUD && app.serverId) {
-						jobData.serverId = app.serverId;
 						deploy(jobData).catch((error) => {
 							console.error("Background deployment failed:", error);
 						});
