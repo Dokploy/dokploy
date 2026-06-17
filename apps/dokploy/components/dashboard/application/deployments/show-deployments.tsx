@@ -147,7 +147,7 @@ export const ShowDeployments = ({
 	}, []);
 
 	return (
-		<Card className="bg-background border-none">
+		<Card className="bg-background border-0">
 			<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
 				<div className="flex flex-col gap-2">
 					<CardTitle className="text-xl">Deployments</CardTitle>
@@ -233,7 +233,6 @@ export const ShowDeployments = ({
 							<span>Webhook URL: </span>
 							<div className="flex flex-row items-center gap-2">
 								<Badge
-									role="button"
 									tabIndex={0}
 									aria-label="Copy webhook URL to clipboard"
 									className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all"

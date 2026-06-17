@@ -73,7 +73,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 	};
 
 	return (
-		<Card className="border px-6 shadow-none bg-transparent h-full min-h-[50vh]">
+		<Card className=" px-6 shadow-none bg-transparent h-full min-h-[50vh]">
 			<CardHeader className="px-0">
 				<div className="flex justify-between items-center gap-y-2 flex-wrap">
 					<div className="flex flex-col gap-2">
