@@ -1,6 +1,6 @@
 # Dokploy Community Edition
 
-> **This is a community fork of [Dokploy](https://github.com/Dokploy/dokploy).** We are **not** affiliated with or competing against the Dokploy project. This fork exists to make new features available faster while upstream PRs are under review. All features here are submitted as PRs to the official repository.
+> **This is a community fork of [Dokploy](https://github.com/Dokploy/dokploy).** We are **not** affiliated with or competing against the Dokploy project. This fork exists to make new features available faster.
 
 Based on **Dokploy v0.29.8** | Fork version **v0.29.8-devino.1**
 
@@ -8,7 +8,7 @@ Based on **Dokploy v0.29.8** | Fork version **v0.29.8-devino.1**
 
 This fork adds two features on top of the official Dokploy release:
 
-### Concurrent Deployments ([PR #5](https://github.com/DevinoSolutions/dokploy-community/pull/5))
+### Concurrent Deployments
 - Per-server deployment queues with configurable concurrency (default: 1 = serial, same as stock)
 - Cancel deployments mid-build (queued or active)
 - Process-group isolation — cancelling one build doesn't affect others
@@ -16,16 +16,13 @@ This fork adds two features on top of the official Dokploy release:
 
 https://github.com/user-attachments/assets/94134095-5601-4279-be2f-219734c8e199
 
-
-### Docker Network Management ([PR #6](https://github.com/DevinoSolutions/dokploy-community/pull/6))
+### Docker Network Management
 - New Networks page in the sidebar
 - Create, delete, and manage Docker overlay networks
 - Attach networks to any application or database service
 - Per-resource network picker in the Advanced tab
-- 
+  
 https://github.com/user-attachments/assets/628dda12-0524-4b3f-9a13-e4679488889a
-
-Both features are submitted as upstream PRs and will be removed from this fork once officially merged.
 
 ## Install
 
