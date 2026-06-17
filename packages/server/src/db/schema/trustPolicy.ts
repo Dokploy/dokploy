@@ -85,10 +85,13 @@ export const apiCreateTrustPolicy = refineMode(
 );
 
 export const apiUpdateTrustPolicy = refineMode(
-	createSchema.partial().extend({
-		trustPolicyId: z.string().min(1),
-		mode: z.enum(["keyed", "keyless"]),
-	}),
+	createSchema
+		.omit({ organizationId: true, createdAt: true })
+		.partial()
+		.extend({
+			trustPolicyId: z.string().min(1),
+			mode: z.enum(["keyed", "keyless"]),
+		}),
 );
 
 export const apiFindOneTrustPolicy = z.object({

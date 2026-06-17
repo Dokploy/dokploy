@@ -15,8 +15,9 @@ export function extractImageName(dockerImage: string | null): string | null {
 		return ref;
 	}
 	const afterColon = ref.slice(lastColonIndex + 1);
-	// A pure-numeric (or numeric+path) segment after ':' is a registry port, not a tag.
-	if (/^\d{1,5}$/.test(afterColon) || /^\d{1,5}\//.test(afterColon)) {
+	// A numeric segment after ':' is a registry port only when a path follows
+	// it (host:port/repo). A bare numeric (e.g. "name:123") is a TAG → split.
+	if (/^\d{1,5}\//.test(afterColon)) {
 		return ref;
 	}
 	return ref.slice(0, lastColonIndex);

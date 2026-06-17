@@ -44,7 +44,7 @@ export async function admitImage(
 				opts.creds.username,
 				opts.creds.password,
 			);
-			await run(`DOCKER_CONFIG=${quote([dir])} ${login}`);
+			await run(`export DOCKER_CONFIG=${quote([dir])}; ${login}`);
 		}
 		const pinned = await resolveDigest(ref, {
 			serverId: opts.serverId,

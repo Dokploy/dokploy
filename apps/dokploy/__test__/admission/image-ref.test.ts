@@ -66,4 +66,17 @@ describe("image-ref parsing", () => {
 		);
 		expect(buildPinnedRef("alpine", "sha256:def")).toBe("alpine@sha256:def");
 	});
+
+	it("treats a bare numeric segment as a tag, not a port", () => {
+		expect(extractImageName("nginx:123")).toBe("nginx");
+		expect(extractImageTag("nginx:123")).toBe("123");
+		expect(extractImageName("ghcr.io/org/app:8080")).toBe("ghcr.io/org/app");
+		expect(parseImageRef("ghcr.io/org/app:8080")).toEqual({
+			name: "ghcr.io/org/app",
+			tag: "8080",
+			digest: null,
+		});
+		// host:port/path with no tag is still NOT split (true port case)
+		expect(extractImageName("registry:5000/app")).toBe("registry:5000/app");
+	});
 });
