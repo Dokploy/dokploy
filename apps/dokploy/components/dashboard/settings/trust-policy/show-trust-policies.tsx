@@ -13,9 +13,10 @@ import { api } from "@/utils/api";
 import { HandleTrustPolicy } from "./handle-trust-policy";
 
 export const ShowTrustPolicies = () => {
+	const utils = api.useUtils();
 	const { mutateAsync, isPending: isRemoving } =
 		api.trustPolicy.remove.useMutation();
-	const { data, isPending, refetch } = api.trustPolicy.all.useQuery();
+	const { data, isPending } = api.trustPolicy.all.useQuery();
 
 	return (
 		<div className="w-full">
@@ -104,11 +105,11 @@ export const ShowTrustPolicies = () => {
 																	await mutateAsync({
 																		trustPolicyId: policy.trustPolicyId,
 																	})
-																		.then(() => {
+																		.then(async () => {
 																			toast.success(
 																				"Trust policy deleted successfully",
 																			);
-																			refetch();
+																			await utils.trustPolicy.all.invalidate();
 																		})
 																		.catch(() => {
 																			toast.error(
