@@ -5,7 +5,8 @@ import {
 } from "@dokploy/server/utils/admission/verify-signature";
 import { describe, expect, it } from "vitest";
 
-const REF = "ghcr.io/org/app@sha256:abc";
+const REF = `ghcr.io/org/app@sha256:${"a".repeat(64)}`;
+const MIRROR = `mirror.example.com/cosign@sha256:${"b".repeat(64)}`;
 
 describe("buildCosignArgs", () => {
 	it("keyed mode uses --key env://COSIGN_KEY and ends with the ref", () => {
@@ -51,6 +52,12 @@ describe("buildCosignArgs", () => {
 			buildCosignArgs(REF, { mode: "keyless", certificateOidcIssuer: "x" }),
 		).toThrow();
 	});
+
+	it("rejects a non-digest pinned ref (argv flag-smuggling guard)", () => {
+		expect(() =>
+			buildCosignArgs("nginx:latest", { mode: "keyed", publicKey: "k" }),
+		).toThrow();
+	});
 });
 
 describe("buildCosignDockerArgv", () => {
@@ -84,10 +91,34 @@ describe("buildCosignDockerArgv", () => {
 			},
 			{
 				dockerConfigDir: "/d",
-				cosignImage: "mirror.example.com/cosign@sha256:zzz",
+				cosignImage: MIRROR,
 			},
 		);
-		expect(argv).toContain("mirror.example.com/cosign@sha256:zzz");
+		expect(argv).toContain(MIRROR);
 		expect(argv).not.toContain("-e"); // keyless: no COSIGN_KEY env
+	});
+
+	it("rejects a flag-like cosignImage override", () => {
+		expect(() =>
+			buildCosignDockerArgv(
+				REF,
+				{
+					mode: "keyless",
+					certificateIdentityRegexp: "a",
+					certificateOidcIssuer: "b",
+				},
+				{ dockerConfigDir: "/d", cosignImage: "-v/etc/passwd:/x" },
+			),
+		).toThrow();
+	});
+
+	it("rejects a dockerConfigDir containing a colon", () => {
+		expect(() =>
+			buildCosignDockerArgv(
+				REF,
+				{ mode: "keyed", publicKey: "k" },
+				{ dockerConfigDir: "/etc/dokploy:evil" },
+			),
+		).toThrow();
 	});
 });
