@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { CopyableInput } from "@/components/shared/copyable-input";
 import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 import { UpdateDatabasePassword } from "@/components/shared/update-database-password";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +26,7 @@ export const ShowInternalRedisCredentials = ({ redisId }: Props) => {
 						<div className="grid w-full md:grid-cols-2 gap-4 md:gap-8">
 							<div className="flex flex-col gap-2">
 								<Label>User</Label>
-								<Input disabled value="default" />
+								<CopyableInput disabled value="default" />
 							</div>
 							<div className="flex flex-col gap-2">
 								<Label>Password</Label>
@@ -60,7 +61,7 @@ export const ShowInternalRedisCredentials = ({ redisId }: Props) => {
 								<Label>Internal Connection URL </Label>
 								<ToggleVisibilityInput
 									disabled
-									value={`redis://default:${data?.databasePassword}@${data?.appName}:6379`}
+									value={`redis://default:***@${data?.appName}:6379`}
 								/>
 							</div>
 						</div>

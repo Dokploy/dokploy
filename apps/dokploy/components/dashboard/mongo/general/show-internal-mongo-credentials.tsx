@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { CopyableInput } from "@/components/shared/copyable-input";
 import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 import { UpdateDatabasePassword } from "@/components/shared/update-database-password";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +26,7 @@ export const ShowInternalMongoCredentials = ({ mongoId }: Props) => {
 						<div className="grid w-full md:grid-cols-2 gap-4 md:gap-8">
 							<div className="flex flex-col gap-2">
 								<Label>User</Label>
-								<Input disabled value={data?.databaseUser} />
+								<CopyableInput disabled value={data?.databaseUser} />
 							</div>
 
 							<div className="flex flex-col gap-2">
@@ -62,7 +63,7 @@ export const ShowInternalMongoCredentials = ({ mongoId }: Props) => {
 								<Label>Internal Connection URL </Label>
 								<ToggleVisibilityInput
 									disabled
-									value={`mongodb://${data?.databaseUser}:${data?.databasePassword}@${data?.appName}:27017/?authSource=admin${data?.replicaSets ? "" : "&directConnection=true"}`}
+									value={`mongodb://${data?.databaseUser}:***@${data?.appName}:27017/?authSource=admin${data?.replicaSets ? "" : "&directConnection=true"}`}
 								/>
 							</div>
 						</div>

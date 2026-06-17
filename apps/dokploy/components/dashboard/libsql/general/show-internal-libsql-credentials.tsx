@@ -1,4 +1,5 @@
 import { SelectGroup } from "@radix-ui/react-select";
+import { CopyableInput } from "@/components/shared/copyable-input";
 import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,7 @@ export const ShowInternalLibsqlCredentials = ({ libsqlId }: Props) => {
 						<div className="grid w-full md:grid-cols-2 gap-4 md:gap-8">
 							<div className="flex flex-col gap-2">
 								<Label>User</Label>
-								<Input disabled value={data?.databaseUser} />
+								<CopyableInput disabled value={data?.databaseUser} />
 							</div>
 							<div className="flex flex-col gap-2">
 								<Label>Sqld Node</Label>
