@@ -36,10 +36,9 @@ describe("selectRepoDigest", () => {
 		).toThrow();
 	});
 
-	it("throws on a registry-less local-only digest", () => {
-		// containerd image store can yield a name with no registry/repo path
-		expect(() =>
-			selectRepoDigest(["local-built-test@sha256:xyz"], "local-built-test"),
-		).toThrow();
+	it("pins a bare matched ref — local-only protection lives in resolveDigest's docker pull, not in this pure function", () => {
+		expect(selectRepoDigest(["nginx@sha256:aaa"], "nginx")).toBe(
+			"nginx@sha256:aaa",
+		);
 	});
 });

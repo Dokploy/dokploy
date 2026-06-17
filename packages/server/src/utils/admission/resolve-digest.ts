@@ -14,18 +14,6 @@ export function selectRepoDigest(
 		);
 	}
 	const wantRepo = normalizeRepo(parseImageRef(originalRef).name);
-	// A deployed ref is registry-resolvable if it carries a registry/namespace
-	// path, or it is a tagged bare name that normalizes to a Docker Hub library
-	// image (e.g. "nginx:1.27"). A bare single-segment name with no tag and no
-	// path (e.g. "local-built-test") cannot be verified as pullable: fail closed.
-	const isResolvable =
-		originalRef.includes("/") ||
-		(originalRef.includes(":") && wantRepo.startsWith("docker.io/library/"));
-	if (!isResolvable) {
-		throw new Error(
-			`Refusing to pin "${originalRef}": not a registry-resolvable reference.`,
-		);
-	}
 	for (const entry of repoDigests) {
 		const atIndex = entry.lastIndexOf("@");
 		if (atIndex === -1) continue;
@@ -50,6 +38,7 @@ export async function resolveDigest(
 		onLog?: (line: string) => void;
 	},
 ): Promise<string> {
+	// docker pull is the registry-resolvability guard: a non-pullable / local-only ref fails here and resolveDigest throws (fail-closed) before any selection.
 	const pull = `DOCKER_CONFIG=${quote([opts.dockerConfigDir])} docker pull ${quote([ref])}`;
 	const inspect = `DOCKER_CONFIG=${quote([opts.dockerConfigDir])} docker inspect --format '{{json .RepoDigests}}' ${quote([ref])}`;
 
