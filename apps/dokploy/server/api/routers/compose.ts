@@ -68,11 +68,9 @@ import {
 	environments,
 	projects,
 } from "@/server/db/schema";
-import { deploymentWorker } from "@/server/queues/deployments-queue";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByCompose,
-	getJobsByComposeId,
 	killDockerBuild,
 	myQueue,
 } from "@/server/queues/queueSetup";
@@ -252,12 +250,7 @@ export const composeRouter = createTRPCRouter({
 				.returning();
 
 			if (!IS_CLOUD) {
-				const queueJobs = await getJobsByComposeId(input.composeId);
-				for (const job of queueJobs) {
-					if (job.id) {
-						deploymentWorker.cancelJob(job.id, "User requested cancellation");
-					}
-				}
+				await cleanQueuesByCompose(input.composeId);
 			}
 
 			const cleanupOperations = [
@@ -430,10 +423,10 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
+				serverId: compose.serverId ?? undefined,
 			};
 
 			if (IS_CLOUD && compose.serverId) {
-				jobData.serverId = compose.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
@@ -479,9 +472,9 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
+				serverId: compose.serverId ?? undefined,
 			};
 			if (IS_CLOUD && compose.serverId) {
-				jobData.serverId = compose.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});

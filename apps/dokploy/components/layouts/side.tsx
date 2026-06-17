@@ -300,6 +300,14 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			title: "Deployments",
+			url: "/dashboard/settings/deployments",
+			icon: Boxes,
+			isEnabled: ({ permissions, isCloud }) =>
+				!!(permissions?.server.read && !isCloud),
+		},
+		{
+			isSingle: true,
 			title: "Users",
 			icon: Users,
 			url: "/dashboard/settings/users",
