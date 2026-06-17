@@ -300,7 +300,16 @@ export const validateDomainForServer = async (params: {
 	}
 
 	if (validationMode === "proxy") {
-		return validateDomain(domain, expectedIp ? [expectedIp] : []);
+		// Proxy mode must check against an explicit IP. Without one we would fall
+		// through to a resolve-only "valid" result, silently behaving like skip.
+		const trimmedExpectedIp = expectedIp?.trim();
+		if (!trimmedExpectedIp) {
+			return {
+				isValid: false,
+				error: "Proxy validation requires an expected IP address",
+			};
+		}
+		return validateDomain(domain, [trimmedExpectedIp]);
 	}
 
 	const expectedIps = await getServerIps(serverId);

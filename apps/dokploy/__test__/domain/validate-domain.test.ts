@@ -77,6 +77,20 @@ describe("validateDomainForServer (validation modes)", () => {
 		expect(invalid.isValid).toBe(false);
 	});
 
+	it("proxy mode without an expected IP is rejected (does not behave like skip)", async () => {
+		dnsState.addresses = ["198.51.100.5"];
+
+		for (const expectedIp of [undefined, null, "", "   "]) {
+			const result = await validateDomainForServer({
+				domain: "proxied.example.com",
+				validationMode: "proxy",
+				expectedIp,
+			});
+			expect(result.isValid).toBe(false);
+			expect(result.error).toContain("expected IP");
+		}
+	});
+
 	it("skip mode only confirms the domain resolves", async () => {
 		dnsState.addresses = ["198.51.100.5"];
 
