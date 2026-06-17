@@ -12,7 +12,7 @@ import {
 	removeDomain,
 	removeDomainById,
 	updateDomainById,
-	validateDomain,
+	validateDomainForServer,
 } from "@dokploy/server";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
@@ -196,10 +196,19 @@ export const domainRouter = createTRPCRouter({
 		.input(
 			z.object({
 				domain: z.string(),
+				serverId: z.string().optional(),
 				serverIp: z.string().optional(),
+				validationMode: z.enum(["auto", "proxy", "skip"]).optional(),
+				expectedIp: z.string().nullable().optional(),
 			}),
 		)
 		.mutation(async ({ input }) => {
-			return validateDomain(input.domain, input.serverIp);
+			return validateDomainForServer({
+				domain: input.domain,
+				validationMode: input.validationMode,
+				expectedIp: input.expectedIp,
+				serverId: input.serverId,
+				serverIp: input.serverIp,
+			});
 		}),
 });
