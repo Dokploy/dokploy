@@ -39,7 +39,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
-import { BuildsConcurrency } from "./actions/builds-concurrency";
 
 const Schema = z.object({
 	name: z.string().min(1, {
@@ -445,7 +444,6 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 								</FormItem>
 							)}
 						/>
-						{serverId && <BuildsConcurrency serverId={serverId} />}
 					</form>
 
 					<DialogFooter>

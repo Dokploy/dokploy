@@ -170,11 +170,11 @@ export const apiUpdateWebServerSettings = createSchema.partial().extend({
 	cleanupCacheOnCompose: z.boolean().optional(),
 	remoteServersOnly: z.boolean().optional(),
 	enforceSSO: z.boolean().optional(),
-	buildsConcurrency: z.number().int().min(1).max(20).optional(),
+	buildsConcurrency: z.number().int().min(1).max(100).optional(),
 });
 
 export const apiUpdateWebServerBuildsConcurrency = z.object({
-	buildsConcurrency: z.number().int().min(1).max(20),
+	buildsConcurrency: z.number().int().min(1).max(100),
 });
 
 export const apiAssignDomain = z

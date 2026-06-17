@@ -2,6 +2,7 @@ import { db } from "@dokploy/server/db";
 import { organization, server } from "@dokploy/server/db/schema";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
+import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { LOCAL_PARTITION } from "./in-memory-queue";
 
@@ -35,9 +36,32 @@ export const resolveBuildsConcurrency = async (
 	}
 };
 
+// Max concurrent builds allowed without an enterprise license. With a valid
+// license the value is unbounded (N) — only the free tier is capped.
+export const FREE_MAX_CONCURRENCY = 2;
+
 const clamp = (value: number, licensed: boolean): number => {
-	if (!licensed) return 1;
-	return Math.min(20, Math.max(1, value));
+	const min = Math.max(1, Math.floor(value));
+	return licensed ? min : Math.min(FREE_MAX_CONCURRENCY, min);
+};
+
+/**
+ * Validate a requested builds-concurrency value before persisting it. Free tier
+ * may set up to FREE_MAX_CONCURRENCY; anything higher requires a valid
+ * enterprise license. Throws a TRPCError when the value is not allowed.
+ */
+export const assertBuildsConcurrencyAllowed = async (
+	value: number,
+	organizationId: string,
+): Promise<void> => {
+	if (value <= FREE_MAX_CONCURRENCY) return;
+	const licensed = await hasValidLicense(organizationId);
+	if (!licensed) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: `A valid enterprise license is required to set more than ${FREE_MAX_CONCURRENCY} concurrent builds.`,
+		});
+	}
 };
 
 const resolveLocalConcurrency = async (): Promise<number> => {

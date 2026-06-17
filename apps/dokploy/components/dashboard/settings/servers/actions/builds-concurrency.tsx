@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
-const clamp = (value: number) => Math.min(20, Math.max(1, value));
+// Free tier may set up to 2 concurrent builds; enterprise unlocks more.
+const FREE_MAX_CONCURRENCY = 2;
+const ENTERPRISE_MAX_CONCURRENCY = 100;
 
 interface Props {
 	/**
@@ -12,14 +14,17 @@ interface Props {
 	 * omitted, configures the local Dokploy web server.
 	 */
 	serverId?: string;
+	/** Optional title override (e.g. the server name in a list). */
+	label?: string;
 }
 
 /**
- * Enterprise-only control to set the number of concurrent builds, either for a
- * remote server (`serverId` provided) or the local web server (omitted).
- * Hidden when the instance has no valid license.
+ * Control to set the number of concurrent builds, either for a remote server
+ * (`serverId` provided) or the local web server (omitted). Available to
+ * everyone self-hosted up to FREE_MAX_CONCURRENCY; higher values require a
+ * valid enterprise license. Not shown in cloud.
  */
-export const BuildsConcurrency = ({ serverId }: Props) => {
+export const BuildsConcurrency = ({ serverId, label }: Props) => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: haveValidLicense } =
 		api.licenseKey.haveValidLicenseKey.useQuery();
@@ -51,8 +56,13 @@ export const BuildsConcurrency = ({ serverId }: Props) => {
 		}
 	}, [current]);
 
-	// Concurrent builds are a self-hosted enterprise feature; not shown in cloud.
-	if (isCloud || !haveValidLicense) return null;
+	// Concurrent builds are a self-hosted feature; not shown in cloud.
+	if (isCloud) return null;
+
+	const max = haveValidLicense
+		? ENTERPRISE_MAX_CONCURRENCY
+		: FREE_MAX_CONCURRENCY;
+	const clamp = (n: number) => Math.min(max, Math.max(1, n));
 
 	const handleSave = async () => {
 		const parsed = clamp(Number.parseInt(value, 10) || 1);
@@ -73,33 +83,39 @@ export const BuildsConcurrency = ({ serverId }: Props) => {
 	const hasChanges = Number(value) !== (current ?? 1);
 
 	return (
-		<div className="flex flex-row items-center justify-between rounded-lg border p-3">
-			<div className="space-y-0.5">
-				<p className="text-sm font-medium">Concurrent Builds</p>
-				<p className="text-sm text-muted-foreground">
-					Maximum number of deployments that can build at the same time on
-					{serverId ? " this server" : " the local Dokploy server"}. Builds of
-					the same service are always serialized.
-				</p>
-			</div>
-			<div className="flex items-center gap-2">
-				<Input
-					type="number"
-					min={1}
-					max={20}
-					value={value}
-					onChange={(e) => setValue(e.target.value)}
-					className="w-20"
-				/>
-				<Button
-					type="button"
-					size="sm"
-					onClick={handleSave}
-					isLoading={isPending}
-					disabled={!hasChanges}
-				>
-					Save
-				</Button>
+		<div className="flex flex-col gap-3 rounded-lg border p-3">
+			<div className="flex flex-row items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<div className="flex items-center gap-2">
+						<p className="text-sm font-medium">
+							{label ?? serverQuery.data?.name ?? "Dokploy Server"}
+						</p>
+						<span className="text-xs text-muted-foreground rounded border px-1.5 py-0.5">
+							{serverId
+								? (serverQuery.data?.ipAddress ?? "remote server")
+								: "local host"}
+						</span>
+					</div>
+				</div>
+				<div className="flex items-center gap-2">
+					<Input
+						type="number"
+						min={1}
+						max={max}
+						value={value}
+						onChange={(e) => setValue(e.target.value)}
+						className="w-20"
+					/>
+					<Button
+						type="button"
+						size="sm"
+						onClick={handleSave}
+						isLoading={isPending}
+						disabled={!hasChanges}
+					>
+						Save
+					</Button>
+				</div>
 			</div>
 		</div>
 	);

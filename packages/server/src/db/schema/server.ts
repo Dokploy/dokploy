@@ -185,7 +185,7 @@ export const apiUpdateServer = createSchema
 
 export const apiUpdateServerBuildsConcurrency = z.object({
 	serverId: z.string().min(1),
-	buildsConcurrency: z.number().int().min(1).max(20),
+	buildsConcurrency: z.number().int().min(1).max(100),
 });
 
 export const apiUpdateServerMonitoring = createSchema
