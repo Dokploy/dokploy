@@ -13,11 +13,17 @@ This fork adds two features on top of the official Dokploy release:
 - Cancel deployments mid-build (queued or active)
 - Process-group isolation — cancelling one build doesn't affect others
 
+
+https://github.com/user-attachments/assets/94134095-5601-4279-be2f-219734c8e199
+
+
 ### Docker Network Management ([PR #6](https://github.com/DevinoSolutions/dokploy-community/pull/6))
 - New Networks page in the sidebar
 - Create, delete, and manage Docker overlay networks
 - Attach networks to any application or database service
 - Per-resource network picker in the Advanced tab
+- 
+https://github.com/user-attachments/assets/628dda12-0524-4b3f-9a13-e4679488889a
 
 Both features are submitted as upstream PRs and will be removed from this fork once officially merged.
 
