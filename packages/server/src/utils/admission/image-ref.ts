@@ -55,7 +55,8 @@ export function parseImageRef(ref: string): {
 	const digest = atIndex === -1 ? null : ref.slice(atIndex + 1);
 	const beforeDigest = atIndex === -1 ? ref : ref.slice(0, atIndex);
 	const name = extractImageName(beforeDigest) ?? beforeDigest;
-	const tag = name === beforeDigest ? null : beforeDigest.slice(name.length + 1);
+	const tag =
+		name === beforeDigest ? null : beforeDigest.slice(name.length + 1);
 	return { name, tag: tag || null, digest };
 }
 
