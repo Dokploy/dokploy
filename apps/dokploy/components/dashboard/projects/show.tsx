@@ -207,7 +207,7 @@ export const ShowProjects = () => {
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl  ">
 					<div className="rounded-xl bg-background shadow-md ">
 						<div className="flex justify-between gap-4 w-full items-center flex-wrap p-6">
-							<CardHeader className="p-0">
+							<CardHeader className="flex-1 p-0">
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
 									Projects

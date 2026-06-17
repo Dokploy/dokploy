@@ -67,7 +67,7 @@ export const NodeSection = ({
 												? "default"
 												: group.nodeStatus.ManagerStatus === "Reachable"
 													? "secondary"
-													: "outline"
+													: "outline-solid"
 										}
 										className="text-[10px]"
 									>

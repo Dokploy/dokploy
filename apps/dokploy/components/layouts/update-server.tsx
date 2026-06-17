@@ -84,11 +84,11 @@ export const UpdateServerButton = () => {
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button
-								variant={updateData ? "outline" : "secondary"}
+								variant={updateData ? "outline-solid" : "secondary"}
 								className="w-full"
 								onClick={() => setIsOpen(true)}
 							>
-								<Download className="h-4 w-4 flex-shrink-0" />
+								<Download className="h-4 w-4 shrink-0" />
 								{updateData ? (
 									<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
 										Update Available

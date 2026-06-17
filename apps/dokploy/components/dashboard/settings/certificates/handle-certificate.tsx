@@ -292,7 +292,7 @@ export const HandleCertificate = ({ certificateId }: Props) => {
 						)}
 					</form>
 
-					<DialogFooter className="flex w-full flex-row !justify-end">
+					<DialogFooter className="flex w-full flex-row justify-end!">
 						<Button
 							isLoading={isPending}
 							form="hook-form-handle-certificate"

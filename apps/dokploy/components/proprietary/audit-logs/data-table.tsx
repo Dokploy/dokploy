@@ -1,7 +1,6 @@
 "use client";
 
 import type { AuditLog } from "@dokploy/server/db/schema";
-import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import {
 	type ColumnDef,
 	flexRender,
@@ -21,6 +20,7 @@ import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
+	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {

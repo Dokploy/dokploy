@@ -301,7 +301,7 @@ export const ShowDeployments = ({
 										</span>
 
 										<div className="flex flex-col gap-1">
-											<span className="break-words text-sm text-muted-foreground whitespace-pre-wrap">
+											<span className="wrap-break-word text-sm text-muted-foreground whitespace-pre-wrap">
 												{isExpanded || !needsTruncation
 													? titleText
 													: truncateDescription(titleText)}

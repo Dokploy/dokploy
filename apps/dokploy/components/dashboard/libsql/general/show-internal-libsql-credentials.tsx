@@ -1,4 +1,3 @@
-import { SelectGroup } from "@radix-ui/react-select";
 import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

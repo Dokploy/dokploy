@@ -186,7 +186,7 @@ export const WebDomain = () => {
 									control={form.control}
 									name="https"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm w-full col-span-2">
+										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs w-full col-span-2">
 											<div className="space-y-0.5">
 												<FormLabel>HTTPS</FormLabel>
 												<FormDescription>

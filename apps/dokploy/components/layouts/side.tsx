@@ -797,7 +797,7 @@ function SidebarLogo() {
 								>
 									<Bell className="size-4" />
 									{invitations && invitations.length > 0 && (
-										<span className="absolute -top-0 -right-0 flex size-4 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
+										<span className="absolute top-0 right-0 flex size-4 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
 											{invitations.length}
 										</span>
 									)}
@@ -952,7 +952,7 @@ export default function Page({ children }: Props) {
 			<Sidebar collapsible="icon" variant="floating">
 				<SidebarHeader>
 					{/* <SidebarMenuButton
-						className="group-data-[collapsible=icon]:!p-0"
+						className="group-data-[collapsible=icon]:p-0!"
 						size="lg"
 					> */}
 					<LogoWrapper />
@@ -1186,7 +1186,7 @@ export default function Page({ children }: Props) {
 			</Sidebar>
 			<SidebarInset>
 				{!includesProjects && (
-					<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+					<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
 						<div className="flex items-center justify-between w-full px-4">
 							<div className="flex items-center gap-2">
 								<SidebarTrigger className="-ml-1" />

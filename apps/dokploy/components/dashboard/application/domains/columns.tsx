@@ -148,7 +148,7 @@ export const createColumns = ({
 		cell: ({ row }) => {
 			const https = row.getValue("https") as boolean;
 			return (
-				<Badge variant={https ? "outline" : "secondary"}>
+				<Badge variant={https ? "outline-solid" : "secondary"}>
 					{https ? "HTTPS" : "HTTP"}
 				</Badge>
 			);

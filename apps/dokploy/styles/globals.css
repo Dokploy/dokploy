@@ -1,6 +1,163 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@plugin 'tailwindcss-animate';
+@plugin '@tailwindcss/typography';
+@plugin 'fancy-ansi/plugin';
+
+@custom-variant dark (&:is(.dark *));
+
+@utility container {
+	margin-inline: auto;
+	padding-inline: 2rem;
+	@media (width >= --theme(--breakpoint-3xl)) {
+		max-width: none;
+	}
+	@media (width >= 87.5rem) {
+		max-width: 87.5rem;
+	}
+}
+
+@theme {
+	--font-sans:
+		var(--font-inter), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+		"Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+	--breakpoint-3xl: 1920px;
+
+	--container-2xl: 40rem;
+	--container-8xl: 85rem;
+	--container-9xl: 95rem;
+	--container-10xl: 105rem;
+
+	--color-border: hsl(var(--border));
+	--color-input: hsl(var(--input));
+	--color-ring: hsl(var(--ring));
+	--color-background: hsl(var(--background));
+	--color-foreground: hsl(var(--foreground));
+
+	--color-primary: hsl(var(--primary));
+	--color-primary-foreground: hsl(var(--primary-foreground));
+
+	--color-secondary: hsl(var(--secondary));
+	--color-secondary-foreground: hsl(var(--secondary-foreground));
+
+	--color-destructive: hsl(var(--destructive));
+	--color-destructive-foreground: hsl(var(--destructive-foreground));
+
+	--color-muted: hsl(var(--muted));
+	--color-muted-foreground: hsl(var(--muted-foreground));
+
+	--color-accent: hsl(var(--accent));
+	--color-accent-foreground: hsl(var(--accent-foreground));
+
+	--color-popover: hsl(var(--popover));
+	--color-popover-foreground: hsl(var(--popover-foreground));
+
+	--color-card: hsl(var(--card));
+	--color-card-foreground: hsl(var(--card-foreground));
+
+	--color-sidebar: hsl(var(--sidebar-background));
+	--color-sidebar-foreground: hsl(var(--sidebar-foreground));
+	--color-sidebar-primary: hsl(var(--sidebar-primary));
+	--color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+	--color-sidebar-accent: hsl(var(--sidebar-accent));
+	--color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+	--color-sidebar-border: hsl(var(--sidebar-border));
+	--color-sidebar-ring: hsl(var(--sidebar-ring));
+
+	--radius-lg: var(--radius);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-sm: calc(var(--radius) - 4px);
+
+	--animate-caret-blink: caret-blink 1.25s ease-out infinite;
+	--animate-accordion-down: accordion-down 0.2s ease-out;
+	--animate-accordion-up: accordion-up 0.2s ease-out;
+
+	@keyframes caret-blink {
+		0%,
+		70%,
+		100% {
+			opacity: 1;
+		}
+		20%,
+		50% {
+			opacity: 0;
+		}
+	}
+	@keyframes accordion-down {
+		from {
+			height: 0;
+		}
+		to {
+			height: var(--radix-accordion-content-height);
+		}
+	}
+	@keyframes accordion-up {
+		from {
+			height: var(--radix-accordion-content-height);
+		}
+		to {
+			height: 0;
+		}
+	}
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+	*,
+	::after,
+	::before,
+	::backdrop,
+	::file-selector-button {
+		border-color: var(--color-gray-200, currentcolor);
+	}
+	* {
+		@apply border-border outline-ring/50;
+	}
+	body {
+		@apply bg-background text-foreground;
+	}
+}
+
+@utility no-scrollbar {
+	/* Chrome, Safari and Opera */
+	&::-webkit-scrollbar {
+		display: none;
+	}
+	-ms-overflow-style: none; /* IE and Edge */
+	scrollbar-width: none; /* Firefox */
+}
+@utility custom-logs-scrollbar {
+	scrollbar-width: thin;
+	scrollbar-color: hsl(var(--muted-foreground)) transparent;
+
+	&::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background-color: hsl(var(--muted-foreground) / 0.3);
+		border-radius: 20px;
+	}
+
+	&::-webkit-scrollbar-thumb:hover {
+		background-color: hsl(var(--muted-foreground) / 0.5);
+	}
+}
 
 @layer base {
 	:root {
@@ -128,92 +285,81 @@
 	}
 }
 
-.xterm-viewport {
-	border-radius: 0.75rem /* 12px */ !important;
-}
+@layer utilities {
+	.xterm-viewport {
+		border-radius: 0.75rem /* 12px */ !important;
+	}
 
-.xterm .xterm-viewport {
-	overflow-y: auto !important;
-}
+	.xterm .xterm-viewport {
+		overflow-y: auto !important;
+	}
 
-.xterm .xterm-screen {
-	overflow: hidden;
+	.xterm .xterm-screen {
+		overflow: hidden;
+	}
 }
 
 @layer utilities {
-	/* Chrome, Safari and Opera */
-	.no-scrollbar::-webkit-scrollbar {
-		display: none;
+	/* Codemirror */
+	.cm-editor {
+		@apply w-full h-full rounded-md overflow-hidden border border-solid border-border outline-hidden;
 	}
 
-	.no-scrollbar {
-		-ms-overflow-style: none; /* IE and Edge */
-		scrollbar-width: none; /* Firefox */
-	}
-}
-
-/* Codemirror */
-.cm-editor {
-	@apply w-full h-full rounded-md overflow-hidden border border-solid border-border outline-none;
-}
-
-.cm-editor .cm-scroller {
-	font-family: inherit;
-	line-height: inherit;
-}
-
-.cm-editor.cm-focused {
-	@apply outline-none;
-}
-
-/* fix: placeholder bg */
-.cm-editor .cm-activeLine:has(.cm-placeholder) {
-	background-color: transparent;
-}
-
-.compose-file-editor .cm-editor {
-	@apply min-h-[25rem];
-}
-
-@keyframes heartbeat {
-	0% {
-		transform: scale(1);
-		opacity: 0.7;
-	}
-	25% {
-		transform: scale(1.1);
-		opacity: 1;
-	}
-	50% {
-		transform: scale(1);
-		opacity: 0.7;
-	}
-	75% {
-		transform: scale(1.1);
-		opacity: 1;
-	}
-	100% {
-		transform: scale(1);
-		opacity: 0.7;
-	}
-}
-
-.animate-heartbeat {
-	animation: heartbeat 2.5s infinite;
-}
-@media (prefers-color-scheme: dark) {
-	.swagger-ui {
-		background-color: white;
+	.cm-editor .cm-scroller {
+		font-family: inherit;
+		line-height: inherit;
 	}
 
-	.swagger-ui .info {
-		margin: 0px !important;
-		padding-top: 1rem !important;
+	.cm-editor.cm-focused {
+		@apply outline-hidden;
 	}
-}
 
-/* Docker Logs Scrollbar */
-@layer utilities {
+	/* fix: placeholder bg */
+	.cm-editor .cm-activeLine:has(.cm-placeholder) {
+		background-color: transparent;
+	}
+
+	.compose-file-editor .cm-editor {
+		@apply min-h-100;
+	}
+
+	@keyframes heartbeat {
+		0% {
+			transform: scale(1);
+			opacity: 0.7;
+		}
+		25% {
+			transform: scale(1.1);
+			opacity: 1;
+		}
+		50% {
+			transform: scale(1);
+			opacity: 0.7;
+		}
+		75% {
+			transform: scale(1.1);
+			opacity: 1;
+		}
+		100% {
+			transform: scale(1);
+			opacity: 0.7;
+		}
+	}
+
+	.animate-heartbeat {
+		animation: heartbeat 2.5s infinite;
+	}
+	@media (prefers-color-scheme: dark) {
+		.swagger-ui {
+			background-color: white;
+		}
+
+		.swagger-ui .info {
+			margin: 0px !important;
+			padding-top: 1rem !important;
+		}
+	}
+
 	.custom-logs-scrollbar {
 		scrollbar-width: thin;
 		scrollbar-color: hsl(var(--muted-foreground)) transparent;
@@ -236,6 +382,8 @@
 	.custom-logs-scrollbar::-webkit-scrollbar-thumb:hover {
 		background-color: hsl(var(--muted-foreground) / 0.5);
 	}
+
+	/* Docker Logs Scrollbar */
 }
 
 .xterm-bg-257.xterm-fg-257 {
@@ -261,4 +409,111 @@
 
 #hubspot-conversations-iframe {
 	color-scheme: light !important;
+}
+
+/*
+  ---break---
+*/
+
+:root {
+	--background: oklch(1 0 0);
+	--foreground: oklch(0.145 0 0);
+	--card: oklch(1 0 0);
+	--card-foreground: oklch(0.145 0 0);
+	--popover: oklch(1 0 0);
+	--popover-foreground: oklch(0.145 0 0);
+	--primary: oklch(0.205 0 0);
+	--primary-foreground: oklch(0.985 0 0);
+	--secondary: oklch(0.97 0 0);
+	--secondary-foreground: oklch(0.205 0 0);
+	--muted: oklch(0.97 0 0);
+	--muted-foreground: oklch(0.556 0 0);
+	--accent: oklch(0.97 0 0);
+	--accent-foreground: oklch(0.205 0 0);
+	--destructive: oklch(0.577 0.245 27.325);
+	--border: oklch(0.922 0 0);
+	--input: oklch(0.922 0 0);
+	--ring: oklch(0.708 0 0);
+	--radius: 0.625rem;
+	--sidebar: oklch(0.985 0 0);
+	--sidebar-foreground: oklch(0.145 0 0);
+	--sidebar-primary: oklch(0.205 0 0);
+	--sidebar-primary-foreground: oklch(0.985 0 0);
+	--sidebar-accent: oklch(0.97 0 0);
+	--sidebar-accent-foreground: oklch(0.205 0 0);
+	--sidebar-border: oklch(0.922 0 0);
+	--sidebar-ring: oklch(0.708 0 0);
+}
+
+/*
+  ---break---
+*/
+
+.dark {
+	--background: oklch(0.145 0 0);
+	--foreground: oklch(0.985 0 0);
+	--card: oklch(0.205 0 0);
+	--card-foreground: oklch(0.985 0 0);
+	--popover: oklch(0.205 0 0);
+	--popover-foreground: oklch(0.985 0 0);
+	--primary: oklch(0.922 0 0);
+	--primary-foreground: oklch(0.205 0 0);
+	--secondary: oklch(0.269 0 0);
+	--secondary-foreground: oklch(0.985 0 0);
+	--muted: oklch(0.269 0 0);
+	--muted-foreground: oklch(0.708 0 0);
+	--accent: oklch(0.269 0 0);
+	--accent-foreground: oklch(0.985 0 0);
+	--destructive: oklch(0.704 0.191 22.216);
+	--border: oklch(1 0 0 / 10%);
+	--input: oklch(1 0 0 / 15%);
+	--ring: oklch(0.556 0 0);
+	--sidebar: oklch(0.205 0 0);
+	--sidebar-foreground: oklch(0.985 0 0);
+	--sidebar-primary: oklch(0.488 0.243 264.376);
+	--sidebar-primary-foreground: oklch(0.985 0 0);
+	--sidebar-accent: oklch(0.269 0 0);
+	--sidebar-accent-foreground: oklch(0.985 0 0);
+	--sidebar-border: oklch(1 0 0 / 10%);
+	--sidebar-ring: oklch(0.556 0 0);
+}
+
+/*
+  ---break---
+*/
+
+@theme inline {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+	--radius-sm: calc(var(--radius) * 0.6);
+	--radius-md: calc(var(--radius) * 0.8);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) * 1.4);
+	--radius-2xl: calc(var(--radius) * 1.8);
+	--radius-3xl: calc(var(--radius) * 2.2);
+	--radius-4xl: calc(var(--radius) * 2.6);
+	--color-sidebar: var(--sidebar);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar-primary: var(--sidebar-primary);
+	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-ring: var(--sidebar-ring);
 }
