@@ -1,4 +1,3 @@
-import { IS_CLOUD } from "@dokploy/server";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
@@ -187,14 +186,6 @@ Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
 export async function getServerSideProps(context: GetServerSidePropsContext) {
-	if (!IS_CLOUD) {
-		return {
-			redirect: {
-				permanent: false,
-				destination: "/",
-			},
-		};
-	}
 	const { token } = context.query;
 
 	if (typeof token !== "string") {
