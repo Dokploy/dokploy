@@ -519,6 +519,116 @@ export const settingsRouter = createTRPCRouter({
 			return true;
 		}),
 
+	updateHideHelpLinks: enterpriseProcedure
+		.input(z.object({ hideHelpLinks: z.boolean() }))
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				hideHelpLinks: input.hideHelpLinks,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "hide-help-links",
+			});
+			return true;
+		}),
+
+	updateHideSocialLinks: enterpriseProcedure
+		.input(z.object({ hideSocialLinks: z.boolean() }))
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				hideSocialLinks: input.hideSocialLinks,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "hide-social-links",
+			});
+			return true;
+		}),
+
+	updateHideSSOLogin: enterpriseProcedure
+		.input(z.object({ hideSSOLogin: z.boolean() }))
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				hideSSOLogin: input.hideSSOLogin,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "hide-sso-login",
+			});
+			return true;
+		}),
+
+	updateShowSSOInSidebar: enterpriseProcedure
+		.input(z.object({ showSSOInSidebar: z.boolean() }))
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				showSSOInSidebar: input.showSSOInSidebar,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "show-sso-in-sidebar",
+			});
+			return true;
+		}),
+
+	updateShowWhitelabelingInSidebar: enterpriseProcedure
+		.input(z.object({ showWhitelabelingInSidebar: z.boolean() }))
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				showWhitelabelingInSidebar: input.showWhitelabelingInSidebar,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "show-whitelabeling-in-sidebar",
+			});
+			return true;
+		}),
+
 	readTraefikConfig: adminProcedure.query(() => {
 		if (IS_CLOUD) {
 			return true;

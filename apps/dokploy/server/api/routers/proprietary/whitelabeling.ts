@@ -1,5 +1,7 @@
 import {
+	getEffectiveWhitelabelingConfig,
 	getWebServerSettings,
+	hasValidLicenseForInstance,
 	IS_CLOUD,
 	updateWebServerSettings,
 } from "@dokploy/server";
@@ -15,6 +17,10 @@ import {
 export const whitelabelingRouter = createTRPCRouter({
 	get: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
+			return null;
+		}
+		// Enterprise feature: only return branding when the license is active.
+		if (!(await hasValidLicenseForInstance())) {
 			return null;
 		}
 		const settings = await getWebServerSettings();
@@ -73,7 +79,16 @@ export const whitelabelingRouter = createTRPCRouter({
 				errorPageTitle: null,
 				errorPageDescription: null,
 				metaTitle: null,
+				metaDescription: null,
+				ogImageUrl: null,
 				footerText: null,
+				passwordResetGuide: null,
+				supportEmail: null,
+				brandingEnabled: false,
+				appearanceEnabled: false,
+				metadataEnabled: false,
+				errorPagesEnabled: false,
+				forgotPasswordEnabled: false,
 			},
 		});
 
@@ -86,21 +101,31 @@ export const whitelabelingRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			return null;
 		}
+		// Enterprise feature: only expose branding when the license is active.
+		if (!(await hasValidLicenseForInstance())) {
+			return null;
+		}
 		const settings = await getWebServerSettings();
-		const config = settings?.whitelabelingConfig;
-		if (!config) return null;
+		const config = getEffectiveWhitelabelingConfig(
+			settings?.whitelabelingConfig,
+		);
 
 		return {
-			appName: config.appName,
-			appDescription: config.appDescription,
-			logoUrl: config.logoUrl,
-			loginLogoUrl: config.loginLogoUrl,
-			faviconUrl: config.faviconUrl,
-			customCss: config.customCss,
-			metaTitle: config.metaTitle,
-			errorPageTitle: config.errorPageTitle,
-			errorPageDescription: config.errorPageDescription,
-			footerText: config.footerText,
+			appName: config?.appName ?? null,
+			appDescription: config?.appDescription ?? null,
+			logoUrl: config?.logoUrl ?? null,
+			loginLogoUrl: config?.loginLogoUrl ?? null,
+			faviconUrl: config?.faviconUrl ?? null,
+			customCss: config?.customCss ?? null,
+			metaTitle: config?.metaTitle ?? null,
+			metaDescription: config?.metaDescription ?? null,
+			ogImageUrl: config?.ogImageUrl ?? null,
+			errorPageTitle: config?.errorPageTitle ?? null,
+			errorPageDescription: config?.errorPageDescription ?? null,
+			footerText: config?.footerText ?? null,
+			passwordResetGuide: config?.passwordResetGuide ?? null,
+			supportEmail: config?.supportEmail ?? null,
+			hideSocialLinks: settings?.hideSocialLinks ?? false,
 		};
 	}),
 });

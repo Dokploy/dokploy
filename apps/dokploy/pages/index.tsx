@@ -1,10 +1,12 @@
 import {
 	getWebServerSettings,
+	hasValidLicenseForInstance,
 	IS_CLOUD,
 	isAdminPresent,
 } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { createServerSideHelpers } from "@trpc/react-query/server";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
@@ -12,6 +14,7 @@ import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import superjson from "superjson";
 import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { SignInWithGithub } from "@/components/proprietary/auth/sign-in-with-github";
@@ -40,6 +43,7 @@ import { Input } from "@/components/ui/input";
 import { InputOTP } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
@@ -57,8 +61,9 @@ type LoginForm = z.infer<typeof LoginSchema>;
 interface Props {
 	IS_CLOUD: boolean;
 	enforceSSO: boolean;
+	hideSSOLogin: boolean;
 }
-export default function Home({ IS_CLOUD, enforceSSO }: Props) {
+export default function Home({ IS_CLOUD, enforceSSO, hideSSOLogin }: Props) {
 	const router = useRouter();
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const { data: showSignInWithSSO } = api.sso.showSignInWithSSO.useQuery();
@@ -70,6 +75,12 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 	const [twoFactorCode, setTwoFactorCode] = useState("");
 	const [isBackupCodeModalOpen, setIsBackupCodeModalOpen] = useState(false);
 	const [backupCode, setBackupCode] = useState("");
+	const [showForgotPassword, setShowForgotPassword] = useState(false);
+
+	// Custom (enterprise) password reset flow: when a support email is
+	// configured via whitelabeling, show an in-page guide + support contact
+	// instead of linking to the default Dokploy reset guide.
+	const hasCustomPasswordReset = !IS_CLOUD && !!whitelabeling?.supportEmail;
 	const loginForm = useForm<LoginForm>({
 		resolver: zodResolver(LoginSchema),
 		defaultValues: {
@@ -224,6 +235,18 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 		</>
 	);
 
+	const forgotPasswordContent = (
+		<div className="flex flex-col gap-4">
+			<p className="text-sm text-muted-foreground whitespace-pre-line">
+				{whitelabeling?.passwordResetGuide ||
+					"To reset your password, please contact your administrator. They will help you regain access to your account."}
+			</p>
+			<Button className="w-full" asChild>
+				<a href={`mailto:${whitelabeling?.supportEmail}`}>Get Support</a>
+			</Button>
+		</div>
+	);
+
 	return (
 		<>
 			<div className="flex flex-col space-y-2 text-center">
@@ -241,7 +264,9 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 					</div>
 				</h1>
 				<p className="text-sm text-muted-foreground">
-					Enter your email and password to sign in
+					{showForgotPassword
+						? "Recover access to your account"
+						: "Enter your email and password to sign in"}
 				</p>
 			</div>
 			{error && (
@@ -251,15 +276,19 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 			)}
 			<CardContent className="p-0">
 				{!isTwoFactor ? (
-					<>
-						{enforceSSO ? (
-							<SignInWithSSO enforce />
-						) : showSignInWithSSO ? (
-							<SignInWithSSO>{loginContent}</SignInWithSSO>
-						) : (
-							loginContent
-						)}
-					</>
+					showForgotPassword ? (
+						forgotPasswordContent
+					) : (
+						<>
+							{enforceSSO ? (
+								<SignInWithSSO enforce />
+							) : showSignInWithSSO && !hideSSOLogin ? (
+								<SignInWithSSO>{loginContent}</SignInWithSSO>
+							) : (
+								loginContent
+							)}
+						</>
+					)
 				) : (
 					<>
 						<form
@@ -387,6 +416,16 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 							>
 								Lost your password?
 							</Link>
+						) : hasCustomPasswordReset ? (
+							<button
+								type="button"
+								className="hover:underline text-muted-foreground"
+								onClick={() => setShowForgotPassword((prev) => !prev)}
+							>
+								{showForgotPassword
+									? "Go back to login"
+									: "Lost your password?"}
+							</button>
 						) : (
 							<Link
 								className="hover:underline text-muted-foreground"
@@ -408,6 +447,21 @@ Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
 export async function getServerSideProps(context: GetServerSidePropsContext) {
+	const helpers = createServerSideHelpers({
+		router: appRouter,
+		ctx: {
+			req: context.req as any,
+			res: context.res as any,
+			db: null as any,
+			session: null as any,
+			user: null as any,
+		},
+		transformer: superjson,
+	});
+	// Prefetch the public branding so the login/onboarding logo and app name
+	// render correctly on the server (no flash of default branding).
+	await helpers.whitelabeling.getPublic.prefetch();
+
 	if (IS_CLOUD) {
 		try {
 			const { user } = await validateRequest(context.req);
@@ -423,8 +477,10 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
 		return {
 			props: {
+				trpcState: helpers.dehydrate(),
 				IS_CLOUD: IS_CLOUD,
 				enforceSSO: false,
+				hideSSOLogin: false,
 			},
 		};
 	}
@@ -451,11 +507,19 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	}
 
 	const webServerSettings = await getWebServerSettings();
+	// Enterprise restrictions only apply when the license is active.
+	const isEnterpriseActive = await hasValidLicenseForInstance();
 
 	return {
 		props: {
+			trpcState: helpers.dehydrate(),
 			hasAdmin,
-			enforceSSO: webServerSettings?.enforceSSO ?? false,
+			enforceSSO: isEnterpriseActive
+				? (webServerSettings?.enforceSSO ?? false)
+				: false,
+			hideSSOLogin: isEnterpriseActive
+				? (webServerSettings?.hideSSOLogin ?? false)
+				: false,
 		},
 	};
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "webServerSettings" ADD COLUMN "hideSocialLinks" boolean DEFAULT false NOT NULL;

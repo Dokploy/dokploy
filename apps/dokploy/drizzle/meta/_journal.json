@@ -1212,6 +1212,55 @@
       "when": 1781045439162,
       "tag": "0172_quick_the_professor",
       "breakpoints": true
+    },
+    {
+      "idx": 173,
+      "version": "7",
+      "when": 1781858747480,
+      "tag": "0173_chief_firedrake",
+      "breakpoints": true
+    },
+    {
+      "idx": 174,
+      "version": "7",
+      "when": 1781861478298,
+      "tag": "0174_violet_mojo",
+      "breakpoints": true
+    },
+    {
+      "idx": 175,
+      "version": "7",
+      "when": 1781862247510,
+      "tag": "0175_thick_starbolt",
+      "breakpoints": true
+    },
+    {
+      "idx": 176,
+      "version": "7",
+      "when": 1781862836512,
+      "tag": "0176_bright_rhino",
+      "breakpoints": true
+    },
+    {
+      "idx": 177,
+      "version": "7",
+      "when": 1781863734492,
+      "tag": "0177_elite_famine",
+      "breakpoints": true
+    },
+    {
+      "idx": 178,
+      "version": "7",
+      "when": 1781864774637,
+      "tag": "0178_chemical_black_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 179,
+      "version": "7",
+      "when": 1781868135741,
+      "tag": "0179_amused_stingray",
+      "breakpoints": true
     }
   ]
 }

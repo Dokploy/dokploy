@@ -1,0 +1,2 @@
+ALTER TABLE "webServerSettings" ADD COLUMN "showSSOInSidebar" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "webServerSettings" ADD COLUMN "showWhitelabelingInSidebar" boolean DEFAULT true NOT NULL;

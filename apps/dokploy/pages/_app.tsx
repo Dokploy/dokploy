@@ -3,12 +3,10 @@ import "@/styles/globals.css";
 import type { NextPage } from "next";
 import type { AppProps } from "next/app";
 import { Inter } from "next/font/google";
-import Head from "next/head";
 import { ThemeProvider } from "next-themes";
 import NextTopLoader from "nextjs-toploader";
 import type { ReactElement, ReactNode } from "react";
 import { SearchCommand } from "@/components/dashboard/search-command";
-import { WhitelabelingProvider } from "@/components/proprietary/whitelabeling/whitelabeling-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/utils/api";
 
@@ -38,9 +36,6 @@ const MyApp = ({
 					}
 				`}
 			</style>
-			<Head>
-				<title>Dokploy</title>
-			</Head>
 			<ThemeProvider
 				attribute="class"
 				defaultTheme="system"
@@ -49,7 +44,6 @@ const MyApp = ({
 				forcedTheme={Component.theme}
 			>
 				<NextTopLoader color="hsl(var(--sidebar-ring))" />
-				<WhitelabelingProvider />
 				<Toaster richColors />
 				<SearchCommand />
 				{getLayout(<Component {...pageProps} />)}

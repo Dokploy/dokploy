@@ -19,6 +19,7 @@ import {
 	getComposeContainer,
 	getContainerLogs,
 	getWebServerSettings,
+	hasValidLicenseForInstance,
 	IS_CLOUD,
 	loadServices,
 	randomizeComposeFile,
@@ -90,10 +91,10 @@ export const composeRouter = createTRPCRouter({
 				await checkServiceAccess(ctx, project.projectId, "create");
 
 				const webServerSettings = await getWebServerSettings();
-				if (
-					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
-					!input.serverId
-				) {
+				const remoteServersOnly =
+					!!webServerSettings?.remoteServersOnly &&
+					(await hasValidLicenseForInstance());
+				if ((IS_CLOUD || remoteServersOnly) && !input.serverId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a compose",
@@ -581,10 +582,10 @@ export const composeRouter = createTRPCRouter({
 			await checkServiceAccess(ctx, environment.projectId, "create");
 
 			const webServerSettings = await getWebServerSettings();
-			if (
-				(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
-				!input.serverId
-			) {
+			const remoteServersOnly =
+				!!webServerSettings?.remoteServersOnly &&
+				(await hasValidLicenseForInstance());
+			if ((IS_CLOUD || remoteServersOnly) && !input.serverId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You need to use a server to create a compose",

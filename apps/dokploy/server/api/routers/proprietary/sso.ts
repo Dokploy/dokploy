@@ -5,6 +5,7 @@ import { member, ssoProvider, user } from "@dokploy/server/db/schema";
 import { ssoProviderBodySchema } from "@dokploy/server/db/schema/sso";
 import {
 	getOrganizationOwnerId,
+	hasValidLicenseForInstance,
 	requestToHeaders,
 } from "@dokploy/server/index";
 import { auth } from "@dokploy/server/lib/auth";
@@ -46,6 +47,10 @@ export const ssoRouter = createTRPCRouter({
 	}),
 	enforceSSO: publicProcedure.query(async () => {
 		if (IS_CLOUD) {
+			return false;
+		}
+		// Enterprise feature: only enforce when the license is active.
+		if (!(await hasValidLicenseForInstance())) {
 			return false;
 		}
 		const settings = await getWebServerSettings();
