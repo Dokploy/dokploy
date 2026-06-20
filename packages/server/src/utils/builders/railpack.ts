@@ -44,10 +44,15 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 	const secretsHash = calculateSecretsHash(envVariables);
 
 	const cacheKey = cleanCache ? nanoid(10) : undefined;
-	// Build command
+	// Build command.
+	// Use a unique builder name per build so concurrent deployments don't race
+	// on a shared "builder-containerd" instance (create/use/rm collisions).
+	const builderName = `railpack-${appName}-${nanoid(6)}`;
 	const buildArgs = [
 		"buildx",
 		"build",
+		"--builder",
+		builderName,
 		...(cacheKey
 			? [
 					"--build-arg",
@@ -84,17 +89,16 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 
 	const bashCommand = `
 
-# Ensure we have a builder with containerd
+# Ensure we have a builder with containerd (isolated per build)
 
 export RAILPACK_VERSION=${application.railpackVersion}
 bash -c "$(curl -fsSL https://railpack.com/install.sh)"
-docker buildx create --use --name builder-containerd --driver docker-container || true
-docker buildx use builder-containerd
+docker buildx create --name ${builderName} --driver docker-container || true
 
 echo "Preparing Railpack build plan..." ;
-railpack ${prepareArgs.join(" ")} || { 
+railpack ${prepareArgs.join(" ")} || {
 	echo "❌ Railpack prepare failed" ;
-	docker buildx rm builder-containerd || true
+	docker buildx rm ${builderName} || true
 	exit 1;
 }
 echo "✅ Railpack prepare completed." ;
@@ -102,13 +106,13 @@ echo "✅ Railpack prepare completed." ;
 echo "Building with Railpack frontend..." ;
 # Export environment variables for secrets
 ${exportEnvs.join("\n")}
-docker ${buildArgs.join(" ")} || { 
+docker ${buildArgs.join(" ")} || {
 	echo "❌ Railpack build failed" ;
-	docker buildx rm builder-containerd || true
+	docker buildx rm ${builderName} || true
 	exit 1;
 }
 echo "✅ Railpack build completed." ;
-docker buildx rm builder-containerd
+docker buildx rm ${builderName} || true
 `;
 
 	return bashCommand;
