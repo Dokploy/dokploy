@@ -275,36 +275,34 @@ export const HandleAi = ({ aiId }: Props) => {
 							)}
 						/>
 
-						{!isOllama && (
-							<FormField
-								control={form.control}
-								name="apiKey"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>API Key</FormLabel>
-										<FormControl>
-											<Input
-												type="password"
-												placeholder="sk-..."
-												autoComplete="one-time-code"
-												{...field}
-												onChange={(e) => {
-													field.onChange(e);
-													// Reset model when user changes API Key
-													if (form.getValues("model")) {
-														form.setValue("model", "");
-													}
-												}}
-											/>
-										</FormControl>
-										<FormDescription>
-											Your API key for authentication
-										</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						)}
+						<FormField
+							control={form.control}
+							name="apiKey"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>API Key</FormLabel>
+									<FormControl>
+										<Input
+											type="password"
+											placeholder="sk-..."
+											autoComplete="one-time-code"
+											{...field}
+											onChange={(e) => {
+												field.onChange(e);
+												// Reset model when user changes API Key
+												if (form.getValues("model")) {
+													form.setValue("model", "");
+												}
+											}}
+										/>
+									</FormControl>
+									<FormDescription>
+										Your API key for authentication
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
 						{isLoadingServerModels && (
 							<span className="text-sm text-muted-foreground">

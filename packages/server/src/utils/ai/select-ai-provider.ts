@@ -74,8 +74,8 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 			});
 		case "ollama":
 			return createOllama({
-				// optional settings, e.g.
 				baseURL: config.apiUrl,
+				apiKey: config.apiKey,
 			});
 		case "deepinfra":
 			return createDeepInfra({
