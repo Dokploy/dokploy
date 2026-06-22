@@ -13,8 +13,8 @@ This fork adds two features on top of the official Dokploy release:
 - Cancel deployments mid-build (queued or active)
 - Process-group isolation — cancelling one build doesn't affect others
 
+https://github.com/user-attachments/assets/628dda12-0524-4b3f-9a13-e4679488889a
 
-https://github.com/user-attachments/assets/94134095-5601-4279-be2f-219734c8e199
 
 ### Docker Network Management
 - New Networks page in the sidebar
@@ -22,7 +22,7 @@ https://github.com/user-attachments/assets/94134095-5601-4279-be2f-219734c8e199
 - Attach networks to any application or database service
 - Per-resource network picker in the Advanced tab
   
-https://github.com/user-attachments/assets/628dda12-0524-4b3f-9a13-e4679488889a
+https://github.com/user-attachments/assets/94134095-5601-4279-be2f-219734c8e199
 
 ## Install
 
