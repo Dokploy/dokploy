@@ -42,7 +42,7 @@ export const OnboardingLayout = ({ children }: Props) => {
 				<div className="mx-auto flex w-full max-w-lg items-center justify-center gap-1 pb-6 text-muted-foreground sm:justify-end">
 					<Button variant="ghost" size="icon">
 						<Link href="https://github.com/dokploy/dokploy">
-							<GithubIcon className="size-5" />
+							<GithubIcon />
 						</Link>
 					</Button>
 					<Button variant="ghost" size="icon">
@@ -66,7 +66,7 @@ export const OnboardingLayout = ({ children }: Props) => {
 								viewBox="0 0 48 48"
 								width="48px"
 								height="48px"
-								className={cn("size-5")}
+								className={cn("size-6")}
 							>
 								<path
 									fill="currentColor"
