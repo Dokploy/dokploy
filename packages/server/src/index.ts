@@ -41,6 +41,7 @@ export * from "./services/proprietary/sso";
 export * from "./services/redirect";
 export * from "./services/redis";
 export * from "./services/registry";
+export * from "./services/resource-metrics";
 export * from "./services/rollbacks";
 export * from "./services/schedule";
 export * from "./services/security";
