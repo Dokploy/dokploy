@@ -63,6 +63,7 @@ import { createColumns } from "./columns";
 import { DnsHelperModal } from "./dns-helper-modal";
 import { AddDomain } from "./handle-domain";
 import { HandleForwardAuth } from "./handle-forward-auth";
+import { COMPOSE_REDEPLOY_TOAST, ComposeRedeployAlert } from "./redeploy-hint";
 
 export type ValidationState = {
 	isLoading: boolean;
@@ -151,7 +152,12 @@ export const ShowDomains = ({ id, type }: Props) => {
 		try {
 			await deleteDomain({ domainId });
 			refetch();
-			toast.success("Domain deleted successfully");
+			toast.success(
+				"Domain deleted successfully",
+				type === "compose"
+					? { description: COMPOSE_REDEPLOY_TOAST }
+					: undefined,
+			);
 		} catch {
 			toast.error("Error deleting domain");
 		}
@@ -265,6 +271,11 @@ export const ShowDomains = ({ id, type }: Props) => {
 						)}
 					</div>
 				</CardHeader>
+				{type === "compose" && data && data.length > 0 && (
+					<div className="px-6 pb-4">
+						<ComposeRedeployAlert />
+					</div>
+				)}
 				<CardContent className="flex w-full flex-row gap-4">
 					{isLoadingDomains ? (
 						<div className="flex w-full flex-row gap-4 min-h-[40vh] justify-center items-center">
@@ -466,18 +477,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 																description="Are you sure you want to delete this domain?"
 																type="destructive"
 																onClick={async () => {
-																	await deleteDomain({
-																		domainId: item.domainId,
-																	})
-																		.then((_data) => {
-																			refetch();
-																			toast.success(
-																				"Domain deleted successfully",
-																			);
-																		})
-																		.catch(() => {
-																			toast.error("Error deleting domain");
-																		});
+																	await handleDeleteDomain(item.domainId);
 																}}
 															>
 																<Button

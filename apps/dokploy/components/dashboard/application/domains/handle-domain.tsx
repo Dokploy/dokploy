@@ -46,6 +46,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
+import { COMPOSE_REDEPLOY_TOAST, ComposeRedeployAlert } from "./redeploy-hint";
 
 export type CacheType = "fetch" | "cache";
 
@@ -300,7 +301,12 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			customEntrypoint: data.useCustomEntrypoint ? data.customEntrypoint : null,
 		})
 			.then(async () => {
-				toast.success(dictionary.success);
+				toast.success(
+					dictionary.success,
+					data.domainType === "compose"
+						? { description: COMPOSE_REDEPLOY_TOAST }
+						: undefined,
+				);
 
 				if (data.domainType === "application") {
 					await utils.domain.byApplicationId.invalidate({
@@ -337,12 +343,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
-				{type === "compose" && (
-					<AlertBlock type="info" className="mb-4">
-						Whenever you make changes to domains, remember to redeploy your
-						compose to apply the changes.
-					</AlertBlock>
-				)}
+				{type === "compose" && <ComposeRedeployAlert className="mb-4" />}
 
 				<Form {...form}>
 					<form
