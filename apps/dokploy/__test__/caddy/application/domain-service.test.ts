@@ -1,6 +1,7 @@
 import { beforeEach, expect, test, vi } from "vitest";
 
 const txInsertMock = vi.hoisted(() => vi.fn());
+const txValuesMock = vi.hoisted(() => vi.fn());
 const transactionMock = vi.hoisted(() => vi.fn());
 const dbDeleteMock = vi.hoisted(() => vi.fn());
 const domainsFindFirstMock = vi.hoisted(() => vi.fn());
@@ -76,7 +77,7 @@ const application = {
 beforeEach(() => {
 	vi.clearAllMocks();
 	txInsertMock.mockReturnValue({
-		values: vi.fn().mockReturnValue({
+		values: txValuesMock.mockReturnValue({
 			returning: vi.fn().mockResolvedValue([domain]),
 		}),
 	});
@@ -112,6 +113,99 @@ test("creates copied new-service application domains through the active web serv
 	expect(created).toBe(domain);
 	expect(txInsertMock).toHaveBeenCalled();
 	expect(manageWebServerDomain).toHaveBeenCalledWith(application, domain);
+});
+
+test("uses the existing application domain port when a new application domain omits port", async () => {
+	const existingDomain = {
+		...domain,
+		domainId: "domain-existing",
+		host: "current.example.com",
+		port: 80,
+		uniqueConfigKey: 1,
+	};
+	const createdDomain = {
+		...domain,
+		host: "new.example.com",
+		port: 80,
+		uniqueConfigKey: 9,
+	};
+	domainsFindManyMock.mockResolvedValueOnce([existingDomain]);
+	txValuesMock.mockReturnValueOnce({
+		returning: vi.fn().mockResolvedValue([createdDomain]),
+	});
+	vi.mocked(manageWebServerDomain).mockResolvedValue(undefined as never);
+
+	const created = await createDomain({
+		host: " new.example.com ",
+		applicationId: "app-1",
+		domainType: "application",
+	} as never);
+
+	expect(created).toBe(createdDomain);
+	expect(txValuesMock).toHaveBeenCalledWith(
+		expect.objectContaining({
+			host: "new.example.com",
+			port: 80,
+		}),
+	);
+	expect(manageWebServerDomain).toHaveBeenCalledWith(
+		application,
+		createdDomain,
+	);
+});
+
+test("preserves an explicit application domain port", async () => {
+	const existingDomain = {
+		...domain,
+		domainId: "domain-existing",
+		host: "current.example.com",
+		port: 80,
+		uniqueConfigKey: 1,
+	};
+	const createdDomain = {
+		...domain,
+		host: "api.example.com",
+		port: 8080,
+		uniqueConfigKey: 9,
+	};
+	domainsFindManyMock.mockResolvedValueOnce([existingDomain]);
+	txValuesMock.mockReturnValueOnce({
+		returning: vi.fn().mockResolvedValue([createdDomain]),
+	});
+	vi.mocked(manageWebServerDomain).mockResolvedValue(undefined as never);
+
+	await createDomain({
+		host: "api.example.com",
+		applicationId: "app-1",
+		domainType: "application",
+		port: 8080,
+	} as never);
+
+	expect(txValuesMock).toHaveBeenCalledWith(
+		expect.objectContaining({
+			host: "api.example.com",
+			port: 8080,
+		}),
+	);
+});
+
+test("does not infer application domain ports for compose domains", async () => {
+	txValuesMock.mockReturnValueOnce({
+		returning: vi.fn().mockResolvedValue([composeDomain]),
+	});
+	vi.mocked(manageWebServerDomain).mockResolvedValue(undefined as never);
+
+	await createDomain({
+		host: "compose.example.com",
+		composeId: "compose-1",
+		domainType: "compose",
+	} as never);
+
+	expect(txValuesMock).toHaveBeenCalledWith(
+		expect.not.objectContaining({
+			port: 80,
+		}),
+	);
 });
 
 test("removes application domain rows when provider route creation fails", async () => {

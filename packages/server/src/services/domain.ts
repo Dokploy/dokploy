@@ -23,12 +23,39 @@ import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
 
+const resolveApplicationDomainPort = async (
+	input: z.infer<typeof apiCreateDomain>,
+) => {
+	if (
+		input.port != null ||
+		!input.applicationId ||
+		input.composeId ||
+		input.previewDeploymentId ||
+		input.domainType === "compose" ||
+		input.domainType === "preview"
+	) {
+		return input.port;
+	}
+
+	const applicationId = input.applicationId;
+	const applicationDomains = await db.query.domains.findMany({
+		where: eq(domains.applicationId, applicationId),
+		orderBy: (domainFields, { asc }) => [asc(domainFields.uniqueConfigKey)],
+	});
+
+	return applicationDomains.find(
+		(domain) => typeof domain.port === "number" && domain.port > 0,
+	)?.port;
+};
+
 export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
+	const port = await resolveApplicationDomainPort(input);
 	const domain = await db.transaction(async (tx) => {
 		const domain = await tx
 			.insert(domains)
 			.values({
 				...input,
+				...(port != null && { port }),
 				host: input.host?.trim(),
 			} as typeof domains.$inferInsert)
 			.returning()
