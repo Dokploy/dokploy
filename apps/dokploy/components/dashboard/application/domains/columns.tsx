@@ -14,6 +14,7 @@ import Link from "next/link";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip,
 	TooltipContent,
@@ -35,7 +36,9 @@ interface ColumnsProps {
 	validationStates: ValidationStates;
 	handleValidateDomain: (host: string) => Promise<void>;
 	handleDeleteDomain: (domainId: string) => Promise<void>;
+	handleToggleEnable: (domainId: string) => Promise<void>;
 	isDeleting: boolean;
+	isToggling: boolean;
 	serverIp?: string;
 	canCreateDomain: boolean;
 	canDeleteDomain: boolean;
@@ -47,7 +50,9 @@ export const createColumns = ({
 	validationStates,
 	handleValidateDomain,
 	handleDeleteDomain,
+	handleToggleEnable,
 	isDeleting,
+	isToggling,
 	serverIp,
 	canCreateDomain,
 	canDeleteDomain,
@@ -243,6 +248,32 @@ export const createColumns = ({
 			return (
 				<div className="text-sm text-muted-foreground">
 					{new Date(createdAt).toLocaleDateString()}
+				</div>
+			);
+		},
+	},
+	{
+		id: "status",
+		header: "Status",
+		cell: ({ row }) => {
+			const domain = row.original;
+			if (!canCreateDomain) {
+				return (
+					<Badge variant={domain.enabled ? "outline" : "secondary"}>
+						{domain.enabled ? "Enabled" : "Disabled"}
+					</Badge>
+				);
+			}
+			return (
+				<div className="flex items-center gap-2">
+					<Switch
+						checked={domain.enabled}
+						onCheckedChange={() => handleToggleEnable(domain.domainId)}
+						disabled={isToggling}
+					/>
+					<span className="text-sm text-muted-foreground">
+						{domain.enabled ? "Enabled" : "Disabled"}
+					</span>
 				</div>
 			);
 		},

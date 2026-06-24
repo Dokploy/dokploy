@@ -44,6 +44,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
 	Table,
 	TableBody,
@@ -58,6 +59,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { createColumns } from "./columns";
 import { DnsHelperModal } from "./dns-helper-modal";
@@ -147,6 +149,23 @@ export const ShowDomains = ({ id, type }: Props) => {
 		api.domain.validateDomain.useMutation();
 	const { mutateAsync: deleteDomain, isPending: isRemoving } =
 		api.domain.delete.useMutation();
+	const { mutateAsync: toggleEnable, isPending: isToggling } =
+		api.domain.toggleEnable.useMutation();
+
+	const handleToggleEnable = async (domainId: string) => {
+		try {
+			const result = await toggleEnable({ domainId });
+			refetch();
+			toast.success(
+				result.enabled ? "Domain enabled" : "Domain disabled",
+				result.requiresRedeploy
+					? { description: COMPOSE_REDEPLOY_TOAST }
+					: undefined,
+			);
+		} catch {
+			toast.error("Error updating the domain");
+		}
+	};
 
 	const handleDeleteDomain = async (domainId: string) => {
 		try {
@@ -206,7 +225,9 @@ export const ShowDomains = ({ id, type }: Props) => {
 		validationStates,
 		handleValidateDomain,
 		handleDeleteDomain,
+		handleToggleEnable,
 		isDeleting: isRemoving,
+		isToggling,
 		serverIp: application?.server?.ipAddress?.toString() || ip?.toString(),
 		canCreateDomain,
 		canDeleteDomain,
@@ -424,7 +445,10 @@ export const ShowDomains = ({ id, type }: Props) => {
 								return (
 									<Card
 										key={item.domainId}
-										className="relative overflow-hidden w-full border transition-all hover:shadow-md bg-transparent h-fit"
+										className={cn(
+											"relative overflow-hidden w-full border transition-all hover:shadow-md bg-transparent h-fit",
+											!item.enabled && "opacity-60",
+										)}
 									>
 										<CardContent className="p-6">
 											<div className="flex flex-col gap-4">
@@ -492,15 +516,44 @@ export const ShowDomains = ({ id, type }: Props) => {
 														)}
 													</div>
 												</div>
-												<div className="w-full break-all">
-													<Link
-														className="flex items-center gap-2 text-base font-medium hover:underline"
-														target="_blank"
-														href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}
-													>
-														{item.host}
-														<ExternalLink className="size-4 min-w-4" />
-													</Link>
+												<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+													<div className="w-full break-all">
+														<Link
+															className="flex items-center gap-2 text-base font-medium hover:underline"
+															target="_blank"
+															href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}
+														>
+															{item.host}
+															<ExternalLink className="size-4 min-w-4" />
+														</Link>
+													</div>
+													{canCreateDomain && (
+														<TooltipProvider>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<div className="flex items-center gap-2 shrink-0">
+																		<Switch
+																			checked={item.enabled}
+																			onCheckedChange={() =>
+																				handleToggleEnable(item.domainId)
+																			}
+																			disabled={isToggling}
+																		/>
+																		<span className="text-sm text-muted-foreground">
+																			{item.enabled ? "Enabled" : "Disabled"}
+																		</span>
+																	</div>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>
+																		{item.enabled
+																			? "Domain is active. Toggle to disable routing without deleting it."
+																			: "Domain is disabled and not routed. Toggle to enable it again."}
+																	</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													)}
 												</div>
 
 												{/* Domain Details */}
