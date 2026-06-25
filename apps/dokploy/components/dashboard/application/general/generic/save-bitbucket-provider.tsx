@@ -1,3 +1,4 @@
+import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CheckIcon, ChevronsUpDown, HelpCircle, X } from "lucide-react";
 import Link from "next/link";
@@ -57,7 +58,10 @@ const BitbucketProviderSchema = z.object({
 			slug: z.string().optional(),
 		})
 		.required(),
-	branch: z.string().min(1, "Branch is required"),
+	branch: z
+		.string()
+		.min(1, "Branch is required")
+		.regex(VALID_BRANCH_REGEX, "Invalid branch name"),
 	bitbucketId: z.string().min(1, "Bitbucket Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
 	enableSubmodules: z.boolean().optional(),

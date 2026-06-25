@@ -205,11 +205,16 @@ export const stripeRouter = createTRPCRouter({
 				mode: "subscription",
 				line_items: items,
 				...(stripeCustomerId
-					? { customer: stripeCustomerId }
+					? {
+							customer: stripeCustomerId,
+							customer_update: { name: "auto", address: "auto" },
+						}
 					: { customer_email: owner.email }),
 				metadata: {
 					adminId: owner.id,
 				},
+				billing_address_collection: "required",
+				tax_id_collection: { enabled: true },
 				allow_promotion_codes: true,
 				success_url: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
 				cancel_url: `${WEBSITE_URL}/dashboard/settings/billing`,
@@ -331,6 +336,22 @@ export const stripeRouter = createTRPCRouter({
 			return servers.length < user.serversQuantity;
 		},
 	),
+
+	updateInvoiceNotifications: adminProcedure
+		.input(z.object({ enabled: z.boolean() }))
+		.mutation(async ({ ctx, input }) => {
+			if (!IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available in Dokploy Cloud",
+				});
+			}
+			const owner = await findUserById(ctx.user.ownerId);
+			await updateUser(owner.id, {
+				sendInvoiceNotifications: input.enabled,
+			});
+			return { ok: true };
+		}),
 
 	getInvoices: adminProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);

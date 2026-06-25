@@ -30,6 +30,7 @@ import { previewDeploymentRouter } from "./routers/preview-deployment";
 import { projectRouter } from "./routers/project";
 import { auditLogRouter } from "./routers/proprietary/audit-log";
 import { customRoleRouter } from "./routers/proprietary/custom-role";
+import { forwardAuthRouter } from "./routers/proprietary/forward-auth";
 import { licenseKeyRouter } from "./routers/proprietary/license-key";
 import { ssoRouter } from "./routers/proprietary/sso";
 import { whitelabelingRouter } from "./routers/proprietary/whitelabeling";
@@ -93,6 +94,7 @@ export const appRouter = createTRPCRouter({
 	organization: organizationRouter,
 	licenseKey: licenseKeyRouter,
 	sso: ssoRouter,
+	forwardAuth: forwardAuthRouter,
 	whitelabeling: whitelabelingRouter,
 	customRole: customRoleRouter,
 	auditLog: auditLogRouter,

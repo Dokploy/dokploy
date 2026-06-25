@@ -1,6 +1,7 @@
 import {
 	createGitea,
 	findGiteaById,
+	getAccessibleGitProviderIds,
 	getGiteaBranches,
 	getGiteaRepositories,
 	haveGiteaRequirements,
@@ -57,6 +58,8 @@ export const giteaRouter = createTRPCRouter({
 	}),
 
 	giteaProviders: protectedProcedure.query(async ({ ctx }) => {
+		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
+
 		let result = await db.query.gitea.findMany({
 			with: {
 				gitProvider: true,
@@ -67,7 +70,7 @@ export const giteaRouter = createTRPCRouter({
 			(provider) =>
 				provider.gitProvider.organizationId ===
 					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId,
+				accessibleIds.has(provider.gitProvider.gitProviderId),
 		);
 
 		const filtered = result

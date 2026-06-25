@@ -1,4 +1,4 @@
-import { getEnviromentVariablesObject } from "@dokploy/server/index";
+import { getEnvironmentVariablesObject } from "@dokploy/server/index";
 import { describe, expect, it } from "vitest";
 
 const projectEnv = `
@@ -15,7 +15,7 @@ DATABASE_NAME=dev_database
 SECRET_KEY=env-secret-123
 `;
 
-describe("getEnviromentVariablesObject with environment variables (Stack compose)", () => {
+describe("getEnvironmentVariablesObject with environment variables (Stack compose)", () => {
 	it("resolves environment variables correctly for Stack compose", () => {
 		const serviceEnv = `
 FOO=\${{environment.NODE_ENV}}
@@ -23,7 +23,7 @@ BAR=\${{environment.API_URL}}
 BAZ=test
 `;
 
-		const result = getEnviromentVariablesObject(
+		const result = getEnvironmentVariablesObject(
 			serviceEnv,
 			projectEnv,
 			environmentEnv,
@@ -45,7 +45,7 @@ DATABASE_URL=\${{project.DATABASE_URL}}
 SERVICE_PORT=4000
 `;
 
-		const result = getEnviromentVariablesObject(
+		const result = getEnvironmentVariablesObject(
 			serviceEnv,
 			projectEnv,
 			environmentEnv,
@@ -72,7 +72,7 @@ PASSWORD=secret123
 DATABASE_URL=postgresql://\${{environment.USERNAME}}:\${{environment.PASSWORD}}@\${{environment.HOST}}:\${{environment.PORT}}/mydb
 `;
 
-		const result = getEnviromentVariablesObject(serviceEnv, "", multiRefEnv);
+		const result = getEnvironmentVariablesObject(serviceEnv, "", multiRefEnv);
 
 		expect(result).toEqual({
 			DATABASE_URL: "postgresql://postgres:secret123@localhost:5432/mydb",
@@ -85,7 +85,7 @@ UNDEFINED_VAR=\${{environment.UNDEFINED_VAR}}
 `;
 
 		expect(() =>
-			getEnviromentVariablesObject(serviceWithUndefined, "", environmentEnv),
+			getEnvironmentVariablesObject(serviceWithUndefined, "", environmentEnv),
 		).toThrow("Invalid environment variable: environment.UNDEFINED_VAR");
 	});
 
@@ -95,7 +95,7 @@ NODE_ENV=production
 API_URL=\${{environment.API_URL}}
 `;
 
-		const result = getEnviromentVariablesObject(
+		const result = getEnvironmentVariablesObject(
 			serviceOverrideEnv,
 			"",
 			environmentEnv,
@@ -115,7 +115,7 @@ SERVICE_NAME=my-service
 COMPLEX_VAR=\${{SERVICE_NAME}}-\${{environment.NODE_ENV}}-\${{project.ENVIRONMENT}}
 `;
 
-		const result = getEnviromentVariablesObject(
+		const result = getEnvironmentVariablesObject(
 			complexServiceEnv,
 			projectEnv,
 			environmentEnv,
@@ -150,7 +150,7 @@ ENV_VAR=\${{environment.API_URL}}
 DB_NAME=\${{environment.DATABASE_NAME}}
 `;
 
-		const result = getEnviromentVariablesObject(
+		const result = getEnvironmentVariablesObject(
 			serviceWithConflicts,
 			conflictingProjectEnv,
 			conflictingEnvironmentEnv,
@@ -170,7 +170,7 @@ SERVICE_VAR=test
 PROJECT_VAR=\${{project.ENVIRONMENT}}
 `;
 
-		const result = getEnviromentVariablesObject(
+		const result = getEnvironmentVariablesObject(
 			serviceWithEmpty,
 			projectEnv,
 			"",

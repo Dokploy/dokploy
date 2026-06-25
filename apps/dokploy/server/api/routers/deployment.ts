@@ -16,6 +16,7 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import { findServerById } from "@dokploy/server/services/server";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -52,7 +53,14 @@ export const deploymentRouter = createTRPCRouter({
 		}),
 	allByServer: withPermission("deployment", "read")
 		.input(apiFindAllByServer)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			const targetServer = await findServerById(input.serverId);
+			if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You don't have access to this server.",
+				});
+			}
 			return await findAllDeploymentsByServerId(input.serverId);
 		}),
 	allCentralized: withPermission("deployment", "read").query(
@@ -143,6 +151,14 @@ export const deploymentRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					deployment: ["cancel"],
 				});
+			} else if (deployment.schedule?.serverId) {
+				const targetServer = await findServerById(deployment.schedule.serverId);
+				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this deployment.",
+					});
+				}
 			}
 
 			if (!deployment.pid) {
@@ -180,6 +196,14 @@ export const deploymentRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					deployment: ["cancel"],
 				});
+			} else if (deployment.schedule?.serverId) {
+				const targetServer = await findServerById(deployment.schedule.serverId);
+				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this deployment.",
+					});
+				}
 			}
 			const result = await removeDeployment(input.deploymentId);
 			await audit(ctx, {
@@ -188,5 +212,48 @@ export const deploymentRouter = createTRPCRouter({
 				resourceId: deployment.deploymentId,
 			});
 			return result;
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			z.object({
+				deploymentId: z.string().min(1),
+				tail: z.number().int().min(1).max(10000).default(100),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			const deployment = await findDeploymentById(input.deploymentId);
+			const serviceId = deployment.applicationId || deployment.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					deployment: ["read"],
+				});
+			} else if (deployment.schedule?.serverId) {
+				const targetServer = await findServerById(deployment.schedule.serverId);
+				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this deployment.",
+					});
+				}
+			}
+
+			if (!deployment.logPath) {
+				return "";
+			}
+
+			const command = `tail -n ${input.tail} "${deployment.logPath}" 2>/dev/null || echo ""`;
+			const serverId = deployment.serverId || deployment.schedule?.serverId;
+			if (serverId) {
+				const { stdout } = await execAsyncRemote(serverId, command);
+				return stdout;
+			}
+
+			if (IS_CLOUD) {
+				return "";
+			}
+
+			const { stdout } = await execAsync(command);
+			return stdout;
 		}),
 });

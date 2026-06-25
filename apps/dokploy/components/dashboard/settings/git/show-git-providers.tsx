@@ -5,6 +5,7 @@ import {
 	ImportIcon,
 	Loader2,
 	Trash2,
+	Users,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -24,6 +25,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import { useUrl } from "@/utils/hooks/use-url";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
@@ -39,7 +47,13 @@ export const ShowGitProviders = () => {
 	const { data, isPending, refetch } = api.gitProvider.getAll.useQuery();
 	const { mutateAsync, isPending: isRemoving } =
 		api.gitProvider.remove.useMutation();
+	const { mutateAsync: toggleShare, isPending: isToggling } =
+		api.gitProvider.toggleShare.useMutation();
+	const { data: currentMember } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 	const url = useUrl();
+	const isOrgAdmin =
+		currentMember?.role === "owner" || currentMember?.role === "admin";
 
 	const getGitlabUrl = (
 		clientId: string,
@@ -77,18 +91,20 @@ export const ShowGitProviders = () => {
 									<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 										<GitBranch className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
-											Create your first Git Provider
+											No Git Providers configured
 										</span>
-										<div>
-											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
-												<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
-													<AddGithubProvider />
-													<AddGitlabProvider />
-													<AddBitbucketProvider />
-													<AddGiteaProvider />
+										{permissions?.gitProviders.create && (
+											<div>
+												<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
+													<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
+														<AddGithubProvider />
+														<AddGitlabProvider />
+														<AddBitbucketProvider />
+														<AddGiteaProvider />
+													</div>
 												</div>
 											</div>
-										</div>
+										)}
 									</div>
 								) : (
 									<div className="flex flex-col gap-4 min-h-[25vh]">
@@ -96,14 +112,16 @@ export const ShowGitProviders = () => {
 											<span className="text-base font-medium">
 												Available Providers
 											</span>
-											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
-												<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
-													<AddGithubProvider />
-													<AddGitlabProvider />
-													<AddBitbucketProvider />
-													<AddGiteaProvider />
+											{permissions?.gitProviders.create && (
+												<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
+													<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
+														<AddGithubProvider />
+														<AddGitlabProvider />
+														<AddBitbucketProvider />
+														<AddGiteaProvider />
+													</div>
 												</div>
-											</div>
+											)}
 										</div>
 
 										<div className="flex flex-col gap-4 rounded-lg ">
@@ -113,17 +131,13 @@ export const ShowGitProviders = () => {
 												const isBitbucket =
 													gitProvider.providerType === "bitbucket";
 												const isGitea = gitProvider.providerType === "gitea";
+												const canManage = gitProvider.isOwner || isOrgAdmin;
 
 												const haveGithubRequirements =
-													isGithub &&
-													gitProvider.github?.githubPrivateKey &&
-													gitProvider.github?.githubAppId &&
-													gitProvider.github?.githubInstallationId;
+													isGithub && gitProvider.github?.isConfigured;
 
 												const haveGitlabRequirements =
-													isGitlab &&
-													gitProvider.gitlab?.accessToken &&
-													gitProvider.gitlab?.refreshToken;
+													isGitlab && gitProvider.gitlab?.isConfigured;
 
 												return (
 													<div
@@ -154,13 +168,64 @@ export const ShowGitProviders = () => {
 																			)}
 																		</span>
 																	</div>
+																	{!gitProvider.isOwner && (
+																		<Badge
+																			variant="secondary"
+																			className="text-xs"
+																		>
+																			<Users className="size-3 mr-1" />
+																			Shared
+																		</Badge>
+																	)}
 																</div>
 															</div>
 
 															<div className="flex flex-row gap-1 items-center">
+																{gitProvider.isOwner && (
+																	<TooltipProvider delayDuration={0}>
+																		<Tooltip>
+																			<TooltipTrigger asChild>
+																				<div className="flex items-center gap-1.5 mr-2">
+																					<Users className="size-4 text-muted-foreground" />
+																					<Switch
+																						disabled={isToggling}
+																						checked={
+																							gitProvider.sharedWithOrganization
+																						}
+																						onCheckedChange={async (
+																							checked,
+																						) => {
+																							await toggleShare({
+																								gitProviderId:
+																									gitProvider.gitProviderId,
+																								sharedWithOrganization: checked,
+																							})
+																								.then(() => {
+																									toast.success(
+																										checked
+																											? "Provider shared with organization"
+																											: "Provider unshared",
+																									);
+																									refetch();
+																								})
+																								.catch(() => {
+																									toast.error(
+																										"Error updating sharing",
+																									);
+																								});
+																						}}
+																					/>
+																				</div>
+																			</TooltipTrigger>
+																			<TooltipContent>
+																				Share with entire organization
+																			</TooltipContent>
+																		</Tooltip>
+																	</TooltipProvider>
+																)}
+
 																{isBitbucket &&
-																gitProvider.bitbucket?.appPassword &&
-																!gitProvider.bitbucket?.apiToken ? (
+																gitProvider.bitbucket?.isDeprecated ? (
 																	<Badge variant="yellow">Deprecated</Badge>
 																) : null}
 
@@ -173,7 +238,7 @@ export const ShowGitProviders = () => {
 																			Action Required
 																		</Badge>
 																		<Link
-																			href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github.githubId}`}
+																			href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github?.githubId}`}
 																			className={buttonVariants({
 																				size: "icon",
 																				variant: "ghost",
@@ -209,7 +274,7 @@ export const ShowGitProviders = () => {
 																			href={getGitlabUrl(
 																				gitProvider.gitlab?.applicationId || "",
 																				gitProvider.gitlab?.gitlabId || "",
-																				gitProvider.gitlab?.gitlabUrl,
+																				gitProvider.gitlab?.gitlabUrl || "",
 																			)}
 																			target="_blank"
 																			className={buttonVariants({
@@ -222,62 +287,75 @@ export const ShowGitProviders = () => {
 																	</div>
 																)}
 
-																{isGithub && haveGithubRequirements && (
-																	<EditGithubProvider
-																		githubId={gitProvider.github?.githubId}
-																	/>
-																)}
+																{canManage && (
+																	<>
+																		{isGithub &&
+																			haveGithubRequirements &&
+																			gitProvider.github?.githubId && (
+																				<EditGithubProvider
+																					githubId={gitProvider.github.githubId}
+																				/>
+																			)}
 
-																{isGitlab && (
-																	<EditGitlabProvider
-																		gitlabId={gitProvider.gitlab?.gitlabId}
-																	/>
-																)}
+																		{isGitlab &&
+																			gitProvider.gitlab?.gitlabId && (
+																				<EditGitlabProvider
+																					gitlabId={gitProvider.gitlab.gitlabId}
+																				/>
+																			)}
 
-																{isBitbucket && (
-																	<EditBitbucketProvider
-																		bitbucketId={
-																			gitProvider.bitbucket?.bitbucketId
-																		}
-																	/>
-																)}
+																		{isBitbucket &&
+																			gitProvider.bitbucket?.bitbucketId && (
+																				<EditBitbucketProvider
+																					bitbucketId={
+																						gitProvider.bitbucket.bitbucketId
+																					}
+																				/>
+																			)}
 
-																{isGitea && (
-																	<EditGiteaProvider
-																		giteaId={gitProvider.gitea?.giteaId}
-																	/>
-																)}
+																		{isGitea && gitProvider.gitea?.giteaId && (
+																			<EditGiteaProvider
+																				giteaId={gitProvider.gitea.giteaId}
+																			/>
+																		)}
 
-																<DialogAction
-																	title="Delete Git Provider"
-																	description="Are you sure you want to delete this Git Provider?"
-																	type="destructive"
-																	onClick={async () => {
-																		await mutateAsync({
-																			gitProviderId: gitProvider.gitProviderId,
-																		})
-																			.then(() => {
-																				toast.success(
-																					"Git Provider deleted successfully",
-																				);
-																				refetch();
-																			})
-																			.catch(() => {
-																				toast.error(
-																					"Error deleting Git Provider",
-																				);
-																			});
-																	}}
-																>
-																	<Button
-																		variant="ghost"
-																		size="icon"
-																		className="group hover:bg-red-500/10"
-																		isLoading={isRemoving}
-																	>
-																		<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-																	</Button>
-																</DialogAction>
+																		<DialogAction
+																			title="Delete Git Provider"
+																			description={
+																				gitProvider.sharedWithOrganization
+																					? "This provider is shared with the organization. Deleting it will remove access for all members. Are you sure?"
+																					: "Are you sure you want to delete this Git Provider?"
+																			}
+																			type="destructive"
+																			onClick={async () => {
+																				await mutateAsync({
+																					gitProviderId:
+																						gitProvider.gitProviderId,
+																				})
+																					.then(() => {
+																						toast.success(
+																							"Git Provider deleted successfully",
+																						);
+																						refetch();
+																					})
+																					.catch(() => {
+																						toast.error(
+																							"Error deleting Git Provider",
+																						);
+																					});
+																			}}
+																		>
+																			<Button
+																				variant="ghost"
+																				size="icon"
+																				className="group hover:bg-red-500/10"
+																				isLoading={isRemoving}
+																			>
+																				<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+																			</Button>
+																		</DialogAction>
+																	</>
+																)}
 															</div>
 														</div>
 													</div>

@@ -173,6 +173,7 @@ export const ShowProjects = () => {
 						return (
 							total +
 							(env.applications?.length || 0) +
+							(env.libsql?.length || 0) +
 							(env.mariadb?.length || 0) +
 							(env.mongo?.length || 0) +
 							(env.mysql?.length || 0) +
@@ -185,6 +186,7 @@ export const ShowProjects = () => {
 						return (
 							total +
 							(env.applications?.length || 0) +
+							(env.libsql?.length || 0) +
 							(env.mariadb?.length || 0) +
 							(env.mongo?.length || 0) +
 							(env.mysql?.length || 0) +
@@ -347,7 +349,7 @@ export const ShowProjects = () => {
 															}
 														}}
 													>
-														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-primary/10">
+														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-primary/10 flex flex-col">
 															<CardHeader>
 																<CardTitle className="flex items-center justify-between gap-2 overflow-clip">
 																	<span className="flex flex-col gap-1.5 ">
@@ -494,7 +496,7 @@ export const ShowProjects = () => {
 																	</div>
 																</CardTitle>
 															</CardHeader>
-															<CardFooter className="pt-4">
+															<CardFooter className="pt-4 mt-auto">
 																<div className="space-y-1 text-xs flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
 																	<DateTooltip date={project.createdAt}>
 																		Created

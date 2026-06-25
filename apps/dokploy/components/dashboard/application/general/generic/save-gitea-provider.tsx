@@ -1,3 +1,4 @@
+import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
 import Link from "next/link";
@@ -72,7 +73,10 @@ const GiteaProviderSchema = z.object({
 			owner: z.string().min(1, "Owner is required"),
 		})
 		.required(),
-	branch: z.string().min(1, "Branch is required"),
+	branch: z
+		.string()
+		.min(1, "Branch is required")
+		.regex(VALID_BRANCH_REGEX, "Invalid branch name"),
 	giteaId: z.string().min(1, "Gitea Provider is required"),
 	watchPaths: z.array(z.string()).default([]),
 	enableSubmodules: z.boolean().optional(),

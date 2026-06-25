@@ -25,11 +25,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-	InputOTP,
-	InputOTPGroup,
-	InputOTPSlot,
-} from "@/components/ui/input-otp";
+import { InputOTP } from "@/components/ui/input-otp";
 import {
 	Tooltip,
 	TooltipContent,
@@ -423,23 +419,14 @@ export const Enable2FA = () => {
 								)}
 							</div>
 
-							<div className="flex flex-col justify-center items-center">
+							<div className="flex flex-col gap-2">
 								<FormLabel>Verification Code</FormLabel>
 								<InputOTP
 									maxLength={6}
 									value={otpValue}
 									onChange={setOtpValue}
-									autoComplete="off"
-								>
-									<InputOTPGroup>
-										<InputOTPSlot index={0} />
-										<InputOTPSlot index={1} />
-										<InputOTPSlot index={2} />
-										<InputOTPSlot index={3} />
-										<InputOTPSlot index={4} />
-										<InputOTPSlot index={5} />
-									</InputOTPGroup>
-								</InputOTP>
+									autoFocus
+								/>
 								<FormDescription>
 									Enter the 6-digit code from your authenticator app
 								</FormDescription>

@@ -6,6 +6,9 @@ import {
 	findEnvironmentById,
 	findLibsqlById,
 	findProjectById,
+	getAccessibleServerIds,
+	getContainerLogs,
+	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeLibsqlById,
@@ -49,7 +52,11 @@ export const libsqlRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a Libsql",
@@ -62,6 +69,17 @@ export const libsqlRouter = createTRPCRouter({
 						message: "You are not authorized to access this project",
 					});
 				}
+
+				if (input.serverId) {
+					const accessibleIds = await getAccessibleServerIds(ctx.session);
+					if (!accessibleIds.has(input.serverId)) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this server",
+						});
+					}
+				}
+
 				const newLibsql = await createLibsql({
 					...input,
 				});
@@ -246,11 +264,15 @@ export const libsqlRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const queue: string[] = [];
-			const done = false;
+			let done = false;
 
 			deployLibsql(input.libsqlId, (log) => {
 				queue.push(log);
-			});
+			})
+				.catch(() => {})
+				.finally(() => {
+					done = true;
+				});
 
 			while (!done || queue.length > 0) {
 				if (queue.length > 0) {
@@ -449,5 +471,40 @@ export const libsqlRouter = createTRPCRouter({
 				resourceId: input.libsqlId,
 			});
 			return true;
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			apiFindOneLibsql.extend({
+				tail: z.number().int().min(1).max(10000).default(100),
+				since: z
+					.string()
+					.regex(/^(all|\d+[smhd])$/, "Invalid since format")
+					.default("all"),
+				search: z
+					.string()
+					.regex(/^[a-zA-Z0-9 ._-]{0,500}$/)
+					.optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.libsqlId, "read");
+			const libsql = await findLibsqlById(input.libsqlId);
+			if (
+				libsql.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this LibSQL",
+				});
+			}
+			return await getContainerLogs(
+				libsql.appName,
+				input.tail,
+				input.since,
+				input.search,
+				libsql.serverId,
+			);
 		}),
 });

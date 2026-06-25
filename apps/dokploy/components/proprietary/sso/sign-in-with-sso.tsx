@@ -29,10 +29,15 @@ type SSOEmailForm = z.infer<typeof ssoEmailSchema>;
 
 interface SignInWithSSOProps {
 	/** Content shown when SSO is collapsed (e.g. email/password form) */
-	children: React.ReactNode;
+	children?: React.ReactNode;
+	/** When true, SSO is the only option — no fallback to email/password */
+	enforce?: boolean;
 }
 
-export function SignInWithSSO({ children }: SignInWithSSOProps) {
+export function SignInWithSSO({
+	children,
+	enforce = false,
+}: SignInWithSSOProps) {
 	const [expanded, setExpanded] = useState(false);
 
 	const form = useForm<SSOEmailForm>({
@@ -44,7 +49,7 @@ export function SignInWithSSO({ children }: SignInWithSSOProps) {
 		try {
 			const { data, error } = await authClient.signIn.sso({
 				email: values.email,
-				callbackURL: "/dashboard/projects",
+				callbackURL: "/dashboard/home",
 			});
 			if (error) {
 				toast.error(error.message ?? "Failed to sign in with SSO");
@@ -72,7 +77,7 @@ export function SignInWithSSO({ children }: SignInWithSSOProps) {
 					<LogIn className="mr-2 size-4" />
 					Sign in with SSO
 				</Button>
-				{children}
+				{!enforce && children}
 			</div>
 		);
 	}
@@ -113,13 +118,15 @@ export function SignInWithSSO({ children }: SignInWithSSOProps) {
 							</FormItem>
 						)}
 					/>
-					<button
-						type="button"
-						onClick={() => setExpanded(false)}
-						className="text-xs text-muted-foreground hover:underline"
-					>
-						Use email and password instead
-					</button>
+					{!enforce && (
+						<button
+							type="button"
+							onClick={() => setExpanded(false)}
+							className="text-xs text-muted-foreground hover:underline"
+						>
+							Use email and password instead
+						</button>
+					)}
 				</form>
 			</Form>
 		</div>

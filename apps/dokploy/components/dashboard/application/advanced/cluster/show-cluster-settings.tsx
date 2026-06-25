@@ -40,12 +40,12 @@ interface Props {
 	type: "application" | "mariadb" | "mongo" | "mysql" | "postgres" | "redis";
 }
 
-const AddRedirectchema = z.object({
+const AddRedirectSchema = z.object({
 	replicas: z.number().min(1, "Replicas must be at least 1"),
 	registryId: z.string().optional(),
 });
 
-type AddCommand = z.infer<typeof AddRedirectchema>;
+type AddCommand = z.infer<typeof AddRedirectSchema>;
 
 export const ShowClusterSettings = ({ id, type }: Props) => {
 	const queryMap = {
@@ -87,7 +87,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 				: {}),
 			replicas: data?.replicas || 1,
 		},
-		resolver: zodResolver(AddRedirectchema),
+		resolver: zodResolver(AddRedirectSchema),
 	});
 
 	useEffect(() => {

@@ -74,8 +74,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				...(StopGracePeriod !== null &&
-					StopGracePeriod !== undefined && { StopGracePeriod }),
+				StopGracePeriod: StopGracePeriod ?? 30_000_000_000,
 				...(command && {
 					Command: command.split(" "),
 				}),
@@ -110,7 +109,11 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 							]
 						: [],
 				},
-		UpdateConfig,
+		UpdateConfig: postgres.updateConfigSwarm ?? {
+			Parallelism: 1,
+			Order: "stop-first" as const,
+			FailureAction: "rollback" as const,
+		},
 	};
 	try {
 		const service = docker.getService(appName);

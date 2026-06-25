@@ -3,20 +3,26 @@ import {
 	createDeploymentBackup,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
+import { findDestinationById } from "@dokploy/server/services/destination";
 import { findEnvironmentById } from "@dokploy/server/services/environment";
 import type { Mongo } from "@dokploy/server/services/mongo";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	getBackupCommand,
+	getBackupTimestamp,
+	getS3Credentials,
+	normalizeS3Path,
+} from "./utils";
 
 export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	const { environmentId, name, appName } = mongo;
 	const environment = await findEnvironmentById(environmentId);
 	const project = await findProjectById(environment.projectId);
 	const { prefix } = backup;
-	const destination = backup.destination;
-	const backupFileName = `${new Date().toISOString()}.bson.gz`;
+	const destination = await findDestinationById(backup.destinationId);
+	const backupFileName = `${getBackupTimestamp()}.bson.gz`;
 	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,

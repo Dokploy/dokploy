@@ -95,26 +95,22 @@ export const findApplicationById = async (applicationId: string) => {
 	const application = await db.query.applications.findFirst({
 		where: eq(applications.applicationId, applicationId),
 		with: {
-			environment: {
-				with: {
-					project: true,
-				},
-			},
+			environment: { with: { project: true } },
 			domains: true,
 			deployments: true,
 			mounts: true,
 			redirects: true,
 			security: true,
 			ports: true,
-			registry: true,
 			gitlab: true,
 			github: true,
 			bitbucket: true,
 			gitea: true,
 			server: true,
 			previewDeployments: true,
-			buildRegistry: true,
-			rollbackRegistry: true,
+			registry: { columns: { password: false } },
+			buildRegistry: { columns: { password: false } },
+			rollbackRegistry: { columns: { password: false } },
 		},
 	});
 	if (!application) {

@@ -88,7 +88,12 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isPending && isOpen) {
+			if (
+				(e.ctrlKey || e.metaKey) &&
+				e.code === "KeyS" &&
+				!isPending &&
+				isOpen
+			) {
 				e.preventDefault();
 				form.handleSubmit(onSubmit)();
 			}

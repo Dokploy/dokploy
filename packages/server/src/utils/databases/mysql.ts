@@ -117,7 +117,11 @@ export const buildMysql = async (mysql: MysqlNested) => {
 							]
 						: [],
 				},
-		UpdateConfig,
+		UpdateConfig: mysql.updateConfigSwarm ?? {
+			Parallelism: 1,
+			Order: "stop-first" as const,
+			FailureAction: "rollback" as const,
+		},
 	};
 	try {
 		const service = docker.getService(appName);

@@ -45,7 +45,7 @@ export const securityRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const security = await findSecurityById(input.securityId);
 			await checkServicePermissionAndAccess(ctx, security.applicationId, {
-				service: ["delete"],
+				service: ["create"],
 			});
 			const result = await deleteSecurityById(input.securityId);
 			await audit(ctx, {

@@ -8,8 +8,12 @@ import {
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	withPermission,
+} from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
-import { createTRPCRouter, withPermission } from "@/server/api/trpc";
 import {
 	apiCreateSshKey,
 	apiFindOneSshKey,
@@ -79,6 +83,16 @@ export const sshRouter = createTRPCRouter({
 		}),
 	all: withPermission("sshKeys", "read").query(async ({ ctx }) => {
 		return await db.query.sshKeys.findMany({
+			where: eq(sshKeys.organizationId, ctx.session.activeOrganizationId),
+			orderBy: desc(sshKeys.createdAt),
+		});
+	}),
+	allForApps: protectedProcedure.query(async ({ ctx }) => {
+		return await db.query.sshKeys.findMany({
+			columns: {
+				sshKeyId: true,
+				name: true,
+			},
 			where: eq(sshKeys.organizationId, ctx.session.activeOrganizationId),
 			orderBy: desc(sshKeys.createdAt),
 		});

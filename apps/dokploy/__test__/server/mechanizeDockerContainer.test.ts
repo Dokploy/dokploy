@@ -57,7 +57,7 @@ const createApplication = (
 			env: null,
 		},
 		replicas: 1,
-		stopGracePeriodSwarm: 0n,
+		stopGracePeriodSwarm: 0,
 		ulimitsSwarm: null,
 		serverId: "server-id",
 		...overrides,
@@ -76,8 +76,8 @@ describe("mechanizeDockerContainer", () => {
 		});
 	});
 
-	it("converts bigint stopGracePeriodSwarm to a number and keeps zero values", async () => {
-		const application = createApplication({ stopGracePeriodSwarm: 0n });
+	it("passes stopGracePeriodSwarm as a number and keeps zero values", async () => {
+		const application = createApplication({ stopGracePeriodSwarm: 0 });
 
 		await mechanizeDockerContainer(application);
 

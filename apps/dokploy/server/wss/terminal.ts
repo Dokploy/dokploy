@@ -154,6 +154,11 @@ export const setupTerminalWebSocketServer = (
 				return;
 			}
 
+			if (server.organizationId !== session.activeOrganizationId) {
+				ws.close();
+				return;
+			}
+
 			const { ipAddress: host, port, username, sshKey, sshKeyId } = server;
 
 			if (!sshKeyId) {

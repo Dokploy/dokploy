@@ -13,10 +13,11 @@ import {
 	findComposeById,
 	findDomainsByComposeId,
 	findEnvironmentById,
-	findGitProviderById,
 	findProjectById,
 	findServerById,
+	getAccessibleServerIds,
 	getComposeContainer,
+	getContainerLogs,
 	getWebServerSettings,
 	IS_CLOUD,
 	loadServices,
@@ -31,13 +32,14 @@ import {
 	updateCompose,
 	updateDeploymentStatus,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
+import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import { db } from "@dokploy/server/db";
 import {
 	type CompleteTemplate,
 	fetchTemplateFiles,
@@ -60,23 +62,22 @@ import {
 	apiFindCompose,
 	apiRandomizeCompose,
 	apiRedeployCompose,
+	apiSaveEnvironmentVariablesCompose,
 	apiUpdateCompose,
 	compose as composeTable,
 	environments,
 	projects,
 } from "@/server/db/schema";
-import { deploymentWorker } from "@/server/queues/deployments-queue";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByCompose,
-	getJobsByComposeId,
 	killDockerBuild,
 	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { audit } from "../utils/audit";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -88,7 +89,11 @@ export const composeRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a compose",
@@ -100,6 +105,17 @@ export const composeRouter = createTRPCRouter({
 						message: "You are not authorized to access this project",
 					});
 				}
+
+				if (input.serverId) {
+					const accessibleIds = await getAccessibleServerIds(ctx.session);
+					if (!accessibleIds.has(input.serverId)) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this server",
+						});
+					}
+				}
+
 				const newService = await createCompose({
 					...input,
 				});
@@ -155,13 +171,11 @@ export const composeRouter = createTRPCRouter({
 			const gitProviderId = getGitProviderId();
 
 			if (gitProviderId) {
-				try {
-					const gitProvider = await findGitProviderById(gitProviderId);
-					if (gitProvider.userId !== ctx.session.userId) {
-						hasGitProviderAccess = false;
-						unauthorizedProvider = compose.sourceType;
-					}
-				} catch {
+				const canEdit = await canEditDeployGitSource(
+					gitProviderId,
+					ctx.session,
+				);
+				if (!canEdit) {
 					hasGitProviderAccess = false;
 					unauthorizedProvider = compose.sourceType;
 				}
@@ -189,6 +203,31 @@ export const composeRouter = createTRPCRouter({
 			});
 			return updated;
 		}),
+	saveEnvironment: protectedProcedure
+		.input(apiSaveEnvironmentVariablesCompose)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.composeId, {
+				envVars: ["write"],
+			});
+			const updated = await updateCompose(input.composeId, {
+				env: input.env,
+			});
+
+			if (!updated) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error adding environment variables",
+				});
+			}
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "compose",
+				resourceId: input.composeId,
+				resourceName: updated?.name,
+			});
+			return true;
+		}),
 	delete: protectedProcedure
 		.input(apiDeleteCompose)
 		.mutation(async ({ input, ctx }) => {
@@ -211,12 +250,7 @@ export const composeRouter = createTRPCRouter({
 				.returning();
 
 			if (!IS_CLOUD) {
-				const queueJobs = await getJobsByComposeId(input.composeId);
-				for (const job of queueJobs) {
-					if (job.id) {
-						deploymentWorker.cancelJob(job.id, "User requested cancellation");
-					}
-				}
+				await cleanQueuesByCompose(input.composeId);
 			}
 
 			const cleanupOperations = [
@@ -278,7 +312,7 @@ export const composeRouter = createTRPCRouter({
 		.input(apiFetchServices)
 		.query(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
-				service: ["create"],
+				service: ["read"],
 			});
 			return await loadServices(input.composeId, input.type);
 		}),
@@ -389,10 +423,10 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
+				serverId: compose.serverId ?? undefined,
 			};
 
 			if (IS_CLOUD && compose.serverId) {
-				jobData.serverId = compose.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
@@ -438,9 +472,9 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
+				serverId: compose.serverId ?? undefined,
 			};
 			if (IS_CLOUD && compose.serverId) {
-				jobData.serverId = compose.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
@@ -546,11 +580,25 @@ export const composeRouter = createTRPCRouter({
 
 			await checkServiceAccess(ctx, environment.projectId, "create");
 
-			if (IS_CLOUD && !input.serverId) {
+			const webServerSettings = await getWebServerSettings();
+			if (
+				(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+				!input.serverId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You need to use a server to create a compose",
 				});
+			}
+
+			if (input.serverId) {
+				const accessibleIds = await getAccessibleServerIds(ctx.session);
+				if (!accessibleIds.has(input.serverId)) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
 			}
 
 			const template = await fetchTemplateFiles(input.id, input.baseUrl);
@@ -591,7 +639,7 @@ export const composeRouter = createTRPCRouter({
 				name: input.id,
 				sourceType: "raw",
 				appName: appName,
-				isolatedDeployment: true,
+				isolatedDeployment: template.config.config?.isolated !== false,
 			});
 
 			await addNewService(ctx, compose.composeId);
@@ -630,7 +678,7 @@ export const composeRouter = createTRPCRouter({
 			return compose;
 		}),
 
-	templates: publicProcedure
+	templates: protectedProcedure
 		.input(z.object({ baseUrl: z.string().optional() }))
 		.query(async ({ input }) => {
 			try {
@@ -651,11 +699,14 @@ export const composeRouter = createTRPCRouter({
 	getTags: protectedProcedure
 		.input(z.object({ baseUrl: z.string().optional() }))
 		.query(async ({ input }) => {
-			const githubTemplates = await fetchTemplatesList(input.baseUrl);
-
-			const allTags = githubTemplates.flatMap((template) => template.tags);
-			const uniqueTags = _.uniq(allTags);
-			return uniqueTags;
+			try {
+				const githubTemplates = await fetchTemplatesList(input.baseUrl);
+				const allTags = githubTemplates.flatMap((template) => template.tags);
+				return _.uniq(allTags);
+			} catch (error) {
+				console.warn("Failed to fetch template tags:", error);
+				return [];
+			}
 		}),
 	disconnectGitProvider: protectedProcedure
 		.input(apiFindCompose)
@@ -796,6 +847,76 @@ export const composeRouter = createTRPCRouter({
 				const processedTemplate = processTemplate(configModified, {
 					serverIp: serverIp,
 					projectName: compose.appName,
+				});
+
+				return {
+					compose: templateData.compose,
+					template: processedTemplate,
+				};
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Error processing template: ${error instanceof Error ? error.message : error}`,
+				});
+			}
+		}),
+
+	previewTemplate: protectedProcedure
+		.input(
+			z.object({
+				base64: z.string(),
+				appName: z.string(),
+				serverId: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				if (input.serverId) {
+					const accessibleIds = await getAccessibleServerIds(ctx.session);
+					if (!accessibleIds.has(input.serverId)) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this server",
+						});
+					}
+				}
+
+				const decodedData = Buffer.from(input.base64, "base64").toString(
+					"utf-8",
+				);
+
+				let serverIp = "127.0.0.1";
+
+				if (input.serverId) {
+					const server = await findServerById(input.serverId);
+					serverIp = server.ipAddress;
+				} else if (process.env.NODE_ENV !== "development") {
+					const settings = await getWebServerSettings();
+					serverIp = settings?.serverIp || "127.0.0.1";
+				}
+
+				const templateData = JSON.parse(decodedData);
+				const config = parse(templateData.config) as CompleteTemplate;
+
+				if (!templateData.compose || !config) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Invalid template format. Must contain compose and config fields",
+					});
+				}
+
+				const configModified = {
+					...config,
+					variables: {
+						APP_NAME: input.appName,
+						...config.variables,
+					},
+				};
+
+				const processedTemplate = processTemplate(configModified, {
+					serverIp,
+					projectName: input.appName,
 				});
 
 				return {
@@ -1081,5 +1202,45 @@ export const composeRouter = createTRPCRouter({
 				items,
 				total: countResult[0]?.count ?? 0,
 			};
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			apiFindCompose.extend({
+				containerId: z
+					.string()
+					.min(1)
+					.regex(/^[a-zA-Z0-9.\-_]+$/, "Invalid container id."),
+				tail: z.number().int().min(1).max(10000).default(100),
+				since: z
+					.string()
+					.regex(/^(all|\d+[smhd])$/, "Invalid since format")
+					.default("all"),
+				search: z
+					.string()
+					.regex(/^[a-zA-Z0-9 ._-]{0,500}$/)
+					.optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.composeId, "read");
+			const compose = await findComposeById(input.composeId);
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this compose",
+				});
+			}
+			return await getContainerLogs(
+				input.containerId,
+				input.tail,
+				input.since,
+				input.search,
+				compose.serverId,
+				true,
+			);
 		}),
 });

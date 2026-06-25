@@ -53,7 +53,7 @@ export default function Custom404({ statusCode, error }: Props) {
 
 						<div className="mt-5 flex flex-col justify-center items-center gap-2 sm:flex-row sm:gap-3">
 							<Link
-								href="/dashboard/projects"
+								href="/dashboard/home"
 								className={buttonVariants({
 									variant: "secondary",
 									className: "flex flex-row gap-2",

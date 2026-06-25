@@ -1,7 +1,7 @@
 export * from "./account";
 export * from "./ai";
-export * from "./audit-log";
 export * from "./application";
+export * from "./audit-log";
 export * from "./backups";
 export * from "./bitbucket";
 export * from "./certificate";
@@ -10,6 +10,7 @@ export * from "./deployment";
 export * from "./destination";
 export * from "./domain";
 export * from "./environment";
+export * from "./forward-auth";
 export * from "./git-provider";
 export * from "./gitea";
 export * from "./github";

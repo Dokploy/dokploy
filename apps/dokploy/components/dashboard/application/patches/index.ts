@@ -1,2 +1,2 @@
-export * from "./show-patches";
 export * from "./patch-editor";
+export * from "./show-patches";

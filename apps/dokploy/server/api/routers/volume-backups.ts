@@ -15,7 +15,9 @@ import {
 	updateVolumeBackupSchema,
 	volumeBackups,
 } from "@dokploy/server/db/schema";
+import { findDestinationById } from "@dokploy/server/services/destination";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
+import { findServerById } from "@dokploy/server/services/server";
 import {
 	execAsyncRemote,
 	execAsyncStream,
@@ -265,7 +267,23 @@ export const volumeBackupsRouter = createTRPCRouter({
 				serverId: z.string().optional(),
 			}),
 		)
-		.subscription(async ({ input }) => {
+		.subscription(async ({ input, ctx }) => {
+			const destination = await findDestinationById(input.destinationId);
+			if (destination.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You don't have access to this destination.",
+				});
+			}
+			if (input.serverId) {
+				const targetServer = await findServerById(input.serverId);
+				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this server.",
+					});
+				}
+			}
 			return observable<string>((emit) => {
 				const runRestore = async () => {
 					try {

@@ -14,21 +14,18 @@ import {
 	Text,
 } from "@react-email/components";
 
-export type TemplateProps = {
-	email: string;
-	name: string;
-};
-
-interface VercelInviteUserEmailProps {
+interface InvitationEmailProps {
 	inviteLink: string;
 	toEmail: string;
+	organizationName: string;
 }
 
 export const InvitationEmail = ({
 	inviteLink,
 	toEmail,
-}: VercelInviteUserEmailProps) => {
-	const previewText = "Join to Dokploy";
+	organizationName = "an organization",
+}: InvitationEmailProps) => {
+	const previewText = `You've been invited to join ${organizationName} on Dokploy`;
 	return (
 		<Html>
 			<Head />
@@ -44,50 +41,67 @@ export const InvitationEmail = ({
 					},
 				}}
 			>
-				<Body className="bg-white my-auto mx-auto font-sans px-2">
-					<Container className="border border-solid border-[#eaeaea] rounded-lg my-[40px] mx-auto p-[20px] max-w-[465px]">
-						<Section className="mt-[32px]">
+				<Body className="bg-[#f4f4f5] my-auto mx-auto font-sans">
+					<Container className="my-[40px] mx-auto max-w-[520px]">
+						{/* Header */}
+						<Section className="bg-[#09090b] rounded-t-xl px-[40px] py-[32px] text-center">
 							<Img
-								src={
-									"https://raw.githubusercontent.com/Dokploy/dokploy/refs/heads/canary/apps/dokploy/logo.png"
-								}
-								width="100"
-								height="50"
+								src="https://raw.githubusercontent.com/Dokploy/website/refs/heads/main/apps/docs/public/logo-dokploy-blackpng.png"
+								width="190"
+								height="120"
 								alt="Dokploy"
 								className="my-0 mx-auto"
 							/>
 						</Section>
-						<Heading className="text-black text-[24px] font-normal text-center p-0 my-[30px] mx-0">
-							Join to <strong>Dokploy</strong>
-						</Heading>
-						<Text className="text-black text-[14px] leading-[24px]">
-							Hello,
-						</Text>
-						<Text className="text-black text-[14px] leading-[24px]">
-							You have been invited to join <strong>Dokploy</strong>, a platform
-							that helps for deploying your apps to the cloud.
-						</Text>
-						<Section className="text-center mt-[32px] mb-[32px]">
-							<Button
-								href={inviteLink}
-								className="bg-[#000000] rounded text-white text-[12px] font-semibold no-underline text-center px-5 py-3"
-							>
-								Join the team 🚀
-							</Button>
+
+						{/* Body */}
+						<Section className="bg-white px-[40px] py-[32px]">
+							<Heading className="text-[#09090b] text-[22px] font-semibold m-0 mb-[8px]">
+								You've been invited to join {organizationName}
+							</Heading>
+							<Text className="text-[#71717a] text-[14px] leading-[22px] m-0 mb-[24px]">
+								You have been invited to join{" "}
+								<strong className="text-[#09090b]">{organizationName}</strong>{" "}
+								on Dokploy, the platform for deploying your apps to the cloud.
+								Click the button below to accept the invitation.
+							</Text>
+
+							{/* CTA Button */}
+							<Section className="text-center mb-[24px]">
+								<Button
+									href={inviteLink}
+									className="bg-[#09090b] rounded-lg text-white text-[14px] font-semibold no-underline text-center px-[24px] py-[12px]"
+								>
+									Accept Invitation
+								</Button>
+							</Section>
+
+							<Text className="text-[#a1a1aa] text-[13px] leading-[20px] m-0 text-center mb-[16px]">
+								If the button above doesn't work, copy and paste the following
+								link into your browser:
+							</Text>
+							<Text className="text-[#71717a] text-[12px] leading-[18px] m-0 text-center break-all">
+								{inviteLink}
+							</Text>
 						</Section>
-						<Text className="text-black text-[14px] leading-[24px]">
-							or copy and paste this URL into your browser:{" "}
-							<Link href={inviteLink} className="text-blue-600 no-underline">
-								https://dokploy.com
-							</Link>
-						</Text>
-						<Hr className="border border-solid border-[#eaeaea] my-[26px] mx-0 w-full" />
-						<Text className="text-[#666666] text-[12px] leading-[24px]">
-							This invitation was intended for {toEmail}. This invite was sent
-							from <strong className="text-black">dokploy.com</strong>. If you
-							were not expecting this invitation, you can ignore this email. If
-							you are concerned about your account's safety, please reply to
-						</Text>
+
+						{/* Footer */}
+						<Section className="bg-[#fafafa] rounded-b-xl px-[40px] py-[24px] text-center border-t border-solid border-[#e4e4e7]">
+							<Hr className="border border-solid border-[#e4e4e7] my-0 mb-[16px] mx-0 w-full" />
+							<Text className="text-[#a1a1aa] text-[12px] leading-[18px] m-0">
+								This invitation was intended for{" "}
+								<span className="text-[#71717a]">{toEmail}</span>. This invite
+								was sent from{" "}
+								<Link
+									href="https://dokploy.com"
+									className="text-[#71717a] underline"
+								>
+									Dokploy Cloud
+								</Link>
+								. If you were not expecting this invitation, you can safely
+								ignore this email.
+							</Text>
+						</Section>
 					</Container>
 				</Body>
 			</Tailwind>

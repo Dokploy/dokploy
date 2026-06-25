@@ -103,7 +103,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 		>
 			{" "}
 			<div className="flex items-start gap-x-2">
-				{/* Icon to expand the log item maybe implement a colapsible later */}
+				{/* Icon to expand the log item maybe implement a collapsible later */}
 				{/* <Square className="size-4 text-muted-foreground opacity-0 group-hover/logitem:opacity-100 transition-opacity" /> */}
 				{tooltip(color, rawTimestamp)}
 				{!noTimestamp && (

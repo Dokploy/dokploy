@@ -1,18 +1,34 @@
-import { findGitProviderById, removeGitProvider } from "@dokploy/server";
+import {
+	findGitProviderById,
+	getAccessibleGitProviderIds,
+	removeGitProvider,
+	updateGitProvider,
+} from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
-import { audit } from "@/server/api/utils/audit";
+import { desc, eq, inArray } from "drizzle-orm";
 import {
 	createTRPCRouter,
 	protectedProcedure,
 	withPermission,
 } from "@/server/api/trpc";
-import { apiRemoveGitProvider, gitProvider } from "@/server/db/schema";
+import { audit } from "@/server/api/utils/audit";
+import {
+	apiRemoveGitProvider,
+	apiToggleShareGitProvider,
+	gitProvider,
+} from "@/server/db/schema";
 
 export const gitProviderRouter = createTRPCRouter({
 	getAll: protectedProcedure.query(async ({ ctx }) => {
-		return await db.query.gitProvider.findMany({
+		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
+
+		if (accessibleIds.size === 0) {
+			return [];
+		}
+
+		const results = await db.query.gitProvider.findMany({
 			with: {
 				gitlab: true,
 				bitbucket: true,
@@ -20,12 +36,102 @@ export const gitProviderRouter = createTRPCRouter({
 				gitea: true,
 			},
 			orderBy: desc(gitProvider.createdAt),
-			where: and(
-				eq(gitProvider.userId, ctx.session.userId),
-				eq(gitProvider.organizationId, ctx.session.activeOrganizationId),
-			),
+			where: inArray(gitProvider.gitProviderId, [...accessibleIds]),
 		});
+
+		return results.map((r) => ({
+			...r,
+			isOwner: r.userId === ctx.session.userId,
+			github: r.github
+				? {
+						githubId: r.github.githubId,
+						githubAppName: r.github.githubAppName,
+						githubAppId: r.github.githubAppId,
+						githubInstallationId: r.github.githubInstallationId,
+						isConfigured: !!(
+							r.github.githubPrivateKey &&
+							r.github.githubAppId &&
+							r.github.githubInstallationId
+						),
+					}
+				: null,
+			gitlab: r.gitlab
+				? {
+						gitlabId: r.gitlab.gitlabId,
+						applicationId: r.gitlab.applicationId,
+						gitlabUrl: r.gitlab.gitlabUrl,
+						isConfigured: !!(r.gitlab.accessToken && r.gitlab.refreshToken),
+					}
+				: null,
+			bitbucket: r.bitbucket
+				? {
+						bitbucketId: r.bitbucket.bitbucketId,
+						bitbucketUsername: r.bitbucket.bitbucketUsername,
+						isConfigured: false,
+						isDeprecated: !!(r.bitbucket.appPassword && !r.bitbucket.apiToken),
+					}
+				: null,
+			gitea: r.gitea
+				? {
+						giteaId: r.gitea.giteaId,
+						giteaUrl: r.gitea.giteaUrl,
+						clientId: r.gitea.clientId,
+						isConfigured: !!(r.gitea.accessToken && r.gitea.refreshToken),
+					}
+				: null,
+		}));
 	}),
+
+	toggleShare: protectedProcedure
+		.input(apiToggleShareGitProvider)
+		.mutation(async ({ input, ctx }) => {
+			const provider = await findGitProviderById(input.gitProviderId);
+
+			if (
+				provider.userId !== ctx.session.userId ||
+				provider.organizationId !== ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Only the owner can share this provider",
+				});
+			}
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "gitProvider",
+				resourceId: provider.gitProviderId,
+				resourceName: provider.name ?? provider.gitProviderId,
+			});
+
+			return await updateGitProvider(input.gitProviderId, {
+				sharedWithOrganization: input.sharedWithOrganization,
+			});
+		}),
+
+	allForPermissions: withPermission("member", "update")
+		.use(async ({ ctx, next }) => {
+			const licensed = await hasValidLicense(ctx.session.activeOrganizationId);
+			if (!licensed) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Valid enterprise license required",
+				});
+			}
+			return next();
+		})
+		.query(async ({ ctx }) => {
+			return await db.query.gitProvider.findMany({
+				columns: {
+					gitProviderId: true,
+					name: true,
+					providerType: true,
+				},
+				orderBy: desc(gitProvider.createdAt),
+				where: eq(gitProvider.organizationId, ctx.session.activeOrganizationId),
+			});
+		}),
+
 	remove: withPermission("gitProviders", "delete")
 		.input(apiRemoveGitProvider)
 		.mutation(async ({ input, ctx }) => {

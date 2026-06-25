@@ -1,3 +1,4 @@
+import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
 import Link from "next/link";
@@ -58,7 +59,10 @@ const GitlabProviderSchema = z.object({
 			id: z.number().nullable(),
 		})
 		.required(),
-	branch: z.string().min(1, "Branch is required"),
+	branch: z
+		.string()
+		.min(1, "Branch is required")
+		.regex(VALID_BRANCH_REGEX, "Invalid branch name"),
 	gitlabId: z.string().min(1, "Gitlab Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
 	enableSubmodules: z.boolean().default(false),

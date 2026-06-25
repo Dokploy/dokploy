@@ -52,12 +52,13 @@ import {
 } from "@/components/ui/tooltip";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
+import { APP_NAME_MESSAGE, APP_NAME_REGEX } from "@/utils/schema";
 
 type DbType = z.infer<typeof mySchema>["type"];
 
 const dockerImageDefaultPlaceholder: Record<DbType, string> = {
+	mongo: "mongo:8",
 	libsql: "ghcr.io/tursodatabase/libsql-server:v0.24.32",
-	mongo: "mongo:7",
 	mariadb: "mariadb:11",
 	mysql: "mysql:8",
 	postgres: "postgres:18",
@@ -82,9 +83,8 @@ const baseDatabaseSchema = z.object({
 		.min(1, {
 			message: "App name is required",
 		})
-		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
-			message:
-				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
+		.regex(APP_NAME_REGEX, {
+			message: APP_NAME_MESSAGE,
 		}),
 	databasePassword: z
 		.string()
@@ -219,6 +219,9 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: webServerSettings } =
+		api.settings.getWebServerSettings.useQuery();
+	const showLocalOption = !isCloud && !webServerSettings?.remoteServersOnly;
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const libsqlMutation = api.libsql.create.useMutation();
 	const mariadbMutation = api.mariadb.create.useMutation();
@@ -470,19 +473,20 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 												<Select
 													onValueChange={field.onChange}
 													defaultValue={
-														field.value || (!isCloud ? "dokploy" : undefined)
+														field.value ||
+														(showLocalOption ? "dokploy" : undefined)
 													}
 												>
 													<SelectTrigger>
 														<SelectValue
 															placeholder={
-																!isCloud ? "Dokploy" : "Select a Server"
+																showLocalOption ? "Dokploy" : "Select a Server"
 															}
 														/>
 													</SelectTrigger>
 													<SelectContent>
 														<SelectGroup>
-															{!isCloud && (
+															{showLocalOption && (
 																<SelectItem value="dokploy">
 																	<span className="flex items-center gap-2 justify-between w-full">
 																		<span>Dokploy</span>
@@ -501,7 +505,8 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 																</SelectItem>
 															))}
 															<SelectLabel>
-																Servers ({servers?.length + (!isCloud ? 1 : 0)})
+																Servers (
+																{servers?.length + (showLocalOption ? 1 : 0)})
 															</SelectLabel>
 														</SelectGroup>
 													</SelectContent>
@@ -632,7 +637,6 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										control={form.control}
 										name="enableNamespaces"
 										render={({ field }) => {
-											console.log(field.value);
 											return (
 												<FormItem>
 													<FormLabel>Enable Namespaces</FormLabel>
