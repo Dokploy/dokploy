@@ -15,9 +15,9 @@ on:
   workflow_dispatch:
     inputs:
       floor_version:
-        description: 'Oldest version tag to include in auto pairs (e.g. v0.20.0)'
+        description: 'Oldest version tag to include in auto pairs (e.g. v0.29.4)'
         required: false
-        default: 'v0.20.0'
+        default: 'v0.29.4'
       extra_pairs:
         description: 'Extra pairs as JSON, e.g. [{"from":"v0.25.2","to":"v0.26.0"}]'
         required: false
@@ -210,34 +210,34 @@ jobs:
             '{"name":"ci-upgrade-test","description":"CI upgrade integration test"}')
           echo "project.create → $PROJECT"
 
-          # Support both API eras:
-          #   Old (pre-environments, ≤ ~v0.24): project.create returns a flat
-          #     object  → .result.data.json.projectId
-          #   New (environments feature, ≥ ~v0.25): returns nested objects
-          #     → .result.data.json.project.projectId  +  .environment.environmentId
+          # project.create in v0.29+ returns nested {project:{projectId}, environment:{environmentId}}
           PROJECT_ID=$(echo "$PROJECT" | jq -r \
-            '.result.data.json.project.projectId // .result.data.json.projectId')
+            '.result.data.json.project.projectId // .result.data.json.projectId // empty')
           ENV_ID=$(echo "$PROJECT" | jq -r \
             '.result.data.json.environment.environmentId // empty')
-          echo "project_id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
-          echo "env_id=${ENV_ID:-none}" >> "$GITHUB_OUTPUT"
-          echo "Detected PROJECT_ID=$PROJECT_ID  ENV_ID=${ENV_ID:-<none, using projectId>}"
 
-          # Build the JSON scope fragment used in every resource-create call.
-          # Old API uses projectId; new API uses environmentId.
-          if [ -n "$ENV_ID" ] && [ "$ENV_ID" != "null" ]; then
-            SCOPE="\"environmentId\":\"$ENV_ID\""
-          else
-            SCOPE="\"projectId\":\"$PROJECT_ID\""
+          if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" = "null" ]; then
+            echo "❌ Could not extract projectId from project.create response:"
+            echo "$PROJECT" | jq .
+            exit 1
           fi
-          echo "Resource scope: $SCOPE"
+          if [ -z "$ENV_ID" ] || [ "$ENV_ID" = "null" ]; then
+            echo "❌ Could not extract environmentId — this version may not support environments."
+            echo "   project.create response: $PROJECT"
+            exit 1
+          fi
+
+          echo "project_id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
+          echo "env_id=$ENV_ID"         >> "$GITHUB_OUTPUT"
+          echo "Detected PROJECT_ID=$PROJECT_ID  ENV_ID=$ENV_ID"
 
           # --- PostgreSQL 15 ---
           PG=$(trpc_mut postgres.create \
             "{\"name\":\"ci-pg\",\"appName\":\"ci-pg-db\",\
               \"databaseName\":\"cidb\",\"databaseUser\":\"ciuser\",\
               \"databasePassword\":\"CiPg1pass\",\
-              \"dockerImage\":\"postgres:15\",$SCOPE}")
+              \"dockerImage\":\"postgres:15\",\"environmentId\":\"$ENV_ID\"}")
+          echo "postgres.create → $PG"
           PG_ID=$(echo "$PG" | jq -r '.result.data.json.postgresId')
           trpc_mut postgres.start "{\"postgresId\":\"$PG_ID\"}" > /dev/null
           echo "pg_id=$PG_ID" >> "$GITHUB_OUTPUT"
@@ -247,7 +247,8 @@ jobs:
             "{\"name\":\"ci-mongo\",\"appName\":\"ci-mongo-db\",\
               \"databaseName\":\"cidb\",\"databaseUser\":\"ciuser\",\
               \"databasePassword\":\"CiMg1pass\",\
-              \"dockerImage\":\"mongo:7.0\",$SCOPE}")
+              \"dockerImage\":\"mongo:7.0\",\"environmentId\":\"$ENV_ID\"}")
+          echo "mongo.create → $MG"
           MG_ID=$(echo "$MG" | jq -r '.result.data.json.mongoId')
           trpc_mut mongo.start "{\"mongoId\":\"$MG_ID\"}" > /dev/null
           echo "mg_id=$MG_ID" >> "$GITHUB_OUTPUT"
@@ -256,7 +257,7 @@ jobs:
           make_app() {
             local DISP_NAME=$1 APP_NAME=$2 IMAGE=$3
             APP=$(trpc_mut application.create \
-              "{\"name\":\"$DISP_NAME\",\"appName\":\"$APP_NAME\",$SCOPE}")
+              "{\"name\":\"$DISP_NAME\",\"appName\":\"$APP_NAME\",\"environmentId\":\"$ENV_ID\"}")
             APP_ID=$(echo "$APP" | jq -r '.result.data.json.applicationId')
             trpc_mut application.saveDockerProvider \
               "{\"applicationId\":\"$APP_ID\",\"dockerImage\":\"$IMAGE\",\
