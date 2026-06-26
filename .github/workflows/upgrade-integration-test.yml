@@ -210,17 +210,34 @@ jobs:
             '{"name":"ci-upgrade-test","description":"CI upgrade integration test"}')
           echo "project.create → $PROJECT"
 
-          PROJECT_ID=$(echo "$PROJECT" | jq -r '.result.data.json.project.projectId')
-          ENV_ID=$(echo "$PROJECT"     | jq -r '.result.data.json.environment.environmentId')
+          # Support both API eras:
+          #   Old (pre-environments, ≤ ~v0.24): project.create returns a flat
+          #     object  → .result.data.json.projectId
+          #   New (environments feature, ≥ ~v0.25): returns nested objects
+          #     → .result.data.json.project.projectId  +  .environment.environmentId
+          PROJECT_ID=$(echo "$PROJECT" | jq -r \
+            '.result.data.json.project.projectId // .result.data.json.projectId')
+          ENV_ID=$(echo "$PROJECT" | jq -r \
+            '.result.data.json.environment.environmentId // empty')
           echo "project_id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
-          echo "env_id=$ENV_ID"         >> "$GITHUB_OUTPUT"
+          echo "env_id=${ENV_ID:-none}" >> "$GITHUB_OUTPUT"
+          echo "Detected PROJECT_ID=$PROJECT_ID  ENV_ID=${ENV_ID:-<none, using projectId>}"
+
+          # Build the JSON scope fragment used in every resource-create call.
+          # Old API uses projectId; new API uses environmentId.
+          if [ -n "$ENV_ID" ] && [ "$ENV_ID" != "null" ]; then
+            SCOPE="\"environmentId\":\"$ENV_ID\""
+          else
+            SCOPE="\"projectId\":\"$PROJECT_ID\""
+          fi
+          echo "Resource scope: $SCOPE"
 
           # --- PostgreSQL 15 ---
           PG=$(trpc_mut postgres.create \
             "{\"name\":\"ci-pg\",\"appName\":\"ci-pg-db\",\
               \"databaseName\":\"cidb\",\"databaseUser\":\"ciuser\",\
               \"databasePassword\":\"CiPg1pass\",\
-              \"dockerImage\":\"postgres:15\",\"environmentId\":\"$ENV_ID\"}")
+              \"dockerImage\":\"postgres:15\",$SCOPE}")
           PG_ID=$(echo "$PG" | jq -r '.result.data.json.postgresId')
           trpc_mut postgres.start "{\"postgresId\":\"$PG_ID\"}" > /dev/null
           echo "pg_id=$PG_ID" >> "$GITHUB_OUTPUT"
@@ -230,7 +247,7 @@ jobs:
             "{\"name\":\"ci-mongo\",\"appName\":\"ci-mongo-db\",\
               \"databaseName\":\"cidb\",\"databaseUser\":\"ciuser\",\
               \"databasePassword\":\"CiMg1pass\",\
-              \"dockerImage\":\"mongo:7.0\",\"environmentId\":\"$ENV_ID\"}")
+              \"dockerImage\":\"mongo:7.0\",$SCOPE}")
           MG_ID=$(echo "$MG" | jq -r '.result.data.json.mongoId')
           trpc_mut mongo.start "{\"mongoId\":\"$MG_ID\"}" > /dev/null
           echo "mg_id=$MG_ID" >> "$GITHUB_OUTPUT"
@@ -239,8 +256,7 @@ jobs:
           make_app() {
             local DISP_NAME=$1 APP_NAME=$2 IMAGE=$3
             APP=$(trpc_mut application.create \
-              "{\"name\":\"$DISP_NAME\",\"appName\":\"$APP_NAME\",\
-                \"environmentId\":\"$ENV_ID\"}")
+              "{\"name\":\"$DISP_NAME\",\"appName\":\"$APP_NAME\",$SCOPE}")
             APP_ID=$(echo "$APP" | jq -r '.result.data.json.applicationId')
             trpc_mut application.saveDockerProvider \
               "{\"applicationId\":\"$APP_ID\",\"dockerImage\":\"$IMAGE\",\
