@@ -1,0 +1,108 @@
+name: Build Docker images
+
+on:
+  push:
+    branches: [main, canary]
+  workflow_dispatch:
+
+jobs:
+  build-and-push-cloud-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set tag and version
+        id: meta-cloud
+        run: |
+          VERSION=$(jq -r .version apps/dokploy/package.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "tags=siumauricio/cloud:latest,siumauricio/cloud:${VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "tags=siumauricio/cloud:canary" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.cloud
+          push: true
+          tags: ${{ steps.meta-cloud.outputs.tags }}
+          platforms: linux/amd64
+          build-args: |
+            NEXT_PUBLIC_UMAMI_HOST=${{ secrets.NEXT_PUBLIC_UMAMI_HOST }}
+            NEXT_PUBLIC_UMAMI_WEBSITE_ID=${{ secrets.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
+            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+
+  build-and-push-schedule-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set tag and version
+        id: meta-schedule
+        run: |
+          VERSION=$(jq -r .version apps/dokploy/package.json)
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "tags=siumauricio/schedule:latest,siumauricio/schedule:${VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "tags=siumauricio/schedule:canary" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.schedule
+          push: true
+          tags: ${{ steps.meta-schedule.outputs.tags }}
+          platforms: linux/amd64
+
+  build-and-push-server-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set tag and version
+        id: meta-server
+        run: |
+          VERSION=$(jq -r .version apps/dokploy/package.json)
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "tags=siumauricio/server:latest,siumauricio/server:${VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "tags=siumauricio/server:canary" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.server
+          push: true
+          tags: ${{ steps.meta-server.outputs.tags }}
+          platforms: linux/amd64
