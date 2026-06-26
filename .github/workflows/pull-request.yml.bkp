@@ -1,0 +1,51 @@
+name: Pull Request
+
+on:
+  pull_request:
+    branches: [main, canary]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        job: [build, test, typecheck]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.4.0
+          cache: "pnpm"
+      
+      - name: Install Nixpacks
+        if: matrix.job == 'test'
+        run:  |
+          export NIXPACKS_VERSION=1.41.0
+          curl -sSL https://nixpacks.com/install.sh | bash
+          echo "Nixpacks installed $NIXPACKS_VERSION"
+
+      - name: Install Railpack
+        if: matrix.job == 'test'
+        run:  |
+          export RAILPACK_VERSION=0.15.4
+          curl -sSL https://railpack.com/install.sh | bash
+          echo "Railpack installed $RAILPACK_VERSION"
+      
+      - name: Add build tools to PATH
+        if: matrix.job == 'test'
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+      
+      - name: Initialize Docker Swarm
+        if: matrix.job == 'test'
+        run: |
+          docker swarm init
+          docker network create --driver overlay dokploy-network || true
+          echo "✅ Docker Swarm initialized"
+      
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm server:build
+      - run: pnpm ${{ matrix.job }}
