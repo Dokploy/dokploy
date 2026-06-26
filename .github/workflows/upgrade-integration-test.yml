@@ -239,7 +239,9 @@ jobs:
               \"dockerImage\":\"postgres:15\",\"environmentId\":\"$ENV_ID\"}")
           echo "postgres.create → $PG"
           PG_ID=$(echo "$PG" | jq -r '.result.data.json.postgresId')
-          trpc_mut postgres.start "{\"postgresId\":\"$PG_ID\"}" > /dev/null
+          # deploy (not start) — deploy creates the Swarm service; start only
+          # scales an already-deployed service and 500s on a fresh resource.
+          trpc_mut postgres.deploy "{\"postgresId\":\"$PG_ID\"}" > /dev/null
           echo "pg_id=$PG_ID" >> "$GITHUB_OUTPUT"
 
           # --- MongoDB 7.0 ---
@@ -250,7 +252,7 @@ jobs:
               \"dockerImage\":\"mongo:7.0\",\"environmentId\":\"$ENV_ID\"}")
           echo "mongo.create → $MG"
           MG_ID=$(echo "$MG" | jq -r '.result.data.json.mongoId')
-          trpc_mut mongo.start "{\"mongoId\":\"$MG_ID\"}" > /dev/null
+          trpc_mut mongo.deploy "{\"mongoId\":\"$MG_ID\"}" > /dev/null
           echo "mg_id=$MG_ID" >> "$GITHUB_OUTPUT"
 
           # --- Docker-image application helper ---
