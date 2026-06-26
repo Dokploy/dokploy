@@ -1,0 +1,418 @@
+# Upgrade Integration Test
+#
+# Tests that Dokploy can upgrade from version A to version B while keeping
+# user projects (Postgres, MongoDB, two web apps, one static site) alive.
+#
+# Two modes, combined into a single matrix:
+#   • Auto: every stable tag >= floor_version → latest stable tag  (N jobs)
+#   • Curated: hand-picked pairs (default: latest v0.25.x → latest v0.26.x)
+#
+# Only triggered manually to avoid burning Actions minutes.
+
+name: Upgrade Integration Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      floor_version:
+        description: 'Oldest version tag to include in auto pairs (e.g. v0.20.0)'
+        required: false
+        default: 'v0.20.0'
+      extra_pairs:
+        description: 'Extra pairs as JSON, e.g. [{"from":"v0.25.2","to":"v0.26.0"}]'
+        required: false
+        default: ''
+
+env:
+  DOKPLOY_IMAGE:   dokploy/dokploy
+  DOKPLOY_SERVICE: dokploy
+  DOKPLOY_PORT:    3000
+
+# ──────────────────────────────────────────────────────────────────────────────
+jobs:
+
+  # ── 1. Build the matrix ─────────────────────────────────────────────────────
+  build-matrix:
+    name: Build upgrade pair matrix
+    runs-on: ubuntu-latest
+    outputs:
+      pairs: ${{ steps.pairs.outputs.pairs }}
+
+    steps:
+      - name: Generate pairs
+        id: pairs
+        env:
+          FLOOR: ${{ inputs.floor_version }}
+          EXTRA: ${{ inputs.extra_pairs }}
+        run: |
+          set -euo pipefail
+
+          # Fetch all semver tags from Docker Hub (dokploy/dokploy)
+          ALL_TAGS=$(curl -fsSL \
+            "https://hub.docker.com/v2/repositories/dokploy/dokploy/tags?page_size=100" | \
+            jq -r '.results[].name' | \
+            grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | \
+            sort -V)
+
+          LATEST=$(echo "$ALL_TAGS" | tail -n1)
+          echo "Latest tag on Docker Hub: $LATEST"
+
+          # Floor semver components
+          FLOOR_CLEAN="${FLOOR#v}"
+          IFS='.' read -r F_MAJ F_MIN F_PAT <<< "$FLOOR_CLEAN"
+
+          # Build "each version >= FLOOR, != LATEST → LATEST" pairs
+          AUTO_PAIRS=$(echo "$ALL_TAGS" | while read -r TAG; do
+            [ "$TAG" = "$LATEST" ] && continue
+            TAG_CLEAN="${TAG#v}"
+            IFS='.' read -r T_MAJ T_MIN T_PAT <<< "$TAG_CLEAN"
+            if [ "$T_MAJ" -gt "$F_MAJ" ] || \
+               { [ "$T_MAJ" -eq "$F_MAJ" ] && [ "$T_MIN" -gt "$F_MIN" ]; } || \
+               { [ "$T_MAJ" -eq "$F_MAJ" ] && [ "$T_MIN" -eq "$F_MIN" ] && [ "$T_PAT" -ge "$F_PAT" ]; }; then
+              printf '{"from":"%s","to":"%s"}\n' "$TAG" "$LATEST"
+            fi
+          done | jq -sc '.')
+
+          # Curated pairs (latest v0.25.x → latest v0.26.x)
+          # Find the highest v0.25.x and v0.26.x tags from Docker Hub
+          V25=$(echo "$ALL_TAGS" | grep '^v0\.25\.' | tail -n1)
+          V26=$(echo "$ALL_TAGS" | grep '^v0\.26\.' | tail -n1)
+          CURATED='[]'
+          if [ -n "$V25" ] && [ -n "$V26" ] && [ "$V25" != "$V26" ]; then
+            CURATED=$(jq -cn --arg f "$V25" --arg t "$V26" '[{"from":$f,"to":$t}]')
+          fi
+
+          EXTRA_JSON="${EXTRA:-[]}"
+          if [ -z "$EXTRA_JSON" ] || [ "$EXTRA_JSON" = "" ]; then
+            EXTRA_JSON="[]"
+          fi
+
+          # Merge all sources, deduplicate by "from+to"
+          ALL=$(jq -cn \
+            --argjson auto "$AUTO_PAIRS" \
+            --argjson curated "$CURATED" \
+            --argjson extra "$EXTRA_JSON" \
+            '$auto + $curated + $extra | unique_by(.from + "-" + .to)')
+
+          COUNT=$(echo "$ALL" | jq 'length')
+          echo "Total pairs: $COUNT"
+          echo "$ALL" | jq -r '.[] | "  \(.from) → \(.to)"'
+
+          echo "pairs=$ALL" >> "$GITHUB_OUTPUT"
+
+
+  # ── 2. Run one upgrade test per pair ────────────────────────────────────────
+  upgrade-test:
+    name: "${{ matrix.pair.from }} → ${{ matrix.pair.to }}"
+    needs: build-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pair: ${{ fromJSON(needs.build-matrix.outputs.pairs) }}
+
+    steps:
+
+      # ── Environment setup ──────────────────────────────────────────────────
+      - name: Free disk space
+        run: |
+          sudo rm -rf \
+            /usr/share/dotnet /opt/ghc /usr/local/share/boost \
+            "$AGENT_TOOLSDIRECTORY" /usr/local/lib/android \
+            /usr/local/share/chromium /opt/hostedtoolcache
+          docker system prune -af --volumes
+          df -h
+
+      - name: Pre-init Docker Swarm (so install.sh skips its own swarm init)
+        run: |
+          docker swarm init --advertise-addr 127.0.0.1
+          docker network create --driver overlay --attachable dokploy-network || true
+
+      # ── Install Dokploy infrastructure ─────────────────────────────────────
+      - name: Run Dokploy install.sh (sets up Traefik, Redis, Postgres, service)
+        run: curl -sSL https://dokploy.com/install.sh | bash
+
+      # ── Pin to version A before any data is written ────────────────────────
+      - name: Pin Dokploy to VERSION A (${{ matrix.pair.from }})
+        run: |
+          docker service update \
+            --image "${{ env.DOKPLOY_IMAGE }}:${{ matrix.pair.from }}" \
+            --force \
+            "${{ env.DOKPLOY_SERVICE }}"
+
+          echo "Waiting for service to converge on ${{ matrix.pair.from }}..."
+          timeout 180 bash -c '
+            until ! docker service inspect dokploy \
+                    --format "{{.UpdateStatus.State}}" 2>/dev/null \
+                  | grep -q "^updating$"; do
+              sleep 4
+            done
+            until docker service ls --filter name=dokploy \
+                    --format "{{.Name}} {{.Replicas}}" \
+                  | grep "^dokploy " | grep -q " 1/1"; do
+              sleep 4
+            done
+          '
+          echo "✅ Service running on ${{ matrix.pair.from }}"
+
+      - name: Wait for Dokploy API to accept requests
+        run: |
+          timeout 120 bash -c '
+            until curl -sf -o /dev/null \
+                       "http://localhost:${{ env.DOKPLOY_PORT }}"; do
+              sleep 3
+            done
+          '
+          echo "✅ Dokploy API is up"
+
+      # ── Bootstrap admin user ───────────────────────────────────────────────
+      - name: Register first admin user
+        id: auth
+        run: |
+          COOKIE_JAR=$(mktemp /tmp/dokploy-cookies-XXXXXX)
+          echo "cookie_jar=$COOKIE_JAR" >> "$GITHUB_OUTPUT"
+
+          # better-auth: sign-up/email (allowed only before any owner exists)
+          RESP=$(curl -sf -X POST \
+            "http://localhost:${{ env.DOKPLOY_PORT }}/api/auth/sign-up/email" \
+            -H "Content-Type: application/json" \
+            -c "$COOKIE_JAR" -b "$COOKIE_JAR" \
+            -d '{"name":"CI Admin","email":"ci@dokploy.test","password":"CiTest1234!"}')
+
+          echo "Sign-up response: $RESP"
+          # Session cookie is stored in the jar; also capture token if present
+          TOKEN=$(echo "$RESP" | jq -r '.token // empty' 2>/dev/null || true)
+          if [ -n "$TOKEN" ]; then
+            echo "::add-mask::$TOKEN"
+            # Inject token as a cookie for older versions that don't use cookie jar
+            echo "dokploy.com	FALSE	/	FALSE	0	auth_token	$TOKEN" >> "$COOKIE_JAR"
+          fi
+
+      # ── Create test resources ──────────────────────────────────────────────
+      - name: Create project, databases and applications
+        id: create
+        env:
+          BASE:   "http://localhost:${{ env.DOKPLOY_PORT }}"
+          COOKIE: ${{ steps.auth.outputs.cookie_jar }}
+        run: |
+          # --- tRPC helpers ---
+          # Mutation (POST)
+          trpc_mut() {
+            curl -sf -X POST "$BASE/api/trpc/$1" \
+              -H "Content-Type: application/json" \
+              -b "$COOKIE" \
+              -d "{\"json\":$2}"
+          }
+
+          # --- Project ---
+          PROJECT=$(trpc_mut project.create \
+            '{"name":"ci-upgrade-test","description":"CI upgrade integration test"}')
+          echo "project.create → $PROJECT"
+
+          PROJECT_ID=$(echo "$PROJECT" | jq -r '.result.data.json.project.projectId')
+          ENV_ID=$(echo "$PROJECT"     | jq -r '.result.data.json.environment.environmentId')
+          echo "project_id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
+          echo "env_id=$ENV_ID"         >> "$GITHUB_OUTPUT"
+
+          # --- PostgreSQL 15 ---
+          PG=$(trpc_mut postgres.create \
+            "{\"name\":\"ci-pg\",\"appName\":\"ci-pg-db\",\
+              \"databaseName\":\"cidb\",\"databaseUser\":\"ciuser\",\
+              \"databasePassword\":\"CiPg1!\",\
+              \"dockerImage\":\"postgres:15\",\"environmentId\":\"$ENV_ID\"}")
+          PG_ID=$(echo "$PG" | jq -r '.result.data.json.postgresId')
+          trpc_mut postgres.start "{\"postgresId\":\"$PG_ID\"}" > /dev/null
+          echo "pg_id=$PG_ID" >> "$GITHUB_OUTPUT"
+
+          # --- MongoDB 7.0 ---
+          MG=$(trpc_mut mongo.create \
+            "{\"name\":\"ci-mongo\",\"appName\":\"ci-mongo-db\",\
+              \"databaseName\":\"cidb\",\"databaseUser\":\"ciuser\",\
+              \"databasePassword\":\"CiMg1!\",\
+              \"dockerImage\":\"mongo:7.0\",\"environmentId\":\"$ENV_ID\"}")
+          MG_ID=$(echo "$MG" | jq -r '.result.data.json.mongoId')
+          trpc_mut mongo.start "{\"mongoId\":\"$MG_ID\"}" > /dev/null
+          echo "mg_id=$MG_ID" >> "$GITHUB_OUTPUT"
+
+          # --- Docker-image application helper ---
+          # Creates an application, sets Docker image provider, triggers deploy.
+          make_app() {
+            local DISP_NAME=$1 APP_NAME=$2 IMAGE=$3
+            APP=$(trpc_mut application.create \
+              "{\"name\":\"$DISP_NAME\",\"appName\":\"$APP_NAME\",\
+                \"environmentId\":\"$ENV_ID\"}")
+            APP_ID=$(echo "$APP" | jq -r '.result.data.json.applicationId')
+            trpc_mut application.saveDockerProvider \
+              "{\"applicationId\":\"$APP_ID\",\"dockerImage\":\"$IMAGE\",\
+                \"username\":\"\",\"password\":\"\",\"registryUrl\":\"\"}" \
+              > /dev/null
+            trpc_mut application.deploy "{\"applicationId\":\"$APP_ID\"}" \
+              > /dev/null
+            echo "$APP_ID"
+          }
+
+          # Static site (nginx)
+          APP_STATIC=$(make_app "ci-static" "ci-static-app" "nginx:alpine")
+          echo "app_static_id=$APP_STATIC" >> "$GITHUB_OUTPUT"
+
+          # Node.js hello-world (echo server image — small, no args needed)
+          APP_NODE=$(make_app "ci-node" "ci-node-app" "ealen/echo-server:latest")
+          echo "app_node_id=$APP_NODE" >> "$GITHUB_OUTPUT"
+
+          # Go HTTP server (traefik/whoami is a tiny Go binary, port 80)
+          APP_GO=$(make_app "ci-go" "ci-go-app" "traefik/whoami:latest")
+          echo "app_go_id=$APP_GO" >> "$GITHUB_OUTPUT"
+
+          echo "✅ All resources created"
+
+      # ── Pre-upgrade health check ───────────────────────────────────────────
+      - name: Wait for all services → 'done' (pre-upgrade)
+        env:
+          BASE:          "http://localhost:${{ env.DOKPLOY_PORT }}"
+          COOKIE:        ${{ steps.auth.outputs.cookie_jar }}
+          PG_ID:         ${{ steps.create.outputs.pg_id }}
+          MG_ID:         ${{ steps.create.outputs.mg_id }}
+          APP_STATIC_ID: ${{ steps.create.outputs.app_static_id }}
+          APP_NODE_ID:   ${{ steps.create.outputs.app_node_id }}
+          APP_GO_ID:     ${{ steps.create.outputs.app_go_id }}
+        run: |
+          # Poll a tRPC query endpoint until the service status field == "done"
+          wait_done() {
+            local NAME=$1 ENDPOINT=$2 ID_KEY=$3 ID=$4 STATUS_KEY=$5
+            echo "Waiting for $NAME to reach 'done'..."
+            timeout 300 bash -c "
+              until [ \"\$(curl -sf -G '$BASE/api/trpc/$ENDPOINT' \
+                        --data-urlencode 'input={\"json\":{\"$ID_KEY\":\"$ID\"}}' \
+                        -b '$COOKIE' | \
+                        jq -r '.result.data.json.$STATUS_KEY // \"unknown\"')\" \
+                      = 'done' ]; do
+                sleep 5
+              done
+            "
+            echo "✅ $NAME is done"
+          }
+
+          wait_done postgres  postgres.one    postgresId    "$PG_ID"         applicationStatus
+          wait_done mongo     mongo.one       mongoId       "$MG_ID"         applicationStatus
+          wait_done static    application.one applicationId "$APP_STATIC_ID" applicationStatus
+          wait_done node-app  application.one applicationId "$APP_NODE_ID"   applicationStatus
+          wait_done go-app    application.one applicationId "$APP_GO_ID"     applicationStatus
+
+      - name: Assert Docker Swarm services healthy (pre-upgrade)
+        run: |
+          echo "=== docker service ls ==="
+          docker service ls
+
+          # User services should all be 1/1; check none are 0/1
+          FAIL=$(docker service ls --format '{{.Name}} {{.Replicas}}' | \
+            grep -E '^ci-' | grep -v ' 1/1' || true)
+          if [ -n "$FAIL" ]; then
+            echo "❌ User services not healthy before upgrade:"
+            echo "$FAIL"
+            exit 1
+          fi
+          echo "✅ All user services healthy before upgrade"
+
+      # ── Upgrade ────────────────────────────────────────────────────────────
+      - name: Upgrade Dokploy to VERSION B (${{ matrix.pair.to }})
+        run: |
+          docker service update \
+            --image "${{ env.DOKPLOY_IMAGE }}:${{ matrix.pair.to }}" \
+            --force \
+            "${{ env.DOKPLOY_SERVICE }}"
+
+          echo "Waiting for service to converge on ${{ matrix.pair.to }}..."
+          timeout 180 bash -c '
+            until ! docker service inspect dokploy \
+                    --format "{{.UpdateStatus.State}}" 2>/dev/null \
+                  | grep -q "^updating$"; do
+              sleep 4
+            done
+            until docker service ls --filter name=dokploy \
+                    --format "{{.Name}} {{.Replicas}}" \
+                  | grep "^dokploy " | grep -q " 1/1"; do
+              sleep 4
+            done
+          '
+          echo "✅ Service running on ${{ matrix.pair.to }}"
+
+      - name: Wait for Dokploy API to respond post-upgrade
+        run: |
+          timeout 120 bash -c '
+            until curl -sf -o /dev/null \
+                       "http://localhost:${{ env.DOKPLOY_PORT }}"; do
+              sleep 3
+            done
+          '
+          echo "✅ Dokploy API is up after upgrade"
+
+      # ── Post-upgrade health check ──────────────────────────────────────────
+      - name: Verify all services still healthy (post-upgrade)
+        env:
+          BASE:          "http://localhost:${{ env.DOKPLOY_PORT }}"
+          COOKIE:        ${{ steps.auth.outputs.cookie_jar }}
+          PG_ID:         ${{ steps.create.outputs.pg_id }}
+          MG_ID:         ${{ steps.create.outputs.mg_id }}
+          APP_STATIC_ID: ${{ steps.create.outputs.app_static_id }}
+          APP_NODE_ID:   ${{ steps.create.outputs.app_node_id }}
+          APP_GO_ID:     ${{ steps.create.outputs.app_go_id }}
+        run: |
+          check_status() {
+            local NAME=$1 ENDPOINT=$2 ID_KEY=$3 ID=$4 STATUS_KEY=$5
+            STATUS=$(curl -sf -G "$BASE/api/trpc/$ENDPOINT" \
+              --data-urlencode "input={\"json\":{\"$ID_KEY\":\"$ID\"}}" \
+              -b "$COOKIE" | \
+              jq -r ".result.data.json.$STATUS_KEY // \"unknown\"")
+            if [ "$STATUS" != "done" ]; then
+              echo "❌ $NAME status after upgrade: $STATUS"
+              return 1
+            fi
+            echo "✅ $NAME: $STATUS"
+          }
+
+          check_status postgres  postgres.one    postgresId    "$PG_ID"         applicationStatus
+          check_status mongo     mongo.one       mongoId       "$MG_ID"         applicationStatus
+          check_status static    application.one applicationId "$APP_STATIC_ID" applicationStatus
+          check_status node-app  application.one applicationId "$APP_NODE_ID"   applicationStatus
+          check_status go-app    application.one applicationId "$APP_GO_ID"     applicationStatus
+
+          echo "=== docker service ls (post-upgrade) ==="
+          docker service ls
+
+          FAIL=$(docker service ls --format '{{.Name}} {{.Replicas}}' | \
+            grep -E '^ci-' | grep -v ' 1/1' || true)
+          if [ -n "$FAIL" ]; then
+            echo "❌ User services not healthy after upgrade:"
+            echo "$FAIL"
+            exit 1
+          fi
+          echo "✅ All services healthy after upgrade to ${{ matrix.pair.to }}"
+
+      # ── Diagnostics on failure ─────────────────────────────────────────────
+      - name: Dump state on failure
+        if: failure()
+        run: |
+          echo "=== docker service ls ===" && docker service ls || true
+          echo "=== dokploy service tasks ===" && \
+            docker service ps "${{ env.DOKPLOY_SERVICE }}" --no-trunc || true
+          echo "=== dokploy logs (last 100) ===" && \
+            docker service logs "${{ env.DOKPLOY_SERVICE }}" --tail 100 2>&1 || true
+          echo "=== disk usage ===" && df -h
+
+      # ── Job summary ────────────────────────────────────────────────────────
+      - name: Write job summary
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          ICON="✅"; [ "$STATUS" != "success" ] && ICON="❌"
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## ${ICON} ${{ matrix.pair.from }} → ${{ matrix.pair.to }}: ${STATUS^^}
+
+          | Service | Image |
+          |---------|-------|
+          | ci-pg-db | postgres:15 |
+          | ci-mongo-db | mongo:7.0 |
+          | ci-static-app | nginx:alpine (static site) |
+          | ci-node-app | ealen/echo-server (Node.js hello-world) |
+          | ci-go-app | traefik/whoami (Go HTTP server) |
+          EOF
