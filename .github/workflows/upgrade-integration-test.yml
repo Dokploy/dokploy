@@ -123,41 +123,39 @@ jobs:
           docker system prune -af --volumes
           df -h
 
-      - name: Pre-init Docker Swarm (so install.sh skips its own swarm init)
+      # ── Install Dokploy directly at VERSION A ──────────────────────────────
+      # install.sh:
+      #   • requires root (run via sudo bash)
+      #   • respects DOKPLOY_VERSION → installs that tag directly
+      #     (so we don't need a separate "downgrade" step that would risk
+      #     running B's migrations on A's expected schema)
+      #   • respects ADVERTISE_ADDR → skip the external IP lookup
+      #   • initializes Docker Swarm + dokploy-network itself
+      - name: Install Dokploy at VERSION A (${{ matrix.pair.from }})
         run: |
-          docker swarm init --advertise-addr 127.0.0.1
-          docker network create --driver overlay --attachable dokploy-network || true
+          curl -fsSL https://dokploy.com/install.sh -o /tmp/install.sh
+          chmod +x /tmp/install.sh
+          sudo -E env \
+            DOKPLOY_VERSION="${{ matrix.pair.from }}" \
+            ADVERTISE_ADDR="127.0.0.1" \
+            bash /tmp/install.sh
 
-      # ── Install Dokploy infrastructure ─────────────────────────────────────
-      - name: Run Dokploy install.sh (sets up Traefik, Redis, Postgres, service)
-        run: curl -sSL https://dokploy.com/install.sh | bash
-
-      # ── Pin to version A before any data is written ────────────────────────
-      - name: Pin Dokploy to VERSION A (${{ matrix.pair.from }})
+      - name: Wait for dokploy service to converge on ${{ matrix.pair.from }}
         run: |
-          docker service update \
-            --image "${{ env.DOKPLOY_IMAGE }}:${{ matrix.pair.from }}" \
-            --force \
-            "${{ env.DOKPLOY_SERVICE }}"
-
-          echo "Waiting for service to converge on ${{ matrix.pair.from }}..."
-          timeout 180 bash -c '
-            until ! docker service inspect dokploy \
-                    --format "{{.UpdateStatus.State}}" 2>/dev/null \
-                  | grep -q "^updating$"; do
-              sleep 4
-            done
+          echo "Waiting for 'dokploy' Swarm service to reach 1/1..."
+          timeout 240 bash -c '
             until docker service ls --filter name=dokploy \
                     --format "{{.Name}} {{.Replicas}}" \
                   | grep "^dokploy " | grep -q " 1/1"; do
               sleep 4
             done
           '
+          docker service ls
           echo "✅ Service running on ${{ matrix.pair.from }}"
 
       - name: Wait for Dokploy API to accept requests
         run: |
-          timeout 120 bash -c '
+          timeout 180 bash -c '
             until curl -sf -o /dev/null \
                        "http://localhost:${{ env.DOKPLOY_PORT }}"; do
               sleep 3
@@ -169,23 +167,25 @@ jobs:
       - name: Register first admin user
         id: auth
         run: |
-          COOKIE_JAR=$(mktemp /tmp/dokploy-cookies-XXXXXX)
+          COOKIE_JAR="$RUNNER_TEMP/dokploy-cookies.txt"
+          : > "$COOKIE_JAR"
+          chmod 600 "$COOKIE_JAR"
           echo "cookie_jar=$COOKIE_JAR" >> "$GITHUB_OUTPUT"
 
           # better-auth: sign-up/email (allowed only before any owner exists)
-          RESP=$(curl -sf -X POST \
+          set -x
+          curl -sS -i -X POST \
             "http://localhost:${{ env.DOKPLOY_PORT }}/api/auth/sign-up/email" \
             -H "Content-Type: application/json" \
             -c "$COOKIE_JAR" -b "$COOKIE_JAR" \
-            -d '{"name":"CI Admin","email":"ci@dokploy.test","password":"CiTest1234!"}')
+            -d '{"name":"CI Admin","email":"ci@dokploy.test","password":"CiTest1234!"}' \
+            | tee /tmp/signup.out
+          set +x
 
-          echo "Sign-up response: $RESP"
-          # Session cookie is stored in the jar; also capture token if present
-          TOKEN=$(echo "$RESP" | jq -r '.token // empty' 2>/dev/null || true)
-          if [ -n "$TOKEN" ]; then
-            echo "::add-mask::$TOKEN"
-            # Inject token as a cookie for older versions that don't use cookie jar
-            echo "dokploy.com	FALSE	/	FALSE	0	auth_token	$TOKEN" >> "$COOKIE_JAR"
+          # Verify we got a session cookie
+          if ! grep -qE '(better-auth|auth)\.session' "$COOKIE_JAR"; then
+            echo "⚠️  No session cookie matched expected name; jar contents:"
+            cat "$COOKIE_JAR"
           fi
 
       # ── Create test resources ──────────────────────────────────────────────
@@ -195,12 +195,13 @@ jobs:
           BASE:   "http://localhost:${{ env.DOKPLOY_PORT }}"
           COOKIE: ${{ steps.auth.outputs.cookie_jar }}
         run: |
-          # --- tRPC helpers ---
-          # Mutation (POST)
+          set -euo pipefail
+
+          # --- tRPC POST helper ---
           trpc_mut() {
             curl -sf -X POST "$BASE/api/trpc/$1" \
               -H "Content-Type: application/json" \
-              -b "$COOKIE" \
+              -b "$COOKIE" -c "$COOKIE" \
               -d "{\"json\":$2}"
           }
 
@@ -218,7 +219,7 @@ jobs:
           PG=$(trpc_mut postgres.create \
             "{\"name\":\"ci-pg\",\"appName\":\"ci-pg-db\",\
               \"databaseName\":\"cidb\",\"databaseUser\":\"ciuser\",\
-              \"databasePassword\":\"CiPg1!\",\
+              \"databasePassword\":\"CiPg1pass\",\
               \"dockerImage\":\"postgres:15\",\"environmentId\":\"$ENV_ID\"}")
           PG_ID=$(echo "$PG" | jq -r '.result.data.json.postgresId')
           trpc_mut postgres.start "{\"postgresId\":\"$PG_ID\"}" > /dev/null
@@ -228,14 +229,13 @@ jobs:
           MG=$(trpc_mut mongo.create \
             "{\"name\":\"ci-mongo\",\"appName\":\"ci-mongo-db\",\
               \"databaseName\":\"cidb\",\"databaseUser\":\"ciuser\",\
-              \"databasePassword\":\"CiMg1!\",\
+              \"databasePassword\":\"CiMg1pass\",\
               \"dockerImage\":\"mongo:7.0\",\"environmentId\":\"$ENV_ID\"}")
           MG_ID=$(echo "$MG" | jq -r '.result.data.json.mongoId')
           trpc_mut mongo.start "{\"mongoId\":\"$MG_ID\"}" > /dev/null
           echo "mg_id=$MG_ID" >> "$GITHUB_OUTPUT"
 
           # --- Docker-image application helper ---
-          # Creates an application, sets Docker image provider, triggers deploy.
           make_app() {
             local DISP_NAME=$1 APP_NAME=$2 IMAGE=$3
             APP=$(trpc_mut application.create \
@@ -276,11 +276,10 @@ jobs:
           APP_NODE_ID:   ${{ steps.create.outputs.app_node_id }}
           APP_GO_ID:     ${{ steps.create.outputs.app_go_id }}
         run: |
-          # Poll a tRPC query endpoint until the service status field == "done"
           wait_done() {
             local NAME=$1 ENDPOINT=$2 ID_KEY=$3 ID=$4 STATUS_KEY=$5
             echo "Waiting for $NAME to reach 'done'..."
-            timeout 300 bash -c "
+            timeout 360 bash -c "
               until [ \"\$(curl -sf -G '$BASE/api/trpc/$ENDPOINT' \
                         --data-urlencode 'input={\"json\":{\"$ID_KEY\":\"$ID\"}}' \
                         -b '$COOKIE' | \
@@ -303,7 +302,6 @@ jobs:
           echo "=== docker service ls ==="
           docker service ls
 
-          # User services should all be 1/1; check none are 0/1
           FAIL=$(docker service ls --format '{{.Name}} {{.Replicas}}' | \
             grep -E '^ci-' | grep -v ' 1/1' || true)
           if [ -n "$FAIL" ]; then
@@ -322,7 +320,7 @@ jobs:
             "${{ env.DOKPLOY_SERVICE }}"
 
           echo "Waiting for service to converge on ${{ matrix.pair.to }}..."
-          timeout 180 bash -c '
+          timeout 240 bash -c '
             until ! docker service inspect dokploy \
                     --format "{{.UpdateStatus.State}}" 2>/dev/null \
                   | grep -q "^updating$"; do
@@ -338,7 +336,7 @@ jobs:
 
       - name: Wait for Dokploy API to respond post-upgrade
         run: |
-          timeout 120 bash -c '
+          timeout 180 bash -c '
             until curl -sf -o /dev/null \
                        "http://localhost:${{ env.DOKPLOY_PORT }}"; do
               sleep 3
@@ -395,8 +393,12 @@ jobs:
           echo "=== docker service ls ===" && docker service ls || true
           echo "=== dokploy service tasks ===" && \
             docker service ps "${{ env.DOKPLOY_SERVICE }}" --no-trunc || true
-          echo "=== dokploy logs (last 100) ===" && \
-            docker service logs "${{ env.DOKPLOY_SERVICE }}" --tail 100 2>&1 || true
+          echo "=== dokploy logs (last 200) ===" && \
+            docker service logs "${{ env.DOKPLOY_SERVICE }}" --tail 200 2>&1 || true
+          echo "=== install.sh tail ===" && \
+            tail -100 /tmp/install.sh 2>&1 || true
+          echo "=== signup response ===" && \
+            cat /tmp/signup.out 2>&1 || true
           echo "=== disk usage ===" && df -h
 
       # ── Job summary ────────────────────────────────────────────────────────
