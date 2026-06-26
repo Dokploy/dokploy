@@ -102,6 +102,9 @@ type EnabledOpts = {
 	auth?: AuthQueryOutput;
 	permissions?: PermissionsOutput;
 	isCloud: boolean;
+	isEnterpriseActive?: boolean;
+	showSSOInSidebar?: boolean;
+	showWhitelabelingInSidebar?: boolean;
 };
 
 type SingleNavItem = {
@@ -410,16 +413,35 @@ const MENU: Menu = {
 			title: "SSO",
 			url: "/dashboard/settings/sso",
 			icon: LogIn,
-			// Enabled for admins in both cloud and self-hosted (enterprise)
-			isEnabled: ({ permissions }) => !!permissions?.organization.update,
+			// Enabled for admins. On cloud SSO is always available; on self-hosted
+			// it requires an active enterprise license. Can also be hidden via the
+			// License page.
+			isEnabled: ({
+				permissions,
+				isCloud,
+				isEnterpriseActive,
+				showSSOInSidebar,
+			}) =>
+				!!permissions?.organization.update &&
+				(isCloud || !!isEnterpriseActive) &&
+				showSSOInSidebar !== false,
 		},
 		{
 			isSingle: true,
 			title: "Whitelabeling",
 			url: "/dashboard/settings/whitelabeling",
 			icon: Palette,
-			// Only enabled for owners in non-cloud environments (enterprise)
-			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && !isCloud),
+			// Only enabled for owners in non-cloud environments with an active
+			// enterprise license. Can be hidden from the sidebar via the License page.
+			isEnabled: ({
+				auth,
+				isCloud,
+				isEnterpriseActive,
+				showWhitelabelingInSidebar,
+			}) =>
+				!!(auth?.role === "owner" && !isCloud) &&
+				!!isEnterpriseActive &&
+				showWhitelabelingInSidebar !== false,
 		},
 	],
 
@@ -449,6 +471,10 @@ function createMenuForAuthUser(opts: {
 		docsUrl?: string | null;
 		supportUrl?: string | null;
 	} | null;
+	hideHelpLinks?: boolean;
+	isEnterpriseActive?: boolean;
+	showSSOInSidebar?: boolean;
+	showWhitelabelingInSidebar?: boolean;
 }): Menu {
 	const filterEnabled = <
 		T extends {
@@ -464,19 +490,26 @@ function createMenuForAuthUser(opts: {
 						auth: opts.auth,
 						permissions: opts.permissions,
 						isCloud: opts.isCloud,
+						isEnterpriseActive: opts.isEnterpriseActive,
+						showSSOInSidebar: opts.showSSOInSidebar,
+						showWhitelabelingInSidebar: opts.showWhitelabelingInSidebar,
 					}),
 		) as T[];
 
-	// Apply whitelabeling URL overrides to help items
-	const helpItems = filterEnabled(MENU.help).map((item) => {
-		if (opts.whitelabeling?.docsUrl && item.name === "Documentation") {
-			return { ...item, url: opts.whitelabeling.docsUrl };
-		}
-		if (opts.whitelabeling?.supportUrl && item.name === "Support") {
-			return { ...item, url: opts.whitelabeling.supportUrl };
-		}
-		return item;
-	});
+	// "Hide Help Links" is an enterprise restriction — only apply it when the
+	// license is active, otherwise always show the help links.
+	const helpItems =
+		opts.hideHelpLinks && opts.isEnterpriseActive
+			? []
+			: filterEnabled(MENU.help).map((item) => {
+					if (opts.whitelabeling?.docsUrl && item.name === "Documentation") {
+						return { ...item, url: opts.whitelabeling.docsUrl };
+					}
+					if (opts.whitelabeling?.supportUrl && item.name === "Support") {
+						return { ...item, url: opts.whitelabeling.supportUrl };
+					}
+					return item;
+				});
 
 	return {
 		home: filterEnabled(MENU.home),
@@ -592,7 +625,9 @@ function SidebarLogo() {
 					)}
 				>
 					{/* Organization Logo and Selector */}
-					<SidebarMenuItem className={"w-full"}>
+					<SidebarMenuItem
+						className={isCollapsed ? "w-full" : "min-w-0 flex-1"}
+					>
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<SidebarMenuButton
@@ -606,12 +641,12 @@ function SidebarLogo() {
 									<div
 										className={cn(
 											"flex items-center gap-2",
-											isCollapsed && "justify-center",
+											isCollapsed ? "justify-center" : "min-w-0 flex-1",
 										)}
 									>
 										<div
 											className={cn(
-												"flex items-center justify-center rounded-sm border",
+												"flex items-center justify-center rounded-sm border shrink-0",
 												"size-6",
 											)}
 										>
@@ -625,17 +660,17 @@ function SidebarLogo() {
 										</div>
 										<div
 											className={cn(
-												"flex flex-col items-start",
+												"flex flex-col items-start min-w-0",
 												isCollapsed && "hidden",
 											)}
 										>
-											<p className="text-sm font-medium leading-none">
+											<p className="text-sm font-medium leading-none truncate w-full">
 												{activeOrganization?.name ?? "Select Organization"}
 											</p>
 										</div>
 									</div>
 									<ChevronsUpDown
-										className={cn("ml-auto", isCollapsed && "hidden")}
+										className={cn("ml-auto shrink-0", isCollapsed && "hidden")}
 									/>
 								</SidebarMenuButton>
 							</DropdownMenuTrigger>
@@ -907,6 +942,10 @@ export default function Page({ children }: Props) {
 		staleTime: 5 * 60 * 1000,
 		refetchOnWindowFocus: false,
 	});
+	const { data: webServerSettings } =
+		api.settings.getWebServerSettings.useQuery();
+	const { data: haveValidLicense } =
+		api.licenseKey.haveValidLicenseKey.useQuery();
 
 	const includesProjects = pathname?.includes("/dashboard/project");
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -919,7 +958,16 @@ export default function Page({ children }: Props) {
 		auth,
 		permissions,
 		isCloud: !!isCloud,
-		whitelabeling,
+		whitelabeling: whitelabeling?.metadataEnabled
+			? {
+					docsUrl: whitelabeling.docsUrl,
+					supportUrl: whitelabeling.supportUrl,
+				}
+			: null,
+		hideHelpLinks: !!webServerSettings?.hideHelpLinks,
+		isEnterpriseActive: !!haveValidLicense,
+		showSSOInSidebar: webServerSettings?.showSSOInSidebar,
+		showWhitelabelingInSidebar: webServerSettings?.showWhitelabelingInSidebar,
 	});
 
 	const activeItem = findActiveNavItem(
@@ -943,8 +991,8 @@ export default function Page({ children }: Props) {
 			}}
 			style={
 				{
-					"--sidebar-width": "19.5rem",
-					"--sidebar-width-mobile": "19.5rem",
+					"--sidebar-width": "15rem",
+					"--sidebar-width-mobile": "18rem",
 				} as React.CSSProperties
 			}
 		>
@@ -1137,28 +1185,30 @@ export default function Page({ children }: Props) {
 							})}
 						</SidebarMenu>
 					</SidebarGroup>
-					<SidebarGroup className="group-data-[collapsible=icon]:hidden">
-						<SidebarGroupLabel>Extra</SidebarGroupLabel>
-						<SidebarMenu>
-							{help.map((item: ExternalLink) => (
-								<SidebarMenuItem key={item.name}>
-									<SidebarMenuButton asChild>
-										<a
-											href={item.url}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="flex w-full items-center gap-2"
-										>
-											<span className="mr-2">
-												<item.icon className="h-4 w-4" />
-											</span>
-											<span>{item.name}</span>
-										</a>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							))}
-						</SidebarMenu>
-					</SidebarGroup>
+					{help.length > 0 && (
+						<SidebarGroup className="group-data-[collapsible=icon]:hidden">
+							<SidebarGroupLabel>Extra</SidebarGroupLabel>
+							<SidebarMenu>
+								{help.map((item: ExternalLink) => (
+									<SidebarMenuItem key={item.name}>
+										<SidebarMenuButton asChild>
+											<a
+												href={item.url}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="flex w-full items-center gap-2"
+											>
+												<span className="mr-2">
+													<item.icon className="h-4 w-4" />
+												</span>
+												<span>{item.name}</span>
+											</a>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								))}
+							</SidebarMenu>
+						</SidebarGroup>
+					)}
 				</SidebarContent>
 				<SidebarFooter>
 					<SidebarMenu className="flex flex-col gap-2">

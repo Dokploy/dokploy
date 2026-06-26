@@ -4,6 +4,7 @@ import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { LicenseFeatureSettings } from "@/components/proprietary/license-keys/license-feature-settings";
 import { LicenseKeySettings } from "@/components/proprietary/license-keys/license-key";
 import { Card } from "@/components/ui/card";
 import { appRouter } from "@/server/api/root";
@@ -19,6 +20,7 @@ const Page = () => {
 						</div>
 					</div>
 				</Card>
+				<LicenseFeatureSettings />
 			</div>
 		</div>
 	);

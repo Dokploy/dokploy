@@ -87,7 +87,18 @@ export const webServerSettings = pgTable("webServerSettings", {
 			errorPageTitle: string | null;
 			errorPageDescription: string | null;
 			metaTitle: string | null;
+			metaDescription: string | null;
+			ogImageUrl: string | null;
 			footerText: string | null;
+			passwordResetGuide: string | null;
+			supportEmail: string | null;
+			// Per-section enable switches. When false, that section's values are
+			// not applied (and its fields are hidden in the settings UI).
+			brandingEnabled: boolean;
+			appearanceEnabled: boolean;
+			metadataEnabled: boolean;
+			errorPagesEnabled: boolean;
+			forgotPasswordEnabled: boolean;
 		}>()
 		.default({
 			appName: null,
@@ -101,7 +112,16 @@ export const webServerSettings = pgTable("webServerSettings", {
 			errorPageTitle: null,
 			errorPageDescription: null,
 			metaTitle: null,
+			metaDescription: null,
+			ogImageUrl: null,
 			footerText: null,
+			passwordResetGuide: null,
+			supportEmail: null,
+			brandingEnabled: false,
+			appearanceEnabled: false,
+			metadataEnabled: false,
+			errorPagesEnabled: false,
+			forgotPasswordEnabled: false,
 		}),
 	// Deployment Configuration (self-hosted only)
 	remoteServersOnly: boolean("remoteServersOnly").notNull().default(false),
@@ -109,6 +129,17 @@ export const webServerSettings = pgTable("webServerSettings", {
 	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	// Auth Configuration (self-hosted only)
 	enforceSSO: boolean("enforceSSO").notNull().default(false),
+	// Sidebar Configuration (self-hosted only)
+	hideHelpLinks: boolean("hideHelpLinks").notNull().default(false),
+	// Login/onboarding page configuration (self-hosted only)
+	hideSocialLinks: boolean("hideSocialLinks").notNull().default(false),
+	// Hide the "Sign in with SSO" option on the login page (self-hosted only)
+	hideSSOLogin: boolean("hideSSOLogin").notNull().default(false),
+	// Sidebar feature visibility (self-hosted, enterprise — toggled from License page)
+	showSSOInSidebar: boolean("showSSOInSidebar").notNull().default(true),
+	showWhitelabelingInSidebar: boolean("showWhitelabelingInSidebar")
+		.notNull()
+		.default(true),
 	// Cache Cleanup Configuration
 	cleanupCacheApplications: boolean("cleanupCacheApplications")
 		.notNull()
@@ -170,6 +201,11 @@ export const apiUpdateWebServerSettings = createSchema.partial().extend({
 	cleanupCacheOnCompose: z.boolean().optional(),
 	remoteServersOnly: z.boolean().optional(),
 	enforceSSO: z.boolean().optional(),
+	hideHelpLinks: z.boolean().optional(),
+	hideSocialLinks: z.boolean().optional(),
+	hideSSOLogin: z.boolean().optional(),
+	showSSOInSidebar: z.boolean().optional(),
+	showWhitelabelingInSidebar: z.boolean().optional(),
 	buildsConcurrency: z.number().int().min(1).max(100).optional(),
 });
 
@@ -224,7 +260,16 @@ export const whitelabelingConfigSchema = z.object({
 	errorPageTitle: z.string().nullable(),
 	errorPageDescription: z.string().nullable(),
 	metaTitle: z.string().nullable(),
+	metaDescription: z.string().nullable(),
+	ogImageUrl: safeUrl,
 	footerText: z.string().nullable(),
+	passwordResetGuide: z.string().nullable(),
+	supportEmail: z.string().email().nullable(),
+	brandingEnabled: z.boolean(),
+	appearanceEnabled: z.boolean(),
+	metadataEnabled: z.boolean(),
+	errorPagesEnabled: z.boolean(),
+	forgotPasswordEnabled: z.boolean(),
 });
 
 export const apiUpdateWhitelabeling = z.object({
