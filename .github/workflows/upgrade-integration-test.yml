@@ -3,9 +3,7 @@
 # Tests that Dokploy can upgrade from version A to version B while keeping
 # user projects (Postgres, MongoDB, two web apps, one static site) alive.
 #
-# Two modes, combined into a single matrix:
-#   • Auto: every stable tag >= floor_version → latest stable tag  (N jobs)
-#   • Curated: hand-picked pairs (default: latest v0.25.x → latest v0.26.x)
+# Generates consecutive upgrade pairs: each stable tag >= floor_version → next tag.
 #
 # Only triggered manually to avoid burning Actions minutes.
 
@@ -15,13 +13,9 @@ on:
   workflow_dispatch:
     inputs:
       floor_version:
-        description: 'Oldest version tag to include in auto pairs (e.g. v0.29.4)'
+        description: 'Oldest version tag to include in pairs (e.g. v0.29.4)'
         required: false
         default: 'v0.29.4'
-      extra_pairs:
-        description: 'Extra pairs as JSON, e.g. [{"from":"v0.25.2","to":"v0.26.0"}]'
-        required: false
-        default: ''
 
 env:
   DOKPLOY_IMAGE:   dokploy/dokploy
@@ -43,7 +37,6 @@ jobs:
         id: pairs
         env:
           FLOOR: ${{ inputs.floor_version }}
-          EXTRA: ${{ inputs.extra_pairs }}
         run: |
           set -euo pipefail
 
@@ -54,51 +47,45 @@ jobs:
             grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | \
             sort -V)
 
-          LATEST=$(echo "$ALL_TAGS" | tail -n1)
-          echo "Latest tag on Docker Hub: $LATEST"
+          echo "All tags found:"
+          echo "$ALL_TAGS"
 
           # Floor semver components
           FLOOR_CLEAN="${FLOOR#v}"
           IFS='.' read -r F_MAJ F_MIN F_PAT <<< "$FLOOR_CLEAN"
 
-          # Build "each version >= FLOOR, != LATEST → LATEST" pairs
-          AUTO_PAIRS=$(echo "$ALL_TAGS" | while read -r TAG; do
-            [ "$TAG" = "$LATEST" ] && continue
+          # Filter tags >= FLOOR
+          FILTERED=$(echo "$ALL_TAGS" | while read -r TAG; do
             TAG_CLEAN="${TAG#v}"
             IFS='.' read -r T_MAJ T_MIN T_PAT <<< "$TAG_CLEAN"
             if [ "$T_MAJ" -gt "$F_MAJ" ] || \
                { [ "$T_MAJ" -eq "$F_MAJ" ] && [ "$T_MIN" -gt "$F_MIN" ]; } || \
                { [ "$T_MAJ" -eq "$F_MAJ" ] && [ "$T_MIN" -eq "$F_MIN" ] && [ "$T_PAT" -ge "$F_PAT" ]; }; then
-              printf '{"from":"%s","to":"%s"}\n' "$TAG" "$LATEST"
+              echo "$TAG"
             fi
-          done | jq -sc '.')
+          done)
 
-          # Curated pairs (latest v0.25.x → latest v0.26.x)
-          # Find the highest v0.25.x and v0.26.x tags from Docker Hub
-          V25=$(echo "$ALL_TAGS" | grep '^v0\.25\.' | tail -n1)
-          V26=$(echo "$ALL_TAGS" | grep '^v0\.26\.' | tail -n1)
-          CURATED='[]'
-          if [ -n "$V25" ] && [ -n "$V26" ] && [ "$V25" != "$V26" ]; then
-            CURATED=$(jq -cn --arg f "$V25" --arg t "$V26" '[{"from":$f,"to":$t}]')
-          fi
+          echo "Tags >= $FLOOR:"
+          echo "$FILTERED"
 
-          EXTRA_JSON="${EXTRA:-[]}"
-          if [ -z "$EXTRA_JSON" ] || [ "$EXTRA_JSON" = "" ]; then
-            EXTRA_JSON="[]"
-          fi
+          # Build consecutive pairs: tag[i] → tag[i+1]
+          TAGS_ARR=()
+          while IFS= read -r t; do TAGS_ARR+=("$t"); done <<< "$FILTERED"
 
-          # Merge all sources, deduplicate by "from+to"
-          ALL=$(jq -cn \
-            --argjson auto "$AUTO_PAIRS" \
-            --argjson curated "$CURATED" \
-            --argjson extra "$EXTRA_JSON" \
-            '$auto + $curated + $extra | unique_by(.from + "-" + .to)')
+          PAIRS='[]'
+          for (( i=0; i<${#TAGS_ARR[@]}-1; i++ )); do
+            FROM="${TAGS_ARR[$i]}"
+            TO="${TAGS_ARR[$i+1]}"
+            PAIRS=$(echo "$PAIRS" | jq -c \
+              --arg f "$FROM" --arg t "$TO" \
+              '. + [{"from":$f,"to":$t}]')
+          done
 
-          COUNT=$(echo "$ALL" | jq 'length')
+          COUNT=$(echo "$PAIRS" | jq 'length')
           echo "Total pairs: $COUNT"
-          echo "$ALL" | jq -r '.[] | "  \(.from) → \(.to)"'
+          echo "$PAIRS" | jq -r '.[] | "  \(.from) → \(.to)"'
 
-          echo "pairs=$ALL" >> "$GITHUB_OUTPUT"
+          echo "pairs=$PAIRS" >> "$GITHUB_OUTPUT"
 
 
   # ── 2. Run one upgrade test per pair ────────────────────────────────────────
