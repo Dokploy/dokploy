@@ -3,7 +3,9 @@
 # Tests that Dokploy can upgrade from version A to version B while keeping
 # user projects (Postgres, MongoDB, two web apps, one static site) alive.
 #
-# Generates consecutive upgrade pairs: each stable tag >= floor_version → next tag.
+# Generates upgrade pairs: each stable tag in [floor_version, target_version)
+# is paired with target_version. If target_version is empty, the highest tag
+# available on Docker Hub is used as the target.
 #
 # Only triggered manually to avoid burning Actions minutes.
 
@@ -16,6 +18,10 @@ on:
         description: 'Oldest version tag to include in pairs (e.g. v0.29.4)'
         required: false
         default: 'v0.29.4'
+      target_version:
+        description: 'Target version to upgrade to (version B). Leave empty to use the highest available.'
+        required: false
+        default: ''
 
 env:
   DOKPLOY_IMAGE:   dokploy/dokploy
@@ -36,9 +42,15 @@ jobs:
       - name: Generate pairs
         id: pairs
         env:
-          FLOOR: ${{ inputs.floor_version }}
+          FLOOR:  ${{ inputs.floor_version }}
+          TARGET: ${{ inputs.target_version }}
         run: |
           set -euo pipefail
+
+          # semver "a >= b" comparison helper (vX.Y.Z, strips leading v)
+          ge() {
+            [ "$(printf '%s\n%s\n' "${1#v}" "${2#v}" | sort -V | tail -n1)" = "${1#v}" ]
+          }
 
           # Fetch all semver tags from Docker Hub (dokploy/dokploy)
           ALL_TAGS=$(curl -fsSL \
@@ -50,36 +62,35 @@ jobs:
           echo "All tags found:"
           echo "$ALL_TAGS"
 
+          # Target version (version B): explicit input, else highest available.
+          if [ -n "$TARGET" ]; then
+            TO="$TARGET"
+            echo "Using user-supplied target version: $TO"
+          else
+            TO=$(echo "$ALL_TAGS" | tail -n1)
+            echo "No target supplied; using highest available: $TO"
+          fi
+
           # Floor semver components
           FLOOR_CLEAN="${FLOOR#v}"
           IFS='.' read -r F_MAJ F_MIN F_PAT <<< "$FLOOR_CLEAN"
 
-          # Filter tags >= FLOOR
-          FILTERED=$(echo "$ALL_TAGS" | while read -r TAG; do
+          # Each tag in [FLOOR, TO) → TO
+          PAIRS='[]'
+          while read -r TAG; do
+            [ -z "$TAG" ] && continue
+            # skip tags above-or-equal to the target (incl. the target itself)
+            ge "$TAG" "$TO" && continue
             TAG_CLEAN="${TAG#v}"
             IFS='.' read -r T_MAJ T_MIN T_PAT <<< "$TAG_CLEAN"
             if [ "$T_MAJ" -gt "$F_MAJ" ] || \
                { [ "$T_MAJ" -eq "$F_MAJ" ] && [ "$T_MIN" -gt "$F_MIN" ]; } || \
                { [ "$T_MAJ" -eq "$F_MAJ" ] && [ "$T_MIN" -eq "$F_MIN" ] && [ "$T_PAT" -ge "$F_PAT" ]; }; then
-              echo "$TAG"
+              PAIRS=$(echo "$PAIRS" | jq -c \
+                --arg f "$TAG" --arg t "$TO" \
+                '. + [{"from":$f,"to":$t}]')
             fi
-          done)
-
-          echo "Tags >= $FLOOR:"
-          echo "$FILTERED"
-
-          # Build consecutive pairs: tag[i] → tag[i+1]
-          TAGS_ARR=()
-          while IFS= read -r t; do TAGS_ARR+=("$t"); done <<< "$FILTERED"
-
-          PAIRS='[]'
-          for (( i=0; i<${#TAGS_ARR[@]}-1; i++ )); do
-            FROM="${TAGS_ARR[$i]}"
-            TO="${TAGS_ARR[$i+1]}"
-            PAIRS=$(echo "$PAIRS" | jq -c \
-              --arg f "$FROM" --arg t "$TO" \
-              '. + [{"from":$f,"to":$t}]')
-          done
+          done <<< "$ALL_TAGS"
 
           COUNT=$(echo "$PAIRS" | jq 'length')
           echo "Total pairs: $COUNT"
