@@ -182,36 +182,31 @@ const MENU: Menu = {
 			title: "Schedules",
 			url: "/dashboard/schedules",
 			icon: Clock,
-			// Only enabled in non-cloud environments
-			isEnabled: ({ isCloud, permissions }) =>
-				!isCloud && !!permissions?.organization.update,
+			isEnabled: ({ permissions }) => !!permissions?.organization.update,
 		},
 		{
 			isSingle: true,
 			title: "Traefik File System",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
-			// Only enabled for users with access to Traefik files in non-cloud environments
-			isEnabled: ({ permissions, isCloud }) =>
-				!!(permissions?.traefikFiles.read && !isCloud),
+			// Only enabled for users with access to Traefik files
+			isEnabled: ({ permissions }) => !!permissions?.traefikFiles.read,
 		},
 		{
 			isSingle: true,
 			title: "Docker",
 			url: "/dashboard/docker",
 			icon: BlocksIcon,
-			// Only enabled for users with access to Docker in non-cloud environments
-			isEnabled: ({ permissions, isCloud }) =>
-				!!(permissions?.docker.read && !isCloud),
+			// Only enabled for users with access to Docker
+			isEnabled: ({ permissions }) => !!permissions?.docker.read,
 		},
 		{
 			isSingle: true,
 			title: "Swarm",
 			url: "/dashboard/swarm",
 			icon: PieChart,
-			// Only enabled for users with access to Docker in non-cloud environments
-			isEnabled: ({ permissions, isCloud }) =>
-				!!(permissions?.docker.read && !isCloud),
+			// Only enabled for users with access to Docker
+			isEnabled: ({ permissions }) => !!permissions?.docker.read,
 		},
 		{
 			isSingle: true,
@@ -305,6 +300,14 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			title: "Deployments",
+			url: "/dashboard/settings/deployments",
+			icon: Boxes,
+			isEnabled: ({ permissions, isCloud }) =>
+				!!(permissions?.server.read && !isCloud),
+		},
+		{
+			isSingle: true,
 			title: "Users",
 			icon: Users,
 			url: "/dashboard/settings/users",
@@ -375,9 +378,8 @@ const MENU: Menu = {
 			title: "Cluster",
 			url: "/dashboard/settings/cluster",
 			icon: Boxes,
-			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ permissions, isCloud }) =>
-				!!(permissions?.organization.update && !isCloud),
+			// Only enabled for admins
+			isEnabled: ({ permissions }) => !!permissions?.organization.update,
 		},
 		{
 			isSingle: true,

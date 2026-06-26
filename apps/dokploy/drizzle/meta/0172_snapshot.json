@@ -1,5 +1,5 @@
 {
-  "id": "0e681336-21b2-4fd8-9ab6-749cb4966bec",
+  "id": "d711bc8c-f41e-4de4-9733-90715f21cdc9",
   "prevId": "e4d9fc62-4bf9-483d-b2c1-13c704c773b8",
   "version": "7",
   "dialect": "postgresql",
@@ -3711,13 +3711,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "enableAutoDeploy": {
-          "name": "enableAutoDeploy",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
         "gitProviderId": {
           "name": "gitProviderId",
           "type": "text",
@@ -7110,6 +7103,13 @@
           "notNull": true,
           "default": false
         },
+        "buildsConcurrency": {
+          "name": "buildsConcurrency",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "text",
@@ -8146,6 +8146,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "buildsConcurrency": {
+          "name": "buildsConcurrency",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "enforceSSO": {
           "name": "enforceSSO",
