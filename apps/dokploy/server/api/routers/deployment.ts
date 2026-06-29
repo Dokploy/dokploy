@@ -243,7 +243,11 @@ export const deploymentRouter = createTRPCRouter({
 			}
 
 			const command = `tail -n ${input.tail} "${deployment.logPath}" 2>/dev/null || echo ""`;
-			const serverId = deployment.serverId || deployment.schedule?.serverId;
+			const serverId =
+				deployment.serverId ||
+				deployment.schedule?.serverId ||
+				deployment.application?.serverId ||
+				deployment.compose?.serverId;
 			if (serverId) {
 				const { stdout } = await execAsyncRemote(serverId, command);
 				return stdout;
