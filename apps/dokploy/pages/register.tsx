@@ -172,6 +172,7 @@ const Register = ({ isCloud }: Props) => {
 							)}
 							<Form {...form}>
 								<form
+									method="post"
 									onSubmit={form.handleSubmit(onSubmit)}
 									className="grid gap-4"
 								>

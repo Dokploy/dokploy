@@ -182,6 +182,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 			{IS_CLOUD && <SignInWithGoogle />}
 			<Form {...loginForm}>
 				<form
+					method="post"
 					onSubmit={loginForm.handleSubmit(onSubmit)}
 					className="space-y-4"
 					id="login-form"
@@ -263,6 +264,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 				) : (
 					<>
 						<form
+							method="post"
 							onSubmit={onTwoFactorSubmit}
 							className="space-y-4"
 							id="two-factor-form"
@@ -326,7 +328,11 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 									</DialogDescription>
 								</DialogHeader>
 
-								<form onSubmit={onBackupCodeSubmit} className="space-y-4">
+								<form
+									method="post"
+									onSubmit={onBackupCodeSubmit}
+									className="space-y-4"
+								>
 									<div className="flex flex-col gap-2">
 										<Label>Backup Code</Label>
 										<Input
