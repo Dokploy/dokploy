@@ -16,10 +16,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
 	);
 }
 
-function NumberInput({
-	className,
-	...props
-}: React.ComponentProps<"input">) {
+function NumberInput({ className, ...props }: React.ComponentProps<"input">) {
 	return (
 		<Input
 			type="text"

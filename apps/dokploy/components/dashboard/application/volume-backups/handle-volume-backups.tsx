@@ -349,10 +349,7 @@ export const HandleVolumeBackups = ({
 							<>
 								<div className="flex flex-col w-full gap-4">
 									{errorServices && (
-										<AlertBlock
-											type="warning"
-											className="wrap-anywhere"
-										>
+										<AlertBlock type="warning" className="wrap-anywhere">
 											{errorServices?.message}
 										</AlertBlock>
 									)}

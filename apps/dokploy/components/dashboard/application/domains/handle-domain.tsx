@@ -349,10 +349,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									{domainType === "compose" && (
 										<div className="flex flex-col gap-2 w-full">
 											{errorServices && (
-												<AlertBlock
-													type="warning"
-													className="wrap-anywhere"
-												>
+												<AlertBlock type="warning" className="wrap-anywhere">
 													{errorServices?.message}
 												</AlertBlock>
 											)}
