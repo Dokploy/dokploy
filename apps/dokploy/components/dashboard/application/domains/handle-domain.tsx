@@ -780,9 +780,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 															)}
 															{field.value === "letsencrypt" && (
 																<>
-																	<strong>Let's Encrypt</strong>{" "}
-																	auto-provisions a certificate automatically
-																	for this host.
+																	<strong>Let's Encrypt</strong> auto-provisions
+																	a certificate automatically for this host.
 																</>
 															)}
 															{field.value === "custom" && (
