@@ -5,13 +5,13 @@ vi.mock("node:fs", () => ({
 	default: fs,
 }));
 
-import type { FileConfig } from "@dokploy/server";
 import {
 	createDefaultServerTraefikConfig,
-	loadOrCreateConfig,
-	updateServerTraefik,
-} from "@dokploy/server";
+} from "@dokploy/server/setup/traefik-setup";
 import type { webServerSettings } from "@dokploy/server/db/schema";
+import type { FileConfig } from "@dokploy/server/utils/traefik/file-types";
+import { loadOrCreateConfig as loadTraefikConfig } from "@dokploy/server/utils/traefik/application";
+import { updateServerTraefik as updateWebServerTraefik } from "@dokploy/server/utils/traefik/web-server";
 import { beforeEach, expect, test, vi } from "vitest";
 
 type WebServerSettings = typeof webServerSettings.$inferSelect;
@@ -66,6 +66,8 @@ const baseSettings: WebServerSettings = {
 	cleanupCacheApplications: false,
 	cleanupCacheOnCompose: false,
 	cleanupCacheOnPreviews: false,
+	externalUpstreamsEnabled: false,
+	externalUpstreamBlockedCidrs: [],
 	remoteServersOnly: false,
 	enforceSSO: false,
 	createdAt: null,
@@ -78,14 +80,14 @@ beforeEach(() => {
 });
 
 test("Should read the configuration file", () => {
-	const config: FileConfig = loadOrCreateConfig("dokploy");
+	const config: FileConfig = loadTraefikConfig("dokploy");
 	expect(config.http?.routers?.["dokploy-router-app"]?.service).toBe(
 		"dokploy-service-app",
 	);
 });
 
 test("Should apply redirect-to-https", () => {
-	updateServerTraefik(
+	updateWebServerTraefik(
 		{
 			...baseSettings,
 			https: true,
@@ -94,7 +96,7 @@ test("Should apply redirect-to-https", () => {
 		"example.com",
 	);
 
-	const config: FileConfig = loadOrCreateConfig("dokploy");
+	const config: FileConfig = loadTraefikConfig("dokploy");
 
 	expect(config.http?.routers?.["dokploy-router-app"]?.middlewares).toContain(
 		"redirect-to-https",
@@ -102,35 +104,35 @@ test("Should apply redirect-to-https", () => {
 });
 
 test("Should change only host when no certificate", () => {
-	updateServerTraefik(baseSettings, "example.com");
+	updateWebServerTraefik(baseSettings, "example.com");
 
-	const config: FileConfig = loadOrCreateConfig("dokploy");
+	const config: FileConfig = loadTraefikConfig("dokploy");
 
 	expect(config.http?.routers?.["dokploy-router-app-secure"]).toBeUndefined();
 });
 
 test("Should not touch config without host", () => {
-	const originalConfig: FileConfig = loadOrCreateConfig("dokploy");
+	const originalConfig: FileConfig = loadTraefikConfig("dokploy");
 
-	updateServerTraefik(baseSettings, null);
+	updateWebServerTraefik(baseSettings, null);
 
-	const config: FileConfig = loadOrCreateConfig("dokploy");
+	const config: FileConfig = loadTraefikConfig("dokploy");
 
 	expect(originalConfig).toEqual(config);
 });
 
 test("Should remove websecure if https rollback to http", () => {
-	updateServerTraefik(
+	updateWebServerTraefik(
 		{ ...baseSettings, certificateType: "letsencrypt" },
 		"example.com",
 	);
 
-	updateServerTraefik(
+	updateWebServerTraefik(
 		{ ...baseSettings, certificateType: "none" },
 		"example.com",
 	);
 
-	const config: FileConfig = loadOrCreateConfig("dokploy");
+	const config: FileConfig = loadTraefikConfig("dokploy");
 
 	expect(config.http?.routers?.["dokploy-router-app-secure"]).toBeUndefined();
 	expect(

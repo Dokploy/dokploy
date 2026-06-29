@@ -1,12 +1,13 @@
-import type { ApplicationNested, Domain } from "@dokploy/server";
 import {
 	buildForwardAuthEnv,
-	createRouterConfig,
 	deriveBaseDomain,
 	deriveCookieSecret,
 	forwardAuthCallbackUrl,
-	forwardAuthMiddlewareName,
-} from "@dokploy/server";
+} from "@dokploy/server/setup/forward-auth-setup";
+import type { ApplicationNested } from "@dokploy/server/utils/builders";
+import type { Domain } from "@dokploy/server/services/domain";
+import { createRouterConfig as createTraefikRouterConfig } from "@dokploy/server/utils/traefik/domain";
+import { forwardAuthMiddlewareName } from "@dokploy/server/utils/traefik/forward-auth";
 import { beforeAll, describe, expect, test } from "vitest";
 
 const app = {
@@ -35,6 +36,7 @@ const baseDomain: Domain = {
 	stripPath: false,
 	middlewares: null,
 	forwardAuthEnabled: false,
+	externalUpstreamId: null,
 };
 
 describe("forwardAuthMiddlewareName", () => {
@@ -53,7 +55,7 @@ describe("forwardAuthMiddlewareName", () => {
 
 describe("createRouterConfig forward-auth wiring", () => {
 	test("does NOT add forward-auth middleware when no provider is linked", async () => {
-		const config = await createRouterConfig(app, baseDomain, "websecure");
+		const config = await createTraefikRouterConfig(app, baseDomain, "websecure");
 		expect(config.middlewares).not.toContain(
 			forwardAuthMiddlewareName("my-app", 7),
 		);
@@ -64,7 +66,7 @@ describe("createRouterConfig forward-auth wiring", () => {
 			...baseDomain,
 			forwardAuthEnabled: true,
 		};
-		const config = await createRouterConfig(app, domain, "websecure");
+		const config = await createTraefikRouterConfig(app, domain, "websecure");
 		expect(config.middlewares).toContain(
 			forwardAuthMiddlewareName("my-app", 7),
 		);
@@ -76,7 +78,7 @@ describe("createRouterConfig forward-auth wiring", () => {
 			forwardAuthEnabled: true,
 			middlewares: ["rate-limit@file"],
 		};
-		const config = await createRouterConfig(app, domain, "websecure");
+		const config = await createTraefikRouterConfig(app, domain, "websecure");
 		const forwardAuthIdx = config.middlewares?.indexOf(
 			forwardAuthMiddlewareName("my-app", 7),
 		);
@@ -91,7 +93,7 @@ describe("createRouterConfig forward-auth wiring", () => {
 			https: true,
 			forwardAuthEnabled: true,
 		};
-		const config = await createRouterConfig(app, domain, "web");
+		const config = await createTraefikRouterConfig(app, domain, "web");
 		expect(config.middlewares).toContain("redirect-to-https");
 		expect(config.middlewares).not.toContain(
 			forwardAuthMiddlewareName("my-app", 7),

@@ -1,5 +1,7 @@
-import type { ApplicationNested, Domain, Redirect } from "@dokploy/server";
-import { createRouterConfig } from "@dokploy/server";
+import type { ApplicationNested } from "@dokploy/server/utils/builders";
+import type { Domain } from "@dokploy/server/services/domain";
+import type { Redirect } from "@dokploy/server/services/redirect";
+import { createRouterConfig } from "@dokploy/server/utils/traefik/domain";
 import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
@@ -149,6 +151,7 @@ const baseDomain: Domain = {
 	stripPath: false,
 	middlewares: null,
 	forwardAuthEnabled: false,
+	externalUpstreamId: null,
 };
 
 const baseRedirect: Redirect = {

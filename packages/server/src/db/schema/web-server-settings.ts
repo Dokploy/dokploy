@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
 	boolean,
 	integer,
@@ -10,6 +10,10 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import {
+	DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS,
+	validateBlockedCidrs,
+} from "../../utils/network/external-upstream";
 import { certificateType } from "./shared";
 
 export const webServerSettings = pgTable("webServerSettings", {
@@ -105,6 +109,15 @@ export const webServerSettings = pgTable("webServerSettings", {
 		}),
 	// Deployment Configuration (self-hosted only)
 	remoteServersOnly: boolean("remoteServersOnly").notNull().default(false),
+	externalUpstreamsEnabled: boolean("externalUpstreamsEnabled")
+		.notNull()
+		.default(false),
+	externalUpstreamBlockedCidrs: text("externalUpstreamBlockedCidrs")
+		.array()
+		.notNull()
+		.default(
+			sql`ARRAY['127.0.0.0/8','169.254.0.0/16','0.0.0.0/8','::1/128','fe80::/10']::text[]`,
+		),
 	// Concurrent builds on the local web server
 	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	// Auth Configuration (self-hosted only)
@@ -169,6 +182,24 @@ export const apiUpdateWebServerSettings = createSchema.partial().extend({
 	cleanupCacheOnPreviews: z.boolean().optional(),
 	cleanupCacheOnCompose: z.boolean().optional(),
 	remoteServersOnly: z.boolean().optional(),
+	externalUpstreamsEnabled: z.boolean().optional(),
+	externalUpstreamBlockedCidrs: z
+		.array(z.string().min(1))
+		.optional()
+		.default(DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS)
+		.superRefine((blockedCidrs, ctx) => {
+			try {
+				validateBlockedCidrs(blockedCidrs);
+			} catch (error) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message:
+						error instanceof Error
+							? error.message
+							: "Invalid blocked CIDR list",
+				});
+			}
+		}),
 	enforceSSO: z.boolean().optional(),
 	buildsConcurrency: z.number().int().min(1).max(100).optional(),
 });
