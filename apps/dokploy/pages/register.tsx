@@ -160,7 +160,7 @@ const Register = ({ isCloud }: Props) => {
 						)}
 						<CardContent className="p-0">
 							{isCloud && (
-								<div className="flex flex-col">
+								<div className="flex flex-col gap-2">
 									<SignInWithGithub />
 									<SignInWithGoogle />
 								</div>
