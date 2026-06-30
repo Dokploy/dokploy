@@ -113,7 +113,10 @@ const createResponse = () => {
 	return res;
 };
 
-const createPushRequest = (branch: string) =>
+const createPushRequest = (
+	branch: string,
+	owner: { login?: string; name?: string } = { login: "agentHits" },
+) =>
 	({
 		headers: {
 			"x-hub-signature-256": "sha256=test-signature",
@@ -138,9 +141,7 @@ const createPushRequest = (branch: string) =>
 				full_name: "agentHits/dokploy",
 				clone_url: "https://github.com/agentHits/dokploy.git",
 				html_url: "https://github.com/agentHits/dokploy",
-				owner: {
-					login: "agentHits",
-				},
+				owner,
 			},
 		},
 	}) as unknown as NextApiRequest;
@@ -194,10 +195,16 @@ describe("GitHub app webhook auto-deploy", () => {
 		});
 	});
 
-	it("matches push events using repository owner login", async () => {
+	it("matches push events using repository owner name when available", async () => {
 		const res = createResponse();
 
-		await handler(createPushRequest("main"), res);
+		await handler(
+			createPushRequest("main", {
+				login: "agentHits-login",
+				name: "agentHits",
+			}),
+			res,
+		);
 
 		expect(mocks.queueAdd).toHaveBeenCalledWith(
 			"deployments",
@@ -215,7 +222,7 @@ describe("GitHub app webhook auto-deploy", () => {
 		expect(res.json).toHaveBeenCalledWith({ message: "Deployed 1 apps" });
 	});
 
-	it("matches compose push events using repository owner login", async () => {
+	it("matches compose push events using repository owner login fallback", async () => {
 		mocks.applicationsFindMany.mockResolvedValue([]);
 		mocks.composeFindMany.mockImplementation(({ where }) => {
 			const matches =
@@ -259,7 +266,7 @@ describe("GitHub app webhook auto-deploy", () => {
 		expect(res.json).toHaveBeenCalledWith({ message: "Deployed 1 apps" });
 	});
 
-	it("matches tag events using repository owner login", async () => {
+	it("matches tag events using repository owner login fallback", async () => {
 		mocks.applicationsFindMany.mockImplementation(({ where }) => {
 			const matches =
 				getConditionValue(where, "application.sourceType") === "github" &&

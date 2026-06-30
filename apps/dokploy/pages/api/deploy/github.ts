@@ -24,7 +24,7 @@ import {
 } from "./[refreshToken]";
 
 const getGithubRepositoryOwner = (githubBody: any) =>
-	githubBody?.repository?.owner?.login ?? githubBody?.repository?.owner?.name;
+	githubBody?.repository?.owner?.name ?? githubBody?.repository?.owner?.login;
 
 export default async function handler(
 	req: NextApiRequest,
