@@ -179,6 +179,7 @@ export const apiCreateCompose = createSchema.pick({
 	appName: true,
 	serverId: true,
 	composeFile: true,
+	sourceType: true,
 });
 
 export const apiCreateComposeByTemplate = createSchema
