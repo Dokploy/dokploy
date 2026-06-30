@@ -24,7 +24,7 @@ const stateVariants: Record<
 	| "default"
 	| "secondary"
 	| "destructive"
-	| "outline-solid"
+	| "outline"
 	| "yellow"
 	| "green"
 	| "red"
@@ -32,11 +32,11 @@ const stateVariants: Record<
 	pending: "secondary",
 	waiting: "secondary",
 	active: "yellow",
-	delayed: "outline-solid",
+	delayed: "outline",
 	completed: "green",
 	failed: "destructive",
-	cancelled: "outline-solid",
-	paused: "outline-solid",
+	cancelled: "outline",
+	paused: "outline",
 };
 
 function formatTs(ts?: number): string {
@@ -128,7 +128,7 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 											<TableCell>{appType ?? row.name ?? "—"}</TableCell>
 											<TableCell>
 												<Badge
-													variant={stateVariants[row.state] ?? "outline-solid"}
+													variant={stateVariants[row.state] ?? "outline"}
 												>
 													{row.state}
 												</Badge>

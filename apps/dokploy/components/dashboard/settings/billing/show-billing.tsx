@@ -316,7 +316,7 @@ export const ShowBilling = () => {
 										<div className="flex gap-2 flex-wrap">
 											<Button
 												variant={
-													!updateFormAnnual ? "default" : "outline-solid"
+													!updateFormAnnual ? "default" : "outline"
 												}
 												size="sm"
 												className="min-w-24"
@@ -325,7 +325,7 @@ export const ShowBilling = () => {
 												Monthly
 											</Button>
 											<Button
-												variant={updateFormAnnual ? "default" : "outline-solid"}
+												variant={updateFormAnnual ? "default" : "outline"}
 												size="sm"
 												className="min-w-24"
 												onClick={() => setUpdateFormAnnual(true)}
@@ -338,7 +338,7 @@ export const ShowBilling = () => {
 										<div className="flex gap-2 flex-wrap">
 											<Button
 												variant={
-													upgradeTier === "hobby" ? "default" : "outline-solid"
+													upgradeTier === "hobby" ? "default" : "outline"
 												}
 												size="sm"
 												className="min-w-24"
@@ -350,7 +350,7 @@ export const ShowBilling = () => {
 												variant={
 													upgradeTier === "startup"
 														? "default"
-														: "outline-solid"
+														: "outline"
 												}
 												size="sm"
 												className="min-w-24"
@@ -535,7 +535,7 @@ export const ShowBilling = () => {
 										<div className="flex gap-2 flex-wrap">
 											<Button
 												variant={
-													!updateFormAnnual ? "default" : "outline-solid"
+													!updateFormAnnual ? "default" : "outline"
 												}
 												size="sm"
 												className="min-w-24"
@@ -544,7 +544,7 @@ export const ShowBilling = () => {
 												Monthly
 											</Button>
 											<Button
-												variant={updateFormAnnual ? "default" : "outline-solid"}
+												variant={updateFormAnnual ? "default" : "outline"}
 												size="sm"
 												className="min-w-24"
 												onClick={() => setUpdateFormAnnual(true)}
@@ -557,7 +557,7 @@ export const ShowBilling = () => {
 										<div className="flex gap-2 flex-wrap">
 											<Button
 												variant={
-													upgradeTier === "hobby" ? "default" : "outline-solid"
+													upgradeTier === "hobby" ? "default" : "outline"
 												}
 												size="sm"
 												className="min-w-24"
@@ -569,7 +569,7 @@ export const ShowBilling = () => {
 												variant={
 													upgradeTier === "startup"
 														? "default"
-														: "outline-solid"
+														: "outline"
 												}
 												size="sm"
 												className="min-w-24"

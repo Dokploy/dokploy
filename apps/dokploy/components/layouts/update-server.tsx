@@ -84,7 +84,7 @@ export const UpdateServerButton = () => {
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button
-								variant={updateData ? "outline-solid" : "secondary"}
+								variant={updateData ? "outline" : "secondary"}
 								className="w-full"
 								onClick={() => setIsOpen(true)}
 							>

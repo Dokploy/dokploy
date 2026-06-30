@@ -538,7 +538,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 															<TooltipTrigger asChild>
 																<Badge
 																	variant={
-																		item.https ? "outline-solid" : "secondary"
+																		item.https ? "outline" : "secondary"
 																	}
 																>
 																	{item.https ? "HTTPS" : "HTTP"}

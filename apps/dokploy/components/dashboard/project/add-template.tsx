@@ -293,7 +293,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 									</PopoverContent>
 								</Popover>
 								<Button
-									variant={showBookmarksOnly ? "default" : "outline-solid"}
+									variant={showBookmarksOnly ? "default" : "outline"}
 									size="icon"
 									onClick={() => setShowBookmarksOnly(!showBookmarksOnly)}
 									className="h-9 w-9 shrink-0"

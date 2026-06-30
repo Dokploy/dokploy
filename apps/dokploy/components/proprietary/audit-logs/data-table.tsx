@@ -249,7 +249,7 @@ export function DataTable({
 							selected={filters.dateRange}
 							onSelect={(range) => onFilterChange("dateRange", range)}
 							numberOfMonths={2}
-							initialFocus
+							autoFocus
 						/>
 					</PopoverContent>
 				</Popover>

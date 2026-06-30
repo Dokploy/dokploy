@@ -10,13 +10,13 @@ export const getStatusColor = (status: number) => {
 		return "secondary";
 	}
 	if (status >= 100 && status < 200) {
-		return "outline-solid";
+		return "outline";
 	}
 	if (status >= 200 && status < 300) {
 		return "default";
 	}
 	if (status >= 300 && status < 400) {
-		return "outline-solid";
+		return "outline";
 	}
 	if (status >= 400 && status < 500) {
 		return "destructive";

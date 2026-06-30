@@ -95,7 +95,7 @@ export const UpdateServer = ({
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<Button
-									variant={updateData ? "outline-solid" : "secondary"}
+									variant={updateData ? "outline" : "secondary"}
 									size="sm"
 									onClick={() => onOpenChange?.(true)}
 								>

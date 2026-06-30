@@ -53,7 +53,7 @@ const statusVariants: Record<
 	| "default"
 	| "secondary"
 	| "destructive"
-	| "outline-solid"
+	| "outline"
 	| "yellow"
 	| "green"
 	| "red"
@@ -61,7 +61,7 @@ const statusVariants: Record<
 	running: "yellow",
 	done: "green",
 	error: "red",
-	cancelled: "outline-solid",
+	cancelled: "outline",
 };
 
 function getServiceInfo(d: DeploymentRow) {
