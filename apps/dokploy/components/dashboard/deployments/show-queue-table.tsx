@@ -127,9 +127,7 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 											</TableCell>
 											<TableCell>{appType ?? row.name ?? "—"}</TableCell>
 											<TableCell>
-												<Badge
-													variant={stateVariants[row.state] ?? "outline"}
-												>
+												<Badge variant={stateVariants[row.state] ?? "outline"}>
 													{row.state}
 												</Badge>
 											</TableCell>
