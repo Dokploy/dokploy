@@ -104,7 +104,7 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 			</CardHeader>
 
 			<CardContent className="flex flex-col gap-4">
-				<div className="flex flex-row justify-between items-center gap-2">
+				<div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
 					<Label>Select a container to view logs</Label>
 					<div className="flex flex-row gap-2 items-center">
 						<span className="text-sm text-muted-foreground">
