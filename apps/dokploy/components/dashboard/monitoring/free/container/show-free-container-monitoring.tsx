@@ -16,8 +16,8 @@ const defaultData = {
 	},
 	memory: {
 		value: {
-			used: 0,
-			total: 0,
+			used: "0B",
+			total: "0B",
 		},
 		time: "",
 	},
@@ -45,16 +45,24 @@ interface Props {
 	appName: string;
 	appType?: "application" | "stack" | "docker-compose";
 }
+
+type MemorySize = number | string;
+type MemoryUsageValue = {
+	used: MemorySize;
+	total: MemorySize;
+	swap?: {
+		used: MemorySize;
+		total: MemorySize;
+	};
+};
+
 export interface DockerStats {
 	cpu: {
 		value: string;
 		time: string;
 	};
 	memory: {
-		value: {
-			used: number;
-			total: number;
-		};
+		value: MemoryUsageValue;
 		time: string;
 	};
 	block: {
@@ -92,8 +100,12 @@ export type DockerStatsJSON = {
 };
 
 export const convertMemoryToBytes = (
-	memoryString: string | undefined,
+	memoryString: MemorySize | undefined,
 ): number => {
+	if (typeof memoryString === "number") {
+		return memoryString;
+	}
+
 	if (!memoryString || typeof memoryString !== "string") {
 		return 0;
 	}
@@ -113,6 +125,19 @@ export const convertMemoryToBytes = (
 		default:
 			return value;
 	}
+};
+
+const getMemoryUsagePercentage = (
+	used: MemorySize | undefined,
+	total: MemorySize | undefined,
+): number => {
+	const totalBytes = convertMemoryToBytes(total);
+
+	if (totalBytes <= 0) {
+		return 0;
+	}
+
+	return Math.min((convertMemoryToBytes(used) / totalBytes) * 100, 100);
 };
 
 export const ContainerFreeMonitoring = ({
@@ -201,6 +226,10 @@ export const ContainerFreeMonitoring = ({
 		return () => ws.close();
 	}, [appName]);
 
+	const memoryValue = currentData.memory.value;
+	const swapValue = memoryValue.swap;
+	const showSwapUsage = convertMemoryToBytes(swapValue?.total) > 0;
+
 	return (
 		<div className="rounded-xl bg-background flex flex-col gap-4">
 			<header className="flex items-center justify-between">
@@ -240,24 +269,33 @@ export const ContainerFreeMonitoring = ({
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">
 							<span className="text-sm text-muted-foreground">
-								{`Used:  ${currentData.memory.value.used} / Limit: ${currentData.memory.value.total} `}
+								{`Used:  ${memoryValue.used} / Limit: ${memoryValue.total} `}
 							</span>
 							<Progress
-								value={
-									// @ts-ignore
-									(convertMemoryToBytes(currentData.memory.value.used) /
-										// @ts-ignore
-										convertMemoryToBytes(currentData.memory.value.total)) *
-									100
-								}
+								value={getMemoryUsagePercentage(
+									memoryValue.used,
+									memoryValue.total,
+								)}
 								className="w-[100%]"
 							/>
+							{showSwapUsage && swapValue && (
+								<div className="mt-1 flex flex-col gap-2">
+									<span className="text-sm text-muted-foreground">
+										{`Swap:  ${swapValue.used} / Limit: ${swapValue.total} `}
+									</span>
+									<Progress
+										value={getMemoryUsagePercentage(
+											swapValue.used,
+											swapValue.total,
+										)}
+										className="w-[100%]"
+									/>
+								</div>
+							)}
 							<DockerMemoryChart
 								accumulativeData={accumulativeData.memory}
 								memoryLimitGB={
-									// @ts-ignore
-									convertMemoryToBytes(currentData.memory.value.total) /
-									1024 ** 3
+									convertMemoryToBytes(memoryValue.total) / 1024 ** 3
 								}
 							/>
 						</div>

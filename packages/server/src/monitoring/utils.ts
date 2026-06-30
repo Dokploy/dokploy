@@ -1,6 +1,11 @@
+import { execFile } from "node:child_process";
 import { promises } from "node:fs";
+import os from "node:os";
+import { promisify } from "node:util";
 import { OSUtils } from "node-os-utils";
 import { paths } from "../constants";
+
+const execFileAsync = promisify(execFile);
 
 export interface Container {
 	BlockIO: string;
@@ -11,7 +16,100 @@ export interface Container {
 	MemUsage: string;
 	Name: string;
 	NetIO: string;
+	SwapUsage?: string;
 }
+
+const formatBytes = (bytes: number): string => {
+	if (bytes >= 1024 * 1024 * 1024) {
+		return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)}GiB`;
+	}
+	if (bytes >= 1024 * 1024) {
+		return `${(bytes / (1024 * 1024)).toFixed(2)}MiB`;
+	}
+	if (bytes >= 1024) {
+		return `${(bytes / 1024).toFixed(2)}KiB`;
+	}
+	return `${bytes}B`;
+};
+
+const formatSwapUsage = (usedBytes: number, totalBytes: number): string =>
+	`${formatBytes(usedBytes)} / ${formatBytes(totalBytes)}`;
+
+const parseMacOsSwapSize = (value: string, unit: string): number => {
+	const parsedValue = Number.parseFloat(value);
+
+	if (!Number.isFinite(parsedValue)) {
+		return 0;
+	}
+
+	switch (unit.toUpperCase()) {
+		case "G":
+			return parsedValue * 1024 * 1024 * 1024;
+		case "M":
+			return parsedValue * 1024 * 1024;
+		case "K":
+			return parsedValue * 1024;
+		default:
+			return parsedValue;
+	}
+};
+
+export const parseMacOsSwapUsage = (
+	output: string,
+): { totalBytes: number; usedBytes: number } | null => {
+	const match = output.match(
+		/total\s*=\s*([0-9.]+)([KMG]?)\s+used\s*=\s*([0-9.]+)([KMG]?)/i,
+	);
+
+	if (!match) {
+		return null;
+	}
+
+	return {
+		totalBytes: parseMacOsSwapSize(match[1] ?? "0", match[2] ?? ""),
+		usedBytes: parseMacOsSwapSize(match[3] ?? "0", match[4] ?? ""),
+	};
+};
+
+const getMacOsSwapUsage = async (): Promise<string | undefined> => {
+	try {
+		const { stdout } = await execFileAsync("sysctl", ["-n", "vm.swapusage"]);
+		const parsedSwap = parseMacOsSwapUsage(stdout);
+
+		if (!parsedSwap) {
+			return undefined;
+		}
+
+		return formatSwapUsage(parsedSwap.usedBytes, parsedSwap.totalBytes);
+	} catch {
+		return undefined;
+	}
+};
+
+const getSwapUsage = async (osutils: OSUtils): Promise<string | undefined> => {
+	const swapResult = await osutils.memory.swap();
+
+	if (swapResult.success && swapResult.data.total.toBytes() > 0) {
+		return formatSwapUsage(
+			swapResult.data.used.toBytes(),
+			swapResult.data.total.toBytes(),
+		);
+	}
+
+	if (os.platform() === "darwin") {
+		return getMacOsSwapUsage();
+	}
+
+	if (swapResult.success) {
+		return formatSwapUsage(
+			swapResult.data.used.toBytes(),
+			swapResult.data.total.toBytes(),
+		);
+	}
+
+	return undefined;
+};
+
 export const recordAdvancedStats = async (
 	stats: Container,
 	appName: string,
@@ -21,11 +119,29 @@ export const recordAdvancedStats = async (
 
 	await promises.mkdir(path, { recursive: true });
 
-	await updateStatsFile(appName, "cpu", stats.CPUPerc);
-	await updateStatsFile(appName, "memory", {
+	const memoryStats: {
+		used: string | undefined;
+		total: string | undefined;
+		swap?: {
+			used: string;
+			total: string;
+		};
+	} = {
 		used: stats.MemUsage.split(" ")[0],
 		total: stats.MemUsage.split(" ")[2],
-	});
+	};
+	const swapUsed = stats.SwapUsage?.split(" ")[0];
+	const swapTotal = stats.SwapUsage?.split(" ")[2];
+
+	if (swapUsed && swapTotal) {
+		memoryStats.swap = {
+			used: swapUsed,
+			total: swapTotal,
+		};
+	}
+
+	await updateStatsFile(appName, "cpu", stats.CPUPerc);
+	await updateStatsFile(appName, "memory", memoryStats);
 
 	await updateStatsFile(appName, "block", {
 		readMb: stats.BlockIO.split(" ")[0],
@@ -84,6 +200,8 @@ export const getHostSystemStats = async (): Promise<Container> => {
 		memUsedPercent = memResult.data.usagePercentage;
 	}
 
+	const swapUsageFormatted = await getSwapUsage(osutils);
+
 	// Get network stats from network.overview()
 	let netInputBytes = 0;
 	let netOutputBytes = 0;
@@ -114,20 +232,6 @@ export const getHostSystemStats = async (): Promise<Container> => {
 		}
 	}
 
-	// Format values similar to docker stats
-	const formatBytes = (bytes: number): string => {
-		if (bytes >= 1024 * 1024 * 1024) {
-			return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)}GiB`;
-		}
-		if (bytes >= 1024 * 1024) {
-			return `${(bytes / (1024 * 1024)).toFixed(2)}MiB`;
-		}
-		if (bytes >= 1024) {
-			return `${(bytes / 1024).toFixed(2)}KiB`;
-		}
-		return `${bytes}B`;
-	};
-
 	// Format memory usage similar to docker stats format: "used / total"
 	const memUsedFormatted = `${memUsedGB.toFixed(2)}GiB`;
 	const memTotalFormatted = `${memTotalGB.toFixed(2)}GiB`;
@@ -146,6 +250,7 @@ export const getHostSystemStats = async (): Promise<Container> => {
 		CPUPerc: `${cpuUsage.toFixed(2)}%`,
 		MemPerc: `${memUsedPercent.toFixed(2)}%`,
 		MemUsage: memUsageFormatted,
+		SwapUsage: swapUsageFormatted,
 		BlockIO: blockIOFormatted,
 		NetIO: netIOFormatted,
 		Container: "dokploy",
