@@ -175,6 +175,156 @@
 	@apply min-h-[25rem];
 }
 
+/* ── Color themes ───────────────────────────────────────────────────────── */
+/* Each theme overrides --primary, --primary-foreground, --ring,            */
+/* --sidebar-primary and --sidebar-ring on the <html> element.              */
+
+/* zinc (default — no override needed, matches the base :root values) */
+
+/* pink */
+[data-color-theme="pink"] {
+	--primary: 330.4 81.2% 60.4%;
+	--primary-foreground: 355.7 100% 97.3%;
+	--ring: 330.4 81.2% 60.4%;
+	--sidebar-primary: 330.4 81.2% 60.4%;
+	--sidebar-ring: 330.4 81.2% 60.4%;
+}
+.dark[data-color-theme="pink"] {
+	--primary: 330.4 81.2% 65%;
+	--primary-foreground: 355.7 100% 97.3%;
+	--ring: 330.4 81.2% 65%;
+	--sidebar-primary: 330.4 81.2% 65%;
+	--sidebar-ring: 330.4 81.2% 65%;
+}
+
+/* teal */
+[data-color-theme="teal"] {
+	--primary: 173.4 80.4% 36%;
+	--primary-foreground: 0 0% 98%;
+	--ring: 173.4 80.4% 36%;
+	--sidebar-primary: 173.4 80.4% 36%;
+	--sidebar-ring: 173.4 80.4% 36%;
+}
+.dark[data-color-theme="teal"] {
+	--primary: 172 66% 50.4%;
+	--primary-foreground: 172 40% 10%;
+	--ring: 172 66% 50.4%;
+	--sidebar-primary: 172 66% 50.4%;
+	--sidebar-ring: 172 66% 50.4%;
+}
+
+/* blue */
+[data-color-theme="blue"] {
+	--primary: 221.2 83.2% 53.3%;
+	--primary-foreground: 210 40% 98%;
+	--ring: 221.2 83.2% 53.3%;
+	--sidebar-primary: 221.2 83.2% 53.3%;
+	--sidebar-ring: 221.2 83.2% 53.3%;
+}
+.dark[data-color-theme="blue"] {
+	--primary: 217.2 91.2% 59.8%;
+	--primary-foreground: 222.2 47.4% 11.2%;
+	--ring: 217.2 91.2% 59.8%;
+	--sidebar-primary: 217.2 91.2% 59.8%;
+	--sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+/* violet */
+[data-color-theme="violet"] {
+	--primary: 262.1 83.3% 57.8%;
+	--primary-foreground: 210 20% 98%;
+	--ring: 262.1 83.3% 57.8%;
+	--sidebar-primary: 262.1 83.3% 57.8%;
+	--sidebar-ring: 262.1 83.3% 57.8%;
+}
+.dark[data-color-theme="violet"] {
+	--primary: 263.4 70% 50.4%;
+	--primary-foreground: 210 20% 98%;
+	--ring: 263.4 70% 50.4%;
+	--sidebar-primary: 263.4 70% 50.4%;
+	--sidebar-ring: 263.4 70% 50.4%;
+}
+
+/* rose */
+[data-color-theme="rose"] {
+	--primary: 346.8 77.2% 49.8%;
+	--primary-foreground: 355.7 100% 97.3%;
+	--ring: 346.8 77.2% 49.8%;
+	--sidebar-primary: 346.8 77.2% 49.8%;
+	--sidebar-ring: 346.8 77.2% 49.8%;
+}
+.dark[data-color-theme="rose"] {
+	--primary: 349.7 89.2% 60.2%;
+	--primary-foreground: 355.7 100% 97.3%;
+	--ring: 349.7 89.2% 60.2%;
+	--sidebar-primary: 349.7 89.2% 60.2%;
+	--sidebar-ring: 349.7 89.2% 60.2%;
+}
+
+/* red */
+[data-color-theme="red"] {
+	--primary: 0 72.2% 50.6%;
+	--primary-foreground: 0 85.7% 97.3%;
+	--ring: 0 72.2% 50.6%;
+	--sidebar-primary: 0 72.2% 50.6%;
+	--sidebar-ring: 0 72.2% 50.6%;
+}
+.dark[data-color-theme="red"] {
+	--primary: 0 72.2% 50.6%;
+	--primary-foreground: 0 85.7% 97.3%;
+	--ring: 0 72.2% 50.6%;
+	--sidebar-primary: 0 72.2% 50.6%;
+	--sidebar-ring: 0 72.2% 50.6%;
+}
+
+/* orange */
+[data-color-theme="orange"] {
+	--primary: 24.6 95% 53.1%;
+	--primary-foreground: 60 9.1% 97.8%;
+	--ring: 24.6 95% 53.1%;
+	--sidebar-primary: 24.6 95% 53.1%;
+	--sidebar-ring: 24.6 95% 53.1%;
+}
+.dark[data-color-theme="orange"] {
+	--primary: 20.5 90.2% 48.2%;
+	--primary-foreground: 60 9.1% 97.8%;
+	--ring: 20.5 90.2% 48.2%;
+	--sidebar-primary: 20.5 90.2% 48.2%;
+	--sidebar-ring: 20.5 90.2% 48.2%;
+}
+
+/* amber */
+[data-color-theme="amber"] {
+	--primary: 37.7 92.1% 50.2%;
+	--primary-foreground: 26 83.3% 14.1%;
+	--ring: 37.7 92.1% 50.2%;
+	--sidebar-primary: 37.7 92.1% 50.2%;
+	--sidebar-ring: 37.7 92.1% 50.2%;
+}
+.dark[data-color-theme="amber"] {
+	--primary: 43.3 96.4% 56.3%;
+	--primary-foreground: 26 83.3% 14.1%;
+	--ring: 43.3 96.4% 56.3%;
+	--sidebar-primary: 43.3 96.4% 56.3%;
+	--sidebar-ring: 43.3 96.4% 56.3%;
+}
+
+/* green */
+[data-color-theme="green"] {
+	--primary: 142.1 76.2% 36.3%;
+	--primary-foreground: 355.7 100% 97.3%;
+	--ring: 142.1 76.2% 36.3%;
+	--sidebar-primary: 142.1 76.2% 36.3%;
+	--sidebar-ring: 142.1 76.2% 36.3%;
+}
+.dark[data-color-theme="green"] {
+	--primary: 142.1 70.6% 45.3%;
+	--primary-foreground: 144.9 80.4% 10%;
+	--ring: 142.1 70.6% 45.3%;
+	--sidebar-primary: 142.1 70.6% 45.3%;
+	--sidebar-ring: 142.1 70.6% 45.3%;
+}
+
 @keyframes heartbeat {
 	0% {
 		transform: scale(1);

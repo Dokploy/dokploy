@@ -9,6 +9,7 @@ import NextTopLoader from "nextjs-toploader";
 import type { ReactElement, ReactNode } from "react";
 import { SearchCommand } from "@/components/dashboard/search-command";
 import { WhitelabelingProvider } from "@/components/proprietary/whitelabeling/whitelabeling-provider";
+import { ColorThemeProvider } from "@/components/ui/color-theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/utils/api";
 
@@ -48,11 +49,13 @@ const MyApp = ({
 				disableTransitionOnChange
 				forcedTheme={Component.theme}
 			>
-				<NextTopLoader color="hsl(var(--sidebar-ring))" />
-				<WhitelabelingProvider />
-				<Toaster richColors />
-				<SearchCommand />
-				{getLayout(<Component {...pageProps} />)}
+				<ColorThemeProvider>
+					<NextTopLoader color="hsl(var(--sidebar-ring))" />
+					<WhitelabelingProvider />
+					<Toaster richColors />
+					<SearchCommand />
+					{getLayout(<Component {...pageProps} />)}
+				</ColorThemeProvider>
 			</ThemeProvider>
 		</>
 	);
