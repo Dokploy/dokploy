@@ -3,6 +3,14 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+/** Outer row for service detail pages (application, compose, DB services): no horizontal scroll; pairs with {@link serviceDetailTabsListClassName}. */
+export const serviceDetailTabsBarClassName =
+	"flex flex-row items-center w-full gap-4";
+
+/** Tabs wrap on narrow viewports instead of forcing a single scrollable row. */
+export const serviceDetailTabsListClassName =
+	"flex flex-wrap h-auto min-h-10 gap-x-8 gap-y-2 max-md:gap-x-4 max-md:gap-y-2 justify-start";
+
 const Tabs = TabsPrimitive.Root;
 
 const TabsList = React.forwardRef<
