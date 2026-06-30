@@ -16,7 +16,7 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
-import { Badge } from "@/components/ui/badge";
+import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -25,6 +25,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { api, type RouterOutputs } from "@/utils/api";
 import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
 import { CancelQueues } from "./cancel-queues";
@@ -232,19 +233,13 @@ export const ShowDeployments = ({
 						<div className="flex flex-row items-center gap-2 flex-wrap">
 							<span>Webhook URL: </span>
 							<div className="flex flex-row items-center gap-2">
-								<Badge
-									role="button"
-									tabIndex={0}
+								<button
+									type="button"
 									aria-label="Copy webhook URL to clipboard"
-									className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all"
-									variant="outline"
-									onKeyDown={(event) => {
-										if (event.key === "Enter" || event.key === " ") {
-											event.preventDefault();
-											copy(webhookUrl);
-											toast.success("Copied to clipboard.");
-										}
-									}}
+									className={cn(
+										badgeVariants({ variant: "outline" }),
+										"p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all",
+									)}
 									onClick={() => {
 										copy(webhookUrl);
 										toast.success("Copied to clipboard.");
@@ -252,7 +247,7 @@ export const ShowDeployments = ({
 								>
 									{webhookUrl}
 									<Copy className="h-4 w-4 ml-2" />
-								</Badge>
+								</button>
 								{(type === "application" || type === "compose") && (
 									<RefreshToken id={id} type={type} />
 								)}

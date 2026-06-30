@@ -1,5 +1,5 @@
 import { db } from "@dokploy/server/db";
-import { organization, server } from "@dokploy/server/db/schema";
+import { server } from "@dokploy/server/db/schema";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { TRPCError } from "@trpc/server";
