@@ -349,10 +349,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									{domainType === "compose" && (
 										<div className="flex flex-col gap-2 w-full">
 											{errorServices && (
-												<AlertBlock
-													type="warning"
-													className="[overflow-wrap:anywhere]"
-												>
+												<AlertBlock type="warning" className="wrap-anywhere">
 													{errorServices?.message}
 												</AlertBlock>
 											)}
@@ -420,7 +417,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																			<TooltipContent
 																				side="left"
 																				sideOffset={5}
-																				className="max-w-[10rem]"
+																				className="max-w-40"
 																			>
 																				<p>
 																					Fetch: Will clone the repository and
@@ -450,7 +447,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																			<TooltipContent
 																				side="left"
 																				sideOffset={5}
-																				className="max-w-[10rem]"
+																				className="max-w-40"
 																			>
 																				<p>
 																					Cache: If you previously deployed this
@@ -488,7 +485,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																	<TooltipContent
 																		side="left"
 																		sideOffset={5}
-																		className="max-w-[10rem]"
+																		className="max-w-40"
 																	>
 																		<p>
 																			{isManualInput
@@ -565,7 +562,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 														<TooltipContent
 															side="left"
 															sideOffset={5}
-															className="max-w-[10rem]"
+															className="max-w-40"
 														>
 															<p>Generate sslip.io domain</p>
 														</TooltipContent>
@@ -618,7 +615,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									control={form.control}
 									name="stripPath"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-sm">
+										<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-xs">
 											<div className="space-y-0.5">
 												<FormLabel>Strip Path</FormLabel>
 												<FormDescription>
@@ -662,7 +659,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									control={form.control}
 									name="useCustomEntrypoint"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
 											<div className="space-y-0.5">
 												<FormLabel>Custom Entrypoint</FormLabel>
 												<FormDescription>
@@ -711,7 +708,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									control={form.control}
 									name="https"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
 											<div className="space-y-0.5">
 												<FormLabel>HTTPS</FormLabel>
 												<FormDescription>

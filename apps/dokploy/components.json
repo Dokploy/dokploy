@@ -1,17 +1,22 @@
 {
 	"$schema": "https://ui.shadcn.com/schema.json",
-	"style": "default",
+	"style": "radix-nova",
 	"rsc": false,
 	"tsx": true,
 	"tailwind": {
-		"config": "tailwind.config.ts",
+		"config": "",
 		"css": "styles/globals.css",
-		"baseColor": "zinc",
+		"baseColor": "neutral",
 		"cssVariables": true,
 		"prefix": ""
 	},
 	"aliases": {
 		"components": "@/components",
 		"utils": "@/lib/utils"
-	}
+	},
+	"iconLibrary": "lucide",
+	"rtl": false,
+	"menuColor": "default",
+	"menuAccent": "subtle",
+	"registries": {}
 }

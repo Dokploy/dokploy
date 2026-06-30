@@ -36,9 +36,9 @@ export const ShowNodeConfig = ({ nodeId, serverId }: Props) => {
 						See in detail the metadata of this node
 					</DialogDescription>
 				</DialogHeader>
-				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-[59rem] bg-card max-h-[70vh] overflow-auto ">
+				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-236 bg-card max-h-[70vh] overflow-auto ">
 					<code>
-						<pre className="whitespace-pre-wrap break-words items-center justify-center">
+						<pre className="whitespace-pre-wrap wrap-break-word items-center justify-center">
 							{/* {JSON.stringify(data, null, 2)} */}
 							<CodeEditor
 								language="json"
