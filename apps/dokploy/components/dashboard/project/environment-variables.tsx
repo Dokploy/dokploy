@@ -154,6 +154,8 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 													lineWrapping
 													language="properties"
 													readOnly={!canWrite}
+													showDiffGutter
+													diffOriginalValue={data?.env ?? ""}
 													wrapperClassName="h-[35rem] font-mono"
 													placeholder={`NODE_ENV=development
 DATABASE_URL=postgresql://localhost:5432/mydb

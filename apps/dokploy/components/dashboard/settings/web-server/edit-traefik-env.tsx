@@ -132,6 +132,8 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 										<FormControl>
 											<CodeEditor
 												language="properties"
+												showDiffGutter
+												diffOriginalValue={data || ""}
 												wrapperClassName="h-[35rem] font-mono"
 												placeholder={`TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL=test@localhost.com
 TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_STORAGE=/etc/dokploy/traefik/dynamic/acme.json

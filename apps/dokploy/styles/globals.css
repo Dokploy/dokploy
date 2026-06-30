@@ -175,6 +175,34 @@
 	@apply min-h-[25rem];
 }
 
+.cm-env-diff-gutter .cm-gutterElement {
+	padding-inline: 0.35rem;
+}
+
+.cm-env-diff-marker {
+	display: block;
+	width: 0.2rem;
+	height: 1.1rem;
+	border-radius: 9999px;
+	margin-inline: auto;
+}
+
+.cm-env-diff-marker-added {
+	background-color: hsl(142 70% 45%);
+}
+
+.cm-env-diff-marker-modified {
+	background-color: hsl(45 93% 47%);
+}
+
+.cm-env-diff-marker-removed {
+	background-color: hsl(0 84% 60%);
+}
+
+.cm-env-diff-marker-spacer {
+	opacity: 0;
+}
+
 @keyframes heartbeat {
 	0% {
 		transform: scale(1);

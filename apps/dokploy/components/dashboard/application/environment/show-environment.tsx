@@ -177,6 +177,8 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 												}
 												language="properties"
 												disabled={isEnvVisible}
+												showDiffGutter
+												diffOriginalValue={data?.env || ""}
 												className="font-mono"
 												wrapperClassName="compose-file-editor"
 												placeholder={`NODE_ENV=production
