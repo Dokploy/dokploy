@@ -231,7 +231,7 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 														</FormLabel>
 													</TooltipTrigger>
 													<TooltipContent
-														className="z-[999] w-[300px]"
+														className="z-999 w-[300px]"
 														align="start"
 														side="top"
 													>
@@ -386,7 +386,7 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 											{templateInfo.template.domains.map((domain, index) => (
 												<div
 													key={index}
-													className="rounded-lg border bg-card p-3 text-card-foreground shadow-sm"
+													className="rounded-lg border bg-card p-3 text-card-foreground shadow-xs"
 												>
 													<div className="font-medium">
 														{domain.serviceName}

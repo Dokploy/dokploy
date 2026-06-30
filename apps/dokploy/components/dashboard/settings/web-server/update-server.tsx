@@ -99,7 +99,7 @@ export const UpdateServer = ({
 									size="sm"
 									onClick={() => onOpenChange?.(true)}
 								>
-									<Download className="h-4 w-4 flex-shrink-0" />
+									<Download className="h-4 w-4 shrink-0" />
 									{updateData ? (
 										<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
 											Update Available
@@ -235,7 +235,7 @@ export const UpdateServer = ({
 				{isUpdateAvailable && (
 					<div className="rounded-lg bg-[#16254D] p-4 mb-8">
 						<div className="flex gap-2">
-							<Info className="h-5 w-5 flex-shrink-0 text-[#5B9DFF]" />
+							<Info className="h-5 w-5 shrink-0 text-[#5B9DFF]" />
 							<div className="text-[#5B9DFF]">
 								We recommend reviewing the{" "}
 								<Link

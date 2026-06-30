@@ -111,7 +111,7 @@ export const ShowVolumes = ({ id, type }: Props) => {
 											{mount.type === "file" && (
 												<div className="flex flex-col gap-1">
 													<span className="font-medium">Content</span>
-													<span className="text-sm text-muted-foreground line-clamp-[10] whitespace-break-spaces">
+													<span className="text-sm text-muted-foreground line-clamp-10 whitespace-break-spaces">
 														{mount.content}
 													</span>
 												</div>

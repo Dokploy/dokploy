@@ -364,7 +364,7 @@ export const HandleBackup = ({
 					>
 						<div className="grid grid-cols-1 gap-4">
 							{errorServices && (
-								<AlertBlock type="warning" className="[overflow-wrap:anywhere]">
+								<AlertBlock type="warning" className="wrap-anywhere">
 									{errorServices?.message}
 								</AlertBlock>
 							)}
@@ -409,7 +409,7 @@ export const HandleBackup = ({
 													<Button
 														variant="outline"
 														className={cn(
-															"w-full justify-between !bg-input",
+															"w-full justify-between bg-input!",
 															!field.value && "text-muted-foreground",
 														)}
 													>
@@ -528,7 +528,7 @@ export const HandleBackup = ({
 															<TooltipContent
 																side="left"
 																sideOffset={5}
-																className="max-w-[10rem]"
+																className="max-w-40"
 															>
 																<p>
 																	Fetch: Will clone the repository and load the
@@ -558,7 +558,7 @@ export const HandleBackup = ({
 															<TooltipContent
 																side="left"
 																sideOffset={5}
-																className="max-w-[10rem]"
+																className="max-w-40"
 															>
 																<p>
 																	Cache: If you previously deployed this

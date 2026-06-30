@@ -65,7 +65,7 @@ export const ShowServers = () => {
 
 						{isCloud && (
 							<span
-								className="bg-gradient-to-r cursor-pointer from-blue-600 via-green-500 to-indigo-400 inline-block text-transparent bg-clip-text text-sm"
+								className="bg-linear-to-r cursor-pointer from-blue-600 via-green-500 to-indigo-400 inline-block text-transparent bg-clip-text text-sm"
 								onClick={() => {
 									router.push("/dashboard/settings/servers?success=true");
 								}}
@@ -122,7 +122,7 @@ export const ShowServers = () => {
 																	<div className="flex items-start justify-between gap-2">
 																		<div className="flex min-w-0 items-center gap-2">
 																			<ServerIcon className="size-5 shrink-0 text-muted-foreground" />
-																			<CardTitle className="text-lg break-words min-w-0">
+																			<CardTitle className="text-lg wrap-break-word min-w-0">
 																				{server.name}
 																			</CardTitle>
 																		</div>
