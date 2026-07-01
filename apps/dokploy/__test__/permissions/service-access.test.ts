@@ -28,10 +28,46 @@ const mockMemberData = (
 
 let memberToReturn: ReturnType<typeof mockMemberData> =
 	mockMemberData("member");
+let serviceOrganizationToReturn: string | null = "org-1";
+
+const serviceRecord = () =>
+	serviceOrganizationToReturn
+		? {
+				environment: {
+					project: {
+						organizationId: serviceOrganizationToReturn,
+					},
+				},
+			}
+		: null;
 
 vi.mock("@dokploy/server/db", () => ({
 	db: {
 		query: {
+			applications: {
+				findFirst: vi.fn(() => Promise.resolve(serviceRecord())),
+			},
+			compose: {
+				findFirst: vi.fn(() => Promise.resolve(null)),
+			},
+			postgres: {
+				findFirst: vi.fn(() => Promise.resolve(null)),
+			},
+			mysql: {
+				findFirst: vi.fn(() => Promise.resolve(null)),
+			},
+			mariadb: {
+				findFirst: vi.fn(() => Promise.resolve(null)),
+			},
+			mongo: {
+				findFirst: vi.fn(() => Promise.resolve(null)),
+			},
+			redis: {
+				findFirst: vi.fn(() => Promise.resolve(null)),
+			},
+			libsql: {
+				findFirst: vi.fn(() => Promise.resolve(null)),
+			},
 			member: {
 				findFirst: vi.fn(() => Promise.resolve(memberToReturn)),
 				findMany: vi.fn(() => Promise.resolve([])),
@@ -59,10 +95,11 @@ const ctx = {
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	serviceOrganizationToReturn = "org-1";
 });
 
 describe("checkServicePermissionAndAccess", () => {
-	it("owner bypasses accessedServices check", async () => {
+	it("owner bypasses accessedServices check for a same-organization service", async () => {
 		memberToReturn = mockMemberData("owner", []);
 		await expect(
 			checkServicePermissionAndAccess(ctx, "service-123", {
@@ -71,13 +108,35 @@ describe("checkServicePermissionAndAccess", () => {
 		).resolves.toBeUndefined();
 	});
 
-	it("admin bypasses accessedServices check", async () => {
+	it("admin bypasses accessedServices check for a same-organization service", async () => {
 		memberToReturn = mockMemberData("admin", []);
 		await expect(
 			checkServicePermissionAndAccess(ctx, "service-123", {
 				backup: ["create"],
 			}),
 		).resolves.toBeUndefined();
+	});
+
+	it("owner cannot access a cross-organization service id", async () => {
+		memberToReturn = mockMemberData("owner", []);
+		serviceOrganizationToReturn = "org-2";
+
+		await expect(
+			checkServicePermissionAndAccess(ctx, "service-123", {
+				deployment: ["read"],
+			}),
+		).rejects.toThrow("You don't have access to this service");
+	});
+
+	it("admin cannot access a cross-organization service id", async () => {
+		memberToReturn = mockMemberData("admin", []);
+		serviceOrganizationToReturn = "org-2";
+
+		await expect(
+			checkServicePermissionAndAccess(ctx, "service-123", {
+				backup: ["create"],
+			}),
+		).rejects.toThrow("You don't have access to this service");
 	});
 
 	it("member with access to service passes", async () => {
@@ -106,6 +165,17 @@ describe("checkServicePermissionAndAccess", () => {
 			}),
 		).rejects.toThrow("You don't have access to this service");
 	});
+
+	it("member with accessedServices cannot use a cross-organization service id", async () => {
+		memberToReturn = mockMemberData("member", ["service-123"]);
+		serviceOrganizationToReturn = "org-2";
+
+		await expect(
+			checkServicePermissionAndAccess(ctx, "service-123", {
+				deployment: ["read"],
+			}),
+		).rejects.toThrow("You don't have access to this service");
+	});
 });
 
 describe("checkServiceAccess", () => {
@@ -128,5 +198,14 @@ describe("checkServiceAccess", () => {
 		await expect(
 			checkServiceAccess(ctx, "project-1", "create"),
 		).resolves.toBeUndefined();
+	});
+
+	it("owner cannot read a cross-organization service id", async () => {
+		memberToReturn = mockMemberData("owner", [], []);
+		serviceOrganizationToReturn = "org-2";
+
+		await expect(checkServiceAccess(ctx, "app-1", "read")).rejects.toThrow(
+			"You don't have access to this service",
+		);
 	});
 });

@@ -1,5 +1,6 @@
 import { Client } from "ssh2";
 import { findServerById } from "../services/server";
+import { resolveServerDestinationHost } from "../utils/servers/destination";
 
 export const validateDocker = () => `
   if command_exists docker; then
@@ -103,6 +104,7 @@ export const serverValidate = async (serverId: string) => {
 	if (!server.sshKeyId) {
 		throw new Error("No SSH Key found");
 	}
+	const host = await resolveServerDestinationHost(server);
 
 	return new Promise<string>((resolve, reject) => {
 		client
@@ -181,7 +183,7 @@ export const serverValidate = async (serverId: string) => {
 				}
 			})
 			.connect({
-				host: server.ipAddress,
+				host,
 				port: server.port,
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,

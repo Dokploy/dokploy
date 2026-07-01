@@ -27,7 +27,7 @@ export const createSecurity = async (
 	data: z.infer<typeof apiCreateSecurity>,
 ) => {
 	try {
-		await db.transaction(async (tx) => {
+		return await db.transaction(async (tx) => {
 			const application = await findApplicationById(data.applicationId);
 
 			const securityResponse = await tx

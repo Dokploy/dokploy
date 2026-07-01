@@ -7,6 +7,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates";
 import { buildPostgres } from "@dokploy/server/utils/databases/postgres";
+import { buildDockerPullCommand } from "@dokploy/server/utils/docker/commands";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
@@ -155,7 +156,7 @@ export const deployPostgres = async (
 		if (postgres.serverId) {
 			await execAsyncRemote(
 				postgres.serverId,
-				`docker pull ${postgres.dockerImage}`,
+				buildDockerPullCommand(postgres.dockerImage),
 				onData,
 			);
 		} else {

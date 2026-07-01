@@ -15,21 +15,21 @@ export const getShell = () => {
 };
 
 export const getPublicIpWithFallback = async () => {
-	// @ts-ignore
-	let ip = null;
+	let ip: string | null = null;
 	try {
 		ip = await publicIpv4();
 	} catch (error) {
 		console.log(
 			"Error obtaining public IPv4 address, falling back to IPv6",
-			// @ts-ignore
-			error.message,
+			error instanceof Error ? error.message : String(error),
 		);
 		try {
 			ip = await publicIpv6();
 		} catch (error) {
-			// @ts-ignore
-			console.error("Error obtaining public IPv6 address", error.message);
+			console.error(
+				"Error obtaining public IPv6 address",
+				error instanceof Error ? error.message : String(error),
+			);
 			ip = null;
 		}
 	}
@@ -52,5 +52,34 @@ export const readValidDirectory = (
 	return (
 		resolvedDir === resolvedBase ||
 		resolvedDir.startsWith(resolvedBase + path.sep)
+	);
+};
+
+export type DeploymentLogPathRoot = "logs" | "schedules" | "volumeBackups";
+
+export const readValidDeploymentLogPath = (
+	logPath: string,
+	serverId?: string | null,
+	root: DeploymentLogPathRoot = "logs",
+) => {
+	if (!/^[\w/. :[\]-]{1,500}$/.test(logPath)) {
+		return false;
+	}
+
+	const { LOGS_PATH, SCHEDULES_PATH, VOLUME_BACKUPS_PATH } = paths(!!serverId);
+	const allowedRoot =
+		root === "schedules"
+			? SCHEDULES_PATH
+			: root === "volumeBackups"
+				? VOLUME_BACKUPS_PATH
+				: LOGS_PATH;
+
+	const resolvedLogs = path.resolve(allowedRoot);
+	const resolvedLogPath = path.resolve(logPath);
+
+	return (
+		resolvedLogPath !== resolvedLogs &&
+		resolvedLogPath.startsWith(resolvedLogs + path.sep) &&
+		path.extname(resolvedLogPath) === ".log"
 	);
 };

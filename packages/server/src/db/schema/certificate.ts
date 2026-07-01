@@ -5,7 +5,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
 import { server } from "./server";
-import { generateAppName } from "./utils";
+import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
 
 export const certificates = pgTable("certificate", {
 	certificateId: text("certificateId")
@@ -43,6 +43,15 @@ export const apiCreateCertificate = createInsertSchema(certificates, {
 	name: z.string().min(1),
 	certificateData: z.string().min(1),
 	privateKey: z.string().min(1),
+	certificatePath: z
+		.string()
+		.min(1)
+		.max(63)
+		.regex(APP_NAME_REGEX, APP_NAME_MESSAGE)
+		.refine((value) => value !== "." && value !== "..", {
+			message: "Invalid certificate path",
+		})
+		.optional(),
 	autoRenew: z.boolean().optional(),
 	serverId: z.string().optional(),
 });

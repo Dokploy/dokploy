@@ -1,8 +1,10 @@
 import type http from "node:http";
 import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
+import { resolveServerDestinationHost } from "@dokploy/server/utils/servers/destination";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
+import { canAccessDockerTerminalWebSocket } from "./docker-permission";
 import { isValidContainerId, isValidShell } from "./utils";
 
 export const setupDockerContainerTerminalWebSocketServer = (
@@ -54,7 +56,14 @@ export const setupDockerContainerTerminalWebSocketServer = (
 		// Default to 'sh' if no shell specified
 		const shell = activeWay || "sh";
 
-		if (!user || !session) {
+		if (
+			!(await canAccessDockerTerminalWebSocket({
+				user,
+				session,
+				serverId,
+				containerId,
+			}))
+		) {
 			ws.close();
 			return;
 		}
@@ -70,6 +79,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				if (!server.sshKeyId)
 					throw new Error("No SSH key available for this server");
 
+				const host = await resolveServerDestinationHost(server);
 				const conn = new Client();
 				let _stdout = "";
 				let _stderr = "";
@@ -118,7 +128,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 									}
 									stream.write(command.toString());
 								} catch (error) {
-									// @ts-ignore
+									// @ts-expect-error
 									const errorMessage = error?.message as unknown as string;
 									ws.send(errorMessage);
 								}
@@ -140,7 +150,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 						conn.end();
 					})
 					.connect({
-						host: server.ipAddress,
+						host,
 						port: server.port,
 						username: server.username,
 						privateKey: server.sshKey?.privateKey,
@@ -173,14 +183,14 @@ export const setupDockerContainerTerminalWebSocketServer = (
 						}
 						ptyProcess.write(command.toString());
 					} catch (error) {
-						// @ts-ignore
+						// @ts-expect-error
 						const errorMessage = error?.message as unknown as string;
 						ws.send(errorMessage);
 					}
 				});
 			}
 		} catch (error) {
-			// @ts-ignore
+			// @ts-expect-error
 			const errorMessage = error?.message as unknown as string;
 
 			ws.send(errorMessage);

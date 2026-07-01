@@ -18,18 +18,141 @@ import {
 	findScheduleById,
 	updateSchedule,
 } from "@dokploy/server/services/schedule";
-import { findServerById } from "@dokploy/server/services/server";
+import { signScheduledQueueJob } from "@dokploy/server/utils/schedules/signed-job";
 import { TRPCError } from "@trpc/server";
 import { asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
-import { removeJob, schedule } from "@/server/utils/backup";
+import { assertTargetServerAccess } from "@/server/api/utils/placement-access";
+import {
+	removeJob,
+	removeSignedJob,
+	schedule,
+	updateJob,
+} from "@/server/utils/backup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+
+const scheduleBindingError = () =>
+	new TRPCError({
+		code: "FORBIDDEN",
+		message: "Changing schedule service or server binding is not allowed.",
+	});
+
+const resolveCreateScheduleType = (input: {
+	applicationId?: string | null;
+	composeId?: string | null;
+	scheduleType?: "application" | "compose" | "server" | "dokploy-server";
+}) => {
+	if (input.applicationId && input.composeId) {
+		throw scheduleBindingError();
+	}
+
+	if (input.applicationId) {
+		if (input.scheduleType && input.scheduleType !== "application") {
+			throw scheduleBindingError();
+		}
+		return "application" as const;
+	}
+
+	if (input.composeId) {
+		if (input.scheduleType && input.scheduleType !== "compose") {
+			throw scheduleBindingError();
+		}
+		return "compose" as const;
+	}
+
+	if (!input.scheduleType || input.scheduleType === "application") {
+		throw scheduleBindingError();
+	}
+
+	if (input.scheduleType === "compose") {
+		throw scheduleBindingError();
+	}
+
+	return input.scheduleType;
+};
+
+type CreateScheduleTypeInput = Parameters<typeof resolveCreateScheduleType>[0];
+
+const assertScheduleBindingUnchanged = (
+	existingSchedule: Awaited<ReturnType<typeof findScheduleById>>,
+	input: z.infer<typeof updateScheduleSchema>,
+) => {
+	const fields = [
+		"scheduleType",
+		"applicationId",
+		"composeId",
+		"serverId",
+		"organizationId",
+	] as const;
+
+	for (const field of fields) {
+		const inputValue = input[field];
+		if (
+			inputValue !== undefined &&
+			inputValue !== (existingSchedule[field] ?? null)
+		) {
+			throw scheduleBindingError();
+		}
+	}
+};
+
+const assertServerLevelScheduleAccess = async (
+	ctx: {
+		user: { id: string; role: string };
+		session: { userId: string; activeOrganizationId: string };
+	},
+	scheduleItem: Awaited<ReturnType<typeof findScheduleById>>,
+) => {
+	if (
+		scheduleItem.scheduleType !== "server" &&
+		scheduleItem.scheduleType !== "dokploy-server"
+	) {
+		return;
+	}
+
+	if (scheduleItem.scheduleType === "dokploy-server") {
+		if (IS_CLOUD) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Host-level schedules are not available in the cloud version.",
+			});
+		}
+
+		if (scheduleItem.organizationId !== ctx.session.activeOrganizationId) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "You are not allowed to access this host-level schedule.",
+			});
+		}
+	}
+
+	const member = await findMemberByUserId(
+		ctx.user.id,
+		ctx.session.activeOrganizationId,
+	);
+	if (member.role !== "owner" && member.role !== "admin") {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only owners and admins can manage server-level schedules.",
+		});
+	}
+
+	if (scheduleItem.scheduleType === "server" && scheduleItem.serverId) {
+		await assertTargetServerAccess(ctx, scheduleItem.serverId);
+	}
+};
 
 export const scheduleRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createScheduleSchema)
 		.mutation(async ({ input, ctx }) => {
+			const scheduleType = resolveCreateScheduleType({
+				applicationId: input.applicationId,
+				composeId: input.composeId,
+				scheduleType:
+					input.scheduleType as CreateScheduleTypeInput["scheduleType"],
+			});
 			const serviceId = input.applicationId || input.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -64,20 +187,13 @@ export const scheduleRouter = createTRPCRouter({
 				}
 
 				if (input.scheduleType === "server" && input.serverId) {
-					const targetServer = await findServerById(input.serverId);
-					if (
-						targetServer.organizationId !== ctx.session.activeOrganizationId
-					) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "You don't have access to this server.",
-						});
-					}
+					await assertTargetServerAccess(ctx, input.serverId);
 				}
 			}
 			const newSchedule = await createSchedule({
 				...input,
-				...(input.scheduleType === "dokploy-server" && {
+				scheduleType,
+				...(scheduleType === "dokploy-server" && {
 					organizationId: ctx.session.activeOrganizationId,
 				}),
 			});
@@ -107,6 +223,7 @@ export const scheduleRouter = createTRPCRouter({
 		.input(updateScheduleSchema)
 		.mutation(async ({ input, ctx }) => {
 			const existingSchedule = await findScheduleById(input.scheduleId);
+			assertScheduleBindingUnchanged(existingSchedule, input);
 
 			if (
 				IS_CLOUD &&
@@ -126,64 +243,37 @@ export const scheduleRouter = createTRPCRouter({
 					schedule: ["update"],
 				});
 			} else {
-				if (existingSchedule.scheduleType === "dokploy-server" && IS_CLOUD) {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message:
-							"Host-level schedules are not available in the cloud version.",
-					});
-				}
-
 				await checkPermission(ctx, { schedule: ["update"] });
-
-				if (
-					existingSchedule.scheduleType === "server" ||
-					existingSchedule.scheduleType === "dokploy-server"
-				) {
-					const member = await findMemberByUserId(
-						ctx.user.id,
-						ctx.session.activeOrganizationId,
-					);
-					if (member.role !== "owner" && member.role !== "admin") {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message:
-								"Only owners and admins can manage server-level schedules.",
-						});
-					}
-				}
-
-				if (
-					existingSchedule.scheduleType === "server" &&
-					existingSchedule.serverId
-				) {
-					const targetServer = await findServerById(existingSchedule.serverId);
-					if (
-						targetServer.organizationId !== ctx.session.activeOrganizationId
-					) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "You don't have access to this server.",
-						});
-					}
-				}
+				await assertServerLevelScheduleAccess(ctx, existingSchedule);
 			}
+			const signedRemovalJob =
+				IS_CLOUD && existingSchedule.enabled
+					? await signScheduledQueueJob(
+							{
+								scheduleId: existingSchedule.scheduleId,
+								type: "schedule",
+								cronSchedule: existingSchedule.cronExpression,
+								timezone: existingSchedule.timezone ?? undefined,
+							},
+							{
+								operation: "remove",
+								requireEnabled: false,
+								requireActiveServer: false,
+							},
+						)
+					: null;
 			const updatedSchedule = await updateSchedule(input);
 
 			if (IS_CLOUD) {
 				if (updatedSchedule?.enabled) {
-					schedule({
+					await updateJob({
 						scheduleId: updatedSchedule.scheduleId,
 						type: "schedule",
 						cronSchedule: updatedSchedule.cronExpression,
 						timezone: updatedSchedule.timezone,
 					});
-				} else {
-					await removeJob({
-						cronSchedule: updatedSchedule.cronExpression,
-						scheduleId: updatedSchedule.scheduleId,
-						type: "schedule",
-					});
+				} else if (signedRemovalJob) {
+					await removeSignedJob(signedRemovalJob);
 				}
 			} else {
 				if (updatedSchedule?.enabled) {
@@ -212,56 +302,20 @@ export const scheduleRouter = createTRPCRouter({
 					schedule: ["delete"],
 				});
 			} else {
-				if (scheduleItem.scheduleType === "dokploy-server" && IS_CLOUD) {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message:
-							"Host-level schedules are not available in the cloud version.",
-					});
-				}
-
 				await checkPermission(ctx, { schedule: ["delete"] });
-
-				if (
-					scheduleItem.scheduleType === "server" ||
-					scheduleItem.scheduleType === "dokploy-server"
-				) {
-					const member = await findMemberByUserId(
-						ctx.user.id,
-						ctx.session.activeOrganizationId,
-					);
-					if (member.role !== "owner" && member.role !== "admin") {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message:
-								"Only owners and admins can manage server-level schedules.",
-						});
-					}
-				}
-
-				if (scheduleItem.scheduleType === "server" && scheduleItem.serverId) {
-					const targetServer = await findServerById(scheduleItem.serverId);
-					if (
-						targetServer.organizationId !== ctx.session.activeOrganizationId
-					) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "You don't have access to this server.",
-						});
-					}
-				}
+				await assertServerLevelScheduleAccess(ctx, scheduleItem);
 			}
-			await deleteSchedule(input.scheduleId);
-
 			if (IS_CLOUD) {
 				await removeJob({
 					cronSchedule: scheduleItem.cronExpression,
 					scheduleId: scheduleItem.scheduleId,
 					type: "schedule",
+					timezone: scheduleItem.timezone,
 				});
 			} else {
 				removeScheduleJob(scheduleItem.scheduleId);
 			}
+			await deleteSchedule(input.scheduleId);
 			await audit(ctx, {
 				action: "delete",
 				resourceType: "schedule",
@@ -295,15 +349,7 @@ export const scheduleRouter = createTRPCRouter({
 				await checkPermission(ctx, { schedule: ["read"] });
 
 				if (input.scheduleType === "server") {
-					const targetServer = await findServerById(input.id);
-					if (
-						targetServer.organizationId !== ctx.session.activeOrganizationId
-					) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "You don't have access to this server.",
-						});
-					}
+					await assertTargetServerAccess(ctx, input.id);
 				}
 
 				if (input.scheduleType === "dokploy-server") {
@@ -353,18 +399,7 @@ export const scheduleRouter = createTRPCRouter({
 				});
 			} else {
 				await checkPermission(ctx, { schedule: ["read"] });
-
-				if (schedule.scheduleType === "server" && schedule.serverId) {
-					const targetServer = await findServerById(schedule.serverId);
-					if (
-						targetServer.organizationId !== ctx.session.activeOrganizationId
-					) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "You don't have access to this schedule.",
-						});
-					}
-				}
+				await assertServerLevelScheduleAccess(ctx, schedule);
 			}
 			return schedule;
 		}),
@@ -379,44 +414,8 @@ export const scheduleRouter = createTRPCRouter({
 					schedule: ["create"],
 				});
 			} else {
-				if (scheduleItem.scheduleType === "dokploy-server" && IS_CLOUD) {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message:
-							"Host-level schedules are not available in the cloud version.",
-					});
-				}
-
 				await checkPermission(ctx, { schedule: ["create"] });
-
-				if (
-					scheduleItem.scheduleType === "server" ||
-					scheduleItem.scheduleType === "dokploy-server"
-				) {
-					const member = await findMemberByUserId(
-						ctx.user.id,
-						ctx.session.activeOrganizationId,
-					);
-					if (member.role !== "owner" && member.role !== "admin") {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message:
-								"Only owners and admins can manage server-level schedules.",
-						});
-					}
-				}
-
-				if (scheduleItem.scheduleType === "server" && scheduleItem.serverId) {
-					const targetServer = await findServerById(scheduleItem.serverId);
-					if (
-						targetServer.organizationId !== ctx.session.activeOrganizationId
-					) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "You don't have access to this server.",
-						});
-					}
-				}
+				await assertServerLevelScheduleAccess(ctx, scheduleItem);
 			}
 			try {
 				await runCommand(input.scheduleId);

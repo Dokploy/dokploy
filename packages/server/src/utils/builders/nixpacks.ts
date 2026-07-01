@@ -1,8 +1,14 @@
 import path from "node:path";
 import { getStaticCommand } from "@dokploy/server/utils/builders/static";
 import { nanoid } from "nanoid";
-import { prepareEnvironmentVariablesForShell } from "../docker/utils";
+import { prepareEnvironmentVariables } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
+import {
+	getNoSymlinkFilePathGuardCommand,
+	normalizeRelativeFilePath,
+	quoteShellArg,
+} from "../filesystem/safe-path";
+import { quoteShellArgs } from "../shell";
 import type { ApplicationNested } from ".";
 
 export const getNixpacksCommand = (application: ApplicationNested) => {
@@ -10,7 +16,7 @@ export const getNixpacksCommand = (application: ApplicationNested) => {
 
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const buildContainerId = `${appName}-${nanoid(10)}`;
-	const envVariables = prepareEnvironmentVariablesForShell(
+	const envVariables = prepareEnvironmentVariables(
 		env,
 		application.environment.project.env,
 		application.environment.env,
@@ -26,11 +32,15 @@ export const getNixpacksCommand = (application: ApplicationNested) => {
 		args.push("--env", env);
 	}
 
-	if (publishDirectory) {
+	const safePublishDirectory = publishDirectory
+		? normalizeRelativeFilePath(publishDirectory)
+		: "";
+
+	if (safePublishDirectory) {
 		/* No need for any start command, since we'll use nginx later on */
 		args.push("--no-error-without-start");
 	}
-	const command = `nixpacks ${args.join(" ")}`;
+	const command = quoteShellArgs(["nixpacks", ...args]);
 	let bashCommand = `
 		echo "Starting nixpacks build..." ;
 		${command} || {
@@ -45,21 +55,27 @@ export const getNixpacksCommand = (application: ApplicationNested) => {
 		and copy the artifacts on the host filesystem.
 		Then, remove the container and create a static build.
 	 */
-	if (publishDirectory) {
-		const localPath = path.join(buildAppDirectory, publishDirectory);
+	if (safePublishDirectory) {
+		const localPath = path.join(buildAppDirectory, safePublishDirectory);
+		const pathGuardCommand = getNoSymlinkFilePathGuardCommand(
+			buildAppDirectory,
+			localPath,
+		);
 		const isDirectory =
-			publishDirectory.endsWith("/") || !path.extname(publishDirectory);
+			safePublishDirectory.endsWith("/") || !path.extname(safePublishDirectory);
+		const containerSource = `${buildContainerId}:/app/${safePublishDirectory}${isDirectory ? "/." : ""}`;
 
 		bashCommand += `
-	docker create --name ${buildContainerId} ${appName}
-	mkdir -p ${localPath}
-	docker cp ${buildContainerId}:/app/${publishDirectory}${isDirectory ? "/." : ""} ${path.join(buildAppDirectory, publishDirectory)} || {
-		docker rm ${buildContainerId}
-		echo "❌ Copying ${publishDirectory} to ${path.join(buildAppDirectory, publishDirectory)} failed" ;
+		${quoteShellArgs(["docker", "create", "--name", buildContainerId, appName])}
+		${pathGuardCommand}
+		mkdir -p ${quoteShellArg(localPath)}
+	${quoteShellArgs(["docker", "cp", containerSource, path.join(buildAppDirectory, safePublishDirectory)])} || {
+		${quoteShellArgs(["docker", "rm", buildContainerId])}
+		echo ${quoteShellArg(`❌ Copying ${safePublishDirectory} to ${path.join(buildAppDirectory, safePublishDirectory)} failed`)} ;
 		exit 1;
 	}
-	docker rm ${buildContainerId}
-	${getStaticCommand(application)}
+	${quoteShellArgs(["docker", "rm", buildContainerId])}
+	${getStaticCommand({ ...application, publishDirectory: safePublishDirectory })}
 				`;
 	}
 

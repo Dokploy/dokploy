@@ -155,11 +155,11 @@ const createSchema = createInsertSchema(compose, {
 		.max(63)
 		.regex(APP_NAME_REGEX, APP_NAME_MESSAGE)
 		.optional(),
-	description: z.string(),
+	description: z.string().nullable().optional(),
 	env: z.string().optional(),
 	composeFile: z.string().optional(),
 	environmentId: z.string(),
-	customGitSSHKeyId: z.string().optional(),
+	customGitSSHKeyId: z.string().nullable().optional(),
 	command: z.string().optional(),
 	composePath: z.string().min(1),
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
@@ -223,7 +223,7 @@ export const apiUpdateCompose = createSchema
 		composeFile: z.string().optional(),
 		command: z.string().optional(),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true, environmentId: true, refreshToken: true });
 
 export const apiSaveEnvironmentVariablesCompose = createSchema
 	.pick({

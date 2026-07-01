@@ -133,7 +133,6 @@ export const apiCreateDeployment = schema
 		logPath: true,
 		applicationId: true,
 		description: true,
-		previewDeploymentId: true,
 	})
 	.extend({
 		applicationId: z.string().min(1),

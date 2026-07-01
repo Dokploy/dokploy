@@ -1,18 +1,24 @@
 import type { CreateServiceOptions } from "dockerode";
 import { docker } from "../constants";
+import {
+	POSTGRES_DB,
+	POSTGRES_USER,
+	resolvePostgresPassword,
+} from "../db/constants";
 import { pullImage } from "../utils/docker/utils";
 export const initializePostgres = async () => {
 	const imageName = "postgres:16";
 	const containerName = "dokploy-postgres";
+	const postgresPassword = resolvePostgresPassword({ allowDatabaseUrl: true });
 	const settings: CreateServiceOptions = {
 		Name: containerName,
 		TaskTemplate: {
 			ContainerSpec: {
 				Image: imageName,
 				Env: [
-					"POSTGRES_USER=dokploy",
-					"POSTGRES_DB=dokploy",
-					"POSTGRES_PASSWORD=amukds4wi9001583845717ad2",
+					`POSTGRES_USER=${POSTGRES_USER}`,
+					`POSTGRES_DB=${POSTGRES_DB}`,
+					`POSTGRES_PASSWORD=${postgresPassword}`,
 				],
 				Mounts: [
 					{
@@ -51,7 +57,7 @@ export const initializePostgres = async () => {
 		const service = docker.getService(containerName);
 		const inspect = await service.inspect();
 		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
+			version: Number.parseInt(inspect.Version.Index, 10),
 			...settings,
 		});
 		console.log("Postgres Started ✅");

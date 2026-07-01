@@ -19,6 +19,14 @@ pkg.exports = {
 		import: "./dist/db/index.js",
 		require: "./dist/db/index.cjs.js",
 	},
+	"./utils/schedules/signed-job": {
+		import: "./dist/utils/schedules/signed-job.js",
+		require: "./dist/utils/schedules/signed-job.js",
+	},
+	"./utils/deployments/signed-job": {
+		import: "./dist/utils/deployments/signed-job.js",
+		require: "./dist/utils/deployments/signed-job.js",
+	},
 	"./*": {
 		import: "./dist/*",
 		require: "./dist/*.cjs",
@@ -37,5 +45,5 @@ pkg.exports = {
 	},
 };
 
-fs.writeFileSync(packagePath, JSON.stringify(pkg, null, 2));
+fs.writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
 console.log("Switched exports to use dist for production");

@@ -8,7 +8,7 @@ import { applications } from "./application";
 import { compose } from "./compose";
 import { deployments } from "./deployment";
 import { server } from "./server";
-import { generateAppName } from "./utils";
+import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
 export const shellTypes = pgEnum("shellType", ["bash", "sh"]);
 
 export const scheduleType = pgEnum("scheduleType", [
@@ -78,7 +78,14 @@ export const schedulesRelations = relations(schedules, ({ one, many }) => ({
 	deployments: many(deployments),
 }));
 
-export const createScheduleSchema = createInsertSchema(schedules);
+export const createScheduleSchema = createInsertSchema(schedules, {
+	appName: z
+		.string()
+		.min(1)
+		.max(63)
+		.regex(APP_NAME_REGEX, APP_NAME_MESSAGE)
+		.optional(),
+});
 
 export const updateScheduleSchema = createScheduleSchema.extend({
 	scheduleId: z.string().min(1),

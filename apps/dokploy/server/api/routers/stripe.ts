@@ -22,8 +22,8 @@ import {
 	WEBSITE_URL,
 } from "@/server/utils/stripe";
 import {
-	adminProcedure,
 	createTRPCRouter,
+	ownerProcedure,
 	protectedProcedure,
 	withPermission,
 } from "../trpc";
@@ -71,7 +71,7 @@ export const stripeRouter = createTRPCRouter({
 		return null;
 	}),
 
-	getProducts: adminProcedure.query(async ({ ctx }) => {
+	getProducts: ownerProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);
 		const stripeCustomerId = user.stripeCustomerId;
 
@@ -161,7 +161,7 @@ export const stripeRouter = createTRPCRouter({
 			currentPriceAmount,
 		};
 	}),
-	createCheckoutSession: adminProcedure
+	createCheckoutSession: ownerProcedure
 		.input(
 			z
 				.object({
@@ -220,9 +220,9 @@ export const stripeRouter = createTRPCRouter({
 				cancel_url: `${WEBSITE_URL}/dashboard/settings/billing`,
 			});
 
-			return { sessionId: session.id };
+			return { sessionId: session.id, url: session.url };
 		}),
-	createCustomerPortalSession: adminProcedure.mutation(async ({ ctx }) => {
+	createCustomerPortalSession: ownerProcedure.mutation(async ({ ctx }) => {
 		// Use the organization's owner account for billing portal
 		const owner = await findUserById(ctx.user.ownerId);
 
@@ -252,7 +252,7 @@ export const stripeRouter = createTRPCRouter({
 		}
 	}),
 
-	upgradeSubscription: adminProcedure
+	upgradeSubscription: ownerProcedure
 		.input(
 			z
 				.object({
@@ -337,7 +337,7 @@ export const stripeRouter = createTRPCRouter({
 		},
 	),
 
-	updateInvoiceNotifications: adminProcedure
+	updateInvoiceNotifications: ownerProcedure
 		.input(z.object({ enabled: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
 			if (!IS_CLOUD) {
@@ -353,7 +353,7 @@ export const stripeRouter = createTRPCRouter({
 			return { ok: true };
 		}),
 
-	getInvoices: adminProcedure.query(async ({ ctx }) => {
+	getInvoices: ownerProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);
 		const stripeCustomerId = user.stripeCustomerId;
 

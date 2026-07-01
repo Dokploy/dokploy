@@ -5,10 +5,12 @@ import {
 	IS_CLOUD,
 	validateRequest,
 } from "@dokploy/server";
+import { resolveServerDestinationHost } from "@dokploy/server/utils/servers/destination";
 import { publicIpv4, publicIpv6 } from "public-ip";
 import { Client, type ConnectConfig } from "ssh2";
 import { WebSocketServer } from "ws";
 import { getDockerHost } from "../utils/docker";
+import { canAccessServerTerminalWebSocket } from "./server-permission";
 import { setupLocalServerSSHKey } from "./utils";
 
 const COMMAND_TO_ALLOW_LOCAL_ACCESS = `
@@ -28,20 +30,19 @@ sudo chown -R $USER:$USER /etc/dokploy/ssh
 `;
 
 export const getPublicIpWithFallback = async () => {
-	// @ts-ignore
-	let ip = null;
+	let ip: string | null = null;
 	try {
 		ip = await publicIpv4();
 	} catch (error) {
 		console.log(
 			"Error to obtain public IPv4 address, falling back to IPv6",
-			// @ts-ignore
+			// @ts-expect-error
 			error.message,
 		);
 		try {
 			ip = await publicIpv6();
 		} catch (error) {
-			// @ts-ignore
+			// @ts-expect-error
 			console.error("Error to obtain public IPv6 address", error.message);
 			ip = null;
 		}
@@ -51,7 +52,7 @@ export const getPublicIpWithFallback = async () => {
 
 export const getLocalServerIp = async () => {
 	try {
-		const command = `ip addr show | grep -E "inet (192\.168\.|10\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.)" | head -n1 | awk '{print $2}' | cut -d/ -f1`;
+		const command = `ip addr show | grep -E "inet (192\\.168\\.|10\\.|172\\.1[6-9]\\.|172\\.2[0-9]\\.|172\\.3[0-1]\\.)" | head -n1 | awk '{print $2}' | cut -d/ -f1`;
 		const { stdout } = await execAsync(command);
 		const ip = stdout.trim();
 		return (
@@ -89,6 +90,13 @@ export const setupTerminalWebSocketServer = (
 		const serverId = url.searchParams.get("serverId");
 		const { user, session } = await validateRequest(req);
 		if (!user || !session || !serverId) {
+			ws.close();
+			return;
+		}
+
+		if (
+			!(await canAccessServerTerminalWebSocket({ user, session, serverId }))
+		) {
 			ws.close();
 			return;
 		}
@@ -165,8 +173,9 @@ export const setupTerminalWebSocketServer = (
 				throw new Error("No SSH key available for this server");
 			}
 
+			const resolvedHost = await resolveServerDestinationHost(server);
 			connectionDetails = {
-				host,
+				host: resolvedHost,
 				port,
 				username,
 				privateKey: sshKey?.privateKey,
@@ -212,7 +221,7 @@ export const setupTerminalWebSocketServer = (
 							}
 							stream.write(command.toString());
 						} catch (error) {
-							// @ts-ignore
+							// @ts-expect-error
 							const errorMessage = error?.message as unknown as string;
 							ws.send(errorMessage);
 						}

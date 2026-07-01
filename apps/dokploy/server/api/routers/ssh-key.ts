@@ -6,13 +6,13 @@ import {
 	updateSSHKeyById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import {
+	redactSecretFields,
+	redactSecretFieldsList,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
-import {
-	createTRPCRouter,
-	protectedProcedure,
-	withPermission,
-} from "@/server/api/trpc";
+import { createTRPCRouter, withPermission } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateSshKey,
@@ -63,7 +63,9 @@ export const sshRouter = createTRPCRouter({
 					resourceId: sshKey.sshKeyId,
 					resourceName: sshKey.name,
 				});
-				return await removeSSHKeyById(input.sshKeyId);
+				return redactSecretFields(await removeSSHKeyById(input.sshKeyId), [
+					"privateKey",
+				]);
 			} catch (error) {
 				throw error;
 			}
@@ -79,15 +81,16 @@ export const sshRouter = createTRPCRouter({
 					message: "You are not allowed to access this SSH key",
 				});
 			}
-			return sshKey;
+			return redactSecretFields(sshKey, ["privateKey"]);
 		}),
 	all: withPermission("sshKeys", "read").query(async ({ ctx }) => {
-		return await db.query.sshKeys.findMany({
+		const sshKeyList = await db.query.sshKeys.findMany({
 			where: eq(sshKeys.organizationId, ctx.session.activeOrganizationId),
 			orderBy: desc(sshKeys.createdAt),
 		});
+		return redactSecretFieldsList(sshKeyList, ["privateKey"]);
 	}),
-	allForApps: protectedProcedure.query(async ({ ctx }) => {
+	allForApps: withPermission("sshKeys", "read").query(async ({ ctx }) => {
 		return await db.query.sshKeys.findMany({
 			columns: {
 				sshKeyId: true,
@@ -120,7 +123,7 @@ export const sshRouter = createTRPCRouter({
 					resourceId: sshKey.sshKeyId,
 					resourceName: sshKey.name,
 				});
-				return result;
+				return redactSecretFields(result, ["privateKey"]);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",

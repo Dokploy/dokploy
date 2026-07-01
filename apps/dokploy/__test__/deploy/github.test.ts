@@ -1,10 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
 	extractCommitMessage,
 	extractImageName,
 	extractImageTag,
 	extractImageTagFromRequest,
+	rejectNonPostDeployWebhook,
 } from "@/pages/api/deploy/[refreshToken]";
+import { shouldRequirePreviewCollaboratorPermissions } from "@/pages/api/deploy/github";
 
 describe("GitHub Webhook Skip CI", () => {
 	const mockGithubHeaders = {
@@ -110,6 +112,96 @@ describe("GitHub Webhook Skip CI", () => {
 		expect(extractCommitMessage({ "x-softserve-event": "push" }, {})).toBe(
 			"NEW COMMIT",
 		);
+	});
+});
+
+describe("generic refresh-token deploy method boundary", () => {
+	const createResponse = () => {
+		const response = {
+			json: vi.fn(),
+			setHeader: vi.fn(),
+			status: vi.fn(),
+		};
+		response.status.mockReturnValue(response);
+		return response;
+	};
+
+	it("rejects non-POST deploy webhook requests before state-changing work", () => {
+		const response = createResponse();
+
+		expect(
+			rejectNonPostDeployWebhook({ method: "GET" } as never, response as never),
+		).toBe(true);
+		expect(response.setHeader).toHaveBeenCalledWith("Allow", "POST");
+		expect(response.status).toHaveBeenCalledWith(405);
+		expect(response.json).toHaveBeenCalledWith({
+			message: "Method Not Allowed",
+		});
+	});
+
+	it("allows POST deploy webhook requests through the shared gate", () => {
+		const response = createResponse();
+
+		expect(
+			rejectNonPostDeployWebhook(
+				{ method: "POST" } as never,
+				response as never,
+			),
+		).toBe(false);
+		expect(response.status).not.toHaveBeenCalled();
+	});
+});
+
+describe("GitHub preview deployment collaborator boundary", () => {
+	it("requires collaborator permissions when disabled previews still carry secrets", () => {
+		expect(
+			shouldRequirePreviewCollaboratorPermissions({
+				previewRequireCollaboratorPermissions: false,
+				previewEnv: "PREVIEW_TOKEN=secret",
+				previewBuildArgs: null,
+				previewBuildSecrets: null,
+			}),
+		).toBe(true);
+
+		expect(
+			shouldRequirePreviewCollaboratorPermissions({
+				previewRequireCollaboratorPermissions: false,
+				previewEnv: null,
+				previewBuildArgs: "",
+				previewBuildSecrets: "BUILD_SECRET=secret",
+			}),
+		).toBe(true);
+	});
+
+	it("allows disabled collaborator checks only for previews without sensitive configuration", () => {
+		expect(
+			shouldRequirePreviewCollaboratorPermissions({
+				previewRequireCollaboratorPermissions: false,
+				previewEnv: " \n ",
+				previewBuildArgs: null,
+				previewBuildSecrets: "",
+			}),
+		).toBe(false);
+	});
+
+	it("keeps collaborator permissions enabled by default", () => {
+		expect(
+			shouldRequirePreviewCollaboratorPermissions({
+				previewRequireCollaboratorPermissions: true,
+				previewEnv: null,
+				previewBuildArgs: null,
+				previewBuildSecrets: null,
+			}),
+		).toBe(true);
+
+		expect(
+			shouldRequirePreviewCollaboratorPermissions({
+				previewRequireCollaboratorPermissions: null,
+				previewEnv: null,
+				previewBuildArgs: null,
+				previewBuildSecrets: null,
+			}),
+		).toBe(true);
 	});
 });
 

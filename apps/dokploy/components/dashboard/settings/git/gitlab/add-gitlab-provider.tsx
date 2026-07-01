@@ -46,6 +46,7 @@ const Schema = z.object({
 	applicationSecret: z.string().min(1, {
 		message: "Application Secret is required",
 	}),
+	webhookSecret: z.string().optional(),
 
 	redirectUri: z.string().min(1, {
 		message: "Redirect URI is required",
@@ -72,6 +73,7 @@ export const AddGitlabProvider = () => {
 			name: "",
 			gitlabUrl: "https://gitlab.com",
 			gitlabInternalUrl: "",
+			webhookSecret: "",
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -87,6 +89,7 @@ export const AddGitlabProvider = () => {
 			name: "",
 			gitlabUrl: "https://gitlab.com",
 			gitlabInternalUrl: "",
+			webhookSecret: "",
 		});
 	}, [form, isOpen]);
 
@@ -94,6 +97,7 @@ export const AddGitlabProvider = () => {
 		await mutateAsync({
 			applicationId: data.applicationId || "",
 			secret: data.applicationSecret || "",
+			webhookSecret: data.webhookSecret || undefined,
 			groupName: data.groupName || "",
 			authId: auth?.id || "",
 			name: data.name || "",
@@ -268,6 +272,28 @@ export const AddGitlabProvider = () => {
 													{...field}
 												/>
 											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="webhookSecret"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Deploy Webhook Secret (Optional)</FormLabel>
+											<FormControl>
+												<Input
+													type="password"
+													placeholder="GitLab webhook secret token"
+													{...field}
+												/>
+											</FormControl>
+											<FormDescription>
+												Set the same value in the GitLab webhook Secret token
+												field.
+											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}

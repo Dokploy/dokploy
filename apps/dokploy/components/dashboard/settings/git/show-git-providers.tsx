@@ -43,6 +43,50 @@ import { EditGithubProvider } from "./github/edit-github-provider";
 import { AddGitlabProvider } from "./gitlab/add-gitlab-provider";
 import { EditGitlabProvider } from "./gitlab/edit-gitlab-provider";
 
+type GithubAppInstallLinkProps = {
+	canManage: boolean;
+	githubAppName?: string | null;
+	githubId?: string | null;
+};
+
+const GithubAppInstallLink = ({
+	canManage,
+	githubAppName,
+	githubId,
+}: GithubAppInstallLinkProps) => {
+	const { data: githubAppSetupState } = api.github.appSetupState.useQuery(
+		{ action: "setup", githubId: githubId ?? "" },
+		{ enabled: canManage && !!githubAppName && !!githubId },
+	);
+
+	if (
+		!canManage ||
+		!githubAppName ||
+		!githubId ||
+		!githubAppSetupState?.state
+	) {
+		return (
+			<Button disabled size="icon" variant="ghost">
+				<ImportIcon className="size-4 text-primary" />
+			</Button>
+		);
+	}
+
+	return (
+		<Link
+			href={`${githubAppName}/installations/new?state=${encodeURIComponent(
+				githubAppSetupState.state,
+			)}`}
+			className={buttonVariants({
+				size: "icon",
+				variant: "ghost",
+			})}
+		>
+			<ImportIcon className="size-4 text-primary" />
+		</Link>
+	);
+};
+
 export const ShowGitProviders = () => {
 	const { data, isPending, refetch } = api.gitProvider.getAll.useQuery();
 	const { mutateAsync, isPending: isRemoving } =
@@ -55,16 +99,8 @@ export const ShowGitProviders = () => {
 	const isOrgAdmin =
 		currentMember?.role === "owner" || currentMember?.role === "admin";
 
-	const getGitlabUrl = (
-		clientId: string,
-		gitlabId: string,
-		gitlabUrl: string,
-	) => {
-		const redirectUri = `${url}/api/providers/gitlab/callback?gitlabId=${gitlabId}`;
-		const scope = "api read_user read_repository";
-		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scopes=${encodeURIComponent(scope)}`;
-		return authUrl;
-	};
+	const getGitlabUrl = (gitlabId: string) =>
+		`${url}/api/providers/gitlab/authorize?gitlabId=${encodeURIComponent(gitlabId)}`;
 
 	return (
 		<div className="w-full">
@@ -237,15 +273,13 @@ export const ShowGitProviders = () => {
 																		>
 																			Action Required
 																		</Badge>
-																		<Link
-																			href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github?.githubId}`}
-																			className={buttonVariants({
-																				size: "icon",
-																				variant: "ghost",
-																			})}
-																		>
-																			<ImportIcon className="size-4 text-primary" />
-																		</Link>
+																		<GithubAppInstallLink
+																			canManage={canManage}
+																			githubAppName={
+																				gitProvider.github?.githubAppName
+																			}
+																			githubId={gitProvider.github?.githubId}
+																		/>
 																	</div>
 																)}
 																{haveGithubRequirements && isGithub && (
@@ -262,30 +296,30 @@ export const ShowGitProviders = () => {
 																		</Link>
 																	</div>
 																)}
-																{!haveGitlabRequirements && isGitlab && (
-																	<div className="flex flex-row gap-1 items-center">
-																		<Badge
-																			variant="outline"
-																			className="text-xs"
-																		>
-																			Action Required
-																		</Badge>
-																		<Link
-																			href={getGitlabUrl(
-																				gitProvider.gitlab?.applicationId || "",
-																				gitProvider.gitlab?.gitlabId || "",
-																				gitProvider.gitlab?.gitlabUrl || "",
-																			)}
-																			target="_blank"
-																			className={buttonVariants({
-																				size: "icon",
-																				variant: "ghost",
-																			})}
-																		>
-																			<ImportIcon className="size-4 text-primary" />
-																		</Link>
-																	</div>
-																)}
+																{!haveGitlabRequirements &&
+																	isGitlab &&
+																	canManage && (
+																		<div className="flex flex-row gap-1 items-center">
+																			<Badge
+																				variant="outline"
+																				className="text-xs"
+																			>
+																				Action Required
+																			</Badge>
+																			<Link
+																				href={getGitlabUrl(
+																					gitProvider.gitlab?.gitlabId || "",
+																				)}
+																				target="_blank"
+																				className={buttonVariants({
+																					size: "icon",
+																					variant: "ghost",
+																				})}
+																			>
+																				<ImportIcon className="size-4 text-primary" />
+																			</Link>
+																		</div>
+																	)}
 
 																{canManage && (
 																	<>

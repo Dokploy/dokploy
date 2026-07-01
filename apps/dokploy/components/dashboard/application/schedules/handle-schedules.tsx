@@ -9,7 +9,12 @@ import {
 	RefreshCw,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { type Control, useForm } from "react-hook-form";
+import {
+	type Control,
+	type FieldValues,
+	type Path,
+	useForm,
+} from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -135,12 +140,12 @@ interface Props {
 	scheduleType?: "application" | "compose" | "server" | "dokploy-server";
 }
 
-export const ScheduleFormField = ({
+export const ScheduleFormField = <TFieldValues extends FieldValues>({
 	name,
 	formControl,
 }: {
-	name: string;
-	formControl: Control<any>;
+	name: Path<TFieldValues>;
+	formControl: Control<TFieldValues>;
 }) => {
 	const [selectedOption, setSelectedOption] = useState("");
 

@@ -38,6 +38,7 @@ const Schema = z.object({
 		.union([z.string().url(), z.literal("")])
 		.optional()
 		.transform((v) => (v === "" ? undefined : v)),
+	webhookSecret: z.string().optional(),
 	groupName: z.string().optional(),
 });
 
@@ -67,6 +68,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 			name: "",
 			gitlabUrl: "https://gitlab.com",
 			gitlabInternalUrl: "",
+			webhookSecret: "",
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -79,6 +81,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 			name: gitlab?.gitProvider.name || "",
 			gitlabUrl: gitlab?.gitlabUrl || "",
 			gitlabInternalUrl: gitlab?.gitlabInternalUrl || "",
+			webhookSecret: "",
 		});
 	}, [form, isOpen]);
 
@@ -90,6 +93,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 			name: data.name || "",
 			gitlabUrl: data.gitlabUrl || "",
 			gitlabInternalUrl: data.gitlabInternalUrl ?? null,
+			webhookSecret: data.webhookSecret || undefined,
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
@@ -196,6 +200,28 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 													{...field}
 												/>
 											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="webhookSecret"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Deploy Webhook Secret (Optional)</FormLabel>
+											<FormControl>
+												<Input
+													type="password"
+													placeholder="Leave blank to keep existing value"
+													{...field}
+												/>
+											</FormControl>
+											<FormDescription>
+												Set the same value in the GitLab webhook Secret token
+												field.
+											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}

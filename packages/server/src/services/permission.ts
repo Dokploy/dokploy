@@ -1,5 +1,16 @@
 import { db } from "@dokploy/server/db";
-import { member, organizationRole } from "@dokploy/server/db/schema";
+import {
+	applications,
+	compose,
+	libsql,
+	mariadb,
+	member,
+	mongo,
+	mysql,
+	organizationRole,
+	postgres,
+	redis,
+} from "@dokploy/server/db/schema";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
@@ -28,6 +39,14 @@ export type ResolvedPermissions = {
 	[R in Resource]: {
 		[A in Statements[R][number]]: boolean;
 	};
+};
+
+type ServiceWithOrganization = {
+	environment?: {
+		project?: {
+			organizationId?: string | null;
+		} | null;
+	} | null;
 };
 
 const staticRoles: Record<string, ReturnType<typeof ac.newRole>> = {
@@ -176,6 +195,233 @@ const getLegacyOverrides = (
 	};
 };
 
+const resolveCustomRolePermissions = async (
+	roleName: string,
+	organizationId: string,
+): Promise<Permissions | null> => {
+	const licensed = await hasValidLicense(organizationId);
+	if (!licensed) {
+		return null;
+	}
+
+	const customRoles = await db.query.organizationRole.findMany({
+		where: and(
+			eq(organizationRole.organizationId, organizationId),
+			eq(organizationRole.role, roleName),
+		),
+	});
+
+	if (customRoles.length === 0) {
+		return null;
+	}
+
+	const merged: Record<string, string[]> = {};
+	for (const entry of customRoles) {
+		const parsed = JSON.parse(entry.permission) as Record<string, string[]>;
+		for (const [resource, actions] of Object.entries(parsed)) {
+			merged[resource] = [
+				...new Set([...(merged[resource] ?? []), ...actions]),
+			];
+		}
+	}
+
+	return merged as Permissions;
+};
+
+export const assertRoleAssignmentAllowed = async (
+	ctx: PermissionCtx,
+	roleName: string,
+) => {
+	const organizationId = ctx.session.activeOrganizationId;
+	const actor = await findMemberByUserId(ctx.user.id, organizationId);
+
+	if (roleName === "owner") {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Cannot assign the owner role",
+		});
+	}
+
+	if (roleName === "admin") {
+		if (actor.role !== "owner") {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Only organization owners can assign admin roles",
+			});
+		}
+		return;
+	}
+
+	if (roleName === "member") {
+		return;
+	}
+
+	const targetPermissions = await resolveCustomRolePermissions(
+		roleName,
+		organizationId,
+	);
+	if (!targetPermissions) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `Role "${roleName}" not found`,
+		});
+	}
+
+	if (actor.role === "owner") {
+		return;
+	}
+
+	const actorPermissions = await resolvePermissions(ctx);
+	const missingPermission = Object.entries(targetPermissions).find(
+		([resource, actions]) =>
+			(actions as string[]).some(
+				(action) =>
+					!(actorPermissions as Record<string, Record<string, boolean>>)[
+						resource
+					]?.[action],
+			),
+	);
+
+	if (missingPermission) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Cannot assign a role with permissions you do not have",
+		});
+	}
+};
+
+const serviceOrganizationId = (service: ServiceWithOrganization | null) =>
+	service?.environment?.project?.organizationId ?? null;
+
+export const findServiceOrganizationId = async (serviceId: string) => {
+	const applicationService = await db.query.applications.findFirst({
+		where: eq(applications.applicationId, serviceId),
+		with: {
+			environment: {
+				with: {
+					project: true,
+				},
+			},
+		},
+	});
+	if (applicationService) {
+		return serviceOrganizationId(applicationService);
+	}
+
+	const composeService = await db.query.compose.findFirst({
+		where: eq(compose.composeId, serviceId),
+		with: {
+			environment: {
+				with: {
+					project: true,
+				},
+			},
+		},
+	});
+	if (composeService) {
+		return serviceOrganizationId(composeService);
+	}
+
+	const postgresService = await db.query.postgres.findFirst({
+		where: eq(postgres.postgresId, serviceId),
+		with: {
+			environment: {
+				with: {
+					project: true,
+				},
+			},
+		},
+	});
+	if (postgresService) {
+		return serviceOrganizationId(postgresService);
+	}
+
+	const mysqlService = await db.query.mysql.findFirst({
+		where: eq(mysql.mysqlId, serviceId),
+		with: {
+			environment: {
+				with: {
+					project: true,
+				},
+			},
+		},
+	});
+	if (mysqlService) {
+		return serviceOrganizationId(mysqlService);
+	}
+
+	const mariadbService = await db.query.mariadb.findFirst({
+		where: eq(mariadb.mariadbId, serviceId),
+		with: {
+			environment: {
+				with: {
+					project: true,
+				},
+			},
+		},
+	});
+	if (mariadbService) {
+		return serviceOrganizationId(mariadbService);
+	}
+
+	const mongoService = await db.query.mongo.findFirst({
+		where: eq(mongo.mongoId, serviceId),
+		with: {
+			environment: {
+				with: {
+					project: true,
+				},
+			},
+		},
+	});
+	if (mongoService) {
+		return serviceOrganizationId(mongoService);
+	}
+
+	const redisService = await db.query.redis.findFirst({
+		where: eq(redis.redisId, serviceId),
+		with: {
+			environment: {
+				with: {
+					project: true,
+				},
+			},
+		},
+	});
+	if (redisService) {
+		return serviceOrganizationId(redisService);
+	}
+
+	const libsqlService = await db.query.libsql.findFirst({
+		where: eq(libsql.libsqlId, serviceId),
+		with: {
+			environment: {
+				with: {
+					project: true,
+				},
+			},
+		},
+	});
+	if (libsqlService) {
+		return serviceOrganizationId(libsqlService);
+	}
+
+	return null;
+};
+
+export const assertServiceBelongsToActiveOrganization = async (
+	ctx: PermissionCtx,
+	serviceId: string,
+) => {
+	const organizationId = await findServiceOrganizationId(serviceId);
+	if (!organizationId || organizationId !== ctx.session.activeOrganizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You don't have access to this service",
+		});
+	}
+};
+
 export const resolvePermissions = async (
 	ctx: PermissionCtx,
 ): Promise<ResolvedPermissions> => {
@@ -217,7 +463,7 @@ export const resolvePermissions = async (
 
 export const checkProjectAccess = async (
 	ctx: PermissionCtx,
-	action: "create" | "delete",
+	action: "create" | "update" | "delete",
 	projectId?: string,
 ) => {
 	const userId = ctx.user.id;
@@ -250,6 +496,7 @@ export const checkServicePermissionAndAccess = async (
 	const organizationId = ctx.session.activeOrganizationId;
 	const memberRecord = await findMemberByUserId(userId, organizationId);
 	await checkPermission(ctx, permissions);
+	await assertServiceBelongsToActiveOrganization(ctx, serviceId);
 	if (memberRecord.role !== "owner" && memberRecord.role !== "admin") {
 		if (!memberRecord.accessedServices.includes(serviceId)) {
 			throw new TRPCError({
@@ -270,6 +517,10 @@ export const checkServiceAccess = async (
 	const memberRecord = await findMemberByUserId(userId, organizationId);
 
 	await checkPermission(ctx, { service: [action] });
+
+	if (action !== "create") {
+		await assertServiceBelongsToActiveOrganization(ctx, serviceId);
+	}
 
 	if (memberRecord.role !== "owner" && memberRecord.role !== "admin") {
 		if (action === "create") {
@@ -293,7 +544,7 @@ export const checkServiceAccess = async (
 export const checkEnvironmentAccess = async (
 	ctx: PermissionCtx,
 	environmentId: string,
-	action: "read" | "create" | "delete" = "read",
+	action: "read" | "create" | "update" | "delete" = "read",
 ) => {
 	const userId = ctx.user.id;
 	const organizationId = ctx.session.activeOrganizationId;

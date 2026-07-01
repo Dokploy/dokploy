@@ -5,6 +5,7 @@ import {
 	findScheduleById,
 	findServerById,
 	findVolumeBackupById,
+	isBackupScheduleTargetBound,
 	keepLatestNBackups,
 	runCommand,
 	runComposeBackup,
@@ -43,6 +44,18 @@ export const runJobs = async (job: QueueJob) => {
 				compose,
 				backupType,
 			} = backup;
+
+			if (!isBackupScheduleTargetBound(backup)) {
+				logger.warn(
+					{
+						backupId: backup.backupId,
+						backupType: backup.backupType,
+						databaseType: backup.databaseType,
+					},
+					"Skipping backup job with mismatched service binding",
+				);
+				return;
+			}
 
 			if (backupType === "database") {
 				if (databaseType === "postgres" && postgres) {
@@ -165,6 +178,18 @@ export const initializeJobs = async () => {
 
 	for (const backup of backupsResult) {
 		try {
+			if (!isBackupScheduleTargetBound(backup)) {
+				logger.warn(
+					{
+						backupId: backup.backupId,
+						backupType: backup.backupType,
+						databaseType: backup.databaseType,
+					},
+					"Skipping backup schedule with mismatched service binding",
+				);
+				continue;
+			}
+
 			await scheduleJob({
 				backupId: backup.backupId,
 				type: "backup",
@@ -204,6 +229,7 @@ export const initializeJobs = async () => {
 			if (schedule.compose) {
 				return schedule.compose.server?.serverStatus === "active";
 			}
+			return false;
 		},
 	);
 
@@ -247,6 +273,7 @@ export const initializeJobs = async () => {
 			if (volumeBackup.compose) {
 				return volumeBackup.compose.server?.serverStatus === "active";
 			}
+			return false;
 		},
 	);
 

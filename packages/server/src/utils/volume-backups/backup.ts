@@ -4,18 +4,29 @@ import { findComposeById } from "@dokploy/server/services/compose";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
 import {
+	assertRcloneS3DestinationAllowed,
+	buildRcloneS3Command,
 	getBackupTimestamp,
-	getS3Credentials,
+	getRcloneS3Destination,
 	normalizeS3Path,
 } from "../backups/utils";
+import { quoteShellArgs } from "../shell";
+import {
+	normalizeDockerVolumeName,
+	normalizeVolumeBackupServiceName,
+	quoteVolumeBackupShellArg,
+} from "./safe-input";
 
 export const getVolumeServiceAppName = (
 	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
 ): string => {
 	if (volumeBackup.compose?.appName) {
+		const safeComposeAppName = normalizeVolumeBackupServiceName(
+			volumeBackup.compose.appName,
+		);
 		return volumeBackup.serviceName
-			? `${volumeBackup.compose.appName}_${volumeBackup.serviceName}`
-			: volumeBackup.compose.appName;
+			? `${safeComposeAppName}_${normalizeVolumeBackupServiceName(volumeBackup.serviceName)}`
+			: safeComposeAppName;
 	}
 	const serviceAppName =
 		volumeBackup.application?.appName ||
@@ -25,38 +36,71 @@ export const getVolumeServiceAppName = (
 		volumeBackup.mongo?.appName ||
 		volumeBackup.redis?.appName ||
 		volumeBackup.libsql?.appName;
-	return serviceAppName || volumeBackup.appName;
+	return normalizeVolumeBackupServiceName(
+		serviceAppName || volumeBackup.appName,
+	);
 };
+
+export const resolveVolumeBackupServerId = (
+	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
+) =>
+	volumeBackup.application?.serverId ||
+	volumeBackup.compose?.serverId ||
+	volumeBackup.postgres?.serverId ||
+	volumeBackup.mysql?.serverId ||
+	volumeBackup.mariadb?.serverId ||
+	volumeBackup.mongo?.serverId ||
+	volumeBackup.redis?.serverId ||
+	volumeBackup.libsql?.serverId;
 
 export const backupVolume = async (
 	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
 ) => {
 	const { serviceType, volumeName, turnOff, prefix } = volumeBackup;
+	const safeVolumeName = normalizeDockerVolumeName(volumeName);
+	const safeBackupAppName = normalizeVolumeBackupServiceName(
+		volumeBackup.appName,
+	);
 	const destination = await findDestinationById(volumeBackup.destinationId);
-	const serverId =
-		volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
+	const serverId = resolveVolumeBackupServerId(volumeBackup);
 	const { VOLUME_BACKUPS_PATH, VOLUME_BACKUP_LOCK_PATH } = paths(!!serverId);
 	const s3AppName = getVolumeServiceAppName(volumeBackup);
-	const backupFileName = `${volumeName}-${getBackupTimestamp()}.tar`;
+	const backupFileName = `${safeVolumeName}-${getBackupTimestamp()}.tar`;
 	const bucketDestination = `${s3AppName}/${normalizeS3Path(prefix || "")}${backupFileName}`;
-	const rcloneFlags = getS3Credentials(destination);
-	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
+	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, safeBackupAppName);
+	const backupFileInContainer = `/backup/${backupFileName}`;
+	const quotedVolumeMount = quoteVolumeBackupShellArg(
+		`${safeVolumeName}:/volume_data`,
+	);
+	const quotedBackupMount = quoteVolumeBackupShellArg(
+		`${volumeBackupPath}:/backup`,
+	);
+	const tarBackupCommand = quoteVolumeBackupShellArg(
+		`cd /volume_data && tar cvf ${quoteVolumeBackupShellArg(backupFileInContainer)} .`,
+	);
+	const quotedVolumeBackupPath = quoteVolumeBackupShellArg(volumeBackupPath);
+	const quotedBackupFilePath = quoteVolumeBackupShellArg(
+		path.join(volumeBackupPath, backupFileName),
+	);
 
-	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
+	const safeDestination = await assertRcloneS3DestinationAllowed(destination);
+	const rcloneCommand = buildRcloneS3Command("copyto", safeDestination, [
+		`${volumeBackupPath}/${backupFileName}`,
+		getRcloneS3Destination(safeDestination, bucketDestination),
+	]);
 
 	const backupCommand = `
 	set -e
-	echo "Volume name: ${volumeName}"
+	echo "Volume name: ${safeVolumeName}"
 	echo "Backup file name: ${backupFileName}"
 	echo "Turning off volume backup: ${turnOff ? "Yes" : "No"}"
 	echo "Starting volume backup" 
 	echo "Dir: ${volumeBackupPath}"
     docker run --rm \
-  -v ${volumeName}:/volume_data \
-  -v ${volumeBackupPath}:/backup \
+  -v ${quotedVolumeMount} \
+  -v ${quotedBackupMount} \
   ubuntu \
-  bash -c "cd /volume_data && tar cvf /backup/${backupFileName} ."
+  bash -c ${tarBackupCommand}
   echo "Volume backup done ✅"
   `;
 
@@ -65,7 +109,7 @@ export const backupVolume = async (
   ${rcloneCommand}
   echo "Upload to S3 done ✅"
   echo "Cleaning up local backup file..."
-  rm "${volumeBackupPath}/${backupFileName}"
+  rm -f -- ${quotedBackupFilePath}
   echo "Local backup file cleaned up ✅"
   `;
 
@@ -78,15 +122,18 @@ export const backupVolume = async (
 
 	const serviceLockId =
 		serviceType === "application"
-			? volumeBackup.application?.appName
-			: `${volumeBackup.compose?.appName}_${volumeBackup.serviceName}`;
+			? normalizeVolumeBackupServiceName(
+					volumeBackup.application?.appName || "",
+				)
+			: `${normalizeVolumeBackupServiceName(volumeBackup.compose?.appName || "")}_${normalizeVolumeBackupServiceName(volumeBackup.serviceName || "")}`;
 
 	const lockPath = `${VOLUME_BACKUP_LOCK_PATH}-${serviceLockId}`;
+	const quotedLockPath = quoteVolumeBackupShellArg(lockPath);
 
 	const lockWrapper = (body: string) => `
 		set -e
 
-		LOCK_PATH="${lockPath}"
+		LOCK_PATH=${quotedLockPath}
 
 		echo "Waiting for volume backup lock: $LOCK_PATH"
 
@@ -117,14 +164,17 @@ export const backupVolume = async (
 	);
 
 	if (serviceType === "application") {
+		const serviceName = normalizeVolumeBackupServiceName(
+			volumeBackup.application?.appName || "",
+		);
 		return lockWrapper(`
 		echo "Stopping application to 0 replicas"
-		ACTUAL_REPLICAS=$(docker service inspect ${volumeBackup.application?.appName} --format "{{.Spec.Mode.Replicated.Replicas}}")
+		ACTUAL_REPLICAS=$(docker service inspect ${quoteVolumeBackupShellArg(serviceName)} --format "{{.Spec.Mode.Replicated.Replicas}}")
 		echo "Actual replicas: $ACTUAL_REPLICAS"
-		docker service update --replicas=0 ${volumeBackup.application?.appName}
+		docker service update --replicas=0 ${quoteVolumeBackupShellArg(serviceName)}
         ${backupCommand}
 		echo "Starting application to $ACTUAL_REPLICAS replicas"
-        docker service update --replicas=$ACTUAL_REPLICAS --with-registry-auth ${volumeBackup.application?.appName}
+        docker service update --replicas=$ACTUAL_REPLICAS --with-registry-auth ${quoteVolumeBackupShellArg(serviceName)}
 		${uploadCommand}
   `);
 	}
@@ -134,22 +184,37 @@ export const backupVolume = async (
 		);
 		let stopCommand = "";
 		let startCommand = "";
+		const composeAppName = normalizeVolumeBackupServiceName(compose.appName);
+		const composeServiceName = normalizeVolumeBackupServiceName(
+			volumeBackup.serviceName || "",
+		);
+		const stackServiceName = `${composeAppName}_${composeServiceName}`;
+		const quotedStackServiceName = quoteVolumeBackupShellArg(stackServiceName);
 
 		if (compose.composeType === "stack") {
 			stopCommand = `
 			echo "Stopping compose to 0 replicas"
-			echo "Service name: ${compose.appName}_${volumeBackup.serviceName}"
-            ACTUAL_REPLICAS=$(docker service inspect ${compose.appName}_${volumeBackup.serviceName} --format "{{.Spec.Mode.Replicated.Replicas}}")
+			echo "Service name: ${stackServiceName}"
+            ACTUAL_REPLICAS=$(docker service inspect ${quotedStackServiceName} --format "{{.Spec.Mode.Replicated.Replicas}}")
             echo "Actual replicas: $ACTUAL_REPLICAS"
-            docker service update --replicas=0 ${compose.appName}_${volumeBackup.serviceName}`;
+            docker service update --replicas=0 ${quotedStackServiceName}`;
 
 			startCommand = `
 			echo "Starting compose to $ACTUAL_REPLICAS replicas"
-			docker service update --replicas=$ACTUAL_REPLICAS --with-registry-auth ${compose.appName}_${volumeBackup.serviceName}`;
+			docker service update --replicas=$ACTUAL_REPLICAS --with-registry-auth ${quotedStackServiceName}`;
 		} else {
+			const containerLookupCommand = quoteShellArgs([
+				"docker",
+				"ps",
+				"-q",
+				"--filter",
+				`label=com.docker.compose.project=${composeAppName}`,
+				"--filter",
+				`label=com.docker.compose.service=${composeServiceName}`,
+			]);
 			stopCommand = `
 			echo "Stopping compose container"
-            ID=$(docker ps -q --filter "label=com.docker.compose.project=${compose.appName}" --filter "label=com.docker.compose.service=${volumeBackup.serviceName}")
+            ID=$(${containerLookupCommand})
             docker stop $ID`;
 
 			startCommand = `

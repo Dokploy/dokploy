@@ -1,4 +1,3 @@
-import { loadStripe } from "@stripe/stripe-js";
 import clsx from "clsx";
 import {
 	AlertTriangle,
@@ -40,10 +39,6 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-
-const stripePromise = loadStripe(
-	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
-);
 
 /** Precio legacy / Hobby: $4.50/mo primer servidor, $3.50 siguientes; anual $45.90 primero, $35.70 siguientes. */
 export const calculatePrice = (count: number, isAnnual = false) => {
@@ -127,7 +122,6 @@ export const ShowBilling = () => {
 		tier: "legacy" | "hobby" | "startup",
 		productId: string,
 	) => {
-		const stripe = await stripePromise;
 		const serverQuantity =
 			tier === "startup"
 				? startupServerQuantity
@@ -141,16 +135,16 @@ export const ShowBilling = () => {
 				serverQuantity,
 				isAnnual,
 			}).then(async (session) => {
-				await stripe?.redirectToCheckout({
-					sessionId: session.sessionId,
-				});
+				if (session.url) {
+					window.location.href = session.url;
+				}
 			});
 		}
 	};
 
 	const useNewPricing = data?.hobbyProductId && data?.startupProductId;
 	const products = data?.products.filter((product) => {
-		// @ts-ignore
+		// @ts-expect-error
 		const interval = product?.default_price?.recurring?.interval;
 		return isAnnual ? interval === "year" : interval === "month";
 	});

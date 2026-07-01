@@ -1,16 +1,31 @@
-import { Loader2, RefreshCw } from "lucide-react";
-import { useMemo } from "react";
+import { ChevronDown, ChevronRight, Loader2, RefreshCw } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Cell, Label, Pie, PieChart } from "recharts";
 import { Button } from "@/components/ui/button";
 import {
 	type ChartConfig,
 	ChartContainer,
-	ChartLegend,
-	ChartLegendContent,
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/components/ui/chart";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { api } from "@/utils/api";
+import {
+	getDockerDiskUsageChartClassName,
+	getDockerDiskUsageControlsClassName,
+	getDockerDiskUsageHeaderClassName,
+	getDockerDiskUsageLegendClassName,
+	getDockerDiskUsageLegendItemClassName,
+	getDockerDiskUsageLegendTextClassName,
+	getDockerDiskUsageSelectTriggerClassName,
+	getDockerDiskUsageToggleClassName,
+} from "./docker-disk-usage-layout";
 
 const TYPE_TO_KEY: Record<string, string> = {
 	Images: "images",
@@ -18,6 +33,9 @@ const TYPE_TO_KEY: Record<string, string> = {
 	"Local Volumes": "volumes",
 	"Build Cache": "buildCache",
 };
+
+const DETAIL_LIMIT_OPTIONS = ["5", "10", "15", "all"] as const;
+type DetailLimitOption = (typeof DETAIL_LIMIT_OPTIONS)[number];
 
 const chartConfig = {
 	value: {
@@ -48,11 +66,74 @@ const formatSize = (bytes: number): string => {
 	return `${bytes} B`;
 };
 
-export const DockerDiskUsageChart = () => {
+const getChartLabel = (name: string) =>
+	chartConfig[name as keyof typeof chartConfig]?.label ?? name;
+
+const getDetailLimitInput = (value: DetailLimitOption) => {
+	if (value === "all") return null;
+	return Number.parseInt(value, 10) as 5 | 10 | 15;
+};
+
+const getDetailLimitLabel = (value: DetailLimitOption) =>
+	value === "all" ? "All items" : `${value} items`;
+
+const isPathLikeMeta = (label: string) =>
+	label === "Full image id" ||
+	label === "Docker path" ||
+	label === "Mountpoint" ||
+	label === "Digests";
+
+const DetailMeta = ({
+	itemName,
+	detailId,
+	meta,
+}: {
+	detailId: string;
+	itemName: string;
+	meta: { label: string; value: string }[];
+}) => (
+	<div className="mt-2 grid gap-1 text-xs text-muted-foreground">
+		{meta.map((metaItem) => (
+			<div
+				key={`${itemName}-${detailId}-${metaItem.label}`}
+				className="grid gap-1 sm:grid-cols-[7rem_minmax(0,1fr)]"
+			>
+				<span className="shrink-0">{metaItem.label}</span>
+				<span
+					className={
+						isPathLikeMeta(metaItem.label)
+							? "min-w-0 break-all font-mono"
+							: "min-w-0 break-words"
+					}
+					title={metaItem.value}
+				>
+					{metaItem.value}
+				</span>
+			</div>
+		))}
+	</div>
+);
+
+type DockerDiskUsageChartProps = {
+	onDetailsVisibilityChange?: (showDetails: boolean) => void;
+};
+
+export const DockerDiskUsageChart = ({
+	onDetailsVisibilityChange,
+}: DockerDiskUsageChartProps) => {
+	const [showDetails, setShowDetails] = useState(true);
+	const [detailLimit, setDetailLimit] = useState<DetailLimitOption>("10");
 	const { data, isLoading, refetch, isRefetching } =
-		api.settings.getDockerDiskUsage.useQuery(undefined, {
-			refetchOnWindowFocus: false,
-		});
+		api.settings.getDockerDiskUsage.useQuery(
+			{ detailLimit: getDetailLimitInput(detailLimit) },
+			{
+				refetchOnWindowFocus: false,
+			},
+		);
+
+	useEffect(() => {
+		onDetailsVisibilityChange?.(showDetails);
+	}, [onDetailsVisibilityChange, showDetails]);
 
 	const { chartData, totalBytes } = useMemo(() => {
 		const items =
@@ -67,6 +148,7 @@ export const DockerDiskUsageChart = () => {
 						active: item.active,
 						totalCount: item.totalCount,
 						reclaimable: item.reclaimable,
+						details: item.details ?? [],
 						fill: `var(--color-${key})`,
 					};
 				}) ?? [];
@@ -94,25 +176,60 @@ export const DockerDiskUsageChart = () => {
 
 	return (
 		<div className="flex flex-col gap-2 w-full">
-			<div className="flex items-center justify-between">
-				<span className="text-sm text-muted-foreground">
+			<div className={getDockerDiskUsageHeaderClassName(showDetails)}>
+				<span className="whitespace-nowrap text-sm text-muted-foreground">
 					Total: {formatSize(totalBytes)}
 				</span>
-				<Button
-					variant="ghost"
-					size="icon"
-					className="h-7 w-7"
-					onClick={() => refetch()}
-					disabled={isRefetching}
-				>
-					<RefreshCw
-						className={`size-3.5 ${isRefetching ? "animate-spin" : ""}`}
-					/>
-				</Button>
+				<div className={getDockerDiskUsageControlsClassName(showDetails)}>
+					<Select
+						value={detailLimit}
+						onValueChange={(value) =>
+							setDetailLimit(value as DetailLimitOption)
+						}
+					>
+						<SelectTrigger
+							className={getDockerDiskUsageSelectTriggerClassName(showDetails)}
+							aria-label="Docker disk usage detail limit"
+						>
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{DETAIL_LIMIT_OPTIONS.map((option) => (
+								<SelectItem key={option} value={option}>
+									{getDetailLimitLabel(option)}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					<Button
+						variant="ghost"
+						size="icon"
+						className="h-7 w-7"
+						onClick={() => refetch()}
+						disabled={isRefetching}
+					>
+						<RefreshCw
+							className={`size-3.5 ${isRefetching ? "animate-spin" : ""}`}
+						/>
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						className={getDockerDiskUsageToggleClassName(showDetails)}
+						onClick={() => setShowDetails((value) => !value)}
+					>
+						{showDetails ? (
+							<ChevronDown className="mr-2 size-4" />
+						) : (
+							<ChevronRight className="mr-2 size-4" />
+						)}
+						{showDetails ? "Hide details" : "Show details"}
+					</Button>
+				</div>
 			</div>
 			<ChartContainer
 				config={chartConfig}
-				className="mx-auto w-full max-h-[250px] [&_.recharts-pie-label-text]:fill-foreground"
+				className={getDockerDiskUsageChartClassName(showDetails)}
 			>
 				<PieChart>
 					<ChartTooltip
@@ -174,9 +291,109 @@ export const DockerDiskUsageChart = () => {
 							}}
 						/>
 					</Pie>
-					<ChartLegend content={<ChartLegendContent nameKey="name" />} />
 				</PieChart>
 			</ChartContainer>
+			<div className={getDockerDiskUsageLegendClassName(showDetails)}>
+				{chartData.map((item) => (
+					<div
+						key={`legend-${item.name}`}
+						className={getDockerDiskUsageLegendItemClassName(showDetails)}
+					>
+						<span
+							className="size-2.5 shrink-0 rounded-sm"
+							style={{ backgroundColor: item.fill }}
+						/>
+						<span
+							className={getDockerDiskUsageLegendTextClassName(showDetails)}
+						>
+							{getChartLabel(item.name)} - {item.size}
+						</span>
+					</div>
+				))}
+			</div>
+			{showDetails && (
+				<div className="grid gap-3 xl:grid-cols-2">
+					{chartData.map((item) => {
+						const label = getChartLabel(item.name);
+						const details = item.details;
+
+						return (
+							<div key={item.name} className="rounded-md border p-3">
+								<div className="flex items-start justify-between gap-3">
+									<div className="min-w-0">
+										<div className="flex items-center gap-2">
+											<span
+												className="size-2.5 rounded-sm"
+												style={{ backgroundColor: item.fill }}
+											/>
+											<p className="text-sm font-medium">{label}</p>
+										</div>
+										<p className="mt-1 text-xs text-muted-foreground">
+											{item.active} active / {item.totalCount} total
+										</p>
+									</div>
+									<div className="shrink-0 text-right">
+										<p className="text-sm font-medium">{item.size}</p>
+										<p className="text-xs text-muted-foreground">
+											{item.reclaimable} reclaimable
+										</p>
+									</div>
+								</div>
+
+								{details.length > 0 ? (
+									<div className="mt-3 divide-y">
+										{details.map((detail) => (
+											<div
+												key={`${item.name}-${detail.id}`}
+												className="py-2 first:pt-0 last:pb-0"
+											>
+												<div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+													<div className="min-w-0">
+														<p
+															className="break-words text-sm font-medium"
+															title={detail.name}
+														>
+															{detail.name}
+														</p>
+														{detail.subtitle && (
+															<p className="text-xs text-muted-foreground">
+																{detail.subtitle}
+															</p>
+														)}
+														<p
+															className="break-all font-mono text-xs text-muted-foreground"
+															title={detail.id}
+														>
+															{detail.id}
+														</p>
+													</div>
+													<p className="shrink-0 text-sm font-medium">
+														{detail.size}
+													</p>
+												</div>
+												<DetailMeta
+													itemName={item.name}
+													detailId={detail.id}
+													meta={detail.meta}
+												/>
+											</div>
+										))}
+										{item.totalCount > details.length && (
+											<p className="pt-2 text-xs text-muted-foreground">
+												Showing largest {details.length} of {item.totalCount}.
+											</p>
+										)}
+									</div>
+								) : (
+									<p className="mt-3 text-xs text-muted-foreground">
+										No detailed usage entries reported by Docker.
+									</p>
+								)}
+							</div>
+						);
+					})}
+				</div>
+			)}
 		</div>
 	);
 };

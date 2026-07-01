@@ -27,6 +27,19 @@ import {
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 
+const assertLocalForwardAuthOwner = (
+	ctx: { user: { role: string } },
+	serverId: string | null,
+) => {
+	if (!serverId && ctx.user.role !== "owner") {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message:
+				"Only organization owners can manage local forward-auth settings",
+		});
+	}
+};
+
 export const forwardAuthRouter = createTRPCRouter({
 	getAuthDomain: enterpriseProcedure
 		.input(apiForwardAuthServerTarget)
@@ -57,6 +70,7 @@ export const forwardAuthRouter = createTRPCRouter({
 	setAuthDomain: enterpriseProcedure
 		.input(apiSetForwardAuthSettings)
 		.mutation(async ({ ctx, input }) => {
+			assertLocalForwardAuthOwner(ctx, input.serverId);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -86,6 +100,7 @@ export const forwardAuthRouter = createTRPCRouter({
 	removeAuthDomain: enterpriseProcedure
 		.input(apiForwardAuthServerTarget)
 		.mutation(async ({ ctx, input }) => {
+			assertLocalForwardAuthOwner(ctx, input.serverId);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -116,6 +131,7 @@ export const forwardAuthRouter = createTRPCRouter({
 	deployOnServer: enterpriseProcedure
 		.input(apiDeployForwardAuthOnServer)
 		.mutation(async ({ ctx, input }) => {
+			assertLocalForwardAuthOwner(ctx, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -142,6 +158,7 @@ export const forwardAuthRouter = createTRPCRouter({
 	removeOnServer: enterpriseProcedure
 		.input(apiForwardAuthServerTarget)
 		.mutation(async ({ ctx, input }) => {
+			assertLocalForwardAuthOwner(ctx, input.serverId);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {

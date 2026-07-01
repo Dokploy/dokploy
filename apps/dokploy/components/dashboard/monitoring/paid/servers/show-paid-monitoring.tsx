@@ -53,15 +53,10 @@ interface SystemMetrics {
 }
 
 interface Props {
-	BASE_URL?: string;
-	token?: string;
+	serverId?: string;
 }
 
-export const ShowPaidMonitoring = ({
-	BASE_URL = process.env.NEXT_PUBLIC_METRICS_URL ||
-		"http://localhost:3001/metrics",
-	token = process.env.NEXT_PUBLIC_METRICS_TOKEN || "my-token",
-}: Props) => {
+export const ShowPaidMonitoring = ({ serverId }: Props) => {
 	const [historicalData, setHistoricalData] = useState<SystemMetrics[]>([]);
 	const [metrics, setMetrics] = useState<SystemMetrics>({} as SystemMetrics);
 	const [dataPoints, setDataPoints] =
@@ -74,13 +69,12 @@ export const ShowPaidMonitoring = ({
 		error: queryError,
 	} = api.server.getServerMetrics.useQuery(
 		{
-			url: BASE_URL,
-			token,
+			serverId,
 			dataPoints,
 		},
 		{
 			refetchInterval:
-				dataPoints === "all" ? undefined : Number.parseInt(refreshInterval),
+				dataPoints === "all" ? undefined : Number.parseInt(refreshInterval, 10),
 			enabled: true,
 		},
 	);
@@ -109,9 +103,9 @@ export const ShowPaidMonitoring = ({
 			uptime: metric.uptime,
 		}));
 
-		// @ts-ignore
+		// @ts-expect-error
 		setHistoricalData(formattedData);
-		// @ts-ignore
+		// @ts-expect-error
 		setMetrics(formattedData[formattedData.length - 1] || {});
 	}, [data]);
 
@@ -143,7 +137,6 @@ export const ShowPaidMonitoring = ({
 							? queryError.message
 							: "Failed to fetch metrics, Please check your monitoring Instance is Configured correctly."}
 					</p>
-					<p className="text-sm text-muted-foreground">URL: {BASE_URL}</p>
 				</div>
 			</div>
 		);

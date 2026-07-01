@@ -15,6 +15,7 @@ export const gitea = pgTable("gitea", {
 	redirectUri: text("redirect_uri"),
 	clientId: text("client_id"),
 	clientSecret: text("client_secret"),
+	organizationName: text("organization_name"),
 	gitProviderId: text("gitProviderId")
 		.notNull()
 		.references(() => gitProvider.gitProviderId, { onDelete: "cascade" }),

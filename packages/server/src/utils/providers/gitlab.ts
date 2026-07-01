@@ -9,6 +9,72 @@ import {
 import type { InferResultType } from "@dokploy/server/types/with";
 import { TRPCError } from "@trpc/server";
 import type { z } from "zod";
+import { fetchWithPublicEgress } from "../url/network";
+import {
+	buildCreateDirectoryCommand,
+	buildGitCloneCommand,
+	buildProviderEchoCommand,
+	buildRemovePathCommand,
+} from "./commands";
+import { assertGitProviderBaseUrlAllowed } from "./url";
+
+type GitlabProviderBaseUrl = {
+	gitlabInternalUrl?: string | null;
+	gitlabUrl: string;
+};
+
+const getGitlabProviderBaseUrl = (gitlabProvider: GitlabProviderBaseUrl) =>
+	assertGitProviderBaseUrlAllowed(
+		gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl,
+		{ fieldName: "GitLab provider URL" },
+	);
+
+const getGitlabGroupNames = (groupName?: string | null) =>
+	groupName
+		?.split(",")
+		.map((name) => name.trim().toLowerCase())
+		.filter(Boolean);
+
+const isGitlabNamespaceInConfiguredGroup = (
+	pathNamespace: string,
+	groupName?: string | null,
+) => {
+	const normalizedPathNamespace = pathNamespace.toLowerCase();
+	const groupNames = getGitlabGroupNames(groupName);
+
+	return groupNames?.some(
+		(name) =>
+			normalizedPathNamespace === name ||
+			normalizedPathNamespace.startsWith(`${name}/`),
+	);
+};
+
+export const assertGitlabProjectScope = (
+	gitlabProvider: Pick<Gitlab, "groupName">,
+	input: {
+		owner?: string | null;
+		pathNamespace?: string | null;
+		repo?: string | null;
+	},
+) => {
+	const groupNames = getGitlabGroupNames(gitlabProvider.groupName);
+
+	if (!groupNames?.length) {
+		return;
+	}
+
+	const pathNamespace = getGitlabProjectPathNamespace(input);
+
+	if (
+		!pathNamespace ||
+		!isGitlabNamespaceInConfiguredGroup(pathNamespace, gitlabProvider.groupName)
+	) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Repository is outside the configured GitLab group",
+		});
+	}
+};
 
 export const refreshGitlabToken = async (gitlabProviderId: string) => {
 	const gitlabProvider = await findGitlabById(gitlabProviderId);
@@ -23,19 +89,23 @@ export const refreshGitlabToken = async (gitlabProviderId: string) => {
 	}
 
 	// Use internal URL for token refresh when GitLab is on same instance as Dokploy
-	const baseUrl = gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl;
-	const response = await fetch(`${baseUrl}/oauth/token`, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/x-www-form-urlencoded",
+	const baseUrl = await getGitlabProviderBaseUrl(gitlabProvider);
+	const response = await fetchWithPublicEgress(
+		new URL("oauth/token", `${baseUrl}/`),
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			body: new URLSearchParams({
+				grant_type: "refresh_token",
+				refresh_token: gitlabProvider.refreshToken as string,
+				client_id: gitlabProvider.applicationId as string,
+				client_secret: gitlabProvider.secret as string,
+			}),
 		},
-		body: new URLSearchParams({
-			grant_type: "refresh_token",
-			refresh_token: gitlabProvider.refreshToken as string,
-			client_id: gitlabProvider.applicationId as string,
-			client_secret: gitlabProvider.secret as string,
-		}),
-	});
+		{ fieldName: "GitLab provider URL" },
+	);
 
 	if (!response.ok) {
 		throw new Error(`Failed to refresh token: ${response.statusText}`);
@@ -87,17 +157,26 @@ export type GitlabInfo =
 	| ComposeWithGitlab["gitlab"];
 
 const getGitlabRepoClone = (
-	gitlab: GitlabInfo,
+	baseUrl: string,
 	gitlabPathNamespace: string | null,
 ) => {
-	const url = gitlab?.gitlabInternalUrl || gitlab?.gitlabUrl;
-	const repoClone = `${url?.replace(/^https?:\/\//, "")}/${gitlabPathNamespace}.git`;
+	const repoClone = `${baseUrl.replace(/^https?:\/\//, "")}/${gitlabPathNamespace}.git`;
 	return repoClone;
 };
 
-const getGitlabCloneUrl = (gitlab: GitlabInfo, repoClone: string) => {
-	const url = gitlab?.gitlabInternalUrl || gitlab?.gitlabUrl;
-	const isSecure = url?.startsWith("https://");
+const getGitlabProjectPathNamespace = (input: {
+	owner?: string | null;
+	pathNamespace?: string | null;
+	repo?: string | null;
+}) =>
+	input.pathNamespace || [input.owner, input.repo].filter(Boolean).join("/");
+
+const getGitlabCloneUrl = (
+	gitlab: GitlabInfo,
+	baseUrl: string,
+	repoClone: string,
+) => {
+	const isSecure = baseUrl.startsWith("https://");
 	const cloneUrl = `http${isSecure ? "s" : ""}://oauth2:${gitlab?.accessToken}@${repoClone}`;
 	return cloneUrl;
 };
@@ -130,29 +209,42 @@ export const cloneGitlabRepository = async ({
 	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
 
 	if (!gitlabId) {
-		command += `echo "Error: ❌ Gitlab Provider not found"; exit 1;`;
+		command += `${buildProviderEchoCommand("Error: ❌ Gitlab Provider not found")} exit 1;`;
 		return command;
 	}
 
 	await refreshGitlabToken(gitlabId);
 	const gitlab = await findGitlabById(gitlabId);
+	assertGitlabProjectScope(gitlab, { pathNamespace: gitlabPathNamespace });
 
 	const requirements = getErrorCloneRequirements(entity);
 
 	// Check if requirements are met
 	if (requirements.length > 0) {
-		command += `echo "❌ [ERROR] GitLab Repository configuration failed for application: ${appName}"; echo "Reasons:"; echo "${requirements.join("\n")}"; exit 1;`;
+		command += buildProviderEchoCommand(
+			`❌ [ERROR] GitLab Repository configuration failed for application: ${appName}`,
+		);
+		command += buildProviderEchoCommand("Reasons:");
+		command += `${buildProviderEchoCommand(requirements.join("\n"))} exit 1;`;
 		return command;
 	}
 
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
-	command += `rm -rf ${outputPath};`;
-	command += `mkdir -p ${outputPath};`;
-	const repoClone = getGitlabRepoClone(gitlab, gitlabPathNamespace);
-	const cloneUrl = getGitlabCloneUrl(gitlab, repoClone);
-	command += `echo "Cloning Repo ${repoClone} to ${outputPath}: ✅";`;
-	command += `git clone --branch ${gitlabBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	command += buildRemovePathCommand(outputPath);
+	command += buildCreateDirectoryCommand(outputPath);
+	const baseUrl = await getGitlabProviderBaseUrl(gitlab);
+	const repoClone = getGitlabRepoClone(baseUrl, gitlabPathNamespace);
+	const cloneUrl = getGitlabCloneUrl(gitlab, baseUrl, repoClone);
+	command += buildProviderEchoCommand(
+		`Cloning Repo ${repoClone} to ${outputPath}: ✅`,
+	);
+	command += `${buildGitCloneCommand({
+		branch: gitlabBranch!,
+		cloneUrl,
+		enableSubmodules,
+		outputPath,
+	})};`;
 	return command;
 };
 
@@ -169,14 +261,12 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 
 	const filteredRepos = allProjects.filter((repo: any) => {
 		const { full_path, kind } = repo.namespace;
-		const groupName = gitlabProvider.groupName?.toLowerCase();
 
-		if (groupName) {
-			return groupName
-				.split(",")
-				.some((name: string) =>
-					full_path.toLowerCase().startsWith(name.trim().toLowerCase()),
-				);
+		if (gitlabProvider.groupName) {
+			return isGitlabNamespaceInConfiguredGroup(
+				full_path,
+				gitlabProvider.groupName,
+			);
 		}
 		return kind === "user";
 	});
@@ -206,28 +296,45 @@ export const getGitlabBranches = async (input: {
 	gitlabId?: string;
 	owner: string;
 	repo: string;
+	gitlabPathNamespace?: string;
 }) => {
 	if (!input.gitlabId || !input.id || input.id === 0) {
 		return [];
 	}
 
 	const gitlabProvider = await findGitlabById(input.gitlabId);
+	const pathNamespace = getGitlabProjectPathNamespace({
+		pathNamespace: input.gitlabPathNamespace,
+		owner: input.owner,
+		repo: input.repo,
+	});
+	assertGitlabProjectScope(gitlabProvider, {
+		pathNamespace,
+		owner: input.owner,
+		repo: input.repo,
+	});
 
 	const allBranches = [];
 	let page = 1;
 	const perPage = 100; // GitLab's max per page is 100
-	const baseUrl = (
-		gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
-	).replace(/\/+$/, "");
+	const baseUrl = await getGitlabProviderBaseUrl(gitlabProvider);
 
 	while (true) {
-		const branchesResponse = await fetch(
-			`${baseUrl}/api/v4/projects/${input.id}/repository/branches?page=${page}&per_page=${perPage}`,
+		const projectIdentifier =
+			pathNamespace || input.id === undefined
+				? encodeURIComponent(pathNamespace)
+				: String(input.id);
+		const branchesResponse = await fetchWithPublicEgress(
+			new URL(
+				`api/v4/projects/${projectIdentifier}/repository/branches?page=${page}&per_page=${perPage}`,
+				`${baseUrl}/`,
+			),
 			{
 				headers: {
 					Authorization: `Bearer ${gitlabProvider.accessToken}`,
 				},
 			},
+			{ fieldName: "GitLab provider URL" },
 		);
 
 		if (!branchesResponse.ok) {
@@ -247,7 +354,7 @@ export const getGitlabBranches = async (input: {
 
 		// Check if we've reached the total using headers (optional optimization)
 		const total = branchesResponse.headers.get("x-total");
-		if (total && allBranches.length >= Number.parseInt(total)) {
+		if (total && allBranches.length >= Number.parseInt(total, 10)) {
 			break;
 		}
 	}
@@ -280,11 +387,7 @@ export const testGitlabConnection = async (
 		const { full_path, kind } = repo.namespace;
 
 		if (groupName) {
-			return groupName
-				.split(",")
-				.some((name: string) =>
-					full_path.toLowerCase().startsWith(name.trim().toLowerCase()),
-				);
+			return isGitlabNamespaceInConfiguredGroup(full_path, groupName);
 		}
 		return kind === "user";
 	});
@@ -297,18 +400,20 @@ export const validateGitlabProvider = async (gitlabProvider: Gitlab) => {
 		const allProjects = [];
 		let page = 1;
 		const perPage = 100; // GitLab's max per page is 100
-		const baseUrl = (
-			gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
-		).replace(/\/+$/, "");
+		const baseUrl = await getGitlabProviderBaseUrl(gitlabProvider);
 
 		while (true) {
-			const response = await fetch(
-				`${baseUrl}/api/v4/projects?membership=true&page=${page}&per_page=${perPage}`,
+			const response = await fetchWithPublicEgress(
+				new URL(
+					`api/v4/projects?membership=true&page=${page}&per_page=${perPage}`,
+					`${baseUrl}/`,
+				),
 				{
 					headers: {
 						Authorization: `Bearer ${gitlabProvider.accessToken}`,
 					},
 				},
+				{ fieldName: "GitLab provider URL" },
 			);
 
 			if (!response.ok) {
@@ -328,7 +433,7 @@ export const validateGitlabProvider = async (gitlabProvider: Gitlab) => {
 			page++;
 
 			const total = response.headers.get("x-total");
-			if (total && allProjects.length >= Number.parseInt(total)) {
+			if (total && allProjects.length >= Number.parseInt(total, 10)) {
 				break;
 			}
 		}

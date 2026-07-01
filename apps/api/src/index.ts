@@ -1,19 +1,42 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import "dotenv/config";
+import {
+	assertSignedDeploymentCancelJob,
+	assertSignedDeploymentJobsReadRequest,
+	assertSignedDeploymentQueueJob,
+} from "@dokploy/server/utils/deployments/signed-job";
 import { zValidator } from "@hono/zod-validator";
 import { Inngest } from "inngest";
 import { serve as serveInngest } from "inngest/hono";
+import { isValidApiKey } from "./auth.js";
 import { logger } from "./logger.js";
 import {
-	cancelDeploymentSchema,
 	type DeployJob,
-	deployJobSchema,
+	signedCancelDeploymentSchema,
+	signedDeployJobSchema,
+	signedDeploymentJobsReadSchema,
 } from "./schema.js";
 import { fetchDeploymentJobs } from "./service.js";
 import { deploy } from "./utils.js";
 
 const app = new Hono();
+
+const usedDeploymentSignatures = new Map<string, number>();
+
+const consumeDeploymentSignature = (signature: string, expiresAt: number) => {
+	const now = Date.now();
+	for (const [usedSignature, usedExpiresAt] of usedDeploymentSignatures) {
+		if (usedExpiresAt <= now) {
+			usedDeploymentSignatures.delete(usedSignature);
+		}
+	}
+	const existingExpiresAt = usedDeploymentSignatures.get(signature);
+	if (existingExpiresAt && existingExpiresAt > now) {
+		throw new Error("Deployment job scoped claim has already been used");
+	}
+	usedDeploymentSignatures.set(signature, expiresAt);
+};
 
 // Initialize Inngest client
 export const inngest = new Inngest({
@@ -50,7 +73,7 @@ export const deploymentFunction = inngest.createFunction(
 
 			try {
 				const result = await deploy(jobData);
-				logger.info("Deployment finished", result);
+				logger.info({ result }, "Deployment finished");
 
 				// Send success event
 				await inngest.send({
@@ -64,7 +87,7 @@ export const deploymentFunction = inngest.createFunction(
 
 				return result;
 			} catch (error) {
-				logger.error("Deployment failed", { jobData, error });
+				logger.error({ jobData, error }, "Deployment failed");
 
 				// Send failure event
 				await inngest.send({
@@ -89,27 +112,35 @@ app.use(async (c, next) => {
 
 	const authHeader = c.req.header("X-API-Key");
 
-	if (process.env.API_KEY !== authHeader) {
+	if (!isValidApiKey(process.env.API_KEY, authHeader)) {
 		return c.json({ message: "Invalid API Key" }, 403);
 	}
 
 	return next();
 });
 
-app.post("/deploy", zValidator("json", deployJobSchema), async (c) => {
-	const data = c.req.valid("json");
-	logger.info("Received deployment request", data);
+app.post("/deploy", zValidator("json", signedDeployJobSchema), async (c) => {
+	const signedData = c.req.valid("json");
+	const data = await assertSignedDeploymentQueueJob(signedData, {
+		operation: "deploy",
+	});
+	consumeDeploymentSignature(signedData.signature, signedData.scope.expiresAt);
+	logger.info({ data }, "Received deployment request");
 
 	try {
 		// Send event to Inngest instead of adding to Redis queue
 		await inngest.send({
+			id: `deployment:${signedData.signature}`,
 			name: "deployment/requested",
 			data,
 		});
 
-		logger.info("Deployment event sent to Inngest", {
-			serverId: data.serverId,
-		});
+		logger.info(
+			{
+				serverId: data.serverId,
+			},
+			"Deployment event sent to Inngest",
+		);
 
 		return c.json(
 			{
@@ -119,7 +150,7 @@ app.post("/deploy", zValidator("json", deployJobSchema), async (c) => {
 			200,
 		);
 	} catch (error) {
-		logger.error("Failed to send deployment event", error);
+		logger.error({ error }, "Failed to send deployment event");
 		return c.json(
 			{
 				message: "Failed to queue deployment",
@@ -132,15 +163,24 @@ app.post("/deploy", zValidator("json", deployJobSchema), async (c) => {
 
 app.post(
 	"/cancel-deployment",
-	zValidator("json", cancelDeploymentSchema),
+	zValidator("json", signedCancelDeploymentSchema),
 	async (c) => {
-		const data = c.req.valid("json");
-		logger.info("Received cancel deployment request", data);
+		const signedData = c.req.valid("json");
+		const data = await assertSignedDeploymentCancelJob(signedData, {
+			operation: "cancel",
+			requireActiveServer: false,
+		});
+		consumeDeploymentSignature(
+			signedData.signature,
+			signedData.scope.expiresAt,
+		);
+		logger.info({ data }, "Received cancel deployment request");
 
 		try {
 			// Send cancellation event to Inngest
 
 			await inngest.send({
+				id: `deployment-cancel:${signedData.signature}`,
 				name: "deployment/cancelled",
 				data,
 			});
@@ -150,17 +190,20 @@ app.post(
 					? `applicationId: ${data.applicationId}`
 					: `composeId: ${data.composeId}`;
 
-			logger.info("Deployment cancellation event sent", {
-				...data,
-				identifier,
-			});
+			logger.info(
+				{
+					...data,
+					identifier,
+				},
+				"Deployment cancellation event sent",
+			);
 
 			return c.json({
 				message: "Deployment cancellation requested",
 				applicationType: data.applicationType,
 			});
 		} catch (error) {
-			logger.error("Failed to send deployment cancellation event", error);
+			logger.error({ error }, "Failed to send deployment cancellation event");
 			return c.json(
 				{
 					message: "Failed to cancel deployment",
@@ -176,28 +219,33 @@ app.get("/health", async (c) => {
 	return c.json({ status: "ok" });
 });
 
-// List deployment jobs (Inngest runs) for a server - same shape as BullMQ queue for the UI
-app.get("/jobs", async (c) => {
-	const serverId = c.req.query("serverId");
-	if (!serverId) {
-		return c.json({ message: "serverId is required" }, 400);
-	}
+app.post(
+	"/jobs",
+	zValidator("json", signedDeploymentJobsReadSchema),
+	async (c) => {
+		const signedData = c.req.valid("json");
+		const serverId = await assertSignedDeploymentJobsReadRequest(signedData);
+		consumeDeploymentSignature(
+			signedData.signature,
+			signedData.scope.expiresAt,
+		);
 
-	try {
-		const rows = await fetchDeploymentJobs(serverId);
-		return c.json(rows);
-	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
-		if (message.includes("INNGEST_BASE_URL")) {
-			return c.json(
-				{ message: "INNGEST_BASE_URL is required to list deployment jobs" },
-				503,
-			);
+		try {
+			const rows = await fetchDeploymentJobs(serverId);
+			return c.json(rows);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			if (message.includes("INNGEST_BASE_URL")) {
+				return c.json(
+					{ message: "INNGEST_BASE_URL is required to list deployment jobs" },
+					503,
+				);
+			}
+			logger.error({ serverId, error }, "Failed to fetch jobs from Inngest");
+			return c.json([], 200);
 		}
-		logger.error("Failed to fetch jobs from Inngest", { serverId, error });
-		return c.json([], 200);
-	}
-});
+	},
+);
 
 // Serve Inngest functions endpoint
 app.on(
@@ -209,6 +257,6 @@ app.on(
 	}),
 );
 
-const port = Number.parseInt(process.env.PORT || "3000");
-logger.info("Starting Deployments Server with Inngest ✅", port);
+const port = Number.parseInt(process.env.PORT || "3000", 10);
+logger.info({ port }, "Starting Deployments Server with Inngest ✅");
 serve({ fetch: app.fetch, port });

@@ -7,14 +7,14 @@ import { z } from "zod";
 import {
 	createTRPCRouter,
 	enterpriseProcedure,
-	protectedProcedure,
+	withPermission,
 } from "../../trpc";
 import { audit } from "../../utils/audit";
 
 const permissionsSchema = z.record(z.string(), z.array(z.string()));
 
 export const customRoleRouter = createTRPCRouter({
-	all: protectedProcedure.query(async ({ ctx }) => {
+	all: withPermission("member", "read").query(async ({ ctx }) => {
 		const [roles, memberCounts] = await Promise.all([
 			db.query.organizationRole.findMany({
 				where: eq(
@@ -263,7 +263,7 @@ export const customRoleRouter = createTRPCRouter({
 			return { deleted: deleted.length };
 		}),
 
-	membersByRole: protectedProcedure
+	membersByRole: withPermission("member", "read")
 		.input(z.object({ roleName: z.string().min(1) }))
 		.query(async ({ input, ctx }) => {
 			const members = await db
@@ -285,7 +285,7 @@ export const customRoleRouter = createTRPCRouter({
 			return members;
 		}),
 
-	getStatements: protectedProcedure.query(() => {
+	getStatements: withPermission("member", "read").query(() => {
 		return statements;
 	}),
 });

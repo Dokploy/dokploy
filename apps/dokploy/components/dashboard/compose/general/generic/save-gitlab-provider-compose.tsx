@@ -132,6 +132,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 		{
 			owner: repository?.owner,
 			repo: repository?.repo,
+			gitlabPathNamespace: repository?.gitlabPathNamespace,
 			id: repository?.id || 0,
 			gitlabId: gitlabId,
 		},

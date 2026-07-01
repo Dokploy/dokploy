@@ -2,13 +2,13 @@
 // This file contains client-safe utilities for Gitea integration
 
 /**
- * Generates an OAuth URL for Gitea authorization
+ * Generates the Dokploy server-side OAuth authorization URL for Gitea.
  *
- * @param giteaId The ID of the Gitea provider to be used as state
- * @param clientId The OAuth client ID
- * @param giteaUrl The base URL of the Gitea instance
+ * @param giteaId The ID of the Gitea provider.
+ * @param clientId The OAuth client ID. Kept for caller compatibility.
+ * @param giteaUrl The base URL of the Gitea instance. Kept for caller compatibility.
  * @param baseUrl The base URL of the application for callback
- * @returns The complete OAuth authorization URL
+ * @returns The Dokploy authorize URL that creates signed OAuth state server-side.
  */
 export const getGiteaOAuthUrl = (
 	giteaId: string,
@@ -21,12 +21,7 @@ export const getGiteaOAuthUrl = (
 		return "#";
 	}
 
-	const redirectUri = `${baseUrl}/api/providers/gitea/callback`;
-	const scopes = "read:repository read:user read:organization";
-
-	return `${giteaUrl}/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
-		redirectUri,
-	)}&response_type=code&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(giteaId)}`;
+	return `${baseUrl}/api/providers/gitea/authorize?giteaId=${encodeURIComponent(giteaId)}`;
 };
 
 // Interfaces for Gitea API responses and components

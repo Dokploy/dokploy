@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomInt } from "node:crypto";
 import type { Domain } from "@dokploy/server";
 
 export interface Schema {
@@ -42,9 +42,7 @@ export const generatePassword = (quantity = 16): string => {
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 	let password = "";
 	for (let i = 0; i < quantity; i++) {
-		password += characters.charAt(
-			Math.floor(Math.random() * characters.length),
-		);
+		password += characters.charAt(randomInt(characters.length));
 	}
 	return password.toLowerCase();
 };

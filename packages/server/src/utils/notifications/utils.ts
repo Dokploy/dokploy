@@ -14,6 +14,12 @@ import type {
 } from "@dokploy/server/db/schema";
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
+import { fetchWithPublicEgress } from "../url/network";
+import {
+	assertNotificationBaseUrlAllowed,
+	assertNotificationHttpUrlAllowed,
+	resolveNotificationSmtpTarget,
+} from "./security";
 
 export const sendEmailNotification = async (
 	connection: typeof email.$inferInsert,
@@ -30,10 +36,14 @@ export const sendEmailNotification = async (
 			fromAddress,
 			toAddresses,
 		} = connection;
+		const smtpTarget = await resolveNotificationSmtpTarget(smtpServer);
 		const transporter = nodemailer.createTransport({
-			host: smtpServer,
+			host: smtpTarget.host,
 			port: smtpPort,
 			auth: { user: username, pass: password },
+			tls: {
+				servername: smtpTarget.servername,
+			},
 		});
 
 		await transporter.sendMail({
@@ -83,11 +93,22 @@ export const sendDiscordNotification = async (
 	embed: any,
 ) => {
 	try {
-		const response = await fetch(connection.webhookUrl, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ embeds: [embed] }),
-		});
+		const webhookUrl = await assertNotificationHttpUrlAllowed(
+			connection.webhookUrl,
+			{
+				fieldName: "Discord webhook URL",
+			},
+		);
+		const response = await fetchWithPublicEgress(
+			webhookUrl,
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ embeds: [embed] }),
+				redirect: "error",
+			},
+			{ fieldName: "Discord webhook URL" },
+		);
 		if (!response.ok) {
 			throw new Error(
 				`Failed to send discord notification ${response.statusText}`,
@@ -135,11 +156,22 @@ export const sendSlackNotification = async (
 	message: any,
 ) => {
 	try {
-		const response = await fetch(connection.webhookUrl, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(message),
-		});
+		const webhookUrl = await assertNotificationHttpUrlAllowed(
+			connection.webhookUrl,
+			{
+				fieldName: "Slack webhook URL",
+			},
+		);
+		const response = await fetchWithPublicEgress(
+			webhookUrl,
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(message),
+				redirect: "error",
+			},
+			{ fieldName: "Slack webhook URL" },
+		);
 		if (!response.ok) {
 			throw new Error(
 				`Failed to send slack notification ${response.statusText}`,
@@ -158,23 +190,34 @@ export const sendGotifyNotification = async (
 	title: string,
 	message: string,
 ) => {
-	const response = await fetch(`${connection.serverUrl}/message`, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			"X-Gotify-Key": connection.appToken,
+	const serverUrl = await assertNotificationBaseUrlAllowed(
+		connection.serverUrl,
+		{
+			fieldName: "Gotify server URL",
 		},
-		body: JSON.stringify({
-			title: title,
-			message: message,
-			priority: connection.priority,
-			extras: {
-				"client::display": {
-					contentType: "text/plain",
-				},
+	);
+	const response = await fetchWithPublicEgress(
+		new URL("message", `${serverUrl}/`),
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-Gotify-Key": connection.appToken,
 			},
-		}),
-	});
+			body: JSON.stringify({
+				title: title,
+				message: message,
+				priority: connection.priority,
+				extras: {
+					"client::display": {
+						contentType: "text/plain",
+					},
+				},
+			}),
+			redirect: "error",
+		},
+		{ fieldName: "Gotify server URL" },
+	);
 
 	if (!response.ok) {
 		throw new Error(
@@ -190,19 +233,30 @@ export const sendNtfyNotification = async (
 	actions: string,
 	message: string,
 ) => {
-	const response = await fetch(`${connection.serverUrl}/${connection.topic}`, {
-		method: "POST",
-		headers: {
-			...(connection.accessToken && {
-				Authorization: `Bearer ${connection.accessToken}`,
-			}),
-			"X-Priority": connection.priority?.toString() || "3",
-			"X-Title": title,
-			"X-Tags": tags,
-			"X-Actions": actions,
+	const serverUrl = await assertNotificationBaseUrlAllowed(
+		connection.serverUrl,
+		{
+			fieldName: "ntfy server URL",
 		},
-		body: message,
-	});
+	);
+	const response = await fetchWithPublicEgress(
+		`${serverUrl}/${encodeURIComponent(connection.topic)}`,
+		{
+			method: "POST",
+			headers: {
+				...(connection.accessToken && {
+					Authorization: `Bearer ${connection.accessToken}`,
+				}),
+				"X-Priority": connection.priority?.toString() || "3",
+				"X-Title": title,
+				"X-Tags": tags,
+				"X-Actions": actions,
+			},
+			body: message,
+			redirect: "error",
+		},
+		{ fieldName: "ntfy server URL" },
+	);
 
 	if (!response.ok) {
 		throw new Error(`Failed to send ntfy notification: ${response.statusText}`);
@@ -223,11 +277,22 @@ export const sendMattermostNotification = async (
 		}),
 	};
 
-	const response = await fetch(connection.webhookUrl, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(payload),
-	});
+	const webhookUrl = await assertNotificationHttpUrlAllowed(
+		connection.webhookUrl,
+		{
+			fieldName: "Mattermost webhook URL",
+		},
+	);
+	const response = await fetchWithPublicEgress(
+		webhookUrl,
+		{
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(payload),
+			redirect: "error",
+		},
+		{ fieldName: "Mattermost webhook URL" },
+	);
 
 	if (!response.ok) {
 		throw new Error(
@@ -250,11 +315,26 @@ export const sendCustomNotification = async (
 		// Default body with payload
 		const body = JSON.stringify(payload);
 
-		const response = await fetch(connection.endpoint, {
-			method: "POST",
-			headers,
-			body,
-		});
+		const endpoint = await assertNotificationHttpUrlAllowed(
+			connection.endpoint,
+			{
+				allowPrivateNetwork: false,
+				fieldName: "Custom notification endpoint",
+			},
+		);
+		const response = await fetchWithPublicEgress(
+			endpoint,
+			{
+				method: "POST",
+				headers,
+				body,
+				redirect: "error",
+			},
+			{
+				allowPrivateNetwork: false,
+				fieldName: "Custom notification endpoint",
+			},
+		);
 
 		if (!response.ok) {
 			throw new Error(
@@ -274,11 +354,22 @@ export const sendLarkNotification = async (
 	message: any,
 ) => {
 	try {
-		await fetch(connection.webhookUrl, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(message),
-		});
+		const webhookUrl = await assertNotificationHttpUrlAllowed(
+			connection.webhookUrl,
+			{
+				fieldName: "Lark webhook URL",
+			},
+		);
+		await fetchWithPublicEgress(
+			webhookUrl,
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(message),
+				redirect: "error",
+			},
+			{ fieldName: "Lark webhook URL" },
+		);
 	} catch (err) {
 		console.log(err);
 	}
@@ -343,11 +434,22 @@ export const sendTeamsNotification = async (
 			],
 		};
 
-		const response = await fetch(connection.webhookUrl, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(payload),
-		});
+		const webhookUrl = await assertNotificationHttpUrlAllowed(
+			connection.webhookUrl,
+			{
+				fieldName: "Teams webhook URL",
+			},
+		);
+		const response = await fetchWithPublicEgress(
+			webhookUrl,
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(payload),
+				redirect: "error",
+			},
+			{ fieldName: "Teams webhook URL" },
+		);
 
 		if (!response.ok) {
 			throw new Error(

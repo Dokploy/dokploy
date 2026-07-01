@@ -31,6 +31,8 @@ import {
 import {
 	APP_NAME_MESSAGE,
 	APP_NAME_REGEX,
+	DATABASE_IDENTIFIER_MESSAGE,
+	DATABASE_IDENTIFIER_REGEX,
 	DATABASE_PASSWORD_MESSAGE,
 	DATABASE_PASSWORD_REGEX,
 	generateAppName,
@@ -113,7 +115,10 @@ const createSchema = createInsertSchema(mariadb, {
 		.optional(),
 	createdAt: z.string(),
 	databaseName: z.string().min(1),
-	databaseUser: z.string().min(1),
+	databaseUser: z
+		.string()
+		.min(1)
+		.regex(DATABASE_IDENTIFIER_REGEX, DATABASE_IDENTIFIER_MESSAGE),
 	databasePassword: z.string().regex(DATABASE_PASSWORD_REGEX, {
 		message: DATABASE_PASSWORD_MESSAGE,
 	}),
@@ -127,15 +132,15 @@ const createSchema = createInsertSchema(mariadb, {
 	command: z.string().optional(),
 	args: z.array(z.string()).optional(),
 	env: z.string().optional(),
-	memoryReservation: z.string().optional(),
-	memoryLimit: z.string().optional(),
-	cpuReservation: z.string().optional(),
-	cpuLimit: z.string().optional(),
+	memoryReservation: z.string().nullable().optional(),
+	memoryLimit: z.string().nullable().optional(),
+	cpuReservation: z.string().nullable().optional(),
+	cpuLimit: z.string().nullable().optional(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
-	externalPort: z.number(),
-	description: z.string().optional(),
-	serverId: z.string().optional(),
+	externalPort: z.number().nullable().optional(),
+	description: z.string().nullable().optional(),
+	serverId: z.string().nullable().optional(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
 	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
 	placementSwarm: PlacementSwarmSchema.nullable(),
@@ -206,7 +211,7 @@ export const apiUpdateMariaDB = createSchema
 		mariadbId: z.string().min(1),
 		dockerImage: z.string().optional(),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true, environmentId: true });
 
 export const apiRebuildMariadb = createSchema
 	.pick({

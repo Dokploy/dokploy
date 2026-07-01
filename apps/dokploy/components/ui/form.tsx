@@ -1,4 +1,4 @@
-import { Label as LabelPrimitive, Slot } from "radix-ui";
+import { type Label as LabelPrimitive, Slot } from "radix-ui";
 import * as React from "react";
 import {
 	Controller,
@@ -164,12 +164,12 @@ const FormMessage = React.forwardRef<
 FormMessage.displayName = "FormMessage";
 
 export {
-	useFormField,
 	Form,
-	FormItem,
-	FormLabel,
 	FormControl,
 	FormDescription,
-	FormMessage,
 	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+	useFormField,
 };

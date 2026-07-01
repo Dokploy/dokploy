@@ -38,6 +38,8 @@ import {
 import {
 	APP_NAME_MESSAGE,
 	APP_NAME_REGEX,
+	DATABASE_IDENTIFIER_MESSAGE,
+	DATABASE_IDENTIFIER_REGEX,
 	DATABASE_PASSWORD_MESSAGE,
 	DATABASE_PASSWORD_REGEX,
 	generateAppName,
@@ -119,21 +121,24 @@ const createSchema = createInsertSchema(mongo, {
 	databasePassword: z.string().regex(DATABASE_PASSWORD_REGEX, {
 		message: DATABASE_PASSWORD_MESSAGE,
 	}),
-	databaseUser: z.string().min(1),
+	databaseUser: z
+		.string()
+		.min(1)
+		.regex(DATABASE_IDENTIFIER_REGEX, DATABASE_IDENTIFIER_MESSAGE),
 	dockerImage: z.string().default("mongo:15"),
 	command: z.string().optional(),
 	args: z.array(z.string()).optional(),
 	env: z.string().optional(),
-	memoryReservation: z.string().optional(),
-	memoryLimit: z.string().optional(),
-	cpuReservation: z.string().optional(),
-	cpuLimit: z.string().optional(),
+	memoryReservation: z.string().nullable().optional(),
+	memoryLimit: z.string().nullable().optional(),
+	cpuReservation: z.string().nullable().optional(),
+	cpuLimit: z.string().nullable().optional(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
-	externalPort: z.number(),
-	description: z.string().optional(),
-	serverId: z.string().optional(),
-	replicaSets: z.boolean().default(false),
+	externalPort: z.number().nullable().optional(),
+	description: z.string().nullable().optional(),
+	serverId: z.string().nullable().optional(),
+	replicaSets: z.boolean().nullable().default(false),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
 	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
 	placementSwarm: PlacementSwarmSchema.nullable(),
@@ -196,7 +201,7 @@ export const apiUpdateMongo = createSchema
 		mongoId: z.string().min(1),
 		dockerImage: z.string().optional(),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true, environmentId: true });
 
 export const apiResetMongo = createSchema
 	.pick({

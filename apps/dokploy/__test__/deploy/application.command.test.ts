@@ -16,6 +16,7 @@ vi.mock("@dokploy/server/db", () => {
 			returning: vi.fn().mockResolvedValue([{}] as any),
 			from: vi.fn(() => chain),
 			innerJoin: vi.fn(() => chain),
+			// biome-ignore lint/suspicious/noThenProperty: Drizzle query mocks intentionally emulate thenable chains.
 			then: (resolve: (v: any) => void) => {
 				resolve([]);
 			},
@@ -187,7 +188,7 @@ describe("deployApplication - Command Generation Tests", () => {
 		expect(command).not.toContain("--recurse-submodules");
 		expect(command).toContain("--branch main");
 		expect(command).toContain("--depth 1");
-		expect(command).toContain("git clone");
+		expect(command).toContain("git -c http.followRedirects\\=false clone");
 	});
 
 	it("should generate git clone with submodules when enabled", async () => {
@@ -265,7 +266,7 @@ describe("deployApplication - Command Generation Tests", () => {
 
 		const fullCommand = execCalls[0]?.[0];
 		expect(fullCommand).toContain("set -e");
-		expect(fullCommand).toContain("git clone");
+		expect(fullCommand).toContain("git -c http.followRedirects\\=false clone");
 		expect(fullCommand).toContain("nixpacks build");
 	});
 

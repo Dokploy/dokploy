@@ -7,6 +7,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates";
 import { buildLibsql } from "@dokploy/server/utils/databases/libsql";
+import { buildDockerPullCommand } from "@dokploy/server/utils/docker/commands";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
@@ -140,7 +141,7 @@ export const deployLibsql = async (
 		if (libsql.serverId) {
 			await execAsyncRemote(
 				libsql.serverId,
-				`docker pull ${libsql.dockerImage}`,
+				buildDockerPullCommand(libsql.dockerImage),
 				onData,
 			);
 		} else {

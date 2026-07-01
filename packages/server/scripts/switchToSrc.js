@@ -27,8 +27,16 @@ pkg.exports = {
 		import: "./src/constants/index.ts",
 		require: "./dist/constants.cjs.js",
 	},
+	"./utils/schedules/signed-job": {
+		import: "./src/utils/schedules/signed-job.ts",
+		require: "./dist/utils/schedules/signed-job.js",
+	},
+	"./utils/deployments/signed-job": {
+		import: "./src/utils/deployments/signed-job.ts",
+		require: "./dist/utils/deployments/signed-job.js",
+	},
 };
 
 // Guardar los cambios en package.json
-fs.writeFileSync(packagePath, JSON.stringify(pkg, null, 2));
+fs.writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
 console.log("Switched exports to use src for development");

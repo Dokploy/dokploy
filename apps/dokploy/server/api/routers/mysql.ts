@@ -6,9 +6,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 	findBackupsByDbId,
-	findEnvironmentById,
 	findMySqlById,
-	findProjectById,
 	getAccessibleServerIds,
 	getContainerLogs,
 	getServiceContainerCommand,
@@ -30,11 +28,14 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import { redactDatabaseServiceSecrets } from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { buildMysqlPasswordChangeCommand } from "@/server/api/utils/database-password";
+import { assertTargetEnvironmentAccess } from "@/server/api/utils/placement-access";
 import {
 	apiChangeMySqlStatus,
 	apiCreateMySql,
@@ -58,8 +59,11 @@ export const mysqlRouter = createTRPCRouter({
 		.input(apiCreateMySql)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const environment = await findEnvironmentById(input.environmentId);
-				const project = await findProjectById(environment.projectId);
+				const environment = await assertTargetEnvironmentAccess(
+					ctx,
+					input.environmentId,
+				);
+				const project = environment.project;
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
@@ -110,7 +114,7 @@ export const mysqlRouter = createTRPCRouter({
 					resourceId: newMysql.mysqlId,
 					resourceName: newMysql.appName,
 				});
-				return newMysql;
+				return redactDatabaseServiceSecrets(newMysql);
 			} catch (error) {
 				if (error instanceof TRPCError) {
 					throw error;
@@ -136,7 +140,7 @@ export const mysqlRouter = createTRPCRouter({
 					message: "You are not authorized to access this MySQL",
 				});
 			}
-			return mysql;
+			return redactDatabaseServiceSecrets(mysql);
 		}),
 
 	start: protectedProcedure
@@ -162,7 +166,7 @@ export const mysqlRouter = createTRPCRouter({
 				resourceId: service.mysqlId,
 				resourceName: service.appName,
 			});
-			return service;
+			return redactDatabaseServiceSecrets(service);
 		}),
 	stop: protectedProcedure
 		.input(apiFindOneMySql)
@@ -186,7 +190,7 @@ export const mysqlRouter = createTRPCRouter({
 				resourceId: mongo.mysqlId,
 				resourceName: mongo.appName,
 			});
-			return mongo;
+			return redactDatabaseServiceSecrets(mongo);
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMySql)
@@ -219,7 +223,7 @@ export const mysqlRouter = createTRPCRouter({
 				resourceId: mysql.mysqlId,
 				resourceName: mysql.appName,
 			});
-			return mysql;
+			return redactDatabaseServiceSecrets(mysql);
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployMySql)
@@ -234,7 +238,8 @@ export const mysqlRouter = createTRPCRouter({
 				resourceId: mysql.mysqlId,
 				resourceName: mysql.appName,
 			});
-			return deployMySql(input.mysqlId);
+			const deployedMysql = await deployMySql(input.mysqlId);
+			return redactDatabaseServiceSecrets(deployedMysql);
 		}),
 	deployWithLogs: protectedProcedure
 		.meta({
@@ -290,7 +295,7 @@ export const mysqlRouter = createTRPCRouter({
 				resourceId: mongo.mysqlId,
 				resourceName: mongo.appName,
 			});
-			return mongo;
+			return redactDatabaseServiceSecrets(mongo);
 		}),
 	reload: protectedProcedure
 		.input(apiResetMysql)
@@ -357,7 +362,7 @@ export const mysqlRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
-			return mongo;
+			return redactDatabaseServiceSecrets(mongo);
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesMySql)
@@ -431,14 +436,20 @@ export const mysqlRouter = createTRPCRouter({
 			const containerCmd = getServiceContainerCommand(appName);
 			const targetUser = type === "root" ? "root" : databaseUser;
 
+			const passwordChangeCommand = buildMysqlPasswordChangeCommand({
+				client: "mysql",
+				databaseRootPassword,
+				targetUser,
+				password,
+			});
 			const command = `
-				CONTAINER_ID=$(${containerCmd})
-				if [ -z "$CONTAINER_ID" ]; then
-					echo "No running container found for ${appName}" >&2
-					exit 1
-				fi
-				docker exec "$CONTAINER_ID" mysql -u root -p'${databaseRootPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"
-			`;
+					CONTAINER_ID=$(${containerCmd})
+					if [ -z "$CONTAINER_ID" ]; then
+						echo "No running container found for ${appName}" >&2
+						exit 1
+					fi
+					${passwordChangeCommand}
+				`;
 
 			await db.transaction(async (tx) => {
 				const setData =
@@ -477,6 +488,7 @@ export const mysqlRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
 				service: ["create"],
 			});
+			await assertTargetEnvironmentAccess(ctx, input.targetEnvironmentId);
 
 			const updatedMysql = await db
 				.update(mysqlTable)
@@ -500,7 +512,7 @@ export const mysqlRouter = createTRPCRouter({
 				resourceId: updatedMysql.mysqlId,
 				resourceName: updatedMysql.appName,
 			});
-			return updatedMysql;
+			return redactDatabaseServiceSecrets(updatedMysql);
 		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildMysql)

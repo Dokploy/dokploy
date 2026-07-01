@@ -11,7 +11,16 @@ import { startLogCleanup } from "../access-log/handler";
 import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path, scheduleBackup } from "./utils";
+import { quoteShellArgument } from "../shell";
+import {
+	assertRcloneS3DestinationAllowed,
+	buildRcloneS3Command,
+	buildRcloneS3DeleteXargsCommand,
+	getRcloneS3Destination,
+	normalizeS3Path,
+	scheduleBackup,
+	shouldRunBackupRetention,
+} from "./utils";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
@@ -129,23 +138,39 @@ export const keepLatestNBackups = async (
 ) => {
 	// 0 also immediately returns which is good as the empty "keep latest" field in the UI
 	// is saved as 0 in the database
-	if (!backup.keepLatestCount) return;
+	if (!shouldRunBackupRetention(backup.keepLatestCount)) {
+		return;
+	}
 
 	try {
-		const destination = await findDestinationById(backup.destinationId);
-		const rcloneFlags = getS3Credentials(destination);
+		const destination = await assertRcloneS3DestinationAllowed(
+			await findDestinationById(backup.destinationId),
+		);
 		const appName = getServiceAppName(backup);
-		const backupFilesPath = `:s3:${destination.bucket}/${appName}/${normalizeS3Path(backup.prefix)}`;
+		const backupFilesPath = getRcloneS3Destination(
+			destination,
+			`${appName}/${normalizeS3Path(backup.prefix)}`,
+		);
+		const includePattern = `*${
+			backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"
+		}`;
 
 		// --include "*.bson.gz" or "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
-		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" ${backupFilesPath}`;
+		const rcloneList = buildRcloneS3Command("lsf", destination, [
+			"--include",
+			includePattern,
+			backupFilesPath,
+		]);
 		// when we pipe the above command with this one, we only get the list of files we want to delete
 		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
 		// this command deletes the files
-		// to test the deletion before actually deleting we can add --dry-run before ${backupFilesPath}{}
-		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
+		// the object name from xargs is passed as $1, not interpolated into shell code
+		const rcloneDelete = buildRcloneS3DeleteXargsCommand(
+			destination,
+			backupFilesPath,
+		);
 
-		const rcloneCommand = `${rcloneList} | ${sortAndPickUnwantedBackups} ${rcloneDelete}`;
+		const rcloneCommand = `${rcloneList} | ${sortAndPickUnwantedBackups} sh -c ${quoteShellArgument(rcloneDelete)} _ {}`;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, rcloneCommand);

@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 	"strconv"
 	"time"
 
@@ -19,12 +18,10 @@ import (
 func main() {
 	godotenv.Load()
 
-	// Get configuration
 	cfg := config.GetMetricsConfig()
 	token := cfg.Server.Token
 	METRICS_URL_CALLBACK := cfg.Server.UrlCallback
-	log.Printf("Environment variables:")
-	log.Printf("METRICS_CONFIG: %s", os.Getenv("METRICS_CONFIG"))
+	log.Printf("METRICS_CONFIG: loaded")
 
 	if token == "" || METRICS_URL_CALLBACK == "" {
 		log.Fatal("token and urlCallback are required in the configuration")

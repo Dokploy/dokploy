@@ -10,6 +10,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { domainHostSchema } from "../validations/domain";
 import { certificateType } from "./shared";
 
 export const webServerSettings = pgTable("webServerSettings", {
@@ -179,7 +180,7 @@ export const apiUpdateWebServerBuildsConcurrency = z.object({
 
 export const apiAssignDomain = z
 	.object({
-		host: z.string(),
+		host: domainHostSchema,
 		certificateType: z.enum(["letsencrypt", "none", "custom"]),
 		letsEncryptEmail: z
 			.union([z.string().email(), z.literal("")])

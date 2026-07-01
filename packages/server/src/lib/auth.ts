@@ -4,17 +4,14 @@ import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
-import {
-	getTrustedOrigins,
-	getTrustedProviders,
-	getUserByToken,
-} from "../services/admin";
+import { getTrustedOrigins, getUserByToken } from "../services/admin";
+import { checkPermission } from "../services/permission";
 import { createAuditLog } from "../services/proprietary/audit-log";
 import {
 	getWebServerSettings,
@@ -28,6 +25,163 @@ import {
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 import { betterAuthSecret } from "./auth-secret";
+
+export const isEmailPasswordSignInPath = (path: string | undefined) =>
+	path === "/sign-in/email" || path?.endsWith("/sign-in/email");
+
+export const shouldBlockEmailPasswordSignIn = async (
+	path: string | undefined,
+) => {
+	if (IS_CLOUD || !isEmailPasswordSignInPath(path)) {
+		return false;
+	}
+
+	const settings = await getWebServerSettings();
+	return settings?.enforceSSO === true;
+};
+
+const isSsoRegisterTrustedOriginsRequest = (request: Request | undefined) => {
+	if (!request) return false;
+	try {
+		return new URL(request.url).pathname.endsWith("/sso/register");
+	} catch {
+		return false;
+	}
+};
+
+const isProductionBuild = () =>
+	process.env.NEXT_PHASE === "phase-production-build" ||
+	(process.env.npm_lifecycle_event === "build-next" &&
+		process.env.npm_lifecycle_script?.includes("next build"));
+
+export const resolveTrustedOriginsForAuthRequest = async (
+	request?: Request,
+) => {
+	if (isProductionBuild()) {
+		return [];
+	}
+
+	try {
+		const tenantTrustedOrigins = isSsoRegisterTrustedOriginsRequest(request)
+			? await getTrustedOrigins()
+			: [];
+
+		if (IS_CLOUD) {
+			return tenantTrustedOrigins;
+		}
+
+		const settings = await getWebServerSettings();
+		if (!settings) return tenantTrustedOrigins;
+		const devOrigins =
+			process.env.NODE_ENV === "development"
+				? [
+						"http://localhost:3000",
+						"https://absolutely-handy-falcon.ngrok-free.app",
+					]
+				: [];
+		return [
+			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
+			...(settings?.host ? [`https://${settings?.host}`] : []),
+			...devOrigins,
+			...tenantTrustedOrigins,
+		];
+	} catch (error) {
+		console.error("Failed to resolve trusted origins:", error);
+		return [];
+	}
+};
+
+export const canProvisionSsoMembershipForEmail = (
+	email: string | undefined,
+	provider: {
+		domain?: string | null;
+		domainVerified?: boolean | null;
+		organizationId?: string | null;
+	},
+): provider is {
+	domain: string;
+	domainVerified: true;
+	organizationId: string;
+} => {
+	const emailDomain = email?.split("@")[1]?.trim().toLowerCase();
+	if (
+		!emailDomain ||
+		!provider.organizationId ||
+		provider.domainVerified !== true ||
+		!provider.domain
+	) {
+		return false;
+	}
+
+	return provider.domain
+		.split(",")
+		.map((domain) => domain.trim().toLowerCase())
+		.filter(Boolean)
+		.some(
+			(domain) => emailDomain === domain || emailDomain.endsWith(`.${domain}`),
+		);
+};
+
+type SsoMembershipProvider = {
+	domain?: string | null;
+	domainVerified?: boolean | null;
+	organizationId?: string | null;
+	providerId?: string | null;
+};
+
+type SsoCreatedUser = {
+	id: string;
+	email?: string;
+};
+
+export const resolveSsoOrganizationProvisioningRole = async ({
+	user,
+	provider,
+}: {
+	user: SsoCreatedUser;
+	userInfo?: Record<string, unknown>;
+	provider: SsoMembershipProvider;
+	token?: unknown;
+}): Promise<"member"> => {
+	if (!canProvisionSsoMembershipForEmail(user.email, provider)) {
+		throw new APIError("UNAUTHORIZED", {
+			message: "SSO email domain is not allowed for this provider",
+		});
+	}
+	return "member";
+};
+
+export const provisionSsoMembershipForCreatedUser = async (
+	user: SsoCreatedUser,
+	providerId: string | undefined,
+) => {
+	if (!providerId) {
+		throw new APIError("BAD_REQUEST", {
+			message: "Provider ID is required",
+		});
+	}
+	const provider = await db.query.ssoProvider.findFirst({
+		where: eq(schema.ssoProvider.providerId, providerId),
+	});
+
+	if (!provider) {
+		throw new APIError("BAD_REQUEST", {
+			message: "Provider not found",
+		});
+	}
+	if (!canProvisionSsoMembershipForEmail(user.email, provider)) {
+		throw new APIError("UNAUTHORIZED", {
+			message: "SSO email domain is not allowed for this provider",
+		});
+	}
+	await db.insert(schema.member).values({
+		userId: user.id,
+		organizationId: provider.organizationId,
+		role: "member",
+		createdAt: new Date(),
+		isDefault: true,
+	});
+};
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -59,11 +213,8 @@ const { handler, api } = betterAuth({
 	account: {
 		accountLinking: {
 			enabled: true,
-			async trustedProviders() {
-				const fromDb = await getTrustedProviders();
-				return ["github", "google", ...fromDb];
-			},
-			allowDifferentEmails: true,
+			trustedProviders: ["github", "google"],
+			allowDifferentEmails: false,
 		},
 	},
 	appName: "Dokploy",
@@ -80,33 +231,18 @@ const { handler, api } = betterAuth({
 	logger: {
 		disabled: process.env.NODE_ENV === "production",
 	},
-	async trustedOrigins() {
-		try {
-			if (IS_CLOUD) {
-				return await getTrustedOrigins();
+	hooks: {
+		before: createAuthMiddleware(async (ctx) => {
+			if (await shouldBlockEmailPasswordSignIn(ctx.path)) {
+				throw new APIError("FORBIDDEN", {
+					message:
+						"Email and password sign-in is disabled while SSO is enforced",
+				});
 			}
-			const [trustedOrigins, settings] = await Promise.all([
-				getTrustedOrigins(),
-				getWebServerSettings(),
-			]);
-			if (!settings) return [];
-			const devOrigins =
-				process.env.NODE_ENV === "development"
-					? [
-							"http://localhost:3000",
-							"https://absolutely-handy-falcon.ngrok-free.app",
-						]
-					: [];
-			return [
-				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
-				...(settings?.host ? [`https://${settings?.host}`] : []),
-				...devOrigins,
-				...trustedOrigins,
-			];
-		} catch (error) {
-			console.error("Failed to resolve trusted origins:", error);
-			return [];
-		}
+		}),
+	},
+	async trustedOrigins(request) {
+		return resolveTrustedOriginsForAuthRequest(request);
 	},
 	emailVerification: {
 		sendOnSignUp: true,
@@ -253,27 +389,7 @@ const { handler, api } = betterAuth({
 						});
 					} else if (isSSORequest) {
 						const providerId = context?.params?.providerId;
-						if (!providerId) {
-							throw new APIError("BAD_REQUEST", {
-								message: "Provider ID is required",
-							});
-						}
-						const provider = await db.query.ssoProvider.findFirst({
-							where: eq(schema.ssoProvider.providerId, providerId),
-						});
-
-						if (!provider) {
-							throw new APIError("BAD_REQUEST", {
-								message: "Provider not found",
-							});
-						}
-						await db.insert(schema.member).values({
-							userId: user.id,
-							organizationId: provider?.organizationId || "",
-							role: "member",
-							createdAt: new Date(),
-							isDefault: true,
-						});
+						await provisionSsoMembershipForCreatedUser(user, providerId);
 					}
 				},
 			},
@@ -398,7 +514,14 @@ const { handler, api } = betterAuth({
 			enableMetadata: true,
 			references: "user",
 		}),
-		sso(),
+		sso({
+			domainVerification: {
+				enabled: true,
+			},
+			organizationProvisioning: {
+				getRole: resolveSsoOrganizationProvisioningRole,
+			},
+		}),
 		twoFactor(),
 		organization({
 			ac,
@@ -489,6 +612,21 @@ export const validateRequest = async (request: IncomingMessage) => {
 				},
 			});
 
+			if (!member) {
+				return {
+					session: null,
+					user: null,
+				};
+			}
+
+			await checkPermission(
+				{
+					user: { id: apiKeyRecord.user.id },
+					session: { activeOrganizationId: organizationId },
+				},
+				{ api: ["read"] },
+			);
+
 			// When accessing from DB, use actual column names
 			const userFromDb = apiKeyRecord.user as typeof apiKeyRecord.user & {
 				firstName: string;
@@ -509,8 +647,8 @@ export const validateRequest = async (request: IncomingMessage) => {
 					createdAt: userFromDb.createdAt,
 					updatedAt: userFromDb.updatedAt,
 					twoFactorEnabled: userFromDb.twoFactorEnabled,
-					role: member?.role || "member",
-					ownerId: member?.organization.ownerId || apiKeyRecord.user.id,
+					role: member.role,
+					ownerId: member.organization.ownerId,
 					enableEnterpriseFeatures: userFromDb.enableEnterpriseFeatures,
 					isValidEnterpriseLicense: userFromDb.isValidEnterpriseLicense,
 				},

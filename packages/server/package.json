@@ -16,6 +16,14 @@
     "./constants": {
       "import": "./src/constants/index.ts",
       "require": "./dist/constants.cjs.js"
+    },
+    "./utils/schedules/signed-job": {
+      "import": "./src/utils/schedules/signed-job.ts",
+      "require": "./dist/utils/schedules/signed-job.js"
+    },
+    "./utils/deployments/signed-job": {
+      "import": "./src/utils/deployments/signed-job.ts",
+      "require": "./dist/utils/deployments/signed-job.js"
     }
   },
   "scripts": {
@@ -82,6 +90,7 @@
     "slugify": "^1.6.6",
     "ssh2": "~1.16.0",
     "toml": "3.0.0",
+    "undici": "^8.5.0",
     "ws": "8.16.0",
     "yaml": "2.8.1",
     "zod": "^4.3.6"

@@ -3,11 +3,19 @@ import {
 	execAsyncRemote,
 	execFileAsync,
 	findRegistryById,
+	getAccessibleServerIds,
 	IS_CLOUD,
 	removeRegistry,
+	safeDockerLoginCommand,
 	updateRegistry,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { checkPermission } from "@dokploy/server/services/permission";
+import {
+	isRedactedSecretValue,
+	redactSecretFields,
+	redactSecretFieldsList,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { audit } from "@/server/api/utils/audit";
@@ -21,10 +29,77 @@ import {
 	registry,
 } from "@/server/db/schema";
 import { createTRPCRouter, withPermission } from "../trpc";
+
+const assertRegistryServerAccess = async (
+	ctx: {
+		session: {
+			userId: string;
+			activeOrganizationId: string;
+		};
+	},
+	serverId?: string,
+) => {
+	if (!serverId || serverId === "none") {
+		return;
+	}
+
+	const accessibleIds = await getAccessibleServerIds(ctx.session);
+	if (!accessibleIds.has(serverId)) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this server",
+		});
+	}
+};
+
+const assertCloudRegistryTestServer = (serverId?: string) => {
+	if (IS_CLOUD && (!serverId || serverId === "none")) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Select a server to test the registry",
+		});
+	}
+};
+
+const isRemoteRegistryTestServer = (serverId?: string) =>
+	Boolean(serverId && serverId !== "none");
+
+const assertStoredRegistryRemoteTestAccess = async (
+	ctx: {
+		user: { id: string };
+		session: {
+			userId: string;
+			activeOrganizationId: string;
+		};
+	},
+	serverId?: string,
+) => {
+	assertCloudRegistryTestServer(serverId);
+	await assertRegistryServerAccess(ctx, serverId);
+
+	if (isRemoteRegistryTestServer(serverId)) {
+		await checkPermission(ctx, { server: ["execute"] });
+	}
+};
+
+const sanitizeRegistryTestError = (
+	error: unknown,
+	password: string | null | undefined,
+) => {
+	const message =
+		error instanceof Error ? error.message : "Error testing the registry";
+	if (!password) {
+		return message;
+	}
+	return message.split(password).join("***");
+};
+
 export const registryRouter = createTRPCRouter({
 	create: withPermission("registry", "create")
 		.input(apiCreateRegistry)
 		.mutation(async ({ ctx, input }) => {
+			assertCloudRegistryTestServer(input.serverId);
+			await assertRegistryServerAccess(ctx, input.serverId);
 			const reg = await createRegistry(input, ctx.session.activeOrganizationId);
 			await audit(ctx, {
 				action: "create",
@@ -32,7 +107,7 @@ export const registryRouter = createTRPCRouter({
 				resourceId: reg.registryId,
 				resourceName: reg.registryName,
 			});
-			return reg;
+			return redactSecretFields(reg, ["password"]);
 		}),
 	remove: withPermission("registry", "delete")
 		.input(apiRemoveRegistry)
@@ -50,9 +125,11 @@ export const registryRouter = createTRPCRouter({
 				resourceId: registry.registryId,
 				resourceName: registry.registryName,
 			});
-			return await removeRegistry(input.registryId);
+			return redactSecretFields(await removeRegistry(input.registryId), [
+				"password",
+			]);
 		}),
-	update: withPermission("registry", "create")
+	update: withPermission("registry", "update")
 		.input(apiUpdateRegistry)
 		.mutation(async ({ input, ctx }) => {
 			const { registryId, ...rest } = input;
@@ -63,8 +140,14 @@ export const registryRouter = createTRPCRouter({
 					message: "You are not allowed to update this registry",
 				});
 			}
+			assertCloudRegistryTestServer(rest.serverId);
+			await assertRegistryServerAccess(ctx, rest.serverId);
+			const updateData = { ...rest };
+			if (isRedactedSecretValue(updateData.password)) {
+				delete updateData.password;
+			}
 			const application = await updateRegistry(registryId, {
-				...rest,
+				...updateData,
 			});
 
 			if (!application) {
@@ -86,7 +169,7 @@ export const registryRouter = createTRPCRouter({
 		const registryResponse = await db.query.registry.findMany({
 			where: eq(registry.organizationId, ctx.session.activeOrganizationId),
 		});
-		return registryResponse;
+		return redactSecretFieldsList(registryResponse, ["password"]);
 	}),
 	one: withPermission("registry", "read")
 		.input(apiFindOneRegistry)
@@ -98,11 +181,11 @@ export const registryRouter = createTRPCRouter({
 					message: "You are not allowed to access this registry",
 				});
 			}
-			return registry;
+			return redactSecretFields(registry, ["password"]);
 		}),
 	testRegistry: withPermission("registry", "read")
 		.input(apiTestRegistry)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const args = [
 					"login",
@@ -112,17 +195,17 @@ export const registryRouter = createTRPCRouter({
 					"--password-stdin",
 				];
 
-				if (IS_CLOUD && !input.serverId) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Select a server to test the registry",
-					});
-				}
+				assertCloudRegistryTestServer(input.serverId);
+				await assertRegistryServerAccess(ctx, input.serverId);
 
 				if (input.serverId && input.serverId !== "none") {
 					await execAsyncRemote(
 						input.serverId,
-						`echo ${input.password} | docker ${args.join(" ")}`,
+						safeDockerLoginCommand(
+							input.registryUrl,
+							input.username,
+							input.password,
+						),
 					);
 				} else {
 					await execFileAsync("docker", args, {
@@ -132,20 +215,23 @@ export const registryRouter = createTRPCRouter({
 
 				return true;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message:
-						error instanceof Error
-							? error.message
-							: "Error testing the registry",
+					message: sanitizeRegistryTestError(error, input.password),
 					cause: error,
 				});
 			}
 		}),
-	testRegistryById: withPermission("registry", "read")
+	testRegistryById: withPermission("registry", "create")
 		.input(apiTestRegistryById)
 		.mutation(async ({ input, ctx }) => {
+			let registryPassword: string | null | undefined;
 			try {
+				await assertStoredRegistryRemoteTestAccess(ctx, input.serverId);
+
 				const registryData = await db.query.registry.findFirst({
 					where: eq(registry.registryId, input.registryId ?? ""),
 				});
@@ -163,6 +249,7 @@ export const registryRouter = createTRPCRouter({
 						message: "You are not allowed to test this registry",
 					});
 				}
+				registryPassword = registryData.password;
 
 				const args = [
 					"login",
@@ -172,17 +259,14 @@ export const registryRouter = createTRPCRouter({
 					"--password-stdin",
 				];
 
-				if (IS_CLOUD && !input.serverId) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Select a server to test the registry",
-					});
-				}
-
-				if (input.serverId && input.serverId !== "none") {
+				if (isRemoteRegistryTestServer(input.serverId)) {
 					await execAsyncRemote(
-						input.serverId,
-						`echo ${registryData.password} | docker ${args.join(" ")}`,
+						input.serverId ?? null,
+						safeDockerLoginCommand(
+							registryData.registryUrl,
+							registryData.username,
+							registryData.password,
+						),
 					);
 				} else {
 					await execFileAsync("docker", args, {
@@ -192,12 +276,12 @@ export const registryRouter = createTRPCRouter({
 
 				return true;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message:
-						error instanceof Error
-							? error.message
-							: "Error testing the registry",
+					message: sanitizeRegistryTestError(error, registryPassword),
 					cause: error,
 				});
 			}

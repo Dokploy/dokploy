@@ -6,6 +6,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates";
 import { buildRedis } from "@dokploy/server/utils/databases/redis";
+import { buildDockerPullCommand } from "@dokploy/server/utils/docker/commands";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
@@ -110,7 +111,7 @@ export const deployRedis = async (
 		if (redis.serverId) {
 			await execAsyncRemote(
 				redis.serverId,
-				`docker pull ${redis.dockerImage}`,
+				buildDockerPullCommand(redis.dockerImage),
 				onData,
 			);
 		} else {

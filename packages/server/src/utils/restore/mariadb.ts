@@ -2,8 +2,13 @@ import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Mariadb } from "@dokploy/server/services/mariadb";
 import type { z } from "zod";
-import { getS3Credentials } from "../backups/utils";
+import {
+	assertRcloneS3DestinationAllowed,
+	buildRcloneS3Command,
+	getRcloneS3Destination,
+} from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { normalizeRestoreBackupFile } from "./safe-input";
 import { getRestoreCommand } from "./utils";
 
 export const restoreMariadbBackup = async (
@@ -15,11 +20,14 @@ export const restoreMariadbBackup = async (
 	try {
 		const { appName, serverId, databaseUser, databasePassword } = mariadb;
 
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
-		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
-
-		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
+		const { objectPath } = normalizeRestoreBackupFile(backupInput.backupFile, [
+			".sql.gz",
+		]);
+		const safeDestination = await assertRcloneS3DestinationAllowed(destination);
+		const backupPath = getRcloneS3Destination(safeDestination, objectPath);
+		const rcloneCommand = `${buildRcloneS3Command("cat", safeDestination, [
+			backupPath,
+		])} | gunzip`;
 
 		const command = getRestoreCommand({
 			appName,
@@ -34,9 +42,7 @@ export const restoreMariadbBackup = async (
 		});
 
 		emit("Starting restore...");
-		emit(
-			`Restoring database: ${backupInput.databaseName} from ${backupInput.backupFile}`,
-		);
+		emit(`Restoring database: ${backupInput.databaseName} from ${objectPath}`);
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);

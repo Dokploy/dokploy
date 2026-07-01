@@ -10,10 +10,22 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { quoteShellArgument } from "@dokploy/server/utils/shell";
 import { scheduledJobs, scheduleJob } from "node-schedule";
-import { getS3Credentials, normalizeS3Path } from "../backups/utils";
+import {
+	assertRcloneS3DestinationAllowed,
+	buildRcloneS3Command,
+	buildRcloneS3DeleteXargsCommand,
+	getRcloneS3Destination,
+	normalizeS3Path,
+	shouldRunBackupRetention,
+} from "../backups/utils";
 import { sendVolumeBackupNotifications } from "../notifications/volume-backup";
-import { backupVolume, getVolumeServiceAppName } from "./backup";
+import {
+	backupVolume,
+	getVolumeServiceAppName,
+	resolveVolumeBackupServerId,
+} from "./backup";
 
 // Helper functions to extract project info from volume backup
 const getProjectName = (
@@ -81,16 +93,28 @@ const cleanupOldVolumeBackups = async (
 	const { keepLatestCount, prefix, volumeName } = volumeBackup;
 	const destination = await findDestinationById(volumeBackup.destinationId);
 
-	if (!keepLatestCount) return;
+	if (!shouldRunBackupRetention(keepLatestCount)) {
+		return;
+	}
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
+		const safeDestination = await assertRcloneS3DestinationAllowed(destination);
 		const s3AppName = getVolumeServiceAppName(volumeBackup);
-		const backupFilesPath = `:s3:${destination.bucket}/${s3AppName}/${normalizeS3Path(prefix || "")}`;
-		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include \"${volumeName}-*.tar\" ${backupFilesPath}`;
+		const backupFilesPath = getRcloneS3Destination(
+			safeDestination,
+			`${s3AppName}/${normalizeS3Path(prefix || "")}`,
+		);
+		const listCommand = buildRcloneS3Command("lsf", safeDestination, [
+			"--include",
+			`${volumeName}-*.tar`,
+			backupFilesPath,
+		]);
 		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
-		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
-		const fullCommand = `${listCommand} | ${sortAndPick} ${deleteCommand}`;
+		const deleteCommand = buildRcloneS3DeleteXargsCommand(
+			safeDestination,
+			backupFilesPath,
+		);
+		const fullCommand = `${listCommand} | ${sortAndPick} sh -c ${quoteShellArgument(deleteCommand)} _ {}`;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, fullCommand);
@@ -104,8 +128,7 @@ const cleanupOldVolumeBackups = async (
 
 export const runVolumeBackup = async (volumeBackupId: string) => {
 	const volumeBackup = await findVolumeBackupById(volumeBackupId);
-	const serverId =
-		volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
+	const serverId = resolveVolumeBackupServerId(volumeBackup);
 	const deployment = await createDeploymentVolumeBackup({
 		volumeBackupId: volumeBackup.volumeBackupId,
 		title: "Volume Backup",

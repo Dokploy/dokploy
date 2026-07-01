@@ -68,7 +68,11 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		libsql.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
-	const bindsMount = generateBindMounts(mounts);
+	const bindsMount = generateBindMounts(mounts, {
+		appName,
+		serverId: libsql.serverId,
+		serviceType: "libsql",
+	});
 	const filesMount = generateFileMounts(appName, libsql);
 
 	const docker = await getRemoteDocker(libsql.serverId);

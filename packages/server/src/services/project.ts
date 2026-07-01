@@ -16,6 +16,7 @@ import type { z } from "zod";
 import { createProductionEnvironment } from "./environment";
 
 export type Project = typeof projects.$inferSelect;
+type ProjectUpdateData = Partial<Pick<Project, "name" | "description" | "env">>;
 
 export const createProject = async (
 	input: z.infer<typeof apiCreateProject>,
@@ -91,12 +92,14 @@ export const deleteProject = async (projectId: string) => {
 
 export const updateProjectById = async (
 	projectId: string,
-	projectData: Partial<Project>,
+	projectData: ProjectUpdateData,
 ) => {
 	const result = await db
 		.update(projects)
 		.set({
-			...projectData,
+			name: projectData.name,
+			description: projectData.description,
+			env: projectData.env,
 		})
 		.where(eq(projects.projectId, projectId))
 		.returning()

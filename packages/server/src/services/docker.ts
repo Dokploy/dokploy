@@ -1,7 +1,22 @@
+import { quoteShellArg } from "@dokploy/server/utils/filesystem/safe-path";
 import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { TRPCError } from "@trpc/server";
+
+const dockerNodeIdentifierRegex = /^[a-zA-Z0-9._-]+$/;
+
+const normalizeDockerNodeIdentifier = (nodeId: string) => {
+	if (!nodeId || !dockerNodeIdentifierRegex.test(nodeId)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Invalid Docker node identifier",
+		});
+	}
+
+	return nodeId;
+};
 
 export const getContainers = async (serverId?: string | null) => {
 	try {
@@ -371,19 +386,20 @@ export const getContainerLogs = async (
 	if (!useContainerIdDirectly) {
 		// Find the real container ID by appName filter
 		const findResult = await exec(
-			`docker ps -q --filter "name=^${appNameOrId}" | head -1`,
+			`docker ps -q --filter ${quoteShellArg(`name=^${appNameOrId}`)} | head -1`,
 		);
 		const containerId = findResult.stdout.trim();
 
 		if (!containerId) {
 			// Fallback: try as a swarm service
 			const svcResult = await exec(
-				`docker service ls -q --filter "name=${appNameOrId}" | head -1`,
+				`docker service ls -q --filter ${quoteShellArg(`name=${appNameOrId}`)} | head -1`,
 			);
 			const serviceId = svcResult.stdout.trim();
 			if (!serviceId) {
 				throw new Error(`No container or service found for: ${appNameOrId}`);
 			}
+			target = serviceId;
 			isService = true;
 		} else {
 			target = containerId;
@@ -391,13 +407,13 @@ export const getContainerLogs = async (
 	}
 
 	const sinceFlag = since === "all" ? "" : `--since ${since}`;
+	const quotedTarget = quoteShellArg(target);
 	const baseCommand = isService
-		? `docker service logs --timestamps --raw --tail ${tail} ${sinceFlag} ${target}`
-		: `docker container logs --timestamps --tail ${tail} ${sinceFlag} ${target}`;
+		? `docker service logs --timestamps --raw --tail ${tail} ${sinceFlag} ${quotedTarget}`
+		: `docker container logs --timestamps --tail ${tail} ${sinceFlag} ${quotedTarget}`;
 
-	const escapedSearch = search?.replace(/'/g, "'\\''") ?? "";
 	const command = search
-		? `${baseCommand} 2>&1 | grep -iF '${escapedSearch}'`
+		? `${baseCommand} 2>&1 | grep -iF ${quoteShellArg(search)}`
 		: `${baseCommand} 2>&1`;
 
 	try {
@@ -518,8 +534,10 @@ export const getSwarmNodes = async (serverId?: string) => {
 };
 
 export const getNodeInfo = async (nodeId: string, serverId?: string) => {
+	const safeNodeId = quoteShellArg(normalizeDockerNodeIdentifier(nodeId));
+
 	try {
-		const command = `docker node inspect ${nodeId} --format '{{json .}}'`;
+		const command = `docker node inspect ${safeNodeId} --format '{{json .}}'`;
 		let stdout = "";
 		let stderr = "";
 		if (serverId) {
@@ -625,32 +643,156 @@ export const getApplicationInfo = async (
 	}
 };
 
+const parseDockerLabels = (
+	labels: Record<string, string> | string | null | undefined,
+) => {
+	if (!labels) {
+		return {};
+	}
+
+	if (typeof labels !== "string") {
+		return labels;
+	}
+
+	return labels
+		.split(",")
+		.reduce<Record<string, string>>((accumulator, label) => {
+			const separatorIndex = label.indexOf("=");
+			if (separatorIndex <= 0) {
+				return accumulator;
+			}
+
+			const key = label.slice(0, separatorIndex).trim();
+			const value = label.slice(separatorIndex + 1).trim();
+			if (key && value) {
+				accumulator[key] = value;
+			}
+			return accumulator;
+		}, {});
+};
+
 export const getAllContainerStats = async (serverId?: string) => {
 	try {
-		let stdout = "";
-		const command =
+		const statsCommand =
 			'docker stats --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'';
+		const sizeCommand =
+			'docker ps --size --format \'{"ID":"{{.ID}}","Name":"{{.Names}}","Size":"{{.Size}}","Labels":{{json .Labels}}}\'';
 
+		let statsStdout = "";
+		let sizeStdout = "";
 		if (serverId) {
-			const result = await execAsyncRemote(serverId, command);
-			stdout = result.stdout;
+			const statsResult = await execAsyncRemote(serverId, statsCommand);
+			const sizeResult = await execAsyncRemote(serverId, sizeCommand);
+			statsStdout = statsResult.stdout;
+			sizeStdout = sizeResult.stdout;
 		} else {
-			const result = await execAsync(command);
-			stdout = result.stdout;
+			const statsResult = await execAsync(statsCommand);
+			const sizeResult = await execAsync(sizeCommand);
+			statsStdout = statsResult.stdout;
+			sizeStdout = sizeResult.stdout;
 		}
 
-		if (!stdout.trim()) {
+		if (!statsStdout.trim()) {
 			return [];
 		}
 
-		const stats = stdout
+		const metadataByContainerId = new Map<
+			string,
+			{ labels: Record<string, string>; size: string }
+		>();
+		if (sizeStdout.trim()) {
+			const sizes = sizeStdout
+				.trim()
+				.split("\n")
+				.map((line) => JSON.parse(line));
+
+			for (const size of sizes) {
+				metadataByContainerId.set(size.ID, {
+					labels: parseDockerLabels(size.Labels),
+					size: size.Size ?? "",
+				});
+			}
+		}
+
+		const stats = statsStdout
 			.trim()
 			.split("\n")
-			.map((line) => JSON.parse(line));
+			.map((line) => {
+				const stat = JSON.parse(line);
+				const metadata = metadataByContainerId.get(stat.ID);
+				return {
+					...stat,
+					Labels: metadata?.labels ?? {},
+					Size: metadata?.size ?? "",
+				};
+			});
 
 		return stats;
 	} catch (error) {
 		console.error("getAllContainerStats error:", error);
+		return [];
+	}
+};
+
+export interface DockerContainerProcess {
+	command: string;
+	cpuPercent: number;
+	memoryPercent: number;
+	pid: string;
+	rssBytes: number;
+}
+
+export const parseDockerTopProcesses = (
+	output: string,
+): DockerContainerProcess[] => {
+	const [, ...lines] = output.trim().split("\n");
+
+	return lines
+		.map((line) => {
+			const match = line.trim().match(/^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.+)$/);
+			if (!match?.[1] || !match[2] || !match[3] || !match[4] || !match[5]) {
+				return null;
+			}
+
+			const cpuPercent = Number.parseFloat(match[2]);
+			const memoryPercent = Number.parseFloat(match[3]);
+			const rssKb = Number.parseFloat(match[4]);
+
+			return {
+				command: match[5],
+				cpuPercent: Number.isFinite(cpuPercent) ? cpuPercent : 0,
+				memoryPercent: Number.isFinite(memoryPercent) ? memoryPercent : 0,
+				pid: match[1],
+				rssBytes: Number.isFinite(rssKb) ? rssKb * 1024 : 0,
+			};
+		})
+		.filter((process): process is DockerContainerProcess => process !== null)
+		.sort((a, b) => {
+			if (b.cpuPercent !== a.cpuPercent) {
+				return b.cpuPercent - a.cpuPercent;
+			}
+			return b.memoryPercent - a.memoryPercent;
+		});
+};
+
+export const getContainerProcesses = async (
+	containerId: string,
+	serverId?: string,
+) => {
+	const containerIdRegex = /^[a-zA-Z0-9.\-_]+$/;
+	if (!containerIdRegex.test(containerId)) {
+		throw new Error("Invalid container ID");
+	}
+
+	try {
+		const command = `docker top ${containerId} -eo pid,pcpu,pmem,rss,args`;
+		const result = serverId
+			? await execAsyncRemote(serverId, command)
+			: await execAsync(command);
+
+		return parseDockerTopProcesses(result.stdout).slice(0, 20);
+	} catch (error) {
+		console.error("getContainerProcesses error:", error);
 		return [];
 	}
 };

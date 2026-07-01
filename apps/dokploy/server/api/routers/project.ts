@@ -18,7 +18,6 @@ import {
 	deleteProject,
 	findApplicationById,
 	findComposeById,
-	findEnvironmentById,
 	findLibsqlById,
 	findMariadbById,
 	findMongoById,
@@ -37,7 +36,12 @@ import {
 	checkPermission,
 	checkProjectAccess,
 	findMemberByUserId,
+	hasPermission,
 } from "@dokploy/server/services/permission";
+import {
+	redactProjectNestedSecrets,
+	redactSecretFields,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
@@ -48,6 +52,10 @@ import {
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import {
+	assertServicePlacementAccess,
+	assertTargetEnvironmentAccess,
+} from "@/server/api/utils/placement-access";
 import {
 	apiCreateProject,
 	apiFindOneProject,
@@ -64,6 +72,11 @@ import {
 	projects,
 	redis,
 } from "@/server/db/schema";
+
+const canReadProjectEnvVars = (ctx: {
+	user: { id: string };
+	session: { activeOrganizationId: string };
+}) => hasPermission(ctx, { projectEnvVars: ["read"] });
 
 export const projectRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -181,7 +194,9 @@ export const projectRouter = createTRPCRouter({
 						message: "Project not found",
 					});
 				}
-				return project;
+				return redactProjectNestedSecrets(project, {
+					redactProjectEnv: !(await canReadProjectEnvVars(ctx)),
+				});
 			}
 			const project = await findProjectById(input.projectId);
 
@@ -191,7 +206,9 @@ export const projectRouter = createTRPCRouter({
 					message: "You are not authorized to access this project",
 				});
 			}
-			return project;
+			return redactProjectNestedSecrets(project, {
+				redactProjectEnv: !(await canReadProjectEnvVars(ctx)),
+			});
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
@@ -700,8 +717,11 @@ export const projectRouter = createTRPCRouter({
 					.where(where),
 			]);
 
+			const canReadProjectEnv = await canReadProjectEnvVars(ctx);
 			return {
-				items,
+				items: canReadProjectEnv
+					? items
+					: items.map((item) => redactSecretFields(item, ["env"])),
 				total: countResult[0]?.count ?? 0,
 			};
 		}),
@@ -746,6 +766,7 @@ export const projectRouter = createTRPCRouter({
 						message: "You are not authorized to update this project",
 					});
 				}
+				await checkProjectAccess(ctx, "update", input.projectId);
 
 				if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
 					const { accessedProjects } = await findMemberByUserId(
@@ -764,9 +785,8 @@ export const projectRouter = createTRPCRouter({
 					await checkPermission(ctx, { projectEnvVars: ["write"] });
 				}
 
-				const project = await updateProjectById(input.projectId, {
-					...input,
-				});
+				const { projectId, ...updateData } = input;
+				const project = await updateProjectById(projectId, updateData);
 
 				if (project) {
 					await audit(ctx, {
@@ -812,37 +832,22 @@ export const projectRouter = createTRPCRouter({
 			try {
 				await checkProjectAccess(ctx, "create");
 
-				const sourceEnvironment = input.duplicateInSameProject
-					? await findEnvironmentById(input.sourceEnvironmentId)
-					: null;
-
-				if (
-					input.duplicateInSameProject &&
-					sourceEnvironment?.project.organizationId !==
-						ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this project",
+				const sourceEnvironment = await assertTargetEnvironmentAccess(
+					ctx,
+					input.sourceEnvironmentId,
+				);
+				if (!input.duplicateInSameProject && sourceEnvironment?.project.env) {
+					await checkPermission(ctx, {
+						projectEnvVars: ["read", "write"],
 					});
 				}
-
-				if (
-					input.duplicateInSameProject &&
-					sourceEnvironment &&
-					ctx.user.role !== "owner" &&
-					ctx.user.role !== "admin"
-				) {
-					const { accessedProjects } = await findMemberByUserId(
-						ctx.user.id,
-						ctx.session.activeOrganizationId,
-					);
-					if (!accessedProjects.includes(sourceEnvironment.project.projectId)) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "You don't have access to this project",
-						});
-					}
+				const servicesToDuplicate = input.includeServices
+					? input.selectedServices || []
+					: [];
+				for (const service of servicesToDuplicate) {
+					await assertServicePlacementAccess(ctx, service.id, service.type, {
+						sourceEnvironmentId: sourceEnvironment.environmentId,
+					});
 				}
 
 				const targetProject = input.duplicateInSameProject
@@ -857,8 +862,6 @@ export const projectRouter = createTRPCRouter({
 						).then((value) => value.environment);
 
 				if (input.includeServices) {
-					const servicesToDuplicate = input.selectedServices || [];
-
 					const duplicateService = async (id: string, type: string) => {
 						switch (type) {
 							case "application": {
@@ -1209,6 +1212,9 @@ export const projectRouter = createTRPCRouter({
 				});
 				return targetProject;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `Error duplicating the project: ${error instanceof Error ? error.message : error}`,

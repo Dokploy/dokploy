@@ -176,11 +176,11 @@ export const createPreviewDeployment = async (
 
 	const newDomain = await createDomain({
 		host: generateDomain,
-		path: application.previewPath,
-		port: application.previewPort,
+		path: application.previewPath ?? undefined,
+		port: application.previewPort ?? undefined,
 		https: application.previewHttps,
 		certificateType: application.previewCertificateType,
-		customCertResolver: application.previewCustomCertResolver,
+		customCertResolver: application.previewCustomCertResolver ?? "",
 		domainType: "preview",
 		previewDeploymentId: previewDeployment.previewDeploymentId,
 	});

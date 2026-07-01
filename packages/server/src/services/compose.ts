@@ -15,6 +15,10 @@ import {
 	loadDockerComposeRemote,
 } from "@dokploy/server/utils/docker/domain";
 import type { ComposeSpecification } from "@dokploy/server/utils/docker/types";
+import {
+	normalizeRelativeFilePath,
+	quoteShellArg,
+} from "@dokploy/server/utils/filesystem/safe-path";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
 import {
@@ -31,6 +35,7 @@ import { cloneGiteaRepository } from "@dokploy/server/utils/providers/gitea";
 import { cloneGithubRepository } from "@dokploy/server/utils/providers/github";
 import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
 import { getCreateComposeFileCommand } from "@dokploy/server/utils/providers/raw";
+import { quoteShellArgs } from "@dokploy/server/utils/shell";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -45,6 +50,9 @@ import { generateApplyPatchesCommand } from "./patch";
 import { validUniqueServerAppName } from "./project";
 
 export type Compose = typeof compose.$inferSelect;
+
+const normalizeComposeFilePath = (composePath: string) =>
+	normalizeRelativeFilePath(composePath);
 
 export const createCompose = async (
 	input: z.infer<typeof apiCreateCompose>,
@@ -318,7 +326,7 @@ export const deployCompose = async ({
 			projectName: compose.environment.project.name,
 			applicationName: compose.name,
 			applicationType: "compose",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error building",
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
@@ -431,12 +439,14 @@ export const removeCompose = async (
 	try {
 		const { COMPOSE_PATH } = paths(!!compose.serverId);
 		const projectPath = join(COMPOSE_PATH, compose.appName);
+		const quotedAppName = quoteShellArg(compose.appName);
+		const quotedProjectPath = quoteShellArg(projectPath);
 
 		if (compose.composeType === "stack") {
 			const command = `
-			docker network disconnect ${compose.appName} dokploy-traefik;
-			docker stack rm ${compose.appName};
-			rm -rf ${projectPath}`;
+			docker network disconnect ${quotedAppName} dokploy-traefik;
+			docker stack rm ${quotedAppName};
+			rm -rf -- ${quotedProjectPath}`;
 
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);
@@ -445,11 +455,11 @@ export const removeCompose = async (
 			}
 		} else {
 			const command = `
-			docker network disconnect ${compose.appName} dokploy-traefik;
-			env -i PATH="$PATH" docker compose -p ${compose.appName} down ${
+			docker network disconnect ${quotedAppName} dokploy-traefik;
+			env -i PATH="$PATH" ${quoteShellArgs(["docker", "compose", "-p", compose.appName, "down"])} ${
 				deleteVolumes ? "--volumes" : ""
 			};
-			rm -rf ${projectPath}`;
+			rm -rf -- ${quotedProjectPath}`;
 
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);
@@ -470,14 +480,16 @@ export const startCompose = async (composeId: string) => {
 		const { COMPOSE_PATH } = paths(!!compose.serverId);
 
 		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
-		const path =
-			compose.sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
-		const baseCommand = `env -i PATH="$PATH" docker compose -p ${compose.appName} -f ${path} up -d`;
+		const path = normalizeComposeFilePath(
+			compose.sourceType === "raw" ? "docker-compose.yml" : compose.composePath,
+		);
+		const baseCommand = `env -i PATH="$PATH" ${quoteShellArgs(["docker", "compose", "-p", compose.appName, "-f", path, "up", "-d"])}`;
+		const quotedProjectPath = quoteShellArg(projectPath);
 		if (compose.composeType === "docker-compose") {
 			if (compose.serverId) {
 				await execAsyncRemote(
 					compose.serverId,
-					`cd ${projectPath} && ${baseCommand}`,
+					`cd ${quotedProjectPath} && ${baseCommand}`,
 				);
 			} else {
 				await execAsync(baseCommand, {
@@ -503,19 +515,20 @@ export const stopCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
 	try {
 		const { COMPOSE_PATH } = paths(!!compose.serverId);
+		const projectPath = join(COMPOSE_PATH, compose.appName);
+		const quotedProjectPath = quoteShellArg(projectPath);
+		const quotedAppName = quoteShellArg(compose.appName);
 		if (compose.composeType === "docker-compose") {
 			if (compose.serverId) {
 				await execAsyncRemote(
 					compose.serverId,
-					`cd ${join(COMPOSE_PATH, compose.appName)} && env -i PATH="$PATH" docker compose -p ${
-						compose.appName
-					} stop`,
+					`cd ${quotedProjectPath} && env -i PATH="$PATH" ${quoteShellArgs(["docker", "compose", "-p", compose.appName, "stop"])}`,
 				);
 			} else {
 				await execAsync(
-					`env -i PATH="$PATH" docker compose -p ${compose.appName} stop`,
+					`env -i PATH="$PATH" ${quoteShellArgs(["docker", "compose", "-p", compose.appName, "stop"])}`,
 					{
-						cwd: join(COMPOSE_PATH, compose.appName),
+						cwd: projectPath,
 					},
 				);
 			}
@@ -525,10 +538,10 @@ export const stopCompose = async (composeId: string) => {
 			if (compose.serverId) {
 				await execAsyncRemote(
 					compose.serverId,
-					`docker stack rm ${compose.appName}`,
+					`docker stack rm ${quotedAppName}`,
 				);
 			} else {
-				await execAsync(`docker stack rm ${compose.appName}`);
+				await execAsync(`docker stack rm ${quotedAppName}`);
 			}
 		}
 

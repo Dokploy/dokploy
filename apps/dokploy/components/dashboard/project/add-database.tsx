@@ -76,6 +76,13 @@ const databasesUserDefaultPlaceholder: Record<
 	postgres: "postgres",
 };
 
+const DATABASE_IDENTIFIER_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]{0,62}$/;
+const DATABASE_IDENTIFIER_MESSAGE =
+	"Database identifiers can only contain letters, numbers and underscores, and must start with a letter or underscore";
+const DATABASE_PASSWORD_REGEX = /^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|:,.<>?~]*$/;
+const DATABASE_PASSWORD_MESSAGE =
+	"Password contains invalid characters. Please avoid: $ ! ' \" \\ / ; ` and space characters for database compatibility";
+
 const baseDatabaseSchema = z.object({
 	name: z.string().min(1, "Name required"),
 	appName: z
@@ -86,12 +93,9 @@ const baseDatabaseSchema = z.object({
 		.regex(APP_NAME_REGEX, {
 			message: APP_NAME_MESSAGE,
 		}),
-	databasePassword: z
-		.string()
-		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-			message:
-				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-		}),
+	databasePassword: z.string().regex(DATABASE_PASSWORD_REGEX, {
+		message: DATABASE_PASSWORD_MESSAGE,
+	}),
 	dockerImage: z.string(),
 	description: z.string().nullable(),
 	serverId: z.string().nullable(),
@@ -117,12 +121,14 @@ const mySchema = z
 				dockerImage: z.string().default("mariadb:4"),
 				databaseRootPassword: z
 					.string()
-					.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-						message:
-							"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+					.regex(DATABASE_PASSWORD_REGEX, {
+						message: DATABASE_PASSWORD_MESSAGE,
 					})
 					.optional(),
-				databaseUser: z.string().default("mariadb"),
+				databaseUser: z
+					.string()
+					.regex(DATABASE_IDENTIFIER_REGEX, DATABASE_IDENTIFIER_MESSAGE)
+					.default("mariadb"),
 				databaseName: z.string().default("mariadb"),
 			})
 			.merge(baseDatabaseSchema),
@@ -138,12 +144,14 @@ const mySchema = z
 				type: z.literal("mysql"),
 				databaseRootPassword: z
 					.string()
-					.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-						message:
-							"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+					.regex(DATABASE_PASSWORD_REGEX, {
+						message: DATABASE_PASSWORD_MESSAGE,
 					})
 					.optional(),
-				databaseUser: z.string().default("mysql"),
+				databaseUser: z
+					.string()
+					.regex(DATABASE_IDENTIFIER_REGEX, DATABASE_IDENTIFIER_MESSAGE)
+					.default("mysql"),
 				databaseName: z.string().default("mysql"),
 			})
 			.merge(baseDatabaseSchema),
@@ -151,7 +159,10 @@ const mySchema = z
 			.object({
 				type: z.literal("postgres"),
 				databaseName: z.string().default("postgres"),
-				databaseUser: z.string().default("postgres"),
+				databaseUser: z
+					.string()
+					.regex(DATABASE_IDENTIFIER_REGEX, DATABASE_IDENTIFIER_MESSAGE)
+					.default("postgres"),
 			})
 			.merge(baseDatabaseSchema),
 		z

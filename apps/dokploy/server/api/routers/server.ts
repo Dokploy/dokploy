@@ -6,10 +6,17 @@ import {
 	findServersByUserId,
 	findUserById,
 	getAccessibleServerIds,
+	getAllContainerStats,
+	getContainerProcesses,
+	getDokployUrl,
 	getPublicIpWithFallback,
+	getWebServerSettings,
 	haveActiveServices,
 	IS_CLOUD,
+	redactServer,
+	redactServers,
 	removeDeploymentsByServerId,
+	resolveServerMetricsConfigUpdate,
 	serverAudit,
 	serverSetup,
 	serverValidate,
@@ -17,7 +24,12 @@ import {
 	updateServerById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { checkPermission } from "@dokploy/server/services/permission";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
+import { assertSshKeyAccess } from "@dokploy/server/services/ssh-key";
+import { isRedactedSecretValue } from "@dokploy/server/utils/security/redaction";
+import { assertServerDestinationAllowed } from "@dokploy/server/utils/servers/destination";
+import { fetchWithPublicEgress } from "@dokploy/server/utils/url/network";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
@@ -29,6 +41,10 @@ import {
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import {
+	filterContainerResourceStatsByAccess,
+	findAccessibleContainerResourceStat,
+} from "@/server/api/utils/monitoring-access";
 import {
 	apiCreateServer,
 	apiFindOneServer,
@@ -49,6 +65,139 @@ import {
 import { assertBuildsConcurrencyAllowed } from "@/server/queues/concurrency";
 import { applyDockerCleanupSchedule } from "@/server/utils/docker-cleanup";
 
+const getMetricsTarget = async (
+	input: { serverId?: string },
+	ctx: { session: Parameters<typeof getAccessibleServerIds>[0] },
+) => {
+	if (input.serverId) {
+		const accessibleIds = await getAccessibleServerIds(ctx.session);
+		if (!accessibleIds.has(input.serverId)) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message: "You are not authorized to access this server",
+			});
+		}
+
+		const currentServer = await findServerById(input.serverId);
+		if (currentServer.organizationId !== ctx.session.activeOrganizationId) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message: "You are not authorized to access this server",
+			});
+		}
+
+		return {
+			host: currentServer.ipAddress,
+			port: currentServer.metricsConfig?.server?.port,
+			token: currentServer.metricsConfig?.server?.token,
+		};
+	}
+
+	const settings = await getWebServerSettings();
+	return {
+		host: settings?.serverIp,
+		port: settings?.metricsConfig?.server?.port,
+		token: settings?.metricsConfig?.server?.token,
+	};
+};
+
+const assertServerAccess = async (
+	ctx: { session: Parameters<typeof getAccessibleServerIds>[0] },
+	serverId: string,
+) => {
+	const accessibleIds = await getAccessibleServerIds(ctx.session);
+	if (!accessibleIds.has(serverId)) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this server",
+		});
+	}
+};
+
+const assertServerSshKeyUseAllowed = async (
+	ctx: {
+		user: { id: string };
+		session: { activeOrganizationId: string };
+	},
+	sshKeyId: string | null | undefined,
+) => {
+	if (!sshKeyId) {
+		return;
+	}
+
+	await checkPermission(ctx, { sshKeys: ["read"] });
+	await assertSshKeyAccess(sshKeyId, ctx.session);
+};
+
+const assertServerExecuteAllowed = async (ctx: {
+	user: { id: string };
+	session: { activeOrganizationId: string };
+}) => {
+	await checkPermission(ctx, { server: ["execute"] });
+};
+
+const assertServerCloudDestinationAllowed = async (input: {
+	ipAddress: string;
+}) => {
+	try {
+		await assertServerDestinationAllowed(input);
+	} catch (error) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				error instanceof Error
+					? error.message
+					: "Server address is not allowed in cloud deployments",
+		});
+	}
+};
+
+const buildMetricsRequest = ({
+	host,
+	port,
+	token,
+	dataPoints,
+}: {
+	host?: string | null;
+	port?: number | string | null;
+	token?: string | null;
+	dataPoints: string;
+}) => {
+	const normalizedHost = host?.trim();
+	const normalizedToken = token?.trim();
+	const normalizedPort = Number(port);
+
+	if (
+		!normalizedHost ||
+		!Number.isInteger(normalizedPort) ||
+		normalizedPort <= 0 ||
+		normalizedPort > 65535 ||
+		!normalizedToken
+	) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Monitoring metrics target is not configured",
+		});
+	}
+
+	const urlHost =
+		normalizedHost.includes(":") && !normalizedHost.startsWith("[")
+			? `[${normalizedHost}]`
+			: normalizedHost;
+	const url = new URL(`http://${urlHost}:${normalizedPort}/metrics`);
+	url.searchParams.append("limit", dataPoints);
+
+	return {
+		url,
+		token: normalizedToken,
+	};
+};
+
+const metricsFetchOptions = {
+	allowPrivateNetwork: true,
+	fieldName: "Monitoring metrics URL",
+} as const;
+
 export const serverRouter = createTRPCRouter({
 	create: withPermission("server", "create")
 		.input(apiCreateServer)
@@ -62,6 +211,8 @@ export const serverRouter = createTRPCRouter({
 						message: "You cannot create more servers",
 					});
 				}
+				await assertServerCloudDestinationAllowed(input);
+				await assertServerSshKeyUseAllowed(ctx, input.sshKeyId);
 				const project = await createServer(
 					input,
 					ctx.session.activeOrganizationId,
@@ -77,8 +228,11 @@ export const serverRouter = createTRPCRouter({
 					resourceId: project.serverId,
 					resourceName: project.name,
 				});
-				return project;
+				return redactServer(project);
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the server",
@@ -90,6 +244,7 @@ export const serverRouter = createTRPCRouter({
 	one: withPermission("server", "read")
 		.input(apiFindOneServer)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx, input.serverId);
 			const server = await findServerById(input.serverId);
 			if (server.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
@@ -98,19 +253,12 @@ export const serverRouter = createTRPCRouter({
 				});
 			}
 
-			const accessibleIds = await getAccessibleServerIds(ctx.session);
-			if (!accessibleIds.has(input.serverId)) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this server",
-				});
-			}
-
-			return server;
+			return redactServer(server);
 		}),
 	getDefaultCommand: withPermission("server", "read")
 		.input(apiFindOneServer)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx, input.serverId);
 			const server = await findServerById(input.serverId);
 			const isBuildServer = server.serverType === "build";
 			return defaultCommand(isBuildServer);
@@ -135,7 +283,7 @@ export const serverRouter = createTRPCRouter({
 			.orderBy(desc(server.createdAt))
 			.groupBy(server.serverId);
 
-		return result.filter((s) => accessibleIds.has(s.serverId));
+		return redactServers(result.filter((s) => accessibleIds.has(s.serverId)));
 	}),
 	allForPermissions: withPermission("member", "update")
 		.use(async ({ ctx, next }) => {
@@ -190,7 +338,7 @@ export const serverRouter = createTRPCRouter({
 						eq(server.serverType, "deploy"),
 					),
 		});
-		return result.filter((s) => accessibleIds.has(s.serverId));
+		return redactServers(result.filter((s) => accessibleIds.has(s.serverId)));
 	}),
 	buildServers: withPermission("server", "read").query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleServerIds(ctx.session);
@@ -210,12 +358,13 @@ export const serverRouter = createTRPCRouter({
 						eq(server.serverType, "build"),
 					),
 		});
-		return result.filter((s) => accessibleIds.has(s.serverId));
+		return redactServers(result.filter((s) => accessibleIds.has(s.serverId)));
 	}),
-	setup: withPermission("server", "create")
+	setup: withPermission("server", "execute")
 		.input(apiFindOneServer)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				await assertServerAccess(ctx, input.serverId);
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
@@ -235,7 +384,7 @@ export const serverRouter = createTRPCRouter({
 				throw error;
 			}
 		}),
-	setupWithLogs: withPermission("server", "create")
+	setupWithLogs: withPermission("server", "execute")
 		.meta({
 			openapi: {
 				path: "/deploy/server-with-logs",
@@ -247,6 +396,7 @@ export const serverRouter = createTRPCRouter({
 		.input(apiFindOneServer)
 		.subscription(async ({ input, ctx }) => {
 			try {
+				await assertServerAccess(ctx, input.serverId);
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
@@ -266,6 +416,7 @@ export const serverRouter = createTRPCRouter({
 	validate: withPermission("server", "read")
 		.input(apiFindOneServer)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx, input.serverId);
 			try {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session.activeOrganizationId) {
@@ -314,6 +465,7 @@ export const serverRouter = createTRPCRouter({
 	security: withPermission("server", "read")
 		.input(apiFindOneServer)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx, input.serverId);
 			try {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session.activeOrganizationId) {
@@ -361,10 +513,11 @@ export const serverRouter = createTRPCRouter({
 				});
 			}
 		}),
-	setupMonitoring: withPermission("server", "create")
+	setupMonitoring: withPermission("server", "execute")
 		.input(apiUpdateServerMonitoring)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				await assertServerAccess(ctx, input.serverId);
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
@@ -373,15 +526,15 @@ export const serverRouter = createTRPCRouter({
 					});
 				}
 
-				await updateServerById(input.serverId, {
-					metricsConfig: {
+				const metricsConfig = resolveServerMetricsConfigUpdate(
+					{
 						server: {
 							type: "Remote",
 							refreshRate: input.metricsConfig.server.refreshRate,
 							retentionDays: input.metricsConfig.server.retentionDays,
 							port: input.metricsConfig.server.port,
 							token: input.metricsConfig.server.token,
-							urlCallback: input.metricsConfig.server.urlCallback,
+							urlCallback: `${await getDokployUrl()}/api/trpc/notification.receiveNotification`,
 							cronJob: input.metricsConfig.server.cronJob,
 							thresholds: {
 								cpu: input.metricsConfig.server.thresholds.cpu,
@@ -396,6 +549,11 @@ export const serverRouter = createTRPCRouter({
 							},
 						},
 					},
+					server.metricsConfig,
+				);
+
+				await updateServerById(input.serverId, {
+					metricsConfig,
 				});
 				const currentServer = await setupMonitoring(input.serverId);
 				await audit(ctx, {
@@ -413,6 +571,7 @@ export const serverRouter = createTRPCRouter({
 		.input(apiRemoveServer)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				await assertServerAccess(ctx, input.serverId);
 				const activeServers = await haveActiveServices(input.serverId);
 
 				if (activeServers) {
@@ -437,15 +596,16 @@ export const serverRouter = createTRPCRouter({
 					await updateServersBasedOnQuantity(admin.id, admin.serversQuantity);
 				}
 
-				return currentServer;
+				return redactServer(currentServer);
 			} catch (error) {
 				throw error;
 			}
 		}),
-	update: withPermission("server", "create")
+	update: withPermission("server", "update")
 		.input(apiUpdateServer)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				await assertServerAccess(ctx, input.serverId);
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
@@ -460,8 +620,16 @@ export const serverRouter = createTRPCRouter({
 						message: "Server is inactive",
 					});
 				}
+				await assertServerSshKeyUseAllowed(ctx, input.sshKeyId);
+				if (input.command !== undefined) {
+					await assertServerExecuteAllowed(ctx);
+				}
+				await assertServerCloudDestinationAllowed(input);
+				const { command, ...serverData } = input;
 				const currentServer = await updateServerById(input.serverId, {
-					...input,
+					...serverData,
+					...(command !== undefined &&
+						!isRedactedSecretValue(command) && { command }),
 				});
 
 				await applyDockerCleanupSchedule(
@@ -476,14 +644,15 @@ export const serverRouter = createTRPCRouter({
 					resourceId: input.serverId,
 					resourceName: server.name,
 				});
-				return currentServer;
+				return redactServer(currentServer);
 			} catch (error) {
 				throw error;
 			}
 		}),
-	updateBuildsConcurrency: withPermission("server", "create")
+	updateBuildsConcurrency: withPermission("server", "update")
 		.input(apiUpdateServerBuildsConcurrency)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx, input.serverId);
 			const currentServer = await findServerById(input.serverId);
 			if (currentServer.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
@@ -495,9 +664,10 @@ export const serverRouter = createTRPCRouter({
 				input.buildsConcurrency,
 				ctx.session.activeOrganizationId,
 			);
-			return await updateServerById(input.serverId, {
+			const updatedServer = await updateServerById(input.serverId, {
 				buildsConcurrency: input.buildsConcurrency,
 			});
+			return redactServer(updatedServer);
 		}),
 	publicIp: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
@@ -517,21 +687,30 @@ export const serverRouter = createTRPCRouter({
 	}),
 	getServerMetrics: withPermission("monitoring", "read")
 		.input(
-			z.object({
-				url: z.string(),
-				token: z.string(),
-				dataPoints: z.string(),
-			}),
+			z
+				.object({
+					serverId: z.string().optional(),
+					dataPoints: z.string(),
+				})
+				.strict(),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ ctx, input }) => {
+			const target = await getMetricsTarget(input, ctx);
+			const request = buildMetricsRequest({
+				...target,
+				dataPoints: input.dataPoints,
+			});
+
 			try {
-				const url = new URL(input.url);
-				url.searchParams.append("limit", input.dataPoints);
-				const response = await fetch(url.toString(), {
-					headers: {
-						Authorization: `Bearer ${input.token}`,
+				const response = await fetchWithPublicEgress(
+					request.url.toString(),
+					{
+						headers: {
+							Authorization: `Bearer ${request.token}`,
+						},
 					},
-				});
+					metricsFetchOptions,
+				);
 				if (!response.ok) {
 					throw new Error(
 						`Error ${response.status}: ${response.statusText}. Ensure the container is running and this service is included in the monitoring configuration.`,
@@ -572,5 +751,49 @@ export const serverRouter = createTRPCRouter({
 			} catch (error) {
 				throw error;
 			}
+		}),
+	getContainerResourceStats: withPermission("monitoring", "read").query(
+		async ({ ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Functionality not available in cloud version",
+				});
+			}
+
+			const stats = await getAllContainerStats();
+			return await filterContainerResourceStatsByAccess(ctx, stats);
+		},
+	),
+	getContainerProcesses: withPermission("monitoring", "read")
+		.input(
+			z.object({
+				containerId: z.string().regex(/^[a-zA-Z0-9.\-_]+$/),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Functionality not available in cloud version",
+				});
+			}
+
+			const stats = await getAllContainerStats();
+			const accessibleStat = await findAccessibleContainerResourceStat(
+				ctx,
+				stats,
+				input.containerId,
+			);
+			if (!accessibleStat) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this monitored container",
+				});
+			}
+
+			return await getContainerProcesses(
+				accessibleStat.ID ?? accessibleStat.Container ?? input.containerId,
+			);
 		}),
 });

@@ -10,6 +10,10 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
 
+type SshKeySession = {
+	activeOrganizationId: string;
+};
+
 export const createSshKey = async (input: z.infer<typeof apiCreateSshKey>) => {
 	await db.transaction(async (tx) => {
 		const sshKey = await tx
@@ -66,4 +70,24 @@ export const findSSHKeyById = async (
 		});
 	}
 	return sshKey;
+};
+
+export const assertSshKeyAccess = async (
+	sshKeyId: string | null | undefined,
+	session: SshKeySession,
+) => {
+	if (!sshKeyId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "SSH Key not found",
+		});
+	}
+
+	const sshKey = await findSSHKeyById(sshKeyId);
+	if (sshKey.organizationId !== session.activeOrganizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this SSH key",
+		});
+	}
 };

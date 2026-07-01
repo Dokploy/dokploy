@@ -110,7 +110,11 @@ ${command ?? "wait $MONGOD_PID"}`;
 		mongo.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
-	const bindsMount = generateBindMounts(mounts);
+	const bindsMount = generateBindMounts(mounts, {
+		appName,
+		serverId: mongo.serverId,
+		serviceType: "mongo",
+	});
 	const filesMount = generateFileMounts(appName, mongo);
 
 	const docker = await getRemoteDocker(mongo.serverId);

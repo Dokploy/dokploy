@@ -213,9 +213,9 @@ const MENU: Menu = {
 			title: "Requests",
 			url: "/dashboard/requests",
 			icon: Forward,
-			// Only enabled for users with access to Docker in non-cloud environments
+			// Request logs expose organization-wide Traefik request metadata.
 			isEnabled: ({ permissions, isCloud }) =>
-				!!(permissions?.docker.read && !isCloud),
+				!!(permissions?.organization.update && !isCloud),
 		},
 
 		// Legacy unused menu, adjusted to the new structure

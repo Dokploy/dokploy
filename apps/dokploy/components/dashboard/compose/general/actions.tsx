@@ -1,6 +1,6 @@
-import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
 import { useRouter } from "next/router";
+import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";

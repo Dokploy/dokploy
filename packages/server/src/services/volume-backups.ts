@@ -125,9 +125,10 @@ export const updateVolumeBackup = async (
 	volumeBackupId: string,
 	volumeBackup: z.infer<typeof updateVolumeBackupSchema>,
 ) => {
+	const { volumeBackupId: _volumeBackupId, ...updateData } = volumeBackup;
 	return await db
 		.update(volumeBackups)
-		.set(volumeBackup as Partial<typeof volumeBackups.$inferInsert>)
+		.set(updateData as Partial<typeof volumeBackups.$inferInsert>)
 		.where(eq(volumeBackups.volumeBackupId, volumeBackupId))
 		.returning()
 		.then((e) => e[0]);

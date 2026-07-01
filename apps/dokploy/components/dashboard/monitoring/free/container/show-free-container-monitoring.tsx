@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { api } from "@/utils/api";
+import { ContainerResourceUsage } from "../../container-resource-usage/container-resource-usage";
 import { DockerBlockChart } from "./docker-block-chart";
 import { DockerCpuChart } from "./docker-cpu-chart";
 import { DockerDiskChart } from "./docker-disk-chart";
 import { DockerDiskUsageChart } from "./docker-disk-usage-chart";
+import { getDockerDiskUsageCardClassName } from "./docker-disk-usage-layout";
 import { DockerMemoryChart } from "./docker-memory-chart";
 import { DockerNetworkChart } from "./docker-network-chart";
 
@@ -16,8 +18,8 @@ const defaultData = {
 	},
 	memory: {
 		value: {
-			used: 0,
-			total: 0,
+			used: "0B",
+			total: "0B",
 		},
 		time: "",
 	},
@@ -45,16 +47,24 @@ interface Props {
 	appName: string;
 	appType?: "application" | "stack" | "docker-compose";
 }
+
+type MemorySize = number | string;
+type MemoryUsageValue = {
+	used: MemorySize;
+	total: MemorySize;
+	swap?: {
+		used: MemorySize;
+		total: MemorySize;
+	};
+};
+
 export interface DockerStats {
 	cpu: {
 		value: string;
 		time: string;
 	};
 	memory: {
-		value: {
-			used: number;
-			total: number;
-		};
+		value: MemoryUsageValue;
 		time: string;
 	};
 	block: {
@@ -92,8 +102,12 @@ export type DockerStatsJSON = {
 };
 
 export const convertMemoryToBytes = (
-	memoryString: string | undefined,
+	memoryString: MemorySize | undefined,
 ): number => {
+	if (typeof memoryString === "number") {
+		return memoryString;
+	}
+
 	if (!memoryString || typeof memoryString !== "string") {
 		return 0;
 	}
@@ -115,6 +129,19 @@ export const convertMemoryToBytes = (
 	}
 };
 
+const getMemoryUsagePercentage = (
+	used: MemorySize | undefined,
+	total: MemorySize | undefined,
+): number => {
+	const totalBytes = convertMemoryToBytes(total);
+
+	if (totalBytes <= 0) {
+		return 0;
+	}
+
+	return Math.min((convertMemoryToBytes(used) / totalBytes) * 100, 100);
+};
+
 export const ContainerFreeMonitoring = ({
 	appName,
 	appType = "application",
@@ -133,6 +160,8 @@ export const ContainerFreeMonitoring = ({
 		disk: [],
 	});
 	const [currentData, setCurrentData] = useState<DockerStats>(defaultData);
+	const [isDockerDiskUsageExpanded, setIsDockerDiskUsageExpanded] =
+		useState(true);
 
 	useEffect(() => {
 		setCurrentData(defaultData);
@@ -201,6 +230,10 @@ export const ContainerFreeMonitoring = ({
 		return () => ws.close();
 	}, [appName]);
 
+	const memoryValue = currentData.memory.value;
+	const swapValue = memoryValue.swap;
+	const showSwapUsage = convertMemoryToBytes(swapValue?.total) > 0;
+
 	return (
 		<div className="rounded-xl bg-background flex flex-col gap-4">
 			<header className="flex items-center justify-between">
@@ -211,6 +244,8 @@ export const ContainerFreeMonitoring = ({
 					</p>
 				</div>
 			</header>
+
+			{appName === "dokploy" && <ContainerResourceUsage />}
 
 			<div className="grid gap-6 lg:grid-cols-2">
 				<Card className="bg-background">
@@ -240,24 +275,33 @@ export const ContainerFreeMonitoring = ({
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">
 							<span className="text-sm text-muted-foreground">
-								{`Used:  ${currentData.memory.value.used} / Limit: ${currentData.memory.value.total} `}
+								{`Used:  ${memoryValue.used} / Limit: ${memoryValue.total} `}
 							</span>
 							<Progress
-								value={
-									// @ts-ignore
-									(convertMemoryToBytes(currentData.memory.value.used) /
-										// @ts-ignore
-										convertMemoryToBytes(currentData.memory.value.total)) *
-									100
-								}
+								value={getMemoryUsagePercentage(
+									memoryValue.used,
+									memoryValue.total,
+								)}
 								className="w-full"
 							/>
+							{showSwapUsage && swapValue && (
+								<div className="mt-1 flex flex-col gap-2">
+									<span className="text-sm text-muted-foreground">
+										{`Swap:  ${swapValue.used} / Limit: ${swapValue.total} `}
+									</span>
+									<Progress
+										value={getMemoryUsagePercentage(
+											swapValue.used,
+											swapValue.total,
+										)}
+										className="w-full"
+									/>
+								</div>
+							)}
 							<DockerMemoryChart
 								accumulativeData={accumulativeData.memory}
 								memoryLimitGB={
-									// @ts-ignore
-									convertMemoryToBytes(currentData.memory.value.total) /
-									1024 ** 3
+									convertMemoryToBytes(memoryValue.total) / 1024 ** 3
 								}
 							/>
 						</div>
@@ -286,14 +330,20 @@ export const ContainerFreeMonitoring = ({
 					</Card>
 				)}
 				{appName === "dokploy" && (
-					<Card className="bg-background">
+					<Card
+						className={getDockerDiskUsageCardClassName(
+							isDockerDiskUsageExpanded,
+						)}
+					>
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 							<CardTitle className="text-sm font-medium">
 								Docker Disk Usage
 							</CardTitle>
 						</CardHeader>
 						<CardContent>
-							<DockerDiskUsageChart />
+							<DockerDiskUsageChart
+								onDetailsVisibilityChange={setIsDockerDiskUsageExpanded}
+							/>
 						</CardContent>
 					</Card>
 				)}

@@ -16,6 +16,7 @@ import { TerminalLine } from "../../docker/logs/terminal-line";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
 interface Props {
+	deploymentId?: string;
 	logPath: string | null;
 	open: boolean;
 	onClose: () => void;
@@ -23,6 +24,7 @@ interface Props {
 	errorMessage?: string;
 }
 export const ShowDeployment = ({
+	deploymentId,
 	logPath,
 	open,
 	onClose,
@@ -56,8 +58,18 @@ export const ShowDeployment = ({
 
 		setData("");
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+		const params = new URLSearchParams();
+		if (deploymentId) {
+			params.set("deploymentId", deploymentId);
+		}
+		if (logPath) {
+			params.set("logPath", logPath);
+		}
+		if (serverId) {
+			params.set("serverId", serverId);
+		}
 
-		const wsUrl = `${protocol}//${window.location.host}/listen-deployment?logPath=${logPath}${serverId ? `&serverId=${serverId}` : ""}`;
+		const wsUrl = `${protocol}//${window.location.host}/listen-deployment?${params.toString()}`;
 		const ws = new WebSocket(wsUrl);
 		wsRef.current = ws; // Store WebSocket instance in ref
 
@@ -79,7 +91,7 @@ export const ShowDeployment = ({
 				wsRef.current = null;
 			}
 		};
-	}, [logPath, open]);
+	}, [deploymentId, logPath, open, serverId]);
 
 	useEffect(() => {
 		const logs = parseLogs(data);
@@ -110,14 +122,14 @@ export const ShowDeployment = ({
 		}
 	}, [filteredLogs, autoScroll]);
 
-	const handleCopy = () => {
+	const handleCopy = async () => {
 		const logContent = filteredLogs
 			.map(({ timestamp, message }: LogLine) =>
 				`${timestamp?.toISOString() || ""} ${message}`.trim(),
 			)
 			.join("\n");
 
-		const success = copy(logContent);
+		const success = await copy(logContent);
 		if (success) {
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);

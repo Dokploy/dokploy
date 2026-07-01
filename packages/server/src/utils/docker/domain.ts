@@ -4,6 +4,10 @@ import { paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Domain } from "@dokploy/server/services/domain";
 import { parse, stringify } from "yaml";
+import {
+	normalizeRelativeFilePath,
+	quoteShellArg,
+} from "../filesystem/safe-path";
 import { execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
@@ -50,7 +54,7 @@ export const getComposePath = (compose: Compose) => {
 	if (sourceType === "raw") {
 		path = "docker-compose.yml";
 	} else {
-		path = composePath;
+		path = normalizeRelativeFilePath(composePath);
 	}
 
 	return join(COMPOSE_PATH, appName, "code", path);
@@ -81,7 +85,7 @@ export const loadDockerComposeRemote = async (
 		}
 		const { stdout, stderr } = await execAsyncRemote(
 			compose.serverId,
-			`cat ${path}`,
+			`cat ${quoteShellArg(path)}`,
 		);
 
 		if (stderr) {
@@ -123,12 +127,12 @@ exit 1;
 
 		const composeString = stringify(composeConverted, { lineWidth: 1000 });
 		const encodedContent = encodeBase64(composeString);
-		return `echo "${encodedContent}" | base64 -d > "${path}";`;
+		return `printf %s ${quoteShellArg(encodedContent)} | base64 -d > ${quoteShellArg(path)};`;
 	} catch (error) {
-		// @ts-ignore
-		return `echo "❌ Has occurred an error: ${error?.message || error}";
+		const message = error instanceof Error ? error.message : String(error);
+		return `echo ${quoteShellArg(`❌ Has occurred an error: ${message}`)};
 exit 1;
-		`;
+			`;
 	}
 };
 export const addDomainToCompose = async (

@@ -25,3 +25,20 @@ export const jobQueueSchema = z.discriminatedUnion("type", [
 ]);
 
 export type QueueJob = z.infer<typeof jobQueueSchema>;
+
+export const signedJobQueueSchema = jobQueueSchema.and(
+	z.object({
+		scope: z.object({
+			version: z.literal(1),
+			operation: z.enum(["create", "update", "remove"]),
+			type: z.enum(["backup", "server", "schedule", "volume-backup"]),
+			objectId: z.string().min(1),
+			cronSchedule: z.string(),
+			timezone: z.string().nullable(),
+			serverId: z.string().nullable(),
+			organizationId: z.string().nullable(),
+			expiresAt: z.number().int(),
+		}),
+		signature: z.string().min(1),
+	}),
+);

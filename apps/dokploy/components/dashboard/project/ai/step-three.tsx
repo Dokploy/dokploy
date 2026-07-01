@@ -17,9 +17,11 @@ export const StepThree = ({ templateInfo }: StepProps) => {
 						</div>
 						<div>
 							<h3 className="text-sm font-semibold">Description</h3>
-							<ReactMarkdown className="text-sm text-muted-foreground">
-								{templateInfo?.details?.description}
-							</ReactMarkdown>
+							<div className="text-sm text-muted-foreground">
+								<ReactMarkdown>
+									{templateInfo?.details?.description}
+								</ReactMarkdown>
+							</div>
 						</div>
 						<div>
 							<h3 className="text-md font-semibold">Server</h3>

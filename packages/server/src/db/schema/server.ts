@@ -135,7 +135,7 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 const createSchema = createInsertSchema(server, {
 	serverId: z.string().min(1),
 	name: z.string().min(1),
-	description: z.string().optional(),
+	description: z.string().nullable().optional(),
 	serverType: z.enum(["deploy", "build"]).optional(),
 });
 

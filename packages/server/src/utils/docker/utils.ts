@@ -13,6 +13,16 @@ import type { MongoNested } from "../databases/mongo";
 import type { MysqlNested } from "../databases/mysql";
 import type { PostgresNested } from "../databases/postgres";
 import type { RedisNested } from "../databases/redis";
+import {
+	type BindMountServiceContext,
+	normalizeBindMountHostPath,
+} from "../filesystem/bind-mount-path";
+import {
+	assertNoSymlinkEscapeInsideDirectory,
+	getNoSymlinkFilePathGuardCommand,
+	quoteShellArg,
+	resolveFilePathInsideDirectory,
+} from "../filesystem/safe-path";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
@@ -39,12 +49,12 @@ export const pullImage = async (
 				[
 					"login",
 					authConfig.registryUrl || "",
-					"-u",
+					"--username",
 					authConfig.username,
-					"-p",
-					authConfig.password,
+					"--password-stdin",
 				],
 				onData,
+				{ input: authConfig.password },
 			);
 		}
 		await spawnAsync("docker", ["pull", dockerImage], onData);
@@ -110,7 +120,7 @@ export const containerExists = async (containerName: string) => {
 
 export const stopService = async (appName: string) => {
 	try {
-		await execAsync(`docker service scale ${appName}=0 `);
+		await execAsync(`docker service scale ${quoteShellArg(appName)}=0 `);
 	} catch (error) {
 		console.error(error);
 		return error;
@@ -119,7 +129,10 @@ export const stopService = async (appName: string) => {
 
 export const stopServiceRemote = async (serverId: string, appName: string) => {
 	try {
-		await execAsyncRemote(serverId, `docker service scale ${appName}=0 `);
+		await execAsyncRemote(
+			serverId,
+			`docker service scale ${quoteShellArg(appName)}=0 `,
+		);
 	} catch (error) {
 		console.error(error);
 		return error;
@@ -266,7 +279,33 @@ export interface DockerDiskUsageItem {
 	size: string;
 	reclaimable: string;
 	sizeBytes: number;
+	details?: DockerDiskUsageDetailItem[];
 }
+
+export interface DockerDiskUsageDetailItem {
+	id: string;
+	name: string;
+	size: string;
+	sizeBytes: number;
+	subtitle?: string;
+	meta: {
+		label: string;
+		value: string;
+	}[];
+}
+
+export interface DockerDiskUsageVerboseDetails {
+	images: DockerDiskUsageDetailItem[];
+	containers: DockerDiskUsageDetailItem[];
+	volumes: DockerDiskUsageDetailItem[];
+	buildCache: DockerDiskUsageDetailItem[];
+}
+
+export type DockerDiskUsageDetailLimit = 5 | 10 | 15 | null;
+
+export const resolveDockerDiskUsageDetailLimit = (
+	detailLimit?: DockerDiskUsageDetailLimit,
+): DockerDiskUsageDetailLimit => (detailLimit === undefined ? 10 : detailLimit);
 
 const parseSizeToBytes = (size: string): number => {
 	const match = size.match(/^([\d.]+)\s*([KMGT]?B)$/i);
@@ -283,10 +322,179 @@ const parseSizeToBytes = (size: string): number => {
 	return value * (multipliers[unit] || 0);
 };
 
-export const getDockerDiskUsage = async (): Promise<DockerDiskUsageItem[]> => {
-	const command = "docker system df --format '{{json .}}'";
-	const { stdout } = await execAsync(command);
+const dockerDiskUsageTypeToDetailsKey: Record<
+	string,
+	keyof DockerDiskUsageVerboseDetails
+> = {
+	"Build Cache": "buildCache",
+	Containers: "containers",
+	Images: "images",
+	"Local Volumes": "volumes",
+};
 
+const splitDockerTableRow = (line: string) =>
+	line
+		.trim()
+		.split(/\s{2,}/)
+		.map((item) => item.trim());
+
+const sortDiskUsageDetails = (items: DockerDiskUsageDetailItem[]) =>
+	items.sort((a, b) => b.sizeBytes - a.sizeBytes);
+
+interface DockerDiskUsageContainerReference {
+	id: string;
+	image: string;
+	name: string;
+}
+
+interface DockerImageInspect {
+	Id?: string;
+	RepoDigests?: string[];
+	RepoTags?: string[];
+	GraphDriver?: {
+		Data?: Record<string, string>;
+	};
+}
+
+interface DockerVolumeInspect {
+	Driver?: string;
+	Mountpoint?: string;
+	Name?: string;
+}
+
+interface DockerDiskUsageEnrichment {
+	containers?: DockerDiskUsageContainerReference[];
+	imageInspects?: Map<string, DockerImageInspect>;
+	volumeInspects?: Map<string, DockerVolumeInspect>;
+}
+
+const parseJsonLines = <T>(stdout: string): T[] =>
+	stdout
+		.trim()
+		.split("\n")
+		.filter(Boolean)
+		.flatMap((line) => {
+			try {
+				return [JSON.parse(line) as T];
+			} catch {
+				return [];
+			}
+		});
+
+const parseJsonArray = <T>(stdout: string): T[] => {
+	try {
+		const parsed = JSON.parse(stdout);
+		return Array.isArray(parsed) ? (parsed as T[]) : [];
+	} catch {
+		return [];
+	}
+};
+
+const isDanglingImageName = (name: string) => name === "<none>:<none>";
+
+const isSameImageReference = (
+	containerImage: string,
+	detail: DockerDiskUsageDetailItem,
+	inspect?: DockerImageInspect,
+) => {
+	const fullId = inspect?.Id ?? "";
+	const shortId = detail.id;
+
+	return (
+		containerImage === detail.name ||
+		containerImage === shortId ||
+		containerImage.startsWith(shortId) ||
+		(Boolean(fullId) && containerImage === fullId) ||
+		(Boolean(fullId) && fullId.startsWith(`sha256:${containerImage}`))
+	);
+};
+
+const formatListValue = (items: string[], emptyValue = "--") =>
+	items.length > 0 ? items.join(", ") : emptyValue;
+
+const getImagePathFromInspect = (inspect?: DockerImageInspect) => {
+	const data = inspect?.GraphDriver?.Data;
+	return data?.MergedDir ?? data?.UpperDir ?? data?.WorkDir;
+};
+
+export const enrichDockerDiskUsageDetails = (
+	details: DockerDiskUsageVerboseDetails,
+	enrichment: DockerDiskUsageEnrichment,
+): DockerDiskUsageVerboseDetails => {
+	const containers = enrichment.containers ?? [];
+	const imageInspects = enrichment.imageInspects ?? new Map();
+	const volumeInspects = enrichment.volumeInspects ?? new Map();
+
+	return {
+		...details,
+		images: details.images.map((detail) => {
+			const inspect = imageInspects.get(detail.id);
+			const fullId = inspect?.Id ?? detail.id;
+			const repoTags =
+				inspect?.RepoTags?.filter((tag: string) => tag !== "<none>:<none>") ??
+				[];
+			const repoDigests = inspect?.RepoDigests ?? [];
+			const usedBy = containers
+				.filter((container) =>
+					isSameImageReference(container.image, detail, inspect),
+				)
+				.map((container) => container.name);
+			const imagePath = getImagePathFromInspect(inspect);
+			const extraMeta = [
+				{ label: "Full image id", value: fullId },
+				{
+					label: "Source",
+					value: isDanglingImageName(detail.name)
+						? "dangling local image"
+						: detail.name,
+				},
+				...(repoTags.length > 0
+					? [{ label: "Tags", value: formatListValue(repoTags) }]
+					: []),
+				...(repoDigests.length > 0
+					? [{ label: "Digests", value: formatListValue(repoDigests) }]
+					: []),
+				...(imagePath ? [{ label: "Docker path", value: imagePath }] : []),
+				{
+					label: "Used by",
+					value: formatListValue(usedBy, "no containers reported"),
+				},
+			];
+
+			return {
+				...detail,
+				meta: [
+					...extraMeta,
+					...detail.meta.filter(
+						(meta) => meta.label !== "Containers" || usedBy.length === 0,
+					),
+				],
+				subtitle: isDanglingImageName(detail.name)
+					? "Dangling local image"
+					: detail.subtitle,
+			};
+		}),
+		volumes: details.volumes.map((detail) => {
+			const inspect = volumeInspects.get(detail.id);
+			return {
+				...detail,
+				meta: [
+					...(inspect?.Mountpoint
+						? [{ label: "Mountpoint", value: inspect.Mountpoint }]
+						: []),
+					...(inspect?.Driver
+						? [{ label: "Driver", value: inspect.Driver }]
+						: []),
+					...detail.meta,
+				],
+			};
+		}),
+	};
+};
+
+export const parseDockerDiskUsageSummary = (
+	stdout: string,
+): DockerDiskUsageItem[] => {
 	const lines = stdout.trim().split("\n").filter(Boolean);
 	return lines.map((line) => {
 		const data = JSON.parse(line);
@@ -297,6 +505,275 @@ export const getDockerDiskUsage = async (): Promise<DockerDiskUsageItem[]> => {
 			size: data.Size,
 			reclaimable: data.Reclaimable,
 			sizeBytes: parseSizeToBytes(data.Size),
+		};
+	});
+};
+
+export const parseDockerDiskUsageVerbose = (
+	stdout: string,
+): DockerDiskUsageVerboseDetails => {
+	const rows: Record<keyof DockerDiskUsageVerboseDetails, string[]> = {
+		buildCache: [],
+		containers: [],
+		images: [],
+		volumes: [],
+	};
+	let currentSection: keyof DockerDiskUsageVerboseDetails | null = null;
+	let hasHeader = false;
+
+	for (const line of stdout.split("\n")) {
+		const trimmedLine = line.trim();
+		if (!trimmedLine) {
+			continue;
+		}
+
+		if (trimmedLine === "Images space usage:") {
+			currentSection = "images";
+			hasHeader = false;
+			continue;
+		}
+		if (trimmedLine === "Containers space usage:") {
+			currentSection = "containers";
+			hasHeader = false;
+			continue;
+		}
+		if (trimmedLine === "Local Volumes space usage:") {
+			currentSection = "volumes";
+			hasHeader = false;
+			continue;
+		}
+		if (trimmedLine.startsWith("Build cache usage:")) {
+			currentSection = "buildCache";
+			hasHeader = false;
+			continue;
+		}
+
+		if (!currentSection) {
+			continue;
+		}
+
+		if (!hasHeader) {
+			hasHeader = true;
+			continue;
+		}
+
+		rows[currentSection].push(trimmedLine);
+	}
+
+	return {
+		buildCache: sortDiskUsageDetails(
+			rows.buildCache.flatMap((row) => {
+				const [id, cacheType, size, created, lastUsed, usage, shared] =
+					splitDockerTableRow(row);
+				if (!id || !cacheType || !size) {
+					return [];
+				}
+
+				return {
+					id,
+					meta: [
+						{ label: "Created", value: created ?? "--" },
+						{ label: "Last used", value: lastUsed ?? "--" },
+						{ label: "Usage", value: usage ?? "--" },
+						{ label: "Shared", value: shared ?? "--" },
+					],
+					name: cacheType,
+					size,
+					sizeBytes: parseSizeToBytes(size),
+				};
+			}),
+		),
+		containers: sortDiskUsageDetails(
+			rows.containers.flatMap((row) => {
+				const [id, image, command, localVolumes, size, created, status, name] =
+					splitDockerTableRow(row);
+				if (!id || !image || !size || !name) {
+					return [];
+				}
+
+				return {
+					id,
+					meta: [
+						{ label: "Image", value: image },
+						{ label: "Command", value: command ?? "--" },
+						{ label: "Volumes", value: localVolumes ?? "0" },
+						{ label: "Created", value: created ?? "--" },
+						{ label: "Status", value: status ?? "--" },
+					],
+					name,
+					size,
+					sizeBytes: parseSizeToBytes(size),
+				};
+			}),
+		),
+		images: sortDiskUsageDetails(
+			rows.images.flatMap((row) => {
+				const [
+					repository,
+					tag,
+					id,
+					created,
+					size,
+					sharedSize,
+					uniqueSize,
+					containers,
+				] = splitDockerTableRow(row);
+				if (!repository || !tag || !id || !size) {
+					return [];
+				}
+
+				return {
+					id,
+					meta: [
+						{ label: "Created", value: created ?? "--" },
+						{ label: "Shared", value: sharedSize ?? "--" },
+						{ label: "Unique", value: uniqueSize ?? "--" },
+						{ label: "Containers", value: containers ?? "0" },
+					],
+					name: `${repository}:${tag}`,
+					size,
+					sizeBytes: parseSizeToBytes(size),
+				};
+			}),
+		),
+		volumes: sortDiskUsageDetails(
+			rows.volumes.flatMap((row) => {
+				const [name, links, size] = splitDockerTableRow(row);
+				if (!name || !size) {
+					return [];
+				}
+
+				return {
+					id: name,
+					meta: [{ label: "Links", value: links ?? "0" }],
+					name,
+					size,
+					sizeBytes: parseSizeToBytes(size),
+				};
+			}),
+		),
+	};
+};
+
+const limitDiskUsageDetailItems = (
+	items: DockerDiskUsageDetailItem[],
+	detailLimit: DockerDiskUsageDetailLimit,
+) => (typeof detailLimit === "number" ? items.slice(0, detailLimit) : items);
+
+export const limitDockerDiskUsageDetails = (
+	details: DockerDiskUsageVerboseDetails,
+	detailLimit: DockerDiskUsageDetailLimit = 10,
+): DockerDiskUsageVerboseDetails => ({
+	buildCache: limitDiskUsageDetailItems(details.buildCache, detailLimit),
+	containers: limitDiskUsageDetailItems(details.containers, detailLimit),
+	images: limitDiskUsageDetailItems(details.images, detailLimit),
+	volumes: limitDiskUsageDetailItems(details.volumes, detailLimit),
+});
+
+const getDockerDiskUsageContainerReferences = async (): Promise<
+	DockerDiskUsageContainerReference[]
+> => {
+	const { stdout } = await execAsync(
+		"docker ps -a --no-trunc --format '{{json .}}'",
+	);
+
+	return parseJsonLines<{
+		ID?: string;
+		Image?: string;
+		Names?: string;
+	}>(stdout).flatMap((container) => {
+		if (!container.ID || !container.Image || !container.Names) {
+			return [];
+		}
+
+		return {
+			id: container.ID,
+			image: container.Image,
+			name: container.Names,
+		};
+	});
+};
+
+const inspectDockerImages = async (
+	images: DockerDiskUsageDetailItem[],
+): Promise<Map<string, DockerImageInspect>> => {
+	const imageIds = images.map((image) => image.id).filter(Boolean);
+	if (imageIds.length === 0) {
+		return new Map();
+	}
+
+	const command = `docker image inspect ${imageIds
+		.map((imageId) => quoteShellArg(imageId))
+		.join(" ")}`;
+	const { stdout } = await execAsync(command);
+	const inspectedImages = parseJsonArray<DockerImageInspect>(stdout);
+
+	return new Map(
+		inspectedImages.flatMap((image) => {
+			const matchingId = imageIds.find(
+				(imageId) =>
+					image.Id === imageId ||
+					Boolean(image.Id?.startsWith(`sha256:${imageId}`)),
+			);
+
+			return matchingId ? [[matchingId, image] as const] : [];
+		}),
+	);
+};
+
+const inspectDockerVolumes = async (
+	volumes: DockerDiskUsageDetailItem[],
+): Promise<Map<string, DockerVolumeInspect>> => {
+	const volumeNames = volumes.map((volume) => volume.id).filter(Boolean);
+	if (volumeNames.length === 0) {
+		return new Map();
+	}
+
+	const command = `docker volume inspect ${volumeNames
+		.map((volumeName) => quoteShellArg(volumeName))
+		.join(" ")}`;
+	const { stdout } = await execAsync(command);
+	const inspectedVolumes = parseJsonArray<DockerVolumeInspect>(stdout);
+
+	return new Map(
+		inspectedVolumes.flatMap((volume) => {
+			const name = volume.Name;
+			return name ? [[name, volume] as const] : [];
+		}),
+	);
+};
+
+export const getDockerDiskUsage = async (
+	detailLimit: DockerDiskUsageDetailLimit = 10,
+): Promise<DockerDiskUsageItem[]> => {
+	const summaryCommand = "docker system df --format '{{json .}}'";
+	const verboseCommand = "docker system df -v";
+	const [summaryResult, verboseResult] = await Promise.all([
+		execAsync(summaryCommand),
+		execAsync(verboseCommand).catch(() => ({ stdout: "" })),
+	]);
+
+	const parsedDetails = parseDockerDiskUsageVerbose(verboseResult.stdout);
+	const limitedDetails = limitDockerDiskUsageDetails(
+		parsedDetails,
+		detailLimit,
+	);
+	const [containers, imageInspects, volumeInspects] = await Promise.all([
+		getDockerDiskUsageContainerReferences().catch(() => []),
+		inspectDockerImages(limitedDetails.images).catch(() => new Map()),
+		inspectDockerVolumes(limitedDetails.volumes).catch(() => new Map()),
+	]);
+	const details = enrichDockerDiskUsageDetails(limitedDetails, {
+		containers,
+		imageInspects,
+		volumeInspects,
+	});
+
+	return parseDockerDiskUsageSummary(summaryResult.stdout).map((item) => {
+		const detailsKey = dockerDiskUsageTypeToDetailsKey[item.type];
+		return {
+			...item,
+			details: detailsKey ? details[detailsKey] : [],
 		};
 	});
 };
@@ -362,7 +839,7 @@ export const cleanupAllBackground = async (serverId?: string) => {
 
 export const startService = async (appName: string) => {
 	try {
-		await execAsync(`docker service scale ${appName}=1 `);
+		await execAsync(`docker service scale ${quoteShellArg(appName)}=1 `);
 	} catch (error) {
 		console.error(error);
 		throw error;
@@ -371,7 +848,10 @@ export const startService = async (appName: string) => {
 
 export const startServiceRemote = async (serverId: string, appName: string) => {
 	try {
-		await execAsyncRemote(serverId, `docker service scale ${appName}=1 `);
+		await execAsyncRemote(
+			serverId,
+			`docker service scale ${quoteShellArg(appName)}=1 `,
+		);
 	} catch (error) {
 		console.error(error);
 		throw error;
@@ -384,7 +864,7 @@ export const removeService = async (
 	_deleteVolumes = false,
 ) => {
 	try {
-		const command = `docker service rm ${appName}`;
+		const command = `docker service rm ${quoteShellArg(appName)}`;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
@@ -523,14 +1003,16 @@ export const calculateResources = ({
 }: Resources): ResourceRequirements => {
 	return {
 		Limits: {
-			MemoryBytes: memoryLimit ? Number.parseInt(memoryLimit) : undefined,
-			NanoCPUs: cpuLimit ? Number.parseInt(cpuLimit) : undefined,
+			MemoryBytes: memoryLimit ? Number.parseInt(memoryLimit, 10) : undefined,
+			NanoCPUs: cpuLimit ? Number.parseInt(cpuLimit, 10) : undefined,
 		},
 		Reservations: {
 			MemoryBytes: memoryReservation
-				? Number.parseInt(memoryReservation)
+				? Number.parseInt(memoryReservation, 10)
 				: undefined,
-			NanoCPUs: cpuReservation ? Number.parseInt(cpuReservation) : undefined,
+			NanoCPUs: cpuReservation
+				? Number.parseInt(cpuReservation, 10)
+				: undefined,
 		},
 	};
 };
@@ -637,7 +1119,10 @@ export const generateConfigContainer = (
 	};
 };
 
-export const generateBindMounts = (mounts: ApplicationNested["mounts"]) => {
+export const generateBindMounts = (
+	mounts: ApplicationNested["mounts"],
+	serviceContext: BindMountServiceContext,
+) => {
 	if (!mounts || mounts.length === 0) {
 		return [];
 	}
@@ -646,7 +1131,7 @@ export const generateBindMounts = (mounts: ApplicationNested["mounts"]) => {
 		.filter((mount) => mount.type === "bind")
 		.map((mount) => ({
 			Type: "bind" as const,
-			Source: mount.hostPath || "",
+			Source: normalizeBindMountHostPath(mount.hostPath, serviceContext),
 			Target: mount.mountPath,
 		}));
 };
@@ -671,10 +1156,12 @@ export const generateFileMounts = (
 	return mounts
 		.filter((mount) => mount.type === "file")
 		.map((mount) => {
-			const fileName = mount.filePath;
 			const absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 			const directory = path.join(absoluteBasePath, appName, "files");
-			const sourcePath = path.join(directory, fileName || "");
+			const { fullPath: sourcePath } = assertNoSymlinkEscapeInsideDirectory(
+				directory,
+				mount.filePath || "",
+			);
 			return {
 				Type: "bind" as const,
 				Source: sourcePath,
@@ -689,15 +1176,30 @@ export const createFile = async (
 	content: string,
 ) => {
 	try {
-		const fullPath = path.join(outputPath, filePath);
-		if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
+		const { fullPath, isDirectory } = assertNoSymlinkEscapeInsideDirectory(
+			outputPath,
+			filePath,
+		);
+		if (isDirectory) {
 			fs.mkdirSync(fullPath, { recursive: true });
 			return;
 		}
 
 		const directory = path.dirname(fullPath);
 		fs.mkdirSync(directory, { recursive: true });
-		fs.writeFileSync(fullPath, content || "");
+		const fd = fs.openSync(
+			fullPath,
+			fs.constants.O_WRONLY |
+				fs.constants.O_CREAT |
+				fs.constants.O_TRUNC |
+				(fs.constants.O_NOFOLLOW ?? 0),
+			0o666,
+		);
+		try {
+			fs.writeFileSync(fd, content || "");
+		} finally {
+			fs.closeSync(fd);
+		}
 	} catch (error) {
 		throw error;
 	}
@@ -710,16 +1212,27 @@ export const getCreateFileCommand = (
 	filePath: string,
 	content: string,
 ) => {
-	const fullPath = path.join(outputPath, filePath);
-	if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
-		return `mkdir -p ${fullPath};`;
+	const { fullPath, isDirectory } = resolveFilePathInsideDirectory(
+		outputPath,
+		filePath,
+	);
+	const quotedFullPath = quoteShellArg(fullPath);
+	const symlinkGuard = getNoSymlinkFilePathGuardCommand(outputPath, fullPath);
+	if (isDirectory) {
+		return `
+		${symlinkGuard}
+		mkdir -p ${quotedFullPath};
+		`;
 	}
 
-	const directory = path.dirname(fullPath);
 	const encodedContent = encodeBase64(content);
 	return `
-		mkdir -p ${directory};
-		echo "${encodedContent}" | base64 -d > "${fullPath}";
+		${symlinkGuard}
+		dir="$(dirname "$file")";
+		mkdir -p "$dir";
+		tmp="$(mktemp "$dir/.dokploy-write.XXXXXX")";
+		echo "${encodedContent}" | base64 -d > "$tmp";
+		mv -f "$tmp" "$file";
 	`;
 };
 

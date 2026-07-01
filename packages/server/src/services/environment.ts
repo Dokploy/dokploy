@@ -9,6 +9,9 @@ import { asc, eq } from "drizzle-orm";
 import type { z } from "zod";
 
 export type Environment = typeof environments.$inferSelect;
+type EnvironmentUpdateData = Partial<
+	Pick<Environment, "name" | "description" | "env">
+>;
 
 export const createEnvironment = async (
 	input: z.infer<typeof apiCreateEnvironment>,
@@ -266,12 +269,14 @@ export const deleteEnvironment = async (environmentId: string) => {
 
 export const updateEnvironmentById = async (
 	environmentId: string,
-	environmentData: Partial<Environment>,
+	environmentData: EnvironmentUpdateData,
 ) => {
 	const result = await db
 		.update(environments)
 		.set({
-			...environmentData,
+			name: environmentData.name,
+			description: environmentData.description,
+			env: environmentData.env,
 		})
 		.where(eq(environments.environmentId, environmentId))
 		.returning()

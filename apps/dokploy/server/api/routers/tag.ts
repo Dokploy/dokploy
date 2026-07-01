@@ -12,7 +12,7 @@ import {
 	projectTags,
 	tags,
 } from "@/server/db/schema";
-import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
+import { createTRPCRouter, withPermission } from "../trpc";
 
 export const tagRouter = createTRPCRouter({
 	create: withPermission("tag", "create")
@@ -47,7 +47,7 @@ export const tagRouter = createTRPCRouter({
 			}
 		}),
 
-	all: protectedProcedure.query(async ({ ctx }) => {
+	all: withPermission("tag", "read").query(async ({ ctx }) => {
 		try {
 			const organizationTags = await db.query.tags.findMany({
 				where: eq(tags.organizationId, ctx.session.activeOrganizationId),
@@ -64,34 +64,36 @@ export const tagRouter = createTRPCRouter({
 		}
 	}),
 
-	one: protectedProcedure.input(apiFindOneTag).query(async ({ input, ctx }) => {
-		try {
-			const tag = await db.query.tags.findFirst({
-				where: and(
-					eq(tags.tagId, input.tagId),
-					eq(tags.organizationId, ctx.session.activeOrganizationId),
-				),
-			});
+	one: withPermission("tag", "read")
+		.input(apiFindOneTag)
+		.query(async ({ input, ctx }) => {
+			try {
+				const tag = await db.query.tags.findFirst({
+					where: and(
+						eq(tags.tagId, input.tagId),
+						eq(tags.organizationId, ctx.session.activeOrganizationId),
+					),
+				});
 
-			if (!tag) {
+				if (!tag) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Tag not found",
+					});
+				}
+
+				return tag;
+			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Tag not found",
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Error fetching tag: ${error instanceof Error ? error.message : error}`,
+					cause: error,
 				});
 			}
-
-			return tag;
-		} catch (error) {
-			if (error instanceof TRPCError) {
-				throw error;
-			}
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: `Error fetching tag: ${error instanceof Error ? error.message : error}`,
-				cause: error,
-			});
-		}
-	}),
+		}),
 
 	update: withPermission("tag", "update")
 		.input(apiUpdateTag)
@@ -178,7 +180,7 @@ export const tagRouter = createTRPCRouter({
 			}
 		}),
 
-	assignToProject: protectedProcedure
+	assignToProject: withPermission("tag", "update")
 		.input(
 			z.object({
 				projectId: z.string().min(1),
@@ -266,7 +268,7 @@ export const tagRouter = createTRPCRouter({
 			}
 		}),
 
-	removeFromProject: protectedProcedure
+	removeFromProject: withPermission("tag", "update")
 		.input(
 			z.object({
 				projectId: z.string().min(1),
@@ -346,7 +348,7 @@ export const tagRouter = createTRPCRouter({
 			}
 		}),
 
-	bulkAssign: protectedProcedure
+	bulkAssign: withPermission("tag", "update")
 		.input(
 			z.object({
 				projectId: z.string().min(1),

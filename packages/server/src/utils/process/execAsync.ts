@@ -1,6 +1,7 @@
 import { exec, execFile } from "node:child_process";
 import util from "node:util";
 import { findServerById } from "@dokploy/server/services/server";
+import { resolveServerDestinationHost } from "@dokploy/server/utils/servers/destination";
 import { Client } from "ssh2";
 import { ExecError } from "./ExecError";
 
@@ -8,6 +9,12 @@ import { ExecError } from "./ExecError";
 export { ExecError } from "./ExecError";
 
 const execAsyncBase = util.promisify(exec);
+
+type ExecErrorLike = Error & {
+	code?: number | string;
+	stdout?: Buffer | string;
+	stderr?: Buffer | string;
+};
 
 export const execAsync = async (
 	command: string,
@@ -21,12 +28,11 @@ export const execAsync = async (
 		};
 	} catch (error) {
 		if (error instanceof Error) {
-			// @ts-ignore - exec error has these properties
-			const exitCode = error.code;
-			// @ts-ignore
-			const stdout = error.stdout?.toString() || "";
-			// @ts-ignore
-			const stderr = error.stderr?.toString() || "";
+			const execError = error as ExecErrorLike;
+			const exitCode =
+				typeof execError.code === "number" ? execError.code : undefined;
+			const stdout = execError.stdout?.toString() || "";
+			const stderr = execError.stderr?.toString() || "";
 
 			throw new ExecError(`Command execution failed: ${error.message}`, {
 				command,
@@ -61,7 +67,6 @@ export const execAsyncStream = (
 						command,
 						stdout: stdoutComplete,
 						stderr: stderrComplete,
-						// @ts-ignore
 						exitCode: error.code,
 						originalError: error,
 					}),
@@ -147,6 +152,7 @@ export const execAsyncRemote = async (
 	if (!serverId) return { stdout: "", stderr: "" };
 	const server = await findServerById(serverId);
 	if (!server.sshKeyId) throw new Error("No SSH key available for this server");
+	const host = await resolveServerDestinationHost(server);
 
 	let stdout = "";
 	let stderr = "";
@@ -240,7 +246,7 @@ export const execAsyncRemote = async (
 				}
 			})
 			.connect({
-				host: server.ipAddress,
+				host,
 				port: server.port,
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,

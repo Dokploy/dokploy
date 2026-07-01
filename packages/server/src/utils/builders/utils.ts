@@ -1,5 +1,6 @@
 import { dirname, join } from "node:path";
 import { encodeBase64, prepareEnvironmentVariables } from "../docker/utils";
+import { quoteShellArgument } from "../shell";
 
 export const createEnvFileCommand = (
 	directory: string,
@@ -15,6 +16,7 @@ export const createEnvFileCommand = (
 
 	const encodedContent = encodeBase64(envFileContent || "");
 	const envFilePath = join(dirname(directory), ".env");
+	const quotedEnvFilePath = quoteShellArgument(envFilePath);
 
-	return `echo "${encodedContent}" | base64 -d > "${envFilePath}";`;
+	return `echo "${encodedContent}" | base64 -d > ${quotedEnvFilePath};`;
 };

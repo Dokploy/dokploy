@@ -1,5 +1,4 @@
 import { createWriteStream } from "node:fs";
-import path from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Schedule } from "@dokploy/server/db/schema/schedule";
 import {
@@ -7,11 +6,17 @@ import {
 	updateDeployment,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
-import { findScheduleById } from "@dokploy/server/services/schedule";
+import {
+	findScheduleById,
+	getScheduleDirectory,
+	getScheduleScriptPath,
+} from "@dokploy/server/services/schedule";
 import { scheduledJobs, scheduleJob as scheduleJobNode } from "node-schedule";
 import { getComposeContainer, getServiceContainer } from "../docker/utils";
+import { quoteShellArg } from "../filesystem/safe-path";
 import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
+import { quoteShellArgs } from "../shell";
 
 export const scheduleJob = (schedule: Schedule) => {
 	const { cronExpression, scheduleId, timezone } = schedule;
@@ -73,16 +78,27 @@ export const runCommand = async (scheduleId: string) => {
 
 		if (serverId) {
 			try {
+				const dockerExecCommand = quoteShellArgs([
+					"docker",
+					"exec",
+					containerId,
+					shellType,
+					"-c",
+					command,
+				]);
+				const quotedLogPath = quoteShellArg(deployment.logPath);
 				await execAsyncRemote(
 					serverId,
 					`
 					set -e
-					echo "Running command: docker exec ${containerId} ${shellType} -c '${command}'" >> ${deployment.logPath};
-					docker exec ${containerId} ${shellType} -c '${command}' >> ${deployment.logPath} 2>> ${deployment.logPath} || { 
-						echo "❌ Command failed" >> ${deployment.logPath};
+					echo ${quoteShellArg(
+						`Running schedule command for ${scheduleType} container ${containerId}`,
+					)} >> ${quotedLogPath};
+					${dockerExecCommand} >> ${quotedLogPath} 2>> ${quotedLogPath} || {
+						echo "❌ Command failed" >> ${quotedLogPath};
 						exit 1;
 					}
-					echo "✅ Command executed successfully" >> ${deployment.logPath};
+					echo "✅ Command executed successfully" >> ${quotedLogPath};
 					`,
 				);
 			} catch (error) {
@@ -101,7 +117,7 @@ export const runCommand = async (scheduleId: string) => {
 					return;
 				}
 				writeStream.write(
-					`docker exec ${containerId} ${shellType} -c ${command}\n`,
+					`Running schedule command for ${scheduleType} container ${containerId}\n`,
 				);
 				await spawnAsync(
 					"docker",
@@ -128,7 +144,7 @@ export const runCommand = async (scheduleId: string) => {
 		try {
 			const writeStream = createWriteStream(deployment.logPath, { flags: "a" });
 			const { SCHEDULES_PATH } = paths();
-			const fullPath = path.join(SCHEDULES_PATH, appName || "");
+			const fullPath = getScheduleDirectory(SCHEDULES_PATH, appName);
 
 			await spawnAsync(
 				"bash",
@@ -157,15 +173,17 @@ export const runCommand = async (scheduleId: string) => {
 	} else if (scheduleType === "server") {
 		try {
 			const { SCHEDULES_PATH } = paths(true);
-			const fullPath = path.join(SCHEDULES_PATH, appName || "");
+			const scriptPath = getScheduleScriptPath(SCHEDULES_PATH, appName);
+			const quotedLogPath = quoteShellArg(deployment.logPath);
+			const scriptCommand = quoteShellArgs(["bash", scriptPath]);
 			const command = `
 				set -e
-				echo "Running script" >> ${deployment.logPath};
-				bash -c ${fullPath}/script.sh 2>&1 | tee -a ${deployment.logPath} || { 
-					echo "❌ Command failed" >> ${deployment.logPath};
+				echo "Running script" >> ${quotedLogPath};
+				${scriptCommand} 2>&1 | tee -a ${quotedLogPath} || {
+					echo "❌ Command failed" >> ${quotedLogPath};
 					exit 1;
 				  }
-				echo "✅ Command executed successfully" >> ${deployment.logPath};
+				echo "✅ Command executed successfully" >> ${quotedLogPath};
 			`;
 			await execAsyncRemote(serverId, command, async (data) => {
 				// we need to extract the PID and Schedule ID from the data

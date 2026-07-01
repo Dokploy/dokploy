@@ -1,12 +1,13 @@
-import { prepareEnvironmentVariablesForShell } from "../docker/utils";
+import { prepareEnvironmentVariables } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
+import { quoteShellArgs } from "../shell";
 import type { ApplicationNested } from ".";
 
 export const getHerokuCommand = (application: ApplicationNested) => {
 	const { env, appName, cleanCache } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
-	const envVariables = prepareEnvironmentVariablesForShell(
+	const envVariables = prepareEnvironmentVariables(
 		env,
 		application.environment.project.env,
 		application.environment.env,
@@ -29,7 +30,7 @@ export const getHerokuCommand = (application: ApplicationNested) => {
 		args.push("--env", env);
 	}
 
-	const command = `pack ${args.join(" ")}`;
+	const command = quoteShellArgs(["pack", ...args]);
 	const bashCommand = `
 echo "Starting heroku build..." ;
 ${command} || { 

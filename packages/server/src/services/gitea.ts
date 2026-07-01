@@ -80,6 +80,24 @@ export const findGiteaById = async (giteaId: string) => {
 	}
 };
 
+export const findGiteaGitProviderId = async (giteaId: string) => {
+	const giteaProviderResult = await db.query.gitea.findFirst({
+		where: eq(gitea.giteaId, giteaId),
+		columns: {
+			gitProviderId: true,
+		},
+	});
+
+	if (!giteaProviderResult) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Gitea Provider not found",
+		});
+	}
+
+	return giteaProviderResult.gitProviderId;
+};
+
 export const updateGitea = async (giteaId: string, input: Partial<Gitea>) => {
 	try {
 		const updateResult = await db

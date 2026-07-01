@@ -6,9 +6,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 	findBackupsByDbId,
-	findEnvironmentById,
 	findMongoById,
-	findProjectById,
 	getAccessibleServerIds,
 	getContainerLogs,
 	getServiceContainerCommand,
@@ -30,11 +28,14 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import { redactDatabaseServiceSecrets } from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { buildMongoPasswordChangeCommand } from "@/server/api/utils/database-password";
+import { assertTargetEnvironmentAccess } from "@/server/api/utils/placement-access";
 import {
 	apiChangeMongoStatus,
 	apiCreateMongo,
@@ -57,8 +58,11 @@ export const mongoRouter = createTRPCRouter({
 		.input(apiCreateMongo)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const environment = await findEnvironmentById(input.environmentId);
-				const project = await findProjectById(environment.projectId);
+				const environment = await assertTargetEnvironmentAccess(
+					ctx,
+					input.environmentId,
+				);
+				const project = environment.project;
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
@@ -109,7 +113,7 @@ export const mongoRouter = createTRPCRouter({
 					resourceId: newMongo.mongoId,
 					resourceName: newMongo.appName,
 				});
-				return newMongo;
+				return redactDatabaseServiceSecrets(newMongo);
 			} catch (error) {
 				if (error instanceof TRPCError) {
 					throw error;
@@ -136,7 +140,7 @@ export const mongoRouter = createTRPCRouter({
 					message: "You are not authorized to access this mongo",
 				});
 			}
-			return mongo;
+			return redactDatabaseServiceSecrets(mongo);
 		}),
 
 	start: protectedProcedure
@@ -162,7 +166,7 @@ export const mongoRouter = createTRPCRouter({
 				resourceId: service.mongoId,
 				resourceName: service.appName,
 			});
-			return service;
+			return redactDatabaseServiceSecrets(service);
 		}),
 	stop: protectedProcedure
 		.input(apiFindOneMongo)
@@ -187,7 +191,7 @@ export const mongoRouter = createTRPCRouter({
 				resourceId: mongo.mongoId,
 				resourceName: mongo.appName,
 			});
-			return mongo;
+			return redactDatabaseServiceSecrets(mongo);
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMongo)
@@ -220,7 +224,7 @@ export const mongoRouter = createTRPCRouter({
 				resourceId: mongo.mongoId,
 				resourceName: mongo.appName,
 			});
-			return mongo;
+			return redactDatabaseServiceSecrets(mongo);
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployMongo)
@@ -235,7 +239,8 @@ export const mongoRouter = createTRPCRouter({
 				resourceId: mongo.mongoId,
 				resourceName: mongo.appName,
 			});
-			return deployMongo(input.mongoId);
+			const deployedMongo = await deployMongo(input.mongoId);
+			return redactDatabaseServiceSecrets(deployedMongo);
 		}),
 	deployWithLogs: protectedProcedure
 		.meta({
@@ -291,7 +296,7 @@ export const mongoRouter = createTRPCRouter({
 				resourceId: mongo.mongoId,
 				resourceName: mongo.appName,
 			});
-			return mongo;
+			return redactDatabaseServiceSecrets(mongo);
 		}),
 	reload: protectedProcedure
 		.input(apiResetMongo)
@@ -361,7 +366,7 @@ export const mongoRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
-			return mongo;
+			return redactDatabaseServiceSecrets(mongo);
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesMongo)
@@ -432,13 +437,18 @@ export const mongoRouter = createTRPCRouter({
 			const { appName, serverId, databaseUser, databasePassword } = mongo;
 
 			const containerCmd = getServiceContainerCommand(appName);
+			const passwordChangeCommand = buildMongoPasswordChangeCommand({
+				databasePassword,
+				databaseUser,
+				password,
+			});
 			const command = `
 				CONTAINER_ID=$(${containerCmd})
 				if [ -z "$CONTAINER_ID" ]; then
 					echo "No running container found for ${appName}" >&2
 					exit 1
 				fi
-				docker exec "$CONTAINER_ID" mongosh -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase admin --eval "db.getSiblingDB('admin').changeUserPassword('${databaseUser}', '${password}')"
+				${passwordChangeCommand}
 			`;
 
 			await db.transaction(async (tx) => {
@@ -474,6 +484,7 @@ export const mongoRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.mongoId, {
 				service: ["create"],
 			});
+			await assertTargetEnvironmentAccess(ctx, input.targetEnvironmentId);
 
 			const updatedMongo = await db
 				.update(mongoTable)
@@ -497,7 +508,7 @@ export const mongoRouter = createTRPCRouter({
 				resourceId: updatedMongo.mongoId,
 				resourceName: updatedMongo.appName,
 			});
-			return updatedMongo;
+			return redactDatabaseServiceSecrets(updatedMongo);
 		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildMongo)

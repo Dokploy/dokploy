@@ -9,6 +9,8 @@ import {
 	validateRequest,
 } from "@dokploy/server";
 import { WebSocketServer } from "ws";
+import { assertContainerMetricsServiceAccess } from "@/server/api/utils/monitoring-access";
+import { canAccessMonitoringWebSocket } from "./server-permission";
 
 export const setupDockerStatsMonitoringSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -50,11 +52,35 @@ export const setupDockerStatsMonitoringSocketServer = (
 			ws.close(4000, "appName no provided");
 			return;
 		}
+		if (!["application", "stack", "docker-compose"].includes(appType)) {
+			ws.close(4000, "Invalid appType");
+			return;
+		}
 
 		if (!user || !session) {
 			ws.close();
 			return;
 		}
+
+		if (!(await canAccessMonitoringWebSocket({ user, session }))) {
+			ws.close();
+			return;
+		}
+
+		try {
+			if (appName === "dokploy") {
+				if (user.role !== "owner") {
+					ws.close();
+					return;
+				}
+			} else {
+				await assertContainerMetricsServiceAccess({ user, session }, appName);
+			}
+		} catch {
+			ws.close();
+			return;
+		}
+
 		const intervalId = setInterval(async () => {
 			try {
 				// Special case: when monitoring "dokploy", get host system stats instead of container stats
@@ -90,12 +116,12 @@ export const setupDockerStatsMonitoringSocketServer = (
 				});
 
 				const container = containers[0];
-				if (!container || container?.State !== "running") {
+				if (container?.State !== "running") {
 					ws.close(4000, "Container not running");
 					return;
 				}
 				const { stdout, stderr } = await execAsync(
-					`docker stats ${container.Id} --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'`,
+					`docker stats ${container.Id} --no-stream --format '{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}'`,
 				);
 				if (stderr) {
 					console.error("Docker stats error:", stderr);
@@ -112,7 +138,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 					}),
 				);
 			} catch (error) {
-				// @ts-ignore
+				// @ts-expect-error
 				ws.close(4000, `Error: ${error.message}`);
 			}
 		}, 1300);

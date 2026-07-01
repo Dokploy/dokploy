@@ -3,11 +3,22 @@ import {
 	execAsync,
 	execAsyncRemote,
 	findDestinationById,
+	getAccessibleServerIds,
 	IS_CLOUD,
 	removeDestinationById,
 	updateDestinationById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import {
+	buildRcloneS3Command,
+	getRcloneS3Destination,
+} from "@dokploy/server/utils/backups/utils";
+import { assertDestinationEndpointAllowed } from "@dokploy/server/utils/destination/endpoint";
+import {
+	isRedactedSecretValue,
+	redactSecretFields,
+	redactSecretFieldsList,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { createTRPCRouter, withPermission } from "@/server/api/trpc";
@@ -20,13 +31,43 @@ import {
 	destinations,
 } from "@/server/db/schema";
 
+const assertDestinationServerAccess = async (
+	ctx: { session: Parameters<typeof getAccessibleServerIds>[0] },
+	serverId?: string,
+) => {
+	if (!serverId) {
+		return;
+	}
+
+	const accessibleIds = await getAccessibleServerIds(ctx.session);
+	if (!accessibleIds.has(serverId)) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this server",
+		});
+	}
+};
+
+const normalizeDestinationEndpointInput = async <
+	T extends { endpoint: string },
+>(
+	input: T,
+) => ({
+	...input,
+	endpoint: await assertDestinationEndpointAllowed(input.endpoint, {
+		allowPrivateNetwork: !IS_CLOUD,
+		fieldName: "S3 endpoint",
+	}),
+});
+
 export const destinationRouter = createTRPCRouter({
 	create: withPermission("destination", "create")
 		.input(apiCreateDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				const destinationInput = await normalizeDestinationEndpointInput(input);
 				const result = await createDestination(
-					input,
+					destinationInput,
 					ctx.session.activeOrganizationId,
 				);
 				await audit(ctx, {
@@ -35,7 +76,7 @@ export const destinationRouter = createTRPCRouter({
 					resourceId: result.destinationId,
 					resourceName: input.name,
 				});
-				return result;
+				return redactSecretFields(result, ["secretAccessKey"]);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -46,47 +87,33 @@ export const destinationRouter = createTRPCRouter({
 		}),
 	testConnection: withPermission("destination", "create")
 		.input(apiCreateDestination)
-		.mutation(async ({ input }) => {
-			const {
-				secretAccessKey,
-				bucket,
-				region,
-				endpoint,
-				accessKey,
-				provider,
-				additionalFlags,
-			} = input;
-			try {
-				const rcloneFlags = [
-					`--s3-access-key-id="${accessKey}"`,
-					`--s3-secret-access-key="${secretAccessKey}"`,
-					`--s3-region="${region}"`,
-					`--s3-endpoint="${endpoint}"`,
-					"--s3-no-check-bucket",
-					"--s3-force-path-style",
-					"--retries 1",
-					"--low-level-retries 1",
-					"--timeout 10s",
-					"--contimeout 5s",
-				];
-				if (provider) {
-					rcloneFlags.unshift(`--s3-provider="${provider}"`);
-				}
-				if (additionalFlags?.length) {
-					rcloneFlags.push(...additionalFlags);
-				}
-				const rcloneDestination = `:s3:${bucket}`;
-				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD && !input.serverId) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Server not found",
+				});
+			}
+			if (IS_CLOUD) {
+				await assertDestinationServerAccess(ctx, input.serverId);
+			}
 
-				if (IS_CLOUD && !input.serverId) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Server not found",
-					});
-				}
+			try {
+				const destinationInput = await normalizeDestinationEndpointInput(input);
+				const rcloneCommand = buildRcloneS3Command("ls", destinationInput, [
+					"--retries",
+					"1",
+					"--low-level-retries",
+					"1",
+					"--timeout",
+					"10s",
+					"--contimeout",
+					"5s",
+					getRcloneS3Destination(destinationInput),
+				]);
 
 				if (IS_CLOUD) {
-					await execAsyncRemote(input.serverId || "", rcloneCommand);
+					await execAsyncRemote(destinationInput.serverId || "", rcloneCommand);
 				} else {
 					await execAsync(rcloneCommand);
 				}
@@ -111,13 +138,14 @@ export const destinationRouter = createTRPCRouter({
 					message: "You are not allowed to access this destination",
 				});
 			}
-			return destination;
+			return redactSecretFields(destination, ["secretAccessKey"]);
 		}),
 	all: withPermission("destination", "read").query(async ({ ctx }) => {
-		return await db.query.destinations.findMany({
+		const destinationList = await db.query.destinations.findMany({
 			where: eq(destinations.organizationId, ctx.session.activeOrganizationId),
 			orderBy: [desc(destinations.createdAt)],
 		});
+		return redactSecretFieldsList(destinationList, ["secretAccessKey"]);
 	}),
 	remove: withPermission("destination", "delete")
 		.input(apiRemoveDestination)
@@ -141,7 +169,7 @@ export const destinationRouter = createTRPCRouter({
 					resourceId: input.destinationId,
 					resourceName: destination.name,
 				});
-				return result;
+				return redactSecretFields(result, ["secretAccessKey"]);
 			} catch (error) {
 				throw error;
 			}
@@ -157,8 +185,13 @@ export const destinationRouter = createTRPCRouter({
 						message: "You are not allowed to update this destination",
 					});
 				}
+				const secretAccessKey = isRedactedSecretValue(input.secretAccessKey)
+					? destination.secretAccessKey
+					: input.secretAccessKey;
+				const destinationInput = await normalizeDestinationEndpointInput(input);
 				const result = await updateDestinationById(input.destinationId, {
-					...input,
+					...destinationInput,
+					secretAccessKey,
 					organizationId: ctx.session.activeOrganizationId,
 				});
 				await audit(ctx, {
@@ -167,7 +200,7 @@ export const destinationRouter = createTRPCRouter({
 					resourceId: input.destinationId,
 					resourceName: input.name,
 				});
-				return result;
+				return redactSecretFields(result, ["secretAccessKey"]);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",

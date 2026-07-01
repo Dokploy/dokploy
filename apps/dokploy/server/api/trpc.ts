@@ -9,10 +9,10 @@
 
 // import { getServerAuthSession } from "@/server/auth";
 import { db } from "@dokploy/server/db";
-import { hasValidLicense } from "@dokploy/server/index";
 import type { statements } from "@dokploy/server/lib/access-control";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { checkPermission } from "@dokploy/server/services/permission";
+import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
@@ -82,14 +82,12 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 	return createInnerTRPCContext({
 		req,
 		res,
-		// @ts-ignore
 		session: session
 			? {
 					...session,
 					activeOrganizationId: session.activeOrganizationId || "",
 				}
 			: null,
-		// @ts-ignore
 		user: user
 			? {
 					...user,
@@ -208,6 +206,18 @@ export const adminProcedure = t.procedure.use(({ ctx, next }) => {
 	});
 });
 
+export const ownerProcedure = t.procedure.use(({ ctx, next }) => {
+	if (!ctx.session || !ctx.user || ctx.user.role !== "owner") {
+		throw new TRPCError({ code: "UNAUTHORIZED" });
+	}
+	return next({
+		ctx: {
+			session: ctx.session,
+			user: ctx.user,
+		},
+	});
+});
+
 /**
  * Requires admin/owner role AND enterprise enabled with a license key in DB.
  * Does NOT call the license server on every request; full validation (haveValidLicenseKey)
@@ -240,6 +250,36 @@ export const enterpriseProcedure = t.procedure.use(async ({ ctx, next }) => {
 		},
 	});
 });
+
+/**
+ * Requires owner role AND enterprise enabled with a license key in DB.
+ * Use for instance-wide policy settings that the UI exposes only to owners.
+ */
+export const enterpriseOwnerProcedure = t.procedure.use(
+	async ({ ctx, next }) => {
+		if (!ctx.session || !ctx.user || ctx.user.role !== "owner") {
+			throw new TRPCError({ code: "UNAUTHORIZED" });
+		}
+
+		const hasValidLicenseResult = await hasValidLicense(
+			ctx.session.activeOrganizationId,
+		);
+
+		if (!hasValidLicenseResult) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Valid enterprise license required",
+			});
+		}
+
+		return next({
+			ctx: {
+				session: ctx.session,
+				user: ctx.user,
+			},
+		});
+	},
+);
 
 /**
  * Permission-checked procedure factory.

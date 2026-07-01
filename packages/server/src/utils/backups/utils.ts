@@ -1,9 +1,25 @@
+import { assertRcloneAdditionalFlagsAllowed } from "@dokploy/server/db/validations/destination";
 import { logger } from "@dokploy/server/lib/logger";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
+import {
+	assertDestinationEndpointAllowed,
+	normalizeDestinationEndpointUrl,
+} from "@dokploy/server/utils/destination/endpoint";
+import {
+	normalizeRestoreDatabaseName,
+	normalizeRestoreServiceName,
+	quoteRestoreShellArg,
+} from "@dokploy/server/utils/restore/safe-input";
+import { redactSensitiveText } from "@dokploy/server/utils/security/redaction";
+import {
+	quoteShellArgs,
+	quoteShellArgument,
+} from "@dokploy/server/utils/shell";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { keepLatestNBackups } from ".";
 import { runComposeBackup } from "./compose";
+import { isBackupScheduleTargetBound } from "./invariant";
 import { runLibsqlBackup } from "./libsql";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
@@ -12,6 +28,18 @@ import { runPostgresBackup } from "./postgres";
 import { runWebServerBackup } from "./web-server";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
+	if (!isBackupScheduleTargetBound(backup)) {
+		logger.warn(
+			{
+				backupId: backup.backupId,
+				backupType: backup.backupType,
+				databaseType: backup.databaseType,
+			},
+			"Skipping backup schedule with mismatched service binding",
+		);
+		return;
+	}
+
 	const {
 		schedule,
 		backupId,
@@ -66,34 +94,140 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
-export const getS3Credentials = (destination: Destination) => {
+export const shouldRunBackupRetention = (keepLatestCount?: number | null) =>
+	Number.isInteger(keepLatestCount) && (keepLatestCount ?? 0) > 0;
+
+export type RcloneS3Destination = Pick<
+	Destination,
+	| "accessKey"
+	| "secretAccessKey"
+	| "region"
+	| "endpoint"
+	| "provider"
+	| "additionalFlags"
+	| "bucket"
+>;
+
+const RCLONE_S3_REMOTE_NAME = "dokploys3";
+
+export const getS3CredentialArgs = (destination: RcloneS3Destination) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
-	const rcloneFlags = [
-		`--s3-access-key-id="${accessKey}"`,
-		`--s3-secret-access-key="${secretAccessKey}"`,
-		`--s3-region="${region}"`,
-		`--s3-endpoint="${endpoint}"`,
+	const normalizedEndpoint = normalizeDestinationEndpointUrl(endpoint, {
+		fieldName: "S3 endpoint",
+	});
+	const rcloneArgs = [
+		"--s3-access-key-id",
+		accessKey,
+		"--s3-secret-access-key",
+		secretAccessKey,
+		"--s3-region",
+		region,
+		"--s3-endpoint",
+		normalizedEndpoint,
 		"--s3-no-check-bucket",
 		"--s3-force-path-style",
 	];
 
 	if (provider) {
-		rcloneFlags.unshift(`--s3-provider="${provider}"`);
+		rcloneArgs.unshift("--s3-provider", provider);
 	}
 
 	if (destination.additionalFlags?.length) {
-		rcloneFlags.push(...destination.additionalFlags);
+		assertRcloneAdditionalFlagsAllowed(destination.additionalFlags);
+		rcloneArgs.push(...destination.additionalFlags);
 	}
 
-	return rcloneFlags;
+	return rcloneArgs;
+};
+
+export const getS3Credentials = (destination: RcloneS3Destination) =>
+	getS3CredentialArgs(destination).map((arg) => quoteShellArgument(arg));
+
+export const getRcloneS3Destination = (
+	destination: Pick<RcloneS3Destination, "bucket">,
+	path?: string,
+) => `${RCLONE_S3_REMOTE_NAME}:${destination.bucket}${path ? `/${path}` : ""}`;
+
+export const buildRcloneCommand = (args: readonly string[]) =>
+	quoteShellArgs(["rclone", ...args]);
+
+const getRcloneS3EnvironmentAssignments = (
+	destination: RcloneS3Destination,
+) => {
+	const { accessKey, secretAccessKey, region, endpoint, provider } =
+		destination;
+	const normalizedEndpoint = normalizeDestinationEndpointUrl(endpoint, {
+		fieldName: "S3 endpoint",
+	});
+	const configPrefix = `RCLONE_CONFIG_${RCLONE_S3_REMOTE_NAME.toUpperCase()}`;
+	const assignments: Array<[string, string]> = [
+		[`${configPrefix}_TYPE`, "s3"],
+		[`${configPrefix}_ACCESS_KEY_ID`, accessKey],
+		[`${configPrefix}_SECRET_ACCESS_KEY`, secretAccessKey],
+		[`${configPrefix}_REGION`, region],
+		[`${configPrefix}_ENDPOINT`, normalizedEndpoint],
+		[`${configPrefix}_NO_CHECK_BUCKET`, "true"],
+		[`${configPrefix}_FORCE_PATH_STYLE`, "true"],
+	];
+
+	if (provider) {
+		assignments.push([`${configPrefix}_PROVIDER`, provider]);
+	}
+
+	return assignments.map(
+		([key, value]) => `${key}=${quoteShellArgument(value)}`,
+	);
+};
+
+export const getS3RuntimeArgs = (destination: RcloneS3Destination) => {
+	assertRcloneAdditionalFlagsAllowed(destination.additionalFlags);
+	return destination.additionalFlags ?? [];
+};
+
+export const buildRcloneS3Command = (
+	command: string,
+	destination: RcloneS3Destination,
+	args: readonly string[],
+) =>
+	[
+		...getRcloneS3EnvironmentAssignments(destination),
+		buildRcloneCommand([command, ...getS3RuntimeArgs(destination), ...args]),
+	].join(" ");
+
+export const buildRcloneS3DeleteXargsCommand = (
+	destination: RcloneS3Destination,
+	pathPrefix: string,
+) =>
+	[
+		...getRcloneS3EnvironmentAssignments(destination),
+		`${buildRcloneCommand(["delete", ...getS3RuntimeArgs(destination)])} ${quoteShellArgument(pathPrefix)}"$1"`,
+	].join(" ");
+
+export const assertRcloneS3DestinationAllowed = async (
+	destination: RcloneS3Destination,
+) => {
+	assertRcloneAdditionalFlagsAllowed(destination.additionalFlags);
+	const endpoint = await assertDestinationEndpointAllowed(
+		destination.endpoint,
+		{
+			fieldName: "S3 endpoint",
+		},
+	);
+
+	return {
+		...destination,
+		endpoint,
+	};
 };
 
 export const getPostgresBackupCommand = (
 	database: string,
 	databaseUser: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; pg_dump -Fc --no-acl --no-owner -h localhost -U ${databaseUser} --no-password '${database}' | gzip"`;
+	const safeDatabase = normalizeRestoreDatabaseName(database);
+	const innerCommand = `set -o pipefail; pg_dump -Fc --no-acl --no-owner -h localhost -U ${quoteRestoreShellArg(databaseUser)} --no-password ${quoteRestoreShellArg(safeDatabase)} | gzip`;
+	return `docker exec -i "$CONTAINER_ID" bash -c ${quoteRestoreShellArg(innerCommand)}`;
 };
 
 export const getMariadbBackupCommand = (
@@ -101,14 +235,18 @@ export const getMariadbBackupCommand = (
 	databaseUser: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mariadb-dump --user='${databaseUser}' --password='${databasePassword}' --single-transaction --quick --databases ${database} | gzip"`;
+	const safeDatabase = normalizeRestoreDatabaseName(database);
+	const innerCommand = `set -o pipefail; mariadb-dump --user=${quoteRestoreShellArg(databaseUser)} --password=${quoteRestoreShellArg(databasePassword)} --single-transaction --quick --databases ${quoteRestoreShellArg(safeDatabase)} | gzip`;
+	return `docker exec -i "$CONTAINER_ID" bash -c ${quoteRestoreShellArg(innerCommand)}`;
 };
 
 export const getMysqlBackupCommand = (
 	database: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mysqldump --default-character-set=utf8mb4 -u 'root' --password='${databasePassword}' --single-transaction --no-tablespaces --quick '${database}' | gzip"`;
+	const safeDatabase = normalizeRestoreDatabaseName(database);
+	const innerCommand = `set -o pipefail; mysqldump --default-character-set=utf8mb4 -u root --password=${quoteRestoreShellArg(databasePassword)} --single-transaction --no-tablespaces --quick ${quoteRestoreShellArg(safeDatabase)} | gzip`;
+	return `docker exec -i "$CONTAINER_ID" bash -c ${quoteRestoreShellArg(innerCommand)}`;
 };
 
 export const getMongoBackupCommand = (
@@ -116,15 +254,31 @@ export const getMongoBackupCommand = (
 	databaseUser: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}' --archive --authenticationDatabase admin --gzip"`;
+	const safeDatabase = normalizeRestoreDatabaseName(database);
+	const innerCommand = `set -o pipefail; mongodump -d ${quoteRestoreShellArg(safeDatabase)} -u ${quoteRestoreShellArg(databaseUser)} -p ${quoteRestoreShellArg(databasePassword)} --archive --authenticationDatabase admin --gzip`;
+	return `docker exec -i "$CONTAINER_ID" bash -c ${quoteRestoreShellArg(innerCommand)}`;
 };
 
 export const getLibsqlBackupCommand = (database: string) => {
-	return `docker exec -i $CONTAINER_ID sh -c "tar cf - -C /var/lib/sqld ${database} | gzip"`;
+	const safeDatabase = normalizeRestoreDatabaseName(database);
+	const innerCommand = `tar cf - -C /var/lib/sqld ${quoteRestoreShellArg(safeDatabase)} | gzip`;
+	return `docker exec -i "$CONTAINER_ID" sh -c ${quoteRestoreShellArg(innerCommand)}`;
 };
 
 export const getServiceContainerCommand = (appName: string) => {
-	return `docker ps -q --filter "status=running" --filter "label=com.docker.swarm.service.name=${appName}" | head -n 1`;
+	const safeAppName = normalizeRestoreServiceName(appName);
+	if (!safeAppName) {
+		throw new Error("Invalid service name");
+	}
+	return `${quoteShellArgs([
+		"docker",
+		"ps",
+		"-q",
+		"--filter",
+		"status=running",
+		"--filter",
+		`label=com.docker.swarm.service.name=${safeAppName}`,
+	])} | head -n 1`;
 };
 
 export const getComposeContainerCommand = (
@@ -132,10 +286,35 @@ export const getComposeContainerCommand = (
 	serviceName: string,
 	composeType: "stack" | "docker-compose" | undefined,
 ) => {
-	if (composeType === "stack") {
-		return `docker ps -q --filter "status=running" --filter "label=com.docker.stack.namespace=${appName}" --filter "label=com.docker.swarm.service.name=${appName}_${serviceName}" | head -n 1`;
+	const safeAppName = normalizeRestoreServiceName(appName);
+	const safeServiceName = normalizeRestoreServiceName(serviceName);
+	if (!safeAppName || !safeServiceName) {
+		throw new Error("Invalid service name");
 	}
-	return `docker ps -q --filter "status=running" --filter "label=com.docker.compose.project=${appName}" --filter "label=com.docker.compose.service=${serviceName}" | head -n 1`;
+	if (composeType === "stack") {
+		return `${quoteShellArgs([
+			"docker",
+			"ps",
+			"-q",
+			"--filter",
+			"status=running",
+			"--filter",
+			`label=com.docker.stack.namespace=${safeAppName}`,
+			"--filter",
+			`label=com.docker.swarm.service.name=${safeAppName}_${safeServiceName}`,
+		])} | head -n 1`;
+	}
+	return `${quoteShellArgs([
+		"docker",
+		"ps",
+		"-q",
+		"--filter",
+		"status=running",
+		"--filter",
+		`label=com.docker.compose.project=${safeAppName}`,
+		"--filter",
+		`label=com.docker.compose.service=${safeServiceName}`,
+	])} | head -n 1`;
 };
 
 const getContainerSearchCommand = (backup: BackupSchedule) => {
@@ -255,14 +434,22 @@ export const getBackupCommand = (
 	rcloneCommand: string,
 	logPath: string,
 ) => {
+	if (!isBackupScheduleTargetBound(backup)) {
+		throw new Error("Backup schedule target is not linked to its backup type.");
+	}
+
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
+
+	if (!containerSearch || !backupCommand) {
+		throw new Error("Backup command could not be generated.");
+	}
 
 	logger.info(
 		{
 			containerSearch,
-			backupCommand,
-			rcloneCommand,
+			backupCommand: redactSensitiveText(backupCommand),
+			rcloneCommand: redactSensitiveText(rcloneCommand),
 			logPath,
 		},
 		`Executing backup command: ${backup.databaseType} ${backup.backupType}`,
@@ -284,7 +471,7 @@ export const getBackupCommand = (
 	# Run the backup command and capture the exit status
 	BACKUP_OUTPUT=$(${backupCommand} 2>&1 >/dev/null) || {
 		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
-		echo "Error: $BACKUP_OUTPUT" >> ${logPath};
+		echo "Error: Backup command failed. Check server logs for details." >> ${logPath};
 		exit 1;
 	}
 
@@ -294,7 +481,7 @@ export const getBackupCommand = (
 	# Run the upload command and capture the exit status
 	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
 		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
-		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
+		echo "Error: Upload command failed. Check server logs for details." >> ${logPath};
 		exit 1;
 	}
 

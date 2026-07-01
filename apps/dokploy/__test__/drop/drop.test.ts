@@ -1,3 +1,4 @@
+import { File as NodeFile } from "node:buffer";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { ApplicationNested } from "@dokploy/server";
@@ -11,10 +12,10 @@ const { APPLICATIONS_PATH } = paths();
 vi.mock("@dokploy/server/constants", async (importOriginal) => {
 	const actual = await importOriginal();
 	return {
-		// @ts-ignore
+		// @ts-expect-error
 		...actual,
 		paths: () => ({
-			// @ts-ignore
+			// @ts-expect-error
 			...actual.paths(),
 			BASE_PATH: OUTPUT_BASE,
 			APPLICATIONS_PATH: OUTPUT_BASE,
@@ -23,9 +24,8 @@ vi.mock("@dokploy/server/constants", async (importOriginal) => {
 });
 
 if (typeof window === "undefined") {
-	const undici = require("undici");
-	globalThis.File = undici.File as any;
-	globalThis.FileList = undici.FileList as any;
+	globalThis.File = NodeFile as unknown as typeof globalThis.File;
+	globalThis.FileList = class FileList {} as typeof globalThis.FileList;
 }
 
 const baseApp: ApplicationNested = {
@@ -295,7 +295,7 @@ describe("security: traversal inside BASE_PATH (sandbox escape)", () => {
 		await fs.rm(APPLICATIONS_PATH, { recursive: true, force: true });
 	});
 
-	it("should NOT allow writing outside application directory but inside BASE_PATH", async () => {
+	it("rejects ZIP entries that escape application code directory but stay inside BASE_PATH", async () => {
 		const appName = "sandbox-escape";
 
 		const base = APPLICATIONS_PATH.replace("/applications", "");
@@ -303,21 +303,65 @@ describe("security: traversal inside BASE_PATH (sandbox escape)", () => {
 
 		await fs.mkdir(output, { recursive: true });
 
-		// attacker writes into traefik config inside base
+		// attacker writes into a sibling config path that is still inside BASE_PATH
+		const traversalEntry = "../../traefik/dynamic/evil.yml";
+		const placeholder = "x".repeat(traversalEntry.length);
 		const zip = new AdmZip();
-		zip.addFile(
-			"../../../traefik/dynamic/evil.yml",
-			Buffer.from("pwned: true"),
+		zip.addFile(placeholder, Buffer.from("pwned: true"));
+		const zipBuffer = Buffer.from(
+			zip.toBuffer().toString("binary").split(placeholder).join(traversalEntry),
+			"binary",
 		);
 
-		const file = new File([zip.toBuffer() as any], "exploit.zip");
+		const file = new File([zipBuffer as any], "exploit.zip");
 
-		await unzipDrop(file, { ...baseApp, appName });
+		await expect(unzipDrop(file, { ...baseApp, appName })).rejects.toThrow(
+			/Path traversal detected.*resolved path escapes output directory/,
+		);
 
 		const escapedPath = path.join(base, "traefik/dynamic/evil.yml");
 
 		const exists = await fs
 			.readFile(escapedPath)
+			.then(() => true)
+			.catch(() => false);
+
+		expect(exists).toBe(false);
+	});
+});
+
+describe("security: unsafe single-root folder names", () => {
+	beforeAll(async () => {
+		await fs.rm(APPLICATIONS_PATH, { recursive: true, force: true });
+	});
+
+	afterAll(async () => {
+		await fs.rm(APPLICATIONS_PATH, { recursive: true, force: true });
+	});
+
+	it("rejects unsafe single-root folder names before flattening", async () => {
+		const appName = "unsafe-single-root";
+		const zip = new AdmZip();
+		zip.addFile(".git/", Buffer.alloc(0));
+		zip.addFile(
+			".git/config",
+			Buffer.from("[core]\nrepositoryformatversion=0"),
+		);
+
+		const file = new File([zip.toBuffer() as any], "exploit.zip");
+
+		await expect(unzipDrop(file, { ...baseApp, appName })).rejects.toThrow(
+			/Path traversal detected.*resolved path escapes output directory/,
+		);
+
+		const flattenedConfigPath = path.join(
+			APPLICATIONS_PATH,
+			appName,
+			"code",
+			"config",
+		);
+		const exists = await fs
+			.readFile(flattenedConfigPath)
 			.then(() => true)
 			.catch(() => false);
 
@@ -338,17 +382,15 @@ describe("unzipDrop using real zip files", () => {
 	it("should correctly extract a zip with a single root folder", async () => {
 		baseApp.appName = "single-file";
 		// const appName = "single-file";
-		try {
-			const outputPath = path.join(APPLICATIONS_PATH, baseApp.appName, "code");
-			const zip = new AdmZip("./__test__/drop/zips/single-file.zip");
-			const zipBuffer = zip.toBuffer() as Buffer<ArrayBuffer>;
-			const file = new File([zipBuffer], "single.zip");
-			await unzipDrop(file, baseApp);
-			const files = await fs.readdir(outputPath, { withFileTypes: true });
-			expect(files.some((f) => f.name === "test.txt")).toBe(true);
-		} catch (err) {
-		} finally {
-		}
+		const outputPath = path.join(APPLICATIONS_PATH, baseApp.appName, "code");
+		const zip = new AdmZip();
+		zip.addFile("project/", Buffer.alloc(0));
+		zip.addFile("project/test.txt", Buffer.from("single root content"));
+		const zipBuffer = zip.toBuffer() as Buffer<ArrayBuffer>;
+		const file = new File([zipBuffer], "single.zip");
+		await unzipDrop(file, baseApp);
+		const files = await fs.readdir(outputPath, { withFileTypes: true });
+		expect(files.some((f) => f.name === "test.txt")).toBe(true);
 	});
 });
 

@@ -1,8 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+	assertGitProviderAccess,
 	canEditDeployGitSource,
 	getAccessibleGitProviderIds,
+	redactBitbucketProvider,
+	redactGiteaProvider,
+	redactGithubProvider,
+	redactGitlabProvider,
+	redactGitProviderSecrets,
 } from "@dokploy/server/services/git-provider";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockDb = vi.hoisted(() => ({
 	query: {
@@ -365,5 +371,146 @@ describe("canEditDeployGitSource", () => {
 			);
 			expect(result).toBe(false);
 		});
+	});
+});
+
+describe("assertGitProviderAccess", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mockDb.query.gitProvider.findMany.mockResolvedValue(allProviders);
+		mockHasValidLicense.mockResolvedValue(false);
+	});
+
+	it("allows an accessible provider", async () => {
+		mockDb.query.member.findFirst.mockResolvedValue({
+			role: "member",
+			accessedGitProviders: [],
+		});
+
+		await expect(
+			assertGitProviderAccess(
+				providerOwned.gitProviderId,
+				session(USER_MEMBER),
+			),
+		).resolves.toBeUndefined();
+	});
+
+	it("rejects an inaccessible provider before callers use its credentials", async () => {
+		mockDb.query.member.findFirst.mockResolvedValue({
+			role: "member",
+			accessedGitProviders: [],
+		});
+
+		await expect(
+			assertGitProviderAccess(
+				providerPrivate.gitProviderId,
+				session(USER_MEMBER),
+			),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+	});
+
+	it("rejects missing provider ids", async () => {
+		await expect(
+			assertGitProviderAccess(undefined, session(USER_MEMBER)),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+	});
+});
+
+describe("git provider response redaction", () => {
+	it("removes github secret fields while preserving public metadata", () => {
+		const result = redactGithubProvider({
+			githubId: "gh-1",
+			githubAppName: "dokploy",
+			githubClientId: "client-id",
+			githubClientSecret: "client-secret",
+			githubPrivateKey: "private-key",
+			githubWebhookSecret: "webhook-secret",
+			gitProviderId: "gp-1",
+		});
+
+		expect(result).toMatchObject({
+			githubId: "gh-1",
+			githubAppName: "dokploy",
+			githubClientId: "client-id",
+			gitProviderId: "gp-1",
+		});
+		expect(result).not.toHaveProperty("githubClientSecret");
+		expect(result).not.toHaveProperty("githubPrivateKey");
+		expect(result).not.toHaveProperty("githubWebhookSecret");
+	});
+
+	it("removes gitlab, gitea, and bitbucket credential fields", () => {
+		expect(
+			redactGitlabProvider({
+				gitlabId: "gl-1",
+				gitlabUrl: "https://gitlab.example",
+				secret: "secret",
+				accessToken: "access-token",
+				refreshToken: "refresh-token",
+				gitProviderId: "gp-gitlab",
+			}),
+		).toEqual({
+			gitlabId: "gl-1",
+			gitlabUrl: "https://gitlab.example",
+			gitProviderId: "gp-gitlab",
+		});
+
+		expect(
+			redactGiteaProvider({
+				giteaId: "gt-1",
+				giteaUrl: "https://gitea.example",
+				clientId: "client-id",
+				clientSecret: "client-secret",
+				accessToken: "access-token",
+				refreshToken: "refresh-token",
+				gitProviderId: "gp-gitea",
+			}),
+		).toEqual({
+			giteaId: "gt-1",
+			giteaUrl: "https://gitea.example",
+			clientId: "client-id",
+			gitProviderId: "gp-gitea",
+		});
+
+		expect(
+			redactBitbucketProvider({
+				bitbucketId: "bb-1",
+				bitbucketUsername: "workspace",
+				appPassword: "app-password",
+				apiToken: "api-token",
+				gitProviderId: "gp-bitbucket",
+			}),
+		).toEqual({
+			bitbucketId: "bb-1",
+			bitbucketUsername: "workspace",
+			gitProviderId: "gp-bitbucket",
+		});
+	});
+
+	it("redacts provider relations on service-shaped responses", () => {
+		const result = redactGitProviderSecrets({
+			applicationId: "app-1",
+			github: {
+				githubId: "gh-1",
+				githubClientSecret: "client-secret",
+			},
+			gitlab: {
+				gitlabId: "gl-1",
+				accessToken: "access-token",
+			},
+			gitea: {
+				giteaId: "gt-1",
+				refreshToken: "refresh-token",
+			},
+			bitbucket: {
+				bitbucketId: "bb-1",
+				apiToken: "api-token",
+			},
+		});
+
+		expect(result.github).toEqual({ githubId: "gh-1" });
+		expect(result.gitlab).toEqual({ gitlabId: "gl-1" });
+		expect(result.gitea).toEqual({ giteaId: "gt-1" });
+		expect(result.bitbucket).toEqual({ bitbucketId: "bb-1" });
 	});
 });

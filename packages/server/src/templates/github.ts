@@ -1,4 +1,53 @@
 import { parse } from "toml";
+import {
+	assertCloudHostResolvesPublic,
+	fetchWithPublicEgress,
+	type HostnameLookup,
+} from "../utils/url/network";
+
+const DEFAULT_TEMPLATES_BASE_URL = "https://templates.dokploy.com";
+
+type TemplateFetchOptions = {
+	lookup?: HostnameLookup;
+};
+
+const resolveTemplatesBaseUrl = async (
+	baseUrl?: string,
+	options: TemplateFetchOptions = {},
+) => {
+	if (!baseUrl) {
+		return DEFAULT_TEMPLATES_BASE_URL;
+	}
+
+	let parsed: URL;
+	try {
+		parsed = new URL(baseUrl);
+	} catch {
+		throw new Error("Invalid template base URL");
+	}
+
+	if (
+		parsed.protocol !== "https:" ||
+		parsed.username ||
+		parsed.password ||
+		(parsed.pathname !== "" && parsed.pathname !== "/") ||
+		parsed.search ||
+		parsed.hash
+	) {
+		throw new Error("Invalid template base URL");
+	}
+
+	await assertCloudHostResolvesPublic(parsed.hostname, {
+		fieldName: "template base URL",
+		lookup: options.lookup,
+	});
+
+	return parsed.origin;
+};
+
+const buildTemplateUrl = (templateBaseUrl: string, pathname: string) => {
+	return new URL(pathname, templateBaseUrl).toString();
+};
 
 /**
  * Complete template interface that includes both metadata and configuration
@@ -54,11 +103,22 @@ interface TemplateMetadata {
  * Fetches the list of available templates from meta.json
  */
 export async function fetchTemplatesList(
-	baseUrl = "https://templates.dokploy.com",
+	baseUrl?: string,
+	options: TemplateFetchOptions = {},
 ): Promise<TemplateMetadata[]> {
-	const response = await fetch(`${baseUrl}/meta.json`, {
-		signal: AbortSignal.timeout(10000),
-	});
+	const templateBaseUrl = await resolveTemplatesBaseUrl(baseUrl, options);
+	const response = await fetchWithPublicEgress(
+		buildTemplateUrl(templateBaseUrl, "/meta.json"),
+		{
+			redirect: "error",
+			signal: AbortSignal.timeout(10000),
+		},
+		{
+			allowPrivateNetwork: false,
+			fieldName: "template base URL",
+			lookup: options.lookup,
+		},
+	);
 	if (!response.ok) {
 		throw new Error(`Failed to fetch templates: ${response.statusText}`);
 	}
@@ -79,16 +139,42 @@ export async function fetchTemplatesList(
  */
 export async function fetchTemplateFiles(
 	templateId: string,
-	baseUrl = "https://templates.dokploy.com",
+	baseUrl?: string,
+	options: TemplateFetchOptions = {},
 ): Promise<{ config: CompleteTemplate; dockerCompose: string }> {
+	const templateBaseUrl = await resolveTemplatesBaseUrl(baseUrl, options);
 	const timeout = AbortSignal.timeout(10000);
 	const [templateYmlResponse, dockerComposeResponse] = await Promise.all([
-		fetch(`${baseUrl}/blueprints/${templateId}/template.toml`, {
-			signal: timeout,
-		}),
-		fetch(`${baseUrl}/blueprints/${templateId}/docker-compose.yml`, {
-			signal: timeout,
-		}),
+		fetchWithPublicEgress(
+			buildTemplateUrl(
+				templateBaseUrl,
+				`/blueprints/${templateId}/template.toml`,
+			),
+			{
+				redirect: "error",
+				signal: timeout,
+			},
+			{
+				allowPrivateNetwork: false,
+				fieldName: "template base URL",
+				lookup: options.lookup,
+			},
+		),
+		fetchWithPublicEgress(
+			buildTemplateUrl(
+				templateBaseUrl,
+				`/blueprints/${templateId}/docker-compose.yml`,
+			),
+			{
+				redirect: "error",
+				signal: timeout,
+			},
+			{
+				allowPrivateNetwork: false,
+				fieldName: "template base URL",
+				lookup: options.lookup,
+			},
+		),
 	]);
 
 	if (!templateYmlResponse.ok || !dockerComposeResponse.ok) {

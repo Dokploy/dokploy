@@ -23,6 +23,26 @@ import {
 	logWebhookError,
 } from "./[refreshToken]";
 
+export const hasSensitivePreviewConfiguration = (application: {
+	previewEnv?: string | null;
+	previewBuildArgs?: string | null;
+	previewBuildSecrets?: string | null;
+}) =>
+	[
+		application.previewEnv,
+		application.previewBuildArgs,
+		application.previewBuildSecrets,
+	].some((value) => typeof value === "string" && value.trim().length > 0);
+
+export const shouldRequirePreviewCollaboratorPermissions = (application: {
+	previewRequireCollaboratorPermissions?: boolean | null;
+	previewEnv?: string | null;
+	previewBuildArgs?: string | null;
+	previewBuildSecrets?: string | null;
+}) =>
+	application.previewRequireCollaboratorPermissions !== false ||
+	hasSensitivePreviewConfiguration(application);
+
 const getGithubRepositoryOwner = (githubBody: any) =>
 	githubBody?.repository?.owner?.name ?? githubBody?.repository?.owner?.login;
 
@@ -409,8 +429,8 @@ export default async function handler(
 			let userPermission: string | null = null;
 
 			for (const app of apps) {
-				// If the app requires collaborator permissions, verify them
-				if (app.previewRequireCollaboratorPermissions !== false) {
+				// Secret-bearing previews always need a trusted collaborator.
+				if (shouldRequirePreviewCollaboratorPermissions(app)) {
 					try {
 						const githubProvider = await findGithubById(githubResult.githubId);
 						const { hasWriteAccess, permission } =
@@ -461,7 +481,7 @@ export default async function handler(
 				await createSecurityBlockedComment({
 					owner,
 					repository,
-					prNumber: Number.parseInt(prNumber),
+					prNumber: Number.parseInt(prNumber, 10),
 					prAuthor,
 					permission: userPermission,
 					githubId: githubResult.githubId,

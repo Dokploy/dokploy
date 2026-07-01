@@ -1,5 +1,7 @@
 import { safeDockerLoginCommand } from "@dokploy/server/services/registry";
 import type { ApplicationNested } from "../builders";
+import { buildDockerPullCommand } from "../docker/commands";
+import { buildProviderEchoCommand } from "./commands";
 
 export const buildRemoteDocker = async (application: ApplicationNested) => {
 	const { registryUrl, dockerImage, username, password } = application;
@@ -9,8 +11,8 @@ export const buildRemoteDocker = async (application: ApplicationNested) => {
 			throw new Error("Docker image not found");
 		}
 		let command = `
-echo "Pulling ${dockerImage}";		
-		`;
+${buildProviderEchoCommand(`Pulling ${dockerImage}`)}
+	`;
 
 		if (username && password) {
 			command += `
@@ -22,7 +24,7 @@ fi
 		}
 
 		command += `
-docker pull ${dockerImage} 2>&1 || { 
+${buildDockerPullCommand(dockerImage)} 2>&1 || {
   echo "❌ Pulling image failed";
   exit 1;
 }

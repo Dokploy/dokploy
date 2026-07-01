@@ -2,12 +2,24 @@ import {
 	getComposeContainerCommand,
 	getServiceContainerCommand,
 } from "../backups/utils";
+import {
+	normalizeRestoreBackupFile,
+	normalizeRestoreDatabaseName,
+	normalizeRestoreServiceName,
+	quoteRestoreShellArg,
+} from "./safe-input";
+
+const getDockerExecShellCommand = (command: string) => {
+	return `docker exec -i $CONTAINER_ID sh -c ${quoteRestoreShellArg(command)}`;
+};
 
 export const getPostgresRestoreCommand = (
 	database: string,
 	databaseUser: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID sh -c "pg_restore -U '${databaseUser}' -d ${database} -O --clean --if-exists"`;
+	return getDockerExecShellCommand(
+		`pg_restore -U ${quoteRestoreShellArg(databaseUser)} -d ${quoteRestoreShellArg(database)} -O --clean --if-exists`,
+	);
 };
 
 export const getMariadbRestoreCommand = (
@@ -15,14 +27,18 @@ export const getMariadbRestoreCommand = (
 	databaseUser: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID sh -c "mariadb -u '${databaseUser}' -p'${databasePassword}' ${database}"`;
+	return getDockerExecShellCommand(
+		`mariadb -u ${quoteRestoreShellArg(databaseUser)} -p${quoteRestoreShellArg(databasePassword)} ${quoteRestoreShellArg(database)}`,
+	);
 };
 
 export const getMysqlRestoreCommand = (
 	database: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID sh -c "mysql -u root -p'${databasePassword}' ${database}"`;
+	return getDockerExecShellCommand(
+		`mysql -u root -p${quoteRestoreShellArg(databasePassword)} ${quoteRestoreShellArg(database)}`,
+	);
 };
 
 export const getMongoRestoreCommand = (
@@ -30,7 +46,9 @@ export const getMongoRestoreCommand = (
 	databaseUser: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID sh -c "mongorestore --username '${databaseUser}' --password '${databasePassword}' --authenticationDatabase admin --db ${database} --archive --drop"`;
+	return getDockerExecShellCommand(
+		`mongorestore --username ${quoteRestoreShellArg(databaseUser)} --password ${quoteRestoreShellArg(databasePassword)} --authenticationDatabase admin --db ${quoteRestoreShellArg(database)} --archive --drop`,
+	);
 };
 
 export const getComposeSearchCommand = (
@@ -41,7 +59,11 @@ export const getComposeSearchCommand = (
 	if (type === "database") {
 		return getServiceContainerCommand(appName || "");
 	}
-	return getComposeContainerCommand(appName || "", serviceName || "", type);
+	return getComposeContainerCommand(
+		appName || "",
+		normalizeRestoreServiceName(serviceName) || "",
+		type,
+	);
 };
 
 interface DatabaseCredentials {
@@ -55,20 +77,21 @@ const generateRestoreCommand = (
 	credentials: DatabaseCredentials,
 ) => {
 	const { database, databaseUser, databasePassword } = credentials;
+	const normalizedDatabase = normalizeRestoreDatabaseName(database);
 	switch (type) {
 		case "postgres":
-			return getPostgresRestoreCommand(database, databaseUser || "");
+			return getPostgresRestoreCommand(normalizedDatabase, databaseUser || "");
 		case "mariadb":
 			return getMariadbRestoreCommand(
-				database,
+				normalizedDatabase,
 				databaseUser || "",
 				databasePassword || "",
 			);
 		case "mysql":
-			return getMysqlRestoreCommand(database, databasePassword || "");
+			return getMysqlRestoreCommand(normalizedDatabase, databasePassword || "");
 		case "mongo":
 			return getMongoRestoreCommand(
-				database,
+				normalizedDatabase,
 				databaseUser || "",
 				databasePassword || "",
 			);
@@ -80,16 +103,18 @@ const getMongoSpecificCommand = (
 	restoreCommand: string,
 	backupFile: string,
 ): string => {
-	const tempDir = "/tmp/dokploy-restore";
-	const fileName = backupFile.split("/").pop() || "backup.sql.gz";
+	const tempDir = quoteRestoreShellArg("/tmp/dokploy-restore");
+	const { fileName } = normalizeRestoreBackupFile(backupFile, [".bson.gz"]);
+	const quotedFileName = quoteRestoreShellArg(fileName);
 	const decompressedName = fileName.replace(".gz", "");
+	const quotedDecompressedName = quoteRestoreShellArg(decompressedName);
 	return `
 rm -rf ${tempDir} && \
 mkdir -p ${tempDir} && \
 ${rcloneCommand} ${tempDir} && \
 cd ${tempDir} && \
-gunzip -f "${fileName}" && \
-${restoreCommand} < "${decompressedName}" && \
+gunzip -f ${quotedFileName} && \
+${restoreCommand} < ${quotedDecompressedName} && \
 rm -rf ${tempDir}
 	`;
 };

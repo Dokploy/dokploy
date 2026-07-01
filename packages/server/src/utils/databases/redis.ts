@@ -59,7 +59,11 @@ export const buildRedis = async (redis: RedisNested) => {
 		redis.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
-	const bindsMount = generateBindMounts(mounts);
+	const bindsMount = generateBindMounts(mounts, {
+		appName,
+		serverId: redis.serverId,
+		serviceType: "redis",
+	});
 	const filesMount = generateFileMounts(appName, redis);
 
 	const docker = await getRemoteDocker(redis.serverId);

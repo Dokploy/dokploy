@@ -502,6 +502,7 @@ table gitlab {
   application_id text
   redirect_uri text
   secret text
+  webhook_secret text
   access_token text
   refresh_token text
   group_name text

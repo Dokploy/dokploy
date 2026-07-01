@@ -73,7 +73,7 @@ const findProviderForOrg = async (
 			eq(ssoProvider.providerId, providerId),
 			eq(ssoProvider.organizationId, organizationId),
 		),
-		columns: { providerId: true, issuer: true, oidcConfig: true },
+		columns: { providerId: true, issuer: true, oidcConfig: true, domain: true },
 	});
 	if (!provider) {
 		throw new TRPCError({
@@ -204,6 +204,10 @@ export const deployForwardAuthOnServer = async (input: {
 	await setupForwardAuth({
 		serverId: input.serverId,
 		oidc,
+		emailDomains: provider.domain
+			.split(",")
+			.map((domain) => domain.trim().toLowerCase())
+			.filter(Boolean),
 		cookieSecret: deriveCookieSecret(
 			`${input.serverId ?? "host"}:${settings.baseDomain}`,
 		),

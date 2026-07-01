@@ -7,6 +7,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates";
 import { buildMysql } from "@dokploy/server/utils/databases/mysql";
+import { buildDockerPullCommand } from "@dokploy/server/utils/docker/commands";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
@@ -143,7 +144,7 @@ export const deployMySql = async (
 		if (mysql.serverId) {
 			await execAsyncRemote(
 				mysql.serverId,
-				`docker pull ${mysql.dockerImage}`,
+				buildDockerPullCommand(mysql.dockerImage),
 				onData,
 			);
 		} else {
