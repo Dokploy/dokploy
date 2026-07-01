@@ -228,4 +228,24 @@ describe("high-severity schema security boundaries", () => {
 		expect(cleanupMigration).toContain('SET "enabled" = false');
 		expect(cleanupMigration).toContain('"organizationId" IS NULL');
 	});
+
+	it("backfills existing SSO domains as verified in the forward migration", () => {
+		const migration = readFileSync(
+			new URL("../../drizzle/0173_scope_sso_domains.sql", import.meta.url),
+			"utf8",
+		);
+
+		expect(migration).toContain(
+			'ADD COLUMN "domainVerified" boolean DEFAULT false',
+		);
+		expect(migration).toContain(
+			'UPDATE "sso_provider" SET "domainVerified" = true',
+		);
+		expect(migration).toContain(
+			"WHERE NULLIF(btrim(\"domain\"), '') IS NOT NULL",
+		);
+		expect(migration.indexOf('ADD COLUMN "domainVerified"')).toBeLessThan(
+			migration.indexOf('UPDATE "sso_provider"'),
+		);
+	});
 });

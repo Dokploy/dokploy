@@ -229,6 +229,7 @@ describe("Git provider clone command boundary", () => {
 			outputPath: fixtures.outputPath,
 		});
 		expect(parseShellArgs(command)).toContain("git.example.com;touch");
+		expect(command).toContain("StrictHostKeyChecking\\=accept-new");
 		expect(command).not.toContain(
 			'echo "private-key$(id); touch /tmp/private-key"',
 		);

@@ -81,6 +81,7 @@ export const buildGitSshEnvironmentCommand = ({
 	}
 
 	commandArgs.push("-o", `UserKnownHostsFile=${knownHostsPath}`);
+	commandArgs.push("-o", "StrictHostKeyChecking=accept-new");
 
 	return `export ${quoteEnvironmentAssignment("GIT_SSH_COMMAND", quoteShellArgs(commandArgs))};`;
 };
