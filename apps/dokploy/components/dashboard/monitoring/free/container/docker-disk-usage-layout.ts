@@ -26,15 +26,15 @@ export const getDockerDiskUsageToggleClassName = (showDetails: boolean) =>
 
 export const getDockerDiskUsageChartClassName = (showDetails: boolean) =>
 	cn(
-		"mx-auto w-full [&_.recharts-pie-label-text]:fill-foreground",
-		showDetails ? "max-h-[250px]" : "h-[180px] max-h-[190px]",
+		"mx-auto w-full aspect-auto overflow-hidden [&_.recharts-pie-label-text]:fill-foreground",
+		showDetails ? "h-[220px] max-h-[220px]" : "h-[180px] max-h-[190px]",
 	);
 
 export const getDockerDiskUsageLegendClassName = (showDetails: boolean) =>
 	cn(
 		"text-xs text-muted-foreground",
 		showDetails
-			? "flex flex-wrap items-center justify-center gap-x-4 gap-y-2"
+			? "mb-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2"
 			: "grid grid-cols-2 gap-x-3 gap-y-2",
 	);
 

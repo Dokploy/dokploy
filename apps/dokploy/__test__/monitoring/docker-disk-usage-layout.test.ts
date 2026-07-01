@@ -48,4 +48,21 @@ describe("Docker Disk Usage layout", () => {
 			getDockerDiskUsageLegendTextClassName(false).split(" "),
 		).not.toContain("truncate");
 	});
+
+	test("reserves fixed chart and legend space while details are expanded", () => {
+		expect(getDockerDiskUsageChartClassName(true).split(" ")).toEqual(
+			expect.arrayContaining([
+				"aspect-auto",
+				"overflow-hidden",
+				"h-[220px]",
+				"max-h-[220px]",
+			]),
+		);
+		expect(getDockerDiskUsageChartClassName(true).split(" ")).not.toContain(
+			"aspect-video",
+		);
+		expect(getDockerDiskUsageLegendClassName(true).split(" ")).toEqual(
+			expect.arrayContaining(["mb-4", "flex", "flex-wrap"]),
+		);
+	});
 });
