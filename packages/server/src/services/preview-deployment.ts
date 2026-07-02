@@ -163,10 +163,8 @@ export const createPreviewDeployment = async (
 		domainTemplate.includes("${branchName}") ||
 		domainTemplate.includes("${uniqueId}");
 
-	let appName: string;
+	const appName: string = `preview-${application.appName}-${uniqueId}`;
 	let generateDomain: string;
-
-	appName = `preview-${application.appName}-${uniqueId}`;
 
 	if (hasIdentifier) {
 		const interpolated = interpolateSubdomainTemplate(domainTemplate, {
