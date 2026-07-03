@@ -2,10 +2,11 @@ import type { Compose } from "@dokploy/server/services/compose";
 import type { Domain } from "@dokploy/server/services/domain";
 import { getCaddyCompileSettings } from "@dokploy/server/services/web-server-settings";
 import {
-	compileWriteAndReloadCaddyConfigSafely,
+	compileWriteAndReloadCaddyConfigSafelyLockHeld,
 	readCaddyRouteFragments,
 	removeCaddyRouteFragment,
 	restoreCaddyRouteFragments,
+	withCaddyConfigLock,
 	writeCaddyRouteFragment,
 } from "./config";
 import {
@@ -135,39 +136,43 @@ export const writeCaddyComposeRouteFragments = async (
 			getCaddyComposeFragmentId(compose.appName, domain.uniqueConfigKey),
 		),
 	);
-	let changed = false;
+	await withCaddyConfigLock(serverId, async () => {
+		let changed = false;
 
-	const existingFragments = await readCaddyRouteFragments(routeFragmentOptions);
-	try {
-		for (const fragment of existingFragments) {
-			if (
-				fragment.source === "dokploy-compose" &&
-				fragment.id.startsWith(fragmentPrefix) &&
-				!nextFragmentIds.has(fragment.id)
-			) {
-				await removeCaddyRouteFragment(fragment.id, routeFragmentOptions);
+		const existingFragments = await readCaddyRouteFragments(
+			routeFragmentOptions,
+		);
+		try {
+			for (const fragment of existingFragments) {
+				if (
+					fragment.source === "dokploy-compose" &&
+					fragment.id.startsWith(fragmentPrefix) &&
+					!nextFragmentIds.has(fragment.id)
+				) {
+					await removeCaddyRouteFragment(fragment.id, routeFragmentOptions);
+					changed = true;
+				}
+			}
+
+			for (const { domain, finalServiceName } of domains) {
+				await writeCaddyRouteFragment(
+					createCaddyComposeRouteFragment(compose, domain, finalServiceName),
+					routeFragmentOptions,
+				);
 				changed = true;
 			}
-		}
 
-		for (const { domain, finalServiceName } of domains) {
-			await writeCaddyRouteFragment(
-				createCaddyComposeRouteFragment(compose, domain, finalServiceName),
-				routeFragmentOptions,
-			);
-			changed = true;
-		}
+			if (!changed) {
+				return;
+			}
 
-		if (!changed) {
-			return;
+			await compileWriteAndReloadCaddyConfigSafelyLockHeld({
+				serverId,
+				...(await getCaddyCompileSettings(serverId)),
+			});
+		} catch (error) {
+			await restoreCaddyRouteFragments(existingFragments, routeFragmentOptions);
+			throw error;
 		}
-
-		await compileWriteAndReloadCaddyConfigSafely({
-			serverId,
-			...(await getCaddyCompileSettings(serverId)),
-		});
-	} catch (error) {
-		await restoreCaddyRouteFragments(existingFragments, routeFragmentOptions);
-		throw error;
-	}
+	});
 };

@@ -963,12 +963,46 @@ export const writeAndReloadCaddyConfigSafely = async (
 	}
 };
 
-export const compileWriteAndReloadCaddyConfigSafely = async (
-	options: CaddyFragmentStoreOptions & {
-		letsEncryptEmail?: string | null;
-		trustedProxies?: CaddyCompileOptions["trustedProxies"];
-		accessLogs?: CaddyCompileOptions["accessLogs"];
-	} = {},
+// Deployments can run concurrently (buildsConcurrency > 1) and the active
+// Caddy config is compiled from the fragments directory, so an unsynchronized
+// read-compile-write can publish a config that misses a concurrently written
+// fragment, and restoreCaddyRouteFragments rewrites the whole directory from
+// a snapshot. Every fragment read-modify-write + compile sequence must hold
+// this per-server lock; all writers (including SSH writes to remote servers)
+// run in this process, so an in-process lock is sufficient.
+const caddyConfigLocks = new Map<string, Promise<unknown>>();
+
+export const withCaddyConfigLock = async <T>(
+	serverId: string | null | undefined,
+	task: () => Promise<T>,
+): Promise<T> => {
+	const key = serverId || "local";
+	const previous = caddyConfigLocks.get(key) ?? Promise.resolve();
+	const run = previous.then(task, task);
+	const tail = run.then(
+		() => undefined,
+		() => undefined,
+	);
+	caddyConfigLocks.set(key, tail);
+	try {
+		return await run;
+	} finally {
+		if (caddyConfigLocks.get(key) === tail) {
+			caddyConfigLocks.delete(key);
+		}
+	}
+};
+
+type CaddyCompileAndReloadOptions = CaddyFragmentStoreOptions & {
+	letsEncryptEmail?: string | null;
+	trustedProxies?: CaddyCompileOptions["trustedProxies"];
+	accessLogs?: CaddyCompileOptions["accessLogs"];
+};
+
+// Only call while holding withCaddyConfigLock for the same server; use
+// compileWriteAndReloadCaddyConfigSafely otherwise.
+export const compileWriteAndReloadCaddyConfigSafelyLockHeld = async (
+	options: CaddyCompileAndReloadOptions = {},
 ) => {
 	const fragments = await readCaddyRouteFragments(options);
 	const config = compileCaddyConfig({
@@ -980,6 +1014,13 @@ export const compileWriteAndReloadCaddyConfigSafely = async (
 	await writeAndReloadCaddyConfigSafely(config, options);
 	return config;
 };
+
+export const compileWriteAndReloadCaddyConfigSafely = async (
+	options: CaddyCompileAndReloadOptions = {},
+) =>
+	withCaddyConfigLock(options.serverId, () =>
+		compileWriteAndReloadCaddyConfigSafelyLockHeld(options),
+	);
 
 export const ensureDefaultCaddyConfig = async (
 	options: CaddyFragmentStoreOptions & {

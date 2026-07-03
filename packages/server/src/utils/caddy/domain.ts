@@ -5,10 +5,11 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { getCaddyCompileSettings } from "@dokploy/server/services/web-server-settings";
 import type { ApplicationNested } from "../builders";
 import {
-	compileWriteAndReloadCaddyConfigSafely,
+	compileWriteAndReloadCaddyConfigSafelyLockHeld,
 	readCaddyRouteFragments,
 	removeCaddyRouteFragment,
 	restoreCaddyRouteFragments,
+	withCaddyConfigLock,
 	writeCaddyRouteFragment,
 } from "./config";
 import type { CaddyRouteFragment, CaddyRouteIntent } from "./types";
@@ -171,20 +172,22 @@ export const manageCaddyDomain = async (
 		app.environment?.project?.organizationId,
 	);
 	const options = { serverId };
-	const previousFragments = await readCaddyRouteFragments(options);
-	try {
-		await writeCaddyRouteFragment(
-			createCaddyApplicationRouteFragment(app, domain),
-			options,
-		);
-		await compileWriteAndReloadCaddyConfigSafely({
-			serverId,
-			...(await getCaddyCompileSettings(serverId)),
-		});
-	} catch (error) {
-		await restoreCaddyRouteFragments(previousFragments, options);
-		throw error;
-	}
+	await withCaddyConfigLock(serverId, async () => {
+		const previousFragments = await readCaddyRouteFragments(options);
+		try {
+			await writeCaddyRouteFragment(
+				createCaddyApplicationRouteFragment(app, domain),
+				options,
+			);
+			await compileWriteAndReloadCaddyConfigSafelyLockHeld({
+				serverId,
+				...(await getCaddyCompileSettings(serverId)),
+			});
+		} catch (error) {
+			await restoreCaddyRouteFragments(previousFragments, options);
+			throw error;
+		}
+	});
 };
 
 export const removeCaddyDomain = async (
@@ -193,18 +196,20 @@ export const removeCaddyDomain = async (
 ) => {
 	const serverId = app.serverId || undefined;
 	const options = { serverId };
-	const previousFragments = await readCaddyRouteFragments(options);
-	try {
-		await removeCaddyRouteFragment(
-			getCaddyApplicationFragmentId(app.appName, uniqueConfigKey),
-			options,
-		);
-		await compileWriteAndReloadCaddyConfigSafely({
-			serverId,
-			...(await getCaddyCompileSettings(serverId)),
-		});
-	} catch (error) {
-		await restoreCaddyRouteFragments(previousFragments, options);
-		throw error;
-	}
+	await withCaddyConfigLock(serverId, async () => {
+		const previousFragments = await readCaddyRouteFragments(options);
+		try {
+			await removeCaddyRouteFragment(
+				getCaddyApplicationFragmentId(app.appName, uniqueConfigKey),
+				options,
+			);
+			await compileWriteAndReloadCaddyConfigSafelyLockHeld({
+				serverId,
+				...(await getCaddyCompileSettings(serverId)),
+			});
+		} catch (error) {
+			await restoreCaddyRouteFragments(previousFragments, options);
+			throw error;
+		}
+	});
 };

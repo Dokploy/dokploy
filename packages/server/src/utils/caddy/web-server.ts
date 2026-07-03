@@ -1,9 +1,10 @@
 import type { webServerSettings } from "@dokploy/server/db/schema/web-server-settings";
 import { localWebServerSettingsToCaddyCompileSettings } from "@dokploy/server/services/web-server-settings";
 import {
-	compileWriteAndReloadCaddyConfigSafely,
+	compileWriteAndReloadCaddyConfigSafelyLockHeld,
 	readCaddyRouteFragments,
 	removeCaddyRouteFragment,
+	withCaddyConfigLock,
 	writeCaddyRouteFragment,
 } from "./config";
 import type { CaddyRouteFragment, CaddyRouteIntent } from "./types";
@@ -55,46 +56,50 @@ export const updateServerCaddy = async (
 ) => {
 	const compileSettings =
 		localWebServerSettingsToCaddyCompileSettings(settings);
-	const previousDashboardFragment = (await readCaddyRouteFragments()).find(
-		(fragment) => fragment.id === DASHBOARD_FRAGMENT_ID,
-	);
-	let writtenDashboardFragment: CaddyRouteFragment | undefined;
-	try {
-		if (newHost) {
-			writtenDashboardFragment = createCaddyDashboardRouteFragment(
-				settings,
-				newHost,
-			);
-			await writeCaddyRouteFragment(writtenDashboardFragment);
-		} else {
-			await removeCaddyRouteFragment(DASHBOARD_FRAGMENT_ID);
-		}
-
-		await compileWriteAndReloadCaddyConfigSafely(compileSettings);
-	} catch (error) {
-		const currentDashboardFragment = (await readCaddyRouteFragments()).find(
+	await withCaddyConfigLock(undefined, async () => {
+		const previousDashboardFragment = (await readCaddyRouteFragments()).find(
 			(fragment) => fragment.id === DASHBOARD_FRAGMENT_ID,
 		);
-		const shouldRestorePrevious = newHost
-			? isSameFragment(currentDashboardFragment, writtenDashboardFragment)
-			: !currentDashboardFragment;
-
-		if (shouldRestorePrevious) {
-			if (previousDashboardFragment) {
-				await writeCaddyRouteFragment(previousDashboardFragment);
+		let writtenDashboardFragment: CaddyRouteFragment | undefined;
+		try {
+			if (newHost) {
+				writtenDashboardFragment = createCaddyDashboardRouteFragment(
+					settings,
+					newHost,
+				);
+				await writeCaddyRouteFragment(writtenDashboardFragment);
 			} else {
 				await removeCaddyRouteFragment(DASHBOARD_FRAGMENT_ID);
 			}
-		} else {
-			try {
-				await compileWriteAndReloadCaddyConfigSafely(compileSettings);
-			} catch (resyncError) {
-				if (error instanceof Error) {
-					(error as Error & { resyncError?: unknown }).resyncError =
-						resyncError;
+
+			await compileWriteAndReloadCaddyConfigSafelyLockHeld(compileSettings);
+		} catch (error) {
+			const currentDashboardFragment = (await readCaddyRouteFragments()).find(
+				(fragment) => fragment.id === DASHBOARD_FRAGMENT_ID,
+			);
+			const shouldRestorePrevious = newHost
+				? isSameFragment(currentDashboardFragment, writtenDashboardFragment)
+				: !currentDashboardFragment;
+
+			if (shouldRestorePrevious) {
+				if (previousDashboardFragment) {
+					await writeCaddyRouteFragment(previousDashboardFragment);
+				} else {
+					await removeCaddyRouteFragment(DASHBOARD_FRAGMENT_ID);
+				}
+			} else {
+				try {
+					await compileWriteAndReloadCaddyConfigSafelyLockHeld(
+						compileSettings,
+					);
+				} catch (resyncError) {
+					if (error instanceof Error) {
+						(error as Error & { resyncError?: unknown }).resyncError =
+							resyncError;
+					}
 				}
 			}
+			throw error;
 		}
-		throw error;
-	}
+	});
 };
