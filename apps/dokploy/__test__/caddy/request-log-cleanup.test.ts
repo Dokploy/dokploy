@@ -60,6 +60,12 @@ beforeEach(() => {
 
 test("keeps Traefik access-log cleanup and signal behavior", async () => {
 	resolveWebServerProviderMock.mockResolvedValue("traefik");
+	execAsyncMock.mockImplementation(async (command: string) => {
+		if (command.startsWith("docker ps -q")) {
+			return { stdout: "abc123\n", stderr: "" };
+		}
+		return { stdout: "", stderr: "" };
+	});
 
 	await startLogCleanup("0 0 * * *");
 	await scheduledCallback?.();
@@ -70,7 +76,23 @@ test("keeps Traefik access-log cleanup and signal behavior", async () => {
 	);
 	expect(execAsyncMock).toHaveBeenNthCalledWith(
 		2,
-		"docker exec dokploy-traefik kill -USR1 1",
+		'docker ps -q --filter "name=dokploy-traefik" --filter "status=running" | head -n 1',
+	);
+	expect(execAsyncMock).toHaveBeenNthCalledWith(
+		3,
+		"docker exec abc123 kill -USR1 1",
+	);
+});
+
+test("skips Traefik log reopen when no running container is found", async () => {
+	resolveWebServerProviderMock.mockResolvedValue("traefik");
+
+	await startLogCleanup("0 0 * * *");
+	await scheduledCallback?.();
+
+	expect(execAsyncMock).toHaveBeenCalledTimes(2);
+	expect(execAsyncMock).not.toHaveBeenCalledWith(
+		expect.stringContaining("kill -USR1"),
 	);
 });
 

@@ -109,7 +109,7 @@ export const CaddyTrustedProxySettings = ({ serverId, children }: Props) => {
 					</div>
 				</div>
 			</div>
-			<span className="inline-flex h-8 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm">
+			<span className="inline-flex h-8 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium shadow-xs">
 				Configure
 			</span>
 		</button>

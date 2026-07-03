@@ -140,7 +140,7 @@ export const EditWebServerEnv = ({ children, serverId }: Props) => {
 										<FormControl>
 											<CodeEditor
 												language="properties"
-												wrapperClassName="h-[35rem] font-mono"
+												wrapperClassName="h-140 font-mono"
 												placeholder={
 													activeProvider === "caddy"
 														? `CADDY_ADMIN=localhost:2019
@@ -164,7 +164,7 @@ TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_HTTP_CHALLENGE_DNS_PROVIDER=cloudflare
 										</pre>
 										<div className="flex justify-end absolute z-50 right-6 top-0">
 											<Button
-												className="shadow-sm"
+												className="shadow-xs"
 												variant="secondary"
 												type="button"
 												onClick={async () => {

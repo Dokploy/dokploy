@@ -73,7 +73,7 @@ export const cloneGitRepository = async ({
 	if (customGitSSHKeyId) {
 		const sshKey = await findSSHKeyById(customGitSSHKeyId);
 		const { port } = sanitizeRepoPathSSH(customGitUrl);
-		const gitSshCommand = `ssh -i /tmp/id_rsa${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath}`;
+		const gitSshCommand = `ssh -i /tmp/id_rsa${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath} -o StrictHostKeyChecking=accept-new`;
 		command += `echo "${sshKey.privateKey}" > /tmp/id_rsa;`;
 		command += "chmod 600 /tmp/id_rsa;";
 		command += `export GIT_SSH_COMMAND="${gitSshCommand}";`;
@@ -111,7 +111,10 @@ const addHostToKnownHostsCommand = (repositoryURL: string) => {
 	const { domain, port } = sanitizeRepoPathSSH(repositoryURL);
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
 
-	return `ssh-keyscan -p ${port} ${domain} >> ${knownHostsPath};`;
+	// ssh-keyscan is best-effort: some Git hosts (e.g. Hugging Face) never answer
+	// it, and its exit code must not abort the clone under `set -e`. The clone's
+	// own host-key check (StrictHostKeyChecking=accept-new) is the real boundary.
+	return `ssh-keyscan -p ${port} ${domain} >> ${knownHostsPath} || true;`;
 };
 const sanitizeRepoPathSSH = (input: string) => {
 	const SSH_PATH_RE = new RegExp(

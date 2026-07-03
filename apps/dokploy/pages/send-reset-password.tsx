@@ -110,6 +110,7 @@ export default function Home() {
 						{!temp.is2FAEnabled ? (
 							<Form {...form}>
 								<form
+									method="post"
 									onSubmit={form.handleSubmit(onSubmit)}
 									className="grid gap-4"
 								>

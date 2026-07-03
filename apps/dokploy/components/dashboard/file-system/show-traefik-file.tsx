@@ -123,7 +123,7 @@ export const ShowTraefikFile = ({ path, serverId, activeProvider }: Props) => {
 			<Form {...form}>
 				<form
 					onSubmit={form.handleSubmit(onSubmit)}
-					className="w-full relative z-[5]"
+					className="w-full relative z-5"
 				>
 					<div className="flex flex-col overflow-auto">
 						{isLoadingFile ? (
@@ -148,7 +148,7 @@ export const ShowTraefikFile = ({ path, serverId, activeProvider }: Props) => {
 												disabled={!isTraefik || canEdit}
 												lineWrapping
 												language={activeProvider === "caddy" ? "json" : "yaml"}
-												wrapperClassName="h-[35rem] font-mono"
+												wrapperClassName="h-140 font-mono"
 												placeholder={`http:
 routers:
     router-name:
@@ -169,7 +169,7 @@ routers:
 										{isTraefik && (
 											<div className="flex justify-end absolute z-50 right-6 top-8">
 												<Button
-													className="shadow-sm"
+													className="shadow-xs"
 													variant="secondary"
 													type="button"
 													onClick={async () => {

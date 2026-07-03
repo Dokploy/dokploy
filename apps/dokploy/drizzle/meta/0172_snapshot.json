@@ -1,5 +1,5 @@
 {
-  "id": "2d3a1f27-4d24-4216-8c1a-b2cbea27af11",
+  "id": "d711bc8c-f41e-4de4-9733-90715f21cdc9",
   "prevId": "e4d9fc62-4bf9-483d-b2c1-13c704c773b8",
   "version": "7",
   "dialect": "postgresql",
@@ -7103,20 +7103,12 @@
           "notNull": true,
           "default": false
         },
-        "webServerProvider": {
-          "name": "webServerProvider",
-          "type": "webServerProvider",
-          "typeSchema": "public",
+        "buildsConcurrency": {
+          "name": "buildsConcurrency",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "default": "'traefik'"
-        },
-        "caddyTrustedProxyConfig": {
-          "name": "caddyTrustedProxyConfig",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'null'::jsonb"
+          "default": 1
         },
         "createdAt": {
           "name": "createdAt",
@@ -8081,28 +8073,6 @@
           "primaryKey": true,
           "notNull": true
         },
-        "webServerProvider": {
-          "name": "webServerProvider",
-          "type": "webServerProvider",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'traefik'"
-        },
-        "caddyTrustedProxyConfig": {
-          "name": "caddyTrustedProxyConfig",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'null'::jsonb"
-        },
-        "requestLogsEnabled": {
-          "name": "requestLogsEnabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "serverIp": {
           "name": "serverIp",
           "type": "text",
@@ -8176,6 +8146,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "buildsConcurrency": {
+          "name": "buildsConcurrency",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "enforceSSO": {
           "name": "enforceSSO",
@@ -8465,14 +8442,6 @@
       "values": [
         "push",
         "tag"
-      ]
-    },
-    "public.webServerProvider": {
-      "name": "webServerProvider",
-      "schema": "public",
-      "values": [
-        "traefik",
-        "caddy"
       ]
     }
   },
