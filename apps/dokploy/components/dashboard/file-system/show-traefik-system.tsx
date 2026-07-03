@@ -115,7 +115,9 @@ export const ShowTraefikSystem = ({ serverId, activeProvider }: Props) => {
 											<span className="text-sm text-muted-foreground">
 												There are no directories or files in{" "}
 												<code className="bg-muted px-1.5 py-0.5 rounded text-xs">
-													{isCaddy ? "/etc/dokploy/caddy" : "/etc/dokploy/traefik"}
+													{isCaddy
+														? "/etc/dokploy/caddy"
+														: "/etc/dokploy/traefik"}
 												</code>{" "}
 												on this server yet.
 											</span>
