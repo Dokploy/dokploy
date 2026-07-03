@@ -395,7 +395,11 @@ export const getRequestAnalyticsState = async () => {
 // settingsRouter so client paths stay api.settings.* — extracted from
 // settings.ts to keep that router reviewable.
 export const webServerProcedures = {
-	getActiveWebServerProvider: adminProcedure
+	// protectedProcedure: consumed by member-visible surfaces (domain forms,
+	// application traefik/caddy config views, the web-server files page), which
+	// need the provider name to render the right fields. ensureServerAccess
+	// still scopes remote-server lookups to the caller's organization.
+	getActiveWebServerProvider: protectedProcedure
 		.input(apiServerSchema)
 		.query(async ({ input, ctx }) => {
 			await ensureServerAccess(ctx, input?.serverId);
