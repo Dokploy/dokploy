@@ -1,6 +1,11 @@
 import type { ApplicationNested, Domain, Redirect } from "@dokploy/server";
 import { createRouterConfig } from "@dokploy/server";
-import { expect, test } from "vitest";
+import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import { expect, test, vi } from "vitest";
+
+vi.mock("@dokploy/server/utils/process/execAsync", () => ({
+	execAsyncRemote: vi.fn().mockResolvedValue({ stdout: "", stderr: "" }),
+}));
 
 const baseApp: ApplicationNested = {
 	railpackVersion: "0.15.4",
@@ -172,6 +177,40 @@ test("Web entrypoint on http domain", async () => {
 
 	expect(router.middlewares).not.toContain("redirect-to-https");
 	expect(router.rule).not.toContain("PathPrefix");
+});
+
+test("Remote Traefik writer preserves shell-sensitive YAML values", async () => {
+	const { writeTraefikConfigRemote } = await import("@dokploy/server");
+	const csp =
+		"default-src * 'unsafe-inline' 'unsafe-eval' data: blob: https:; frame-ancestors 'self'; object-src 'none';";
+
+	await writeTraefikConfigRemote(
+		{
+			http: {
+				middlewares: {
+					"secure-headers": {
+						headers: {
+							customResponseHeaders: {
+								"Content-Security-Policy": csp,
+							},
+						},
+					},
+				},
+			},
+		},
+		"middlewares",
+		"server-1",
+	);
+
+	const command = vi.mocked(execAsyncRemote).mock.calls.at(-1)?.[1] ?? "";
+	const encoded = command.match(/echo "([^"]+)"/)?.[1] ?? "";
+	const decoded = Buffer.from(encoded, "base64").toString("utf8");
+
+	expect(command).toContain('base64 -d > "');
+	expect(decoded).toContain("'unsafe-inline'");
+	expect(decoded).toContain("'unsafe-eval'");
+	expect(decoded).toContain("frame-ancestors 'self'");
+	expect(decoded).toContain("object-src 'none'");
 });
 
 test("Web entrypoint on http domain with custom path", async () => {
