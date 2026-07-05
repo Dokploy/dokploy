@@ -11,7 +11,11 @@ import { startLogCleanup } from "../access-log/handler";
 import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path, scheduleBackup } from "./utils";
+import {
+	normalizeS3Path,
+	scheduleBackup,
+	getRclonePathAndFlags,
+} from "./utils";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
@@ -133,17 +137,20 @@ export const keepLatestNBackups = async (
 
 	try {
 		const destination = await findDestinationById(backup.destinationId);
-		const rcloneFlags = getS3Credentials(destination);
 		const appName = getServiceAppName(backup);
-		const backupFilesPath = `:s3:${destination.bucket}/${appName}/${normalizeS3Path(backup.prefix)}`;
+		const { flags: rcloneFlags, path: backupFilesPath } =
+			await getRclonePathAndFlags(
+				destination,
+				`${appName}/${normalizeS3Path(backup.prefix)}`,
+			);
 
 		// --include "*.bson.gz" or "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
-		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" ${backupFilesPath}`;
+		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" "${backupFilesPath}"`;
 		// when we pipe the above command with this one, we only get the list of files we want to delete
 		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
 		// this command deletes the files
 		// to test the deletion before actually deleting we can add --dry-run before ${backupFilesPath}{}
-		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
+		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} "${backupFilesPath}{}"`;
 
 		const rcloneCommand = `${rcloneList} | ${sortAndPickUnwantedBackups} ${rcloneDelete}`;
 
