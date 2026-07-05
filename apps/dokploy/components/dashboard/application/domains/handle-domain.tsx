@@ -1,3 +1,7 @@
+import {
+	INVALID_HOSTNAME_MESSAGE,
+	VALID_HOSTNAME_REGEX,
+} from "@dokploy/server/utils/hostname-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { DatabaseZap, Dices, RefreshCw, X } from "lucide-react";
 import Link from "next/link";
@@ -53,7 +57,10 @@ export const domain = z
 			.refine((val) => val === val.trim(), {
 				message: "Domain name cannot have leading or trailing spaces",
 			})
-			.transform((val) => val.trim()),
+			.transform((val) => val.trim())
+			.refine((val) => VALID_HOSTNAME_REGEX.test(val), {
+				message: INVALID_HOSTNAME_MESSAGE,
+			}),
 		path: z.string().min(1).optional(),
 		internalPath: z.string().optional(),
 		stripPath: z.boolean().optional(),
