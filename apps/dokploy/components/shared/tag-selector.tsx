@@ -86,7 +86,7 @@ export function TagSelector({
 										<button
 											type="button"
 											onClick={(e) => handleTagRemove(tag.id, e)}
-											className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+											className="ml-1 ring-offset-background rounded-full outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
 											disabled={disabled}
 										>
 											<X className="h-3 w-3 hover:opacity-70" />

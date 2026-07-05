@@ -170,6 +170,8 @@ const getLegacyOverrides = (
 		},
 		gitProviders: {
 			read: !!memberRecord.canAccessToGitProviders,
+			create: !!memberRecord.canAccessToGitProviders,
+			delete: !!memberRecord.canAccessToGitProviders,
 		},
 	};
 };

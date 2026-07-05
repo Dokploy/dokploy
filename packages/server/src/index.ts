@@ -104,6 +104,7 @@ export * from "./utils/filesystem/directory";
 export * from "./utils/filesystem/ssh";
 export * from "./utils/git-branch-validation";
 export * from "./utils/gpu-setup";
+export * from "./utils/hostname-validation";
 export * from "./utils/notifications/build-error";
 export * from "./utils/notifications/build-success";
 export * from "./utils/notifications/database-backup";

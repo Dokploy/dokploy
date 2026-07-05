@@ -1,7 +1,7 @@
 import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DokployRestartEmail from "@dokploy/server/emails/emails/dokploy-restart";
-import { renderAsync } from "@react-email/components";
+import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { eq } from "drizzle-orm";
 import {
@@ -59,7 +59,7 @@ export const sendDokployRestartNotifications = async () => {
 
 			try {
 				if (email || resend) {
-					const template = await renderAsync(
+					const template = await render(
 						DokployRestartEmail({ date: date.toLocaleString() }),
 					).catch();
 
