@@ -1,13 +1,17 @@
-import { EyeIcon, EyeOffIcon, RefreshCcw } from "lucide-react";
+import copy from "copy-to-clipboard";
+import { Clipboard, EyeIcon, EyeOffIcon, RefreshCcw } from "lucide-react";
 import * as React from "react";
+import { toast } from "sonner";
 
 import { generateRandomPassword } from "@/lib/password-utils";
 import { cn } from "@/lib/utils";
+import { Button } from "./button";
 
 export interface InputProps extends React.ComponentProps<"input"> {
 	errorMessage?: string;
 	enablePasswordGenerator?: boolean;
 	passwordGeneratorLength?: number;
+	enableCopyButton?: boolean;
 }
 
 function Input({
@@ -16,6 +20,7 @@ function Input({
 	errorMessage,
 	enablePasswordGenerator = false,
 	passwordGeneratorLength,
+	enableCopyButton = false,
 	ref,
 	...props
 }: InputProps) {
@@ -65,49 +70,67 @@ function Input({
 		input.dispatchEvent(new Event("input", { bubbles: true }));
 	};
 
-	return (
-		<>
-			<div className="relative w-full">
-				<input
-					type={inputType}
-					data-slot="input"
-					className={cn(
-						"h-10 w-full min-w-0 rounded-lg border border-input bg-transparent px-3 py-2 text-sm transition-colors outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
-						isPassword && (shouldShowGenerator ? "pr-16" : "pr-10"),
-						className,
-					)}
-					ref={setRefs}
-					{...props}
-				/>
-				{isPassword && (
-					<div className="absolute inset-y-0 right-0 flex items-center gap-1 pr-3 text-muted-foreground">
-						{shouldShowGenerator && (
-							<button
-								type="button"
-								className="hover:text-foreground focus:outline-none"
-								onClick={handleGeneratePassword}
-								aria-label="Generate password"
-								title="Generate password"
-								tabIndex={-1}
-							>
-								<RefreshCcw className="h-4 w-4" />
-							</button>
-						)}
+	const handleCopy = () => {
+		copy(inputRef.current?.value || "");
+		toast.success("Value is copied to clipboard");
+	};
+
+	const inputElement = (
+		<div className="relative w-full">
+			<input
+				type={inputType}
+				data-slot="input"
+				className={cn(
+					"h-10 w-full min-w-0 rounded-lg border border-input bg-transparent px-3 py-2 text-sm transition-colors outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+					isPassword && (shouldShowGenerator ? "pr-16" : "pr-10"),
+					className,
+				)}
+				ref={setRefs}
+				{...props}
+			/>
+			{isPassword && (
+				<div className="absolute inset-y-0 right-0 flex items-center gap-1 pr-3 text-muted-foreground">
+					{shouldShowGenerator && (
 						<button
 							type="button"
 							className="hover:text-foreground focus:outline-none"
-							onClick={() => setShowPassword(!showPassword)}
+							onClick={handleGeneratePassword}
+							aria-label="Generate password"
+							title="Generate password"
 							tabIndex={-1}
 						>
-							{showPassword ? (
-								<EyeOffIcon className="h-4 w-4" />
-							) : (
-								<EyeIcon className="h-4 w-4" />
-							)}
+							<RefreshCcw className="h-4 w-4" />
 						</button>
-					</div>
-				)}
-			</div>
+					)}
+					<button
+						type="button"
+						className="hover:text-foreground focus:outline-none"
+						onClick={() => setShowPassword(!showPassword)}
+						tabIndex={-1}
+					>
+						{showPassword ? (
+							<EyeOffIcon className="h-4 w-4" />
+						) : (
+							<EyeIcon className="h-4 w-4" />
+						)}
+					</button>
+				</div>
+			)}
+		</div>
+	);
+
+	return (
+		<>
+			{enableCopyButton ? (
+				<div className="flex w-full items-center space-x-2">
+					{inputElement}
+					<Button type="button" variant={"secondary"} onClick={handleCopy}>
+						<Clipboard className="size-4 text-muted-foreground" />
+					</Button>
+				</div>
+			) : (
+				inputElement
+			)}
 			{errorMessage && (
 				<span className="text-sm text-red-600 text-secondary-foreground">
 					{errorMessage}
