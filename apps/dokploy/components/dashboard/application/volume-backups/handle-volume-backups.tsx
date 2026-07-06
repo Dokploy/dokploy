@@ -509,7 +509,10 @@ export const HandleVolumeBackups = ({
 											<SelectContent>
 												{mounts && mounts.length > 0 ? (
 													mounts.map((mount) => (
-														<SelectItem key={mount.Name} value={mount.Name || ""}>
+														<SelectItem
+															key={mount.Name}
+															value={mount.Name || ""}
+														>
 															{mount.Name}
 														</SelectItem>
 													))
