@@ -77,6 +77,11 @@ import {
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 
+const RAILPACK_VERSIONS_CACHE_TTL = 1000 * 60 * 60 * 24;
+let railpackVersionsCache:
+	| { versions: string[]; fetchedAt: number }
+	| undefined;
+
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateApplication)
@@ -1104,9 +1109,23 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	getRailpackVersions: protectedProcedure.query(async () => {
+		if (
+			railpackVersionsCache &&
+			Date.now() - railpackVersionsCache.fetchedAt < RAILPACK_VERSIONS_CACHE_TTL
+		) {
+			return railpackVersionsCache.versions;
+		}
+
 		const res = await fetch(
 			"https://api.github.com/repos/railwayapp/railpack/releases",
-			{ headers: { Accept: "application/vnd.github+json" } },
+			{
+				headers: {
+					Accept: "application/vnd.github+json",
+					...(process.env.GITHUB_TOKEN
+						? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+						: {}),
+				},
+			},
 		);
 		if (!res.ok) {
 			throw new TRPCError({
@@ -1115,7 +1134,9 @@ export const applicationRouter = createTRPCRouter({
 			});
 		}
 		const releases = (await res.json()) as Array<{ tag_name: string }>;
-		return releases.map((r) => r.tag_name.replace(/^v/, ""));
+		const versions = releases.map((r) => r.tag_name.replace(/^v/i, ""));
+		railpackVersionsCache = { versions, fetchedAt: Date.now() };
+		return versions;
 	}),
 
 	readLogs: protectedProcedure

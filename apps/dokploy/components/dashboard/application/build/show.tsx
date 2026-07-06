@@ -138,6 +138,9 @@ const resetData = (data: ApplicationData): AddTemplate => {
 	}
 };
 
+const normalizeRailpackVersion = (version: string) =>
+	version.trim().replace(/^v/i, "");
+
 export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 	const { mutateAsync, isPending } =
 		api.application.saveBuildType.useMutation();
@@ -205,9 +208,9 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 	const onSubmit = async (data: AddTemplate) => {
 		const normalizedRailpackVersion =
 			data.buildType === BuildType.railpack
-				? (data.railpackVersion || railpackVersions?.[0] || "")
-						.replace(/^v/, "")
-						.trim()
+				? normalizeRailpackVersion(
+						data.railpackVersion || railpackVersions?.[0] || "",
+					)
 				: null;
 
 		if (data.buildType === BuildType.railpack && !normalizedRailpackVersion) {
