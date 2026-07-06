@@ -24,7 +24,7 @@ export const ShowNodeConfig = ({ nodeId, serverId }: Props) => {
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
-				<Button variant="outline" size="sm" className="w-full">
+				<Button variant="outline" size="sm">
 					<Settings className="h-4 w-4 mr-2" />
 					Config
 				</Button>

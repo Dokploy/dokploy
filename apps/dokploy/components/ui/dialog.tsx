@@ -3,6 +3,7 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { wasNestedPopupJustClosed } from "@/components/ui/nested-popup-context";
 import { XIcon } from "lucide-react";
 
 function Dialog({
@@ -49,6 +50,8 @@ function DialogContent({
 	className,
 	children,
 	showCloseButton = true,
+	onPointerDownOutside,
+	onEscapeKeyDown,
 	...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
 	showCloseButton?: boolean;
@@ -62,6 +65,20 @@ function DialogContent({
 					"fixed top-1/2 left-1/2 z-50 flex max-h-[90vh] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto overscroll-contain rounded-xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-lg data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
 					className,
 				)}
+				onPointerDownOutside={(event) => {
+					if (wasNestedPopupJustClosed()) {
+						event.preventDefault();
+						return;
+					}
+					onPointerDownOutside?.(event);
+				}}
+				onEscapeKeyDown={(event) => {
+					if (wasNestedPopupJustClosed()) {
+						event.preventDefault();
+						return;
+					}
+					onEscapeKeyDown?.(event);
+				}}
 				{...props}
 			>
 				{children}
