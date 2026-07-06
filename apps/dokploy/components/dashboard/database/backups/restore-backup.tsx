@@ -345,7 +345,7 @@ export const RestoreBackup = ({
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between bg-input!",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -427,7 +427,7 @@ export const RestoreBackup = ({
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between bg-input!",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>

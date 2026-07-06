@@ -507,11 +507,17 @@ export const HandleVolumeBackups = ({
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
-												{mounts?.map((mount) => (
-													<SelectItem key={mount.Name} value={mount.Name || ""}>
-														{mount.Name}
+												{mounts && mounts.length > 0 ? (
+													mounts.map((mount) => (
+														<SelectItem key={mount.Name} value={mount.Name || ""}>
+															{mount.Name}
+														</SelectItem>
+													))
+												) : (
+													<SelectItem value="none" disabled>
+														No volumes found
 													</SelectItem>
-												))}
+												)}
 											</SelectContent>
 										</Select>
 										<FormDescription>

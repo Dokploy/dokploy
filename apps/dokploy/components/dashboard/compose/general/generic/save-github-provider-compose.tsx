@@ -138,7 +138,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
-	}, [form.reset, data?.composeId, form]);
+	}, [form.reset, data]);
 
 	const onSubmit = async (data: GithubProvider) => {
 		await mutateAsync({
@@ -179,6 +179,9 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 									<FormLabel>Github Account</FormLabel>
 									<Select
 										onValueChange={(value) => {
+											if (!value) {
+												return;
+											}
 											field.onChange(value);
 											form.setValue("repository", {
 												owner: "",
@@ -186,7 +189,6 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 											});
 											form.setValue("branch", "");
 										}}
-										defaultValue={field.value}
 										value={field.value}
 									>
 										<FormControl>
@@ -234,7 +236,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between bg-input!",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -244,7 +246,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 															? "Loading...."
 															: (repositories?.find(
 																	(repo) => repo.name === field.value.repo,
-																)?.name ?? "Select repository")}
+																)?.name ?? field.value.repo)}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -321,16 +323,16 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														" w-full justify-between bg-input!",
+														" w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
 													{status === "pending" && fetchStatus === "fetching"
 														? "Loading...."
 														: field.value
-															? branches?.find(
+															? (branches?.find(
 																	(branch) => branch.name === field.value,
-																)?.name
+																)?.name ?? field.value)
 															: "Select branch"}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>

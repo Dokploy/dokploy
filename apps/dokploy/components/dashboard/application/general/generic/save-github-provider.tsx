@@ -177,6 +177,9 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 									<FormLabel>Github Account</FormLabel>
 									<Select
 										onValueChange={(value) => {
+											if (!value) {
+												return;
+											}
 											field.onChange(value);
 											form.setValue("repository", {
 												owner: "",
@@ -189,7 +192,14 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a Github Account" />
+												<SelectValue placeholder="Select a Github Account">
+													{
+														githubProviders?.find(
+															(githubProvider) =>
+																githubProvider.githubId === field.value,
+														)?.gitProvider.name
+													}
+												</SelectValue>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
@@ -233,7 +243,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between bg-input!",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -243,7 +253,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 															? "Loading...."
 															: (repositories?.find(
 																	(repo) => repo.name === field.value.repo,
-																)?.name ?? "Select repository")}
+																)?.name ?? field.value.repo)}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -320,16 +330,16 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														" w-full justify-between bg-input!",
+														" w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
 													{status === "pending" && fetchStatus === "fetching"
 														? "Loading...."
 														: field.value
-															? branches?.find(
+															? (branches?.find(
 																	(branch) => branch.name === field.value,
-																)?.name
+																)?.name ?? field.value)
 															: "Select branch"}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
