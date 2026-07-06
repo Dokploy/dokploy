@@ -1039,7 +1039,9 @@ const EnvironmentPage = (
 							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2 items-center">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
-									{currentEnvironment.project.name}
+									<p className="text-base font-medium max-w-[250px] truncate">
+										{currentEnvironment.project.name}
+									</p>
 									<AdvancedEnvironmentSelector
 										projectId={projectId}
 										currentEnvironmentId={environmentId}
