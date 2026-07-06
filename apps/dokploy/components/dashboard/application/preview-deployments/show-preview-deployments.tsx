@@ -1,4 +1,4 @@
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+import { Tooltip as TooltipPrimitive } from "radix-ui";
 import {
 	ExternalLink,
 	FileText,
@@ -132,7 +132,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 											<div className="p-4">
 												<div className="flex items-start justify-between mb-3">
 													<div className="flex items-start gap-3">
-														<GitPullRequest className="size-5 text-muted-foreground mt-1 flex-shrink-0" />
+														<GitPullRequest className="size-5 text-muted-foreground mt-1 shrink-0" />
 														<div>
 															<div className="font-medium text-sm">
 																{deployment.pullRequestTitle}
@@ -152,7 +152,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 												</div>
 
 												<div className="pl-8 space-y-3">
-													<div className="relative flex-grow">
+													<div className="relative grow">
 														<Input
 															value={deploymentUrl}
 															readOnly
@@ -244,7 +244,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 																		<TooltipPrimitive.Portal>
 																			<TooltipContent
 																				sideOffset={5}
-																				className="z-[60]"
+																				className="z-60"
 																			>
 																				<p>
 																					Rebuild the preview deployment without

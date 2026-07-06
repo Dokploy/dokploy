@@ -242,7 +242,7 @@ export const ShowUsers = () => {
 																					}}
 																				>
 																					<DropdownMenuItem
-																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																						className="w-full cursor-pointer text-red-500 hover:text-red-600!"
 																						onSelect={(e) => e.preventDefault()}
 																					>
 																						Delete User
@@ -303,7 +303,7 @@ export const ShowUsers = () => {
 																					}}
 																				>
 																					<DropdownMenuItem
-																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																						className="w-full cursor-pointer text-red-500 hover:text-red-600!"
 																						onSelect={(e) => e.preventDefault()}
 																					>
 																						Unlink User

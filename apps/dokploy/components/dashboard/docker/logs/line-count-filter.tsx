@@ -119,7 +119,7 @@ export function LineCountFilter({
 							placeholder="Number of lines"
 							value={inputValue}
 							onValueChange={handleInputChange}
-							className="flex h-9 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+							className="flex h-9 w-full rounded-md bg-transparent py-3 text-sm outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
 							onKeyDown={(e) => {
 								if (e.key === "Enter") {
 									e.preventDefault();
@@ -146,7 +146,7 @@ export function LineCountFilter({
 									<CommandPrimitive.Item
 										key={option.value}
 										onSelect={() => handleSelect(option.label)}
-										className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 aria-selected:bg-accent aria-selected:text-accent-foreground"
+										className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden data-disabled:pointer-events-none data-disabled:opacity-50 aria-selected:bg-accent aria-selected:text-accent-foreground"
 									>
 										<div
 											className={cn(

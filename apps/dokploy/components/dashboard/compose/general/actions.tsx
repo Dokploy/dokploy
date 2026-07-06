@@ -1,4 +1,4 @@
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
@@ -72,7 +72,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 									</div>
 								</TooltipTrigger>
 								<TooltipPrimitive.Portal>
-									<TooltipContent sideOffset={5} className="z-[60]">
+									<TooltipContent sideOffset={5} className="z-60">
 										<p>
 											Downloads the source code and performs a complete build
 										</p>
@@ -113,7 +113,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 									</div>
 								</TooltipTrigger>
 								<TooltipPrimitive.Portal>
-									<TooltipContent sideOffset={5} className="z-[60]">
+									<TooltipContent sideOffset={5} className="z-60">
 										<p>Reload the compose without rebuilding it</p>
 									</TooltipContent>
 								</TooltipPrimitive.Portal>
@@ -154,7 +154,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 										</div>
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
+										<TooltipContent sideOffset={5} className="z-60">
 											<p>
 												Start the compose (requires a previous successful build)
 											</p>
@@ -193,7 +193,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 										</div>
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
+										<TooltipContent sideOffset={5} className="z-60">
 											<p>Stop the currently running compose</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>

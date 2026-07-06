@@ -154,7 +154,7 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 													lineWrapping
 													language="properties"
 													readOnly={!canWrite}
-													wrapperClassName="h-[35rem] font-mono"
+													wrapperClassName="h-140 font-mono"
 													placeholder={`NODE_ENV=development
 DATABASE_URL=postgresql://localhost:5432/mydb
 API_KEY=your-api-key-here
