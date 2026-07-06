@@ -56,6 +56,8 @@ const schema = z
 		previewPath: z.string(),
 		previewCertificateType: z.enum(["letsencrypt", "none", "custom"]),
 		previewCustomCertResolver: z.string().optional(),
+		useCustomEntrypoint: z.boolean(),
+		previewCustomEntrypoint: z.string().optional(),
 		previewRequireCollaboratorPermissions: z.boolean(),
 	})
 	.superRefine((input, ctx) => {
@@ -67,6 +69,14 @@ const schema = z
 				code: z.ZodIssueCode.custom,
 				path: ["previewCustomCertResolver"],
 				message: "Required",
+			});
+		}
+
+		if (input.useCustomEntrypoint && !input.previewCustomEntrypoint) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["previewCustomEntrypoint"],
+				message: "Custom entry point must be specified",
 			});
 		}
 	});
@@ -95,12 +105,15 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewHttps: false,
 			previewPath: "/",
 			previewCertificateType: "none",
+			useCustomEntrypoint: false,
+			previewCustomEntrypoint: undefined,
 			previewRequireCollaboratorPermissions: true,
 		},
 		resolver: zodResolver(schema),
 	});
 
 	const previewHttps = form.watch("previewHttps");
+	const useCustomEntrypoint = form.watch("useCustomEntrypoint");
 	const wildcardDomain = form.watch("wildcardDomain");
 	const isTraefikMeDomain = wildcardDomain?.includes("sslip.io") || false;
 
@@ -122,6 +135,8 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				previewPath: data.previewPath || "/",
 				previewCertificateType: data.previewCertificateType || "none",
 				previewCustomCertResolver: data.previewCustomCertResolver || "",
+				useCustomEntrypoint: !!data.previewCustomEntrypoint,
+				previewCustomEntrypoint: data.previewCustomEntrypoint || undefined,
 				previewRequireCollaboratorPermissions:
 					data.previewRequireCollaboratorPermissions ?? true,
 			});
@@ -142,6 +157,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewPath: formData.previewPath,
 			previewCertificateType: formData.previewCertificateType,
 			previewCustomCertResolver: formData.previewCustomCertResolver,
+			previewCustomEntrypoint: formData.useCustomEntrypoint
+				? formData.previewCustomEntrypoint
+				: null,
 			previewRequireCollaboratorPermissions:
 				formData.previewRequireCollaboratorPermissions,
 		})
@@ -325,7 +343,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										control={form.control}
 										name="previewHttps"
 										render={({ field }) => (
-											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
+											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs col-span-2">
 												<div className="space-y-0.5">
 													<FormLabel>HTTPS</FormLabel>
 													<FormDescription>
@@ -384,6 +402,59 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 														<Input
 															placeholder="my-custom-resolver"
 															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									)}
+
+									<FormField
+										control={form.control}
+										name="useCustomEntrypoint"
+										render={({ field }) => (
+											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs col-span-2">
+												<div className="space-y-0.5">
+													<FormLabel>Custom Entrypoint</FormLabel>
+													<FormDescription>
+														Use custom entrypoint for preview domains.
+														<br />
+														"web" and/or "websecure" is used by default.
+													</FormDescription>
+													<FormMessage />
+												</div>
+												<FormControl>
+													<Switch
+														checked={field.value}
+														onCheckedChange={(checked) => {
+															field.onChange(checked);
+															if (!checked) {
+																form.setValue(
+																	"previewCustomEntrypoint",
+																	undefined,
+																);
+															}
+														}}
+													/>
+												</FormControl>
+											</FormItem>
+										)}
+									/>
+
+									{useCustomEntrypoint && (
+										<FormField
+											control={form.control}
+											name="previewCustomEntrypoint"
+											render={({ field }) => (
+												<FormItem className="col-span-2 w-full">
+													<FormLabel>Entrypoint Name</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="Enter entrypoint name manually"
+															className="w-full"
+															{...field}
+															value={field.value ?? ""}
 														/>
 													</FormControl>
 													<FormMessage />

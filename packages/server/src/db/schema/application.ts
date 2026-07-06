@@ -101,6 +101,7 @@ export const applications = pgTable("application", {
 		.notNull()
 		.default("none"),
 	previewCustomCertResolver: text("previewCustomCertResolver"),
+	previewCustomEntrypoint: text("previewCustomEntrypoint"),
 	previewLimit: integer("previewLimit").default(3),
 	isPreviewDeploymentsActive: boolean("isPreviewDeploymentsActive").default(
 		false,
