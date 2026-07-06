@@ -1878,7 +1878,7 @@ export async function getServerSideProps(
 					// Try to find default, otherwise use first accessible
 					const targetEnv =
 						accessibleEnvironments.find((env) => env.isDefault) ||
-						accessibleEnvironments[0];
+						accessibleEnvironments[0]!;
 
 					return {
 						redirect: {

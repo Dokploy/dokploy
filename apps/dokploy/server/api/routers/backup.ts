@@ -1,6 +1,7 @@
 import {
 	createBackup,
 	findBackupById,
+	findBackupsByDbId,
 	findComposeByBackupId,
 	findComposeById,
 	findLibsqlByBackupId,
@@ -55,6 +56,7 @@ import {
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { assertDatabaseBackupLimit } from "@/server/api/utils/plan-limits";
 import {
 	apiCreateBackup,
 	apiFindOneBackup,
@@ -92,6 +94,22 @@ export const backupRouter = createTRPCRouter({
 					await checkServicePermissionAndAccess(ctx, serviceId, {
 						backup: ["create"],
 					});
+				}
+
+				if (IS_CLOUD) {
+					const dbType = (
+						["postgres", "mysql", "mariadb", "mongo", "libsql"] as const
+					).find((type) => input[`${type}Id`]);
+					if (dbType) {
+						const existingBackups = await findBackupsByDbId(
+							input[`${dbType}Id`]!,
+							dbType,
+						);
+						await assertDatabaseBackupLimit(
+							ctx.session.activeOrganizationId,
+							existingBackups.length,
+						);
+					}
 				}
 
 				const newBackup = await createBackup(input);
