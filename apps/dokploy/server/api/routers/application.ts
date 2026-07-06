@@ -374,6 +374,12 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	env: createTRPCRouter({
 		upsert: protectedProcedure
+			.meta({
+				openapi: {
+					path: "/application/env/upsert",
+					method: "POST",
+				},
+			})
 			.input(apiUpsertApplicationEnv)
 			.output(apiUpsertApplicationEnvResponse)
 			.mutation(async ({ input, ctx }) => {
