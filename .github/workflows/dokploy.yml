@@ -152,6 +152,11 @@ jobs:
           VERSION=$(node -p "require('./apps/dokploy/package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: Fetch install.sh
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/Dokploy/website/main/apps/website/public/install.sh -o install.sh
+          head -1 install.sh | grep -q '^#!' || { echo "Downloaded install.sh is not a shell script"; exit 1; }
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -160,6 +165,7 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: false
+          files: install.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
