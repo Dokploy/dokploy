@@ -1,7 +1,6 @@
 import { Loader2, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -13,7 +12,15 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { api } from "@/utils/api";
+import { PatchDiffEditor, type PatchViewMode } from "./patch-diff-editor";
 
 interface Props {
 	patchId: string;
@@ -33,12 +40,26 @@ export const EditPatchDialog = ({
 		{ enabled: !!patchId },
 	);
 	const [content, setContent] = useState("");
+	const [viewMode, setViewMode] = useState<PatchViewMode>("editor");
+	const { data: patchFile, isPending: isPatchFileLoading } =
+		api.patch.readRepoFile.useQuery(
+			{
+				id: entityId,
+				type,
+				filePath: patch?.filePath || "",
+			},
+			{ enabled: !!patch?.filePath },
+		);
 
 	useEffect(() => {
-		if (patch) {
-			setContent(patch.content);
+		if (patchFile) {
+			setContent(patchFile.patchedContent);
 		}
-	}, [patch]);
+	}, [patchFile]);
+
+	useEffect(() => {
+		setViewMode("editor");
+	}, [patchId]);
 
 	const utils = api.useUtils();
 	const updatePatch = api.patch.update.useMutation();
@@ -65,26 +86,42 @@ export const EditPatchDialog = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl max-h-[85vh] flex flex-col p-0">
 				<DialogHeader className="px-6 pt-6 pb-4">
-					<DialogTitle>Edit Patch</DialogTitle>
+					<div className="flex items-center justify-between gap-4">
+						<DialogTitle>Edit Patch</DialogTitle>
+						<Select
+							value={viewMode}
+							onValueChange={(value) => setViewMode(value as PatchViewMode)}
+						>
+							<SelectTrigger className="w-[170px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="editor">Editor</SelectItem>
+								<SelectItem value="diff">Diff mode</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
 					<DialogDescription>
 						{patch ? `Editing: ${patch.filePath}` : "Loading patch..."}
 					</DialogDescription>
 				</DialogHeader>
-				{isPatchLoading ? (
+				{isPatchLoading || isPatchFileLoading ? (
 					<div className="flex flex-1 items-center justify-center px-6 py-12">
 						<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
 					</div>
-				) : (
+				) : patch && patchFile ? (
 					<div className="flex-1 min-h-0 px-6 overflow-hidden flex flex-col">
-						<CodeEditor
+						<PatchDiffEditor
+							filePath={patch.filePath}
+							originalContent={patchFile.originalContent}
 							value={content}
-							onChange={(value) => setContent(value ?? "")}
-							className="h-[400px] w-full"
-							wrapperClassName="h-[400px]"
-							lineWrapping
+							onChange={setContent}
+							patchType={patch.type}
+							mode={viewMode}
+							className="h-[400px]"
 						/>
 					</div>
-				)}
+				) : null}
 				<DialogFooter className="px-6 ">
 					<DialogClose asChild>
 						<Button variant="outline">Cancel</Button>
