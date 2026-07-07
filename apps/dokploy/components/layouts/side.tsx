@@ -361,6 +361,13 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			title: "Trust Policies",
+			url: "/dashboard/settings/trust-policies",
+			icon: ShieldCheck,
+			isEnabled: ({ permissions }) => !!permissions?.organization.update,
+		},
+		{
+			isSingle: true,
 			title: "S3 Destinations",
 			url: "/dashboard/settings/destinations",
 			icon: Database,

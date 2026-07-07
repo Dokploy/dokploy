@@ -5,12 +5,18 @@ import {
 	shouldDeploy,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import {
+	extractImageName,
+	extractImageTag,
+} from "@dokploy/server/utils/admission/image-ref";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { applications } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
+// re-export so existing importers (incl. __test__/deploy/github.test.ts) keep working
+export { extractImageName, extractImageTag };
 
 /**
  * Log a webhook handler error server-side without leaking its shape to the HTTP
@@ -281,67 +287,6 @@ export default async function handler(
 		logWebhookError("Error deploying Application:", error);
 		res.status(400).json({ message: "Error deploying Application" });
 	}
-}
-
-/**
- * Return the image name without the tag
- * Example: "my-image" => "my-image"
- * Example: "my-image:latest" => "my-image"
- * Example: "my-image:1.0.0" => "my-image"
- * Example: "myregistryhost:5000/fedora/httpd:version1.0" => "myregistryhost:5000/fedora/httpd"
- * @link https://docs.docker.com/reference/cli/docker/image/tag/
- */
-export function extractImageName(dockerImage: string | null): string | null {
-	if (!dockerImage || typeof dockerImage !== "string") {
-		return null;
-	}
-
-	// Handle case where there's no tag (no colon or colon is part of port number)
-	const lastColonIndex = dockerImage.lastIndexOf(":");
-	if (lastColonIndex === -1) {
-		return dockerImage;
-	}
-
-	// Check if the part after the last colon looks like a tag (not a port number)
-	// Port numbers are typically 1-5 digits, tags are usually longer or contain letters
-	const afterColon = dockerImage.substring(lastColonIndex + 1);
-	const isPortNumber = /^\d{1,5}$/.test(afterColon);
-
-	// If it's a port number (like registry:5000/image), don't split
-	if (isPortNumber) {
-		return dockerImage;
-	}
-
-	// Otherwise, split at the last colon to get image name
-	return dockerImage.substring(0, lastColonIndex);
-}
-
-/**
- * Return the last part of the image name, which is the tag
- * Example: "my-image" => null
- * Example: "my-image:latest" => "latest"
- * Example: "my-image:1.0.0" => "1.0.0"
- * Example: "myregistryhost:5000/fedora/httpd:version1.0" => "version1.0"
- * @link https://docs.docker.com/reference/cli/docker/image/tag/
- */
-export function extractImageTag(dockerImage: string | null) {
-	if (!dockerImage || typeof dockerImage !== "string") {
-		return null;
-	}
-
-	const lastColonIndex = dockerImage.lastIndexOf(":");
-	if (lastColonIndex === -1) {
-		return "latest";
-	}
-
-	const afterColon = dockerImage.substring(lastColonIndex + 1);
-	const isPortWithPath = /^\d{1,5}\//.test(afterColon);
-
-	if (isPortWithPath) {
-		return "latest";
-	}
-
-	return afterColon;
 }
 
 /**

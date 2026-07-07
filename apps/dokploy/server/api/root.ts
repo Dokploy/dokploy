@@ -46,6 +46,7 @@ import { sshRouter } from "./routers/ssh-key";
 import { stripeRouter } from "./routers/stripe";
 import { swarmRouter } from "./routers/swarm";
 import { tagRouter } from "./routers/tag";
+import { trustPolicyRouter } from "./routers/trustPolicy";
 import { userRouter } from "./routers/user";
 import { volumeBackupsRouter } from "./routers/volume-backups";
 /**
@@ -83,6 +84,7 @@ export const appRouter = createTRPCRouter({
 	redirects: redirectsRouter,
 	redis: redisRouter,
 	registry: registryRouter,
+	trustPolicy: trustPolicyRouter,
 	security: securityRouter,
 	server: serverRouter,
 	settings: settingsRouter,
