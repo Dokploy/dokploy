@@ -54,6 +54,20 @@ const Page = ({ isCloud }: Props) => {
 						</EnterpriseFeatureGate>
 					</div>
 				</Card>
+				<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
+					<div className="rounded-xl bg-background shadow-md">
+						<EnterpriseFeatureGate
+							lockedProps={{
+								title: "Application Authentication",
+								description:
+									"Protect deployed applications behind an OIDC SSO gate (oauth2-proxy). Part of Dokploy Enterprise.",
+								ctaLabel: "Go to License",
+							}}
+						>
+							<ForwardAuthServers />
+						</EnterpriseFeatureGate>
+					</div>
+				</Card>
 				{!isCloud && (
 					<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
 						<div className="rounded-xl bg-background shadow-md">

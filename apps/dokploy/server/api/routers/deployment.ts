@@ -6,6 +6,7 @@ import {
 	findAllDeploymentsByServerId,
 	findAllDeploymentsCentralized,
 	findDeploymentById,
+	findScheduleById,
 	IS_CLOUD,
 	removeDeployment,
 	resolveServicePath,
@@ -126,9 +127,29 @@ export const deploymentRouter = createTRPCRouter({
 	allByType: protectedProcedure
 		.input(apiFindAllByType)
 		.query(async ({ input, ctx }) => {
-			await checkServicePermissionAndAccess(ctx, input.id, {
-				deployment: ["read"],
-			});
+			if (input.type === "schedule") {
+				const schedule = await findScheduleById(input.id);
+				const serviceId = schedule.applicationId || schedule.composeId;
+				if (serviceId) {
+					await checkServicePermissionAndAccess(ctx, serviceId, {
+						deployment: ["read"],
+					});
+				} else if (schedule.serverId) {
+					const targetServer = await findServerById(schedule.serverId);
+					if (
+						targetServer.organizationId !== ctx.session.activeOrganizationId
+					) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You don't have access to this schedule.",
+						});
+					}
+				}
+			} else {
+				await checkServicePermissionAndAccess(ctx, input.id, {
+					deployment: ["read"],
+				});
+			}
 			const deploymentsList = await db.query.deployments.findMany({
 				where: eq(deployments[`${input.type}Id`], input.id),
 				orderBy: desc(deployments.createdAt),
