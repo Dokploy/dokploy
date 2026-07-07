@@ -156,6 +156,9 @@ jobs:
         run: |
           curl -fsSL https://raw.githubusercontent.com/Dokploy/website/main/apps/website/public/install.sh -o install.sh
           head -1 install.sh | grep -q '^#!' || { echo "Downloaded install.sh is not a shell script"; exit 1; }
+          grep -q 'DOKPLOY_VERSION' install.sh || { echo "install.sh no longer supports DOKPLOY_VERSION pinning"; exit 1; }
+          { head -1 install.sh; echo "DOKPLOY_VERSION=\"\${DOKPLOY_VERSION:-${{ steps.get_version.outputs.version }}}\""; tail -n +2 install.sh; } > install-pinned.sh
+          mv install-pinned.sh install.sh
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
