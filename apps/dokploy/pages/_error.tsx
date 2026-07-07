@@ -1,7 +1,10 @@
+import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { NextPageContext } from "next";
 import Link from "next/link";
+import superjson from "superjson";
 import { Logo } from "@/components/shared/logo";
 import { buttonVariants } from "@/components/ui/button";
+import { appRouter } from "@/server/api/root";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 interface Props {
@@ -102,7 +105,30 @@ export default function Custom404({ statusCode, error }: Props) {
 }
 
 // @ts-ignore
-Error.getInitialProps = ({ res, err }: NextPageContext) => {
+Error.getInitialProps = async ({ res, err, req }: NextPageContext) => {
 	const statusCode = res ? res.statusCode : err ? err.statusCode : 404;
+
+	// getInitialProps runs on the client too (e.g. client-side errors) where
+	// req/res are undefined. Only prefetch branding when running server-side.
+	if (req && res) {
+		try {
+			const helpers = createServerSideHelpers({
+				router: appRouter,
+				ctx: {
+					req: req as any,
+					res: res as any,
+					db: null as any,
+					session: null as any,
+					user: null as any,
+				},
+				transformer: superjson,
+			});
+			await helpers.whitelabeling.getPublic.prefetch();
+			return { statusCode, error: err, trpcState: helpers.dehydrate() };
+		} catch {
+			// If branding prefetch fails, fall through to the default return.
+		}
+	}
+
 	return { statusCode, error: err };
 };
