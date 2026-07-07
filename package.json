@@ -7,6 +7,7 @@
 	],
 	"scripts": {
 		"dokploy:setup": "pnpm --filter=dokploy run setup",
+		"dokploy:teardown": "pnpm --filter=dokploy run teardown",
 		"dokploy:dev": "pnpm --filter=dokploy run dev",
 		"dokploy:build": "pnpm --filter=dokploy run build",
 		"dokploy:start": "pnpm --filter=dokploy run start",

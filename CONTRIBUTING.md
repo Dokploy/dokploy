@@ -88,6 +88,24 @@ pnpm run dokploy:dev
 
 Go to http://localhost:3000 to see the development server
 
+### Teardown
+
+When you're done, stop the Swarm services and the standalone Traefik container spun up by `dokploy:setup`:
+
+```bash
+pnpm run dokploy:teardown
+```
+
+This removes the `dokploy-postgres`, `dokploy-redis` swarm services, the `dokploy-traefik` container, and the `dokploy-network` overlay. Volumes (your local database and Redis data) are left intact — delete them manually if you want a clean slate.
+
+### Exposing your dev server via a tunnel
+
+If you need to expose the local dev server publicly (e.g. to test GitHub/GitLab webhooks or better-auth social callbacks), set `DEV_ALLOWED_ORIGINS` in `apps/dokploy/.env` to a comma-separated list of extra origins. Both Next's dev server and better-auth's trusted origins will pick them up:
+
+```bash
+DEV_ALLOWED_ORIGINS="https://your-tunnel.ngrok-free.app,https://your-tunnel.trycloudflare.com"
+```
+
 > [!NOTE]
 > This project uses Biome. If your editor is configured to use another formatter such as Prettier, it's recommended to either change it to use Biome or turn it off.
 
