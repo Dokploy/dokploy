@@ -45,10 +45,6 @@ function CommandDialog({
 }) {
 	return (
 		<Dialog {...props}>
-			<DialogHeader className="sr-only">
-				<DialogTitle>{title}</DialogTitle>
-				<DialogDescription>{description}</DialogDescription>
-			</DialogHeader>
 			<DialogContent
 				className={cn(
 					"top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0",
@@ -56,7 +52,13 @@ function CommandDialog({
 				)}
 				showCloseButton={showCloseButton}
 			>
-				{children}
+				<DialogHeader className="sr-only">
+					<DialogTitle>{title}</DialogTitle>
+					<DialogDescription>{description}</DialogDescription>
+				</DialogHeader>
+				<Command>
+					{children}
+				</Command>
 			</DialogContent>
 		</Dialog>
 	);
@@ -68,7 +70,7 @@ function CommandInput({
 }: React.ComponentProps<typeof CommandPrimitive.Input>) {
 	return (
 		<div data-slot="command-input-wrapper" className="p-1 pb-0">
-			<InputGroup className="h-11! rounded-lg! border-input/30 bg-input/30 shadow-none! *:data-[slot=input-group-addon]:pl-2!">
+			<InputGroup className="h-11! in-data-[slot=dialog-content]:h-12! rounded-lg! border-input/30 bg-input/30 shadow-none! *:data-[slot=input-group-addon]:pl-2! in-data-[slot=dialog-content]:*:[svg]:size-5">
 				<CommandPrimitive.Input
 					data-slot="command-input"
 					className={cn(
@@ -122,7 +124,7 @@ function CommandGroup({
 		<CommandPrimitive.Group
 			data-slot="command-group"
 			className={cn(
-				"overflow-hidden p-1 text-foreground **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:py-1.5 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-muted-foreground",
+				"overflow-hidden p-1 text-foreground **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:py-1.5 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-muted-foreground in-data-[slot=dialog-content]:**:[[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0",
 				className,
 			)}
 			{...props}
@@ -152,7 +154,7 @@ function CommandItem({
 		<CommandPrimitive.Item
 			data-slot="command-item"
 			className={cn(
-				"group/command-item relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none in-data-[slot=dialog-content]:rounded-lg! data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-muted data-selected:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-selected:*:[svg]:text-foreground",
+				"group/command-item relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 in-data-[slot=dialog-content]:py-3 text-sm outline-hidden select-none in-data-[slot=dialog-content]:rounded-lg! data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-muted data-selected:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 in-data-[slot=dialog-content]:[&_svg:not([class*='size-'])]:size-5 data-selected:*:[svg]:text-foreground",
 				className,
 			)}
 			{...props}
