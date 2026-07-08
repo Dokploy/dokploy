@@ -38,6 +38,10 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import {
+	preserveSecretPlaceholderFields,
+	redactDeployableServiceSecrets,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -49,6 +53,7 @@ import {
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { assertServiceEnvironmentReadAccess } from "@/server/api/utils/service-environment";
 import {
 	apiCreateApplication,
 	apiDeployApplication,
@@ -188,9 +193,26 @@ export const applicationRouter = createTRPCRouter({
 			}
 
 			return {
-				...application,
+				...redactDeployableServiceSecrets(application),
 				hasGitProviderAccess,
 				unauthorizedProvider,
+			};
+		}),
+
+	revealEnvironment: protectedProcedure
+		.input(apiFindOneApplication)
+		.mutation(async ({ input, ctx }) => {
+			const application = await assertServiceEnvironmentReadAccess(
+				ctx,
+				input.applicationId,
+				() => findApplicationById(input.applicationId),
+				"application",
+			);
+
+			return {
+				env: application.env ?? "",
+				buildArgs: application.buildArgs ?? "",
+				buildSecrets: application.buildSecrets ?? "",
 			};
 		}),
 
@@ -457,18 +479,26 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				envVars: ["write"],
 			});
-			await updateApplication(input.applicationId, {
-				env: input.env,
-				buildArgs: input.buildArgs,
-				buildSecrets: input.buildSecrets,
-				createEnvFile: input.createEnvFile,
-			});
-			const application = await findApplicationById(input.applicationId);
+			const currentApplication = await findApplicationById(input.applicationId);
+			const application = await updateApplication(
+				input.applicationId,
+				preserveSecretPlaceholderFields(
+					{
+						env: input.env,
+						buildArgs: input.buildArgs,
+						buildSecrets: input.buildSecrets,
+						createEnvFile: input.createEnvFile,
+					},
+					currentApplication,
+					["env", "buildArgs", "buildSecrets"],
+				),
+			);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
-				resourceId: application.applicationId,
-				resourceName: application.appName,
+				resourceId:
+					application?.applicationId ?? currentApplication.applicationId,
+				resourceName: application?.appName ?? currentApplication.appName,
 			});
 			return true;
 		}),
@@ -611,20 +641,27 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
-			await updateApplication(input.applicationId, {
-				dockerImage: input.dockerImage,
-				username: input.username,
-				password: input.password,
-				sourceType: "docker",
-				applicationStatus: "idle",
-				registryUrl: input.registryUrl,
-			});
-			const application = await findApplicationById(input.applicationId);
+			const currentApplication = await findApplicationById(input.applicationId);
+			await updateApplication(
+				input.applicationId,
+				preserveSecretPlaceholderFields(
+					{
+						dockerImage: input.dockerImage,
+						username: input.username,
+						password: input.password,
+						sourceType: "docker" as const,
+						applicationStatus: "idle" as const,
+						registryUrl: input.registryUrl,
+					},
+					currentApplication,
+					["password"],
+				),
+			);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
-				resourceId: application.applicationId,
-				resourceName: application.appName,
+				resourceId: currentApplication.applicationId,
+				resourceName: currentApplication.appName,
 			});
 			return true;
 		}),
@@ -634,22 +671,29 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
-			await updateApplication(input.applicationId, {
-				customGitBranch: input.customGitBranch,
-				customGitBuildPath: input.customGitBuildPath,
-				customGitUrl: input.customGitUrl,
-				customGitSSHKeyId: input.customGitSSHKeyId,
-				sourceType: "git",
-				applicationStatus: "idle",
-				watchPaths: input.watchPaths,
-				enableSubmodules: input.enableSubmodules,
-			});
-			const application = await findApplicationById(input.applicationId);
+			const currentApplication = await findApplicationById(input.applicationId);
+			await updateApplication(
+				input.applicationId,
+				preserveSecretPlaceholderFields(
+					{
+						customGitBranch: input.customGitBranch,
+						customGitBuildPath: input.customGitBuildPath,
+						customGitUrl: input.customGitUrl,
+						customGitSSHKeyId: input.customGitSSHKeyId,
+						sourceType: "git" as const,
+						applicationStatus: "idle" as const,
+						watchPaths: input.watchPaths,
+						enableSubmodules: input.enableSubmodules,
+					},
+					currentApplication,
+					["customGitUrl"],
+				),
+			);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
-				resourceId: application.applicationId,
-				resourceName: application.appName,
+				resourceId: currentApplication.applicationId,
+				resourceName: currentApplication.appName,
 			});
 			return true;
 		}),
@@ -739,9 +783,20 @@ export const applicationRouter = createTRPCRouter({
 			}
 
 			const { applicationId, ...rest } = input;
-			const updateApp = await updateApplication(applicationId, {
-				...rest,
-			});
+			const currentApplication = await findApplicationById(applicationId);
+			const updateApp = await updateApplication(
+				applicationId,
+				preserveSecretPlaceholderFields(rest, currentApplication, [
+					"env",
+					"previewEnv",
+					"buildArgs",
+					"buildSecrets",
+					"previewBuildArgs",
+					"previewBuildSecrets",
+					"password",
+					"customGitUrl",
+				]),
+			);
 
 			if (!updateApp) {
 				throw new TRPCError({

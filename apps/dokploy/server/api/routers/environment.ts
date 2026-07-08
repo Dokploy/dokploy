@@ -15,6 +15,7 @@ import {
 	checkPermission,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import { preserveSecretPlaceholderFields } from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -276,7 +277,9 @@ export const environmentRouter = createTRPCRouter({
 
 				const environment = await updateEnvironmentById(
 					environmentId,
-					updateData,
+					preserveSecretPlaceholderFields(updateData, currentEnvironment, [
+						"env",
+					]),
 				);
 				if (environment) {
 					await audit(ctx, {

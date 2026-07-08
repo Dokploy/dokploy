@@ -46,6 +46,11 @@ import {
 	fetchTemplatesList,
 } from "@dokploy/server/templates/github";
 import { processTemplate } from "@dokploy/server/templates/processors";
+import {
+	preserveSecretPlaceholderFields,
+	redactDeployableServiceSecrets,
+	redactSecretFields,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import _ from "lodash";
@@ -80,6 +85,7 @@ import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { audit } from "../utils/audit";
+import { assertServiceEnvironmentReadAccess } from "../utils/service-environment";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -184,9 +190,26 @@ export const composeRouter = createTRPCRouter({
 			}
 
 			return {
-				...compose,
+				...redactSecretFields(redactDeployableServiceSecrets(compose), [
+					"composeFile",
+				]),
 				hasGitProviderAccess,
 				unauthorizedProvider,
+			};
+		}),
+
+	revealEnvironment: protectedProcedure
+		.input(apiFindCompose)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await assertServiceEnvironmentReadAccess(
+				ctx,
+				input.composeId,
+				() => findComposeById(input.composeId),
+				"compose",
+			);
+
+			return {
+				env: compose.env ?? "",
 			};
 		}),
 
@@ -196,7 +219,15 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
-			const updated = await updateCompose(input.composeId, input);
+			const currentCompose = await findComposeById(input.composeId);
+			const updated = await updateCompose(
+				input.composeId,
+				preserveSecretPlaceholderFields(input, currentCompose, [
+					"env",
+					"composeFile",
+					"customGitUrl",
+				]),
+			);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "compose",
@@ -211,9 +242,17 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				envVars: ["write"],
 			});
-			const updated = await updateCompose(input.composeId, {
-				env: input.env,
-			});
+			const currentCompose = await findComposeById(input.composeId);
+			const updated = await updateCompose(
+				input.composeId,
+				preserveSecretPlaceholderFields(
+					{
+						env: input.env,
+					},
+					currentCompose,
+					["env"],
+				),
+			);
 
 			if (!updated) {
 				throw new TRPCError({

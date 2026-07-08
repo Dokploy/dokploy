@@ -30,11 +30,16 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import {
+	preserveSecretPlaceholderFields,
+	redactDatabaseServiceSecrets,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { assertServiceEnvironmentReadAccess } from "@/server/api/utils/service-environment";
 import {
 	apiChangeMongoStatus,
 	apiCreateMongo,
@@ -136,7 +141,22 @@ export const mongoRouter = createTRPCRouter({
 					message: "You are not authorized to access this mongo",
 				});
 			}
-			return mongo;
+			return redactDatabaseServiceSecrets(mongo);
+		}),
+
+	revealEnvironment: protectedProcedure
+		.input(apiFindOneMongo)
+		.mutation(async ({ input, ctx }) => {
+			const mongo = await assertServiceEnvironmentReadAccess(
+				ctx,
+				input.mongoId,
+				() => findMongoById(input.mongoId),
+				"mongo",
+			);
+
+			return {
+				env: mongo.env ?? "",
+			};
 		}),
 
 	start: protectedProcedure
@@ -369,9 +389,17 @@ export const mongoRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.mongoId, {
 				envVars: ["write"],
 			});
-			const service = await updateMongoById(input.mongoId, {
-				env: input.env,
-			});
+			const currentMongo = await findMongoById(input.mongoId);
+			const service = await updateMongoById(
+				input.mongoId,
+				preserveSecretPlaceholderFields(
+					{
+						env: input.env,
+					},
+					currentMongo,
+					["env"],
+				),
+			);
 
 			if (!service) {
 				throw new TRPCError({
@@ -394,9 +422,14 @@ export const mongoRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mongoId, {
 				service: ["create"],
 			});
-			const service = await updateMongoById(mongoId, {
-				...rest,
-			});
+			const currentMongo = await findMongoById(mongoId);
+			const service = await updateMongoById(
+				mongoId,
+				preserveSecretPlaceholderFields(rest, currentMongo, [
+					"env",
+					"databasePassword",
+				]),
+			);
 
 			if (!service) {
 				throw new TRPCError({
