@@ -345,6 +345,11 @@ export const rebuildApplication = async ({
 	return true;
 };
 
+const resolvePreviewTemplateVariables = (
+	value: string,
+	pullRequestNumber: string,
+) => value.replaceAll("${{preview.prNumber}}", pullRequestNumber);
+
 export const deployPreviewApplication = async ({
 	applicationId,
 	titleLog = "Preview Deployment",
@@ -411,9 +416,18 @@ export const deployPreviewApplication = async ({
 			body: `### Dokploy Preview Deployment\n\n${buildingComment}`,
 		});
 		application.appName = previewDeployment.appName;
-		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		application.env = resolvePreviewTemplateVariables(
+			`${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`,
+			previewDeployment.pullRequestNumber,
+		);
+		application.buildArgs = resolvePreviewTemplateVariables(
+			`${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`,
+			previewDeployment.pullRequestNumber,
+		);
+		application.buildSecrets = resolvePreviewTemplateVariables(
+			`${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`,
+			previewDeployment.pullRequestNumber,
+		);
 		application.rollbackActive = false;
 		application.buildRegistry = null;
 		application.rollbackRegistry = null;
@@ -530,9 +544,18 @@ export const rebuildPreviewApplication = async ({
 
 		// Set application properties for preview deployment
 		application.appName = previewDeployment.appName;
-		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		application.env = resolvePreviewTemplateVariables(
+			`${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`,
+			previewDeployment.pullRequestNumber,
+		);
+		application.buildArgs = resolvePreviewTemplateVariables(
+			`${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`,
+			previewDeployment.pullRequestNumber,
+		);
+		application.buildSecrets = resolvePreviewTemplateVariables(
+			`${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`,
+			previewDeployment.pullRequestNumber,
+		);
 		application.rollbackActive = false;
 		application.buildRegistry = null;
 		application.rollbackRegistry = null;

@@ -491,7 +491,21 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 												<Secrets
 													name="env"
 													title="Environment Settings"
-													description="You can add environment variables to your resource."
+													description={
+														<span>
+															You can add environment variables to your
+															resource. Use{" "}
+															<code>{"${{preview.prNumber}}"}</code> to
+															reference the pull request number, e.g. to
+															point at another service's deterministic
+															preview domain (
+															<code>
+																VITE_API_URL=https://backend-pr$
+																{"{{preview.prNumber}}"}.example.com
+															</code>
+															).
+														</span>
+													}
 													placeholder={[
 														"NODE_ENV=production",
 														"PORT=3000",
