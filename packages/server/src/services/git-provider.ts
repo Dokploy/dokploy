@@ -5,6 +5,77 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 
 export type GitProvider = typeof gitProvider.$inferSelect;
+type GitProviderSession = {
+	userId: string;
+	activeOrganizationId: string;
+};
+
+const githubSecretKeys = [
+	"githubClientSecret",
+	"githubPrivateKey",
+	"githubWebhookSecret",
+] as const;
+
+const gitlabSecretKeys = ["secret", "accessToken", "refreshToken"] as const;
+
+const giteaSecretKeys = [
+	"clientSecret",
+	"accessToken",
+	"refreshToken",
+] as const;
+
+const bitbucketSecretKeys = ["appPassword", "apiToken"] as const;
+
+const omitKeys = <T extends object>(value: T, keys: readonly string[]) => {
+	const redacted = { ...value } as Record<string, unknown>;
+	for (const key of keys) {
+		delete redacted[key];
+	}
+	return redacted as T;
+};
+
+const redactNullable = <T extends object | null | undefined>(
+	value: T,
+	keys: readonly string[],
+) => {
+	if (!value) {
+		return value;
+	}
+	return omitKeys(value, keys);
+};
+
+export const redactGithubProvider = <T extends object | null | undefined>(
+	provider: T,
+) => redactNullable(provider, githubSecretKeys);
+
+export const redactGitlabProvider = <T extends object | null | undefined>(
+	provider: T,
+) => redactNullable(provider, gitlabSecretKeys);
+
+export const redactGiteaProvider = <T extends object | null | undefined>(
+	provider: T,
+) => redactNullable(provider, giteaSecretKeys);
+
+export const redactBitbucketProvider = <T extends object | null | undefined>(
+	provider: T,
+) => redactNullable(provider, bitbucketSecretKeys);
+
+export const redactGitProviderSecrets = <
+	T extends {
+		github?: object | null;
+		gitlab?: object | null;
+		bitbucket?: object | null;
+		gitea?: object | null;
+	},
+>(
+	entity: T,
+) => ({
+	...entity,
+	github: redactGithubProvider(entity.github),
+	gitlab: redactGitlabProvider(entity.gitlab),
+	bitbucket: redactBitbucketProvider(entity.bitbucket),
+	gitea: redactGiteaProvider(entity.gitea),
+});
 
 export const removeGitProvider = async (gitProviderId: string) => {
 	const result = await db
@@ -51,7 +122,7 @@ export const updateGitProvider = async (
 // not to modify the git config of an existing deploy owned by someone else.
 export const canEditDeployGitSource = async (
 	gitProviderId: string,
-	session: { userId: string; activeOrganizationId: string },
+	session: GitProviderSession,
 ): Promise<boolean> => {
 	const { userId, activeOrganizationId } = session;
 
@@ -75,10 +146,9 @@ export const canEditDeployGitSource = async (
 	return provider.userId === userId || provider.sharedWithOrganization;
 };
 
-export const getAccessibleGitProviderIds = async (session: {
-	userId: string;
-	activeOrganizationId: string;
-}): Promise<Set<string>> => {
+export const getAccessibleGitProviderIds = async (
+	session: GitProviderSession,
+): Promise<Set<string>> => {
 	const { userId, activeOrganizationId } = session;
 
 	const allOrgProviders = await db.query.gitProvider.findMany({

@@ -33,7 +33,10 @@ import {
 	updateDeploymentStatus,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
+import {
+	canEditDeployGitSource,
+	redactGitProviderSecrets,
+} from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
 	checkServiceAccess,
@@ -111,7 +114,20 @@ const redactComposeSecrets = <T extends SecretRecord | null | undefined>(
 	record: T,
 ) =>
 	redactSecretFields(
-		redactCustomGitUrl(redactDeployableServiceSecrets(record)),
+		redactCustomGitUrl(
+			redactDeployableServiceSecrets(
+				record
+					? redactGitProviderSecrets(
+							record as T & {
+								bitbucket?: object | null;
+								gitea?: object | null;
+								github?: object | null;
+								gitlab?: object | null;
+							},
+						)
+					: record,
+			),
+		),
 		["composeFile"],
 	);
 
