@@ -135,11 +135,12 @@ export const createPreviewDeployment = async (
 	const org = await db.query.organization.findFirst({
 		where: eq(organization.id, application.environment.project.organizationId),
 	});
-	const generateDomain = await generateWildcardDomain(
+	const generateDomain = await generatePreviewWildcardDomain(
 		application.previewWildcard || "*.sslip.io",
 		appName,
 		application.server?.ipAddress || "",
 		org?.ownerId || "",
+		schema.pullRequestNumber,
 	);
 
 	const octokit = authGithub(application?.github as Github);
@@ -228,17 +229,32 @@ export const findPreviewDeploymentByApplicationId = async (
 	return previewDeploymentResult;
 };
 
-const generateWildcardDomain = async (
+export const generatePreviewWildcardDomain = async (
 	baseDomain: string,
 	appName: string,
 	serverIp: string,
 	_userId: string,
+	pullRequestNumber: string,
 ): Promise<string> => {
-	if (!baseDomain.startsWith("*.")) {
-		throw new Error('The base domain must start with "*."');
+	if (!baseDomain.includes("*") && !baseDomain.includes("${prNumber}")) {
+		throw new Error(
+			'The domain must include "*" or the "${prNumber}" variable, otherwise every pull request would collide on the same domain.',
+		);
+	}
+
+	const domain = baseDomain.replaceAll("${prNumber}", pullRequestNumber);
+
+	if (!domain.includes("*")) {
+		return domain;
+	}
+
+	if (!domain.startsWith("*.")) {
+		throw new Error(
+			'The base domain must start with "*." or use the "${prNumber}" variable without a wildcard.',
+		);
 	}
 	const hash = `${appName}`;
-	if (baseDomain.includes("sslip.io")) {
+	if (domain.includes("sslip.io")) {
 		let ip = "";
 
 		if (process.env.NODE_ENV === "development") {
@@ -255,11 +271,11 @@ const generateWildcardDomain = async (
 		}
 
 		const slugIp = ip.replaceAll(".", "-");
-		return baseDomain.replace(
+		return domain.replace(
 			"*",
 			`${hash}${slugIp === "" ? "" : `-${slugIp}`}`,
 		);
 	}
 
-	return baseDomain.replace("*", hash);
+	return domain.replace("*", hash);
 };
