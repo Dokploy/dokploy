@@ -182,7 +182,9 @@ export const ShowUsers = () => {
 																			: "outline"
 																	}
 																>
-																	{member.user.banned ? "Deactivated" : "Active"}
+																	{member.user.banned
+																		? "Deactivated"
+																		: "Active"}
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">
