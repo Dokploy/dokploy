@@ -1,11 +1,13 @@
 import { IS_CLOUD } from "@dokploy/server";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import superjson from "superjson";
 import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -22,6 +24,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { appRouter } from "@/server/api/root";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const loginSchema = z.object({
@@ -165,7 +168,7 @@ export default function Home() {
 Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
-export async function getServerSideProps(_context: GetServerSidePropsContext) {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (!IS_CLOUD) {
 		return {
 			redirect: {
@@ -175,7 +178,24 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
 		};
 	}
 
+	const helpers = createServerSideHelpers({
+		router: appRouter,
+		ctx: {
+			req: context.req as any,
+			res: context.res as any,
+			db: null as any,
+			session: null as any,
+			user: null as any,
+		},
+		transformer: superjson,
+	});
+	// Prefetch the public branding so the logo and app name render
+	// correctly on the server (no flash of default branding).
+	await helpers.whitelabeling.getPublic.prefetch();
+
 	return {
-		props: {},
+		props: {
+			trpcState: helpers.dehydrate(),
+		},
 	};
 }
