@@ -77,6 +77,8 @@ export const domain = z
 		serviceName: z.string().optional(),
 		domainType: z.enum(["application", "compose", "preview"]).optional(),
 		middlewares: z.array(z.string()).optional(),
+		validationMode: z.enum(["auto", "proxy", "skip"]).optional(),
+		expectedIp: z.string().optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {
@@ -131,6 +133,14 @@ export const domain = z
 				code: z.ZodIssueCode.custom,
 				path: ["customEntrypoint"],
 				message: "Custom entry point must be specified",
+			});
+		}
+
+		if (input.validationMode === "proxy" && !input.expectedIp?.trim()) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["expectedIp"],
+				message: "Enter the IP the domain should resolve to",
 			});
 		}
 	});
@@ -223,6 +233,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			serviceName: undefined,
 			domainType: type,
 			middlewares: [],
+			validationMode: "auto",
+			expectedIp: undefined,
 		},
 		mode: "onChange",
 	});
@@ -231,6 +243,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const useCustomEntrypoint = form.watch("useCustomEntrypoint");
 	const https = form.watch("https");
 	const domainType = form.watch("domainType");
+	const validationMode = form.watch("validationMode");
 	const host = form.watch("host");
 	const isTraefikMeDomain = host?.includes("sslip.io") || false;
 
@@ -250,6 +263,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				serviceName: data?.serviceName || undefined,
 				domainType: data?.domainType || type,
 				middlewares: data?.middlewares || [],
+				validationMode: data?.validationMode || "auto",
+				expectedIp: data?.expectedIp || undefined,
 			});
 		}
 
@@ -267,6 +282,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				customCertResolver: undefined,
 				domainType: type,
 				middlewares: [],
+				validationMode: "auto",
+				expectedIp: undefined,
 			});
 		}
 	}, [form, data, isPending, domainId]);
@@ -923,6 +940,70 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 										</FormItem>
 									)}
 								/>
+
+								<FormField
+									control={form.control}
+									name="validationMode"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>DNS Validation</FormLabel>
+											<FormDescription>
+												How the Validate badge checks this domain's DNS.
+											</FormDescription>
+											<Select
+												onValueChange={(value) => {
+													field.onChange(value);
+													if (value !== "proxy") {
+														form.setValue("expectedIp", undefined);
+													}
+												}}
+												value={field.value || "auto"}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select a validation mode" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="auto">
+														Auto (match the server's IPs)
+													</SelectItem>
+													<SelectItem value="proxy">
+														Behind a proxy (match a custom IP)
+													</SelectItem>
+													<SelectItem value="skip">
+														Skip (only check it resolves)
+													</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								{validationMode === "proxy" && (
+									<FormField
+										control={form.control}
+										name="expectedIp"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Expected IP</FormLabel>
+												<FormDescription>
+													The IP this domain should resolve to, for example your
+													reverse proxy or load balancer address.
+												</FormDescription>
+												<FormControl>
+													<Input
+														placeholder="203.0.113.10"
+														{...field}
+														value={field.value || ""}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
 							</div>
 						</div>
 					</form>

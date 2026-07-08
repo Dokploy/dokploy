@@ -7,12 +7,13 @@ import {
 	findPreviewDeploymentById,
 	findServerById,
 	generateTraefikMeDomain,
+	getAccessibleServerIds,
 	getWebServerSettings,
 	manageDomain,
 	removeDomain,
 	removeDomainById,
 	updateDomainById,
-	validateDomain,
+	validateDomainForServer,
 } from "@dokploy/server";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
@@ -196,10 +197,30 @@ export const domainRouter = createTRPCRouter({
 		.input(
 			z.object({
 				domain: z.string(),
+				serverId: z.string().optional(),
 				serverIp: z.string().optional(),
+				validationMode: z.enum(["auto", "proxy", "skip"]).optional(),
+				expectedIp: z.string().nullable().optional(),
 			}),
 		)
-		.mutation(async ({ input }) => {
-			return validateDomain(input.domain, input.serverIp);
+		.mutation(async ({ input, ctx }) => {
+			// A serverId triggers an SSH connection to that server, so make sure the
+			// caller is actually allowed to access it before using it.
+			if (input.serverId) {
+				const accessibleServerIds = await getAccessibleServerIds(ctx.session);
+				if (!accessibleServerIds.has(input.serverId)) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+			}
+			return validateDomainForServer({
+				domain: input.domain,
+				validationMode: input.validationMode,
+				expectedIp: input.expectedIp,
+				serverId: input.serverId,
+				serverIp: input.serverIp,
+			});
 		}),
 });

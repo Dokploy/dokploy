@@ -23,6 +23,12 @@ export const domainType = pgEnum("domainType", [
 	"preview",
 ]);
 
+export const domainValidationMode = pgEnum("domainValidationMode", [
+	"auto",
+	"proxy",
+	"skip",
+]);
+
 export const domains = pgTable("domain", {
 	domainId: text("domainId")
 		.notNull()
@@ -56,6 +62,15 @@ export const domains = pgTable("domain", {
 	stripPath: boolean("stripPath").notNull().default(false),
 	middlewares: text("middlewares").array().default(sql`ARRAY[]::text[]`),
 	forwardAuthEnabled: boolean("forwardAuthEnabled").notNull().default(false),
+	// How the "Validate" badge checks the domain's DNS:
+	// - auto: match against the server's detected IPs (default)
+	// - proxy: match against a user-provided IP (reverse proxy / load balancer)
+	// - skip: only confirm the domain resolves, without matching an IP
+	validationMode: domainValidationMode("validationMode")
+		.notNull()
+		.default("auto"),
+	// The IP the domain is expected to resolve to when validationMode is "proxy".
+	expectedIp: text("expectedIp"),
 });
 
 export const domainsRelations = relations(domains, ({ one }) => ({
@@ -77,6 +92,8 @@ const createSchema = createInsertSchema(domains, {
 	...domain.shape,
 	// Override pgEnum so Zod 4 infers only string literals, not numeric enum index
 	domainType: z.enum(["compose", "application", "preview"]).optional(),
+	validationMode: z.enum(["auto", "proxy", "skip"]).optional(),
+	expectedIp: z.string().nullable().optional(),
 });
 
 export const apiCreateDomain = createSchema.pick({
@@ -96,6 +113,8 @@ export const apiCreateDomain = createSchema.pick({
 	stripPath: true,
 	middlewares: true,
 	forwardAuthEnabled: true,
+	validationMode: true,
+	expectedIp: true,
 });
 
 export const apiFindDomain = z.object({
@@ -129,5 +148,7 @@ export const apiUpdateDomain = createSchema
 		stripPath: true,
 		middlewares: true,
 		forwardAuthEnabled: true,
+		validationMode: true,
+		expectedIp: true,
 	})
 	.merge(createSchema.pick({ domainId: true }).required());

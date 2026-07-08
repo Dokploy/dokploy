@@ -33,7 +33,7 @@ interface ColumnsProps {
 	id: string;
 	type: "application" | "compose";
 	validationStates: ValidationStates;
-	handleValidateDomain: (host: string) => Promise<void>;
+	handleValidateDomain: (domain: Domain) => Promise<void>;
 	handleDeleteDomain: (domainId: string) => Promise<void>;
 	isDeleting: boolean;
 	serverIp?: string;
@@ -181,7 +181,7 @@ export const createColumns = ({
 													? "bg-red-500/10 text-red-500 cursor-pointer"
 													: "bg-yellow-500/10 text-yellow-500 cursor-pointer"
 										}
-										onClick={() => handleValidateDomain(domain.host)}
+										onClick={() => handleValidateDomain(domain)}
 									>
 										{validationState?.isLoading ? (
 											<>

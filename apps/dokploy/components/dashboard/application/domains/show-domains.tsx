@@ -59,7 +59,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { createColumns } from "./columns";
+import { createColumns, type Domain } from "./columns";
 import { DnsHelperModal } from "./dns-helper-modal";
 import { AddDomain } from "./handle-domain";
 import { HandleForwardAuth } from "./handle-forward-auth";
@@ -157,7 +157,8 @@ export const ShowDomains = ({ id, type }: Props) => {
 		}
 	};
 
-	const handleValidateDomain = async (host: string) => {
+	const handleValidateDomain = async (domain: Domain) => {
+		const host = domain.host;
 		setValidationStates((prev) => ({
 			...prev,
 			[host]: { isLoading: true },
@@ -166,8 +167,11 @@ export const ShowDomains = ({ id, type }: Props) => {
 		try {
 			const result = await validateDomain({
 				domain: host,
+				serverId: application?.serverId ?? undefined,
 				serverIp:
 					application?.server?.ipAddress?.toString() || ip?.toString() || "",
+				validationMode: domain.validationMode ?? undefined,
+				expectedIp: domain.expectedIp ?? undefined,
 			});
 
 			setValidationStates((prev) => ({
@@ -595,9 +599,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 																				? "bg-red-500/10 text-red-500 cursor-pointer"
 																				: "bg-yellow-500/10 text-yellow-500 cursor-pointer"
 																	}
-																	onClick={() =>
-																		handleValidateDomain(item.host)
-																	}
+																	onClick={() => handleValidateDomain(item)}
 																>
 																	{validationState?.isLoading ? (
 																		<>

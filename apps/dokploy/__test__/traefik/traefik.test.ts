@@ -149,6 +149,8 @@ const baseDomain: Domain = {
 	stripPath: false,
 	middlewares: null,
 	forwardAuthEnabled: false,
+	validationMode: "auto",
+	expectedIp: null,
 };
 
 const baseRedirect: Redirect = {
