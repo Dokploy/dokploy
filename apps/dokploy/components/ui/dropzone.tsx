@@ -10,13 +10,14 @@ interface DropzoneProps
 		"value" | "onChange"
 	> {
 	classNameWrapper?: string;
+	classNameContent?: string;
 	className?: string;
 	dropMessage: string;
 	onChange: (acceptedFiles: FileList | null) => void;
 }
 
 export const Dropzone = React.forwardRef<HTMLDivElement, DropzoneProps>(
-	({ className, classNameWrapper, dropMessage, onChange, ...props }, ref) => {
+	({ className, classNameWrapper, classNameContent, dropMessage, onChange, ...props }, ref) => {
 		const inputRef = useRef<HTMLInputElement | null>(null);
 		// Function to handle drag over event
 		const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -51,7 +52,10 @@ export const Dropzone = React.forwardRef<HTMLDivElement, DropzoneProps>(
 				)}
 			>
 				<CardContent
-					className="flex flex-col items-center justify-center space-y-2 px-2 py-4 text-xs h-96"
+					className={cn(
+						"flex flex-col items-center justify-center space-y-2 px-2 py-4 text-xs h-96",
+						classNameContent
+					)}
 					onDragOver={handleDragOver}
 					onDrop={handleDrop}
 					onClick={handleButtonClick}
