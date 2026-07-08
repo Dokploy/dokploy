@@ -54,6 +54,9 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 		? queryMap[type]()
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 	const [isEnvVisible, setIsEnvVisible] = useState(true);
+	const [revealedEnvironment, setRevealedEnvironment] = useState<string | null>(
+		null,
+	);
 
 	const mutationMap = {
 		compose: () => api.compose.saveEnvironment.useMutation(),
@@ -67,6 +70,19 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 	const { mutateAsync, isPending } = mutationMap[type]
 		? mutationMap[type]()
 		: api.mongo.saveEnvironment.useMutation();
+	const revealMutationMap = {
+		compose: () => api.compose.revealEnvironment.useMutation(),
+		libsql: () => api.libsql.revealEnvironment.useMutation(),
+		mariadb: () => api.mariadb.revealEnvironment.useMutation(),
+		mongo: () => api.mongo.revealEnvironment.useMutation(),
+		mysql: () => api.mysql.revealEnvironment.useMutation(),
+		postgres: () => api.postgres.revealEnvironment.useMutation(),
+		redis: () => api.redis.revealEnvironment.useMutation(),
+	};
+	const { mutateAsync: revealEnvironment, isPending: isRevealingEnvironment } =
+		revealMutationMap[type]
+			? revealMutationMap[type]()
+			: api.mongo.revealEnvironment.useMutation();
 
 	const form = useForm<EnvironmentSchema>({
 		defaultValues: {
@@ -77,10 +93,12 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 
 	// Watch form value
 	const currentEnvironment = form.watch("environment");
-	const hasChanges = currentEnvironment !== (data?.env || "");
+	const baselineEnvironment = revealedEnvironment ?? data?.env ?? "";
+	const hasChanges = currentEnvironment !== baselineEnvironment;
 
 	useEffect(() => {
 		if (data) {
+			setRevealedEnvironment(null);
 			form.reset({
 				environment: data.env || "",
 			});
@@ -100,6 +118,7 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Environments Added");
+				setRevealedEnvironment(null);
 				await refetch();
 			})
 			.catch(() => {
@@ -109,8 +128,37 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 
 	const handleCancel = () => {
 		form.reset({
-			environment: data?.env || "",
+			environment: baselineEnvironment,
 		});
+	};
+
+	const handleReveal = async () => {
+		if (revealedEnvironment !== null) {
+			return;
+		}
+		if (hasChanges) {
+			toast.error("Save or cancel changes before revealing environment");
+			throw new Error("Unsaved environment changes");
+		}
+
+		try {
+			const values = await revealEnvironment({
+				composeId: id || "",
+				libsqlId: id || "",
+				mariadbId: id || "",
+				mongoId: id || "",
+				mysqlId: id || "",
+				postgresId: id || "",
+				redisId: id || "",
+			});
+			setRevealedEnvironment(values.env);
+			form.reset({
+				environment: values.env,
+			});
+		} catch (error) {
+			toast.error("Error revealing environment");
+			throw error;
+		}
 	};
 
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
@@ -145,9 +193,19 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 					</div>
 
 					<Toggle
-						aria-label="Toggle bold"
+						aria-label="Toggle secret visibility"
 						pressed={isEnvVisible}
-						onPressedChange={setIsEnvVisible}
+						onPressedChange={async (pressed: boolean) => {
+							if (!pressed) {
+								try {
+									await handleReveal();
+								} catch {
+									return;
+								}
+							}
+							setIsEnvVisible(pressed);
+						}}
+						disabled={isRevealingEnvironment}
 					>
 						{isEnvVisible ? (
 							<EyeOffIcon className="h-4 w-4 text-muted-foreground" />

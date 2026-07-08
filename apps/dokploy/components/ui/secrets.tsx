@@ -21,11 +21,24 @@ interface Props {
 	title: string;
 	description: ReactNode;
 	placeholder: string;
+	isRevealing?: boolean;
+	onReveal?: () => Promise<void> | void;
 }
 
 export const Secrets = (props: Props) => {
 	const [isVisible, setIsVisible] = useState(true);
 	const form = useFormContext<Record<string, string>>();
+
+	const handleVisibilityChange = async (pressed: boolean) => {
+		if (!pressed && props.onReveal) {
+			try {
+				await props.onReveal();
+			} catch {
+				return;
+			}
+		}
+		setIsVisible(pressed);
+	};
 
 	return (
 		<>
@@ -36,9 +49,10 @@ export const Secrets = (props: Props) => {
 				</div>
 
 				<Toggle
-					aria-label="Toggle bold"
+					aria-label="Toggle secret visibility"
 					pressed={isVisible}
-					onPressedChange={setIsVisible}
+					onPressedChange={handleVisibilityChange}
+					disabled={props.isRevealing}
 				>
 					{isVisible ? (
 						<EyeOffIcon className="h-4 w-4 text-muted-foreground" />

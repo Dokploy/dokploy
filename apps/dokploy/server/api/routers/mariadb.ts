@@ -28,7 +28,10 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import { redactDatabaseServiceSecrets } from "@dokploy/server/utils/security/redaction";
+import {
+	preserveSecretPlaceholderFields,
+	redactDatabaseServiceSecrets,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
@@ -37,6 +40,7 @@ import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import { buildMysqlPasswordChangeCommand } from "@/server/api/utils/database-password";
 import { assertTargetEnvironmentAccess } from "@/server/api/utils/placement-access";
+import { assertServiceEnvironmentReadAccess } from "@/server/api/utils/service-environment";
 import {
 	apiChangeMariaDBStatus,
 	apiCreateMariaDB,
@@ -137,6 +141,21 @@ export const mariadbRouter = createTRPCRouter({
 				});
 			}
 			return redactDatabaseServiceSecrets(mariadb);
+		}),
+
+	revealEnvironment: protectedProcedure
+		.input(apiFindOneMariaDB)
+		.mutation(async ({ input, ctx }) => {
+			const mariadb = await assertServiceEnvironmentReadAccess(
+				ctx,
+				input.mariadbId,
+				() => findMariadbById(input.mariadbId),
+				"Mariadb",
+			);
+
+			return {
+				env: mariadb.env ?? "",
+			};
 		}),
 
 	start: protectedProcedure
@@ -320,9 +339,17 @@ export const mariadbRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
 				envVars: ["write"],
 			});
-			const service = await updateMariadbById(input.mariadbId, {
-				env: input.env,
-			});
+			const currentMariadb = await findMariadbById(input.mariadbId);
+			const service = await updateMariadbById(
+				input.mariadbId,
+				preserveSecretPlaceholderFields(
+					{
+						env: input.env,
+					},
+					currentMariadb,
+					["env"],
+				),
+			);
 
 			if (!service) {
 				throw new TRPCError({

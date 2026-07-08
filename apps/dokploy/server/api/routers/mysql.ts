@@ -28,7 +28,10 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import { redactDatabaseServiceSecrets } from "@dokploy/server/utils/security/redaction";
+import {
+	preserveSecretPlaceholderFields,
+	redactDatabaseServiceSecrets,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -36,6 +39,7 @@ import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import { buildMysqlPasswordChangeCommand } from "@/server/api/utils/database-password";
 import { assertTargetEnvironmentAccess } from "@/server/api/utils/placement-access";
+import { assertServiceEnvironmentReadAccess } from "@/server/api/utils/service-environment";
 import {
 	apiChangeMySqlStatus,
 	apiCreateMySql,
@@ -141,6 +145,21 @@ export const mysqlRouter = createTRPCRouter({
 				});
 			}
 			return redactDatabaseServiceSecrets(mysql);
+		}),
+
+	revealEnvironment: protectedProcedure
+		.input(apiFindOneMySql)
+		.mutation(async ({ input, ctx }) => {
+			const mysql = await assertServiceEnvironmentReadAccess(
+				ctx,
+				input.mysqlId,
+				() => findMySqlById(input.mysqlId),
+				"MySQL",
+			);
+
+			return {
+				env: mysql.env ?? "",
+			};
 		}),
 
 	start: protectedProcedure
@@ -370,9 +389,17 @@ export const mysqlRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
 				envVars: ["write"],
 			});
-			const service = await updateMySqlById(input.mysqlId, {
-				env: input.env,
-			});
+			const currentMysql = await findMySqlById(input.mysqlId);
+			const service = await updateMySqlById(
+				input.mysqlId,
+				preserveSecretPlaceholderFields(
+					{
+						env: input.env,
+					},
+					currentMysql,
+					["env"],
+				),
+			);
 
 			if (!service) {
 				throw new TRPCError({

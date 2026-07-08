@@ -39,6 +39,7 @@ import {
 	hasPermission,
 } from "@dokploy/server/services/permission";
 import {
+	preserveSecretPlaceholderFields,
 	redactProjectNestedSecrets,
 	redactSecretFields,
 } from "@dokploy/server/utils/security/redaction";
@@ -786,7 +787,10 @@ export const projectRouter = createTRPCRouter({
 				}
 
 				const { projectId, ...updateData } = input;
-				const project = await updateProjectById(projectId, updateData);
+				const project = await updateProjectById(
+					projectId,
+					preserveSecretPlaceholderFields(updateData, currentProject, ["env"]),
+				);
 
 				if (project) {
 					await audit(ctx, {

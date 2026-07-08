@@ -27,7 +27,10 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import { redactDatabaseServiceSecrets } from "@dokploy/server/utils/security/redaction";
+import {
+	preserveSecretPlaceholderFields,
+	redactDatabaseServiceSecrets,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -35,6 +38,7 @@ import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import { buildRedisPasswordChangeCommand } from "@/server/api/utils/database-password";
 import { assertTargetEnvironmentAccess } from "@/server/api/utils/placement-access";
+import { assertServiceEnvironmentReadAccess } from "@/server/api/utils/service-environment";
 import {
 	apiChangeRedisStatus,
 	apiCreateRedis,
@@ -132,6 +136,21 @@ export const redisRouter = createTRPCRouter({
 				});
 			}
 			return redactDatabaseServiceSecrets(redis);
+		}),
+
+	revealEnvironment: protectedProcedure
+		.input(apiFindOneRedis)
+		.mutation(async ({ input, ctx }) => {
+			const redis = await assertServiceEnvironmentReadAccess(
+				ctx,
+				input.redisId,
+				() => findRedisById(input.redisId),
+				"Redis",
+			);
+
+			return {
+				env: redis.env ?? "",
+			};
 		}),
 
 	start: protectedProcedure
@@ -361,9 +380,17 @@ export const redisRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.redisId, {
 				envVars: ["write"],
 			});
-			const updatedRedis = await updateRedisById(input.redisId, {
-				env: input.env,
-			});
+			const currentRedis = await findRedisById(input.redisId);
+			const updatedRedis = await updateRedisById(
+				input.redisId,
+				preserveSecretPlaceholderFields(
+					{
+						env: input.env,
+					},
+					currentRedis,
+					["env"],
+				),
+			);
 
 			if (!updatedRedis) {
 				throw new TRPCError({

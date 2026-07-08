@@ -1,5 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -25,6 +25,10 @@ const addEnvironmentSchema = z.object({
 });
 
 type EnvironmentSchema = z.infer<typeof addEnvironmentSchema>;
+type RevealedEnvironment = Pick<
+	EnvironmentSchema,
+	"env" | "buildArgs" | "buildSecrets"
+>;
 
 interface Props {
 	applicationId: string;
@@ -35,6 +39,10 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	const canWrite = permissions?.envVars.write ?? false;
 	const { mutateAsync, isPending } =
 		api.application.saveEnvironment.useMutation();
+	const { mutateAsync: revealEnvironment, isPending: isRevealingEnvironment } =
+		api.application.revealEnvironment.useMutation();
+	const [revealedEnvironment, setRevealedEnvironment] =
+		useState<RevealedEnvironment | null>(null);
 
 	const { data, refetch } = api.application.one.useQuery(
 		{
@@ -60,14 +68,21 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	const currentBuildArgs = form.watch("buildArgs");
 	const currentBuildSecrets = form.watch("buildSecrets");
 	const currentCreateEnvFile = form.watch("createEnvFile");
+	const baselineEnvironment = {
+		env: revealedEnvironment?.env ?? data?.env ?? "",
+		buildArgs: revealedEnvironment?.buildArgs ?? data?.buildArgs ?? "",
+		buildSecrets: revealedEnvironment?.buildSecrets ?? data?.buildSecrets ?? "",
+		createEnvFile: data?.createEnvFile ?? true,
+	};
 	const hasChanges =
-		currentEnv !== (data?.env || "") ||
-		currentBuildArgs !== (data?.buildArgs || "") ||
-		currentBuildSecrets !== (data?.buildSecrets || "") ||
-		currentCreateEnvFile !== (data?.createEnvFile ?? true);
+		currentEnv !== baselineEnvironment.env ||
+		currentBuildArgs !== baselineEnvironment.buildArgs ||
+		currentBuildSecrets !== baselineEnvironment.buildSecrets ||
+		currentCreateEnvFile !== baselineEnvironment.createEnvFile;
 
 	useEffect(() => {
 		if (data) {
+			setRevealedEnvironment(null);
 			form.reset({
 				env: data.env || "",
 				buildArgs: data.buildArgs || "",
@@ -87,6 +102,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Environments Added");
+				setRevealedEnvironment(null);
 				await refetch();
 			})
 			.catch(() => {
@@ -96,11 +112,35 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 
 	const handleCancel = () => {
 		form.reset({
-			env: data?.env || "",
-			buildArgs: data?.buildArgs || "",
-			buildSecrets: data?.buildSecrets || "",
-			createEnvFile: data?.createEnvFile ?? true,
+			env: baselineEnvironment.env,
+			buildArgs: baselineEnvironment.buildArgs,
+			buildSecrets: baselineEnvironment.buildSecrets,
+			createEnvFile: baselineEnvironment.createEnvFile,
 		});
+	};
+
+	const handleReveal = async () => {
+		if (revealedEnvironment) {
+			return;
+		}
+		if (hasChanges) {
+			toast.error("Save or cancel changes before revealing environment");
+			throw new Error("Unsaved environment changes");
+		}
+
+		try {
+			const values = await revealEnvironment({ applicationId });
+			setRevealedEnvironment(values);
+			form.reset({
+				env: values.env,
+				buildArgs: values.buildArgs,
+				buildSecrets: values.buildSecrets,
+				createEnvFile: data?.createEnvFile ?? true,
+			});
+		} catch (error) {
+			toast.error("Error revealing environment");
+			throw error;
+		}
 	};
 
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
@@ -139,6 +179,8 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 							</span>
 						}
 						placeholder={["NODE_ENV=production", "PORT=3000"].join("\n")}
+						isRevealing={isRevealingEnvironment}
+						onReveal={handleReveal}
 					/>
 					{data?.buildType === "dockerfile" && (
 						<Secrets
@@ -160,6 +202,8 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 								</span>
 							}
 							placeholder="NPM_TOKEN=xyz"
+							isRevealing={isRevealingEnvironment}
+							onReveal={handleReveal}
 						/>
 					)}
 					{data?.buildType === "dockerfile" && (
@@ -182,6 +226,8 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 								</span>
 							}
 							placeholder="NPM_TOKEN=xyz"
+							isRevealing={isRevealingEnvironment}
+							onReveal={handleReveal}
 						/>
 					)}
 					{data?.buildType === "dockerfile" && (

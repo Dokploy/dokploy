@@ -29,7 +29,10 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import { redactDatabaseServiceSecrets } from "@dokploy/server/utils/security/redaction";
+import {
+	preserveSecretPlaceholderFields,
+	redactDatabaseServiceSecrets,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -37,6 +40,7 @@ import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import { buildPostgresPasswordChangeCommand } from "@/server/api/utils/database-password";
 import { assertTargetEnvironmentAccess } from "@/server/api/utils/placement-access";
+import { assertServiceEnvironmentReadAccess } from "@/server/api/utils/service-environment";
 import {
 	apiChangePostgresStatus,
 	apiCreatePostgres,
@@ -145,6 +149,21 @@ export const postgresRouter = createTRPCRouter({
 				});
 			}
 			return redactDatabaseServiceSecrets(postgres);
+		}),
+
+	revealEnvironment: protectedProcedure
+		.input(apiFindOnePostgres)
+		.mutation(async ({ input, ctx }) => {
+			const postgres = await assertServiceEnvironmentReadAccess(
+				ctx,
+				input.postgresId,
+				() => findPostgresById(input.postgresId),
+				"Postgres",
+			);
+
+			return {
+				env: postgres.env ?? "",
+			};
 		}),
 
 	start: protectedProcedure
@@ -347,9 +366,17 @@ export const postgresRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
 				envVars: ["write"],
 			});
-			const service = await updatePostgresById(input.postgresId, {
-				env: input.env,
-			});
+			const currentPostgres = await findPostgresById(input.postgresId);
+			const service = await updatePostgresById(
+				input.postgresId,
+				preserveSecretPlaceholderFields(
+					{
+						env: input.env,
+					},
+					currentPostgres,
+					["env"],
+				),
+			);
 
 			if (!service) {
 				throw new TRPCError({

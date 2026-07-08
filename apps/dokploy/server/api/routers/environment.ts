@@ -18,6 +18,7 @@ import {
 	hasPermission,
 } from "@dokploy/server/services/permission";
 import {
+	preserveSecretPlaceholderFields,
 	redactDatabaseServiceSecrets,
 	redactDeployableServiceSecrets,
 	redactSecretFields,
@@ -469,7 +470,9 @@ export const environmentRouter = createTRPCRouter({
 
 				const environment = await updateEnvironmentById(
 					environmentId,
-					updateData,
+					preserveSecretPlaceholderFields(updateData, currentEnvironment, [
+						"env",
+					]),
 				);
 				if (environment) {
 					await audit(ctx, {

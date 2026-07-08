@@ -43,7 +43,7 @@ import {
 } from "@dokploy/server/services/permission";
 import { assertCustomGitUrlAllowed } from "@dokploy/server/utils/providers/git";
 import {
-	isRedactedSecretValue,
+	isSecretPlaceholderValue,
 	redactDeployableServiceSecrets,
 } from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
@@ -56,10 +56,12 @@ import {
 	protectedProcedure,
 	withPermission,
 } from "@/server/api/trpc";
+import { buildApplicationEnvUpsertDeploymentJob } from "@/server/api/utils/application-env-upsert";
 import { audit } from "@/server/api/utils/audit";
 import { assertDeploySourceCredentialAccess } from "@/server/api/utils/deploy-source-access";
 import { assertContainerMetricsServiceAccess } from "@/server/api/utils/monitoring-access";
 import { assertTargetEnvironmentAccess } from "@/server/api/utils/placement-access";
+import { assertServiceEnvironmentReadAccess } from "@/server/api/utils/service-environment";
 import {
 	apiCreateApplication,
 	apiDeployApplication,
@@ -167,7 +169,7 @@ const preserveApplicationSecretPlaceholders = <
 			continue;
 		}
 
-		if (!isRedactedSecretValue(preserved[field])) {
+		if (!isSecretPlaceholderValue(preserved[field])) {
 			continue;
 		}
 
@@ -378,6 +380,23 @@ export const applicationRouter = createTRPCRouter({
 			};
 		}),
 
+	revealEnvironment: protectedProcedure
+		.input(apiFindOneApplication)
+		.mutation(async ({ input, ctx }) => {
+			const application = await assertServiceEnvironmentReadAccess(
+				ctx,
+				input.applicationId,
+				() => findApplicationById(input.applicationId),
+				"application",
+			);
+
+			return {
+				env: application.env ?? "",
+				buildArgs: application.buildArgs ?? "",
+				buildSecrets: application.buildSecrets ?? "",
+			};
+		}),
+
 	reload: protectedProcedure
 		.input(apiReloadApplication)
 		.mutation(async ({ input, ctx }) => {
@@ -553,6 +572,12 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	env: createTRPCRouter({
 		upsert: protectedProcedure
+			.meta({
+				openapi: {
+					path: "/application/env/upsert",
+					method: "POST",
+				},
+			})
 			.input(apiUpsertApplicationEnv)
 			.output(apiUpsertApplicationEnvResponse)
 			.mutation(async ({ input, ctx }) => {
@@ -583,17 +608,9 @@ export const applicationRouter = createTRPCRouter({
 					});
 
 					if (input.redeploy) {
-						const jobData: DeploymentJob = {
-							applicationId: input.applicationId,
-							titleLog: "Rebuild deployment",
-							descriptionLog: "Environment variables updated",
-							type: "redeploy",
-							applicationType: "application",
-							server: !!application.serverId,
-						};
+						const jobData = buildApplicationEnvUpsertDeploymentJob(application);
 
 						if (IS_CLOUD && application.serverId) {
-							jobData.serverId = application.serverId;
 							deploy(jobData).catch((error) => {
 								console.error("Background deployment failed:", error);
 							});
