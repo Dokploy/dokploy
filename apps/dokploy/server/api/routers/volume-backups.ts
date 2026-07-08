@@ -27,6 +27,7 @@ import { observable } from "@trpc/server/observable";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
+import { assertVolumeBackupLimit } from "@/server/api/utils/plan-limits";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
@@ -69,19 +70,32 @@ export const volumeBackupsRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createVolumeBackupSchema)
 		.mutation(async ({ input, ctx }) => {
-			const serviceId =
-				input.applicationId ||
-				input.postgresId ||
-				input.mysqlId ||
-				input.mariadbId ||
-				input.mongoId ||
-				input.redisId ||
-				input.libsqlId ||
-				input.composeId;
+			const serviceType = (
+				[
+					"application",
+					"postgres",
+					"mysql",
+					"mariadb",
+					"mongo",
+					"redis",
+					"libsql",
+					"compose",
+				] as const
+			).find((type) => input[`${type}Id`]);
+			const serviceId = serviceType ? input[`${serviceType}Id`] : undefined;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					volumeBackup: ["create"],
 				});
+			}
+			if (IS_CLOUD && serviceType && serviceId) {
+				const existingVolumeBackups = await db.query.volumeBackups.findMany({
+					where: eq(volumeBackups[`${serviceType}Id`], serviceId),
+				});
+				await assertVolumeBackupLimit(
+					ctx.session.activeOrganizationId,
+					existingVolumeBackups.length,
+				);
 			}
 			const newVolumeBackup = await createVolumeBackup(input);
 

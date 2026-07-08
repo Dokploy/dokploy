@@ -41,6 +41,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -300,6 +301,14 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			title: "Deployments",
+			url: "/dashboard/settings/deployments",
+			icon: Boxes,
+			isEnabled: ({ permissions, isCloud }) =>
+				!!(permissions?.server.read && !isCloud),
+		},
+		{
+			isSingle: true,
 			title: "Users",
 			icon: Users,
 			url: "/dashboard/settings/users",
@@ -556,6 +565,8 @@ function SidebarLogo() {
 	const { isMobile } = useSidebar();
 	const isCollapsed = state === "collapsed" && !isMobile;
 	const { data: activeOrganization } = api.organization.active.useQuery();
+	const { data: haveValidLicense } =
+		api.licenseKey.haveValidLicenseKey.useQuery();
 
 	const { data: invitations, refetch: refetchInvitations } =
 		api.user.getInvitations.useQuery();
@@ -621,9 +632,14 @@ function SidebarLogo() {
 												isCollapsed && "hidden",
 											)}
 										>
-											<p className="text-sm font-medium leading-none">
-												{activeOrganization?.name ?? "Select Organization"}
-											</p>
+											<div className="flex items-center gap-1.5">
+												<p className="text-sm font-medium leading-none">
+													{activeOrganization?.name ?? "Select Organization"}
+												</p>
+												{haveValidLicense && (
+													<Badge variant="blue">Enterprise</Badge>
+												)}
+											</div>
 										</div>
 									</div>
 									<ChevronsUpDown
@@ -645,7 +661,7 @@ function SidebarLogo() {
 										const isDefault = org.members?.[0]?.isDefault ?? false;
 										return (
 											<div
-												className="flex flex-row justify-between"
+												className="flex flex-row items-center justify-between gap-1"
 												key={org.name}
 											>
 												<DropdownMenuItem
@@ -655,25 +671,21 @@ function SidebarLogo() {
 														});
 														window.location.reload();
 													}}
-													className="w-full gap-2 p-2"
+													className="flex min-w-0 flex-1 gap-2 p-2"
 												>
-													<div className="flex flex-col gap-1">
-														<div className="flex items-center gap-2">
-															{org.name}
-														</div>
-													</div>
-													<div className="flex size-6 items-center justify-center rounded-sm border">
+													<div className="flex size-6 shrink-0 items-center justify-center rounded-sm border">
 														<Logo
 															className={cn(
 																"transition-all",
-																state === "collapsed" ? "size-6" : "size-10",
+																state === "collapsed" ? "size-4" : "size-5",
 															)}
 															logoUrl={org.logo ?? undefined}
 														/>
 													</div>
+													<span className="truncate">{org.name}</span>
 												</DropdownMenuItem>
 
-												<div className="flex items-center gap-2">
+												<div className="flex shrink-0 items-center gap-2">
 													<Button
 														variant="ghost"
 														size="icon"
@@ -789,7 +801,7 @@ function SidebarLogo() {
 								>
 									<Bell className="size-4" />
 									{invitations && invitations.length > 0 && (
-										<span className="absolute -top-0 -right-0 flex size-4 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
+										<span className="absolute top-0 right-0 flex size-4 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
 											{invitations.length}
 										</span>
 									)}
@@ -944,7 +956,7 @@ export default function Page({ children }: Props) {
 			<Sidebar collapsible="icon" variant="floating">
 				<SidebarHeader>
 					{/* <SidebarMenuButton
-						className="group-data-[collapsible=icon]:!p-0"
+						className="group-data-[collapsible=icon]:p-0!"
 						size="lg"
 					> */}
 					<LogoWrapper />
@@ -1178,7 +1190,7 @@ export default function Page({ children }: Props) {
 			</Sidebar>
 			<SidebarInset>
 				{!includesProjects && (
-					<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+					<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
 						<div className="flex items-center justify-between w-full px-4">
 							<div className="flex items-center gap-2">
 								<SidebarTrigger className="-ml-1" />

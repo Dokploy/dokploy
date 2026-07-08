@@ -9,6 +9,7 @@ import { checkServicePermissionAndAccess } from "@dokploy/server/services/permis
 import { TRPCError } from "@trpc/server";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { ZodError } from "zod";
+import { buildApplicationEnvUpsertDeploymentJob } from "@/server/api/utils/application-env-upsert";
 import { audit } from "@/server/api/utils/audit";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
@@ -107,17 +108,10 @@ export const handleApplicationEnvUpsert = async (
 			});
 
 			if (input.redeploy) {
-				const jobData: DeploymentJob = {
-					applicationId: input.applicationId,
-					titleLog: "Rebuild deployment",
-					descriptionLog: "Environment variables updated",
-					type: "redeploy",
-					applicationType: "application",
-					server: !!application.serverId,
-				};
+				const jobData: DeploymentJob =
+					buildApplicationEnvUpsertDeploymentJob(application);
 
 				if (IS_CLOUD && application.serverId) {
-					jobData.serverId = application.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});

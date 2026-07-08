@@ -1,6 +1,7 @@
 import { upsertApplicationEnvironment } from "@dokploy/server/services/application";
 import { getApplicationEnvRevision } from "@dokploy/server/utils/env-upsert";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { buildApplicationEnvUpsertDeploymentJob } from "@/server/api/utils/application-env-upsert";
 
 const dbMocks = vi.hoisted(() => {
 	const returning = vi.fn();
@@ -120,5 +121,32 @@ describe("upsertApplicationEnvironment", () => {
 			message: "Application environment revision does not match",
 		});
 		expect(dbMocks.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("buildApplicationEnvUpsertDeploymentJob", () => {
+	it("keeps the remote server id for queue partitioning", () => {
+		expect(
+			buildApplicationEnvUpsertDeploymentJob({
+				applicationId: "app_1",
+				serverId: "server_1",
+			}),
+		).toMatchObject({
+			applicationId: "app_1",
+			applicationType: "application",
+			type: "redeploy",
+			server: true,
+			serverId: "server_1",
+		});
+	});
+
+	it("keeps local redeploy jobs in the local queue partition", () => {
+		const jobData = buildApplicationEnvUpsertDeploymentJob({
+			applicationId: "app_1",
+			serverId: null,
+		});
+
+		expect(jobData.server).toBe(false);
+		expect(jobData.serverId).toBeUndefined();
 	});
 });
