@@ -168,7 +168,9 @@ const createSchema = createInsertSchema(compose, {
 		.enum(["git", "github", "gitlab", "bitbucket", "gitea", "raw"])
 		.optional(),
 	triggerType: z.enum(["push", "tag"]).optional(),
-	composeStatus: z.enum(["idle", "running", "done", "error"]).optional(),
+	composeStatus: z
+		.enum(["idle", "queued", "running", "done", "error"])
+		.optional(),
 });
 
 export const apiCreateCompose = createSchema.pick({

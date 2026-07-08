@@ -38,6 +38,7 @@ import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import {
 	createDeploymentCompose,
+	findDeploymentById,
 	updateDeployment,
 	updateDeploymentStatus,
 } from "./deployment";
@@ -214,21 +215,37 @@ export const deployCompose = async ({
 	composeId,
 	titleLog = "Manual deployment",
 	descriptionLog = "",
+	deploymentId,
 }: {
 	composeId: string;
 	titleLog: string;
 	descriptionLog: string;
+	deploymentId?: string;
 }) => {
 	const compose = await findComposeById(composeId);
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.environment.projectId
 	}/environment/${compose.environmentId}/services/compose/${compose.composeId}?tab=deployments`;
-	const deployment = await createDeploymentCompose({
-		composeId: composeId,
-		title: titleLog,
-		description: descriptionLog,
-	});
+	let deployment: any;
+	if (deploymentId) {
+		deployment = await findDeploymentById(deploymentId);
+		await updateDeploymentStatus(deployment.deploymentId, "running");
+		await updateCompose(composeId, { composeStatus: "running" });
+
+		const command = `echo "\nWorker picked up job, starting build..." >> ${deployment.logPath}`;
+		if (compose.serverId) {
+			await execAsyncRemote(compose.serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} else {
+		deployment = await createDeploymentCompose({
+			composeId: composeId,
+			title: titleLog,
+			description: descriptionLog,
+		});
+	}
 
 	try {
 		const entity = {
@@ -344,18 +361,34 @@ export const rebuildCompose = async ({
 	composeId,
 	titleLog = "Rebuild deployment",
 	descriptionLog = "",
+	deploymentId,
 }: {
 	composeId: string;
 	titleLog: string;
 	descriptionLog: string;
+	deploymentId?: string;
 }) => {
 	const compose = await findComposeById(composeId);
 
-	const deployment = await createDeploymentCompose({
-		composeId: composeId,
-		title: titleLog,
-		description: descriptionLog,
-	});
+	let deployment: any;
+	if (deploymentId) {
+		deployment = await findDeploymentById(deploymentId);
+		await updateDeploymentStatus(deployment.deploymentId, "running");
+		await updateCompose(composeId, { composeStatus: "running" });
+
+		const command = `echo "\nWorker picked up job, starting rebuild..." >> ${deployment.logPath}`;
+		if (compose.serverId) {
+			await execAsyncRemote(compose.serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} else {
+		deployment = await createDeploymentCompose({
+			composeId: composeId,
+			title: titleLog,
+			description: descriptionLog,
+		});
+	}
 
 	try {
 		let command = "set -e;";

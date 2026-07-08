@@ -35,6 +35,7 @@ import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
 	createDeploymentPreview,
+	findDeploymentById,
 	updateDeployment,
 	updateDeploymentStatus,
 } from "./deployment";
@@ -165,10 +166,12 @@ export const deployApplication = async ({
 	applicationId,
 	titleLog = "Manual deployment",
 	descriptionLog = "",
+	deploymentId,
 }: {
 	applicationId: string;
 	titleLog: string;
 	descriptionLog: string;
+	deploymentId?: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 	const serverId = application.buildServerId || application.serverId;
@@ -178,11 +181,25 @@ export const deployApplication = async ({
 	};
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
-	const deployment = await createDeployment({
-		applicationId: applicationId,
-		title: titleLog,
-		description: descriptionLog,
-	});
+	let deployment: any;
+	if (deploymentId) {
+		deployment = await findDeploymentById(deploymentId);
+		await updateDeploymentStatus(deployment.deploymentId, "running");
+		await updateApplicationStatus(applicationId, "running");
+
+		const command = `echo "\nWorker picked up job, starting build..." >> ${deployment.logPath}`;
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} else {
+		deployment = await createDeployment({
+			applicationId: applicationId,
+			title: titleLog,
+			description: descriptionLog,
+		});
+	}
 
 	try {
 		let command = "set -e;";
@@ -283,20 +300,36 @@ export const rebuildApplication = async ({
 	applicationId,
 	titleLog = "Rebuild deployment",
 	descriptionLog = "",
+	deploymentId,
 }: {
 	applicationId: string;
 	titleLog: string;
 	descriptionLog: string;
+	deploymentId?: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 	const serverId = application.buildServerId || application.serverId;
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
 
-	const deployment = await createDeployment({
-		applicationId: applicationId,
-		title: titleLog,
-		description: descriptionLog,
-	});
+	let deployment: any;
+	if (deploymentId) {
+		deployment = await findDeploymentById(deploymentId);
+		await updateDeploymentStatus(deployment.deploymentId, "running");
+		await updateApplicationStatus(applicationId, "running");
+
+		const command = `echo "\nWorker picked up job, starting rebuild..." >> ${deployment.logPath}`;
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} else {
+		deployment = await createDeployment({
+			applicationId: applicationId,
+			title: titleLog,
+			description: descriptionLog,
+		});
+	}
 
 	try {
 		let command = "set -e;";
@@ -350,19 +383,37 @@ export const deployPreviewApplication = async ({
 	titleLog = "Preview Deployment",
 	descriptionLog = "",
 	previewDeploymentId,
+	deploymentId,
 }: {
 	applicationId: string;
 	titleLog: string;
 	descriptionLog: string;
 	previewDeploymentId: string;
+	deploymentId?: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 
-	const deployment = await createDeploymentPreview({
-		title: titleLog,
-		description: descriptionLog,
-		previewDeploymentId: previewDeploymentId,
-	});
+	let deployment: any;
+	if (deploymentId) {
+		deployment = await findDeploymentById(deploymentId);
+		await updateDeploymentStatus(deployment.deploymentId, "running");
+		await updatePreviewDeployment(previewDeploymentId, {
+			previewStatus: "running",
+		});
+
+		const command = `echo "\nWorker picked up job, starting preview build..." >> ${deployment.logPath}`;
+		if (application?.serverId) {
+			await execAsyncRemote(application.serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} else {
+		deployment = await createDeploymentPreview({
+			title: titleLog,
+			description: descriptionLog,
+			previewDeploymentId: previewDeploymentId,
+		});
+	}
 
 	const previewDeployment =
 		await findPreviewDeploymentById(previewDeploymentId);
@@ -470,21 +521,39 @@ export const rebuildPreviewApplication = async ({
 	titleLog = "Rebuild Preview Deployment",
 	descriptionLog = "",
 	previewDeploymentId,
+	deploymentId,
 }: {
 	applicationId: string;
 	titleLog: string;
 	descriptionLog: string;
 	previewDeploymentId: string;
+	deploymentId?: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 	const previewDeployment =
 		await findPreviewDeploymentById(previewDeploymentId);
 
-	const deployment = await createDeploymentPreview({
-		title: titleLog,
-		description: descriptionLog,
-		previewDeploymentId: previewDeploymentId,
-	});
+	let deployment: any;
+	if (deploymentId) {
+		deployment = await findDeploymentById(deploymentId);
+		await updateDeploymentStatus(deployment.deploymentId, "running");
+		await updatePreviewDeployment(previewDeploymentId, {
+			previewStatus: "running",
+		});
+
+		const command = `echo "\nWorker picked up job, starting rebuild preview..." >> ${deployment.logPath}`;
+		if (application?.serverId) {
+			await execAsyncRemote(application.serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} else {
+		deployment = await createDeploymentPreview({
+			title: titleLog,
+			description: descriptionLog,
+			previewDeploymentId: previewDeploymentId,
+		});
+	}
 
 	const previewDomain = getDomainHost(previewDeployment?.domain as Domain);
 	const issueParams = {

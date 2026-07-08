@@ -1,9 +1,11 @@
 import {
+	createDeploymentPreview,
 	findApplicationById,
 	findPreviewDeploymentById,
 	findPreviewDeploymentsByApplicationId,
 	IS_CLOUD,
 	removePreviewDeployment,
+	updatePreviewDeployment,
 } from "@dokploy/server";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { z } from "zod";
@@ -100,6 +102,17 @@ export const previewDeploymentRouter = createTRPCRouter({
 				});
 				return true;
 			}
+			await updatePreviewDeployment(input.previewDeploymentId, {
+				previewStatus: "queued",
+			});
+			const deployment = await createDeploymentPreview({
+				previewDeploymentId: input.previewDeploymentId,
+				title: jobData.titleLog,
+				description: jobData.descriptionLog,
+				status: "queued",
+			});
+			jobData.deploymentId = deployment.deploymentId;
+
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },

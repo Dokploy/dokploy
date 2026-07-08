@@ -1212,6 +1212,13 @@
       "when": 1781045439162,
       "tag": "0172_quick_the_professor",
       "breakpoints": true
+    },
+    {
+      "idx": 173,
+      "version": "7",
+      "when": 1783538560996,
+      "tag": "0173_parallel_vanisher",
+      "breakpoints": true
     }
   ]
 }

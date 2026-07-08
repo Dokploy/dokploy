@@ -5,6 +5,7 @@ import {
 	createCommand,
 	createCompose,
 	createComposeByTemplate,
+	createDeploymentCompose,
 	createDomain,
 	createMount,
 	deleteMount,
@@ -438,6 +439,15 @@ export const composeRouter = createTRPCRouter({
 				});
 				return true;
 			}
+			await updateCompose(compose.composeId, { composeStatus: "queued" });
+			const deployment = await createDeploymentCompose({
+				composeId: input.composeId,
+				title: jobData.titleLog,
+				description: jobData.descriptionLog,
+				status: "queued",
+			});
+			jobData.deploymentId = deployment.deploymentId;
+
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },
@@ -486,6 +496,15 @@ export const composeRouter = createTRPCRouter({
 				});
 				return true;
 			}
+			await updateCompose(compose.composeId, { composeStatus: "queued" });
+			const deployment = await createDeploymentCompose({
+				composeId: input.composeId,
+				title: jobData.titleLog,
+				description: jobData.descriptionLog,
+				status: "queued",
+			});
+			jobData.deploymentId = deployment.deploymentId;
+
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },

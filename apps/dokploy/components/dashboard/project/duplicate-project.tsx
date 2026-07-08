@@ -39,7 +39,7 @@ export type Services = {
 	description?: string | null;
 	id: string;
 	createdAt: string;
-	status?: "idle" | "running" | "done" | "error";
+	status?: "idle" | "queued" | "running" | "done" | "error";
 };
 
 interface DuplicateProjectProps {
