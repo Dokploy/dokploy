@@ -1,8 +1,8 @@
 import { findAllDeploymentsByApplicationId } from "@dokploy/server/services/deployment";
 import {
 	findRegistryByIdWithCredentials,
-	safeDockerLoginCommand,
 	type Registry,
+	safeDockerLoginCommand,
 } from "@dokploy/server/services/registry";
 import { createRollback } from "@dokploy/server/services/rollbacks";
 import type { ApplicationNested } from "../builders";

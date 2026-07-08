@@ -1,9 +1,9 @@
 "use client";
 
-import { Accordion as AccordionPrimitive } from "radix-ui";
 // import { ScrollArea } from "@acme/components/ui/scroll-area";
 // import { cn } from "@acme/components/lib/utils";
 import { ChevronRight, type LucideIcon } from "lucide-react";
+import { Accordion as AccordionPrimitive } from "radix-ui";
 import React from "react";
 import useResizeObserver from "use-resize-observer";
 import { cn } from "@/lib/utils";
