@@ -41,8 +41,37 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
+import {
+	normalizeNotificationBaseUrl,
+	normalizeNotificationHttpUrl,
+	normalizeNotificationSmtpHost,
+	notificationHeadersUpdateValue,
+	notificationOptionalSecretUpdateValue,
+	notificationSecretUpdateValue,
+} from "../utils/notifications/security";
 
 export type Notification = typeof notifications.$inferSelect;
+
+const normalizeWebhookUpdateValue = (
+	value: string | undefined,
+	fieldName: string,
+	options?: { allowPrivateNetwork?: boolean },
+) => {
+	const secretValue = notificationSecretUpdateValue(value);
+	return secretValue
+		? normalizeNotificationHttpUrl(secretValue, { ...options, fieldName })
+		: undefined;
+};
+
+const normalizeBaseUrlUpdateValue = (
+	value: string | undefined,
+	fieldName: string,
+) => {
+	const secretValue = notificationSecretUpdateValue(value);
+	return secretValue
+		? normalizeNotificationBaseUrl(secretValue, { fieldName })
+		: undefined;
+};
 
 export const createSlackNotification = async (
 	input: z.infer<typeof apiCreateSlack>,
@@ -53,7 +82,9 @@ export const createSlackNotification = async (
 			.insert(slack)
 			.values({
 				channel: input.channel,
-				webhookUrl: input.webhookUrl,
+				webhookUrl: normalizeNotificationHttpUrl(input.webhookUrl, {
+					fieldName: "Slack webhook URL",
+				}),
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -128,7 +159,10 @@ export const updateSlackNotification = async (
 			.update(slack)
 			.set({
 				channel: input.channel,
-				webhookUrl: input.webhookUrl,
+				webhookUrl: normalizeWebhookUpdateValue(
+					input.webhookUrl,
+					"Slack webhook URL",
+				),
 			})
 			.where(eq(slack.slackId, input.slackId))
 			.returning()
@@ -222,7 +256,7 @@ export const updateTelegramNotification = async (
 		await tx
 			.update(telegram)
 			.set({
-				botToken: input.botToken,
+				botToken: notificationSecretUpdateValue(input.botToken),
 				chatId: input.chatId,
 				messageThreadId: input.messageThreadId,
 			})
@@ -242,7 +276,9 @@ export const createDiscordNotification = async (
 		const newDiscord = await tx
 			.insert(discord)
 			.values({
-				webhookUrl: input.webhookUrl,
+				webhookUrl: normalizeNotificationHttpUrl(input.webhookUrl, {
+					fieldName: "Discord webhook URL",
+				}),
 				decoration: input.decoration,
 			})
 			.returning()
@@ -317,7 +353,10 @@ export const updateDiscordNotification = async (
 		await tx
 			.update(discord)
 			.set({
-				webhookUrl: input.webhookUrl,
+				webhookUrl: normalizeWebhookUpdateValue(
+					input.webhookUrl,
+					"Discord webhook URL",
+				),
 				decoration: input.decoration,
 			})
 			.where(eq(discord.discordId, input.discordId))
@@ -336,7 +375,7 @@ export const createEmailNotification = async (
 		const newEmail = await tx
 			.insert(email)
 			.values({
-				smtpServer: input.smtpServer,
+				smtpServer: normalizeNotificationSmtpHost(input.smtpServer),
 				smtpPort: input.smtpPort,
 				username: input.username,
 				password: input.password,
@@ -415,10 +454,12 @@ export const updateEmailNotification = async (
 		await tx
 			.update(email)
 			.set({
-				smtpServer: input.smtpServer,
+				smtpServer: input.smtpServer
+					? normalizeNotificationSmtpHost(input.smtpServer)
+					: undefined,
 				smtpPort: input.smtpPort,
 				username: input.username,
-				password: input.password,
+				password: notificationSecretUpdateValue(input.password),
 				fromAddress: input.fromAddress,
 				toAddresses: input.toAddresses,
 			})
@@ -514,7 +555,7 @@ export const updateResendNotification = async (
 		await tx
 			.update(resend)
 			.set({
-				apiKey: input.apiKey,
+				apiKey: notificationSecretUpdateValue(input.apiKey),
 				fromAddress: input.fromAddress,
 				toAddresses: input.toAddresses,
 			})
@@ -534,7 +575,9 @@ export const createGotifyNotification = async (
 		const newGotify = await tx
 			.insert(gotify)
 			.values({
-				serverUrl: input.serverUrl,
+				serverUrl: normalizeNotificationBaseUrl(input.serverUrl, {
+					fieldName: "Gotify server URL",
+				}),
 				appToken: input.appToken,
 				priority: input.priority,
 				decoration: input.decoration,
@@ -609,8 +652,11 @@ export const updateGotifyNotification = async (
 		await tx
 			.update(gotify)
 			.set({
-				serverUrl: input.serverUrl,
-				appToken: input.appToken,
+				serverUrl: normalizeBaseUrlUpdateValue(
+					input.serverUrl,
+					"Gotify server URL",
+				),
+				appToken: notificationSecretUpdateValue(input.appToken),
 				priority: input.priority,
 				decoration: input.decoration,
 			})
@@ -628,7 +674,9 @@ export const createNtfyNotification = async (
 		const newNtfy = await tx
 			.insert(ntfy)
 			.values({
-				serverUrl: input.serverUrl,
+				serverUrl: normalizeNotificationBaseUrl(input.serverUrl, {
+					fieldName: "ntfy server URL",
+				}),
 				topic: input.topic,
 				accessToken: input.accessToken ?? null,
 				priority: input.priority,
@@ -703,9 +751,12 @@ export const updateNtfyNotification = async (
 		await tx
 			.update(ntfy)
 			.set({
-				serverUrl: input.serverUrl,
+				serverUrl: normalizeBaseUrlUpdateValue(
+					input.serverUrl,
+					"ntfy server URL",
+				),
 				topic: input.topic,
-				accessToken: input.accessToken ?? null,
+				accessToken: notificationOptionalSecretUpdateValue(input.accessToken),
 				priority: input.priority,
 			})
 			.where(eq(ntfy.ntfyId, input.ntfyId));
@@ -722,7 +773,10 @@ export const createCustomNotification = async (
 		const newCustom = await tx
 			.insert(custom)
 			.values({
-				endpoint: input.endpoint,
+				endpoint: normalizeNotificationHttpUrl(input.endpoint, {
+					allowPrivateNetwork: false,
+					fieldName: "Custom notification endpoint",
+				}),
 				headers: input.headers,
 			})
 			.returning()
@@ -797,8 +851,12 @@ export const updateCustomNotification = async (
 		await tx
 			.update(custom)
 			.set({
-				endpoint: input.endpoint,
-				headers: input.headers,
+				endpoint: normalizeWebhookUpdateValue(
+					input.endpoint,
+					"Custom notification endpoint",
+					{ allowPrivateNetwork: false },
+				),
+				headers: notificationHeadersUpdateValue(input.headers),
 			})
 			.where(eq(custom.customId, input.customId));
 
@@ -850,7 +908,9 @@ export const createLarkNotification = async (
 		const newLark = await tx
 			.insert(lark)
 			.values({
-				webhookUrl: input.webhookUrl,
+				webhookUrl: normalizeNotificationHttpUrl(input.webhookUrl, {
+					fieldName: "Lark webhook URL",
+				}),
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -924,7 +984,10 @@ export const updateLarkNotification = async (
 		await tx
 			.update(lark)
 			.set({
-				webhookUrl: input.webhookUrl,
+				webhookUrl: normalizeWebhookUpdateValue(
+					input.webhookUrl,
+					"Lark webhook URL",
+				),
 			})
 			.where(eq(lark.larkId, input.larkId))
 			.returning()
@@ -942,7 +1005,9 @@ export const createTeamsNotification = async (
 		const newTeams = await tx
 			.insert(teams)
 			.values({
-				webhookUrl: input.webhookUrl,
+				webhookUrl: normalizeNotificationHttpUrl(input.webhookUrl, {
+					fieldName: "Teams webhook URL",
+				}),
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -1016,7 +1081,10 @@ export const updateTeamsNotification = async (
 		await tx
 			.update(teams)
 			.set({
-				webhookUrl: input.webhookUrl,
+				webhookUrl: normalizeWebhookUpdateValue(
+					input.webhookUrl,
+					"Teams webhook URL",
+				),
 			})
 			.where(eq(teams.teamsId, input.teamsId))
 			.returning()
@@ -1049,7 +1117,9 @@ export const createMattermostNotification = async (
 		const newMattermost = await tx
 			.insert(mattermost)
 			.values({
-				webhookUrl: input.webhookUrl,
+				webhookUrl: normalizeNotificationHttpUrl(input.webhookUrl, {
+					fieldName: "Mattermost webhook URL",
+				}),
 				channel: input.channel,
 				username: input.username,
 			})
@@ -1125,7 +1195,10 @@ export const updateMattermostNotification = async (
 		await tx
 			.update(mattermost)
 			.set({
-				webhookUrl: input.webhookUrl,
+				webhookUrl: normalizeWebhookUpdateValue(
+					input.webhookUrl,
+					"Mattermost webhook URL",
+				),
 				channel: input.channel,
 				username: input.username,
 			})
@@ -1223,8 +1296,8 @@ export const updatePushoverNotification = async (
 		await tx
 			.update(pushover)
 			.set({
-				userKey: input.userKey,
-				apiToken: input.apiToken,
+				userKey: notificationSecretUpdateValue(input.userKey),
+				apiToken: notificationSecretUpdateValue(input.apiToken),
 				priority: input.priority,
 				retry: input.retry,
 				expire: input.expire,

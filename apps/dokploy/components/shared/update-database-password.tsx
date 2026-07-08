@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
-const DATABASE_PASSWORD_REGEX = /^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/;
+const DATABASE_PASSWORD_REGEX = /^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|:,.<>?~]*$/;
 
 const updatePasswordSchema = z
 	.object({
@@ -33,7 +33,7 @@ const updatePasswordSchema = z
 			.min(1, "Password is required")
 			.regex(DATABASE_PASSWORD_REGEX, {
 				message:
-					"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters",
+					"Password contains invalid characters. Please avoid: $ ! ' \" \\ / ; ` and space characters",
 			}),
 		confirmPassword: z.string().min(1, "Please confirm the password"),
 	})

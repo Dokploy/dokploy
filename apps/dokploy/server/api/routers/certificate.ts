@@ -1,11 +1,17 @@
 import {
 	createCertificate,
 	findCertificateById,
+	getAccessibleServerIds,
 	IS_CLOUD,
 	removeCertificateById,
 	updateCertificate,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import {
+	isRedactedSecretValue,
+	redactSecretFields,
+	redactSecretFieldsList,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { createTRPCRouter, withPermission } from "@/server/api/trpc";
@@ -17,6 +23,23 @@ import {
 	certificates,
 } from "@/server/db/schema";
 
+const assertCertificateServerAccess = async (
+	ctx: { session: Parameters<typeof getAccessibleServerIds>[0] },
+	serverId?: string | null,
+) => {
+	if (!serverId) {
+		return;
+	}
+
+	const accessibleIds = await getAccessibleServerIds(ctx.session);
+	if (!accessibleIds.has(serverId)) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this server",
+		});
+	}
+};
+
 export const certificateRouter = createTRPCRouter({
 	create: withPermission("certificate", "create")
 		.input(apiCreateCertificate)
@@ -27,6 +50,7 @@ export const certificateRouter = createTRPCRouter({
 					message: "Please set a server to create a certificate",
 				});
 			}
+			await assertCertificateServerAccess(ctx, input.serverId);
 			const cert = await createCertificate(
 				input,
 				ctx.session.activeOrganizationId,
@@ -37,7 +61,7 @@ export const certificateRouter = createTRPCRouter({
 				resourceId: cert.certificateId,
 				resourceName: cert.name,
 			});
-			return cert;
+			return redactSecretFields(cert, ["privateKey"]);
 		}),
 
 	one: withPermission("certificate", "read")
@@ -50,7 +74,8 @@ export const certificateRouter = createTRPCRouter({
 					message: "You are not allowed to access this certificate",
 				});
 			}
-			return certificates;
+			await assertCertificateServerAccess(ctx, certificates.serverId);
+			return redactSecretFields(certificates, ["privateKey"]);
 		}),
 	remove: withPermission("certificate", "delete")
 		.input(apiFindCertificate)
@@ -62,6 +87,7 @@ export const certificateRouter = createTRPCRouter({
 					message: "You are not allowed to delete this certificate",
 				});
 			}
+			await assertCertificateServerAccess(ctx, certificates.serverId);
 			await audit(ctx, {
 				action: "delete",
 				resourceType: "certificate",
@@ -72,12 +98,20 @@ export const certificateRouter = createTRPCRouter({
 			return true;
 		}),
 	all: withPermission("certificate", "read").query(async ({ ctx }) => {
-		return await db.query.certificates.findMany({
+		const allCertificates = await db.query.certificates.findMany({
 			where: eq(certificates.organizationId, ctx.session.activeOrganizationId),
 			with: {
 				server: true,
 			},
 		});
+		const accessibleIds = await getAccessibleServerIds(ctx.session);
+		return redactSecretFieldsList(
+			allCertificates.filter(
+				(certificate) =>
+					!certificate.serverId || accessibleIds.has(certificate.serverId),
+			),
+			["privateKey"],
+		);
 	}),
 	update: withPermission("certificate", "update")
 		.input(apiUpdateCertificate)
@@ -89,10 +123,16 @@ export const certificateRouter = createTRPCRouter({
 					message: "You are not allowed to update this certificate",
 				});
 			}
-			return await updateCertificate(input.certificateId, {
+			await assertCertificateServerAccess(ctx, certificate.serverId);
+			const updates = {
 				name: input.name,
 				certificateData: input.certificateData,
 				privateKey: input.privateKey,
-			});
+			};
+			if (isRedactedSecretValue(updates.privateKey)) {
+				delete updates.privateKey;
+			}
+			const updated = await updateCertificate(input.certificateId, updates);
+			return redactSecretFields(updated, ["privateKey"]);
 		}),
 });

@@ -16,7 +16,9 @@ import {
 	environments,
 	projects,
 } from "@dokploy/server/db/schema";
+import { isBackupScheduleTargetBound } from "@dokploy/server/utils/backups/invariant";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
+import { quoteShellArg } from "@dokploy/server/utils/filesystem/safe-path";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -38,7 +40,7 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { removeRollbackById } from "./rollbacks";
-import { findScheduleById } from "./schedule";
+import { findScheduleById, getScheduleDeploymentLogPath } from "./schedule";
 import { findServerById, type Server } from "./server";
 import { findVolumeBackupById } from "./volume-backups";
 
@@ -84,8 +86,36 @@ export const findDeploymentById = async (deploymentId: string) => {
 		where: eq(deployments.deploymentId, deploymentId),
 		with: {
 			application: true,
+			backup: {
+				with: {
+					compose: true,
+					libsql: true,
+					mariadb: true,
+					mongo: true,
+					mysql: true,
+					postgres: true,
+				},
+			},
 			compose: true,
-			schedule: true,
+			previewDeployment: true,
+			schedule: {
+				with: {
+					application: true,
+					compose: true,
+				},
+			},
+			volumeBackup: {
+				with: {
+					application: true,
+					compose: true,
+					libsql: true,
+					mariadb: true,
+					mongo: true,
+					mysql: true,
+					postgres: true,
+					redis: true,
+				},
+			},
 		},
 	});
 	if (!deployment) {
@@ -358,6 +388,12 @@ export const createDeploymentBackup = async (
 	>,
 ) => {
 	const backup = await findBackupById(deployment.backupId);
+	if (!isBackupScheduleTargetBound(backup)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Backup schedule target is not linked to its backup type.",
+		});
+	}
 
 	let serverId: string | null | undefined;
 	if (backup.backupType === "database") {
@@ -365,7 +401,8 @@ export const createDeploymentBackup = async (
 			backup.postgres?.serverId ||
 			backup.mariadb?.serverId ||
 			backup.mysql?.serverId ||
-			backup.mongo?.serverId;
+			backup.mongo?.serverId ||
+			backup.libsql?.serverId;
 	} else if (backup.backupType === "compose") {
 		serverId = backup.compose?.serverId;
 	}
@@ -447,20 +484,24 @@ export const createDeploymentSchedule = async (
 	try {
 		const { SCHEDULES_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
-		const fileName = `${schedule.appName}-${formattedDateTime}.log`;
-		const logFilePath = path.join(SCHEDULES_PATH, schedule.appName, fileName);
+		const logFilePath = getScheduleDeploymentLogPath(
+			SCHEDULES_PATH,
+			schedule.appName,
+			formattedDateTime,
+		);
+		const scheduleDirectory = path.dirname(logFilePath);
 
 		if (serverId) {
 			const server = await findServerById(serverId);
 
 			const command = `
-				mkdir -p ${SCHEDULES_PATH}/${schedule.appName};
-            	echo "Initializing schedule" >> ${logFilePath};
+				mkdir -p ${quoteShellArg(scheduleDirectory)};
+				echo "Initializing schedule" >> ${quoteShellArg(logFilePath)};
 			`;
 
 			await execAsyncRemote(server.serverId, command);
 		} else {
-			await fsPromises.mkdir(path.join(SCHEDULES_PATH, schedule.appName), {
+			await fsPromises.mkdir(scheduleDirectory, {
 				recursive: true,
 			});
 			await fsPromises.writeFile(logFilePath, "Initializing schedule\n");

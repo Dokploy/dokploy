@@ -16,6 +16,8 @@ import { deployRedis } from "@dokploy/server/services/redis";
 import { eq } from "drizzle-orm";
 import { removeService } from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { quoteShellArgs } from "../shell";
+import { normalizeDockerVolumeName } from "../volume-backups/safe-input";
 
 type DatabaseType =
 	| "libsql"
@@ -28,6 +30,7 @@ type DatabaseType =
 export const rebuildDatabase = async (
 	databaseId: string,
 	type: DatabaseType,
+	rebuildDelayMs = 6000,
 ) => {
 	const database = await findDatabaseById(databaseId, type);
 
@@ -36,11 +39,20 @@ export const rebuildDatabase = async (
 	}
 
 	await removeService(database.appName, database.serverId);
-	await new Promise((resolve) => setTimeout(resolve, 6000));
+	if (rebuildDelayMs > 0) {
+		await new Promise((resolve) => setTimeout(resolve, rebuildDelayMs));
+	}
 
 	for (const mount of database.mounts) {
 		if (mount.type === "volume") {
-			const command = `docker volume rm ${mount?.volumeName} --force`;
+			const safeVolumeName = normalizeDockerVolumeName(mount.volumeName || "");
+			const command = quoteShellArgs([
+				"docker",
+				"volume",
+				"rm",
+				safeVolumeName,
+				"--force",
+			]);
 			if (database.serverId) {
 				await execAsyncRemote(database.serverId, command);
 			} else {

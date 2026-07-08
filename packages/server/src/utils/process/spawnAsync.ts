@@ -5,13 +5,18 @@ import {
 } from "node:child_process";
 import BufferList from "bl";
 
+type SpawnAsyncOptions = SpawnOptions & {
+	input?: string | Buffer;
+};
+
 export const spawnAsync = (
 	command: string,
 	args?: string[] | undefined,
 	onData?: (data: string) => void, // Callback opcional para manejar datos en tiempo real
-	options?: SpawnOptions,
+	options?: SpawnAsyncOptions,
 ): Promise<BufferList> & { child: ChildProcess } => {
-	const child = spawn(command, args ?? [], options ?? {});
+	const { input, ...spawnOptions } = options ?? {};
+	const child = spawn(command, args ?? [], spawnOptions);
 	const stdout = child.stdout ? new BufferList() : new BufferList();
 	const stderr = child.stderr ? new BufferList() : new BufferList();
 
@@ -30,6 +35,9 @@ export const spawnAsync = (
 				onData(data.toString());
 			}
 		});
+	}
+	if (input !== undefined && child.stdin) {
+		child.stdin.end(input);
 	}
 
 	const promise = new Promise<BufferList>((resolve, reject) => {

@@ -6,9 +6,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 	findBackupsByDbId,
-	findEnvironmentById,
 	findPostgresById,
-	findProjectById,
 	getAccessibleServerIds,
 	getContainerLogs,
 	getMountPath,
@@ -31,11 +29,18 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import {
+	preserveSecretPlaceholderFields,
+	redactDatabaseServiceSecrets,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { buildPostgresPasswordChangeCommand } from "@/server/api/utils/database-password";
+import { assertTargetEnvironmentAccess } from "@/server/api/utils/placement-access";
+import { assertServiceEnvironmentReadAccess } from "@/server/api/utils/service-environment";
 import {
 	apiChangePostgresStatus,
 	apiCreatePostgres,
@@ -59,8 +64,11 @@ export const postgresRouter = createTRPCRouter({
 		.input(apiCreatePostgres)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const environment = await findEnvironmentById(input.environmentId);
-				const project = await findProjectById(environment.projectId);
+				const environment = await assertTargetEnvironmentAccess(
+					ctx,
+					input.environmentId,
+				);
+				const project = environment.project;
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
@@ -113,7 +121,7 @@ export const postgresRouter = createTRPCRouter({
 					resourceId: newPostgres.postgresId,
 					resourceName: newPostgres.appName,
 				});
-				return newPostgres;
+				return redactDatabaseServiceSecrets(newPostgres);
 			} catch (error) {
 				if (error instanceof TRPCError) {
 					throw error;
@@ -140,7 +148,22 @@ export const postgresRouter = createTRPCRouter({
 					message: "You are not authorized to access this Postgres",
 				});
 			}
-			return postgres;
+			return redactDatabaseServiceSecrets(postgres);
+		}),
+
+	revealEnvironment: protectedProcedure
+		.input(apiFindOnePostgres)
+		.mutation(async ({ input, ctx }) => {
+			const postgres = await assertServiceEnvironmentReadAccess(
+				ctx,
+				input.postgresId,
+				() => findPostgresById(input.postgresId),
+				"Postgres",
+			);
+
+			return {
+				env: postgres.env ?? "",
+			};
 		}),
 
 	start: protectedProcedure
@@ -166,7 +189,7 @@ export const postgresRouter = createTRPCRouter({
 				resourceId: service.postgresId,
 				resourceName: service.appName,
 			});
-			return service;
+			return redactDatabaseServiceSecrets(service);
 		}),
 	stop: protectedProcedure
 		.input(apiFindOnePostgres)
@@ -190,7 +213,7 @@ export const postgresRouter = createTRPCRouter({
 				resourceId: postgres.postgresId,
 				resourceName: postgres.appName,
 			});
-			return postgres;
+			return redactDatabaseServiceSecrets(postgres);
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortPostgres)
@@ -223,7 +246,7 @@ export const postgresRouter = createTRPCRouter({
 				resourceId: postgres.postgresId,
 				resourceName: postgres.appName,
 			});
-			return postgres;
+			return redactDatabaseServiceSecrets(postgres);
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployPostgres)
@@ -238,7 +261,8 @@ export const postgresRouter = createTRPCRouter({
 				resourceId: postgres.postgresId,
 				resourceName: postgres.appName,
 			});
-			return deployPostgres(input.postgresId);
+			const deployedPostgres = await deployPostgres(input.postgresId);
+			return redactDatabaseServiceSecrets(deployedPostgres);
 		}),
 
 	deployWithLogs: protectedProcedure
@@ -296,7 +320,7 @@ export const postgresRouter = createTRPCRouter({
 				resourceId: postgres.postgresId,
 				resourceName: postgres.appName,
 			});
-			return postgres;
+			return redactDatabaseServiceSecrets(postgres);
 		}),
 	remove: protectedProcedure
 		.input(apiFindOnePostgres)
@@ -334,7 +358,7 @@ export const postgresRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
-			return postgres;
+			return redactDatabaseServiceSecrets(postgres);
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesPostgres)
@@ -342,9 +366,17 @@ export const postgresRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
 				envVars: ["write"],
 			});
-			const service = await updatePostgresById(input.postgresId, {
-				env: input.env,
-			});
+			const currentPostgres = await findPostgresById(input.postgresId);
+			const service = await updatePostgresById(
+				input.postgresId,
+				preserveSecretPlaceholderFields(
+					{
+						env: input.env,
+					},
+					currentPostgres,
+					["env"],
+				),
+			);
 
 			if (!service) {
 				throw new TRPCError({
@@ -438,14 +470,18 @@ export const postgresRouter = createTRPCRouter({
 			const { appName, serverId, databaseUser } = pg;
 
 			const containerCmd = getServiceContainerCommand(appName);
+			const passwordChangeCommand = buildPostgresPasswordChangeCommand({
+				databaseUser,
+				password,
+			});
 			const command = `
-				CONTAINER_ID=$(${containerCmd})
-				if [ -z "$CONTAINER_ID" ]; then
-					echo "No running container found for ${appName}" >&2
-					exit 1
-				fi
-				docker exec "$CONTAINER_ID" psql -U ${databaseUser} -c "ALTER USER \\"${databaseUser}\\" WITH PASSWORD '${password}';"
-			`;
+					CONTAINER_ID=$(${containerCmd})
+					if [ -z "$CONTAINER_ID" ]; then
+						echo "No running container found for ${appName}" >&2
+						exit 1
+					fi
+					${passwordChangeCommand}
+				`;
 
 			await db.transaction(async (tx) => {
 				await tx
@@ -480,6 +516,7 @@ export const postgresRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
 				service: ["create"],
 			});
+			await assertTargetEnvironmentAccess(ctx, input.targetEnvironmentId);
 
 			const updatedPostgres = await db
 				.update(postgresTable)
@@ -503,7 +540,7 @@ export const postgresRouter = createTRPCRouter({
 				resourceId: updatedPostgres.postgresId,
 				resourceName: updatedPostgres.appName,
 			});
-			return updatedPostgres;
+			return redactDatabaseServiceSecrets(updatedPostgres);
 		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildPostgres)

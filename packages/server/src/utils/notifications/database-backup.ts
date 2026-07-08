@@ -1,6 +1,7 @@
 import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DatabaseBackupEmail from "@dokploy/server/emails/emails/database-backup";
+import { redactSensitiveText } from "@dokploy/server/utils/security/redaction";
 import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
@@ -19,15 +20,7 @@ import {
 	sendTelegramNotification,
 } from "./utils";
 
-export const sendDatabaseBackupNotifications = async ({
-	projectName,
-	applicationName,
-	databaseType,
-	type,
-	errorMessage,
-	organizationId,
-	databaseName,
-}: {
+export const sendDatabaseBackupNotifications = async (input: {
 	projectName: string;
 	applicationName: string;
 	databaseType: "postgres" | "mysql" | "mongodb" | "mariadb" | "libsql";
@@ -36,6 +29,16 @@ export const sendDatabaseBackupNotifications = async ({
 	errorMessage?: string;
 	databaseName: string;
 }) => {
+	const {
+		projectName,
+		applicationName,
+		databaseType,
+		type,
+		errorMessage: rawErrorMessage,
+		organizationId,
+		databaseName,
+	} = input;
+	const errorMessage = redactSensitiveText(rawErrorMessage);
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
 	const notificationList = await db.query.notifications.findMany({

@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	stdnet "net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
@@ -238,6 +240,9 @@ func sendAlert(callbackURL string, payload AlertPayload) error {
 	if callbackURL == "" {
 		return fmt.Errorf("callback URL is not set")
 	}
+	if err := validatePublicCallbackURL(callbackURL); err != nil {
+		return err
+	}
 	wrappedPayload := map[string]interface{}{
 		"json": payload,
 	}
@@ -259,4 +264,44 @@ func sendAlert(callbackURL string, payload AlertPayload) error {
 	}
 
 	return nil
+}
+
+var lookupCallbackIP = stdnet.LookupIP
+
+func validatePublicCallbackURL(rawURL string) error {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil || parsedURL.Hostname() == "" {
+		return fmt.Errorf("callback URL is invalid")
+	}
+	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
+		return fmt.Errorf("callback URL must use http or https")
+	}
+
+	hostname := strings.TrimSuffix(strings.ToLower(parsedURL.Hostname()), ".")
+	if hostname == "localhost" {
+		return fmt.Errorf("callback URL host is not allowed")
+	}
+	if !strings.Contains(hostname, ".") {
+		return fmt.Errorf("callback URL host is not allowed")
+	}
+
+	addresses, err := lookupCallbackIP(hostname)
+	if err != nil || len(addresses) == 0 {
+		return fmt.Errorf("callback URL host could not be resolved")
+	}
+	for _, address := range addresses {
+		if isPrivateCallbackAddress(address) {
+			return fmt.Errorf("callback URL resolves to a host that is not allowed")
+		}
+	}
+	return nil
+}
+
+func isPrivateCallbackAddress(address stdnet.IP) bool {
+	return address.IsLoopback() ||
+		address.IsPrivate() ||
+		address.IsLinkLocalUnicast() ||
+		address.IsLinkLocalMulticast() ||
+		address.IsMulticast() ||
+		address.IsUnspecified()
 }

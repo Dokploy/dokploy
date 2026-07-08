@@ -14,6 +14,7 @@ vi.mock("@dokploy/server/db", () => {
 	chain.returning = () => Promise.resolve([{}]);
 	chain.from = () => chain;
 	chain.innerJoin = () => chain;
+	// biome-ignore lint/suspicious/noThenProperty: Drizzle query mocks intentionally emulate thenable chains.
 	chain.then = (resolve: (value: unknown) => void) => {
 		resolve([]);
 	};

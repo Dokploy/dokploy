@@ -7,6 +7,39 @@ import {
 } from "@dokploy/server/services/gitea";
 import type { InferResultType } from "@dokploy/server/types/with";
 import { TRPCError } from "@trpc/server";
+import { fetchWithPublicEgress } from "../url/network";
+import {
+	buildCreateDirectoryCommand,
+	buildGitCloneCommand,
+	buildProviderEchoCommand,
+	buildRemovePathCommand,
+} from "./commands";
+import { assertGitProviderBaseUrlAllowed } from "./url";
+
+const getGiteaProviderBaseUrl = (giteaProvider: Gitea) =>
+	assertGitProviderBaseUrlAllowed(
+		giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl,
+		{ fieldName: "Gitea provider URL" },
+	);
+
+export const assertGiteaRepositoryScope = (
+	giteaProvider: Pick<Gitea, "organizationName">,
+	owner: string | null | undefined,
+) => {
+	const configuredOrganization = giteaProvider.organizationName
+		?.trim()
+		.toLowerCase();
+
+	if (
+		configuredOrganization &&
+		(!owner || configuredOrganization !== owner.trim().toLowerCase())
+	) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Repository is outside the configured Gitea organization",
+		});
+	}
+};
 
 export const getErrorCloneRequirements = (entity: {
 	giteaRepository?: string | null;
@@ -24,34 +57,34 @@ export const getErrorCloneRequirements = (entity: {
 };
 
 export const refreshGiteaToken = async (giteaProviderId: string) => {
+	const giteaProvider = await findGiteaById(giteaProviderId);
+
+	if (
+		!giteaProvider?.clientId ||
+		!giteaProvider?.clientSecret ||
+		!giteaProvider?.refreshToken
+	) {
+		return giteaProvider?.accessToken || null;
+	}
+
+	// Check if token is still valid (add some buffer time, e.g., 5 minutes)
+	const currentTimeSeconds = Math.floor(Date.now() / 1000);
+	const bufferTimeSeconds = 300; // 5 minutes
+
+	if (
+		giteaProvider.expiresAt &&
+		giteaProvider.expiresAt > currentTimeSeconds + bufferTimeSeconds &&
+		giteaProvider.accessToken
+	) {
+		// Token is still valid, no need to refresh
+		return giteaProvider.accessToken;
+	}
+
+	// Token is expired or about to expire, refresh it
+	// Use internal URL when Gitea is on same instance as Dokploy
+	const baseUrl = await getGiteaProviderBaseUrl(giteaProvider);
+
 	try {
-		const giteaProvider = await findGiteaById(giteaProviderId);
-
-		if (
-			!giteaProvider?.clientId ||
-			!giteaProvider?.clientSecret ||
-			!giteaProvider?.refreshToken
-		) {
-			return giteaProvider?.accessToken || null;
-		}
-
-		// Check if token is still valid (add some buffer time, e.g., 5 minutes)
-		const currentTimeSeconds = Math.floor(Date.now() / 1000);
-		const bufferTimeSeconds = 300; // 5 minutes
-
-		if (
-			giteaProvider.expiresAt &&
-			giteaProvider.expiresAt > currentTimeSeconds + bufferTimeSeconds &&
-			giteaProvider.accessToken
-		) {
-			// Token is still valid, no need to refresh
-			return giteaProvider.accessToken;
-		}
-
-		// Token is expired or about to expire, refresh it
-		// Use internal URL when Gitea is on same instance as Dokploy
-		const baseUrl = giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl;
-		const tokenEndpoint = `${baseUrl}/login/oauth/access_token`;
 		const params = new URLSearchParams({
 			grant_type: "refresh_token",
 			refresh_token: giteaProvider.refreshToken,
@@ -59,14 +92,18 @@ export const refreshGiteaToken = async (giteaProviderId: string) => {
 			client_secret: giteaProvider.clientSecret,
 		});
 
-		const response = await fetch(tokenEndpoint, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/x-www-form-urlencoded",
-				Accept: "application/json",
+		const response = await fetchWithPublicEgress(
+			new URL("login/oauth/access_token", `${baseUrl}/`),
+			{
+				method: "POST",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+					Accept: "application/json",
+				},
+				body: params.toString(),
 			},
-			body: params.toString(),
-		});
+			{ fieldName: "Gitea provider URL" },
+		);
 
 		if (!response.ok) {
 			return giteaProvider?.accessToken || null;
@@ -151,7 +188,7 @@ export const cloneGiteaRepository = async ({
 	const { APPLICATIONS_PATH, COMPOSE_PATH } = paths(!!serverId);
 
 	if (!giteaId) {
-		command += `echo "Error: ❌ Gitea Provider not found"; exit 1;`;
+		command += `${buildProviderEchoCommand("Error: ❌ Gitea Provider not found")} exit 1;`;
 		return command;
 	}
 
@@ -159,25 +196,34 @@ export const cloneGiteaRepository = async ({
 	const giteaProvider = await findGiteaById(giteaId);
 
 	if (!giteaProvider) {
-		command += `echo "❌ [ERROR] Gitea provider not found in the database"; exit 1;`;
+		command += `${buildProviderEchoCommand("❌ [ERROR] Gitea provider not found in the database")} exit 1;`;
 		return command;
 	}
 
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
-	command += `rm -rf ${outputPath};`;
-	command += `mkdir -p ${outputPath};`;
+	command += buildRemovePathCommand(outputPath);
+	command += buildCreateDirectoryCommand(outputPath);
+	assertGiteaRepositoryScope(giteaProvider, giteaOwner);
 
 	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
+	const baseUrl = await getGiteaProviderBaseUrl(giteaProvider);
 	const cloneUrl = buildGiteaCloneUrl(
-		giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl,
+		baseUrl,
 		giteaProvider.accessToken!,
 		giteaOwner!,
 		giteaRepository!,
 	);
 
-	command += `echo "Cloning Repo ${repoClone} to ${outputPath}: ✅";`;
-	command += `git clone --branch ${giteaBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	command += buildProviderEchoCommand(
+		`Cloning Repo ${repoClone} to ${outputPath}: ✅`,
+	);
+	command += `${buildGitCloneCommand({
+		branch: giteaBranch!,
+		cloneUrl,
+		enableSubmodules,
+		outputPath,
+	})};`;
 	return command;
 };
 
@@ -204,17 +250,14 @@ export const testGiteaConnection = async (input: { giteaId: string }) => {
 		await refreshGiteaToken(giteaId);
 
 		const provider = await findGiteaById(giteaId);
-		if (!provider || !provider.accessToken) {
+		if (!provider?.accessToken) {
 			throw new TRPCError({
 				code: "UNAUTHORIZED",
 				message: "No access token available. Please authorize with Gitea.",
 			});
 		}
 
-		const baseUrl = (provider.giteaInternalUrl || provider.giteaUrl).replace(
-			/\/+$/,
-			"",
-		);
+		const baseUrl = await getGiteaProviderBaseUrl(provider);
 
 		// Use /user/repos to get authenticated user's repositories with pagination
 		let allRepos = 0;
@@ -222,14 +265,15 @@ export const testGiteaConnection = async (input: { giteaId: string }) => {
 		const limit = 50; // Max per page
 
 		while (true) {
-			const response = await fetch(
-				`${baseUrl}/api/v1/user/repos?page=${page}&limit=${limit}`,
+			const response = await fetchWithPublicEgress(
+				new URL(`api/v1/user/repos?page=${page}&limit=${limit}`, `${baseUrl}/`),
 				{
 					headers: {
 						Accept: "application/json",
 						Authorization: `token ${provider.accessToken}`,
 					},
 				},
+				{ fieldName: "Gitea provider URL" },
 			);
 
 			if (!response.ok) {
@@ -271,9 +315,7 @@ export const getGiteaRepositories = async (giteaId?: string) => {
 	await refreshGiteaToken(giteaId);
 	const giteaProvider = await findGiteaById(giteaId);
 
-	const baseUrl = (
-		giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl
-	).replace(/\/+$/, "");
+	const baseUrl = await getGiteaProviderBaseUrl(giteaProvider);
 
 	// Use /user/repos to get authenticated user's repositories with pagination
 	let allRepositories: any[] = [];
@@ -281,14 +323,15 @@ export const getGiteaRepositories = async (giteaId?: string) => {
 	const limit = 50; // Max per page
 
 	while (true) {
-		const response = await fetch(
-			`${baseUrl}/api/v1/user/repos?page=${page}&limit=${limit}`,
+		const response = await fetchWithPublicEgress(
+			new URL(`api/v1/user/repos?page=${page}&limit=${limit}`, `${baseUrl}/`),
 			{
 				headers: {
 					Accept: "application/json",
 					Authorization: `token ${giteaProvider.accessToken}`,
 				},
 			},
+			{ fieldName: "Gitea provider URL" },
 		);
 
 		if (!response.ok) {
@@ -337,10 +380,9 @@ export const getGiteaBranches = async (input: {
 	await refreshGiteaToken(input.giteaId);
 
 	const giteaProvider = await findGiteaById(input.giteaId);
+	assertGiteaRepositoryScope(giteaProvider, input.owner);
 
-	const baseUrl = (
-		giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl
-	).replace(/\/+$/, "");
+	const baseUrl = await getGiteaProviderBaseUrl(giteaProvider);
 
 	// Handle pagination for branches
 	let allBranches: any[] = [];
@@ -348,14 +390,18 @@ export const getGiteaBranches = async (input: {
 	const limit = 50; // Max per page
 
 	while (true) {
-		const response = await fetch(
-			`${baseUrl}/api/v1/repos/${input.owner}/${input.repo}/branches?page=${page}&limit=${limit}`,
+		const response = await fetchWithPublicEgress(
+			new URL(
+				`api/v1/repos/${input.owner}/${input.repo}/branches?page=${page}&limit=${limit}`,
+				`${baseUrl}/`,
+			),
 			{
 				headers: {
 					Accept: "application/json",
 					Authorization: `token ${giteaProvider.accessToken}`,
 				},
 			},
+			{ fieldName: "Gitea provider URL" },
 		);
 
 		if (!response.ok) {

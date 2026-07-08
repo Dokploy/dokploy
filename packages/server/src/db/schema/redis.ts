@@ -27,7 +27,13 @@ import {
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
-import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
+import {
+	APP_NAME_MESSAGE,
+	APP_NAME_REGEX,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
+	generateAppName,
+} from "./utils";
 
 export const redis = pgTable("redis", {
 	redisId: text("redisId")
@@ -99,20 +105,22 @@ const createSchema = createInsertSchema(redis, {
 		.optional(),
 	createdAt: z.string(),
 	name: z.string().min(1),
-	databasePassword: z.string(),
+	databasePassword: z.string().regex(DATABASE_PASSWORD_REGEX, {
+		message: DATABASE_PASSWORD_MESSAGE,
+	}),
 	dockerImage: z.string().default("redis:8"),
 	command: z.string().optional(),
 	args: z.array(z.string()).optional(),
 	env: z.string().optional(),
-	memoryReservation: z.string().optional(),
-	memoryLimit: z.string().optional(),
-	cpuReservation: z.string().optional(),
-	cpuLimit: z.string().optional(),
+	memoryReservation: z.string().nullable().optional(),
+	memoryLimit: z.string().nullable().optional(),
+	cpuReservation: z.string().nullable().optional(),
+	cpuLimit: z.string().nullable().optional(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
-	externalPort: z.number(),
-	description: z.string().optional(),
-	serverId: z.string().optional(),
+	externalPort: z.number().nullable().optional(),
+	description: z.string().nullable().optional(),
+	serverId: z.string().nullable().optional(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
 	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
 	placementSwarm: PlacementSwarmSchema.nullable(),
@@ -180,7 +188,7 @@ export const apiUpdateRedis = createSchema
 		redisId: z.string().min(1),
 		dockerImage: z.string().optional(),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true, environmentId: true });
 
 export const apiRebuildRedis = createSchema
 	.pick({

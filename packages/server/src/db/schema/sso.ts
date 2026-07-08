@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { organization } from "./account";
 import { user } from "./user";
@@ -15,6 +15,7 @@ export const ssoProvider = pgTable("sso_provider", {
 		onDelete: "cascade",
 	}),
 	domain: text("domain").notNull(),
+	domainVerified: boolean("domainVerified").default(false),
 	createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

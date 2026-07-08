@@ -484,23 +484,27 @@ export const createOrganizationUserWithCredentials = async ({
 };
 
 export const updateUser = async (userId: string, userData: Partial<User>) => {
+	const updateData = { ...userData };
+
 	// Validate email if it's being updated
-	if (userData.email !== undefined) {
-		if (!userData.email || userData.email.trim() === "") {
+	if (updateData.email !== undefined) {
+		if (!updateData.email || updateData.email.trim() === "") {
 			throw new Error("Email is required and cannot be empty");
 		}
 
 		// Basic email format validation
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-		if (!emailRegex.test(userData.email)) {
+		if (!emailRegex.test(updateData.email)) {
 			throw new Error("Please enter a valid email address");
 		}
+
+		updateData.emailVerified = false;
 	}
 
 	const userResult = await db
 		.update(user)
 		.set({
-			...userData,
+			...updateData,
 		})
 		.where(eq(user.id, userId))
 		.returning()

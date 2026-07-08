@@ -263,7 +263,7 @@ export const DockerLogsId: React.FC<Props> = ({
 			)
 			.join("\n");
 
-		const success = copy(logContent);
+		const success = await copy(logContent);
 		if (success) {
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);

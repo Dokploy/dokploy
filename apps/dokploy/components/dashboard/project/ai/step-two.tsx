@@ -61,7 +61,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 		if (!selectedVariant) return;
 
 		const updatedEnvVariables = [...selectedVariant.envVariables];
-		// @ts-ignore
+		// @ts-expect-error
 		updatedEnvVariables[index] = {
 			...updatedEnvVariables[index],
 			[field]: value,
@@ -104,7 +104,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 		if (!selectedVariant) return;
 
 		const updatedDomains = [...selectedVariant.domains];
-		// @ts-ignore
+		// @ts-expect-error
 		updatedDomains[index] = {
 			...updatedDomains[index],
 			[field]: value,
@@ -255,9 +255,11 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 										<AccordionTrigger>Description</AccordionTrigger>
 										<AccordionContent>
 											<ScrollArea className="w-full rounded-md border p-4">
-												<ReactMarkdown className="text-muted-foreground text-sm">
-													{selectedVariant?.description}
-												</ReactMarkdown>
+												<div className="text-muted-foreground text-sm">
+													<ReactMarkdown>
+														{selectedVariant?.description}
+													</ReactMarkdown>
+												</div>
 											</ScrollArea>
 										</AccordionContent>
 									</AccordionItem>

@@ -1212,6 +1212,34 @@
       "when": 1781045439162,
       "tag": "0172_quick_the_professor",
       "breakpoints": true
+    },
+    {
+      "idx": 173,
+      "version": "7",
+      "when": 1781045439163,
+      "tag": "0173_scope_sso_domains",
+      "breakpoints": true
+    },
+    {
+      "idx": 174,
+      "version": "7",
+      "when": 1781045439164,
+      "tag": "0174_scope_gitea_owners",
+      "breakpoints": true
+    },
+    {
+      "idx": 175,
+      "version": "7",
+      "when": 1781045439165,
+      "tag": "0175_guard_host_schedule_scope",
+      "breakpoints": true
+    },
+    {
+      "idx": 176,
+      "version": "7",
+      "when": 1781045439166,
+      "tag": "0176_add_gitlab_webhook_secret",
+      "breakpoints": true
     }
   ]
 }

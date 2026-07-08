@@ -11,6 +11,12 @@ import {
 import type { InferResultType } from "@dokploy/server/types/with";
 import { TRPCError } from "@trpc/server";
 import type { z } from "zod";
+import {
+	buildCreateDirectoryCommand,
+	buildGitCloneCommand,
+	buildProviderEchoCommand,
+	buildRemovePathCommand,
+} from "./commands";
 
 export type ApplicationWithBitbucket = InferResultType<
 	"applications",
@@ -77,6 +83,28 @@ export const getBitbucketHeaders = (bitbucketProvider: Bitbucket) => {
 	};
 };
 
+export const assertBitbucketRepositoryScope = (
+	bitbucketProvider: Pick<
+		Bitbucket,
+		"bitbucketWorkspaceName" | "bitbucketUsername"
+	>,
+	owner: string | null | undefined,
+) => {
+	const configuredWorkspace =
+		bitbucketProvider.bitbucketWorkspaceName ||
+		bitbucketProvider.bitbucketUsername;
+
+	if (
+		configuredWorkspace &&
+		(!owner || configuredWorkspace.toLowerCase() !== owner.toLowerCase())
+	) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Repository is outside the configured Bitbucket workspace",
+		});
+	}
+};
+
 interface CloneBitbucketRepository {
 	appName: string;
 	bitbucketRepository: string | null;
@@ -108,24 +136,32 @@ export const cloneBitbucketRepository = async ({
 	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
 
 	if (!bitbucketId) {
-		command += `echo "Error: ❌ Bitbucket Provider not found"; exit 1;`;
+		command += `${buildProviderEchoCommand("Error: ❌ Bitbucket Provider not found")} exit 1;`;
 		return command;
 	}
 	const bitbucket = await findBitbucketById(bitbucketId);
 
 	if (!bitbucket) {
-		command += `echo "Error: ❌ Bitbucket Provider not found"; exit 1;`;
+		command += `${buildProviderEchoCommand("Error: ❌ Bitbucket Provider not found")} exit 1;`;
 		return command;
 	}
+	assertBitbucketRepositoryScope(bitbucket, bitbucketOwner);
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
-	command += `rm -rf ${outputPath};`;
-	command += `mkdir -p ${outputPath};`;
+	command += buildRemovePathCommand(outputPath);
+	command += buildCreateDirectoryCommand(outputPath);
 	const repoToUse = entity.bitbucketRepositorySlug || bitbucketRepository;
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${repoToUse}.git`;
 	const cloneUrl = getBitbucketCloneUrl(bitbucket, repoclone);
-	command += `echo "Cloning Repo ${repoclone} to ${outputPath}: ✅";`;
-	command += `git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	command += buildProviderEchoCommand(
+		`Cloning Repo ${repoclone} to ${outputPath}: ✅`,
+	);
+	command += `${buildGitCloneCommand({
+		branch: bitbucketBranch!,
+		cloneUrl,
+		enableSubmodules,
+		outputPath,
+	})};`;
 	return command;
 };
 
@@ -187,6 +223,7 @@ export const getBitbucketBranches = async (
 	}
 	const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 	const { owner, repo } = input;
+	assertBitbucketRepositoryScope(bitbucketProvider, owner);
 	let url = `https://api.bitbucket.org/2.0/repositories/${owner}/${repo}/refs/branches?pagelen=1`;
 	let allBranches: {
 		name: string;
@@ -243,9 +280,15 @@ export const testBitbucketConnection = async (
 		throw new Error("Bitbucket provider not found");
 	}
 
-	const { bitbucketUsername, workspaceName } = input;
+	const configuredWorkspace =
+		bitbucketProvider.bitbucketWorkspaceName ||
+		bitbucketProvider.bitbucketUsername;
+	const requestedWorkspace =
+		input.workspaceName || input.bitbucketUsername || configuredWorkspace;
 
-	const username = workspaceName || bitbucketUsername;
+	assertBitbucketRepositoryScope(bitbucketProvider, requestedWorkspace);
+
+	const username = requestedWorkspace;
 
 	const url = `https://api.bitbucket.org/2.0/repositories/${username}`;
 	try {

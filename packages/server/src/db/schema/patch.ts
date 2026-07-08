@@ -62,14 +62,25 @@ const createSchema = createInsertSchema(patch, {
 	composeId: z.string().optional(),
 });
 
-export const apiCreatePatch = createSchema.pick({
-	filePath: true,
-	content: true,
-	type: true,
-	enabled: true,
-	applicationId: true,
-	composeId: true,
-});
+export const apiCreatePatch = createSchema
+	.pick({
+		filePath: true,
+		content: true,
+		type: true,
+		enabled: true,
+		applicationId: true,
+		composeId: true,
+	})
+	.superRefine((data, ctx) => {
+		const selectedIds = [data.applicationId, data.composeId].filter(Boolean);
+		if (selectedIds.length !== 1) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Exactly one of applicationId or composeId must be provided",
+				path: ["applicationId"],
+			});
+		}
+	});
 
 export const apiFindPatch = z.object({
 	patchId: z.string().min(1),

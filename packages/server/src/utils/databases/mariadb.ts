@@ -62,7 +62,11 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		mariadb.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
-	const bindsMount = generateBindMounts(mounts);
+	const bindsMount = generateBindMounts(mounts, {
+		appName,
+		serverId: mariadb.serverId,
+		serviceType: "mariadb",
+	});
 	const filesMount = generateFileMounts(appName, mariadb);
 
 	const docker = await getRemoteDocker(mariadb.serverId);

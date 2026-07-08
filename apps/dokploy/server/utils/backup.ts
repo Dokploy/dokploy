@@ -3,6 +3,11 @@ import {
 	IS_CLOUD,
 	removeScheduleBackup,
 } from "@dokploy/server/index";
+import {
+	type ScheduledQueueJob,
+	type SignedScheduledQueueJob,
+	signScheduledQueueJob,
+} from "@dokploy/server/utils/schedules/signed-job";
 
 type QueueJob =
 	| {
@@ -26,15 +31,37 @@ type QueueJob =
 			cronSchedule: string;
 			volumeBackupId: string;
 	  };
+
+const normalizeQueueJob = (job: QueueJob): ScheduledQueueJob => {
+	if (job.type === "backup") {
+		return job;
+	}
+	if (job.type === "server") {
+		return job;
+	}
+	if (job.type === "volume-backup") {
+		return job;
+	}
+	return {
+		type: job.type,
+		cronSchedule: job.cronSchedule,
+		scheduleId: job.scheduleId,
+		timezone: job.timezone ?? undefined,
+	};
+};
+
 export const schedule = async (job: QueueJob) => {
 	try {
+		const signedJob = await signScheduledQueueJob(normalizeQueueJob(job), {
+			operation: "create",
+		});
 		const result = await fetch(`${process.env.JOBS_URL}/create-backup`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
 				"X-API-Key": process.env.API_KEY || "NO-DEFINED",
 			},
-			body: JSON.stringify(job),
+			body: JSON.stringify(signedJob),
 		});
 		const data = await result.json();
 		return data;
@@ -45,13 +72,26 @@ export const schedule = async (job: QueueJob) => {
 
 export const removeJob = async (job: QueueJob) => {
 	try {
+		const signedJob = await signScheduledQueueJob(normalizeQueueJob(job), {
+			operation: "remove",
+			requireEnabled: false,
+			requireActiveServer: false,
+		});
+		return await removeSignedJob(signedJob);
+	} catch (error) {
+		throw error;
+	}
+};
+
+export const removeSignedJob = async (signedJob: SignedScheduledQueueJob) => {
+	try {
 		const result = await fetch(`${process.env.JOBS_URL}/remove-job`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
 				"X-API-Key": process.env.API_KEY || "NO-DEFINED",
 			},
-			body: JSON.stringify(job),
+			body: JSON.stringify(signedJob),
 		});
 		const data = await result.json();
 		return data;
@@ -62,13 +102,16 @@ export const removeJob = async (job: QueueJob) => {
 
 export const updateJob = async (job: QueueJob) => {
 	try {
+		const signedJob = await signScheduledQueueJob(normalizeQueueJob(job), {
+			operation: "update",
+		});
 		const result = await fetch(`${process.env.JOBS_URL}/update-backup`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
 				"X-API-Key": process.env.API_KEY || "NO-DEFINED",
 			},
-			body: JSON.stringify(job),
+			body: JSON.stringify(signedJob),
 		});
 		const data = await result.json();
 		return data;

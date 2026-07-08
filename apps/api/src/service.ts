@@ -76,10 +76,13 @@ export const fetchInngestEvents = async () => {
 		});
 
 		if (!res.ok) {
-			logger.warn("Inngest API error", {
-				status: res.status,
-				body: await res.text(),
-			});
+			logger.warn(
+				{
+					status: res.status,
+					body: await res.text(),
+				},
+				"Inngest API error",
+			);
 			break;
 		}
 
@@ -115,11 +118,14 @@ export const fetchInngestRunsForEvent = async (
 		},
 	);
 	if (!res.ok) {
-		logger.warn("Inngest runs API error", {
-			eventId,
-			status: res.status,
-			body: await res.text(),
-		});
+		logger.warn(
+			{
+				eventId,
+				status: res.status,
+				body: await res.text(),
+			},
+			"Inngest runs API error",
+		);
 		return [];
 	}
 	const body = (await res.json()) as { data?: InngestRun[] };

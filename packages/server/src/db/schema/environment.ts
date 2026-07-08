@@ -65,7 +65,6 @@ export const apiUpdateEnvironment = z.object({
 	environmentId: z.string().min(1),
 	name: z.string().min(1).optional(),
 	description: z.string().optional(),
-	projectId: z.string().optional(),
 	env: z.string().optional(),
 });
 

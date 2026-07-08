@@ -491,7 +491,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 													target="_blank"
 													rel="noopener noreferrer"
 												>
-													here
+													Docker build variables
 												</a>
 												.
 											</span>
@@ -514,7 +514,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 													target="_blank"
 													rel="noopener noreferrer"
 												>
-													here
+													Docker build secrets
 												</a>
 												.
 											</span>

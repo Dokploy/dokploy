@@ -1,3 +1,4 @@
+import type { IncomingMessage, ServerResponse } from "node:http";
 import http from "node:http";
 import {
 	createDefaultMiddlewares,
@@ -14,8 +15,14 @@ import {
 	setupDirectories,
 } from "@dokploy/server";
 import { config } from "dotenv";
+import type { NextApiRequest, NextApiResponse } from "next";
 import next from "next";
 import packageInfo from "../package.json";
+import { handleApplicationEnvUpsert } from "../pages/api/application.env.upsert";
+import {
+	ApplicationEnvUpsertBodyTooLargeError,
+	readApplicationEnvUpsertJsonBody,
+} from "./api/utils/application-env-upsert-body";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
@@ -39,10 +46,108 @@ if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 
 const app = next({ dev, turbopack: process.env.TURBOPACK === "1" });
 const handle = app.getRequestHandler();
+
+type NodeNextApiResponse = ServerResponse & {
+	status: (code: number) => NodeNextApiResponse;
+	json: (body: unknown) => NodeNextApiResponse;
+};
+
+const normalizeRequestPath = (value: string) => {
+	try {
+		return new URL(value, "http://localhost").pathname.replace(/\/+$/, "");
+	} catch {
+		return "";
+	}
+};
+
+const isApplicationEnvUpsertPath = (value: string) => {
+	const pathname = normalizeRequestPath(value);
+
+	return (
+		pathname === "/api/application/env/upsert" ||
+		pathname === "/api/application.env.upsert"
+	);
+};
+
+const getForwardedUriValues = (req: IncomingMessage) => {
+	const forwardedUri = req.headers["x-forwarded-uri"];
+
+	if (Array.isArray(forwardedUri)) {
+		return forwardedUri;
+	}
+
+	return typeof forwardedUri === "string" ? [forwardedUri] : [];
+};
+
+const isApplicationEnvUpsertRequest = (req: IncomingMessage) =>
+	[req.url ?? "/", ...getForwardedUriValues(req)].some((path) =>
+		isApplicationEnvUpsertPath(path),
+	);
+
+const handleApplicationEnvUpsertRequest = async (
+	req: IncomingMessage,
+	res: ServerResponse,
+) => {
+	try {
+		(req as IncomingMessage & { body: unknown }).body =
+			await readApplicationEnvUpsertJsonBody(req);
+	} catch (error) {
+		const isBodyTooLarge =
+			error instanceof ApplicationEnvUpsertBodyTooLargeError;
+		res.statusCode = isBodyTooLarge ? 413 : 400;
+		res.setHeader("Content-Type", "application/json");
+		res.end(
+			JSON.stringify({
+				message: isBodyTooLarge
+					? "Request body too large"
+					: "Invalid request body",
+			}),
+			() => {
+				if (isBodyTooLarge) {
+					req.destroy();
+				}
+			},
+		);
+		return;
+	}
+
+	const nextResponse = res as NodeNextApiResponse;
+
+	nextResponse.status = (code: number) => {
+		res.statusCode = code;
+		return nextResponse;
+	};
+	nextResponse.json = (body: unknown) => {
+		if (!res.headersSent) {
+			res.setHeader("Content-Type", "application/json");
+		}
+		res.end(JSON.stringify(body));
+		return nextResponse;
+	};
+
+	try {
+		await handleApplicationEnvUpsert(
+			req as NextApiRequest,
+			nextResponse as unknown as NextApiResponse,
+		);
+	} catch {
+		if (!res.headersSent) {
+			res.statusCode = 500;
+			res.setHeader("Content-Type", "application/json");
+		}
+		res.end(JSON.stringify({ message: "Internal server error" }));
+	}
+};
+
 void app.prepare().then(async () => {
 	try {
 		console.log("Running DokployVersion: ", packageInfo.version);
 		const server = http.createServer((req, res) => {
+			if (isApplicationEnvUpsertRequest(req)) {
+				void handleApplicationEnvUpsertRequest(req, res);
+				return;
+			}
+
 			handle(req, res);
 		});
 

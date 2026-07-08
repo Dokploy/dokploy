@@ -12,6 +12,15 @@ import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
 
+const dockerVolumeNameSchema = z
+	.string()
+	.trim()
+	.min(1)
+	.regex(
+		/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/,
+		"Volume name can only contain letters, numbers, dots, underscores, and hyphens",
+	);
+
 export const serviceType = pgEnum("serviceType", [
 	"application",
 	"postgres",
@@ -104,12 +113,12 @@ export const MountssRelations = relations(mounts, ({ one }) => ({
 const createSchema = createInsertSchema(mounts, {
 	applicationId: z.string(),
 	type: z.enum(["bind", "volume", "file"]),
-	hostPath: z.string().optional(),
-	volumeName: z.string().optional(),
-	content: z.string().optional(),
+	hostPath: z.string().nullable().optional(),
+	volumeName: dockerVolumeNameSchema.nullable().optional(),
+	content: z.string().nullable().optional(),
 	mountPath: z.string().min(1),
 	mountId: z.string().optional(),
-	filePath: z.string().optional(),
+	filePath: z.string().nullable().optional(),
 	serviceType: z.enum([
 		"application",
 		"postgres",
@@ -157,6 +166,16 @@ export const apiFindMountByApplicationId = z.object({
 	serviceId: z.string().min(1),
 });
 
-export const apiUpdateMount = createSchema.partial().extend({
-	mountId: z.string().min(1),
-});
+export const apiUpdateMount = createSchema
+	.pick({
+		type: true,
+		hostPath: true,
+		volumeName: true,
+		content: true,
+		mountPath: true,
+		filePath: true,
+	})
+	.partial()
+	.extend({
+		mountId: z.string().min(1),
+	});

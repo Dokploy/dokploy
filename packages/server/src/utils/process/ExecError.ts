@@ -1,3 +1,5 @@
+import { redactSensitiveText } from "../security/redaction";
+
 export interface ExecErrorDetails {
 	command: string;
 	stdout?: string;
@@ -16,13 +18,20 @@ export class ExecError extends Error {
 	public readonly serverId?: string | null;
 
 	constructor(message: string, details: ExecErrorDetails) {
-		super(message);
+		super(redactSensitiveText(message));
 		this.name = "ExecError";
-		this.command = details.command;
-		this.stdout = details.stdout;
-		this.stderr = details.stderr;
+		this.command = redactSensitiveText(details.command);
+		this.stdout = redactSensitiveText(details.stdout);
+		this.stderr = redactSensitiveText(details.stderr);
 		this.exitCode = details.exitCode;
-		this.originalError = details.originalError;
+		if (details.originalError) {
+			Object.defineProperty(this, "originalError", {
+				value: details.originalError,
+				enumerable: false,
+				configurable: false,
+				writable: false,
+			});
+		}
 		this.serverId = details.serverId;
 
 		// Maintains proper stack trace for where our error was thrown (only available on V8)

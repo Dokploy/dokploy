@@ -122,7 +122,7 @@ export const ContainerBlockChart = ({ data }: Props) => {
 														Time
 													</span>
 													<span className="font-bold">
-														{formatTimestamp(label)}
+														{formatTimestamp(label ?? "")}
 													</span>
 												</div>
 												<div className="flex flex-col">

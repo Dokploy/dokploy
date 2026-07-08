@@ -64,6 +64,24 @@ export const findGithubById = async (githubId: string) => {
 	return githubProviderResult;
 };
 
+export const findGithubGitProviderId = async (githubId: string) => {
+	const githubProviderResult = await db.query.github.findFirst({
+		where: eq(github.githubId, githubId),
+		columns: {
+			gitProviderId: true,
+		},
+	});
+
+	if (!githubProviderResult) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Github Provider not found",
+		});
+	}
+
+	return githubProviderResult.gitProviderId;
+};
+
 export const updateGithub = async (
 	githubId: string,
 	input: Partial<Github>,
@@ -266,10 +284,11 @@ export const hasExistingSecurityComment = async ({
 		});
 
 		// Check if any comment contains our security notification marker
-		const securityCommentExists = comments.some((comment) =>
-			comment.body?.includes(
-				"🚨 Preview Deployment Blocked - Security Protection",
-			),
+		const securityCommentExists = comments.some(
+			(comment: { body?: string | null }) =>
+				comment.body?.includes(
+					"🚨 Preview Deployment Blocked - Security Protection",
+				),
 		);
 
 		return securityCommentExists;

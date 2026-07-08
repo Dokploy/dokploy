@@ -169,7 +169,6 @@ export const ShowIconSettings = ({
 					className="relative group flex items-center justify-center"
 				>
 					{icon ? (
-						// biome-ignore lint/performance/noImgElement: icon is data URL or base64
 						<img
 							src={icon}
 							alt="Application icon"

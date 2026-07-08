@@ -45,3 +45,44 @@ export const cancelDeploymentSchema = z.discriminatedUnion("applicationType", [
 ]);
 
 export type CancelDeploymentJob = z.infer<typeof cancelDeploymentSchema>;
+
+const signedDeploymentScopeSchema = z.object({
+	version: z.literal(1),
+	operation: z.enum(["deploy", "cancel"]),
+	applicationType: z.enum(["application", "compose", "application-preview"]),
+	objectId: z.string().min(1),
+	applicationId: z.string().nullable(),
+	deploymentType: z.enum(["deploy", "redeploy"]).nullable(),
+	serverId: z.string().nullable(),
+	organizationId: z.string().nullable(),
+	expiresAt: z.number().int(),
+	nonce: z.string().min(1),
+});
+
+const signedDeploymentClaimSchema = z.object({
+	scope: signedDeploymentScopeSchema,
+	signature: z.string().min(1),
+});
+
+const signedDeploymentJobsReadScopeSchema = z.object({
+	version: z.literal(1),
+	operation: z.literal("read-jobs"),
+	serverId: z.string().min(1),
+	organizationId: z.string().nullable(),
+	expiresAt: z.number().int(),
+	nonce: z.string().min(1),
+});
+
+export const signedDeploymentJobsReadSchema = z.object({
+	serverId: z.string().min(1),
+	scope: signedDeploymentJobsReadScopeSchema,
+	signature: z.string().min(1),
+});
+
+export const signedDeployJobSchema = deployJobSchema.and(
+	signedDeploymentClaimSchema,
+);
+
+export const signedCancelDeploymentSchema = cancelDeploymentSchema.and(
+	signedDeploymentClaimSchema,
+);

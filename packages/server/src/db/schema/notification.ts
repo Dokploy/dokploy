@@ -263,6 +263,8 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 
 export const notificationsSchema = createInsertSchema(notifications);
 
+const notificationUpdateSecret = z.string().optional();
+
 export const apiCreateSlack = notificationsSchema
 	.pick({
 		appBuildError: true,
@@ -284,6 +286,7 @@ export const apiCreateSlack = notificationsSchema
 export const apiUpdateSlack = apiCreateSlack.partial().extend({
 	notificationId: z.string().min(1),
 	slackId: z.string(),
+	webhookUrl: notificationUpdateSecret,
 	organizationId: z.string().optional(),
 });
 
@@ -314,6 +317,7 @@ export const apiCreateTelegram = notificationsSchema
 export const apiUpdateTelegram = apiCreateTelegram.partial().extend({
 	notificationId: z.string().min(1),
 	telegramId: z.string().min(1),
+	botToken: notificationUpdateSecret,
 	organizationId: z.string().optional(),
 });
 
@@ -344,6 +348,7 @@ export const apiCreateDiscord = notificationsSchema
 export const apiUpdateDiscord = apiCreateDiscord.partial().extend({
 	notificationId: z.string().min(1),
 	discordId: z.string().min(1),
+	webhookUrl: notificationUpdateSecret,
 	organizationId: z.string().optional(),
 });
 
@@ -380,6 +385,7 @@ export const apiCreateEmail = notificationsSchema
 export const apiUpdateEmail = apiCreateEmail.partial().extend({
 	notificationId: z.string().min(1),
 	emailId: z.string().min(1),
+	password: notificationUpdateSecret,
 	organizationId: z.string().optional(),
 });
 
@@ -414,6 +420,7 @@ export const apiCreateResend = notificationsSchema
 export const apiUpdateResend = apiCreateResend.partial().extend({
 	notificationId: z.string().min(1),
 	resendId: z.string().min(1),
+	apiKey: notificationUpdateSecret,
 	organizationId: z.string().optional(),
 });
 
@@ -445,6 +452,7 @@ export const apiCreateGotify = notificationsSchema
 export const apiUpdateGotify = apiCreateGotify.partial().extend({
 	notificationId: z.string().min(1),
 	gotifyId: z.string().min(1),
+	appToken: notificationUpdateSecret,
 	organizationId: z.string().optional(),
 });
 
@@ -523,6 +531,7 @@ export const apiCreateMattermost = notificationsSchema
 export const apiUpdateMattermost = apiCreateMattermost.partial().extend({
 	notificationId: z.string().min(1),
 	mattermostId: z.string().min(1),
+	webhookUrl: notificationUpdateSecret,
 	organizationId: z.string().optional(),
 });
 
@@ -561,6 +570,7 @@ export const apiCreateCustom = notificationsSchema
 export const apiUpdateCustom = apiCreateCustom.partial().extend({
 	notificationId: z.string().min(1),
 	customId: z.string().min(1),
+	endpoint: notificationUpdateSecret,
 	organizationId: z.string().optional(),
 });
 
@@ -589,6 +599,7 @@ export const apiCreateLark = notificationsSchema
 export const apiUpdateLark = apiCreateLark.partial().extend({
 	notificationId: z.string().min(1),
 	larkId: z.string().min(1),
+	webhookUrl: notificationUpdateSecret,
 	organizationId: z.string().optional(),
 });
 
@@ -616,6 +627,7 @@ export const apiCreateTeams = notificationsSchema
 export const apiUpdateTeams = apiCreateTeams.partial().extend({
 	notificationId: z.string().min(1),
 	teamsId: z.string().min(1),
+	webhookUrl: notificationUpdateSecret,
 	organizationId: z.string().optional(),
 });
 
@@ -655,8 +667,8 @@ export const apiUpdatePushover = z.object({
 	notificationId: z.string().min(1),
 	pushoverId: z.string().min(1),
 	organizationId: z.string().optional(),
-	userKey: z.string().min(1).optional(),
-	apiToken: z.string().min(1).optional(),
+	userKey: notificationUpdateSecret,
+	apiToken: notificationUpdateSecret,
 	priority: z.number().min(-2).max(2).optional(),
 	retry: z.number().min(30).nullish(),
 	expire: z.number().min(1).max(10800).nullish(),

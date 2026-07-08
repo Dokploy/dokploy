@@ -1,5 +1,9 @@
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
+import {
+	normalizeRelativeFilePath,
+	quoteShellArg,
+} from "@dokploy/server/utils/filesystem/safe-path";
 import { TRPCError } from "@trpc/server";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { cloneBitbucketRepository } from "../utils/providers/bitbucket";
@@ -15,6 +19,48 @@ interface PatchRepoConfig {
 	id: string;
 }
 
+const getPatchRepoContext = async ({ type, id }: PatchRepoConfig) => {
+	if (type === "application") {
+		const application = await findApplicationById(id);
+		const serverId = application.buildServerId || application.serverId;
+		const { PATCH_REPOS_PATH } = paths(!!serverId);
+		const repoPath = join(PATCH_REPOS_PATH, type, application.appName);
+
+		return {
+			application,
+			repoPath,
+			serverId,
+		};
+	}
+
+	const application = await findComposeById(id);
+	const serverId = application.serverId;
+	const { PATCH_REPOS_PATH } = paths(!!serverId);
+	const repoPath = join(PATCH_REPOS_PATH, type, application.appName);
+
+	return {
+		application,
+		repoPath,
+		serverId,
+	};
+};
+
+export const getPatchRepoPath = async (config: PatchRepoConfig) => {
+	const { repoPath } = await getPatchRepoContext(config);
+	return repoPath;
+};
+
+const normalizePatchRepoFilePath = (filePath: string) => {
+	try {
+		return normalizeRelativeFilePath(filePath);
+	} catch {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Invalid patch repo file path",
+		});
+	}
+};
+
 /**
  * Ensure patch repo exists and is up-to-date
  * Returns path to the repo
@@ -23,23 +69,10 @@ export const ensurePatchRepo = async ({
 	type,
 	id,
 }: PatchRepoConfig): Promise<string> => {
-	let serverId: string | null = null;
-
-	if (type === "application") {
-		const application = await findApplicationById(id);
-		serverId = application.buildServerId || application.serverId;
-	} else {
-		const compose = await findComposeById(id);
-		serverId = compose.serverId;
-	}
-
-	const application =
-		type === "application"
-			? await findApplicationById(id)
-			: await findComposeById(id);
-
-	const { PATCH_REPOS_PATH } = paths(!!serverId);
-	const repoPath = join(PATCH_REPOS_PATH, type, application.appName);
+	const { application, repoPath, serverId } = await getPatchRepoContext({
+		type,
+		id,
+	});
 
 	const applicationEntity = {
 		...application,
@@ -85,7 +118,7 @@ export const readPatchRepoDirectory = async (
 	serverId?: string | null,
 ): Promise<DirectoryEntry[]> => {
 	// Use git ls-tree to get tracked files only
-	const command = `cd "${repoPath}" && git ls-tree -r --name-only HEAD`;
+	const command = `cd ${quoteShellArg(repoPath)} && git ls-tree -r --name-only HEAD`;
 
 	let stdout: string;
 	try {
@@ -149,26 +182,10 @@ export const readPatchRepoFile = async (
 	type: "application" | "compose",
 	filePath: string,
 ) => {
-	let serverId: string | null = null;
+	const { repoPath, serverId } = await getPatchRepoContext({ type, id });
+	const relativePath = normalizePatchRepoFilePath(filePath);
 
-	if (type === "application") {
-		const application = await findApplicationById(id);
-		serverId = application.buildServerId || application.serverId;
-	} else {
-		const compose = await findComposeById(id);
-		serverId = compose.serverId;
-	}
-	const { PATCH_REPOS_PATH } = paths(!!serverId);
-
-	const application =
-		type === "application"
-			? await findApplicationById(id)
-			: await findComposeById(id);
-
-	const repoPath = join(PATCH_REPOS_PATH, type, application.appName);
-	const fullPath = join(repoPath, filePath);
-
-	const command = `cat "${fullPath}"`;
+	const command = `cd ${quoteShellArg(repoPath)} && git show ${quoteShellArg(`HEAD:${relativePath}`)}`;
 
 	if (serverId) {
 		const result = await execAsyncRemote(serverId, command);

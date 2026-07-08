@@ -1,3 +1,4 @@
+import { normalizeRelativeFilePath } from "@dokploy/server/utils/filesystem/safe-path";
 import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { relations } from "drizzle-orm";
 import {
@@ -52,6 +53,54 @@ import {
 } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
+
+const isSafeOptionalBuildDirectory = (value: string | null | undefined) => {
+	if (value === null || value === undefined) {
+		return true;
+	}
+
+	const trimmedPath = value.trim().replace(/\\/g, "/");
+	if (!trimmedPath || trimmedPath === "/" || trimmedPath === ".") {
+		return true;
+	}
+
+	try {
+		normalizeRelativeFilePath(value);
+		return true;
+	} catch {
+		return false;
+	}
+};
+
+const isSafeOptionalRelativeFilePath = (value: string | null | undefined) => {
+	if (value === null || value === undefined || value === "") {
+		return true;
+	}
+
+	try {
+		normalizeRelativeFilePath(value);
+		return true;
+	} catch {
+		return false;
+	}
+};
+
+const buildDirectorySchema = z
+	.string()
+	.optional()
+	.refine(isSafeOptionalBuildDirectory, "Invalid file path");
+
+const nullableBuildDirectorySchema = z
+	.string()
+	.nullable()
+	.optional()
+	.refine(isSafeOptionalBuildDirectory, "Invalid file path");
+
+const nullableRelativeFilePathSchema = z
+	.string()
+	.nullable()
+	.optional()
+	.refine(isSafeOptionalRelativeFilePath, "Invalid file path");
 export const sourceType = pgEnum("sourceType", [
 	"docker",
 	"git",
@@ -307,28 +356,33 @@ const createSchema = createInsertSchema(applications, {
 	buildArgs: z.string().optional(),
 	buildSecrets: z.string().optional(),
 	name: z.string().min(1),
-	description: z.string().optional(),
-	memoryReservation: z.string().optional(),
-	memoryLimit: z.string().optional(),
-	cpuReservation: z.string().optional(),
-	cpuLimit: z.string().optional(),
+	description: z.string().nullable().optional(),
+	memoryReservation: z.string().nullable().optional(),
+	memoryLimit: z.string().nullable().optional(),
+	cpuReservation: z.string().nullable().optional(),
+	cpuLimit: z.string().nullable().optional(),
 	title: z.string().optional(),
 	enabled: z.boolean().optional(),
 	subtitle: z.string().optional(),
-	dockerImage: z.string().optional(),
-	username: z.string().optional(),
+	dockerImage: z.string().nullable().optional(),
+	username: z.string().nullable().optional(),
 	isPreviewDeploymentsActive: z.boolean().optional(),
-	password: z.string().optional(),
+	password: z.string().nullable().optional(),
 	args: z.array(z.string()).optional(),
-	registryUrl: z.string().optional(),
-	customGitSSHKeyId: z.string().optional(),
+	registryUrl: z.string().nullable().optional(),
+	customGitSSHKeyId: z.string().nullable().optional(),
 	repository: z.string().optional(),
-	dockerfile: z.string().optional(),
+	dockerfile: nullableRelativeFilePathSchema,
+	dockerContextPath: nullableBuildDirectorySchema,
 	branch: z.string().optional(),
 	customGitBranch: z.string().optional(),
-	customGitBuildPath: z.string().optional(),
+	customGitBuildPath: buildDirectorySchema,
 	customGitUrl: z.string().optional(),
-	buildPath: z.string().optional(),
+	buildPath: buildDirectorySchema,
+	gitlabBuildPath: buildDirectorySchema,
+	bitbucketBuildPath: buildDirectorySchema,
+	giteaBuildPath: buildDirectorySchema,
+	dropBuildPath: buildDirectorySchema,
 	environmentId: z.string(),
 	sourceType: z
 		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
@@ -343,10 +397,10 @@ const createSchema = createInsertSchema(applications, {
 		"static",
 		"railpack",
 	]),
-	railpackVersion: z.string().optional(),
-	herokuVersion: z.string().optional(),
-	publishDirectory: z.string().optional(),
-	isStaticSpa: z.boolean().optional(),
+	railpackVersion: z.string().nullable().optional(),
+	herokuVersion: z.string().nullable().optional(),
+	publishDirectory: nullableRelativeFilePathSchema,
+	isStaticSpa: z.boolean().nullable().optional(),
 	createEnvFile: z.boolean().optional(),
 	owner: z.string(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
@@ -530,6 +584,43 @@ export const apiSaveEnvironmentVariables = createSchema
 	})
 	.required();
 
+const ENV_VARIABLE_NAME_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+export const apiUpsertApplicationEnv = z.object({
+	applicationId: z.string().min(1),
+	variables: z
+		.record(
+			z
+				.string()
+				.regex(
+					ENV_VARIABLE_NAME_REGEX,
+					"Environment variable names must start with a letter or underscore and contain only letters, numbers, and underscores",
+				),
+			z.string(),
+		)
+		.refine((variables) => Object.keys(variables).length > 0, {
+			message: "At least one environment variable is required",
+		}),
+	redeploy: z.boolean().optional(),
+	dryRun: z.boolean().optional(),
+	expectedRevision: z.string().optional(),
+});
+
+export const apiUpsertApplicationEnvResponse = z.object({
+	applicationId: z.string(),
+	changed: z.boolean(),
+	revision: z.string(),
+	dryRun: z.boolean(),
+	redeployed: z.boolean(),
+	variables: z.array(
+		z.object({
+			name: z.string(),
+			action: z.enum(["created", "updated", "unchanged"]),
+			secret: z.boolean(),
+		}),
+	),
+});
+
 export const apiFindMonitoringStats = z.object({
 	appName: z.string().min(1),
 });
@@ -539,4 +630,4 @@ export const apiUpdateApplication = createSchema
 	.extend({
 		applicationId: z.string().min(1),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true, environmentId: true, refreshToken: true });

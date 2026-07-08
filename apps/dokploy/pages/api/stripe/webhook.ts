@@ -208,7 +208,6 @@ export default async function handler(
 		}
 		case "invoice.payment_succeeded": {
 			const newInvoice = event.data.object as Stripe.Invoice;
-
 			const subscription = await stripe.subscriptions.retrieve(
 				newInvoice.subscription as string,
 			);
@@ -254,7 +253,6 @@ export default async function handler(
 		}
 		case "invoice.payment_failed": {
 			const newInvoice = event.data.object as Stripe.Invoice;
-
 			const subscription = await stripe.subscriptions.retrieve(
 				newInvoice.subscription as string,
 			);

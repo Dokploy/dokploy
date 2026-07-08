@@ -2,8 +2,13 @@ import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { z } from "zod";
-import { getS3Credentials } from "../backups/utils";
+import {
+	assertRcloneS3DestinationAllowed,
+	buildRcloneS3Command,
+	getRcloneS3Destination,
+} from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { normalizeRestoreBackupFile } from "./safe-input";
 import { getRestoreCommand } from "./utils";
 
 interface DatabaseCredentials {
@@ -23,13 +28,20 @@ export const restoreComposeBackup = async (
 		}
 		const { serverId, appName, composeType } = compose;
 
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
-		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
-		let rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
+		const { objectPath } = normalizeRestoreBackupFile(
+			backupInput.backupFile,
+			backupInput.databaseType === "mongo" ? [".bson.gz"] : [".sql.gz"],
+		);
+		const safeDestination = await assertRcloneS3DestinationAllowed(destination);
+		const backupPath = getRcloneS3Destination(safeDestination, objectPath);
+		let rcloneCommand = `${buildRcloneS3Command("cat", safeDestination, [
+			backupPath,
+		])} | gunzip`;
 
 		if (backupInput.metadata?.mongo) {
-			rcloneCommand = `rclone copy ${rcloneFlags.join(" ")} "${backupPath}"`;
+			rcloneCommand = buildRcloneS3Command("copy", safeDestination, [
+				backupPath,
+			]);
 		}
 
 		let credentials: DatabaseCredentials = {};
@@ -73,13 +85,11 @@ export const restoreComposeBackup = async (
 			},
 			restoreType: composeType,
 			rcloneCommand,
-			backupFile: backupInput.backupFile,
+			backupFile: objectPath,
 		});
 
 		emit("Starting restore...");
-		emit(
-			`Restoring database: ${backupInput.databaseName} from ${backupInput.backupFile}`,
-		);
+		emit(`Restoring database: ${backupInput.databaseName} from ${objectPath}`);
 
 		if (serverId) {
 			await execAsyncRemote(serverId, restoreCommand);

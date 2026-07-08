@@ -3,10 +3,13 @@ import { zfd } from "zod-form-data";
 
 if (typeof window === "undefined") {
 	void (async () => {
-		const undici = await import("undici");
-		globalThis.File = undici.File as any;
-		// @ts-ignore
-		globalThis.FileList = undici.FileList as any;
+		if (typeof globalThis.File === "undefined") {
+			const { File } = await import("node:buffer");
+			globalThis.File = File as unknown as typeof globalThis.File;
+		}
+		if (typeof globalThis.FileList === "undefined") {
+			globalThis.FileList = class FileList {} as typeof globalThis.FileList;
+		}
 	})();
 }
 

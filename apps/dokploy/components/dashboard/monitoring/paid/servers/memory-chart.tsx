@@ -93,7 +93,7 @@ export function MemoryChart({ data }: MemoryChartProps) {
 														Time
 													</span>
 													<span className="font-bold">
-														{formatTimestamp(label)}
+														{formatTimestamp(label ?? "")}
 													</span>
 												</div>
 												<div className="flex flex-col">

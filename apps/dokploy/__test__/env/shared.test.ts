@@ -167,7 +167,7 @@ APP_NAME=MyApp
 `;
 		const serviceEnv = `
 NODE_ENV="'\${{project.ENVIRONMENT}}'"
-COMPLEX_VAR="'Prefix \"DoubleQuoted\" and \${{project.APP_NAME}}'"
+COMPLEX_VAR="'Prefix "DoubleQuoted" and \${{project.APP_NAME}}'"
 `;
 		const resolved = prepareEnvironmentVariables(serviceEnv, projectEnv);
 
@@ -239,7 +239,7 @@ COMPLEX=\${{APP_NAME}}-\${{ENVIRONMENT}}-\${{APP_NAME}}
 		const serviceEnv = `
 ENVIRONMENT=production
 QUOTED="'\${{ENVIRONMENT}}'"
-MIXED="\"Double \${{ENVIRONMENT}}\""
+MIXED=""Double \${{ENVIRONMENT}}""
 `;
 
 		const resolved = prepareEnvironmentVariables(serviceEnv, "");

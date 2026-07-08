@@ -13,7 +13,16 @@ import {
 	extractHash,
 	getProviderByHeader,
 	logWebhookError,
+	readDeployWebhookBody,
+	rejectNonPostDeployWebhook,
+	rejectUnauthenticatedProviderDeployWebhook,
 } from "../[refreshToken]";
+
+export const config = {
+	api: {
+		bodyParser: false,
+	},
+};
 
 export default async function handler(
 	req: NextApiRequest,
@@ -21,8 +30,20 @@ export default async function handler(
 ) {
 	const { refreshToken } = req.query;
 	try {
+		if (rejectNonPostDeployWebhook(req, res)) {
+			return;
+		}
+
 		if (req.headers["x-github-event"] === "ping") {
 			res.status(200).json({ message: "Ping received, webhook is active" });
+			return;
+		}
+		let rawBody = "";
+		try {
+			rawBody = await readDeployWebhookBody(req);
+		} catch (error) {
+			logWebhookError("Invalid compose deploy webhook body:", error);
+			res.status(400).json({ message: "Invalid request body" });
 			return;
 		}
 		const composeResult = await db.query.compose.findFirst({
@@ -34,6 +55,9 @@ export default async function handler(
 					},
 				},
 				bitbucket: true,
+				github: true,
+				gitlab: true,
+				gitea: true,
 			},
 		});
 
@@ -45,6 +69,22 @@ export default async function handler(
 			res.status(400).json({
 				message: "Automatic deployments are disabled for this compose",
 			});
+			return;
+		}
+
+		if (
+			await rejectUnauthenticatedProviderDeployWebhook(
+				req,
+				res,
+				{
+					github: composeResult.github,
+					gitlab: composeResult.gitlab,
+					bitbucket: composeResult.bitbucket,
+					gitea: composeResult.gitea,
+				},
+				rawBody,
+			)
+		) {
 			return;
 		}
 
@@ -178,10 +218,10 @@ export default async function handler(
 				applicationType: "compose",
 				descriptionLog: `Hash: ${deploymentHash}`,
 				server: !!composeResult.serverId,
+				serverId: composeResult.serverId ?? undefined,
 			};
 
 			if (IS_CLOUD && composeResult.serverId) {
-				jobData.serverId = composeResult.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});

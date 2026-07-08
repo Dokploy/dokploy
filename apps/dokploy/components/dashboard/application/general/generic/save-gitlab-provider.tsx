@@ -131,6 +131,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 		{
 			owner: repository?.owner,
 			repo: repository?.repo,
+			gitlabPathNamespace: repository?.gitlabPathNamespace,
 			id: repository?.id || 0,
 			gitlabId: gitlabId,
 		},

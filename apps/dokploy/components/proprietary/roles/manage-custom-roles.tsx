@@ -210,6 +210,22 @@ const ACTION_META: Record<
 			label: "Read",
 			description: "View Docker containers, images, networks, and volumes",
 		},
+		inspect: {
+			label: "Inspect",
+			description: "View detailed Docker container configuration",
+		},
+		execute: {
+			label: "Execute",
+			description: "Run container lifecycle actions and Docker exec terminals",
+		},
+		write: {
+			label: "Write",
+			description: "Upload files into containers",
+		},
+		delete: {
+			label: "Delete",
+			description: "Remove Docker containers",
+		},
 	},
 	sshKeys: {
 		read: {
@@ -305,6 +321,10 @@ const ACTION_META: Record<
 		read: {
 			label: "Read",
 			description: "View server list and connection details",
+		},
+		execute: {
+			label: "Execute",
+			description: "Open interactive server terminals",
 		},
 		create: { label: "Create", description: "Add new remote servers" },
 		delete: {
@@ -507,7 +527,7 @@ const ROLE_PRESETS: {
 			project: ["create", "delete"],
 			service: ["create", "read", "delete"],
 			environment: ["create", "read", "delete"],
-			docker: ["read"],
+			docker: ["read", "inspect", "execute", "write", "delete"],
 			sshKeys: ["read", "create", "delete"],
 			gitProviders: ["read", "create", "delete"],
 			traefikFiles: ["read", "write"],
@@ -517,7 +537,7 @@ const ROLE_PRESETS: {
 			envVars: ["read", "write"],
 			projectEnvVars: ["read", "write"],
 			environmentEnvVars: ["read", "write"],
-			server: ["read", "create", "delete"],
+			server: ["read", "execute", "create", "update", "delete"],
 			registry: ["read", "create", "delete"],
 			certificate: ["read", "create", "delete"],
 			backup: ["read", "create", "delete", "restore"],

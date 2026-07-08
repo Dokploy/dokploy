@@ -10,9 +10,11 @@ import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import {
+	assertRcloneS3DestinationAllowed,
+	buildRcloneS3Command,
 	getBackupCommand,
 	getBackupTimestamp,
-	getS3Credentials,
+	getRcloneS3Destination,
 	normalizeS3Path,
 } from "./utils";
 
@@ -31,10 +33,10 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	});
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-
-		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		const safeDestination = await assertRcloneS3DestinationAllowed(destination);
+		const rcloneCommand = buildRcloneS3Command("rcat", safeDestination, [
+			getRcloneS3Destination(safeDestination, bucketDestination),
+		]);
 
 		const backupCommand = getBackupCommand(
 			backup,
@@ -65,7 +67,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 			projectName: project.name,
 			databaseType: "mysql",
 			type: "error",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,

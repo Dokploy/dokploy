@@ -12,13 +12,14 @@ export interface Gitea {
 	giteaInternalUrl: string | null;
 	clientId: string | null;
 	clientSecret: string | null;
-	organizationName?: string;
+	organizationName: string | null;
 	gitProvider: {
 		name: string;
 		gitProviderId: string;
 		providerType: "github" | "gitlab" | "bitbucket" | "gitea";
 		createdAt: string;
 		organizationId: string;
+		userId: string;
 	};
 }
 

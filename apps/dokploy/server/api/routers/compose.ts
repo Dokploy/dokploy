@@ -12,12 +12,12 @@ import {
 	execAsyncRemote,
 	findComposeById,
 	findDomainsByComposeId,
-	findEnvironmentById,
 	findProjectById,
 	findServerById,
 	getAccessibleServerIds,
 	getComposeContainer,
 	getContainerLogs,
+	getContainersByAppNameMatch,
 	getWebServerSettings,
 	IS_CLOUD,
 	loadServices,
@@ -33,7 +33,10 @@ import {
 	updateDeploymentStatus,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
+import {
+	canEditDeployGitSource,
+	redactGitProviderSecrets,
+} from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
 	checkServiceAccess,
@@ -46,6 +49,14 @@ import {
 	fetchTemplatesList,
 } from "@dokploy/server/templates/github";
 import { processTemplate } from "@dokploy/server/templates/processors";
+import { assertCustomGitUrlAllowed } from "@dokploy/server/utils/providers/git";
+import {
+	isSecretPlaceholderValue,
+	preserveSecretPlaceholderFields,
+	redactDeployableServiceSecrets,
+	redactSecretFields,
+	redactSensitiveText,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import _ from "lodash";
@@ -78,14 +89,149 @@ import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { audit } from "../utils/audit";
+import { assertDeploySourceCredentialAccess } from "../utils/deploy-source-access";
+import { assertTargetEnvironmentAccess } from "../utils/placement-access";
+import { assertServiceEnvironmentReadAccess } from "../utils/service-environment";
+
+const composeSourceUpdateFields = [
+	"bitbucketBranch",
+	"bitbucketId",
+	"bitbucketOwner",
+	"bitbucketRepository",
+	"bitbucketRepositorySlug",
+	"branch",
+	"composePath",
+	"customGitBranch",
+	"customGitSSHKeyId",
+	"customGitUrl",
+	"enableSubmodules",
+	"giteaBranch",
+	"giteaId",
+	"giteaOwner",
+	"giteaRepository",
+	"githubId",
+	"gitlabBranch",
+	"gitlabId",
+	"gitlabOwner",
+	"gitlabPathNamespace",
+	"gitlabProjectId",
+	"gitlabRepository",
+	"owner",
+	"repository",
+	"sourceType",
+	"triggerType",
+	"watchPaths",
+] as const;
+
+type ComposeSourceUpdateInput = {
+	composeId: string;
+	[key: string]: unknown;
+};
+
+const hasComposeSourceUpdate = (input: ComposeSourceUpdateInput) =>
+	composeSourceUpdateFields.some((field) => Object.hasOwn(input, field));
+
+const composeSecretPlaceholderFields = [
+	"env",
+	"composeFile",
+	"customGitUrl",
+] as const;
+
+const hasComposeSecretPlaceholder = (input: ComposeSourceUpdateInput) =>
+	composeSecretPlaceholderFields.some((field) =>
+		isSecretPlaceholderValue(input[field]),
+	);
+
+const getCurrentComposeGitProviderId = (
+	compose: Awaited<ReturnType<typeof findComposeById>>,
+) => {
+	switch (compose.sourceType) {
+		case "github":
+			return compose.github?.gitProviderId;
+		case "gitlab":
+			return compose.gitlab?.gitProviderId;
+		case "bitbucket":
+			return compose.bitbucket?.gitProviderId;
+		case "gitea":
+			return compose.gitea?.gitProviderId;
+		default:
+			return null;
+	}
+};
+
+const assertCurrentComposeSourceEditAccess = async (
+	input: ComposeSourceUpdateInput,
+	session: { userId: string; activeOrganizationId: string },
+) => {
+	if (!hasComposeSourceUpdate(input)) {
+		return;
+	}
+
+	const compose = await findComposeById(input.composeId);
+	const gitProviderId = getCurrentComposeGitProviderId(compose);
+	if (!gitProviderId) {
+		return;
+	}
+
+	const canEdit = await canEditDeployGitSource(gitProviderId, session);
+	if (!canEdit) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to edit this compose source",
+		});
+	}
+};
+
+type SecretRecord = Record<string, unknown>;
+
+const redactCustomGitUrl = <T extends SecretRecord | null | undefined>(
+	record: T,
+) => {
+	if (!record) {
+		return record;
+	}
+
+	const redacted = { ...record };
+	if ("customGitUrl" in redacted) {
+		redacted.customGitUrl = redactSensitiveText(
+			redacted.customGitUrl as string | null | undefined,
+		);
+	}
+
+	return redacted as T;
+};
+
+const redactComposeSecrets = <T extends SecretRecord | null | undefined>(
+	record: T,
+) =>
+	redactSecretFields(
+		redactCustomGitUrl(
+			redactDeployableServiceSecrets(
+				record
+					? redactGitProviderSecrets(
+							record as T & {
+								bitbucket?: object | null;
+								gitea?: object | null;
+								github?: object | null;
+								gitlab?: object | null;
+							},
+						)
+					: record,
+			),
+		),
+		["composeFile"],
+	);
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateCompose)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				const environment = await findEnvironmentById(input.environmentId);
-				const project = await findProjectById(environment.projectId);
+				const environment = await assertTargetEnvironmentAccess(
+					ctx,
+					input.environmentId,
+				);
+				const project = environment.project;
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
@@ -128,7 +274,7 @@ export const composeRouter = createTRPCRouter({
 					resourceId: newService.composeId,
 					resourceName: newService.appName,
 				});
-				return newService;
+				return redactComposeSecrets(newService);
 			} catch (error) {
 				throw error;
 			}
@@ -182,9 +328,24 @@ export const composeRouter = createTRPCRouter({
 			}
 
 			return {
-				...compose,
+				...redactComposeSecrets(compose),
 				hasGitProviderAccess,
 				unauthorizedProvider,
+			};
+		}),
+
+	revealEnvironment: protectedProcedure
+		.input(apiFindCompose)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await assertServiceEnvironmentReadAccess(
+				ctx,
+				input.composeId,
+				() => findComposeById(input.composeId),
+				"compose",
+			);
+
+			return {
+				env: compose.env ?? "",
 			};
 		}),
 
@@ -194,14 +355,29 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
-			const updated = await updateCompose(input.composeId, input);
+			await assertCurrentComposeSourceEditAccess(input, ctx.session);
+			await assertDeploySourceCredentialAccess(input, ctx.session, {
+				permissionCtx: ctx,
+				requireSshKeyRead: true,
+			});
+			if (input.customGitUrl) {
+				await assertCustomGitUrlAllowed(input.customGitUrl);
+			}
+			const updateData = hasComposeSecretPlaceholder(input)
+				? preserveSecretPlaceholderFields(
+						input,
+						await findComposeById(input.composeId),
+						composeSecretPlaceholderFields,
+					)
+				: input;
+			const updated = await updateCompose(input.composeId, updateData);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "compose",
 				resourceId: input.composeId,
 				resourceName: updated?.name,
 			});
-			return updated;
+			return redactComposeSecrets(updated);
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesCompose)
@@ -209,9 +385,17 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				envVars: ["write"],
 			});
-			const updated = await updateCompose(input.composeId, {
-				env: input.env,
-			});
+			const currentCompose = await findComposeById(input.composeId);
+			const updated = await updateCompose(
+				input.composeId,
+				preserveSecretPlaceholderFields(
+					{
+						env: input.env,
+					},
+					currentCompose,
+					["env"],
+				),
+			);
 
 			if (!updated) {
 				throw new TRPCError({
@@ -271,7 +455,7 @@ export const composeRouter = createTRPCRouter({
 				resourceId: composeResult.composeId,
 				resourceName: composeResult.appName,
 			});
-			return composeResult;
+			return redactComposeSecrets(composeResult);
 		}),
 	cleanQueues: protectedProcedure
 		.input(apiFindCompose)
@@ -305,7 +489,7 @@ export const composeRouter = createTRPCRouter({
 				deployment: ["cancel"],
 			});
 			const compose = await findComposeById(input.composeId);
-			await killDockerBuild("compose", compose.serverId);
+			await killDockerBuild("compose", compose.serverId, compose.appName);
 		}),
 
 	loadServices: protectedProcedure
@@ -576,7 +760,10 @@ export const composeRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const environment = await findEnvironmentById(input.environmentId);
+			const environment = await assertTargetEnvironmentAccess(
+				ctx,
+				input.environmentId,
+			);
 
 			await checkServiceAccess(ctx, environment.projectId, "create");
 
@@ -675,7 +862,7 @@ export const composeRouter = createTRPCRouter({
 				resourceId: compose.composeId,
 				resourceName: compose.name,
 			});
-			return compose;
+			return redactComposeSecrets(compose);
 		}),
 
 	templates: protectedProcedure
@@ -714,6 +901,10 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+			await assertCurrentComposeSourceEditAccess(
+				{ composeId: input.composeId, sourceType: "github" },
+				ctx.session,
+			);
 
 			await updateCompose(input.composeId, {
 				repository: null,
@@ -771,6 +962,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+			await assertTargetEnvironmentAccess(ctx, input.targetEnvironmentId);
 
 			const updatedCompose = await db
 				.update(composeTable)
@@ -794,7 +986,7 @@ export const composeRouter = createTRPCRouter({
 				resourceId: input.composeId,
 				resourceName: updatedCompose.name,
 			});
-			return updatedCompose;
+			return redactComposeSecrets(updatedCompose);
 		}),
 
 	processTemplate: protectedProcedure
@@ -948,14 +1140,6 @@ export const composeRouter = createTRPCRouter({
 					"utf-8",
 				);
 
-				for (const mount of compose.mounts) {
-					await deleteMount(mount.mountId);
-				}
-
-				for (const domain of compose.domains) {
-					await removeDomainById(domain.domainId);
-				}
-
 				let serverIp = "127.0.0.1";
 
 				if (compose.serverId) {
@@ -992,6 +1176,35 @@ export const composeRouter = createTRPCRouter({
 					serverIp: serverIp,
 					projectName: compose.appName,
 				});
+
+				if (compose.mounts?.length > 0) {
+					await checkServicePermissionAndAccess(ctx, input.composeId, {
+						volume: ["delete"],
+					});
+				}
+				if (compose.domains?.length > 0) {
+					await checkServicePermissionAndAccess(ctx, input.composeId, {
+						domain: ["delete"],
+					});
+				}
+				if (processedTemplate.mounts && processedTemplate.mounts.length > 0) {
+					await checkServicePermissionAndAccess(ctx, input.composeId, {
+						volume: ["create"],
+					});
+				}
+				if (processedTemplate.domains && processedTemplate.domains.length > 0) {
+					await checkServicePermissionAndAccess(ctx, input.composeId, {
+						domain: ["create"],
+					});
+				}
+
+				for (const mount of compose.mounts ?? []) {
+					await deleteMount(mount.mountId);
+				}
+
+				for (const domain of compose.domains ?? []) {
+					await removeDomainById(domain.domainId);
+				}
 
 				await updateCompose(input.composeId, {
 					composeFile: templateData.compose,
@@ -1036,6 +1249,9 @@ export const composeRouter = createTRPCRouter({
 					message: "Template imported successfully",
 				};
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `Error importing template: ${error instanceof Error ? error.message : error}`,
@@ -1232,6 +1448,21 @@ export const composeRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this compose",
+				});
+			}
+			const containers = await getContainersByAppNameMatch(
+				compose.appName,
+				compose.composeType === "docker-compose" ? "docker-compose" : "stack",
+				compose.serverId ?? undefined,
+			);
+			if (
+				!containers.some(
+					(container) => container.containerId === input.containerId,
+				)
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this container",
 				});
 			}
 			return await getContainerLogs(

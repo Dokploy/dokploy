@@ -1,8 +1,10 @@
 import type http from "node:http";
 import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
+import { resolveServerDestinationHost } from "@dokploy/server/utils/servers/destination";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
+import { canAccessDockerLogsWebSocket } from "./docker-permission";
 import {
 	getShell,
 	isValidContainerId,
@@ -69,7 +71,15 @@ export const setupDockerContainerLogsWebSocketServer = (
 			return;
 		}
 
-		if (!user || !session) {
+		if (
+			!(await canAccessDockerLogsWebSocket({
+				user,
+				session,
+				serverId,
+				containerId,
+				runType,
+			}))
+		) {
 			ws.close();
 			return;
 		}
@@ -91,6 +101,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 				}
 
 				if (!server.sshKeyId) return;
+				const host = await resolveServerDestinationHost(server);
 				const client = new Client();
 				client
 					.once("ready", () => {
@@ -133,7 +144,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 						client.end();
 					})
 					.connect({
-						host: server.ipAddress,
+						host,
 						port: server.port,
 						username: server.username,
 						privateKey: server.sshKey?.privateKey,
@@ -183,14 +194,14 @@ export const setupDockerContainerLogsWebSocketServer = (
 						}
 						ptyProcess.write(command.toString());
 					} catch (error) {
-						// @ts-ignore
+						// @ts-expect-error
 						const errorMessage = error?.message as unknown as string;
 						ws.send(errorMessage);
 					}
 				});
 			}
 		} catch (error) {
-			// @ts-ignore
+			// @ts-expect-error
 			const errorMessage = error?.message as unknown as string;
 
 			ws.send(errorMessage);

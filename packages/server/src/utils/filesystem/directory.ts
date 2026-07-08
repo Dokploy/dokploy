@@ -3,6 +3,20 @@ import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { Application } from "@dokploy/server/services/application";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { normalizeRelativeFilePath } from "./safe-path";
+
+const normalizeOptionalRelativeDirectory = (directoryPath?: string | null) => {
+	if (!directoryPath) {
+		return "";
+	}
+
+	const trimmedPath = directoryPath.trim().replace(/\\/g, "/");
+	if (!trimmedPath || trimmedPath === "/" || trimmedPath === ".") {
+		return "";
+	}
+
+	return normalizeRelativeFilePath(directoryPath);
+};
 
 export const recreateDirectory = async (pathFolder: string): Promise<void> => {
 	try {
@@ -121,17 +135,21 @@ export const getBuildAppDirectory = (application: Application) => {
 	} else if (sourceType === "git") {
 		buildPath = customGitBuildPath || "";
 	}
+	const safeBuildPath = normalizeOptionalRelativeDirectory(buildPath);
 	if (buildType === "dockerfile") {
+		const safeDockerfile = normalizeRelativeFilePath(
+			dockerfile || "Dockerfile",
+		);
 		return path.join(
 			APPLICATIONS_PATH,
 			appName,
 			"code",
-			buildPath ?? "",
-			dockerfile || "Dockerfile",
+			safeBuildPath,
+			safeDockerfile,
 		);
 	}
 
-	return path.join(APPLICATIONS_PATH, appName, "code", buildPath ?? "");
+	return path.join(APPLICATIONS_PATH, appName, "code", safeBuildPath);
 };
 
 export const getDockerContextPath = (application: Application) => {
@@ -141,5 +159,10 @@ export const getDockerContextPath = (application: Application) => {
 	if (!dockerContextPath) {
 		return null;
 	}
-	return path.join(APPLICATIONS_PATH, appName, "code", dockerContextPath);
+	return path.join(
+		APPLICATIONS_PATH,
+		appName,
+		"code",
+		normalizeOptionalRelativeDirectory(dockerContextPath),
+	);
 };

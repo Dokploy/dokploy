@@ -31,6 +31,8 @@ import {
 import {
 	APP_NAME_MESSAGE,
 	APP_NAME_REGEX,
+	DATABASE_IDENTIFIER_MESSAGE,
+	DATABASE_IDENTIFIER_REGEX,
 	DATABASE_PASSWORD_MESSAGE,
 	DATABASE_PASSWORD_REGEX,
 	generateAppName,
@@ -113,21 +115,24 @@ const createSchema = createInsertSchema(postgres, {
 		message: DATABASE_PASSWORD_MESSAGE,
 	}),
 	databaseName: z.string().min(1),
-	databaseUser: z.string().min(1),
+	databaseUser: z
+		.string()
+		.min(1)
+		.regex(DATABASE_IDENTIFIER_REGEX, DATABASE_IDENTIFIER_MESSAGE),
 	dockerImage: z.string().default("postgres:18"),
 	command: z.string().optional(),
 	args: z.array(z.string()).optional(),
 	env: z.string().optional(),
-	memoryReservation: z.string().optional(),
-	memoryLimit: z.string().optional(),
-	cpuReservation: z.string().optional(),
-	cpuLimit: z.string().optional(),
+	memoryReservation: z.string().nullable().optional(),
+	memoryLimit: z.string().nullable().optional(),
+	cpuReservation: z.string().nullable().optional(),
+	cpuLimit: z.string().nullable().optional(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
-	externalPort: z.number(),
+	externalPort: z.number().nullable().optional(),
 	createdAt: z.string(),
-	description: z.string().optional(),
-	serverId: z.string().optional(),
+	description: z.string().nullable().optional(),
+	serverId: z.string().nullable().optional(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
 	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
 	placementSwarm: PlacementSwarmSchema.nullable(),
@@ -197,7 +202,7 @@ export const apiUpdatePostgres = createSchema
 		postgresId: z.string().min(1),
 		dockerImage: z.string().optional(),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true, environmentId: true });
 
 export const apiRebuildPostgres = createSchema
 	.pick({

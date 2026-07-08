@@ -24,11 +24,17 @@ import {
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 } from "@dokploy/server/services/permission";
+import {
+	preserveSecretPlaceholderFields,
+	redactDatabaseServiceSecrets,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { assertTargetEnvironmentAccess } from "@/server/api/utils/placement-access";
+import { assertServiceEnvironmentReadAccess } from "@/server/api/utils/service-environment";
 import { db } from "@/server/db";
 import {
 	apiChangeLibsqlStatus,
@@ -119,7 +125,22 @@ export const libsqlRouter = createTRPCRouter({
 					message: "You are not authorized to access this Libsql",
 				});
 			}
-			return libsql;
+			return redactDatabaseServiceSecrets(libsql);
+		}),
+
+	revealEnvironment: protectedProcedure
+		.input(apiFindOneLibsql)
+		.mutation(async ({ input, ctx }) => {
+			const libsql = await assertServiceEnvironmentReadAccess(
+				ctx,
+				input.libsqlId,
+				() => findLibsqlById(input.libsqlId),
+				"libSQL",
+			);
+
+			return {
+				env: libsql.env ?? "",
+			};
 		}),
 
 	start: protectedProcedure
@@ -145,7 +166,7 @@ export const libsqlRouter = createTRPCRouter({
 				resourceId: libsql.libsqlId,
 				resourceName: libsql.appName,
 			});
-			return libsql;
+			return redactDatabaseServiceSecrets(libsql);
 		}),
 	stop: protectedProcedure
 		.input(apiFindOneLibsql)
@@ -170,7 +191,7 @@ export const libsqlRouter = createTRPCRouter({
 				resourceId: libsql.libsqlId,
 				resourceName: libsql.appName,
 			});
-			return libsql;
+			return redactDatabaseServiceSecrets(libsql);
 		}),
 	saveExternalPorts: protectedProcedure
 		.input(apiSaveExternalPortsLibsql)
@@ -232,7 +253,7 @@ export const libsqlRouter = createTRPCRouter({
 				resourceId: libsql.libsqlId,
 				resourceName: libsql.appName,
 			});
-			return libsql;
+			return redactDatabaseServiceSecrets(libsql);
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployLibsql)
@@ -247,7 +268,8 @@ export const libsqlRouter = createTRPCRouter({
 				resourceId: libsql.libsqlId,
 				resourceName: libsql.appName,
 			});
-			return deployLibsql(input.libsqlId);
+			const deployedLibsql = await deployLibsql(input.libsqlId);
+			return redactDatabaseServiceSecrets(deployedLibsql);
 		}),
 	deployWithLogs: protectedProcedure
 		.meta({
@@ -302,7 +324,7 @@ export const libsqlRouter = createTRPCRouter({
 				resourceId: libsql.libsqlId,
 				resourceName: libsql.appName,
 			});
-			return libsql;
+			return redactDatabaseServiceSecrets(libsql);
 		}),
 	remove: protectedProcedure
 		.input(apiFindOneLibsql)
@@ -337,7 +359,7 @@ export const libsqlRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
-			return libsql;
+			return redactDatabaseServiceSecrets(libsql);
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesLibsql)
@@ -345,9 +367,17 @@ export const libsqlRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
 				envVars: ["write"],
 			});
-			const service = await updateLibsqlById(input.libsqlId, {
-				env: input.env,
-			});
+			const currentLibsql = await findLibsqlById(input.libsqlId);
+			const service = await updateLibsqlById(
+				input.libsqlId,
+				preserveSecretPlaceholderFields(
+					{
+						env: input.env,
+					},
+					currentLibsql,
+					["env"],
+				),
+			);
 
 			if (!service) {
 				throw new TRPCError({
@@ -432,6 +462,7 @@ export const libsqlRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
 				service: ["create"],
 			});
+			await assertTargetEnvironmentAccess(ctx, input.targetEnvironmentId);
 
 			const updatedLibsql = await db
 				.update(libsqlTable)
@@ -455,7 +486,7 @@ export const libsqlRouter = createTRPCRouter({
 				resourceId: updatedLibsql.libsqlId,
 				resourceName: updatedLibsql.appName,
 			});
-			return updatedLibsql;
+			return redactDatabaseServiceSecrets(updatedLibsql);
 		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildLibsql)

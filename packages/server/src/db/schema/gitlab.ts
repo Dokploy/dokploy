@@ -14,6 +14,7 @@ export const gitlab = pgTable("gitlab", {
 	applicationId: text("application_id"),
 	redirectUri: text("redirect_uri"),
 	secret: text("secret"),
+	webhookSecret: text("webhook_secret"),
 	accessToken: text("access_token"),
 	refreshToken: text("refresh_token"),
 	groupName: text("group_name"),
@@ -33,6 +34,7 @@ export const gitlabProviderRelations = relations(gitlab, ({ one }) => ({
 export const apiCreateGitlab = z.object({
 	applicationId: z.string().optional(),
 	secret: z.string().optional(),
+	webhookSecret: z.string().optional(),
 	groupName: z.string().optional(),
 	gitProviderId: z.string().optional(),
 	redirectUri: z.string().optional(),
@@ -56,11 +58,13 @@ export const apiFindGitlabBranches = z.object({
 	owner: z.string(),
 	repo: z.string(),
 	gitlabId: z.string().optional(),
+	gitlabPathNamespace: z.string().optional(),
 });
 
 export const apiUpdateGitlab = z.object({
 	applicationId: z.string().optional(),
 	secret: z.string().optional(),
+	webhookSecret: z.string().optional(),
 	groupName: z.string().optional(),
 	redirectUri: z.string().optional(),
 	name: z.string().min(1),

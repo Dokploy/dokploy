@@ -5,6 +5,7 @@ import {
 	updateSecurityById,
 } from "@dokploy/server";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
+import { redactSecuritySecrets } from "@dokploy/server/utils/security/redaction";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import {
@@ -37,7 +38,7 @@ export const securityRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, security.applicationId, {
 				service: ["read"],
 			});
-			return security;
+			return redactSecuritySecrets(security);
 		}),
 
 	delete: protectedProcedure
@@ -47,13 +48,13 @@ export const securityRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, security.applicationId, {
 				service: ["create"],
 			});
-			const result = await deleteSecurityById(input.securityId);
+			await deleteSecurityById(input.securityId);
 			await audit(ctx, {
 				action: "delete",
 				resourceType: "security",
 				resourceId: input.securityId,
 			});
-			return result;
+			return true;
 		}),
 
 	update: protectedProcedure
@@ -63,12 +64,13 @@ export const securityRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, security.applicationId, {
 				service: ["create"],
 			});
-			const result = await updateSecurityById(input.securityId, input);
+			await updateSecurityById(input.securityId, input);
+			const updatedSecurity = await findSecurityById(input.securityId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "security",
 				resourceId: input.securityId,
 			});
-			return result;
+			return redactSecuritySecrets(updatedSecurity);
 		}),
 });

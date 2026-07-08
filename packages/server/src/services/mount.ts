@@ -1,56 +1,311 @@
+import { promises as fs } from "node:fs";
 import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateMount,
+	applications,
+	compose,
+	libsql,
+	mariadb,
+	mongo,
 	mounts,
+	mysql,
+	postgres,
+	redis,
 	type ServiceType,
 } from "@dokploy/server/db/schema";
 import {
 	createFile,
-	encodeBase64,
 	getCreateFileCommand,
 } from "@dokploy/server/utils/docker/utils";
-import { removeFileOrDirectory } from "@dokploy/server/utils/filesystem/directory";
 import {
-	execAsync,
-	execAsyncRemote,
-} from "@dokploy/server/utils/process/execAsync";
+	type BindMountServiceContext,
+	normalizeBindMountHostPath,
+} from "@dokploy/server/utils/filesystem/bind-mount-path";
+import {
+	assertNoSymlinkEscapeInsideDirectory,
+	normalizeRelativeFilePath,
+	quoteShellArg,
+} from "@dokploy/server/utils/filesystem/safe-path";
+import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq, type SQL, sql } from "drizzle-orm";
 import type { z } from "zod";
 
 export type Mount = typeof mounts.$inferSelect;
 
+const normalizeMountFilePath = (filePath: string | null | undefined) => {
+	if (!filePath) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "File path is required",
+		});
+	}
+
+	try {
+		return normalizeRelativeFilePath(filePath);
+	} catch {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Invalid file path",
+		});
+	}
+};
+
+const normalizeMountInput = <T extends Partial<Mount>>(input: T) => {
+	if (input.type === "file" || input.filePath) {
+		return {
+			...input,
+			filePath: normalizeMountFilePath(input.filePath),
+		};
+	}
+
+	return input;
+};
+
+const stripMountUpdateOwnershipFields = (mountData: Partial<Mount>) => {
+	const safeMountData = { ...mountData };
+
+	delete safeMountData.applicationId;
+	delete safeMountData.composeId;
+	delete safeMountData.libsqlId;
+	delete safeMountData.mariadbId;
+	delete safeMountData.mongoId;
+	delete safeMountData.mountId;
+	delete safeMountData.mysqlId;
+	delete safeMountData.postgresId;
+	delete safeMountData.redisId;
+	delete safeMountData.serviceType;
+
+	return safeMountData;
+};
+
+const findBindMountServiceContext = async (
+	serviceType: ServiceType,
+	serviceId: string,
+): Promise<BindMountServiceContext> => {
+	const columns = {
+		appName: true,
+		serverId: true,
+	} as const;
+	let service: { appName: string; serverId: string | null } | undefined | null;
+
+	switch (serviceType) {
+		case "application":
+			service = await db.query.applications.findFirst({
+				where: eq(applications.applicationId, serviceId),
+				columns,
+			});
+			break;
+		case "compose":
+			service = await db.query.compose.findFirst({
+				where: eq(compose.composeId, serviceId),
+				columns,
+			});
+			break;
+		case "libsql":
+			service = await db.query.libsql.findFirst({
+				where: eq(libsql.libsqlId, serviceId),
+				columns,
+			});
+			break;
+		case "mariadb":
+			service = await db.query.mariadb.findFirst({
+				where: eq(mariadb.mariadbId, serviceId),
+				columns,
+			});
+			break;
+		case "mongo":
+			service = await db.query.mongo.findFirst({
+				where: eq(mongo.mongoId, serviceId),
+				columns,
+			});
+			break;
+		case "mysql":
+			service = await db.query.mysql.findFirst({
+				where: eq(mysql.mysqlId, serviceId),
+				columns,
+			});
+			break;
+		case "postgres":
+			service = await db.query.postgres.findFirst({
+				where: eq(postgres.postgresId, serviceId),
+				columns,
+			});
+			break;
+		case "redis":
+			service = await db.query.redis.findFirst({
+				where: eq(redis.redisId, serviceId),
+				columns,
+			});
+			break;
+		default:
+			serviceType satisfies never;
+	}
+
+	if (!service) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Service not found",
+		});
+	}
+
+	return {
+		appName: service.appName,
+		serverId: service.serverId,
+		serviceType,
+	};
+};
+
+const getBindMountServiceContextFromMount = (
+	mount: MountNested,
+): BindMountServiceContext => {
+	if (mount.serviceType === "application" && mount.application) {
+		return {
+			appName: mount.application.appName,
+			serverId: mount.application.serverId,
+			serviceType: mount.serviceType,
+		};
+	}
+	if (mount.serviceType === "postgres" && mount.postgres) {
+		return {
+			appName: mount.postgres.appName,
+			serverId: mount.postgres.serverId,
+			serviceType: mount.serviceType,
+		};
+	}
+	if (mount.serviceType === "mariadb" && mount.mariadb) {
+		return {
+			appName: mount.mariadb.appName,
+			serverId: mount.mariadb.serverId,
+			serviceType: mount.serviceType,
+		};
+	}
+	if (mount.serviceType === "mongo" && mount.mongo) {
+		return {
+			appName: mount.mongo.appName,
+			serverId: mount.mongo.serverId,
+			serviceType: mount.serviceType,
+		};
+	}
+	if (mount.serviceType === "mysql" && mount.mysql) {
+		return {
+			appName: mount.mysql.appName,
+			serverId: mount.mysql.serverId,
+			serviceType: mount.serviceType,
+		};
+	}
+	if (mount.serviceType === "redis" && mount.redis) {
+		return {
+			appName: mount.redis.appName,
+			serverId: mount.redis.serverId,
+			serviceType: mount.serviceType,
+		};
+	}
+	if (mount.serviceType === "compose" && mount.compose) {
+		return {
+			appName: mount.compose.appName,
+			serverId: mount.compose.serverId,
+			serviceType: mount.serviceType,
+		};
+	}
+	if (mount.serviceType === "libsql" && mount.libsql) {
+		return {
+			appName: mount.libsql.appName,
+			serverId: mount.libsql.serverId,
+			serviceType: mount.serviceType,
+		};
+	}
+
+	throw new TRPCError({
+		code: "BAD_REQUEST",
+		message: "Mount service not found",
+	});
+};
+
+const normalizeCreateMountInput = async (
+	input: z.infer<typeof apiCreateMount>,
+) => {
+	const normalizedInput = normalizeMountInput(input);
+	if (normalizedInput.type !== "bind") {
+		return normalizedInput;
+	}
+
+	if (!normalizedInput.serviceType || !normalizedInput.serviceId) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Service is required for bind mounts",
+		});
+	}
+
+	const serviceContext = await findBindMountServiceContext(
+		normalizedInput.serviceType,
+		normalizedInput.serviceId,
+	);
+
+	return {
+		...normalizedInput,
+		hostPath: normalizeBindMountHostPath(
+			normalizedInput.hostPath,
+			serviceContext,
+		),
+	};
+};
+
+const normalizeUpdateMountInput = async (
+	mountId: string,
+	mountData: Partial<Mount>,
+) => {
+	const existingMount = await findMountById(mountId);
+	const normalizedMountData = normalizeMountInput(
+		stripMountUpdateOwnershipFields(mountData),
+	);
+	const nextType = normalizedMountData.type ?? existingMount.type;
+
+	if (nextType !== "bind") {
+		return normalizedMountData;
+	}
+
+	return {
+		...normalizedMountData,
+		hostPath: normalizeBindMountHostPath(
+			normalizedMountData.hostPath ?? existingMount.hostPath,
+			getBindMountServiceContextFromMount(existingMount),
+		),
+	};
+};
+
 export const createMount = async (input: z.infer<typeof apiCreateMount>) => {
 	try {
-		const { serviceId, ...rest } = input;
+		const normalizedInput = await normalizeCreateMountInput(input);
+		const { serviceId, ...rest } = normalizedInput;
 		const value = await db
 			.insert(mounts)
 			.values({
 				...rest,
-				...(input.serviceType === "application" && {
+				...(normalizedInput.serviceType === "application" && {
 					applicationId: serviceId,
 				}),
-				...(input.serviceType === "compose" && {
+				...(normalizedInput.serviceType === "compose" && {
 					composeId: serviceId,
 				}),
-				...(input.serviceType === "libsql" && {
+				...(normalizedInput.serviceType === "libsql" && {
 					libsqlId: serviceId,
 				}),
-				...(input.serviceType === "mariadb" && {
+				...(normalizedInput.serviceType === "mariadb" && {
 					mariadbId: serviceId,
 				}),
-				...(input.serviceType === "mongo" && {
+				...(normalizedInput.serviceType === "mongo" && {
 					mongoId: serviceId,
 				}),
-				...(input.serviceType === "mysql" && {
+				...(normalizedInput.serviceType === "mysql" && {
 					mysqlId: serviceId,
 				}),
-				...(input.serviceType === "postgres" && {
+				...(normalizedInput.serviceType === "postgres" && {
 					postgresId: serviceId,
 				}),
-				...(input.serviceType === "redis" && {
+				...(normalizedInput.serviceType === "redis" && {
 					redisId: serviceId,
 				}),
 			})
@@ -227,11 +482,15 @@ export const updateMount = async (
 	mountId: string,
 	mountData: Partial<Mount>,
 ) => {
+	const normalizedMountData = await normalizeUpdateMountInput(
+		mountId,
+		mountData,
+	);
 	const mount = await db.transaction(async (tx) => {
 		const mount = await tx
 			.update(mounts)
 			.set({
-				...mountData,
+				...normalizedMountData,
 			})
 			.where(eq(mounts.mountId, mountId))
 			.returning()
@@ -310,18 +569,20 @@ export const deleteMount = async (mountId: string) => {
 
 export const updateFileMount = async (mountId: string) => {
 	const mount = await findMountById(mountId);
-	if (!mount || !mount.filePath) return;
+	if (!mount.filePath) return;
 	const basePath = await getBaseFilesPath(mountId);
-	const fullPath = path.join(basePath, mount.filePath);
 
 	try {
 		const serverId = await getServerId(mount);
-		const encodedContent = encodeBase64(mount.content || "");
-		const command = `echo "${encodedContent}" | base64 -d > ${fullPath}`;
 		if (serverId) {
+			const command = getCreateFileCommand(
+				basePath,
+				mount.filePath,
+				mount.content || "",
+			);
 			await execAsyncRemote(serverId, command);
 		} else {
-			await execAsync(command);
+			await createFile(basePath, mount.filePath, mount.content || "");
 		}
 	} catch {
 		console.log("Error updating file mount");
@@ -333,14 +594,17 @@ export const deleteFileMount = async (mountId: string) => {
 	if (!mount.filePath) return;
 	const basePath = await getBaseFilesPath(mountId);
 
-	const fullPath = path.join(basePath, mount.filePath);
+	const { fullPath } = assertNoSymlinkEscapeInsideDirectory(
+		basePath,
+		mount.filePath,
+	);
 	try {
 		const serverId = await getServerId(mount);
 		if (serverId) {
-			const command = `rm -rf ${fullPath}`;
+			const command = `rm -rf -- ${quoteShellArg(fullPath)}`;
 			await execAsyncRemote(serverId, command);
 		} else {
-			await removeFileOrDirectory(fullPath);
+			await fs.rm(fullPath, { force: true, recursive: true });
 		}
 	} catch {}
 };

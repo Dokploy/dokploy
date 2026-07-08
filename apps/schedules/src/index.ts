@@ -1,15 +1,18 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import "dotenv/config";
+import { assertSignedScheduledQueueJob } from "@dokploy/server/utils/schedules/signed-job";
 import { zValidator } from "@hono/zod-validator";
+import { isValidApiKey } from "./auth.js";
 import { logger } from "./logger.js";
 import {
 	cleanQueue,
 	getJobRepeatable,
 	removeJob,
+	removeRepeatableJob,
 	scheduleJob,
 } from "./queue.js";
-import { jobQueueSchema } from "./schema.js";
+import { signedJobQueueSchema } from "./schema.js";
 import { initializeJobs } from "./utils.js";
 import { firstWorker, secondWorker, thirdWorker } from "./workers.js";
 
@@ -24,62 +27,53 @@ app.use(async (c, next) => {
 	}
 	const authHeader = c.req.header("X-API-Key");
 
-	if (process.env.API_KEY !== authHeader) {
+	if (!isValidApiKey(process.env.API_KEY, authHeader)) {
 		return c.json({ message: "Invalid API Key" }, 403);
 	}
 
 	return next();
 });
 
-app.post("/create-backup", zValidator("json", jobQueueSchema), async (c) => {
-	const data = c.req.valid("json");
-	await scheduleJob(data);
-	logger.info({ data }, `[${data.type}]  created successfully`);
-	return c.json({ message: `[${data.type}]  created successfully` });
-});
+app.post(
+	"/create-backup",
+	zValidator("json", signedJobQueueSchema),
+	async (c) => {
+		const data = await assertSignedScheduledQueueJob(c.req.valid("json"), {
+			operation: "create",
+		});
+		await scheduleJob(data);
+		logger.info({ data }, `[${data.type}]  created successfully`);
+		return c.json({ message: `[${data.type}]  created successfully` });
+	},
+);
 
-app.post("/update-backup", zValidator("json", jobQueueSchema), async (c) => {
-	const data = c.req.valid("json");
-	const job = await getJobRepeatable(data);
-	if (job) {
-		let result = false;
-		if (data.type === "backup") {
-			result = await removeJob({
-				backupId: data.backupId,
-				type: "backup",
-				cronSchedule: job.pattern || "",
-			});
-		} else if (data.type === "server") {
-			result = await removeJob({
-				serverId: data.serverId,
-				type: "server",
-				cronSchedule: job.pattern || "",
-			});
-		} else if (data.type === "schedule") {
-			result = await removeJob({
-				scheduleId: data.scheduleId,
-				type: "schedule",
-				cronSchedule: job.pattern || "",
-			});
-		} else if (data.type === "volume-backup") {
-			result = await removeJob({
-				volumeBackupId: data.volumeBackupId,
-				type: "volume-backup",
-				cronSchedule: job.pattern || "",
-			});
+app.post(
+	"/update-backup",
+	zValidator("json", signedJobQueueSchema),
+	async (c) => {
+		const data = await assertSignedScheduledQueueJob(c.req.valid("json"), {
+			operation: "update",
+		});
+		const job = await getJobRepeatable(data);
+		if (job) {
+			const result = await removeRepeatableJob(job);
+			logger.info({ result }, "Job removed");
 		}
-		logger.info({ result }, "Job removed");
-	}
-	await scheduleJob(data);
-	logger.info("Backup updated successfully");
+		await scheduleJob(data);
+		logger.info("Backup updated successfully");
 
-	return c.json({ message: "Backup updated successfully" });
-});
+		return c.json({ message: "Backup updated successfully" });
+	},
+);
 
-app.post("/remove-job", zValidator("json", jobQueueSchema), async (c) => {
-	const data = c.req.valid("json");
+app.post("/remove-job", zValidator("json", signedJobQueueSchema), async (c) => {
+	const data = await assertSignedScheduledQueueJob(c.req.valid("json"), {
+		operation: "remove",
+		requireEnabled: false,
+		requireFreshScope: false,
+	});
 	const result = await removeJob(data);
-	logger.info("Job removed successfully", data);
+	logger.info({ data }, "Job removed successfully");
 	return c.json({ message: "Job removed successfully", result });
 });
 
@@ -110,7 +104,7 @@ process.on("unhandledRejection", (reason, _promise) => {
 	);
 });
 
-const port = Number.parseInt(process.env.PORT || "3000");
+const port = Number.parseInt(process.env.PORT || "3000", 10);
 
-logger.info("Starting Schedules Server ✅", port);
+logger.info({ port }, "Starting Schedules Server ✅");
 serve({ fetch: app.fetch, port });

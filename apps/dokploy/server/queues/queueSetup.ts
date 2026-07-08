@@ -3,6 +3,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { quoteShellArgument } from "@dokploy/server/utils/shell";
 import { resolveBuildsConcurrency } from "./concurrency";
 import { processDeploymentJob } from "./deployments-queue";
 import { type InMemoryJob, InMemoryQueue } from "./in-memory-queue";
@@ -120,13 +121,18 @@ export const cleanAllDeploymentQueue = async () => {
 	return true;
 };
 
+const escapePkillPattern = (value: string) =>
+	value.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+
 export const killDockerBuild = async (
 	type: "application" | "compose",
 	serverId: string | null,
+	appName: string,
 ) => {
 	try {
+		const safeAppNamePattern = escapePkillPattern(appName);
 		if (type === "application") {
-			const command = `pkill -2 -f "docker build"`;
+			const command = `pkill -2 -f ${quoteShellArgument(`docker build.*${safeAppNamePattern}`)}`;
 
 			if (serverId) {
 				await execAsyncRemote(serverId, command);
@@ -134,7 +140,7 @@ export const killDockerBuild = async (
 				await execAsync(command);
 			}
 		} else if (type === "compose") {
-			const command = `pkill -2 -f "docker compose"`;
+			const command = `pkill -2 -f ${quoteShellArgument(`docker compose.*${safeAppNamePattern}`)}`;
 
 			if (serverId) {
 				await execAsyncRemote(serverId, command);

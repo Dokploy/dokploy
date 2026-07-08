@@ -59,7 +59,11 @@ export const SearchCommand = () => {
 	const { data } = api.project.all.useQuery(undefined, {
 		enabled: !!session,
 	});
+	const { data: permissions } = api.user.getPermissions.useQuery(undefined, {
+		enabled: !!session,
+	});
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const canAccessRequestLogs = !isCloud && !!permissions?.organization.update;
 
 	React.useEffect(() => {
 		const down = (e: KeyboardEvent) => {
@@ -207,14 +211,16 @@ export const SearchCommand = () => {
 								>
 									Docker
 								</CommandItem>
-								<CommandItem
-									onSelect={() => {
-										router.push("/dashboard/requests");
-										setOpen(false);
-									}}
-								>
-									Requests
-								</CommandItem>
+								{canAccessRequestLogs && (
+									<CommandItem
+										onSelect={() => {
+											router.push("/dashboard/requests");
+											setOpen(false);
+										}}
+									>
+										Requests
+									</CommandItem>
+								)}
 							</>
 						)}
 						<CommandItem

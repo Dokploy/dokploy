@@ -8,6 +8,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates";
 import { buildMongo } from "@dokploy/server/utils/databases/mongo";
+import { buildDockerPullCommand } from "@dokploy/server/utils/docker/commands";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
@@ -160,7 +161,7 @@ export const deployMongo = async (
 		if (mongo.serverId) {
 			await execAsyncRemote(
 				mongo.serverId,
-				`docker pull ${mongo.dockerImage}`,
+				buildDockerPullCommand(mongo.dockerImage),
 				onData,
 			);
 		} else {

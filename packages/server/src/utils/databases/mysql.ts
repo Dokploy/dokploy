@@ -68,7 +68,11 @@ export const buildMysql = async (mysql: MysqlNested) => {
 		mysql.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
-	const bindsMount = generateBindMounts(mounts);
+	const bindsMount = generateBindMounts(mounts, {
+		appName,
+		serverId: mysql.serverId,
+		serviceType: "mysql",
+	});
 	const filesMount = generateFileMounts(appName, mysql);
 
 	const docker = await getRemoteDocker(mysql.serverId);

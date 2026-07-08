@@ -1,5 +1,6 @@
 import { Client } from "ssh2";
 import { findServerById } from "../services/server";
+import { resolveServerDestinationHost } from "../utils/servers/destination";
 
 // Thanks for the idea to https://github.com/healthyhost/audit-vps-script/tree/main
 const validateUfw = () => `
@@ -87,6 +88,7 @@ export const serverAudit = async (serverId: string) => {
 	if (!server.sshKeyId) {
 		throw new Error("No SSH Key found");
 	}
+	const host = await resolveServerDestinationHost(server);
 
 	return new Promise<any>((resolve, reject) => {
 		client
@@ -142,7 +144,7 @@ export const serverAudit = async (serverId: string) => {
 				}
 			})
 			.connect({
-				host: server.ipAddress,
+				host,
 				port: server.port,
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,

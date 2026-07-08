@@ -271,7 +271,11 @@ const rollbackApplication = async (
 		fullContext as Parameters<typeof generateConfigContainer>[0],
 	);
 
-	const bindsMount = generateBindMounts(mounts);
+	const bindsMount = generateBindMounts(mounts, {
+		appName,
+		serverId: fullContext.serverId,
+		serviceType: "application",
+	});
 	const envVariables = prepareEnvironmentVariables(
 		env,
 		fullContext.environment.project.env,

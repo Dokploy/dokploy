@@ -9,10 +9,95 @@ import type {
 	updateScheduleSchema,
 } from "../db/schema/schedule";
 import { type Schedule, schedules } from "../db/schema/schedule";
+import { APP_NAME_REGEX } from "../db/schema/utils";
 import { encodeBase64 } from "../utils/docker/utils";
+import { quoteShellArg } from "../utils/filesystem/safe-path";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 
 export type ScheduleExtended = Awaited<ReturnType<typeof findScheduleById>>;
+
+export const normalizeScheduleAppName = (appName?: string | null) => {
+	const safeAppName = appName?.trim() || "";
+	if (
+		!APP_NAME_REGEX.test(safeAppName) ||
+		safeAppName === "." ||
+		safeAppName === ".."
+	) {
+		throw new Error("Invalid schedule app name");
+	}
+
+	return safeAppName;
+};
+
+const resolveSchedulePathInsideBase = (
+	basePath: string,
+	...segments: string[]
+) => {
+	const absoluteBasePath = path.resolve(basePath);
+	const fullPath = path.resolve(absoluteBasePath, ...segments);
+	const relativePath = path.relative(absoluteBasePath, fullPath);
+	if (
+		relativePath === "" ||
+		relativePath === ".." ||
+		relativePath.startsWith(`..${path.sep}`) ||
+		path.isAbsolute(relativePath)
+	) {
+		throw new Error("Invalid schedule app name");
+	}
+	return fullPath;
+};
+
+export const getScheduleDirectory = (
+	basePath: string,
+	appName?: string | null,
+) => resolveSchedulePathInsideBase(basePath, normalizeScheduleAppName(appName));
+
+export const getScheduleScriptPath = (
+	basePath: string,
+	appName?: string | null,
+) =>
+	resolveSchedulePathInsideBase(
+		basePath,
+		normalizeScheduleAppName(appName),
+		"script.sh",
+	);
+
+export const getScheduleDeploymentLogPath = (
+	basePath: string,
+	appName: string,
+	formattedDateTime: string,
+) => {
+	const safeAppName = normalizeScheduleAppName(appName);
+	return resolveSchedulePathInsideBase(
+		basePath,
+		safeAppName,
+		`${safeAppName}-${formattedDateTime}.log`,
+	);
+};
+
+export const buildDeleteScheduleCommand = (
+	basePath: string,
+	appName?: string | null,
+) => `rm -rf -- ${quoteShellArg(getScheduleDirectory(basePath, appName))}`;
+
+export const buildScheduleScriptCommand = (
+	basePath: string,
+	schedule: Pick<Schedule, "appName" | "scheduleId" | "script">,
+) => {
+	const fullPath = getScheduleDirectory(basePath, schedule.appName);
+	const scriptPath = getScheduleScriptPath(basePath, schedule.appName);
+	const scriptWithPid = `echo "PID: $$ | Schedule ID: ${schedule.scheduleId}"
+${schedule.script || ""}`;
+	const encodedContent = encodeBase64(scriptWithPid);
+
+	return `
+		mkdir -p ${quoteShellArg(fullPath)}
+		rm -f ${quoteShellArg(scriptPath)}
+		touch ${quoteShellArg(scriptPath)}
+		chmod +x ${quoteShellArg(scriptPath)}
+		printf %s ${quoteShellArg(encodedContent)} | base64 -d > ${quoteShellArg(scriptPath)}
+	`;
+};
 
 export const createSchedule = async (
 	input: z.infer<typeof createScheduleSchema>,
@@ -99,8 +184,7 @@ export const deleteSchedule = async (scheduleId: string) => {
 		schedule?.compose?.serverId;
 	const { SCHEDULES_PATH } = paths(!!serverId);
 
-	const fullPath = path.join(SCHEDULES_PATH, schedule?.appName || "");
-	const command = `rm -rf ${fullPath}`;
+	const command = buildDeleteScheduleCommand(SCHEDULES_PATH, schedule?.appName);
 	if (serverId) {
 		await execAsyncRemote(serverId, command);
 	} else {
@@ -149,20 +233,7 @@ export const updateSchedule = async (
 
 const handleScript = async (schedule: Schedule) => {
 	const { SCHEDULES_PATH } = paths(!!schedule?.serverId);
-	const fullPath = path.join(SCHEDULES_PATH, schedule?.appName || "");
-
-	// Add PID and Schedule ID echo by default to all scripts
-	const scriptWithPid = `echo "PID: $$ | Schedule ID: ${schedule.scheduleId}"
-${schedule?.script || ""}`;
-
-	const encodedContent = encodeBase64(scriptWithPid);
-	const script = `
-	 	 mkdir -p ${fullPath}
-	 	 rm -f ${fullPath}/script.sh
-		 touch ${fullPath}/script.sh
-		 chmod +x ${fullPath}/script.sh
-		 echo "${encodedContent}" | base64 -d > ${fullPath}/script.sh
-	`;
+	const script = buildScheduleScriptCommand(SCHEDULES_PATH, schedule);
 
 	if (schedule?.scheduleType === "dokploy-server") {
 		await execAsync(script);

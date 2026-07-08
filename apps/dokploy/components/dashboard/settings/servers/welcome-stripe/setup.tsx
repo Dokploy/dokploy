@@ -28,6 +28,7 @@ import { EditScript } from "../edit-script";
 
 export const Setup = () => {
 	const { data: servers } = api.server.all.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 	const [serverId, setServerId] = useState<string>(
 		servers?.[0]?.serverId || "",
 	);
@@ -106,7 +107,9 @@ export const Setup = () => {
 							modify the script
 						</span>
 						<div className="flex flex-row gap-2">
-							<EditScript serverId={server?.serverId || ""} />
+							{permissions?.server.update && permissions?.server.execute && (
+								<EditScript serverId={server?.serverId || ""} />
+							)}
 							<DialogAction
 								title={"Setup Server?"}
 								type="default"

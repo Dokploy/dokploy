@@ -78,7 +78,7 @@ export function CPUChart({ data }: CPUChartProps) {
 														Time
 													</span>
 													<span className="font-bold">
-														{formatTimestamp(label)}
+														{formatTimestamp(label ?? "")}
 													</span>
 												</div>
 												<div className="flex flex-col">

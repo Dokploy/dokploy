@@ -114,7 +114,11 @@ export const mechanizeDockerContainer = async (
 		Ulimits,
 	} = generateConfigContainer(application);
 
-	const bindsMount = generateBindMounts(mounts);
+	const bindsMount = generateBindMounts(mounts, {
+		appName,
+		serverId: application.serverId,
+		serviceType: "application",
+	});
 	const filesMount = generateFileMounts(appName, application);
 	const envVariables = prepareEnvironmentVariables(
 		env,

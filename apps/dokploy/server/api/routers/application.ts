@@ -3,8 +3,7 @@ import {
 	createApplication,
 	deleteAllMiddlewares,
 	findApplicationById,
-	findEnvironmentById,
-	findProjectById,
+	findRegistryById,
 	getAccessibleServerIds,
 	getApplicationStats,
 	getContainerLogs,
@@ -26,17 +25,27 @@ import {
 	updateApplication,
 	updateApplicationStatus,
 	updateDeploymentStatus,
+	upsertApplicationEnvironment,
 	writeConfig,
 	writeConfigRemote,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
+import {
+	canEditDeployGitSource,
+	redactGitProviderSecrets,
+} from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
+	checkPermission,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import { assertCustomGitUrlAllowed } from "@dokploy/server/utils/providers/git";
+import {
+	isSecretPlaceholderValue,
+	redactDeployableServiceSecrets,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -47,7 +56,12 @@ import {
 	protectedProcedure,
 	withPermission,
 } from "@/server/api/trpc";
+import { buildApplicationEnvUpsertDeploymentJob } from "@/server/api/utils/application-env-upsert";
 import { audit } from "@/server/api/utils/audit";
+import { assertDeploySourceCredentialAccess } from "@/server/api/utils/deploy-source-access";
+import { assertContainerMetricsServiceAccess } from "@/server/api/utils/monitoring-access";
+import { assertTargetEnvironmentAccess } from "@/server/api/utils/placement-access";
+import { assertServiceEnvironmentReadAccess } from "@/server/api/utils/service-environment";
 import {
 	apiCreateApplication,
 	apiDeployApplication,
@@ -64,6 +78,8 @@ import {
 	apiSaveGitlabProvider,
 	apiSaveGitProvider,
 	apiUpdateApplication,
+	apiUpsertApplicationEnv,
+	apiUpsertApplicationEnvResponse,
 	applications,
 	environments,
 	projects,
@@ -76,13 +92,186 @@ import {
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 
+const applicationRegistryFields = [
+	"registryId",
+	"buildRegistryId",
+	"rollbackRegistryId",
+] as const;
+
+const applicationSourceUpdateFields = [
+	"bitbucketBranch",
+	"bitbucketBuildPath",
+	"bitbucketId",
+	"bitbucketOwner",
+	"bitbucketRepository",
+	"bitbucketRepositorySlug",
+	"branch",
+	"buildPath",
+	"customGitBranch",
+	"customGitBuildPath",
+	"customGitSSHKeyId",
+	"customGitUrl",
+	"dockerImage",
+	"enableSubmodules",
+	"giteaBranch",
+	"giteaBuildPath",
+	"giteaId",
+	"giteaOwner",
+	"giteaRepository",
+	"githubId",
+	"gitlabBranch",
+	"gitlabBuildPath",
+	"gitlabId",
+	"gitlabOwner",
+	"gitlabPathNamespace",
+	"gitlabProjectId",
+	"gitlabRepository",
+	"owner",
+	"password",
+	"registryUrl",
+	"repository",
+	"sourceType",
+	"triggerType",
+	"username",
+	"watchPaths",
+] as const;
+
+const applicationSecretUpdateFields = [
+	"env",
+	"previewEnv",
+	"buildArgs",
+	"buildSecrets",
+	"previewBuildArgs",
+	"previewBuildSecrets",
+	"password",
+] as const;
+
+type ApplicationRegistryUpdateInput = Pick<
+	z.infer<typeof apiUpdateApplication>,
+	(typeof applicationRegistryFields)[number]
+>;
+type ApplicationSecretUpdateField =
+	(typeof applicationSecretUpdateFields)[number];
+type ApplicationSecretUpdates = Partial<
+	Record<ApplicationSecretUpdateField, unknown>
+>;
+
+const preserveApplicationSecretPlaceholders = <
+	T extends ApplicationSecretUpdates,
+>(
+	updates: T,
+	application: ApplicationSecretUpdates,
+) => {
+	const preserved = { ...updates };
+
+	for (const field of applicationSecretUpdateFields) {
+		if (!Object.hasOwn(preserved, field)) {
+			continue;
+		}
+
+		if (!isSecretPlaceholderValue(preserved[field])) {
+			continue;
+		}
+
+		const existingValue = application[field];
+		if (typeof existingValue === "undefined") {
+			delete preserved[field];
+			continue;
+		}
+
+		preserved[field] = existingValue as T[typeof field];
+	}
+
+	return preserved;
+};
+
+const assertApplicationRegistryAccess = async (
+	input: ApplicationRegistryUpdateInput,
+	ctx: Parameters<typeof checkPermission>[0],
+) => {
+	const registryIds = [
+		...new Set(
+			applicationRegistryFields
+				.map((field) => input[field])
+				.filter((registryId): registryId is string => !!registryId),
+		),
+	];
+
+	if (registryIds.length === 0) {
+		return;
+	}
+
+	await checkPermission(ctx, { registry: ["read"] });
+
+	for (const registryId of registryIds) {
+		const registry = await findRegistryById(registryId);
+		if (registry.organizationId !== ctx.session.activeOrganizationId) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message: "You are not authorized to use this registry",
+			});
+		}
+	}
+};
+
+type ApplicationSourceUpdateInput = {
+	applicationId: string;
+	[key: string]: unknown;
+};
+
+const hasApplicationSourceUpdate = (input: ApplicationSourceUpdateInput) =>
+	applicationSourceUpdateFields.some((field) => Object.hasOwn(input, field));
+
+const getCurrentApplicationGitProviderId = (
+	application: Awaited<ReturnType<typeof findApplicationById>>,
+) => {
+	switch (application.sourceType) {
+		case "github":
+			return application.github?.gitProviderId;
+		case "gitlab":
+			return application.gitlab?.gitProviderId;
+		case "bitbucket":
+			return application.bitbucket?.gitProviderId;
+		case "gitea":
+			return application.gitea?.gitProviderId;
+		default:
+			return null;
+	}
+};
+
+const assertCurrentApplicationSourceEditAccess = async (
+	input: ApplicationSourceUpdateInput,
+	session: { userId: string; activeOrganizationId: string },
+) => {
+	if (!hasApplicationSourceUpdate(input)) {
+		return;
+	}
+
+	const application = await findApplicationById(input.applicationId);
+	const gitProviderId = getCurrentApplicationGitProviderId(application);
+	if (!gitProviderId) {
+		return;
+	}
+
+	const canEdit = await canEditDeployGitSource(gitProviderId, session);
+	if (!canEdit) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to edit this application source",
+		});
+	}
+};
+
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateApplication)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const environment = await findEnvironmentById(input.environmentId);
-				const project = await findProjectById(environment.projectId);
+				const environment = await assertTargetEnvironmentAccess(
+					ctx,
+					input.environmentId,
+				);
+				const project = environment.project;
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
@@ -123,7 +312,7 @@ export const applicationRouter = createTRPCRouter({
 					resourceId: newApplication.applicationId,
 					resourceName: newApplication.appName,
 				});
-				return newApplication;
+				return redactDeployableServiceSecrets(newApplication);
 			} catch (error: unknown) {
 				console.log("error", error);
 				if (error instanceof TRPCError) {
@@ -183,9 +372,28 @@ export const applicationRouter = createTRPCRouter({
 			}
 
 			return {
-				...application,
+				...redactDeployableServiceSecrets(
+					redactGitProviderSecrets(application),
+				),
 				hasGitProviderAccess,
 				unauthorizedProvider,
+			};
+		}),
+
+	revealEnvironment: protectedProcedure
+		.input(apiFindOneApplication)
+		.mutation(async ({ input, ctx }) => {
+			const application = await assertServiceEnvironmentReadAccess(
+				ctx,
+				input.applicationId,
+				() => findApplicationById(input.applicationId),
+				"application",
+			);
+
+			return {
+				env: application.env ?? "",
+				buildArgs: application.buildArgs ?? "",
+				buildSecrets: application.buildSecrets ?? "",
 			};
 		}),
 
@@ -271,7 +479,7 @@ export const applicationRouter = createTRPCRouter({
 				resourceId: application.applicationId,
 				resourceName: application.appName,
 			});
-			return application;
+			return redactDeployableServiceSecrets(application);
 		}),
 
 	stop: protectedProcedure
@@ -293,7 +501,7 @@ export const applicationRouter = createTRPCRouter({
 				resourceId: service.applicationId,
 				resourceName: service.appName,
 			});
-			return service;
+			return redactDeployableServiceSecrets(service);
 		}),
 
 	start: protectedProcedure
@@ -315,7 +523,7 @@ export const applicationRouter = createTRPCRouter({
 				resourceId: service.applicationId,
 				resourceName: service.appName,
 			});
-			return service;
+			return redactDeployableServiceSecrets(service);
 		}),
 
 	redeploy: protectedProcedure
@@ -362,19 +570,95 @@ export const applicationRouter = createTRPCRouter({
 				resourceName: application.appName,
 			});
 		}),
+	env: createTRPCRouter({
+		upsert: protectedProcedure
+			.meta({
+				openapi: {
+					path: "/application/env/upsert",
+					method: "POST",
+				},
+			})
+			.input(apiUpsertApplicationEnv)
+			.output(apiUpsertApplicationEnvResponse)
+			.mutation(async ({ input, ctx }) => {
+				await checkServicePermissionAndAccess(
+					ctx,
+					input.applicationId,
+					input.redeploy
+						? {
+								envVars: ["write"],
+								deployment: ["create"],
+							}
+						: {
+								envVars: ["write"],
+							},
+				);
+
+				const result = await upsertApplicationEnvironment(input);
+				let redeployed = false;
+
+				if (!result.dryRun && result.changed) {
+					const application = await findApplicationById(input.applicationId);
+
+					await audit(ctx, {
+						action: "update",
+						resourceType: "application",
+						resourceId: application.applicationId,
+						resourceName: application.appName,
+					});
+
+					if (input.redeploy) {
+						const jobData = buildApplicationEnvUpsertDeploymentJob(application);
+
+						if (IS_CLOUD && application.serverId) {
+							deploy(jobData).catch((error) => {
+								console.error("Background deployment failed:", error);
+							});
+						} else {
+							await myQueue.add(
+								"deployments",
+								{ ...jobData },
+								{
+									removeOnComplete: true,
+									removeOnFail: true,
+								},
+							);
+						}
+
+						await audit(ctx, {
+							action: "rebuild",
+							resourceType: "application",
+							resourceId: application.applicationId,
+							resourceName: application.appName,
+						});
+						redeployed = true;
+					}
+				}
+
+				return {
+					...result,
+					redeployed,
+				};
+			}),
+	}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariables)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				envVars: ["write"],
 			});
+			const application = await findApplicationById(input.applicationId);
 			await updateApplication(input.applicationId, {
-				env: input.env,
-				buildArgs: input.buildArgs,
-				buildSecrets: input.buildSecrets,
+				...preserveApplicationSecretPlaceholders(
+					{
+						env: input.env,
+						buildArgs: input.buildArgs,
+						buildSecrets: input.buildSecrets,
+					},
+					application,
+				),
 				createEnvFile: input.createEnvFile,
 			});
-			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
@@ -414,6 +698,12 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertCurrentApplicationSourceEditAccess(input, ctx.session);
+			await assertDeploySourceCredentialAccess(
+				{ githubId: input.githubId },
+				ctx.session,
+				{ permissionCtx: ctx, requireSshKeyRead: true },
+			);
 			await updateApplication(input.applicationId, {
 				repository: input.repository,
 				branch: input.branch,
@@ -441,6 +731,17 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertCurrentApplicationSourceEditAccess(input, ctx.session);
+			await assertDeploySourceCredentialAccess(
+				{
+					gitlabId: input.gitlabId,
+					gitlabOwner: input.gitlabOwner,
+					gitlabPathNamespace: input.gitlabPathNamespace,
+					gitlabRepository: input.gitlabRepository,
+				},
+				ctx.session,
+				{ permissionCtx: ctx, requireSshKeyRead: true },
+			);
 			await updateApplication(input.applicationId, {
 				gitlabRepository: input.gitlabRepository,
 				gitlabOwner: input.gitlabOwner,
@@ -469,6 +770,15 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertCurrentApplicationSourceEditAccess(input, ctx.session);
+			await assertDeploySourceCredentialAccess(
+				{
+					bitbucketId: input.bitbucketId,
+					bitbucketOwner: input.bitbucketOwner,
+				},
+				ctx.session,
+				{ permissionCtx: ctx, requireSshKeyRead: true },
+			);
 			await updateApplication(input.applicationId, {
 				bitbucketRepository: input.bitbucketRepository,
 				bitbucketRepositorySlug: input.bitbucketRepositorySlug,
@@ -496,6 +806,16 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertCurrentApplicationSourceEditAccess(input, ctx.session);
+			await assertDeploySourceCredentialAccess(
+				{
+					giteaId: input.giteaId,
+					giteaOwner: input.giteaOwner,
+					giteaRepository: input.giteaRepository,
+				},
+				ctx.session,
+				{ permissionCtx: ctx, requireSshKeyRead: true },
+			);
 			await updateApplication(input.applicationId, {
 				giteaRepository: input.giteaRepository,
 				giteaOwner: input.giteaOwner,
@@ -522,15 +842,23 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertCurrentApplicationSourceEditAccess(
+				{ ...input, sourceType: null },
+				ctx.session,
+			);
+			const application = await findApplicationById(input.applicationId);
+			const { password } = preserveApplicationSecretPlaceholders(
+				{ password: input.password },
+				application,
+			);
 			await updateApplication(input.applicationId, {
 				dockerImage: input.dockerImage,
 				username: input.username,
-				password: input.password,
+				password,
 				sourceType: "docker",
 				applicationStatus: "idle",
 				registryUrl: input.registryUrl,
 			});
-			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
@@ -545,6 +873,15 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertCurrentApplicationSourceEditAccess(input, ctx.session);
+			await assertDeploySourceCredentialAccess(
+				{ customGitSSHKeyId: input.customGitSSHKeyId },
+				ctx.session,
+				{ permissionCtx: ctx, requireSshKeyRead: true },
+			);
+			if (input.customGitUrl) {
+				await assertCustomGitUrlAllowed(input.customGitUrl);
+			}
 			await updateApplication(input.applicationId, {
 				customGitBranch: input.customGitBranch,
 				customGitBuildPath: input.customGitBuildPath,
@@ -570,6 +907,10 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertCurrentApplicationSourceEditAccess(
+				{ ...input, sourceType: null },
+				ctx.session,
+			);
 			await updateApplication(input.applicationId, {
 				repository: null,
 				branch: null,
@@ -638,6 +979,7 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertCurrentApplicationSourceEditAccess(input, ctx.session);
 
 			if (input.buildServerId) {
 				const accessibleIds = await getAccessibleServerIds(ctx.session);
@@ -649,10 +991,18 @@ export const applicationRouter = createTRPCRouter({
 				}
 			}
 
-			const { applicationId, ...rest } = input;
-			const updateApp = await updateApplication(applicationId, {
-				...rest,
+			await assertDeploySourceCredentialAccess(input, ctx.session, {
+				permissionCtx: ctx,
+				requireSshKeyRead: true,
 			});
+			await assertApplicationRegistryAccess(input, ctx);
+
+			const { applicationId, ...rest } = input;
+			const application = await findApplicationById(applicationId);
+			const updateApp = await updateApplication(
+				applicationId,
+				preserveApplicationSecretPlaceholders(rest, application),
+			);
 
 			if (!updateApp) {
 				throw new TRPCError({
@@ -761,7 +1111,11 @@ export const applicationRouter = createTRPCRouter({
 				deployment: ["cancel"],
 			});
 			const application = await findApplicationById(input.applicationId);
-			await killDockerBuild("application", application.serverId);
+			await killDockerBuild(
+				"application",
+				application.serverId,
+				application.appName,
+			);
 			await audit(ctx, {
 				action: "stop",
 				resourceType: "application",
@@ -804,6 +1158,10 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, applicationId, {
 				deployment: ["create"],
 			});
+			await assertCurrentApplicationSourceEditAccess(
+				{ applicationId, sourceType: "drop" },
+				ctx.session,
+			);
 			const app = await findApplicationById(applicationId);
 
 			await updateApplication(applicationId, {
@@ -870,13 +1228,14 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	readAppMonitoring: withPermission("monitoring", "read")
 		.input(apiFindMonitoringStats)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "Functionality not available in cloud version",
 				});
 			}
+			await assertContainerMetricsServiceAccess(ctx, input.appName);
 			const stats = await getApplicationStats(input.appName);
 
 			return stats;
@@ -892,6 +1251,7 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertTargetEnvironmentAccess(ctx, input.targetEnvironmentId);
 
 			const updatedApplication = await db
 				.update(applications)
@@ -914,7 +1274,7 @@ export const applicationRouter = createTRPCRouter({
 				resourceId: updatedApplication.applicationId,
 				resourceName: updatedApplication.appName,
 			});
-			return updatedApplication;
+			return redactDeployableServiceSecrets(updatedApplication);
 		}),
 
 	cancelDeployment: protectedProcedure

@@ -61,7 +61,11 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		postgres.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
-	const bindsMount = generateBindMounts(mounts);
+	const bindsMount = generateBindMounts(mounts, {
+		appName,
+		serverId: postgres.serverId,
+		serviceType: "postgres",
+	});
 	const filesMount = generateFileMounts(appName, postgres);
 
 	const docker = await getRemoteDocker(postgres.serverId);

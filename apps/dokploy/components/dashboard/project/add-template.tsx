@@ -147,7 +147,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 
 				return { previousBookmarks };
 			},
-			onError: (err, variables, context) => {
+			onError: (_err, _variables, context) => {
 				if (context?.previousBookmarks) {
 					utils.user.getBookmarkedTemplates.setData(
 						undefined,
@@ -419,7 +419,6 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 												viewMode === "detailed" && "border-b",
 											)}
 										>
-											{/** biome-ignore lint/performance/noImgElement: this is a valid use for img tag */}
 											<img
 												src={`${customBaseUrl || "https://templates.dokploy.com/"}/blueprints/${template?.id}/${template?.logo}`}
 												className={cn(

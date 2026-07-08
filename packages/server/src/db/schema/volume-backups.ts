@@ -16,6 +16,34 @@ import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { generateAppName } from "./utils";
 
+const dockerVolumeNamePattern = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
+const dockerServiceNamePattern = /^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$/;
+
+const safeDockerVolumeName = z
+	.string()
+	.trim()
+	.min(1)
+	.regex(
+		dockerVolumeNamePattern,
+		"Volume name may only contain letters, numbers, underscores, dots, and dashes, and must start with a letter or number",
+	);
+
+const safeDockerServiceName = z
+	.string()
+	.trim()
+	.min(1)
+	.regex(
+		dockerServiceNamePattern,
+		"Service name may only contain letters, numbers, underscores, dots, and dashes, and must start with a letter, number, or underscore",
+	);
+
+const safeVolumeBackupRetentionCount = z
+	.number()
+	.int()
+	.min(0)
+	.nullable()
+	.optional();
+
 export const volumeBackups = pgTable("volume_backup", {
 	volumeBackupId: text("volumeBackupId")
 		.notNull()
@@ -113,9 +141,16 @@ export const volumeBackupsRelations = relations(
 	}),
 );
 
-export const createVolumeBackupSchema = createInsertSchema(volumeBackups).omit({
-	volumeBackupId: true,
-});
+export const createVolumeBackupSchema = createInsertSchema(volumeBackups)
+	.omit({
+		volumeBackupId: true,
+	})
+	.extend({
+		appName: safeDockerServiceName.optional(),
+		keepLatestCount: safeVolumeBackupRetentionCount,
+		serviceName: safeDockerServiceName.nullable().optional(),
+		volumeName: safeDockerVolumeName,
+	});
 
 export const updateVolumeBackupSchema = createVolumeBackupSchema.extend({
 	volumeBackupId: z.string().min(1),

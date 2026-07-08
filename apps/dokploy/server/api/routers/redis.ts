@@ -5,8 +5,6 @@ import {
 	deployRedis,
 	execAsync,
 	execAsyncRemote,
-	findEnvironmentById,
-	findProjectById,
 	findRedisById,
 	getAccessibleServerIds,
 	getContainerLogs,
@@ -29,11 +27,18 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import {
+	preserveSecretPlaceholderFields,
+	redactDatabaseServiceSecrets,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { buildRedisPasswordChangeCommand } from "@/server/api/utils/database-password";
+import { assertTargetEnvironmentAccess } from "@/server/api/utils/placement-access";
+import { assertServiceEnvironmentReadAccess } from "@/server/api/utils/service-environment";
 import {
 	apiChangeRedisStatus,
 	apiCreateRedis,
@@ -55,8 +60,11 @@ export const redisRouter = createTRPCRouter({
 		.input(apiCreateRedis)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const environment = await findEnvironmentById(input.environmentId);
-				const project = await findProjectById(environment.projectId);
+				const environment = await assertTargetEnvironmentAccess(
+					ctx,
+					input.environmentId,
+				);
+				const project = environment.project;
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
@@ -107,7 +115,7 @@ export const redisRouter = createTRPCRouter({
 					resourceId: newRedis.redisId,
 					resourceName: newRedis.appName,
 				});
-				return newRedis;
+				return redactDatabaseServiceSecrets(newRedis);
 			} catch (error) {
 				throw error;
 			}
@@ -127,7 +135,22 @@ export const redisRouter = createTRPCRouter({
 					message: "You are not authorized to access this Redis",
 				});
 			}
-			return redis;
+			return redactDatabaseServiceSecrets(redis);
+		}),
+
+	revealEnvironment: protectedProcedure
+		.input(apiFindOneRedis)
+		.mutation(async ({ input, ctx }) => {
+			const redis = await assertServiceEnvironmentReadAccess(
+				ctx,
+				input.redisId,
+				() => findRedisById(input.redisId),
+				"Redis",
+			);
+
+			return {
+				env: redis.env ?? "",
+			};
 		}),
 
 	start: protectedProcedure
@@ -153,7 +176,7 @@ export const redisRouter = createTRPCRouter({
 				resourceId: redis.redisId,
 				resourceName: redis.appName,
 			});
-			return redis;
+			return redactDatabaseServiceSecrets(redis);
 		}),
 	reload: protectedProcedure
 		.input(apiResetRedis)
@@ -210,7 +233,7 @@ export const redisRouter = createTRPCRouter({
 				resourceId: redis.redisId,
 				resourceName: redis.appName,
 			});
-			return redis;
+			return redactDatabaseServiceSecrets(redis);
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortRedis)
@@ -243,7 +266,7 @@ export const redisRouter = createTRPCRouter({
 				resourceId: redis.redisId,
 				resourceName: redis.appName,
 			});
-			return redis;
+			return redactDatabaseServiceSecrets(redis);
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployRedis)
@@ -258,7 +281,8 @@ export const redisRouter = createTRPCRouter({
 				resourceId: redis.redisId,
 				resourceName: redis.appName,
 			});
-			return deployRedis(input.redisId);
+			const deployedRedis = await deployRedis(input.redisId);
+			return redactDatabaseServiceSecrets(deployedRedis);
 		}),
 	deployWithLogs: protectedProcedure
 		.meta({
@@ -313,7 +337,7 @@ export const redisRouter = createTRPCRouter({
 				resourceId: mongo.redisId,
 				resourceName: mongo.appName,
 			});
-			return mongo;
+			return redactDatabaseServiceSecrets(mongo);
 		}),
 	remove: protectedProcedure
 		.input(apiFindOneRedis)
@@ -348,7 +372,7 @@ export const redisRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
-			return redis;
+			return redactDatabaseServiceSecrets(redis);
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesRedis)
@@ -356,9 +380,17 @@ export const redisRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.redisId, {
 				envVars: ["write"],
 			});
-			const updatedRedis = await updateRedisById(input.redisId, {
-				env: input.env,
-			});
+			const currentRedis = await findRedisById(input.redisId);
+			const updatedRedis = await updateRedisById(
+				input.redisId,
+				preserveSecretPlaceholderFields(
+					{
+						env: input.env,
+					},
+					currentRedis,
+					["env"],
+				),
+			);
 
 			if (!updatedRedis) {
 				throw new TRPCError({
@@ -419,13 +451,17 @@ export const redisRouter = createTRPCRouter({
 			const { appName, serverId, databasePassword } = rd;
 
 			const containerCmd = getServiceContainerCommand(appName);
+			const passwordChangeCommand = buildRedisPasswordChangeCommand({
+				databasePassword,
+				password,
+			});
 			const command = `
 				CONTAINER_ID=$(${containerCmd})
 				if [ -z "$CONTAINER_ID" ]; then
 					echo "No running container found for ${appName}" >&2
 					exit 1
 				fi
-				docker exec "$CONTAINER_ID" redis-cli -a '${databasePassword}' CONFIG SET requirepass '${password}'
+				${passwordChangeCommand}
 			`;
 
 			await db.transaction(async (tx) => {
@@ -461,6 +497,7 @@ export const redisRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.redisId, {
 				service: ["create"],
 			});
+			await assertTargetEnvironmentAccess(ctx, input.targetEnvironmentId);
 
 			const updatedRedis = await db
 				.update(redisTable)
@@ -484,7 +521,7 @@ export const redisRouter = createTRPCRouter({
 				resourceId: updatedRedis.redisId,
 				resourceName: updatedRedis.appName,
 			});
-			return updatedRedis;
+			return redactDatabaseServiceSecrets(updatedRedis);
 		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildRedis)

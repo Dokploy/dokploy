@@ -7,6 +7,7 @@ import { CodeEditor } from "@/components/shared/code-editor";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { buildAuthorizedKeysAppendCommand } from "@/lib/shell-command";
 import { api } from "@/utils/api";
 
 export const CreateSSHKey = () => {
@@ -20,6 +21,9 @@ export const CreateSSHKey = () => {
 
 	const cloudSSHKey = data?.find(
 		(sshKey) => sshKey.name === "dokploy-cloud-ssh-key",
+	);
+	const authorizedKeysCommand = buildAuthorizedKeysAppendCommand(
+		cloudSSHKey?.publicKey || "Generate a SSH Key",
 	);
 
 	useEffect(() => {
@@ -116,7 +120,7 @@ export const CreateSSHKey = () => {
 													<CodeEditor
 														lineWrapping
 														language="properties"
-														value={`echo "${cloudSSHKey?.publicKey}" >> ~/.ssh/authorized_keys`}
+														value={authorizedKeysCommand}
 														readOnly
 														className="font-mono opacity-60"
 													/>
@@ -124,9 +128,7 @@ export const CreateSSHKey = () => {
 														type="button"
 														className="absolute right-2 top-2"
 														onClick={() => {
-															copy(
-																`echo "${cloudSSHKey?.publicKey}" >> ~/.ssh/authorized_keys`,
-															);
+															copy(authorizedKeysCommand);
 															toast.success("Copied to clipboard");
 														}}
 													>

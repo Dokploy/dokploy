@@ -5,6 +5,82 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 
 export type GitProvider = typeof gitProvider.$inferSelect;
+type GitProviderSession = {
+	userId: string;
+	activeOrganizationId: string;
+};
+
+const githubSecretKeys = [
+	"githubClientSecret",
+	"githubPrivateKey",
+	"githubWebhookSecret",
+] as const;
+
+const gitlabSecretKeys = [
+	"secret",
+	"webhookSecret",
+	"accessToken",
+	"refreshToken",
+] as const;
+
+const giteaSecretKeys = [
+	"clientSecret",
+	"accessToken",
+	"refreshToken",
+] as const;
+
+const bitbucketSecretKeys = ["appPassword", "apiToken"] as const;
+
+const omitKeys = <T extends object>(value: T, keys: readonly string[]) => {
+	const redacted = { ...value } as Record<string, unknown>;
+	for (const key of keys) {
+		delete redacted[key];
+	}
+	return redacted as T;
+};
+
+const redactNullable = <T extends object | null | undefined>(
+	value: T,
+	keys: readonly string[],
+) => {
+	if (!value) {
+		return value;
+	}
+	return omitKeys(value, keys);
+};
+
+export const redactGithubProvider = <T extends object | null | undefined>(
+	provider: T,
+) => redactNullable(provider, githubSecretKeys);
+
+export const redactGitlabProvider = <T extends object | null | undefined>(
+	provider: T,
+) => redactNullable(provider, gitlabSecretKeys);
+
+export const redactGiteaProvider = <T extends object | null | undefined>(
+	provider: T,
+) => redactNullable(provider, giteaSecretKeys);
+
+export const redactBitbucketProvider = <T extends object | null | undefined>(
+	provider: T,
+) => redactNullable(provider, bitbucketSecretKeys);
+
+export const redactGitProviderSecrets = <
+	T extends {
+		github?: object | null;
+		gitlab?: object | null;
+		bitbucket?: object | null;
+		gitea?: object | null;
+	},
+>(
+	entity: T,
+) => ({
+	...entity,
+	github: redactGithubProvider(entity.github),
+	gitlab: redactGitlabProvider(entity.gitlab),
+	bitbucket: redactBitbucketProvider(entity.bitbucket),
+	gitea: redactGiteaProvider(entity.gitea),
+});
 
 export const removeGitProvider = async (gitProviderId: string) => {
 	const result = await db
@@ -118,4 +194,69 @@ export const getAccessibleGitProviderIds = async (session: {
 		}
 	}
 	return result;
+};
+
+export const assertGitProviderAccess = async (
+	gitProviderId: string | null | undefined,
+	session: GitProviderSession,
+) => {
+	if (!gitProviderId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Git Provider not found",
+		});
+	}
+
+	const accessibleIds = await getAccessibleGitProviderIds(session);
+	if (!accessibleIds.has(gitProviderId)) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this Git provider",
+		});
+	}
+};
+
+export const assertGitProviderManagementAccess = async (
+	gitProviderId: string | null | undefined,
+	session: GitProviderSession,
+) => {
+	if (!gitProviderId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Git Provider not found",
+		});
+	}
+
+	const memberRecord = await db.query.member.findFirst({
+		where: and(
+			eq(member.userId, session.userId),
+			eq(member.organizationId, session.activeOrganizationId),
+		),
+		columns: {
+			role: true,
+		},
+	});
+
+	if (memberRecord?.role === "owner" || memberRecord?.role === "admin") {
+		return;
+	}
+
+	const gitProviderRecord = await db.query.gitProvider.findFirst({
+		where: eq(gitProvider.gitProviderId, gitProviderId),
+		columns: {
+			userId: true,
+			organizationId: true,
+		},
+	});
+
+	if (
+		!gitProviderRecord ||
+		gitProviderRecord.organizationId !== session.activeOrganizationId ||
+		gitProviderRecord.userId !== session.userId
+	) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to manage this Git provider",
+		});
+	}
 };

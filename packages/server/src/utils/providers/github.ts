@@ -7,6 +7,12 @@ import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { Octokit } from "octokit";
 import type { z } from "zod";
+import {
+	buildCreateDirectoryCommand,
+	buildGitCloneCommand,
+	buildProviderEchoCommand,
+	buildRemovePathCommand,
+} from "./commands";
 
 export const authGithub = (githubProvider: Github): Octokit => {
 	if (!haveGithubRequirements(githubProvider)) {
@@ -143,7 +149,7 @@ export const cloneGithubRepository = async ({
 	const { APPLICATIONS_PATH, COMPOSE_PATH } = paths(!!serverId);
 
 	if (!githubId) {
-		command += `echo "Error: ❌ Github Provider not found"; exit 1;`;
+		command += `${buildProviderEchoCommand("Error: ❌ Github Provider not found")} exit 1;`;
 
 		return command;
 	}
@@ -152,7 +158,11 @@ export const cloneGithubRepository = async ({
 
 	// Check if requirements are met
 	if (requirements.length > 0) {
-		command += `echo "GitHub Repository configuration failed for application: ${appName}"; echo "Reasons:"; echo "${requirements.join("\n")}"; exit 1;`;
+		command += buildProviderEchoCommand(
+			`GitHub Repository configuration failed for application: ${appName}`,
+		);
+		command += buildProviderEchoCommand("Reasons:");
+		command += `${buildProviderEchoCommand(requirements.join("\n"))} exit 1;`;
 		return command;
 	}
 
@@ -162,12 +172,19 @@ export const cloneGithubRepository = async ({
 	const octokit = authGithub(githubProvider);
 	const token = await getGithubToken(octokit);
 	const repoclone = `github.com/${owner}/${repository}.git`;
-	command += `rm -rf ${outputPath};`;
-	command += `mkdir -p ${outputPath};`;
+	command += buildRemovePathCommand(outputPath);
+	command += buildCreateDirectoryCommand(outputPath);
 	const cloneUrl = `https://oauth2:${token}@${repoclone}`;
 
-	command += `echo "Cloning Repo ${repoclone} to ${outputPath}: ✅";`;
-	command += `git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	command += buildProviderEchoCommand(
+		`Cloning Repo ${repoclone} to ${outputPath}: ✅`,
+	);
+	command += `${buildGitCloneCommand({
+		branch: branch!,
+		cloneUrl,
+		enableSubmodules,
+		outputPath,
+	})};`;
 
 	return command;
 };

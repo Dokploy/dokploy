@@ -23,6 +23,26 @@ import {
 	logWebhookError,
 } from "./[refreshToken]";
 
+export const hasSensitivePreviewConfiguration = (application: {
+	previewEnv?: string | null;
+	previewBuildArgs?: string | null;
+	previewBuildSecrets?: string | null;
+}) =>
+	[
+		application.previewEnv,
+		application.previewBuildArgs,
+		application.previewBuildSecrets,
+	].some((value) => typeof value === "string" && value.trim().length > 0);
+
+export const shouldRequirePreviewCollaboratorPermissions = (application: {
+	previewRequireCollaboratorPermissions?: boolean | null;
+	previewEnv?: string | null;
+	previewBuildArgs?: string | null;
+	previewBuildSecrets?: string | null;
+}) =>
+	application.previewRequireCollaboratorPermissions !== false ||
+	hasSensitivePreviewConfiguration(application);
+
 const getGithubRepositoryOwner = (githubBody: any) =>
 	githubBody?.repository?.owner?.name ?? githubBody?.repository?.owner?.login;
 
@@ -136,10 +156,10 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "application",
 					server: !!app.serverId,
+					serverId: app.serverId ?? undefined,
 				};
 
 				if (IS_CLOUD && app.serverId) {
-					jobData.serverId = app.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -175,10 +195,10 @@ export default async function handler(
 					applicationType: "compose",
 					descriptionLog: `Hash: ${deploymentHash}`,
 					server: !!composeApp.serverId,
+					serverId: composeApp.serverId ?? undefined,
 				};
 
 				if (IS_CLOUD && composeApp.serverId) {
-					jobData.serverId = composeApp.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -247,6 +267,7 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "application",
 					server: !!app.serverId,
+					serverId: app.serverId ?? undefined,
 				};
 
 				const shouldDeployPaths = shouldDeploy(
@@ -259,7 +280,6 @@ export default async function handler(
 				}
 
 				if (IS_CLOUD && app.serverId) {
-					jobData.serverId = app.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -295,6 +315,7 @@ export default async function handler(
 					applicationType: "compose",
 					descriptionLog: `Hash: ${deploymentHash}`,
 					server: !!composeApp.serverId,
+					serverId: composeApp.serverId ?? undefined,
 				};
 
 				const shouldDeployPaths = shouldDeploy(
@@ -306,7 +327,6 @@ export default async function handler(
 					continue;
 				}
 				if (IS_CLOUD && composeApp.serverId) {
-					jobData.serverId = composeApp.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -409,8 +429,8 @@ export default async function handler(
 			let userPermission: string | null = null;
 
 			for (const app of apps) {
-				// If the app requires collaborator permissions, verify them
-				if (app.previewRequireCollaboratorPermissions !== false) {
+				// Secret-bearing previews always need a trusted collaborator.
+				if (shouldRequirePreviewCollaboratorPermissions(app)) {
 					try {
 						const githubProvider = await findGithubById(githubResult.githubId);
 						const { hasWriteAccess, permission } =
@@ -461,7 +481,7 @@ export default async function handler(
 				await createSecurityBlockedComment({
 					owner,
 					repository,
-					prNumber: Number.parseInt(prNumber),
+					prNumber: Number.parseInt(prNumber, 10),
 					prAuthor,
 					permission: userPermission,
 					githubId: githubResult.githubId,
@@ -511,12 +531,12 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "application-preview",
 					server: !!app.serverId,
+					serverId: app.serverId ?? undefined,
 					previewDeploymentId,
 				};
 
 				if (previewDeploymentId) {
 					if (IS_CLOUD && app.serverId) {
-						jobData.serverId = app.serverId;
 						deploy(jobData).catch((error) => {
 							console.error("Background deployment failed:", error);
 						});

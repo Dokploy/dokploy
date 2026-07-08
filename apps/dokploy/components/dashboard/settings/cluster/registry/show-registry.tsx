@@ -70,9 +70,11 @@ export const ShowRegistry = () => {
 														</div>
 
 														<div className="flex flex-row gap-1">
-															<HandleRegistry
-																registryId={registry.registryId}
-															/>
+															{permissions?.registry.update && (
+																<HandleRegistry
+																	registryId={registry.registryId}
+																/>
+															)}
 
 															{permissions?.registry.delete && (
 																<DialogAction

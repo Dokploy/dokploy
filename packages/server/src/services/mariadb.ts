@@ -7,6 +7,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates";
 import { buildMariadb } from "@dokploy/server/utils/databases/mariadb";
+import { buildDockerPullCommand } from "@dokploy/server/utils/docker/commands";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
@@ -145,7 +146,7 @@ export const deployMariadb = async (
 		if (mariadb.serverId) {
 			await execAsyncRemote(
 				mariadb.serverId,
-				`docker pull ${mariadb.dockerImage}`,
+				buildDockerPullCommand(mariadb.dockerImage),
 				onData,
 			);
 		} else {

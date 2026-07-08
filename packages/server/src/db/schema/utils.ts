@@ -12,12 +12,17 @@ export const APP_NAME_REGEX = /^[a-zA-Z0-9._-]+$/;
 export const APP_NAME_MESSAGE =
 	"App name can only contain letters, numbers, dots, underscores and hyphens";
 
-/** Database password: blocks shell-dangerous characters like $ ! ' " \ / and spaces. */
+export const DATABASE_IDENTIFIER_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]{0,62}$/;
+
+export const DATABASE_IDENTIFIER_MESSAGE =
+	"Database identifiers can only contain letters, numbers and underscores, and must start with a letter or underscore";
+
+/** Database password: blocks shell-dangerous characters like $ ! ' " \ / ; ` and spaces. */
 export const DATABASE_PASSWORD_REGEX =
-	/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/;
+	/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|:,.<>?~]*$/;
 
 export const DATABASE_PASSWORD_MESSAGE =
-	"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility";
+	"Password contains invalid characters. Please avoid: $ ! ' \" \\ / ; ` and space characters for database compatibility";
 
 export const generateAppName = (type: string) => {
 	const verb = faker.hacker.verb().replace(/ /g, "-");

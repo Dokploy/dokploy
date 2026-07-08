@@ -2,13 +2,19 @@ import { dirname, join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { InferResultType } from "@dokploy/server/types/with";
 import boxen from "boxen";
-import { quote } from "shell-quote";
+import { parse } from "shell-quote";
 import { writeDomainsToCompose } from "../docker/domain";
 import {
 	encodeBase64,
 	getEnvironmentVariablesObject,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { normalizeRelativeFilePath } from "../filesystem/safe-path";
+import {
+	quoteEnvironmentAssignment,
+	quoteShellArgs,
+	quoteShellArgument,
+} from "../shell";
 
 export type ComposeNested = InferResultType<
 	"compose",
@@ -21,6 +27,8 @@ export const getBuildComposeCommand = async (compose: ComposeNested) => {
 	const command = createCommand(compose);
 	const envCommand = getCreateEnvFileCommand(compose);
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+	const quotedProjectPath = quoteShellArgument(projectPath);
+	const quotedAppName = quoteShellArgument(compose.appName);
 	const exportEnvCommand = getExportEnvCommand(compose);
 
 	const newCompose = await writeDomainsToCompose(compose, domains);
@@ -45,17 +53,17 @@ Compose Type: ${composeType} ✅`;
 	const bashCommand = `
 	set -e
 	{
-		echo "${logBox}";
+		echo ${quoteShellArgument(logBox)};
 
 		${newCompose}
 
 		${envCommand}
 
-		cd "${projectPath}";
+		cd ${quotedProjectPath};
 
-		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create ${compose.composeType === "stack" ? "--driver overlay" : ""} --attachable ${compose.appName}` : ""}
-		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
-		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
+		${compose.isolatedDeployment ? `docker network inspect ${quotedAppName} >/dev/null 2>&1 || docker network create ${compose.composeType === "stack" ? "--driver overlay" : ""} --attachable ${quotedAppName}` : ""}
+		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
+		${compose.isolatedDeployment ? `docker network connect ${quotedAppName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
 
 		echo "Docker Compose Deployed: ✅";
 	} || {
@@ -67,41 +75,222 @@ Compose Type: ${composeType} ✅`;
 	return bashCommand;
 };
 
-const sanitizeCommand = (command: string) => {
+const ALLOWED_CUSTOM_DOCKER_COMMANDS = new Set(["compose", "stack"]);
+const ALLOWED_CUSTOM_COMPOSE_UP_FLAGS = new Set([
+	"-d",
+	"--build",
+	"--remove-orphans",
+	"--force-recreate",
+	"--no-deps",
+	"--wait",
+]);
+const ALLOWED_CUSTOM_COMPOSE_VALUE_OPTIONS = new Set(["-f", "--file"]);
+const UNSAFE_CUSTOM_DOCKER_COMMAND_PATTERN = /[`$;&|<>()\r\n]/;
+
+const throwInvalidCustomDockerCommand = (): never => {
+	throw new Error("Invalid docker compose command");
+};
+
+const getLongOptionValue = (argument: string, option: string) => {
+	if (argument === option) {
+		return undefined;
+	}
+	if (argument.startsWith(`${option}=`)) {
+		return argument.slice(option.length + 1);
+	}
+	return undefined;
+};
+
+const assertComposeProjectNameBound = (args: string[], appName: string) => {
+	let hasProjectName = false;
+	let subcommand: string | undefined;
+	for (let index = 1; index < args.length; index += 1) {
+		const current = args[index];
+		if (!current) {
+			continue;
+		}
+
+		if (current === "-p" || current === "--project-name") {
+			const projectName = args[index + 1];
+			if (!projectName || projectName !== appName) {
+				throwInvalidCustomDockerCommand();
+			}
+			hasProjectName = true;
+			index += 1;
+			continue;
+		}
+
+		const longProjectName = getLongOptionValue(current, "--project-name");
+		if (longProjectName !== undefined && longProjectName !== appName) {
+			throwInvalidCustomDockerCommand();
+		}
+		if (longProjectName === appName) {
+			hasProjectName = true;
+			continue;
+		}
+
+		if (!subcommand) {
+			const longFileValue = getLongOptionValue(current, "--file");
+			if (longFileValue !== undefined) {
+				if (!longFileValue) {
+					throwInvalidCustomDockerCommand();
+				}
+				continue;
+			}
+
+			if (ALLOWED_CUSTOM_COMPOSE_VALUE_OPTIONS.has(current)) {
+				const optionValue = args[index + 1];
+				if (!optionValue) {
+					throwInvalidCustomDockerCommand();
+				}
+				index += 1;
+				continue;
+			}
+		}
+
+		if (!subcommand) {
+			if (current.startsWith("-")) {
+				throwInvalidCustomDockerCommand();
+			}
+			subcommand = current;
+			if (subcommand !== "up") {
+				throwInvalidCustomDockerCommand();
+			}
+			continue;
+		}
+
+		if (!ALLOWED_CUSTOM_COMPOSE_UP_FLAGS.has(current)) {
+			throwInvalidCustomDockerCommand();
+		}
+	}
+
+	if (!hasProjectName || subcommand !== "up") {
+		throwInvalidCustomDockerCommand();
+	}
+};
+
+const assertStackNameBound = (args: string[], appName: string) => {
+	if (args[1] !== "deploy") {
+		throwInvalidCustomDockerCommand();
+	}
+
+	const valueOptions = new Set([
+		"-c",
+		"-f",
+		"--compose-file",
+		"--resolve-image",
+	]);
+	const operands: string[] = [];
+	for (let index = 2; index < args.length; index += 1) {
+		const current = args[index];
+		if (!current) {
+			continue;
+		}
+		if (current.startsWith("--")) {
+			if (valueOptions.has(current) && !current.includes("=")) {
+				index += 1;
+			}
+			continue;
+		}
+		if (current.startsWith("-")) {
+			if (valueOptions.has(current)) {
+				index += 1;
+			}
+			continue;
+		}
+		operands.push(current);
+	}
+
+	const stackName = operands.at(-1);
+	if (!stackName || stackName !== appName) {
+		throwInvalidCustomDockerCommand();
+	}
+};
+
+const createCustomDockerCommand = (command: string, appName: string) => {
 	const sanitizedCommand = command.trim();
 
-	const parts = sanitizedCommand.split(/\s+/);
+	if (
+		!sanitizedCommand ||
+		UNSAFE_CUSTOM_DOCKER_COMMAND_PATTERN.test(sanitizedCommand)
+	) {
+		throwInvalidCustomDockerCommand();
+	}
 
-	const restCommand = parts.map((arg) => arg.replace(/^"(.*)"$/, "$1"));
+	const args: string[] = [];
+	try {
+		const parsed = parse(sanitizedCommand);
+		for (const part of parsed) {
+			if (typeof part !== "string") {
+				throwInvalidCustomDockerCommand();
+			}
+			args.push(part as string);
+		}
+	} catch {
+		throwInvalidCustomDockerCommand();
+	}
 
-	return restCommand.join(" ");
+	if (!ALLOWED_CUSTOM_DOCKER_COMMANDS.has(args[0] ?? "")) {
+		throwInvalidCustomDockerCommand();
+	}
+
+	if (args[0] === "compose") {
+		assertComposeProjectNameBound(args, appName);
+	}
+
+	if (args[0] === "stack") {
+		assertStackNameBound(args, appName);
+	}
+
+	return quoteShellArgs(args);
 };
 
 export const createCommand = (compose: ComposeNested) => {
 	const { composeType, appName, sourceType } = compose;
 	if (compose.command) {
-		return `${sanitizeCommand(compose.command)}`;
+		return createCustomDockerCommand(compose.command, appName);
 	}
 
 	const path =
-		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
-	let command = "";
+		sourceType === "raw"
+			? "docker-compose.yml"
+			: normalizeRelativeFilePath(compose.composePath);
 
 	if (composeType === "docker-compose") {
-		command = `compose -p ${appName} -f ${path} up -d --build --remove-orphans`;
-	} else if (composeType === "stack") {
-		command = `stack deploy -c ${path} ${appName} --prune --with-registry-auth`;
+		return quoteShellArgs([
+			"compose",
+			"-p",
+			appName,
+			"-f",
+			path,
+			"up",
+			"-d",
+			"--build",
+			"--remove-orphans",
+		]);
+	}
+	if (composeType === "stack") {
+		return quoteShellArgs([
+			"stack",
+			"deploy",
+			"-c",
+			path,
+			appName,
+			"--prune",
+			"--with-registry-auth",
+		]);
 	}
 
-	return command;
+	return "";
 };
 
 export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { env, composePath, appName } = compose;
-	const composeFilePath =
-		join(COMPOSE_PATH, appName, "code", composePath) ||
-		join(COMPOSE_PATH, appName, "code", "docker-compose.yml");
+	const safeComposePath = normalizeRelativeFilePath(
+		composePath || "docker-compose.yml",
+	);
+	const composeFilePath = join(COMPOSE_PATH, appName, "code", safeComposePath);
 
 	const envFilePath = join(dirname(composeFilePath), ".env");
 
@@ -123,10 +312,11 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 	).join("\n");
 
 	const encodedContent = encodeBase64(envFileContent);
+	const quotedEnvFilePath = quoteShellArgument(envFilePath);
 	return `
-touch ${envFilePath};
-echo "${encodedContent}" | base64 -d > "${envFilePath}";
-	`;
+touch ${quotedEnvFilePath};
+printf %s ${quoteShellArgument(encodedContent)} | base64 -d > ${quotedEnvFilePath};
+		`;
 };
 
 const getExportEnvCommand = (compose: ComposeNested) => {
@@ -138,7 +328,7 @@ const getExportEnvCommand = (compose: ComposeNested) => {
 		compose.environment.env,
 	);
 	const exports = Object.entries(envVars)
-		.map(([key, value]) => `${key}=${quote([value])}`)
+		.map(([key, value]) => quoteEnvironmentAssignment(key, value))
 		.join(" ");
 
 	return exports ? `${exports}` : "";

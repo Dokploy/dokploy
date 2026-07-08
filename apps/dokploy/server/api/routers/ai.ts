@@ -7,7 +7,7 @@ import {
 import {
 	createDomain,
 	createMount,
-	findEnvironmentById,
+	getWebServerSettings,
 } from "@dokploy/server/index";
 import {
 	deleteAiSettings,
@@ -19,15 +19,21 @@ import {
 import { createComposeByTemplate } from "@dokploy/server/services/compose";
 import {
 	addNewService,
+	checkPermission,
 	checkServiceAccess,
 } from "@dokploy/server/services/permission";
-import { findProjectById } from "@dokploy/server/services/project";
 import {
+	assertAIProviderApiUrlAllowed,
 	getProviderHeaders,
 	getProviderName,
 	type Model,
 	selectAIProvider,
 } from "@dokploy/server/utils/ai/select-ai-provider";
+import {
+	redactAiSettingsSecrets,
+	redactAiSettingsSecretsList,
+} from "@dokploy/server/utils/security/redaction";
+import { fetchWithPublicEgress } from "@dokploy/server/utils/url/network";
 import { TRPCError } from "@trpc/server";
 import { generateText } from "ai";
 import { z } from "zod";
@@ -37,32 +43,56 @@ import {
 	createTRPCRouter,
 	protectedProcedure,
 } from "@/server/api/trpc";
+import {
+	assertTargetEnvironmentAccess,
+	assertTargetServerAccess,
+} from "@/server/api/utils/placement-access";
 import { generatePassword } from "@/templates/utils";
+
+const appendAIProviderPath = (apiUrl: string, pathname: string) =>
+	`${apiUrl.replace(/\/+$/, "")}/${pathname.replace(/^\/+/, "")}`;
 
 export const aiRouter = createTRPCRouter({
 	one: adminProcedure
 		.input(z.object({ aiId: z.string() }))
-		.query(async ({ input }) => {
-			return await getAiSettingById(input.aiId);
+		.query(async ({ ctx, input }) => {
+			return redactAiSettingsSecrets(
+				await getAiSettingById(input.aiId, ctx.session.activeOrganizationId),
+			);
 		}),
 
-	getModels: protectedProcedure
+	getModels: adminProcedure
 		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string() }))
 		.query(async ({ input }) => {
 			try {
-				const providerName = getProviderName(input.apiUrl);
-				const headers = getProviderHeaders(input.apiUrl, input.apiKey);
+				const apiUrl = await assertAIProviderApiUrlAllowed(input.apiUrl);
+				const providerName = getProviderName(apiUrl);
+				const headers = getProviderHeaders(apiUrl, input.apiKey);
 				let response = null;
 				switch (providerName) {
 					case "ollama":
-						response = await fetch(`${input.apiUrl}/api/tags`, { headers });
-						break;
-					case "gemini":
-						response = await fetch(
-							`${input.apiUrl}/models?key=${encodeURIComponent(input.apiKey)}`,
-							{ headers: {} },
+						response = await fetchWithPublicEgress(
+							appendAIProviderPath(apiUrl, "api/tags"),
+							{
+								headers,
+								redirect: "error",
+							},
+							{ fieldName: "AI provider URL" },
 						);
 						break;
+					case "gemini": {
+						const modelsUrl = new URL(appendAIProviderPath(apiUrl, "models"));
+						modelsUrl.searchParams.set("key", input.apiKey);
+						response = await fetchWithPublicEgress(
+							modelsUrl,
+							{
+								headers: {},
+								redirect: "error",
+							},
+							{ fieldName: "AI provider URL" },
+						);
+						break;
+					}
 					case "perplexity":
 						// Perplexity doesn't have a /models endpoint, return hardcoded list
 						return [
@@ -122,12 +152,20 @@ export const aiRouter = createTRPCRouter({
 							},
 						] as Model[];
 					default:
-						if (!input.apiKey)
+						if (!input.apiKey) {
 							throw new TRPCError({
 								code: "BAD_REQUEST",
 								message: "API key must contain at least 1 character(s)",
 							});
-						response = await fetch(`${input.apiUrl}/models`, { headers });
+						}
+						response = await fetchWithPublicEgress(
+							appendAIProviderPath(apiUrl, "models"),
+							{
+								headers,
+								redirect: "error",
+							},
+							{ fieldName: "AI provider URL" },
+						);
 				}
 
 				if (!response.ok) {
@@ -168,6 +206,9 @@ export const aiRouter = createTRPCRouter({
 					owned_by: "provider",
 				})) as Model[];
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: error instanceof Error ? error?.message : `Error: ${error}`,
@@ -175,29 +216,38 @@ export const aiRouter = createTRPCRouter({
 			}
 		}),
 	create: adminProcedure.input(apiCreateAi).mutation(async ({ ctx, input }) => {
-		return await saveAiSettings(ctx.session.activeOrganizationId, input);
+		return redactAiSettingsSecrets(
+			await saveAiSettings(ctx.session.activeOrganizationId, input),
+		);
 	}),
 
 	update: adminProcedure.input(apiUpdateAi).mutation(async ({ ctx, input }) => {
-		return await saveAiSettings(ctx.session.activeOrganizationId, input);
+		return redactAiSettingsSecrets(
+			await saveAiSettings(ctx.session.activeOrganizationId, input),
+		);
 	}),
 
 	getAll: adminProcedure.query(async ({ ctx }) => {
-		return await getAiSettingsByOrganizationId(
-			ctx.session.activeOrganizationId,
+		return redactAiSettingsSecretsList(
+			await getAiSettingsByOrganizationId(ctx.session.activeOrganizationId),
 		);
 	}),
 
 	get: adminProcedure
 		.input(z.object({ aiId: z.string() }))
-		.query(async ({ input }) => {
-			return await getAiSettingById(input.aiId);
+		.query(async ({ ctx, input }) => {
+			return redactAiSettingsSecrets(
+				await getAiSettingById(input.aiId, ctx.session.activeOrganizationId),
+			);
 		}),
 
 	delete: adminProcedure
 		.input(z.object({ aiId: z.string() }))
-		.mutation(async ({ input }) => {
-			return await deleteAiSettings(input.aiId);
+		.mutation(async ({ ctx, input }) => {
+			return await deleteAiSettings(
+				input.aiId,
+				ctx.session.activeOrganizationId,
+			);
 		}),
 
 	getEnabledProviders: protectedProcedure.query(async ({ ctx }) => {
@@ -209,7 +259,7 @@ export const aiRouter = createTRPCRouter({
 			.map((s) => ({ aiId: s.aiId, name: s.name, model: s.model }));
 	}),
 
-	analyzeLogs: protectedProcedure
+	analyzeLogs: adminProcedure
 		.input(
 			z.object({
 				aiId: z.string().min(1),
@@ -219,7 +269,10 @@ export const aiRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const aiSettings = await getAiSettingById(input.aiId);
+				const aiSettings = await getAiSettingById(
+					input.aiId,
+					ctx.session.activeOrganizationId,
+				);
 				if (!aiSettings?.isEnabled) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
@@ -227,14 +280,8 @@ export const aiRouter = createTRPCRouter({
 					});
 				}
 
-				if (aiSettings.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-
-				const provider = selectAIProvider(aiSettings);
+				const apiUrl = await assertAIProviderApiUrlAllowed(aiSettings.apiUrl);
+				const provider = selectAIProvider({ ...aiSettings, apiUrl });
 				const model = provider(aiSettings.model);
 
 				const contextLabel =
@@ -267,7 +314,7 @@ ${input.logs}`,
 			}
 		}),
 
-	testConnection: protectedProcedure
+	testConnection: adminProcedure
 		.input(
 			z.object({
 				apiUrl: z.string().min(1),
@@ -277,8 +324,9 @@ ${input.logs}`,
 		)
 		.mutation(async ({ input }) => {
 			try {
+				const apiUrl = await assertAIProviderApiUrlAllowed(input.apiUrl);
 				const provider = selectAIProvider({
-					apiUrl: input.apiUrl,
+					apiUrl,
 					apiKey: input.apiKey,
 				});
 				const model = provider(input.model);
@@ -301,7 +349,7 @@ ${input.logs}`,
 			}
 		}),
 
-	suggest: protectedProcedure
+	suggest: adminProcedure
 		.input(
 			z.object({
 				aiId: z.string(),
@@ -311,11 +359,17 @@ ${input.logs}`,
 		)
 		.mutation(async ({ ctx, input }) => {
 			try {
+				if (input.serverId) {
+					await assertTargetServerAccess(ctx, input.serverId);
+				}
 				return await suggestVariants({
 					...input,
 					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: error instanceof Error ? error?.message : `Error: ${error}`,
@@ -325,18 +379,33 @@ ${input.logs}`,
 	deploy: protectedProcedure
 		.input(deploySuggestionSchema)
 		.mutation(async ({ ctx, input }) => {
-			const environment = await findEnvironmentById(input.environmentId);
-			const project = await findProjectById(environment.projectId);
+			const environment = await assertTargetEnvironmentAccess(
+				ctx,
+				input.environmentId,
+			);
 			await checkServiceAccess(ctx, environment.projectId, "create");
 
-			if (IS_CLOUD && !input.serverId) {
+			if (input.domains?.length) {
+				await checkPermission(ctx, { domain: ["create"] });
+			}
+			if (input.configFiles?.length) {
+				await checkPermission(ctx, { volume: ["create"] });
+			}
+
+			const webServerSettings = await getWebServerSettings();
+			if (
+				(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+				!input.serverId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You need to use a server to create a compose",
 				});
 			}
 
-			const projectName = slugify(`${project.name} ${input.id}`);
+			await assertTargetServerAccess(ctx, input.serverId);
+
+			const projectName = slugify(`${environment.project.name} ${input.id}`);
 
 			const compose = await createComposeByTemplate({
 				...input,

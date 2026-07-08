@@ -1,6 +1,10 @@
 import { db } from "@dokploy/server/db";
 import { ai } from "@dokploy/server/db/schema";
-import { selectAIProvider } from "@dokploy/server/utils/ai/select-ai-provider";
+import {
+	assertAIProviderApiUrlAllowed,
+	selectAIProvider,
+} from "@dokploy/server/utils/ai/select-ai-provider";
+import { secretUpdateValue } from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { generateText, Output } from "ai";
 import { desc, eq } from "drizzle-orm";
@@ -35,7 +39,17 @@ export const getAiSettingsByOrganizationId = async (organizationId: string) => {
 	return aiSettings;
 };
 
-export const getAiSettingById = async (aiId: string) => {
+const throwAiSettingsNotFound = (): never => {
+	throw new TRPCError({
+		code: "NOT_FOUND",
+		message: "AI settings not found",
+	});
+};
+
+export const getAiSettingById = async (
+	aiId: string,
+	organizationId: string,
+) => {
 	const aiSetting = await db.query.ai.findFirst({
 		where: eq(ai.aiId, aiId),
 	});
@@ -45,28 +59,64 @@ export const getAiSettingById = async (aiId: string) => {
 			message: "AI settings not found",
 		});
 	}
+	if (aiSetting.organizationId !== organizationId) {
+		throwAiSettingsNotFound();
+	}
 	return aiSetting;
 };
 
 export const saveAiSettings = async (organizationId: string, settings: any) => {
 	const aiId = settings.aiId;
+	if (aiId) {
+		const existingAiSetting = await db.query.ai.findFirst({
+			where: eq(ai.aiId, aiId),
+		});
+		if (
+			existingAiSetting &&
+			existingAiSetting.organizationId !== organizationId
+		) {
+			throwAiSettingsNotFound();
+		}
+	}
 
-	return db
+	const normalizedSettings = { ...settings };
+	if (aiId) {
+		const nextApiKey = secretUpdateValue(normalizedSettings.apiKey);
+		if (nextApiKey === undefined) {
+			delete normalizedSettings.apiKey;
+		} else {
+			normalizedSettings.apiKey = nextApiKey;
+		}
+	}
+	if (normalizedSettings.apiUrl) {
+		normalizedSettings.apiUrl = await assertAIProviderApiUrlAllowed(
+			normalizedSettings.apiUrl,
+		);
+	}
+
+	const [savedSetting] = await db
 		.insert(ai)
 		.values({
 			aiId,
 			organizationId,
-			...settings,
+			...normalizedSettings,
 		})
 		.onConflictDoUpdate({
 			target: ai.aiId,
 			set: {
-				...settings,
+				...normalizedSettings,
 			},
-		});
+		})
+		.returning();
+
+	return savedSetting;
 };
 
-export const deleteAiSettings = async (aiId: string) => {
+export const deleteAiSettings = async (
+	aiId: string,
+	organizationId: string,
+) => {
+	await getAiSettingById(aiId, organizationId);
 	return db.delete(ai).where(eq(ai.aiId, aiId));
 };
 
@@ -78,21 +128,22 @@ interface Props {
 }
 
 export const suggestVariants = async ({
-	organizationId: _organizationId,
+	organizationId,
 	aiId,
 	input,
 	serverId,
 }: Props) => {
 	try {
-		const aiSettings = await getAiSettingById(aiId);
-		if (!aiSettings || !aiSettings.isEnabled) {
+		const aiSettings = await getAiSettingById(aiId, organizationId);
+		if (!aiSettings?.isEnabled) {
 			throw new TRPCError({
 				code: "NOT_FOUND",
 				message: "AI features are not enabled for this configuration",
 			});
 		}
 
-		const provider = selectAIProvider(aiSettings);
+		const apiUrl = await assertAIProviderApiUrlAllowed(aiSettings.apiUrl);
+		const provider = selectAIProvider({ ...aiSettings, apiUrl });
 		const model = provider(aiSettings.model);
 
 		let ip = "";
@@ -143,7 +194,6 @@ export const suggestVariants = async ({
 
 		const result = await generateText({
 			model,
-			// @ts-ignore - Zod + AI SDK Output.object() causes excessively deep instantiation
 			output: Output.object({ schema: fullSchema }),
 			prompt: `
 		    Act as advanced DevOps engineer. Analyze the user's request and generate up to 3 deployment suggestions, each with a complete docker compose configuration.

@@ -6,6 +6,7 @@ import {
 } from "@dokploy/server/services/registry";
 import { createRollback } from "@dokploy/server/services/rollbacks";
 import type { ApplicationNested } from "../builders";
+import { quoteShellArgs, quoteShellArgument } from "../shell";
 
 export const uploadImageRemoteCommand = async (
 	application: ApplicationNested,
@@ -52,7 +53,7 @@ export const uploadImageRemoteCommand = async (
 		const deployment = await findAllDeploymentsByApplicationId(
 			application.applicationId,
 		);
-		if (!deployment || !deployment[0]) {
+		if (!deployment?.[0]) {
 			throw new Error("Deployment not found");
 		}
 		const deploymentId = deployment[0].deploymentId;
@@ -124,18 +125,18 @@ const getRegistryCommands = (
 		registry.password,
 	);
 	return `
-echo "📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'" ;
+echo ${quoteShellArgument(`📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'`)} ;
 ${loginCmd} || {
 	echo "❌ DockerHub Failed" ;
 	exit 1;
 }
 echo "✅ Registry Login Success" ;
-docker tag ${imageName} ${registryTag} || {
+${quoteShellArgs(["docker", "tag", imageName, registryTag])} || {
 	echo "❌ Error tagging image" ;
 	exit 1;
 }
 echo "✅ Image Tagged" ;
-docker push ${registryTag} || {
+${quoteShellArgs(["docker", "push", registryTag])} || {
 	echo "❌ Error pushing image" ;
 	exit 1;
 }

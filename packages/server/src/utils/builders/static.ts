@@ -1,6 +1,7 @@
 import { getDockerCommand } from "@dokploy/server/utils/builders/docker-file";
 import { getCreateFileCommand } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
+import { normalizeRelativeFilePath } from "../filesystem/safe-path";
 import type { ApplicationNested } from ".";
 
 const nginxSpaConfig = `
@@ -30,6 +31,9 @@ http {
 
 export const getStaticCommand = (application: ApplicationNested) => {
 	const { publishDirectory, isStaticSpa } = application;
+	const safePublishDirectory = publishDirectory
+		? normalizeRelativeFilePath(publishDirectory)
+		: ".";
 	const buildAppDirectory = getBuildAppDirectory(application);
 	let command = "";
 	if (isStaticSpa) {
@@ -53,7 +57,7 @@ export const getStaticCommand = (application: ApplicationNested) => {
 			"FROM nginx:alpine",
 			"WORKDIR /usr/share/nginx/html/",
 			isStaticSpa ? "COPY nginx.conf /etc/nginx/nginx.conf" : "",
-			`COPY ${publishDirectory || "."} .`,
+			`COPY ${JSON.stringify([safePublishDirectory, "."])}`,
 			'CMD ["nginx", "-g", "daemon off;"]',
 		].join("\n"),
 	);

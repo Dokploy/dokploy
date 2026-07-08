@@ -323,12 +323,8 @@ const Service = (
 												<div className="flex flex-col border rounded-lg ">
 													{data?.serverId && isCloud ? (
 														<ComposePaidMonitoring
-															serverId={data?.serverId || ""}
-															baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+															serverId={data?.serverId || undefined}
 															appName={data?.appName || ""}
-															token={
-																data?.server?.metricsConfig?.server?.token || ""
-															}
 															appType={data?.composeType || "docker-compose"}
 														/>
 													) : (
@@ -347,16 +343,12 @@ const Service = (
 																</div>
 															)}
 
-														{toggleMonitoring ? (
-															<ComposePaidMonitoring
-																appName={data?.appName || ""}
-																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
-																token={
-																	monitoring?.metricsConfig?.server?.token || ""
-																}
-																appType={data?.composeType || "docker-compose"}
-															/>
-														) : ( */}
+															{toggleMonitoring ? (
+																<ComposePaidMonitoring
+																	appName={data?.appName || ""}
+																	appType={data?.composeType || "docker-compose"}
+																/>
+															) : ( */}
 															{/* <div> */}
 															<ComposeFreeMonitoring
 																serverId={data?.serverId || ""}

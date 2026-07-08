@@ -1,5 +1,6 @@
 import { readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, posix } from "node:path";
+import { quoteShellArg } from "@dokploy/server/utils/filesystem/safe-path";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -143,63 +144,86 @@ interface TreeDataItem {
 	children?: TreeDataItem[];
 }
 
+const buildTreeFromRemoteFindOutput = (
+	dirPath: string,
+	encodedOutput: string,
+): TreeDataItem[] => {
+	const output = encodedOutput.trim();
+	if (!output) {
+		return [];
+	}
+
+	const decoded = Buffer.from(output, "base64").toString("utf8");
+	const entries = decoded
+		.split("\0")
+		.filter(Boolean)
+		.map((entry) => {
+			const separator = entry.lastIndexOf("\t");
+			if (separator === -1) {
+				return null;
+			}
+
+			return {
+				relativePath: entry.slice(0, separator),
+				type: entry.slice(separator + 1) === "d" ? "directory" : "file",
+			} as const;
+		})
+		.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+		.sort(
+			(a, b) =>
+				a.relativePath.split("/").length - b.relativePath.split("/").length,
+		);
+
+	const result: TreeDataItem[] = [];
+	const directoryChildren = new Map<string, TreeDataItem[]>();
+
+	for (const entry of entries) {
+		const name = posix.basename(entry.relativePath);
+		const itemPath = posix.join(dirPath, entry.relativePath);
+		const item: TreeDataItem = {
+			id: itemPath,
+			name,
+			type: entry.type,
+			...(entry.type === "directory" ? { children: [] } : {}),
+		};
+
+		const parentPath = posix.dirname(entry.relativePath);
+		const target =
+			parentPath === "." ? result : directoryChildren.get(parentPath);
+		if (!target) {
+			continue;
+		}
+
+		target.push(item);
+		if (entry.type === "directory") {
+			directoryChildren.set(
+				entry.relativePath,
+				item.children as TreeDataItem[],
+			);
+		}
+	}
+
+	return result;
+};
+
 export const readDirectory = async (
 	dirPath: string,
 	serverId?: string,
 ): Promise<TreeDataItem[]> => {
 	if (serverId) {
+		const quotedDirPath = quoteShellArg(dirPath);
 		const { stdout } = await execAsyncRemote(
 			serverId,
 			`
-process_items() {
-    local parent_dir="$1"
-    local __resultvar=$2
-
-    local items_json=""
-    local first=true
-    for item in "$parent_dir"/*; do
-        [ -e "$item" ] || continue
-        process_item "$item" item_json
-        if [ "$first" = true ]; then
-            first=false
-            items_json="$item_json"
-        else
-            items_json="$items_json,$item_json"
-        fi
-    done
-
-    eval $__resultvar="'[$items_json]'"
-}
-
-process_item() {
-    local item_path="$1"
-    local __resultvar=$2
-
-    local item_name=$(basename "$item_path")
-    local escaped_name=$(echo "$item_name" | sed 's/"/\\"/g')
-    local escaped_path=$(echo "$item_path" | sed 's/"/\\"/g')
-
-    if [ -d "$item_path" ]; then
-        # Is directory
-        process_items "$item_path" children_json
-        local json='{"id":"'"$escaped_path"'","name":"'"$escaped_name"'","type":"directory","children":'"$children_json"'}'
-    else
-        # Is file
-        local json='{"id":"'"$escaped_path"'","name":"'"$escaped_name"'","type":"file"}'
-    fi
-
-    eval $__resultvar="'$json'"
-}
-
-root_dir=${dirPath}
-
-process_items "$root_dir" json_output
-
-echo "$json_output"
+set -e
+root_dir=${quotedDirPath}
+if [ ! -d "$root_dir" ]; then
+	exit 0
+fi
+find "$root_dir" -mindepth 1 -printf '%P\t%y\0' | base64 -w 0
 			`,
 		);
-		const result = JSON.parse(stdout);
-		return result;
+		return buildTreeFromRemoteFindOutput(dirPath, stdout);
 	}
 
 	const stack = [dirPath];

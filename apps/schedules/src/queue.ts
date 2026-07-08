@@ -17,7 +17,7 @@ export const cleanQueue = async () => {
 		await jobQueue.obliterate({ force: true });
 		logger.info("Queue Cleaned");
 	} catch (error) {
-		logger.error("Error cleaning queue:", error);
+		logger.error({ error }, "Error cleaning queue");
 	}
 };
 
@@ -66,9 +66,10 @@ export const removeJob = async (data: QueueJob) => {
 		return result;
 	}
 	if (data.type === "schedule") {
-		const { scheduleId, cronSchedule } = data;
+		const { scheduleId, cronSchedule, timezone } = data;
 		const result = await jobQueue.removeRepeatable(scheduleId, {
 			pattern: cronSchedule,
+			tz: timezone || "UTC",
 		});
 		return result;
 	}
@@ -81,6 +82,9 @@ export const removeJob = async (data: QueueJob) => {
 	}
 	return false;
 };
+
+export const removeRepeatableJob = async (job: RepeatableJob) =>
+	jobQueue.removeRepeatableByKey(job.key);
 
 export const getJobRepeatable = async (
 	data: QueueJob,

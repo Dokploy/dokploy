@@ -6,9 +6,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 	findBackupsByDbId,
-	findEnvironmentById,
 	findMariadbById,
-	findProjectById,
 	getAccessibleServerIds,
 	getContainerLogs,
 	getServiceContainerCommand,
@@ -30,12 +28,19 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import {
+	preserveSecretPlaceholderFields,
+	redactDatabaseServiceSecrets,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { buildMysqlPasswordChangeCommand } from "@/server/api/utils/database-password";
+import { assertTargetEnvironmentAccess } from "@/server/api/utils/placement-access";
+import { assertServiceEnvironmentReadAccess } from "@/server/api/utils/service-environment";
 import {
 	apiChangeMariaDBStatus,
 	apiCreateMariaDB,
@@ -58,8 +63,11 @@ export const mariadbRouter = createTRPCRouter({
 		.input(apiCreateMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const environment = await findEnvironmentById(input.environmentId);
-				const project = await findProjectById(environment.projectId);
+				const environment = await assertTargetEnvironmentAccess(
+					ctx,
+					input.environmentId,
+				);
+				const project = environment.project;
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
@@ -110,7 +118,7 @@ export const mariadbRouter = createTRPCRouter({
 					resourceId: newMariadb.mariadbId,
 					resourceName: newMariadb.appName,
 				});
-				return newMariadb;
+				return redactDatabaseServiceSecrets(newMariadb);
 			} catch (error) {
 				if (error instanceof TRPCError) {
 					throw error;
@@ -132,7 +140,22 @@ export const mariadbRouter = createTRPCRouter({
 					message: "You are not authorized to access this Mariadb",
 				});
 			}
-			return mariadb;
+			return redactDatabaseServiceSecrets(mariadb);
+		}),
+
+	revealEnvironment: protectedProcedure
+		.input(apiFindOneMariaDB)
+		.mutation(async ({ input, ctx }) => {
+			const mariadb = await assertServiceEnvironmentReadAccess(
+				ctx,
+				input.mariadbId,
+				() => findMariadbById(input.mariadbId),
+				"Mariadb",
+			);
+
+			return {
+				env: mariadb.env ?? "",
+			};
 		}),
 
 	start: protectedProcedure
@@ -157,7 +180,7 @@ export const mariadbRouter = createTRPCRouter({
 				resourceId: service.mariadbId,
 				resourceName: service.appName,
 			});
-			return service;
+			return redactDatabaseServiceSecrets(service);
 		}),
 	stop: protectedProcedure
 		.input(apiFindOneMariaDB)
@@ -182,7 +205,7 @@ export const mariadbRouter = createTRPCRouter({
 				resourceId: mariadb.mariadbId,
 				resourceName: mariadb.appName,
 			});
-			return mariadb;
+			return redactDatabaseServiceSecrets(mariadb);
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMariaDB)
@@ -215,7 +238,7 @@ export const mariadbRouter = createTRPCRouter({
 				resourceId: mariadb.mariadbId,
 				resourceName: mariadb.appName,
 			});
-			return mariadb;
+			return redactDatabaseServiceSecrets(mariadb);
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployMariaDB)
@@ -231,7 +254,8 @@ export const mariadbRouter = createTRPCRouter({
 				resourceId: mariadb.mariadbId,
 				resourceName: mariadb.appName,
 			});
-			return deployMariadb(input.mariadbId);
+			const deployedMariadb = await deployMariadb(input.mariadbId);
+			return redactDatabaseServiceSecrets(deployedMariadb);
 		}),
 	deployWithLogs: protectedProcedure
 		.meta({
@@ -270,7 +294,7 @@ export const mariadbRouter = createTRPCRouter({
 				resourceId: mongo.mariadbId,
 				resourceName: mongo.appName,
 			});
-			return mongo;
+			return redactDatabaseServiceSecrets(mongo);
 		}),
 	remove: protectedProcedure
 		.input(apiFindOneMariaDB)
@@ -307,7 +331,7 @@ export const mariadbRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
-			return mongo;
+			return redactDatabaseServiceSecrets(mongo);
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesMariaDB)
@@ -315,9 +339,17 @@ export const mariadbRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
 				envVars: ["write"],
 			});
-			const service = await updateMariadbById(input.mariadbId, {
-				env: input.env,
-			});
+			const currentMariadb = await findMariadbById(input.mariadbId);
+			const service = await updateMariadbById(
+				input.mariadbId,
+				preserveSecretPlaceholderFields(
+					{
+						env: input.env,
+					},
+					currentMariadb,
+					["env"],
+				),
+			);
 
 			if (!service) {
 				throw new TRPCError({
@@ -413,14 +445,20 @@ export const mariadbRouter = createTRPCRouter({
 			const containerCmd = getServiceContainerCommand(appName);
 			const targetUser = type === "root" ? "root" : databaseUser;
 
+			const passwordChangeCommand = buildMysqlPasswordChangeCommand({
+				client: "mariadb",
+				databaseRootPassword,
+				targetUser,
+				password,
+			});
 			const command = `
-				CONTAINER_ID=$(${containerCmd})
-				if [ -z "$CONTAINER_ID" ]; then
-					echo "No running container found for ${appName}" >&2
-					exit 1
-				fi
-				docker exec "$CONTAINER_ID" mariadb -u root -p'${databaseRootPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"
-			`;
+					CONTAINER_ID=$(${containerCmd})
+					if [ -z "$CONTAINER_ID" ]; then
+						echo "No running container found for ${appName}" >&2
+						exit 1
+					fi
+					${passwordChangeCommand}
+				`;
 
 			await db.transaction(async (tx) => {
 				const setData =
@@ -459,6 +497,7 @@ export const mariadbRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
 				service: ["create"],
 			});
+			await assertTargetEnvironmentAccess(ctx, input.targetEnvironmentId);
 
 			const updatedMariadb = await db
 				.update(mariadbTable)
@@ -482,7 +521,7 @@ export const mariadbRouter = createTRPCRouter({
 				resourceId: updatedMariadb.mariadbId,
 				resourceName: updatedMariadb.appName,
 			});
-			return updatedMariadb;
+			return redactDatabaseServiceSecrets(updatedMariadb);
 		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildMariadb)

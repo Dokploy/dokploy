@@ -6,6 +6,8 @@ import { z } from "zod";
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	isRcloneAdditionalFlagAllowed,
+	RCLONE_ADDITIONAL_FLAG_ERROR,
 } from "../validations/destination";
 import { organization } from "./account";
 import { backups } from "./backups";
@@ -50,7 +52,12 @@ const createSchema = createInsertSchema(destinations, {
 	secretAccessKey: z.string(),
 	region: z.string(),
 	additionalFlags: z
-		.array(z.string().regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR))
+		.array(
+			z
+				.string()
+				.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR)
+				.refine(isRcloneAdditionalFlagAllowed, RCLONE_ADDITIONAL_FLAG_ERROR),
+		)
 		.default([]),
 });
 

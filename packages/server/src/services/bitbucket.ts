@@ -64,6 +64,24 @@ export const findBitbucketById = async (bitbucketId: string) => {
 	return bitbucketProviderResult;
 };
 
+export const findBitbucketGitProviderId = async (bitbucketId: string) => {
+	const bitbucketProviderResult = await db.query.bitbucket.findFirst({
+		where: eq(bitbucket.bitbucketId, bitbucketId),
+		columns: {
+			gitProviderId: true,
+		},
+	});
+
+	if (!bitbucketProviderResult) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Bitbucket Provider not found",
+		});
+	}
+
+	return bitbucketProviderResult.gitProviderId;
+};
+
 export const updateBitbucket = async (
 	bitbucketId: string,
 	input: z.infer<typeof apiUpdateBitbucket>,

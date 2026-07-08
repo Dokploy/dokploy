@@ -8,6 +8,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
+import { filterTenantTrustedOrigins } from "../utils/security/trusted-origin";
 import { getWebServerSettings } from "./web-server-settings";
 
 export const findUserById = async (userId: string) => {
@@ -127,7 +128,9 @@ export const getTrustedOrigins = async () => {
 			.from(member)
 			.innerJoin(user, eq(member.userId, user.id))
 			.where(eq(member.role, "owner"));
-		return Array.from(new Set(rows.flatMap((r) => r.trustedOrigins ?? [])));
+		return await filterTenantTrustedOrigins(
+			Array.from(new Set(rows.flatMap((r) => r.trustedOrigins ?? []))),
+		);
 	};
 
 	if (IS_CLOUD) {

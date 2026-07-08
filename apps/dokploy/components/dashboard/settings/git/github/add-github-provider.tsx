@@ -19,7 +19,10 @@ export const AddGithubProvider = () => {
 	const { data: activeOrganization } = api.organization.active.useQuery();
 
 	const { data: session } = api.user.session.useQuery();
-	const { data } = api.user.get.useQuery();
+	const { data: githubAppSetupState } = api.github.appSetupState.useQuery(
+		{ action: "init" },
+		{ enabled: isOpen && !!activeOrganization?.id && !!session?.user?.id },
+	);
 	const [manifest, setManifest] = useState("");
 	const [isOrganization, setIsOrganization] = useState(false);
 	const [organizationName, setOrganization] = useState("");
@@ -30,13 +33,13 @@ export const AddGithubProvider = () => {
 		const url = document.location.origin;
 		const manifest = JSON.stringify(
 			{
-				redirect_url: `${origin}/api/providers/github/setup?organizationId=${activeOrganization?.id ?? ""}&userId=${session?.user?.id ?? ""}`,
+				redirect_url: `${url}/api/providers/github/setup`,
 				name: `Dokploy-${format(new Date(), "yyyy-MM-dd")}-${randomString()}`,
-				url: origin,
+				url,
 				hook_attributes: {
 					url: `${url}/api/deploy/github`,
 				},
-				callback_urls: [`${origin}/api/providers/github/setup`],
+				callback_urls: [`${url}/api/providers/github/setup`],
 				public: false,
 				request_oauth_on_install: true,
 				default_permissions: {
@@ -98,8 +101,8 @@ export const AddGithubProvider = () => {
 							<form
 								action={
 									isOrganization
-										? `https://github.com/organizations/${organizationName}/settings/apps/new?state=gh_init:${activeOrganization?.id}:${session?.user?.id ?? ""}`
-										: `https://github.com/settings/apps/new?state=gh_init:${activeOrganization?.id}:${session?.user?.id ?? ""}`
+										? `https://github.com/organizations/${organizationName}/settings/apps/new?state=${encodeURIComponent(githubAppSetupState?.state ?? "")}`
+										: `https://github.com/settings/apps/new?state=${encodeURIComponent(githubAppSetupState?.state ?? "")}`
 								}
 								method="post"
 							>
@@ -131,7 +134,10 @@ export const AddGithubProvider = () => {
 										Unsure if you already have an app?
 									</a>
 									<Button
-										disabled={isOrganization && organizationName.length < 1}
+										disabled={
+											!githubAppSetupState?.state ||
+											(isOrganization && organizationName.length < 1)
+										}
 										type="submit"
 										className="self-end"
 									>

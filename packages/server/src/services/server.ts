@@ -6,11 +6,22 @@ import {
 	server,
 } from "@dokploy/server/db/schema";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
+import {
+	isRedactedSecretValue,
+	redactSecretFields,
+	redactSecretValue,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import type { z } from "zod";
 
 export type Server = typeof server.$inferSelect;
+type ServerMetricsConfig = Server["metricsConfig"];
+type ServerLike = {
+	command?: string | null;
+	metricsConfig?: ServerMetricsConfig | null;
+	sshKey?: Record<string, unknown> | null;
+};
 
 export const createServer = async (
 	input: z.infer<typeof apiCreateServer>,
@@ -52,6 +63,45 @@ export const findServerById = async (serverId: string) => {
 	}
 	return currentServer;
 };
+
+export const redactServer = <T extends ServerLike | null | undefined>(
+	currentServer: T,
+): T => {
+	if (!currentServer) {
+		return currentServer;
+	}
+
+	return {
+		...currentServer,
+		metricsConfig: currentServer.metricsConfig
+			? {
+					...currentServer.metricsConfig,
+					server: {
+						...currentServer.metricsConfig.server,
+						token: redactSecretValue(currentServer.metricsConfig.server.token),
+					},
+				}
+			: currentServer.metricsConfig,
+		command: redactSecretValue(currentServer.command),
+		sshKey: redactSecretFields(currentServer.sshKey, ["privateKey"]),
+	} as T;
+};
+
+export const redactServers = <T extends ServerLike>(servers: T[]) =>
+	servers.map((currentServer) => redactServer(currentServer));
+
+export const resolveServerMetricsConfigUpdate = (
+	metricsConfig: ServerMetricsConfig,
+	currentMetricsConfig: ServerMetricsConfig | null | undefined,
+): ServerMetricsConfig => ({
+	...metricsConfig,
+	server: {
+		...metricsConfig.server,
+		token: isRedactedSecretValue(metricsConfig.server.token)
+			? (currentMetricsConfig?.server?.token ?? "")
+			: metricsConfig.server.token,
+	},
+});
 
 export const findServersByUserId = async (userId: string) => {
 	const orgs = await db.query.organization.findMany({
@@ -145,6 +195,7 @@ export const getAccessibleServerIds = async (session: {
 			serverId: true,
 		},
 	});
+	const allOrgServerIds = new Set(allOrgServers.map((s) => s.serverId));
 
 	const memberRecord = await db.query.member.findFirst({
 		where: and(
@@ -155,14 +206,18 @@ export const getAccessibleServerIds = async (session: {
 	});
 
 	if (memberRecord?.role === "owner" || memberRecord?.role === "admin") {
-		return new Set(allOrgServers.map((s) => s.serverId));
+		return allOrgServerIds;
 	}
 
 	const licensed = await hasValidLicense(activeOrganizationId);
 
 	if (!licensed) {
-		return new Set(allOrgServers.map((s) => s.serverId));
+		return allOrgServerIds;
 	}
 
-	return new Set(memberRecord?.accessedServers ?? []);
+	return new Set(
+		(memberRecord?.accessedServers ?? []).filter((serverId) =>
+			allOrgServerIds.has(serverId),
+		),
+	);
 };

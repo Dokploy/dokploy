@@ -62,9 +62,9 @@ export function AnalyzeLogs({ logs, context }: Props) {
 		mutate({ aiId, logs: logsText, context });
 	};
 
-	const handleCopy = () => {
+	const handleCopy = async () => {
 		if (!data?.analysis) return;
-		const success = copy(data.analysis);
+		const success = await copy(data.analysis);
 		if (success) {
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);

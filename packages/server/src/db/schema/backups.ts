@@ -21,6 +21,48 @@ import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { user } from "./user";
+
+const safeBackupShellNamePattern = /^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$/;
+const safeBackupShellName = (fieldName: string) =>
+	z
+		.string()
+		.trim()
+		.min(1)
+		.regex(
+			safeBackupShellNamePattern,
+			`${fieldName} may only contain letters, numbers, underscores, dots, and dashes, and must start with a letter, number, or underscore`,
+		);
+
+const safeBackupRetentionCount = z.number().int().min(0).nullable().optional();
+
+const backupMetadataSchema = z
+	.object({
+		postgres: z
+			.object({
+				databaseUser: z.string().min(1),
+			})
+			.optional(),
+		mariadb: z
+			.object({
+				databaseUser: z.string().min(1),
+				databasePassword: z.string(),
+			})
+			.optional(),
+		mongo: z
+			.object({
+				databaseUser: z.string().min(1),
+				databasePassword: z.string(),
+			})
+			.optional(),
+		mysql: z
+			.object({
+				databaseRootPassword: z.string(),
+			})
+			.optional(),
+	})
+	.strict();
+const apiBackupMetadata = backupMetadataSchema.nullable().optional();
+
 export const databaseType = pgEnum("databaseType", [
 	"postgres",
 	"mariadb",
@@ -141,11 +183,12 @@ export const backupsRelations = relations(backups, ({ one, many }) => ({
 const createSchema = createInsertSchema(backups, {
 	backupId: z.string(),
 	destinationId: z.string(),
-	enabled: z.boolean().optional(),
+	enabled: z.boolean().nullable().optional(),
 	prefix: z.string().min(1),
-	database: z.string().min(1),
+	database: safeBackupShellName("Database name"),
+	serviceName: safeBackupShellName("Service name").nullable().optional(),
 	schedule: z.string(),
-	keepLatestCount: z.number().optional(),
+	keepLatestCount: safeBackupRetentionCount,
 	databaseType: z.enum([
 		"postgres",
 		"mariadb",
@@ -154,34 +197,39 @@ const createSchema = createInsertSchema(backups, {
 		"web-server",
 		"libsql",
 	]),
-	postgresId: z.string().optional(),
-	mariadbId: z.string().optional(),
-	mysqlId: z.string().optional(),
-	mongoId: z.string().optional(),
-	libsqlId: z.string().optional(),
-	userId: z.string().optional(),
-	metadata: z.any().optional(),
+	postgresId: z.string().nullable().optional(),
+	mariadbId: z.string().nullable().optional(),
+	mysqlId: z.string().nullable().optional(),
+	mongoId: z.string().nullable().optional(),
+	libsqlId: z.string().nullable().optional(),
+	userId: z.string().nullable().optional(),
+	metadata: apiBackupMetadata,
 });
 
-export const apiCreateBackup = createSchema.pick({
-	schedule: true,
-	enabled: true,
-	prefix: true,
-	destinationId: true,
-	keepLatestCount: true,
-	database: true,
-	mariadbId: true,
-	mysqlId: true,
-	postgresId: true,
-	mongoId: true,
-	libsqlId: true,
-	databaseType: true,
-	userId: true,
-	backupType: true,
-	composeId: true,
-	serviceName: true,
-	metadata: true,
-});
+export const apiCreateBackup = createSchema
+	.pick({
+		schedule: true,
+		enabled: true,
+		prefix: true,
+		destinationId: true,
+		keepLatestCount: true,
+		database: true,
+		mariadbId: true,
+		mysqlId: true,
+		postgresId: true,
+		mongoId: true,
+		libsqlId: true,
+		databaseType: true,
+		userId: true,
+		backupType: true,
+		composeId: true,
+		serviceName: true,
+		metadata: true,
+	})
+	.extend({
+		metadata: apiBackupMetadata,
+		serviceName: safeBackupShellName("Service name").nullable().optional(),
+	});
 
 export const apiFindOneBackup = z.object({
 	backupId: z.string().min(1),
@@ -206,7 +254,11 @@ export const apiUpdateBackup = createSchema
 		metadata: true,
 		databaseType: true,
 	})
-	.required();
+	.required()
+	.extend({
+		metadata: apiBackupMetadata,
+		serviceName: safeBackupShellName("Service name").nullable().optional(),
+	});
 
 export const apiRestoreBackup = z.object({
 	databaseId: z.string(),
@@ -219,26 +271,26 @@ export const apiRestoreBackup = z.object({
 		"libsql",
 	]),
 	backupType: z.enum(["database", "compose"]),
-	databaseName: z.string().min(1),
+	databaseName: safeBackupShellName("Database name"),
 	backupFile: z.string().min(1),
 	destinationId: z.string().min(1),
 	metadata: z
 		.object({
-			serviceName: z.string().optional(),
+			serviceName: safeBackupShellName("Service name").optional(),
 			postgres: z
 				.object({
-					databaseUser: z.string(),
+					databaseUser: z.string().min(1),
 				})
 				.optional(),
 			mariadb: z
 				.object({
-					databaseUser: z.string(),
+					databaseUser: z.string().min(1),
 					databasePassword: z.string(),
 				})
 				.optional(),
 			mongo: z
 				.object({
-					databaseUser: z.string(),
+					databaseUser: z.string().min(1),
 					databasePassword: z.string(),
 				})
 				.optional(),
