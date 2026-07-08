@@ -94,4 +94,27 @@ describe("readValidDirectory (path traversal)", () => {
 			),
 		).toBe(true);
 	});
+
+	it("returns true for Next.js static export chunk paths", () => {
+		expect(
+			readValidDirectory(
+				`${BASE}/applications/myapp/code/out/_next/static/chunks/0.qc0y~mo5hro.js`,
+			),
+		).toBe(true);
+		expect(
+			readValidDirectory(
+				`${BASE}/applications/myapp/code/out/_next/static/chunks/__next.!KGFwcCk.txt`,
+			),
+		).toBe(true);
+		expect(
+			readValidDirectory(
+				`${BASE}/applications/myapp/code/out/(app)/$id.js`,
+			),
+		).toBe(true);
+		expect(
+			readValidDirectory(
+				`${BASE}/applications/myapp/code/out/components=page,chunk+1.js`,
+			),
+		).toBe(true);
+	});
 });
