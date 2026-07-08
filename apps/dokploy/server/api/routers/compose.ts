@@ -51,6 +51,7 @@ import {
 import { processTemplate } from "@dokploy/server/templates/processors";
 import { assertCustomGitUrlAllowed } from "@dokploy/server/utils/providers/git";
 import {
+	isSecretPlaceholderValue,
 	preserveSecretPlaceholderFields,
 	redactDeployableServiceSecrets,
 	redactSecretFields,
@@ -129,6 +130,17 @@ type ComposeSourceUpdateInput = {
 
 const hasComposeSourceUpdate = (input: ComposeSourceUpdateInput) =>
 	composeSourceUpdateFields.some((field) => Object.hasOwn(input, field));
+
+const composeSecretPlaceholderFields = [
+	"env",
+	"composeFile",
+	"customGitUrl",
+] as const;
+
+const hasComposeSecretPlaceholder = (input: ComposeSourceUpdateInput) =>
+	composeSecretPlaceholderFields.some((field) =>
+		isSecretPlaceholderValue(input[field]),
+	);
 
 const getCurrentComposeGitProviderId = (
 	compose: Awaited<ReturnType<typeof findComposeById>>,
@@ -351,15 +363,14 @@ export const composeRouter = createTRPCRouter({
 			if (input.customGitUrl) {
 				await assertCustomGitUrlAllowed(input.customGitUrl);
 			}
-			const currentCompose = await findComposeById(input.composeId);
-			const updated = await updateCompose(
-				input.composeId,
-				preserveSecretPlaceholderFields(input, currentCompose, [
-					"env",
-					"composeFile",
-					"customGitUrl",
-				]),
-			);
+			const updateData = hasComposeSecretPlaceholder(input)
+				? preserveSecretPlaceholderFields(
+						input,
+						await findComposeById(input.composeId),
+						composeSecretPlaceholderFields,
+					)
+				: input;
+			const updated = await updateCompose(input.composeId, updateData);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "compose",

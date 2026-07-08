@@ -933,6 +933,35 @@ describe("deploy source credential access", () => {
 		expect(serverMocks.updateCompose).toHaveBeenCalled();
 	});
 
+	it("preserves redacted compose placeholders only when they are present", async () => {
+		serverMocks.findComposeById.mockResolvedValueOnce({
+			composeId: "compose-1",
+			composeFile: "services:\n  app:\n    image: nginx",
+			env: "COMPOSE_SECRET=secret",
+			sourceType: "raw",
+		});
+
+		await expect(
+			composeRouter.createCaller(createContext()).update({
+				composeFile: REDACTED_SECRET_VALUE,
+				composeId: "compose-1",
+				env: REDACTED_SECRET_VALUE,
+				name: "compose-renamed",
+			}),
+		).resolves.toEqual({ composeId: "compose-1" });
+
+		expect(serverMocks.findComposeById).toHaveBeenCalledWith("compose-1");
+		expect(serverMocks.canEditDeployGitSource).not.toHaveBeenCalled();
+		expect(serverMocks.updateCompose).toHaveBeenCalledWith(
+			"compose-1",
+			expect.objectContaining({
+				composeFile: "services:\n  app:\n    image: nginx",
+				env: "COMPOSE_SECRET=secret",
+				name: "compose-renamed",
+			}),
+		);
+	});
+
 	it("rejects Bitbucket owner outside the configured workspace before compose source persistence", async () => {
 		await expect(
 			composeRouter.createCaller(createContext()).update({
