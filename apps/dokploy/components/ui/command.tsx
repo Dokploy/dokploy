@@ -56,9 +56,7 @@ function CommandDialog({
 					<DialogTitle>{title}</DialogTitle>
 					<DialogDescription>{description}</DialogDescription>
 				</DialogHeader>
-				<Command>
-					{children}
-				</Command>
+				<Command>{children}</Command>
 			</DialogContent>
 		</Dialog>
 	);

@@ -91,7 +91,11 @@ const resizeImage = (file: File, maxSize: number): Promise<string> => {
 	});
 };
 
-export function AddOrganization({ organizationId, open: controlledOpen, onOpenChange: controlledOnOpenChange }: Props) {
+export function AddOrganization({
+	organizationId,
+	open: controlledOpen,
+	onOpenChange: controlledOnOpenChange,
+}: Props) {
 	const [internalOpen, setInternalOpen] = useState(false);
 	const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 	const isControlled = controlledOpen !== undefined;
@@ -277,64 +281,64 @@ export function AddOrganization({ organizationId, open: controlledOpen, onOpenCh
 								const displayValue = isDataUrl
 									? uploadedFileName || "Uploaded image"
 									: field.value || "";
-								
+
 								return (
-								<FormItem className="gap-4">
-									<FormLabel className="text-right">
-										Logo URL or Upload
-									</FormLabel>
-									<FormControl>
-										<div className="col-span-3 flex flex-col gap-3">
-											<div className="flex items-center gap-3">
-												<div className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-muted/50 p-1">
-													{field.value ? (
-														// biome-ignore lint/performance/noImgElement: user uploaded logo preview
-														<img
-															src={field.value}
-															alt="Logo preview"
-															className="size-full object-contain"
-														/>
-													) : (
-														<GlobeIcon className="size-5 text-muted-foreground" />
-													)}
-												</div>
-												<div className="relative flex-1">
-													<Input
-														placeholder="https://example.com/logo.png"
-														{...field}
-														value={displayValue}
-														readOnly={isDataUrl}
-														onChange={(e) => {
-															field.onChange(e);
-															if (isDataUrl) setUploadedFileName(null);
-														}}
-														className="w-full pr-8"
-													/>
-													{field.value && (
-														<button
-															type="button"
-															onClick={() => {
-																form.setValue("logo", "");
-																setUploadedFileName(null);
+									<FormItem className="gap-4">
+										<FormLabel className="text-right">
+											Logo URL or Upload
+										</FormLabel>
+										<FormControl>
+											<div className="col-span-3 flex flex-col gap-3">
+												<div className="flex items-center gap-3">
+													<div className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-muted/50 p-1">
+														{field.value ? (
+															// biome-ignore lint/performance/noImgElement: user uploaded logo preview
+															<img
+																src={field.value}
+																alt="Logo preview"
+																className="size-full object-contain"
+															/>
+														) : (
+															<GlobeIcon className="size-5 text-muted-foreground" />
+														)}
+													</div>
+													<div className="relative flex-1">
+														<Input
+															placeholder="https://example.com/logo.png"
+															{...field}
+															value={displayValue}
+															readOnly={isDataUrl}
+															onChange={(e) => {
+																field.onChange(e);
+																if (isDataUrl) setUploadedFileName(null);
 															}}
-															className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-														>
-															<X className="size-4" />
-														</button>
-													)}
+															className="w-full pr-8"
+														/>
+														{field.value && (
+															<button
+																type="button"
+																onClick={() => {
+																	form.setValue("logo", "");
+																	setUploadedFileName(null);
+																}}
+																className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+															>
+																<X className="size-4" />
+															</button>
+														)}
+													</div>
 												</div>
+												<Dropzone
+													dropMessage="Drag & drop a logo or click to upload"
+													accept=".jpg,.jpeg,.png,.svg,.webp,image/jpeg,image/png,image/svg+xml,image/webp"
+													onChange={handleFileUpload}
+													classNameWrapper="border-2 border-dashed border-border hover:border-primary bg-muted/30 hover:bg-muted/50 transition-all rounded-lg"
+													classNameContent="h-32"
+												/>
 											</div>
-											<Dropzone
-												dropMessage="Drag & drop a logo or click to upload"
-												accept=".jpg,.jpeg,.png,.svg,.webp,image/jpeg,image/png,image/svg+xml,image/webp"
-												onChange={handleFileUpload}
-												classNameWrapper="border-2 border-dashed border-border hover:border-primary bg-muted/30 hover:bg-muted/50 transition-all rounded-lg"
-												classNameContent="h-32"
-											/>
-										</div>
-									</FormControl>
-									<FormMessage className="col-span-3 col-start-2" />
-								</FormItem>
+										</FormControl>
+										<FormMessage className="col-span-3 col-start-2" />
+									</FormItem>
 								);
 							}}
 						/>

@@ -576,7 +576,9 @@ function SidebarLogo() {
 	const [_activeTeam, setActiveTeam] = useState<
 		typeof activeOrganization | null
 	>(null);
-	const [editOrganizationId, setEditOrganizationId] = useState<string | null>(null);
+	const [editOrganizationId, setEditOrganizationId] = useState<string | null>(
+		null,
+	);
 	const [isAddOrganizationOpen, setIsAddOrganizationOpen] = useState(false);
 
 	useEffect(() => {
