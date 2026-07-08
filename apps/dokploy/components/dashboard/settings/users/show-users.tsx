@@ -97,6 +97,7 @@ export const ShowUsers = () => {
 												<TableRow>
 													<TableHead className="w-[100px]">Email</TableHead>
 													<TableHead className="text-center">Role</TableHead>
+													<TableHead className="text-center">Status</TableHead>
 													<TableHead className="text-center">2FA</TableHead>
 
 													<TableHead className="text-center">
@@ -171,6 +172,17 @@ export const ShowUsers = () => {
 																	}
 																>
 																	{member.role}
+																</Badge>
+															</TableCell>
+															<TableCell className="text-center">
+																<Badge
+																	variant={
+																		member.user.banned
+																			? "destructive"
+																			: "outline"
+																	}
+																>
+																	{member.user.banned ? "Deactivated" : "Active"}
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">

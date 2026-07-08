@@ -1,5 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import { apiKey } from "@better-auth/api-key";
+import { scim } from "@better-auth/scim";
 import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
@@ -180,7 +181,8 @@ const { handler, api } = betterAuth({
 							}
 						} else {
 							const isSSORequest = context?.path.includes("/sso");
-							if (isSSORequest) {
+							const isSCIMRequest = context?.path.includes("/scim");
+							if (isSSORequest || isSCIMRequest) {
 								return;
 							}
 							const isAdminPresent = await db.query.member.findFirst({
@@ -196,6 +198,7 @@ const { handler, api } = betterAuth({
 				},
 				after: async (user, context) => {
 					const isSSORequest = context?.path.includes("/sso");
+					const isSCIMRequest = context?.path.includes("/scim");
 					const isAdminPresent = await db.query.member.findFirst({
 						where: eq(schema.member.role, "owner"),
 					});
@@ -229,6 +232,10 @@ const { handler, api } = betterAuth({
 						} catch (error) {
 							console.error("Error submitting to HubSpot", error);
 						}
+					}
+
+					if (isSCIMRequest) {
+						return;
 					}
 
 					if (IS_CLOUD || !isAdminPresent) {
@@ -398,7 +405,25 @@ const { handler, api } = betterAuth({
 			enableMetadata: true,
 			references: "user",
 		}),
-		sso(),
+		sso({
+			saml: {
+				enableInResponseToValidation: false,
+			},
+		}),
+		scim({
+			beforeSCIMTokenGenerated: async ({ user }) => {
+				const dbUser = await db.query.user.findFirst({
+					where: eq(schema.user.id, user.id),
+					columns: { enableEnterpriseFeatures: true },
+				});
+
+				if (!dbUser?.enableEnterpriseFeatures) {
+					throw new APIError("FORBIDDEN", {
+						message: "SCIM provisioning requires an enterprise license",
+					});
+				}
+			},
+		}),
 		twoFactor(),
 		organization({
 			ac,
@@ -412,13 +437,14 @@ const { handler, api } = betterAuth({
 				maximumRolesPerOrganization: 10,
 			},
 		}),
-		...(IS_CLOUD
-			? [
-					admin({
-						adminUserIds: [process.env.USER_ADMIN_ID as string],
-					}),
-				]
-			: []),
+		// Self-hosted needs the admin plugin too: SCIM deactivation (active: false)
+		// maps to the admin plugin's `banned` field and is rejected without it.
+		// adminRoles: [] keeps every /admin/* endpoint locked on self-hosted.
+		admin(
+			IS_CLOUD
+				? { adminUserIds: [process.env.USER_ADMIN_ID as string] }
+				: { adminRoles: [] },
+		),
 	],
 });
 
@@ -427,6 +453,9 @@ const _auth = {
 	createApiKey: api.createApiKey,
 	registerSSOProvider: api.registerSSOProvider,
 	updateSSOProvider: api.updateSSOProvider,
+	generateSCIMToken: api.generateSCIMToken,
+	listSCIMProviderConnections: api.listSCIMProviderConnections,
+	deleteSCIMProviderConnection: api.deleteSCIMProviderConnection,
 };
 
 export type AuthType = typeof _auth;
