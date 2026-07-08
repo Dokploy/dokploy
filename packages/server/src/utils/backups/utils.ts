@@ -25,6 +25,7 @@ import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
+import { redactRcloneCredentials } from "./redact";
 import { runWebServerBackup } from "./web-server";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
@@ -449,7 +450,9 @@ export const getBackupCommand = (
 		{
 			containerSearch,
 			backupCommand: redactSensitiveText(backupCommand),
-			rcloneCommand: redactSensitiveText(rcloneCommand),
+			rcloneCommand: redactSensitiveText(
+				redactRcloneCredentials(rcloneCommand),
+			),
 			logPath,
 		},
 		`Executing backup command: ${backup.databaseType} ${backup.backupType}`,

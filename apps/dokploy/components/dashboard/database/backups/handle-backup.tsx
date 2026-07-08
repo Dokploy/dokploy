@@ -409,7 +409,7 @@ export const HandleBackup = ({
 													<Button
 														variant="outline"
 														className={cn(
-															"w-full justify-between bg-input!",
+															"w-full justify-between",
 															!field.value && "text-muted-foreground",
 														)}
 													>

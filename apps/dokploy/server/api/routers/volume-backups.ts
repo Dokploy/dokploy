@@ -39,6 +39,7 @@ import {
 	assertTargetServerAccess,
 	type PlacementServiceType,
 } from "@/server/api/utils/placement-access";
+import { assertVolumeBackupLimit } from "@/server/api/utils/plan-limits";
 import {
 	removeJob,
 	removeSignedJob,
@@ -363,6 +364,21 @@ export const volumeBackupsRouter = createTRPCRouter({
 				...serviceFields,
 				volumeName: input.volumeName,
 			});
+			if (IS_CLOUD) {
+				const serviceBinding =
+					getVolumeBackupServiceBindings(serviceFields)[0] ??
+					throwUnboundVolumeBackup();
+				const existingVolumeBackups = await db.query.volumeBackups.findMany({
+					where: eq(
+						volumeBackups[`${serviceBinding.type}Id`],
+						serviceBinding.id,
+					),
+				});
+				await assertVolumeBackupLimit(
+					ctx.session.activeOrganizationId,
+					existingVolumeBackups.length,
+				);
+			}
 			const newVolumeBackup = await createVolumeBackup(input);
 
 			if (newVolumeBackup?.enabled) {

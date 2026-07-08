@@ -2,13 +2,25 @@
 
 import { Popover as PopoverPrimitive } from "radix-ui";
 import type * as React from "react";
-
+import { markNestedPopupClosed } from "@/components/ui/nested-popup-context";
 import { cn } from "@/lib/utils";
 
 function Popover({
+	onOpenChange,
 	...props
 }: React.ComponentProps<typeof PopoverPrimitive.Root>) {
-	return <PopoverPrimitive.Root data-slot="popover" {...props} />;
+	return (
+		<PopoverPrimitive.Root
+			data-slot="popover"
+			onOpenChange={(open) => {
+				if (!open) {
+					markNestedPopupClosed();
+				}
+				onOpenChange?.(open);
+			}}
+			{...props}
+		/>
+	);
 }
 
 function PopoverTrigger({

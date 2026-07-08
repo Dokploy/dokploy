@@ -260,6 +260,10 @@ describe("environment secret boundary", () => {
 			.createCaller(createContext("owner"))
 			.byProjectId({ projectId: "project-1" });
 
+		if (!result) {
+			throw new Error("Expected environment result");
+		}
+
 		expect(result.applications[0]).toMatchObject({
 			env: REDACTED_SECRET_VALUE,
 			previewEnv: REDACTED_SECRET_VALUE,

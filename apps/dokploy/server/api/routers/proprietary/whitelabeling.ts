@@ -1,5 +1,7 @@
 import {
+	getPublicWhitelabelingConfig,
 	getWebServerSettings,
+	hasValidLicense,
 	IS_CLOUD,
 	updateWebServerSettings,
 } from "@dokploy/server";
@@ -13,8 +15,11 @@ import {
 } from "../../trpc";
 
 export const whitelabelingRouter = createTRPCRouter({
-	get: protectedProcedure.query(async () => {
+	get: protectedProcedure.query(async ({ ctx }) => {
 		if (IS_CLOUD) {
+			return null;
+		}
+		if (!(await hasValidLicense(ctx.session.activeOrganizationId))) {
 			return null;
 		}
 		const settings = await getWebServerSettings();
@@ -82,25 +87,5 @@ export const whitelabelingRouter = createTRPCRouter({
 
 	// Public endpoint only for unauthenticated pages (login, register, error)
 	// Returns only the fields needed for public pages
-	getPublic: publicProcedure.query(async () => {
-		if (IS_CLOUD) {
-			return null;
-		}
-		const settings = await getWebServerSettings();
-		const config = settings?.whitelabelingConfig;
-		if (!config) return null;
-
-		return {
-			appName: config.appName,
-			appDescription: config.appDescription,
-			logoUrl: config.logoUrl,
-			loginLogoUrl: config.loginLogoUrl,
-			faviconUrl: config.faviconUrl,
-			customCss: config.customCss,
-			metaTitle: config.metaTitle,
-			errorPageTitle: config.errorPageTitle,
-			errorPageDescription: config.errorPageDescription,
-			footerText: config.footerText,
-		};
-	}),
+	getPublic: publicProcedure.query(() => getPublicWhitelabelingConfig()),
 });

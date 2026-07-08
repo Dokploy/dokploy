@@ -28,7 +28,7 @@ interface DockerOutput {
 	dockerCompose: string;
 	envVariables: Array<{ name: string; value: string }>;
 	domains: Array<{ host: string; port: number; serviceName: string }>;
-	configFiles?: Array<{ content: string; filePath: string }>;
+	configFiles?: Array<{ content: string; filePath: string }> | null;
 }
 
 export const getAiSettingsByOrganizationId = async (organizationId: string) => {
@@ -187,7 +187,7 @@ export const suggestVariants = async ({
 								filePath: z.string(),
 							}),
 						)
-						.optional(),
+						.nullable(),
 				}),
 			),
 		});
@@ -248,12 +248,12 @@ export const suggestVariants = async ({
 		    1. ALWAYS use 'image:' field, NEVER use 'build:' field
 		    2. NEVER use 'build: .' or any build directive - we don't have local Dockerfiles
 		    3. Use images from Docker Hub or other public registries (e.g., docker.io, ghcr.io, quay.io)
-		    4. For dependencies (databases, redis, etc.), use official images (e.g., postgres:16, redis:7, etc.)
+		    4. For dependencies (databases, redis, etc.), use official images (e.g., postgres:16, redis:8, etc.)
 		    5. Always specify image tags - avoid using 'latest' tag, use specific versions when possible
 		    6. Examples of correct image usage:
 		       - image: sendingtk/chatwoot:develop
 		       - image: postgres:16-alpine
-		       - image: redis:7-alpine
+		       - image: redis:8-alpine
 		    7. Examples of INCORRECT usage (DO NOT USE):
 		       - build: .
 		       - build: ./app

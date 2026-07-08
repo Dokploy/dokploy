@@ -11,6 +11,7 @@ import {
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { sendDokployBackupNotifications } from "../notifications/dokploy-backup";
 import { execAsync } from "../process/execAsync";
+import { redactRcloneCredentials } from "./redact";
 import {
 	assertRcloneS3DestinationAllowed,
 	buildRcloneS3Command,
@@ -126,20 +127,23 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			try {
 				await rm(tempDir, { recursive: true, force: true });
 			} catch (cleanupError) {
-				console.error("Cleanup error:", cleanupError);
+				console.error(
+					"Cleanup error:",
+					redactRcloneCredentials(String(cleanupError)),
+				);
 			}
 		}
 	} catch (error) {
-		console.error("Backup error:", error);
-		writeStream.write("Backup error❌\n");
-		writeStream.write(
-			error instanceof Error ? error.message : "Unknown error\n",
+		const safeErrorMessage = redactRcloneCredentials(
+			error instanceof Error ? error.message : String(error),
 		);
+		console.error("Backup error:", redactRcloneCredentials(String(error)));
+		writeStream.write("Backup error❌\n");
+		writeStream.write(`${safeErrorMessage}\n`);
 		writeStream.end();
 		await sendDokployBackupNotifications({
 			type: "error",
-			// @ts-expect-error
-			errorMessage: error?.message || "Error message not provided",
+			errorMessage: safeErrorMessage || "Error message not provided",
 			backupSize: formatBytes(computedBackupSize),
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");

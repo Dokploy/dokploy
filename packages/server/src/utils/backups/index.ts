@@ -12,6 +12,7 @@ import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { quoteShellArgument } from "../shell";
+import { redactRcloneCredentials } from "./redact";
 import {
 	assertRcloneS3DestinationAllowed,
 	buildRcloneS3Command,
@@ -178,6 +179,6 @@ export const keepLatestNBackups = async (
 			await execAsync(rcloneCommand);
 		}
 	} catch (error) {
-		console.error(error);
+		console.error(redactRcloneCredentials(String(error)));
 	}
 };

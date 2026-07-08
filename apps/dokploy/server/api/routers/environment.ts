@@ -4,6 +4,7 @@ import {
 	duplicateEnvironment,
 	findEnvironmentById,
 	findEnvironmentsByProjectId,
+	IS_CLOUD,
 	updateEnvironmentById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
@@ -30,6 +31,7 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import { assertTargetProjectAccess } from "@/server/api/utils/placement-access";
+import { assertEnvironmentLimit } from "@/server/api/utils/plan-limits";
 import {
 	apiCreateEnvironment,
 	apiDuplicateEnvironment,
@@ -233,6 +235,12 @@ export const environmentRouter = createTRPCRouter({
 			try {
 				await checkEnvironmentCreationPermission(ctx, input.projectId);
 				await assertTargetProjectAccess(ctx, input.projectId);
+				if (IS_CLOUD) {
+					await assertEnvironmentLimit(
+						ctx.session.activeOrganizationId,
+						input.projectId,
+					);
+				}
 
 				if (input.name === "production") {
 					throw new TRPCError({

@@ -6,6 +6,7 @@ import {
 	findAllDeploymentsByServerId,
 	findAllDeploymentsCentralized,
 	findDeploymentById,
+	findScheduleById,
 	getAccessibleServerIds,
 	IS_CLOUD,
 	removeDeployment,
@@ -222,9 +223,24 @@ export const deploymentRouter = createTRPCRouter({
 	allByType: protectedProcedure
 		.input(apiFindAllByType)
 		.query(async ({ input, ctx }) => {
-			await checkServicePermissionAndAccess(ctx, input.id, {
-				deployment: ["read"],
-			});
+			if (input.type === "schedule") {
+				const schedule = await findScheduleById(input.id);
+				const serviceId = schedule.applicationId || schedule.composeId;
+				if (serviceId) {
+					await checkServicePermissionAndAccess(ctx, serviceId, {
+						deployment: ["read"],
+					});
+				} else {
+					await checkPermission(ctx, { deployment: ["read"] });
+					if (schedule.serverId) {
+						await assertTargetServerAccess(ctx, schedule.serverId);
+					}
+				}
+			} else {
+				await checkServicePermissionAndAccess(ctx, input.id, {
+					deployment: ["read"],
+				});
+			}
 			const deploymentsList = await db.query.deployments.findMany({
 				where: eq(deployments[`${input.type}Id`], input.id),
 				orderBy: desc(deployments.createdAt),

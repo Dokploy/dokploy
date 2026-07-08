@@ -24,6 +24,7 @@ import { asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { assertTargetServerAccess } from "@/server/api/utils/placement-access";
+import { assertScheduledJobLimit } from "@/server/api/utils/plan-limits";
 import {
 	removeJob,
 	removeSignedJob,
@@ -158,6 +159,13 @@ export const scheduleRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["create"],
 				});
+				if (IS_CLOUD) {
+					await assertScheduledJobLimit(
+						ctx.session.activeOrganizationId,
+						input.applicationId ? "application" : "compose",
+						serviceId,
+					);
+				}
 			} else {
 				if (input.scheduleType === "dokploy-server" && IS_CLOUD) {
 					throw new TRPCError({
@@ -188,6 +196,13 @@ export const scheduleRouter = createTRPCRouter({
 
 				if (input.scheduleType === "server" && input.serverId) {
 					await assertTargetServerAccess(ctx, input.serverId);
+					if (IS_CLOUD) {
+						await assertScheduledJobLimit(
+							ctx.session.activeOrganizationId,
+							"server",
+							input.serverId,
+						);
+					}
 				}
 			}
 			const newSchedule = await createSchedule({

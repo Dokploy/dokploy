@@ -1,12 +1,25 @@
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui";
 import type * as React from "react";
+import { markNestedPopupClosed } from "@/components/ui/nested-popup-context";
 import { cn } from "@/lib/utils";
 
 function DropdownMenu({
+	onOpenChange,
 	...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
-	return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />;
+	return (
+		<DropdownMenuPrimitive.Root
+			data-slot="dropdown-menu"
+			onOpenChange={(open) => {
+				if (!open) {
+					markNestedPopupClosed();
+				}
+				onOpenChange?.(open);
+			}}
+			{...props}
+		/>
+	);
 }
 
 function DropdownMenuPortal({

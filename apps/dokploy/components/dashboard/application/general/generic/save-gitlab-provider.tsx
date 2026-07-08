@@ -197,6 +197,9 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 									<FormLabel>Gitlab Account</FormLabel>
 									<Select
 										onValueChange={(value) => {
+											if (!value) {
+												return;
+											}
 											field.onChange(value);
 											form.setValue("repository", {
 												owner: "",
@@ -206,7 +209,6 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 											});
 											form.setValue("branch", "");
 										}}
-										defaultValue={field.value}
 										value={field.value}
 									>
 										<FormControl>
@@ -255,7 +257,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between bg-input!",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -352,7 +354,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														" w-full justify-between bg-input!",
+														" w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
