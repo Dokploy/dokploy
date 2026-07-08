@@ -35,6 +35,27 @@ export const redactSecretFields = <T extends SecretRecord | null | undefined>(
 	return redacted as T;
 };
 
+export function redactSensitiveText(value: string): string;
+export function redactSensitiveText(value: null): null;
+export function redactSensitiveText(value: undefined): undefined;
+export function redactSensitiveText(value: string | null): string | null;
+export function redactSensitiveText(
+	value: string | undefined,
+): string | undefined;
+export function redactSensitiveText(
+	value: string | null | undefined,
+): string | null | undefined;
+export function redactSensitiveText(value: string | null | undefined) {
+	if (typeof value !== "string" || value === "") {
+		return value;
+	}
+
+	return value.replace(
+		/(\b[a-z][a-z0-9+.-]*:\/\/)([^@\s/?#]+)@/gi,
+		`$1${REDACTED_SECRET_VALUE}@`,
+	);
+}
+
 const redactNestedServerSecrets = <T>(server: T): T => {
 	if (!server || typeof server !== "object") {
 		return server;

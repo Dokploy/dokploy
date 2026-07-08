@@ -4,6 +4,7 @@ import {
 	redactDatabaseServiceSecrets,
 	redactDeployableServiceSecrets,
 	redactSecretFields,
+	redactSensitiveText,
 } from "@dokploy/server/utils/security/redaction";
 import { describe, expect, it } from "vitest";
 
@@ -84,5 +85,14 @@ describe("env secret redaction helpers", () => {
 			env: REDACTED_SECRET_VALUE,
 			name: "stack",
 		});
+	});
+
+	it("redacts credentials embedded in custom git urls", () => {
+		expect(
+			redactSensitiveText("https://git-token@example.com/org/private.git"),
+		).toBe(`https://${REDACTED_SECRET_VALUE}@example.com/org/private.git`);
+		expect(redactSensitiveText("https://example.com/org/public.git")).toBe(
+			"https://example.com/org/public.git",
+		);
 	});
 });
