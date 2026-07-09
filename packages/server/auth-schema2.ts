@@ -22,6 +22,9 @@ export const user = pgTable("user", {
 		.notNull(),
 	twoFactorEnabled: boolean("two_factor_enabled").default(false),
 	role: text("role"),
+	banned: boolean("banned").default(false),
+	banReason: text("ban_reason"),
+	banExpires: timestamp("ban_expires"),
 	ownerId: text("owner_id"),
 	allowImpersonation: boolean("allow_impersonation").default(false),
 	lastName: text("last_name").default(""),
@@ -45,6 +48,7 @@ export const session = pgTable(
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
 		activeOrganizationId: text("active_organization_id"),
+		impersonatedBy: text("impersonated_by"),
 	},
 	(table) => [index("session_userId_idx").on(table.userId)],
 );
@@ -142,6 +146,9 @@ export const twoFactor = pgTable(
 		userId: text("user_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
+		verified: boolean("verified").default(true),
+		failedVerificationCount: integer("failed_verification_count").default(0),
+		lockedUntil: timestamp("locked_until"),
 	},
 	(table) => [
 		index("twoFactor_secret_idx").on(table.secret),
@@ -222,6 +229,13 @@ export const invitation = pgTable(
 		index("invitation_email_idx").on(table.email),
 	],
 );
+
+export const scimProvider = pgTable("scim_provider", {
+	id: text("id").primaryKey(),
+	providerId: text("provider_id").notNull().unique(),
+	scimToken: text("scim_token").notNull().unique(),
+	organizationId: text("organization_id"),
+});
 
 export const userRelations = relations(user, ({ many }) => ({
 	sessions: many(session),
