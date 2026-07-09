@@ -79,7 +79,7 @@ const Schema = z
 		schedule: z.string().min(1, "Schedule (Cron) required"),
 		prefix: z.string().min(1, "Prefix required"),
 		enabled: z.boolean(),
-		database: z.string().min(1, "Database required"),
+		database: z.string(),
 		keepLatestCount: z.coerce.number().optional(),
 		serviceName: z.string().nullable(),
 		databaseType: z
@@ -114,6 +114,14 @@ const Schema = z
 			.optional(),
 	})
 	.superRefine((data, ctx) => {
+		if (!data.database && data.databaseType !== "mongo") {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Database required",
+				path: ["database"],
+			});
+		}
+
 		if (data.backupType === "compose" && !data.databaseType) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
@@ -580,6 +588,8 @@ export const HandleBackup = ({
 								control={form.control}
 								name="database"
 								render={({ field }) => {
+									const currentDbType =
+										form.watch("databaseType") || databaseType;
 									return (
 										<FormItem>
 											<FormLabel>Database</FormLabel>
@@ -593,6 +603,11 @@ export const HandleBackup = ({
 													{...field}
 												/>
 											</FormControl>
+											{currentDbType === "mongo" && (
+												<FormDescription>
+													Leave empty to back up all databases
+												</FormDescription>
+											)}
 											<FormMessage />
 										</FormItem>
 									);

@@ -143,7 +143,7 @@ const createSchema = createInsertSchema(backups, {
 	destinationId: z.string(),
 	enabled: z.boolean().optional(),
 	prefix: z.string().min(1),
-	database: z.string().min(1),
+	database: z.string(),
 	schedule: z.string(),
 	keepLatestCount: z.number().optional(),
 	databaseType: z.enum([
@@ -161,6 +161,14 @@ const createSchema = createInsertSchema(backups, {
 	libsqlId: z.string().optional(),
 	userId: z.string().optional(),
 	metadata: z.any().optional(),
+}).superRefine((data, ctx) => {
+	if (!data.database && data.databaseType !== "mongo") {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			message: "Database is required for this database type",
+			path: ["database"],
+		});
+	}
 });
 
 export const apiCreateBackup = createSchema.pick({
