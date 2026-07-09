@@ -46,7 +46,6 @@ import {
 	redis,
 	server,
 } from "@/server/db/schema";
-import { assertBuildsConcurrencyAllowed } from "@/server/queues/concurrency";
 import { applyDockerCleanupSchedule } from "@/server/utils/docker-cleanup";
 
 export const serverRouter = createTRPCRouter({
@@ -491,10 +490,6 @@ export const serverRouter = createTRPCRouter({
 					message: "You are not authorized to update this server",
 				});
 			}
-			await assertBuildsConcurrencyAllowed(
-				input.buildsConcurrency,
-				ctx.session.activeOrganizationId,
-			);
 			return await updateServerById(input.serverId, {
 				buildsConcurrency: input.buildsConcurrency,
 			});
