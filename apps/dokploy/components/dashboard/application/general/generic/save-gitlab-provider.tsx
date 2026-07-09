@@ -462,14 +462,14 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 												<button
 													type="button"
 													aria-label="Remove watch path"
-													className="cursor-pointer hover:text-destructive"
+													className="inline-flex items-center focus-visible:ring-2"
 													onClick={() => {
 														const newPaths = [...(field.value || [])];
 														newPaths.splice(index, 1);
 														field.onChange(newPaths);
 													}}
 												>
-													<X className="size-3" />
+													<X className="size-3 cursor-pointer hover:text-destructive" />
 												</button>
 											</Badge>
 										))}

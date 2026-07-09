@@ -434,14 +434,14 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 												<button
 													type="button"
 													aria-label="Remove watch path"
-													className="ml-1 cursor-pointer hover:text-destructive"
+													className="inline-flex items-center focus-visible:ring-2"
 													onClick={() => {
 														const newPaths = [...(field.value || [])];
 														newPaths.splice(index, 1);
 														form.setValue("watchPaths", newPaths);
 													}}
 												>
-													<X className="size-3" />
+													<X className="ml-1 size-3 cursor-pointer" />
 												</button>
 											</Badge>
 										))}
