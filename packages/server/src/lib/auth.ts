@@ -4,7 +4,7 @@ import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
@@ -28,6 +28,37 @@ import {
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 import { betterAuthSecret } from "./auth-secret";
+
+const resolveTrustedOrigins = async () => {
+	try {
+		if (IS_CLOUD) {
+			return await getTrustedOrigins();
+		}
+		const [trustedOrigins, settings] = await Promise.all([
+			getTrustedOrigins(),
+			getWebServerSettings(),
+		]);
+
+		if (!settings) return [];
+
+		const devOrigins =
+			process.env.NODE_ENV === "development"
+				? [
+						"http://localhost:3000",
+						"https://absolutely-handy-falcon.ngrok-free.app",
+					]
+				: [];
+		return [
+			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
+			...(settings?.host ? [`https://${settings?.host}`] : []),
+			...devOrigins,
+			...trustedOrigins,
+		];
+	} catch (error) {
+		console.error("Failed to resolve trusted origins:", error);
+		return [];
+	}
+};
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -80,33 +111,14 @@ const { handler, api } = betterAuth({
 	logger: {
 		disabled: process.env.NODE_ENV === "production",
 	},
-	async trustedOrigins() {
-		try {
-			if (IS_CLOUD) {
-				return await getTrustedOrigins();
-			}
-			const [trustedOrigins, settings] = await Promise.all([
-				getTrustedOrigins(),
-				getWebServerSettings(),
-			]);
-			if (!settings) return [];
-			const devOrigins =
-				process.env.NODE_ENV === "development"
-					? [
-							"http://localhost:3000",
-							"https://absolutely-handy-falcon.ngrok-free.app",
-						]
-					: [];
-			return [
-				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
-				...(settings?.host ? [`https://${settings?.host}`] : []),
-				...devOrigins,
-				...trustedOrigins,
-			];
-		} catch (error) {
-			console.error("Failed to resolve trusted origins:", error);
-			return [];
-		}
+	trustedOrigins: resolveTrustedOrigins,
+	hooks: {
+		before: createAuthMiddleware(async (ctx) => {
+			ctx.context.trustedOrigins = [
+				...(ctx.context.baseURL ? [new URL(ctx.context.baseURL).origin] : []),
+				...(await resolveTrustedOrigins()),
+			].filter(Boolean);
+		}),
 	},
 	emailVerification: {
 		sendOnSignUp: true,
