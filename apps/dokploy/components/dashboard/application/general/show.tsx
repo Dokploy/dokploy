@@ -1,4 +1,3 @@
-import { Tooltip as TooltipPrimitive } from "radix-ui";
 import {
 	Ban,
 	CheckCircle2,
@@ -8,6 +7,7 @@ import {
 	Terminal,
 } from "lucide-react";
 import { useRouter } from "next/router";
+import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { toast } from "sonner";
 import { ShowBuildChooseForm } from "@/components/dashboard/application/build/show";
 import { ShowProviderForm } from "@/components/dashboard/application/general/generic/show";

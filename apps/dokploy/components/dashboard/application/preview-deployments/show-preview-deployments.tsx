@@ -1,4 +1,3 @@
-import { Tooltip as TooltipPrimitive } from "radix-ui";
 import {
 	ExternalLink,
 	FileText,
@@ -9,6 +8,7 @@ import {
 	RocketIcon,
 	Trash2,
 } from "lucide-react";
+import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { toast } from "sonner";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { DateTooltip } from "@/components/shared/date-tooltip";

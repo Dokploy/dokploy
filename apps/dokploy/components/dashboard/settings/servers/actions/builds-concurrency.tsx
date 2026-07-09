@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
-// Free tier may set up to 2 concurrent builds; enterprise unlocks more.
-const FREE_MAX_CONCURRENCY = 2;
-const ENTERPRISE_MAX_CONCURRENCY = 100;
+const MAX_CONCURRENCY = 100;
 
 interface Props {
 	/**
@@ -20,14 +18,10 @@ interface Props {
 
 /**
  * Control to set the number of concurrent builds, either for a remote server
- * (`serverId` provided) or the local web server (omitted). Available to
- * everyone self-hosted up to FREE_MAX_CONCURRENCY; higher values require a
- * valid enterprise license. Not shown in cloud.
+ * (`serverId` provided) or the local web server (omitted). Not shown in cloud.
  */
 export const BuildsConcurrency = ({ serverId, label }: Props) => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data: haveValidLicense } =
-		api.licenseKey.haveValidLicenseKey.useQuery();
 
 	const serverQuery = api.server.one.useQuery(
 		{ serverId: serverId ?? "" },
@@ -59,10 +53,7 @@ export const BuildsConcurrency = ({ serverId, label }: Props) => {
 	// Concurrent builds are a self-hosted feature; not shown in cloud.
 	if (isCloud) return null;
 
-	const max = haveValidLicense
-		? ENTERPRISE_MAX_CONCURRENCY
-		: FREE_MAX_CONCURRENCY;
-	const clamp = (n: number) => Math.min(max, Math.max(1, n));
+	const clamp = (n: number) => Math.min(MAX_CONCURRENCY, Math.max(1, n));
 
 	const handleSave = async () => {
 		const parsed = clamp(Number.parseInt(value, 10) || 1);
@@ -101,7 +92,7 @@ export const BuildsConcurrency = ({ serverId, label }: Props) => {
 					<Input
 						type="number"
 						min={1}
-						max={max}
+						max={MAX_CONCURRENCY}
 						value={value}
 						onChange={(e) => setValue(e.target.value)}
 						className="w-20"

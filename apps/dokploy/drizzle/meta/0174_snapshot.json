@@ -1,6 +1,6 @@
 {
-  "id": "7ae5be64-aa73-428e-ac35-b322cdb37b68",
-  "prevId": "d711bc8c-f41e-4de4-9733-90715f21cdc9",
+  "id": "ebb5b461-8810-4448-9faf-363fb3041ee8",
+  "prevId": "7ae5be64-aa73-428e-ac35-b322cdb37b68",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -7189,6 +7189,21 @@
           "notNull": true,
           "default": false
         },
+        "webServerProvider": {
+          "name": "webServerProvider",
+          "type": "webServerProvider",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'traefik'"
+        },
+        "caddyTrustedProxyConfig": {
+          "name": "caddyTrustedProxyConfig",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'null'::jsonb"
+        },
         "buildsConcurrency": {
           "name": "buildsConcurrency",
           "type": "integer",
@@ -8159,6 +8174,28 @@
           "primaryKey": true,
           "notNull": true
         },
+        "webServerProvider": {
+          "name": "webServerProvider",
+          "type": "webServerProvider",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'traefik'"
+        },
+        "caddyTrustedProxyConfig": {
+          "name": "caddyTrustedProxyConfig",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'null'::jsonb"
+        },
+        "requestLogsEnabled": {
+          "name": "requestLogsEnabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "serverIp": {
           "name": "serverIp",
           "type": "text",
@@ -8528,6 +8565,14 @@
       "values": [
         "push",
         "tag"
+      ]
+    },
+    "public.webServerProvider": {
+      "name": "webServerProvider",
+      "schema": "public",
+      "values": [
+        "traefik",
+        "caddy"
       ]
     }
   },
