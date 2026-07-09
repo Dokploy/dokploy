@@ -466,14 +466,17 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 												className="flex items-center gap-1"
 											>
 												{path}
-												<X
-													className="size-3 cursor-pointer hover:text-destructive"
+												<button
+													type="button"
+													className="cursor-pointer hover:text-destructive focus:outline-none"
 													onClick={() => {
 														const newPaths = [...(field.value || [])];
 														newPaths.splice(index, 1);
 														field.onChange(newPaths);
 													}}
-												/>
+												>
+													<X className="size-3" />
+												</button>
 											</Badge>
 										))}
 									</div>
