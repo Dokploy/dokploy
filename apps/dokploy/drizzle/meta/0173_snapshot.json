@@ -1,5 +1,5 @@
 {
-  "id": "6fb633a2-2beb-4269-a7b4-3cf87607dda1",
+  "id": "7ae5be64-aa73-428e-ac35-b322cdb37b68",
   "prevId": "d711bc8c-f41e-4de4-9733-90715f21cdc9",
   "version": "7",
   "dialect": "postgresql",
@@ -789,6 +789,26 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "verified": {
+          "name": "verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "failed_verification_count": {
+          "name": "failed_verification_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "locked_until": {
+          "name": "locked_until",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -6983,6 +7003,72 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.scim_provider": {
+      "name": "scim_provider",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scim_token": {
+          "name": "scim_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "scim_provider_organization_id_organization_id_fk": {
+          "name": "scim_provider_organization_id_organization_id_fk",
+          "tableFrom": "scim_provider",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "scim_provider_provider_id_unique": {
+          "name": "scim_provider_provider_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "provider_id"
+          ]
+        },
+        "scim_provider_scim_token_unique": {
+          "name": "scim_provider_scim_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "scim_token"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.security": {
       "name": "security",
       "schema": "",
@@ -8276,7 +8362,6 @@
       "name": "deploymentStatus",
       "schema": "public",
       "values": [
-        "queued",
         "running",
         "done",
         "error",
@@ -8415,7 +8500,6 @@
       "schema": "public",
       "values": [
         "idle",
-        "queued",
         "running",
         "done",
         "error"
