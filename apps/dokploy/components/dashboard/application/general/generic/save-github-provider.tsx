@@ -478,14 +478,18 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 													className="flex items-center gap-1"
 												>
 													{path}
-													<X
-														className="size-3 cursor-pointer hover:text-destructive"
+													<button
+														type="button"
+														aria-label="Remove watch path"
+														className="inline-flex items-center"
 														onClick={() => {
 															const newPaths = [...(field.value || [])];
 															newPaths.splice(index, 1);
 															field.onChange(newPaths);
 														}}
-													/>
+													>
+														<X className="size-3 cursor-pointer hover:text-destructive" />
+													</button>
 												</Badge>
 											))}
 										</div>

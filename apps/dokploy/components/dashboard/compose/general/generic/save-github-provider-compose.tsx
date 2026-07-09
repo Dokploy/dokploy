@@ -470,14 +470,18 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 											{field.value?.map((path, index) => (
 												<Badge key={index} variant="secondary">
 													{path}
-													<X
-														className="ml-1 size-3 cursor-pointer"
+													<button
+														type="button"
+														aria-label="Remove watch path"
+														className="inline-flex items-center"
 														onClick={() => {
 															const newPaths = [...(field.value || [])];
 															newPaths.splice(index, 1);
 															form.setValue("watchPaths", newPaths);
 														}}
-													/>
+													>
+														<X className="ml-1 size-3 cursor-pointer" />
+													</button>
 												</Badge>
 											))}
 										</div>
