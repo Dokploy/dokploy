@@ -110,7 +110,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 				return;
 			}
 
-			if (data?.twoFactorRedirect as boolean) {
+			if (data && 'twoFactorRedirect' in data && data.twoFactorRedirect) {
 				setTwoFactorCode("");
 				setIsTwoFactor(true);
 				toast.info("Please enter your 2FA code");
