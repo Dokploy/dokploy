@@ -1,6 +1,7 @@
 import {
 	clearOldDeployments,
 	createApplication,
+	createDeployment,
 	deleteAllMiddlewares,
 	findApplicationById,
 	findEnvironmentById,
@@ -347,6 +348,15 @@ export const applicationRouter = createTRPCRouter({
 				});
 				return true;
 			}
+			await updateApplicationStatus(input.applicationId, "queued");
+			const deployment = await createDeployment({
+				applicationId: input.applicationId,
+				title: jobData.titleLog,
+				description: jobData.descriptionLog,
+				status: "queued",
+			});
+			jobData.deploymentId = deployment.deploymentId;
+
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },
@@ -714,6 +724,15 @@ export const applicationRouter = createTRPCRouter({
 				});
 				return true;
 			}
+			await updateApplicationStatus(input.applicationId, "queued");
+			const deployment = await createDeployment({
+				applicationId: input.applicationId,
+				title: jobData.titleLog,
+				description: jobData.descriptionLog,
+				status: "queued",
+			});
+			jobData.deploymentId = deployment.deploymentId;
+
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },
@@ -827,6 +846,15 @@ export const applicationRouter = createTRPCRouter({
 				});
 				return true;
 			}
+
+			await updateApplicationStatus(app.applicationId, "queued");
+			const deployment = await createDeployment({
+				applicationId: app.applicationId,
+				title: jobData.titleLog,
+				description: jobData.descriptionLog,
+				status: "queued",
+			});
+			jobData.deploymentId = deployment.deploymentId;
 
 			await myQueue.add(
 				"deployments",

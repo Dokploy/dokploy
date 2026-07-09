@@ -334,7 +334,7 @@ const createSchema = createInsertSchema(applications, {
 		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
 		.optional(),
 	triggerType: z.enum(["push", "tag"]).optional(),
-	applicationStatus: z.enum(["idle", "running", "done", "error"]),
+	applicationStatus: z.enum(["idle", "queued", "running", "done", "error"]),
 	buildType: z.enum([
 		"dockerfile",
 		"heroku_buildpacks",
