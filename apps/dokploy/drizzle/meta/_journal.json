@@ -1219,6 +1219,13 @@
       "when": 1783494977500,
       "tag": "0173_aspiring_annihilus",
       "breakpoints": true
+    },
+    {
+      "idx": 174,
+      "version": "7",
+      "when": 1783589277341,
+      "tag": "0174_acoustic_raider",
+      "breakpoints": true
     }
   ]
 }
