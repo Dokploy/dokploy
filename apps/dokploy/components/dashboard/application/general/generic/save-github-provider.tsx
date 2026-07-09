@@ -480,7 +480,8 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 													{path}
 													<button
 														type="button"
-														className="cursor-pointer hover:text-destructive focus:outline-none"
+														aria-label="Remove watch path"
+														className="cursor-pointer hover:text-destructive"
 														onClick={() => {
 															const newPaths = [...(field.value || [])];
 															newPaths.splice(index, 1);
@@ -537,14 +538,14 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 							control={form.control}
 							name="enableSubmodules"
 							render={({ field }) => (
-								<FormItem className="flex items-center space-x-2">
+								<FormItem className="flex flex-row items-center space-x-2 space-y-0">
 									<FormControl>
 										<Switch
 											checked={field.value}
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="mt-0!">Enable Submodules</FormLabel>
+									<FormLabel>Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>
