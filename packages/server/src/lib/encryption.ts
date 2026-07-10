@@ -4,8 +4,13 @@ import {
 	createHmac,
 	randomBytes,
 } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { paths } from "@dokploy/server/constants";
 import { betterAuthSecret } from "./auth-secret";
 import { encryptionSecret } from "./encryption-secret";
+
+export const ENCRYPTION_KEY_BACKUP_FILE = "encryption.key";
 
 const ENCRYPTION_PREFIX = "enc:v1:";
 const IV_LENGTH = 12;
@@ -22,6 +27,33 @@ const primaryKey = deriveKey(encryptionSecret ?? betterAuthSecret);
 const decryptionKeys = encryptionSecret
 	? [primaryKey, deriveKey(betterAuthSecret)]
 	: [primaryKey];
+
+export const exportEncryptionKey = () => primaryKey.toString("hex");
+
+let restoredKey: Buffer | undefined;
+
+// A backup created with "include encryption key" places the original
+// server's key at BASE_PATH when restored; use it as a last-resort
+// decryption fallback so restored values keep working on the new server.
+const loadRestoredKey = (): Buffer | undefined => {
+	if (restoredKey) {
+		return restoredKey;
+	}
+	try {
+		const { BASE_PATH } = paths();
+		const hex = readFileSync(
+			join(BASE_PATH, ENCRYPTION_KEY_BACKUP_FILE),
+			"utf8",
+		).trim();
+		const key = Buffer.from(hex, "hex");
+		if (key.length === 32 && !key.equals(primaryKey)) {
+			restoredKey = key;
+		}
+	} catch {
+		// No restored key file present.
+	}
+	return restoredKey;
+};
 
 export const isEncrypted = (value: string) =>
 	value.startsWith(ENCRYPTION_PREFIX);
@@ -47,7 +79,9 @@ export const decryptValue = (value: string): string => {
 	const iv = payload.subarray(0, IV_LENGTH);
 	const authTag = payload.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
 	const encrypted = payload.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
-	for (const key of decryptionKeys) {
+	const restored = loadRestoredKey();
+	const keys = restored ? [...decryptionKeys, restored] : decryptionKeys;
+	for (const key of keys) {
 		try {
 			const decipher = createDecipheriv("aes-256-gcm", key, iv);
 			decipher.setAuthTag(authTag);

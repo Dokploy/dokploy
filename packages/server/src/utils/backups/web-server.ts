@@ -1,8 +1,12 @@
 import { createWriteStream } from "node:fs";
-import { mkdtemp, rm, stat } from "node:fs/promises";
+import { mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
+import {
+	ENCRYPTION_KEY_BACKUP_FILE,
+	exportEncryptionKey,
+} from "@dokploy/server/lib/encryption";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import {
 	createDeploymentBackup,
@@ -78,10 +82,21 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			await execAsync(cleanupCommand);
 
 			await execAsync(
-				`rsync -a --ignore-errors --no-specials --no-devices --exclude='volume-backups/' ${BASE_PATH}/ ${tempDir}/filesystem/`,
+				`rsync -a --ignore-errors --no-specials --no-devices --exclude='volume-backups/' --exclude='${ENCRYPTION_KEY_BACKUP_FILE}' ${BASE_PATH}/ ${tempDir}/filesystem/`,
 			);
 
 			writeStream.write("Copied filesystem to temp directory\n");
+
+			if (backup.includeEncryptionKey) {
+				// Restoring the filesystem places this file at BASE_PATH, where
+				// the encryption keyring picks it up as a decryption fallback.
+				await writeFile(
+					join(tempDir, "filesystem", ENCRYPTION_KEY_BACKUP_FILE),
+					exportEncryptionKey(),
+					{ mode: 0o600 },
+				);
+				writeStream.write("Included encryption key in backup\n");
+			}
 
 			await execAsync(
 				// Zip all .sql files since we created more than one
