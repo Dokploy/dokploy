@@ -28,31 +28,41 @@ const decryptionKeys = encryptionSecret
 	? [primaryKey, deriveKey(betterAuthSecret)]
 	: [primaryKey];
 
-export const exportEncryptionKey = () => primaryKey.toString("hex");
+// Derived keys only — never the raw secrets. A leaked key can decrypt
+// stored values, but the raw BETTER_AUTH_SECRET could also forge sessions.
+export const exportEncryptionKeys = () =>
+	decryptionKeys.map((key) => key.toString("hex")).join("\n");
 
-let restoredKey: Buffer | undefined;
+let restoredKeys: Buffer[] | undefined;
 
 // A backup created with "include encryption key" places the original
-// server's key at BASE_PATH when restored; use it as a last-resort
+// server's keys at BASE_PATH when restored; use them as a last-resort
 // decryption fallback so restored values keep working on the new server.
-const loadRestoredKey = (): Buffer | undefined => {
-	if (restoredKey) {
-		return restoredKey;
+const loadRestoredKeys = (): Buffer[] => {
+	if (restoredKeys?.length) {
+		return restoredKeys;
 	}
 	try {
 		const { BASE_PATH } = paths();
-		const hex = readFileSync(
+		const keys = readFileSync(
 			join(BASE_PATH, ENCRYPTION_KEY_BACKUP_FILE),
 			"utf8",
-		).trim();
-		const key = Buffer.from(hex, "hex");
-		if (key.length === 32 && !key.equals(primaryKey)) {
-			restoredKey = key;
+		)
+			.split("\n")
+			.map((line) => line.trim())
+			.filter(Boolean)
+			.map((hex) => Buffer.from(hex, "hex"))
+			.filter(
+				(key) =>
+					key.length === 32 && !decryptionKeys.some((own) => own.equals(key)),
+			);
+		if (keys.length) {
+			restoredKeys = keys;
 		}
 	} catch {
 		// No restored key file present.
 	}
-	return restoredKey;
+	return restoredKeys ?? [];
 };
 
 export const isEncrypted = (value: string) =>
@@ -79,8 +89,7 @@ export const decryptValue = (value: string): string => {
 	const iv = payload.subarray(0, IV_LENGTH);
 	const authTag = payload.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
 	const encrypted = payload.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
-	const restored = loadRestoredKey();
-	const keys = restored ? [...decryptionKeys, restored] : decryptionKeys;
+	const keys = [...decryptionKeys, ...loadRestoredKeys()];
 	for (const key of keys) {
 		try {
 			const decipher = createDecipheriv("aes-256-gcm", key, iv);

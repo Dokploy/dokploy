@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import {
 	ENCRYPTION_KEY_BACKUP_FILE,
-	exportEncryptionKey,
+	exportEncryptionKeys,
 } from "@dokploy/server/lib/encryption";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import {
@@ -92,7 +92,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 				// the encryption keyring picks it up as a decryption fallback.
 				await writeFile(
 					join(tempDir, "filesystem", ENCRYPTION_KEY_BACKUP_FILE),
-					exportEncryptionKey(),
+					exportEncryptionKeys(),
 					{ mode: 0o600 },
 				);
 				writeStream.write("Included encryption key in backup\n");
