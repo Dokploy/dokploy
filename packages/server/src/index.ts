@@ -19,6 +19,7 @@ export * from "./services/destination";
 export * from "./services/docker";
 export * from "./services/domain";
 export * from "./services/environment";
+export * from "./services/external-upstream";
 export * from "./services/git-provider";
 export * from "./services/gitea";
 export * from "./services/github";

@@ -3,6 +3,7 @@ import {
 	createBackup,
 	createCompose,
 	createDomain,
+	createExternalUpstream,
 	createLibsql,
 	createMariadb,
 	createMongo,
@@ -19,6 +20,7 @@ import {
 	findApplicationById,
 	findComposeById,
 	findEnvironmentById,
+	findExternalUpstreamById,
 	findLibsqlById,
 	findMariadbById,
 	findMongoById,
@@ -56,6 +58,7 @@ import {
 	applications,
 	compose,
 	environments,
+	externalUpstreams,
 	libsql,
 	mariadb,
 	mongo,
@@ -138,6 +141,12 @@ export const projectRouter = createTRPCRouter({
 								compose: {
 									where: buildServiceFilter(
 										compose.composeId,
+										accessedServices,
+									),
+								},
+								externalUpstreams: {
+									where: buildServiceFilter(
+										externalUpstreams.externalUpstreamId,
 										accessedServices,
 									),
 								},
@@ -233,6 +242,17 @@ export const projectRouter = createTRPCRouter({
 									applicationStatus: true,
 								},
 							},
+							externalUpstreams: {
+								where: buildServiceFilter(
+									externalUpstreams.externalUpstreamId,
+									accessedServices,
+								),
+								columns: {
+									externalUpstreamId: true,
+									name: true,
+									applicationStatus: true,
+								},
+							},
 							libsql: {
 								where: buildServiceFilter(libsql.libsqlId, accessedServices),
 								columns: {
@@ -320,6 +340,13 @@ export const projectRouter = createTRPCRouter({
 								applicationStatus: true,
 							},
 						},
+						externalUpstreams: {
+							columns: {
+								externalUpstreamId: true,
+								name: true,
+								applicationStatus: true,
+							},
+						},
 						mariadb: {
 							columns: {
 								mariadbId: true,
@@ -395,6 +422,17 @@ export const projectRouter = createTRPCRouter({
 							applications: {
 								columns: {
 									applicationId: true,
+									appName: true,
+									name: true,
+									createdAt: true,
+									applicationStatus: true,
+									description: true,
+									serverId: true,
+								},
+							},
+							externalUpstreams: {
+								columns: {
+									externalUpstreamId: true,
 									appName: true,
 									name: true,
 									createdAt: true,
@@ -550,6 +588,10 @@ export const projectRouter = createTRPCRouter({
 							where: applyFilter(applications.applicationId),
 							columns: { applicationStatus: true },
 						},
+						externalUpstreams: {
+							where: applyFilter(externalUpstreams.externalUpstreamId),
+							columns: { applicationStatus: true },
+						},
 						compose: {
 							where: applyFilter(compose.composeId),
 							columns: { composeStatus: true },
@@ -598,6 +640,7 @@ export const projectRouter = createTRPCRouter({
 			for (const env of project.environments) {
 				environmentsCount++;
 				applicationsCount += env.applications.length;
+				applicationsCount += env.externalUpstreams.length;
 				composeCount += env.compose.length;
 				databasesCount +=
 					env.libsql.length +
@@ -608,6 +651,7 @@ export const projectRouter = createTRPCRouter({
 					env.redis.length;
 
 				for (const a of env.applications) bump(a.applicationStatus);
+				for (const s of env.externalUpstreams) bump(s.applicationStatus);
 				for (const c of env.compose) bump(c.composeStatus);
 				for (const s of env.libsql) bump(s.applicationStatus);
 				for (const s of env.mariadb) bump(s.applicationStatus);
@@ -795,6 +839,7 @@ export const projectRouter = createTRPCRouter({
 							type: z.enum([
 								"application",
 								"compose",
+								"external-upstream",
 								"libsql",
 								"mariadb",
 								"mongo",
@@ -981,6 +1026,42 @@ export const projectRouter = createTRPCRouter({
 										...rest,
 										composeId: newCompose.composeId,
 										domainType: "compose",
+									});
+								}
+
+								break;
+							}
+							case "external-upstream": {
+								const {
+									externalUpstreamId,
+									domains,
+									appName,
+									applicationStatus,
+									createdAt,
+									...externalUpstream
+								} = await findExternalUpstreamById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
+
+								const newExternalUpstream = await createExternalUpstream({
+									...externalUpstream,
+									appName: newAppName,
+									name: input.duplicateInSameProject
+										? `${externalUpstream.name} (copy)`
+										: externalUpstream.name,
+									environmentId: targetProject?.environmentId || "",
+								});
+
+								for (const domain of domains) {
+									const { domainId, ...rest } = domain;
+									await createDomain({
+										...rest,
+										externalUpstreamId:
+											newExternalUpstream.externalUpstreamId,
+										domainType: "externalUpstream",
 									});
 								}
 
