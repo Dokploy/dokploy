@@ -77,14 +77,15 @@ export type ValidationStates = Record<string, ValidationState>;
 
 interface Props {
 	id: string;
-	type: "application" | "compose";
+	type: "application" | "compose" | "externalUpstream";
 }
 
 export const ShowDomains = ({ id, type }: Props) => {
+	const isExternalUpstream = type === "externalUpstream"
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canCreateDomain = permissions?.domain.create ?? false;
 	const canDeleteDomain = permissions?.domain.delete ?? false;
-	const { data: application } =
+	const { data: serviceData } =
 		type === "application"
 			? api.application.one.useQuery(
 					{
@@ -94,14 +95,23 @@ export const ShowDomains = ({ id, type }: Props) => {
 						enabled: !!id,
 					},
 				)
-			: api.compose.one.useQuery(
-					{
-						composeId: id,
-					},
-					{
-						enabled: !!id,
-					},
-				);
+			: type === "compose"
+				? api.compose.one.useQuery(
+						{
+							composeId: id,
+						},
+						{
+							enabled: !!id,
+						},
+					)
+				: api.externalUpstream.one.useQuery(
+						{
+							externalUpstreamId: id,
+						},
+						{
+							enabled: !!id,
+						},
+					);
 	const [validationStates, setValidationStates] = useState<ValidationStates>(
 		{},
 	);
@@ -133,14 +143,23 @@ export const ShowDomains = ({ id, type }: Props) => {
 					enabled: !!id,
 				},
 			)
-		: api.domain.byComposeId.useQuery(
-				{
-					composeId: id,
-				},
-				{
-					enabled: !!id,
-				},
-			);
+		: type === "compose"
+			? api.domain.byComposeId.useQuery(
+					{
+						composeId: id,
+					},
+					{
+						enabled: !!id,
+					},
+				)
+			: api.domain.byExternalUpstreamId.useQuery(
+					{
+						externalUpstreamId: id,
+					},
+					{
+						enabled: !!id,
+					},
+				);
 
 	const { mutateAsync: validateDomain } =
 		api.domain.validateDomain.useMutation();
@@ -167,7 +186,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 			const result = await validateDomain({
 				domain: host,
 				serverIp:
-					application?.server?.ipAddress?.toString() || ip?.toString() || "",
+					serviceData?.server?.ipAddress?.toString() || ip?.toString() || "",
 			});
 
 			setValidationStates((prev) => ({
@@ -201,7 +220,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 		handleValidateDomain,
 		handleDeleteDomain,
 		isDeleting: isRemoving,
-		serverIp: application?.server?.ipAddress?.toString() || ip?.toString(),
+		serverIp: serviceData?.server?.ipAddress?.toString() || ip?.toString(),
 		canCreateDomain,
 		canDeleteDomain,
 	});
@@ -232,7 +251,9 @@ export const ShowDomains = ({ id, type }: Props) => {
 					<div className="flex flex-col gap-1">
 						<CardTitle className="text-xl">Domains</CardTitle>
 						<CardDescription>
-							Domains are used to access to the application
+							{isExternalUpstream
+								? "Domains define the public entrypoint for this upstream target"
+								: "Domains are used to access to the application"}
 						</CardDescription>
 					</div>
 
@@ -277,8 +298,9 @@ export const ShowDomains = ({ id, type }: Props) => {
 						<div className="flex w-full flex-col items-center justify-center gap-3 min-h-[40vh]">
 							<GlobeIcon className="size-8 text-muted-foreground" />
 							<span className="text-base text-muted-foreground">
-								To access the application it is required to set at least 1
-								domain
+								{isExternalUpstream
+									? "To expose this upstream publicly, configure at least one domain"
+									: "To access the application it is required to set at least 1 domain"}
 							</span>
 							{canCreateDomain && (
 								<div className="flex flex-row gap-4 flex-wrap">
@@ -434,7 +456,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 																	path: item.path || undefined,
 																}}
 																serverIp={
-																	application?.server?.ipAddress?.toString() ||
+																	serviceData?.server?.ipAddress?.toString() ||
 																	ip?.toString()
 																}
 															/>
@@ -510,28 +532,75 @@ export const ShowDomains = ({ id, type }: Props) => {
 															<TooltipTrigger asChild>
 																<Badge variant="secondary">
 																	<InfoIcon className="size-3 mr-1" />
-																	Path: {item.path || "/"}
+																	{isExternalUpstream
+																		? "Public Path"
+																		: "Path"}
+																	: {item.path || "/"}
 																</Badge>
 															</TooltipTrigger>
 															<TooltipContent>
-																<p>URL path for this service</p>
+																<p>
+																	{isExternalUpstream
+																		? "Public URL path exposed on this domain"
+																		: "URL path for this service"}
+																</p>
 															</TooltipContent>
 														</Tooltip>
 													</TooltipProvider>
 
-													<TooltipProvider>
-														<Tooltip>
-															<TooltipTrigger asChild>
-																<Badge variant="secondary">
-																	<InfoIcon className="size-3 mr-1" />
-																	Port: {item.port}
-																</Badge>
-															</TooltipTrigger>
-															<TooltipContent>
-																<p>Container port exposed</p>
-															</TooltipContent>
-														</Tooltip>
-													</TooltipProvider>
+													{!isExternalUpstream && (
+														<TooltipProvider>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Badge variant="secondary">
+																		<InfoIcon className="size-3 mr-1" />
+																		Port: {item.port}
+																	</Badge>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>Container port exposed</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													)}
+
+													{isExternalUpstream && item.internalPath && (
+														<TooltipProvider>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Badge variant="secondary">
+																		<InfoIcon className="size-3 mr-1" />
+																		Upstream Prefix: {item.internalPath}
+																	</Badge>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>
+																		Path prefix added before proxying to the
+																		upstream target
+																	</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													)}
+
+													{isExternalUpstream && !!item.stripPath && (
+														<TooltipProvider>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Badge variant="secondary">
+																		<InfoIcon className="size-3 mr-1" />
+																		Strip Public Path
+																	</Badge>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>
+																		Remove the public path before forwarding to
+																		the upstream target
+																	</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													)}
 
 													<TooltipProvider>
 														<Tooltip>

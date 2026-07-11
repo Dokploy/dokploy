@@ -27,11 +27,12 @@ import type { ValidationStates } from "./show-domains";
 
 export type Domain =
 	| RouterOutputs["domain"]["byApplicationId"][0]
-	| RouterOutputs["domain"]["byComposeId"][0];
+	| RouterOutputs["domain"]["byComposeId"][0]
+	| RouterOutputs["domain"]["byExternalUpstreamId"][0];
 
 interface ColumnsProps {
 	id: string;
-	type: "application" | "compose";
+	type: "application" | "compose" | "externalUpstream";
 	validationStates: ValidationStates;
 	handleValidateDomain: (host: string) => Promise<void>;
 	handleDeleteDomain: (domainId: string) => Promise<void>;
@@ -52,6 +53,53 @@ export const createColumns = ({
 	canCreateDomain,
 	canDeleteDomain,
 }: ColumnsProps): ColumnDef<Domain>[] => [
+	...(type === "externalUpstream"
+		? [
+				{
+					accessorKey: "internalPath",
+					header: "Upstream Prefix",
+					cell: ({ row }) => {
+						const internalPath = row.getValue("internalPath") as string | null
+						if (!internalPath) {
+							return <span className="text-muted-foreground">-</span>
+						}
+						return <div className="font-mono text-sm">{internalPath}</div>
+					},
+				} satisfies ColumnDef<Domain>,
+				{
+					accessorKey: "stripPath",
+					header: "Strip Public Path",
+					cell: ({ row }) => {
+						const stripPath = row.getValue("stripPath") as boolean | null
+						if (!stripPath) {
+							return <span className="text-muted-foreground">No</span>
+						}
+						return <Badge variant="secondary">Yes</Badge>
+					},
+				} satisfies ColumnDef<Domain>,
+			]
+		: [
+				{
+					accessorKey: "port",
+					header: ({ column }) => {
+						return (
+							<Button
+								variant="ghost"
+								onClick={() =>
+									column.toggleSorting(column.getIsSorted() === "asc")
+								}
+							>
+								Port
+								<ArrowUpDown className="ml-2 h-4 w-4" />
+							</Button>
+						)
+					},
+					cell: ({ row }) => {
+						const port = row.getValue("port") as number
+						return <Badge variant="secondary">{port}</Badge>
+					},
+				} satisfies ColumnDef<Domain>,
+			]),
 	...(type === "compose"
 		? [
 				{
@@ -105,7 +153,7 @@ export const createColumns = ({
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Path
+					{type === "externalUpstream" ? "Public Path" : "Path"}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -113,24 +161,6 @@ export const createColumns = ({
 		cell: ({ row }) => {
 			const path = row.getValue("path") as string;
 			return <div className="font-mono text-sm">{path || "/"}</div>;
-		},
-	},
-	{
-		accessorKey: "port",
-		header: ({ column }) => {
-			return (
-				<Button
-					variant="ghost"
-					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-				>
-					Port
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			);
-		},
-		cell: ({ row }) => {
-			const port = row.getValue("port") as number;
-			return <Badge variant="secondary">{port}</Badge>;
 		},
 	},
 	{

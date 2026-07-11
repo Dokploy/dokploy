@@ -4,13 +4,17 @@ import {
 	findDomainById,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
+	findDomainsByExternalUpstreamId,
+	findExternalUpstreamById,
 	findPreviewDeploymentById,
 	findServerById,
 	generateTraefikMeDomain,
 	getWebServerSettings,
 	manageDomain,
+	manageExternalUpstreamDomain,
 	removeDomain,
 	removeDomainById,
+	removeExternalUpstreamDomain,
 	updateDomainById,
 	validateDomain,
 } from "@dokploy/server";
@@ -27,6 +31,7 @@ import {
 	apiCreateDomain,
 	apiFindCompose,
 	apiFindDomain,
+	apiFindDomainByExternalUpstream,
 	apiFindOneApplication,
 	apiUpdateDomain,
 } from "@/server/db/schema";
@@ -44,6 +49,17 @@ export const domainRouter = createTRPCRouter({
 					await checkServicePermissionAndAccess(ctx, input.applicationId, {
 						domain: ["create"],
 					});
+				} else if (
+					input.domainType === "externalUpstream" &&
+					input.externalUpstreamId
+				) {
+					await checkServicePermissionAndAccess(
+						ctx,
+						input.externalUpstreamId,
+						{
+							domain: ["create"],
+						},
+					);
 				}
 				const domain = await createDomain(input);
 				await audit(ctx, {
@@ -80,6 +96,19 @@ export const domainRouter = createTRPCRouter({
 			});
 			return await findDomainsByComposeId(input.composeId);
 		}),
+	byExternalUpstreamId: protectedProcedure
+		.input(apiFindDomainByExternalUpstream)
+		.query(async ({ input, ctx }) => {
+			if (!input.externalUpstreamId) {
+				return [];
+			}
+			await checkServicePermissionAndAccess(ctx, input.externalUpstreamId, {
+				domain: ["read"],
+			});
+			return await findDomainsByExternalUpstreamId(
+				input.externalUpstreamId,
+			);
+		}),
 	generateDomain: withPermission("domain", "create")
 		.input(z.object({ appName: z.string(), serverId: z.string().optional() }))
 		.mutation(async ({ input, ctx }) => {
@@ -104,7 +133,10 @@ export const domainRouter = createTRPCRouter({
 		.input(apiUpdateDomain)
 		.mutation(async ({ input, ctx }) => {
 			const currentDomain = await findDomainById(input.domainId);
-			const serviceId = currentDomain.applicationId || currentDomain.composeId;
+			const serviceId =
+				currentDomain.applicationId ||
+				currentDomain.composeId ||
+				currentDomain.externalUpstreamId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					domain: ["create"],
@@ -129,6 +161,11 @@ export const domainRouter = createTRPCRouter({
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
 				await manageDomain(application, domain);
+			} else if (domain.externalUpstreamId) {
+				const externalUpstream = await findExternalUpstreamById(
+					domain.externalUpstreamId,
+				);
+				await manageExternalUpstreamDomain(externalUpstream, domain);
 			} else if (domain.previewDeploymentId) {
 				const previewDeployment = await findPreviewDeploymentById(
 					domain.previewDeploymentId,
@@ -143,7 +180,8 @@ export const domainRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure.input(apiFindDomain).query(async ({ input, ctx }) => {
 		const domain = await findDomainById(input.domainId);
-		const serviceId = domain.applicationId || domain.composeId;
+		const serviceId =
+			domain.applicationId || domain.composeId || domain.externalUpstreamId;
 		if (serviceId) {
 			await checkServicePermissionAndAccess(ctx, serviceId, {
 				domain: ["read"],
@@ -162,7 +200,10 @@ export const domainRouter = createTRPCRouter({
 		.input(apiFindDomain)
 		.mutation(async ({ input, ctx }) => {
 			const domain = await findDomainById(input.domainId);
-			const serviceId = domain.applicationId || domain.composeId;
+			const serviceId =
+				domain.applicationId ||
+				domain.composeId ||
+				domain.externalUpstreamId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					domain: ["delete"],
@@ -187,6 +228,14 @@ export const domainRouter = createTRPCRouter({
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
 				await removeDomain(application, domain.uniqueConfigKey);
+			} else if (domain.externalUpstreamId) {
+				const externalUpstream = await findExternalUpstreamById(
+					domain.externalUpstreamId,
+				);
+				await removeExternalUpstreamDomain(
+					externalUpstream,
+					domain.uniqueConfigKey,
+				);
 			}
 
 			return result;

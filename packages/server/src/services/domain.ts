@@ -1,9 +1,11 @@
 import dns from "node:dns";
 import { promisify } from "node:util";
 import { db } from "@dokploy/server/db";
+import { findExternalUpstreamById } from "@dokploy/server/services/external-upstream";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { generateRandomDomain } from "@dokploy/server/templates";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
+import { manageExternalUpstreamDomain } from "@dokploy/server/utils/traefik/external-upstream";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -35,6 +37,11 @@ export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
 		if (domain.applicationId) {
 			const application = await findApplicationById(domain.applicationId);
 			await manageDomain(application, domain);
+		} else if (domain.externalUpstreamId) {
+			const externalUpstream = await findExternalUpstreamById(
+				domain.externalUpstreamId,
+			);
+			await manageExternalUpstreamDomain(externalUpstream, domain);
 		}
 
 		return domain;
@@ -108,6 +115,19 @@ export const findDomainsByComposeId = async (composeId: string) => {
 		where: eq(domains.composeId, composeId),
 		with: {
 			compose: true,
+		},
+	});
+
+	return domainsArray;
+};
+
+export const findDomainsByExternalUpstreamId = async (
+	externalUpstreamId: string,
+) => {
+	const domainsArray = await db.query.domains.findMany({
+		where: eq(domains.externalUpstreamId, externalUpstreamId),
+		with: {
+			externalUpstream: true,
 		},
 	});
 
