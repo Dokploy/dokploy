@@ -1,5 +1,5 @@
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
+import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -97,7 +97,7 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
-												<TooltipContent sideOffset={5} className="z-[60]">
+												<TooltipContent sideOffset={5} className="z-60">
 													<p>Downloads and sets up the MySQL database</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
@@ -137,7 +137,7 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
-												<TooltipContent sideOffset={5} className="z-[60]">
+												<TooltipContent sideOffset={5} className="z-60">
 													<p>Restart the MySQL service without rebuilding</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
@@ -177,7 +177,7 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 													</div>
 												</TooltipTrigger>
 												<TooltipPrimitive.Portal>
-													<TooltipContent sideOffset={5} className="z-[60]">
+													<TooltipContent sideOffset={5} className="z-60">
 														<p>
 															Start the MySQL database (requires a previous
 															successful setup)
@@ -217,7 +217,7 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 													</div>
 												</TooltipTrigger>
 												<TooltipPrimitive.Portal>
-													<TooltipContent sideOffset={5} className="z-[60]">
+													<TooltipContent sideOffset={5} className="z-60">
 														<p>Stop the currently running MySQL database</p>
 													</TooltipContent>
 												</TooltipPrimitive.Portal>
@@ -242,7 +242,7 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 										</div>
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
+										<TooltipContent sideOffset={5} className="z-60">
 											<p>Open a terminal to the MySQL container</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>

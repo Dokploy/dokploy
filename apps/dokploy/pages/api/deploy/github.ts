@@ -23,6 +23,9 @@ import {
 	logWebhookError,
 } from "./[refreshToken]";
 
+const getGithubRepositoryOwner = (githubBody: any) =>
+	githubBody?.repository?.owner?.name ?? githubBody?.repository?.owner?.login;
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
@@ -109,7 +112,7 @@ export default async function handler(
 		try {
 			const tagName = githubBody?.ref.replace("refs/tags/", "");
 			const repository = githubBody?.repository?.name;
-			const owner = githubBody?.repository?.owner?.name;
+			const owner = getGithubRepositoryOwner(githubBody);
 			const deploymentTitle = `Tag created: ${tagName}`;
 			const deploymentHash = extractHash(req.headers, githubBody);
 
@@ -133,10 +136,10 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "application",
 					server: !!app.serverId,
-					...(app.serverId && { serverId: app.serverId }),
 				};
 
 				if (IS_CLOUD && app.serverId) {
+					jobData.serverId = app.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -172,10 +175,10 @@ export default async function handler(
 					applicationType: "compose",
 					descriptionLog: `Hash: ${deploymentHash}`,
 					server: !!composeApp.serverId,
-					...(composeApp.serverId && { serverId: composeApp.serverId }),
 				};
 
 				if (IS_CLOUD && composeApp.serverId) {
+					jobData.serverId = composeApp.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -219,7 +222,7 @@ export default async function handler(
 
 			const deploymentTitle = extractCommitMessage(req.headers, req.body);
 			const deploymentHash = extractHash(req.headers, req.body);
-			const owner = githubBody?.repository?.owner?.name;
+			const owner = getGithubRepositoryOwner(githubBody);
 			const normalizedCommits = githubBody?.commits?.flatMap(
 				(commit: any) => commit.modified,
 			);
@@ -244,7 +247,6 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "application",
 					server: !!app.serverId,
-					...(app.serverId && { serverId: app.serverId }),
 				};
 
 				const shouldDeployPaths = shouldDeploy(
@@ -257,6 +259,7 @@ export default async function handler(
 				}
 
 				if (IS_CLOUD && app.serverId) {
+					jobData.serverId = app.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -292,7 +295,6 @@ export default async function handler(
 					applicationType: "compose",
 					descriptionLog: `Hash: ${deploymentHash}`,
 					server: !!composeApp.serverId,
-					...(composeApp.serverId && { serverId: composeApp.serverId }),
 				};
 
 				const shouldDeployPaths = shouldDeploy(
@@ -304,6 +306,7 @@ export default async function handler(
 					continue;
 				}
 				if (IS_CLOUD && composeApp.serverId) {
+					jobData.serverId = composeApp.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -372,7 +375,7 @@ export default async function handler(
 			const repository = githubBody?.repository?.name;
 			const deploymentHash = githubBody?.pull_request?.head?.sha;
 			const branch = githubBody?.pull_request?.base?.ref;
-			const owner = githubBody?.repository?.owner?.login;
+			const owner = getGithubRepositoryOwner(githubBody);
 			const prAuthor = githubBody?.pull_request?.user?.login;
 
 			// Validate PR author information is present
@@ -508,12 +511,12 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "application-preview",
 					server: !!app.serverId,
-					...(app.serverId && { serverId: app.serverId }),
 					previewDeploymentId,
 				};
 
 				if (previewDeploymentId) {
 					if (IS_CLOUD && app.serverId) {
+						jobData.serverId = app.serverId;
 						deploy(jobData).catch((error) => {
 							console.error("Background deployment failed:", error);
 						});

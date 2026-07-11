@@ -47,6 +47,14 @@ const domainsArraySchema = z
 
 const scopesArraySchema = z.array(z.string().trim());
 
+const mappingSchema = z.object({
+	id: z.string().min(1, "Required").trim(),
+	email: z.string().min(1, "Required").trim(),
+	emailVerified: z.string().trim(),
+	name: z.string().min(1, "Required").trim(),
+	image: z.string().trim(),
+});
+
 const oidcProviderSchema = z.object({
 	providerId: z.string().min(1, "Provider ID is required").trim(),
 	issuer: z.string().min(1, "Issuer URL is required").url("Invalid URL").trim(),
@@ -54,9 +62,55 @@ const oidcProviderSchema = z.object({
 	clientId: z.string().min(1, "Client ID is required").trim(),
 	clientSecret: z.string().min(1, "Client secret is required"),
 	scopes: scopesArraySchema,
+	mapping: mappingSchema,
 });
 
 type OidcProviderForm = z.infer<typeof oidcProviderSchema>;
+
+type ClaimMapping = z.infer<typeof mappingSchema>;
+
+const isAzureIssuer = (issuer: string) =>
+	issuer.includes("login.microsoftonline.com");
+
+// Microsoft Graph UserInfo endpoint (used by discovery) returns `email`, not
+// `preferred_username` — the latter is only present in the ID token. Default
+// Azure/Entra to the `email` claim so discovery-based login resolves the email.
+const azureMapping: ClaimMapping = {
+	id: "sub",
+	email: "email",
+	emailVerified: "email_verified",
+	name: "name",
+	image: "",
+};
+
+const genericMapping: ClaimMapping = {
+	id: "sub",
+	email: "email",
+	emailVerified: "email_verified",
+	name: "preferred_username",
+	image: "picture",
+};
+
+const defaultMappingFor = (issuer: string): ClaimMapping =>
+	isAzureIssuer(issuer) ? azureMapping : genericMapping;
+
+const MAPPING_FIELDS: Array<{
+	key: keyof ClaimMapping;
+	label: string;
+	placeholder: string;
+	optional?: boolean;
+}> = [
+	{ key: "id", label: "User ID", placeholder: "sub" },
+	{ key: "email", label: "Email", placeholder: "email" },
+	{
+		key: "emailVerified",
+		label: "Email verified",
+		placeholder: "email_verified",
+		optional: true,
+	},
+	{ key: "name", label: "Name", placeholder: "name" },
+	{ key: "image", label: "Image", placeholder: "picture", optional: true },
+];
 
 interface RegisterOidcDialogProps {
 	providerId?: string;
@@ -70,12 +124,14 @@ const formDefaultValues = {
 	clientId: "",
 	clientSecret: "",
 	scopes: [...DEFAULT_SCOPES],
+	mapping: { ...genericMapping },
 };
 
 function parseOidcConfig(oidcConfig: string | null): {
 	clientId?: string;
 	clientSecret?: string;
 	scopes?: string[];
+	mapping?: Partial<ClaimMapping>;
 } | null {
 	if (!oidcConfig) return null;
 	try {
@@ -83,11 +139,16 @@ function parseOidcConfig(oidcConfig: string | null): {
 			clientId?: string;
 			clientSecret?: string;
 			scopes?: string[];
+			mapping?: Partial<ClaimMapping>;
 		};
 		return {
 			clientId: parsed.clientId,
 			clientSecret: parsed.clientSecret,
 			scopes: Array.isArray(parsed.scopes) ? parsed.scopes : undefined,
+			mapping:
+				parsed.mapping && typeof parsed.mapping === "object"
+					? parsed.mapping
+					: undefined,
 		};
 	} catch {
 		return null;
@@ -127,7 +188,21 @@ export function RegisterOidcDialog({
 		defaultValue: "",
 	});
 
+	const watchedIssuer = useWatch({
+		control: form.control,
+		name: "issuer",
+		defaultValue: "",
+	});
+
 	const baseURL = useUrl();
+
+	// Register mode: keep the mapping defaults in sync with the issuer so
+	// Azure/Entra gets the `email`-claim default. Editing the issuer after
+	// customizing the mapping resets it to the issuer's default.
+	useEffect(() => {
+		if (isEdit) return;
+		form.setValue("mapping", { ...defaultMappingFor(watchedIssuer) });
+	}, [watchedIssuer, isEdit, form]);
 
 	useEffect(() => {
 		if (!data || !open) return;
@@ -139,6 +214,7 @@ export function RegisterOidcDialog({
 			: [""];
 		if (domains.length === 0) domains.push("");
 		const oidc = parseOidcConfig(data.oidcConfig);
+		const baseMapping = defaultMappingFor(data.issuer);
 		form.reset({
 			providerId: data.providerId,
 			issuer: data.issuer,
@@ -149,6 +225,14 @@ export function RegisterOidcDialog({
 				oidc?.scopes && oidc.scopes.length > 0
 					? oidc.scopes
 					: [...DEFAULT_SCOPES],
+			mapping: {
+				id: oidc?.mapping?.id ?? baseMapping.id,
+				email: oidc?.mapping?.email ?? baseMapping.email,
+				emailVerified:
+					oidc?.mapping?.emailVerified ?? baseMapping.emailVerified,
+				name: oidc?.mapping?.name ?? baseMapping.name,
+				image: oidc?.mapping?.image ?? baseMapping.image,
+			},
 		});
 	}, [data, open, form]);
 
@@ -174,21 +258,17 @@ export function RegisterOidcDialog({
 				? data.scopes.filter(Boolean)
 				: DEFAULT_SCOPES;
 
-			const isAzure = data.issuer.includes("login.microsoftonline.com");
-			const mapping = isAzure
-				? {
-						id: "sub",
-						email: "preferred_username",
-						emailVerified: "email_verified",
-						name: "name",
-					}
-				: {
-						id: "sub",
-						email: "email",
-						emailVerified: "email_verified",
-						name: "preferred_username",
-						image: "picture",
-					};
+			const mapping = {
+				id: data.mapping.id.trim(),
+				email: data.mapping.email.trim(),
+				name: data.mapping.name.trim(),
+				...(data.mapping.emailVerified.trim()
+					? { emailVerified: data.mapping.emailVerified.trim() }
+					: {}),
+				...(data.mapping.image.trim()
+					? { image: data.mapping.image.trim() }
+					: {}),
+			};
 			await mutateAsync({
 				providerId: data.providerId,
 				issuer: data.issuer,
@@ -425,6 +505,34 @@ export function RegisterOidcDialog({
 									)}
 								/>
 							))}
+						</div>
+						<div className="space-y-2">
+							<FormLabel>Claim mapping</FormLabel>
+							<FormDescription>
+								Which provider claims map to each user field. Defaults adapt to
+								the issuer.
+							</FormDescription>
+							<div className="grid grid-cols-2 gap-3">
+								{MAPPING_FIELDS.map(({ key, label, placeholder, optional }) => (
+									<FormField
+										key={key}
+										control={form.control}
+										name={`mapping.${key}`}
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel className="text-xs text-muted-foreground">
+													{label}
+													{optional ? " (optional)" : ""}
+												</FormLabel>
+												<FormControl>
+													<Input placeholder={placeholder} {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								))}
+							</div>
 						</div>
 						<DialogFooter>
 							<Button

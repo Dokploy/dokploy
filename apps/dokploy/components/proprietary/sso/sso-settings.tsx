@@ -2,6 +2,7 @@
 
 import {
 	Eye,
+	KeyRound,
 	Loader2,
 	LogIn,
 	Pencil,
@@ -34,6 +35,7 @@ import { api } from "@/utils/api";
 import { useUrl } from "@/utils/hooks/use-url";
 import { RegisterOidcDialog } from "./register-oidc-dialog";
 import { RegisterSamlDialog } from "./register-saml-dialog";
+import { ScimDialog } from "./scim-dialog";
 
 type ProviderForDetails = {
 	id: string | null;
@@ -169,15 +171,22 @@ export const SSOSettings = () => {
 						Users can sign in with their organization&apos;s IdP.
 					</CardDescription>
 				</div>
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => setManageOriginsOpen(true)}
-					className="shrink-0"
-				>
-					<Shield className="mr-2 size-4" />
-					Manage origins
-				</Button>
+				<div className="flex flex-wrap gap-2 shrink-0">
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => setManageOriginsOpen(true)}
+					>
+						<Shield className="mr-2 size-4" />
+						Manage origins
+					</Button>
+					<ScimDialog>
+						<Button variant="outline" size="sm">
+							<KeyRound className="mr-2 size-4" />
+							Manage SCIM
+						</Button>
+					</ScimDialog>
+				</div>
 			</div>
 
 			{isPending ? (

@@ -150,7 +150,7 @@ export const SearchCommand = () => {
 										{application.type === "compose" && (
 											<CircuitBoard className="h-6 w-6 mr-2" />
 										)}
-										<span className="flex-grow">
+										<span className="grow">
 											{project.name} / {application.environmentName} /{" "}
 											{application.name}{" "}
 											<div style={{ display: "none" }}>{application.id}</div>

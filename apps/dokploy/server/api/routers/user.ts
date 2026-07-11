@@ -137,8 +137,31 @@ export const userRouter = createTRPCRouter({
 			),
 			with: {
 				user: {
+					columns: {
+						id: true,
+						firstName: true,
+						lastName: true,
+						email: true,
+						image: true,
+						allowImpersonation: true,
+						twoFactorEnabled: true,
+						stripeCustomerId: true,
+						stripeSubscriptionId: true,
+						serversQuantity: true,
+						isEnterpriseCloud: true,
+						sendInvoiceNotifications: true,
+					},
 					with: {
-						apiKeys: true,
+						apiKeys: {
+							columns: {
+								id: true,
+								name: true,
+								prefix: true,
+								enabled: true,
+								expiresAt: true,
+								createdAt: true,
+							},
+						},
 					},
 				},
 			},

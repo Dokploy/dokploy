@@ -5,7 +5,7 @@ import type { StepProps } from "./step-two";
 export const StepThree = ({ templateInfo }: StepProps) => {
 	return (
 		<div className="flex flex-col h-full">
-			<div className="flex-grow">
+			<div className="grow">
 				<div className="space-y-6">
 					<h2 className="text-lg font-semibold">Step 3: Review and Finalize</h2>
 					<div className="space-y-4">

@@ -52,7 +52,7 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 					Preview Compose
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-6xl max-h-[50rem]">
+			<DialogContent className="sm:max-w-6xl max-h-200">
 				<DialogHeader>
 					<DialogTitle>Converted Compose</DialogTitle>
 					<DialogDescription>
@@ -67,11 +67,11 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 					one domain must be specified for this conversion to take effect.
 				</AlertBlock>
 				{isPending ? (
-					<div className="flex flex-row items-center justify-center min-h-[25rem] border p-4 rounded-md">
+					<div className="flex flex-row items-center justify-center min-h-100 border p-4 rounded-md">
 						<Loader2 className="h-8 w-8 text-muted-foreground mb-2 animate-spin" />
 					</div>
 				) : compose?.length === 5 ? (
-					<div className="border p-4 rounded-md flex flex-col items-center justify-center min-h-[25rem]">
+					<div className="border p-4 rounded-md flex flex-col items-center justify-center min-h-100">
 						<Puzzle className="h-8 w-8 text-muted-foreground mb-2" />
 						<span className="text-muted-foreground">
 							No converted compose data available.

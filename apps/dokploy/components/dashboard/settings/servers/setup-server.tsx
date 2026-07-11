@@ -27,7 +27,6 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { ShowDeployment } from "../../application/deployments/show-deployment";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
-import { DeploymentConcurrencySection } from "./deployment-concurrency-section";
 import { EditScript } from "./edit-script";
 import { GPUSupport } from "./gpu-support";
 import { SecurityAudit } from "./security-audit";
@@ -152,7 +151,7 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 							</TabsList>
 							<TabsContent
 								value="ssh-keys"
-								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+								className="outline-hidden ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
 							>
 								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
 									<p className="text-primary text-base font-semibold">
@@ -321,16 +320,12 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 												/>
 											</CardContent>
 										</Card>
-
-										{!isBuildServer && (
-											<DeploymentConcurrencySection serverId={serverId} />
-										)}
 									</div>
 								</CardContent>
 							</TabsContent>
 							<TabsContent
 								value="validate"
-								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+								className="outline-hidden ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
 							>
 								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
 									<ValidateServer serverId={serverId} />
@@ -340,7 +335,7 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 								<>
 									<TabsContent
 										value="audit"
-										className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+										className="outline-hidden ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
 									>
 										<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
 											<SecurityAudit serverId={serverId} />
@@ -348,7 +343,7 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 									</TabsContent>
 									<TabsContent
 										value="monitoring"
-										className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+										className="outline-hidden ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
 									>
 										<div className="flex flex-col gap-2 text-sm pt-3">
 											<div className="rounded-xl bg-background shadow-md border">
@@ -358,7 +353,7 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 									</TabsContent>
 									<TabsContent
 										value="gpu-setup"
-										className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+										className="outline-hidden ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
 									>
 										<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
 											<GPUSupport serverId={serverId} />

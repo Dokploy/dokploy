@@ -42,7 +42,7 @@ export const server = pgTable("server", {
 		.notNull()
 		.$defaultFn(() => generateAppName("server")),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
-	deploymentConcurrency: integer("deploymentConcurrency").notNull().default(1),
+	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	createdAt: text("createdAt").notNull(),
 	organizationId: text("organizationId")
 		.notNull()
@@ -125,8 +125,8 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 	mongo: many(mongo),
 	mysql: many(mysql),
 	postgres: many(postgres),
-	certificates: many(certificates),
 	networks: many(network),
+	certificates: many(certificates),
 	organization: one(organization, {
 		fields: [server.organizationId],
 		references: [organization.id],
@@ -185,9 +185,9 @@ export const apiUpdateServer = createSchema
 		enableDockerCleanup: z.boolean().default(true),
 	});
 
-export const apiUpdateServerDeploymentConcurrency = z.object({
+export const apiUpdateServerBuildsConcurrency = z.object({
 	serverId: z.string().min(1),
-	deploymentConcurrency: z.number().int().min(1).max(10),
+	buildsConcurrency: z.number().int().min(1).max(100),
 });
 
 export const apiUpdateServerMonitoring = createSchema

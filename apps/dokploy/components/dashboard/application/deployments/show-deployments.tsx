@@ -75,6 +75,8 @@ export const ShowDeployments = ({
 			},
 		);
 
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+
 	const { mutateAsync: rollback, isPending: isRollingBack } =
 		api.rollback.rollback.useMutation();
 	const { mutateAsync: killProcess, isPending: isKillingProcess } =
@@ -119,7 +121,7 @@ export const ShowDeployments = ({
 
 	// Check for stuck deployment (more than 9 minutes) - only for the most recent deployment
 	const stuckDeployment = useMemo(() => {
-		if (!deployments || deployments.length === 0) return null;
+		if (!isCloud || !deployments || deployments.length === 0) return null;
 
 		const now = Date.now();
 		const NINE_MINUTES = 10 * 60 * 1000; // 9 minutes in milliseconds
@@ -139,13 +141,13 @@ export const ShowDeployments = ({
 		const elapsed = now - startTime;
 
 		return elapsed > NINE_MINUTES ? mostRecentDeployment : null;
-	}, [deployments]);
+	}, [isCloud, deployments]);
 	useEffect(() => {
 		setUrl(document.location.origin);
 	}, []);
 
 	return (
-		<Card className="bg-background border-none">
+		<Card className="bg-background border-0">
 			<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
 				<div className="flex flex-col gap-2">
 					<CardTitle className="text-xl">Deployments</CardTitle>
@@ -231,7 +233,6 @@ export const ShowDeployments = ({
 							<span>Webhook URL: </span>
 							<div className="flex flex-row items-center gap-2">
 								<Badge
-									role="button"
 									tabIndex={0}
 									aria-label="Copy webhook URL to clipboard"
 									className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all"
@@ -299,7 +300,7 @@ export const ShowDeployments = ({
 										</span>
 
 										<div className="flex flex-col gap-1">
-											<span className="break-words text-sm text-muted-foreground whitespace-pre-wrap">
+											<span className="wrap-break-word text-sm text-muted-foreground whitespace-pre-wrap">
 												{isExpanded || !needsTruncation
 													? titleText
 													: truncateDescription(titleText)}

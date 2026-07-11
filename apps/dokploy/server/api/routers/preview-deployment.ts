@@ -86,11 +86,8 @@ export const previewDeploymentRouter = createTRPCRouter({
 				applicationType: "application-preview",
 				previewDeploymentId: input.previewDeploymentId,
 				server: !!application.serverId,
+				serverId: application.serverId ?? undefined,
 			};
-
-			if (application.serverId) {
-				jobData.serverId = application.serverId;
-			}
 
 			if (IS_CLOUD && application.serverId) {
 				deploy(jobData).catch((error) => {

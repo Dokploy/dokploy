@@ -9,12 +9,13 @@
 		"export": "email export"
 	},
 	"dependencies": {
-		"@react-email/components": "0.0.21",
-		"react-email": "2.1.5",
-		"react": "^18.2.0"
+		"@react-email/components": "^1.0.12",
+		"react-email": "^6.6.5",
+		"react": "^19.2.7",
+		"react-dom": "^19.2.7"
 	},
 	"devDependencies": {
-		"@types/react": "18.2.33",
-		"@types/react-dom": "18.2.14"
+		"@types/react": "^19.2.0",
+		"@types/react-dom": "^19.2.0"
 	}
 }

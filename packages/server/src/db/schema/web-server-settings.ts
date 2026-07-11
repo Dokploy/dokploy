@@ -105,6 +105,8 @@ export const webServerSettings = pgTable("webServerSettings", {
 		}),
 	// Deployment Configuration (self-hosted only)
 	remoteServersOnly: boolean("remoteServersOnly").notNull().default(false),
+	// Concurrent builds on the local web server
+	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	// Auth Configuration (self-hosted only)
 	enforceSSO: boolean("enforceSSO").notNull().default(false),
 	// Cache Cleanup Configuration
@@ -117,10 +119,6 @@ export const webServerSettings = pgTable("webServerSettings", {
 	cleanupCacheOnCompose: boolean("cleanupCacheOnCompose")
 		.notNull()
 		.default(false),
-	// How many deployments can run in parallel on the local Dokploy host.
-	// Kept in the DB so operators can tune it from the Web Server settings
-	// UI without a rebuild or service restart.
-	deploymentConcurrency: integer("deploymentConcurrency").notNull().default(1),
 	createdAt: timestamp("created_at").defaultNow(),
 	updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -143,7 +141,6 @@ export const apiUpdateWebServerSettings = createSchema.partial().extend({
 	sshPrivateKey: z.string().optional(),
 	enableDockerCleanup: z.boolean().optional(),
 	logCleanupCron: z.string().optional().nullable(),
-	deploymentConcurrency: z.number().int().min(1).max(10).optional(),
 	metricsConfig: z
 		.object({
 			server: z.object({
@@ -173,6 +170,11 @@ export const apiUpdateWebServerSettings = createSchema.partial().extend({
 	cleanupCacheOnCompose: z.boolean().optional(),
 	remoteServersOnly: z.boolean().optional(),
 	enforceSSO: z.boolean().optional(),
+	buildsConcurrency: z.number().int().min(1).max(100).optional(),
+});
+
+export const apiUpdateWebServerBuildsConcurrency = z.object({
+	buildsConcurrency: z.number().int().min(1).max(100),
 });
 
 export const apiAssignDomain = z
@@ -227,10 +229,6 @@ export const whitelabelingConfigSchema = z.object({
 
 export const apiUpdateWhitelabeling = z.object({
 	whitelabelingConfig: whitelabelingConfigSchema,
-});
-
-export const apiUpdateWebServerDeploymentConcurrency = z.object({
-	deploymentConcurrency: z.number().int().min(1).max(10),
 });
 
 export const apiUpdateWebServerMonitoring = z.object({
