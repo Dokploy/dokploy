@@ -3,3 +3,13 @@
 # already-applied migrations. Lock to LF so checkouts are byte-stable across hosts.
 apps/dokploy/drizzle/*.sql text eol=lf
 apps/dokploy/drizzle/meta/*.json text eol=lf
+
+# Fork-owned files: always keep OUR version during an upstream sync merge.
+# Requires a one-time local git config on every machine/CI that performs a sync:
+#     git config merge.ours.driver true
+# Without it these entries are ignored and the files conflict manually instead.
+# See docs/UPSTREAM_SYNC.md.
+README.md merge=ours
+CNAME merge=ours
+install.sh merge=ours
+.github/workflows/dokploy.yml merge=ours
