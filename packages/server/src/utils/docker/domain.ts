@@ -139,7 +139,11 @@ export const addDomainToCompose = async (
 
 	let result: ComposeSpecification | null;
 
-	if (compose.serverId) {
+	if (compose.sourceType === "raw") {
+		result = parse(compose.composeFile, {
+			maxAliasCount: 10000,
+		}) as ComposeSpecification;
+	} else if (compose.serverId) {
 		result = await loadDockerComposeRemote(compose);
 	} else {
 		result = await loadDockerCompose(compose);
