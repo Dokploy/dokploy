@@ -70,8 +70,8 @@ import {
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
-	cancelDeploymentsByCompose,
 	cleanQueuesByCompose,
+	killDockerBuild,
 	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
@@ -250,16 +250,7 @@ export const composeRouter = createTRPCRouter({
 				.returning();
 
 			if (!IS_CLOUD) {
-				// Cancel in-flight AND queued deploy jobs for this compose.
-				// Routing through cancelDeploymentsByCompose (rather than
-				// deploymentWorker.cancelJob, which only aborts an *active* job)
-				// ensures a *waiting* job is removed from the queue too —
-				// otherwise it would later run deployCompose() for a now-deleted
-				// compose. Best-effort, like the cleanup steps below — a queue
-				// hiccup must not abort the delete.
-				try {
-					await cancelDeploymentsByCompose(input.composeId);
-				} catch (_) {}
+				await cleanQueuesByCompose(input.composeId);
 			}
 
 			const cleanupOperations = [
@@ -313,8 +304,8 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["cancel"],
 			});
-			await findComposeById(input.composeId);
-			await cancelDeploymentsByCompose(input.composeId);
+			const compose = await findComposeById(input.composeId);
+			await killDockerBuild("compose", compose.serverId);
 		}),
 
 	loadServices: protectedProcedure
@@ -432,11 +423,8 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
+				serverId: compose.serverId ?? undefined,
 			};
-
-			if (compose.serverId) {
-				jobData.serverId = compose.serverId;
-			}
 
 			if (IS_CLOUD && compose.serverId) {
 				deploy(jobData).catch((error) => {
@@ -484,11 +472,8 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
+				serverId: compose.serverId ?? undefined,
 			};
-			if (compose.serverId) {
-				jobData.serverId = compose.serverId;
-			}
-
 			if (IS_CLOUD && compose.serverId) {
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
@@ -1066,45 +1051,49 @@ export const composeRouter = createTRPCRouter({
 			});
 			const compose = await findComposeById(input.composeId);
 
-			try {
-				await updateCompose(input.composeId, {
-					composeStatus: "idle",
-				});
-				if (compose.deployments[0]) {
-					await updateDeploymentStatus(
-						compose.deployments[0].deploymentId,
-						"error",
-					);
-				}
+			if (IS_CLOUD && compose.serverId) {
+				try {
+					await updateCompose(input.composeId, {
+						composeStatus: "idle",
+					});
 
-				if (IS_CLOUD && compose.serverId) {
+					if (compose.deployments[0]) {
+						await updateDeploymentStatus(
+							compose.deployments[0].deploymentId,
+							"done",
+						);
+					}
+
 					await cancelDeployment({
 						composeId: input.composeId,
 						applicationType: "compose",
 					});
-				} else {
-					await cancelDeploymentsByCompose(input.composeId);
-				}
 
-				await audit(ctx, {
-					action: "stop",
-					resourceType: "compose",
-					resourceId: input.composeId,
-					resourceName: compose.name,
-				});
-				return {
-					success: true,
-					message: "Deployment cancellation requested",
-				};
-			} catch (error) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message:
-						error instanceof Error
-							? error.message
-							: "Failed to cancel deployment",
-				});
+					await audit(ctx, {
+						action: "stop",
+						resourceType: "compose",
+						resourceId: input.composeId,
+						resourceName: compose.name,
+					});
+					return {
+						success: true,
+						message: "Deployment cancellation requested",
+					};
+				} catch (error) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message:
+							error instanceof Error
+								? error.message
+								: "Failed to cancel deployment",
+					});
+				}
 			}
+
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Deployment cancellation only available in cloud version",
+			});
 		}),
 
 	search: protectedProcedure

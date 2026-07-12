@@ -2,7 +2,7 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import BuildSuccessEmail from "@dokploy/server/emails/emails/build-success";
 import type { Domain } from "@dokploy/server/services/domain";
-import { renderAsync } from "@react-email/components";
+import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
@@ -79,7 +79,7 @@ export const sendBuildSuccessNotifications = async ({
 		} = notification;
 		try {
 			if (email || resend) {
-				const template = await renderAsync(
+				const template = await render(
 					BuildSuccessEmail({
 						projectName,
 						applicationName,

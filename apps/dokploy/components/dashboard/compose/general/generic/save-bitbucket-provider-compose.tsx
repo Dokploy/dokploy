@@ -190,6 +190,9 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 									<FormLabel>Bitbucket Account</FormLabel>
 									<Select
 										onValueChange={(value) => {
+											if (!value) {
+												return;
+											}
 											field.onChange(value);
 											form.setValue("repository", {
 												owner: "",
@@ -198,7 +201,6 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 											});
 											form.setValue("branch", "");
 										}}
-										defaultValue={field.value}
 										value={field.value}
 									>
 										<FormControl>
@@ -247,7 +249,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -335,7 +337,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														" w-full justify-between !bg-input",
+														" w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -502,7 +504,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+									<FormLabel className="mt-0!">Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

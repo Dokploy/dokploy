@@ -325,7 +325,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										control={form.control}
 										name="previewHttps"
 										render={({ field }) => (
-											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
 												<div className="space-y-0.5">
 													<FormLabel>HTTPS</FormLabel>
 													<FormDescription>
@@ -431,7 +431,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										control={form.control}
 										name="previewRequireCollaboratorPermissions"
 										render={({ field }) => (
-											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm col-span-2">
+											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs col-span-2">
 												<div className="space-y-0.5">
 													<FormLabel>
 														Require Collaborator Permissions

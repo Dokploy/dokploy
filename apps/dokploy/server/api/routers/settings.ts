@@ -67,15 +67,11 @@ import {
 	apiServerSchema,
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
-	apiUpdateWebServerDeploymentConcurrency,
+	apiUpdateWebServerBuildsConcurrency,
 	projects,
 	server,
 } from "@/server/db/schema";
-import {
-	cleanAllDeploymentQueue,
-	deploymentQueueManager,
-	LOCAL_TARGET,
-} from "@/server/queues/queueSetup";
+import { cleanAllDeploymentQueue } from "@/server/queues/queueSetup";
 import { removeJob, schedule } from "@/server/utils/backup";
 import packageInfo from "../../../package.json";
 import { appRouter } from "../root";
@@ -146,7 +142,7 @@ export const settingsRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			return true;
 		}
-		const result = await cleanAllDeploymentQueue();
+		const result = cleanAllDeploymentQueue();
 		await audit(ctx, {
 			action: "update",
 			resourceType: "settings",
@@ -366,39 +362,6 @@ export const settingsRouter = createTRPCRouter({
 		});
 		return true;
 	}),
-	/**
-	 * Local counterpart of `server.updateDeploymentConcurrency`: sets how many
-	 * deployments can run in parallel on the Dokploy host itself. Persisted
-	 * on `webServerSettings` and applied to the in-process queue on the same
-	 * tick — no rebuild or service restart needed.
-	 */
-	updateDeploymentConcurrency: adminProcedure
-		.input(apiUpdateWebServerDeploymentConcurrency)
-		.mutation(async ({ input, ctx }) => {
-			if (IS_CLOUD) {
-				return true;
-			}
-			await updateWebServerSettings({
-				deploymentConcurrency: input.deploymentConcurrency,
-			});
-			try {
-				await deploymentQueueManager.updateConcurrency(
-					LOCAL_TARGET,
-					input.deploymentConcurrency,
-				);
-			} catch (error) {
-				console.error(
-					"Failed to propagate local concurrency change to queue manager",
-					error,
-				);
-			}
-			await audit(ctx, {
-				action: "update",
-				resourceType: "settings",
-				resourceName: "deployment-concurrency",
-			});
-			return true;
-		}),
 	updateDockerCleanup: adminProcedure
 		.input(apiUpdateDockerCleanup)
 		.mutation(async ({ input, ctx }) => {
@@ -502,6 +465,28 @@ export const settingsRouter = createTRPCRouter({
 				action: "update",
 				resourceType: "settings",
 				resourceName: "remote-servers-only",
+			});
+			return true;
+		}),
+
+	updateBuildsConcurrency: adminProcedure
+		.input(apiUpdateWebServerBuildsConcurrency)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				buildsConcurrency: input.buildsConcurrency,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "builds-concurrency",
 			});
 			return true;
 		}),
