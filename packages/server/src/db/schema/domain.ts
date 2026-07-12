@@ -56,6 +56,16 @@ export const domains = pgTable("domain", {
 	stripPath: boolean("stripPath").notNull().default(false),
 	middlewares: text("middlewares").array().default(sql`ARRAY[]::text[]`),
 	forwardAuthEnabled: boolean("forwardAuthEnabled").notNull().default(false),
+	// When a domain is attached to a compose service, Dokploy always attaches
+	// that service to BOTH "dokploy-network" and the project's implicit
+	// "default" network (see addDokployNetworkToService) so it keeps talking
+	// to sibling services (fix for #3562). For single-service compose apps
+	// (or any service that doesn't need default-network connectivity), being
+	// on two networks can make Traefik's Docker provider pick the wrong
+	// network's IP for routing, causing persistent 502s that don't self-heal.
+	// Opt-in escape hatch, defaults to false so existing behavior/tests are
+	// unchanged.
+	skipDefaultNetwork: boolean("skipDefaultNetwork").notNull().default(false),
 });
 
 export const domainsRelations = relations(domains, ({ one }) => ({
@@ -96,6 +106,7 @@ export const apiCreateDomain = createSchema.pick({
 	stripPath: true,
 	middlewares: true,
 	forwardAuthEnabled: true,
+	skipDefaultNetwork: true,
 });
 
 export const apiFindDomain = z.object({
@@ -129,5 +140,6 @@ export const apiUpdateDomain = createSchema
 		stripPath: true,
 		middlewares: true,
 		forwardAuthEnabled: true,
+		skipDefaultNetwork: true,
 	})
 	.merge(createSchema.pick({ domainId: true }).required());

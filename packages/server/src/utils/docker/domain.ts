@@ -224,6 +224,7 @@ export const addDomainToCompose = async (
 			// Add the dokploy-network to the service
 			result.services[serviceName].networks = addDokployNetworkToService(
 				result.services[serviceName].networks,
+				domain.skipDefaultNetwork ?? false,
 			);
 		}
 	}
@@ -349,6 +350,15 @@ export const createDomainLabels = (
 
 export const addDokployNetworkToService = (
 	networkService: DefinitionsService["networks"],
+	// Opt-in escape hatch for #<issue-number>: attaching a domain-linked
+	// service to both dokploy-network AND the implicit "default" network
+	// (added in #3562 so sibling services stay reachable) can make Traefik's
+	// Docker provider pick the wrong network's IP for routing, causing 502s
+	// that don't self-heal on restart. Services that don't rely on the
+	// default network for inter-service connectivity (e.g. single-service
+	// compose apps) can set this to skip the "default" attachment. Defaults
+	// to false so existing behavior is unchanged.
+	skipDefaultNetwork = false,
 ) => {
 	let networks = networkService;
 	const network = "dokploy-network";
@@ -361,14 +371,14 @@ export const addDokployNetworkToService = (
 		if (!networks.includes(network)) {
 			networks.push(network);
 		}
-		if (!networks.includes(defaultNetwork)) {
+		if (!skipDefaultNetwork && !networks.includes(defaultNetwork)) {
 			networks.push(defaultNetwork);
 		}
 	} else if (networks && typeof networks === "object") {
 		if (!(network in networks)) {
 			networks[network] = {};
 		}
-		if (!(defaultNetwork in networks)) {
+		if (!skipDefaultNetwork && !(defaultNetwork in networks)) {
 			networks[defaultNetwork] = {};
 		}
 	}
