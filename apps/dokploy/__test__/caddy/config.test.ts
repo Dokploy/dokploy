@@ -146,7 +146,28 @@ test("compiles Caddy access-log output when request analytics are enabled", () =
 			filename: "/etc/caddy/access.log",
 		},
 		encoder: {
-			format: "json",
+			format: "filter",
+			fields: {
+				"request>headers>X-Api-Key": {
+					filter: "delete",
+				},
+				"request>uri": {
+					filter: "multi_regexp",
+					operations: [
+						{
+							regexp: "^(/api/deploy/(compose/)?)[^/?]+",
+							value: "${1}[REDACTED]",
+						},
+						{
+							regexp: "\\?.*$",
+							value: "",
+						},
+					],
+				},
+			},
+			wrap: {
+				format: "json",
+			},
 		},
 		include: ["http.log.access"],
 	});
@@ -189,7 +210,28 @@ test("dashboard Caddy updates preserve enabled request access logs", async () =>
 			filename: "/etc/caddy/access.log",
 		},
 		encoder: {
-			format: "json",
+			format: "filter",
+			fields: {
+				"request>headers>X-Api-Key": {
+					filter: "delete",
+				},
+				"request>uri": {
+					filter: "multi_regexp",
+					operations: [
+						{
+							regexp: "^(/api/deploy/(compose/)?)[^/?]+",
+							value: "${1}[REDACTED]",
+						},
+						{
+							regexp: "\\?.*$",
+							value: "",
+						},
+					],
+				},
+			},
+			wrap: {
+				format: "json",
+			},
 		},
 		include: ["http.log.access"],
 	});
