@@ -104,6 +104,7 @@ vi.mock("@/server/utils/backup", () => ({
 import {
 	checkPortInUse,
 	compileAndWriteCaddyConfig,
+	compileWriteAndReloadCaddyConfigSafely,
 	compileWriteAndValidateCaddyConfigSafely,
 	getCaddyCompileSettings,
 	getWebServerResourceName,
@@ -173,6 +174,9 @@ beforeEach(() => {
 		accessLogs: requestLogsEnabled ? { enabled: true } : null,
 	}));
 	vi.mocked(compileAndWriteCaddyConfig).mockResolvedValue({} as never);
+	vi.mocked(compileWriteAndReloadCaddyConfigSafely).mockResolvedValue(
+		{} as never,
+	);
 	vi.mocked(compileWriteAndValidateCaddyConfigSafely).mockResolvedValue(
 		{} as never,
 	);
@@ -207,6 +211,7 @@ test("keeps Traefik request toggles on the existing Traefik YAML path", async ()
 		expect.stringContaining("/etc/dokploy/traefik/dynamic/access.log"),
 	);
 	expect(compileAndWriteCaddyConfig).not.toHaveBeenCalled();
+	expect(compileWriteAndReloadCaddyConfigSafely).not.toHaveBeenCalled();
 	expect(compileWriteAndValidateCaddyConfigSafely).not.toHaveBeenCalled();
 	expect(audit).toHaveBeenCalledWith(
 		expect.anything(),
@@ -238,10 +243,11 @@ test("toggles Caddy request logs without writing Traefik main config", async () 
 		requestLogsEnabled: true,
 	});
 	expect(getCaddyCompileSettings).toHaveBeenCalledWith();
-	expect(compileWriteAndValidateCaddyConfigSafely).toHaveBeenCalledWith({
+	expect(compileWriteAndReloadCaddyConfigSafely).toHaveBeenCalledWith({
 		letsEncryptEmail: "ops@example.com",
 		accessLogs: { enabled: true },
 	});
+	expect(compileWriteAndValidateCaddyConfigSafely).not.toHaveBeenCalled();
 	expect(compileAndWriteCaddyConfig).not.toHaveBeenCalled();
 	expect(writeMainConfig).not.toHaveBeenCalled();
 	expect(requestLogsEnabled).toBe(true);
@@ -284,15 +290,15 @@ test("preserves Caddy request-log settings when rewriting web-server setup", asy
 	);
 });
 
-test("restores Caddy request-log setting when generated config write fails", async () => {
+test("restores Caddy request-log setting when generated config reload fails", async () => {
 	vi.mocked(resolveWebServerProvider).mockResolvedValue("caddy");
 	requestLogsEnabled = true;
-	vi.mocked(compileWriteAndValidateCaddyConfigSafely).mockRejectedValueOnce(
-		new Error("caddy write failed") as never,
+	vi.mocked(compileWriteAndReloadCaddyConfigSafely).mockRejectedValueOnce(
+		new Error("caddy reload failed") as never,
 	);
 
 	await expect(caller.toggleRequests({ enable: false })).rejects.toThrow(
-		"caddy write failed",
+		"caddy reload failed",
 	);
 
 	expect(updateWebServerSettings).toHaveBeenNthCalledWith(1, {

@@ -12,7 +12,7 @@ import {
 	cleanupImages,
 	cleanupSystem,
 	cleanupVolumes,
-	compileWriteAndValidateCaddyConfigSafely,
+	compileWriteAndReloadCaddyConfigSafely,
 	DEFAULT_UPDATE_DATA,
 	execAsync,
 	findServerById,
@@ -938,7 +938,7 @@ export const settingsRouter = createTRPCRouter({
 					requestLogsEnabled: input.enable,
 				});
 				try {
-					await compileWriteAndValidateCaddyConfigSafely(
+					await compileWriteAndReloadCaddyConfigSafely(
 						await getCaddyCompileSettings(),
 					);
 				} catch (error) {
