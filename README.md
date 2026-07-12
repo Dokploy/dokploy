@@ -2,7 +2,7 @@
 
 > **This is a community fork of [Dokploy](https://github.com/Dokploy/dokploy).** We are **not** affiliated with or competing against the Dokploy project. This fork exists to make new features available faster.
 
-Based on **Dokploy v0.29.8** | Fork version **v0.29.8-devino.1**
+Based on **Dokploy v0.29.8** | Fork version **v0.29.8-community.1**
 
 ## What's different
 
@@ -34,7 +34,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 Install a specific version:
 
 ```bash
-export DOKPLOY_VERSION=v0.29.8-devino.1
+export DOKPLOY_VERSION=v0.29.8-community.1
 curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 ```
 
@@ -50,7 +50,7 @@ If you're already running official `dokploy/dokploy`, you can switch to this for
 
 ```bash
 docker service update \
-  --image ghcr.io/devinosolutions/dokploy-community:v0.29.8-devino.1 \
+  --image ghcr.io/devinosolutions/dokploy-community:v0.29.8-community.1 \
   --with-registry-auth \
   dokploy
 ```
@@ -64,7 +64,7 @@ docker service update --image dokploy/dokploy:v0.29.8 --with-registry-auth dokpl
 ## Docker Image
 
 ```
-ghcr.io/devinosolutions/dokploy-community:v0.29.8-devino.1   # versioned (recommended)
+ghcr.io/devinosolutions/dokploy-community:v0.29.8-community.1   # versioned (recommended)
 ghcr.io/devinosolutions/dokploy-community:canary              # latest build
 ```
 
@@ -72,13 +72,13 @@ The image is public — no authentication required.
 
 ## Versioning
 
-We follow the scheme `v<upstream-version>-devino.<release>`:
+We follow the scheme `v<upstream-version>-community.<release>`:
 
 | Upstream | Fork release | Tag |
 |---|---|---|
-| v0.29.8 | 1st release | `v0.29.8-devino.1` |
-| v0.29.8 | 2nd fix | `v0.29.8-devino.2` |
-| v0.30.0 | 1st release | `v0.30.0-devino.1` |
+| v0.29.8 | 1st release | `v0.29.8-community.1` |
+| v0.29.8 | 2nd fix | `v0.29.8-community.2` |
+| v0.30.0 | 1st release | `v0.30.0-community.1` |
 
 ## Contributing
 
@@ -93,7 +93,7 @@ For features that should go upstream, please also open a PR on the [official Dok
 ## Credits
 
 - [Dokploy](https://dokploy.com) — the original project by [@siumauricio](https://github.com/siumauricio)
-- This fork is maintained by [Devino Solutions](https://devino.ca)
+- Community-maintained fork, stewarded by [Devino Solutions](https://devino.ca)
 
 ## License
 

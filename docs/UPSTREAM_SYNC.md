@@ -73,7 +73,7 @@ resolve them by hand — annoying but not dangerous).
    v4 pass in v0.29.11); re-apply our small additions to *their* current file.
 4. **Fork-owned files: ours always wins** (see ownership table). These carry
    `merge=ours` in `.gitattributes`.
-5. **Version**: set `apps/dokploy/package.json` to `vX.Y.Z-devino.N`.
+5. **Version**: set `apps/dokploy/package.json` to `vX.Y.Z-community.N`.
 6. **`pnpm-lock.yaml`**: take theirs, then run `pnpm install` and commit any delta.
 
 ## File ownership
@@ -84,7 +84,7 @@ resolve them by hand — annoying but not dangerous).
 | `CNAME` | Fork | ours (`merge=ours`) |
 | `install.sh` | Fork | ours (`merge=ours`) |
 | `.github/workflows/dokploy.yml` | Fork | ours (`merge=ours`) — GHCR publish; ignore upstream release automation |
-| `apps/dokploy/package.json` (`version`) | Fork | `vX.Y.Z-devino.N` |
+| `apps/dokploy/package.json` (`version`) | Fork | `vX.Y.Z-community.N` |
 | `packages/server/src/services/settings.ts` | Shared | keep fork image/update sources (DevinoSolutions repo, `ghcr.io/devinosolutions`); adopt unrelated upstream logic around them |
 | Network management feature (below) | Fork | keep; re-integrate onto upstream |
 | Everything else | Upstream | theirs |
@@ -178,7 +178,7 @@ upgraders don't skip them.
 
 ## Version convention
 
-`vX.Y.Z-devino.N` where `X.Y.Z` is the synced upstream release and `N` starts at
+`vX.Y.Z-community.N` where `X.Y.Z` is the synced upstream release and `N` starts at
 `1`, incrementing for subsequent fork-only releases on the same upstream base.
 
 ## Verification (before merging the sync PR)
