@@ -677,6 +677,23 @@ test("validates a config file with the Caddy binary in an isolated runtime conta
 	expect(validateCommand).not.toContain("caddy\\:2.11.4 validate --config");
 });
 
+test("validates with an explicit digest-pinned Caddy image", async () => {
+	const imageName =
+		"ghcr.io/masonjames/caddy@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+	await validateCaddyConfigFileWithImage(
+		"/etc/dokploy/caddy/caddy.json",
+		undefined,
+		imageName,
+	);
+
+	const validateCommand = execAsyncMock.mock.calls
+		.map(([command]) => command as string)
+		.find((command) => command.includes("docker run"));
+	expect(validateCommand).toContain(
+		"ghcr.io/masonjames/caddy\\@sha256\\:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+	);
+});
+
 test("restores the previous Caddy config when safe validation fails without reloading", async () => {
 	const previousConfig = `${JSON.stringify(
 		compileCaddyConfig({ routes: [route({ hosts: ["old.example.com"] })] }),

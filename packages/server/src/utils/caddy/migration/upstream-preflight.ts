@@ -3,7 +3,7 @@ import {
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { quote } from "shell-quote";
-import { parseCaddyUpstream } from "../config";
+import { parseCaddyUpstream, readCaddyRouteFragments } from "../config";
 import type { CaddyRouteFragment } from "../types";
 import { DOKPLOY_CADDY_NETWORK } from "../upstream-targets";
 import { listMigrationFiles, readRequiredMigrationTextFile } from "./files";
@@ -109,6 +109,17 @@ const readPreflightInputs = async (
 	for (const fragmentFile of fragmentFiles) {
 		const content = await readRequiredMigrationTextFile(fragmentFile, serverId);
 		const fragment = JSON.parse(content) as CaddyRouteFragment;
+		const parsed = routeRefsFromFragment(fragment);
+		refs.push(...parsed.refs);
+		invalidChecks.push(...parsed.invalidChecks);
+	}
+	return { refs, invalidChecks };
+};
+
+const collectPreflightInputs = (fragments: CaddyRouteFragment[]) => {
+	const refs: CaddyMigrationRuntimePreflightRoute[] = [];
+	const invalidChecks: CaddyMigrationRuntimePreflightCheck[] = [];
+	for (const fragment of fragments) {
 		const parsed = routeRefsFromFragment(fragment);
 		refs.push(...parsed.refs);
 		invalidChecks.push(...parsed.invalidChecks);
@@ -252,41 +263,36 @@ const probeUpstream = async (
 	};
 };
 
-export const runCaddyMigrationUpstreamPreflight = async (
-	report: CaddyMigrationReport,
-	input: { serverId?: string } = {},
+const failedFragmentReadPreflight = (
+	error: unknown,
+): CaddyMigrationRuntimePreflight => ({
+	status: "failed",
+	checkedAt: new Date().toISOString(),
+	network: DEFAULT_PROBE_NETWORK,
+	networks: [DEFAULT_PROBE_NETWORK],
+	probeImage: PROBE_IMAGE,
+	checks: [
+		{
+			dial: "fragment-read",
+			host: "",
+			port: 0,
+			network: DEFAULT_PROBE_NETWORK,
+			status: "failed",
+			reason:
+				error instanceof Error
+					? error.message
+					: "Unable to read Caddy fragments",
+			routes: [],
+		},
+	],
+});
+
+const runUpstreamPreflight = async (
+	refs: CaddyMigrationRuntimePreflightRoute[],
+	invalidChecks: CaddyMigrationRuntimePreflightCheck[],
+	serverId?: string,
 ): Promise<CaddyMigrationRuntimePreflight> => {
 	const grouped = new Map<string, CaddyMigrationRuntimePreflightCheck>();
-	let refs: CaddyMigrationRuntimePreflightRoute[] = [];
-	let invalidChecks: CaddyMigrationRuntimePreflightCheck[] = [];
-	try {
-		const inputs = await readPreflightInputs(report, input.serverId);
-		refs = inputs.refs;
-		invalidChecks = inputs.invalidChecks;
-	} catch (error) {
-		return {
-			status: "failed",
-			checkedAt: new Date().toISOString(),
-			network: DEFAULT_PROBE_NETWORK,
-			networks: [DEFAULT_PROBE_NETWORK],
-			probeImage: PROBE_IMAGE,
-			checks: [
-				{
-					dial: "fragment-read",
-					host: "",
-					port: 0,
-					network: DEFAULT_PROBE_NETWORK,
-					status: "failed",
-					reason:
-						error instanceof Error
-							? error.message
-							: "Unable to read Caddy fragments",
-					routes: [],
-				},
-			],
-		};
-	}
-
 	for (const ref of refs) {
 		const dial = `${ref.normalizedHost}:${ref.normalizedPort}`;
 		const groupKey = `${ref.network}\0${dial}`;
@@ -308,7 +314,7 @@ export const runCaddyMigrationUpstreamPreflight = async (
 			check.host,
 			check.port,
 			check.network,
-			input.serverId,
+			serverId,
 		);
 		if (probeResult.probeMode === "service") {
 			probeMode = "service";
@@ -327,10 +333,45 @@ export const runCaddyMigrationUpstreamPreflight = async (
 			: "passed",
 		checkedAt: new Date().toISOString(),
 		network:
-			networks.length === 1 ? (networks[0] ?? DEFAULT_PROBE_NETWORK) : "mixed",
-		networks,
+			networks.length <= 1 ? (networks[0] ?? DEFAULT_PROBE_NETWORK) : "mixed",
+		networks: networks.length > 0 ? networks : [DEFAULT_PROBE_NETWORK],
 		probeMode,
 		probeImage: PROBE_IMAGE,
 		checks,
 	};
+};
+
+/**
+ * Probe the upstreams referenced by the active fragment store. Normal Caddy
+ * image replacement uses this in addition to the one-time migration preflight
+ * so a syntactically valid config cannot replace the edge while an app network
+ * or upstream is unreachable.
+ */
+export const runActiveCaddyUpstreamPreflight = async (
+	input: { serverId?: string } = {},
+): Promise<CaddyMigrationRuntimePreflight> => {
+	try {
+		const fragments = await readCaddyRouteFragments({
+			serverId: input.serverId,
+		});
+		const { refs, invalidChecks } = collectPreflightInputs(fragments);
+		return runUpstreamPreflight(refs, invalidChecks, input.serverId);
+	} catch (error) {
+		return failedFragmentReadPreflight(error);
+	}
+};
+
+export const runCaddyMigrationUpstreamPreflight = async (
+	report: CaddyMigrationReport,
+	input: { serverId?: string } = {},
+): Promise<CaddyMigrationRuntimePreflight> => {
+	try {
+		const { refs, invalidChecks } = await readPreflightInputs(
+			report,
+			input.serverId,
+		);
+		return runUpstreamPreflight(refs, invalidChecks, input.serverId);
+	} catch (error) {
+		return failedFragmentReadPreflight(error);
+	}
 };

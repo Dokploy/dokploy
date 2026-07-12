@@ -26,6 +26,7 @@ import type {
 
 const CADDY_FRAGMENT_VERSION = 1;
 const CADDY_VERSION = process.env.CADDY_VERSION || "2.11.4";
+const CADDY_IMAGE = process.env.CADDY_IMAGE?.trim() || `caddy:${CADDY_VERSION}`;
 const CADDY_ACCESS_LOG_CONTAINER_PATH = "/etc/caddy/access.log";
 // Application and Compose webhook credentials are path segments. Query strings
 // are also omitted so access analytics never become a secondary secret store.
@@ -307,9 +308,7 @@ const createTrustedProxyServerOptions = (
 		// Caddy's Server.trusted_proxies_strict field is an int, not a bool:
 		// emitting JSON `true` makes `caddy validate` reject the config when
 		// strict mode is enabled. Emit 1 and omit the field entirely otherwise.
-		...(trustedProxies.strict === false
-			? {}
-			: { trusted_proxies_strict: 1 }),
+		...(trustedProxies.strict === false ? {} : { trusted_proxies_strict: 1 }),
 	};
 };
 
@@ -1105,8 +1104,8 @@ export const validateCaddyConfigWithContainer = async (serverId?: string) => {
 export const validateCaddyConfigFileWithImage = async (
 	configPath: string,
 	serverId?: string,
+	imageName = CADDY_IMAGE,
 ) => {
-	const imageName = `caddy:${CADDY_VERSION}`;
 	const validationRoot = path.posix.join(
 		path.posix.dirname(configPath),
 		".validate-runtime",

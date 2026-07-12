@@ -17,7 +17,9 @@ vi.mock("@dokploy/server/utils/process/execAsync", () => ({
 import type { CaddyMigrationReport, CaddyRouteFragment } from "@dokploy/server";
 import {
 	getCaddyMigrationArtifactPaths,
+	runActiveCaddyUpstreamPreflight,
 	runCaddyMigrationUpstreamPreflight,
+	writeCaddyRouteFragment,
 } from "@dokploy/server";
 
 const createReport = (migrationId: string): CaddyMigrationReport => {
@@ -266,5 +268,36 @@ describe("Caddy migration upstream preflight", () => {
 		expect(execAsyncMock).toHaveBeenCalledTimes(2);
 		expect(execAsyncMock.mock.calls[0]?.[0]).toContain("docker run --rm");
 		expect(execAsyncMock.mock.calls[1]?.[0]).toContain("docker service create");
+	});
+
+	test("probes the active fragment store during ordinary Caddy replacement", async () => {
+		await writeCaddyRouteFragment({
+			version: 1,
+			id: "active-app",
+			source: "manual",
+			routes: [
+				{
+					id: "active-route",
+					source: "manual",
+					hosts: ["active.example.com"],
+					upstreams: ["http://active-web:8080"],
+					upstreamNetwork: "active-project",
+				},
+			],
+		});
+
+		const preflight = await runActiveCaddyUpstreamPreflight();
+
+		expect(preflight.status).toBe("passed");
+		expect(preflight.checks).toEqual([
+			expect.objectContaining({
+				dial: "active-web:8080",
+				network: "active-project",
+				status: "passed",
+			}),
+		]);
+		expect(execAsyncMock.mock.calls[0]?.[0]).toContain(
+			"--network active-project",
+		);
 	});
 });

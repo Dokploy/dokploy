@@ -774,26 +774,29 @@ export const writeCaddySetup = async (input: CaddyOptions) => {
 		fallbackResourceType === "service" ? "service" : "standalone";
 
 	if (setupType === "service") {
-		await initializeCaddyService({
-			env: input.env,
-			additionalPorts: input.additionalPorts,
-			serverId: input.serverId,
-			letsEncryptEmail: input.letsEncryptEmail,
-			trustedProxies: input.trustedProxies,
-			accessLogs: input.accessLogs,
-		});
-		await reconnectServicesToWebServer("dokploy-caddy", input.serverId);
+		await initializeCaddyService(
+			{
+				env: input.env,
+				additionalPorts: input.additionalPorts,
+				serverId: input.serverId,
+				letsEncryptEmail: input.letsEncryptEmail,
+				trustedProxies: input.trustedProxies,
+				accessLogs: input.accessLogs,
+			},
+			() => reconnectServicesToWebServer("dokploy-caddy", input.serverId),
+		);
 	} else {
-		await initializeStandaloneCaddy({
-			env: input.env,
-			additionalPorts: input.additionalPorts,
-			serverId: input.serverId,
-			letsEncryptEmail: input.letsEncryptEmail,
-			trustedProxies: input.trustedProxies,
-			accessLogs: input.accessLogs,
-		});
-
-		await reconnectServicesToWebServer("dokploy-caddy", input.serverId);
+		await initializeStandaloneCaddy(
+			{
+				env: input.env,
+				additionalPorts: input.additionalPorts,
+				serverId: input.serverId,
+				letsEncryptEmail: input.letsEncryptEmail,
+				trustedProxies: input.trustedProxies,
+				accessLogs: input.accessLogs,
+			},
+			() => reconnectServicesToWebServer("dokploy-caddy", input.serverId),
+		);
 	}
 };
 
@@ -842,17 +845,28 @@ export const reconnectServicesToWebServer = async (
 	});
 
 	if (!composeResult) {
-		return;
+		return [];
 	}
-	let commands = "";
+	let commands = "set -eu\n";
+	const requiredNetworks: string[] = [];
 
 	for (const compose of composeResult) {
 		const networkName = quote([compose.appName]);
 		const quotedResourceName = quote([resourceName]);
+		requiredNetworks.push(compose.appName);
+		commands += `NETWORK_ID=$(docker network inspect ${networkName} --format '{{.Id}}')\n`;
 		commands += `if docker service inspect ${quotedResourceName} >/dev/null 2>&1; then\n`;
-		commands += `  docker service inspect ${quotedResourceName} --format '{{range .Spec.TaskTemplate.Networks}}{{println .Target}}{{end}}' | grep -qx ${networkName} || docker service update --network-add ${networkName} ${quotedResourceName} >/dev/null\n`;
+		commands += `  if ! docker service inspect ${quotedResourceName} --format '{{range .Spec.TaskTemplate.Networks}}{{println .Target}}{{end}}' | grep -Fxq "$NETWORK_ID"; then\n`;
+		commands += `    docker service update --network-add ${networkName} ${quotedResourceName} >/dev/null\n`;
+		commands += "  fi\n";
+		commands += `  docker service inspect ${quotedResourceName} --format '{{range .Spec.TaskTemplate.Networks}}{{println .Target}}{{end}}' | grep -Fxq "$NETWORK_ID"\n`;
 		commands += "else\n";
-		commands += `  docker network connect ${networkName} $(docker ps --filter "name=${resourceName}" -q) >/dev/null 2>&1 || true\n`;
+		commands += `  CONTAINER_ID=$(docker ps --filter "name=${resourceName}" --format '{{.ID}} {{.Names}}' | awk '$2 == "${resourceName}" { print $1; exit }')\n`;
+		commands += `  if [ -z "$CONTAINER_ID" ]; then echo "${resourceName} container is not running" >&2; exit 1; fi\n`;
+		commands += `  if ! docker inspect "$CONTAINER_ID" --format '{{range $network, $_ := .NetworkSettings.Networks}}{{println $network}}{{end}}' | grep -Fxq ${networkName}; then\n`;
+		commands += `    docker network connect ${networkName} "$CONTAINER_ID" >/dev/null\n`;
+		commands += "  fi\n";
+		commands += `  docker inspect "$CONTAINER_ID" --format '{{range $network, $_ := .NetworkSettings.Networks}}{{println $network}}{{end}}' | grep -Fxq ${networkName}\n`;
 		commands += "fi\n";
 	}
 
@@ -861,6 +875,7 @@ export const reconnectServicesToWebServer = async (
 	} else {
 		await execAsync(commands);
 	}
+	return requiredNetworks;
 };
 
 export const reconnectServicesToTraefik = async (serverId?: string) => {
