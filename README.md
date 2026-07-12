@@ -2,30 +2,44 @@
 
 > **This is a community fork of [Dokploy](https://github.com/Dokploy/dokploy).** We are **not** affiliated with or competing against the Dokploy project. This fork exists to make new features available faster.
 
-Based on **Dokploy v0.29.8** | Fork version **v0.29.8-community.1**
+Based on **Dokploy v0.29.11** | Fork version **v0.29.11-community.1**
+
+## Switching from official Dokploy
+
+One command. Keeps every app, database, domain, and setting — the extra migrations are additive:
+
+```bash
+docker service update \
+  --image ghcr.io/devinosolutions/dokploy-community:v0.29.11-community.1 \
+  --with-registry-auth \
+  dokploy
+```
+
+Going back to official is just as easy (our extra tables/columns are simply ignored):
+
+```bash
+docker service update --image dokploy/dokploy:v0.29.11 --with-registry-auth dokploy
+```
+
+The image is public — no registry login required.
 
 ## What's different
 
-This fork adds two features on top of the official Dokploy release:
-
-### Concurrent Deployments
-- Per-server deployment queues with configurable concurrency (default: 1 = serial, same as stock)
-- Cancel deployments mid-build (queued or active)
-- Process-group isolation — cancelling one build doesn't affect others
-
-https://github.com/user-attachments/assets/628dda12-0524-4b3f-9a13-e4679488889a
+Everything in Dokploy v0.29.11, plus:
 
 ### Docker Network Management
 - New Networks page in the sidebar
 - Create, delete, and manage Docker overlay networks
 - Attach networks to any application or database service
 - Per-resource network picker in the Advanced tab
-  
+
 https://github.com/user-attachments/assets/94134095-5601-4279-be2f-219734c8e199
 
-## Install
+> Concurrent deployments — previously a fork-only feature — shipped natively in upstream Dokploy v0.29.11, so this fork now uses the official implementation.
 
-Fresh install on a clean server (same requirements as Dokploy — Linux, root access):
+## Fresh install
+
+On a clean Linux server with root access (same requirements as Dokploy):
 
 ```bash
 curl -sSL https://dokploy-community.devino.ca/install.sh | sh
@@ -34,7 +48,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 Install a specific version:
 
 ```bash
-export DOKPLOY_VERSION=v0.29.8-community.1
+export DOKPLOY_VERSION=v0.29.11-community.1
 curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 ```
 
@@ -44,31 +58,13 @@ Update an existing installation:
 curl -sSL https://dokploy-community.devino.ca/install.sh | sh -s update
 ```
 
-## Upgrade from official Dokploy
-
-If you're already running official `dokploy/dokploy`, you can switch to this fork:
-
-```bash
-docker service update \
-  --image ghcr.io/devinosolutions/dokploy-community:v0.29.8-community.1 \
-  --with-registry-auth \
-  dokploy
-```
-
-The new migrations are additive (new table + new columns with defaults). Rollback to official is safe:
-
-```bash
-docker service update --image dokploy/dokploy:v0.29.8 --with-registry-auth dokploy
-```
-
 ## Docker Image
 
 ```
-ghcr.io/devinosolutions/dokploy-community:v0.29.8-community.1   # versioned (recommended)
-ghcr.io/devinosolutions/dokploy-community:canary              # latest build
+ghcr.io/devinosolutions/dokploy-community:v0.29.11-community.1   # versioned (recommended)
+ghcr.io/devinosolutions/dokploy-community:latest                  # latest release
+ghcr.io/devinosolutions/dokploy-community:canary                  # latest build
 ```
-
-The image is public — no authentication required.
 
 ## Versioning
 
@@ -76,8 +72,8 @@ We follow the scheme `v<upstream-version>-community.<release>`:
 
 | Upstream | Fork release | Tag |
 |---|---|---|
-| v0.29.8 | 1st release | `v0.29.8-community.1` |
-| v0.29.8 | 2nd fix | `v0.29.8-community.2` |
+| v0.29.11 | 1st release | `v0.29.11-community.1` |
+| v0.29.11 | 2nd fix | `v0.29.11-community.2` |
 | v0.30.0 | 1st release | `v0.30.0-community.1` |
 
 ## Contributing
