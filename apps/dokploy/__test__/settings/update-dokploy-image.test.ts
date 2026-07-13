@@ -67,7 +67,7 @@ describe("Dokploy update image resolution", () => {
 		).toBe("latest");
 	});
 
-	it("builds a start-first service update command with rollback", () => {
+	it("builds a stop-first service update command with rollback", () => {
 		const command = buildDokployServiceUpdateCommand(
 			"dokploy",
 			"ghcr.io/acme/dokploy:0.35.2",
@@ -75,7 +75,8 @@ describe("Dokploy update image resolution", () => {
 			"latest",
 		);
 
-		expect(command).toContain("--update-order start-first");
+		expect(command).toContain("--update-order stop-first");
+		expect(command).not.toContain("--update-order start-first");
 		expect(command).toContain("--update-failure-action rollback");
 		expect(command).toContain("--with-registry-auth");
 		expect(command).toContain("--image ghcr.io/acme/dokploy:0.36.0");

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { isVersionAtLeast } from "@/lib/version";
 import { api } from "@/utils/api";
 
 type ServiceStatus = {
@@ -35,6 +36,9 @@ type HealthResult = {
 };
 
 type ModalState = "idle" | "checking" | "results" | "updating";
+
+const UPDATE_POLL_INTERVAL_MS = 2000;
+const UPDATE_TIMEOUT_MS = 5 * 60 * 1000;
 
 const ServiceStatusItem = ({
 	name,
@@ -58,8 +62,10 @@ const ServiceStatusItem = ({
 
 export const UpdateWebServer = ({
 	buttonClassName,
+	targetVersion,
 }: {
 	buttonClassName?: string;
+	targetVersion: string;
 }) => {
 	const [modalState, setModalState] = useState<ModalState>("idle");
 	const [open, setOpen] = useState(false);
@@ -92,12 +98,44 @@ export const UpdateWebServer = ({
 		healthResult.redis.status === "healthy" &&
 		healthResult.traefik.status === "healthy";
 
-	const checkIsUpdateFinished = async () => {
-		try {
-			const response = await fetch("/api/health");
-			if (!response.ok) {
-				throw new Error("Health check failed");
+	const waitForUpdatedServer = async () => {
+		const deadline = Date.now() + UPDATE_TIMEOUT_MS;
+
+		while (Date.now() < deadline) {
+			try {
+				const response = await fetch("/api/health", { cache: "no-store" });
+				const health = (await response.json()) as {
+					ok?: boolean;
+					version?: string;
+				};
+
+				if (
+					response.ok &&
+					health.ok &&
+					health.version &&
+					isVersionAtLeast(health.version, targetVersion)
+				) {
+					return;
+				}
+			} catch {
+				// The service is expected to be briefly unavailable during replacement.
 			}
+
+			await new Promise((resolve) =>
+				setTimeout(resolve, UPDATE_POLL_INTERVAL_MS),
+			);
+		}
+
+		throw new Error(`Dokploy did not reach version ${targetVersion} in time`);
+	};
+
+	const handleConfirm = async () => {
+		try {
+			setModalState("updating");
+			await updateServer();
+
+			await new Promise((resolve) => setTimeout(resolve, 3000));
+			await waitForUpdatedServer();
 
 			toast.success(
 				"The server has been updated. The page will be reloaded to reflect the changes...",
@@ -106,20 +144,6 @@ export const UpdateWebServer = ({
 			setTimeout(() => {
 				window.location.reload();
 			}, 2000);
-		} catch {
-			await new Promise((resolve) => setTimeout(resolve, 2000));
-			void checkIsUpdateFinished();
-		}
-	};
-
-	const handleConfirm = async () => {
-		try {
-			setModalState("updating");
-			await updateServer();
-
-			await new Promise((resolve) => setTimeout(resolve, 8000));
-
-			await checkIsUpdateFinished();
 		} catch (error) {
 			setModalState("results");
 			console.error("Error updating server:", error);

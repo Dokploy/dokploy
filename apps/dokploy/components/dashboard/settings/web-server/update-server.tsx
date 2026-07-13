@@ -261,7 +261,10 @@ export const UpdateServer = ({
 							Cancel
 						</Button>
 						{isUpdateAvailable ? (
-							<UpdateWebServer buttonClassName="w-auto" />
+							<UpdateWebServer
+								buttonClassName="w-auto"
+								targetVersion={latestVersion}
+							/>
 						) : (
 							<Button
 								variant="secondary"

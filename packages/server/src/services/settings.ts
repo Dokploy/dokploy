@@ -104,7 +104,7 @@ export const buildDokployServiceUpdateCommand = (
 		"--detach=true",
 		"--force",
 		"--with-registry-auth",
-		"--update-order start-first",
+		"--update-order stop-first",
 		"--update-failure-action rollback",
 		`--image ${image}`,
 		resourceName,
