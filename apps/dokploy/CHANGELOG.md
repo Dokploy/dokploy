@@ -1,3 +1,10 @@
+## [0.37.1](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.37.0...v0.37.1) (2026-07-13)
+
+
+### Bug Fixes
+
+* make Dokploy self-updates converge ([a20f130](https://github.com/Bl4ckBl1zZ/dokploy/commit/a20f1301be302f4e9dac3742b91c8ebc2a97f266))
+
 # [0.37.0](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.36.2...v0.37.0) (2026-07-13)
 
 
