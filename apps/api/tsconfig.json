@@ -5,9 +5,9 @@
 		"moduleResolution": "Node",
 		"strict": true,
 		"skipLibCheck": true,
+		"esModuleInterop": true,
 		"outDir": "dist",
 		"jsx": "react-jsx",
-		"jsxImportSource": "hono/jsx",
 		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./*"],

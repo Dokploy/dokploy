@@ -115,7 +115,11 @@ export const buildRedis = async (redis: RedisNested) => {
 							]
 						: [],
 				},
-		UpdateConfig,
+		UpdateConfig: redis.updateConfigSwarm ?? {
+			Parallelism: 1,
+			Order: "stop-first" as const,
+			FailureAction: "rollback" as const,
+		},
 	};
 
 	try {

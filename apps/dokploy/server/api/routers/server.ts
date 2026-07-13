@@ -36,6 +36,7 @@ import {
 	apiFindOneServer,
 	apiRemoveServer,
 	apiUpdateServer,
+	apiUpdateServerBuildsConcurrency,
 	apiUpdateServerMonitoring,
 	apiUpdateServerTunnelAccount,
 	applications,
@@ -48,6 +49,7 @@ import {
 	redis,
 	server,
 } from "@/server/db/schema";
+import { applyDockerCleanupSchedule } from "@/server/utils/docker-cleanup";
 
 export const serverRouter = createTRPCRouter({
 	create: withPermission("server", "create")
@@ -65,6 +67,11 @@ export const serverRouter = createTRPCRouter({
 				const project = await createServer(
 					input,
 					ctx.session.activeOrganizationId,
+				);
+				await applyDockerCleanupSchedule(
+					project.serverId,
+					ctx.session.activeOrganizationId,
+					input.enableDockerCleanup,
 				);
 				await audit(ctx, {
 					action: "create",
@@ -454,6 +461,12 @@ export const serverRouter = createTRPCRouter({
 					...input,
 				});
 
+				await applyDockerCleanupSchedule(
+					input.serverId,
+					ctx.session.activeOrganizationId,
+					input.enableDockerCleanup,
+				);
+
 				await audit(ctx, {
 					action: "update",
 					resourceType: "server",
@@ -464,6 +477,20 @@ export const serverRouter = createTRPCRouter({
 			} catch (error) {
 				throw error;
 			}
+		}),
+	updateBuildsConcurrency: withPermission("server", "create")
+		.input(apiUpdateServerBuildsConcurrency)
+		.mutation(async ({ input, ctx }) => {
+			const currentServer = await findServerById(input.serverId);
+			if (currentServer.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to update this server",
+				});
+			}
+			return await updateServerById(input.serverId, {
+				buildsConcurrency: input.buildsConcurrency,
+			});
 		}),
 	publicIp: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {

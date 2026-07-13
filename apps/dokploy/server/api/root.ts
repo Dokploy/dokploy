@@ -15,6 +15,7 @@ import { destinationRouter } from "./routers/destination";
 import { dockerRouter } from "./routers/docker";
 import { domainRouter } from "./routers/domain";
 import { environmentRouter } from "./routers/environment";
+import { forwardAuthRouter } from "./routers/forward-auth";
 import { gitProviderRouter } from "./routers/git-provider";
 import { giteaRouter } from "./routers/gitea";
 import { githubRouter } from "./routers/github";
@@ -36,6 +37,7 @@ import { redisRouter } from "./routers/redis";
 import { registryRouter } from "./routers/registry";
 import { rollbackRouter } from "./routers/rollbacks";
 import { scheduleRouter } from "./routers/schedule";
+import { scimRouter } from "./routers/scim";
 import { securityRouter } from "./routers/security";
 import { serverRouter } from "./routers/server";
 import { settingsRouter } from "./routers/settings";
@@ -93,6 +95,8 @@ export const appRouter = createTRPCRouter({
 	ai: aiRouter,
 	organization: organizationRouter,
 	sso: ssoRouter,
+	scim: scimRouter,
+	forwardAuth: forwardAuthRouter,
 	whitelabeling: whitelabelingRouter,
 	customRole: customRoleRouter,
 	auditLog: auditLogRouter,

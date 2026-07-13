@@ -69,8 +69,8 @@ void app.prepare().then(async () => {
 
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");
-			const { deploymentWorker } = await import("./queues/deployments-queue");
-			await deploymentWorker.run();
+			const { startDeploymentWorker } = await import("./queues/queueSetup");
+			await startDeploymentWorker();
 		}
 	} catch (e) {
 		console.error("Main Server Error", e);

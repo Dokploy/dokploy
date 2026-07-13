@@ -81,7 +81,17 @@ const getDockerConfig = (): Docker => {
 	return new Docker({ ...versionOption });
 };
 
-export const docker = getDockerConfig();
+// Igual que db: el módulo se evalúa una vez por copia bundleada, el cache
+// evita crear un cliente (y loguear la detección del socket) por cada una.
+const globalForDocker = globalThis as unknown as {
+	docker?: Docker;
+};
+
+if (!globalForDocker.docker) {
+	globalForDocker.docker = getDockerConfig();
+}
+
+export const docker = globalForDocker.docker;
 
 export const paths = (isServer = false) => {
 	const BASE_PATH =

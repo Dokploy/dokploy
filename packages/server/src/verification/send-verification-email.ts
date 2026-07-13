@@ -1,4 +1,4 @@
-import { renderAsync } from "@react-email/components";
+import { render } from "@react-email/components";
 import InvitationEmail from "../emails/emails/invitation";
 import VerifyEmailTemplate from "../emails/emails/verify-email";
 import { sendEmailNotification } from "../utils/notifications/utils";
@@ -40,7 +40,7 @@ export const sendVerificationEmail = async ({
 	email: string;
 	verificationUrl: string;
 }) => {
-	const html = await renderAsync(
+	const html = await render(
 		VerifyEmailTemplate({
 			userName: userName || "User",
 			verificationUrl,
@@ -62,7 +62,7 @@ export const renderInvitationEmail = async ({
 	inviteLink: string;
 	organizationName: string;
 }) => {
-	return renderAsync(
+	return render(
 		InvitationEmail({
 			inviteLink,
 			toEmail: email,

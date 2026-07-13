@@ -308,6 +308,48 @@ export const duplicateEnvironment = async (
 	return newEnvironment;
 };
 
+interface EnvironmentWithServices {
+	applications: { applicationId: string }[];
+	compose: { composeId: string }[];
+	libsql: { libsqlId: string }[];
+	mariadb: { mariadbId: string }[];
+	mongo: { mongoId: string }[];
+	mysql: { mysqlId: string }[];
+	postgres: { postgresId: string }[];
+	redis: { redisId: string }[];
+}
+
+export const filterEnvironmentServices = <T extends EnvironmentWithServices>(
+	environment: T,
+	accessedServices: string[],
+): T => ({
+	...environment,
+	applications: environment.applications.filter((app) =>
+		accessedServices.includes(app.applicationId),
+	),
+	compose: environment.compose.filter((comp) =>
+		accessedServices.includes(comp.composeId),
+	),
+	libsql: environment.libsql.filter((db) =>
+		accessedServices.includes(db.libsqlId),
+	),
+	mariadb: environment.mariadb.filter((db) =>
+		accessedServices.includes(db.mariadbId),
+	),
+	mongo: environment.mongo.filter((db) =>
+		accessedServices.includes(db.mongoId),
+	),
+	mysql: environment.mysql.filter((db) =>
+		accessedServices.includes(db.mysqlId),
+	),
+	postgres: environment.postgres.filter((db) =>
+		accessedServices.includes(db.postgresId),
+	),
+	redis: environment.redis.filter((db) =>
+		accessedServices.includes(db.redisId),
+	),
+});
+
 export const createProductionEnvironment = async (projectId: string) => {
 	const newEnvironment = await db
 		.insert(environments)

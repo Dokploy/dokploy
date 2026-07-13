@@ -10,6 +10,7 @@ import type { ReactElement, ReactNode } from "react";
 import { SearchCommand } from "@/components/dashboard/search-command";
 import { WhitelabelingProvider } from "@/components/dashboard/whitelabeling/whitelabeling-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -41,19 +42,21 @@ const MyApp = ({
 			<Head>
 				<title>Dokploy</title>
 			</Head>
-			<ThemeProvider
-				attribute="class"
-				defaultTheme="system"
-				enableSystem
-				disableTransitionOnChange
-				forcedTheme={Component.theme}
-			>
-				<NextTopLoader color="hsl(var(--sidebar-ring))" />
-				<WhitelabelingProvider />
-				<Toaster richColors />
-				<SearchCommand />
-				{getLayout(<Component {...pageProps} />)}
-			</ThemeProvider>
+			<TooltipProvider>
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="system"
+					enableSystem
+					disableTransitionOnChange
+					forcedTheme={Component.theme}
+				>
+					<NextTopLoader color="hsl(var(--sidebar-ring))" />
+					<WhitelabelingProvider />
+					<Toaster richColors />
+					<SearchCommand />
+					{getLayout(<Component {...pageProps} />)}
+				</ThemeProvider>
+			</TooltipProvider>
 		</>
 	);
 };
