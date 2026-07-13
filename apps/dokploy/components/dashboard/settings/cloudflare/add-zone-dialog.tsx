@@ -1,5 +1,5 @@
-import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Loader2, RotateCcw } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -17,16 +17,22 @@ import { api } from "@/utils/api";
 interface Props {
 	open: boolean;
 	onOpenChange: (next: boolean) => void;
+	existingZoneIds: string[];
 }
 
-export const AddZoneDialog = ({ open, onOpenChange }: Props) => {
+export const AddZoneDialog = ({
+	open,
+	onOpenChange,
+	existingZoneIds,
+}: Props) => {
 	const utils = api.useUtils();
 	const {
 		data: zones,
+		isPending,
 		isFetching,
 		error: zonesError,
+		refetch,
 	} = api.cloudflare.listAvailableZones.useQuery(undefined, { enabled: open });
-	const { data: configData } = api.cloudflare.getConfig.useQuery();
 	const [selected, setSelected] = useState<Record<string, boolean>>({});
 
 	useEffect(() => {
@@ -34,139 +40,191 @@ export const AddZoneDialog = ({ open, onOpenChange }: Props) => {
 	}, [open]);
 
 	const addMut = api.cloudflare.addZones.useMutation({
-		onSuccess: () => {
-			toast.success("Zones added");
-			utils.cloudflare.getConfig.invalidate();
+		onSuccess: async (_result, variables) => {
+			toast.success(
+				variables.zones.length === 1
+					? "Zone added"
+					: `${variables.zones.length} zones added`,
+			);
+			await Promise.all([
+				utils.cloudflare.getConfig.invalidate(),
+				utils.cloudflare.getLocalTunnelAccountChoice.invalidate(),
+				utils.cloudflare.getServerTunnelAccountChoice.invalidate(),
+			]);
 			onOpenChange(false);
 		},
-		onError: (e) => toast.error(e.message),
+		onError: (error) => toast.error(error.message),
 	});
 
-	const existingIds = new Set((configData?.zones ?? []).map((z) => z.zoneId));
-	const available = (zones ?? []).filter((z) => !existingIds.has(z.id));
+	const existingIds = useMemo(
+		() => new Set(existingZoneIds),
+		[existingZoneIds],
+	);
+	const available = (zones ?? []).filter((zone) => !existingIds.has(zone.id));
+	const groupedZones = Object.values(
+		available.reduce<
+			Record<
+				string,
+				{
+					account: { id: string; name: string };
+					zones: typeof available;
+				}
+			>
+		>((groups, zone) => {
+			const key = zone.account.id;
+			groups[key] = groups[key] ?? { account: zone.account, zones: [] };
+			groups[key]?.zones.push(zone);
+			return groups;
+		}, {}),
+	).sort((a, b) => a.account.name.localeCompare(b.account.name));
+	const selectedCount = available.filter((zone) => selected[zone.id]).length;
 
 	const toggleAll = (next: boolean) => {
-		const map: Record<string, boolean> = {};
-		for (const z of available) map[z.id] = next;
-		setSelected(map);
+		setSelected(Object.fromEntries(available.map((zone) => [zone.id, next])));
 	};
 
 	const submit = () => {
-		const picked = available.filter((z) => selected[z.id]);
+		const picked = available.filter((zone) => selected[zone.id]);
 		if (picked.length === 0) return;
 		addMut.mutate({
-			zones: picked.map((z) => ({
-				zoneId: z.id,
-				zoneName: z.name,
-				accountId: z.account.id,
-				status: z.status,
+			zones: picked.map((zone) => ({
+				zoneId: zone.id,
+				zoneName: zone.name,
+				accountId: zone.account.id,
+				status: zone.status,
 			})),
 		});
 	};
 
+	const handleOpenChange = (next: boolean) => {
+		if (!addMut.isPending) onOpenChange(next);
+	};
+
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-lg">
+		<Dialog open={open} onOpenChange={handleOpenChange}>
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Add Cloudflare Zones</DialogTitle>
+					<DialogTitle>Add Cloudflare zones</DialogTitle>
 					<DialogDescription>
-						Pick the zones you want Dokploy to manage. You can add or remove
-						zones later.
+						Select the zones Dokploy may use for managed domains. Zones are
+						grouped by their Cloudflare account.
 					</DialogDescription>
 				</DialogHeader>
 
-				{isFetching ? (
-					<div className="flex items-center gap-2 text-muted-foreground py-6">
-						<Loader2 className="h-4 w-4 animate-spin" /> Loading zones...
+				{isPending || (isFetching && !zones?.length) ? (
+					<div className="flex min-h-48 items-center justify-center gap-2 text-sm text-muted-foreground">
+						<Loader2 className="size-4 animate-spin" />
+						Loading zones…
 					</div>
 				) : zonesError ? (
-					<AlertBlock type="error">
-						Couldn't load zones from Cloudflare: {zonesError.message}
+					<div className="space-y-3 py-4">
+						<AlertBlock type="error">
+							<p className="font-medium">
+								Could not load zones from Cloudflare.
+							</p>
+							<p className="text-xs">{zonesError.message}</p>
+						</AlertBlock>
+						<Button variant="outline" size="sm" onClick={() => refetch()}>
+							<RotateCcw className="size-4" />
+							Try again
+						</Button>
+					</div>
+				) : (zones?.length ?? 0) === 0 ? (
+					<AlertBlock type="warning" className="my-4">
+						No zones are accessible with this token. Check its Zone read
+						permission and zone resource scope.
 					</AlertBlock>
 				) : available.length === 0 ? (
-					<p className="text-sm text-muted-foreground py-6">
-						No new zones available — every zone on this account is already
-						configured.
-					</p>
+					<div className="py-10 text-center text-sm text-muted-foreground">
+						Every zone available to this token is already configured.
+					</div>
 				) : (
-					<div className="flex flex-col gap-3 max-h-80 overflow-y-auto">
-						<div className="flex items-center justify-between border-b pb-2">
+					<div className="flex max-h-[min(60vh,28rem)] flex-col gap-3 overflow-y-auto pr-1">
+						<div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b bg-background pb-2">
 							<span className="text-xs text-muted-foreground">
-								{available.length} available
+								{available.length} available · {selectedCount} selected
+								{isFetching ? " · Refreshing…" : ""}
 							</span>
-							<div className="flex gap-2">
+							<div className="flex gap-1">
 								<Button
 									variant="ghost"
-									size="sm"
+									size="xs"
 									onClick={() => toggleAll(true)}
 								>
 									Select all
 								</Button>
 								<Button
 									variant="ghost"
-									size="sm"
+									size="xs"
 									onClick={() => toggleAll(false)}
+									disabled={selectedCount === 0}
 								>
 									Clear
 								</Button>
 							</div>
 						</div>
-						{Object.entries(
-							available.reduce<Record<string, typeof available>>((acc, z) => {
-								const key = `${z.account.name} · ${z.account.id}`;
-								acc[key] = acc[key] ?? [];
-								acc[key]!.push(z);
-								return acc;
-							}, {}),
-						).map(([groupLabel, groupZones]) => (
-							<div key={groupLabel} className="flex flex-col gap-1">
-								<div className="text-xs font-medium uppercase tracking-wide text-muted-foreground px-2">
-									{groupLabel}
+						{groupedZones.map(({ account, zones: accountZones }) => (
+							<div key={account.id} className="flex flex-col gap-1">
+								<div className="flex min-w-0 items-center gap-2 px-2 py-1 text-xs font-medium text-muted-foreground">
+									<span className="truncate">{account.name}</span>
+									<span className="shrink-0 font-mono font-normal opacity-70">
+										{account.id.slice(0, 8)}…
+									</span>
 								</div>
-								{groupZones.map((z) => (
-									<label
-										key={z.id}
-										htmlFor={`zone-${z.id}`}
-										className="flex items-center gap-3 px-2 py-2 rounded hover:bg-muted/40 cursor-pointer text-left"
-									>
-										<Checkbox
-											id={`zone-${z.id}`}
-											checked={!!selected[z.id]}
-											onCheckedChange={(v) =>
-												setSelected((prev) => ({ ...prev, [z.id]: !!v }))
-											}
-										/>
-										<div className="flex flex-col flex-1">
-											<span className="font-mono text-sm">{z.name}</span>
-											<span className="text-xs text-muted-foreground">
-												{z.status}
-											</span>
-										</div>
-									</label>
-								))}
+								{accountZones
+									.sort((a, b) => a.name.localeCompare(b.name))
+									.map((zone) => (
+										<label
+											key={zone.id}
+											htmlFor={`zone-${zone.id}`}
+											className="flex cursor-pointer items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-left transition-colors hover:border-border hover:bg-muted/40"
+										>
+											<Checkbox
+												id={`zone-${zone.id}`}
+												checked={!!selected[zone.id]}
+												onCheckedChange={(checked) =>
+													setSelected((current) => ({
+														...current,
+														[zone.id]: checked === true,
+													}))
+												}
+											/>
+											<div className="min-w-0 flex-1">
+												<p className="truncate font-mono text-sm">
+													{zone.name}
+												</p>
+												<p className="text-xs capitalize text-muted-foreground">
+													{zone.status}
+												</p>
+											</div>
+										</label>
+									))}
 							</div>
 						))}
 					</div>
 				)}
 
 				<DialogFooter>
-					<Button variant="ghost" onClick={() => onOpenChange(false)}>
+					<Button
+						variant="ghost"
+						onClick={() => onOpenChange(false)}
+						disabled={addMut.isPending}
+					>
 						Cancel
 					</Button>
 					<Button
 						onClick={submit}
 						disabled={
-							addMut.isPending ||
+							isPending ||
 							isFetching ||
 							!!zonesError ||
-							Object.values(selected).every((v) => !v) ||
+							selectedCount === 0 ||
 							available.length === 0
 						}
+						isLoading={addMut.isPending}
 					>
-						{addMut.isPending ? (
-							<Loader2 className="h-4 w-4 animate-spin" />
-						) : null}
-						Add Zones
+						Add {selectedCount || "selected"}{" "}
+						{selectedCount === 1 ? "zone" : "zones"}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

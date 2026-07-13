@@ -55,18 +55,20 @@ const redactConfig = <T extends { apiToken: string } | null | undefined>(
 
 export const cloudflareRouter = createTRPCRouter({
 	getConfig: withPermission("cloudflare", "read").query(async ({ ctx }) => {
-		const config = await db.query.cloudflareConfig.findFirst({
-			where: eq(
-				cloudflareConfig.organizationId,
-				ctx.session.activeOrganizationId,
-			),
-		});
-		const zones = await db.query.cloudflareZones.findMany({
-			where: eq(
-				cloudflareZones.organizationId,
-				ctx.session.activeOrganizationId,
-			),
-		});
+		const [config, zones] = await Promise.all([
+			db.query.cloudflareConfig.findFirst({
+				where: eq(
+					cloudflareConfig.organizationId,
+					ctx.session.activeOrganizationId,
+				),
+			}),
+			db.query.cloudflareZones.findMany({
+				where: eq(
+					cloudflareZones.organizationId,
+					ctx.session.activeOrganizationId,
+				),
+			}),
+		]);
 		return {
 			config: config ? redactConfig(config) : null,
 			zones,
@@ -169,13 +171,16 @@ export const cloudflareRouter = createTRPCRouter({
 					),
 				)
 				.returning();
-			return result[0] ?? null;
+			if (!result[0]) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Zone not found" });
+			}
+			return result[0];
 		}),
 
 	removeZone: withPermission("cloudflare", "update")
 		.input(apiRemoveCloudflareZone)
 		.mutation(async ({ ctx, input }) => {
-			await db
+			const result = await db
 				.delete(cloudflareZones)
 				.where(
 					and(
@@ -185,7 +190,11 @@ export const cloudflareRouter = createTRPCRouter({
 							ctx.session.activeOrganizationId,
 						),
 					),
-				);
+				)
+				.returning({ cloudflareZoneId: cloudflareZones.cloudflareZoneId });
+			if (!result[0]) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Zone not found" });
+			}
 			return { ok: true };
 		}),
 
