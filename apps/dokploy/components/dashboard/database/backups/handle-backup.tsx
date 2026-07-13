@@ -79,6 +79,7 @@ const Schema = z
 		schedule: z.string().min(1, "Schedule (Cron) required"),
 		prefix: z.string().min(1, "Prefix required"),
 		enabled: z.boolean(),
+		includeEncryptionKey: z.boolean(),
 		database: z.string().min(1, "Database required"),
 		keepLatestCount: z.coerce.number().optional(),
 		serviceName: z.string().nullable(),
@@ -223,6 +224,7 @@ export const HandleBackup = ({
 						: "",
 			destinationId: "",
 			enabled: true,
+			includeEncryptionKey: true,
 			prefix: "/",
 			schedule: "",
 			keepLatestCount: undefined,
@@ -262,6 +264,7 @@ export const HandleBackup = ({
 						: "",
 			destinationId: backup?.destinationId ?? "",
 			enabled: backup?.enabled ?? true,
+			includeEncryptionKey: backup?.includeEncryptionKey ?? true,
 			prefix: backup?.prefix ?? "/",
 			schedule: backup?.schedule ?? "",
 			keepLatestCount: backup?.keepLatestCount ?? undefined,
@@ -309,6 +312,7 @@ export const HandleBackup = ({
 			prefix: data.prefix,
 			schedule: data.schedule,
 			enabled: data.enabled,
+			includeEncryptionKey: data.includeEncryptionKey,
 			database: data.database,
 			keepLatestCount: data.keepLatestCount ?? null,
 			databaseType: data.databaseType || databaseType,
@@ -665,6 +669,31 @@ export const HandleBackup = ({
 									</FormItem>
 								)}
 							/>
+							{databaseType === "web-server" && (
+								<FormField
+									control={form.control}
+									name="includeEncryptionKey"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 ">
+											<div className="space-y-0.5">
+												<FormLabel>Include encryption key</FormLabel>
+												<FormDescription>
+													Stores the encryption key inside the backup so
+													environment variables can be restored on a new server.
+													Anyone with access to the backup file can decrypt
+													them.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							)}
 							{backupType === "compose" && (
 								<>
 									{form.watch("databaseType") === "postgres" && (
