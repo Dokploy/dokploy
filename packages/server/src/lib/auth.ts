@@ -419,11 +419,7 @@ const createBetterAuth = () =>
 				enableMetadata: true,
 				references: "user",
 			}),
-			sso({
-				saml: {
-					enableInResponseToValidation: false,
-				},
-			}),
+			sso(),
 			scim({
 				beforeSCIMTokenGenerated: async ({ user }) => {
 					const dbUser = await db.query.user.findFirst({
