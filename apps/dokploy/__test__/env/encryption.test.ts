@@ -1,7 +1,7 @@
 import {
 	decryptValue,
 	encryptValue,
-	exportEncryptionKey,
+	exportEncryptionKeys,
 	isEncrypted,
 } from "@dokploy/server/lib/encryption";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -44,8 +44,8 @@ describe("encryptValue / decryptValue", () => {
 		expect(() => decryptValue(tampered)).toThrow(/BETTER_AUTH_SECRET/);
 	});
 
-	it("exports the primary key as 32-byte hex for backups", () => {
-		expect(exportEncryptionKey()).toMatch(/^[0-9a-f]{64}$/);
+	it("exports the derived keys as 32-byte hex lines for backups", () => {
+		expect(exportEncryptionKeys()).toMatch(/^[0-9a-f]{64}(\n[0-9a-f]{64})*$/);
 	});
 });
 
