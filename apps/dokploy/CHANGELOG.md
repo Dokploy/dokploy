@@ -1,3 +1,10 @@
+# [0.38.0](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.37.1...v0.38.0) (2026-07-13)
+
+
+### Features
+
+* **cloudflare:** polish settings experience ([#27](https://github.com/Bl4ckBl1zZ/dokploy/issues/27)) ([03de5fe](https://github.com/Bl4ckBl1zZ/dokploy/commit/03de5fe8b24f9890ac98b403b21c8f2ffa99715f))
+
 ## [0.37.1](https://github.com/Bl4ckBl1zZ/dokploy/compare/v0.37.0...v0.37.1) (2026-07-13)
 
 
