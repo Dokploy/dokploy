@@ -265,15 +265,12 @@ export const createColumns = ({
 				);
 			}
 			return (
-				<div className="flex items-center gap-2">
+				<div className="flex items-center">
 					<Switch
 						checked={domain.enabled}
 						onCheckedChange={() => handleToggleEnable(domain.domainId)}
 						disabled={isToggling}
 					/>
-					<span className="text-sm text-muted-foreground">
-						{domain.enabled ? "Enabled" : "Disabled"}
-					</span>
 				</div>
 			);
 		},

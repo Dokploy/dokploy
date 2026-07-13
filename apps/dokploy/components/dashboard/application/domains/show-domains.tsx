@@ -531,7 +531,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 														<TooltipProvider>
 															<Tooltip>
 																<TooltipTrigger asChild>
-																	<div className="flex items-center gap-2 shrink-0">
+																	<div className="flex items-center shrink-0">
 																		<Switch
 																			checked={item.enabled}
 																			onCheckedChange={() =>
@@ -539,9 +539,6 @@ export const ShowDomains = ({ id, type }: Props) => {
 																			}
 																			disabled={isToggling}
 																		/>
-																		<span className="text-sm text-muted-foreground">
-																			{item.enabled ? "Enabled" : "Disabled"}
-																		</span>
 																	</div>
 																</TooltipTrigger>
 																<TooltipContent>
