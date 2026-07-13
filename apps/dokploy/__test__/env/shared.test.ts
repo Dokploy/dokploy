@@ -1,4 +1,5 @@
 import { prepareEnvironmentVariables } from "@dokploy/server/index";
+import { encryptValue } from "@dokploy/server/lib/encryption";
 import { describe, expect, it } from "vitest";
 
 const projectEnv = `
@@ -13,6 +14,20 @@ SERVICE_PORT=4000
 `;
 
 describe("prepareEnvironmentVariables", () => {
+	it("rejects encrypted values that were not decrypted by the database layer", () => {
+		const encrypted = encryptValue("SECRET=value");
+
+		expect(() => prepareEnvironmentVariables(encrypted, "", "")).toThrow(
+			"Unable to decrypt environment variables for the service scope",
+		);
+		expect(() => prepareEnvironmentVariables("", encrypted, "")).toThrow(
+			"Unable to decrypt environment variables for the project scope",
+		);
+		expect(() => prepareEnvironmentVariables("", "", encrypted)).toThrow(
+			"Unable to decrypt environment variables for the environment scope",
+		);
+	});
+
 	it("resolves project variables correctly", () => {
 		const resolved = prepareEnvironmentVariables(serviceEnv, projectEnv);
 

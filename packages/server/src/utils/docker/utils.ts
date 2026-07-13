@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { docker, paths } from "@dokploy/server/constants";
+import { isEncrypted } from "@dokploy/server/lib/encryption";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
@@ -396,14 +397,32 @@ export const removeService = async (
 	}
 };
 
+// encryptedText intentionally returns raw ciphertext when decryption fails.
+// Never let dotenv interpret that ciphertext as an empty environment block.
+const parseDecryptedEnvironmentVariables = (
+	value: string | null | undefined,
+	scope: "service" | "project" | "environment",
+) => {
+	const input = value ?? "";
+	if (isEncrypted(input)) {
+		throw new Error(
+			`Unable to decrypt environment variables for the ${scope} scope. Ensure ENCRYPTION_KEY or BETTER_AUTH_SECRET is consistent across all Dokploy services.`,
+		);
+	}
+	return parse(input);
+};
+
 export const prepareEnvironmentVariables = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,
 	environmentEnv?: string | null,
 ) => {
-	const projectVars = parse(projectEnv ?? "");
-	const environmentVars = parse(environmentEnv ?? "");
-	const serviceVars = parse(serviceEnv ?? "");
+	const projectVars = parseDecryptedEnvironmentVariables(projectEnv, "project");
+	const environmentVars = parseDecryptedEnvironmentVariables(
+		environmentEnv,
+		"environment",
+	);
+	const serviceVars = parseDecryptedEnvironmentVariables(serviceEnv, "service");
 
 	const resolvedVars = Object.entries(serviceVars).map(([key, value]) => {
 		let resolvedValue = value;
