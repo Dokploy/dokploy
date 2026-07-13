@@ -42,6 +42,40 @@ test("Add suffix to volumes declared directly in services", () => {
 	);
 });
 
+const composeFileReadOnly = `
+version: "3.8"
+
+services:
+  db:
+    image: postgres:latest
+    volumes:
+      - db_data:/var/lib/postgresql/data:ro
+      - config/nginx:/etc/nginx/conf.d:z
+`;
+
+test("Preserve access mode when adding suffix to named volumes", () => {
+	const composeData = parse(composeFileReadOnly) as ComposeSpecification;
+
+	const suffix = generateRandomHash();
+
+	if (!composeData.services) {
+		return;
+	}
+
+	const updatedComposeData = addSuffixToVolumesInServices(
+		composeData.services,
+		suffix,
+	);
+	const actualComposeData = { ...composeData, services: updatedComposeData };
+
+	expect(actualComposeData.services?.db?.volumes).toContain(
+		`db_data-${suffix}:/var/lib/postgresql/data:ro`,
+	);
+	expect(actualComposeData.services?.db?.volumes).toContain(
+		`config-${suffix}/nginx:/etc/nginx/conf.d:z`,
+	);
+});
+
 const composeFileTypeVolume = `
 version: "3.8"
 
