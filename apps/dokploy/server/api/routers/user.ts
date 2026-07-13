@@ -44,9 +44,22 @@ import {
 	withPermission,
 } from "../trpc";
 
+const apiKeyPrefixRegex = /^[A-Za-z0-9_-]+$/;
+const apiKeyPrefixErrorMessage =
+	"Prefix can only contain ASCII letters, numbers, underscores, and hyphens";
+
+const apiKeyPrefixSchema = z
+	.string()
+	.trim()
+	.transform((value) => (value === "" ? undefined : value))
+	.refine((value) => value === undefined || apiKeyPrefixRegex.test(value), {
+		message: apiKeyPrefixErrorMessage,
+	})
+	.optional();
+
 const apiCreateApiKey = z.object({
 	name: z.string().min(1),
-	prefix: z.string().optional(),
+	prefix: apiKeyPrefixSchema,
 	expiresIn: z.number().optional(),
 	metadata: z.object({
 		organizationId: z.string(),
