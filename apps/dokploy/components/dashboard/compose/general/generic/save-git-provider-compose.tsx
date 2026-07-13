@@ -313,7 +313,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 										onCheckedChange={field.onChange}
 									/>
 								</FormControl>
-								<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+								<FormLabel className="mt-0!">Enable Submodules</FormLabel>
 							</FormItem>
 						)}
 					/>

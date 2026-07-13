@@ -179,4 +179,29 @@ describe("legacy boolean overrides for member", () => {
 		memberToReturn = mockMemberData("member");
 		await expect(checkPermission(ctx, { docker: ["read"] })).rejects.toThrow();
 	});
+
+	it("member passes gitProviders.create with canAccessToGitProviders=true", async () => {
+		memberToReturn = mockMemberData("member", {
+			canAccessToGitProviders: true,
+		});
+		await expect(
+			checkPermission(ctx, { gitProviders: ["create"] }),
+		).resolves.toBeUndefined();
+	});
+
+	it("member passes gitProviders.delete with canAccessToGitProviders=true", async () => {
+		memberToReturn = mockMemberData("member", {
+			canAccessToGitProviders: true,
+		});
+		await expect(
+			checkPermission(ctx, { gitProviders: ["delete"] }),
+		).resolves.toBeUndefined();
+	});
+
+	it("member fails gitProviders.create with canAccessToGitProviders=false", async () => {
+		memberToReturn = mockMemberData("member");
+		await expect(
+			checkPermission(ctx, { gitProviders: ["create"] }),
+		).rejects.toThrow();
+	});
 });

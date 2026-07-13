@@ -66,6 +66,7 @@ import {
 	apiServerSchema,
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
+	apiUpdateWebServerBuildsConcurrency,
 	projects,
 	server,
 } from "@/server/db/schema";
@@ -462,6 +463,28 @@ export const settingsRouter = createTRPCRouter({
 				action: "update",
 				resourceType: "settings",
 				resourceName: "remote-servers-only",
+			});
+			return true;
+		}),
+
+	updateBuildsConcurrency: adminProcedure
+		.input(apiUpdateWebServerBuildsConcurrency)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				buildsConcurrency: input.buildsConcurrency,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "builds-concurrency",
 			});
 			return true;
 		}),

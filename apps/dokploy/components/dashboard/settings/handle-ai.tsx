@@ -131,7 +131,10 @@ export const HandleAi = ({ aiId }: Props) => {
 	const apiUrl = form.watch("apiUrl");
 	const apiKey = form.watch("apiKey");
 
-	const isOllama = apiUrl.includes(":11434") || apiUrl.includes("ollama");
+	// Any Ollama instance on the default port 11434 is treated as no-auth
+	// (covers localhost and self-hosted LAN deployments). Ollama Cloud
+	// (ollama.com on 443) falls through and requires an API key.
+	const isLocalOllama = apiUrl.includes(":11434");
 	const {
 		data: models,
 		isFetching: isLoadingServerModels,
@@ -142,7 +145,7 @@ export const HandleAi = ({ aiId }: Props) => {
 			apiKey: apiKey ?? "",
 		},
 		{
-			enabled: !!apiUrl && (isOllama || !!apiKey),
+			enabled: !!apiUrl && (isLocalOllama || !!apiKey),
 		},
 	);
 
@@ -275,7 +278,7 @@ export const HandleAi = ({ aiId }: Props) => {
 							)}
 						/>
 
-						{!isOllama && (
+						{!isLocalOllama && (
 							<FormField
 								control={form.control}
 								name="apiKey"

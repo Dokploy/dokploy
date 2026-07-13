@@ -209,7 +209,7 @@ export const AddPreviewDomain = ({
 														<TooltipContent
 															side="left"
 															sideOffset={5}
-															className="max-w-[10rem]"
+															className="max-w-40"
 														>
 															<p>Generate sslip.io domain</p>
 														</TooltipContent>
@@ -258,7 +258,7 @@ export const AddPreviewDomain = ({
 									control={form.control}
 									name="https"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
 											<div className="space-y-0.5">
 												<FormLabel>HTTPS</FormLabel>
 												<FormDescription>

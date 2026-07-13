@@ -160,7 +160,7 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 										control={form.control}
 										name="isolatedDeployment"
 										render={({ field }) => (
-											<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+											<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs">
 												<div className="space-y-0.5">
 													<FormLabel>
 														Enable Isolated Deployment ({data?.appName})

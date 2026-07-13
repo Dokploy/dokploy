@@ -1,4 +1,3 @@
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import {
 	Ban,
 	CheckCircle2,
@@ -8,6 +7,7 @@ import {
 	Terminal,
 } from "lucide-react";
 import { useRouter } from "next/router";
+import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { toast } from "sonner";
 import { ShowBuildChooseForm } from "@/components/dashboard/application/build/show";
 import { ShowProviderForm } from "@/components/dashboard/application/general/generic/show";
@@ -94,7 +94,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
+											<TooltipContent sideOffset={5} className="z-60">
 												<p>
 													Downloads the source code and performs a complete
 													build
@@ -137,7 +137,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
+											<TooltipContent sideOffset={5} className="z-60">
 												<p>Reload the application without rebuilding it</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
@@ -176,7 +176,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
+											<TooltipContent sideOffset={5} className="z-60">
 												<p>
 													Only rebuilds the application without downloading new
 													code
@@ -219,7 +219,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
+											<TooltipContent sideOffset={5} className="z-60">
 												<p>
 													Start the application (requires a previous successful
 													build)
@@ -259,7 +259,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
+											<TooltipContent sideOffset={5} className="z-60">
 												<p>Stop the currently running application</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>

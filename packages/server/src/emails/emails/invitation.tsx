@@ -12,6 +12,7 @@ import {
 	Tailwind,
 	Text,
 } from "@react-email/components";
+import { emailTailwindConfig } from "../tailwind-config";
 
 interface InvitationEmailProps {
 	inviteLink: string;
@@ -29,17 +30,7 @@ export const InvitationEmail = ({
 		<Html>
 			<Head />
 			<Preview>{previewText}</Preview>
-			<Tailwind
-				config={{
-					theme: {
-						extend: {
-							colors: {
-								brand: "#007291",
-							},
-						},
-					},
-				}}
-			>
+			<Tailwind config={emailTailwindConfig}>
 				<Body className="bg-[#f4f4f5] my-auto mx-auto font-sans">
 					<Container className="my-[40px] mx-auto max-w-[520px]">
 						{/* Header */}

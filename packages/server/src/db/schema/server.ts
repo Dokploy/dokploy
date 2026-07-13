@@ -51,6 +51,7 @@ export const server = pgTable("server", {
 		.notNull()
 		.$defaultFn(() => generateAppName("server")),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
+	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	createdAt: text("createdAt").notNull(),
 	organizationId: text("organizationId")
 		.notNull()
@@ -163,8 +164,12 @@ export const apiCreateServer = createSchema
 		username: true,
 		sshKeyId: true,
 		serverType: true,
+		enableDockerCleanup: true,
 	})
-	.required();
+	.required()
+	.extend({
+		enableDockerCleanup: z.boolean().default(true),
+	});
 
 export const apiFindOneServer = z.object({
 	serverId: z.string().min(1),
@@ -186,11 +191,18 @@ export const apiUpdateServer = createSchema
 		username: true,
 		sshKeyId: true,
 		serverType: true,
+		enableDockerCleanup: true,
 	})
 	.required()
 	.extend({
 		command: z.string().optional(),
+		enableDockerCleanup: z.boolean().default(true),
 	});
+
+export const apiUpdateServerBuildsConcurrency = z.object({
+	serverId: z.string().min(1),
+	buildsConcurrency: z.number().int().min(1).max(100),
+});
 
 export const apiUpdateServerTunnelAccount = z.object({
 	serverId: z.string().min(1),

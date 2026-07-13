@@ -34,7 +34,12 @@ export const findBackupById = async (backupId: string) => {
 			mariadb: true,
 			mongo: true,
 			libsql: true,
-			destination: true,
+			destination: {
+				columns: {
+					accessKey: false,
+					secretAccessKey: false,
+				},
+			},
 			compose: true,
 		},
 	});
@@ -83,7 +88,12 @@ export const findBackupsByDbId = async (
 			mariadb: true,
 			mongo: true,
 			libsql: true,
-			destination: true,
+			destination: {
+				columns: {
+					accessKey: false,
+					secretAccessKey: false,
+				},
+			},
 		},
 	});
 	return result || [];

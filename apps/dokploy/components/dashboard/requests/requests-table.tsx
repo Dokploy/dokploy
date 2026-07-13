@@ -335,14 +335,14 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 							Details of the request log entry.
 						</SheetDescription>
 					</SheetHeader>
-					<ScrollArea className="flex-grow mt-4 pr-4">
+					<ScrollArea className="grow mt-4 pr-4">
 						<div className="border rounded-md">
 							<Table>
 								<TableBody>
 									{Object.entries(selectedRow || {}).map(([key, value]) => (
 										<TableRow key={key}>
 											<TableCell className="font-medium">{key}</TableCell>
-											<TableCell className="truncate break-words break-before-all whitespace-pre-wrap">
+											<TableCell className="truncate wrap-break-word break-before-all whitespace-pre-wrap">
 												{key === "RequestAddr" ? (
 													<div className="flex items-center gap-2 bg-muted p-1 rounded">
 														<span>{value}</span>

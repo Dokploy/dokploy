@@ -84,7 +84,12 @@ export const findVolumeBackupById = async (volumeBackupId: string) => {
 					},
 				},
 			},
-			destination: true,
+			destination: {
+				columns: {
+					accessKey: false,
+					secretAccessKey: false,
+				},
+			},
 		},
 	});
 

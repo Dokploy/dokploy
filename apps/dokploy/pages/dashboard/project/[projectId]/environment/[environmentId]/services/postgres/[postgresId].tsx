@@ -139,7 +139,7 @@ const Postgresql = (
 													</Label>
 												</TooltipTrigger>
 												<TooltipContent
-													className="z-[999] w-[300px]"
+													className="z-999 w-[300px]"
 													align="start"
 													side="top"
 												>

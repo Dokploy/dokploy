@@ -63,6 +63,7 @@ export const domains = pgTable("domain", {
 	internalPath: text("internalPath").default("/"),
 	stripPath: boolean("stripPath").notNull().default(false),
 	middlewares: text("middlewares").array().default(sql`ARRAY[]::text[]`),
+	forwardAuthEnabled: boolean("forwardAuthEnabled").notNull().default(false),
 	cloudflareZoneId: text("cloudflareZoneId").references(
 		() => cloudflareZones.cloudflareZoneId,
 		{ onDelete: "set null" },
@@ -114,6 +115,7 @@ export const apiCreateDomain = createSchema.pick({
 	internalPath: true,
 	stripPath: true,
 	middlewares: true,
+	forwardAuthEnabled: true,
 	cloudflareZoneId: true,
 });
 
@@ -147,6 +149,7 @@ export const apiUpdateDomain = createSchema
 		internalPath: true,
 		stripPath: true,
 		middlewares: true,
+		forwardAuthEnabled: true,
 		cloudflareZoneId: true,
 	})
 	.merge(createSchema.pick({ domainId: true }).required());

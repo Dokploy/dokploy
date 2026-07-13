@@ -1,6 +1,7 @@
+import { BarChartHorizontalBigIcon } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { ShowPaidMonitoring } from "../../monitoring/paid/servers/show-paid-monitoring";
 
 interface Props {
@@ -14,12 +15,9 @@ export const ShowMonitoringModal = ({ url, token }: Props) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<DropdownMenuItem
-					className="w-full cursor-pointer "
-					onSelect={(e) => e.preventDefault()}
-				>
-					Show Monitoring
-				</DropdownMenuItem>
+				<Button variant="outline" size="icon" className="h-9 w-9">
+					<BarChartHorizontalBigIcon className="h-4 w-4" />
+				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-7xl  ">
 				<div className="flex gap-4 py-4 w-full">

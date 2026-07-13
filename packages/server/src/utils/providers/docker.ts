@@ -1,3 +1,4 @@
+import { safeDockerLoginCommand } from "@dokploy/server/services/registry";
 import type { ApplicationNested } from "../builders";
 
 export const buildRemoteDocker = async (application: ApplicationNested) => {
@@ -13,7 +14,7 @@ echo "Pulling ${dockerImage}";
 
 		if (username && password) {
 			command += `
-if ! echo "${password}" | docker login --username "${username}" --password-stdin "${registryUrl || ""}" 2>&1; then
+if ! ${safeDockerLoginCommand(registryUrl || "", username, password)} 2>&1; then
 	echo "❌ Login failed";
 	exit 1;
 fi

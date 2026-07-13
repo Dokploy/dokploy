@@ -233,7 +233,6 @@ export const ShowDeployments = ({
 							<span>Webhook URL: </span>
 							<div className="flex flex-row items-center gap-2">
 								<Badge
-									role="button"
 									tabIndex={0}
 									aria-label="Copy webhook URL to clipboard"
 									className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all"
@@ -301,7 +300,7 @@ export const ShowDeployments = ({
 										</span>
 
 										<div className="flex flex-col gap-1">
-											<span className="break-words text-sm text-muted-foreground whitespace-pre-wrap">
+											<span className="wrap-break-word text-sm text-muted-foreground whitespace-pre-wrap">
 												{isExpanded || !needsTruncation
 													? titleText
 													: truncateDescription(titleText)}

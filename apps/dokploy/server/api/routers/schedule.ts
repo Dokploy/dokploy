@@ -23,6 +23,7 @@ import { TRPCError } from "@trpc/server";
 import { asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
+import { assertScheduledJobLimit } from "@/server/api/utils/plan-limits";
 import { removeJob, schedule } from "@/server/utils/backup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
@@ -35,6 +36,13 @@ export const scheduleRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["create"],
 				});
+				if (IS_CLOUD) {
+					await assertScheduledJobLimit(
+						ctx.session.activeOrganizationId,
+						input.applicationId ? "application" : "compose",
+						serviceId,
+					);
+				}
 			} else {
 				if (input.scheduleType === "dokploy-server" && IS_CLOUD) {
 					throw new TRPCError({
@@ -72,6 +80,14 @@ export const scheduleRouter = createTRPCRouter({
 							code: "UNAUTHORIZED",
 							message: "You don't have access to this server.",
 						});
+					}
+
+					if (IS_CLOUD) {
+						await assertScheduledJobLimit(
+							ctx.session.activeOrganizationId,
+							"server",
+							input.serverId,
+						);
 					}
 				}
 			}
