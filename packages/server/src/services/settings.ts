@@ -87,6 +87,17 @@ export const resolveDokployUpdateImage = (
 	return `${imageRepository}:${getDokployTargetImageTag(targetVersion, releaseTag)}`;
 };
 
+export const buildDokployImagePullCommand = (
+	currentImage: string,
+	targetVersion?: string | null,
+	releaseTag = getDokployImageTag(),
+) =>
+	`docker image pull ${resolveDokployUpdateImage(
+		currentImage,
+		targetVersion,
+		releaseTag,
+	)}`;
+
 export const buildDokployServiceUpdateCommand = (
 	resourceName: string,
 	currentImage: string,
@@ -337,9 +348,24 @@ export const reloadDockerResource = async (
 			const { stdout } = serverId
 				? await execAsyncRemote(serverId, imageInspectCommand)
 				: await execAsync(imageInspectCommand);
+			const currentImage = stdout.trim();
+			const pullCommand = buildDokployImagePullCommand(
+				currentImage,
+				targetVersion,
+			);
+
+			// Dokploy publishes port 3000 in host mode, so its single replica must
+			// update stop-first. Pull the target completely before stopping it; a
+			// slow or failed pull must never take the dashboard offline.
+			if (serverId) {
+				await execAsyncRemote(serverId, pullCommand);
+			} else {
+				await execAsync(pullCommand);
+			}
+
 			command = buildDokployServiceUpdateCommand(
 				resourceName,
-				stdout.trim(),
+				currentImage,
 				targetVersion,
 			);
 		} else {

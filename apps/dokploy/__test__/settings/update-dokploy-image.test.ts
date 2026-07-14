@@ -1,4 +1,5 @@
 import {
+	buildDokployImagePullCommand,
 	buildDokployServiceUpdateCommand,
 	getDockerImageRepository,
 	getDockerImageTagFromReference,
@@ -65,6 +66,16 @@ describe("Dokploy update image resolution", () => {
 		expect(
 			getDockerImageTagFromReference("registry.example.com:5000/acme/dokploy"),
 		).toBe("latest");
+	});
+
+	it("pulls and validates the target image before replacing the service", () => {
+		expect(
+			buildDokployImagePullCommand(
+				"ghcr.io/acme/dokploy:0.35.2@sha256:abc123",
+				"v0.36.0",
+				"latest",
+			),
+		).toBe("docker image pull ghcr.io/acme/dokploy:0.36.0");
 	});
 
 	it("builds a stop-first service update command with rollback", () => {
