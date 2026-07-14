@@ -2,9 +2,7 @@ import { getLogType } from "@/components/dashboard/docker/logs/utils";
 import { expect, test } from "vitest";
 
 test("classifies real failures as error", () => {
-	expect(getLogType("Error: connection refused at db:5432").type).toBe(
-		"error",
-	);
+	expect(getLogType("Error: connection refused at db:5432").type).toBe("error");
 	expect(getLogType("[ERROR] something went wrong").type).toBe("error");
 	expect(getLogType("Deployment failed").type).toBe("error");
 	expect(
