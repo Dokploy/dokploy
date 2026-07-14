@@ -245,7 +245,9 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 														: isLoadingRepositories
 															? "Loading...."
 															: (repositories?.find(
-																	(repo) => repo.name === field.value.repo,
+																	(repo) =>
+																		repo.name === field.value.repo &&
+																		repo.owner.login === field.value.owner,
 																)?.name ?? field.value.repo)}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -272,7 +274,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 													<CommandGroup>
 														{repositories?.map((repo) => (
 															<CommandItem
-																value={repo.name}
+																value={`${repo.owner.login}/${repo.name}`}
 																key={repo.url}
 																onSelect={() => {
 																	form.setValue("repository", {
@@ -291,7 +293,8 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 																<CheckIcon
 																	className={cn(
 																		"ml-auto h-4 w-4",
-																		repo.name === field.value.repo
+																		repo.name === field.value.repo &&
+																			repo.owner.login === field.value.owner
 																			? "opacity-100"
 																			: "opacity-0",
 																	)}

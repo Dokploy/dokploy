@@ -255,7 +255,9 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 														: isLoadingRepositories
 															? "Loading...."
 															: (repositories?.find(
-																	(repo) => repo.name === field.value.repo,
+																	(repo) =>
+																		repo.name === field.value.repo &&
+																		repo.owner.username === field.value.owner,
 																)?.name ?? "Select repository")}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -282,7 +284,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 														{repositories?.map((repo) => (
 															<CommandItem
 																key={repo.url}
-																value={repo.name}
+																value={`${repo.owner.username}/${repo.name}`}
 																onSelect={() => {
 																	form.setValue("repository", {
 																		owner: repo.owner.username,
@@ -300,7 +302,8 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 																<CheckIcon
 																	className={cn(
 																		"ml-auto h-4 w-4",
-																		repo.name === field.value.repo
+																		repo.name === field.value.repo &&
+																			repo.owner.username === field.value.owner
 																			? "opacity-100"
 																			: "opacity-0",
 																	)}
