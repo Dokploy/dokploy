@@ -261,7 +261,10 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 												</Button>
 											</FormControl>
 										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
+										<PopoverContent
+											className="w-[var(--radix-popover-trigger-width)] p-0"
+											align="start"
+										>
 											<Command>
 												<CommandInput
 													placeholder="Search repository..."
@@ -291,8 +294,8 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 																	form.setValue("branch", "");
 																}}
 															>
-																<span className="flex items-center gap-2">
-																	<span>{repo.name}</span>
+																<span className="flex min-w-0 items-center gap-2">
+																	<span className="truncate">{repo.name}</span>
 																	<span className="text-muted-foreground text-xs">
 																		{repo.owner.login}
 																	</span>
@@ -348,7 +351,10 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 												</Button>
 											</FormControl>
 										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
+										<PopoverContent
+											className="w-[var(--radix-popover-trigger-width)] p-0"
+											align="start"
+										>
 											<Command>
 												<CommandInput
 													placeholder="Search branch..."
@@ -376,7 +382,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 																	form.setValue("branch", branch.name);
 																}}
 															>
-																{branch.name}
+																<span className="truncate">{branch.name}</span>
 																<CheckIcon
 																	className={cn(
 																		"ml-auto h-4 w-4",
