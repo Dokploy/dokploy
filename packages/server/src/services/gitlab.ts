@@ -63,6 +63,18 @@ export const findGitlabById = async (gitlabId: string) => {
 	return gitlabProviderResult;
 };
 
+export const findGitlabByWebhookSecret = async (
+	webhookSecret: string,
+) => {
+	const result = await db.query.gitlab.findFirst({
+		where: eq(gitlab.webhookSecret, webhookSecret),
+		with: {
+			gitProvider: true,
+		},
+	});
+	return result ?? null;
+};
+
 export const updateGitlab = async (
 	gitlabId: string,
 	input: Partial<Gitlab>,

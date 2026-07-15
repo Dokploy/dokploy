@@ -261,6 +261,210 @@ export const getGitlabBranches = async (input: {
 	}[];
 };
 
+export const checkGitlabMemberPermissions = async (
+	gitlabId: string,
+	projectId: number,
+	username: string,
+): Promise<{ hasWriteAccess: boolean; accessLevel: number | null }> => {
+	await refreshGitlabToken(gitlabId);
+	const gitlabProvider = await findGitlabById(gitlabId);
+	const baseUrl = (
+		gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
+	).replace(/\/+$/, "");
+
+	// Resolve username → user ID
+	const userResponse = await fetch(
+		`${baseUrl}/api/v4/users?username=${encodeURIComponent(username)}`,
+		{ headers: { Authorization: `Bearer ${gitlabProvider.accessToken}` } },
+	);
+
+	if (!userResponse.ok) {
+		throw new Error(
+			`Failed to resolve GitLab user: ${userResponse.statusText}`,
+		);
+	}
+
+	const users = await userResponse.json();
+	const userId = users[0]?.id;
+
+	if (!userId) {
+		return { hasWriteAccess: false, accessLevel: null };
+	}
+
+	// Check project membership
+	const memberResponse = await fetch(
+		`${baseUrl}/api/v4/projects/${projectId}/members/all/${userId}`,
+		{ headers: { Authorization: `Bearer ${gitlabProvider.accessToken}` } },
+	);
+
+	if (memberResponse.status === 404) {
+		return { hasWriteAccess: false, accessLevel: null };
+	}
+
+	if (!memberResponse.ok) {
+		throw new Error(
+			`Failed to fetch project member: ${memberResponse.statusText}`,
+		);
+	}
+
+	const member = await memberResponse.json();
+	// Developer (30) is the minimum access level for write access
+	return {
+		hasWriteAccess: member.access_level >= 30,
+		accessLevel: member.access_level,
+	};
+};
+
+export const mrNoteExists = async (
+	gitlabId: string,
+	projectId: number,
+	mrIid: number,
+	noteId: number,
+): Promise<boolean> => {
+	await refreshGitlabToken(gitlabId);
+	const gitlabProvider = await findGitlabById(gitlabId);
+	const baseUrl = (
+		gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
+	).replace(/\/+$/, "");
+
+	const response = await fetch(
+		`${baseUrl}/api/v4/projects/${projectId}/merge_requests/${mrIid}/notes/${noteId}`,
+		{ headers: { Authorization: `Bearer ${gitlabProvider.accessToken}` } },
+	);
+	return response.ok;
+};
+
+const SECURITY_SENTINEL =
+	"🚨 Preview Deployment Blocked - Security Protection";
+
+export const hasExistingSecurityMRNote = async (
+	gitlabId: string,
+	projectId: number,
+	mrIid: number,
+): Promise<boolean> => {
+	await refreshGitlabToken(gitlabId);
+	const gitlabProvider = await findGitlabById(gitlabId);
+	const baseUrl = (
+		gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
+	).replace(/\/+$/, "");
+
+	let page = 1;
+	while (true) {
+		const response = await fetch(
+			`${baseUrl}/api/v4/projects/${projectId}/merge_requests/${mrIid}/notes?per_page=100&page=${page}`,
+			{ headers: { Authorization: `Bearer ${gitlabProvider.accessToken}` } },
+		);
+		if (!response.ok) {
+			return false;
+		}
+		const notes: { id: number; body: string }[] = await response.json();
+		if (notes.some((note) => note.body.includes(SECURITY_SENTINEL))) {
+			return true;
+		}
+		const nextPage = response.headers.get("x-next-page");
+		if (!nextPage) {
+			break;
+		}
+		page = Number(nextPage);
+	}
+	return false;
+};
+
+export const createMergeRequestNote = async (
+	gitlabId: string,
+	projectId: number,
+	mrIid: number,
+	body: string,
+): Promise<number> => {
+	await refreshGitlabToken(gitlabId);
+	const gitlabProvider = await findGitlabById(gitlabId);
+	const baseUrl = (
+		gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
+	).replace(/\/+$/, "");
+
+	const response = await fetch(
+		`${baseUrl}/api/v4/projects/${projectId}/merge_requests/${mrIid}/notes`,
+		{
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${gitlabProvider.accessToken}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ body }),
+		},
+	);
+
+	if (!response.ok) {
+		throw new Error(`Failed to create MR note: ${response.statusText}`);
+	}
+
+	const data = await response.json();
+	return data.id as number;
+};
+
+export const updateMergeRequestNote = async (
+	gitlabId: string,
+	projectId: number,
+	mrIid: number,
+	noteId: number,
+	body: string,
+): Promise<void> => {
+	await refreshGitlabToken(gitlabId);
+	const gitlabProvider = await findGitlabById(gitlabId);
+	const baseUrl = (
+		gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
+	).replace(/\/+$/, "");
+
+	const response = await fetch(
+		`${baseUrl}/api/v4/projects/${projectId}/merge_requests/${mrIid}/notes/${noteId}`,
+		{
+			method: "PUT",
+			headers: {
+				Authorization: `Bearer ${gitlabProvider.accessToken}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ body }),
+		},
+	);
+
+	if (!response.ok) {
+		throw new Error(`Failed to update MR note: ${response.statusText}`);
+	}
+};
+
+export const createSecurityBlockedMRNote = async (
+	gitlabId: string,
+	projectId: number,
+	mrIid: number,
+	mrAuthor: string,
+	repositoryName: string,
+	accessLevel: number | null,
+): Promise<void> => {
+	const alreadyPosted = await hasExistingSecurityMRNote(
+		gitlabId,
+		projectId,
+		mrIid,
+	);
+	if (alreadyPosted) return;
+
+	const accessLevelLabel =
+		accessLevel === null
+			? "none (not a project member)"
+			: `${accessLevel} (${accessLevel >= 30 ? "Developer+" : "below Developer"})`;
+
+	const body = [
+		`### ${SECURITY_SENTINEL}`,
+		"",
+		`**@${mrAuthor}** does not have the required access to trigger preview deployments on **${repositoryName}**.`,
+		"",
+		`Access level: \`${accessLevelLabel}\``,
+		"",
+		"Preview deployments require at least **Developer** access (level 30).",
+	].join("\n");
+
+	await createMergeRequestNote(gitlabId, projectId, mrIid, body);
+};
+
 export const testGitlabConnection = async (
 	input: z.infer<typeof apiGitlabTestConnection>,
 ) => {

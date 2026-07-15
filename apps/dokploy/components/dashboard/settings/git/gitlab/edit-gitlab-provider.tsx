@@ -1,5 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { PenBoxIcon } from "lucide-react";
+import { Check, Copy, PenBoxIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -58,6 +58,23 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 	);
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
+	const [copiedWebhookUrl, setCopiedWebhookUrl] = useState(false);
+	const [copiedSecret, setCopiedSecret] = useState(false);
+
+	const webhookUrl =
+		typeof window !== "undefined"
+			? `${window.location.origin}/api/deploy/gitlab`
+			: "/api/deploy/gitlab";
+
+	const copyToClipboard = (
+		text: string,
+		setter: (v: boolean) => void,
+	) => {
+		navigator.clipboard.writeText(text);
+		setter(true);
+		toast.success("Copied to clipboard");
+		setTimeout(() => setter(false), 2000);
+	};
 	const { mutateAsync, error, isError } = api.gitlab.update.useMutation();
 	const { mutateAsync: testConnection, isPending } =
 		api.gitlab.testConnection.useMutation();
@@ -200,6 +217,66 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 										</FormItem>
 									)}
 								/>
+
+								<div className="flex flex-col gap-2">
+									<p className="text-sm font-medium">
+										Webhook Configuration
+									</p>
+									<p className="text-sm text-muted-foreground">
+										Configure these values in your GitLab project under{" "}
+										<strong>Settings → Webhooks</strong>. Enable the{" "}
+										<em>Merge requests events</em> and{" "}
+										<em>Push events</em> triggers.
+									</p>
+									<div className="flex items-center gap-2">
+										<Input
+											readOnly
+											value={webhookUrl}
+											className="font-mono text-xs"
+										/>
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											onClick={() =>
+												copyToClipboard(webhookUrl, setCopiedWebhookUrl)
+											}
+										>
+											{copiedWebhookUrl ? (
+												<Check className="size-4 text-green-500" />
+											) : (
+												<Copy className="size-4" />
+											)}
+										</Button>
+									</div>
+									{gitlab?.webhookSecret && (
+										<div className="flex items-center gap-2">
+											<Input
+												readOnly
+												type="password"
+												value={gitlab.webhookSecret}
+												className="font-mono text-xs"
+											/>
+											<Button
+												type="button"
+												variant="outline"
+												size="icon"
+												onClick={() =>
+													copyToClipboard(
+														gitlab.webhookSecret!,
+														setCopiedSecret,
+													)
+												}
+											>
+												{copiedSecret ? (
+													<Check className="size-4 text-green-500" />
+												) : (
+													<Copy className="size-4" />
+												)}
+											</Button>
+										</div>
+									)}
+								</div>
 
 								<div className="flex w-full justify-between gap-4 mt-4">
 									<Button
