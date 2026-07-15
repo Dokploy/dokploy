@@ -91,6 +91,94 @@ export const getUpdateData = async (
 	}
 };
 
+export interface IReleaseNotesSection {
+	/** Git tag for this release, e.g. `v0.29.12-community.1`. */
+	tag: string;
+	/** Public GitHub release page URL. */
+	url: string;
+	/** Raw markdown release body, or null when it could not be fetched. */
+	body: string | null;
+}
+
+export interface IReleaseNotes {
+	fork: IReleaseNotesSection | null;
+	upstream: IReleaseNotesSection | null;
+}
+
+const GITHUB_API_HEADERS = {
+	Accept: "application/vnd.github+json",
+	"User-Agent": "dokploy-community",
+};
+
+/** Fetches the raw markdown release body for a repo + tag from the GitHub API.
+ *  Returns null on any failure so callers never throw. */
+const fetchReleaseBody = async (
+	repo: string,
+	tag: string,
+): Promise<string | null> => {
+	try {
+		const response = await fetch(
+			`https://api.github.com/repos/${repo}/releases/tags/${encodeURIComponent(
+				tag,
+			)}`,
+			{
+				method: "GET",
+				headers: GITHUB_API_HEADERS,
+			},
+		);
+
+		if (!response.ok) {
+			return null;
+		}
+
+		const release = (await response.json()) as { body?: string | null };
+		return release.body ?? null;
+	} catch (error) {
+		console.error(`Error fetching release notes for ${repo}@${tag}:`, error);
+		return null;
+	}
+};
+
+/** Returns the fork release notes for `version` together with the matching
+ *  upstream base-release notes. The upstream base tag is derived by stripping
+ *  the `-community.N` fork suffix. Section metadata (tag + url) is always
+ *  populated; `body` is null when the GitHub fetch fails, and `upstream` is
+ *  null when `version` carries no fork suffix. Never throws to the client. */
+export const getReleaseNotes = async (
+	version: string,
+): Promise<IReleaseNotes> => {
+	const cleaned = version.trim();
+	if (!cleaned) {
+		return { fork: null, upstream: null };
+	}
+
+	const forkTag = cleaned.startsWith("v") ? cleaned : `v${cleaned}`;
+	const baseTag = forkTag.replace(/-community\.\d+$/, "");
+	const hasUpstreamBase = baseTag !== forkTag;
+
+	const [forkBody, upstreamBody] = await Promise.all([
+		fetchReleaseBody("DevinoSolutions/dokploy-community", forkTag),
+		hasUpstreamBase
+			? fetchReleaseBody("Dokploy/dokploy", baseTag)
+			: Promise.resolve(null),
+	]);
+
+	return {
+		fork: {
+			tag: forkTag,
+			url: `https://github.com/DevinoSolutions/dokploy-community/releases/tag/${forkTag}`,
+			body: forkBody,
+		},
+		upstream: hasUpstreamBase
+			? {
+					tag: baseTag,
+					url: `https://github.com/Dokploy/dokploy/releases/tag/${baseTag}`,
+					body: upstreamBody,
+				}
+			: null,
+	};
+};
+
 interface TreeDataItem {
 	id: string;
 	name: string;
