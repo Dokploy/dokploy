@@ -59,13 +59,25 @@ export const createCertificate = async (
 
 export const removeCertificateById = async (certificateId: string) => {
 	const certificate = await findCertificateById(certificateId);
-	const { CERTIFICATES_PATH } = paths(!!certificate.serverId);
+	const { CERTIFICATES_PATH, DYNAMIC_TRAEFIK_PATH } = paths(
+		!!certificate.serverId,
+	);
 	const certDir = path.join(CERTIFICATES_PATH, certificate.certificatePath);
+	const configFile = path.join(
+		DYNAMIC_TRAEFIK_PATH,
+		`${certificate.certificatePath}.yml`,
+	);
 
 	if (certificate.serverId) {
-		await execAsyncRemote(certificate.serverId, `rm -rf ${certDir}`);
+		await execAsyncRemote(
+			certificate.serverId,
+			`rm -rf ${certDir}; rm -f ${configFile}`,
+		);
 	} else {
 		await removeDirectoryIfExistsContent(certDir);
+		if (fs.existsSync(configFile)) {
+			fs.rmSync(configFile);
+		}
 	}
 
 	const result = await db
@@ -84,7 +96,9 @@ export const removeCertificateById = async (certificateId: string) => {
 };
 
 const createCertificateFiles = async (certificate: Certificate) => {
-	const { CERTIFICATES_PATH } = paths(!!certificate.serverId);
+	const { CERTIFICATES_PATH, DYNAMIC_TRAEFIK_PATH } = paths(
+		!!certificate.serverId,
+	);
 	const certDir = path.join(CERTIFICATES_PATH, certificate.certificatePath);
 	const crtPath = path.join(certDir, "chain.crt");
 	const keyPath = path.join(certDir, "privkey.key");
@@ -102,7 +116,12 @@ const createCertificateFiles = async (certificate: Certificate) => {
 		},
 	};
 	const yamlConfig = stringify(traefikConfig);
-	const configFile = path.join(certDir, "certificate.yml");
+	// Traefik's file provider does not watch subdirectories, so the pointer
+	// config must live at the top level alongside other dynamic configs.
+	const configFile = path.join(
+		DYNAMIC_TRAEFIK_PATH,
+		`${certificate.certificatePath}.yml`,
+	);
 
 	if (certificate.serverId) {
 		const certificateData = encodeBase64(certificate.certificateData);
