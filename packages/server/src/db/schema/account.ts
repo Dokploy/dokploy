@@ -8,6 +8,7 @@ import {
 	timestamp,
 } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
+import { network } from "./network";
 import { projects } from "./project";
 import { server } from "./server";
 import { ssoProvider } from "./sso";
@@ -108,6 +109,7 @@ export const organizationRelations = relations(
 			references: [user.id],
 		}),
 		servers: many(server),
+		networks: many(network),
 		projects: many(projects),
 		members: many(member),
 		ssoProviders: many(ssoProvider),
@@ -214,6 +216,11 @@ export const twoFactor = pgTable("two_factor", {
 	userId: text("user_id")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
+	verified: boolean("verified").notNull().default(true),
+	failedVerificationCount: integer("failed_verification_count")
+		.notNull()
+		.default(0),
+	lockedUntil: timestamp("locked_until"),
 });
 
 export const apikey = pgTable("apikey", {

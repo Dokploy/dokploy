@@ -18,6 +18,7 @@ import {
 	getDockerDiskUsage,
 	getDokployImageTag,
 	getLogCleanupStatus,
+	getReleaseNotes,
 	getUpdateData,
 	getWebServerSettings,
 	IS_CLOUD,
@@ -67,6 +68,7 @@ import {
 	apiServerSchema,
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
+	apiUpdateWebServerBuildsConcurrency,
 	projects,
 	server,
 } from "@/server/db/schema";
@@ -77,6 +79,7 @@ import { appRouter } from "../root";
 import {
 	adminProcedure,
 	createTRPCRouter,
+	enterpriseProcedure,
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
@@ -445,6 +448,72 @@ export const settingsRouter = createTRPCRouter({
 			return true;
 		}),
 
+	updateRemoteServersOnly: enterpriseProcedure
+		.input(z.object({ remoteServersOnly: z.boolean() }))
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				remoteServersOnly: input.remoteServersOnly,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "remote-servers-only",
+			});
+			return true;
+		}),
+
+	updateBuildsConcurrency: adminProcedure
+		.input(apiUpdateWebServerBuildsConcurrency)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				buildsConcurrency: input.buildsConcurrency,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "builds-concurrency",
+			});
+			return true;
+		}),
+
+	updateEnforceSSO: enterpriseProcedure
+		.input(z.object({ enforceSSO: z.boolean() }))
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				enforceSSO: input.enforceSSO,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "enforce-sso",
+			});
+			return true;
+		}),
+
 	readTraefikConfig: adminProcedure.query(() => {
 		if (IS_CLOUD) {
 			return true;
@@ -519,6 +588,15 @@ export const settingsRouter = createTRPCRouter({
 
 		return await getUpdateData(packageInfo.version);
 	}),
+	getReleaseNotes: protectedProcedure
+		.input(z.object({ version: z.string().min(1) }))
+		.query(async ({ input }) => {
+			if (IS_CLOUD) {
+				return { fork: null, upstream: null };
+			}
+
+			return await getReleaseNotes(input.version);
+		}),
 	updateServer: adminProcedure.mutation(async ({ ctx }) => {
 		if (IS_CLOUD) {
 			return true;
@@ -531,7 +609,7 @@ export const settingsRouter = createTRPCRouter({
 				"update",
 				"--force",
 				"--image",
-				`dokploy/dokploy:${data.latestVersion}`,
+				`ghcr.io/devinosolutions/dokploy-community:${data.latestVersion}`,
 				"dokploy",
 			]);
 			await audit(ctx, {

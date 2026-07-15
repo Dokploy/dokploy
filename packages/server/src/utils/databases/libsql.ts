@@ -8,6 +8,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { resolveNetworkNamesForResource } from "../../services/network";
 import { getRemoteDocker } from "../servers/remote-docker";
 
 export type LibsqlNested = InferResultType<
@@ -55,7 +56,14 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		RollbackConfig,
 		UpdateConfig,
 		Networks,
-	} = generateConfigContainer(libsql);
+	} = generateConfigContainer(
+		libsql,
+		await resolveNetworkNamesForResource(
+			libsql.networkIds,
+			libsql.serverId,
+			libsql.environment.project.organizationId,
+		),
+	);
 	const resources = calculateResources({
 		memoryLimit,
 		memoryReservation,
@@ -140,7 +148,11 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 					: []),
 			],
 		},
-		UpdateConfig,
+		UpdateConfig: libsql.updateConfigSwarm ?? {
+			Parallelism: 1,
+			Order: "stop-first" as const,
+			FailureAction: "rollback" as const,
+		},
 	};
 	try {
 		const service = docker.getService(appName);

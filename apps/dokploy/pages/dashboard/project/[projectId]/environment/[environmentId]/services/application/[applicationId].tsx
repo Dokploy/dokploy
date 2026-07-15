@@ -35,6 +35,7 @@ import { ShowVolumeBackups } from "@/components/dashboard/application/volume-bac
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
+import { ResourceNetworksCard } from "@/components/dashboard/networks/resource-networks-card";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -173,7 +174,7 @@ const Service = (
 													</Label>
 												</TooltipTrigger>
 												<TooltipContent
-													className="z-[999] w-[300px]"
+													className="z-999 w-[300px]"
 													align="start"
 													side="top"
 												>
@@ -363,7 +364,7 @@ const Service = (
 									)}
 									{permissions?.deployment.read && (
 										<TabsContent value="deployments" className="w-full pt-2.5">
-											<div className="flex flex-col gap-4 border rounded-lg">
+											<div className="flex flex-col gap-4 ">
 												<ShowDeployments
 													id={applicationId}
 													type="application"
@@ -378,7 +379,7 @@ const Service = (
 											value="volume-backups"
 											className="w-full pt-2.5"
 										>
-											<div className="flex flex-col gap-4 border rounded-lg">
+											<div className="flex flex-col gap-4 ">
 												<ShowVolumeBackups
 													id={applicationId}
 													type="application"
@@ -413,6 +414,12 @@ const Service = (
 												<ShowClusterSettings
 													id={applicationId}
 													type="application"
+												/>
+												<ResourceNetworksCard
+													resourceType="application"
+													resourceId={applicationId}
+													value={data?.networkIds ?? []}
+													serverId={data?.serverId}
 												/>
 												<ShowBuildServer applicationId={applicationId} />
 												<ShowResources id={applicationId} type="application" />

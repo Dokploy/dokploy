@@ -44,11 +44,11 @@ export function AlertBlock({
 				className,
 			)}
 		>
-			<div className="flex-shrink-0 mt-0.5">
+			<div className="shrink-0 mt-0.5">
 				{icon || <Icon className="text-current" />}
 			</div>
 			<div className="flex-1 min-w-0">
-				<span className="text-sm text-current break-words overflow-wrap-anywhere whitespace-pre-wrap">
+				<span className="text-sm text-current wrap-break-word overflow-wrap-anywhere whitespace-pre-wrap">
 					{children}
 				</span>
 			</div>

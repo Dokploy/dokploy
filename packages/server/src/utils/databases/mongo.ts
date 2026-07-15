@@ -8,6 +8,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { resolveNetworkNamesForResource } from "../../services/network";
 import { getRemoteDocker } from "../servers/remote-docker";
 
 export type MongoNested = InferResultType<
@@ -95,7 +96,14 @@ ${command ?? "wait $MONGOD_PID"}`;
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
-	} = generateConfigContainer(mongo);
+	} = generateConfigContainer(
+		mongo,
+		await resolveNetworkNamesForResource(
+			mongo.networkIds,
+			mongo.serverId,
+			mongo.environment.project.organizationId,
+		),
+	);
 
 	const resources = calculateResources({
 		memoryLimit,
@@ -167,7 +175,11 @@ ${command ?? "wait $MONGOD_PID"}`;
 							]
 						: [],
 				},
-		UpdateConfig,
+		UpdateConfig: mongo.updateConfigSwarm ?? {
+			Parallelism: 1,
+			Order: "stop-first" as const,
+			FailureAction: "rollback" as const,
+		},
 	};
 
 	try {

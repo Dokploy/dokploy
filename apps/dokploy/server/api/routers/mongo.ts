@@ -1,4 +1,5 @@
 import {
+	assertNetworkIdsAttachableToResource,
 	checkPortInUse,
 	createMongo,
 	createMount,
@@ -12,6 +13,7 @@ import {
 	getAccessibleServerIds,
 	getContainerLogs,
 	getServiceContainerCommand,
+	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeMongoById,
@@ -61,7 +63,11 @@ export const mongoRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a mongo",
@@ -389,6 +395,14 @@ export const mongoRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mongoId, {
 				service: ["create"],
 			});
+			if (input.networkIds !== undefined) {
+				const mongo = await findMongoById(mongoId);
+				rest.networkIds = await assertNetworkIdsAttachableToResource(
+					input.networkIds,
+					ctx.session.activeOrganizationId,
+					mongo.serverId,
+				);
+			}
 			const service = await updateMongoById(mongoId, {
 				...rest,
 			});

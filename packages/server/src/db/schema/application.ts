@@ -51,7 +51,12 @@ import {
 	UpdateConfigSwarmSchema,
 } from "./shared";
 import { sshKeys } from "./ssh-key";
-import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
+import {
+	APP_NAME_MESSAGE,
+	APP_NAME_REGEX,
+	encryptedText,
+	generateAppName,
+} from "./utils";
 export const sourceType = pgEnum("sourceType", [
 	"docker",
 	"git",
@@ -82,11 +87,11 @@ export const applications = pgTable("application", {
 		.$defaultFn(() => generateAppName("app"))
 		.unique(),
 	description: text("description"),
-	env: text("env"),
-	previewEnv: text("previewEnv"),
+	env: encryptedText("env"),
+	previewEnv: encryptedText("previewEnv"),
 	watchPaths: text("watchPaths").array(),
-	previewBuildArgs: text("previewBuildArgs"),
-	previewBuildSecrets: text("previewBuildSecrets"),
+	previewBuildArgs: encryptedText("previewBuildArgs"),
+	previewBuildSecrets: encryptedText("previewBuildSecrets"),
 	previewLabels: text("previewLabels").array(),
 	previewWildcard: text("previewWildcard"),
 	previewPort: integer("previewPort").default(3000),
@@ -105,8 +110,8 @@ export const applications = pgTable("application", {
 		"previewRequireCollaboratorPermissions",
 	).default(true),
 	rollbackActive: boolean("rollbackActive").default(false),
-	buildArgs: text("buildArgs"),
-	buildSecrets: text("buildSecrets"),
+	buildArgs: encryptedText("buildArgs"),
+	buildSecrets: encryptedText("buildSecrets"),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
@@ -228,6 +233,7 @@ export const applications = pgTable("application", {
 			onDelete: "set null",
 		},
 	),
+	networkIds: text("networkIds").array().default([]),
 });
 
 export const applicationsRelations = relations(
@@ -379,6 +385,7 @@ const createSchema = createInsertSchema(applications, {
 		.max(2 * 1024 * 1024, "Icon must be less than 2MB")
 		.nullable()
 		.optional(),
+	networkIds: z.array(z.string()).optional(),
 });
 
 export const apiCreateApplication = createSchema.pick({

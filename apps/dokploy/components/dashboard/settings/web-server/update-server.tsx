@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +53,11 @@ export const UpdateServer = ({
 	const [latestVersion, setLatestVersion] = useState(
 		updateData?.latestVersion ?? "",
 	);
+	const { data: releaseNotes, isLoading: isLoadingReleaseNotes } =
+		api.settings.getReleaseNotes.useQuery(
+			{ version: latestVersion },
+			{ enabled: isUpdateAvailable && !!latestVersion },
+		);
 	const [isOpenInternal, setIsOpenInternal] = useState(false);
 
 	const handleCheckUpdates = async () => {
@@ -99,7 +105,7 @@ export const UpdateServer = ({
 									size="sm"
 									onClick={() => onOpenChange?.(true)}
 								>
-									<Download className="h-4 w-4 flex-shrink-0" />
+									<Download className="h-4 w-4 shrink-0" />
 									{updateData ? (
 										<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
 											Update Available
@@ -192,6 +198,72 @@ export const UpdateServer = ({
 								</li>
 							</ul>
 						</div>
+
+						{/* Combined release notes: our fork release first, then the upstream base release */}
+						<div className="mt-6 space-y-4">
+							{isLoadingReleaseNotes && (
+								<div className="flex items-center gap-2 text-sm text-muted-foreground">
+									<RefreshCcw className="h-4 w-4 animate-spin" />
+									Loading release notes...
+								</div>
+							)}
+
+							{releaseNotes?.fork && (
+								<div className="space-y-2">
+									<div className="flex items-center justify-between gap-2">
+										<h4 className="text-sm font-semibold text-foreground">
+											Community release {releaseNotes.fork.tag}
+										</h4>
+										<Link
+											href={releaseNotes.fork.url}
+											target="_blank"
+											className="text-xs text-[#5B9DFF] underline hover:text-white shrink-0"
+										>
+											View on GitHub
+										</Link>
+									</div>
+									<div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-muted/40 p-3">
+										{releaseNotes.fork.body ? (
+											<ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none break-words">
+												{releaseNotes.fork.body}
+											</ReactMarkdown>
+										) : (
+											<p className="text-sm text-muted-foreground">
+												Release notes are unavailable right now.
+											</p>
+										)}
+									</div>
+								</div>
+							)}
+
+							{releaseNotes?.upstream && (
+								<div className="space-y-2">
+									<div className="flex items-center justify-between gap-2">
+										<h4 className="text-sm font-semibold text-foreground">
+											From upstream {releaseNotes.upstream.tag}
+										</h4>
+										<Link
+											href={releaseNotes.upstream.url}
+											target="_blank"
+											className="text-xs text-[#5B9DFF] underline hover:text-white shrink-0"
+										>
+											View on GitHub
+										</Link>
+									</div>
+									<div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-muted/40 p-3">
+										{releaseNotes.upstream.body ? (
+											<ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none break-words">
+												{releaseNotes.upstream.body}
+											</ReactMarkdown>
+										) : (
+											<p className="text-sm text-muted-foreground">
+												Upstream release notes are unavailable right now.
+											</p>
+										)}
+									</div>
+								</div>
+							)}
+						</div>
 					</div>
 				)}
 
@@ -225,7 +297,7 @@ export const UpdateServer = ({
 								<h3 className="text-lg font-medium">Checking for updates...</h3>
 								<p className="text text-muted-foreground">
 									Please wait while we pull the latest version information from
-									Docker Hub.
+									GitHub releases.
 								</p>
 							</div>
 						</div>
@@ -235,11 +307,11 @@ export const UpdateServer = ({
 				{isUpdateAvailable && (
 					<div className="rounded-lg bg-[#16254D] p-4 mb-8">
 						<div className="flex gap-2">
-							<Info className="h-5 w-5 flex-shrink-0 text-[#5B9DFF]" />
+							<Info className="h-5 w-5 shrink-0 text-[#5B9DFF]" />
 							<div className="text-[#5B9DFF]">
 								We recommend reviewing the{" "}
 								<Link
-									href="https://github.com/Dokploy/dokploy/releases"
+									href="https://github.com/DevinoSolutions/dokploy-community/releases"
 									target="_blank"
 									className="text-white underline hover:text-zinc-200"
 								>
@@ -255,13 +327,13 @@ export const UpdateServer = ({
 					<ToggleAutoCheckUpdates disabled={isPending} />
 				</div>
 
-				<div className="space-y-4 flex items-center justify-end mt-4	">
+				<div className="flex items-center justify-end mt-4">
 					<div className="flex items-center gap-2">
 						<Button variant="outline" onClick={() => onOpenChange?.(false)}>
 							Cancel
 						</Button>
 						{isUpdateAvailable ? (
-							<UpdateWebServer />
+							<UpdateWebServer buttonClassName="w-auto" />
 						) : (
 							<Button
 								variant="secondary"

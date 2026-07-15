@@ -8,6 +8,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { resolveNetworkNamesForResource } from "../../services/network";
 import { getRemoteDocker } from "../servers/remote-docker";
 
 export type MariadbNested = InferResultType<
@@ -49,7 +50,14 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
-	} = generateConfigContainer(mariadb);
+	} = generateConfigContainer(
+		mariadb,
+		await resolveNetworkNamesForResource(
+			mariadb.networkIds,
+			mariadb.serverId,
+			mariadb.environment.project.organizationId,
+		),
+	);
 	const resources = calculateResources({
 		memoryLimit,
 		memoryReservation,
@@ -111,7 +119,11 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 							]
 						: [],
 				},
-		UpdateConfig,
+		UpdateConfig: mariadb.updateConfigSwarm ?? {
+			Parallelism: 1,
+			Order: "stop-first" as const,
+			FailureAction: "rollback" as const,
+		},
 	};
 	try {
 		const service = docker.getService(appName);

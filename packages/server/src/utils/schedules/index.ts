@@ -11,7 +11,7 @@ export const initSchedules = async () => {
 				server: true,
 				application: true,
 				compose: true,
-				user: true,
+				organization: true,
 			},
 		});
 

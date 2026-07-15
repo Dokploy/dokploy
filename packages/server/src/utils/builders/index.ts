@@ -1,3 +1,4 @@
+import { findRegistryByIdWithCredentials } from "@dokploy/server/services/registry";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { getRegistryTag, uploadImageRemoteCommand } from "../cluster/upload";
@@ -9,6 +10,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { resolveNetworkNamesForResource } from "../../services/network";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { getDockerCommand } from "./docker-file";
 import { getHerokuCommand } from "./heroku";
@@ -28,9 +30,9 @@ export type ApplicationNested = InferResultType<
 		security: true;
 		redirects: true;
 		ports: true;
-		registry: true;
-		buildRegistry: true;
-		rollbackRegistry: true;
+		registry: { columns: { password: false } };
+		buildRegistry: { columns: { password: false } };
+		rollbackRegistry: { columns: { password: false } };
 		deployments: true;
 		environment: { with: { project: true } };
 	}
@@ -111,7 +113,14 @@ export const mechanizeDockerContainer = async (
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
-	} = generateConfigContainer(application);
+	} = generateConfigContainer(
+		application,
+		await resolveNetworkNamesForResource(
+			application.networkIds,
+			application.serverId,
+			application.environment.project.organizationId,
+		),
+	);
 
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, application);
@@ -121,8 +130,8 @@ export const mechanizeDockerContainer = async (
 		application.environment.env,
 	);
 
-	const image = getImageName(application);
-	const authConfig = getAuthConfig(application);
+	const image = await getImageName(application);
+	const authConfig = await getAuthConfig(application);
 	const docker = await getRemoteDocker(application.serverId);
 
 	const settings: CreateServiceOptions = {
@@ -190,7 +199,7 @@ export const mechanizeDockerContainer = async (
 	}
 };
 
-const getImageName = (application: ApplicationNested) => {
+const getImageName = async (application: ApplicationNested) => {
 	const { appName, sourceType, dockerImage, registry, buildRegistry } =
 		application;
 	const imageName = `${appName}:latest`;
@@ -199,18 +208,18 @@ const getImageName = (application: ApplicationNested) => {
 	}
 
 	if (registry) {
-		const registryTag = getRegistryTag(registry, imageName);
-		return registryTag;
+		const r = await findRegistryByIdWithCredentials(registry.registryId);
+		return getRegistryTag(r, imageName);
 	}
 	if (buildRegistry) {
-		const registryTag = getRegistryTag(buildRegistry, imageName);
-		return registryTag;
+		const r = await findRegistryByIdWithCredentials(buildRegistry.registryId);
+		return getRegistryTag(r, imageName);
 	}
 
 	return imageName;
 };
 
-export const getAuthConfig = (application: ApplicationNested) => {
+export const getAuthConfig = async (application: ApplicationNested) => {
 	const {
 		registry,
 		buildRegistry,
@@ -222,23 +231,21 @@ export const getAuthConfig = (application: ApplicationNested) => {
 
 	if (sourceType === "docker") {
 		if (username && password) {
-			return {
-				password,
-				username,
-				serveraddress: registryUrl || "",
-			};
+			return { password, username, serveraddress: registryUrl || "" };
 		}
 	} else if (registry) {
+		const r = await findRegistryByIdWithCredentials(registry.registryId);
 		return {
-			password: registry.password,
-			username: registry.username,
-			serveraddress: registry.registryUrl,
+			password: r.password,
+			username: r.username,
+			serveraddress: r.registryUrl,
 		};
 	} else if (buildRegistry) {
+		const r = await findRegistryByIdWithCredentials(buildRegistry.registryId);
 		return {
-			password: buildRegistry.password,
-			username: buildRegistry.username,
-			serveraddress: buildRegistry.registryUrl,
+			password: r.password,
+			username: r.username,
+			serveraddress: r.registryUrl,
 		};
 	}
 

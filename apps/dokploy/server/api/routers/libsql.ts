@@ -1,4 +1,5 @@
 import {
+	assertNetworkIdsAttachableToResource,
 	checkPortInUse,
 	createLibsql,
 	createMount,
@@ -8,6 +9,7 @@ import {
 	findProjectById,
 	getAccessibleServerIds,
 	getContainerLogs,
+	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeLibsqlById,
@@ -51,7 +53,11 @@ export const libsqlRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a Libsql",
@@ -397,6 +403,14 @@ export const libsqlRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, libsqlId, {
 				service: ["create"],
 			});
+			if (input.networkIds !== undefined) {
+				const libsql = await findLibsqlById(libsqlId);
+				rest.networkIds = await assertNetworkIdsAttachableToResource(
+					input.networkIds,
+					ctx.session.activeOrganizationId,
+					libsql.serverId,
+				);
+			}
 			const libsql = await updateLibsqlById(libsqlId, {
 				...rest,
 			});

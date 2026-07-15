@@ -1,4 +1,5 @@
 import {
+	assertNetworkIdsAttachableToResource,
 	checkPortInUse,
 	createMariadb,
 	createMount,
@@ -12,6 +13,7 @@ import {
 	getAccessibleServerIds,
 	getContainerLogs,
 	getServiceContainerCommand,
+	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeMariadbById,
@@ -62,7 +64,11 @@ export const mariadbRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a Mariadb",
@@ -367,6 +373,14 @@ export const mariadbRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mariadbId, {
 				service: ["create"],
 			});
+			if (input.networkIds !== undefined) {
+				const mariadb = await findMariadbById(mariadbId);
+				rest.networkIds = await assertNetworkIdsAttachableToResource(
+					input.networkIds,
+					ctx.session.activeOrganizationId,
+					mariadb.serverId,
+				);
+			}
 			const service = await updateMariadbById(mariadbId, {
 				...rest,
 			});

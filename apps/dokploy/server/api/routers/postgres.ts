@@ -1,4 +1,5 @@
 import {
+	assertNetworkIdsAttachableToResource,
 	checkPortInUse,
 	createMount,
 	createPostgres,
@@ -13,6 +14,7 @@ import {
 	getContainerLogs,
 	getMountPath,
 	getServiceContainerCommand,
+	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
 	removePostgresById,
@@ -63,7 +65,11 @@ export const postgresRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a Postgres",
@@ -394,6 +400,14 @@ export const postgresRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, postgresId, {
 				service: ["create"],
 			});
+			if (input.networkIds !== undefined) {
+				const postgres = await findPostgresById(postgresId);
+				rest.networkIds = await assertNetworkIdsAttachableToResource(
+					input.networkIds,
+					ctx.session.activeOrganizationId,
+					postgres.serverId,
+				);
+			}
 
 			const service = await updatePostgresById(postgresId, {
 				...rest,

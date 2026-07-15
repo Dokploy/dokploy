@@ -167,7 +167,13 @@ export const CodeEditor = ({
 								? css()
 								: language === "shell"
 									? StreamLanguage.define(shell)
-									: StreamLanguage.define(properties),
+									: StreamLanguage.define({
+											...properties,
+											// The legacy properties mode lacks comment metadata, so
+											// CodeMirror's toggle-comment shortcut (Mod-/) has no comment
+											// token to use. Declare `#` as the line comment for env editors.
+											languageData: { commentTokens: { line: "#" } },
+										}),
 					props.lineWrapping ? EditorView.lineWrapping : [],
 					language === "yaml"
 						? autocompletion({
@@ -184,7 +190,7 @@ export const CodeEditor = ({
 				)}
 			>
 				{props.disabled && (
-					<div className="absolute top-0 rounded-md left-0 w-full h-full  flex items-center justify-center z-[10] [background:var(--overlay)] h-full" />
+					<div className="absolute top-0 rounded-md left-0 w-full h-full  flex items-center justify-center z-10 [background:var(--overlay)] h-full" />
 				)}
 			</CodeMirror>
 		</div>

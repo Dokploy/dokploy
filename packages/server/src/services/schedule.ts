@@ -85,6 +85,9 @@ export const findScheduleOrganizationId = async (scheduleId: string) => {
 	if (schedule?.server) {
 		return schedule?.server?.organization?.id;
 	}
+	if (schedule?.organizationId) {
+		return schedule.organizationId;
+	}
 	return null;
 };
 

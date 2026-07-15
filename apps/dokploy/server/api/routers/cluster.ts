@@ -96,9 +96,11 @@ export const clusterRouter = createTRPCRouter({
 			const docker = await getRemoteDocker(input.serverId);
 			const result = await docker.swarmInspect();
 			const docker_version = await docker.version();
+			const info = await docker.info();
 
-			let ip = await getLocalServerIp();
-			if (input.serverId) {
+			const swarmNodeAddr = info?.Swarm?.NodeAddr;
+			let ip = swarmNodeAddr || (await getLocalServerIp());
+			if (!swarmNodeAddr && input.serverId) {
 				const server = await findServerById(input.serverId);
 				ip = server?.ipAddress;
 			}
@@ -128,9 +130,11 @@ export const clusterRouter = createTRPCRouter({
 			const docker = await getRemoteDocker(input.serverId);
 			const result = await docker.swarmInspect();
 			const docker_version = await docker.version();
+			const info = await docker.info();
 
-			let ip = await getLocalServerIp();
-			if (input.serverId) {
+			const swarmNodeAddr = info?.Swarm?.NodeAddr;
+			let ip = swarmNodeAddr || (await getLocalServerIp());
+			if (!swarmNodeAddr && input.serverId) {
 				const server = await findServerById(input.serverId);
 				ip = server?.ipAddress;
 			}

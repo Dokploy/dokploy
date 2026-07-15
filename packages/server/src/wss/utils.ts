@@ -40,7 +40,7 @@ export const readValidDirectory = (
 	directory: string,
 	serverId?: string | null,
 ) => {
-	if (!/^[\w/. :-]{1,500}$/.test(directory)) {
+	if (!/^[\w/. :[\]-]{1,500}$/.test(directory)) {
 		return false;
 	}
 

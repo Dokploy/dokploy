@@ -5,6 +5,7 @@ import {
 	updateGitProvider,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { findMemberByUserId } from "@dokploy/server/services/permission";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import { desc, eq, inArray } from "drizzle-orm";
@@ -42,6 +43,43 @@ export const gitProviderRouter = createTRPCRouter({
 		return results.map((r) => ({
 			...r,
 			isOwner: r.userId === ctx.session.userId,
+			github: r.github
+				? {
+						githubId: r.github.githubId,
+						githubAppName: r.github.githubAppName,
+						githubAppId: r.github.githubAppId,
+						githubInstallationId: r.github.githubInstallationId,
+						isConfigured: !!(
+							r.github.githubPrivateKey &&
+							r.github.githubAppId &&
+							r.github.githubInstallationId
+						),
+					}
+				: null,
+			gitlab: r.gitlab
+				? {
+						gitlabId: r.gitlab.gitlabId,
+						applicationId: r.gitlab.applicationId,
+						gitlabUrl: r.gitlab.gitlabUrl,
+						isConfigured: !!(r.gitlab.accessToken && r.gitlab.refreshToken),
+					}
+				: null,
+			bitbucket: r.bitbucket
+				? {
+						bitbucketId: r.bitbucket.bitbucketId,
+						bitbucketUsername: r.bitbucket.bitbucketUsername,
+						isConfigured: false,
+						isDeprecated: !!(r.bitbucket.appPassword && !r.bitbucket.apiToken),
+					}
+				: null,
+			gitea: r.gitea
+				? {
+						giteaId: r.gitea.giteaId,
+						giteaUrl: r.gitea.giteaUrl,
+						clientId: r.gitea.clientId,
+						isConfigured: !!(r.gitea.accessToken && r.gitea.refreshToken),
+					}
+				: null,
 		}));
 	}),
 
@@ -105,6 +143,19 @@ export const gitProviderRouter = createTRPCRouter({
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to delete this Git provider",
+					});
+				}
+
+				const memberRecord = await findMemberByUserId(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				const isPrivileged =
+					memberRecord.role === "owner" || memberRecord.role === "admin";
+				if (!isPrivileged && gitProvider.userId !== ctx.session.userId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You can only delete your own Git providers",
 					});
 				}
 				await audit(ctx, {

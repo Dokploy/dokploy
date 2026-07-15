@@ -1,4 +1,5 @@
 import {
+	assertNetworkIdsAttachableToResource,
 	checkPortInUse,
 	createMount,
 	createMysql,
@@ -12,6 +13,7 @@ import {
 	getAccessibleServerIds,
 	getContainerLogs,
 	getServiceContainerCommand,
+	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeMySqlById,
@@ -62,7 +64,11 @@ export const mysqlRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a MySQL",
@@ -385,6 +391,14 @@ export const mysqlRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mysqlId, {
 				service: ["create"],
 			});
+			if (input.networkIds !== undefined) {
+				const mysql = await findMySqlById(mysqlId);
+				rest.networkIds = await assertNetworkIdsAttachableToResource(
+					input.networkIds,
+					ctx.session.activeOrganizationId,
+					mysql.serverId,
+				);
+			}
 			const service = await updateMySqlById(mysqlId, {
 				...rest,
 			});
