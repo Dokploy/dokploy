@@ -3,6 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Destination } from "@dokploy/server/services/destination";
+import { updateWebServerSettings } from "@dokploy/server/services/web-server-settings";
+import { getPublicIpWithFallback } from "@dokploy/server/wss/utils";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync } from "../process/execAsync";
 
@@ -132,6 +134,20 @@ export const restoreWebServerBackup = async (
 			await execAsync(
 				`docker exec ${postgresContainerId} rm /tmp/database.sql`,
 			);
+
+			// The restored database contains the server IP from the machine the
+			// backup was taken on. Re-detect the current host's public IP so the
+			// dashboard reflects this server instead of the old one.
+			emit("Refreshing server IP...");
+			const serverIp = await getPublicIpWithFallback();
+			if (serverIp) {
+				await updateWebServerSettings({ serverIp });
+				emit(`Server IP updated to: ${serverIp}`);
+			} else {
+				emit(
+					"Warning: could not detect the public IP, the server IP was left unchanged. Update it manually in Web Server settings if needed.",
+				);
+			}
 
 			emit("Restore completed successfully!");
 		} finally {
