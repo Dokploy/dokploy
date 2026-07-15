@@ -1,10 +1,32 @@
-import { mkdtemp } from "node:fs/promises";
+import { mkdir, mkdtemp, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Destination } from "@dokploy/server/services/destination";
 import { getS3Credentials } from "../backups/utils";
+import { ExecError } from "../process/ExecError";
 import { execAsync } from "../process/execAsync";
+
+function assertWebServerBackupArchivePath(remoteRelativePath: string): void {
+	const path = remoteRelativePath.trim();
+	if (!path) {
+		throw new Error("Backup file path is empty");
+	}
+	if (path.includes("..")) {
+		throw new Error("Invalid backup path");
+	}
+	if (path.endsWith("/")) {
+		throw new Error(
+			"Backup selection must be a .zip file, not a folder. Open the folder and choose the archive.",
+		);
+	}
+	const lower = path.toLowerCase();
+	if (!lower.endsWith(".zip")) {
+		throw new Error(
+			"Web server backups must be a .zip archive produced by Dokploy.",
+		);
+	}
+}
 
 export const restoreWebServerBackup = async (
 	destination: Destination,
@@ -15,6 +37,8 @@ export const restoreWebServerBackup = async (
 		return;
 	}
 	try {
+		assertWebServerBackupArchivePath(backupFile);
+
 		const rcloneFlags = getS3Credentials(destination);
 		const bucketPath = `:s3:${destination.bucket}`;
 		const backupPath = `${bucketPath}/${backupFile}`;
@@ -22,6 +46,7 @@ export const restoreWebServerBackup = async (
 
 		// Create a temporary directory outside of BASE_PATH
 		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-restore-"));
+		const localArchivePath = join(tempDir, backupFile);
 
 		try {
 			emit("Starting restore...");
@@ -32,20 +57,42 @@ export const restoreWebServerBackup = async (
 			emit("Creating temporary directory...");
 			await execAsync(`mkdir -p ${tempDir}`);
 
+			await mkdir(dirname(localArchivePath), { recursive: true });
+
 			// Download backup from S3
 			emit("Downloading backup from S3...");
 			await execAsync(
-				`rclone copyto ${rcloneFlags.join(" ")} "${backupPath}" "${tempDir}/${backupFile}"`,
+				`rclone copyto ${rcloneFlags.join(" ")} ${JSON.stringify(backupPath)} ${JSON.stringify(localArchivePath)}`,
 			);
+
+			const archiveStat = await stat(localArchivePath);
+			if (!archiveStat.isFile()) {
+				throw new Error(
+					`Backup path is not a file (directories cannot be restored). Got: ${backupFile}`,
+				);
+			}
 
 			// List files before extraction
 			emit("Listing files before extraction...");
 			const { stdout: beforeFiles } = await execAsync(`ls -la ${tempDir}`);
 			emit(`Files before extraction: ${beforeFiles}`);
 
-			// Extract backup
+			// Extract backup (do not swallow unzip diagnostics or non-zero exits)
 			emit("Extracting backup...");
-			await execAsync(`cd ${tempDir} && unzip ${backupFile} > /dev/null 2>&1`);
+			try {
+				const { stderr: unzipStderr } = await execAsync(
+					`unzip -o ${JSON.stringify(localArchivePath)}`,
+					{ cwd: tempDir },
+				);
+				if (unzipStderr.trim()) {
+					emit(unzipStderr.trim());
+				}
+			} catch (unzipErr) {
+				if (unzipErr instanceof ExecError && unzipErr.stderr?.trim()) {
+					emit(unzipErr.stderr.trim());
+				}
+				throw unzipErr;
+			}
 
 			// Restore filesystem first
 			emit("Restoring filesystem...");
@@ -143,9 +190,11 @@ export const restoreWebServerBackup = async (
 		console.error(error);
 		emit(
 			`Error: ${
-				error instanceof Error
-					? error.message
-					: "Error restoring web server backup"
+				error instanceof ExecError
+					? error.getDetailedMessage()
+					: error instanceof Error
+						? error.message
+						: "Error restoring web server backup"
 			}`,
 		);
 		throw error;
