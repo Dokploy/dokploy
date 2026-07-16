@@ -81,15 +81,25 @@ const getMongoSpecificCommand = (
 	backupFile: string,
 ): string => {
 	const tempDir = "/tmp/dokploy-restore";
-	const fileName = backupFile.split("/").pop() || "backup.sql.gz";
-	const decompressedName = fileName.replace(".gz", "");
+	const fileName = backupFile
+		.split("/")
+		.filter((segment) => Boolean(segment))
+		.pop();
 	return `
 rm -rf ${tempDir} && \
 mkdir -p ${tempDir} && \
 ${rcloneCommand} ${tempDir} && \
 cd ${tempDir} && \
-gunzip -f "${fileName}" && \
-${restoreCommand} < "${decompressedName}" && \
+ARCHIVE_FILE="${fileName || ""}" && \
+if [ -z "$ARCHIVE_FILE" ] || [ ! -f "$ARCHIVE_FILE" ]; then \
+	ARCHIVE_FILE=$(find . -maxdepth 1 -type f -name "*.gz" | head -n 1); \
+fi && \
+if [ -z "$ARCHIVE_FILE" ] || [ ! -f "$ARCHIVE_FILE" ]; then \
+	echo "Mongo backup archive not found in ${tempDir}" >&2; exit 1; \
+fi && \
+DECOMPRESSED_FILE="\${ARCHIVE_FILE%.gz}" && \
+gunzip -f "$ARCHIVE_FILE" && \
+${restoreCommand} < "$DECOMPRESSED_FILE" && \
 rm -rf ${tempDir}
 	`;
 };
