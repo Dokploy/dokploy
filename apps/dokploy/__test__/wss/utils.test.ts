@@ -1,10 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+	buildDockerLogsArguments,
+	createDockerLogsDataHandler,
 	isValidContainerId,
 	isValidSearch,
 	isValidSince,
 	isValidTail,
+	terminateDockerLogsProcess,
 } from "../../server/wss/utils";
+
+afterEach(() => {
+	vi.useRealTimers();
+});
 
 describe("isValidTail (docker-container-logs)", () => {
 	it("accepts valid numeric tail values", () => {
@@ -92,16 +99,13 @@ describe("isValidSearch (docker-container-logs)", () => {
 		expect(isValidSearch("a\x19b")).toBe(false);
 	});
 
-	it("rejects command injection vectors in search (search is concatenated into shell)", () => {
-		// Double-quoted context (SSH line 99): $ and ` execute
+	it("rejects shell metacharacters and unsupported punctuation", () => {
 		expect(isValidSearch("$(whoami)")).toBe(false);
 		expect(isValidSearch("`id`")).toBe(false);
 		expect(isValidSearch("$(id)")).toBe(false);
-		// Single-quoted context (local line 153): ' breaks out
 		expect(isValidSearch("'$(whoami)'")).toBe(false);
 		expect(isValidSearch("error'")).toBe(false);
 		expect(isValidSearch("'; whoami; #")).toBe(false);
-		// Other shell-metacharacters
 		expect(isValidSearch("error; id")).toBe(false);
 		expect(isValidSearch("a|b")).toBe(false);
 		expect(isValidSearch('error"')).toBe(false);
@@ -128,5 +132,100 @@ describe("isValidContainerId (docker-container-logs)", () => {
 		expect(isValidContainerId("`id`")).toBe(false);
 		expect(isValidContainerId("container|cat /etc/passwd")).toBe(false);
 		expect(isValidContainerId("x; env | grep DATABASE")).toBe(false);
+	});
+});
+
+describe("buildDockerLogsArguments", () => {
+	it("builds native container log arguments", () => {
+		expect(
+			buildDockerLogsArguments({
+				containerId: "abc123def456",
+				runType: "native",
+				since: "all",
+				tail: "100",
+			}),
+		).toEqual([
+			"container",
+			"logs",
+			"--timestamps",
+			"--tail",
+			"100",
+			"--follow",
+			"abc123def456",
+		]);
+	});
+
+	it("includes swarm and since flags when requested", () => {
+		expect(
+			buildDockerLogsArguments({
+				containerId: "scorely-backend",
+				runType: "swarm",
+				since: "10m",
+				tail: "300",
+			}),
+		).toEqual([
+			"service",
+			"logs",
+			"--timestamps",
+			"--raw",
+			"--tail",
+			"300",
+			"--since",
+			"10m",
+			"--follow",
+			"scorely-backend",
+		]);
+	});
+});
+
+describe("createDockerLogsDataHandler", () => {
+	it("forwards unfiltered chunks without buffering", () => {
+		const onData = vi.fn();
+		const handler = createDockerLogsDataHandler("", onData);
+
+		handler.write("first chunk");
+		handler.write(Buffer.from(" second chunk"));
+		handler.flush();
+
+		expect(onData.mock.calls).toEqual([["first chunk"], [" second chunk"]]);
+	});
+
+	it("filters case-insensitively across chunk boundaries", () => {
+		const onData = vi.fn();
+		const handler = createDockerLogsDataHandler("error", onData);
+
+		handler.write("info: started\nER");
+		handler.write("ROR: failed\ninfo: done\npartial error");
+		handler.flush();
+
+		expect(onData.mock.calls).toEqual([["ERROR: failed\n"], ["partial error"]]);
+	});
+});
+
+describe("terminateDockerLogsProcess", () => {
+	it("escalates from SIGTERM to SIGKILL while the process is running", () => {
+		vi.useFakeTimers();
+		const childProcess = {
+			exitCode: null,
+			signalCode: null,
+			kill: vi.fn(() => true),
+		};
+
+		terminateDockerLogsProcess(childProcess);
+		expect(childProcess.kill).toHaveBeenCalledWith("SIGTERM");
+
+		vi.advanceTimersByTime(1000);
+		expect(childProcess.kill).toHaveBeenLastCalledWith("SIGKILL");
+	});
+
+	it("does not signal a process that has already exited", () => {
+		const childProcess = {
+			exitCode: 0,
+			signalCode: null,
+			kill: vi.fn(() => true),
+		};
+
+		expect(terminateDockerLogsProcess(childProcess)).toBeUndefined();
+		expect(childProcess.kill).not.toHaveBeenCalled();
 	});
 });

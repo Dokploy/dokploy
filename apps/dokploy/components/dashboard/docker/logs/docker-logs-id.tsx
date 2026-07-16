@@ -218,7 +218,10 @@ export const DockerLogsId: React.FC<Props> = ({
 		return () => {
 			isCurrentConnection = false;
 			if (noDataTimeout) clearTimeout(noDataTimeout);
-			if (ws.readyState === WebSocket.OPEN) {
+			if (
+				ws.readyState === WebSocket.OPEN ||
+				ws.readyState === WebSocket.CONNECTING
+			) {
 				ws.close();
 			}
 		};

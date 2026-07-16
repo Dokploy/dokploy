@@ -1,14 +1,16 @@
+import { spawn } from "node:child_process";
 import type http from "node:http";
 import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
-import { spawn } from "node-pty";
-import { Client } from "ssh2";
+import { Client, type ClientChannel } from "ssh2";
 import { WebSocketServer } from "ws";
 import {
-	getShell,
+	buildDockerLogsArguments,
+	createDockerLogsDataHandler,
 	isValidContainerId,
 	isValidSearch,
 	isValidSince,
 	isValidTail,
+	terminateDockerLogsProcess,
 } from "./utils";
 
 export const setupDockerContainerLogsWebSocketServer = (
@@ -41,7 +43,37 @@ export const setupDockerContainerLogsWebSocketServer = (
 		const since = url.searchParams.get("since") ?? "all";
 		const serverId = url.searchParams.get("serverId");
 		const runType = url.searchParams.get("runType");
+		const timers: {
+			forceKill?: NodeJS.Timeout;
+			ping?: NodeJS.Timeout;
+		} = {};
+		let localProcess: ReturnType<typeof spawn> | undefined;
+		let sshClient: Client | undefined;
+		let sshStream: ClientChannel | undefined;
+		let isClosed = false;
+
+		const cleanup = () => {
+			if (isClosed) return;
+			isClosed = true;
+
+			if (timers.ping) clearInterval(timers.ping);
+
+			if (sshStream) {
+				try {
+					sshStream.signal("KILL");
+				} catch {}
+				sshStream.close();
+			}
+			sshClient?.end();
+
+			if (localProcess) {
+				timers.forceKill = terminateDockerLogsProcess(localProcess);
+			}
+		};
+
+		ws.once("close", cleanup);
 		const { user, session } = await validateRequest(req);
+		if (isClosed) return;
 
 		if (!containerId) {
 			ws.close(4000, "containerId no provided");
@@ -76,61 +108,82 @@ export const setupDockerContainerLogsWebSocketServer = (
 
 		// Set up keep-alive ping mechanism to prevent timeout
 		// Send ping every 45 seconds to keep connection alive
-		const pingInterval = setInterval(() => {
+		timers.ping = setInterval(() => {
 			if (ws.readyState === ws.OPEN) {
 				ws.ping();
 			}
 		}, 45000); // 45 seconds
+		timers.ping.unref();
+
+		const send = (data: Buffer | string) => {
+			if (ws.readyState === ws.OPEN) {
+				ws.send(data.toString());
+			}
+		};
+		const dockerLogsArguments = buildDockerLogsArguments({
+			containerId,
+			runType,
+			since,
+			tail,
+		});
 		try {
 			if (serverId) {
 				const server = await findServerById(serverId);
+				if (isClosed) return;
 
 				if (server.organizationId !== session.activeOrganizationId) {
 					ws.close();
 					return;
 				}
 
-				if (!server.sshKeyId) return;
-				const client = new Client();
-				client
+				if (!server.sshKeyId) {
+					ws.close(4000, "No SSH key available for this server");
+					return;
+				}
+				sshClient = new Client();
+				sshClient
 					.once("ready", () => {
-						const baseCommand = `docker ${runType === "swarm" ? "service" : "container"} logs --timestamps ${
-							runType === "swarm" ? "--raw" : ""
-						} --tail ${tail} ${
-							since === "all" ? "" : `--since ${since}`
-						} --follow ${containerId}`;
-						const escapedSearch = search ? search.replace(/'/g, "'\\''") : "";
-						const command = search
-							? `${baseCommand} 2>&1 | grep --line-buffered -iF "${escapedSearch}"`
-							: baseCommand;
+						if (isClosed) {
+							sshClient?.end();
+							return;
+						}
+						const command = `docker ${dockerLogsArguments.join(" ")}`;
 						// Use pty: true to ensure the remote process receives SIGHUP when SSH connection closes
 						// This is crucial for terminating docker logs processes when the connection is closed
-						client.exec(command, { pty: true }, (err, stream) => {
+						sshClient?.exec(command, { pty: true }, (err, stream) => {
 							if (err) {
 								console.error("Execution error:", err);
 								ws.close();
-								client.end();
+								sshClient?.end();
 								return;
 							}
+							sshStream = stream;
+							if (isClosed) {
+								try {
+									stream.signal("KILL");
+								} catch {}
+								stream.close();
+								sshClient?.end();
+								return;
+							}
+							const stdout = createDockerLogsDataHandler(search, send);
+							const stderr = createDockerLogsDataHandler(search, send);
 							stream
 								.on("close", () => {
-									client.end();
+									stdout.flush();
+									stderr.flush();
+									sshClient?.end();
 									ws.close();
 								})
-								.on("data", (data: string) => {
-									ws.send(data.toString());
-								})
-								.stderr.on("data", (data) => {
-									ws.send(data.toString());
-								});
+								.on("data", stdout.write)
+								.stderr.on("data", stderr.write);
 						});
 					})
 					.on("error", (err) => {
 						console.error("SSH connection error:", err);
-						ws.send(`SSH error: ${err.message}`);
-						clearInterval(pingInterval);
+						send(`SSH error: ${err.message}`);
 						ws.close(); // Cierra el WebSocket si hay un error con SSH
-						client.end();
+						sshClient?.end();
 					})
 					.connect({
 						host: server.ipAddress,
@@ -138,62 +191,40 @@ export const setupDockerContainerLogsWebSocketServer = (
 						username: server.username,
 						privateKey: server.sshKey?.privateKey,
 					});
-				ws.on("close", () => {
-					clearInterval(pingInterval);
-					client.end();
-				});
 			} else {
 				if (IS_CLOUD) {
-					ws.send("This feature is not available in the cloud version.");
+					send("This feature is not available in the cloud version.");
 					ws.close();
 					return;
 				}
-				const shell = getShell();
-				const baseCommand = `docker ${runType === "swarm" ? "service" : "container"} logs --timestamps ${
-					runType === "swarm" ? "--raw" : ""
-				} --tail ${tail} ${
-					since === "all" ? "" : `--since ${since}`
-				} --follow ${containerId}`;
-				const command = search
-					? `${baseCommand} 2>&1 | grep -iF '${search}'`
-					: baseCommand;
-				const ptyProcess = spawn(shell, ["-c", command], {
-					name: "xterm-256color",
+				const stdout = createDockerLogsDataHandler(search, send);
+				const stderr = createDockerLogsDataHandler(search, send);
+				const childProcess = spawn("docker", dockerLogsArguments, {
 					cwd: process.env.HOME,
 					env: process.env,
-					encoding: "utf8",
-					cols: 80,
-					rows: 30,
+					stdio: ["ignore", "pipe", "pipe"],
 				});
+				localProcess = childProcess;
 
-				ptyProcess.onData((data) => {
-					ws.send(data);
+				childProcess.stdout.on("data", stdout.write);
+				childProcess.stderr.on("data", stderr.write);
+				childProcess.once("close", () => {
+					stdout.flush();
+					stderr.flush();
+					if (timers.forceKill) clearTimeout(timers.forceKill);
+					ws.close();
 				});
-				ws.on("close", () => {
-					clearInterval(pingInterval);
-					ptyProcess.kill();
-				});
-				ws.on("message", (message) => {
-					try {
-						let command: string | Buffer[] | Buffer | ArrayBuffer;
-						if (Buffer.isBuffer(message)) {
-							command = message.toString("utf8");
-						} else {
-							command = message;
-						}
-						ptyProcess.write(command.toString());
-					} catch (error) {
-						// @ts-ignore
-						const errorMessage = error?.message as unknown as string;
-						ws.send(errorMessage);
-					}
+				childProcess.once("error", (error) => {
+					send(error.message);
+					ws.close();
 				});
 			}
 		} catch (error) {
 			// @ts-ignore
 			const errorMessage = error?.message as unknown as string;
 
-			ws.send(errorMessage);
+			send(errorMessage);
+			ws.close();
 		}
 	});
 };

@@ -1,3 +1,4 @@
+import type { ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -37,13 +38,98 @@ export const isValidSince = (since: string): boolean => {
 
 /**
  * Validates the `search` parameter for log filtering.
- * Search is concatenated into shell commands (SSH path: double quotes; local path: single quotes).
- * Only allow alphanumeric, space, dot, underscore, hyphen to prevent $, `, ', " from enabling command injection.
+ * Only allow alphanumeric, space, dot, underscore, and hyphen.
  * Max length 500.
  */
 export const isValidSearch = (search: string): boolean => {
 	// Space only (not \s) to reject \n, \r, \t and other control chars
 	return /^[a-zA-Z0-9 ._-]{0,500}$/.test(search);
+};
+
+interface DockerLogsArguments {
+	containerId: string;
+	runType: string | null;
+	since: string;
+	tail: string;
+}
+
+export const buildDockerLogsArguments = ({
+	containerId,
+	runType,
+	since,
+	tail,
+}: DockerLogsArguments): string[] => {
+	const args = [
+		runType === "swarm" ? "service" : "container",
+		"logs",
+		"--timestamps",
+	];
+
+	if (runType === "swarm") {
+		args.push("--raw");
+	}
+
+	args.push("--tail", tail);
+	if (since !== "all") {
+		args.push("--since", since);
+	}
+	args.push("--follow", containerId);
+
+	return args;
+};
+
+export const createDockerLogsDataHandler = (
+	search: string,
+	onData: (data: string) => void,
+) => {
+	if (!search) {
+		return {
+			write: (data: Buffer | string) => onData(data.toString()),
+			flush: () => {},
+		};
+	}
+
+	const normalizedSearch = search.toLowerCase();
+	let remainder = "";
+
+	return {
+		write: (data: Buffer | string) => {
+			const lines = `${remainder}${data.toString()}`.split("\n");
+			remainder = lines.pop() ?? "";
+			const matches = lines.filter((line) =>
+				line.toLowerCase().includes(normalizedSearch),
+			);
+			if (matches.length > 0) {
+				onData(`${matches.join("\n")}\n`);
+			}
+		},
+		flush: () => {
+			if (remainder.toLowerCase().includes(normalizedSearch)) {
+				onData(remainder);
+			}
+			remainder = "";
+		},
+	};
+};
+
+type KillableProcess = Pick<ChildProcess, "exitCode" | "kill" | "signalCode">;
+
+export const terminateDockerLogsProcess = (
+	childProcess: KillableProcess,
+): NodeJS.Timeout | undefined => {
+	if (childProcess.exitCode !== null || childProcess.signalCode !== null) {
+		return;
+	}
+
+	childProcess.kill("SIGTERM");
+	const forceKillTimeout = setTimeout(() => {
+		if (childProcess.exitCode === null && childProcess.signalCode === null) {
+			childProcess.kill("SIGKILL");
+		}
+	}, 1000);
+	forceKillTimeout.unref();
+
+	return forceKillTimeout;
 };
 
 /**
