@@ -189,7 +189,7 @@ jobs:
           mv package.json.tmp package.json
 
           npm install -g pnpm
-          pnpm install
+          pnpm install --ignore-scripts
           pnpm run fetch-openapi
           pnpm run generate
 
