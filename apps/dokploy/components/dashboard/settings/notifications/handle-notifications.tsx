@@ -1932,8 +1932,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											<div className="space-y-0.5">
 												<FormLabel>Docker Cleanup</FormLabel>
 												<FormDescription>
-													Trigger the action when Docker cleanup is
-													performed.
+													Trigger the action when Docker cleanup is performed.
 												</FormDescription>
 											</div>
 											<FormControl>
