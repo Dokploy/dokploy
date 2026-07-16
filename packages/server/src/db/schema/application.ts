@@ -535,8 +535,17 @@ export const apiSaveEnvironmentVariables = createSchema
 	})
 	.required();
 
+// `appName` is concatenated into MONITORING_PATH on disk by
+// `getApplicationStats` -> `getAdvancedStats` -> `readStatsFile`. Restrict to
+// the literal `dokploy` host bucket or `dokploy-<serverId>` (nanoid-shaped)
+// so a crafted value cannot traverse out of MONITORING_PATH. Container app
+// names fed through this same endpoint are auto-generated and only contain
+// these characters as well.
 export const apiFindMonitoringStats = z.object({
-	appName: z.string().min(1),
+	appName: z
+		.string()
+		.min(1)
+		.regex(/^[A-Za-z0-9_.-]+$/, { message: "Invalid appName" }),
 });
 
 export const apiUpdateApplication = createSchema
