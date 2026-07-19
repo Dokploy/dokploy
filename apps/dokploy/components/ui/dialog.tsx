@@ -51,6 +51,7 @@ function DialogContent({
 	showCloseButton = true,
 	onPointerDownOutside,
 	onEscapeKeyDown,
+	onFocusOutside,
 	...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
 	showCloseButton?: boolean;
@@ -77,6 +78,10 @@ function DialogContent({
 						return;
 					}
 					onEscapeKeyDown?.(event);
+				}}
+				onFocusOutside={(event) => {
+					event.preventDefault();
+					onFocusOutside?.(event);
 				}}
 				{...props}
 			>
