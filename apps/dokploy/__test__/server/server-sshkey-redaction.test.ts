@@ -36,8 +36,9 @@ describe("redactServerSshKey (server SSH private key disclosure guard)", () => {
 		expect(redactServerSshKey(server)).toEqual(server);
 	});
 
-	it("handles a record without an sshKey property at all", () => {
-		const server = { serverId: "srv-3" };
+	it("handles a record without a loaded sshKey relation", () => {
+		// e.g. server.update returns the plain row where sshKey is not populated.
+		const server: { serverId: string; sshKey?: null } = { serverId: "srv-3" };
 		expect(redactServerSshKey(server)).toEqual(server);
 	});
 });
