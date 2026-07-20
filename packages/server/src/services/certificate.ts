@@ -9,6 +9,7 @@ import {
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { quote } from "shell-quote";
 import { stringify } from "yaml";
 import type { z } from "zod";
 import { encodeBase64 } from "../utils/docker/utils";
@@ -63,7 +64,7 @@ export const removeCertificateById = async (certificateId: string) => {
 	const certDir = path.join(CERTIFICATES_PATH, certificate.certificatePath);
 
 	if (certificate.serverId) {
-		await execAsyncRemote(certificate.serverId, `rm -rf ${certDir}`);
+		await execAsyncRemote(certificate.serverId, `rm -rf ${quote([certDir])}`);
 	} else {
 		await removeDirectoryIfExistsContent(certDir);
 	}
@@ -108,10 +109,10 @@ const createCertificateFiles = async (certificate: Certificate) => {
 		const certificateData = encodeBase64(certificate.certificateData);
 		const privateKey = encodeBase64(certificate.privateKey);
 		const command = `
-			mkdir -p ${certDir};
-			echo "${certificateData}" | base64 -d > "${crtPath}";
-			echo "${privateKey}" | base64 -d > "${keyPath}";
-			echo "${yamlConfig}" > "${configFile}";
+			mkdir -p ${quote([certDir])};
+			echo "${certificateData}" | base64 -d > ${quote([crtPath])};
+			echo "${privateKey}" | base64 -d > ${quote([keyPath])};
+			echo "${yamlConfig}" > ${quote([configFile])};
 		`;
 
 		await execAsyncRemote(certificate.serverId, command);
