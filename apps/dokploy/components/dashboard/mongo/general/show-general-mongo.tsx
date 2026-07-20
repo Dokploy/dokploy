@@ -230,7 +230,6 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 						</TooltipProvider>
 						<DockerTerminalModal
 							appName={data?.appName || ""}
-							serviceId={data?.mongoId}
 							serverId={data?.serverId || ""}
 						>
 							<Button

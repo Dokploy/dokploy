@@ -234,7 +234,6 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 						</TooltipProvider>
 						<DockerTerminalModal
 							appName={data?.appName || ""}
-							serviceId={data?.postgresId}
 							serverId={data?.serverId || ""}
 						>
 							<Button

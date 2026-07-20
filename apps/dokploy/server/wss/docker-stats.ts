@@ -45,7 +45,6 @@ export const setupDockerStatsMonitoringSocketServer = (
 			| "application"
 			| "stack"
 			| "docker-compose";
-		const serviceId = url.searchParams.get("serviceId");
 		const { user, session } = await validateRequest(req);
 
 		if (!appName) {
@@ -58,7 +57,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 			return;
 		}
 
-		if (!(await canAccessDockerOverWss(user, session, null, serviceId))) {
+		if (!(await canAccessDockerOverWss(user, session))) {
 			ws.close(4003, "Not authorized");
 			return;
 		}

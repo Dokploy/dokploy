@@ -1,6 +1,5 @@
 import { getAccessibleServerIds } from "@dokploy/server";
 import {
-	checkServiceAccess,
 	findMemberByUserId,
 	hasPermission,
 } from "@dokploy/server/services/permission";
@@ -23,7 +22,6 @@ export const canAccessDockerOverWss = async (
 	user: WssUser,
 	session: WssSession,
 	serverId?: string | null,
-	serviceId?: string | null,
 ): Promise<boolean> => {
 	if (!user || !session?.activeOrganizationId) return false;
 
@@ -36,18 +34,6 @@ export const canAccessDockerOverWss = async (
 			activeOrganizationId: session.activeOrganizationId,
 		});
 		if (!accessible.has(serverId)) return false;
-	}
-
-	// When the container belongs to a known Dokploy service (opened from a
-	// service page), enforce service-level access too. Container terminals
-	// opened from the generic Docker overview have no serviceId and fall back to
-	// the docker-permission + server checks above.
-	if (serviceId) {
-		try {
-			await checkServiceAccess(ctx, serviceId, "read");
-		} catch {
-			return false;
-		}
 	}
 
 	return true;
