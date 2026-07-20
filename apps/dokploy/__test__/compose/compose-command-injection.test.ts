@@ -76,9 +76,9 @@ describe("compose createCommand injection", () => {
 			"up $(touch x)",
 			"up `id`",
 		]) {
-			expect(() =>
-				createCommand({ ...base, command: bad } as any),
-			).toThrow(/Invalid characters/);
+			expect(() => createCommand({ ...base, command: bad } as any)).toThrow(
+				/Invalid characters/,
+			);
 		}
 	});
 
