@@ -159,7 +159,11 @@ export const redactApplicationGitSecrets = <
 			"githubPrivateKey",
 			"githubWebhookSecret",
 		]),
-		gitlab: blank(application.gitlab, ["secret", "accessToken", "refreshToken"]),
+		gitlab: blank(application.gitlab, [
+			"secret",
+			"accessToken",
+			"refreshToken",
+		]),
 		gitea: blank(application.gitea, [
 			"clientSecret",
 			"accessToken",
