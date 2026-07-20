@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Domain } from "@dokploy/server/services/domain";
+import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
 import { execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
@@ -125,8 +126,11 @@ exit 1;
 		const encodedContent = encodeBase64(composeString);
 		return `echo "${encodedContent}" | base64 -d > "${path}";`;
 	} catch (error) {
-		// @ts-ignore
-		return `echo "❌ Has occurred an error: ${error?.message || error}";
+		const message =
+			error instanceof Error ? error.message : String(error ?? "");
+		// The error message embeds user-controlled fields (e.g. serviceName) and is
+		// executed as part of the compose build shell script, so it must be escaped.
+		return `echo ${quote([`❌ Has occurred an error: ${message}`])};
 exit 1;
 		`;
 	}
