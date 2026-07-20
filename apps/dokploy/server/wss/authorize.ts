@@ -28,20 +28,25 @@ export const canAccessDockerOverWss = async (
 	if (!user || !session?.activeOrganizationId) return false;
 
 	const ctx = buildCtx(user, session.activeOrganizationId);
-	if (!(await hasPermission(ctx, { docker: ["read"] }))) return false;
 
-	// When the container belongs to a known Dokploy service (opened from a
-	// service page), enforce service-level access. Checked before the server
-	// gate so the service grant is the primary authorization signal. Container
-	// terminals opened from the generic Docker overview have no serviceId and
-	// fall back to the docker-permission + server checks.
+	// When the container belongs to a specific Dokploy service (opened from a
+	// service page, so serviceId is present), access to that service is the
+	// authoritative gate — matching the service tRPC endpoints (e.g.
+	// application.readLogs, which check service access only). A member granted
+	// the service can read its logs / open its terminal even without the broad
+	// "docker" permission or explicit access to the server it runs on.
 	if (serviceId) {
 		try {
 			await checkServiceAccess(ctx, serviceId, "read");
+			return true;
 		} catch {
 			return false;
 		}
 	}
+
+	// Generic Docker overview (no service context): mirror the docker tRPC router
+	// — require the docker permission and access to the target server.
+	if (!(await hasPermission(ctx, { docker: ["read"] }))) return false;
 
 	if (serverId && serverId !== "local") {
 		const accessible = await getAccessibleServerIds({

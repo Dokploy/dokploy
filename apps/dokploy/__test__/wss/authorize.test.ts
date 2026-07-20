@@ -56,19 +56,25 @@ describe("canAccessDockerOverWss", () => {
 	});
 
 	it("denies when the container belongs to a service the caller cannot access", async () => {
-		mockHasPermission.mockResolvedValue(true);
 		mockCheckServiceAccess.mockRejectedValue(new Error("no access"));
 		expect(await canAccessDockerOverWss(USER, SESSION, null, "svc-1")).toBe(
 			false,
 		);
 	});
 
-	it("allows when the caller has access to the container's service", async () => {
-		mockHasPermission.mockResolvedValue(true);
+	it("allows service access even without docker permission or server access", async () => {
+		// A member granted the service but without canAccessToDocker, whose
+		// service runs on a server they were not individually granted, must still
+		// read its logs — matches application.readLogs (service access only).
+		mockHasPermission.mockResolvedValue(false);
+		mockGetAccessibleServerIds.mockResolvedValue(new Set());
 		mockCheckServiceAccess.mockResolvedValue(undefined);
-		expect(await canAccessDockerOverWss(USER, SESSION, null, "svc-1")).toBe(
+		expect(await canAccessDockerOverWss(USER, SESSION, "srv-remote", "svc-1")).toBe(
 			true,
 		);
+		// Service path is authoritative — it must not fall through to docker/server.
+		expect(mockHasPermission).not.toHaveBeenCalled();
+		expect(mockGetAccessibleServerIds).not.toHaveBeenCalled();
 	});
 });
 
