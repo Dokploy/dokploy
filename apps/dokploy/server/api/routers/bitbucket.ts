@@ -89,8 +89,10 @@ export const bitbucketRouter = createTRPCRouter({
 	getBitbucketBranches: protectedProcedure
 		.input(apiFindBitbucketBranches)
 		.query(async ({ input, ctx }) => {
-			const bitbucket = await findBitbucketById(input.bitbucketId);
-			await assertGitProviderAccess(ctx.session, bitbucket.gitProvider);
+			if (input.bitbucketId) {
+				const bitbucket = await findBitbucketById(input.bitbucketId);
+				await assertGitProviderAccess(ctx.session, bitbucket.gitProvider);
+			}
 			return await getBitbucketBranches(input);
 		}),
 	testConnection: protectedProcedure

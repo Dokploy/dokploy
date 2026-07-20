@@ -100,8 +100,10 @@ export const gitlabRouter = createTRPCRouter({
 	getGitlabBranches: protectedProcedure
 		.input(apiFindGitlabBranches)
 		.query(async ({ input, ctx }) => {
-			const gitlab = await findGitlabById(input.gitlabId);
-			await assertGitProviderAccess(ctx.session, gitlab.gitProvider);
+			if (input.gitlabId) {
+				const gitlab = await findGitlabById(input.gitlabId);
+				await assertGitProviderAccess(ctx.session, gitlab.gitProvider);
+			}
 			return await getGitlabBranches(input);
 		}),
 	testConnection: protectedProcedure

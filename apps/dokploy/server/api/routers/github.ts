@@ -40,8 +40,10 @@ export const githubRouter = createTRPCRouter({
 	getGithubBranches: protectedProcedure
 		.input(apiFindGithubBranches)
 		.query(async ({ input, ctx }) => {
-			const github = await findGithubById(input.githubId);
-			await assertGitProviderAccess(ctx.session, github.gitProvider);
+			if (input.githubId) {
+				const github = await findGithubById(input.githubId);
+				await assertGitProviderAccess(ctx.session, github.gitProvider);
+			}
 			return await getGithubBranches(input);
 		}),
 	githubProviders: protectedProcedure.query(async ({ ctx }) => {
