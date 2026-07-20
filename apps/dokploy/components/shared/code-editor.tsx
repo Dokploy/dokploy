@@ -190,7 +190,7 @@ export const CodeEditor = ({
 				)}
 			>
 				{props.disabled && (
-					<div className="absolute top-0 rounded-md left-0 w-full h-full  flex items-center justify-center z-10 [background:var(--overlay)] h-full" />
+					<div className="pointer-events-none absolute top-0 rounded-md left-0 w-full h-full flex items-center justify-center z-10 [background:var(--overlay)]" />
 				)}
 			</CodeMirror>
 		</div>

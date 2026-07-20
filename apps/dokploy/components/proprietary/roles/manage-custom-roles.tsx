@@ -76,8 +76,8 @@ const RESOURCE_META: Record<string, { label: string; description: string }> = {
 		description: "Access to Git providers (GitHub, GitLab, Bitbucket, Gitea)",
 	},
 	traefikFiles: {
-		label: "Traefik Files",
-		description: "Access to the Traefik file system configuration",
+		label: "Web Server Files",
+		description: "Access to the active web server file browser",
 	},
 	api: {
 		label: "API / CLI",
@@ -242,11 +242,11 @@ const ACTION_META: Record<
 	traefikFiles: {
 		read: {
 			label: "Read",
-			description: "View Traefik configuration files",
+			description: "View active web server configuration files",
 		},
 		write: {
 			label: "Write",
-			description: "Edit and save Traefik configuration files",
+			description: "Edit and save active web server configuration files",
 		},
 	},
 	api: {

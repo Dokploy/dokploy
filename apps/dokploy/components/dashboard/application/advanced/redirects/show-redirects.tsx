@@ -10,6 +10,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
+import { invalidateApplicationWebServerConfig } from "../../web-server-config-cache";
 import { HandleRedirect } from "./handle-redirect";
 
 interface Props {
@@ -97,11 +98,12 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 													await deleteRedirect({
 														redirectId: redirect.redirectId,
 													})
-														.then(() => {
-															refetch();
-															utils.application.readTraefikConfig.invalidate({
+														.then(async () => {
+															await refetch();
+															await invalidateApplicationWebServerConfig(
+																utils,
 																applicationId,
-															});
+															);
 															toast.success("Redirect deleted successfully");
 														})
 														.catch(() => {

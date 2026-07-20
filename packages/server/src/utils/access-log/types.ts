@@ -1,4 +1,4 @@
-export interface LogEntry {
+export interface TraefikLogEntry {
 	ClientAddr: string;
 	ClientHost: string;
 	ClientPort: string;
@@ -46,3 +46,31 @@ export interface LogEntry {
 	request_User_Agent: string;
 	time: string;
 }
+
+export interface CaddyRawAccessLogEntry {
+	level?: string;
+	ts?: number;
+	logger?: string;
+	msg?: string;
+	server_name?: string;
+	request?: {
+		remote_ip?: string;
+		remote_port?: string;
+		client_ip?: string;
+		proto?: string;
+		method?: string;
+		host?: string;
+		uri?: string;
+		tls?: unknown;
+		headers?: Record<string, string[]>;
+	};
+	bytes_read?: number;
+	duration?: number;
+	size?: number;
+	status?: number;
+	resp_headers?: Record<string, string[]>;
+}
+
+export type LogEntry = TraefikLogEntry & {
+	Provider?: "traefik" | "caddy";
+};

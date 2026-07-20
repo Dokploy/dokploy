@@ -20,6 +20,8 @@
 		"migration:generate": "drizzle-kit generate --config ./server/db/drizzle.config.ts",
 		"migration:run": "tsx -r dotenv/config migration.ts",
 		"manual-migration:run": "tsx -r dotenv/config migrate.ts",
+		"caddy:migration:rollback": "tsx -r dotenv/config scripts/caddy-migration-rollback.ts",
+		"caddy:migration:rollback:runtime": "node -r dotenv/config dist/caddy-migration-rollback.mjs",
 		"migration:up": "drizzle-kit up --config ./server/db/drizzle.config.ts",
 		"migration:drop": "drizzle-kit drop --config ./server/db/drizzle.config.ts",
 		"db:push": "drizzle-kit push --config ./server/db/drizzle.config.ts",

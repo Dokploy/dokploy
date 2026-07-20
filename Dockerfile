@@ -19,6 +19,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 ENV NODE_ENV=production
 RUN pnpm --filter=@dokploy/server build
 RUN pnpm --filter=./apps/dokploy run build
+RUN test -f /usr/src/app/apps/dokploy/dist/caddy-migration-rollback.mjs
 
 RUN pnpm --filter=./apps/dokploy --prod deploy --legacy /prod/dokploy
 
@@ -43,7 +44,8 @@ COPY --from=build /prod/dokploy/drizzle ./drizzle
 COPY .env.production ./.env
 COPY --from=build /prod/dokploy/components.json ./components.json
 COPY --from=build /prod/dokploy/node_modules ./node_modules
-
+RUN test -f /app/dist/caddy-migration-rollback.mjs \
+  && node -r dotenv/config /app/dist/caddy-migration-rollback.mjs --help | grep -q "Usage: caddy-migration-rollback"
 
 # Install docker
 RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh --version 28.5.2 && rm get-docker.sh && curl https://rclone.org/install.sh | bash

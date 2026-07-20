@@ -1,8 +1,10 @@
 import {
 	clearOldDeployments,
 	createApplication,
+	createCaddyApplicationRouteFragment,
 	deleteAllMiddlewares,
 	findApplicationById,
+	findDomainsByApplicationId,
 	findEnvironmentById,
 	findProjectById,
 	getAccessibleServerIds,
@@ -18,6 +20,7 @@ import {
 	removeMonitoringDirectory,
 	removeService,
 	removeTraefikConfig,
+	resolveWebServerProvider,
 	startService,
 	startServiceRemote,
 	stopService,
@@ -786,6 +789,45 @@ export const applicationRouter = createTRPCRouter({
 				traefikConfig = readConfig(application.appName);
 			}
 			return traefikConfig;
+		}),
+	readWebServerConfig: protectedProcedure
+		.input(apiFindOneApplication)
+		.query(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				traefikFiles: ["read"],
+			});
+			const application = await findApplicationById(input.applicationId);
+			const provider = await resolveWebServerProvider(
+				application.serverId || undefined,
+			);
+
+			if (provider === "traefik") {
+				if (application.serverId) {
+					return await readRemoteConfig(
+						application.serverId,
+						application.appName,
+					);
+				}
+				return readConfig(application.appName);
+			}
+
+			const domains = await findDomainsByApplicationId(input.applicationId);
+			const fragments = domains.map((domain) =>
+				createCaddyApplicationRouteFragment(
+					application as never,
+					domain as never,
+				),
+			);
+			return `${JSON.stringify(
+				{
+					provider,
+					message:
+						"Generated Caddy route fragments for this application. Caddy manages HTTPS certificates automatically for HTTPS domains; Traefik custom certificate resolvers do not apply.",
+					fragments,
+				},
+				null,
+				2,
+			)}\n`;
 		}),
 
 	dropDeployment: protectedProcedure

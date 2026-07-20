@@ -1,0 +1,58 @@
+# Representative Traefik dynamic-file routes for Caddy migration tests.
+http:
+  routers:
+    activity-feed:
+      rule: "Host(`example.com`) && (PathPrefix(`/activity`) || Path(`/.well-known/webfinger`) || Path(`/.well-known/nodeinfo`))"
+      entryPoints:
+        - websecure
+      service: hosted-activity
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+      priority: 10000
+    admin-console:
+      rule: "(Host(`example.com`) || Host(`www.example.com`)) && PathPrefix(`/admin`)"
+      entryPoints:
+        - websecure
+      service: site
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+        - admin-no-store
+      priority: 9000
+    site:
+      rule: "Host(`example.com`) || Host(`www.example.com`)"
+      entryPoints:
+        - websecure
+      service: site
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+    site-redirect:
+      rule: "Host(`example.com`) || Host(`www.example.com`)"
+      entryPoints:
+        - web
+      service: site
+      middlewares:
+        - redirect-to-https
+  services:
+    site:
+      loadBalancer:
+        servers:
+          - url: http://site:8080
+        passHostHeader: true
+    hosted-activity:
+      loadBalancer:
+        servers:
+          - url: https://activity.example.net:443
+        passHostHeader: true
+  middlewares:
+    admin-no-store:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "private, no-store, no-cache, must-revalidate, max-age=0"
+          Pragma: "no-cache"
+          Expires: "0"

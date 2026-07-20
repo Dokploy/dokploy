@@ -1,25 +1,61 @@
 import dns from "node:dns";
 import { promisify } from "node:util";
 import { db } from "@dokploy/server/db";
-import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
+import {
+	getWebServerSettings,
+	resolveWebServerProvider,
+} from "@dokploy/server/services/web-server-settings";
 import { generateRandomDomain } from "@dokploy/server/templates";
-import { manageDomain } from "@dokploy/server/utils/traefik/domain";
+import {
+	getCaddyComposeRouteTargetsForWebServer,
+	writeCaddyComposeRoutesForTargets,
+} from "@dokploy/server/utils/docker/domain";
+import { manageWebServerDomain } from "@dokploy/server/utils/web-server/domain";
+import type { WebServerProvider } from "@dokploy/server/utils/web-server/providers";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { z } from "zod";
 import { type apiCreateDomain, domains } from "../db/schema";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
+import type { Compose } from "./compose";
 import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
 
+const resolveApplicationDomainPort = async (
+	input: z.infer<typeof apiCreateDomain>,
+) => {
+	if (
+		input.port != null ||
+		!input.applicationId ||
+		input.composeId ||
+		input.previewDeploymentId ||
+		input.domainType === "compose" ||
+		input.domainType === "preview"
+	) {
+		return input.port;
+	}
+
+	const applicationId = input.applicationId;
+	const applicationDomains = await db.query.domains.findMany({
+		where: eq(domains.applicationId, applicationId),
+		orderBy: (domainFields, { asc }) => [asc(domainFields.uniqueConfigKey)],
+	});
+
+	return applicationDomains.find(
+		(domain) => typeof domain.port === "number" && domain.port > 0,
+	)?.port;
+};
+
 export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
-	const result = await db.transaction(async (tx) => {
+	const port = await resolveApplicationDomainPort(input);
+	const domain = await db.transaction(async (tx) => {
 		const domain = await tx
 			.insert(domains)
 			.values({
 				...input,
+				...(port != null && { port }),
 				host: input.host?.trim(),
 			} as typeof domains.$inferInsert)
 			.returning()
@@ -32,15 +68,20 @@ export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
 			});
 		}
 
-		if (domain.applicationId) {
-			const application = await findApplicationById(domain.applicationId);
-			await manageDomain(application, domain);
-		}
-
 		return domain;
 	});
 
-	return result;
+	if (domain.applicationId) {
+		const application = await findApplicationById(domain.applicationId);
+		try {
+			await manageWebServerDomain(application, domain);
+		} catch (error) {
+			await removeDomainById(domain.domainId).catch(() => undefined);
+			throw error;
+		}
+	}
+
+	return domain;
 };
 
 export const generateTraefikMeDomain = async (
@@ -138,6 +179,125 @@ export const removeDomainById = async (domainId: string) => {
 		.returning();
 
 	return result[0];
+};
+
+export const refreshCaddyComposeRoutes = async (
+	compose: Compose,
+	domainsInput?: Domain[],
+	provider?: WebServerProvider,
+	organizationId?: string | null,
+) => {
+	const domainsArray =
+		domainsInput ?? (await findDomainsByComposeId(compose.composeId));
+	const routeTargets = await getCaddyComposeRouteTargetsForWebServer(
+		compose,
+		domainsArray,
+		provider,
+	);
+	if (routeTargets) {
+		await writeCaddyComposeRoutesForTargets(compose, routeTargets, {
+			organizationId,
+		});
+	}
+};
+
+export const createComposeDomain = async (
+	compose: Compose,
+	input: z.infer<typeof apiCreateDomain>,
+	provider?: WebServerProvider,
+	organizationId?: string | null,
+) => {
+	const domain = await createDomain(input);
+	try {
+		await refreshCaddyComposeRoutes(
+			compose,
+			undefined,
+			provider,
+			organizationId,
+		);
+		return domain;
+	} catch (error) {
+		await removeDomainById(domain.domainId);
+		await refreshCaddyComposeRoutes(
+			compose,
+			undefined,
+			provider,
+			organizationId,
+		);
+		throw error;
+	}
+};
+
+export const removeComposeDomainsForWebServer = async (
+	compose: Compose,
+	domainsToRemove: Domain[],
+	provider?: WebServerProvider,
+	organizationId?: string | null,
+) => {
+	if (domainsToRemove.length === 0) {
+		return [];
+	}
+
+	const resolvedProvider =
+		provider ?? (await resolveWebServerProvider(compose.serverId));
+	const currentDomains = await findDomainsByComposeId(compose.composeId);
+	const domainIdsToRemove = new Set(
+		domainsToRemove.map((domain) => domain.domainId),
+	);
+	const removableDomains = currentDomains.filter((domain) =>
+		domainIdsToRemove.has(domain.domainId),
+	);
+
+	if (removableDomains.length === 0) {
+		return [];
+	}
+
+	if (resolvedProvider !== "caddy") {
+		return db.transaction(async (tx) =>
+			tx
+				.delete(domains)
+				.where(
+					inArray(
+						domains.domainId,
+						removableDomains.map((domain) => domain.domainId),
+					),
+				)
+				.returning(),
+		);
+	}
+
+	const remainingDomains = currentDomains.filter(
+		(domain) => !domainIdsToRemove.has(domain.domainId),
+	);
+
+	await refreshCaddyComposeRoutes(
+		compose,
+		remainingDomains,
+		resolvedProvider,
+		organizationId,
+	);
+
+	try {
+		return await db.transaction(async (tx) =>
+			tx
+				.delete(domains)
+				.where(
+					inArray(
+						domains.domainId,
+						removableDomains.map((domain) => domain.domainId),
+					),
+				)
+				.returning(),
+		);
+	} catch (error) {
+		await refreshCaddyComposeRoutes(
+			compose,
+			currentDomains,
+			resolvedProvider,
+			organizationId,
+		);
+		throw error;
+	}
 };
 
 export const getDomainHost = (domain: Domain) => {

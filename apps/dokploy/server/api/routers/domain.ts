@@ -1,6 +1,9 @@
 import {
+	assertCaddyDomainSupported,
+	createComposeDomain,
 	createDomain,
 	findApplicationById,
+	findComposeById,
 	findDomainById,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
@@ -8,9 +11,11 @@ import {
 	findServerById,
 	generateTraefikMeDomain,
 	getWebServerSettings,
-	manageDomain,
-	removeDomain,
+	manageWebServerDomain,
+	refreshCaddyComposeRoutes,
 	removeDomainById,
+	removeWebServerDomain,
+	resolveWebServerProvider,
 	updateDomainById,
 	validateDomain,
 } from "@dokploy/server";
@@ -31,6 +36,23 @@ import {
 	apiUpdateDomain,
 } from "@/server/db/schema";
 
+const toDomainUpdateFields = (
+	domain: Awaited<ReturnType<typeof findDomainById>>,
+) => ({
+	host: domain.host,
+	https: domain.https,
+	port: domain.port,
+	customEntrypoint: domain.customEntrypoint,
+	path: domain.path,
+	serviceName: domain.serviceName,
+	domainType: domain.domainType,
+	customCertResolver: domain.customCertResolver,
+	certificateType: domain.certificateType,
+	internalPath: domain.internalPath,
+	stripPath: domain.stripPath,
+	middlewares: domain.middlewares,
+});
+
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateDomain)
@@ -40,7 +62,23 @@ export const domainRouter = createTRPCRouter({
 					await checkServicePermissionAndAccess(ctx, input.composeId, {
 						domain: ["create"],
 					});
-				} else if (input.domainType === "application" && input.applicationId) {
+					const compose = await findComposeById(input.composeId);
+					const provider = await resolveWebServerProvider(compose.serverId);
+					const domain = await createComposeDomain(
+						compose,
+						input,
+						provider,
+						ctx.session.activeOrganizationId,
+					);
+					await audit(ctx, {
+						action: "create",
+						resourceType: "domain",
+						resourceId: domain.domainId,
+						resourceName: domain.host,
+					});
+					return domain;
+				}
+				if (input.domainType === "application" && input.applicationId) {
 					await checkServicePermissionAndAccess(ctx, input.applicationId, {
 						domain: ["create"],
 					});
@@ -118,6 +156,101 @@ export const domainRouter = createTRPCRouter({
 				});
 			}
 
+			const nextDomain = { ...currentDomain, ...input };
+			if (currentDomain.applicationId) {
+				const application = await findApplicationById(
+					currentDomain.applicationId,
+				);
+				if (
+					(await resolveWebServerProvider(application.serverId)) === "caddy"
+				) {
+					assertCaddyDomainSupported(nextDomain);
+					await manageWebServerDomain(application, nextDomain);
+					try {
+						const result = await updateDomainById(input.domainId, input);
+						if (!result) {
+							throw new Error("Error updating domain");
+						}
+						await audit(ctx, {
+							action: "update",
+							resourceType: "domain",
+							resourceId: result.domainId,
+							resourceName: result.host,
+						});
+						return result;
+					} catch (error) {
+						await manageWebServerDomain(application, currentDomain);
+						throw error;
+					}
+				}
+			} else if (currentDomain.previewDeploymentId) {
+				const previewDeployment = await findPreviewDeploymentById(
+					currentDomain.previewDeploymentId,
+				);
+				const application = await findApplicationById(
+					previewDeployment.applicationId,
+				);
+				application.appName = previewDeployment.appName;
+				if (
+					(await resolveWebServerProvider(application.serverId)) === "caddy"
+				) {
+					assertCaddyDomainSupported(nextDomain);
+					await manageWebServerDomain(application, nextDomain);
+					try {
+						const result = await updateDomainById(input.domainId, input);
+						if (!result) {
+							throw new Error("Error updating domain");
+						}
+						await audit(ctx, {
+							action: "update",
+							resourceType: "domain",
+							resourceId: result.domainId,
+							resourceName: result.host,
+						});
+						return result;
+					} catch (error) {
+						await manageWebServerDomain(application, currentDomain);
+						throw error;
+					}
+				}
+			} else if (currentDomain.composeId) {
+				const compose = await findComposeById(currentDomain.composeId);
+				if ((await resolveWebServerProvider(compose.serverId)) === "caddy") {
+					assertCaddyDomainSupported(nextDomain);
+					const result = await updateDomainById(input.domainId, input);
+					if (!result) {
+						throw new Error("Error updating domain");
+					}
+					try {
+						await refreshCaddyComposeRoutes(
+							compose,
+							undefined,
+							"caddy",
+							ctx.session.activeOrganizationId,
+						);
+						await audit(ctx, {
+							action: "update",
+							resourceType: "domain",
+							resourceId: result.domainId,
+							resourceName: result.host,
+						});
+						return result;
+					} catch (error) {
+						await updateDomainById(
+							input.domainId,
+							toDomainUpdateFields(currentDomain),
+						);
+						await refreshCaddyComposeRoutes(
+							compose,
+							undefined,
+							"caddy",
+							ctx.session.activeOrganizationId,
+						);
+						throw error;
+					}
+				}
+			}
+
 			const result = await updateDomainById(input.domainId, input);
 			const domain = await findDomainById(input.domainId);
 			await audit(ctx, {
@@ -128,7 +261,7 @@ export const domainRouter = createTRPCRouter({
 			});
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
-				await manageDomain(application, domain);
+				await manageWebServerDomain(application, domain);
 			} else if (domain.previewDeploymentId) {
 				const previewDeployment = await findPreviewDeploymentById(
 					domain.previewDeploymentId,
@@ -137,7 +270,7 @@ export const domainRouter = createTRPCRouter({
 					previewDeployment.applicationId,
 				);
 				application.appName = previewDeployment.appName;
-				await manageDomain(application, domain);
+				await manageWebServerDomain(application, domain);
 			}
 			return result;
 		}),
@@ -176,6 +309,86 @@ export const domainRouter = createTRPCRouter({
 				});
 			}
 
+			if (domain.applicationId) {
+				const application = await findApplicationById(domain.applicationId);
+				if (
+					(await resolveWebServerProvider(application.serverId)) === "caddy"
+				) {
+					await removeWebServerDomain(application, domain.uniqueConfigKey);
+					try {
+						const result = await removeDomainById(input.domainId);
+						await audit(ctx, {
+							action: "delete",
+							resourceType: "domain",
+							resourceId: domain.domainId,
+							resourceName: domain.host,
+						});
+						return result;
+					} catch (error) {
+						await manageWebServerDomain(application, domain);
+						throw error;
+					}
+				}
+			} else if (domain.previewDeploymentId) {
+				const previewDeployment = await findPreviewDeploymentById(
+					domain.previewDeploymentId,
+				);
+				const application = await findApplicationById(
+					previewDeployment.applicationId,
+				);
+				application.appName = previewDeployment.appName;
+				if (
+					(await resolveWebServerProvider(application.serverId)) === "caddy"
+				) {
+					await removeWebServerDomain(application, domain.uniqueConfigKey);
+					try {
+						const result = await removeDomainById(input.domainId);
+						await audit(ctx, {
+							action: "delete",
+							resourceType: "domain",
+							resourceId: domain.domainId,
+							resourceName: domain.host,
+						});
+						return result;
+					} catch (error) {
+						await manageWebServerDomain(application, domain);
+						throw error;
+					}
+				}
+			} else if (domain.composeId) {
+				const compose = await findComposeById(domain.composeId);
+				if ((await resolveWebServerProvider(compose.serverId)) === "caddy") {
+					const domains = await findDomainsByComposeId(compose.composeId);
+					const remainingDomains = domains.filter(
+						(item) => item.domainId !== domain.domainId,
+					);
+					try {
+						await refreshCaddyComposeRoutes(
+							compose,
+							remainingDomains,
+							"caddy",
+							ctx.session.activeOrganizationId,
+						);
+						const result = await removeDomainById(input.domainId);
+						await audit(ctx, {
+							action: "delete",
+							resourceType: "domain",
+							resourceId: domain.domainId,
+							resourceName: domain.host,
+						});
+						return result;
+					} catch (error) {
+						await refreshCaddyComposeRoutes(
+							compose,
+							undefined,
+							"caddy",
+							ctx.session.activeOrganizationId,
+						);
+						throw error;
+					}
+				}
+			}
+
 			const result = await removeDomainById(input.domainId);
 			await audit(ctx, {
 				action: "delete",
@@ -186,7 +399,16 @@ export const domainRouter = createTRPCRouter({
 
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
-				await removeDomain(application, domain.uniqueConfigKey);
+				await removeWebServerDomain(application, domain.uniqueConfigKey);
+			} else if (domain.previewDeploymentId) {
+				const previewDeployment = await findPreviewDeploymentById(
+					domain.previewDeploymentId,
+				);
+				const application = await findApplicationById(
+					previewDeployment.applicationId,
+				);
+				application.appName = previewDeployment.appName;
+				await removeWebServerDomain(application, domain.uniqueConfigKey);
 			}
 
 			return result;

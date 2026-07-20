@@ -36,6 +36,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
+import { invalidateApplicationWebServerConfig } from "../../web-server-config-cache";
 
 const AddRedirectSchema = z.object({
 	regex: z.string().min(1, "Regex required"),
@@ -133,9 +134,7 @@ export const HandleRedirect = ({
 					applicationId,
 				});
 				refetch();
-				await utils.application.readTraefikConfig.invalidate({
-					applicationId,
-				});
+				await invalidateApplicationWebServerConfig(utils, applicationId);
 				onDialogToggle(false);
 			})
 			.catch(() => {

@@ -10,6 +10,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import type { CaddyTrustedProxySettings } from "../../utils/caddy/types";
 import { organization } from "./account";
 import { applications } from "./application";
 import { certificates } from "./certificate";
@@ -22,6 +23,7 @@ import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { schedules } from "./schedule";
+import { webServerProvider } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
@@ -41,6 +43,12 @@ export const server = pgTable("server", {
 		.notNull()
 		.$defaultFn(() => generateAppName("server")),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
+	webServerProvider: webServerProvider("webServerProvider")
+		.notNull()
+		.default("traefik"),
+	caddyTrustedProxyConfig: jsonb("caddyTrustedProxyConfig")
+		.$type<CaddyTrustedProxySettings | null>()
+		.default(null),
 	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	createdAt: text("createdAt").notNull(),
 	organizationId: text("organizationId")
@@ -137,6 +145,7 @@ const createSchema = createInsertSchema(server, {
 	name: z.string().min(1),
 	description: z.string().optional(),
 	serverType: z.enum(["deploy", "build"]).optional(),
+	webServerProvider: z.enum(["traefik", "caddy"]).optional(),
 });
 
 export const apiCreateServer = createSchema

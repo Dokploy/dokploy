@@ -11,7 +11,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { domain } from "../validations/domain";
+import { domain, validateDomainSettings } from "../validations/domain";
 import { applications } from "./application";
 import { compose } from "./compose";
 import { previewDeployments } from "./preview-deployments";
@@ -79,24 +79,26 @@ const createSchema = createInsertSchema(domains, {
 	domainType: z.enum(["compose", "application", "preview"]).optional(),
 });
 
-export const apiCreateDomain = createSchema.pick({
-	host: true,
-	path: true,
-	port: true,
-	customEntrypoint: true,
-	https: true,
-	applicationId: true,
-	certificateType: true,
-	customCertResolver: true,
-	composeId: true,
-	serviceName: true,
-	domainType: true,
-	previewDeploymentId: true,
-	internalPath: true,
-	stripPath: true,
-	middlewares: true,
-	forwardAuthEnabled: true,
-});
+export const apiCreateDomain = createSchema
+	.pick({
+		host: true,
+		path: true,
+		port: true,
+		customEntrypoint: true,
+		https: true,
+		applicationId: true,
+		certificateType: true,
+		customCertResolver: true,
+		composeId: true,
+		serviceName: true,
+		domainType: true,
+		previewDeploymentId: true,
+		internalPath: true,
+		stripPath: true,
+		middlewares: true,
+		forwardAuthEnabled: true,
+	})
+	.superRefine(validateDomainSettings);
 
 export const apiFindDomain = z.object({
 	domainId: z.string().min(1),
@@ -130,4 +132,5 @@ export const apiUpdateDomain = createSchema
 		middlewares: true,
 		forwardAuthEnabled: true,
 	})
-	.merge(createSchema.pick({ domainId: true }).required());
+	.merge(createSchema.pick({ domainId: true }).required())
+	.superRefine(validateDomainSettings);

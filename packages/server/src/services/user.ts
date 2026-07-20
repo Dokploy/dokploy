@@ -199,6 +199,13 @@ export const canAccessToTraefikFiles = async (
 	return canAccessToTraefikFiles;
 };
 
+export const canAccessToWebServerFiles = async (
+	userId: string,
+	organizationId: string,
+) => {
+	return canAccessToTraefikFiles(userId, organizationId);
+};
+
 export const checkServiceAccess = async (
 	userId: string,
 	serviceId: string,

@@ -1,11 +1,11 @@
 import {
-	addDomainToCompose,
+	addDomainToComposeForWebServer,
 	clearOldDeployments,
 	cloneCompose,
 	createCommand,
 	createCompose,
 	createComposeByTemplate,
-	createDomain,
+	createComposeDomain,
 	createMount,
 	deleteMount,
 	execAsync,
@@ -25,8 +25,8 @@ import {
 	randomizeIsolatedDeploymentComposeFile,
 	removeCompose,
 	removeComposeDirectory,
+	removeComposeDomainsForWebServer,
 	removeDeploymentsByComposeId,
-	removeDomainById,
 	startCompose,
 	stopCompose,
 	updateCompose,
@@ -402,7 +402,10 @@ export const composeRouter = createTRPCRouter({
 			});
 			const compose = await findComposeById(input.composeId);
 			const domains = await findDomainsByComposeId(input.composeId);
-			const composeFile = await addDomainToCompose(compose, domains);
+			const composeFile = await addDomainToComposeForWebServer(
+				compose,
+				domains,
+			);
 			return stringify(composeFile, {
 				lineWidth: 1000,
 			});
@@ -659,13 +662,18 @@ export const composeRouter = createTRPCRouter({
 
 			if (generate.domains && generate.domains?.length > 0) {
 				for (const domain of generate.domains) {
-					await createDomain({
-						...domain,
-						domainType: "compose",
-						certificateType: "none",
-						composeId: compose.composeId,
-						host: domain.host || "",
-					});
+					await createComposeDomain(
+						compose,
+						{
+							...domain,
+							domainType: "compose",
+							certificateType: "none",
+							composeId: compose.composeId,
+							host: domain.host || "",
+						},
+						undefined,
+						ctx.session.activeOrganizationId,
+					);
 				}
 			}
 
@@ -952,9 +960,12 @@ export const composeRouter = createTRPCRouter({
 					await deleteMount(mount.mountId);
 				}
 
-				for (const domain of compose.domains) {
-					await removeDomainById(domain.domainId);
-				}
+				await removeComposeDomainsForWebServer(
+					compose,
+					compose.domains,
+					undefined,
+					ctx.session.activeOrganizationId,
+				);
 
 				let serverIp = "127.0.0.1";
 
@@ -1015,13 +1026,18 @@ export const composeRouter = createTRPCRouter({
 
 				if (processedTemplate.domains && processedTemplate.domains.length > 0) {
 					for (const domain of processedTemplate.domains) {
-						await createDomain({
-							...domain,
-							domainType: "compose",
-							certificateType: "none",
-							composeId: compose.composeId,
-							host: domain.host || "",
-						});
+						await createComposeDomain(
+							compose,
+							{
+								...domain,
+								domainType: "compose",
+								certificateType: "none",
+								composeId: compose.composeId,
+								host: domain.host || "",
+							},
+							undefined,
+							ctx.session.activeOrganizationId,
+						);
 					}
 				}
 

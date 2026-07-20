@@ -22,23 +22,57 @@ export const TRAEFIK_HTTP3_PORT =
 	Number.parseInt(process.env.TRAEFIK_HTTP3_PORT!, 10) || 443;
 export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.6.7";
 
+type TraefikServiceTaskTemplate = NonNullable<
+	CreateServiceOptions["TaskTemplate"]
+>;
+type TraefikServiceContainerTaskTemplate = Extract<
+	TraefikServiceTaskTemplate,
+	{ ContainerSpec?: unknown }
+>;
+type TraefikServiceContainerSpec = NonNullable<
+	TraefikServiceContainerTaskTemplate["ContainerSpec"]
+>;
+type TraefikServiceEndpointSpec = NonNullable<
+	CreateServiceOptions["EndpointSpec"]
+>;
+type TraefikStandaloneHostConfig = NonNullable<
+	ContainerCreateOptions["HostConfig"]
+>;
+
 export interface TraefikOptions {
 	env?: string[];
 	serverId?: string;
+	image?: string;
 	additionalPorts?: {
 		targetPort: number;
 		publishedPort: number;
 		protocol?: string;
 	}[];
+	binds?: string[];
+	networks?: string[];
+	labels?: Record<string, string>;
+	restartPolicy?: TraefikStandaloneHostConfig["RestartPolicy"];
+	replicas?: number;
+	serviceMounts?: TraefikServiceContainerSpec["Mounts"];
+	serviceNetworks?: TraefikServiceTaskTemplate["Networks"];
+	servicePlacement?: TraefikServiceTaskTemplate["Placement"];
+	serviceLabels?: Record<string, string>;
+	serviceContainerLabels?: Record<string, string>;
+	serviceEndpointPorts?: TraefikServiceEndpointSpec["Ports"];
 }
 
 export const initializeStandaloneTraefik = async ({
 	env,
 	serverId,
+	image,
 	additionalPorts = [],
+	binds,
+	networks,
+	labels,
+	restartPolicy,
 }: TraefikOptions = {}) => {
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
-	const imageName = `traefik:v${TRAEFIK_VERSION}`;
+	const imageName = image ?? `traefik:v${TRAEFIK_VERSION}`;
 	const containerName = "dokploy-traefik";
 
 	const exposedPorts: Record<string, {}> = {
@@ -58,6 +92,12 @@ export const initializeStandaloneTraefik = async ({
 	const enableDashboard = additionalPorts.some(
 		(port) => port.targetPort === 8080,
 	);
+	const endpointNetworks = Object.fromEntries(
+		(networks?.length ? networks : ["dokploy-network"]).map((network) => [
+			network,
+			{},
+		]),
+	);
 
 	if (enableDashboard) {
 		exposedPorts["8080/tcp"] = {};
@@ -74,16 +114,14 @@ export const initializeStandaloneTraefik = async ({
 		name: containerName,
 		Image: imageName,
 		NetworkingConfig: {
-			EndpointsConfig: {
-				"dokploy-network": {},
-			},
+			EndpointsConfig: endpointNetworks,
 		},
 		ExposedPorts: exposedPorts,
 		HostConfig: {
-			RestartPolicy: {
+			RestartPolicy: restartPolicy ?? {
 				Name: "always",
 			},
-			Binds: [
+			Binds: binds ?? [
 				`${MAIN_TRAEFIK_PATH}/traefik.yml:/etc/traefik/traefik.yml`,
 				`${DYNAMIC_TRAEFIK_PATH}:/etc/dokploy/traefik/dynamic`,
 				"/var/run/docker.sock:/var/run/docker.sock",
@@ -91,6 +129,7 @@ export const initializeStandaloneTraefik = async ({
 			PortBindings: portBindings,
 		},
 		Env: env,
+		Labels: labels,
 	};
 
 	const docker = await getRemoteDocker(serverId);
@@ -119,20 +158,30 @@ export const initializeStandaloneTraefik = async ({
 
 export const initializeTraefikService = async ({
 	env,
+	image,
 	additionalPorts = [],
 	serverId,
+	serviceMounts,
+	serviceNetworks,
+	servicePlacement,
+	serviceLabels,
+	serviceContainerLabels,
+	serviceEndpointPorts,
+	replicas,
 }: TraefikOptions) => {
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
-	const imageName = `traefik:v${TRAEFIK_VERSION}`;
+	const imageName = image ?? `traefik:v${TRAEFIK_VERSION}`;
 	const appName = "dokploy-traefik";
 
 	const settings: CreateServiceOptions = {
 		Name: appName,
+		Labels: serviceLabels,
 		TaskTemplate: {
 			ContainerSpec: {
 				Image: imageName,
 				Env: env,
-				Mounts: [
+				Labels: serviceContainerLabels,
+				Mounts: serviceMounts ?? [
 					{
 						Type: "bind",
 						Source: `${MAIN_TRAEFIK_PATH}/traefik.yml`,
@@ -150,18 +199,18 @@ export const initializeTraefikService = async ({
 					},
 				],
 			},
-			Networks: [{ Target: "dokploy-network" }],
-			Placement: {
+			Networks: serviceNetworks ?? [{ Target: "dokploy-network" }],
+			Placement: servicePlacement ?? {
 				Constraints: ["node.role==manager"],
 			},
 		},
 		Mode: {
 			Replicated: {
-				Replicas: 1,
+				Replicas: replicas ?? 1,
 			},
 		},
 		EndpointSpec: {
-			Ports: [
+			Ports: serviceEndpointPorts ?? [
 				{
 					TargetPort: 443,
 					PublishedPort: TRAEFIK_SSL_PORT,

@@ -1,10 +1,139 @@
 import _ from "lodash";
-import type { LogEntry } from "./types";
+import type { CaddyRawAccessLogEntry, LogEntry } from "./types";
 
 interface HourlyData {
 	hour: string;
 	count: number;
 }
+
+const emptyServiceURL = {
+	Scheme: "",
+	Opaque: "",
+	User: null,
+	Host: "",
+	Path: "",
+	RawPath: "",
+	ForceQuery: false,
+	RawQuery: "",
+	Fragment: "",
+	RawFragment: "",
+};
+
+const isTraefikLogEntry = (value: unknown): value is LogEntry => {
+	const entry = value as Partial<LogEntry>;
+	return (
+		typeof entry.StartUTC === "string" &&
+		typeof entry.RequestHost === "string" &&
+		typeof entry.DownstreamStatus === "number"
+	);
+};
+
+const isCaddyLogEntry = (value: unknown): value is CaddyRawAccessLogEntry => {
+	const entry = value as CaddyRawAccessLogEntry;
+	return (
+		typeof entry.ts === "number" &&
+		typeof entry.status === "number" &&
+		typeof entry.request === "object" &&
+		entry.request !== null
+	);
+};
+
+const getRequestPath = (uri = "") => {
+	return uri;
+};
+
+const getHostPort = (host = "", tls?: unknown) => {
+	const match = host.match(/:(\d+)$/);
+	if (match?.[1]) return match[1];
+	return tls ? "443" : "80";
+};
+
+const getHeaderValue = (
+	headers: Record<string, string[]> | undefined,
+	name: string,
+) => {
+	if (!headers) return "";
+	const match = Object.entries(headers).find(
+		([headerName]) => headerName.toLowerCase() === name.toLowerCase(),
+	);
+	return match?.[1]?.[0] ?? "";
+};
+
+const normalizeCaddyLogEntry = (
+	entry: CaddyRawAccessLogEntry,
+): LogEntry | null => {
+	if (!isCaddyLogEntry(entry)) return null;
+	const ts = entry.ts;
+	if (typeof ts !== "number") return null;
+	const timestamp = new Date(ts * 1000);
+	if (Number.isNaN(timestamp.getTime())) return null;
+
+	const request = entry.request ?? {};
+	const startUTC = timestamp.toISOString();
+	const remoteIp = request.remote_ip ?? "";
+	const remotePort = request.remote_port ?? "";
+	const clientHost = request.client_ip ?? remoteIp;
+	const clientAddr =
+		remoteIp && remotePort ? `${remoteIp}:${remotePort}` : remoteIp;
+	const serviceName = entry.server_name ?? entry.logger ?? "caddy";
+
+	return {
+		Provider: "caddy",
+		ClientAddr: clientAddr,
+		ClientHost: clientHost,
+		ClientPort: remotePort,
+		ClientUsername: "-",
+		DownstreamContentSize: entry.size ?? 0,
+		DownstreamStatus: entry.status ?? 0,
+		Duration: Math.round((entry.duration ?? 0) * 1_000_000_000),
+		OriginContentSize: entry.size ?? 0,
+		OriginDuration: Math.round((entry.duration ?? 0) * 1_000_000_000),
+		OriginStatus: entry.status ?? 0,
+		Overhead: 0,
+		RequestAddr: request.host ?? "",
+		RequestContentSize: entry.bytes_read ?? 0,
+		RequestCount: 0,
+		RequestHost: request.host ?? "",
+		RequestMethod: request.method ?? "",
+		RequestPath: getRequestPath(request.uri),
+		RequestPort: getHostPort(request.host, request.tls),
+		RequestProtocol: request.proto ?? "",
+		RequestScheme: request.tls ? "https" : "http",
+		RetryAttempts: 0,
+		RouterName: serviceName,
+		ServiceAddr: "",
+		ServiceName: serviceName,
+		ServiceURL: emptyServiceURL,
+		StartLocal: startUTC,
+		StartUTC: startUTC,
+		downstream_Content_Type: "",
+		entryPointName: request.tls ? "https" : "http",
+		level: entry.level ?? "info",
+		msg: entry.msg ?? "",
+		origin_Content_Type: "",
+		request_Content_Type: "",
+		request_User_Agent: getHeaderValue(request.headers, "User-Agent"),
+		time: startUTC,
+	};
+};
+
+export const parseAccessLogLine = (line: string): LogEntry | null => {
+	const trimmed = line.trim();
+	if (!trimmed || !trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+		return null;
+	}
+
+	try {
+		const parsed = JSON.parse(trimmed);
+		if (isTraefikLogEntry(parsed)) {
+			return { ...parsed, Provider: parsed.Provider ?? "traefik" };
+		}
+		return normalizeCaddyLogEntry(parsed);
+	} catch (error) {
+		console.error("Error parsing log line:", error);
+		return null;
+	}
+};
 
 export function processLogs(
 	logString: string,
@@ -16,14 +145,10 @@ export function processLogs(
 
 	const hourlyData = _(logString)
 		.split("\n")
-		.filter((line) => {
-			const trimmed = line.trim();
-			// Check if the line starts with { and ends with } to ensure it's a potential JSON object
-			return trimmed !== "" && trimmed.startsWith("{") && trimmed.endsWith("}");
-		})
 		.map((entry) => {
 			try {
-				const log: LogEntry = JSON.parse(entry);
+				const log = parseAccessLogLine(entry);
+				if (!log) return null;
 				if (log.ServiceName === "dokploy-service-app@file") {
 					return null;
 				}
@@ -44,7 +169,7 @@ export function processLogs(
 
 				return `${date.toISOString().slice(0, 13)}:00:00Z`;
 			} catch (error) {
-				console.error("Error parsing log entry:", error);
+				console.error("Error processing log entry:", error);
 				return null;
 			}
 		})
@@ -79,23 +204,9 @@ export function parseRawConfig(
 			return { data: [], totalCount: 0 };
 		}
 
-		// Split logs into chunks to avoid memory issues
 		let parsedLogs = _(rawConfig)
 			.split("\n")
-			.filter((line) => {
-				const trimmed = line.trim();
-				return (
-					trimmed !== "" && trimmed.startsWith("{") && trimmed.endsWith("}")
-				);
-			})
-			.map((line) => {
-				try {
-					return JSON.parse(line) as LogEntry;
-				} catch (error) {
-					console.error("Error parsing log line:", error);
-					return null;
-				}
-			})
+			.map(parseAccessLogLine)
 			.compact()
 			.value();
 
