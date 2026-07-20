@@ -69,9 +69,9 @@ describe("canAccessDockerOverWss", () => {
 		mockHasPermission.mockResolvedValue(false);
 		mockGetAccessibleServerIds.mockResolvedValue(new Set());
 		mockCheckServiceAccess.mockResolvedValue(undefined);
-		expect(await canAccessDockerOverWss(USER, SESSION, "srv-remote", "svc-1")).toBe(
-			true,
-		);
+		expect(
+			await canAccessDockerOverWss(USER, SESSION, "srv-remote", "svc-1"),
+		).toBe(true);
 		// Service path is authoritative — it must not fall through to docker/server.
 		expect(mockHasPermission).not.toHaveBeenCalled();
 		expect(mockGetAccessibleServerIds).not.toHaveBeenCalled();
