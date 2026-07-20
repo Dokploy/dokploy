@@ -122,6 +122,53 @@ export const findApplicationById = async (applicationId: string) => {
 	return application;
 };
 
+/**
+ * Blanks the git-provider secret columns nested inside an application before it
+ * is returned to a client. `findApplicationById` eagerly loads the github /
+ * gitlab / gitea / bitbucket relations (needed server-side to clone), but their
+ * OAuth tokens, app private key and webhook secret must never reach the browser:
+ * no client feature reads them, and `application.one` exposed them to any member
+ * with `service:read` even without git-provider access.
+ */
+export const redactApplicationGitSecrets = <
+	T extends {
+		github?: Record<string, unknown> | null;
+		gitlab?: Record<string, unknown> | null;
+		gitea?: Record<string, unknown> | null;
+		bitbucket?: Record<string, unknown> | null;
+	},
+>(
+	application: T,
+): T => {
+	const blank = (
+		provider: Record<string, unknown> | null | undefined,
+		fields: readonly string[],
+	) => {
+		if (!provider) return provider;
+		const redacted = { ...provider };
+		for (const field of fields) {
+			if (field in redacted) redacted[field] = "";
+		}
+		return redacted;
+	};
+
+	return {
+		...application,
+		github: blank(application.github, [
+			"githubClientSecret",
+			"githubPrivateKey",
+			"githubWebhookSecret",
+		]),
+		gitlab: blank(application.gitlab, ["secret", "accessToken", "refreshToken"]),
+		gitea: blank(application.gitea, [
+			"clientSecret",
+			"accessToken",
+			"refreshToken",
+		]),
+		bitbucket: blank(application.bitbucket, ["appPassword", "apiToken"]),
+	};
+};
+
 export const findApplicationByName = async (appName: string) => {
 	const application = await db.query.applications.findFirst({
 		where: eq(applications.appName, appName),
