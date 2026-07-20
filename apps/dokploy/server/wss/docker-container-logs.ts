@@ -42,6 +42,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 		const since = url.searchParams.get("since") ?? "all";
 		const serverId = url.searchParams.get("serverId");
 		const runType = url.searchParams.get("runType");
+		const serviceId = url.searchParams.get("serviceId");
 		const { user, session } = await validateRequest(req);
 
 		if (!containerId) {
@@ -75,7 +76,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 			return;
 		}
 
-		if (!(await canAccessDockerOverWss(user, session, serverId))) {
+		if (!(await canAccessDockerOverWss(user, session, serverId, serviceId))) {
 			ws.close(4003, "Not authorized");
 			return;
 		}
