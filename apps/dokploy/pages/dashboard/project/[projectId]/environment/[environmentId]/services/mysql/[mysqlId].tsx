@@ -276,7 +276,7 @@ const MySql = (
 													<ShowDockerLogs
 														serverId={data?.serverId || ""}
 														appName={data?.appName || ""}
-																serviceId={data?.mysqlId}
+														serviceId={data?.mysqlId}
 													/>
 												</div>
 											</TabsContent>

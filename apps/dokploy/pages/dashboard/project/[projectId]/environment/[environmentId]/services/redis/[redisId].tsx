@@ -297,7 +297,7 @@ const Redis = (
 												<ShowDockerLogs
 													serverId={data?.serverId || ""}
 													appName={data?.appName || ""}
-																serviceId={data?.redisId}
+													serviceId={data?.redisId}
 												/>
 											</div>
 										</TabsContent>
