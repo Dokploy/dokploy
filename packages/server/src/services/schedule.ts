@@ -1,6 +1,7 @@
 import path from "node:path";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 import { IS_CLOUD, paths } from "../constants";
 import { db } from "../db";
@@ -142,7 +143,7 @@ export const deleteSchedule = async (scheduleId: string) => {
 	const { SCHEDULES_PATH } = paths(!!serverId);
 
 	const fullPath = path.join(SCHEDULES_PATH, schedule?.appName || "");
-	const command = `rm -rf ${fullPath}`;
+	const command = `rm -rf ${quote([fullPath])}`;
 	if (serverId) {
 		await execAsyncRemote(serverId, command);
 	} else {
@@ -198,12 +199,13 @@ const handleScript = async (schedule: Schedule) => {
 ${schedule?.script || ""}`;
 
 	const encodedContent = encodeBase64(scriptWithPid);
+	const scriptPath = `${fullPath}/script.sh`;
 	const script = `
-	 	 mkdir -p ${fullPath}
-	 	 rm -f ${fullPath}/script.sh
-		 touch ${fullPath}/script.sh
-		 chmod +x ${fullPath}/script.sh
-		 echo "${encodedContent}" | base64 -d > ${fullPath}/script.sh
+	 	 mkdir -p ${quote([fullPath])}
+	 	 rm -f ${quote([scriptPath])}
+		 touch ${quote([scriptPath])}
+		 chmod +x ${quote([scriptPath])}
+		 echo "${encodedContent}" | base64 -d > ${quote([scriptPath])}
 	`;
 
 	if (schedule?.scheduleType === "dokploy-server") {

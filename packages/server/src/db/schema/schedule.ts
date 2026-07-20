@@ -81,7 +81,7 @@ export const schedulesRelations = relations(schedules, ({ one, many }) => ({
 
 export const createScheduleSchema = createInsertSchema(schedules, {
 	scheduleType: z.enum(["application", "compose", "server", "dokploy-server"]),
-});
+}).omit({ appName: true });
 
 export const updateScheduleSchema = createScheduleSchema.extend({
 	scheduleId: z.string().min(1),
