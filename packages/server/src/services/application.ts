@@ -122,14 +122,8 @@ export const findApplicationById = async (applicationId: string) => {
 	return application;
 };
 
-/**
- * Blanks the git-provider secret columns nested inside an application before it
- * is returned to a client. `findApplicationById` eagerly loads the github /
- * gitlab / gitea / bitbucket relations (needed server-side to clone), but their
- * OAuth tokens, app private key and webhook secret must never reach the browser:
- * no client feature reads them, and `application.one` exposed them to any member
- * with `service:read` even without git-provider access.
- */
+// Blanks the nested git-provider secret columns before an application is sent to
+// a client (server-side clone paths use findApplicationById directly).
 export const redactApplicationGitSecrets = <
 	T extends {
 		github?: Record<string, unknown> | null;
