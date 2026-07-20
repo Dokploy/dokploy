@@ -1,7 +1,9 @@
 import { cloneGitRepository } from "@dokploy/server/utils/providers/git";
-import { shellWord } from "@dokploy/server/utils/providers/utils";
-import { parse } from "shell-quote";
+import { parse, quote } from "shell-quote";
 import { describe, expect, it } from "vitest";
+
+// How git-provider commands escape a single user value before it reaches the shell.
+const shellArg = (value: string) => quote([String(value ?? "")]);
 
 // Payloads that, if reached a shell unescaped, would execute commands.
 const INJECTION_PAYLOADS = [
@@ -24,10 +26,10 @@ const LEGIT_VALUES = [
 	"https://gitlab.example.com/group/sub/project.git",
 ];
 
-describe("shellWord (git provider shell escaping)", () => {
+describe("git provider shell escaping (quote)", () => {
 	it("collapses every injection payload into a single literal token (no shell operators)", () => {
 		for (const payload of INJECTION_PAYLOADS) {
-			const parsed = parse(shellWord(payload));
+			const parsed = parse(shellArg(payload));
 			// A safely escaped value parses back to exactly the original string,
 			// as ONE token. If escaping failed, parse() would emit operator
 			// objects such as { op: ";" } or { op: "$(" } instead.
@@ -37,7 +39,7 @@ describe("shellWord (git provider shell escaping)", () => {
 
 	it("leaves legitimate URLs and branch names intact", () => {
 		for (const value of LEGIT_VALUES) {
-			expect(parse(shellWord(value))).toEqual([value]);
+			expect(parse(shellArg(value))).toEqual([value]);
 		}
 	});
 });
