@@ -7,7 +7,7 @@ import {
 } from "@dokploy/server/services/gitea";
 import type { InferResultType } from "@dokploy/server/types/with";
 import { TRPCError } from "@trpc/server";
-import { shellWord } from "./utils";
+import { quote } from "shell-quote";
 
 export const getErrorCloneRequirements = (entity: {
 	giteaRepository?: string | null;
@@ -177,8 +177,8 @@ export const cloneGiteaRepository = async ({
 		giteaRepository!,
 	);
 
-	command += `echo ${shellWord(`Cloning Repo ${repoClone} to ${outputPath}: ✅`)};`;
-	command += `git clone --branch ${shellWord(giteaBranch)} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${shellWord(cloneUrl)} ${shellWord(outputPath)} --progress;`;
+	command += `echo ${quote([`Cloning Repo ${repoClone} to ${outputPath}: ✅`])};`;
+	command += `git clone --branch ${quote([String(giteaBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
 	return command;
 };
 
