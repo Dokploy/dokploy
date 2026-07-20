@@ -7,6 +7,7 @@ import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { Octokit } from "octokit";
 import type { z } from "zod";
+import { shellWord } from "./utils";
 
 export const authGithub = (githubProvider: Github): Octokit => {
 	if (!haveGithubRequirements(githubProvider)) {
@@ -166,8 +167,8 @@ export const cloneGithubRepository = async ({
 	command += `mkdir -p ${outputPath};`;
 	const cloneUrl = `https://oauth2:${token}@${repoclone}`;
 
-	command += `echo "Cloning Repo ${repoclone} to ${outputPath}: ✅";`;
-	command += `git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	command += `echo ${shellWord(`Cloning Repo ${repoclone} to ${outputPath}: ✅`)};`;
+	command += `git clone --branch ${shellWord(branch)} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${shellWord(cloneUrl)} ${shellWord(outputPath)} --progress;`;
 
 	return command;
 };
