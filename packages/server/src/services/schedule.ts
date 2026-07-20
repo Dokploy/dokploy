@@ -22,7 +22,7 @@ export type ScheduleExtended = Awaited<ReturnType<typeof findScheduleById>>;
 // not downgrade this to a service-access check.
 export const assertHostScheduleAccess = async (
 	ctx: { user: { id: string }; session: { activeOrganizationId: string } },
-	scheduleType: string | undefined,
+	scheduleType: Schedule["scheduleType"] | null | undefined,
 	serverId: string | null | undefined,
 ) => {
 	if (scheduleType !== "server" && scheduleType !== "dokploy-server") return;
