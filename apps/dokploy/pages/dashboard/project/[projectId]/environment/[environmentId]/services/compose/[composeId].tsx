@@ -312,6 +312,7 @@ const Service = (
 													serverId={data?.serverId || undefined}
 													appName={data?.appName || ""}
 													appType={data?.composeType || "docker-compose"}
+													serviceId={data?.composeId}
 												/>
 											</div>
 										</TabsContent>
