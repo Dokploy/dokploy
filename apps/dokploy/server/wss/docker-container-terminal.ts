@@ -33,6 +33,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 		const containerId = url.searchParams.get("containerId");
 		const activeWay = url.searchParams.get("activeWay");
 		const serverId = url.searchParams.get("serverId");
+		const serviceId = url.searchParams.get("serviceId");
 		const { user, session } = await validateRequest(req);
 
 		if (!containerId) {
@@ -60,7 +61,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 			return;
 		}
 
-		if (!(await canAccessDockerOverWss(user, session, serverId))) {
+		if (!(await canAccessDockerOverWss(user, session, serverId, serviceId))) {
 			ws.close(4003, "Not authorized");
 			return;
 		}

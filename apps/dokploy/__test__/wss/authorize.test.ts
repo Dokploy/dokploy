@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Mock the permission + server helpers the wss authorizer composes.
 const mockHasPermission = vi.hoisted(() => vi.fn());
 const mockFindMember = vi.hoisted(() => vi.fn());
+const mockCheckServiceAccess = vi.hoisted(() => vi.fn());
 vi.mock("@dokploy/server/services/permission", () => ({
 	hasPermission: mockHasPermission,
 	findMemberByUserId: mockFindMember,
+	checkServiceAccess: mockCheckServiceAccess,
 }));
 
 const mockGetAccessibleServerIds = vi.hoisted(() => vi.fn());
@@ -51,6 +53,22 @@ describe("canAccessDockerOverWss", () => {
 		mockHasPermission.mockResolvedValue(true);
 		mockGetAccessibleServerIds.mockResolvedValue(new Set(["srv-1"]));
 		expect(await canAccessDockerOverWss(USER, SESSION, "srv-1")).toBe(true);
+	});
+
+	it("denies when the container belongs to a service the caller cannot access", async () => {
+		mockHasPermission.mockResolvedValue(true);
+		mockCheckServiceAccess.mockRejectedValue(new Error("no access"));
+		expect(await canAccessDockerOverWss(USER, SESSION, null, "svc-1")).toBe(
+			false,
+		);
+	});
+
+	it("allows when the caller has access to the container's service", async () => {
+		mockHasPermission.mockResolvedValue(true);
+		mockCheckServiceAccess.mockResolvedValue(undefined);
+		expect(await canAccessDockerOverWss(USER, SESSION, null, "svc-1")).toBe(
+			true,
+		);
 	});
 });
 
