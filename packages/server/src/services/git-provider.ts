@@ -120,13 +120,9 @@ export const getAccessibleGitProviderIds = async (session: {
 	return result;
 };
 
-/**
- * Authorizes read access to a specific git provider for the current session.
- * Throws if the provider belongs to a different organization (cross-org IDOR)
- * or if the caller is not entitled to it within the active organization.
- * Must be called before returning any git-provider record that carries secrets
- * (OAuth tokens, app private keys, webhook secrets).
- */
+// Throws if the provider is in another organization (NOT_FOUND) or the caller
+// is not entitled to it in the active org (FORBIDDEN). Call before returning any
+// git-provider record that carries secrets.
 export const assertGitProviderAccess = async (
 	session: { userId: string; activeOrganizationId: string },
 	provider: { gitProviderId: string; organizationId: string },
