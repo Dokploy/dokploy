@@ -5,7 +5,6 @@ import { parse, quote } from "shell-quote";
 import { describe, expect, it } from "vitest";
 
 const MARK = `/tmp/dokploy_compose_pwned_${process.pid}`;
-
 const base = {
 	composeType: "docker-compose" as const,
 	appName: "compose-app",
