@@ -13,6 +13,8 @@ import { db } from "@dokploy/server/db";
 import {
 	createVolumeBackupSchema,
 	updateVolumeBackupSchema,
+	VOLUME_NAME_MESSAGE,
+	VOLUME_NAME_REGEX,
 	volumeBackups,
 } from "@dokploy/server/db/schema";
 import { findDestinationById } from "@dokploy/server/services/destination";
@@ -275,7 +277,10 @@ export const volumeBackupsRouter = createTRPCRouter({
 			z.object({
 				backupFileName: z.string().min(1),
 				destinationId: z.string().min(1),
-				volumeName: z.string().min(1),
+				volumeName: z
+					.string()
+					.min(1)
+					.regex(VOLUME_NAME_REGEX, VOLUME_NAME_MESSAGE),
 				id: z.string().min(1),
 				serviceType: z.enum(["application", "compose"]),
 				serverId: z.string().optional(),

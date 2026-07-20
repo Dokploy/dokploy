@@ -41,6 +41,12 @@ export const APP_NAME_REGEX = /^[a-zA-Z0-9._-]+$/;
 export const APP_NAME_MESSAGE =
 	"App name can only contain letters, numbers, dots, underscores and hyphens";
 
+/** Docker volume name: must start alphanumeric, then letters/numbers/._- only. Safe for shell. */
+export const VOLUME_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
+
+export const VOLUME_NAME_MESSAGE =
+	"Volume name must start with a letter or number and contain only letters, numbers, dots, underscores and hyphens";
+
 /** Database password: blocks shell-dangerous characters like $ ! ' " \ / and spaces. */
 export const DATABASE_PASSWORD_REGEX =
 	/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/;
