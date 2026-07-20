@@ -23,9 +23,6 @@ export default async function handler(
 		return res.status(400).json({ error: "Missing code parameter" });
 	}
 
-	// This callback performs privileged writes (persisting App secrets, re-pointing
-	// installations) but sits outside tRPC, so it must authenticate and authorize
-	// on its own. The write target is derived from the session, never from `state`.
 	const { user, session } = await validateRequest(req);
 	if (!user || !session?.activeOrganizationId) {
 		return res.status(401).json({ error: "Unauthorized" });
@@ -36,8 +33,6 @@ export default async function handler(
 	};
 
 	const [action] = state?.split(":") ?? [];
-	// gh_init creates a provider, gh_setup re-points an existing one; both require
-	// the gitProviders permission (the same guard the tRPC github router uses).
 	if (!(await hasPermission(ctx, { gitProviders: ["create"] }))) {
 		return res.status(403).json({ error: "Forbidden" });
 	}
