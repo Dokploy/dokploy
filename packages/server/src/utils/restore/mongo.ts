@@ -1,6 +1,7 @@
 import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Mongo } from "@dokploy/server/services/mongo";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
@@ -18,7 +19,7 @@ export const restoreMongoBackup = async (
 		const rcloneFlags = getS3Credentials(destination);
 		const bucketPath = `:s3:${destination.bucket}`;
 		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
-		const rcloneCommand = `rclone copy ${rcloneFlags.join(" ")} "${backupPath}"`;
+		const rcloneCommand = `rclone copy ${rcloneFlags.join(" ")} ${quote([backupPath])}`;
 
 		const command = getRestoreCommand({
 			appName,

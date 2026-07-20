@@ -92,8 +92,8 @@ rm -rf ${tempDir} && \
 mkdir -p ${tempDir} && \
 ${rcloneCommand} ${tempDir} && \
 cd ${tempDir} && \
-gunzip -f "${fileName}" && \
-${restoreCommand} < "${decompressedName}" && \
+gunzip -f ${quote([fileName])} && \
+${restoreCommand} < ${quote([decompressedName])} && \
 rm -rf ${tempDir}
 	`;
 };

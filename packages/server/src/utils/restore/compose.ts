@@ -1,6 +1,7 @@
 import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Destination } from "@dokploy/server/services/destination";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
@@ -26,10 +27,10 @@ export const restoreComposeBackup = async (
 		const rcloneFlags = getS3Credentials(destination);
 		const bucketPath = `:s3:${destination.bucket}`;
 		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
-		let rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
+		let rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} ${quote([backupPath])} | gunzip`;
 
 		if (backupInput.metadata?.mongo) {
-			rcloneCommand = `rclone copy ${rcloneFlags.join(" ")} "${backupPath}"`;
+			rcloneCommand = `rclone copy ${rcloneFlags.join(" ")} ${quote([backupPath])}`;
 		}
 
 		let credentials: DatabaseCredentials = {};
