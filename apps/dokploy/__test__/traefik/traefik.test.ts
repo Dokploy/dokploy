@@ -353,6 +353,27 @@ test("CertificateType on websecure entrypoint", async () => {
 	expect(router.tls?.certResolver).toBe("letsencrypt");
 });
 
+test("CertificateType none enables TLS without a resolver on websecure", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, https: true, certificateType: "none" },
+		"websecure",
+	);
+
+	expect(router.tls).toEqual({});
+});
+
+test("CertificateType none leaves the HTTP redirect router without TLS", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, https: true, certificateType: "none" },
+		"web",
+	);
+
+	expect(router.middlewares).toContain("redirect-to-https");
+	expect(router.tls).toBeUndefined();
+});
+
 test("Custom entrypoint on http domain", async () => {
 	const router = await createRouterConfig(
 		baseApp,
@@ -380,6 +401,22 @@ test("Custom entrypoint on https domain", async () => {
 	expect(router.entryPoints).toEqual(["custom"]);
 	expect(router.middlewares).not.toContain("redirect-to-https");
 	expect(router.tls?.certResolver).toBe("letsencrypt");
+});
+
+test("Custom HTTPS entrypoint with certificateType none enables TLS", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{
+			...baseDomain,
+			https: true,
+			customEntrypoint: "custom",
+			certificateType: "none",
+		},
+		"custom",
+	);
+
+	expect(router.entryPoints).toEqual(["custom"]);
+	expect(router.tls).toEqual({});
 });
 
 test("Custom entrypoint with path includes PathPrefix in rule", async () => {
