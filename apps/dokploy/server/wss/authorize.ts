@@ -30,24 +30,25 @@ export const canAccessDockerOverWss = async (
 	const ctx = buildCtx(user, session.activeOrganizationId);
 	if (!(await hasPermission(ctx, { docker: ["read"] }))) return false;
 
-	if (serverId && serverId !== "local") {
-		const accessible = await getAccessibleServerIds({
-			userId: user.id,
-			activeOrganizationId: session.activeOrganizationId,
-		});
-		if (!accessible.has(serverId)) return false;
-	}
-
 	// When the container belongs to a known Dokploy service (opened from a
-	// service page), enforce service-level access too. Container terminals
-	// opened from the generic Docker overview have no serviceId and fall back to
-	// the docker-permission + server checks above.
+	// service page), enforce service-level access. Checked before the server
+	// gate so the service grant is the primary authorization signal. Container
+	// terminals opened from the generic Docker overview have no serviceId and
+	// fall back to the docker-permission + server checks.
 	if (serviceId) {
 		try {
 			await checkServiceAccess(ctx, serviceId, "read");
 		} catch {
 			return false;
 		}
+	}
+
+	if (serverId && serverId !== "local") {
+		const accessible = await getAccessibleServerIds({
+			userId: user.id,
+			activeOrganizationId: session.activeOrganizationId,
+		});
+		if (!accessible.has(serverId)) return false;
 	}
 
 	return true;

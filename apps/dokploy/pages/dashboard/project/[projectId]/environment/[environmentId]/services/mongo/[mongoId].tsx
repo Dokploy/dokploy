@@ -299,6 +299,7 @@ const Mongo = (
 												<ShowDockerLogs
 													serverId={data?.serverId || ""}
 													appName={data?.appName || ""}
+																serviceId={data?.mongoId}
 												/>
 											</div>
 										</TabsContent>

@@ -380,11 +380,13 @@ const Service = (
 														serverId={data?.serverId || ""}
 														appName={data?.appName || ""}
 														appType={data?.composeType || "docker-compose"}
+														serviceId={data?.composeId}
 													/>
 												) : (
 													<ShowDockerLogsStack
 														serverId={data?.serverId || ""}
 														appName={data?.appName || ""}
+														serviceId={data?.composeId}
 													/>
 												)}
 											</div>

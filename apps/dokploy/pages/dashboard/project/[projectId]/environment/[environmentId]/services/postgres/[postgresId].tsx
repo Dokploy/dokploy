@@ -284,6 +284,7 @@ const Postgresql = (
 												<ShowDockerLogs
 													serverId={data?.serverId || ""}
 													appName={data?.appName || ""}
+																serviceId={data?.postgresId}
 												/>
 											</div>
 										</TabsContent>
