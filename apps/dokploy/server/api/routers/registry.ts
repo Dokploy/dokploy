@@ -5,6 +5,7 @@ import {
 	findRegistryById,
 	IS_CLOUD,
 	removeRegistry,
+	safeDockerLoginCommand,
 	updateRegistry,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
@@ -122,7 +123,11 @@ export const registryRouter = createTRPCRouter({
 				if (input.serverId && input.serverId !== "none") {
 					await execAsyncRemote(
 						input.serverId,
-						`echo ${input.password} | docker ${args.join(" ")}`,
+						safeDockerLoginCommand(
+							input.registryUrl,
+							input.username,
+							input.password,
+						),
 					);
 				} else {
 					await execFileAsync("docker", args, {
@@ -182,7 +187,11 @@ export const registryRouter = createTRPCRouter({
 				if (input.serverId && input.serverId !== "none") {
 					await execAsyncRemote(
 						input.serverId,
-						`echo ${registryData.password} | docker ${args.join(" ")}`,
+						safeDockerLoginCommand(
+							registryData.registryUrl,
+							registryData.username,
+							registryData.password,
+						),
 					);
 				} else {
 					await execFileAsync("docker", args, {
