@@ -11,6 +11,7 @@ import {
 import type { InferResultType } from "@dokploy/server/types/with";
 import { TRPCError } from "@trpc/server";
 import type { z } from "zod";
+import { shellWord } from "./utils";
 
 export type ApplicationWithBitbucket = InferResultType<
 	"applications",
@@ -124,8 +125,8 @@ export const cloneBitbucketRepository = async ({
 	const repoToUse = entity.bitbucketRepositorySlug || bitbucketRepository;
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${repoToUse}.git`;
 	const cloneUrl = getBitbucketCloneUrl(bitbucket, repoclone);
-	command += `echo "Cloning Repo ${repoclone} to ${outputPath}: ✅";`;
-	command += `git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	command += `echo ${shellWord(`Cloning Repo ${repoclone} to ${outputPath}: ✅`)};`;
+	command += `git clone --branch ${shellWord(bitbucketBranch)} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${shellWord(cloneUrl)} ${shellWord(outputPath)} --progress;`;
 	return command;
 };
 
