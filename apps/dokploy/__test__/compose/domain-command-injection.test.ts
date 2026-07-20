@@ -50,8 +50,9 @@ describe("writeDomainsToCompose error path (GHSA-xmmr serviceName injection)", (
 
 		// The service does not exist in the compose, so we hit the error branch.
 		expect(result).toContain("Has occurred an error");
+		// The payload text may appear inside the single-quoted echo argument, but
+		// it must never parse as a shell operator ($(), backtick, ; …).
 		expect(leaksShellSyntax(result, "touch")).toBe(false);
-		expect(result).not.toContain("$(touch");
 	});
 
 	it("neutralizes backtick and semicolon payloads too", async () => {
