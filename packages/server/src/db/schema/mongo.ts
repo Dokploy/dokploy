@@ -92,6 +92,7 @@ export const mongo = pgTable("mongo", {
 		onDelete: "cascade",
 	}),
 	replicaSets: boolean("replicaSets").default(false),
+	networkIds: text("networkIds").array().default([]),
 });
 
 export const mongoRelations = relations(mongo, ({ one, many }) => ({
@@ -146,6 +147,7 @@ const createSchema = createInsertSchema(mongo, {
 	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
+	networkIds: z.array(z.string()).optional(),
 });
 
 export const apiCreateMongo = createSchema.pick({

@@ -107,81 +107,35 @@ export const createFileMount = async (mountId: string) => {
 };
 
 export const findMountById = async (mountId: string) => {
+	// NOTE: project only the fields downstream consumers need (appName,
+	// serverId, organizationId). The full relational select packs every column
+	// of every resource into json_build_array(...), and Postgres caps that
+	// function at 100 arguments — pulling all columns blows the limit.
+	const resourceColumns = { appName: true, serverId: true } as const;
+	const resourceWith = {
+		columns: resourceColumns,
+		with: {
+			environment: {
+				columns: {},
+				with: {
+					project: {
+						columns: { organizationId: true },
+					},
+				},
+			},
+		},
+	} as const;
 	const mount = await db.query.mounts.findFirst({
 		where: eq(mounts.mountId, mountId),
 		with: {
-			application: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			compose: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			libsql: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			mariadb: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			mongo: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			mysql: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			postgres: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			redis: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
+			application: resourceWith,
+			compose: resourceWith,
+			libsql: resourceWith,
+			mariadb: resourceWith,
+			mongo: resourceWith,
+			mysql: resourceWith,
+			postgres: resourceWith,
+			redis: resourceWith,
 		},
 	});
 	if (!mount) {

@@ -8,6 +8,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { resolveNetworkNamesForResource } from "../../services/network";
 import { getRemoteDocker } from "../servers/remote-docker";
 
 export type MysqlNested = InferResultType<
@@ -55,7 +56,14 @@ export const buildMysql = async (mysql: MysqlNested) => {
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
-	} = generateConfigContainer(mysql);
+	} = generateConfigContainer(
+		mysql,
+		await resolveNetworkNamesForResource(
+			mysql.networkIds,
+			mysql.serverId,
+			mysql.environment.project.organizationId,
+		),
+	);
 	const resources = calculateResources({
 		memoryLimit,
 		memoryReservation,

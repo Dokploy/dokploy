@@ -8,6 +8,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { resolveNetworkNamesForResource } from "../../services/network";
 import { getRemoteDocker } from "../servers/remote-docker";
 
 export type PostgresNested = InferResultType<
@@ -48,7 +49,14 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
-	} = generateConfigContainer(postgres);
+	} = generateConfigContainer(
+		postgres,
+		await resolveNetworkNamesForResource(
+			postgres.networkIds,
+			postgres.serverId,
+			postgres.environment.project.organizationId,
+		),
+	);
 	const resources = calculateResources({
 		memoryLimit,
 		memoryReservation,

@@ -93,6 +93,7 @@ export const libsql = pgTable("libsql", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	networkIds: text("networkIds").array().default([]),
 });
 
 export const libsqlRelations = relations(libsql, ({ one, many }) => ({
@@ -146,6 +147,7 @@ const createSchema = createInsertSchema(libsql, {
 	networkSwarm: NetworkSwarmSchema.nullable(),
 	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
+	networkIds: z.array(z.string()).optional(),
 });
 
 export const apiCreateLibsql = createSchema

@@ -22,6 +22,7 @@ import { ShowInternalMariadbCredentials } from "@/components/dashboard/mariadb/g
 import { UpdateMariadb } from "@/components/dashboard/mariadb/update-mariadb";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
+import { ResourceNetworksCard } from "@/components/dashboard/networks/resource-networks-card";
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { MariadbIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -315,6 +316,12 @@ const Mariadb = (
 												<ShowDatabaseAdvancedSettings
 													id={mariadbId}
 													type="mariadb"
+												/>
+												<ResourceNetworksCard
+													resourceType="mariadb"
+													resourceId={mariadbId}
+													value={data?.networkIds ?? []}
+													serverId={data?.serverId}
 												/>
 											</div>
 										</TabsContent>

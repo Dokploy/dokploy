@@ -1,4 +1,5 @@
 import {
+	assertNetworkIdsAttachableToResource,
 	clearOldDeployments,
 	createApplication,
 	deleteAllMiddlewares,
@@ -650,6 +651,16 @@ export const applicationRouter = createTRPCRouter({
 			}
 
 			const { applicationId, ...rest } = input;
+
+			if (input.networkIds !== undefined) {
+				const application = await findApplicationById(applicationId);
+				rest.networkIds = await assertNetworkIdsAttachableToResource(
+					input.networkIds,
+					ctx.session.activeOrganizationId,
+					application.serverId,
+				);
+			}
+
 			const updateApp = await updateApplication(applicationId, {
 				...rest,
 			});

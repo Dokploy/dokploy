@@ -1,6 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { HelpCircle, Plus, Settings2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -102,7 +102,32 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 
 	const previewHttps = form.watch("previewHttps");
 	const wildcardDomain = form.watch("wildcardDomain");
-	const isTraefikMeDomain = wildcardDomain?.includes("sslip.io") || false;
+	const isSslipDomain = wildcardDomain?.includes("sslip.io") || false;
+
+	const templatePreview = useMemo(() => {
+		const template = wildcardDomain || "*.sslip.io";
+		const appName = data?.appName || "my-app";
+		const exampleVars: Record<string, string> = {
+			appName,
+			prNumber: "42",
+			branchName: "feature-login",
+			uniqueId: "a1b2c3",
+		};
+		let result = template.replace(
+			/\$\{(appName|prNumber|branchName|uniqueId)\}/g,
+			(_match: string, key: string) => exampleVars[key] ?? "",
+		);
+		const hasUniqueVar =
+			template.includes("${prNumber}") ||
+			template.includes("${branchName}") ||
+			template.includes("${uniqueId}");
+		if (!hasUniqueVar) {
+			result = result.replace("*", `${appName}-a1b2c3`);
+		} else {
+			result = result.replace("*", appName);
+		}
+		return result;
+	}, [wildcardDomain, data?.appName]);
 
 	useEffect(() => {
 		setIsEnabled(data?.isPreviewDeploymentsActive || false);
@@ -171,7 +196,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 						</DialogDescription>
 					</DialogHeader>
 					<div className="grid gap-4">
-						{isTraefikMeDomain && (
+						{isSslipDomain && (
 							<AlertBlock type="info">
 								<strong>Note:</strong> sslip.io is a public HTTP service and
 								does not support SSL/HTTPS. HTTPS and certificate options will
@@ -189,11 +214,33 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										control={form.control}
 										name="wildcardDomain"
 										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Wildcard Domain</FormLabel>
+											<FormItem className="lg:col-span-2">
+												<FormLabel>Preview Domain Template</FormLabel>
 												<FormControl>
-													<Input placeholder="*.sslip.io" {...field} />
+													<Input
+														placeholder="*.sslip.io or ${prNumber}.example.com"
+														{...field}
+													/>
 												</FormControl>
+												<FormDescription className="flex flex-col gap-1.5">
+													<span>
+														Use <code className="text-xs">*.</code> for
+														auto-generated subdomains, or template variables for
+														custom patterns. If the template includes{" "}
+														<code className="text-xs">{"${prNumber}"}</code> or{" "}
+														<code className="text-xs">{"${branchName}"}</code>,
+														no random suffix is appended.
+													</span>
+													<span className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-mono">
+														<code>{"${appName}"}</code>
+														<code>{"${prNumber}"}</code>
+														<code>{"${branchName}"}</code>
+														<code>{"${uniqueId}"}</code>
+													</span>
+													<span className="text-xs mt-1 px-2 py-1 rounded bg-muted font-mono truncate">
+														Example: {templatePreview}
+													</span>
+												</FormDescription>
 												<FormMessage />
 											</FormItem>
 										)}

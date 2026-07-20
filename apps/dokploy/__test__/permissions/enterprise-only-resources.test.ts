@@ -36,6 +36,7 @@ const ENTERPRISE_RESOURCES = [
 	"destination",
 	"notification",
 	"tag",
+	"network",
 	"logs",
 	"monitoring",
 	"auditLog",

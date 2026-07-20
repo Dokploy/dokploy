@@ -86,6 +86,7 @@ export const mysql = pgTable("mysql", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	networkIds: text("networkIds").array().default([]),
 });
 
 export const mysqlRelations = relations(mysql, ({ one, many }) => ({
@@ -145,6 +146,7 @@ const createSchema = createInsertSchema(mysql, {
 	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
+	networkIds: z.array(z.string()).optional(),
 });
 
 export const apiCreateMySql = createSchema.pick({

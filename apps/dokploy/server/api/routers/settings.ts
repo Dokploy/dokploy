@@ -18,6 +18,7 @@ import {
 	getDockerDiskUsage,
 	getDokployImageTag,
 	getLogCleanupStatus,
+	getReleaseNotes,
 	getUpdateData,
 	getWebServerSettings,
 	IS_CLOUD,
@@ -587,6 +588,15 @@ export const settingsRouter = createTRPCRouter({
 
 		return await getUpdateData(packageInfo.version);
 	}),
+	getReleaseNotes: protectedProcedure
+		.input(z.object({ version: z.string().min(1) }))
+		.query(async ({ input }) => {
+			if (IS_CLOUD) {
+				return { fork: null, upstream: null };
+			}
+
+			return await getReleaseNotes(input.version);
+		}),
 	updateServer: adminProcedure.mutation(async ({ ctx }) => {
 		if (IS_CLOUD) {
 			return true;
@@ -599,7 +609,7 @@ export const settingsRouter = createTRPCRouter({
 				"update",
 				"--force",
 				"--image",
-				`dokploy/dokploy:${data.latestVersion}`,
+				`ghcr.io/devinosolutions/dokploy-community:${data.latestVersion}`,
 				"dokploy",
 			]);
 			await audit(ctx, {
