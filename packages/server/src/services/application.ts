@@ -102,10 +102,24 @@ export const findApplicationById = async (applicationId: string) => {
 			redirects: true,
 			security: true,
 			ports: true,
-			gitlab: true,
-			github: true,
-			bitbucket: true,
-			gitea: true,
+			gitlab: {
+				columns: { secret: false, accessToken: false, refreshToken: false },
+			},
+			github: {
+				columns: {
+					githubClientSecret: false,
+					githubPrivateKey: false,
+					githubWebhookSecret: false,
+				},
+			},
+			bitbucket: { columns: { appPassword: false, apiToken: false } },
+			gitea: {
+				columns: {
+					clientSecret: false,
+					accessToken: false,
+					refreshToken: false,
+				},
+			},
 			server: true,
 			previewDeployments: true,
 			registry: { columns: { password: false } },
@@ -120,51 +134,6 @@ export const findApplicationById = async (applicationId: string) => {
 		});
 	}
 	return application;
-};
-
-// Blanks the nested git-provider secret columns before an application is sent to
-// a client (server-side clone paths use findApplicationById directly).
-export const redactApplicationGitSecrets = <
-	T extends {
-		github?: Record<string, unknown> | null;
-		gitlab?: Record<string, unknown> | null;
-		gitea?: Record<string, unknown> | null;
-		bitbucket?: Record<string, unknown> | null;
-	},
->(
-	application: T,
-): T => {
-	const blank = (
-		provider: Record<string, unknown> | null | undefined,
-		fields: readonly string[],
-	) => {
-		if (!provider) return provider;
-		const redacted = { ...provider };
-		for (const field of fields) {
-			if (field in redacted) redacted[field] = "";
-		}
-		return redacted;
-	};
-
-	return {
-		...application,
-		github: blank(application.github, [
-			"githubClientSecret",
-			"githubPrivateKey",
-			"githubWebhookSecret",
-		]),
-		gitlab: blank(application.gitlab, [
-			"secret",
-			"accessToken",
-			"refreshToken",
-		]),
-		gitea: blank(application.gitea, [
-			"clientSecret",
-			"accessToken",
-			"refreshToken",
-		]),
-		bitbucket: blank(application.bitbucket, ["appPassword", "apiToken"]),
-	};
 };
 
 export const findApplicationByName = async (appName: string) => {

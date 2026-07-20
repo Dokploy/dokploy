@@ -13,7 +13,6 @@ import {
 	mechanizeDockerContainer,
 	readConfig,
 	readRemoteConfig,
-	redactApplicationGitSecrets,
 	removeDeployments,
 	removeDirectoryCode,
 	removeMonitoringDirectory,
@@ -184,7 +183,7 @@ export const applicationRouter = createTRPCRouter({
 			}
 
 			return {
-				...redactApplicationGitSecrets(application),
+				...application,
 				hasGitProviderAccess,
 				unauthorizedProvider,
 			};
