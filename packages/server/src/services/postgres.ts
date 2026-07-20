@@ -11,6 +11,7 @@ import { pullImage } from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 import { validUniqueServerAppName } from "./project";
 
@@ -155,7 +156,7 @@ export const deployPostgres = async (
 		if (postgres.serverId) {
 			await execAsyncRemote(
 				postgres.serverId,
-				`docker pull ${postgres.dockerImage}`,
+				`docker pull ${quote([postgres.dockerImage])}`,
 				onData,
 			);
 		} else {
