@@ -216,7 +216,9 @@ export const createRouterConfig = async (
 		} else if (certificateType === "custom" && domain.customCertResolver) {
 			routerConfig.tls = { certResolver: domain.customCertResolver };
 		} else if (certificateType === "none") {
-			routerConfig.tls = undefined;
+			// Enable TLS without an ACME resolver so Traefik can select an
+			// already-loaded default or matching certificate from its TLS store.
+			routerConfig.tls = {};
 		}
 	}
 
