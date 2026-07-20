@@ -9,6 +9,7 @@ import {
 	getPublicIpWithFallback,
 	haveActiveServices,
 	IS_CLOUD,
+	redactServerSshKey,
 	removeDeploymentsByServerId,
 	serverAudit,
 	serverSetup,
@@ -105,7 +106,7 @@ export const serverRouter = createTRPCRouter({
 				});
 			}
 
-			return server;
+			return redactServerSshKey(server);
 		}),
 	getDefaultCommand: withPermission("server", "read")
 		.input(apiFindOneServer)
@@ -436,7 +437,7 @@ export const serverRouter = createTRPCRouter({
 					await updateServersBasedOnQuantity(admin.id, admin.serversQuantity);
 				}
 
-				return currentServer;
+				return redactServerSshKey(currentServer);
 			} catch (error) {
 				throw error;
 			}
