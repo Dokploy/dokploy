@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { HandleAi } from "./handle-ai";
+import { HandleAiProviders } from "./handle-ai-providers";
 
 export const AiForm = () => {
 	const { data: aiConfigs, refetch, isPending } = api.ai.getAll.useQuery();
@@ -30,7 +31,10 @@ export const AiForm = () => {
 							</CardTitle>
 							<CardDescription>Manage your AI configurations</CardDescription>
 						</div>
-						{aiConfigs && aiConfigs?.length > 0 && <HandleAi />}
+						<div className="flex flex-row gap-2">
+							<HandleAiProviders />
+							{aiConfigs && aiConfigs?.length > 0 && <HandleAi />}
+						</div>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
