@@ -9,6 +9,7 @@ import NextTopLoader from "nextjs-toploader";
 import type { ReactElement, ReactNode } from "react";
 import { SearchCommand } from "@/components/dashboard/search-command";
 import { WhitelabelingProvider } from "@/components/proprietary/whitelabeling/whitelabeling-provider";
+import { ThemeFavicon } from "@/components/shared/theme-favicon";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
@@ -51,6 +52,7 @@ const MyApp = ({
 					forcedTheme={Component.theme}
 				>
 					<NextTopLoader color="hsl(var(--sidebar-ring))" />
+					<ThemeFavicon />
 					<WhitelabelingProvider />
 					<Toaster richColors />
 					<SearchCommand />
