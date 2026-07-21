@@ -102,10 +102,24 @@ export const findApplicationById = async (applicationId: string) => {
 			redirects: true,
 			security: true,
 			ports: true,
-			gitlab: true,
-			github: true,
-			bitbucket: true,
-			gitea: true,
+			gitlab: {
+				columns: { secret: false, accessToken: false, refreshToken: false },
+			},
+			github: {
+				columns: {
+					githubClientSecret: false,
+					githubPrivateKey: false,
+					githubWebhookSecret: false,
+				},
+			},
+			bitbucket: { columns: { appPassword: false, apiToken: false } },
+			gitea: {
+				columns: {
+					clientSecret: false,
+					accessToken: false,
+					refreshToken: false,
+				},
+			},
 			server: true,
 			previewDeployments: true,
 			registry: { columns: { password: false } },

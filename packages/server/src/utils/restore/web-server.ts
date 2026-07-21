@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Destination } from "@dokploy/server/services/destination";
+import { quote } from "shell-quote";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync } from "../process/execAsync";
 
@@ -35,7 +36,7 @@ export const restoreWebServerBackup = async (
 			// Download backup from S3
 			emit("Downloading backup from S3...");
 			await execAsync(
-				`rclone copyto ${rcloneFlags.join(" ")} "${backupPath}" "${tempDir}/${backupFile}"`,
+				`rclone copyto ${rcloneFlags.join(" ")} ${quote([backupPath])} ${quote([`${tempDir}/${backupFile}`])}`,
 			);
 
 			// List files before extraction
@@ -45,7 +46,9 @@ export const restoreWebServerBackup = async (
 
 			// Extract backup
 			emit("Extracting backup...");
-			await execAsync(`cd ${tempDir} && unzip ${backupFile} > /dev/null 2>&1`);
+			await execAsync(
+				`cd ${quote([tempDir])} && unzip ${quote([backupFile])} > /dev/null 2>&1`,
+			);
 
 			// Restore filesystem first
 			emit("Restoring filesystem...");

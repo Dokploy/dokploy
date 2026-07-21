@@ -712,14 +712,14 @@ export const getCreateFileCommand = (
 ) => {
 	const fullPath = path.join(outputPath, filePath);
 	if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
-		return `mkdir -p ${fullPath};`;
+		return `mkdir -p ${quote([fullPath])};`;
 	}
 
 	const directory = path.dirname(fullPath);
 	const encodedContent = encodeBase64(content);
 	return `
-		mkdir -p ${directory};
-		echo "${encodedContent}" | base64 -d > "${fullPath}";
+		mkdir -p ${quote([directory])};
+		echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
 	`;
 };
 
