@@ -256,7 +256,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 														>
 															{label}
 															<X
-																className="size-3 cursor-pointer hover:text-destructive"
+																className="size-3 cursor-pointer pointer-events-auto hover:text-destructive"
 																onClick={() => {
 																	const newLabels = [...(field.value || [])];
 																	newLabels.splice(index, 1);

@@ -480,7 +480,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 												<Badge key={index} variant="secondary">
 													{path}
 													<X
-														className="ml-1 size-3 cursor-pointer"
+														className="ml-1 size-3 cursor-pointer pointer-events-auto"
 														onClick={() => {
 															const newPaths = [...(field.value || [])];
 															newPaths.splice(index, 1);

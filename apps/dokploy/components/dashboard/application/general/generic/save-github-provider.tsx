@@ -488,7 +488,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 												>
 													{path}
 													<X
-														className="size-3 cursor-pointer hover:text-destructive"
+														className="size-3 cursor-pointer pointer-events-auto hover:text-destructive"
 														onClick={() => {
 															const newPaths = [...(field.value || [])];
 															newPaths.splice(index, 1);
