@@ -18,6 +18,9 @@ import { HandleAiProviders } from "./handle-ai-providers";
 export const AiForm = () => {
 	const { data: aiConfigs, refetch, isPending } = api.ai.getAll.useQuery();
 	const { mutateAsync, isPending: isRemoving } = api.ai.delete.useMutation();
+	const { data: currentUser } = api.user.get.useQuery();
+	const isOrgAdmin =
+		currentUser?.role === "owner" || currentUser?.role === "admin";
 
 	return (
 		<div className="w-full">
@@ -32,7 +35,7 @@ export const AiForm = () => {
 							<CardDescription>Manage your AI configurations</CardDescription>
 						</div>
 						<div className="flex flex-row gap-2">
-							<HandleAiProviders />
+							{isOrgAdmin && <HandleAiProviders />}
 							{aiConfigs && aiConfigs?.length > 0 && <HandleAi />}
 						</div>
 					</CardHeader>
