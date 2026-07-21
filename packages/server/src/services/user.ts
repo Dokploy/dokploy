@@ -430,7 +430,7 @@ export const createOrganizationUserWithCredentials = async ({
 			.insert(user)
 			.values({
 				email: normalizedEmail,
-				emailVerified: false,
+				emailVerified: true,
 				updatedAt: now,
 			})
 			.returning({
