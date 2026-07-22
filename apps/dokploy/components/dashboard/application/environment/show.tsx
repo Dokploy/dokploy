@@ -60,14 +60,16 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	const currentBuildArgs = form.watch("buildArgs");
 	const currentBuildSecrets = form.watch("buildSecrets");
 	const currentCreateEnvFile = form.watch("createEnvFile");
+	const { isDirty } = form.formState;
 	const hasChanges =
 		currentEnv !== (data?.env || "") ||
 		currentBuildArgs !== (data?.buildArgs || "") ||
 		currentBuildSecrets !== (data?.buildSecrets || "") ||
 		currentCreateEnvFile !== (data?.createEnvFile ?? true);
 
+	// Skip reset while editing so background refetches don't wipe edits
 	useEffect(() => {
-		if (data) {
+		if (data && !isDirty) {
 			form.reset({
 				env: data.env || "",
 				buildArgs: data.buildArgs || "",
@@ -75,7 +77,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 				createEnvFile: data.createEnvFile ?? true,
 			});
 		}
-	}, [data, form]);
+	}, [data, isDirty, form]);
 
 	const onSubmit = async (formData: EnvironmentSchema) => {
 		mutateAsync({
@@ -87,6 +89,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Environments Added");
+				form.reset(formData);
 				await refetch();
 			})
 			.catch(() => {
