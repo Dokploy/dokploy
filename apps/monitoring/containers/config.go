@@ -51,11 +51,18 @@ func ShouldMonitorContainer(containerName string) bool {
 	return true
 }
 
+// GetServiceName returns the deduplication key of a container: its name
+// without the swarm task suffix (myapp.1.abc123 → myapp), so replicas of the
+// same swarm service are stored once per tick. Names without a task suffix
+// (docker compose containers) are already unique per container and are kept
+// as-is. Splitting on "-" here used to conflate distinct services sharing a
+// name prefix (app-x-mysql and app-x-redis both mapped to "app-x"), so only
+// the first of them in `docker stats` output was stored each tick — even
+// though metrics are stored and queried by full container_name.
 func GetServiceName(containerName string) string {
 	name := strings.TrimPrefix(containerName, "/")
-	parts := strings.Split(name, "-")
-	if len(parts) > 1 {
-		return strings.Join(parts[:len(parts)-1], "-")
+	if dot := strings.Index(name, "."); dot != -1 {
+		return name[:dot]
 	}
 	return name
 }
