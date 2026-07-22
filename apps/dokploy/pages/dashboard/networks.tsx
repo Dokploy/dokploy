@@ -6,10 +6,15 @@ import type { ReactElement } from "react";
 import superjson from "superjson";
 import { ShowNetworks } from "@/components/dashboard/networks/show-networks";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { ServerFilter } from "@/components/shared/server-filter";
 import { appRouter } from "@/server/api/root";
 
 const Dashboard = () => {
-	return <ShowNetworks />;
+	return (
+		<ServerFilter>
+			{(serverId) => <ShowNetworks serverId={serverId} />}
+		</ServerFilter>
+	);
 };
 
 export default Dashboard;
@@ -69,7 +74,7 @@ export async function getServerSideProps(
 			}
 		}
 
-		await helpers.network.all.prefetch();
+		await helpers.network.all.prefetch({});
 
 		return {
 			props: {

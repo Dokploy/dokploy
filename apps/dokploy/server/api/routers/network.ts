@@ -1,11 +1,14 @@
 import {
 	createNetwork,
 	findNetworkById,
+	findNetworksToSync,
+	importDockerNetworks,
 	inspectNetwork,
 	removeNetwork,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
+import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
@@ -16,21 +19,20 @@ import {
 } from "@/server/db/schema";
 
 export const networkRouter = createTRPCRouter({
-	all: protectedProcedure.query(async ({ ctx }) => {
-		const rows = await db.query.network.findMany({
-			where: eq(networkTable.organizationId, ctx.session.activeOrganizationId),
-			with: {
-				server: {
-					columns: {
-						serverId: true,
-						name: true,
-					},
-				},
-			},
-			orderBy: desc(networkTable.createdAt),
-		});
-		return rows;
-	}),
+	all: protectedProcedure
+		.input(z.object({ serverId: z.string().optional() }))
+		.query(async ({ ctx, input }) => {
+			const rows = await db.query.network.findMany({
+				where: and(
+					eq(networkTable.organizationId, ctx.session.activeOrganizationId),
+					input.serverId
+						? eq(networkTable.serverId, input.serverId)
+						: isNull(networkTable.serverId),
+				),
+				orderBy: desc(networkTable.createdAt),
+			});
+			return rows;
+		}),
 
 	one: protectedProcedure
 		.input(apiFindOneNetwork)
@@ -49,6 +51,30 @@ export const networkRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			return createNetwork(input, ctx.session.activeOrganizationId);
 		}),
+	networksToSync: protectedProcedure
+		.input(z.object({ serverId: z.string().optional() }))
+		.query(async ({ ctx, input }) => {
+			return findNetworksToSync(
+				ctx.session.activeOrganizationId,
+				input.serverId ?? null,
+			);
+		}),
+
+	import: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+				names: z.array(z.string().min(1)).min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			return importDockerNetworks(
+				ctx.session.activeOrganizationId,
+				input.serverId ?? null,
+				input.names,
+			);
+		}),
+
 	inspect: protectedProcedure
 		.input(apiFindOneNetwork)
 		.query(async ({ ctx, input }) => {

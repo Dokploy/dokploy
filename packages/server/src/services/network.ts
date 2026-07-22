@@ -1,10 +1,182 @@
 import { db } from "@dokploy/server/db";
 import { type apiCreateNetwork, network } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import type { z } from "zod";
 import { IS_CLOUD } from "../constants";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
+
+// Networks managed by Docker/Dokploy itself that must never be imported
+// or deleted through the networks UI
+const RESERVED_NETWORKS = [
+	"bridge",
+	"host",
+	"none",
+	"ingress",
+	"docker_gwbridge",
+	"dokploy-network",
+];
+
+type DockerNetworkInfo = {
+	Name: string;
+	Driver: string;
+	Internal?: boolean;
+	Attachable?: boolean;
+	Ingress?: boolean;
+	EnableIPv4?: boolean;
+	EnableIPv6?: boolean;
+	IPAM?: {
+		Driver?: string;
+		Config?: Array<{
+			Subnet?: string;
+			Gateway?: string;
+			IPRange?: string;
+		}> | null;
+	};
+};
+
+const isImportableDockerNetwork = (dockerNetwork: DockerNetworkInfo) =>
+	!RESERVED_NETWORKS.includes(dockerNetwork.Name) &&
+	!dockerNetwork.Ingress &&
+	(dockerNetwork.Driver === "bridge" || dockerNetwork.Driver === "overlay");
+
+const mapDockerNetworkToRow = (
+	dockerNetwork: DockerNetworkInfo,
+	organizationId: string,
+	serverId: string | null,
+) => ({
+	name: dockerNetwork.Name,
+	driver: dockerNetwork.Driver as "bridge" | "overlay",
+	internal: dockerNetwork.Internal ?? false,
+	attachable: dockerNetwork.Attachable ?? false,
+	// Older daemons don't report EnableIPv4; IPv4 is always on there
+	enableIPv4: dockerNetwork.EnableIPv4 ?? true,
+	enableIPv6: dockerNetwork.EnableIPv6 ?? false,
+	ipam: {
+		driver: dockerNetwork.IPAM?.Driver,
+		config: (dockerNetwork.IPAM?.Config ?? []).map((c) => ({
+			subnet: c.Subnet,
+			gateway: c.Gateway,
+			ipRange: c.IPRange,
+		})),
+	},
+	organizationId,
+	serverId,
+});
+
+const findNetworksByServer = async (
+	organizationId: string,
+	serverId: string | null,
+) => {
+	return await db.query.network.findMany({
+		where: and(
+			eq(network.organizationId, organizationId),
+			serverId ? eq(network.serverId, serverId) : isNull(network.serverId),
+		),
+	});
+};
+
+export const findNetworksToSync = async (
+	organizationId: string,
+	serverId: string | null,
+) => {
+	if (IS_CLOUD && !serverId) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Server is required",
+		});
+	}
+
+	const docker = await getRemoteDocker(serverId);
+	let dockerNetworks: DockerNetworkInfo[] = [];
+	try {
+		dockerNetworks = (await docker.listNetworks()) as DockerNetworkInfo[];
+	} catch (error) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				error instanceof Error
+					? error.message
+					: "Failed to list Docker networks",
+			cause: error,
+		});
+	}
+
+	const existing = await findNetworksByServer(organizationId, serverId);
+	const existingNames = new Set(existing.map((row) => row.name));
+	const dockerNames = new Set(dockerNetworks.map((d) => d.Name));
+
+	const importable = dockerNetworks
+		.filter(
+			(dockerNetwork) =>
+				isImportableDockerNetwork(dockerNetwork) &&
+				!existingNames.has(dockerNetwork.Name),
+		)
+		.map((dockerNetwork) => ({
+			name: dockerNetwork.Name,
+			driver: dockerNetwork.Driver,
+			internal: dockerNetwork.Internal ?? false,
+			attachable: dockerNetwork.Attachable ?? false,
+			subnets: (dockerNetwork.IPAM?.Config ?? [])
+				.map((c) => c.Subnet)
+				.filter((s): s is string => !!s),
+		}));
+
+	// Rows in Dokploy whose network no longer exists in Docker
+	const missing = existing
+		.filter((row) => !dockerNames.has(row.name))
+		.map((row) => ({ networkId: row.networkId, name: row.name }));
+
+	return { importable, missing };
+};
+
+export const importDockerNetworks = async (
+	organizationId: string,
+	serverId: string | null,
+	names: string[],
+) => {
+	if (IS_CLOUD && !serverId) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Server is required",
+		});
+	}
+
+	const docker = await getRemoteDocker(serverId);
+	const existing = await findNetworksByServer(organizationId, serverId);
+	const existingNames = new Set(existing.map((row) => row.name));
+
+	const imported: string[] = [];
+	const errors: { name: string; error: string }[] = [];
+
+	for (const name of names) {
+		if (existingNames.has(name)) {
+			errors.push({ name, error: "Already imported" });
+			continue;
+		}
+		try {
+			const info = (await docker
+				.getNetwork(name)
+				.inspect()) as DockerNetworkInfo;
+			if (!isImportableDockerNetwork(info)) {
+				errors.push({ name, error: "Network is reserved or not supported" });
+				continue;
+			}
+			await db
+				.insert(network)
+				.values(mapDockerNetworkToRow(info, organizationId, serverId));
+			imported.push(name);
+		} catch (error) {
+			errors.push({
+				name,
+				error:
+					error instanceof Error ? error.message : "Failed to inspect network",
+			});
+		}
+	}
+
+	return { imported, errors };
+};
 
 export const findNetworkById = async (networkId: string) => {
 	const [row] = await db

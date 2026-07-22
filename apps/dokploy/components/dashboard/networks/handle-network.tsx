@@ -40,9 +40,6 @@ import { api } from "@/utils/api";
 // singletons and macvlan/ipvlan need driver options we don't expose.
 const networkDriverEnum = ["bridge", "overlay"] as const;
 
-/** Sentinel for the local Dokploy server (no serverId) */
-const SERVER_LOCAL = "__server_local__";
-
 const ipamConfigEntrySchema = z.object({
 	subnet: z.string().optional(),
 	ipRange: z.string().optional(),
@@ -53,7 +50,6 @@ const networkFormSchema = z
 	.object({
 		name: z.string().min(1, "Name is required"),
 		driver: z.enum(networkDriverEnum),
-		serverId: z.string().optional(),
 		internal: z.boolean(),
 		attachable: z.boolean(),
 		enableIPv4: z.boolean(),
@@ -85,7 +81,6 @@ type NetworkFormValues = z.infer<typeof networkFormSchema>;
 const defaultValues: NetworkFormValues = {
 	name: "",
 	driver: "bridge",
-	serverId: undefined,
 	internal: false,
 	attachable: false,
 	enableIPv4: true,
@@ -119,17 +114,17 @@ const toggleOptions = [
 ] as const;
 
 interface HandleNetworkProps {
+	/** Target server; undefined creates on the local Dokploy server */
+	serverId?: string;
 	children?: React.ReactNode;
 }
 
 // Docker networks are immutable, so this dialog only creates them;
 // changing a network means deleting and recreating it.
-export const HandleNetwork = ({ children }: HandleNetworkProps) => {
+export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const utils = api.useUtils();
 
-	const { data: servers } = api.server.all.useQuery();
 	const { mutateAsync, isPending } = api.network.create.useMutation();
 
 	const form = useForm<NetworkFormValues>({
@@ -147,7 +142,7 @@ export const HandleNetwork = ({ children }: HandleNetworkProps) => {
 			await mutateAsync({
 				name: data.name,
 				driver: data.driver,
-				serverId: data.serverId || undefined,
+				serverId,
 				internal: data.internal,
 				attachable: data.attachable,
 				enableIPv4: data.enableIPv4,
@@ -238,48 +233,6 @@ export const HandleNetwork = ({ children }: HandleNetworkProps) => {
 								)}
 							/>
 						</div>
-						<FormField
-							control={form.control}
-							name="serverId"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Server</FormLabel>
-									<Select
-										onValueChange={(value) =>
-											field.onChange(value === SERVER_LOCAL ? undefined : value)
-										}
-										value={field.value ?? (isCloud ? undefined : SERVER_LOCAL)}
-									>
-										<FormControl>
-											<SelectTrigger>
-												<SelectValue placeholder="Select server" />
-											</SelectTrigger>
-										</FormControl>
-										<SelectContent>
-											{!isCloud && (
-												<SelectItem value={SERVER_LOCAL}>
-													Dokploy server
-												</SelectItem>
-											)}
-											{servers?.map((server) => (
-												<SelectItem
-													key={server.serverId}
-													value={server.serverId}
-												>
-													{server.name}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-									<FormDescription className="text-muted-foreground">
-										{isCloud
-											? "Server where this network will be created."
-											: "Dokploy server is the default local server."}
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
 						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							{toggleOptions.map((option) => (
 								<FormField
