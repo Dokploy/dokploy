@@ -1,4 +1,5 @@
 import { AlertTriangle, DatabaseIcon } from "lucide-react";
+import { useRouter } from "next/router";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -21,7 +22,18 @@ interface Props {
 }
 
 export const RebuildDatabase = ({ id, type }: Props) => {
+	const router = useRouter();
 	const utils = api.useUtils();
+
+	const goToBackups = () => {
+		const projectId = router.query.projectId as string;
+		const environmentId = router.query.environmentId as string;
+		router.push(
+			`/dashboard/project/${projectId}/environment/${environmentId}/services/${type}/${id}?tab=backups`,
+			undefined,
+			{ shallow: true },
+		);
+	};
 
 	const mutationMap = {
 		libsql: () => api.libsql.rebuild.useMutation(),
@@ -73,7 +85,13 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 							<AlertTriangle className="h-3.5 w-3.5 shrink-0" />
 							<span>
 								<strong>Recommended:</strong>{" "}
-								Create a backup before rebuilding to avoid permanent data loss.
+								<span
+									onClick={goToBackups}
+									className="underline underline-offset-2 hover:text-amber-500 cursor-pointer"
+								>
+									Create a backup
+								</span>{" "}
+								before rebuilding to avoid permanent data loss.
 							</span>
 						</p>
 					</div>
@@ -110,7 +128,13 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 											<AlertTriangle className="h-3.5 w-3.5 shrink-0" />
 											<span>
 												<strong>Tip:</strong>{" "}
-												Go to the Backups tab to create a backup before rebuilding.
+												<span
+													onClick={goToBackups}
+													className="underline underline-offset-2 hover:text-amber-500 cursor-pointer"
+												>
+													Go to the Backups tab
+												</span>{" "}
+												to create a backup before rebuilding.
 											</span>
 										</p>
 									</div>
