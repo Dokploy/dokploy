@@ -1,4 +1,9 @@
-import { normalizeS3Path } from "@dokploy/server/utils/backups/utils";
+import type { BackupSchedule } from "@dokploy/server/services/backup";
+import {
+	getBackupCommand,
+	getPostgresBackupCommand,
+	normalizeS3Path,
+} from "@dokploy/server/utils/backups/utils";
 import { describe, expect, test } from "vitest";
 
 describe("normalizeS3Path", () => {
@@ -57,5 +62,40 @@ describe("normalizeS3Path", () => {
 		expect(normalizeS3Path("instance-backups/")).toBe("instance-backups/");
 		expect(normalizeS3Path("/instance-backups/")).toBe("instance-backups/");
 		expect(normalizeS3Path("instance-backups")).toBe("instance-backups/");
+	});
+});
+
+describe("getBackupCommand", () => {
+	const backup = {
+		backupType: "database",
+		databaseType: "postgres",
+		database: "mydb",
+		postgres: { appName: "my-app", databaseUser: "postgres" },
+	} as unknown as BackupSchedule;
+	const rcloneCommand =
+		'rclone rcat --s3-region=auto ":s3:bucket/my-app/backup.sql.gz"';
+	const buildScript = () =>
+		getBackupCommand(backup, rcloneCommand, "/tmp/backup.log");
+
+	test("should run the database dump exactly once", () => {
+		const script = buildScript();
+		const dumpCommand = getPostgresBackupCommand("mydb", "postgres");
+		expect(script.split(dumpCommand).length - 1).toBe(1);
+	});
+
+	test("should stream the dump directly into rclone", () => {
+		expect(buildScript()).toContain(`| ${rcloneCommand}`);
+	});
+
+	test("should keep dump and upload failures distinguishable", () => {
+		const script = buildScript();
+		expect(script).toContain("Error: Backup failed");
+		expect(script).toContain("Error: Upload to S3 failed");
+	});
+
+	test("should clean up the partial object when a stream fails", () => {
+		expect(buildScript()).toContain(
+			'rclone deletefile --s3-region=auto ":s3:bucket/my-app/backup.sql.gz"',
+		);
 	});
 });
