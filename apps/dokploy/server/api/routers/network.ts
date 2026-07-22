@@ -4,6 +4,7 @@ import {
 	findNetworksToSync,
 	importDockerNetworks,
 	inspectNetwork,
+	recreateNetwork,
 	removeNetwork,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -86,6 +87,19 @@ export const networkRouter = createTRPCRouter({
 				});
 			}
 			return inspectNetwork(input.networkId);
+		}),
+
+	recreate: protectedProcedure
+		.input(apiFindOneNetwork)
+		.mutation(async ({ ctx, input }) => {
+			const network = await findNetworkById(input.networkId);
+			if (network.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Network not found",
+				});
+			}
+			return recreateNetwork(input.networkId);
 		}),
 
 	remove: protectedProcedure

@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { Loader2, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -20,13 +20,9 @@ import { Separator } from "@/components/ui/separator";
 import { api } from "@/utils/api";
 
 interface Props {
-	/** Target server; undefined syncs the local Dokploy server */
 	serverId?: string;
 }
 
-// Compares the Docker daemon's networks against Dokploy's records:
-// networks that only exist in Docker can be imported, and records whose
-// network no longer exists in Docker can be cleaned up.
 export const SyncNetworks = ({ serverId }: Props) => {
 	const [open, setOpen] = useState(false);
 	const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -37,6 +33,7 @@ export const SyncNetworks = ({ serverId }: Props) => {
 
 	const importMutation = api.network.import.useMutation();
 	const removeMutation = api.network.remove.useMutation();
+	const recreateMutation = api.network.recreate.useMutation();
 
 	const toggleSelected = (name: string) => {
 		setSelected((prev) => {
@@ -86,6 +83,20 @@ export const SyncNetworks = ({ serverId }: Props) => {
 			await refetch();
 		} catch (error) {
 			toast.error("Error removing record", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			});
+		}
+	};
+
+	const onRecreate = async (networkId: string, name: string) => {
+		try {
+			await recreateMutation.mutateAsync({ networkId });
+			toast.success(`Network "${name}" recreated in Docker`);
+			await utils.network.all.invalidate();
+			await utils.network.networksToSync.invalidate();
+			await refetch();
+		} catch (error) {
+			toast.error("Error recreating network", {
 				description: error instanceof Error ? error.message : "Unknown error",
 			});
 		}
@@ -183,17 +194,30 @@ export const SyncNetworks = ({ serverId }: Props) => {
 											className="flex items-center justify-between gap-3 rounded-lg border border-dashed p-3"
 										>
 											<span className="text-sm">{stale.name}</span>
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												aria-label={`Remove stale record ${stale.name}`}
-												isLoading={removeMutation.isPending}
-												onClick={() =>
-													onRemoveStale(stale.networkId, stale.name)
-												}
-											>
-												<Trash2 className="size-4 text-destructive" />
-											</Button>
+											<div className="flex items-center gap-2">
+												<Button
+													variant="outline"
+													size="xs"
+													isLoading={recreateMutation.isPending}
+													onClick={() =>
+														onRecreate(stale.networkId, stale.name)
+													}
+												>
+													<RotateCcw className="size-3.5" />
+													Recreate
+												</Button>
+												<Button
+													variant="ghost"
+													size="icon-sm"
+													aria-label={`Remove stale record ${stale.name}`}
+													isLoading={removeMutation.isPending}
+													onClick={() =>
+														onRemoveStale(stale.networkId, stale.name)
+													}
+												>
+													<Trash2 className="size-4 text-destructive" />
+												</Button>
+											</div>
 										</div>
 									))}
 								</div>

@@ -224,49 +224,61 @@ export const createNetwork = async (
 			});
 		}
 
-		const ipam = row.ipam ?? {};
-		const ipamConfig = (ipam.config ?? [])
-			.map((c) => {
-				const entry: Record<string, string> = {};
-				if (c.subnet) entry.Subnet = c.subnet;
-				if (c.gateway) entry.Gateway = c.gateway;
-				if (c.ipRange) entry.IPRange = c.ipRange;
-				return entry;
-			})
-			.filter((e) => Object.keys(e).length > 0);
-
-		const docker = await getRemoteDocker(input.serverId ?? null);
-		try {
-			await docker.createNetwork({
-				Name: row.name,
-				Driver: row.driver,
-				CheckDuplicate: true,
-				Internal: row.internal,
-				Attachable: row.attachable,
-				// EnableIPv4 is missing from dockerode's types but supported by
-				// the daemon (API >= 1.47); the body is sent as-is
-				EnableIPv4: row.enableIPv4,
-				EnableIPv6: row.enableIPv6,
-				IPAM: {
-					Driver: ipam.driver || "default",
-					Config: ipamConfig.length > 0 ? ipamConfig : undefined,
-				},
-			} as Parameters<typeof docker.createNetwork>[0]);
-		} catch (error) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message:
-					error instanceof Error
-						? error.message
-						: "Failed to create Docker network",
-				cause: error,
-			});
-		}
+		await createDockerNetworkFromRow(row);
 
 		return row;
 	});
 
 	return created;
+};
+
+const createDockerNetworkFromRow = async (row: typeof network.$inferSelect) => {
+	const ipam = row.ipam ?? {};
+	const ipamConfig = (ipam.config ?? [])
+		.map((c) => {
+			const entry: Record<string, string> = {};
+			if (c.subnet) entry.Subnet = c.subnet;
+			if (c.gateway) entry.Gateway = c.gateway;
+			if (c.ipRange) entry.IPRange = c.ipRange;
+			return entry;
+		})
+		.filter((e) => Object.keys(e).length > 0);
+
+	const docker = await getRemoteDocker(row.serverId ?? null);
+	try {
+		await docker.createNetwork({
+			Name: row.name,
+			Driver: row.driver,
+			CheckDuplicate: true,
+			Internal: row.internal,
+			Attachable: row.attachable,
+			// EnableIPv4 is missing from dockerode's types but supported by
+			// the daemon (API >= 1.47); the body is sent as-is
+			EnableIPv4: row.enableIPv4,
+			EnableIPv6: row.enableIPv6,
+			IPAM: {
+				Driver: ipam.driver || "default",
+				Config: ipamConfig.length > 0 ? ipamConfig : undefined,
+			},
+		} as Parameters<typeof docker.createNetwork>[0]);
+	} catch (error) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				error instanceof Error
+					? error.message
+					: "Failed to create Docker network",
+			cause: error,
+		});
+	}
+};
+
+// Re-creates the Docker network from the stored record, for records whose
+// network was removed from Docker outside of Dokploy
+export const recreateNetwork = async (networkId: string) => {
+	const row = await findNetworkById(networkId);
+	await createDockerNetworkFromRow(row);
+	return row;
 };
 
 export const inspectNetwork = async (networkId: string) => {
