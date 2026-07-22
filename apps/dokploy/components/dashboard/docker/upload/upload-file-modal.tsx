@@ -26,8 +26,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import {
-	uploadFileToContainerSchema,
 	type UploadFileToContainer,
+	uploadFileToContainerSchema,
 } from "@/utils/schema";
 
 interface Props {

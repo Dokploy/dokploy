@@ -9,12 +9,12 @@ import {
 	getWebServerSettings,
 	IS_CLOUD,
 	removeUserById,
+	renderInvitationEmail,
 	sendEmailNotification,
 	sendResendNotification,
 	updateUser,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import {
 	account,
 	apiAssignPermissions,
@@ -23,16 +23,19 @@ import {
 	apiUpdateUser,
 	invitation,
 	member,
+	session,
 	user,
 } from "@dokploy/server/db/schema";
 import {
 	hasPermission,
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
+import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
-import { and, asc, eq, gt } from "drizzle-orm";
+import { and, asc, eq, gt, ne } from "drizzle-orm";
 import { z } from "zod";
+import { apiKeyNameSchema } from "@/lib/api-keys";
 import { audit } from "@/server/api/utils/audit";
 import {
 	adminProcedure,
@@ -43,7 +46,7 @@ import {
 } from "../trpc";
 
 const apiCreateApiKey = z.object({
-	name: z.string().min(1),
+	name: apiKeyNameSchema,
 	prefix: z.string().optional(),
 	expiresIn: z.number().optional(),
 	metadata: z.object({
@@ -135,8 +138,31 @@ export const userRouter = createTRPCRouter({
 			),
 			with: {
 				user: {
+					columns: {
+						id: true,
+						firstName: true,
+						lastName: true,
+						email: true,
+						image: true,
+						allowImpersonation: true,
+						twoFactorEnabled: true,
+						stripeCustomerId: true,
+						stripeSubscriptionId: true,
+						serversQuantity: true,
+						isEnterpriseCloud: true,
+						sendInvoiceNotifications: true,
+					},
 					with: {
-						apiKeys: true,
+						apiKeys: {
+							columns: {
+								id: true,
+								name: true,
+								prefix: true,
+								enabled: true,
+								expiresAt: true,
+								createdAt: true,
+							},
+						},
 					},
 				},
 			},
@@ -228,6 +254,15 @@ export const userRouter = createTRPCRouter({
 						password: bcrypt.hashSync(input.password, 10),
 					})
 					.where(eq(account.userId, ctx.user.id));
+
+				await db
+					.delete(session)
+					.where(
+						and(
+							eq(session.userId, ctx.user.id),
+							ne(session.id, ctx.session.id),
+						),
+					);
 			}
 
 			try {
@@ -593,6 +628,13 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
+			if (input.role === "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Cannot create a user with the owner role",
+				});
+			}
+
 			return await createOrganizationUserWithCredentials({
 				organizationId: ctx.session.activeOrganizationId,
 				email: input.email,
@@ -639,27 +681,26 @@ export const userRouter = createTRPCRouter({
 			);
 
 			try {
-				const htmlContent = `
-\t\t\t\t<p>You are invited to join ${organization?.name || "organization"} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
-\t\t\t\t`;
+				const toEmail = currentInvitation?.email || "";
+				const orgName = organization?.name || "organization";
+				const subject = `You've been invited to join ${orgName} on Dokploy`;
+				const html = await renderInvitationEmail({
+					email: toEmail,
+					inviteLink,
+					organizationName: orgName,
+				});
 
 				if (email) {
 					await sendEmailNotification(
-						{
-							...email,
-							toAddresses: [currentInvitation?.email || ""],
-						},
-						"Invitation to join organization",
-						htmlContent,
+						{ ...email, toAddresses: [toEmail] },
+						subject,
+						html,
 					);
 				} else if (resend) {
 					await sendResendNotification(
-						{
-							...resend,
-							toAddresses: [currentInvitation?.email || ""],
-						},
-						"Invitation to join organization",
-						htmlContent,
+						{ ...resend, toAddresses: [toEmail] },
+						subject,
+						html,
 					);
 				}
 			} catch (error) {

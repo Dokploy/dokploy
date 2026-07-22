@@ -2,7 +2,7 @@ import path from "node:path";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
-import { paths } from "../constants";
+import { IS_CLOUD, paths } from "../constants";
 import { db } from "../db";
 import type {
 	createScheduleSchema,
@@ -11,8 +11,50 @@ import type {
 import { type Schedule, schedules } from "../db/schema/schedule";
 import { encodeBase64 } from "../utils/docker/utils";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
+import { findMemberByUserId } from "./permission";
+import { findServerById } from "./server";
 
 export type ScheduleExtended = Awaited<ReturnType<typeof findScheduleById>>;
+
+// Host-level schedules (server / dokploy-server) run their script as root on the
+// host and must stay restricted to owners/admins, regardless of whether the
+// request is also tied to a service. Attaching an accessible applicationId must
+// not downgrade this to a service-access check.
+export const assertHostScheduleAccess = async (
+	ctx: { user: { id: string }; session: { activeOrganizationId: string } },
+	scheduleType: Schedule["scheduleType"] | null | undefined,
+	serverId: string | null | undefined,
+) => {
+	if (scheduleType !== "server" && scheduleType !== "dokploy-server") return;
+
+	if (scheduleType === "dokploy-server" && IS_CLOUD) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Host-level schedules are not available in the cloud version.",
+		});
+	}
+
+	const member = await findMemberByUserId(
+		ctx.user.id,
+		ctx.session.activeOrganizationId,
+	);
+	if (member.role !== "owner" && member.role !== "admin") {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only owners and admins can manage server-level schedules.",
+		});
+	}
+
+	if (scheduleType === "server" && serverId) {
+		const targetServer = await findServerById(serverId);
+		if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message: "You don't have access to this server.",
+			});
+		}
+	}
+};
 
 export const createSchedule = async (
 	input: z.infer<typeof createScheduleSchema>,
@@ -84,6 +126,9 @@ export const findScheduleOrganizationId = async (scheduleId: string) => {
 	}
 	if (schedule?.server) {
 		return schedule?.server?.organization?.id;
+	}
+	if (schedule?.organizationId) {
+		return schedule.organizationId;
 	}
 	return null;
 };

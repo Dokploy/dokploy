@@ -1,3 +1,7 @@
+import {
+	INVALID_HOSTNAME_MESSAGE,
+	VALID_HOSTNAME_REGEX,
+} from "@dokploy/server/utils/hostname-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { DatabaseZap, Dices, RefreshCw, X } from "lucide-react";
 import Link from "next/link";
@@ -53,7 +57,10 @@ export const domain = z
 			.refine((val) => val === val.trim(), {
 				message: "Domain name cannot have leading or trailing spaces",
 			})
-			.transform((val) => val.trim()),
+			.transform((val) => val.trim())
+			.refine((val) => VALID_HOSTNAME_REGEX.test(val), {
+				message: INVALID_HOSTNAME_MESSAGE,
+			}),
 		path: z.string().min(1).optional(),
 		internalPath: z.string().optional(),
 		stripPath: z.boolean().optional(),
@@ -225,7 +232,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const https = form.watch("https");
 	const domainType = form.watch("domainType");
 	const host = form.watch("host");
-	const isTraefikMeDomain = host?.includes("traefik.me") || false;
+	const isTraefikMeDomain = host?.includes("sslip.io") || false;
 
 	useEffect(() => {
 		if (data) {
@@ -349,10 +356,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									{domainType === "compose" && (
 										<div className="flex flex-col gap-2 w-full">
 											{errorServices && (
-												<AlertBlock
-													type="warning"
-													className="[overflow-wrap:anywhere]"
-												>
+												<AlertBlock type="warning" className="wrap-anywhere">
 													{errorServices?.message}
 												</AlertBlock>
 											)}
@@ -420,7 +424,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																			<TooltipContent
 																				side="left"
 																				sideOffset={5}
-																				className="max-w-[10rem]"
+																				className="max-w-40"
 																			>
 																				<p>
 																					Fetch: Will clone the repository and
@@ -450,7 +454,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																			<TooltipContent
 																				side="left"
 																				sideOffset={5}
-																				className="max-w-[10rem]"
+																				className="max-w-40"
 																			>
 																				<p>
 																					Cache: If you previously deployed this
@@ -488,7 +492,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																	<TooltipContent
 																		side="left"
 																		sideOffset={5}
-																		className="max-w-[10rem]"
+																		className="max-w-40"
 																	>
 																		<p>
 																			{isManualInput
@@ -513,7 +517,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											{!canGenerateTraefikMeDomains &&
-												field.value.includes("traefik.me") && (
+												field.value.includes("sslip.io") && (
 													<AlertBlock type="warning">
 														You need to set an IP address in your{" "}
 														<Link
@@ -524,12 +528,12 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																? "Remote Servers -> Server -> Edit Server -> Update IP Address"
 																: "Web Server -> Server -> Update Server IP"}
 														</Link>{" "}
-														to make your traefik.me domain work.
+														to make your sslip.io domain work.
 													</AlertBlock>
 												)}
 											{isTraefikMeDomain && (
 												<AlertBlock type="info">
-													<strong>Note:</strong> traefik.me is a public HTTP
+													<strong>Note:</strong> sslip.io is a public HTTP
 													service and does not support SSL/HTTPS. HTTPS and
 													certificate options will not have any effect.
 												</AlertBlock>
@@ -565,9 +569,9 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 														<TooltipContent
 															side="left"
 															sideOffset={5}
-															className="max-w-[10rem]"
+															className="max-w-40"
 														>
-															<p>Generate traefik.me domain</p>
+															<p>Generate sslip.io domain</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
@@ -618,7 +622,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									control={form.control}
 									name="stripPath"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-sm">
+										<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-xs">
 											<div className="space-y-0.5">
 												<FormLabel>Strip Path</FormLabel>
 												<FormDescription>
@@ -662,11 +666,11 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									control={form.control}
 									name="useCustomEntrypoint"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
 											<div className="space-y-0.5">
 												<FormLabel>Custom Entrypoint</FormLabel>
 												<FormDescription>
-													Use custom entrypoint for domina
+													Use custom entrypoint for domain
 													<br />
 													"web" and/or "websecure" is used by default.
 												</FormDescription>
@@ -711,7 +715,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									control={form.control}
 									name="https"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
 											<div className="space-y-0.5">
 												<FormLabel>HTTPS</FormLabel>
 												<FormDescription>
@@ -763,6 +767,37 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																<SelectItem value={"custom"}>Custom</SelectItem>
 															</SelectContent>
 														</Select>
+														<FormDescription>
+															{field.value === "none" && (
+																<>
+																	<strong>None</strong> serves TLS using any
+																	certificate you created in the{" "}
+																	<Link
+																		href="/dashboard/settings/certificates"
+																		className="text-primary"
+																	>
+																		Certificates
+																	</Link>{" "}
+																	section whose CN/SAN matches this host —
+																	Traefik selects it automatically via SNI.
+																</>
+															)}
+															{field.value === "letsencrypt" && (
+																<>
+																	<strong>Let's Encrypt</strong> auto-provisions
+																	a certificate automatically for this host.
+																</>
+															)}
+															{field.value === "custom" && (
+																<>
+																	<strong>Custom</strong> uses a Traefik cert
+																	resolver by name (defined in your static
+																	configuration).
+																</>
+															)}
+															{!field.value &&
+																"Select a certificate provider to see how TLS will be served for this host."}
+														</FormDescription>
 														<FormMessage />
 													</FormItem>
 												);
@@ -777,10 +812,19 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 													return (
 														<FormItem>
 															<FormLabel>Custom Certificate Resolver</FormLabel>
+															<FormDescription>
+																Enter the <strong>name</strong> of a Traefik
+																cert resolver defined in your static
+																configuration (e.g. <code>letsencrypt</code>) —
+																not certificate or private key content. To use a
+																certificate you pasted in the Certificates
+																section, choose <strong>None</strong> instead
+																and Traefik will match it by SNI.
+															</FormDescription>
 															<FormControl>
 																<Input
 																	className="w-full"
-																	placeholder="Enter your custom certificate resolver"
+																	placeholder="e.g. letsencrypt"
 																	{...field}
 																	value={field.value || ""}
 																	onChange={(e) => {
@@ -806,7 +850,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 												<FormLabel>Middlewares</FormLabel>
 												<TooltipProvider>
 													<Tooltip>
-														<TooltipTrigger>
+														<TooltipTrigger type="button">
 															<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
 																?
 															</div>

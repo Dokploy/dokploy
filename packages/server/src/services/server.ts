@@ -53,6 +53,27 @@ export const findServerById = async (serverId: string) => {
 	return currentServer;
 };
 
+/**
+ * Removes the SSH private key material from a server record before it is sent
+ * to a client. `findServerById` eagerly loads the `sshKey` relation (needed for
+ * server-side SSH operations), but the private key must never leave the server:
+ * no client feature consumes it, and returning it exposed it to any member with
+ * only `server:read`. Server-side callers keep using `findServerById` directly.
+ */
+export const redactServerSshKey = <
+	T extends { sshKey?: { privateKey: string } | null },
+>(
+	serverRecord: T,
+): T => {
+	if (!serverRecord.sshKey) {
+		return serverRecord;
+	}
+	return {
+		...serverRecord,
+		sshKey: { ...serverRecord.sshKey, privateKey: "" },
+	};
+};
+
 export const findServersByUserId = async (userId: string) => {
 	const orgs = await db.query.organization.findMany({
 		where: eq(organization.ownerId, userId),

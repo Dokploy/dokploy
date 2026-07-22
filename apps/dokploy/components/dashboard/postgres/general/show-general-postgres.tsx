@@ -1,5 +1,5 @@
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
+import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -99,7 +99,7 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
-												<TooltipContent sideOffset={5} className="z-[60]">
+												<TooltipContent sideOffset={5} className="z-60">
 													<p>Downloads and sets up the PostgreSQL database</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
@@ -139,7 +139,7 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
-												<TooltipContent sideOffset={5} className="z-[60]">
+												<TooltipContent sideOffset={5} className="z-60">
 													<p>
 														Restart the PostgreSQL service without rebuilding
 													</p>
@@ -181,7 +181,7 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 													</div>
 												</TooltipTrigger>
 												<TooltipPrimitive.Portal>
-													<TooltipContent sideOffset={5} className="z-[60]">
+													<TooltipContent sideOffset={5} className="z-60">
 														<p>
 															Start the PostgreSQL database (requires a previous
 															successful setup)
@@ -221,7 +221,7 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 													</div>
 												</TooltipTrigger>
 												<TooltipPrimitive.Portal>
-													<TooltipContent sideOffset={5} className="z-[60]">
+													<TooltipContent sideOffset={5} className="z-60">
 														<p>
 															Stop the currently running PostgreSQL database
 														</p>
@@ -234,6 +234,7 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 						</TooltipProvider>
 						<DockerTerminalModal
 							appName={data?.appName || ""}
+							serviceId={data?.postgresId}
 							serverId={data?.serverId || ""}
 						>
 							<Button
@@ -248,7 +249,7 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 										</div>
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
+										<TooltipContent sideOffset={5} className="z-60">
 											<p>Open a terminal to the PostgreSQL container</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>

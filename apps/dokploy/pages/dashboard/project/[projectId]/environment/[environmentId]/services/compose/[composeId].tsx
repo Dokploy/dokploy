@@ -22,6 +22,7 @@ import { ShowSchedules } from "@/components/dashboard/application/schedules/show
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
+import { ShowComposeContainers } from "@/components/dashboard/compose/containers/show-compose-containers";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
@@ -60,6 +61,7 @@ type TabState =
 	| "advanced"
 	| "deployments"
 	| "domains"
+	| "containers"
 	| "monitoring"
 	| "volumeBackups";
 
@@ -83,6 +85,7 @@ const Service = (
 	const { data: auth } = api.user.get.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: serverIp } = api.settings.getIp.useQuery();
 	const { data: environments } = api.environment.byProjectId.useQuery({
 		projectId: data?.environment?.projectId || "",
 	});
@@ -132,8 +135,9 @@ const Service = (
 										<Badge
 											className="cursor-pointer"
 											onClick={() => {
-												if (data?.server?.ipAddress) {
-													copy(data.server.ipAddress);
+												const ip = data?.server?.ipAddress || serverIp;
+												if (ip) {
+													copy(ip);
 													toast.success("IP Address Copied!");
 												}
 											}}
@@ -156,7 +160,7 @@ const Service = (
 														</Label>
 													</TooltipTrigger>
 													<TooltipContent
-														className="z-[999] w-[300px]"
+														className="z-999 w-[300px]"
 														align="start"
 														side="top"
 													>
@@ -231,6 +235,9 @@ const Service = (
 													Deployments
 												</TabsTrigger>
 											)}
+											{permissions?.service.read && (
+												<TabsTrigger value="containers">Containers</TabsTrigger>
+											)}
 											{permissions?.service.create && (
 												<TabsTrigger value="backups">Backups</TabsTrigger>
 											)}
@@ -298,6 +305,19 @@ const Service = (
 											</div>
 										</TabsContent>
 									)}
+									{permissions?.service.read && (
+										<TabsContent value="containers">
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowComposeContainers
+													serverId={data?.serverId || undefined}
+													appName={data?.appName || ""}
+													appType={data?.composeType || "docker-compose"}
+													serviceId={data?.composeId}
+												/>
+											</div>
+										</TabsContent>
+									)}
+
 									{permissions?.monitoring.read && (
 										<TabsContent value="monitoring">
 											<div className="pt-2.5">
@@ -361,11 +381,13 @@ const Service = (
 														serverId={data?.serverId || ""}
 														appName={data?.appName || ""}
 														appType={data?.composeType || "docker-compose"}
+														serviceId={data?.composeId}
 													/>
 												) : (
 													<ShowDockerLogsStack
 														serverId={data?.serverId || ""}
 														appName={data?.appName || ""}
+														serviceId={data?.composeId}
 													/>
 												)}
 											</div>
@@ -438,7 +460,7 @@ export async function getServerSideProps(
 	if (!user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -475,7 +497,7 @@ export async function getServerSideProps(
 			return {
 				redirect: {
 					permanent: false,
-					destination: "/dashboard/projects",
+					destination: "/dashboard/home",
 				},
 			};
 		}

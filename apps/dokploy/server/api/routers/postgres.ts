@@ -9,9 +9,11 @@ import {
 	findEnvironmentById,
 	findPostgresById,
 	findProjectById,
+	getAccessibleServerIds,
 	getContainerLogs,
 	getMountPath,
 	getServiceContainerCommand,
+	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
 	removePostgresById,
@@ -21,7 +23,6 @@ import {
 	stopService,
 	stopServiceRemote,
 	updatePostgresById,
-	getAccessibleServerIds,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -63,7 +64,11 @@ export const postgresRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a Postgres",

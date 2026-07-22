@@ -167,7 +167,11 @@ ${command ?? "wait $MONGOD_PID"}`;
 							]
 						: [],
 				},
-		UpdateConfig,
+		UpdateConfig: mongo.updateConfigSwarm ?? {
+			Parallelism: 1,
+			Order: "stop-first" as const,
+			FailureAction: "rollback" as const,
+		},
 	};
 
 	try {

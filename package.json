@@ -28,7 +28,7 @@
 		"dotenv": "16.4.5",
 		"esbuild": "0.20.2",
 		"lint-staged": "^15.5.2",
-		"tsx": "4.16.2"
+		"tsx": "4.22.4"
 	},
 	"packageManager": "pnpm@10.22.0",
 	"engines": {
@@ -46,7 +46,19 @@
 	},
 	"pnpm": {
 		"overrides": {
-			"esbuild": "0.20.2"
+			"esbuild": "0.20.2",
+			"better-call": "1.3.7",
+			"@better-fetch/fetch": "1.3.1"
+		},
+		"peerDependencyRules": {
+			"ignoreMissing": [
+				"prisma",
+				"@prisma/client",
+				"@prisma/engines",
+				"@electric-sql/pglite",
+				"typescript",
+				"drizzle-kit"
+			]
 		},
 		"onlyBuiltDependencies": [
 			"@scarf/scarf",
@@ -62,9 +74,7 @@
 			"sharp",
 			"ssh2",
 			"tree-sitter",
-			"tree-sitter-json",
-			"@prisma/engines",
-			"prisma"
+			"tree-sitter-json"
 		]
 	}
 }

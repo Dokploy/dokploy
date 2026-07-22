@@ -9,32 +9,19 @@ export * from "./schema";
 
 type Database = PostgresJsDatabase<typeof schema>;
 
-/**
- * Evita problemas de redeclaración global en monorepos.
- * No usamos `declare global`.
- */
+// Este módulo se evalúa varias veces por proceso (copias duplicadas por
+// esbuild y los chunks de Next); el cache en globalThis garantiza un solo
+// pool de conexiones por proceso.
 const globalForDb = globalThis as unknown as {
 	db?: Database;
 };
 
-let dbConnection: Database;
-
-if (process.env.NODE_ENV === "production") {
-	// En producción no usamos global cache
-	dbConnection = drizzle(postgres(dbUrl), {
+if (!globalForDb.db) {
+	globalForDb.db = drizzle(postgres(dbUrl), {
 		schema,
 	});
-} else {
-	// En desarrollo reutilizamos conexión para evitar múltiples conexiones
-	if (!globalForDb.db) {
-		globalForDb.db = drizzle(postgres(dbUrl), {
-			schema,
-		});
-	}
-
-	dbConnection = globalForDb.db;
 }
 
-export const db: Database = dbConnection;
+export const db: Database = globalForDb.db;
 
 export { dbUrl };

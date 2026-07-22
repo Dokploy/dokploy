@@ -160,7 +160,7 @@ const Register = ({ isCloud }: Props) => {
 						)}
 						<CardContent className="p-0">
 							{isCloud && (
-								<div className="flex flex-col">
+								<div className="flex flex-col gap-2">
 									<SignInWithGithub />
 									<SignInWithGoogle />
 								</div>
@@ -172,6 +172,7 @@ const Register = ({ isCloud }: Props) => {
 							)}
 							<Form {...form}>
 								<form
+									method="post"
 									onSubmit={form.handleSubmit(onSubmit)}
 									className="grid gap-4"
 								>
@@ -302,8 +303,8 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		if (user) {
 			return {
 				redirect: {
-					permanent: true,
-					destination: "/dashboard/projects",
+					permanent: false,
+					destination: "/dashboard/home",
 				},
 			};
 		}

@@ -13,7 +13,6 @@ import {
 	findComposeById,
 	findDomainsByComposeId,
 	findEnvironmentById,
-	findGitProviderById,
 	findProjectById,
 	findServerById,
 	getAccessibleServerIds,
@@ -34,6 +33,7 @@ import {
 	updateDeploymentStatus,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
 	checkServiceAccess,
@@ -68,11 +68,9 @@ import {
 	environments,
 	projects,
 } from "@/server/db/schema";
-import { deploymentWorker } from "@/server/queues/deployments-queue";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByCompose,
-	getJobsByComposeId,
 	killDockerBuild,
 	myQueue,
 } from "@/server/queues/queueSetup";
@@ -91,7 +89,11 @@ export const composeRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a compose",
@@ -169,13 +171,11 @@ export const composeRouter = createTRPCRouter({
 			const gitProviderId = getGitProviderId();
 
 			if (gitProviderId) {
-				try {
-					const gitProvider = await findGitProviderById(gitProviderId);
-					if (gitProvider.userId !== ctx.session.userId) {
-						hasGitProviderAccess = false;
-						unauthorizedProvider = compose.sourceType;
-					}
-				} catch {
+				const canEdit = await canEditDeployGitSource(
+					gitProviderId,
+					ctx.session,
+				);
+				if (!canEdit) {
 					hasGitProviderAccess = false;
 					unauthorizedProvider = compose.sourceType;
 				}
@@ -250,12 +250,7 @@ export const composeRouter = createTRPCRouter({
 				.returning();
 
 			if (!IS_CLOUD) {
-				const queueJobs = await getJobsByComposeId(input.composeId);
-				for (const job of queueJobs) {
-					if (job.id) {
-						deploymentWorker.cancelJob(job.id, "User requested cancellation");
-					}
-				}
+				await cleanQueuesByCompose(input.composeId);
 			}
 
 			const cleanupOperations = [
@@ -428,10 +423,10 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
+				serverId: compose.serverId ?? undefined,
 			};
 
 			if (IS_CLOUD && compose.serverId) {
-				jobData.serverId = compose.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
@@ -477,9 +472,9 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
+				serverId: compose.serverId ?? undefined,
 			};
 			if (IS_CLOUD && compose.serverId) {
-				jobData.serverId = compose.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
@@ -585,7 +580,11 @@ export const composeRouter = createTRPCRouter({
 
 			await checkServiceAccess(ctx, environment.projectId, "create");
 
-			if (IS_CLOUD && !input.serverId) {
+			const webServerSettings = await getWebServerSettings();
+			if (
+				(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+				!input.serverId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You need to use a server to create a compose",
@@ -640,7 +639,7 @@ export const composeRouter = createTRPCRouter({
 				name: input.id,
 				sourceType: "raw",
 				appName: appName,
-				isolatedDeployment: true,
+				isolatedDeployment: template.config.config?.isolated !== false,
 			});
 
 			await addNewService(ctx, compose.composeId);
@@ -700,11 +699,14 @@ export const composeRouter = createTRPCRouter({
 	getTags: protectedProcedure
 		.input(z.object({ baseUrl: z.string().optional() }))
 		.query(async ({ input }) => {
-			const githubTemplates = await fetchTemplatesList(input.baseUrl);
-
-			const allTags = githubTemplates.flatMap((template) => template.tags);
-			const uniqueTags = _.uniq(allTags);
-			return uniqueTags;
+			try {
+				const githubTemplates = await fetchTemplatesList(input.baseUrl);
+				const allTags = githubTemplates.flatMap((template) => template.tags);
+				return _.uniq(allTags);
+			} catch (error) {
+				console.warn("Failed to fetch template tags:", error);
+				return [];
+			}
 		}),
 	disconnectGitProvider: protectedProcedure
 		.input(apiFindCompose)
@@ -845,6 +847,76 @@ export const composeRouter = createTRPCRouter({
 				const processedTemplate = processTemplate(configModified, {
 					serverIp: serverIp,
 					projectName: compose.appName,
+				});
+
+				return {
+					compose: templateData.compose,
+					template: processedTemplate,
+				};
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Error processing template: ${error instanceof Error ? error.message : error}`,
+				});
+			}
+		}),
+
+	previewTemplate: protectedProcedure
+		.input(
+			z.object({
+				base64: z.string(),
+				appName: z.string(),
+				serverId: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				if (input.serverId) {
+					const accessibleIds = await getAccessibleServerIds(ctx.session);
+					if (!accessibleIds.has(input.serverId)) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this server",
+						});
+					}
+				}
+
+				const decodedData = Buffer.from(input.base64, "base64").toString(
+					"utf-8",
+				);
+
+				let serverIp = "127.0.0.1";
+
+				if (input.serverId) {
+					const server = await findServerById(input.serverId);
+					serverIp = server.ipAddress;
+				} else if (process.env.NODE_ENV !== "development") {
+					const settings = await getWebServerSettings();
+					serverIp = settings?.serverIp || "127.0.0.1";
+				}
+
+				const templateData = JSON.parse(decodedData);
+				const config = parse(templateData.config) as CompleteTemplate;
+
+				if (!templateData.compose || !config) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Invalid template format. Must contain compose and config fields",
+					});
+				}
+
+				const configModified = {
+					...config,
+					variables: {
+						APP_NAME: input.appName,
+						...config.variables,
+					},
+				};
+
+				const processedTemplate = processTemplate(configModified, {
+					serverIp,
+					projectName: input.appName,
 				});
 
 				return {

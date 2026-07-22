@@ -19,6 +19,7 @@ import {
 	Forward,
 	GalleryVerticalEnd,
 	GitBranch,
+	House,
 	Key,
 	KeyRound,
 	Loader2,
@@ -41,6 +42,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -151,6 +153,12 @@ const MENU: Menu = {
 	home: [
 		{
 			isSingle: true,
+			title: "Home",
+			url: "/dashboard/home",
+			icon: House,
+		},
+		{
+			isSingle: true,
 			title: "Projects",
 			url: "/dashboard/projects",
 			icon: Folder,
@@ -176,36 +184,31 @@ const MENU: Menu = {
 			title: "Schedules",
 			url: "/dashboard/schedules",
 			icon: Clock,
-			// Only enabled in non-cloud environments
-			isEnabled: ({ isCloud, permissions }) =>
-				!isCloud && !!permissions?.organization.update,
+			isEnabled: ({ permissions }) => !!permissions?.organization.update,
 		},
 		{
 			isSingle: true,
 			title: "Traefik File System",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
-			// Only enabled for users with access to Traefik files in non-cloud environments
-			isEnabled: ({ permissions, isCloud }) =>
-				!!(permissions?.traefikFiles.read && !isCloud),
+			// Only enabled for users with access to Traefik files
+			isEnabled: ({ permissions }) => !!permissions?.traefikFiles.read,
 		},
 		{
 			isSingle: true,
 			title: "Docker",
 			url: "/dashboard/docker",
 			icon: BlocksIcon,
-			// Only enabled for users with access to Docker in non-cloud environments
-			isEnabled: ({ permissions, isCloud }) =>
-				!!(permissions?.docker.read && !isCloud),
+			// Only enabled for users with access to Docker
+			isEnabled: ({ permissions }) => !!permissions?.docker.read,
 		},
 		{
 			isSingle: true,
 			title: "Swarm",
 			url: "/dashboard/swarm",
 			icon: PieChart,
-			// Only enabled for users with access to Docker in non-cloud environments
-			isEnabled: ({ permissions, isCloud }) =>
-				!!(permissions?.docker.read && !isCloud),
+			// Only enabled for users with access to Docker
+			isEnabled: ({ permissions }) => !!permissions?.docker.read,
 		},
 		{
 			isSingle: true,
@@ -313,6 +316,14 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			title: "Deployments",
+			url: "/dashboard/settings/deployments",
+			icon: Boxes,
+			isEnabled: ({ permissions, isCloud }) =>
+				!!(permissions?.server.read && !isCloud),
+		},
+		{
+			isSingle: true,
 			title: "Users",
 			icon: Users,
 			url: "/dashboard/settings/users",
@@ -383,9 +394,8 @@ const MENU: Menu = {
 			title: "Cluster",
 			url: "/dashboard/settings/cluster",
 			icon: Boxes,
-			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ permissions, isCloud }) =>
-				!!(permissions?.organization.update && !isCloud),
+			// Only enabled for admins
+			isEnabled: ({ permissions }) => !!permissions?.organization.update,
 		},
 		{
 			isSingle: true,
@@ -570,6 +580,8 @@ function SidebarLogo() {
 	const { isMobile } = useSidebar();
 	const isCollapsed = state === "collapsed" && !isMobile;
 	const { data: activeOrganization } = api.organization.active.useQuery();
+	const { data: haveValidLicense } =
+		api.licenseKey.haveValidLicenseKey.useQuery();
 
 	const { data: invitations, refetch: refetchInvitations } =
 		api.user.getInvitations.useQuery();
@@ -635,9 +647,14 @@ function SidebarLogo() {
 												isCollapsed && "hidden",
 											)}
 										>
-											<p className="text-sm font-medium leading-none">
-												{activeOrganization?.name ?? "Select Organization"}
-											</p>
+											<div className="flex items-center gap-1.5">
+												<p className="text-sm font-medium leading-none">
+													{activeOrganization?.name ?? "Select Organization"}
+												</p>
+												{haveValidLicense && (
+													<Badge variant="blue">Enterprise</Badge>
+												)}
+											</div>
 										</div>
 									</div>
 									<ChevronsUpDown
@@ -646,7 +663,7 @@ function SidebarLogo() {
 								</SidebarMenuButton>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent
-								className="rounded-lg max-h-[min(70vh,28rem)] flex flex-col"
+								className="w-64 rounded-lg max-h-[min(70vh,28rem)] flex flex-col"
 								align="start"
 								side={isMobile ? "bottom" : "right"}
 								sideOffset={4}
@@ -659,7 +676,7 @@ function SidebarLogo() {
 										const isDefault = org.members?.[0]?.isDefault ?? false;
 										return (
 											<div
-												className="flex flex-row justify-between"
+												className="flex flex-row items-center justify-between gap-1"
 												key={org.name}
 											>
 												<DropdownMenuItem
@@ -669,25 +686,21 @@ function SidebarLogo() {
 														});
 														window.location.reload();
 													}}
-													className="w-full gap-2 p-2"
+													className="flex min-w-0 flex-1 gap-2 p-2"
 												>
-													<div className="flex flex-col gap-1">
-														<div className="flex items-center gap-2">
-															{org.name}
-														</div>
-													</div>
-													<div className="flex size-6 items-center justify-center rounded-sm border">
+													<div className="flex size-6 shrink-0 items-center justify-center rounded-sm border">
 														<Logo
 															className={cn(
 																"transition-all",
-																state === "collapsed" ? "size-6" : "size-10",
+																state === "collapsed" ? "size-4" : "size-5",
 															)}
 															logoUrl={org.logo ?? undefined}
 														/>
 													</div>
+													<span className="truncate">{org.name}</span>
 												</DropdownMenuItem>
 
-												<div className="flex items-center gap-2">
+												<div className="flex shrink-0 items-center gap-2">
 													<Button
 														variant="ghost"
 														size="icon"
@@ -803,7 +816,7 @@ function SidebarLogo() {
 								>
 									<Bell className="size-4" />
 									{invitations && invitations.length > 0 && (
-										<span className="absolute -top-0 -right-0 flex size-4 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
+										<span className="absolute top-0 right-0 flex size-4 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
 											{invitations.length}
 										</span>
 									)}
@@ -876,6 +889,19 @@ function SidebarLogo() {
 	);
 }
 
+function MobileCloser() {
+	const pathname = usePathname();
+	const { setOpenMobile, isMobile } = useSidebar();
+
+	useEffect(() => {
+		if (isMobile) {
+			setOpenMobile(false);
+		}
+	}, [pathname, isMobile, setOpenMobile]);
+
+	return null;
+}
+
 export default function Page({ children }: Props) {
 	const [defaultOpen, setDefaultOpen] = useState<boolean | undefined>(
 		undefined,
@@ -941,10 +967,11 @@ export default function Page({ children }: Props) {
 				} as React.CSSProperties
 			}
 		>
+			<MobileCloser />
 			<Sidebar collapsible="icon" variant="floating">
 				<SidebarHeader>
 					{/* <SidebarMenuButton
-						className="group-data-[collapsible=icon]:!p-0"
+						className="group-data-[collapsible=icon]:p-0!"
 						size="lg"
 					> */}
 					<LogoWrapper />
@@ -1178,7 +1205,7 @@ export default function Page({ children }: Props) {
 			</Sidebar>
 			<SidebarInset>
 				{!includesProjects && (
-					<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+					<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
 						<div className="flex items-center justify-between w-full px-4">
 							<div className="flex items-center gap-2">
 								<SidebarTrigger className="-ml-1" />

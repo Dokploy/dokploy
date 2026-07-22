@@ -17,13 +17,25 @@ import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
-import { extractCommitMessage, extractHash } from "./[refreshToken]";
+import {
+	extractCommitMessage,
+	extractHash,
+	logWebhookError,
+} from "./[refreshToken]";
+
+const getGithubRepositoryOwner = (githubBody: any) =>
+	githubBody?.repository?.owner?.name ?? githubBody?.repository?.owner?.login;
 
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
 ) {
 	const signature = req.headers["x-hub-signature-256"];
+	if (!signature) {
+		res.status(401).json({ message: "Missing signature header" });
+		return;
+	}
+
 	const githubBody = req.body;
 
 	if (!githubBody?.installation?.id) {
@@ -100,7 +112,7 @@ export default async function handler(
 		try {
 			const tagName = githubBody?.ref.replace("refs/tags/", "");
 			const repository = githubBody?.repository?.name;
-			const owner = githubBody?.repository?.owner?.name;
+			const owner = getGithubRepositoryOwner(githubBody);
 			const deploymentTitle = `Tag created: ${tagName}`;
 			const deploymentHash = extractHash(req.headers, githubBody);
 
@@ -197,10 +209,8 @@ export default async function handler(
 			});
 			return;
 		} catch (error) {
-			console.error("Error deploying applications on tag:", error);
-			res
-				.status(400)
-				.json({ message: "Error deploying applications on tag", error });
+			logWebhookError("Error deploying applications on tag:", error);
+			res.status(400).json({ message: "Error deploying applications on tag" });
 			return;
 		}
 	}
@@ -212,7 +222,7 @@ export default async function handler(
 
 			const deploymentTitle = extractCommitMessage(req.headers, req.body);
 			const deploymentHash = extractHash(req.headers, req.body);
-			const owner = githubBody?.repository?.owner?.name;
+			const owner = getGithubRepositoryOwner(githubBody);
 			const normalizedCommits = githubBody?.commits?.flatMap(
 				(commit: any) => commit.modified,
 			);
@@ -322,7 +332,8 @@ export default async function handler(
 			}
 			res.status(200).json({ message: `Deployed ${totalApps} apps` });
 		} catch (error) {
-			res.status(400).json({ message: "Error deploying Application", error });
+			logWebhookError("Error deploying Application:", error);
+			res.status(400).json({ message: "Error deploying Application" });
 		}
 	} else if (req.headers["x-github-event"] === "pull_request") {
 		const prId = githubBody?.pull_request?.id;
@@ -364,7 +375,7 @@ export default async function handler(
 			const repository = githubBody?.repository?.name;
 			const deploymentHash = githubBody?.pull_request?.head?.sha;
 			const branch = githubBody?.pull_request?.base?.ref;
-			const owner = githubBody?.repository?.owner?.login;
+			const owner = getGithubRepositoryOwner(githubBody);
 			const prAuthor = githubBody?.pull_request?.user?.login;
 
 			// Validate PR author information is present

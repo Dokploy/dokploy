@@ -81,12 +81,17 @@ const getDockerConfig = (): Docker => {
 	return new Docker({ ...versionOption });
 };
 
-export const docker = getDockerConfig();
+// Igual que db: el módulo se evalúa una vez por copia bundleada, el cache
+// evita crear un cliente (y loguear la detección del socket) por cada una.
+const globalForDocker = globalThis as unknown as {
+	docker?: Docker;
+};
 
-// When not set, use the legacy default so 2FA remains working for users who
-// enabled it before BETTER_AUTH_SECRET was introduced.
-export const BETTER_AUTH_SECRET =
-	process.env.BETTER_AUTH_SECRET || "better-auth-secret-123456789";
+if (!globalForDocker.docker) {
+	globalForDocker.docker = getDockerConfig();
+}
+
+export const docker = globalForDocker.docker;
 
 export const paths = (isServer = false) => {
 	const BASE_PATH =

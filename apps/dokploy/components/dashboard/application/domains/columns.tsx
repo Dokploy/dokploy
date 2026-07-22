@@ -21,9 +21,9 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { RouterOutputs } from "@/utils/api";
-import type { ValidationStates } from "./show-domains";
-import { AddDomain } from "./handle-domain";
 import { DnsHelperModal } from "./dns-helper-modal";
+import { AddDomain } from "./handle-domain";
+import type { ValidationStates } from "./show-domains";
 
 export type Domain =
 	| RouterOutputs["domain"]["byApplicationId"][0]
@@ -168,7 +168,7 @@ export const createColumns = ({
 							{domain.certificateType}
 						</Badge>
 					)}
-					{!domain.host.includes("traefik.me") && (
+					{!domain.host.includes("sslip.io") && (
 						<TooltipProvider>
 							<Tooltip>
 								<TooltipTrigger asChild>
@@ -256,7 +256,7 @@ export const createColumns = ({
 
 			return (
 				<div className="flex items-center gap-2">
-					{!domain.host.includes("traefik.me") && (
+					{!domain.host.includes("sslip.io") && (
 						<DnsHelperModal
 							domain={{
 								host: domain.host,

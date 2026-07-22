@@ -1,3 +1,4 @@
+import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CheckIcon, ChevronsUpDown, X } from "lucide-react";
 import Link from "next/link";
@@ -58,7 +59,10 @@ const GitlabProviderSchema = z.object({
 			gitlabPathNamespace: z.string().min(1),
 		})
 		.required(),
-	branch: z.string().min(1, "Branch is required"),
+	branch: z
+		.string()
+		.min(1, "Branch is required")
+		.regex(VALID_BRANCH_REGEX, "Invalid branch name"),
 	gitlabId: z.string().min(1, "Gitlab Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
 	enableSubmodules: z.boolean().default(false),
@@ -195,6 +199,9 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 									<FormLabel>Gitlab Account</FormLabel>
 									<Select
 										onValueChange={(value) => {
+											if (!value) {
+												return;
+											}
 											field.onChange(value);
 											form.setValue("repository", {
 												owner: "",
@@ -204,7 +211,6 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 											});
 											form.setValue("branch", "");
 										}}
-										defaultValue={field.value}
 										value={field.value}
 									>
 										<FormControl>
@@ -252,7 +258,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -268,7 +274,10 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 												</Button>
 											</FormControl>
 										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
+										<PopoverContent
+											className="w-[var(--radix-popover-trigger-width)] p-0"
+											align="start"
+										>
 											<Command>
 												<CommandInput
 													placeholder="Search repository..."
@@ -306,8 +315,10 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 																		form.setValue("branch", "");
 																	}}
 																>
-																	<span className="flex items-center gap-2">
-																		<span>{repo.name}</span>
+																	<span className="flex min-w-0 items-center gap-2">
+																		<span className="truncate">
+																			{repo.name}
+																		</span>
 																		<span className="text-muted-foreground text-xs">
 																			{repo.owner.username}
 																		</span>
@@ -349,7 +360,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														" w-full justify-between !bg-input",
+														" w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -364,7 +375,10 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 												</Button>
 											</FormControl>
 										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
+										<PopoverContent
+											className="w-[var(--radix-popover-trigger-width)] p-0"
+											align="start"
+										>
 											<Command>
 												<CommandInput
 													placeholder="Search branch..."
@@ -392,7 +406,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 																	form.setValue("branch", branch.name);
 																}}
 															>
-																{branch.name}
+																<span className="truncate">{branch.name}</span>
 																<CheckIcon
 																	className={cn(
 																		"ml-auto h-4 w-4",
@@ -436,7 +450,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 										<FormLabel>Watch Paths</FormLabel>
 										<TooltipProvider>
 											<Tooltip>
-												<TooltipTrigger>
+												<TooltipTrigger type="button">
 													<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
 														?
 													</div>
@@ -516,7 +530,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+									<FormLabel className="mt-0!">Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

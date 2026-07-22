@@ -3,6 +3,7 @@ import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
+import { canAccessDockerOverWss } from "./authorize";
 import {
 	getShell,
 	isValidContainerId,
@@ -41,6 +42,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 		const since = url.searchParams.get("since") ?? "all";
 		const serverId = url.searchParams.get("serverId");
 		const runType = url.searchParams.get("runType");
+		const serviceId = url.searchParams.get("serviceId");
 		const { user, session } = await validateRequest(req);
 
 		if (!containerId) {
@@ -74,6 +76,11 @@ export const setupDockerContainerLogsWebSocketServer = (
 			return;
 		}
 
+		if (!(await canAccessDockerOverWss(user, session, serverId, serviceId))) {
+			ws.close(4003, "Not authorized");
+			return;
+		}
+
 		// Set up keep-alive ping mechanism to prevent timeout
 		// Send ping every 45 seconds to keep connection alive
 		const pingInterval = setInterval(() => {
@@ -84,6 +91,11 @@ export const setupDockerContainerLogsWebSocketServer = (
 		try {
 			if (serverId) {
 				const server = await findServerById(serverId);
+
+				if (server.organizationId !== session.activeOrganizationId) {
+					ws.close();
+					return;
+				}
 
 				if (!server.sshKeyId) return;
 				const client = new Client();

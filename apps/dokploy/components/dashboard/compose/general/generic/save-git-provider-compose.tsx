@@ -1,3 +1,4 @@
+import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { HelpCircle, KeyRoundIcon, LockIcon, X } from "lucide-react";
 import Link from "next/link";
@@ -41,7 +42,10 @@ const GitProviderSchema = z.object({
 	repositoryURL: z.string().min(1, {
 		message: "Repository URL is required",
 	}),
-	branch: z.string().min(1, "Branch required"),
+	branch: z
+		.string()
+		.min(1, "Branch required")
+		.regex(VALID_BRANCH_REGEX, "Invalid branch name"),
 	sshKey: z.string().optional(),
 	watchPaths: z.array(z.string()).optional(),
 	enableSubmodules: z.boolean().default(false),
@@ -309,7 +313,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 										onCheckedChange={field.onChange}
 									/>
 								</FormControl>
-								<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+								<FormLabel className="mt-0!">Enable Submodules</FormLabel>
 							</FormItem>
 						)}
 					/>

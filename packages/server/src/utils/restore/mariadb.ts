@@ -1,6 +1,7 @@
 import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Mariadb } from "@dokploy/server/services/mariadb";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
@@ -19,7 +20,7 @@ export const restoreMariadbBackup = async (
 		const bucketPath = `:s3:${destination.bucket}`;
 		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
 
-		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
+		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} ${quote([backupPath])} | gunzip`;
 
 		const command = getRestoreCommand({
 			appName,
@@ -34,8 +35,9 @@ export const restoreMariadbBackup = async (
 		});
 
 		emit("Starting restore...");
-
-		emit(`Executing command: ${command}`);
+		emit(
+			`Restoring database: ${backupInput.databaseName} from ${backupInput.backupFile}`,
+		);
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);

@@ -1,17 +1,22 @@
-import { IS_CLOUD, validateRequest } from "@dokploy/server";
+import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import { ShowNodes } from "@/components/dashboard/settings/cluster/nodes/show-nodes";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { ServerFilter } from "@/components/shared/server-filter";
 import { appRouter } from "@/server/api/root";
 
 const Page = () => {
 	return (
-		<div className="flex flex-col gap-4 w-full">
-			<ShowNodes />
-		</div>
+		<ServerFilter>
+			{(serverId) => (
+				<div className="flex flex-col gap-4 w-full">
+					<ShowNodes serverId={serverId} />
+				</div>
+			)}
+		</ServerFilter>
 	);
 };
 
@@ -24,19 +29,11 @@ export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
 	const { req, res } = ctx;
-	if (IS_CLOUD) {
-		return {
-			redirect: {
-				permanent: true,
-				destination: "/dashboard/projects",
-			},
-		};
-	}
 	const { user, session } = await validateRequest(ctx.req);
 	if (!user || user.role === "member") {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};

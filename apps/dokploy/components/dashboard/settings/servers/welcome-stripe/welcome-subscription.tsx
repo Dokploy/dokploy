@@ -92,7 +92,7 @@ export const WelcomeSubscription = () => {
 							force={0.3}
 							particleSize={12}
 							particleCount={300}
-							className="z-[9999]"
+							className="z-9999"
 							zIndex={9999}
 							width={1500}
 						/>
@@ -127,7 +127,7 @@ export const WelcomeSubscription = () => {
 							>
 								{stepper.all.map((step, index, array) => (
 									<React.Fragment key={step.id}>
-										<li className="flex items-center gap-4 flex-shrink-0">
+										<li className="flex items-center gap-4 shrink-0">
 											<Button
 												type="button"
 												role="tab"
@@ -425,7 +425,7 @@ export const WelcomeSubscription = () => {
 								onClick={() => {
 									if (stepper.isLast) {
 										setIsOpen(false);
-										push("/dashboard/projects");
+										push("/dashboard/home");
 									} else {
 										stepper.next();
 									}

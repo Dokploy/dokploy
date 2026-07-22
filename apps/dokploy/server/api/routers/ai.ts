@@ -1,6 +1,7 @@
 import { IS_CLOUD } from "@dokploy/server/constants";
 import {
 	apiCreateAi,
+	apiSaveAiCustomProviders,
 	apiUpdateAi,
 	deploySuggestionSchema,
 } from "@dokploy/server/db/schema/ai";
@@ -13,7 +14,9 @@ import {
 	deleteAiSettings,
 	getAiSettingById,
 	getAiSettingsByOrganizationId,
+	getCustomAiProviders,
 	saveAiSettings,
+	saveCustomAiProviders,
 	suggestVariants,
 } from "@dokploy/server/services/ai";
 import { createComposeByTemplate } from "@dokploy/server/services/compose";
@@ -25,8 +28,8 @@ import { findProjectById } from "@dokploy/server/services/project";
 import {
 	getProviderHeaders,
 	getProviderName,
-	selectAIProvider,
 	type Model,
+	selectAIProvider,
 } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { generateText } from "ai";
@@ -198,6 +201,19 @@ export const aiRouter = createTRPCRouter({
 		.input(z.object({ aiId: z.string() }))
 		.mutation(async ({ input }) => {
 			return await deleteAiSettings(input.aiId);
+		}),
+
+	getCustomProviders: protectedProcedure.query(async ({ ctx }) => {
+		return await getCustomAiProviders(ctx.session.activeOrganizationId);
+	}),
+
+	saveCustomProviders: adminProcedure
+		.input(apiSaveAiCustomProviders)
+		.mutation(async ({ ctx, input }) => {
+			return await saveCustomAiProviders(
+				ctx.session.activeOrganizationId,
+				input.providers,
+			);
 		}),
 
 	getEnabledProviders: protectedProcedure.query(async ({ ctx }) => {

@@ -12,6 +12,7 @@ import {
 	extractCommittedPaths,
 	extractHash,
 	getProviderByHeader,
+	logWebhookError,
 } from "../[refreshToken]";
 
 export default async function handler(
@@ -195,13 +196,14 @@ export default async function handler(
 				);
 			}
 		} catch (error) {
-			res.status(400).json({ message: "Error deploying Compose", error });
+			logWebhookError("Error deploying Compose:", error);
+			res.status(400).json({ message: "Error deploying Compose" });
 			return;
 		}
 
 		res.status(200).json({ message: "Compose deployed successfully" });
 	} catch (error) {
-		console.log(error);
-		res.status(400).json({ message: "Error deploying Compose", error });
+		logWebhookError("Error deploying Compose:", error);
+		res.status(400).json({ message: "Error deploying Compose" });
 	}
 }

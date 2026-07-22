@@ -288,7 +288,6 @@ export const RestoreBackup = ({
 			toast.error("Please select a database type");
 			return;
 		}
-		console.log({ data });
 		setIsDeploying(true);
 	};
 
@@ -346,7 +345,7 @@ export const RestoreBackup = ({
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -428,7 +427,7 @@ export const RestoreBackup = ({
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -623,7 +622,7 @@ export const RestoreBackup = ({
 														<TooltipContent
 															side="left"
 															sideOffset={5}
-															className="max-w-[10rem]"
+															className="max-w-40"
 														>
 															<p>
 																Fetch: Will clone the repository and load the
@@ -653,7 +652,7 @@ export const RestoreBackup = ({
 														<TooltipContent
 															side="left"
 															sideOffset={5}
-															className="max-w-[10rem]"
+															className="max-w-40"
 														>
 															<p>
 																Cache: If you previously deployed this compose,

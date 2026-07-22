@@ -80,6 +80,7 @@ export const commonCronExpressions = [
 const formSchema = z
 	.object({
 		name: z.string().min(1, "Name is required"),
+		description: z.string().optional(),
 		cronExpression: z.string().min(1, "Cron expression is required"),
 		shellType: z.enum(["bash", "sh"]).default("bash"),
 		command: z.string(),
@@ -224,6 +225,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 		resolver: standardSchemaResolver(formSchema),
 		defaultValues: {
 			name: "",
+			description: "",
 			cronExpression: "",
 			shellType: "bash",
 			command: "",
@@ -263,6 +265,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 		if (scheduleId && schedule) {
 			form.reset({
 				name: schedule.name,
+				description: schedule.description || "",
 				cronExpression: schedule.cronExpression,
 				shellType: schedule.shellType,
 				command: schedule.command,
@@ -352,10 +355,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 						{scheduleTypeForm === "compose" && (
 							<div className="flex flex-col w-full gap-4">
 								{errorServices && (
-									<AlertBlock
-										type="warning"
-										className="[overflow-wrap:anywhere]"
-									>
+									<AlertBlock type="warning" className="wrap-anywhere">
 										{errorServices?.message}
 									</AlertBlock>
 								)}
@@ -411,7 +411,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 														<TooltipContent
 															side="left"
 															sideOffset={5}
-															className="max-w-[10rem]"
+															className="max-w-40"
 														>
 															<p>
 																Fetch: Will clone the repository and load the
@@ -441,7 +441,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 														<TooltipContent
 															side="left"
 															sideOffset={5}
-															className="max-w-[10rem]"
+															className="max-w-40"
 														>
 															<p>
 																Cache: If you previously deployed this compose,
@@ -473,6 +473,26 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 									</FormControl>
 									<FormDescription>
 										A descriptive name for your scheduled task
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={form.control}
+							name="description"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Description</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="Backs up the database every day at midnight"
+											{...field}
+										/>
+									</FormControl>
+									<FormDescription>
+										Optional description of what this schedule does
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -511,7 +531,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>

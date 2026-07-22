@@ -123,6 +123,7 @@ export default function Home({ tokenResetPassword }: Props) {
 						)}
 						<Form {...form}>
 							<form
+								method="post"
 								onSubmit={form.handleSubmit(onSubmit)}
 								className="grid gap-4"
 							>
@@ -190,7 +191,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (!IS_CLOUD) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -200,7 +201,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (typeof token !== "string") {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};

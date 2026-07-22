@@ -1,4 +1,8 @@
-import { IS_CLOUD, isAdminPresent } from "@dokploy/server";
+import {
+	getWebServerSettings,
+	IS_CLOUD,
+	isAdminPresent,
+} from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
@@ -33,7 +37,12 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { InputOTP } from "@/components/ui/input-otp";
+import {
+	InputOTP,
+	InputOTPGroup,
+	InputOTPSeparator,
+	InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
@@ -52,8 +61,9 @@ type LoginForm = z.infer<typeof LoginSchema>;
 
 interface Props {
 	IS_CLOUD: boolean;
+	enforceSSO: boolean;
 }
-export default function Home({ IS_CLOUD }: Props) {
+export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 	const router = useRouter();
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const { data: showSignInWithSSO } = api.sso.showSignInWithSSO.useQuery();
@@ -82,6 +92,16 @@ export default function Home({ IS_CLOUD }: Props) {
 			});
 
 			if (error) {
+				const isEmailNotVerified =
+					error.code === "EMAIL_NOT_VERIFIED" ||
+					error.message?.toLowerCase().includes("email not verified");
+				if (isEmailNotVerified) {
+					const msg =
+						"Your email is not verified. We've sent a new verification link to your email.";
+					toast.info(msg);
+					setError(msg);
+					return;
+				}
 				toast.error(error.message);
 				setError(error.message || "An error occurred while logging in");
 				return;
@@ -96,7 +116,7 @@ export default function Home({ IS_CLOUD }: Props) {
 			}
 
 			toast.success("Logged in successfully");
-			router.push("/dashboard/projects");
+			router.push("/dashboard/home");
 		} catch {
 			toast.error("An error occurred while logging in");
 		} finally {
@@ -123,7 +143,7 @@ export default function Home({ IS_CLOUD }: Props) {
 			}
 
 			toast.success("Logged in successfully");
-			router.push("/dashboard/projects");
+			router.push("/dashboard/home");
 		} catch {
 			toast.error("An error occurred while verifying 2FA code");
 		} finally {
@@ -153,7 +173,7 @@ export default function Home({ IS_CLOUD }: Props) {
 			}
 
 			toast.success("Logged in successfully");
-			router.push("/dashboard/projects");
+			router.push("/dashboard/home");
 		} catch {
 			toast.error("An error occurred while verifying backup code");
 		} finally {
@@ -167,6 +187,7 @@ export default function Home({ IS_CLOUD }: Props) {
 			{IS_CLOUD && <SignInWithGoogle />}
 			<Form {...loginForm}>
 				<form
+					method="post"
 					onSubmit={loginForm.handleSubmit(onSubmit)}
 					className="space-y-4"
 					id="login-form"
@@ -237,7 +258,9 @@ export default function Home({ IS_CLOUD }: Props) {
 			<CardContent className="p-0">
 				{!isTwoFactor ? (
 					<>
-						{showSignInWithSSO ? (
+						{enforceSSO ? (
+							<SignInWithSSO enforce />
+						) : showSignInWithSSO ? (
 							<SignInWithSSO>{loginContent}</SignInWithSSO>
 						) : (
 							loginContent
@@ -246,6 +269,7 @@ export default function Home({ IS_CLOUD }: Props) {
 				) : (
 					<>
 						<form
+							method="post"
 							onSubmit={onTwoFactorSubmit}
 							className="space-y-4"
 							id="two-factor-form"
@@ -259,10 +283,21 @@ export default function Home({ IS_CLOUD }: Props) {
 									value={twoFactorCode}
 									onChange={setTwoFactorCode}
 									maxLength={6}
-									placeholder="••••••"
 									pattern={REGEXP_ONLY_DIGITS}
 									autoFocus
-								/>
+								>
+									<InputOTPGroup>
+										<InputOTPSlot index={0} />
+										<InputOTPSlot index={1} />
+										<InputOTPSlot index={2} />
+									</InputOTPGroup>
+									<InputOTPSeparator />
+									<InputOTPGroup>
+										<InputOTPSlot index={3} />
+										<InputOTPSlot index={4} />
+										<InputOTPSlot index={5} />
+									</InputOTPGroup>
+								</InputOTP>
 								<CardDescription>
 									Enter the 6-digit code from your authenticator app
 								</CardDescription>
@@ -275,7 +310,7 @@ export default function Home({ IS_CLOUD }: Props) {
 								</button>
 							</div>
 
-							<div className="flex gap-4">
+							<div className="grid grid-cols-2 gap-4">
 								<Button
 									variant="outline"
 									className="w-full"
@@ -309,7 +344,11 @@ export default function Home({ IS_CLOUD }: Props) {
 									</DialogDescription>
 								</DialogHeader>
 
-								<form onSubmit={onBackupCodeSubmit} className="space-y-4">
+								<form
+									method="post"
+									onSubmit={onBackupCodeSubmit}
+									className="space-y-4"
+								>
 									<div className="flex flex-col gap-2">
 										<Label>Backup Code</Label>
 										<Input
@@ -397,8 +436,8 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 			if (user) {
 				return {
 					redirect: {
-						permanent: true,
-						destination: "/dashboard/projects",
+						permanent: false,
+						destination: "/dashboard/home",
 					},
 				};
 			}
@@ -407,6 +446,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		return {
 			props: {
 				IS_CLOUD: IS_CLOUD,
+				enforceSSO: false,
 			},
 		};
 	}
@@ -415,7 +455,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (!hasAdmin) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/register",
 			},
 		};
@@ -426,15 +466,18 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (user) {
 		return {
 			redirect: {
-				permanent: true,
-				destination: "/dashboard/projects",
+				permanent: false,
+				destination: "/dashboard/home",
 			},
 		};
 	}
 
+	const webServerSettings = await getWebServerSettings();
+
 	return {
 		props: {
 			hasAdmin,
+			enforceSSO: webServerSettings?.enforceSSO ?? false,
 		},
 	};
 }

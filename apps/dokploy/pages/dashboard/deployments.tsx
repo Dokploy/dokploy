@@ -54,12 +54,12 @@ function DeploymentsPage() {
 								</CardDescription>
 							</div>
 						</div>
-						<Tabs value={tab} onValueChange={setTab} className="w-full">
+						<Tabs value={tab} onValueChange={setTab} className="w-full min-w-0">
 							<TabsList className="mt-2">
 								<TabsTrigger value="deployments">Deployments</TabsTrigger>
 								<TabsTrigger value="queue">Queue</TabsTrigger>
 							</TabsList>
-							<TabsContent value="deployments" className="mt-0 pt-4">
+							<TabsContent value="deployments" className="mt-0 min-w-0 pt-4">
 								<ShowDeploymentsTable />
 							</TabsContent>
 							<TabsContent value="queue" className="mt-0 pt-4">
@@ -84,7 +84,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	if (!user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -102,7 +102,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 		return {
 			redirect: {
 				permanent: false,
-				destination: "/dashboard/projects",
+				destination: "/dashboard/home",
 			},
 		};
 	}

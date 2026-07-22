@@ -13,9 +13,13 @@ import { db } from "@dokploy/server/db";
 import {
 	createVolumeBackupSchema,
 	updateVolumeBackupSchema,
+	VOLUME_NAME_MESSAGE,
+	VOLUME_NAME_REGEX,
 	volumeBackups,
 } from "@dokploy/server/db/schema";
+import { findDestinationById } from "@dokploy/server/services/destination";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
+import { findServerById } from "@dokploy/server/services/server";
 import {
 	execAsyncRemote,
 	execAsyncStream,
@@ -25,6 +29,7 @@ import { observable } from "@trpc/server/observable";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
+import { assertVolumeBackupLimit } from "@/server/api/utils/plan-limits";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
@@ -67,19 +72,32 @@ export const volumeBackupsRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createVolumeBackupSchema)
 		.mutation(async ({ input, ctx }) => {
-			const serviceId =
-				input.applicationId ||
-				input.postgresId ||
-				input.mysqlId ||
-				input.mariadbId ||
-				input.mongoId ||
-				input.redisId ||
-				input.libsqlId ||
-				input.composeId;
+			const serviceType = (
+				[
+					"application",
+					"postgres",
+					"mysql",
+					"mariadb",
+					"mongo",
+					"redis",
+					"libsql",
+					"compose",
+				] as const
+			).find((type) => input[`${type}Id`]);
+			const serviceId = serviceType ? input[`${serviceType}Id`] : undefined;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					volumeBackup: ["create"],
 				});
+			}
+			if (IS_CLOUD && serviceType && serviceId) {
+				const existingVolumeBackups = await db.query.volumeBackups.findMany({
+					where: eq(volumeBackups[`${serviceType}Id`], serviceId),
+				});
+				await assertVolumeBackupLimit(
+					ctx.session.activeOrganizationId,
+					existingVolumeBackups.length,
+				);
 			}
 			const newVolumeBackup = await createVolumeBackup(input);
 
@@ -259,13 +277,32 @@ export const volumeBackupsRouter = createTRPCRouter({
 			z.object({
 				backupFileName: z.string().min(1),
 				destinationId: z.string().min(1),
-				volumeName: z.string().min(1),
+				volumeName: z
+					.string()
+					.min(1)
+					.regex(VOLUME_NAME_REGEX, VOLUME_NAME_MESSAGE),
 				id: z.string().min(1),
 				serviceType: z.enum(["application", "compose"]),
 				serverId: z.string().optional(),
 			}),
 		)
-		.subscription(async ({ input }) => {
+		.subscription(async ({ input, ctx }) => {
+			const destination = await findDestinationById(input.destinationId);
+			if (destination.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You don't have access to this destination.",
+				});
+			}
+			if (input.serverId) {
+				const targetServer = await findServerById(input.serverId);
+				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this server.",
+					});
+				}
+			}
 			return observable<string>((emit) => {
 				const runRestore = async () => {
 					try {

@@ -1,6 +1,11 @@
 import { findAllDeploymentsByApplicationId } from "@dokploy/server/services/deployment";
-import type { Registry } from "@dokploy/server/services/registry";
+import {
+	findRegistryByIdWithCredentials,
+	type Registry,
+	safeDockerLoginCommand,
+} from "@dokploy/server/services/registry";
 import { createRollback } from "@dokploy/server/services/rollbacks";
+import { quote } from "shell-quote";
 import type { ApplicationNested } from "../builders";
 
 export const uploadImageRemoteCommand = async (
@@ -22,19 +27,19 @@ export const uploadImageRemoteCommand = async (
 
 	const commands: string[] = [];
 	if (registry) {
-		const registryTag = getRegistryTag(registry, imageName);
+		const r = await findRegistryByIdWithCredentials(registry.registryId);
+		const registryTag = getRegistryTag(r, imageName);
 		if (registryTag) {
 			commands.push(`echo "📦 [Enabled Registry Swarm]"`);
-			commands.push(getRegistryCommands(registry, imageName, registryTag));
+			commands.push(getRegistryCommands(r, imageName, registryTag));
 		}
 	}
 	if (buildRegistry) {
-		const buildRegistryTag = getRegistryTag(buildRegistry, imageName);
+		const r = await findRegistryByIdWithCredentials(buildRegistry.registryId);
+		const buildRegistryTag = getRegistryTag(r, imageName);
 		if (buildRegistryTag) {
 			commands.push(`echo "🔑 [Enabled Build Registry]"`);
-			commands.push(
-				getRegistryCommands(buildRegistry, imageName, buildRegistryTag),
-			);
+			commands.push(getRegistryCommands(r, imageName, buildRegistryTag));
 			commands.push(
 				`echo "⚠️ INFO: After the build is finished, you need to wait a few seconds for the server to download the image and run the container."`,
 			);
@@ -57,15 +62,13 @@ export const uploadImageRemoteCommand = async (
 			deploymentId: deploymentId,
 		});
 
-		const rollbackRegistryTag = getRegistryTag(
-			rollbackRegistry,
-			rollback?.image || "",
+		const r = await findRegistryByIdWithCredentials(
+			rollbackRegistry.registryId,
 		);
+		const rollbackRegistryTag = getRegistryTag(r, rollback?.image || "");
 		if (rollbackRegistryTag) {
 			commands.push(`echo "🔄 [Enabled Rollback Registry]"`);
-			commands.push(
-				getRegistryCommands(rollbackRegistry, imageName, rollbackRegistryTag),
-			);
+			commands.push(getRegistryCommands(r, imageName, rollbackRegistryTag));
 		}
 	}
 	try {
@@ -74,6 +77,7 @@ export const uploadImageRemoteCommand = async (
 		throw error;
 	}
 };
+
 /**
  * Extract the repository name from imageName by taking the last part after '/'
  * Examples:
@@ -101,8 +105,8 @@ export const getRegistryTag = (registry: Registry, imageName: string) => {
 	// Extract the repository name (last part after '/')
 	const repositoryName = extractRepositoryName(imageName);
 
-	// Build the final tag using registry's username/prefix
-	const targetPrefix = imagePrefix || username;
+	// Build the final tag using registry's username/prefix (must be lowercase for valid image refs)
+	const targetPrefix = (imagePrefix || username).toLowerCase();
 	const finalRegistry = registryUrl || "";
 
 	return finalRegistry
@@ -115,19 +119,24 @@ const getRegistryCommands = (
 	imageName: string,
 	registryTag: string,
 ): string => {
+	const loginCmd = safeDockerLoginCommand(
+		registry.registryUrl,
+		registry.username,
+		registry.password,
+	);
 	return `
-echo "📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'" ;
-echo "${registry.password}" | docker login ${registry.registryUrl} -u '${registry.username}' --password-stdin || { 
+echo ${quote([`📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'`])} ;
+${loginCmd} || {
 	echo "❌ DockerHub Failed" ;
 	exit 1;
 }
 echo "✅ Registry Login Success" ;
-docker tag ${imageName} ${registryTag} || { 
+docker tag ${quote([imageName])} ${quote([registryTag])} || {
 	echo "❌ Error tagging image" ;
 	exit 1;
 }
 echo "✅ Image Tagged" ;
-docker push ${registryTag} || { 
+docker push ${quote([registryTag])} || {
 	echo "❌ Error pushing image" ;
 	exit 1;
 }
