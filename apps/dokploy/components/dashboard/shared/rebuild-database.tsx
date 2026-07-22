@@ -1,4 +1,5 @@
 import { AlertTriangle, DatabaseIcon } from "lucide-react";
+import { useRouter } from "next/router";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -21,7 +22,18 @@ interface Props {
 }
 
 export const RebuildDatabase = ({ id, type }: Props) => {
+	const router = useRouter();
 	const utils = api.useUtils();
+
+	const goToBackups = () => {
+		const projectId = router.query.projectId as string;
+		const environmentId = router.query.environmentId as string;
+		router.push(
+			`/dashboard/project/${projectId}/environment/${environmentId}/services/${type}/${id}?tab=backups`,
+			undefined,
+			{ shallow: true },
+		);
+	};
 
 	const mutationMap = {
 		libsql: () => api.libsql.rebuild.useMutation(),
@@ -69,6 +81,19 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 							This action will completely reset your database to its initial
 							state. All data, tables, and configurations will be removed.
 						</p>
+						<p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+							<AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+							<span>
+								<strong>Recommended:</strong>{" "}
+								<span
+									onClick={goToBackups}
+									className="underline underline-offset-2 hover:text-amber-500 cursor-pointer"
+								>
+									Create a backup
+								</span>{" "}
+								before rebuilding to avoid permanent data loss.
+							</span>
+						</p>
 					</div>
 					<AlertDialog>
 						<AlertDialogTrigger asChild>
@@ -98,6 +123,19 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 										</ul>
 										<p className="font-medium text-destructive mt-4">
 											This action cannot be undone.
+										</p>
+										<p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1.5 mt-2">
+											<AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+											<span>
+												<strong>Tip:</strong>{" "}
+												<span
+													onClick={goToBackups}
+													className="underline underline-offset-2 hover:text-amber-500 cursor-pointer"
+												>
+													Go to the Backups tab
+												</span>{" "}
+												to create a backup before rebuilding.
+											</span>
 										</p>
 									</div>
 								</AlertDialogDescription>
