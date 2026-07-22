@@ -113,6 +113,7 @@ export const compose = pgTable("compose", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	networkIds: text("networkIds").array().default([]),
 });
 
 export const composeRelations = relations(compose, ({ one, many }) => ({
