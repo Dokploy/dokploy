@@ -3,6 +3,7 @@
 import { Loader2, Network, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { HandleNetwork } from "@/components/dashboard/networks/handle-network";
+import { ShowNetworkConfig } from "@/components/dashboard/networks/show-network-config";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,12 +78,11 @@ export const ShowNetworks = () => {
 										<TableRow>
 											<TableHead>Name</TableHead>
 											<TableHead>Driver</TableHead>
-											<TableHead>Scope</TableHead>
 											<TableHead>Internal</TableHead>
 											<TableHead>Attachable</TableHead>
 											<TableHead>Server</TableHead>
 											<TableHead>Created</TableHead>
-											<TableHead className="w-[80px] text-right">
+											<TableHead className="w-[100px] text-right">
 												Actions
 											</TableHead>
 										</TableRow>
@@ -92,10 +92,12 @@ export const ShowNetworks = () => {
 											<TableRow key={n.networkId}>
 												<TableCell className="font-medium">{n.name}</TableCell>
 												<TableCell>
-													<Badge variant="outline">{n.driver}</Badge>
-												</TableCell>
-												<TableCell className="text-muted-foreground">
-													{n.driver === "overlay" ? "swarm" : "local"}
+													<div className="flex items-center gap-2">
+														<Badge variant="outline">{n.driver}</Badge>
+														<span className="text-xs text-muted-foreground">
+															{n.driver === "overlay" ? "swarm" : "local"}
+														</span>
+													</div>
 												</TableCell>
 												<TableCell className="text-muted-foreground">
 													{n.internal ? "Yes" : "No"}
@@ -109,35 +111,41 @@ export const ShowNetworks = () => {
 												<TableCell className="text-muted-foreground">
 													{new Date(n.createdAt).toLocaleDateString()}
 												</TableCell>
-												<TableCell className="text-right">
-													<DialogAction
-														title="Delete network"
-														description={`The network "${n.name}" will be removed from Docker and Dokploy. This action cannot be undone.`}
-														onClick={async () => {
-															try {
-																await removeNetwork({
-																	networkId: n.networkId,
-																});
-																toast.success("Network deleted");
-																await utils.network.all.invalidate();
-															} catch (error) {
-																toast.error("Error deleting network", {
-																	description:
-																		error instanceof Error
-																			? error.message
-																			: "Unknown error",
-																});
-															}
-														}}
-													>
-														<Button
-															variant="ghost"
-															size="icon-xs"
-															aria-label="Delete network"
+												<TableCell>
+													<div className="flex items-center justify-end gap-3">
+														<ShowNetworkConfig
+															networkId={n.networkId}
+															networkName={n.name}
+														/>
+														<DialogAction
+															title="Delete network"
+															description={`The network "${n.name}" will be removed from Docker and Dokploy. This action cannot be undone.`}
+															onClick={async () => {
+																try {
+																	await removeNetwork({
+																		networkId: n.networkId,
+																	});
+																	toast.success("Network deleted");
+																	await utils.network.all.invalidate();
+																} catch (error) {
+																	toast.error("Error deleting network", {
+																		description:
+																			error instanceof Error
+																				? error.message
+																				: "Unknown error",
+																	});
+																}
+															}}
 														>
-															<Trash2 className="size-4 text-destructive" />
-														</Button>
-													</DialogAction>
+															<Button
+																variant="ghost"
+																size="icon-sm"
+																aria-label="Delete network"
+															>
+																<Trash2 className="size-4 text-destructive" />
+															</Button>
+														</DialogAction>
+													</div>
 												</TableCell>
 											</TableRow>
 										))}

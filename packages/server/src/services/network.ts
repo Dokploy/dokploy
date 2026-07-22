@@ -97,6 +97,24 @@ export const createNetwork = async (
 	return created;
 };
 
+export const inspectNetwork = async (networkId: string) => {
+	const row = await findNetworkById(networkId);
+
+	const docker = await getRemoteDocker(row.serverId ?? null);
+	try {
+		return await docker.getNetwork(row.name).inspect();
+	} catch (error) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				error instanceof Error
+					? error.message
+					: "Failed to inspect Docker network",
+			cause: error,
+		});
+	}
+};
+
 // Docker networks are immutable: there is no update, only create and remove.
 export const removeNetwork = async (networkId: string) => {
 	const row = await findNetworkById(networkId);

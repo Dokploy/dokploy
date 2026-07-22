@@ -1,4 +1,9 @@
-import { createNetwork, findNetworkById, removeNetwork } from "@dokploy/server";
+import {
+	createNetwork,
+	findNetworkById,
+	inspectNetwork,
+	removeNetwork,
+} from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
@@ -44,6 +49,19 @@ export const networkRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			return createNetwork(input, ctx.session.activeOrganizationId);
 		}),
+	inspect: protectedProcedure
+		.input(apiFindOneNetwork)
+		.query(async ({ ctx, input }) => {
+			const network = await findNetworkById(input.networkId);
+			if (network.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Network not found",
+				});
+			}
+			return inspectNetwork(input.networkId);
+		}),
+
 	remove: protectedProcedure
 		.input(apiRemoveNetwork)
 		.mutation(async ({ ctx, input }) => {
