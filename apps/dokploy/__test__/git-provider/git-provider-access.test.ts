@@ -1,6 +1,7 @@
 import {
 	canEditDeployGitSource,
 	getAccessibleGitProviderIds,
+	redactGitProviderSecrets,
 } from "@dokploy/server/services/git-provider";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -65,6 +66,46 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	mockDb.query.gitProvider.findMany.mockResolvedValue(allProviders);
 	mockHasValidLicense.mockResolvedValue(false);
+});
+
+describe("redactGitProviderSecrets", () => {
+	it("removes nested provider credential fields", () => {
+		const redacted = redactGitProviderSecrets({
+			name: "compose",
+			github: {
+				githubClientId: "client-id",
+				githubClientSecret: "client-secret",
+				githubPrivateKey: "private-key",
+				githubWebhookSecret: "webhook-secret",
+			},
+			gitlab: {
+				gitlabUrl: "https://gitlab.example.com",
+				secret: "secret",
+				accessToken: "access-token",
+				refreshToken: "refresh-token",
+			},
+			gitea: {
+				giteaUrl: "https://gitea.example.com",
+				clientSecret: "client-secret",
+				accessToken: "access-token",
+				refreshToken: "refresh-token",
+			},
+			bitbucket: {
+				bitbucketWorkspaceName: "workspace",
+				appPassword: "app-password",
+				apiToken: "api-token",
+			},
+		});
+
+		expect(redacted.github).toEqual({ githubClientId: "client-id" });
+		expect(redacted.gitlab).toEqual({
+			gitlabUrl: "https://gitlab.example.com",
+		});
+		expect(redacted.gitea).toEqual({ giteaUrl: "https://gitea.example.com" });
+		expect(redacted.bitbucket).toEqual({
+			bitbucketWorkspaceName: "workspace",
+		});
+	});
 });
 
 describe("getAccessibleGitProviderIds", () => {

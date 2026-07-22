@@ -2,6 +2,7 @@ import { docker } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateApplication,
+	type apiUpsertApplicationEnv,
 	applications,
 	buildAppName,
 } from "@dokploy/server/db/schema";
@@ -31,6 +32,10 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
 import { encodeBase64 } from "../utils/docker/utils";
+import {
+	getApplicationEnvRevision,
+	upsertEnvVariables,
+} from "../utils/env-upsert";
 import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
@@ -158,6 +163,43 @@ export const updateApplication = async (
 		.returning();
 
 	return application[0];
+};
+
+export const upsertApplicationEnvironment = async (
+	input: z.infer<typeof apiUpsertApplicationEnv>,
+) => {
+	const application = await findApplicationById(input.applicationId);
+	const currentEnv = application.env ?? "";
+	const currentRevision = getApplicationEnvRevision(
+		input.applicationId,
+		currentEnv,
+	);
+
+	if (input.expectedRevision && input.expectedRevision !== currentRevision) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "Application environment revision does not match",
+		});
+	}
+
+	const result = upsertEnvVariables(currentEnv, input.variables);
+	const nextRevision = result.changed
+		? getApplicationEnvRevision(input.applicationId, result.env)
+		: currentRevision;
+
+	if (!input.dryRun && result.changed) {
+		await updateApplication(input.applicationId, {
+			env: result.env,
+		});
+	}
+
+	return {
+		applicationId: input.applicationId,
+		changed: result.changed,
+		revision: input.dryRun ? currentRevision : nextRevision,
+		dryRun: input.dryRun ?? false,
+		variables: result.variables,
+	};
 };
 
 export const updateApplicationStatus = async (

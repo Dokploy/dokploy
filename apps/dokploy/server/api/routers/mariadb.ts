@@ -30,12 +30,17 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import {
+	preserveSecretPlaceholderFields,
+	redactDatabaseServiceSecrets,
+} from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { assertServiceEnvironmentReadAccess } from "@/server/api/utils/service-environment";
 import {
 	apiChangeMariaDBStatus,
 	apiCreateMariaDB,
@@ -132,7 +137,22 @@ export const mariadbRouter = createTRPCRouter({
 					message: "You are not authorized to access this Mariadb",
 				});
 			}
-			return mariadb;
+			return redactDatabaseServiceSecrets(mariadb);
+		}),
+
+	revealEnvironment: protectedProcedure
+		.input(apiFindOneMariaDB)
+		.mutation(async ({ input, ctx }) => {
+			const mariadb = await assertServiceEnvironmentReadAccess(
+				ctx,
+				input.mariadbId,
+				() => findMariadbById(input.mariadbId),
+				"Mariadb",
+			);
+
+			return {
+				env: mariadb.env ?? "",
+			};
 		}),
 
 	start: protectedProcedure
@@ -315,9 +335,17 @@ export const mariadbRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
 				envVars: ["write"],
 			});
-			const service = await updateMariadbById(input.mariadbId, {
-				env: input.env,
-			});
+			const currentMariadb = await findMariadbById(input.mariadbId);
+			const service = await updateMariadbById(
+				input.mariadbId,
+				preserveSecretPlaceholderFields(
+					{
+						env: input.env,
+					},
+					currentMariadb,
+					["env"],
+				),
+			);
 
 			if (!service) {
 				throw new TRPCError({
@@ -372,9 +400,15 @@ export const mariadbRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mariadbId, {
 				service: ["create"],
 			});
-			const service = await updateMariadbById(mariadbId, {
-				...rest,
-			});
+			const currentMariadb = await findMariadbById(mariadbId);
+			const service = await updateMariadbById(
+				mariadbId,
+				preserveSecretPlaceholderFields(rest, currentMariadb, [
+					"env",
+					"databasePassword",
+					"databaseRootPassword",
+				]),
+			);
 
 			if (!service) {
 				throw new TRPCError({

@@ -38,6 +38,7 @@ import {
 	checkProjectAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import { preserveSecretPlaceholderFields } from "@dokploy/server/utils/security/redaction";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
@@ -764,9 +765,10 @@ export const projectRouter = createTRPCRouter({
 					await checkPermission(ctx, { projectEnvVars: ["write"] });
 				}
 
-				const project = await updateProjectById(input.projectId, {
-					...input,
-				});
+				const project = await updateProjectById(
+					input.projectId,
+					preserveSecretPlaceholderFields(input, currentProject, ["env"]),
+				);
 
 				if (project) {
 					await audit(ctx, {

@@ -253,10 +253,10 @@ export default async function handler(
 				type: "deploy",
 				applicationType: "application",
 				server: !!application.serverId,
+				serverId: application.serverId ?? undefined,
 			};
 
 			if (IS_CLOUD && application.serverId) {
-				jobData.serverId = application.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
