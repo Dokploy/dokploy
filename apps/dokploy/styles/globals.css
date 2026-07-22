@@ -269,6 +269,12 @@
 		@apply bg-background text-foreground;
 	}
 
+	/* Cursor pointer on buttons */
+	button:not([disabled]),
+	[role="button"]:not([disabled]) {
+		cursor: pointer;
+	}
+
 	/* Custom scrollbar styling */
 	::-webkit-scrollbar {
 		width: 0.3125rem;
