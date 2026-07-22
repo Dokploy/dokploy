@@ -141,7 +141,9 @@ export const HandleNetwork = ({ networkId, children }: HandleNetworkProps) => {
 
 	const createMutation = api.network.create.useMutation();
 	const updateMutation = api.network.update.useMutation();
-	const isPending = isEdit ? updateMutation.isPending : createMutation.isPending;
+	const isPending = isEdit
+		? updateMutation.isPending
+		: createMutation.isPending;
 
 	const form = useForm<NetworkFormValues>({
 		resolver: zodResolver(networkFormSchema),
