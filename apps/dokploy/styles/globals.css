@@ -271,9 +271,9 @@
 
 	/* Cursor pointer on buttons */
 	button:not([disabled]),
-    [role="button"]:not([disabled]) {
-        cursor: pointer;
-    }
+	[role="button"]:not([disabled]) {
+		cursor: pointer;
+	}
 
 	/* Custom scrollbar styling */
 	::-webkit-scrollbar {
