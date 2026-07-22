@@ -6,6 +6,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import type { z } from "zod";
 import { IS_CLOUD } from "../constants";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 
@@ -27,7 +28,7 @@ export const findNetworkById = async (networkId: string) => {
 };
 
 export const createNetwork = async (
-	input: typeof apiCreateNetwork._type,
+	input: z.infer<typeof apiCreateNetwork>,
 	organizationId: string,
 ) => {
 	if (IS_CLOUD) {
@@ -86,7 +87,9 @@ export const createNetwork = async (
 	return created;
 };
 
-export const updateNetwork = async (input: typeof apiUpdateNetwork._type) => {
+export const updateNetwork = async (
+	input: z.infer<typeof apiUpdateNetwork>,
+) => {
 	const { networkId, ...rest } = input;
 	const [updated] = await db
 		.update(network)

@@ -1,7 +1,7 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Network, Pencil, Plus } from "lucide-react";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { Network, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -47,6 +47,8 @@ const networkDriverEnum = [
 
 /** Sentinel for "no scope" */
 const SCOPE_EMPTY = "__scope_none__";
+/** Sentinel for the local Dokploy server (no serverId) */
+const SERVER_LOCAL = "__server_local__";
 
 const ipamConfigEntrySchema = z.object({
 	subnet: z.string().optional(),
@@ -56,17 +58,17 @@ const ipamConfigEntrySchema = z.object({
 
 const networkFormSchema = z.object({
 	name: z.string().min(1, "Name is required"),
-	driver: z.enum(networkDriverEnum).default("bridge"),
+	driver: z.enum(networkDriverEnum),
 	scope: z.string().optional(),
 	serverId: z.string().optional(),
-	internal: z.boolean().default(false),
-	attachable: z.boolean().default(false),
-	ingress: z.boolean().default(false),
-	configOnly: z.boolean().default(false),
-	enableIPv4: z.boolean().default(true),
-	enableIPv6: z.boolean().default(false),
+	internal: z.boolean(),
+	attachable: z.boolean(),
+	ingress: z.boolean(),
+	configOnly: z.boolean(),
+	enableIPv4: z.boolean(),
+	enableIPv6: z.boolean(),
 	ipamDriver: z.string().optional(),
-	ipamConfig: z.array(ipamConfigEntrySchema).default([]),
+	ipamConfig: z.array(ipamConfigEntrySchema),
 });
 
 type NetworkFormValues = z.infer<typeof networkFormSchema>;
@@ -86,6 +88,39 @@ const defaultValues: NetworkFormValues = {
 	ipamConfig: [],
 };
 
+const toggleOptions = [
+	{
+		name: "internal",
+		label: "Internal",
+		description: "Containers on this network cannot reach external networks.",
+	},
+	{
+		name: "attachable",
+		label: "Attachable",
+		description: "Allow standalone containers to attach to this network.",
+	},
+	{
+		name: "enableIPv4",
+		label: "Enable IPv4",
+		description: "Enable IPv4 addressing on the network.",
+	},
+	{
+		name: "enableIPv6",
+		label: "Enable IPv6",
+		description: "Enable IPv6 addressing on the network.",
+	},
+	{
+		name: "ingress",
+		label: "Ingress",
+		description: "Use as the routing-mesh network in Swarm mode.",
+	},
+	{
+		name: "configOnly",
+		label: "Config only",
+		description: "Placeholder network whose config is reused by others.",
+	},
+] as const;
+
 interface HandleNetworkProps {
 	networkId?: string;
 	children?: React.ReactNode;
@@ -104,9 +139,9 @@ export const HandleNetwork = ({ networkId, children }: HandleNetworkProps) => {
 			{ enabled: isEdit && !!networkId },
 		);
 
-	const { mutateAsync, isLoading: isPending } = networkId
-		? api.network.update.useMutation()
-		: api.network.create.useMutation();
+	const createMutation = api.network.create.useMutation();
+	const updateMutation = api.network.update.useMutation();
+	const isPending = isEdit ? updateMutation.isPending : createMutation.isPending;
 
 	const form = useForm<NetworkFormValues>({
 		resolver: zodResolver(networkFormSchema),
@@ -148,25 +183,31 @@ export const HandleNetwork = ({ networkId, children }: HandleNetworkProps) => {
 		const scope =
 			data.scope && data.scope !== SCOPE_EMPTY ? data.scope : undefined;
 
-		try {
-			await mutateAsync({
-				networkId: networkId ?? "",
-				name: data.name,
-				driver: data.driver,
-				scope,
-				serverId: data.serverId || undefined,
-				internal: data.internal,
-				attachable: data.attachable,
-				ingress: data.ingress,
-				configOnly: data.configOnly,
-				enableIPv4: data.enableIPv4,
-				enableIPv6: data.enableIPv6,
-				ipam: {
-					driver: data.ipamDriver,
-					config: data.ipamConfig,
-				},
-			});
+		const payload = {
+			name: data.name,
+			driver: data.driver,
+			scope,
+			serverId: data.serverId || undefined,
+			internal: data.internal,
+			attachable: data.attachable,
+			ingress: data.ingress,
+			configOnly: data.configOnly,
+			enableIPv4: data.enableIPv4,
+			enableIPv6: data.enableIPv6,
+			ipam: {
+				driver: data.ipamDriver,
+				config: data.ipamConfig,
+			},
+		};
 
+		try {
+			if (isEdit && networkId) {
+				await updateMutation.mutateAsync({ networkId, ...payload });
+			} else {
+				await createMutation.mutateAsync(payload);
+			}
+
+			toast.success(isEdit ? "Network updated" : "Network created");
 			await utils.network.all.invalidate();
 			if (networkId) await utils.network.one.invalidate({ networkId });
 			setIsOpen(false);
@@ -193,7 +234,7 @@ export const HandleNetwork = ({ networkId, children }: HandleNetworkProps) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>{trigger}</DialogTrigger>
-			<DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+			<DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<Network className="size-5 text-muted-foreground" />
@@ -257,199 +298,111 @@ export const HandleNetwork = ({ networkId, children }: HandleNetworkProps) => {
 									)}
 								/>
 							</div>
-							<FormField
-								control={form.control}
-								name="serverId"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Server</FormLabel>
-										<Select
-											onValueChange={field.onChange}
-											value={field.value ?? undefined}
-										>
-											<FormControl>
-												<SelectTrigger>
-													<SelectValue placeholder="Select server" />
-												</SelectTrigger>
-											</FormControl>
-											<SelectContent>
-												{!isCloud && (
-													<SelectItem value={undefined}>
-														Dokploy server
-													</SelectItem>
-												)}
-												{servers?.map((server) => (
-													<SelectItem
-														key={server.serverId}
-														value={server.serverId}
-													>
-														{server.name}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-										<FormDescription className="text-muted-foreground">
-											{isCloud
-												? "Server where this network will be created."
-												: "Dokploy server is the default local server; or choose a specific server."}
-										</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="scope"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Scope (optional)</FormLabel>
-										<Select
-											onValueChange={field.onChange}
-											value={field.value ?? SCOPE_EMPTY}
-										>
-											<FormControl>
-												<SelectTrigger>
-													<SelectValue placeholder="Select scope" />
-												</SelectTrigger>
-											</FormControl>
-											<SelectContent>
-												<SelectItem value={SCOPE_EMPTY}>None</SelectItem>
-												<SelectItem value="local">local</SelectItem>
-												<SelectItem value="swarm">swarm</SelectItem>
-											</SelectContent>
-										</Select>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
 							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 								<FormField
 									control={form.control}
-									name="internal"
+									name="serverId"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-											<div className="space-y-0.5">
-												<FormLabel className="text-base">Internal</FormLabel>
-												<FormDescription className="text-muted-foreground">
-													Restrict external access; containers on this network
-													cannot reach external networks.
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
+										<FormItem>
+											<FormLabel>Server</FormLabel>
+											<Select
+												onValueChange={(value) =>
+													field.onChange(
+														value === SERVER_LOCAL ? undefined : value,
+													)
+												}
+												value={
+													field.value ?? (isCloud ? undefined : SERVER_LOCAL)
+												}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select server" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													{!isCloud && (
+														<SelectItem value={SERVER_LOCAL}>
+															Dokploy server
+														</SelectItem>
+													)}
+													{servers?.map((server) => (
+														<SelectItem
+															key={server.serverId}
+															value={server.serverId}
+														>
+															{server.name}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+											<FormDescription className="text-muted-foreground">
+												{isCloud
+													? "Server where this network will be created."
+													: "Dokploy server is the default local server."}
+											</FormDescription>
+											<FormMessage />
 										</FormItem>
 									)}
 								/>
 								<FormField
 									control={form.control}
-									name="attachable"
+									name="scope"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-											<div className="space-y-0.5">
-												<FormLabel className="text-base">Attachable</FormLabel>
-												<FormDescription className="text-muted-foreground">
-													Allow standalone containers to attach to this network
-													(e.g. in Swarm, not only services).
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="enableIPv4"
-									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-											<div className="space-y-0.5">
-												<FormLabel className="text-base">Enable IPv4</FormLabel>
-												<FormDescription className="text-muted-foreground">
-													Enable IPv4 addressing on the network.
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="enableIPv6"
-									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-											<div className="space-y-0.5">
-												<FormLabel className="text-base">Enable IPv6</FormLabel>
-												<FormDescription className="text-muted-foreground">
-													Enable IPv6 addressing on the network.
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="ingress"
-									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-											<div className="space-y-0.5">
-												<FormLabel className="text-base">Ingress</FormLabel>
-												<FormDescription className="text-muted-foreground">
-													Use as the routing-mesh network in Swarm mode (load
-													balancing between nodes).
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="configOnly"
-									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-											<div className="space-y-0.5">
-												<FormLabel className="text-base">Config only</FormLabel>
-												<FormDescription className="text-muted-foreground">
-													Create a placeholder network whose config is reused by
-													other networks; cannot run containers on it.
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
+										<FormItem>
+											<FormLabel>Scope (optional)</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value ?? SCOPE_EMPTY}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select scope" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value={SCOPE_EMPTY}>None</SelectItem>
+													<SelectItem value="local">local</SelectItem>
+													<SelectItem value="swarm">swarm</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
 										</FormItem>
 									)}
 								/>
 							</div>
-							<div className="space-y-2 rounded-lg border p-4">
-								<FormLabel>IPAM</FormLabel>
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+								{toggleOptions.map((option) => (
+									<FormField
+										key={option.name}
+										control={form.control}
+										name={option.name}
+										render={({ field }) => (
+											<FormItem className="flex flex-row items-start justify-between gap-3 space-y-0 rounded-lg border p-4">
+												<div className="space-y-1 pr-1">
+													<FormLabel>{option.label}</FormLabel>
+													<FormDescription className="text-muted-foreground">
+														{option.description}
+													</FormDescription>
+												</div>
+												<FormControl>
+													<Switch
+														checked={field.value}
+														onCheckedChange={field.onChange}
+													/>
+												</FormControl>
+											</FormItem>
+										)}
+									/>
+								))}
+							</div>
+							<div className="space-y-4 rounded-lg border p-4">
+								<div className="space-y-1">
+									<FormLabel>IPAM</FormLabel>
+									<p className="text-sm text-muted-foreground">
+										IP address management settings for this network.
+									</p>
+								</div>
 								<FormField
 									control={form.control}
 									name="ipamDriver"
@@ -514,9 +467,10 @@ export const HandleNetwork = ({ networkId, children }: HandleNetworkProps) => {
 												type="button"
 												variant="outline"
 												size="icon"
+												aria-label="Remove IPAM config"
 												onClick={() => ipamConfigFieldArray.remove(index)}
 											>
-												−
+												<Trash2 className="size-4" />
 											</Button>
 										</div>
 									))}
@@ -532,6 +486,7 @@ export const HandleNetwork = ({ networkId, children }: HandleNetworkProps) => {
 											})
 										}
 									>
+										<Plus className="size-4" />
 										Add IPAM config
 									</Button>
 								</div>
@@ -544,14 +499,8 @@ export const HandleNetwork = ({ networkId, children }: HandleNetworkProps) => {
 								>
 									Cancel
 								</Button>
-								<Button type="submit" disabled={isPending}>
-									{isPending
-										? isEdit
-											? "Updating…"
-											: "Creating…"
-										: isEdit
-											? "Update network"
-											: "Create network"}
+								<Button type="submit" isLoading={isPending}>
+									{isEdit ? "Update network" : "Create network"}
 								</Button>
 							</DialogFooter>
 						</form>
