@@ -69,6 +69,13 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 							This action will completely reset your database to its initial
 							state. All data, tables, and configurations will be removed.
 						</p>
+						<p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+							<AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+							<span>
+								<strong>Recommended:</strong>{" "}
+								Create a backup before rebuilding to avoid permanent data loss.
+							</span>
+						</p>
 					</div>
 					<AlertDialog>
 						<AlertDialogTrigger asChild>
@@ -98,6 +105,13 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 										</ul>
 										<p className="font-medium text-destructive mt-4">
 											This action cannot be undone.
+										</p>
+										<p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1.5 mt-2">
+											<AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+											<span>
+												<strong>Tip:</strong>{" "}
+												Go to the Backups tab to create a backup before rebuilding.
+											</span>
 										</p>
 									</div>
 								</AlertDialogDescription>
