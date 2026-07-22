@@ -1,9 +1,5 @@
 import { db } from "@dokploy/server/db";
-import {
-	type apiCreateNetwork,
-	type apiUpdateNetwork,
-	network,
-} from "@dokploy/server/db/schema";
+import { type apiCreateNetwork, network } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -68,18 +64,32 @@ export const createNetwork = async (
 			.filter((e) => Object.keys(e).length > 0);
 
 		const docker = await getRemoteDocker(input.serverId ?? null);
-		await docker.createNetwork({
-			Name: row.name,
-			Driver: row.driver,
-			Internal: row.internal,
-			Attachable: row.attachable,
-			Ingress: row.ingress,
-			EnableIPv6: row.enableIPv6,
-			IPAM: {
-				Driver: ipam.driver ?? "default",
-				Config: ipamConfig.length > 0 ? ipamConfig : undefined,
-			},
-		});
+		try {
+			await docker.createNetwork({
+				Name: row.name,
+				Driver: row.driver,
+				CheckDuplicate: true,
+				Internal: row.internal,
+				Attachable: row.attachable,
+				// EnableIPv4 is missing from dockerode's types but supported by
+				// the daemon (API >= 1.47); the body is sent as-is
+				EnableIPv4: row.enableIPv4,
+				EnableIPv6: row.enableIPv6,
+				IPAM: {
+					Driver: ipam.driver || "default",
+					Config: ipamConfig.length > 0 ? ipamConfig : undefined,
+				},
+			} as Parameters<typeof docker.createNetwork>[0]);
+		} catch (error) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message:
+					error instanceof Error
+						? error.message
+						: "Failed to create Docker network",
+				cause: error,
+			});
+		}
 
 		return row;
 	});
@@ -87,27 +97,28 @@ export const createNetwork = async (
 	return created;
 };
 
-export const updateNetwork = async (
-	input: z.infer<typeof apiUpdateNetwork>,
-) => {
-	const { networkId, ...rest } = input;
-	const [updated] = await db
-		.update(network)
-		.set(rest)
-		.where(eq(network.networkId, networkId))
-		.returning();
+// Docker networks are immutable: there is no update, only create and remove.
+export const removeNetwork = async (networkId: string) => {
+	const row = await findNetworkById(networkId);
 
-	if (!updated) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Network not found",
-		});
+	const docker = await getRemoteDocker(row.serverId ?? null);
+	try {
+		await docker.getNetwork(row.name).remove();
+	} catch (error) {
+		// If the network is already gone from Docker, still clean up the DB row
+		const statusCode = (error as { statusCode?: number })?.statusCode;
+		if (statusCode !== 404) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message:
+					error instanceof Error
+						? error.message
+						: "Failed to remove Docker network",
+				cause: error,
+			});
+		}
 	}
 
-	return updated;
-};
-
-export const removeNetwork = async (networkId: string) => {
 	const [deleted] = await db
 		.delete(network)
 		.where(eq(network.networkId, networkId))

@@ -1,7 +1,9 @@
 "use client";
 
-import { Loader2, Network, Pencil } from "lucide-react";
+import { Loader2, Network, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { HandleNetwork } from "@/components/dashboard/networks/handle-network";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +25,9 @@ import {
 import { api } from "@/utils/api";
 
 export const ShowNetworks = () => {
+	const utils = api.useUtils();
 	const { data: networks, isLoading } = api.network.all.useQuery();
+	const { mutateAsync: removeNetwork } = api.network.remove.useMutation();
 
 	return (
 		<div className="w-full">
@@ -91,7 +95,7 @@ export const ShowNetworks = () => {
 													<Badge variant="outline">{n.driver}</Badge>
 												</TableCell>
 												<TableCell className="text-muted-foreground">
-													{n.scope ?? "—"}
+													{n.driver === "overlay" ? "swarm" : "local"}
 												</TableCell>
 												<TableCell className="text-muted-foreground">
 													{n.internal ? "Yes" : "No"}
@@ -106,15 +110,34 @@ export const ShowNetworks = () => {
 													{new Date(n.createdAt).toLocaleDateString()}
 												</TableCell>
 												<TableCell className="text-right">
-													<HandleNetwork networkId={n.networkId}>
+													<DialogAction
+														title="Delete network"
+														description={`The network "${n.name}" will be removed from Docker and Dokploy. This action cannot be undone.`}
+														onClick={async () => {
+															try {
+																await removeNetwork({
+																	networkId: n.networkId,
+																});
+																toast.success("Network deleted");
+																await utils.network.all.invalidate();
+															} catch (error) {
+																toast.error("Error deleting network", {
+																	description:
+																		error instanceof Error
+																			? error.message
+																			: "Unknown error",
+																});
+															}
+														}}
+													>
 														<Button
 															variant="ghost"
 															size="icon-xs"
-															aria-label="Edit network"
+															aria-label="Delete network"
 														>
-															<Pencil className="size-4" />
+															<Trash2 className="size-4 text-destructive" />
 														</Button>
-													</HandleNetwork>
+													</DialogAction>
 												</TableCell>
 											</TableRow>
 										))}

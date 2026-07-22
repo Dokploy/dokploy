@@ -1,9 +1,4 @@
-import {
-	createNetwork,
-	findNetworkById,
-	removeNetwork,
-	updateNetwork,
-} from "@dokploy/server";
+import { createNetwork, findNetworkById, removeNetwork } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
@@ -12,7 +7,6 @@ import {
 	apiCreateNetwork,
 	apiFindOneNetwork,
 	apiRemoveNetwork,
-	apiUpdateNetwork,
 	network as networkTable,
 } from "@/server/db/schema";
 
@@ -50,19 +44,6 @@ export const networkRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			return createNetwork(input, ctx.session.activeOrganizationId);
 		}),
-	update: protectedProcedure
-		.input(apiUpdateNetwork)
-		.mutation(async ({ ctx, input }) => {
-			const network = await findNetworkById(input.networkId);
-			if (network.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "Not authorized to update this network",
-				});
-			}
-			return updateNetwork(input);
-		}),
-
 	remove: protectedProcedure
 		.input(apiRemoveNetwork)
 		.mutation(async ({ ctx, input }) => {

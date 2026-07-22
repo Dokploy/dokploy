@@ -1,13 +1,10 @@
-CREATE TYPE "public"."networkDriver" AS ENUM('bridge', 'host', 'overlay', 'macvlan', 'none', 'ipvlan');--> statement-breakpoint
+CREATE TYPE "public"."networkDriver" AS ENUM('bridge', 'overlay');--> statement-breakpoint
 CREATE TABLE "network" (
 	"networkId" text PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"driver" "networkDriver" DEFAULT 'bridge' NOT NULL,
-	"scope" text,
 	"internal" boolean DEFAULT false NOT NULL,
 	"attachable" boolean DEFAULT false NOT NULL,
-	"ingress" boolean DEFAULT false NOT NULL,
-	"configOnly" boolean DEFAULT false NOT NULL,
 	"enableIPv4" boolean DEFAULT true NOT NULL,
 	"enableIPv6" boolean DEFAULT false NOT NULL,
 	"ipam" jsonb DEFAULT '{}'::jsonb,

@@ -1,5 +1,5 @@
 {
-  "id": "36b4b7bf-31bb-4d60-8ef8-0a33b328d623",
+  "id": "957b942e-9aeb-4551-8d5d-1174eec70fd6",
   "prevId": "daaa9837-09f3-452c-b5ba-232c3d6eeca2",
   "version": "7",
   "dialect": "postgresql",
@@ -4788,12 +4788,6 @@
           "notNull": true,
           "default": "'bridge'"
         },
-        "scope": {
-          "name": "scope",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "internal": {
           "name": "internal",
           "type": "boolean",
@@ -4803,20 +4797,6 @@
         },
         "attachable": {
           "name": "attachable",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "ingress": {
-          "name": "ingress",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "configOnly": {
-          "name": "configOnly",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
@@ -8604,11 +8584,7 @@
       "schema": "public",
       "values": [
         "bridge",
-        "host",
-        "overlay",
-        "macvlan",
-        "none",
-        "ipvlan"
+        "overlay"
       ]
     },
     "public.notificationType": {
