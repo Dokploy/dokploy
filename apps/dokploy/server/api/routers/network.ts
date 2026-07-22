@@ -18,11 +18,18 @@ import {
 
 export const networkRouter = createTRPCRouter({
 	all: protectedProcedure.query(async ({ ctx }) => {
-		const rows = await db
-			.select()
-			.from(networkTable)
-			.where(eq(networkTable.organizationId, ctx.session.activeOrganizationId))
-			.orderBy(desc(networkTable.createdAt));
+		const rows = await db.query.network.findMany({
+			where: eq(networkTable.organizationId, ctx.session.activeOrganizationId),
+			with: {
+				server: {
+					columns: {
+						serverId: true,
+						name: true,
+					},
+				},
+			},
+			orderBy: desc(networkTable.createdAt),
+		});
 		return rows;
 	}),
 
