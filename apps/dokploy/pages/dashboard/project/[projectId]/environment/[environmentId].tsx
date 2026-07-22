@@ -38,6 +38,7 @@ import { AdvancedEnvironmentSelector } from "@/components/dashboard/project/adva
 import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 import { EnvironmentVariables } from "@/components/dashboard/project/environment-variables";
 import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
+import { ResourceUsageStrip } from "@/components/dashboard/resource-metrics/usage-strip";
 import {
 	LibsqlIcon,
 	MariadbIcon,
@@ -300,6 +301,7 @@ const EnvironmentPage = (
 	const { projectId, environmentId } = props;
 	const { data: auth } = api.user.get.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	const { data: environments } = api.environment.byProjectId.useQuery({
 		projectId: projectId,
@@ -414,6 +416,13 @@ const EnvironmentPage = (
 			(currentEnvironment.libsql?.length || 0) === 0);
 
 	const applications = extractServicesFromEnvironment(currentEnvironment);
+	const { data: resourceMetrics } = api.project.resourceMetrics.useQuery(
+		{ projectIds: [projectId], environmentId },
+		{
+			enabled: !!projectId && !!environmentId && isCloud === false,
+			refetchInterval: 30_000,
+		},
+	);
 
 	const [searchQuery, setSearchQuery] = useState("");
 	const serviceTypes = [
@@ -1672,6 +1681,15 @@ const EnvironmentPage = (
 																							{service.description}
 																						</span>
 																					)}
+																					<ResourceUsageStrip
+																						metrics={
+																							resourceMetrics?.services[
+																								service.id
+																							]
+																						}
+																						compact
+																						className="mt-1"
+																					/>
 																				</div>
 
 																				<span className="text-sm font-medium text-muted-foreground self-start">
