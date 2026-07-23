@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import type { CacheType } from "../domains/handle-domain";
 import { ScheduleFormField } from "../schedules/handle-schedules";
+import { prepareKeepLatestCount } from "./keep-latest-count";
 
 const formSchema = z
 	.object({
@@ -203,12 +204,12 @@ export const HandleVolumeBackups = ({
 	const onSubmit = async (values: z.infer<typeof formSchema>) => {
 		if (!id && !volumeBackupId) return;
 
-		const preparedKeepLatestCount =
-			keepLatestCountInput === "" ? null : (values.keepLatestCount ?? null);
-
 		await mutateAsync({
 			...values,
-			keepLatestCount: preparedKeepLatestCount ?? undefined,
+			keepLatestCount: prepareKeepLatestCount(
+				keepLatestCountInput,
+				values.keepLatestCount,
+			),
 			destinationId: values.destinationId,
 			volumeBackupId: volumeBackupId || "",
 			serviceType: volumeBackupType,
