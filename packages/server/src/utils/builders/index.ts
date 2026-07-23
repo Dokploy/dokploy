@@ -159,6 +159,7 @@ export const mechanizeDockerContainer = async (
 		EndpointSpec: EndpointSpec
 			? EndpointSpec
 			: {
+					Mode: "dnsrr" as const,
 					Ports: ports.map((port) => ({
 						PublishMode: port.publishMode,
 						Protocol: port.protocol,
