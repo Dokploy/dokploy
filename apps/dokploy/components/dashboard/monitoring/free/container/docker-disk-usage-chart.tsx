@@ -1,5 +1,5 @@
-import { Loader2, RefreshCw } from "lucide-react";
-import { useMemo } from "react";
+import { ChevronDown, ChevronRight, Loader2, RefreshCw } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Cell, Label, Pie, PieChart } from "recharts";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,7 +48,11 @@ const formatSize = (bytes: number): string => {
 	return `${bytes} B`;
 };
 
+const getChartLabel = (name: string) =>
+	chartConfig[name as keyof typeof chartConfig]?.label ?? name;
+
 export const DockerDiskUsageChart = () => {
+	const [showDetails, setShowDetails] = useState(true);
 	const { data, isLoading, refetch, isRefetching } =
 		api.settings.getDockerDiskUsage.useQuery(undefined, {
 			refetchOnWindowFocus: false,
@@ -67,6 +71,7 @@ export const DockerDiskUsageChart = () => {
 						active: item.active,
 						totalCount: item.totalCount,
 						reclaimable: item.reclaimable,
+						details: item.details ?? [],
 						fill: `var(--color-${key})`,
 					};
 				}) ?? [];
@@ -98,17 +103,31 @@ export const DockerDiskUsageChart = () => {
 				<span className="text-sm text-muted-foreground">
 					Total: {formatSize(totalBytes)}
 				</span>
-				<Button
-					variant="ghost"
-					size="icon"
-					className="h-7 w-7"
-					onClick={() => refetch()}
-					disabled={isRefetching}
-				>
-					<RefreshCw
-						className={`size-3.5 ${isRefetching ? "animate-spin" : ""}`}
-					/>
-				</Button>
+				<div className="flex items-center gap-2">
+					<Button
+						variant="ghost"
+						size="icon"
+						className="h-7 w-7"
+						onClick={() => refetch()}
+						disabled={isRefetching}
+					>
+						<RefreshCw
+							className={`size-3.5 ${isRefetching ? "animate-spin" : ""}`}
+						/>
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => setShowDetails((value) => !value)}
+					>
+						{showDetails ? (
+							<ChevronDown className="mr-2 size-4" />
+						) : (
+							<ChevronRight className="mr-2 size-4" />
+						)}
+						{showDetails ? "Hide details" : "Show details"}
+					</Button>
+				</div>
 			</div>
 			<ChartContainer
 				config={chartConfig}
@@ -177,6 +196,83 @@ export const DockerDiskUsageChart = () => {
 					<ChartLegend content={<ChartLegendContent nameKey="name" />} />
 				</PieChart>
 			</ChartContainer>
+			{showDetails && (
+				<div className="grid gap-3 xl:grid-cols-2">
+					{chartData.map((item) => {
+						const label = getChartLabel(item.name);
+						const details = item.details;
+
+						return (
+							<div key={item.name} className="rounded-md border p-3">
+								<div className="flex items-start justify-between gap-3">
+									<div className="min-w-0">
+										<div className="flex items-center gap-2">
+											<span
+												className="size-2.5 rounded-sm"
+												style={{ backgroundColor: item.fill }}
+											/>
+											<p className="text-sm font-medium">{label}</p>
+										</div>
+										<p className="mt-1 text-xs text-muted-foreground">
+											{item.active} active / {item.totalCount} total
+										</p>
+									</div>
+									<div className="shrink-0 text-right">
+										<p className="text-sm font-medium">{item.size}</p>
+										<p className="text-xs text-muted-foreground">
+											{item.reclaimable} reclaimable
+										</p>
+									</div>
+								</div>
+
+								{details.length > 0 ? (
+									<div className="mt-3 divide-y">
+										{details.map((detail) => (
+											<div
+												key={`${item.name}-${detail.id}`}
+												className="py-2 first:pt-0 last:pb-0"
+											>
+												<div className="flex items-start justify-between gap-3">
+													<div className="min-w-0">
+														<p className="truncate text-sm font-medium">
+															{detail.name}
+														</p>
+														<p className="truncate font-mono text-xs text-muted-foreground">
+															{detail.id}
+														</p>
+													</div>
+													<p className="shrink-0 text-sm font-medium">
+														{detail.size}
+													</p>
+												</div>
+												<div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+													{detail.meta.slice(0, 4).map((meta) => (
+														<span
+															key={`${item.name}-${detail.id}-${meta.label}`}
+															className="min-w-0 truncate"
+														>
+															{meta.label}: {meta.value}
+														</span>
+													))}
+												</div>
+											</div>
+										))}
+										{item.totalCount > details.length && (
+											<p className="pt-2 text-xs text-muted-foreground">
+												Showing largest {details.length} of {item.totalCount}.
+											</p>
+										)}
+									</div>
+								) : (
+									<p className="mt-3 text-xs text-muted-foreground">
+										No detailed usage entries reported by Docker.
+									</p>
+								)}
+							</div>
+						);
+					})}
+				</div>
+			)}
 		</div>
 	);
 };
