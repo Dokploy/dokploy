@@ -642,3 +642,107 @@ SPECIAL=café résumé naïve
 		expect(resolved[2]).toContain("café");
 	});
 });
+
+describe("prepareEnvironmentVariables (cross-service references)", () => {
+	const serviceFqdns = {
+		backend: "https://api.example.com",
+		database: "http://db.internal.example.com",
+	};
+
+	it("resolves ${{service.<name>.fqdn}} from the provided map", () => {
+		const serviceEnv = `
+API_URL=\${{service.backend.fqdn}}
+DB_URL=\${{service.database.fqdn}}
+PORT=4000
+`;
+
+		const resolved = prepareEnvironmentVariables(
+			serviceEnv,
+			"",
+			"",
+			serviceFqdns,
+		);
+
+		expect(resolved).toEqual([
+			"API_URL=https://api.example.com",
+			"DB_URL=http://db.internal.example.com",
+			"PORT=4000",
+		]);
+	});
+
+	it("composes service references with surrounding text", () => {
+		const serviceEnv = `
+HEALTHCHECK=\${{service.backend.fqdn}}/health
+`;
+
+		const resolved = prepareEnvironmentVariables(
+			serviceEnv,
+			"",
+			"",
+			serviceFqdns,
+		);
+
+		expect(resolved).toEqual(["HEALTHCHECK=https://api.example.com/health"]);
+	});
+
+	it("resolves service references alongside project, environment and self refs", () => {
+		const serviceEnv = `
+ENVIRONMENT=\${{project.ENVIRONMENT}}
+NODE_ENV=\${{environment.NODE_ENV}}
+API_URL=\${{service.backend.fqdn}}
+REGION=eu-west-1
+SELF=\${{REGION}}
+`;
+
+		const resolved = prepareEnvironmentVariables(
+			serviceEnv,
+			projectEnv,
+			environmentEnv,
+			serviceFqdns,
+		);
+
+		expect(resolved).toEqual([
+			"ENVIRONMENT=staging",
+			"NODE_ENV=development",
+			"API_URL=https://api.example.com",
+			"REGION=eu-west-1",
+			"SELF=eu-west-1",
+		]);
+	});
+
+	it("throws when the referenced service is not in the map", () => {
+		const serviceEnv = `
+API_URL=\${{service.unknown.fqdn}}
+`;
+
+		expect(() =>
+			prepareEnvironmentVariables(serviceEnv, "", "", serviceFqdns),
+		).toThrow("Invalid service reference: service.unknown.fqdn");
+	});
+
+	it("throws when no service map is provided", () => {
+		const serviceEnv = `
+API_URL=\${{service.backend.fqdn}}
+`;
+
+		expect(() => prepareEnvironmentVariables(serviceEnv, "", "")).toThrow(
+			"Invalid service reference: service.backend.fqdn",
+		);
+	});
+
+	it("does not affect env vars without service references", () => {
+		const serviceEnv = `
+NODE_ENV=production
+PORT=3000
+`;
+
+		const resolved = prepareEnvironmentVariables(
+			serviceEnv,
+			"",
+			"",
+			serviceFqdns,
+		);
+
+		expect(resolved).toEqual(["NODE_ENV=production", "PORT=3000"]);
+	});
+});

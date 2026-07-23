@@ -400,6 +400,7 @@ export const prepareEnvironmentVariables = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,
 	environmentEnv?: string | null,
+	serviceFqdns?: Record<string, string> | null,
 ) => {
 	const projectVars = parse(projectEnv ?? "");
 	const environmentVars = parse(environmentEnv ?? "");
@@ -435,6 +436,20 @@ export const prepareEnvironmentVariables = (
 				},
 			);
 		}
+
+		// Replace cross-service references: ${{service.<name>.fqdn}}
+		// Resolves to the public URL of another service in the same environment.
+		// The name->fqdn map is precomputed by the caller (it requires a DB
+		// lookup); this keeps the function pure and synchronous.
+		resolvedValue = resolvedValue.replace(
+			/\$\{\{service\.(.*?)\.fqdn\}\}/g,
+			(_, name) => {
+				if (serviceFqdns && serviceFqdns[name] !== undefined) {
+					return serviceFqdns[name];
+				}
+				throw new Error(`Invalid service reference: service.${name}.fqdn`);
+			},
+		);
 
 		// Replace self-references (service variables)
 		resolvedValue = resolvedValue.replace(/\$\{\{(.*?)\}\}/g, (_, ref) => {
