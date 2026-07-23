@@ -190,6 +190,16 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			serverId: application?.serverId || "",
 		});
 
+	const { data: certificateResolvers } =
+		api.domain.certificateResolvers.useQuery(
+			{
+				serverId: application?.serverId || undefined,
+			},
+			{
+				enabled: isOpen,
+			},
+		);
+
 	const {
 		data: services,
 		isFetching: isLoadingServices,
@@ -228,11 +238,22 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	});
 
 	const certificateType = form.watch("certificateType");
+	const customCertResolver = form.watch("customCertResolver");
 	const useCustomEntrypoint = form.watch("useCustomEntrypoint");
 	const https = form.watch("https");
 	const domainType = form.watch("domainType");
 	const host = form.watch("host");
 	const isTraefikMeDomain = host?.includes("sslip.io") || false;
+
+	// Synthetic value for the certificate provider Select: detected resolvers
+	// from traefik.yml are stored as certificateType="custom" +
+	// customCertResolver=<name>, but displayed as their own option.
+	const certSelectValue =
+		certificateType === "custom" &&
+		customCertResolver &&
+		certificateResolvers?.includes(customCertResolver)
+			? `resolver:${customCertResolver}`
+			: (certificateType ?? "");
 
 	useEffect(() => {
 		if (data) {
@@ -744,15 +765,29 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 														<FormLabel>Certificate Provider</FormLabel>
 														<Select
 															onValueChange={(value) => {
-																field.onChange(value);
-																if (value !== "custom") {
+																if (value.startsWith("resolver:")) {
+																	field.onChange("custom");
 																	form.setValue(
 																		"customCertResolver",
-																		undefined,
+																		value.slice("resolver:".length),
 																	);
+																} else {
+																	field.onChange(value);
+																	if (
+																		value !== "custom" ||
+																		(customCertResolver &&
+																			certificateResolvers?.includes(
+																				customCertResolver,
+																			))
+																	) {
+																		form.setValue(
+																			"customCertResolver",
+																			undefined,
+																		);
+																	}
 																}
 															}}
-															value={field.value}
+															value={certSelectValue}
 														>
 															<FormControl>
 																<SelectTrigger>
@@ -765,6 +800,18 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																	Let's Encrypt
 																</SelectItem>
 																<SelectItem value={"custom"}>Custom</SelectItem>
+																{certificateResolvers
+																	?.filter(
+																		(resolver) => resolver !== "letsencrypt",
+																	)
+																	.map((resolver) => (
+																		<SelectItem
+																			key={resolver}
+																			value={`resolver:${resolver}`}
+																		>
+																			{resolver}
+																		</SelectItem>
+																	))}
 															</SelectContent>
 														</Select>
 														<FormDescription>
@@ -804,7 +851,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 											}}
 										/>
 
-										{certificateType === "custom" && (
+										{certSelectValue === "custom" && (
 											<FormField
 												control={form.control}
 												name="customCertResolver"

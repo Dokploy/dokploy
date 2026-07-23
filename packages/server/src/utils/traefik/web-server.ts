@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { webServerSettings } from "@dokploy/server/db/schema/web-server-settings";
 import { parse, stringify } from "yaml";
+import { execAsyncRemote } from "../process/execAsync";
 import {
 	loadOrCreateConfig,
 	removeTraefikConfig,
@@ -107,6 +108,33 @@ export const readMainConfig = () => {
 		return yamlStr;
 	}
 	return null;
+};
+
+export const getCertificateResolvers = async (
+	serverId?: string | null,
+): Promise<string[]> => {
+	try {
+		let yamlStr: string | null = null;
+		if (serverId) {
+			const { MAIN_TRAEFIK_PATH } = paths(true);
+			const configPath = join(MAIN_TRAEFIK_PATH, "traefik.yml");
+			const { stdout } = await execAsyncRemote(serverId, `cat ${configPath}`);
+			yamlStr = stdout || null;
+		} else {
+			yamlStr = readMainConfig();
+		}
+		if (!yamlStr) return [];
+		const config = parse(yamlStr) as MainTraefikConfig;
+		if (
+			!config?.certificatesResolvers ||
+			typeof config.certificatesResolvers !== "object"
+		) {
+			return [];
+		}
+		return Object.keys(config.certificatesResolvers);
+	} catch {
+		return [];
+	}
 };
 
 export const writeMainConfig = (traefikConfig: string) => {
