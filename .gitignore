@@ -38,6 +38,9 @@ yarn-error.log*
 # Editor
 .idea
 
+# Development files
+mise.toml
+
 # Misc
 .DS_Store
 *.pem
