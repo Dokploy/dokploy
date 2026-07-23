@@ -32,7 +32,9 @@ export const TerminalModal = ({
 	serverId,
 	asButton = false,
 }: Props) => {
-	const [terminalKey, setTerminalKey] = useState<string>(getTerminalKey());
+	const [terminalKey, setTerminalKey] = useState<string>(() =>
+		getTerminalKey(),
+	);
 	const [isOpen, setIsOpen] = useState(false);
 	const isLocalServer = serverId === "local";
 
