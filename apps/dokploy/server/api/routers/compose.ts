@@ -18,11 +18,13 @@ import {
 	getAccessibleServerIds,
 	getComposeContainer,
 	getContainerLogs,
+	getDokployUrl,
 	getWebServerSettings,
 	IS_CLOUD,
 	loadServices,
 	randomizeComposeFile,
 	randomizeIsolatedDeploymentComposeFile,
+	registerGitlabDeployWebhook,
 	removeCompose,
 	removeComposeDirectory,
 	removeDeploymentsByComposeId,
@@ -195,6 +197,21 @@ export const composeRouter = createTRPCRouter({
 				service: ["create"],
 			});
 			const updated = await updateCompose(input.composeId, input);
+			if (
+				input.sourceType === "gitlab" &&
+				input.gitlabId &&
+				input.gitlabProjectId &&
+				input.gitlabBranch &&
+				updated?.refreshToken
+			) {
+				const dokployUrl = await getDokployUrl();
+				await registerGitlabDeployWebhook({
+					gitlabId: input.gitlabId,
+					gitlabProjectId: input.gitlabProjectId,
+					branch: input.gitlabBranch,
+					deployWebhookUrl: `${dokployUrl}/api/deploy/compose/${updated.refreshToken}`,
+				});
+			}
 			await audit(ctx, {
 				action: "update",
 				resourceType: "compose",

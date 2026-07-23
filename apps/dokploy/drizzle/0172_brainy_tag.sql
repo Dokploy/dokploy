@@ -1,0 +1,1 @@
+ALTER TABLE "gitlab" ADD COLUMN "enableAutoDeploy" boolean DEFAULT true NOT NULL;
