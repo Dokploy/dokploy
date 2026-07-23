@@ -8,28 +8,37 @@ type MockCreateServiceOptions = {
 			StopGracePeriod?: number;
 			Ulimits?: Array<{ Name: string; Soft: number; Hard: number }>;
 		};
+		Placement?: { Constraints?: string[] };
 	};
 	[key: string]: unknown;
 };
 
-const { inspectMock, getServiceMock, createServiceMock, getRemoteDockerMock } =
-	vi.hoisted(() => {
-		const inspect = vi.fn<() => Promise<never>>();
-		const getService = vi.fn(() => ({ inspect }));
-		const createService = vi.fn<
-			(opts: MockCreateServiceOptions) => Promise<void>
-		>(async () => undefined);
-		const getRemoteDocker = vi.fn(async () => ({
-			getService,
-			createService,
-		}));
-		return {
-			inspectMock: inspect,
-			getServiceMock: getService,
-			createServiceMock: createService,
-			getRemoteDockerMock: getRemoteDocker,
-		};
-	});
+const {
+	inspectMock,
+	getServiceMock,
+	createServiceMock,
+	getRemoteDockerMock,
+	infoMock,
+} = vi.hoisted(() => {
+	const inspect = vi.fn<() => Promise<never>>();
+	const getService = vi.fn(() => ({ inspect }));
+	const createService = vi.fn<
+		(opts: MockCreateServiceOptions) => Promise<void>
+	>(async () => undefined);
+	const info = vi.fn(async () => ({ Swarm: { NodeID: "node-123" } }));
+	const getRemoteDocker = vi.fn(async () => ({
+		getService,
+		createService,
+		info,
+	}));
+	return {
+		inspectMock: inspect,
+		getServiceMock: getService,
+		createServiceMock: createService,
+		getRemoteDockerMock: getRemoteDocker,
+		infoMock: info,
+	};
+});
 
 vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
 	getRemoteDocker: getRemoteDockerMock,
@@ -70,9 +79,12 @@ describe("mechanizeDockerContainer", () => {
 		getServiceMock.mockClear();
 		createServiceMock.mockClear();
 		getRemoteDockerMock.mockClear();
+		infoMock.mockClear();
+		infoMock.mockResolvedValue({ Swarm: { NodeID: "node-123" } });
 		getRemoteDockerMock.mockResolvedValue({
 			getService: getServiceMock,
 			createService: createServiceMock,
+			info: infoMock,
 		});
 	});
 
@@ -157,5 +169,77 @@ describe("mechanizeDockerContainer", () => {
 		}
 		const [settings] = call;
 		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty("Ulimits");
+	});
+
+	it("pins a locally built image to the build node", async () => {
+		const application = createApplication({
+			sourceType: "github",
+			registry: null,
+			placementSwarm: null,
+		});
+
+		await mechanizeDockerContainer(application);
+
+		const call = createServiceMock.mock.calls[0];
+		if (!call) {
+			throw new Error("createServiceMock should have been called once");
+		}
+		const [settings] = call;
+		expect(settings.TaskTemplate?.Placement?.Constraints).toContain(
+			"node.id==node-123",
+		);
+	});
+
+	it("does not pin external (docker) images to the build node", async () => {
+		const application = createApplication({ sourceType: "docker" });
+
+		await mechanizeDockerContainer(application);
+
+		const call = createServiceMock.mock.calls[0];
+		if (!call) {
+			throw new Error("createServiceMock should have been called once");
+		}
+		const [settings] = call;
+		expect(settings.TaskTemplate?.Placement?.Constraints ?? []).not.toContain(
+			"node.id==node-123",
+		);
+	});
+
+	it("does not pin images that are pushed to a registry", async () => {
+		const application = createApplication({
+			sourceType: "github",
+			registry: null,
+			rollbackRegistry: {} as ApplicationNested["rollbackRegistry"],
+		});
+
+		await mechanizeDockerContainer(application);
+
+		const call = createServiceMock.mock.calls[0];
+		if (!call) {
+			throw new Error("createServiceMock should have been called once");
+		}
+		const [settings] = call;
+		expect(settings.TaskTemplate?.Placement?.Constraints ?? []).not.toContain(
+			"node.id==node-123",
+		);
+	});
+
+	it("respects a user-defined placement instead of auto-pinning", async () => {
+		const application = createApplication({
+			sourceType: "github",
+			registry: null,
+			placementSwarm: { Constraints: ["node.labels.zone==eu"] },
+		});
+
+		await mechanizeDockerContainer(application);
+
+		const call = createServiceMock.mock.calls[0];
+		if (!call) {
+			throw new Error("createServiceMock should have been called once");
+		}
+		const [settings] = call;
+		expect(settings.TaskTemplate?.Placement?.Constraints).toEqual([
+			"node.labels.zone==eu",
+		]);
 	});
 });
