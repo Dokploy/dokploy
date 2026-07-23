@@ -285,6 +285,9 @@ export const getDefaultTraefikConfig = () => {
 			},
 			websecure: {
 				address: `:${TRAEFIK_SSL_PORT}`,
+				http2: {
+					maxConcurrentStreams: 0,
+				},
 				http3: {
 					advertisedPort: TRAEFIK_HTTP3_PORT,
 				},
