@@ -353,6 +353,12 @@ export const addDokployNetworkToService = (
 	let networks = networkService;
 	const network = "dokploy-network";
 	const defaultNetwork = "default";
+	// If the service had no `networks` key it was relying on Compose's implicit
+	// `default` network, so we preserve that by adding it back. If it declared
+	// explicit networks (even an empty list/object), we must NOT force `default`
+	// onto it, otherwise Compose creates a new per-project default network on
+	// every deploy and eventually exhausts Docker's address pools.
+	const hadExplicitNetworks = networkService !== undefined;
 	if (!networks) {
 		networks = [];
 	}
@@ -361,14 +367,14 @@ export const addDokployNetworkToService = (
 		if (!networks.includes(network)) {
 			networks.push(network);
 		}
-		if (!networks.includes(defaultNetwork)) {
+		if (!hadExplicitNetworks && !networks.includes(defaultNetwork)) {
 			networks.push(defaultNetwork);
 		}
 	} else if (networks && typeof networks === "object") {
 		if (!(network in networks)) {
 			networks[network] = {};
 		}
-		if (!(defaultNetwork in networks)) {
+		if (!hadExplicitNetworks && !(defaultNetwork in networks)) {
 			networks[defaultNetwork] = {};
 		}
 	}
