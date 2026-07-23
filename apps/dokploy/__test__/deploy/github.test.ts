@@ -4,6 +4,7 @@ import {
 	extractImageName,
 	extractImageTag,
 	extractImageTagFromRequest,
+	extractTagName,
 } from "@/pages/api/deploy/[refreshToken]";
 
 describe("GitHub Webhook Skip CI", () => {
@@ -110,6 +111,73 @@ describe("GitHub Webhook Skip CI", () => {
 		expect(extractCommitMessage({ "x-softserve-event": "push" }, {})).toBe(
 			"NEW COMMIT",
 		);
+	});
+});
+
+describe("extractTagName", () => {
+	it("should extract the tag name from a GitHub tag push", () => {
+		expect(
+			extractTagName({ "x-github-event": "push" }, { ref: "refs/tags/v1.0.0" }),
+		).toBe("v1.0.0");
+	});
+
+	it("should return null for a GitHub branch push", () => {
+		expect(
+			extractTagName({ "x-github-event": "push" }, { ref: "refs/heads/main" }),
+		).toBeNull();
+	});
+
+	it("should extract the tag name from a Gitea tag push", () => {
+		expect(
+			extractTagName({ "x-gitea-event": "push" }, { ref: "refs/tags/v2.3.4" }),
+		).toBe("v2.3.4");
+	});
+
+	it("should extract the tag name from a GitLab tag push", () => {
+		expect(
+			extractTagName(
+				{ "x-gitlab-event": "Tag Push Hook" },
+				{ ref: "refs/tags/release-1" },
+			),
+		).toBe("release-1");
+	});
+
+	it("should return null for a GitLab branch push", () => {
+		expect(
+			extractTagName(
+				{ "x-gitlab-event": "Push Hook" },
+				{ ref: "refs/heads/develop" },
+			),
+		).toBeNull();
+	});
+
+	it("should extract the tag name from a Bitbucket tag push", () => {
+		expect(
+			extractTagName(
+				{ "x-event-key": "repo:push" },
+				{ push: { changes: [{ new: { type: "tag", name: "v9.9.9" } }] } },
+			),
+		).toBe("v9.9.9");
+	});
+
+	it("should return null for a Bitbucket branch push", () => {
+		expect(
+			extractTagName(
+				{ "x-event-key": "repo:push" },
+				{ push: { changes: [{ new: { type: "branch", name: "main" } }] } },
+			),
+		).toBeNull();
+	});
+
+	it("should return null when ref is missing or empty", () => {
+		expect(extractTagName({ "x-github-event": "push" }, {})).toBeNull();
+		expect(
+			extractTagName({ "x-github-event": "push" }, { ref: "" }),
+		).toBeNull();
+	});
+
+	it("should return null for unknown providers", () => {
+		expect(extractTagName({}, { ref: "refs/tags/v1.0.0" })).toBeNull();
 	});
 });
 
