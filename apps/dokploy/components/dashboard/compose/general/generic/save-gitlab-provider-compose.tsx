@@ -468,14 +468,18 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 										{field.value?.map((path, index) => (
 											<Badge key={index} variant="secondary">
 												{path}
-												<X
-													className="ml-1 size-3 cursor-pointer"
+												<button
+													type="button"
+													aria-label="Remove watch path"
+													className="inline-flex items-center focus-visible:ring-2"
 													onClick={() => {
 														const newPaths = [...(field.value || [])];
 														newPaths.splice(index, 1);
 														form.setValue("watchPaths", newPaths);
 													}}
-												/>
+												>
+													<X className="ml-1 size-3 cursor-pointer" />
+												</button>
 											</Badge>
 										))}
 									</div>
@@ -523,14 +527,14 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 							control={form.control}
 							name="enableSubmodules"
 							render={({ field }) => (
-								<FormItem className="flex items-center space-x-2">
+								<FormItem className="flex flex-row items-center space-x-2 space-y-0">
 									<FormControl>
 										<Switch
 											checked={field.value}
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="mt-0!">Enable Submodules</FormLabel>
+									<FormLabel>Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>
