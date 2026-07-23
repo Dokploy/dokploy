@@ -557,4 +557,171 @@ export const organizationRouter = createTRPCRouter({
 			where: eq(organization.id, ctx.session.activeOrganizationId),
 		});
 	}),
+
+	updateDescription: withPermission("organization", "update")
+		.input(
+			z.object({
+				organizationId: z.string(),
+				description: z.string().max(500),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const org = await db.query.organization.findFirst({
+				where: eq(organization.id, input.organizationId),
+			});
+
+			if (!org) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found" });
+			}
+
+			const existingMeta = org.metadata ? JSON.parse(org.metadata) : {};
+			const updatedMeta = JSON.stringify({ ...existingMeta, description: input.description });
+
+			await db
+				.update(organization)
+				.set({ metadata: updatedMeta })
+				.where(eq(organization.id, input.organizationId));
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: input.organizationId,
+				resourceName: org.name,
+				metadata: { type: "updateDescription" },
+			});
+
+			return { success: true };
+		}),
+
+	bulkInviteMembers: withPermission("member", "create")
+		.input(
+			z.object({
+				invitations: z.array(
+					z.object({
+						email: z.string().email(),
+						role: z.string().min(1),
+					}),
+				).min(1).max(50),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			const results: { email: string; status: "invited" | "skipped"; reason?: string }[] = [];
+
+			for (const invite of input.invitations) {
+				const email = invite.email.toLowerCase();
+
+				if (invite.role === "owner") {
+					results.push({ email, status: "skipped", reason: "Cannot invite as owner" });
+					continue;
+				}
+
+				// Check if already a member
+				const existingUser = await db.query.user.findFirst({
+					where: eq(user.email, email),
+				});
+
+				if (existingUser) {
+					const existingMember = await db.query.member.findFirst({
+						where: and(
+							eq(member.organizationId, orgId),
+							eq(member.userId, existingUser.id),
+						),
+					});
+					if (existingMember) {
+						results.push({ email, status: "skipped", reason: "Already a member" });
+						continue;
+					}
+				}
+
+				// Check for pending invitation
+				const existingInvitation = await db.query.invitation.findFirst({
+					where: and(
+						eq(invitation.organizationId, orgId),
+						eq(invitation.email, email),
+						eq(invitation.status, "pending"),
+					),
+				});
+
+				if (existingInvitation) {
+					results.push({ email, status: "skipped", reason: "Invitation already pending" });
+					continue;
+				}
+
+				// Validate custom role if needed
+				if (!["owner", "admin", "member"].includes(invite.role)) {
+					const customRole = await db.query.organizationRole.findFirst({
+						where: and(
+							eq(organizationRole.organizationId, orgId),
+							eq(organizationRole.role, invite.role),
+						),
+					});
+					if (!customRole) {
+						results.push({ email, status: "skipped", reason: `Role "${invite.role}" not found` });
+						continue;
+					}
+				}
+
+				await db.insert(invitation).values({
+					id: nanoid(),
+					organizationId: orgId,
+					email,
+					role: invite.role as any,
+					status: "pending",
+					expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+					inviterId: ctx.user.id,
+				});
+
+				results.push({ email, status: "invited" });
+			}
+
+			await audit(ctx, {
+				action: "create",
+				resourceType: "organization",
+				resourceId: orgId,
+				metadata: { type: "bulkInviteMembers", count: results.filter((r) => r.status === "invited").length },
+			});
+
+			return results;
+		}),
+
+	moveMemberToTeam: withPermission("member", "update")
+		.input(
+			z.object({
+				memberId: z.string(),
+				teamId: z.string().nullable(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const target = await db.query.member.findFirst({
+				where: eq(member.id, input.memberId),
+				with: { user: true },
+			});
+
+			if (!target) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
+			}
+
+			if (target.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not allowed to move this member",
+				});
+			}
+
+			await db
+				.update(member)
+				.set({ teamId: input.teamId })
+				.where(eq(member.id, input.memberId));
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "user",
+				resourceId: target.userId,
+				resourceName: target.user.email,
+				metadata: { type: "moveMemberToTeam", teamId: input.teamId },
+			});
+
+			return { success: true };
+		}),
 });
