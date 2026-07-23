@@ -97,9 +97,34 @@ export const getLogType = (message: string): LogStyle => {
 		return LOG_STYLES.info;
 	}
 
+	// Strip "no-error" key/value pairs so success lines that merely contain the
+	// words "error" or "failed" (e.g. ofelia's "failed: false, error: none")
+	// are not misclassified as errors based on the key alone.
+	// Only strip when the no-error value is the COMPLETE value of the pair
+	// (terminated by end-of-line, comma or semicolon) — never when it is merely
+	// the prefix of a longer phrase, otherwise genuine errors like
+	// "failed: no route to host" or "error: none of the nodes responded" would
+	// be wrongly cleared.
+	const noErrorTerminator = "(?=\\s*(?:$|[,;]))";
+	const withoutNoErrorPairs = lowerMessage
+		.replace(
+			new RegExp(
+				`\\berror:?\\s*(?:none|null|nil|false|0|-|""|'')${noErrorTerminator}`,
+				"gi",
+			),
+			"",
+		)
+		.replace(
+			new RegExp(
+				`\\bfail(?:ed|ure)?:?\\s*(?:none|false|no|0)${noErrorTerminator}`,
+				"gi",
+			),
+			"",
+		);
+
 	if (
-		/(?:^|\s)(?:error|err):?\s/i.test(lowerMessage) ||
-		/\b(?:exception|failed|failure)\b/i.test(lowerMessage) ||
+		/(?:^|\s)(?:error|err):?\s/i.test(withoutNoErrorPairs) ||
+		/\b(?:exception|failed|failure)\b/i.test(withoutNoErrorPairs) ||
 		/(?:stack\s?trace):\s*$/i.test(lowerMessage) ||
 		/^\s*at\s+[\w.]+\s*\(?.+:\d+:\d+\)?/.test(lowerMessage) ||
 		/\b(?:uncaught|unhandled)\s+(?:exception|error)\b/i.test(lowerMessage) ||
@@ -107,7 +132,7 @@ export const getLogType = (message: string): LogStyle => {
 		/\b(?:errno|code):\s*(?:\d+|[A-Z_]+)\b/i.test(lowerMessage) ||
 		/\[(?:error|err|fatal)\]/i.test(lowerMessage) ||
 		/\b(?:crash|critical|fatal)\b/i.test(lowerMessage) ||
-		/\b(?:fail(?:ed|ure)?|broken|dead)\b/i.test(lowerMessage)
+		/\b(?:fail(?:ed|ure)?|broken|dead)\b/i.test(withoutNoErrorPairs)
 	) {
 		return LOG_STYLES.error;
 	}
