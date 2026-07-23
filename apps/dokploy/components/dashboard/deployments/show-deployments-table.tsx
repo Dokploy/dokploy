@@ -94,6 +94,18 @@ function getServiceInfo(d: DeploymentRow) {
 	return null;
 }
 
+// Sentinel value for deployments whose service has no remote server set,
+// meaning it runs on the local Dokploy server.
+const LOCAL_SERVER_VALUE = "__local__";
+
+function getServerInfo(d: DeploymentRow) {
+	const server = d.server ?? d.application?.server ?? d.compose?.server ?? null;
+	if (server) {
+		return { serverId: server.serverId, name: server.name };
+	}
+	return null;
+}
+
 export function ShowDeploymentsTable() {
 	const [sorting, setSorting] = useState<SortingState>([
 		{ id: "createdAt", desc: true },
@@ -102,6 +114,7 @@ export function ShowDeploymentsTable() {
 	const [globalFilter, setGlobalFilter] = useState("");
 	const [statusFilter, setStatusFilter] = useState<string>("all");
 	const [typeFilter, setTypeFilter] = useState<string>("all");
+	const [serverFilter, setServerFilter] = useState<string>("all");
 	const [pagination, setPagination] = useState<PaginationState>({
 		pageIndex: 0,
 		pageSize: 50,
@@ -111,6 +124,24 @@ export function ShowDeploymentsTable() {
 		api.deployment.allCentralized.useQuery(undefined, {
 			refetchInterval: 5000,
 		});
+
+	const serverOptions = useMemo(() => {
+		const map = new Map<string, string>();
+		let hasLocal = false;
+		for (const d of deploymentsList ?? []) {
+			const info = getServerInfo(d);
+			if (info) {
+				map.set(info.serverId, info.name);
+			} else {
+				hasLocal = true;
+			}
+		}
+		const options = Array.from(map, ([serverId, name]) => ({
+			serverId,
+			name,
+		})).sort((a, b) => a.name.localeCompare(b.name));
+		return { options, hasLocal };
+	}, [deploymentsList]);
 
 	const filteredData = useMemo(() => {
 		if (!deploymentsList) return [];
@@ -122,6 +153,13 @@ export function ShowDeploymentsTable() {
 			list = list.filter((d) => d.applicationId != null);
 		} else if (typeFilter === "compose") {
 			list = list.filter((d) => d.composeId != null);
+		}
+		if (serverFilter !== "all") {
+			list = list.filter((d) => {
+				const info = getServerInfo(d);
+				if (serverFilter === LOCAL_SERVER_VALUE) return info === null;
+				return info?.serverId === serverFilter;
+			});
 		}
 		if (globalFilter.trim()) {
 			const q = globalFilter.toLowerCase();
@@ -146,7 +184,7 @@ export function ShowDeploymentsTable() {
 			});
 		}
 		return list;
-	}, [deploymentsList, statusFilter, typeFilter, globalFilter]);
+	}, [deploymentsList, statusFilter, typeFilter, serverFilter, globalFilter]);
 
 	const columns = useMemo(
 		() => [
@@ -480,6 +518,22 @@ export function ShowDeploymentsTable() {
 						<SelectItem value="all">All types</SelectItem>
 						<SelectItem value="application">Application</SelectItem>
 						<SelectItem value="compose">Compose</SelectItem>
+					</SelectContent>
+				</Select>
+				<Select value={serverFilter} onValueChange={setServerFilter}>
+					<SelectTrigger className="w-[160px]">
+						<SelectValue placeholder="Server" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">All servers</SelectItem>
+						{serverOptions.hasLocal && (
+							<SelectItem value={LOCAL_SERVER_VALUE}>Dokploy</SelectItem>
+						)}
+						{serverOptions.options.map((server) => (
+							<SelectItem key={server.serverId} value={server.serverId}>
+								{server.name}
+							</SelectItem>
+						))}
 					</SelectContent>
 				</Select>
 			</div>
