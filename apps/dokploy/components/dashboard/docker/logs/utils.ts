@@ -97,17 +97,23 @@ export const getLogType = (message: string): LogStyle => {
 		return LOG_STYLES.info;
 	}
 
+	// Key/value pairs that explicitly report a non-error (e.g. "error: none",
+	// "failed: false") must not trigger the error keyword patterns below
+	const nonErrorKeyValues =
+		/\b(?:error|err|errors|failed|failure|failures)s?\s*[:=]\s*(?:none|null|nil|false|0|no|-|""|'')(?=[\s,;.)\]]|$)/gi;
+	const errorScope = lowerMessage.replace(nonErrorKeyValues, "");
+
 	if (
-		/(?:^|\s)(?:error|err):?\s/i.test(lowerMessage) ||
-		/\b(?:exception|failed|failure)\b/i.test(lowerMessage) ||
-		/(?:stack\s?trace):\s*$/i.test(lowerMessage) ||
-		/^\s*at\s+[\w.]+\s*\(?.+:\d+:\d+\)?/.test(lowerMessage) ||
-		/\b(?:uncaught|unhandled)\s+(?:exception|error)\b/i.test(lowerMessage) ||
-		/Error:\s.*(?:in|at)\s+.*:\d+(?::\d+)?/.test(lowerMessage) ||
-		/\b(?:errno|code):\s*(?:\d+|[A-Z_]+)\b/i.test(lowerMessage) ||
-		/\[(?:error|err|fatal)\]/i.test(lowerMessage) ||
-		/\b(?:crash|critical|fatal)\b/i.test(lowerMessage) ||
-		/\b(?:fail(?:ed|ure)?|broken|dead)\b/i.test(lowerMessage)
+		/(?:^|\s)(?:error|err):?\s/i.test(errorScope) ||
+		/\b(?:exception|failed|failure)\b/i.test(errorScope) ||
+		/(?:stack\s?trace):\s*$/i.test(errorScope) ||
+		/^\s*at\s+[\w.]+\s*\(?.+:\d+:\d+\)?/.test(errorScope) ||
+		/\b(?:uncaught|unhandled)\s+(?:exception|error)\b/i.test(errorScope) ||
+		/Error:\s.*(?:in|at)\s+.*:\d+(?::\d+)?/.test(errorScope) ||
+		/\b(?:errno|code):\s*(?:\d+|[A-Z_]+)\b/i.test(errorScope) ||
+		/\[(?:error|err|fatal)\]/i.test(errorScope) ||
+		/\b(?:crash|critical|fatal)\b/i.test(errorScope) ||
+		/\b(?:fail(?:ed|ure)?|broken|dead)\b/i.test(errorScope)
 	) {
 		return LOG_STYLES.error;
 	}
