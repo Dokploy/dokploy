@@ -41,7 +41,10 @@ export const deploymentRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				deployment: ["read"],
 			});
-			return await findAllDeploymentsByApplicationId(input.applicationId);
+			return await findAllDeploymentsByApplicationId(
+				input.applicationId,
+				input.limit,
+			);
 		}),
 
 	allByCompose: protectedProcedure
@@ -50,7 +53,7 @@ export const deploymentRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["read"],
 			});
-			return await findAllDeploymentsByComposeId(input.composeId);
+			return await findAllDeploymentsByComposeId(input.composeId, input.limit);
 		}),
 	allByServer: withPermission("deployment", "read")
 		.input(apiFindAllByServer)
@@ -62,7 +65,7 @@ export const deploymentRouter = createTRPCRouter({
 					message: "You don't have access to this server.",
 				});
 			}
-			return await findAllDeploymentsByServerId(input.serverId);
+			return await findAllDeploymentsByServerId(input.serverId, input.limit);
 		}),
 	allCentralized: withPermission("deployment", "read").query(
 		async ({ ctx }) => {
@@ -153,6 +156,7 @@ export const deploymentRouter = createTRPCRouter({
 			const deploymentsList = await db.query.deployments.findMany({
 				where: eq(deployments[`${input.type}Id`], input.id),
 				orderBy: desc(deployments.createdAt),
+				limit: input.limit,
 				with: {
 					rollback: true,
 				},
