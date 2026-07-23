@@ -91,6 +91,7 @@ export const getLogType = (message: string): LogStyle => {
 	if (
 		/(?:^|\s)(?:info|inf|information):?\s/i.test(lowerMessage) ||
 		/\[(?:info|information)\]/i.test(lowerMessage) ||
+		/(?:^|\s)notice\b(?!:)/i.test(lowerMessage) ||
 		/\b(?:status|state|current|progress)\b:?\s/i.test(lowerMessage) ||
 		/\b(?:processing|executing|performing)\b/i.test(lowerMessage)
 	) {
@@ -98,8 +99,11 @@ export const getLogType = (message: string): LogStyle => {
 	}
 
 	if (
-		/(?:^|\s)(?:error|err):?\s/i.test(lowerMessage) ||
-		/\b(?:exception|failed|failure)\b/i.test(lowerMessage) ||
+		/(?:^|\s)(?:error|err):?\s+(?!(?:none|null|false|nil|no|0)\b)/i.test(
+			lowerMessage,
+		) ||
+		/\bfail(?:ed|ure)?\b(?!:?\s*(?:false|none|no|0)\b)/i.test(lowerMessage) ||
+		/\bexception\b/i.test(lowerMessage) ||
 		/(?:stack\s?trace):\s*$/i.test(lowerMessage) ||
 		/^\s*at\s+[\w.]+\s*\(?.+:\d+:\d+\)?/.test(lowerMessage) ||
 		/\b(?:uncaught|unhandled)\s+(?:exception|error)\b/i.test(lowerMessage) ||
@@ -107,7 +111,7 @@ export const getLogType = (message: string): LogStyle => {
 		/\b(?:errno|code):\s*(?:\d+|[A-Z_]+)\b/i.test(lowerMessage) ||
 		/\[(?:error|err|fatal)\]/i.test(lowerMessage) ||
 		/\b(?:crash|critical|fatal)\b/i.test(lowerMessage) ||
-		/\b(?:fail(?:ed|ure)?|broken|dead)\b/i.test(lowerMessage)
+		/\b(?:broken|dead)\b/i.test(lowerMessage)
 	) {
 		return LOG_STYLES.error;
 	}
