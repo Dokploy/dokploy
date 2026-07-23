@@ -8,7 +8,6 @@
 		"outDir": "dist",
 		"jsx": "react-jsx",
 		"declaration": false,
-		"baseUrl": ".",
 		"paths": {
 			"@dokploy/server/*": ["../../packages/server/src/*"]
 		}

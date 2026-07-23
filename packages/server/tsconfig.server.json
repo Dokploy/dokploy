@@ -10,7 +10,6 @@
 		"declaration": true,
 		"moduleResolution": "Node",
 		"rootDir": "./src",
-		"baseUrl": ".",
 		"jsx": "react-jsx",
 		"paths": {
 			"@dokploy/server/*": ["./src/*"]
