@@ -7,7 +7,11 @@ import {
 import { css } from "@codemirror/lang-css";
 import { json } from "@codemirror/lang-json";
 import { yaml } from "@codemirror/lang-yaml";
-import { StreamLanguage } from "@codemirror/language";
+import {
+	getIndentUnit,
+	indentService,
+	StreamLanguage,
+} from "@codemirror/language";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { search, searchKeymap } from "@codemirror/search";
@@ -98,6 +102,27 @@ const dockerComposeServiceOptions = [
 	},
 }));
 
+// The indentNodeProp shipped with @codemirror/lang-yaml computes wrong
+// column-based indents on Enter (odd/inconsistent amounts, see #4650), so
+// indentation is resolved line-based here: keep the current indent, align
+// list-entry keys after the dash marker, and go one unit deeper after a
+// line that opens a block (ending in ":", "|" or ">").
+const yamlIndent = indentService.of((context, pos) => {
+	const line = context.state.doc.lineAt(pos);
+	const before = context.state.doc.sliceString(line.from, pos);
+	const indent = /^ */.exec(before)?.[0].length ?? 0;
+	const trimmed = before.trim();
+	if (!trimmed || trimmed.startsWith("#")) {
+		return indent;
+	}
+	const base =
+		trimmed.startsWith("- ") && /:\s/.test(trimmed) ? indent + 2 : indent;
+	if (/[:|>]$/.test(trimmed)) {
+		return base + getIndentUnit(context.state);
+	}
+	return base;
+});
+
 function dockerComposeComplete(
 	context: CompletionContext,
 ): CompletionResult | null {
@@ -160,7 +185,7 @@ export const CodeEditor = ({
 					search(),
 					keymap.of(searchKeymap),
 					language === "yaml"
-						? yaml()
+						? [yamlIndent, yaml()]
 						: language === "json"
 							? json()
 							: language === "css"
