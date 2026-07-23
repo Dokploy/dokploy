@@ -12,8 +12,10 @@ import { compose } from "../db/schema";
 import {
 	initializeStandaloneTraefik,
 	initializeTraefikService,
+	TRAEFIK_VERSION,
 	type TraefikOptions,
 } from "../setup/traefik-setup";
+import { prepareEnvironmentVariables } from "../utils/docker/utils";
 export interface IUpdateData {
 	latestVersion: string | null;
 	updateAvailable: boolean;
@@ -499,4 +501,77 @@ export const reconnectServicesToTraefik = async (serverId?: string) => {
 	} else {
 		await execAsync(commands);
 	}
+};
+
+/**
+ * Reads the image tag of the running dokploy-traefik resource and returns its
+ * coerced semver (e.g. "3.1.2"), or null if it can't be determined.
+ */
+export const getTraefikVersion = async (
+	serverId?: string,
+): Promise<string | null> => {
+	const resourceType = await getDockerResourceType("dokploy-traefik", serverId);
+	let command = "";
+	if (resourceType === "service") {
+		command =
+			"docker service inspect dokploy-traefik --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'";
+	} else if (resourceType === "standalone") {
+		command =
+			"docker container inspect dokploy-traefik --format '{{.Config.Image}}'";
+	} else {
+		return null;
+	}
+
+	let image = "";
+	if (serverId) {
+		const { stdout } = await execAsyncRemote(serverId, command);
+		image = stdout.trim();
+	} else {
+		const { stdout } = await execAsync(command);
+		image = stdout.trim();
+	}
+
+	// image looks like "traefik:v3.1.2", possibly with an "@sha256:..." suffix.
+	const tag = image.split("@")[0]?.split(":").pop() ?? "";
+	return semver.valid(semver.coerce(tag));
+};
+
+/**
+ * Ensures the running dokploy-traefik is at least the pinned TRAEFIK_VERSION.
+ *
+ * Traefik releases older than the pinned version are incompatible with Docker
+ * Engine 28+: their docker/swarm provider stops discovering containers, so the
+ * label-based routing used by Docker Compose domains silently returns 404 while
+ * file-provider applications keep working. New installs already pin the current
+ * version, but existing installs never get the bump on upgrade — this heals
+ * them. See issue #4324.
+ *
+ * Reuses the same recreate path as the dashboard toggle (env/ports preserved),
+ * which dispatches to a service image bump or a standalone recreate. No-op when
+ * Traefik is already at or above the pinned version.
+ */
+export const ensureTraefikUpToDate = async (serverId?: string) => {
+	const current = await getTraefikVersion(serverId);
+
+	// If we can't determine the version, don't touch a running Traefik.
+	if (!current) {
+		return { bumped: false, current: null, target: TRAEFIK_VERSION };
+	}
+
+	if (semver.gte(current, TRAEFIK_VERSION)) {
+		return { bumped: false, current, target: TRAEFIK_VERSION };
+	}
+
+	const env = await readEnvironmentVariables("dokploy-traefik", serverId);
+	const additionalPorts = await readPorts("dokploy-traefik", serverId);
+	await writeTraefikSetup({
+		env: prepareEnvironmentVariables(env),
+		additionalPorts,
+		serverId,
+	});
+
+	console.log(
+		`Bumped dokploy-traefik from v${current} to v${TRAEFIK_VERSION} (#4324)`,
+	);
+	return { bumped: true, current, target: TRAEFIK_VERSION };
 };
