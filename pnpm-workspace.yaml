@@ -4,4 +4,8 @@ packages:
   - "apps/schedules"
   - "packages/server"
 
+# Supply-chain hardening: refuse package versions younger than 3 days (4320 min),
+# so newly-published malicious versions get caught/yanked before we install them.
+minimumReleaseAge: 4320
+
 
