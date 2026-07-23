@@ -1036,17 +1036,37 @@ export const findAllDeploymentsByServerId = async (serverId: string) => {
 };
 
 export const clearOldDeployments = async (
-	appName: string,
-	serverId: string | null,
+	id: string,
+	type: "application" | "compose"
 ) => {
-	const { LOGS_PATH } = paths(!!serverId);
-	const folder = path.join(LOGS_PATH, appName);
-	const command = `
-		rm -rf ${folder};
-	`;
-	if (serverId) {
-		await execAsyncRemote(serverId, command);
-	} else {
-		await execAsync(command);
+	const deploymentsList = await db.query.deployments.findMany({
+		where: eq(deployments[`${type}Id`], id),
+		orderBy: desc(deployments.createdAt),
+	});
+
+	const currentDeployment =
+		deploymentsList.find((d) => d.status === "done") ?? deploymentsList[0];
+
+	if (!currentDeployment || deploymentsList.length <= 1) {
+		return;
+	}
+
+	const deploymentsToDelete = deploymentsList.filter(
+		(d) => d.deploymentId !== currentDeployment.deploymentId,
+	);
+
+	for (const oldDeployment of deploymentsToDelete) {
+		try {
+			if (oldDeployment.rollbackId) {
+				await removeRollbackById(oldDeployment.rollbackId);
+			}
+
+			await removeDeployment(oldDeployment.deploymentId);
+		} catch (err) {
+			console.error(
+				`Failed to remove deployment ${oldDeployment.deploymentId} during cleanup:`,
+				err,
+			);
+		}
 	}
 };
