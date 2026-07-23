@@ -132,7 +132,8 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 	};
 
 	const addTestCommand = () => {
-		form.setValue("Test", [...testCommands, ""]);
+		const newItems = testCommands.length === 0 ? ["", ""] : [""];
+		form.setValue("Test", [...testCommands, ...newItems]);
 	};
 
 	const updateTestCommand = (index: number, value: string) => {
