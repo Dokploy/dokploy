@@ -149,6 +149,7 @@ const baseDomain: Domain = {
 	stripPath: false,
 	middlewares: null,
 	forwardAuthEnabled: false,
+	skipDefaultNetwork: false,
 };
 
 const baseRedirect: Redirect = {

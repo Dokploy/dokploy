@@ -1,0 +1,1 @@
+ALTER TABLE "domain" ADD COLUMN "skipDefaultNetwork" boolean DEFAULT false NOT NULL;

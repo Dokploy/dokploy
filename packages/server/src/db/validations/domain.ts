@@ -95,6 +95,7 @@ export const domainCompose = z
 		customCertResolver: z.string(),
 		serviceName: z.string().min(1, { message: "Service name is required" }),
 		middlewares: z.array(z.string()).optional(),
+		skipDefaultNetwork: z.boolean().optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {

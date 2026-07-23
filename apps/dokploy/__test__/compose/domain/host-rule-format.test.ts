@@ -35,6 +35,7 @@ describe("Host rule format regression tests", () => {
 		customEntrypoint: null,
 		middlewares: null,
 		forwardAuthEnabled: false,
+		skipDefaultNetwork: false,
 	};
 
 	describe("Host rule format validation", () => {
