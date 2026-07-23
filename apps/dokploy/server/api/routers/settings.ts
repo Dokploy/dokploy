@@ -68,6 +68,7 @@ import {
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
 	apiUpdateWebServerBuildsConcurrency,
+	apiUpdateWebServerSettings,
 	projects,
 	server,
 } from "@/server/db/schema";
@@ -465,6 +466,33 @@ export const settingsRouter = createTRPCRouter({
 				action: "update",
 				resourceType: "settings",
 				resourceName: "remote-servers-only",
+			});
+			return true;
+		}),
+	updateExternalUpstreamSettings: adminProcedure
+		.input(
+			apiUpdateWebServerSettings.pick({
+				externalUpstreamsEnabled: true,
+				externalUpstreamBlockedCidrs: true,
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				externalUpstreamsEnabled: input.externalUpstreamsEnabled,
+				externalUpstreamBlockedCidrs: input.externalUpstreamBlockedCidrs,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "external-upstreams",
 			});
 			return true;
 		}),

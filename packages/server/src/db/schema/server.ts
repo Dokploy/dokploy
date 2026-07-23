@@ -15,6 +15,7 @@ import { applications } from "./application";
 import { certificates } from "./certificate";
 import { compose } from "./compose";
 import { deployments } from "./deployment";
+import { externalUpstreams } from "./external-upstream";
 import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
@@ -118,6 +119,7 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 		relationName: "applicationBuildServer",
 	}),
 	compose: many(compose),
+	externalUpstreams: many(externalUpstreams),
 	libsql: many(libsql),
 	redis: many(redis),
 	mariadb: many(mariadb),

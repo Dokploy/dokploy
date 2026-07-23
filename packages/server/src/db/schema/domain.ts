@@ -14,6 +14,7 @@ import { z } from "zod";
 import { domain } from "../validations/domain";
 import { applications } from "./application";
 import { compose } from "./compose";
+import { externalUpstreams } from "./external-upstream";
 import { previewDeployments } from "./preview-deployments";
 import { certificateType } from "./shared";
 
@@ -21,6 +22,7 @@ export const domainType = pgEnum("domainType", [
 	"compose",
 	"application",
 	"preview",
+	"externalUpstream",
 ]);
 
 export const domains = pgTable("domain", {
@@ -47,6 +49,10 @@ export const domains = pgTable("domain", {
 		() => applications.applicationId,
 		{ onDelete: "cascade" },
 	),
+	externalUpstreamId: text("externalUpstreamId").references(
+		() => externalUpstreams.externalUpstreamId,
+		{ onDelete: "cascade" },
+	),
 	previewDeploymentId: text("previewDeploymentId").references(
 		(): AnyPgColumn => previewDeployments.previewDeploymentId,
 		{ onDelete: "cascade" },
@@ -63,6 +69,10 @@ export const domainsRelations = relations(domains, ({ one }) => ({
 		fields: [domains.applicationId],
 		references: [applications.applicationId],
 	}),
+	externalUpstream: one(externalUpstreams, {
+		fields: [domains.externalUpstreamId],
+		references: [externalUpstreams.externalUpstreamId],
+	}),
 	compose: one(compose, {
 		fields: [domains.composeId],
 		references: [compose.composeId],
@@ -76,7 +86,9 @@ export const domainsRelations = relations(domains, ({ one }) => ({
 const createSchema = createInsertSchema(domains, {
 	...domain.shape,
 	// Override pgEnum so Zod 4 infers only string literals, not numeric enum index
-	domainType: z.enum(["compose", "application", "preview"]).optional(),
+	domainType: z
+		.enum(["compose", "application", "preview", "externalUpstream"])
+		.optional(),
 });
 
 export const apiCreateDomain = createSchema.pick({
@@ -86,6 +98,7 @@ export const apiCreateDomain = createSchema.pick({
 	customEntrypoint: true,
 	https: true,
 	applicationId: true,
+	externalUpstreamId: true,
 	certificateType: true,
 	customCertResolver: true,
 	composeId: true,
@@ -104,6 +117,10 @@ export const apiFindDomain = z.object({
 
 export const apiFindDomainByApplication = createSchema.pick({
 	applicationId: true,
+});
+
+export const apiFindDomainByExternalUpstream = createSchema.pick({
+	externalUpstreamId: true,
 });
 
 export const apiCreateTraefikMeDomain = createSchema.pick({}).extend({
