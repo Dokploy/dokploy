@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { ConfirmableProviderSave } from "./confirmable-provider-save";
 
 interface GiteaRepository {
 	name: string;
@@ -89,8 +90,9 @@ interface Props {
 }
 
 export const SaveGiteaProvider = ({ applicationId }: Props) => {
+	const utils = api.useUtils();
 	const { data: giteaProviders } = api.gitea.giteaProviders.useQuery();
-	const { data, refetch } = api.application.one.useQuery({ applicationId });
+	const { data } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync, isPending: isSavingGiteaProvider } =
 		api.application.saveGiteaProvider.useMutation();
@@ -177,7 +179,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
-				await refetch();
+				await utils.application.one.invalidate({ applicationId });
 			})
 			.catch(() => {
 				toast.error("Error saving the Gitea provider");
@@ -544,13 +546,17 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 						/>
 					</div>
 					<div className="flex w-full justify-end">
-						<Button
+						<ConfirmableProviderSave
+							needsConfirmation={
+								data?.sourceType === "github" &&
+								data?.isPreviewDeploymentsActive === true
+							}
 							isLoading={isSavingGiteaProvider}
-							type="submit"
-							className="w-fit"
+							onValidate={() => form.trigger()}
+							onConfirm={form.handleSubmit(onSubmit)}
 						>
 							Save
-						</Button>
+						</ConfirmableProviderSave>
 					</div>
 				</form>
 			</Form>
