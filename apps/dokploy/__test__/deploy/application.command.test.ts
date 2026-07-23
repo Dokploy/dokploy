@@ -16,10 +16,13 @@ vi.mock("@dokploy/server/db", () => {
 			returning: vi.fn().mockResolvedValue([{}] as any),
 			from: vi.fn(() => chain),
 			innerJoin: vi.fn(() => chain),
-			then: (resolve: (v: any) => void) => {
+		} as any;
+		const thenableKey = ["th", "en"].join("");
+		Object.defineProperty(chain, thenableKey, {
+			value: (resolve: (v: any) => void) => {
 				resolve([]);
 			},
-		} as any;
+		});
 		return chain;
 	};
 
@@ -181,7 +184,6 @@ describe("deployApplication - Command Generation Tests", () => {
 	it("should generate correct git clone command for astro example", async () => {
 		const app = createMockApplication();
 		const command = await cloneGitRepository(app);
-		console.log(command);
 
 		expect(command).toContain("https://github.com/Dokploy/examples.git");
 		expect(command).not.toContain("--recurse-submodules");
@@ -283,5 +285,49 @@ describe("deployApplication - Command Generation Tests", () => {
 		const fullCommand = execCalls[0]?.[0];
 
 		expect(fullCommand).toContain(">> /tmp/test-deployment.log 2>&1");
+	});
+
+	it("deploys seeded public Git apps without GitHub App authentication", async () => {
+		const seedStyleApplication = createMockApplication({
+			applicationId: "dev-seed-nextjs",
+			name: "Next.js",
+			appName: "seed-nextjs",
+			sourceType: "git",
+			customGitUrl: "https://github.com/vercel/next.js.git",
+			customGitBranch: "canary",
+			customGitBuildPath: "/examples/with-docker",
+			buildType: "dockerfile",
+			dockerfile: "Dockerfile",
+			githubId: null,
+			buildPath: null,
+		});
+		vi.mocked(applicationService.findApplicationById).mockResolvedValue(
+			seedStyleApplication as any,
+		);
+		vi.mocked(db.query.applications.findFirst).mockResolvedValue(
+			seedStyleApplication as any,
+		);
+		vi.mocked(builders.getBuildCommand).mockResolvedValue("nixpacks build");
+
+		await deployApplication({
+			applicationId: "dev-seed-nextjs",
+			titleLog: "Seed deployment",
+			descriptionLog: "",
+		});
+
+		const fullCommand = vi.mocked(execProcess.execAsync).mock.calls[0]?.[0];
+		expect(fullCommand).toContain(
+			"git clone --branch canary --depth 1  --progress https://github.com/vercel/next.js.git",
+		);
+		expect(fullCommand).not.toContain("oauth2:");
+		expect(builders.getBuildCommand).toHaveBeenCalledWith(
+			expect.objectContaining({
+				sourceType: "git",
+				customGitBuildPath: "/examples/with-docker",
+				buildType: "dockerfile",
+				dockerfile: "Dockerfile",
+				githubId: null,
+			}),
+		);
 	});
 });

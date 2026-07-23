@@ -16,6 +16,7 @@ export * from "./services/cluster";
 export * from "./services/compose";
 export * from "./services/deployment";
 export * from "./services/destination";
+export * from "./services/development-seed";
 export * from "./services/docker";
 export * from "./services/domain";
 export * from "./services/environment";

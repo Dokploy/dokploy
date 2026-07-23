@@ -88,6 +88,12 @@ pnpm run dokploy:dev
 
 Go to http://localhost:3000 to see the development server
 
+Create the first local account in the browser. After the account is created, run the seed command from the repository root to add example applications for local development.
+
+```bash
+pnpm --filter=dokploy run db:seed
+```
+
 > [!NOTE]
 > This project uses Biome. If your editor is configured to use another formatter such as Prettier, it's recommended to either change it to use Biome or turn it off.
 
