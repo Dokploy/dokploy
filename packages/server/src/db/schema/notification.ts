@@ -370,8 +370,8 @@ export const apiCreateEmail = notificationsSchema
 	.extend({
 		smtpServer: z.string().min(1),
 		smtpPort: z.number().min(1),
-		username: z.string().min(1),
-		password: z.string().min(1),
+		username: z.string(),
+		password: z.string(),
 		fromAddress: z.string().min(1),
 		toAddresses: z.array(z.string()).min(1),
 	})
