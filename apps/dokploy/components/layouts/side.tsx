@@ -317,6 +317,13 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			title: "Sessions",
+			icon: LogIn,
+			url: "/dashboard/settings/sessions",
+			isEnabled: ({ permissions }) => !!permissions?.member.read,
+		},
+		{
+			isSingle: true,
 			title: "Audit Logs",
 			icon: ClipboardList,
 			url: "/dashboard/settings/audit-logs",
