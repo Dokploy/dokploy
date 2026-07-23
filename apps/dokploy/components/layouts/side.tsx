@@ -27,7 +27,9 @@ import {
 	type LucideIcon,
 	Package,
 	Palette,
+	PenBoxIcon,
 	PieChart,
+	Plus,
 	Rocket,
 	Server,
 	ShieldCheck,
@@ -574,6 +576,10 @@ function SidebarLogo() {
 	const [_activeTeam, setActiveTeam] = useState<
 		typeof activeOrganization | null
 	>(null);
+	const [editOrganizationId, setEditOrganizationId] = useState<string | null>(
+		null,
+	);
+	const [isAddOrganizationOpen, setIsAddOrganizationOpen] = useState(false);
 
 	useEffect(() => {
 		if (activeOrganization) {
@@ -736,7 +742,15 @@ function SidebarLogo() {
 													</Button>
 													{org.ownerId === session?.user?.id && (
 														<>
-															<AddOrganization organizationId={org.id} />
+															<DropdownMenuItem
+																className="group cursor-pointer hover:bg-blue-500/10"
+																onSelect={(e) => {
+																	e.preventDefault();
+																	setEditOrganizationId(org.id);
+																}}
+															>
+																<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
+															</DropdownMenuItem>
 															<DialogAction
 																title="Delete Organization"
 																description="Are you sure you want to delete this organization?"
@@ -780,7 +794,20 @@ function SidebarLogo() {
 									isCloud) && (
 									<>
 										<DropdownMenuSeparator />
-										<AddOrganization />
+										<DropdownMenuItem
+											className="gap-2 p-2"
+											onSelect={(e) => {
+												e.preventDefault();
+												setIsAddOrganizationOpen(true);
+											}}
+										>
+											<div className="flex size-6 items-center justify-center rounded-md border bg-background">
+												<Plus className="size-4" />
+											</div>
+											<div className="font-medium text-muted-foreground">
+												Add organization
+											</div>
+										</DropdownMenuItem>
 									</>
 								)}
 							</DropdownMenuContent>
@@ -869,6 +896,23 @@ function SidebarLogo() {
 						</DropdownMenu>
 					</SidebarMenuItem>
 				</SidebarMenu>
+			)}
+			{editOrganizationId && (
+				<AddOrganization
+					organizationId={editOrganizationId}
+					open={true}
+					onOpenChange={(open) => {
+						if (!open) setEditOrganizationId(null);
+					}}
+				/>
+			)}
+			{isAddOrganizationOpen && (
+				<AddOrganization
+					open={true}
+					onOpenChange={(open) => {
+						if (!open) setIsAddOrganizationOpen(false);
+					}}
+				/>
 			)}
 		</>
 	);
