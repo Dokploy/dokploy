@@ -1226,6 +1226,13 @@
       "when": 1783674181297,
       "tag": "0174_great_naoko",
       "breakpoints": true
+    },
+    {
+      "idx": 175,
+      "version": "7",
+      "when": 1783941126738,
+      "tag": "0175_rare_omega_flight",
+      "breakpoints": true
     }
   ]
 }

@@ -161,7 +161,8 @@ export const addDomainToCompose = async (
 		result = randomized;
 	}
 
-	for (const domain of domains) {
+	// Disabled domains keep their config but must not produce any traefik labels.
+	for (const domain of domains.filter((d) => d.enabled)) {
 		const { serviceName, https } = domain;
 		if (!serviceName) {
 			throw new Error(`Domain "${domain.host}" is missing a service name`);
