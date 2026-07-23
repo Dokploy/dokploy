@@ -15,6 +15,23 @@ const statusDotClass: Record<string, string> = {
 	idle: "bg-muted-foreground/40",
 };
 
+function getDeploymentCommitMeta(d: {
+	title?: string | null;
+	description?: string | null;
+}) {
+	const commitMessage = d.title
+		?.split("\n")
+		.map((line) => line.trim())
+		.find(Boolean);
+	const commitHash = d.description?.replace(/^Commit:\s*/i, "").trim();
+
+	if (!commitMessage || !commitHash) {
+		return null;
+	}
+
+	return `${commitMessage} (${commitHash.slice(0, 7)})`;
+}
+
 function getServiceInfo(d: any) {
 	const app = d.application;
 	const comp = d.compose;
@@ -246,6 +263,7 @@ export const ShowHome = () => {
 									const info = getServiceInfo(d);
 									if (!info) return null;
 									const status = (d.status ?? "idle") as DeploymentStatus;
+									const commitMeta = getDeploymentCommitMeta(d);
 									return (
 										<li key={d.deploymentId}>
 											<Link
@@ -259,7 +277,9 @@ export const ShowHome = () => {
 												<div className="flex flex-col min-w-0 flex-1">
 													<span className="text-sm truncate">{info.name}</span>
 													<span className="text-xs text-muted-foreground truncate">
-														{info.projectName} · {info.environment}
+														{[info.projectName, info.environment, commitMeta]
+															.filter(Boolean)
+															.join(" · ")}
 													</span>
 												</div>
 												<span className="text-xs text-muted-foreground w-36 hidden lg:flex items-center justify-end gap-1.5 truncate">
