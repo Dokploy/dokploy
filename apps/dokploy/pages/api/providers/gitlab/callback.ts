@@ -26,18 +26,12 @@ export default async function handler(
 		headers.Authorization = `Basic ${Buffer.from(`${gitlabUrl.username}:${gitlabUrl.password}`).toString("base64")}`;
 	}
 
-	const url =
-		gitlabUrl.username && gitlabUrl.password
-			? new URL(gitlabUrl, {
-					...gitlabUrl,
-					username: "",
-					password: "",
-				}).toString()
-			: gitlabUrl.toString();
+	const url = gitlabUrl.origin + gitlabUrl.pathname.replace(/\/$/, "");
 
 	const response = await fetch(`${url}/oauth/token`, {
 		method: "POST",
 		headers,
+		redirect: "manual",
 		body: new URLSearchParams({
 			client_id: gitlab.applicationId as string,
 			client_secret: gitlab.secret as string,
@@ -46,6 +40,12 @@ export default async function handler(
 			redirect_uri: `${gitlab.redirectUri}?gitlabId=${gitlabId}`,
 		}),
 	});
+
+	if (!response.ok) {
+		return res.status(response.status).json({
+			error: `GitLab token exchange failed: ${response.statusText}`,
+		});
+	}
 
 	const result = await response.json();
 
