@@ -12,6 +12,7 @@ import {
 	Loader2,
 	Play,
 	PlusIcon,
+	PuzzleIcon,
 	RefreshCw,
 	Search,
 	ServerIcon,
@@ -90,6 +91,7 @@ import {
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
@@ -431,6 +433,7 @@ const EnvironmentPage = (
 	const [openCombobox, setOpenCombobox] = useState(false);
 	const [selectedServices, setSelectedServices] = useState<string[]>([]);
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+	const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
 	const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
 	const [deleteVolumes, setDeleteVolumes] = useState(false);
 	const [selectedServerId, setSelectedServerId] = useState<string>("all");
@@ -1089,7 +1092,13 @@ const EnvironmentPage = (
 													projectName={projectData?.name}
 													environmentId={environmentId}
 												/>
-												<AddTemplate environmentId={environmentId} />
+												<DropdownMenuItem
+													className="w-full cursor-pointer space-x-3"
+													onSelect={() => setIsTemplateDialogOpen(true)}
+												>
+													<PuzzleIcon className="size-4 text-muted-foreground" />
+													<span>Template</span>
+												</DropdownMenuItem>
 												<AddAiAssistant
 													projectName={projectData?.name}
 													environmentId={environmentId}
@@ -1100,6 +1109,13 @@ const EnvironmentPage = (
 												/>
 											</DropdownMenuContent>
 										</DropdownMenu>
+									)}
+									{permissions?.service.create && (
+										<AddTemplate
+											environmentId={environmentId}
+											open={isTemplateDialogOpen}
+											onOpenChange={setIsTemplateDialogOpen}
+										/>
 									)}
 								</div>
 							</div>
