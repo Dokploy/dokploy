@@ -639,7 +639,6 @@ export const composeRouter = createTRPCRouter({
 				name: input.id,
 				sourceType: "raw",
 				appName: appName,
-				isolatedDeployment: template.config.config?.isolated !== false,
 			});
 
 			await addNewService(ctx, compose.composeId);
@@ -997,7 +996,6 @@ export const composeRouter = createTRPCRouter({
 					composeFile: templateData.compose,
 					sourceType: "raw",
 					env: processedTemplate.envs?.join("\n"),
-					isolatedDeployment: true,
 				});
 
 				if (processedTemplate.mounts && processedTemplate.mounts.length > 0) {

@@ -1,9 +1,10 @@
 import { db } from "@dokploy/server/db";
 import { type apiCreateNetwork, network } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { z } from "zod";
 import { IS_CLOUD } from "../constants";
+import type { ApplicationNested } from "../utils/builders";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 
 // Networks managed by Docker/Dokploy itself that must never be imported
@@ -273,12 +274,37 @@ const createDockerNetworkFromRow = async (row: typeof network.$inferSelect) => {
 	}
 };
 
-// Re-creates the Docker network from the stored record, for records whose
-// network was removed from Docker outside of Dokploy
 export const recreateNetwork = async (networkId: string) => {
 	const row = await findNetworkById(networkId);
 	await createDockerNetworkFromRow(row);
 	return row;
+};
+
+export const resolveServiceNetworks = async (
+	application: Partial<ApplicationNested>,
+) => {
+	if (application.networkSwarm) {
+		return application.networkSwarm;
+	}
+
+	const { networkIds, detachDokployNetwork } = application;
+	const rows =
+		networkIds && networkIds.length > 0
+			? await db.query.network.findMany({
+					where: and(
+						inArray(network.networkId, networkIds),
+						eq(network.driver, "overlay"),
+					),
+					columns: { name: true },
+				})
+			: [];
+
+	const networks = detachDokployNetwork ? [] : ["dokploy-network"];
+	for (const row of rows) {
+		networks.push(row.name);
+	}
+
+	return networks.map((name) => ({ Target: name }));
 };
 
 export const inspectNetwork = async (networkId: string) => {

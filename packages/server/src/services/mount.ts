@@ -107,81 +107,29 @@ export const createFileMount = async (mountId: string) => {
 };
 
 export const findMountById = async (mountId: string) => {
+	const serviceWith = {
+		columns: { serverId: true, appName: true },
+		with: {
+			environment: {
+				columns: {},
+				with: {
+					project: { columns: { organizationId: true } },
+				},
+			},
+		},
+	} as const;
+
 	const mount = await db.query.mounts.findFirst({
 		where: eq(mounts.mountId, mountId),
 		with: {
-			application: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			compose: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			libsql: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			mariadb: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			mongo: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			mysql: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			postgres: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			redis: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
+			application: serviceWith,
+			compose: serviceWith,
+			libsql: serviceWith,
+			mariadb: serviceWith,
+			mongo: serviceWith,
+			mysql: serviceWith,
+			postgres: serviceWith,
+			redis: serviceWith,
 		},
 	});
 	if (!mount) {
