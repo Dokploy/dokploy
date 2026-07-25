@@ -33,6 +33,7 @@ import {
 	APP_NAME_REGEX,
 	DATABASE_PASSWORD_MESSAGE,
 	DATABASE_PASSWORD_REGEX,
+	encryptedText,
 	generateAppName,
 } from "./utils";
 
@@ -53,7 +54,7 @@ export const postgres = pgTable("postgres", {
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
 	args: text("args").array(),
-	env: text("env"),
+	env: encryptedText("env"),
 	memoryReservation: text("memoryReservation"),
 	externalPort: integer("externalPort"),
 	memoryLimit: text("memoryLimit"),

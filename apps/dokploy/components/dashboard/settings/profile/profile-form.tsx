@@ -272,7 +272,7 @@ export const ProfileForm = () => {
 																className="flex flex-row flex-wrap gap-2 max-xl:justify-center"
 															>
 																<FormItem key="no-avatar">
-																	<FormLabel className="[&:has([data-state=checked])>.default-avatar]:border-primary [&:has([data-state=checked])>.default-avatar]:border-1 [&:has([data-state=checked])>.default-avatar]:p-px cursor-pointer">
+																	<FormLabel className="[&:has([data-state=checked])>.default-avatar]:border-primary [&:has([data-state=checked])>.default-avatar]:border [&:has([data-state=checked])>.default-avatar]:p-px cursor-pointer">
 																		<FormControl>
 																			<RadioGroupItem
 																				value=""
@@ -290,7 +290,7 @@ export const ProfileForm = () => {
 																	</FormLabel>
 																</FormItem>
 																<FormItem key="custom-upload">
-																	<FormLabel className="[&:has([data-state=checked])>.upload-avatar]:border-primary [&:has([data-state=checked])>.upload-avatar]:border-1 [&:has([data-state=checked])>.upload-avatar]:p-px cursor-pointer">
+																	<FormLabel className="[&:has([data-state=checked])>.upload-avatar]:border-primary [&:has([data-state=checked])>.upload-avatar]:border [&:has([data-state=checked])>.upload-avatar]:p-px cursor-pointer">
 																		<FormControl>
 																			<RadioGroupItem
 																				value="upload"
@@ -356,7 +356,7 @@ export const ProfileForm = () => {
 																	</FormLabel>
 																</FormItem>
 																<FormItem key="color-avatar">
-																	<FormLabel className="[&:has([data-state=checked])>.color-avatar]:border-primary [&:has([data-state=checked])>.color-avatar]:border-1 [&:has([data-state=checked])>.color-avatar]:p-px cursor-pointer relative">
+																	<FormLabel className="[&:has([data-state=checked])>.color-avatar]:border-primary [&:has([data-state=checked])>.color-avatar]:border [&:has([data-state=checked])>.color-avatar]:p-px cursor-pointer relative">
 																		<FormControl>
 																			<RadioGroupItem
 																				value="color"
@@ -391,7 +391,7 @@ export const ProfileForm = () => {
 																</FormItem>
 																{availableAvatars.map((image) => (
 																	<FormItem key={image}>
-																		<FormLabel className="[&:has([data-state=checked])>img]:border-primary [&:has([data-state=checked])>img]:border-1 [&:has([data-state=checked])>img]:p-px cursor-pointer">
+																		<FormLabel className="[&:has([data-state=checked])>img]:border-primary [&:has([data-state=checked])>img]:border [&:has([data-state=checked])>img]:p-px cursor-pointer">
 																			<FormControl>
 																				<RadioGroupItem
 																					value={image}
@@ -420,7 +420,7 @@ export const ProfileForm = () => {
 													control={form.control}
 													name="allowImpersonation"
 													render={({ field }) => (
-														<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+														<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
 															<div className="space-y-0.5">
 																<FormLabel>Allow Impersonation</FormLabel>
 																<FormDescription>

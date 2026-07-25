@@ -139,7 +139,7 @@ const Redis = (
 													</Label>
 												</TooltipTrigger>
 												<TooltipContent
-													className="z-[999] w-[300px]"
+													className="z-999 w-[300px]"
 													align="start"
 													side="top"
 												>
@@ -297,6 +297,7 @@ const Redis = (
 												<ShowDockerLogs
 													serverId={data?.serverId || ""}
 													appName={data?.appName || ""}
+													serviceId={data?.redisId}
 												/>
 											</div>
 										</TabsContent>

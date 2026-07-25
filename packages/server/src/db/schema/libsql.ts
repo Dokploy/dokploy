@@ -37,6 +37,7 @@ import {
 import {
 	DATABASE_PASSWORD_MESSAGE,
 	DATABASE_PASSWORD_REGEX,
+	encryptedText,
 	generateAppName,
 } from "./utils";
 
@@ -58,7 +59,7 @@ export const libsql = pgTable("libsql", {
 	enableNamespaces: boolean("enableNamespaces").notNull().default(false),
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
-	env: text("env"),
+	env: encryptedText("env"),
 	// RESOURCES
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),

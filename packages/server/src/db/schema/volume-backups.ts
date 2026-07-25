@@ -14,7 +14,11 @@ import { serviceType } from "./mount";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
-import { generateAppName } from "./utils";
+import {
+	generateAppName,
+	VOLUME_NAME_MESSAGE,
+	VOLUME_NAME_REGEX,
+} from "./utils";
 
 export const volumeBackups = pgTable("volume_backup", {
 	volumeBackupId: text("volumeBackupId")
@@ -113,7 +117,9 @@ export const volumeBackupsRelations = relations(
 	}),
 );
 
-export const createVolumeBackupSchema = createInsertSchema(volumeBackups).omit({
+export const createVolumeBackupSchema = createInsertSchema(volumeBackups, {
+	volumeName: z.string().regex(VOLUME_NAME_REGEX, VOLUME_NAME_MESSAGE),
+}).omit({
 	volumeBackupId: true,
 });
 

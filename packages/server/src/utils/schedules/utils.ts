@@ -9,6 +9,7 @@ import {
 } from "@dokploy/server/services/deployment";
 import { findScheduleById } from "@dokploy/server/services/schedule";
 import { scheduledJobs, scheduleJob as scheduleJobNode } from "node-schedule";
+import { quote } from "shell-quote";
 import { getComposeContainer, getServiceContainer } from "../docker/utils";
 import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
@@ -77,12 +78,12 @@ export const runCommand = async (scheduleId: string) => {
 					serverId,
 					`
 					set -e
-					echo "Running command: docker exec ${containerId} ${shellType} -c '${command}'" >> ${deployment.logPath};
-					docker exec ${containerId} ${shellType} -c '${command}' >> ${deployment.logPath} 2>> ${deployment.logPath} || { 
-						echo "❌ Command failed" >> ${deployment.logPath};
+					echo "Running scheduled command" >> ${quote([deployment.logPath])};
+					docker exec ${quote([containerId])} ${quote([shellType])} -c ${quote([command])} >> ${quote([deployment.logPath])} 2>> ${quote([deployment.logPath])} || {
+						echo "❌ Command failed" >> ${quote([deployment.logPath])};
 						exit 1;
 					}
-					echo "✅ Command executed successfully" >> ${deployment.logPath};
+					echo "✅ Command executed successfully" >> ${quote([deployment.logPath])};
 					`,
 				);
 			} catch (error) {

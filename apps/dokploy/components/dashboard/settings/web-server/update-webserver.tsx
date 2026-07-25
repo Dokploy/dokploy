@@ -20,6 +20,7 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
 type ServiceStatus = {
@@ -55,7 +56,11 @@ const ServiceStatusItem = ({
 	</div>
 );
 
-export const UpdateWebServer = () => {
+export const UpdateWebServer = ({
+	buttonClassName,
+}: {
+	buttonClassName?: string;
+}) => {
 	const [modalState, setModalState] = useState<ModalState>("idle");
 	const [open, setOpen] = useState(false);
 	const [healthResult, setHealthResult] = useState<HealthResult | null>(null);
@@ -136,7 +141,7 @@ export const UpdateWebServer = () => {
 		<AlertDialog open={open}>
 			<AlertDialogTrigger asChild>
 				<Button
-					className="relative w-full"
+					className={cn("relative w-full", buttonClassName)}
 					variant="secondary"
 					onClick={() => setOpen(true)}
 				>

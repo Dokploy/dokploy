@@ -19,7 +19,7 @@ export default function Custom404({ statusCode, error }: Props) {
 
 	return (
 		<div className="h-screen">
-			<div className="max-w-[50rem] flex flex-col mx-auto size-full">
+			<div className="max-w-200 flex flex-col mx-auto size-full">
 				<header className="mb-auto flex justify-center z-50 w-full py-4">
 					<nav className="px-4 sm:px-6 lg:px-8" aria-label="Global">
 						<Link href="/" className="flex flex-row items-center gap-2">
@@ -60,7 +60,7 @@ export default function Custom404({ statusCode, error }: Props) {
 								})}
 							>
 								<svg
-									className="flex-shrink-0 size-4"
+									className="shrink-0 size-4"
 									xmlns="http://www.w3.org/2000/svg"
 									width="24"
 									height="24"
@@ -80,7 +80,7 @@ export default function Custom404({ statusCode, error }: Props) {
 				</main>
 
 				<footer className="mt-auto text-center py-5">
-					<div className="max-w-[85rem] mx-auto px-4 sm:px-6 lg:px-8">
+					<div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
 						<p className="text-sm text-gray-500">
 							{whitelabeling?.footerText ? (
 								whitelabeling.footerText

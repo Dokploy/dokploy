@@ -33,6 +33,7 @@ import {
 	APP_NAME_REGEX,
 	DATABASE_PASSWORD_MESSAGE,
 	DATABASE_PASSWORD_REGEX,
+	encryptedText,
 	generateAppName,
 } from "./utils";
 
@@ -54,7 +55,7 @@ export const mariadb = pgTable("mariadb", {
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
 	args: text("args").array(),
-	env: text("env"),
+	env: encryptedText("env"),
 	// RESOURCES
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),

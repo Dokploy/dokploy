@@ -199,6 +199,9 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 									<FormLabel>Gitlab Account</FormLabel>
 									<Select
 										onValueChange={(value) => {
+											if (!value) {
+												return;
+											}
 											field.onChange(value);
 											form.setValue("repository", {
 												owner: "",
@@ -208,7 +211,6 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 											});
 											form.setValue("branch", "");
 										}}
-										defaultValue={field.value}
 										value={field.value}
 									>
 										<FormControl>
@@ -256,7 +258,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -272,7 +274,10 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 												</Button>
 											</FormControl>
 										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
+										<PopoverContent
+											className="w-[var(--radix-popover-trigger-width)] p-0"
+											align="start"
+										>
 											<Command>
 												<CommandInput
 													placeholder="Search repository..."
@@ -310,8 +315,10 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 																		form.setValue("branch", "");
 																	}}
 																>
-																	<span className="flex items-center gap-2">
-																		<span>{repo.name}</span>
+																	<span className="flex min-w-0 items-center gap-2">
+																		<span className="truncate">
+																			{repo.name}
+																		</span>
 																		<span className="text-muted-foreground text-xs">
 																			{repo.owner.username}
 																		</span>
@@ -353,7 +360,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														" w-full justify-between !bg-input",
+														" w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -368,7 +375,10 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 												</Button>
 											</FormControl>
 										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
+										<PopoverContent
+											className="w-[var(--radix-popover-trigger-width)] p-0"
+											align="start"
+										>
 											<Command>
 												<CommandInput
 													placeholder="Search branch..."
@@ -396,7 +406,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 																	form.setValue("branch", branch.name);
 																}}
 															>
-																{branch.name}
+																<span className="truncate">{branch.name}</span>
 																<CheckIcon
 																	className={cn(
 																		"ml-auto h-4 w-4",
@@ -520,7 +530,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+									<FormLabel className="mt-0!">Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

@@ -1,7 +1,7 @@
 import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DockerCleanupEmail from "@dokploy/server/emails/emails/docker-cleanup";
-import { renderAsync } from "@react-email/components";
+import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
@@ -63,7 +63,7 @@ export const sendDockerCleanupNotifications = async (
 		} = notification;
 		try {
 			if (email || resend) {
-				const template = await renderAsync(
+				const template = await render(
 					DockerCleanupEmail({ message, date: date.toLocaleString() }),
 				).catch();
 

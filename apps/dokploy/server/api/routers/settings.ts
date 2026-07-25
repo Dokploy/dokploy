@@ -71,7 +71,6 @@ import {
 	projects,
 	server,
 } from "@/server/db/schema";
-import { assertBuildsConcurrencyAllowed } from "@/server/queues/concurrency";
 import { cleanAllDeploymentQueue } from "@/server/queues/queueSetup";
 import { removeJob, schedule } from "@/server/utils/backup";
 import packageInfo from "../../../package.json";
@@ -479,11 +478,6 @@ export const settingsRouter = createTRPCRouter({
 					message: "This feature is only available for self-hosted instances",
 				});
 			}
-
-			await assertBuildsConcurrencyAllowed(
-				input.buildsConcurrency,
-				ctx.session.activeOrganizationId,
-			);
 
 			await updateWebServerSettings({
 				buildsConcurrency: input.buildsConcurrency,

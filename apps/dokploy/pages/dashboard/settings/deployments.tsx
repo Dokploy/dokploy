@@ -29,8 +29,6 @@ const Page = () => {
 							<CardDescription>
 								Configure how many deployments can build at the same time on
 								each server. Builds of the same service are always serialized.
-								Free plan allows up to 2 concurrent builds; an enterprise
-								license unlocks more.
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="flex flex-col gap-6">

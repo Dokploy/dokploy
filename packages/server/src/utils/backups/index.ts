@@ -11,6 +11,7 @@ import { startLogCleanup } from "../access-log/handler";
 import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { redactRcloneCredentials } from "./redact";
 import { getS3Credentials, normalizeS3Path, scheduleBackup } from "./utils";
 
 export const initCronJobs = async () => {
@@ -153,6 +154,6 @@ export const keepLatestNBackups = async (
 			await execAsync(rcloneCommand);
 		}
 	} catch (error) {
-		console.error(error);
+		console.error(redactRcloneCredentials(String(error)));
 	}
 };

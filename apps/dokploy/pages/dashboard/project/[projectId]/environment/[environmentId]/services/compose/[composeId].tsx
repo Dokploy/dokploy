@@ -160,7 +160,7 @@ const Service = (
 														</Label>
 													</TooltipTrigger>
 													<TooltipContent
-														className="z-[999] w-[300px]"
+														className="z-999 w-[300px]"
 														align="start"
 														side="top"
 													>
@@ -312,6 +312,7 @@ const Service = (
 													serverId={data?.serverId || undefined}
 													appName={data?.appName || ""}
 													appType={data?.composeType || "docker-compose"}
+													serviceId={data?.composeId}
 												/>
 											</div>
 										</TabsContent>
@@ -380,11 +381,13 @@ const Service = (
 														serverId={data?.serverId || ""}
 														appName={data?.appName || ""}
 														appType={data?.composeType || "docker-compose"}
+														serviceId={data?.composeId}
 													/>
 												) : (
 													<ShowDockerLogsStack
 														serverId={data?.serverId || ""}
 														appName={data?.appName || ""}
+														serviceId={data?.composeId}
 													/>
 												)}
 											</div>

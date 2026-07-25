@@ -35,6 +35,7 @@ import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { and, asc, eq, gt, ne } from "drizzle-orm";
 import { z } from "zod";
+import { apiKeyNameSchema } from "@/lib/api-keys";
 import { audit } from "@/server/api/utils/audit";
 import {
 	adminProcedure,
@@ -45,7 +46,7 @@ import {
 } from "../trpc";
 
 const apiCreateApiKey = z.object({
-	name: z.string().min(1),
+	name: apiKeyNameSchema,
 	prefix: z.string().optional(),
 	expiresIn: z.number().optional(),
 	metadata: z.object({
@@ -137,8 +138,31 @@ export const userRouter = createTRPCRouter({
 			),
 			with: {
 				user: {
+					columns: {
+						id: true,
+						firstName: true,
+						lastName: true,
+						email: true,
+						image: true,
+						allowImpersonation: true,
+						twoFactorEnabled: true,
+						stripeCustomerId: true,
+						stripeSubscriptionId: true,
+						serversQuantity: true,
+						isEnterpriseCloud: true,
+						sendInvoiceNotifications: true,
+					},
 					with: {
-						apiKeys: true,
+						apiKeys: {
+							columns: {
+								id: true,
+								name: true,
+								prefix: true,
+								enabled: true,
+								expiresAt: true,
+								createdAt: true,
+							},
+						},
 					},
 				},
 			},

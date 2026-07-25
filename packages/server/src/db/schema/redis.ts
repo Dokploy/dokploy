@@ -27,7 +27,12 @@ import {
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
-import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
+import {
+	APP_NAME_MESSAGE,
+	APP_NAME_REGEX,
+	encryptedText,
+	generateAppName,
+} from "./utils";
 
 export const redis = pgTable("redis", {
 	redisId: text("redisId")
@@ -44,7 +49,7 @@ export const redis = pgTable("redis", {
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
 	args: text("args").array(),
-	env: text("env"),
+	env: encryptedText("env"),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
