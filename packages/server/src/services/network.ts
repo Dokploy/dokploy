@@ -7,8 +7,6 @@ import { IS_CLOUD } from "../constants";
 import type { ApplicationNested } from "../utils/builders";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 
-// Networks managed by Docker/Dokploy itself that must never be imported
-// or deleted through the networks UI
 const RESERVED_NETWORKS = [
 	"bridge",
 	"host",
@@ -325,7 +323,6 @@ export const inspectNetwork = async (networkId: string) => {
 	}
 };
 
-// Docker networks are immutable: there is no update, only create and remove.
 export const removeNetwork = async (networkId: string) => {
 	const row = await findNetworkById(networkId);
 
@@ -333,7 +330,6 @@ export const removeNetwork = async (networkId: string) => {
 	try {
 		await docker.getNetwork(row.name).remove();
 	} catch (error) {
-		// If the network is already gone from Docker, still clean up the DB row
 		const statusCode = (error as { statusCode?: number })?.statusCode;
 		if (statusCode !== 404) {
 			throw new TRPCError({

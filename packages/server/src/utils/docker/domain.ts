@@ -240,7 +240,7 @@ export const addDomainToCompose = async (
 	return result;
 };
 
-const applyServiceNetworks = async (
+export const applyServiceNetworks = async (
 	result: ComposeSpecification,
 	compose: Compose,
 ) => {
@@ -282,7 +282,7 @@ const applyServiceNetworks = async (
 	return injectedNetworkNames;
 };
 
-const declareUsedNetworksInRoot = (
+export const declareUsedNetworksInRoot = (
 	result: ComposeSpecification,
 	injectedNetworkNames: Set<string>,
 ) => {

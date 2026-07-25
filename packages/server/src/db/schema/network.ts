@@ -6,13 +6,6 @@ import { z } from "zod";
 import { organization } from "./account";
 import { server } from "./server";
 
-/**
- * Docker network driver types. Only bridge and overlay are supported:
- * "host"/"none" are Docker singletons that cannot be created, and
- * macvlan/ipvlan require driver options (parent interface) we don't expose.
- * Scope is derived from the driver (bridge = local, overlay = swarm), and
- * ingress/config-only networks are not manageable from Dokploy.
- */
 export const networkDriver = pgEnum("networkDriver", ["bridge", "overlay"]);
 
 export const network = pgTable("network", {
