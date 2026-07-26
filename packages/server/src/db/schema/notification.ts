@@ -112,6 +112,8 @@ export const discord = pgTable("discord", {
 		.$defaultFn(() => nanoid()),
 	webhookUrl: text("webhookUrl").notNull(),
 	decoration: boolean("decoration"),
+	mentionUserIds: text("mentionUserIds").array(),
+	mentionRoleIds: text("mentionRoleIds").array(),
 });
 
 export const email = pgTable("email", {
@@ -338,6 +340,8 @@ export const apiCreateDiscord = notificationsSchema
 	.extend({
 		webhookUrl: z.string().min(1),
 		decoration: z.boolean(),
+		mentionUserIds: z.array(z.string()).optional().default([]),
+		mentionRoleIds: z.array(z.string()).optional().default([]),
 	})
 	.required();
 
@@ -353,6 +357,8 @@ export const apiTestDiscordConnection = apiCreateDiscord
 	})
 	.extend({
 		decoration: z.boolean().optional(),
+		mentionUserIds: z.array(z.string()).optional().default([]),
+		mentionRoleIds: z.array(z.string()).optional().default([]),
 	});
 
 export const apiCreateEmail = notificationsSchema

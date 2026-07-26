@@ -419,6 +419,8 @@ table discord {
   discordId text [pk, not null]
   webhookUrl text [not null]
   decoration boolean
+  mentionUserIds text[]
+  mentionRoleIds text[]
 }
 
 table domain {

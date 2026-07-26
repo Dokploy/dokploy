@@ -61,6 +61,14 @@ const notificationBaseSchema = z.object({
 	serverThreshold: z.boolean().default(false),
 });
 
+const parseDiscordIds = (value?: string) =>
+	value
+		? value
+				.split(",")
+				.map((id) => id.trim())
+				.filter(Boolean)
+		: [];
+
 export const notificationSchema = z.discriminatedUnion("type", [
 	z
 		.object({
@@ -82,6 +90,26 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			type: z.literal("discord"),
 			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
 			decoration: z.boolean().default(true),
+			mentionUserIds: z
+				.string()
+				.optional()
+				.refine(
+					(value) => parseDiscordIds(value).every((id) => /^\d+$/.test(id)),
+					{
+						message:
+							"Enter numeric Discord IDs only, separated by commas (e.g. 123456789012345678, 987654321098765432).",
+					},
+				),
+			mentionRoleIds: z
+				.string()
+				.optional()
+				.refine(
+					(value) => parseDiscordIds(value).every((id) => /^\d+$/.test(id)),
+					{
+						message:
+							"Enter numeric Discord IDs only, separated by commas (e.g. 123456789012345678, 987654321098765432).",
+					},
+				),
 		})
 		.merge(notificationBaseSchema),
 	z
@@ -392,6 +420,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					type: notification.notificationType,
 					webhookUrl: notification.discord?.webhookUrl,
 					decoration: notification.discord?.decoration ?? undefined,
+					mentionUserIds:
+						notification.discord?.mentionUserIds?.join(", ") ?? "",
+					mentionRoleIds:
+						notification.discord?.mentionRoleIds?.join(", ") ?? "",
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
@@ -624,6 +656,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
 				decoration: data.decoration,
+				mentionUserIds: parseDiscordIds(data.mentionUserIds),
+				mentionRoleIds: parseDiscordIds(data.mentionRoleIds),
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
@@ -1064,6 +1098,54 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 															onCheckedChange={field.onChange}
 														/>
 													</FormControl>
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="mentionRoleIds"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Mention Role IDs</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="123456789012345678, 987654321098765432"
+															{...field}
+														/>
+													</FormControl>
+													<FormDescription>
+														Comma-separated numeric Discord role IDs to ping on
+														every notification from this entry. Enable Developer
+														Mode in Discord, then right-click a role and select
+														Copy Role ID. Create separate Discord notifications
+														with different event toggles if you need different
+														mentions per event type.
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="mentionUserIds"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Mention User IDs</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="123456789012345678, 987654321098765432"
+															{...field}
+														/>
+													</FormControl>
+													<FormDescription>
+														Comma-separated numeric Discord user IDs to ping on
+														every notification from this entry. Enable Developer
+														Mode in Discord, then right-click a user and select
+														Copy User ID.
+													</FormDescription>
+													<FormMessage />
 												</FormItem>
 											)}
 										/>
@@ -2035,6 +2117,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										await testDiscordConnection({
 											webhookUrl: data.webhookUrl,
 											decoration: data.decoration,
+											mentionUserIds: parseDiscordIds(data.mentionUserIds),
+											mentionRoleIds: parseDiscordIds(data.mentionRoleIds),
 										});
 									} else if (data.type === "email") {
 										await testEmailConnection({
