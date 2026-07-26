@@ -83,10 +83,21 @@ export const sendDiscordNotification = async (
 	embed: any,
 ) => {
 	try {
+		const mentionUserIds = connection.mentionUserIds ?? [];
+		const mentionRoleIds = connection.mentionRoleIds ?? [];
+		const content = [
+			...mentionUserIds.map((id) => `<@${id}>`),
+			...mentionRoleIds.map((id) => `<@&${id}>`),
+		].join(" ");
+
 		const response = await fetch(connection.webhookUrl, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ embeds: [embed] }),
+			body: JSON.stringify({
+				...(content && { content }),
+				embeds: [embed],
+				allowed_mentions: { users: mentionUserIds, roles: mentionRoleIds },
+			}),
 		});
 		if (!response.ok) {
 			throw new Error(

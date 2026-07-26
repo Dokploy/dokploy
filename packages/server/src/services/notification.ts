@@ -244,6 +244,8 @@ export const createDiscordNotification = async (
 			.values({
 				webhookUrl: input.webhookUrl,
 				decoration: input.decoration,
+				mentionUserIds: input.mentionUserIds,
+				mentionRoleIds: input.mentionRoleIds,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -319,6 +321,8 @@ export const updateDiscordNotification = async (
 			.set({
 				webhookUrl: input.webhookUrl,
 				decoration: input.decoration,
+				mentionUserIds: input.mentionUserIds,
+				mentionRoleIds: input.mentionRoleIds,
 			})
 			.where(eq(discord.discordId, input.discordId))
 			.returning()
