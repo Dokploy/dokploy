@@ -18,6 +18,7 @@ import {
 	apiRemoveNetwork,
 	network as networkTable,
 } from "@/server/db/schema";
+import { audit } from "../utils/audit";
 
 export const networkRouter = createTRPCRouter({
 	all: protectedProcedure
@@ -50,7 +51,17 @@ export const networkRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateNetwork)
 		.mutation(async ({ ctx, input }) => {
-			return createNetwork(input, ctx.session.activeOrganizationId);
+			const created = await createNetwork(
+				input,
+				ctx.session.activeOrganizationId,
+			);
+			await audit(ctx, {
+				action: "create",
+				resourceType: "network",
+				resourceId: created.networkId,
+				resourceName: created.name,
+			});
+			return created;
 		}),
 	networksToSync: protectedProcedure
 		.input(z.object({ serverId: z.string().optional() }))
@@ -69,11 +80,20 @@ export const networkRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			return importDockerNetworks(
+			const result = await importDockerNetworks(
 				ctx.session.activeOrganizationId,
 				input.serverId ?? null,
 				input.names,
 			);
+			if (result.imported.length > 0) {
+				await audit(ctx, {
+					action: "create",
+					resourceType: "network",
+					resourceName: result.imported.join(", "),
+					metadata: { imported: result.imported },
+				});
+			}
+			return result;
 		}),
 
 	inspect: protectedProcedure
@@ -99,7 +119,14 @@ export const networkRouter = createTRPCRouter({
 					message: "Network not found",
 				});
 			}
-			return recreateNetwork(input.networkId);
+			const recreated = await recreateNetwork(input.networkId);
+			await audit(ctx, {
+				action: "reload",
+				resourceType: "network",
+				resourceId: recreated.networkId,
+				resourceName: recreated.name,
+			});
+			return recreated;
 		}),
 
 	remove: protectedProcedure
@@ -112,6 +139,13 @@ export const networkRouter = createTRPCRouter({
 					message: "Not authorized to delete this network",
 				});
 			}
-			return removeNetwork(input.networkId);
+			const removed = await removeNetwork(input.networkId);
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "network",
+				resourceId: removed.networkId,
+				resourceName: removed.name,
+			});
+			return removed;
 		}),
 });
