@@ -35,11 +35,13 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
 
 		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		const rcloneCleanupCommand = `rclone delete ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 
 		const backupCommand = getBackupCommand(
 			backup,
 			rcloneCommand,
 			deployment.logPath,
+			rcloneCleanupCommand,
 		);
 
 		if (mysql.serverId) {
