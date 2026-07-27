@@ -13,6 +13,7 @@ import {
 	cleanupSystem,
 	cleanupVolumes,
 	DEFAULT_UPDATE_DATA,
+	ensureTraefikUpToDate,
 	execAsync,
 	findServerById,
 	getDockerDiskUsage,
@@ -594,6 +595,16 @@ export const settingsRouter = createTRPCRouter({
 
 		const data = await getUpdateData(packageInfo.version);
 		if (data.updateAvailable) {
+			// Bump dokploy-traefik to the pinned version first (and await it),
+			// before the dokploy service update restarts this very container.
+			// Older Traefik is incompatible with Docker Engine 28+ and silently
+			// 404s Compose domains (label-based routing). See issue #4324.
+			try {
+				await ensureTraefikUpToDate();
+			} catch (err) {
+				console.error("ensureTraefikUpToDate during updateServer:", err);
+			}
+
 			void spawnAsync("docker", [
 				"service",
 				"update",
