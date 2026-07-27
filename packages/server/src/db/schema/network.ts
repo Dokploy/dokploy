@@ -116,14 +116,10 @@ export const apiCreateNetwork = createSchema
 	.required({ name: true })
 	.superRefine(validateNetworkInput);
 
-export const apiFindOneNetwork = createSchema
-	.pick({
-		networkId: true,
-	})
-	.required();
+export const apiFindOneNetwork = z.object({
+	networkId: z.string().min(1),
+});
 
-export const apiRemoveNetwork = createSchema
-	.pick({
-		networkId: true,
-	})
-	.required();
+export const apiRemoveNetwork = z.object({
+	networkId: z.string().min(1),
+});
