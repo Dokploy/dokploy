@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	jsonb,
+	pgEnum,
+	pgTable,
+	text,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -113,6 +120,15 @@ export const compose = pgTable("compose", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	serviceNetworks: jsonb("serviceNetworks")
+		.$type<
+			Array<{
+				serviceName: string;
+				networkIds: string[];
+				detachDokployNetwork: boolean;
+			}>
+		>()
+		.default([]),
 });
 
 export const composeRelations = relations(compose, ({ one, many }) => ({
@@ -174,6 +190,15 @@ const createSchema = createInsertSchema(compose, {
 		.optional(),
 	triggerType: z.enum(["push", "tag"]).optional(),
 	composeStatus: z.enum(["idle", "running", "done", "error"]).optional(),
+	serviceNetworks: z
+		.array(
+			z.object({
+				serviceName: z.string(),
+				networkIds: z.array(z.string()),
+				detachDokployNetwork: z.boolean(),
+			}),
+		)
+		.optional(),
 });
 
 export const apiCreateCompose = createSchema.pick({
