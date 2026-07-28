@@ -106,19 +106,7 @@ export const findRollbackById = async (rollbackId: string) => {
 	const result = await db.query.rollbacks.findFirst({
 		where: eq(rollbacks.rollbackId, rollbackId),
 		with: {
-			deployment: {
-				with: {
-					application: {
-						with: {
-							environment: {
-								with: {
-									project: true,
-								},
-							},
-						},
-					},
-				},
-			},
+			deployment: true,
 		},
 	});
 
