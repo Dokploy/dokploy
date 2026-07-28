@@ -56,7 +56,6 @@ export * from "./setup/config-paths";
 export * from "./setup/forward-auth-setup";
 export * from "./setup/monitoring-setup";
 export * from "./setup/postgres-setup";
-export * from "./setup/redis-setup";
 export * from "./setup/server-audit";
 export * from "./setup/server-setup";
 export * from "./setup/server-validate";
