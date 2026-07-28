@@ -19,6 +19,7 @@ import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import { type Application, findApplicationById } from "./application";
 import { findDeploymentById } from "./deployment";
+import type { Environment } from "./environment";
 import type { Mount } from "./mount";
 import { resolveServiceNetworks } from "./network";
 import type { Port } from "./port";
@@ -214,7 +215,7 @@ const rollbackApplication = async (
 	image: string,
 	serverId?: string | null,
 	fullContext?: Application & {
-		environment: {
+		environment: Environment & {
 			project: Project;
 		};
 		mounts: Mount[];
@@ -279,6 +280,7 @@ const rollbackApplication = async (
 	const envVariables = prepareEnvironmentVariables(
 		env,
 		fullContext.environment.project.env,
+		fullContext.environment.env,
 	);
 
 	let rollbackImage = image;
