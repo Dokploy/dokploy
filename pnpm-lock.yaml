@@ -232,9 +232,6 @@ importers:
       boxen:
         specifier: ^7.1.1
         version: 7.1.1
-      bullmq:
-        specifier: 5.67.3
-        version: 5.67.3
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
