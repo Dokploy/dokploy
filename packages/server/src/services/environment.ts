@@ -168,6 +168,7 @@ export const findEnvironmentById = async (environmentId: string) => {
 					composeStatus: true,
 					description: true,
 					serverId: true,
+					icon: true,
 				},
 			},
 			libsql: {
@@ -239,7 +240,12 @@ export const findEnvironmentsByProjectId = async (projectId: string) => {
 				with: { server: { columns: { name: true } } },
 			},
 			compose: {
-				columns: { ...serviceColumns, composeId: true, composeStatus: true },
+				columns: {
+					...serviceColumns,
+					composeId: true,
+					composeStatus: true,
+					icon: true,
+				},
 				with: { server: { columns: { name: true } } },
 			},
 			libsql: {

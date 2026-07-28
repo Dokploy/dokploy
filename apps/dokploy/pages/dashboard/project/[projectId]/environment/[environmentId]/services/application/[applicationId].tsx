@@ -127,7 +127,8 @@ const Service = (
 								<CardTitle className="text-xl flex flex-row gap-2 items-center">
 									<div className="relative flex flex-row gap-4 items-center">
 										<ShowIconSettings
-											applicationId={applicationId}
+											serviceId={applicationId}
+											serviceType="application"
 											icon={data?.icon}
 										/>
 										<div className="absolute -right-1 -top-2 z-10">
