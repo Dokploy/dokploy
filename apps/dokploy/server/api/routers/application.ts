@@ -13,6 +13,7 @@ import {
 	mechanizeDockerContainer,
 	readConfig,
 	readRemoteConfig,
+	removeAcmeCertificate,
 	removeDeployments,
 	removeDirectoryCode,
 	removeMonitoringDirectory,
@@ -257,6 +258,13 @@ export const applicationRouter = createTRPCRouter({
 					await removeTraefikConfig(application.appName, application.serverId),
 				async () =>
 					await removeService(application?.appName, application.serverId),
+				async () => {
+					for (const domain of application.domains) {
+						if (domain.certificateType === "letsencrypt") {
+							await removeAcmeCertificate(domain.host, application.serverId);
+						}
+					}
+				},
 			];
 
 			for (const operation of cleanupOperations) {
