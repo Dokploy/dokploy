@@ -21,3 +21,15 @@ export const apiKeyNameSchema = z
 		API_KEY_NAME_MAX_LENGTH,
 		`Name must be at most ${API_KEY_NAME_MAX_LENGTH} characters`,
 	);
+
+/**
+ * Whether an organization role may create an API key on behalf of another
+ * member. Owners and admins may; everyone else may only mint for themselves.
+ *
+ * A key minted this way carries the TARGET user's permissions, so this is the
+ * one place that decision lives, kept pure so it can be unit tested.
+ */
+export const canCreateApiKeyForAnotherUser = (
+	role?: string | null,
+): boolean => role === "owner" || role === "admin";
+
