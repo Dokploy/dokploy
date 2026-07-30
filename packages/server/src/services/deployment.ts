@@ -83,8 +83,17 @@ export const findDeploymentById = async (deploymentId: string) => {
 	const deployment = await db.query.deployments.findFirst({
 		where: eq(deployments.deploymentId, deploymentId),
 		with: {
-			application: true,
-			compose: true,
+			application: {
+				columns: {
+					applicationId: true,
+					appName: true,
+					name: true,
+					serverId: true,
+				},
+			},
+			compose: {
+				columns: { composeId: true, appName: true, name: true, serverId: true },
+			},
 			schedule: true,
 		},
 	});

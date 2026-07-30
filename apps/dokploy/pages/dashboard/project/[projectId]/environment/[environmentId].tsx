@@ -259,6 +259,7 @@ export const extractServicesFromEnvironment = (
 				serverId: item.serverId,
 				serverName: item?.server?.name || null,
 				lastDeployDate,
+				icon: item.icon || null,
 			};
 		}) || [];
 
@@ -1701,9 +1702,17 @@ const EnvironmentPage = (
 																						) : (
 																							<GlobeIcon className="h-6 w-6" />
 																						))}
-																					{service.type === "compose" && (
-																						<CircuitBoard className="h-6 w-6" />
-																					)}
+																					{service.type === "compose" &&
+																						(service.icon ? (
+																							// biome-ignore lint/performance/noImgElement: compose icon is data URL
+																							<img
+																								src={service.icon}
+																								alt={service.name}
+																								className="size-7 object-contain rounded-sm"
+																							/>
+																						) : (
+																							<CircuitBoard className="h-6 w-6" />
+																						))}
 																					{service.type === "libsql" && (
 																						<LibsqlIcon className="h-6 w-6" />
 																					)}
