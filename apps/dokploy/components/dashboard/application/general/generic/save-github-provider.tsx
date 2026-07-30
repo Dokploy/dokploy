@@ -438,8 +438,12 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 										</TooltipProvider>
 									</div>
 									<Select
-										onValueChange={field.onChange}
-										defaultValue={field.value}
+										onValueChange={(value) => {
+											if (!value) {
+												return;
+											}
+											field.onChange(value);
+										}}
 										value={field.value}
 									>
 										<FormControl>
