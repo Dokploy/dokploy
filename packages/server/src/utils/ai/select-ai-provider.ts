@@ -2,7 +2,6 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createAzure } from "@ai-sdk/azure";
 import { createCohere } from "@ai-sdk/cohere";
 import { createDeepInfra } from "@ai-sdk/deepinfra";
-import { createDeepSeek } from "@ai-sdk/deepseek";
 import { createMistral } from "@ai-sdk/mistral";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
@@ -119,9 +118,12 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				},
 			});
 		case "deepseek":
-			return createDeepSeek({
+			return createOpenAICompatible({
+				name: "deepseek",
 				baseURL: config.apiUrl,
-				apiKey: config.apiKey,
+				headers: {
+					Authorization: `Bearer ${config.apiKey}`,
+				},
 				fetch: async (url, init) => {
 					if (
 						init?.body &&

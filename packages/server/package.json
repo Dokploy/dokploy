@@ -13,7 +13,7 @@
       "require": "./dist/db/index.cjs.js"
     },
     "./*": {
-      "import": "./dist/*",
+      "import": "./dist/*.js",
       "require": "./dist/*.cjs"
     },
     "./dist": {
@@ -45,7 +45,6 @@
     "@ai-sdk/azure": "^3.0.30",
     "@ai-sdk/cohere": "^3.0.21",
     "@ai-sdk/deepinfra": "^2.0.34",
-    "@ai-sdk/deepseek": "^3.0.16",
     "@ai-sdk/mistral": "^3.0.20",
     "@ai-sdk/openai": "^3.0.29",
     "@ai-sdk/openai-compatible": "^2.0.30",
