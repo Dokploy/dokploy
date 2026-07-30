@@ -2,6 +2,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createAzure } from "@ai-sdk/azure";
 import { createCohere } from "@ai-sdk/cohere";
 import { createDeepInfra } from "@ai-sdk/deepinfra";
+import { createDeepSeek } from "@ai-sdk/deepseek";
 import { createMistral } from "@ai-sdk/mistral";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
@@ -20,6 +21,7 @@ export function getProviderName(apiUrl: string) {
 	if (apiUrl.includes("openrouter.ai")) return "openrouter";
 	if (apiUrl.includes("api.z.ai")) return "zai";
 	if (apiUrl.includes("api.minimax.io")) return "minimax";
+	if (apiUrl.includes("api.deepseek.com")) return "deepseek";
 	return "custom";
 }
 
@@ -114,6 +116,43 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				baseURL: config.apiUrl,
 				headers: {
 					Authorization: `Bearer ${config.apiKey}`,
+				},
+			});
+		case "deepseek":
+			return createDeepSeek({
+				baseURL: config.apiUrl,
+				apiKey: config.apiKey,
+				fetch: async (url, init) => {
+					if (
+						init?.body &&
+						typeof init.body === "string" &&
+						url.toString().includes("/chat/completions")
+					) {
+						try {
+							const body = JSON.parse(init.body);
+							if (body.temperature === undefined) body.temperature = 1;
+							if (body.top_p === undefined) body.top_p = 1;
+
+							if (body.thinking !== undefined) {
+								if (
+									typeof body.thinking === "boolean" ||
+									typeof body.thinking === "string"
+								) {
+									const isEnabled =
+										body.thinking === true || body.thinking === "true";
+									body.thinking = { type: isEnabled ? "enabled" : "disabled" };
+								}
+							}
+							if (body.reasoning_effort) {
+								const effort = body.reasoning_effort.toLowerCase();
+								if (effort === "low" || effort === "medium")
+									body.reasoning_effort = "high";
+								else if (effort === "xhigh") body.reasoning_effort = "max";
+							}
+							init.body = JSON.stringify(body);
+						} catch (e) {}
+					}
+					return fetch(url, init);
 				},
 			});
 		case "custom":

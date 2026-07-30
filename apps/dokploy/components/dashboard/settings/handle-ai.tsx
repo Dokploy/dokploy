@@ -58,6 +58,7 @@ import { api } from "@/utils/api";
 const AI_PROVIDERS = [
 	{ name: "OpenAI", apiUrl: "https://api.openai.com/v1" },
 	{ name: "Anthropic", apiUrl: "https://api.anthropic.com/v1" },
+	{ name: "DeepSeek", apiUrl: "https://api.deepseek.com" },
 	{
 		name: "Google Gemini",
 		apiUrl: "https://generativelanguage.googleapis.com/v1beta",

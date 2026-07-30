@@ -159,7 +159,7 @@ export const suggestVariants = async ({
 		}
 
 		const provider = selectAIProvider(aiSettings);
-		const model = provider(aiSettings.model);
+		const model = provider(aiSettings.model) as any;
 
 		let ip = "";
 		if (!IS_CLOUD) {

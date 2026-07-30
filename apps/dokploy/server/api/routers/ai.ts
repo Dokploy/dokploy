@@ -124,6 +124,29 @@ export const aiRouter = createTRPCRouter({
 								owned_by: "minimax",
 							},
 						] as Model[];
+					case "deepseek": {
+						const defaults = [
+							{
+								id: "deepseek-v4-pro",
+								object: "model",
+								created: Date.now(),
+								owned_by: "deepseek",
+							},
+							{
+								id: "deepseek-v4-flash",
+								object: "model",
+								created: Date.now(),
+								owned_by: "deepseek",
+							},
+						] as Model[];
+						try {
+							response = await fetch(`${input.apiUrl}/models`, { headers });
+							if (!response.ok) return defaults;
+						} catch (e) {
+							return defaults;
+						}
+						break;
+					}
 					default:
 						if (!input.apiKey)
 							throw new TRPCError({
