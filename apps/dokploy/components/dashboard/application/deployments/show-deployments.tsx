@@ -63,6 +63,9 @@ export const ShowDeployments = ({
 	const [activeLog, setActiveLog] = useState<
 		RouterOutputs["deployment"]["all"][number] | null
 	>(null);
+	const [removingDeploymentId, setRemovingDeploymentId] = useState<
+		string | null
+	>(null);
 	const { data: deployments, isPending: isLoadingDeployments } =
 		api.deployment.allByType.useQuery(
 			{
@@ -408,6 +411,7 @@ export const ShowDeployments = ({
 													description="Are you sure you want to delete this deployment? This action cannot be undone."
 													type="default"
 													onClick={async () => {
+														setRemovingDeploymentId(deployment.deploymentId);
 														try {
 															await removeDeployment({
 																deploymentId: deployment.deploymentId,
@@ -415,13 +419,18 @@ export const ShowDeployments = ({
 															toast.success("Deployment deleted successfully");
 														} catch (error) {
 															toast.error("Error deleting deployment");
+														} finally {
+															setRemovingDeploymentId(null);
 														}
 													}}
 												>
 													<Button
 														variant="destructive"
 														size="sm"
-														isLoading={isRemovingDeployment}
+														isLoading={
+															isRemovingDeployment &&
+															removingDeploymentId === deployment.deploymentId
+														}
 													>
 														Delete
 														<Trash2 className="size-4" />
