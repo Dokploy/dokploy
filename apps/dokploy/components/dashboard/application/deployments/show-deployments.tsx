@@ -63,9 +63,9 @@ export const ShowDeployments = ({
 	const [activeLog, setActiveLog] = useState<
 		RouterOutputs["deployment"]["all"][number] | null
 	>(null);
-	const [removingDeploymentId, setRemovingDeploymentId] = useState<
-		string | null
-	>(null);
+	const [removingDeploymentIds, setRemovingDeploymentIds] = useState<
+		Set<string>
+	>(new Set());
 	const { data: deployments, isPending: isLoadingDeployments } =
 		api.deployment.allByType.useQuery(
 			{
@@ -84,7 +84,7 @@ export const ShowDeployments = ({
 		api.rollback.rollback.useMutation();
 	const { mutateAsync: killProcess, isPending: isKillingProcess } =
 		api.deployment.killProcess.useMutation();
-	const { mutateAsync: removeDeployment, isPending: isRemovingDeployment } =
+	const { mutateAsync: removeDeployment } =
 		api.deployment.removeDeployment.useMutation();
 
 	// Cancel deployment mutations
@@ -411,7 +411,11 @@ export const ShowDeployments = ({
 													description="Are you sure you want to delete this deployment? This action cannot be undone."
 													type="default"
 													onClick={async () => {
-														setRemovingDeploymentId(deployment.deploymentId);
+														setRemovingDeploymentIds((deploymentIds) => {
+															const nextDeploymentIds = new Set(deploymentIds);
+															nextDeploymentIds.add(deployment.deploymentId);
+															return nextDeploymentIds;
+														});
 														try {
 															await removeDeployment({
 																deploymentId: deployment.deploymentId,
@@ -420,17 +424,24 @@ export const ShowDeployments = ({
 														} catch (error) {
 															toast.error("Error deleting deployment");
 														} finally {
-															setRemovingDeploymentId(null);
+															setRemovingDeploymentIds((deploymentIds) => {
+																const nextDeploymentIds = new Set(
+																	deploymentIds,
+																);
+																nextDeploymentIds.delete(
+																	deployment.deploymentId,
+																);
+																return nextDeploymentIds;
+															});
 														}
 													}}
 												>
 													<Button
 														variant="destructive"
 														size="sm"
-														isLoading={
-															isRemovingDeployment &&
-															removingDeploymentId === deployment.deploymentId
-														}
+														isLoading={removingDeploymentIds.has(
+															deployment.deploymentId,
+														)}
 													>
 														Delete
 														<Trash2 className="size-4" />
