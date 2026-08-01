@@ -1,0 +1,11 @@
+# Origin admission control for the marketing site (contracko.com / www).
+# Caps concurrent in-flight requests per host so crawler floods return 429
+# instead of saturating the single-threaded SvelteKit SSR event loop.
+# Added 2026-07-31 (see contracko-infra: recurring scraper/Meta-crawler outages).
+http:
+  middlewares:
+    site-inflight:
+      inFlightReq:
+        amount: 50
+        sourceCriterion:
+          requestHost: true

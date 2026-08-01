@@ -69,6 +69,7 @@ Then rebuild and redeploy via the steps above.
 | GitHub App manifest | `apps/dokploy/components/dashboard/settings/git/github/add-github-provider.tsx` | Adds `deployments: write` for the above |
 | Deploy secret hygiene | `packages/server/src/utils/process/secrets.ts`, provider/build/registry helpers | Keeps deploy tokens and registry passwords out of process arguments |
 | Fork CI | `.github/workflows/ctd-image.yml` | Upstream workflows target their Docker Hub namespace; ours pushes to GHCR |
+| Host Traefik config (docs only, not built) | `ctd-host/` | Versioned backup of hand-managed `/etc/dokploy/traefik/dynamic/` files on contracko-01, incl. the marketing-site `inFlightReq` overload cap — see `ctd-host/README.md` |
 
 ## When to remove this file
 
