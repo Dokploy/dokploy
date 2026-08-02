@@ -79,6 +79,10 @@ export const runLibsqlBackup = async (
 
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 
-		throw error;
+		throw new Error(
+			redactRcloneCredentials(
+				error instanceof Error ? error.message : "Error message not provided",
+			),
+		);
 	}
 };

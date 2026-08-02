@@ -149,6 +149,6 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			backupSize: formatBytes(computedBackupSize),
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
-		throw error;
+		throw new Error(safeErrorMessage || "Error message not provided");
 	}
 };

@@ -61,7 +61,7 @@ export const runMariadbBackup = async (
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
-		console.log(error);
+		console.log(redactRcloneCredentials(String(error)));
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,
@@ -75,6 +75,10 @@ export const runMariadbBackup = async (
 			databaseName: backup.database,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
-		throw error;
+		throw new Error(
+			redactRcloneCredentials(
+				error instanceof Error ? error.message : "Error message not provided",
+			),
+		);
 	}
 };

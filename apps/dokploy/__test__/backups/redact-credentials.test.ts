@@ -157,3 +157,50 @@ describe("redactRcloneCredentials — unquoted/variant forms (leak reproduction)
 		expect(redacted.match(/\[REDACTED\]/g)).toHaveLength(4);
 	});
 });
+
+// Truncated command strings (e.g. inside an error message) can carry an
+// unterminated quoted value. The last-resort pass must still mask it.
+describe("redactRcloneCredentials — malformed/truncated forms", () => {
+	const FAKE_ACCESS = "FAKE_R2_ACCESS_KEY_0123456789";
+	const FAKE_SECRET = "FAKE_R2_SECRET_KEY_ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+	it("redacts an unterminated double-quoted value", () => {
+		const redacted = redactRcloneCredentials(
+			`rclone rcat --s3-access-key-id="${FAKE_ACCESS}`,
+		);
+		expect(redacted).not.toContain(FAKE_ACCESS);
+	});
+
+	it("redacts an unterminated single-quoted value", () => {
+		const redacted = redactRcloneCredentials(
+			`rclone rcat --s3-secret-access-key='${FAKE_SECRET}`,
+		);
+		expect(redacted).not.toContain(FAKE_SECRET);
+	});
+
+	it("redacts a value ending with an escaped quote at end of string", () => {
+		const redacted = redactRcloneCredentials(
+			`--s3-secret-access-key="${FAKE_SECRET}\\"`,
+		);
+		expect(redacted).not.toContain(FAKE_SECRET);
+	});
+
+	it("redacts an unterminated quoted value in space-separated form", () => {
+		const redacted = redactRcloneCredentials(
+			`rclone rcat --s3-access-key-id "${FAKE_ACCESS}`,
+		);
+		expect(redacted).not.toContain(FAKE_ACCESS);
+	});
+
+	it("keeps the quoted placeholder shape of balanced forms (last-resort pass is a no-op)", () => {
+		expect(redactRcloneCredentials(`--s3-access-key-id="${FAKE_ACCESS}"`)).toBe(
+			'--s3-access-key-id="[REDACTED]"',
+		);
+		expect(redactRcloneCredentials(`--s3-access-key-id='${FAKE_ACCESS}'`)).toBe(
+			"--s3-access-key-id='[REDACTED]'",
+		);
+		expect(redactRcloneCredentials('--s3-access-key-id="[REDACTED]"')).toBe(
+			'--s3-access-key-id="[REDACTED]"',
+		);
+	});
+});

@@ -10,6 +10,7 @@
  *   --s3-access-key-id="VALUE"      (double quotes)
  *   --s3-access-key-id='VALUE'      (single quotes, incl. shell-quote's '\'' idiom)
  *   --s3-access-key-id VALUE        (space separated, any quoting)
+ *   --s3-access-key-id="UNTERMINATED (truncated strings — last-resort pass)
  */
 const SENSITIVE_RCLONE_FLAGS = [
 	"--s3-access-key-id",
@@ -44,7 +45,18 @@ export const redactRcloneCredentials = (command: string): string => {
 			// --flag=value / --flag value (unquoted — must run after the
 			// quoted forms so the quote characters are never left behind)
 			.replace(new RegExp(`(${f}=)${BARE}`, "g"), "$1[REDACTED]")
-			.replace(new RegExp(`(${f}\\s+)${BARE}`, "g"), "$1[REDACTED]");
+			.replace(new RegExp(`(${f}\\s+)${BARE}`, "g"), "$1[REDACTED]")
+			// Last resort: unterminated quoted value (e.g. a truncated command
+			// string in an error message). Runs after every other pass and
+			// skips values already replaced by the placeholder.
+			.replace(
+				new RegExp(`(${f}=)["'](?!\\[REDACTED\\])[^\\s]*`, "g"),
+				"$1[REDACTED]",
+			)
+			.replace(
+				new RegExp(`(${f}\\s+)["'](?!\\[REDACTED\\])[^\\s]*`, "g"),
+				"$1[REDACTED]",
+			);
 	}
 	return result;
 };
