@@ -6,6 +6,7 @@ import {
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
+import { Fingerprint } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -68,6 +69,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const { data: showSignInWithSSO } = api.sso.showSignInWithSSO.useQuery();
 	const [isLoginLoading, setIsLoginLoading] = useState(false);
+	const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
 	const [isTwoFactorLoading, setIsTwoFactorLoading] = useState(false);
 	const [isBackupCodeLoading, setIsBackupCodeLoading] = useState(false);
 	const [isTwoFactor, setIsTwoFactor] = useState(false);
@@ -123,6 +125,34 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 			setIsLoginLoading(false);
 		}
 	};
+	const onPasskeySignIn = async () => {
+		setIsPasskeyLoading(true);
+		try {
+			const { data, error } = await authClient.signIn.passkey();
+
+			if (error) {
+				const errorCode = "code" in error ? error.code : undefined;
+				if (
+					errorCode !== "AUTH_CANCELLED" &&
+					errorCode !== "ERROR_CEREMONY_ABORTED"
+				) {
+					toast.error(error.message || "Failed to sign in with passkey");
+					setError(error.message || "Failed to sign in with passkey");
+				}
+				return;
+			}
+
+			if (data) {
+				toast.success("Logged in successfully");
+				router.push("/dashboard/home");
+			}
+		} catch {
+			toast.error("An error occurred while signing in with passkey");
+		} finally {
+			setIsPasskeyLoading(false);
+		}
+	};
+
 	const onTwoFactorSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (twoFactorCode.length !== 6) {
@@ -227,6 +257,16 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 					</Button>
 				</form>
 			</Form>
+			<Button
+				variant="outline"
+				className="w-full mt-4"
+				type="button"
+				onClick={onPasskeySignIn}
+				isLoading={isPasskeyLoading}
+			>
+				<Fingerprint className="size-4" />
+				Sign in with Passkey
+			</Button>
 		</>
 	);
 
