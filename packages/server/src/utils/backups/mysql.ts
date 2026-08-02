@@ -9,6 +9,7 @@ import type { MySql } from "@dokploy/server/services/mysql";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { redactRcloneCredentials } from "./redact";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
@@ -66,7 +67,9 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 			databaseType: "mysql",
 			type: "error",
 			// @ts-ignore
-			errorMessage: error?.message || "Error message not provided",
+			errorMessage: redactRcloneCredentials(
+				error?.message || "Error message not provided",
+			),
 			organizationId: project.organizationId,
 			databaseName: backup.database,
 		});
