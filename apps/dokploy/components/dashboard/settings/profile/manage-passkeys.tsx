@@ -16,10 +16,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { api } from "@/utils/api";
 
 export const ManagePasskeys = () => {
+	const utils = api.useUtils();
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
-	const { data: passkeys, isPending, refetch } = authClient.useListPasskeys();
+	const { data: passkeys, isLoading } = api.user.listPasskeys.useQuery(
+		undefined,
+		{
+			enabled: isDialogOpen,
+		},
+	);
 	const [name, setName] = useState("");
 	const [isAdding, setIsAdding] = useState(false);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -39,7 +46,7 @@ export const ManagePasskeys = () => {
 
 			toast.success("Passkey added successfully");
 			setName("");
-			refetch();
+			utils.user.listPasskeys.invalidate();
 		} catch {
 			toast.error("Failed to add passkey");
 		} finally {
@@ -58,7 +65,7 @@ export const ManagePasskeys = () => {
 			}
 
 			toast.success("Passkey removed");
-			refetch();
+			utils.user.listPasskeys.invalidate();
 		} catch {
 			toast.error("Failed to remove passkey");
 		} finally {
@@ -84,7 +91,7 @@ export const ManagePasskeys = () => {
 				</DialogHeader>
 
 				<div className="space-y-4">
-					{isPending ? (
+					{isLoading ? (
 						<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[10vh]">
 							<span>Loading...</span>
 							<Loader2 className="animate-spin size-4" />
