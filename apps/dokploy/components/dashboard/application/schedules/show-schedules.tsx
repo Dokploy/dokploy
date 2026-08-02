@@ -58,8 +58,12 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 	const handleRunManually = async (scheduleId: string) => {
 		setRunningSchedules((prev) => new Set(prev).add(scheduleId));
 		try {
-			await runManually({ scheduleId });
-			toast.success("Schedule run successfully");
+			const result = await runManually({ scheduleId });
+			if (result.status === "error") {
+				toast.error("Schedule run failed, check the deployment logs");
+			} else {
+				toast.success("Schedule run successfully");
+			}
 			await refetchSchedules();
 		} catch {
 			toast.error("Error running schedule");
