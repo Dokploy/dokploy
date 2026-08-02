@@ -143,7 +143,7 @@
 		"ws": "8.16.0",
 		"xterm-addon-fit": "^0.8.0",
 		"yaml": "2.8.1",
-		"zod": "^4.3.6",
+		"zod": "^4.4.3",
 		"zod-form-data": "^3.0.1"
 	},
 	"devDependencies": {

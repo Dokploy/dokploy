@@ -20,7 +20,7 @@ pkg.exports = {
 		require: "./dist/db/index.cjs.js",
 	},
 	"./*": {
-		import: "./dist/*",
+		import: "./dist/*.js",
 		require: "./dist/*.cjs",
 	},
 	"./dist": {
