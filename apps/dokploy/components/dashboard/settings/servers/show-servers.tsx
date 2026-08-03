@@ -4,7 +4,6 @@ import {
 	Key,
 	KeyIcon,
 	Loader2,
-	MoreHorizontal,
 	Network,
 	ServerIcon,
 	Terminal,
@@ -26,28 +25,17 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuLabel,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { ShowNodesModal } from "../cluster/nodes/show-nodes-modal";
 import { TerminalModal } from "../web-server/terminal-modal";
 import { ShowServerActions } from "./actions/show-server-actions";
 import { HandleServers } from "./handle-servers";
 import { SetupServer } from "./setup-server";
-import { ShowDockerContainersModal } from "./show-docker-containers-modal";
 import { ShowMonitoringModal } from "./show-monitoring-modal";
-import { ShowSchedulesModal } from "./show-schedules-modal";
-import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
-import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { WelcomeSubscription } from "./welcome-stripe/welcome-subscription";
 
 export const ShowServers = () => {
@@ -77,7 +65,7 @@ export const ShowServers = () => {
 
 						{isCloud && (
 							<span
-								className="bg-gradient-to-r cursor-pointer from-blue-600 via-green-500 to-indigo-400 inline-block text-transparent bg-clip-text text-sm"
+								className="bg-linear-to-r cursor-pointer from-blue-600 via-green-500 to-indigo-400 inline-block text-transparent bg-clip-text text-sm"
 								onClick={() => {
 									router.push("/dashboard/settings/servers?success=true");
 								}}
@@ -134,56 +122,10 @@ export const ShowServers = () => {
 																	<div className="flex items-start justify-between gap-2">
 																		<div className="flex min-w-0 items-center gap-2">
 																			<ServerIcon className="size-5 shrink-0 text-muted-foreground" />
-																			<CardTitle className="text-lg break-words min-w-0">
+																			<CardTitle className="text-lg wrap-break-word min-w-0">
 																				{server.name}
 																			</CardTitle>
 																		</div>
-																		{isActive &&
-																			server.sshKeyId &&
-																			!isBuildServer && (
-																				<DropdownMenu>
-																					<DropdownMenuTrigger asChild>
-																						<Button
-																							variant="ghost"
-																							className="h-8 w-8 shrink-0 p-0"
-																						>
-																							<span className="sr-only">
-																								More options
-																							</span>
-																							<MoreHorizontal className="h-4 w-4" />
-																						</Button>
-																					</DropdownMenuTrigger>
-																					<DropdownMenuContent align="end">
-																						<DropdownMenuLabel>
-																							Advanced
-																						</DropdownMenuLabel>
-																						<ShowTraefikFileSystemModal
-																							serverId={server.serverId}
-																						/>
-																						<ShowDockerContainersModal
-																							serverId={server.serverId}
-																						/>
-																						{isCloud && (
-																							<ShowMonitoringModal
-																								url={`http://${server.ipAddress}:${server?.metricsConfig?.server?.port}/metrics`}
-																								token={
-																									server?.metricsConfig?.server
-																										?.token
-																								}
-																							/>
-																						)}
-																						<ShowSwarmOverviewModal
-																							serverId={server.serverId}
-																						/>
-																						<ShowNodesModal
-																							serverId={server.serverId}
-																						/>
-																						<ShowSchedulesModal
-																							serverId={server.serverId}
-																						/>
-																					</DropdownMenuContent>
-																				</DropdownMenu>
-																			)}
 																	</div>
 																	<TooltipProvider>
 																		<div className="flex gap-2 mt-2 flex-wrap">
@@ -360,6 +302,27 @@ export const ShowServers = () => {
 																						</TooltipContent>
 																					</Tooltip>
 																				)}
+
+																				{isCloud &&
+																					server.sshKeyId &&
+																					!isBuildServer && (
+																						<Tooltip>
+																							<TooltipTrigger asChild>
+																								<div>
+																									<ShowMonitoringModal
+																										url={`http://${server.ipAddress}:${server?.metricsConfig?.server?.port}/metrics`}
+																										token={
+																											server?.metricsConfig
+																												?.server?.token
+																										}
+																									/>
+																								</div>
+																							</TooltipTrigger>
+																							<TooltipContent>
+																								<p>Monitoring</p>
+																							</TooltipContent>
+																						</Tooltip>
+																					)}
 
 																				<div className="flex-1" />
 

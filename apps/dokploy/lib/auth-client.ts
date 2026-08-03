@@ -1,4 +1,5 @@
 import { apiKeyClient } from "@better-auth/api-key/client";
+import { passkeyClient } from "@better-auth/passkey/client";
 import { ssoClient } from "@better-auth/sso/client";
 import {
 	adminClient,
@@ -13,6 +14,7 @@ export const authClient = createAuthClient({
 	plugins: [
 		organizationClient(),
 		twoFactorClient(),
+		passkeyClient(),
 		apiKeyClient(),
 		ssoClient(),
 		adminClient(),

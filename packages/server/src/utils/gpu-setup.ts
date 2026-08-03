@@ -1,4 +1,5 @@
 import * as fs from "node:fs/promises";
+import { quote } from "shell-quote";
 import { execAsync, execAsyncRemote, sleep } from "../utils/process/execAsync";
 
 interface GPUInfo {
@@ -322,7 +323,7 @@ const setupLocalServer = async (daemonConfig: any) => {
 };
 
 const addGpuLabel = async (nodeId: string, serverId?: string) => {
-	const labelCommand = `docker node update --label-add gpu=true ${nodeId}`;
+	const labelCommand = `docker node update --label-add gpu=true ${quote([nodeId])}`;
 	if (serverId) {
 		await execAsyncRemote(serverId, labelCommand);
 	} else {
@@ -335,7 +336,7 @@ const verifySetup = async (nodeId: string, serverId?: string) => {
 
 	if (!finalStatus.swarmEnabled) {
 		const diagnosticCommands = [
-			`docker node inspect ${nodeId}`,
+			`docker node inspect ${quote([nodeId])}`,
 			'nvidia-smi -a | grep "GPU UUID"',
 			"cat /etc/docker/daemon.json",
 			"cat /etc/nvidia-container-runtime/config.toml",

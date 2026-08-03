@@ -35,7 +35,7 @@ export const DockerMemoryChart = ({
 	}));
 
 	return (
-		<ChartContainer config={chartConfig} className="mt-4 h-[10rem] w-full">
+		<ChartContainer config={chartConfig} className="mt-4 h-40 w-full">
 			<AreaChart
 				data={transformedData}
 				margin={{ top: 10, right: 10, left: 0, bottom: 0 }}

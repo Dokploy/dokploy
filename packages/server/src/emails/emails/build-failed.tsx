@@ -12,6 +12,7 @@ import {
 	Tailwind,
 	Text,
 } from "@react-email/components";
+import { emailTailwindConfig } from "../tailwind-config";
 
 export type TemplateProps = {
 	projectName: string;
@@ -35,17 +36,7 @@ export const BuildFailedEmail = ({
 		<Html>
 			<Head />
 			<Preview>{previewText}</Preview>
-			<Tailwind
-				config={{
-					theme: {
-						extend: {
-							colors: {
-								brand: "#007291",
-							},
-						},
-					},
-				}}
-			>
+			<Tailwind config={emailTailwindConfig}>
 				<Body className="bg-white my-auto mx-auto font-sans px-2">
 					<Container className="border border-solid border-[#eaeaea] rounded-lg my-[40px] mx-auto p-[20px] max-w-[465px]">
 						<Section className="mt-[32px]">

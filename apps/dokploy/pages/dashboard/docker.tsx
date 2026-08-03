@@ -1,4 +1,3 @@
-import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
@@ -6,10 +5,15 @@ import type { ReactElement } from "react";
 import superjson from "superjson";
 import { ShowContainers } from "@/components/dashboard/docker/show/show-containers";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { ServerFilter } from "@/components/shared/server-filter";
 import { appRouter } from "@/server/api/root";
 
 const Dashboard = () => {
-	return <ShowContainers />;
+	return (
+		<ServerFilter>
+			{(serverId) => <ShowContainers serverId={serverId} />}
+		</ServerFilter>
+	);
 };
 
 export default Dashboard;
@@ -20,14 +24,6 @@ Dashboard.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
-	if (IS_CLOUD) {
-		return {
-			redirect: {
-				permanent: true,
-				destination: "/dashboard/home",
-			},
-		};
-	}
 	const { user, session } = await validateRequest(ctx.req);
 	if (!user) {
 		return {

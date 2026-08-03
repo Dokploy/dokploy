@@ -2,6 +2,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { quote } from "shell-quote";
 
 export const getContainers = async (serverId?: string | null) => {
 	try {
@@ -519,7 +520,7 @@ export const getSwarmNodes = async (serverId?: string) => {
 
 export const getNodeInfo = async (nodeId: string, serverId?: string) => {
 	try {
-		const command = `docker node inspect ${nodeId} --format '{{json .}}'`;
+		const command = `docker node inspect ${quote([nodeId])} --format '{{json .}}'`;
 		let stdout = "";
 		let stderr = "";
 		if (serverId) {

@@ -11,6 +11,7 @@ import { pullImage } from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 import { validUniqueServerAppName } from "./project";
 
@@ -66,7 +67,12 @@ export const findMySqlById = async (mysqlId: string) => {
 			server: true,
 			backups: {
 				with: {
-					destination: true,
+					destination: {
+						columns: {
+							accessKey: false,
+							secretAccessKey: false,
+						},
+					},
 					deployments: true,
 				},
 			},
@@ -138,7 +144,7 @@ export const deployMySql = async (
 		if (mysql.serverId) {
 			await execAsyncRemote(
 				mysql.serverId,
-				`docker pull ${mysql.dockerImage}`,
+				`docker pull ${quote([mysql.dockerImage])}`,
 				onData,
 			);
 		} else {

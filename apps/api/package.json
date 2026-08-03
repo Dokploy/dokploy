@@ -17,17 +17,17 @@
 		"hono": "^4.11.7",
 		"pino": "9.4.0",
 		"pino-pretty": "11.2.2",
-		"react": "18.2.0",
-		"react-dom": "18.2.0",
+		"react": "19.2.7",
+		"react-dom": "19.2.7",
 		"redis": "4.7.0",
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {
 		"@types/node": "^24.4.0",
-		"@types/react": "^18.2.37",
-		"@types/react-dom": "^18.2.15",
+		"@types/react": "^19.2.0",
+		"@types/react-dom": "^19.2.0",
 		"rimraf": "6.1.3",
-		"tsx": "^4.16.2",
+		"tsx": "^4.22.4",
 		"typescript": "^5.8.3"
 	},
 	"packageManager": "pnpm@10.22.0",

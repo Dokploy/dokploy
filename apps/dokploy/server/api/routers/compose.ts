@@ -13,7 +13,6 @@ import {
 	findComposeById,
 	findDomainsByComposeId,
 	findEnvironmentById,
-	findGitProviderById,
 	findProjectById,
 	findServerById,
 	getAccessibleServerIds,
@@ -34,6 +33,7 @@ import {
 	updateDeploymentStatus,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
 	checkServiceAccess,
@@ -43,6 +43,7 @@ import {
 import {
 	type CompleteTemplate,
 	fetchTemplateFiles,
+	fetchTemplateLogo,
 	fetchTemplatesList,
 } from "@dokploy/server/templates/github";
 import { processTemplate } from "@dokploy/server/templates/processors";
@@ -68,11 +69,9 @@ import {
 	environments,
 	projects,
 } from "@/server/db/schema";
-import { deploymentWorker } from "@/server/queues/deployments-queue";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByCompose,
-	getJobsByComposeId,
 	killDockerBuild,
 	myQueue,
 } from "@/server/queues/queueSetup";
@@ -173,13 +172,11 @@ export const composeRouter = createTRPCRouter({
 			const gitProviderId = getGitProviderId();
 
 			if (gitProviderId) {
-				try {
-					const gitProvider = await findGitProviderById(gitProviderId);
-					if (gitProvider.userId !== ctx.session.userId) {
-						hasGitProviderAccess = false;
-						unauthorizedProvider = compose.sourceType;
-					}
-				} catch {
+				const canEdit = await canEditDeployGitSource(
+					gitProviderId,
+					ctx.session,
+				);
+				if (!canEdit) {
 					hasGitProviderAccess = false;
 					unauthorizedProvider = compose.sourceType;
 				}
@@ -254,12 +251,7 @@ export const composeRouter = createTRPCRouter({
 				.returning();
 
 			if (!IS_CLOUD) {
-				const queueJobs = await getJobsByComposeId(input.composeId);
-				for (const job of queueJobs) {
-					if (job.id) {
-						deploymentWorker.cancelJob(job.id, "User requested cancellation");
-					}
-				}
+				await cleanQueuesByCompose(input.composeId);
 			}
 
 			const cleanupOperations = [
@@ -432,10 +424,10 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
+				serverId: compose.serverId ?? undefined,
 			};
 
 			if (IS_CLOUD && compose.serverId) {
-				jobData.serverId = compose.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
@@ -481,9 +473,9 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
+				serverId: compose.serverId ?? undefined,
 			};
 			if (IS_CLOUD && compose.serverId) {
-				jobData.serverId = compose.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
@@ -610,7 +602,10 @@ export const composeRouter = createTRPCRouter({
 				}
 			}
 
-			const template = await fetchTemplateFiles(input.id, input.baseUrl);
+			const [template, templateLogo] = await Promise.all([
+				fetchTemplateFiles(input.id, input.baseUrl),
+				fetchTemplateLogo(input.id, input.baseUrl),
+			]);
 
 			let serverIp = "127.0.0.1";
 
@@ -648,7 +643,7 @@ export const composeRouter = createTRPCRouter({
 				name: input.id,
 				sourceType: "raw",
 				appName: appName,
-				isolatedDeployment: template.config.config?.isolated !== false,
+				icon: templateLogo,
 			});
 
 			await addNewService(ctx, compose.composeId);
@@ -1006,7 +1001,6 @@ export const composeRouter = createTRPCRouter({
 					composeFile: templateData.compose,
 					sourceType: "raw",
 					env: processedTemplate.envs?.join("\n"),
-					isolatedDeployment: true,
 				});
 
 				if (processedTemplate.mounts && processedTemplate.mounts.length > 0) {

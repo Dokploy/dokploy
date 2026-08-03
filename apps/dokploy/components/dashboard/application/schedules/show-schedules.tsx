@@ -58,8 +58,12 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 	const handleRunManually = async (scheduleId: string) => {
 		setRunningSchedules((prev) => new Set(prev).add(scheduleId));
 		try {
-			await runManually({ scheduleId });
-			toast.success("Schedule run successfully");
+			const result = await runManually({ scheduleId });
+			if (result.status === "error") {
+				toast.error("Schedule run failed, check the deployment logs");
+			} else {
+				toast.success("Schedule run successfully");
+			}
 			await refetchSchedules();
 		} catch {
 			toast.error("Error running schedule");
@@ -73,7 +77,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 	};
 
 	return (
-		<Card className="border px-6 shadow-none bg-transparent h-full min-h-[50vh]">
+		<Card className=" px-6 shadow-none bg-transparent h-full min-h-[50vh]">
 			<CardHeader className="px-0">
 				<div className="flex justify-between items-center gap-y-2 flex-wrap">
 					<div className="flex flex-col gap-2">
@@ -110,12 +114,12 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 									className="flex flex-col sm:flex-row sm:items-center flex-wrap sm:flex-nowrap gap-y-2 justify-between rounded-lg border p-3 transition-colors bg-muted/50 w-full"
 								>
 									<div className="flex items-start gap-3 w-full sm:w-auto">
-										<div className="flex flex-shrink-0 h-9 w-9 items-center justify-center rounded-full bg-primary/5">
+										<div className="flex shrink-0 h-9 w-9 items-center justify-center rounded-full bg-primary/5">
 											<Clock className="size-4 text-primary/70" />
 										</div>
 										<div className="space-y-1.5 w-full sm:w-auto">
 											<div className="flex items-center gap-2 flex-wrap">
-												<h3 className="text-sm font-medium leading-none [overflow-wrap:anywhere] line-clamp-3">
+												<h3 className="text-sm font-medium leading-none wrap-anywhere line-clamp-3">
 													{schedule.name}
 												</h3>
 												<Badge
@@ -126,7 +130,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 												</Badge>
 											</div>
 											{schedule.description && (
-												<p className="text-xs text-muted-foreground/70 [overflow-wrap:anywhere] line-clamp-2">
+												<p className="text-xs text-muted-foreground/70 wrap-anywhere line-clamp-2">
 													{schedule.description}
 												</p>
 											)}
@@ -154,7 +158,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 											</div>
 											{schedule.command && (
 												<div className="flex items-start gap-2 max-w-full">
-													<Terminal className="size-3.5 text-muted-foreground/70 flex-shrink-0 mt-0.5" />
+													<Terminal className="size-3.5 text-muted-foreground/70 shrink-0 mt-0.5" />
 													<code className="font-mono text-[10px] text-muted-foreground/70 break-all max-w-[calc(100%-20px)]">
 														{schedule.command}
 													</code>

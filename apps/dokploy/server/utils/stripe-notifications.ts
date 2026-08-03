@@ -1,7 +1,7 @@
 import InvoiceNotificationEmail from "@dokploy/server/emails/emails/invoice-notification";
 import PaymentFailedEmail from "@dokploy/server/emails/emails/payment-failed";
 import { sendEmail } from "@dokploy/server/verification/send-verification-email";
-import { renderAsync } from "@react-email/components";
+import { render } from "@react-email/components";
 import { format } from "date-fns";
 import type Stripe from "stripe";
 
@@ -34,7 +34,7 @@ export const sendInvoiceEmail = async (
 	try {
 		const amountFormatted = formatAmount(invoice.amount_paid, invoice.currency);
 
-		const htmlContent = await renderAsync(
+		const htmlContent = await render(
 			InvoiceNotificationEmail({
 				userName: admin.firstName || "User",
 				invoiceNumber: invoice.number || invoice.id,
@@ -84,7 +84,7 @@ export const sendPaymentFailedEmail = async (
 	try {
 		const amountFormatted = formatAmount(invoice.amount_due, invoice.currency);
 
-		const htmlContent = await renderAsync(
+		const htmlContent = await render(
 			PaymentFailedEmail({
 				userName: admin.firstName || "User",
 				invoiceNumber: invoice.number || invoice.id,

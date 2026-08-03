@@ -190,6 +190,9 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 									<FormLabel>Bitbucket Account</FormLabel>
 									<Select
 										onValueChange={(value) => {
+											if (!value) {
+												return;
+											}
 											field.onChange(value);
 											form.setValue("repository", {
 												owner: "",
@@ -198,7 +201,6 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 											});
 											form.setValue("branch", "");
 										}}
-										defaultValue={field.value}
 										value={field.value}
 									>
 										<FormControl>
@@ -247,7 +249,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -256,14 +258,19 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 														: isLoadingRepositories
 															? "Loading...."
 															: (repositories?.find(
-																	(repo) => repo.name === field.value.repo,
+																	(repo) =>
+																		repo.name === field.value.repo &&
+																		repo.owner.username === field.value.owner,
 																)?.name ?? "Select repository")}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
 										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
+										<PopoverContent
+											className="w-[var(--radix-popover-trigger-width)] p-0"
+											align="start"
+										>
 											<Command>
 												<CommandInput
 													placeholder="Search repository..."
@@ -283,7 +290,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 													<CommandGroup>
 														{repositories?.map((repo) => (
 															<CommandItem
-																value={repo.name}
+																value={`${repo.owner.username}/${repo.name}`}
 																key={repo.url}
 																onSelect={() => {
 																	form.setValue("repository", {
@@ -294,8 +301,8 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 																	form.setValue("branch", "");
 																}}
 															>
-																<span className="flex items-center gap-2">
-																	<span>{repo.name}</span>
+																<span className="flex min-w-0 items-center gap-2">
+																	<span className="truncate">{repo.name}</span>
 																	<span className="text-muted-foreground text-xs">
 																		{repo.owner.username}
 																	</span>
@@ -303,7 +310,8 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 																<CheckIcon
 																	className={cn(
 																		"ml-auto h-4 w-4",
-																		repo.name === field.value.repo
+																		repo.name === field.value.repo &&
+																			repo.owner.username === field.value.owner
 																			? "opacity-100"
 																			: "opacity-0",
 																	)}
@@ -335,7 +343,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														" w-full justify-between !bg-input",
+														" w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -350,7 +358,10 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 												</Button>
 											</FormControl>
 										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
+										<PopoverContent
+											className="w-[var(--radix-popover-trigger-width)] p-0"
+											align="start"
+										>
 											<Command>
 												<CommandInput
 													placeholder="Search branch..."
@@ -378,7 +389,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 																	form.setValue("branch", branch.name);
 																}}
 															>
-																{branch.name}
+																<span className="truncate">{branch.name}</span>
 																<CheckIcon
 																	className={cn(
 																		"ml-auto h-4 w-4",
@@ -440,14 +451,18 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 										{field.value?.map((path, index) => (
 											<Badge key={index} variant="secondary">
 												{path}
-												<X
-													className="ml-1 size-3 cursor-pointer"
+												<button
+													type="button"
+													aria-label="Remove watch path"
+													className="inline-flex items-center focus-visible:ring-2"
 													onClick={() => {
 														const newPaths = [...(field.value || [])];
 														newPaths.splice(index, 1);
 														form.setValue("watchPaths", newPaths);
 													}}
-												/>
+												>
+													<X className="ml-1 size-3 cursor-pointer" />
+												</button>
 											</Badge>
 										))}
 									</div>
@@ -495,14 +510,14 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 							control={form.control}
 							name="enableSubmodules"
 							render={({ field }) => (
-								<FormItem className="flex items-center space-x-2">
+								<FormItem className="flex flex-row items-center space-x-2 space-y-0">
 									<FormControl>
 										<Switch
 											checked={field.value}
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+									<FormLabel>Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

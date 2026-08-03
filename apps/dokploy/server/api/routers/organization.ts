@@ -6,6 +6,10 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import {
+	assertMemberLimit,
+	assertOrganizationLimit,
+} from "@/server/api/utils/plan-limits";
+import {
 	invitation,
 	member,
 	organization,
@@ -28,6 +32,11 @@ export const organizationRouter = createTRPCRouter({
 					message: "Only the organization owner can create an organization",
 				});
 			}
+
+			if (IS_CLOUD) {
+				await assertOrganizationLimit(ctx.user.id);
+			}
+
 			const result = await db
 				.insert(organization)
 				.values({
@@ -257,6 +266,10 @@ export const organizationRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const orgId = ctx.session.activeOrganizationId;
 			const email = input.email.toLowerCase();
+
+			if (IS_CLOUD) {
+				await assertMemberLimit(orgId);
+			}
 
 			// Check if user is already a member
 			const existingUser = await db.query.user.findFirst({

@@ -18,12 +18,30 @@ export const swarmRouter = createTRPCRouter({
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+			}
 			return await getSwarmNodes(input.serverId);
 		}),
 	getNodeInfo: withPermission("server", "read")
 		.input(z.object({ nodeId: z.string(), serverId: z.string().optional() }))
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+			}
 			return await getNodeInfo(input.nodeId, input.serverId);
 		}),
 	getNodeApps: withPermission("server", "read")
@@ -32,7 +50,16 @@ export const swarmRouter = createTRPCRouter({
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+			}
 			return getNodeApplications(input.serverId);
 		}),
 	getAppInfos: withPermission("server", "read")
@@ -54,7 +81,16 @@ export const swarmRouter = createTRPCRouter({
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+			}
 			return await getApplicationInfo(input.appName, input.serverId);
 		}),
 	getContainerStats: withPermission("server", "read")
