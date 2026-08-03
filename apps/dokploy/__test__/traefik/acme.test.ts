@@ -62,3 +62,28 @@ describe("removeAcmeCertificates", () => {
 		expect(store.letsencrypt?.Certificates).toHaveLength(1);
 	});
 });
+
+describe("removeAcmeCertificates with multiple resolvers", () => {
+	it("only touches the resolver that holds the host", () => {
+		const store: AcmeStore = {
+			letsencrypt: {
+				Account: {},
+				Certificates: [
+					{ domain: { main: "a.example.com" }, certificate: "c", key: "k" },
+				],
+			},
+			other: {
+				Account: {},
+				Certificates: [
+					{ domain: { main: "b.example.com" }, certificate: "c", key: "k" },
+				],
+			},
+		};
+
+		const result = removeAcmeCertificates(store, ["a.example.com"]);
+
+		expect(result.removed).toEqual(["a.example.com"]);
+		expect(result.store.letsencrypt?.Certificates).toEqual([]);
+		expect(result.store.other?.Certificates).toHaveLength(1);
+	});
+});

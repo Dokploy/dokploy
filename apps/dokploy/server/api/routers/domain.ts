@@ -1,5 +1,6 @@
 import {
 	createDomain,
+	type Domain,
 	findApplicationById,
 	findDomainById,
 	findDomainsByApplicationId,
@@ -8,7 +9,9 @@ import {
 	findServerById,
 	generateTraefikMeDomain,
 	getWebServerSettings,
+	hasOtherLetsencryptDomainForHost,
 	manageDomain,
+	purgeAcmeCertificates,
 	removeDomain,
 	removeDomainById,
 	updateDomainById,
@@ -30,6 +33,22 @@ import {
 	apiFindOneApplication,
 	apiUpdateDomain,
 } from "@/server/db/schema";
+
+const purgeStaleCertificate = async (
+	domain: Domain,
+	serverId?: string | null,
+): Promise<boolean> => {
+	if (domain.certificateType === "letsencrypt") return false;
+
+	const stillInUse = await hasOtherLetsencryptDomainForHost(
+		domain.host,
+		domain.domainId,
+	);
+	if (stillInUse) return false;
+
+	const removed = await purgeAcmeCertificates([domain.host], serverId);
+	return removed.length > 0;
+};
 
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -126,9 +145,15 @@ export const domainRouter = createTRPCRouter({
 				resourceId: domain.domainId,
 				resourceName: domain.host,
 			});
+			let traefikReloadRequired = false;
+
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
 				await manageDomain(application, domain);
+				traefikReloadRequired = await purgeStaleCertificate(
+					domain,
+					application.serverId,
+				);
 			} else if (domain.previewDeploymentId) {
 				const previewDeployment = await findPreviewDeploymentById(
 					domain.previewDeploymentId,
@@ -139,7 +164,8 @@ export const domainRouter = createTRPCRouter({
 				application.appName = previewDeployment.appName;
 				await manageDomain(application, domain);
 			}
-			return result;
+
+			return { ...result, traefikReloadRequired };
 		}),
 	one: protectedProcedure.input(apiFindDomain).query(async ({ input, ctx }) => {
 		const domain = await findDomainById(input.domainId);
