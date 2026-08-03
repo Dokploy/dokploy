@@ -543,4 +543,20 @@ describe("createDomainLabels", () => {
 		// Should not contain redirect-to-https since there's only one router
 		expect(middlewareLabel).toBeUndefined();
 	});
+
+	it("should add tls=true for certificateType custom without a resolver", async () => {
+		const customDomain = {
+			...baseDomain,
+			https: true,
+			certificateType: "custom" as const,
+			customCertResolver: null,
+		};
+		const labels = await createDomainLabels(appName, customDomain, "websecure");
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-websecure.tls=true",
+		);
+		expect(labels).not.toContain(
+			"traefik.http.routers.test-app-1-websecure.tls.certresolver=letsencrypt",
+		);
+	});
 });
