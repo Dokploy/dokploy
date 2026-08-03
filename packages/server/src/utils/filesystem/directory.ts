@@ -101,37 +101,47 @@ export const removeMonitoringDirectory = async (
 	}
 };
 
+export const getBuildPath = (application: Application) => {
+	const { sourceType, customGitBuildPath } = application;
+
+	if (sourceType === "github") {
+		return application?.buildPath || "";
+	}
+	if (sourceType === "gitlab") {
+		return application?.gitlabBuildPath || "";
+	}
+	if (sourceType === "bitbucket") {
+		return application?.bitbucketBuildPath || "";
+	}
+	if (sourceType === "gitea") {
+		return application?.giteaBuildPath || "";
+	}
+	if (sourceType === "drop") {
+		return application?.dropBuildPath || "";
+	}
+	if (sourceType === "git") {
+		return customGitBuildPath || "";
+	}
+	return "";
+};
+
 export const getBuildAppDirectory = (application: Application) => {
 	const serverId = application.buildServerId || application.serverId;
 	const { APPLICATIONS_PATH } = paths(!!serverId);
-	const { appName, buildType, sourceType, customGitBuildPath, dockerfile } =
-		application;
-	let buildPath = "";
+	const { appName, buildType, dockerfile } = application;
+	const buildPath = getBuildPath(application);
 
-	if (sourceType === "github") {
-		buildPath = application?.buildPath || "";
-	} else if (sourceType === "gitlab") {
-		buildPath = application?.gitlabBuildPath || "";
-	} else if (sourceType === "bitbucket") {
-		buildPath = application?.bitbucketBuildPath || "";
-	} else if (sourceType === "gitea") {
-		buildPath = application?.giteaBuildPath || "";
-	} else if (sourceType === "drop") {
-		buildPath = application?.dropBuildPath || "";
-	} else if (sourceType === "git") {
-		buildPath = customGitBuildPath || "";
-	}
 	if (buildType === "dockerfile") {
 		return path.join(
 			APPLICATIONS_PATH,
 			appName,
 			"code",
-			buildPath ?? "",
+			buildPath,
 			dockerfile || "Dockerfile",
 		);
 	}
 
-	return path.join(APPLICATIONS_PATH, appName, "code", buildPath ?? "");
+	return path.join(APPLICATIONS_PATH, appName, "code", buildPath);
 };
 
 export const getDockerContextPath = (application: Application) => {
@@ -143,6 +153,6 @@ export const getDockerContextPath = (application: Application) => {
 		APPLICATIONS_PATH,
 		appName,
 		"code",
-		dockerContextPath || ".",
+		dockerContextPath || getBuildPath(application) || ".",
 	);
 };
