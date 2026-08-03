@@ -99,9 +99,13 @@ export const getLogType = (message: string): LogStyle => {
 
 	// Key/value pairs that explicitly report a non-error (e.g. "error: none",
 	// "failed: false") must not trigger the error keyword patterns below
-	const nonErrorKeyValues =
-		/\b(?:error|err|errors|failed|failure|failures)s?\s*[:=]\s*(?:none|null|nil|false|0|no|-|""|'')(?=[\s,;.)\]]|$)/gi;
-	const errorScope = lowerMessage.replace(nonErrorKeyValues, "");
+	const nonErrorColonPairs =
+		/\b(?:error|err|errors|failed|failure|failures)\s*:\s*(?:none|null|nil|false|0|no|-|""|'')(?=[,;.)\]]|$)/gi;
+	const nonErrorLogfmtPairs =
+		/\b(?:error|err|errors|failed|failure|failures)\s*=\s*(?:none|null|nil|false|0|no|-|""|'')(?=[\s,;.)\]]|$)/gi;
+	const errorScope = lowerMessage
+		.replace(nonErrorColonPairs, "")
+		.replace(nonErrorLogfmtPairs, "");
 
 	if (
 		/(?:^|\s)(?:error|err):?\s/i.test(errorScope) ||

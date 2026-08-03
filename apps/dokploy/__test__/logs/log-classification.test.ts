@@ -23,6 +23,17 @@ test("does not classify explicit non-error key/values as error (#4538)", () => {
 	expect(getLogType("request done, error: null").type).not.toBe("error");
 	expect(getLogType("checks passed, failures=0").type).not.toBe("error");
 	expect(getLogType('shutdown clean, error=""').type).not.toBe("error");
+	expect(getLogType('job done failed=false error=""').type).not.toBe("error");
+});
+
+test("keeps errors whose value merely starts with a no-error word", () => {
+	expect(getLogType("connect failed: no route to host").type).toBe("error");
+	expect(getLogType("connection failed: no such host").type).toBe("error");
+	expect(getLogType("error: none of the configured nodes are available").type).toBe(
+		"error",
+	);
+	expect(getLogType("error: nil pointer dereference").type).toBe("error");
+	expect(getLogType("request failed: 0 bytes received").type).toBe("error");
 });
 
 test("keeps statusCode-based classification", () => {
