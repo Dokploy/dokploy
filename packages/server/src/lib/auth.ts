@@ -1,5 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import { apiKey } from "@better-auth/api-key";
+import { passkey } from "@better-auth/passkey";
 import { scim } from "@better-auth/scim";
 import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
@@ -374,6 +375,7 @@ const createBetterAuth = () =>
 		session: {
 			expiresIn: 60 * 60 * 24 * 3,
 			updateAge: 60 * 60 * 24,
+			freshAge: 0,
 		},
 		user: {
 			modelName: "user",
@@ -435,6 +437,7 @@ const createBetterAuth = () =>
 				},
 			}),
 			twoFactor(),
+			passkey(),
 			organization({
 				ac,
 				roles: {

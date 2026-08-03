@@ -1240,6 +1240,13 @@
       "when": 1785274179336,
       "tag": "0176_slimy_marten_broadcloak",
       "breakpoints": true
+    },
+    {
+      "idx": 177,
+      "version": "7",
+      "when": 1785709848209,
+      "tag": "0177_glossy_brother_voodoo",
+      "breakpoints": true
     }
   ]
 }
