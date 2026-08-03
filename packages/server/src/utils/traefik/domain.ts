@@ -215,8 +215,11 @@ export const createRouterConfig = async (
 			routerConfig.tls = { certResolver: "letsencrypt" };
 		} else if (certificateType === "custom" && domain.customCertResolver) {
 			routerConfig.tls = { certResolver: domain.customCertResolver };
-		} else if (certificateType === "none") {
-			routerConfig.tls = undefined;
+		} else {
+			// An empty object still enables TLS, but marks the router's TLS as
+			// non-nil so Traefik does not fall back to the entrypoint's
+			// certResolver default. Same handling as forward-auth.ts.
+			routerConfig.tls = {};
 		}
 	}
 
