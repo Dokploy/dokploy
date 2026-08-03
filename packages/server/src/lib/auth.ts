@@ -374,8 +374,7 @@ const createBetterAuth = () =>
 		},
 		session: {
 			expiresIn: 60 * 60 * 24 * 3,
-			updateAge: 60 * 60 * 24,
-			freshAge: 0,
+			updateAge: 60 * 60 * 24
 		},
 		user: {
 			modelName: "user",
