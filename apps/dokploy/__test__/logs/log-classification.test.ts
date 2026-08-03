@@ -29,9 +29,9 @@ test("does not classify explicit non-error key/values as error (#4538)", () => {
 test("keeps errors whose value merely starts with a no-error word", () => {
 	expect(getLogType("connect failed: no route to host").type).toBe("error");
 	expect(getLogType("connection failed: no such host").type).toBe("error");
-	expect(getLogType("error: none of the configured nodes are available").type).toBe(
-		"error",
-	);
+	expect(
+		getLogType("error: none of the configured nodes are available").type,
+	).toBe("error");
 	expect(getLogType("error: nil pointer dereference").type).toBe("error");
 	expect(getLogType("request failed: 0 bytes received").type).toBe("error");
 });
