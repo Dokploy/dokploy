@@ -78,7 +78,7 @@ export const DockerDiskUsageChart = () => {
 
 	if (isLoading) {
 		return (
-			<div className="flex items-center justify-center h-[16rem]">
+			<div className="flex items-center justify-center h-64">
 				<Loader2 className="size-5 animate-spin text-muted-foreground" />
 			</div>
 		);

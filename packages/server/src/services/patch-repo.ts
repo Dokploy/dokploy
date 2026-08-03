@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { TRPCError } from "@trpc/server";
+import { quote } from "shell-quote";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { cloneBitbucketRepository } from "../utils/providers/bitbucket";
 import { cloneGitRepository } from "../utils/providers/git";
@@ -85,7 +86,7 @@ export const readPatchRepoDirectory = async (
 	serverId?: string | null,
 ): Promise<DirectoryEntry[]> => {
 	// Use git ls-tree to get tracked files only
-	const command = `cd "${repoPath}" && git ls-tree -r --name-only HEAD`;
+	const command = `cd ${quote([repoPath])} && git ls-tree -r --name-only HEAD`;
 
 	let stdout: string;
 	try {
@@ -168,7 +169,7 @@ export const readPatchRepoFile = async (
 	const repoPath = join(PATCH_REPOS_PATH, type, application.appName);
 	const fullPath = join(repoPath, filePath);
 
-	const command = `cat "${fullPath}"`;
+	const command = `cat ${quote([fullPath])}`;
 
 	if (serverId) {
 		const result = await execAsyncRemote(serverId, command);

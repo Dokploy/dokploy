@@ -5,6 +5,7 @@ import {
 	updateGitProvider,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { findMemberByUserId } from "@dokploy/server/services/permission";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import { desc, eq, inArray } from "drizzle-orm";
@@ -142,6 +143,19 @@ export const gitProviderRouter = createTRPCRouter({
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to delete this Git provider",
+					});
+				}
+
+				const memberRecord = await findMemberByUserId(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				const isPrivileged =
+					memberRecord.role === "owner" || memberRecord.role === "admin";
+				if (!isPrivileged && gitProvider.userId !== ctx.session.userId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You can only delete your own Git providers",
 					});
 				}
 				await audit(ctx, {

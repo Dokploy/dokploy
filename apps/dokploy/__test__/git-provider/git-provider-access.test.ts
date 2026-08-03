@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	canEditDeployGitSource,
 	getAccessibleGitProviderIds,
 } from "@dokploy/server/services/git-provider";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockDb = vi.hoisted(() => ({
 	query: {

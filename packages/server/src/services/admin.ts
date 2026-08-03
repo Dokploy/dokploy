@@ -120,6 +120,10 @@ export const getDokployUrl = async () => {
 const TRUSTED_ORIGINS_CACHE_TTL_MS = 30 * 60_000;
 let trustedOriginsCache: { data: string[]; expiresAt: number } | null = null;
 
+export const invalidateTrustedOriginsCache = () => {
+	trustedOriginsCache = null;
+};
+
 export const getTrustedOrigins = async () => {
 	const runQuery = async () => {
 		const rows = await db

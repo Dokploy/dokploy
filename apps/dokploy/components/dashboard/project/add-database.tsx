@@ -62,7 +62,7 @@ const dockerImageDefaultPlaceholder: Record<DbType, string> = {
 	mariadb: "mariadb:11",
 	mysql: "mysql:8",
 	postgres: "postgres:18",
-	redis: "redis:7",
+	redis: "redis:8",
 };
 
 const databasesUserDefaultPlaceholder: Record<
@@ -412,7 +412,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 															/>
 															<Label
 																htmlFor={key}
-																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary has-data-[state=checked]:border-primary cursor-pointer"
 															>
 																{value.icon}
 																{value.label}
@@ -765,7 +765,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										name="replicaSets"
 										render={({ field }) => {
 											return (
-												<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+												<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
 													<div className="space-y-0.5">
 														<FormLabel>Use Replica Sets</FormLabel>
 													</div>

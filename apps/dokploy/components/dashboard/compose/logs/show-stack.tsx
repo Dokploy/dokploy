@@ -35,9 +35,14 @@ export const DockerLogs = dynamic(
 interface Props {
 	appName: string;
 	serverId?: string;
+	serviceId?: string;
 }
 
-export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
+export const ShowDockerLogsStack = ({
+	appName,
+	serverId,
+	serviceId,
+}: Props) => {
 	const [option, setOption] = useState<"swarm" | "native">("native");
 	const [containerId, setContainerId] = useState<string | undefined>();
 
@@ -167,6 +172,7 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 					serverId={serverId || ""}
 					containerId={containerId || "select-a-container"}
 					runType={option}
+					serviceId={serviceId}
 				/>
 			</CardContent>
 		</Card>

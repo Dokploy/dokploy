@@ -220,7 +220,7 @@ export const AddVolumes = ({
 															/>
 															<Label
 																htmlFor="bind"
-																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary has-data-[state=checked]:border-primary cursor-pointer"
 															>
 																Bind Mount
 															</Label>
@@ -240,7 +240,7 @@ export const AddVolumes = ({
 															/>
 															<Label
 																htmlFor="volume"
-																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary has-data-[state=checked]:border-primary cursor-pointer"
 															>
 																Volume Mount
 															</Label>
@@ -264,7 +264,7 @@ export const AddVolumes = ({
 														/>
 														<Label
 															htmlFor="file"
-															className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+															className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary has-data-[state=checked]:border-primary cursor-pointer"
 														>
 															File Mount
 														</Label>
@@ -324,7 +324,7 @@ export const AddVolumes = ({
 											control={form.control}
 											name="content"
 											render={({ field }) => (
-												<FormItem className="max-w-full max-w-[45rem]">
+												<FormItem className="max-w-full max-w-180">
 													<FormLabel>Content</FormLabel>
 													<FormControl>
 														<FormControl>

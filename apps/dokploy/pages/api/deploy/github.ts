@@ -23,6 +23,9 @@ import {
 	logWebhookError,
 } from "./[refreshToken]";
 
+const getGithubRepositoryOwner = (githubBody: any) =>
+	githubBody?.repository?.owner?.name ?? githubBody?.repository?.owner?.login;
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
@@ -109,7 +112,7 @@ export default async function handler(
 		try {
 			const tagName = githubBody?.ref.replace("refs/tags/", "");
 			const repository = githubBody?.repository?.name;
-			const owner = githubBody?.repository?.owner?.name;
+			const owner = getGithubRepositoryOwner(githubBody);
 			const deploymentTitle = `Tag created: ${tagName}`;
 			const deploymentHash = extractHash(req.headers, githubBody);
 
@@ -219,7 +222,7 @@ export default async function handler(
 
 			const deploymentTitle = extractCommitMessage(req.headers, req.body);
 			const deploymentHash = extractHash(req.headers, req.body);
-			const owner = githubBody?.repository?.owner?.name;
+			const owner = getGithubRepositoryOwner(githubBody);
 			const normalizedCommits = githubBody?.commits?.flatMap(
 				(commit: any) => commit.modified,
 			);
@@ -372,7 +375,7 @@ export default async function handler(
 			const repository = githubBody?.repository?.name;
 			const deploymentHash = githubBody?.pull_request?.head?.sha;
 			const branch = githubBody?.pull_request?.base?.ref;
-			const owner = githubBody?.repository?.owner?.login;
+			const owner = getGithubRepositoryOwner(githubBody);
 			const prAuthor = githubBody?.pull_request?.user?.login;
 
 			// Validate PR author information is present
