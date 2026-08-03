@@ -6,6 +6,7 @@ import {
 	IS_CLOUD,
 	initCancelDeployments,
 	initCronJobs,
+	initDomainTlsReconciliation,
 	initEnterpriseBackupCronJobs,
 	initializeNetwork,
 	initSchedules,
@@ -64,6 +65,7 @@ void app.prepare().then(async () => {
 			await initCronJobs();
 			await initSchedules();
 			await initCancelDeployments();
+			await initDomainTlsReconciliation();
 			await initVolumeBackupsCronJobs();
 			await sendDokployRestartNotifications();
 		}

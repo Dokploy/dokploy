@@ -5,7 +5,7 @@ import { getWebServerSettings } from "@dokploy/server/services/web-server-settin
 import { generateRandomDomain } from "@dokploy/server/templates";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, isNotNull, ne } from "drizzle-orm";
 import type { z } from "zod";
 import { type apiCreateDomain, domains } from "../db/schema";
 import { findApplicationById } from "./application";
@@ -232,4 +232,21 @@ export const validateDomain = async (
 				error instanceof Error ? error.message : "Failed to resolve domain",
 		};
 	}
+};
+
+/**
+ * Domains that may still carry a router config written before the TLS
+ * override fix. Only application domains are returned; Compose domains are
+ * configured through Docker labels and are regenerated on deploy.
+ */
+export const findDomainsNeedingTlsReconciliation = async () => {
+	return await db
+		.select()
+		.from(domains)
+		.where(
+			and(
+				ne(domains.certificateType, "letsencrypt"),
+				isNotNull(domains.applicationId),
+			),
+		);
 };
