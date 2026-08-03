@@ -465,6 +465,27 @@ export const prepareEnvironmentVariablesForShell = (
 	return envVars.map((env) => quote([env]));
 };
 
+export const prepareEnvironmentVariablesForFile = (
+	serviceEnv: string | null,
+	projectEnv?: string | null,
+	environmentEnv?: string | null,
+): string[] => {
+	const envVars = prepareEnvironmentVariables(
+		serviceEnv,
+		projectEnv,
+		environmentEnv,
+	);
+
+	return envVars.map((pair) => {
+		const [key, value] = parseEnvironmentKeyValuePair(pair);
+		const escapedValue = value
+			.replace(/\\/g, "\\\\")
+			.replace(/"/g, '\\"')
+			.replace(/\$/g, "\\$");
+		return `${key}="${escapedValue}"`;
+	});
+};
+
 export const parseEnvironmentKeyValuePair = (
 	pair: string,
 ): [string, string] => {
