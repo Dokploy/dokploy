@@ -249,7 +249,11 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 									<FormItem>
 										<FormLabel>MTU (optional)</FormLabel>
 										<FormControl>
-											<Input placeholder="1500" inputMode="numeric" {...field} />
+											<Input
+												placeholder="1500"
+												inputMode="numeric"
+												{...field}
+											/>
 										</FormControl>
 										<FormDescription className="text-muted-foreground">
 											Maximum transmission unit. Leave empty to use Docker's
