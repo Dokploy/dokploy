@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { boolean, jsonb, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	jsonb,
+	pgEnum,
+	pgTable,
+	text,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -19,6 +26,7 @@ export const network = pgTable("network", {
 	attachable: boolean("attachable").notNull().default(false),
 	enableIPv4: boolean("enableIPv4").notNull().default(true),
 	enableIPv6: boolean("enableIPv6").notNull().default(false),
+	mtu: integer("mtu"),
 	ipam: jsonb("ipam")
 		.$type<{
 			driver?: string;
@@ -55,6 +63,7 @@ const createSchema = createInsertSchema(network, {
 	attachable: z.boolean().optional(),
 	enableIPv4: z.boolean().optional(),
 	enableIPv6: z.boolean().optional(),
+	mtu: z.number().int().min(68).max(65535).optional().nullable(),
 	ipam: z
 		.object({
 			driver: z.string().optional(),
@@ -109,6 +118,7 @@ export const apiCreateNetwork = createSchema
 		attachable: true,
 		enableIPv4: true,
 		enableIPv6: true,
+		mtu: true,
 		ipam: true,
 		serverId: true,
 	})

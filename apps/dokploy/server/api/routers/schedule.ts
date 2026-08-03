@@ -329,13 +329,17 @@ export const scheduleRouter = createTRPCRouter({
 				await checkPermission(ctx, { schedule: ["create"] });
 			}
 			try {
-				await runCommand(input.scheduleId);
+				const deployment = await runCommand(input.scheduleId);
 				await audit(ctx, {
 					action: "run",
 					resourceType: "schedule",
 					resourceId: input.scheduleId,
 				});
-				return true;
+				return {
+					status: deployment.status,
+					deploymentId: deployment.deploymentId,
+					logPath: deployment.logPath,
+				};
 			} catch (error) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",

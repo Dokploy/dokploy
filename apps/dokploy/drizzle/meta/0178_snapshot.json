@@ -1,6 +1,6 @@
 {
-  "id": "6b0d67f3-45fa-4c6c-917b-c944bcf0deca",
-  "prevId": "383b87f1-fb41-4d41-9539-a87a3b2b677e",
+  "id": "0df84c4b-179d-44a4-8270-98cdde97db68",
+  "prevId": "6b0d67f3-45fa-4c6c-917b-c944bcf0deca",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -5243,6 +5243,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "mtu": {
+          "name": "mtu",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         },
         "ipam": {
           "name": "ipam",
