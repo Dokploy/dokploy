@@ -24,6 +24,7 @@ type DockerNetworkInfo = {
 	Ingress?: boolean;
 	EnableIPv4?: boolean;
 	EnableIPv6?: boolean;
+	Options?: Record<string, string> | null;
 	IPAM?: {
 		Driver?: string;
 		Config?: Array<{
@@ -32,6 +33,11 @@ type DockerNetworkInfo = {
 			IPRange?: string;
 		}> | null;
 	};
+};
+
+const parseMtu = (value: string | undefined) => {
+	const mtu = Number.parseInt(value ?? "", 10);
+	return Number.isNaN(mtu) ? null : mtu;
 };
 
 const isImportableDockerNetwork = (dockerNetwork: DockerNetworkInfo) =>
@@ -51,6 +57,7 @@ const mapDockerNetworkToRow = (
 	// Older daemons don't report EnableIPv4; IPv4 is always on there
 	enableIPv4: dockerNetwork.EnableIPv4 ?? true,
 	enableIPv6: dockerNetwork.EnableIPv6 ?? false,
+	mtu: parseMtu(dockerNetwork.Options?.["com.docker.network.driver.mtu"]),
 	ipam: {
 		driver: dockerNetwork.IPAM?.Driver,
 		config: (dockerNetwork.IPAM?.Config ?? []).map((c) => ({
@@ -255,6 +262,9 @@ const createDockerNetworkFromRow = async (row: typeof network.$inferSelect) => {
 			// the daemon (API >= 1.47); the body is sent as-is
 			EnableIPv4: row.enableIPv4,
 			EnableIPv6: row.enableIPv6,
+			Options: row.mtu
+				? { "com.docker.network.driver.mtu": String(row.mtu) }
+				: undefined,
 			IPAM: {
 				Driver: ipam.driver || "default",
 				Config: ipamConfig.length > 0 ? ipamConfig : undefined,
