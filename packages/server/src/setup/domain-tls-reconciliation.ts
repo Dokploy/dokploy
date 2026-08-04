@@ -30,8 +30,20 @@ export const routerNeedsTlsFix = (
 /**
  * One-shot pass that regenerates router configs written before the fix.
  * Idempotent: once a router carries `tls: {}` it is skipped on later starts.
+ *
+ * Never rejects. It runs inside the startup sequence, ahead of the backup cron
+ * jobs, the restart notifications and the deployment worker, so a failure here
+ * must not stop any of those from being brought up.
  */
 export const initDomainTlsReconciliation = async () => {
+	try {
+		await reconcileDomainTls();
+	} catch (error) {
+		console.error("TLS reconciliation could not run:", error);
+	}
+};
+
+const reconcileDomainTls = async () => {
 	const domains = await findDomainsNeedingTlsReconciliation();
 	if (domains.length === 0) return;
 

@@ -357,4 +357,22 @@ describe("initDomainTlsReconciliation", () => {
 			manageDomainMock.mock.invocationCallOrder[0] ?? Number.NaN;
 		expect(firstPurge).toBeLessThan(firstManage);
 	});
+
+	// It runs in the startup sequence ahead of the backup cron jobs, the restart
+	// notifications and the deployment worker, all of which share a single catch.
+	// A rejection here would leave every one of them uninitialised.
+	it("does not reject when the domain query fails", async () => {
+		findDomainsNeedingTlsReconciliationMock.mockRejectedValue(
+			new Error("database unreachable"),
+		);
+
+		await expect(initDomainTlsReconciliation()).resolves.toBeUndefined();
+		expect(manageDomainMock).not.toHaveBeenCalled();
+	});
+
+	it("does not reject when regenerating every application fails", async () => {
+		findApplicationByIdMock.mockRejectedValue(new Error("boom"));
+
+		await expect(initDomainTlsReconciliation()).resolves.toBeUndefined();
+	});
 });
