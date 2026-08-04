@@ -1,5 +1,8 @@
 import { findApplicationById } from "../services/application";
-import { findDomainsNeedingTlsReconciliation } from "../services/domain";
+import {
+	findDomainsNeedingTlsReconciliation,
+	hasOtherLetsencryptDomainForHost,
+} from "../services/domain";
 import { reloadDockerResource } from "../services/settings";
 import { purgeAcmeCertificates } from "../utils/traefik/acme";
 import {
@@ -57,16 +60,30 @@ export const initDomainTlsReconciliation = async () => {
 			);
 			if (stale.length === 0) continue;
 
+			// A host still served by another Let's Encrypt domain keeps its
+			// certificate, exactly as the mutation path does.
+			const purgeableHosts: string[] = [];
 			for (const domain of stale) {
-				await manageDomain(application, domain);
+				const stillInUse = await hasOtherLetsencryptDomainForHost(
+					domain.host,
+					domain.domainId,
+				);
+				if (!stillInUse) purgeableHosts.push(domain.host);
 			}
 
-			const removed = await purgeAcmeCertificates(
-				stale.map((domain) => domain.host),
-				application.serverId,
-			);
+			// Purge before regenerating: once the router carries its `tls` key
+			// `routerNeedsTlsFix` is false, so a purge that failed afterwards
+			// would never be retried on a later boot.
+			const removed =
+				purgeableHosts.length > 0
+					? await purgeAcmeCertificates(purgeableHosts, application.serverId)
+					: [];
 			if (removed.length > 0) {
 				reloadTargets.add(application.serverId ?? "");
+			}
+
+			for (const domain of stale) {
+				await manageDomain(application, domain);
 			}
 
 			console.log(
