@@ -1,6 +1,5 @@
 import {
 	createDomain,
-	type Domain,
 	findApplicationById,
 	findDomainById,
 	findDomainsByApplicationId,
@@ -9,9 +8,8 @@ import {
 	findServerById,
 	generateTraefikMeDomain,
 	getWebServerSettings,
-	hasOtherLetsencryptDomainForHost,
 	manageDomain,
-	purgeAcmeCertificates,
+	purgeStaleCertificate,
 	removeDomain,
 	removeDomainById,
 	updateDomainById,
@@ -33,22 +31,6 @@ import {
 	apiFindOneApplication,
 	apiUpdateDomain,
 } from "@/server/db/schema";
-
-const purgeStaleCertificate = async (
-	domain: Domain,
-	serverId?: string | null,
-): Promise<boolean> => {
-	if (domain.certificateType === "letsencrypt") return false;
-
-	const stillInUse = await hasOtherLetsencryptDomainForHost(
-		domain.host,
-		domain.domainId,
-	);
-	if (stillInUse) return false;
-
-	const removed = await purgeAcmeCertificates([domain.host], serverId);
-	return removed.length > 0;
-};
 
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure
