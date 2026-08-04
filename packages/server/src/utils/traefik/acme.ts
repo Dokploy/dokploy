@@ -54,6 +54,30 @@ const acmeJsonPath = (isRemote: boolean) => {
 	return path.join(DYNAMIC_TRAEFIK_PATH, "acme.json");
 };
 
+const purgeChains = new Map<string, Promise<unknown>>();
+
+/**
+ * Runs purges for one server one at a time. A purge is a read-modify-write over
+ * a file Traefik owns, so two concurrent calls for the same server would both
+ * read the old store and the later write would resurrect whatever the earlier
+ * one removed. Serialising in process is the practical boundary here, since a
+ * server's acme.json is only ever written by the Dokploy instance managing it.
+ */
+const withPurgeLock = <T>(key: string, task: () => Promise<T>): Promise<T> => {
+	const previous = purgeChains.get(key) ?? Promise.resolve();
+	// Run whether or not the previous purge succeeded, otherwise one failure
+	// would block every later purge for that server.
+	const result = previous.then(task, task);
+	purgeChains.set(
+		key,
+		result.then(
+			() => undefined,
+			() => undefined,
+		),
+	);
+	return result;
+};
+
 /**
  * Removes the ACME certificates for the given hosts and returns the hosts that
  * were actually removed. The caller is responsible for reloading Traefik:
@@ -66,6 +90,15 @@ export const purgeAcmeCertificates = async (
 ): Promise<string[]> => {
 	if (hosts.length === 0) return [];
 
+	return withPurgeLock(serverId ?? "", () =>
+		purgeAcmeCertificatesUnsynchronised(hosts, serverId),
+	);
+};
+
+const purgeAcmeCertificatesUnsynchronised = async (
+	hosts: string[],
+	serverId?: string | null,
+): Promise<string[]> => {
 	const filePath = acmeJsonPath(!!serverId);
 
 	let raw: string;
