@@ -95,15 +95,32 @@ export const purgeAcmeCertificates = async (
 
 	const serialized = JSON.stringify(store, null, 2);
 
+	// Never write in place: a truncated acme.json costs every Let's Encrypt
+	// certificate on the server. Write a sibling temp file, lock it down to
+	// 0600 (Traefik refuses to start on anything more permissive) and rename
+	// it over the target, which is atomic within the same directory.
+	const tempPath = `${filePath}.dokploy.tmp`;
+
 	if (serverId) {
-		// Traefik refuses to start if acme.json is more permissive than 0600.
 		await execAsyncRemote(
 			serverId,
-			`echo "${encodeBase64(serialized)}" | base64 -d > ${filePath}; chmod 600 ${filePath}`,
+			`umask 077 && printf '%s' "${encodeBase64(serialized)}" | base64 -d > ${tempPath} && chmod 600 ${tempPath} && mv -f ${tempPath} ${filePath} || { rm -f ${tempPath}; exit 1; }`,
 		);
 	} else {
-		fs.writeFileSync(filePath, serialized, "utf8");
-		fs.chmodSync(filePath, 0o600);
+		try {
+			fs.writeFileSync(tempPath, serialized, { encoding: "utf8", mode: 0o600 });
+			// writeFileSync's mode is subject to the process umask, and it is
+			// ignored entirely when the temp file already exists.
+			fs.chmodSync(tempPath, 0o600);
+			fs.renameSync(tempPath, filePath);
+		} catch (error) {
+			try {
+				fs.unlinkSync(tempPath);
+			} catch {
+				// The temp file may never have been created.
+			}
+			throw error;
+		}
 	}
 
 	return removed;
