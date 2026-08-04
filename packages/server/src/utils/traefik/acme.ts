@@ -95,66 +95,93 @@ export const purgeAcmeCertificates = async (
 	);
 };
 
+const readAcmeStoreRaw = async (
+	filePath: string,
+	serverId?: string | null,
+): Promise<string | null> => {
+	if (serverId) {
+		const { stdout } = await execAsyncRemote(
+			serverId,
+			`cat ${filePath} 2>/dev/null || true`,
+		);
+		return stdout;
+	}
+	if (!fs.existsSync(filePath)) return null;
+	return fs.readFileSync(filePath, "utf8");
+};
+
+const PURGE_ATTEMPTS = 3;
+
 const purgeAcmeCertificatesUnsynchronised = async (
 	hosts: string[],
 	serverId?: string | null,
 ): Promise<string[]> => {
 	const filePath = acmeJsonPath(!!serverId);
 
-	let raw: string;
-	if (serverId) {
-		const { stdout } = await execAsyncRemote(
-			serverId,
-			`cat ${filePath} 2>/dev/null || true`,
-		);
-		raw = stdout;
-	} else {
-		if (!fs.existsSync(filePath)) return [];
-		raw = fs.readFileSync(filePath, "utf8");
-	}
+	for (let attempt = 1; attempt <= PURGE_ATTEMPTS; attempt++) {
+		const raw = await readAcmeStoreRaw(filePath, serverId);
+		if (raw === null || !raw.trim()) return [];
 
-	if (!raw.trim()) return [];
-
-	let parsed: AcmeStore;
-	try {
-		parsed = JSON.parse(raw) as AcmeStore;
-	} catch {
-		// A malformed store is Traefik's to repair, not ours to overwrite.
-		return [];
-	}
-
-	const { store, removed } = removeAcmeCertificates(parsed, hosts);
-	if (removed.length === 0) return [];
-
-	const serialized = JSON.stringify(store, null, 2);
-
-	// Never write in place: a truncated acme.json costs every Let's Encrypt
-	// certificate on the server. Write a sibling temp file, lock it down to
-	// 0600 (Traefik refuses to start on anything more permissive) and rename
-	// it over the target, which is atomic within the same directory.
-	const tempPath = `${filePath}.dokploy.tmp`;
-
-	if (serverId) {
-		await execAsyncRemote(
-			serverId,
-			`umask 077 && printf '%s' "${encodeBase64(serialized)}" | base64 -d > ${tempPath} && chmod 600 ${tempPath} && mv -f ${tempPath} ${filePath} || { rm -f ${tempPath}; exit 1; }`,
-		);
-	} else {
+		let parsed: AcmeStore;
 		try {
-			fs.writeFileSync(tempPath, serialized, { encoding: "utf8", mode: 0o600 });
-			// writeFileSync's mode is subject to the process umask, and it is
-			// ignored entirely when the temp file already exists.
-			fs.chmodSync(tempPath, 0o600);
-			fs.renameSync(tempPath, filePath);
-		} catch (error) {
-			try {
-				fs.unlinkSync(tempPath);
-			} catch {
-				// The temp file may never have been created.
-			}
-			throw error;
+			parsed = JSON.parse(raw) as AcmeStore;
+		} catch {
+			// A malformed store is Traefik's to repair, not ours to overwrite.
+			return [];
 		}
+
+		const { store, removed } = removeAcmeCertificates(parsed, hosts);
+		if (removed.length === 0) return [];
+
+		// Traefik owns this file and rewrites it in full whenever it issues or
+		// renews a certificate, without any locking protocol we can join. Check
+		// the store still looks the way we read it before swapping ours in, so a
+		// certificate Traefik wrote while we were working is not dropped. This
+		// narrows the window to the final round trip rather than closing it,
+		// which is the best available short of stopping Traefik to edit its
+		// store. If the certificate we purge is reinstated by such a write, the
+		// startup reconciliation purges it again on the next boot.
+		const current = await readAcmeStoreRaw(filePath, serverId);
+		if (current !== raw) continue;
+
+		const serialized = JSON.stringify(store, null, 2);
+
+		// Never write in place: a truncated acme.json costs every Let's Encrypt
+		// certificate on the server. Write a sibling temp file, lock it down to
+		// 0600 (Traefik refuses to start on anything more permissive) and rename
+		// it over the target, which is atomic within the same directory.
+		const tempPath = `${filePath}.dokploy.tmp`;
+
+		if (serverId) {
+			await execAsyncRemote(
+				serverId,
+				`umask 077 && printf '%s' "${encodeBase64(serialized)}" | base64 -d > ${tempPath} && chmod 600 ${tempPath} && mv -f ${tempPath} ${filePath} || { rm -f ${tempPath}; exit 1; }`,
+			);
+		} else {
+			try {
+				fs.writeFileSync(tempPath, serialized, {
+					encoding: "utf8",
+					mode: 0o600,
+				});
+				// writeFileSync's mode is subject to the process umask, and it is
+				// ignored entirely when the temp file already exists.
+				fs.chmodSync(tempPath, 0o600);
+				fs.renameSync(tempPath, filePath);
+			} catch (error) {
+				try {
+					fs.unlinkSync(tempPath);
+				} catch {
+					// The temp file may never have been created.
+				}
+				throw error;
+			}
+		}
+
+		return removed;
 	}
 
-	return removed;
+	console.warn(
+		`Skipped purging ${hosts.join(", ")} from acme.json: Traefik kept rewriting it`,
+	);
+	return [];
 };

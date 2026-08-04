@@ -114,6 +114,45 @@ describe("purgeAcmeCertificates on a remote server", () => {
 		expect(mainsIn(storeOf("server-one"))).toEqual(["a.example.com"]);
 	});
 
+	// Traefik owns acme.json and rewrites it in full when it issues or renews a
+	// certificate. Swapping in a snapshot taken before that write would drop the
+	// new certificate from disk.
+	it("does not drop a certificate Traefik writes while the purge is in flight", async () => {
+		const passthrough = execAsyncRemoteMock.getMockImplementation();
+		let reads = 0;
+
+		execAsyncRemoteMock.mockImplementation(
+			async (serverId: string, command: string) => {
+				const result = await passthrough?.(serverId, command);
+				if (command.startsWith("cat ")) {
+					reads += 1;
+					if (reads === 1) {
+						// Traefik issues a certificate right after our first read.
+						const store = JSON.parse(storeOf(serverId));
+						store.letsencrypt.Certificates.push({
+							domain: { main: "fresh.example.com" },
+							certificate: "cert",
+							key: "key",
+						});
+						remoteStores.set(serverId, JSON.stringify(store));
+					}
+				}
+				return result;
+			},
+		);
+
+		const removed = await purgeAcmeCertificates(
+			["a.example.com"],
+			"server-one",
+		);
+
+		expect(removed).toEqual(["a.example.com"]);
+		expect(mainsIn(storeOf("server-one"))).toEqual([
+			"b.example.com",
+			"fresh.example.com",
+		]);
+	});
+
 	it("runs purges for different servers independently", async () => {
 		const removed = await Promise.all([
 			purgeAcmeCertificates(["a.example.com"], "server-one"),
