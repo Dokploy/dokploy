@@ -1,4 +1,9 @@
-import { createGithub, validateRequest } from "@dokploy/server";
+import {
+	createGithub,
+	deriveGithubApiUrl,
+	parseGithubBaseUrl,
+	validateRequest,
+} from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { hasPermission } from "@dokploy/server/services/permission";
 import { eq } from "drizzle-orm";
@@ -11,13 +16,14 @@ type Query = {
 	state: string;
 	installation_id: string;
 	setup_action: string;
+	githubUrl?: string;
 };
 
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
 ) {
-	const { code, state, installation_id }: Query = req.query as Query;
+	const { code, state, installation_id, githubUrl }: Query = req.query as Query;
 
 	if (!code) {
 		return res.status(400).json({ error: "Missing code parameter" });
@@ -38,7 +44,15 @@ export default async function handler(
 	}
 
 	if (action === "gh_init") {
-		const octokit = new Octokit({});
+		// Reject before any outbound request: this runs on a GET the user can be
+		// linked into, so the host is not trusted.
+		const parsed = parseGithubBaseUrl(githubUrl);
+		if ("error" in parsed) {
+			return res.status(400).json({ error: parsed.error });
+		}
+
+		const baseUrl = parsed.url;
+		const octokit = new Octokit({ baseUrl: deriveGithubApiUrl(baseUrl) });
 		const { data } = await octokit.request(
 			"POST /app-manifests/{code}/conversions",
 			{
@@ -55,6 +69,7 @@ export default async function handler(
 				githubClientSecret: data.client_secret,
 				githubWebhookSecret: data.webhook_secret,
 				githubPrivateKey: data.pem,
+				githubUrl: baseUrl,
 			},
 			session.activeOrganizationId,
 			user.id,
