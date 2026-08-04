@@ -270,6 +270,17 @@ export const ShowBackups = ({
 																</p>
 															</div>
 
+															{backup.customName && (
+																<div className="min-w-[150px]">
+																	<span className="text-sm font-medium text-muted-foreground">
+																		Custom Name
+																	</span>
+																	<p className="font-medium text-sm mt-0.5">
+																		{backup.customName}
+																	</p>
+																</div>
+															)}
+
 															<div className="min-w-[100px]">
 																<span className="text-sm font-medium text-muted-foreground">
 																	Keep Latest

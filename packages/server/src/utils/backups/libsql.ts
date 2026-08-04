@@ -11,7 +11,7 @@ import { sendDatabaseBackupNotifications } from "../notifications/database-backu
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import {
 	getBackupCommand,
-	getBackupTimestamp,
+	getBackupFileName,
 	getS3Credentials,
 	normalizeS3Path,
 } from "./utils";
@@ -31,7 +31,7 @@ export const runLibsqlBackup = async (
 	});
 	const { prefix } = backup;
 	const destination = await findDestinationById(backup.destinationId);
-	const backupFileName = `${getBackupTimestamp()}.sql.gz`;
+	const backupFileName = getBackupFileName(backup.customName, "sql.gz");
 	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	try {
 		const rcloneFlags = getS3Credentials(destination);

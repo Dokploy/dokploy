@@ -404,11 +404,16 @@ export const RestoreBackup = ({
 							name="backupFile"
 							render={({ field }) => (
 								<FormItem className="">
-									<FormLabel className="flex items-center justify-between">
-										Search Backup Files
+									<FormLabel className="flex items-center justify-between gap-2">
+										<span className="shrink-0">Search Backup Files</span>
 										{field.value && (
-											<Badge variant="outline" className="truncate">
-												{field.value}
+											<Badge
+												variant="outline"
+												className="min-w-0 max-w-[70%]"
+											>
+												<span className="min-w-0 truncate">
+													{field.value}
+												</span>
 												<Copy
 													className="ml-2 size-4 cursor-pointer"
 													onClick={(e) => {
@@ -431,14 +436,17 @@ export const RestoreBackup = ({
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													<span className="truncate text-left flex-1 w-52">
+													<span className="min-w-0 flex-1 truncate text-left">
 														{field.value || "Search and select a backup file"}
 													</span>
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
 										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
+										<PopoverContent
+											className="w-[var(--radix-popover-trigger-width)] p-0"
+											align="start"
+										>
 											<Command>
 												<CommandInput
 													placeholder="Search backup files..."
@@ -460,7 +468,7 @@ export const RestoreBackup = ({
 													</div>
 												) : (
 													<ScrollArea className="h-64">
-														<CommandGroup className="w-96">
+														<CommandGroup className="w-full">
 															{files?.map((file) => (
 																<CommandItem
 																	value={file.Path}
@@ -477,14 +485,14 @@ export const RestoreBackup = ({
 																	}}
 																>
 																	<div className="flex w-full flex-col gap-1">
-																		<div className="flex w-full justify-between">
-																			<span className="font-medium">
+																		<div className="flex w-full items-start justify-between gap-2">
+																			<span className="min-w-0 flex-1 break-all font-medium">
 																				{file.Path}
 																			</span>
 
 																			<CheckIcon
 																				className={cn(
-																					"ml-auto h-4 w-4",
+																					"mt-0.5 h-4 w-4 shrink-0",
 																					file.Path === field.value
 																						? "opacity-100"
 																						: "opacity-0",
