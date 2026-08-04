@@ -136,7 +136,9 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 	const encodedContent = encodeBase64(envFileContent);
 	return `
 touch ${quote([envFilePath])};
-echo "${encodedContent}" | base64 -d > ${quote([envFilePath])};
+base64 -d > ${quote([envFilePath])} << 'DOKPLOY_EOF'
+${encodedContent}
+DOKPLOY_EOF
 	`;
 };
 
