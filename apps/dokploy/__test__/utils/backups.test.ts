@@ -212,7 +212,10 @@ describe("keepLatestNBackups", () => {
 		expect(consoleErrorSpy).not.toHaveBeenCalled();
 
 		try {
-			return readFileSync(deletedFile, "utf-8").trim().split("\n").filter(Boolean);
+			return readFileSync(deletedFile, "utf-8")
+				.trim()
+				.split("\n")
+				.filter(Boolean);
 		} catch {
 			return [];
 		}
@@ -273,9 +276,7 @@ describe("keepLatestNBackups", () => {
 
 	test("deletes the chronologically oldest backups, not the lexicographically last ones", async () => {
 		const deleted = await runKeepLatestNBackups(2, lsfLines);
-		const deletedFilenames = deleted.map(
-			(path) => path.split("/").at(-1),
-		);
+		const deletedFilenames = deleted.map((path) => path.split("/").at(-1));
 
 		// A naive filename-only sort would have kept the two files whose names
 		// sort last ("dokploy-local-...-03-30" and "dokploy-local-...-03-28")
