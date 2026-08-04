@@ -23,8 +23,7 @@ export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
 ) {
-	const { code, state, installation_id, githubUrl }: Query =
-		req.query as Query;
+	const { code, state, installation_id, githubUrl }: Query = req.query as Query;
 
 	if (!code) {
 		return res.status(400).json({ error: "Missing code parameter" });
