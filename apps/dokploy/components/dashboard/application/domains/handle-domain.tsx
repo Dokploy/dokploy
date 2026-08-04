@@ -299,8 +299,18 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			...data,
 			customEntrypoint: data.useCustomEntrypoint ? data.customEntrypoint : null,
 		})
-			.then(async () => {
+			.then(async (result) => {
 				toast.success(dictionary.success);
+
+				if (
+					result &&
+					"traefikReloadRequired" in result &&
+					result.traefikReloadRequired
+				) {
+					toast.info(
+						"Restart Traefik to apply the certificate change for this domain.",
+					);
+				}
 
 				if (data.domainType === "application") {
 					await utils.domain.byApplicationId.invalidate({
