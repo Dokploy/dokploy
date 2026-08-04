@@ -12,14 +12,6 @@ import type { z } from "zod";
 export const DEFAULT_GITHUB_URL = "https://github.com";
 export const DEFAULT_GITHUB_API_URL = "https://api.github.com";
 
-const IPV4_HOSTNAME = /^\d{1,3}(\.\d{1,3}){3}$/;
-
-/**
- * Validate a user-supplied base URL: defaults the scheme to https, drops
- * anything past the host, and returns the normalized URL or the reason it was
- * rejected. Never falls back to github.com, so a typo cannot pass silently.
- * An absent value does mean github.com.
- */
 export const parseGithubBaseUrl = (
 	githubUrl?: string | null,
 ): { url: string } | { error: string } => {
@@ -51,12 +43,6 @@ export const parseGithubBaseUrl = (
 
 	const { hostname } = parsed;
 
-	// Rejects hosts that cannot serve Git, not hosts that are internal: a
-	// self-hosted Enterprise Server usually resolves to a private address.
-	if (hostname.startsWith("[") || IPV4_HOSTNAME.test(hostname)) {
-		return { error: "IP addresses are not supported, use a hostname" };
-	}
-
 	if (!hostname.includes(".")) {
 		return { error: `"${hostname}" is not a fully qualified hostname` };
 	}
@@ -64,23 +50,11 @@ export const parseGithubBaseUrl = (
 	return { url: `${parsed.protocol}//${parsed.host}` };
 };
 
-/**
- * Lenient read-path variant: stored values already passed parseGithubBaseUrl,
- * and a deploy is a worse place to throw than to fall back.
- */
 export const normalizeGithubUrl = (githubUrl?: string | null): string => {
 	const result = parseGithubBaseUrl(githubUrl);
 	return "url" in result ? result.url : DEFAULT_GITHUB_URL;
 };
 
-/**
- * Derive the REST API endpoint for a GitHub base URL. The three products do not
- * agree on this:
- *  - github.com                 -> https://api.github.com
- *  - Enterprise Cloud w/ data residency (`<tenant>.ghe.com`)
- *                               -> https://api.<tenant>.ghe.com
- *  - Enterprise Server (self-hosted) -> https://<host>/api/v3
- */
 export const deriveGithubApiUrl = (githubUrl?: string | null): string => {
 	const normalized = normalizeGithubUrl(githubUrl);
 	const { protocol, host } = new URL(normalized);

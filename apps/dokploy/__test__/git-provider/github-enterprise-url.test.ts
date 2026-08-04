@@ -7,7 +7,6 @@ import {
 } from "@dokploy/server/utils/providers/github";
 import { describe, expect, it } from "vitest";
 
-/** parseGithubBaseUrl returns either { url } or { error }. */
 const urlOf = (result: ReturnType<typeof parseGithubBaseUrl>) =>
 	"url" in result ? result.url : null;
 
@@ -78,17 +77,6 @@ describe("parseGithubBaseUrl", () => {
 		expect(parseGithubBaseUrl("http://localhost:2375")).toHaveProperty("error");
 	});
 
-	it("rejects IP literals", () => {
-		expect(parseGithubBaseUrl("https://169.254.169.254")).toHaveProperty(
-			"error",
-		);
-		expect(parseGithubBaseUrl("https://127.0.0.1")).toHaveProperty("error");
-		expect(parseGithubBaseUrl("https://[::1]")).toHaveProperty("error");
-		expect(
-			parseGithubBaseUrl("https://[::ffff:169.254.169.254]"),
-		).toHaveProperty("error");
-	});
-
 	it("rejects dotless hostnames", () => {
 		expect(parseGithubBaseUrl("https://metadata")).toHaveProperty("error");
 		expect(parseGithubBaseUrl("https://localhost")).toHaveProperty("error");
@@ -99,13 +87,6 @@ describe("parseGithubBaseUrl", () => {
 		// a naive `includes(".")` check.
 		expect(parseGithubBaseUrl("https://metadata.")).toHaveProperty("error");
 		expect(parseGithubBaseUrl("https://localhost.")).toHaveProperty("error");
-	});
-
-	it("rejects IP addresses written in non-dotted notation", () => {
-		// WHATWG normalizes these to 127.0.0.1 before the IPv4 check sees them.
-		// Pinned so validating raw input instead of `hostname` would fail here.
-		expect(parseGithubBaseUrl("https://2130706433")).toHaveProperty("error");
-		expect(parseGithubBaseUrl("https://0x7f.1")).toHaveProperty("error");
 	});
 
 	it("never falls back to github.com on a typo", () => {

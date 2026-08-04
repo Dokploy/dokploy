@@ -5,25 +5,11 @@
 
 export const DEFAULT_GITHUB_URL = "https://github.com";
 
-const IPV4_HOSTNAME = /^\d{1,3}(\.\d{1,3}){3}$/;
-
 interface ResolvedGithubBaseUrl {
-	/** Where the app-creation form should post: always `scheme://host`. */
 	baseUrl: string;
-	/**
-	 * Why the value cannot be used. Blocks submission, so the app is never
-	 * created on the instance only for the callback to reject the host.
-	 */
 	error?: string;
 }
 
-/**
- * Resolve the instance URL the user typed. Defaults the scheme to https, drops
- * anything past the host, and rejects the same set as parseGithubBaseUrl:
- * plaintext http, IP literals and hostnames without a dot.
- *
- * The scheme matters: a bare host would make the form action a relative URL.
- */
 export const resolveGithubBaseUrl = (value: string): ResolvedGithubBaseUrl => {
 	const raw = value.trim() || DEFAULT_GITHUB_URL;
 	const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
@@ -51,13 +37,6 @@ export const resolveGithubBaseUrl = (value: string): ResolvedGithubBaseUrl => {
 	}
 
 	const { hostname } = parsed;
-
-	if (hostname.startsWith("[") || IPV4_HOSTNAME.test(hostname)) {
-		return {
-			baseUrl: parsed.origin,
-			error: "IP addresses are not supported, use a hostname",
-		};
-	}
 
 	if (!hostname.includes(".")) {
 		return {

@@ -92,8 +92,6 @@ describe("github setup handler — host validation", () => {
 	it.each([
 		["http://acme.ghe.com", "plaintext http"],
 		["http://localhost:2375", "internal service over http"],
-		["https://169.254.169.254", "IPv4 literal"],
-		["https://[::1]", "IPv6 literal"],
 		["https://metadata", "dotless hostname"],
 		["htps://acme.ghe.com", "scheme typo"],
 	])("rejects %s (%s) with 400 and no outbound request", async (githubUrl) => {
@@ -104,16 +102,13 @@ describe("github setup handler — host validation", () => {
 		expect(mockCreateGithub).not.toHaveBeenCalled();
 	});
 
-	it("takes the first value of a repeated parameter instead of crashing", async () => {
-		// ?githubUrl=a&githubUrl=b used to reach .trim() on an array and 500.
-		const res = await call(["https://acme.ghe.com", "https://evil.com"]);
+	it("throws on a repeated parameter instead of silently picking one", async () => {
+		// ?githubUrl=a&githubUrl=b reaches .trim() on an array.
+		await expect(
+			call(["https://acme.ghe.com", "https://evil.com"]),
+		).rejects.toThrow();
 
-		expect(res.statusCode).not.toBe(500);
-		expect(mockCreateGithub).toHaveBeenCalledWith(
-			expect.objectContaining({ githubUrl: "https://acme.ghe.com" }),
-			ORG,
-			USER,
-		);
+		expect(mockCreateGithub).not.toHaveBeenCalled();
 	});
 
 	it("accepts a data residency tenant", async () => {

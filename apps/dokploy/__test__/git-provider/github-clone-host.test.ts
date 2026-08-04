@@ -30,10 +30,6 @@ const provider = (githubUrl: string) => ({
 	githubInstallationId: "42",
 });
 
-/**
- * shell-quote escapes ":" and "@" in the clone URL, so drop the backslashes
- * before asserting on the host.
- */
 const clone = async () => {
 	const command = await cloneGithubRepository({
 		appName: "my-app",
