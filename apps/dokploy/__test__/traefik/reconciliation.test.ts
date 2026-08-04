@@ -6,6 +6,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findDomainsNeedingTlsReconciliationMock = vi.fn();
+const hasOtherLetsencryptDomainForHostMock = vi.fn();
 vi.mock("@dokploy/server/services/domain", async () => {
 	const actual = await vi.importActual<
 		typeof import("@dokploy/server/services/domain")
@@ -14,6 +15,8 @@ vi.mock("@dokploy/server/services/domain", async () => {
 		...actual,
 		findDomainsNeedingTlsReconciliation: () =>
 			findDomainsNeedingTlsReconciliationMock(),
+		hasOtherLetsencryptDomainForHost: (host: string, excludeId: string) =>
+			hasOtherLetsencryptDomainForHostMock(host, excludeId),
 	};
 });
 
@@ -173,47 +176,64 @@ const routerConfigFor = (
 });
 
 describe("initDomainTlsReconciliation", () => {
+	// Shared fixture:
+	//   app-1: local, two stale domains sharing one router config load.
+	//   app-2: local, router already carries `tls: {}` -> nothing to do.
+	//   app-3: remote, config load throws -> must not block the others.
+	//   app-4: remote, one stale domain but no certificate actually removed.
+	const appOneDomainA = buildDomain({
+		domainId: "a1",
+		host: "a1.example.com",
+		applicationId: "app-1",
+		uniqueConfigKey: 1,
+	});
+	const appOneDomainB = buildDomain({
+		domainId: "a2",
+		host: "a2.example.com",
+		applicationId: "app-1",
+		uniqueConfigKey: 2,
+	});
+	const appTwoDomain = buildDomain({
+		domainId: "b1",
+		host: "b1.example.com",
+		applicationId: "app-2",
+		uniqueConfigKey: 1,
+	});
+	const appThreeDomain = buildDomain({
+		domainId: "c1",
+		host: "c1.example.com",
+		applicationId: "app-3",
+		uniqueConfigKey: 1,
+	});
+	const appFourDomain = buildDomain({
+		domainId: "d1",
+		host: "d1.example.com",
+		applicationId: "app-4",
+		uniqueConfigKey: 1,
+	});
+
+	const applicationsById: Record<string, unknown> = {
+		"app-1": { applicationId: "app-1", appName: "app-one", serverId: null },
+		"app-2": { applicationId: "app-2", appName: "app-two", serverId: null },
+		"app-3": {
+			applicationId: "app-3",
+			appName: "app-three",
+			serverId: "server-x",
+		},
+		"app-4": {
+			applicationId: "app-4",
+			appName: "app-four",
+			serverId: "server-y",
+		},
+	};
+
+	const managedHosts = () =>
+		manageDomainMock.mock.calls.map((call) => (call[1] as Domain).host);
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.spyOn(console, "log").mockImplementation(() => undefined);
 		vi.spyOn(console, "error").mockImplementation(() => undefined);
-	});
-
-	it("skips applications already fixed, regenerates once per stale domain but loads config once per app, reloads at most once per server only when a certificate was removed, and isolates a failing application from the rest", async () => {
-		// app-1: local, two stale domains sharing one router config load.
-		const appOneDomainA = buildDomain({
-			domainId: "a1",
-			host: "a1.example.com",
-			applicationId: "app-1",
-			uniqueConfigKey: 1,
-		});
-		const appOneDomainB = buildDomain({
-			domainId: "a2",
-			host: "a2.example.com",
-			applicationId: "app-1",
-			uniqueConfigKey: 2,
-		});
-		// app-2: local, router already carries `tls: {}` -> nothing to do.
-		const appTwoDomain = buildDomain({
-			domainId: "b1",
-			host: "b1.example.com",
-			applicationId: "app-2",
-			uniqueConfigKey: 1,
-		});
-		// app-3: remote, config load throws -> must not block the others.
-		const appThreeDomain = buildDomain({
-			domainId: "c1",
-			host: "c1.example.com",
-			applicationId: "app-3",
-			uniqueConfigKey: 1,
-		});
-		// app-4: remote, one stale domain but no certificate actually removed.
-		const appFourDomain = buildDomain({
-			domainId: "d1",
-			host: "d1.example.com",
-			applicationId: "app-4",
-			uniqueConfigKey: 1,
-		});
 
 		findDomainsNeedingTlsReconciliationMock.mockResolvedValue([
 			appThreeDomain,
@@ -223,20 +243,6 @@ describe("initDomainTlsReconciliation", () => {
 			appFourDomain,
 		]);
 
-		const applicationsById: Record<string, unknown> = {
-			"app-1": { applicationId: "app-1", appName: "app-one", serverId: null },
-			"app-2": { applicationId: "app-2", appName: "app-two", serverId: null },
-			"app-3": {
-				applicationId: "app-3",
-				appName: "app-three",
-				serverId: "server-x",
-			},
-			"app-4": {
-				applicationId: "app-4",
-				appName: "app-four",
-				serverId: "server-y",
-			},
-		};
 		findApplicationByIdMock.mockImplementation(
 			async (applicationId: string) => applicationsById[applicationId],
 		);
@@ -268,6 +274,9 @@ describe("initDomainTlsReconciliation", () => {
 
 		manageDomainMock.mockResolvedValue(undefined);
 
+		// No host is shared with another Let's Encrypt domain by default.
+		hasOtherLetsencryptDomainForHostMock.mockResolvedValue(false);
+
 		purgeAcmeCertificatesMock.mockImplementation(
 			async (hosts: string[], serverId?: string | null) => {
 				// app-4's server reports nothing was actually removed.
@@ -277,34 +286,31 @@ describe("initDomainTlsReconciliation", () => {
 		);
 
 		reloadDockerResourceMock.mockResolvedValue(undefined);
+	});
 
+	it("does not regenerate an application whose router is already fixed", async () => {
 		await initDomainTlsReconciliation();
 
-		// (a) app-2's router already has `tls: {}` -> zero regeneration calls for it.
-		const manageDomainHosts = manageDomainMock.mock.calls.map(
-			(call) => (call[1] as Domain).host,
-		);
-		expect(manageDomainHosts).not.toContain("b1.example.com");
+		expect(managedHosts()).not.toContain("b1.example.com");
+	});
 
-		// (b) app-1 has two stale domains -> regeneration invoked once per
-		// stale domain, but the config is loaded only once for that app.
-		expect(manageDomainHosts.filter((h) => h.startsWith("a"))).toEqual([
+	it("regenerates once per stale domain while loading the application config once", async () => {
+		await initDomainTlsReconciliation();
+
+		expect(managedHosts().filter((host) => host.startsWith("a"))).toEqual([
 			"a1.example.com",
 			"a2.example.com",
 		]);
 		expect(
 			loadOrCreateConfigMock.mock.calls.filter((call) => call[0] === "app-one"),
 		).toHaveLength(1);
+	});
 
-		// isolation: app-3 threw while loading its config, but app-1 (and
-		// app-4) were still processed and app-3 never reached manageDomain.
-		expect(manageDomainHosts).not.toContain("c1.example.com");
-		expect(manageDomainHosts).toContain("d1.example.com");
+	it("requests a reload at most once per server and only when a certificate was removed", async () => {
+		await initDomainTlsReconciliation();
 
-		// reload: requested at most once per server, only when a
-		// certificate was actually removed. app-1 (local, serverId
-		// undefined) had removals -> one reload. app-4's server reported no
-		// removals -> no reload for "server-y".
+		// app-1 (local, serverId undefined) had removals -> exactly one
+		// reload. app-4's server reported no removals -> no reload at all.
 		expect(reloadDockerResourceMock).toHaveBeenCalledTimes(1);
 		expect(reloadDockerResourceMock).toHaveBeenCalledWith(
 			"dokploy-traefik",
@@ -314,5 +320,41 @@ describe("initDomainTlsReconciliation", () => {
 			"dokploy-traefik",
 			"server-y",
 		);
+	});
+
+	it("keeps processing the other applications when one fails", async () => {
+		await initDomainTlsReconciliation();
+
+		// app-3 threw while loading its config and never reached
+		// manageDomain, but app-1 and app-4 were still processed.
+		expect(managedHosts()).not.toContain("c1.example.com");
+		expect(managedHosts()).toContain("a1.example.com");
+		expect(managedHosts()).toContain("d1.example.com");
+	});
+
+	it("keeps the certificate of a host another Let's Encrypt domain still uses", async () => {
+		hasOtherLetsencryptDomainForHostMock.mockImplementation(
+			async (host: string) => host === "a1.example.com",
+		);
+
+		await initDomainTlsReconciliation();
+
+		const purgedHosts = purgeAcmeCertificatesMock.mock.calls.flatMap(
+			(call) => call[0] as string[],
+		);
+		expect(purgedHosts).not.toContain("a1.example.com");
+		expect(purgedHosts).toContain("a2.example.com");
+		// The router is still regenerated, only the certificate is spared.
+		expect(managedHosts()).toContain("a1.example.com");
+	});
+
+	it("purges the stale certificate before regenerating the router", async () => {
+		await initDomainTlsReconciliation();
+
+		const firstPurge =
+			purgeAcmeCertificatesMock.mock.invocationCallOrder[0] ?? Number.NaN;
+		const firstManage =
+			manageDomainMock.mock.invocationCallOrder[0] ?? Number.NaN;
+		expect(firstPurge).toBeLessThan(firstManage);
 	});
 });
