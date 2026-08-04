@@ -300,17 +300,20 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			customEntrypoint: data.useCustomEntrypoint ? data.customEntrypoint : null,
 		})
 			.then(async (result) => {
-				toast.success(dictionary.success);
-
-				if (
+				const traefikReloadRequired =
 					result &&
 					"traefikReloadRequired" in result &&
-					result.traefikReloadRequired
-				) {
-					toast.info(
-						"Restart Traefik to apply the certificate change for this domain.",
-					);
-				}
+					result.traefikReloadRequired;
+
+				toast.success(dictionary.success, {
+					...(traefikReloadRequired && {
+						description:
+							"Restart Traefik to apply the certificate change for this domain.",
+						// The default duration is tuned for one-line confirmations; this
+						// one asks the user to go and do something, so give them longer.
+						duration: 10000,
+					}),
+				});
 
 				if (data.domainType === "application") {
 					await utils.domain.byApplicationId.invalidate({
