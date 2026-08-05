@@ -4,12 +4,13 @@ import type { Terminal } from "@xterm/xterm";
 // for Node.js, so it never treats Option/Alt as third-level shift on macOS and
 // swallows composed characters like Option+L (@ on German layouts).
 // https://github.com/Dokploy/dokploy/issues/4297
-export const fixMacOsAltKeys = (term: Terminal) => {
-	if (!/Mac/.test(navigator.platform)) {
-		return;
-	}
+export const fixMacOsAltKeys = (
+	term: Terminal,
+	fallback?: (event: KeyboardEvent) => boolean,
+) => {
 	term.attachCustomKeyEventHandler((event) => {
 		if (
+			/Mac/.test(navigator.platform) &&
 			event.type === "keydown" &&
 			event.altKey &&
 			!event.ctrlKey &&
@@ -20,6 +21,6 @@ export const fixMacOsAltKeys = (term: Terminal) => {
 			term.input(event.key);
 			return false;
 		}
-		return true;
+		return fallback?.(event) ?? true;
 	});
 };

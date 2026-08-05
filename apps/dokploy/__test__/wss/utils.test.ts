@@ -1,10 +1,58 @@
 import { describe, expect, it } from "vitest";
 import {
+	getTerminalSize,
 	isValidContainerId,
 	isValidSearch,
 	isValidSince,
 	isValidTail,
+	parseTerminalResize,
 } from "../../server/wss/utils";
+
+describe("terminal dimensions", () => {
+	it("uses valid initial dimensions", () => {
+		expect(getTerminalSize(new URLSearchParams("cols=120&rows=40"))).toEqual({
+			cols: 120,
+			rows: 40,
+		});
+	});
+
+	it("falls back for missing or invalid initial dimensions", () => {
+		expect(getTerminalSize(new URLSearchParams())).toEqual({
+			cols: 80,
+			rows: 24,
+		});
+		expect(getTerminalSize(new URLSearchParams("cols=0&rows=999999"))).toEqual({
+			cols: 80,
+			rows: 24,
+		});
+		expect(getTerminalSize(new URLSearchParams("cols=10x&rows=-1"))).toEqual({
+			cols: 80,
+			rows: 24,
+		});
+	});
+
+	it("accepts valid resize control messages", () => {
+		expect(
+			parseTerminalResize('{"type":"resize","cols":160,"rows":50}'),
+		).toEqual({ cols: 160, rows: 50 });
+	});
+
+	it("rejects malformed and out-of-range resize messages", () => {
+		expect(parseTerminalResize("not-json")).toBeNull();
+		expect(
+			parseTerminalResize('{"type":"input","cols":80,"rows":24}'),
+		).toBeNull();
+		expect(
+			parseTerminalResize('{"type":"resize","cols":0,"rows":24}'),
+		).toBeNull();
+		expect(
+			parseTerminalResize('{"type":"resize","cols":80.5,"rows":24}'),
+		).toBeNull();
+		expect(
+			parseTerminalResize('{"type":"resize","cols":80,"rows":201}'),
+		).toBeNull();
+	});
+});
 
 describe("isValidTail (docker-container-logs)", () => {
 	it("accepts valid numeric tail values", () => {

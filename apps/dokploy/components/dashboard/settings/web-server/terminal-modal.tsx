@@ -66,7 +66,7 @@ export const TerminalModal = ({
 				</DropdownMenuItem>
 			)}
 			<DialogContent
-				className="sm:max-w-7xl"
+				className="flex h-[85vh] flex-col sm:max-w-7xl"
 				onEscapeKeyDown={(event) => event.preventDefault()}
 			>
 				<DialogHeader className="flex flex-col gap-1">
@@ -78,7 +78,7 @@ export const TerminalModal = ({
 					<LocalServerConfig onSave={handleLocalServerConfigSave} />
 				)}
 
-				<div className="flex flex-col gap-4 h-[552px]">
+				<div className="flex h-[65vh] min-h-0 flex-1 flex-col gap-4 overflow-hidden">
 					<Terminal id="terminal" key={terminalKey} serverId={serverId} />
 				</div>
 			</DialogContent>

@@ -10,7 +10,11 @@ import { Client, type ConnectConfig } from "ssh2";
 import { WebSocketServer } from "ws";
 import { getDockerHost } from "../utils/docker";
 import { canAccessTerminalOverWss } from "./authorize";
-import { setupLocalServerSSHKey } from "./utils";
+import {
+	getTerminalSize,
+	parseTerminalResize,
+	setupLocalServerSSHKey,
+} from "./utils";
 
 const COMMAND_TO_ALLOW_LOCAL_ACCESS = `
 # ----------------------------------------
@@ -88,6 +92,7 @@ export const setupTerminalWebSocketServer = (
 	wssTerm.on("connection", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const serverId = url.searchParams.get("serverId");
+		const { cols, rows } = getTerminalSize(url.searchParams);
 		const { user, session } = await validateRequest(req);
 		if (!user || !session || !serverId) {
 			ws.close();
@@ -180,9 +185,6 @@ export const setupTerminalWebSocketServer = (
 		}
 
 		const conn = new Client();
-		let _stdout = "";
-		let _stderr = "";
-
 		ws.send("Connecting...\n");
 
 		conn
@@ -190,7 +192,7 @@ export const setupTerminalWebSocketServer = (
 				// Clear terminal content once connected
 				ws.send("\x1bc");
 
-				conn.shell({}, (err, stream) => {
+				conn.shell({ term: "xterm-256color", cols, rows }, (err, stream) => {
 					if (err) throw err;
 
 					stream
@@ -199,24 +201,23 @@ export const setupTerminalWebSocketServer = (
 							conn.end();
 						})
 						.on("data", (data: string) => {
-							_stdout += data.toString();
 							ws.send(data.toString());
 						})
 						.stderr.on("data", (data) => {
-							_stderr += data.toString();
 							ws.send(data.toString());
 							console.error("Error: ", data.toString());
 						});
 
-					ws.on("message", (message) => {
+					ws.on("message", (message, isBinary) => {
 						try {
-							let command: string | Buffer[] | Buffer | ArrayBuffer;
-							if (Buffer.isBuffer(message)) {
-								command = message.toString("utf8");
-							} else {
-								command = message;
+							if (!isBinary) {
+								const size = parseTerminalResize(message.toString());
+								if (size) {
+									stream.setWindow(size.rows, size.cols, 0, 0);
+								}
+								return;
 							}
-							stream.write(command.toString());
+							stream.write(message);
 						} catch (error) {
 							// @ts-ignore
 							const errorMessage = error?.message as unknown as string;

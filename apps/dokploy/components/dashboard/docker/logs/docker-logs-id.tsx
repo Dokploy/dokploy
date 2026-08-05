@@ -26,6 +26,11 @@ interface Props {
 	serviceId?: string;
 }
 
+const getLogTerminalSize = (viewport: HTMLDivElement) => ({
+	cols: Math.max(1, Math.min(500, Math.floor(viewport.clientWidth / 8))),
+	rows: Math.max(1, Math.min(200, Math.floor(viewport.clientHeight / 20))),
+});
+
 export const priorities = [
 	{
 		label: "Info",
@@ -162,11 +167,36 @@ export const DockerLogsId: React.FC<Props> = ({
 		if (serviceId) {
 			params.append("serviceId", serviceId);
 		}
+		const logViewport = scrollRef.current;
+		if (logViewport) {
+			const size = getLogTerminalSize(logViewport);
+			params.set("cols", size.cols.toString());
+			params.set("rows", size.rows.toString());
+		}
 
 		const wsUrl = `${protocol}//${
 			window.location.host
 		}/docker-container-logs?${params.toString()}`;
 		const ws = new WebSocket(wsUrl);
+		let resizeFrame: number | undefined;
+		const sendSize = () => {
+			if (resizeFrame !== undefined) return;
+			resizeFrame = window.requestAnimationFrame(() => {
+				resizeFrame = undefined;
+				const viewport = scrollRef.current;
+				if (!viewport || ws.readyState !== WebSocket.OPEN) return;
+				ws.send(
+					JSON.stringify({
+						type: "resize",
+						...getLogTerminalSize(viewport),
+					}),
+				);
+			});
+		};
+		const resizeObserver = new ResizeObserver(sendSize);
+		if (logViewport) {
+			resizeObserver.observe(logViewport);
+		}
 
 		const resetNoDataTimeout = () => {
 			if (noDataTimeout) clearTimeout(noDataTimeout);
@@ -183,6 +213,7 @@ export const DockerLogsId: React.FC<Props> = ({
 				return;
 			}
 			resetNoDataTimeout();
+			sendSize();
 		};
 
 		ws.onmessage = (e) => {
@@ -223,12 +254,16 @@ export const DockerLogsId: React.FC<Props> = ({
 
 		return () => {
 			isCurrentConnection = false;
+			resizeObserver.disconnect();
+			if (resizeFrame !== undefined) {
+				window.cancelAnimationFrame(resizeFrame);
+			}
 			if (noDataTimeout) clearTimeout(noDataTimeout);
-			if (ws.readyState === WebSocket.OPEN) {
+			if (ws.readyState < WebSocket.CLOSING) {
 				ws.close();
 			}
 		};
-	}, [containerId, serverId, serviceId, lines, search, since]);
+	}, [containerId, serverId, serviceId, lines, search, since, runType]);
 
 	const handleDownload = () => {
 		const logContent = filteredLogs

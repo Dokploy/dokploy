@@ -3,6 +3,72 @@ import os from "node:os";
 import path from "node:path";
 import { execAsync, IS_CLOUD, paths } from "@dokploy/server";
 
+const DEFAULT_TERMINAL_COLS = 80;
+const DEFAULT_TERMINAL_ROWS = 24;
+const MAX_TERMINAL_COLS = 500;
+const MAX_TERMINAL_ROWS = 200;
+
+export interface TerminalSize {
+	cols: number;
+	rows: number;
+}
+
+const parseTerminalDimension = (
+	value: string | null,
+	fallback: number,
+	maximum: number,
+) => {
+	if (!value || !/^\d+$/.test(value)) {
+		return fallback;
+	}
+
+	const dimension = Number.parseInt(value, 10);
+	return dimension >= 1 && dimension <= maximum ? dimension : fallback;
+};
+
+export const getTerminalSize = (
+	searchParams: URLSearchParams,
+): TerminalSize => ({
+	cols: parseTerminalDimension(
+		searchParams.get("cols"),
+		DEFAULT_TERMINAL_COLS,
+		MAX_TERMINAL_COLS,
+	),
+	rows: parseTerminalDimension(
+		searchParams.get("rows"),
+		DEFAULT_TERMINAL_ROWS,
+		MAX_TERMINAL_ROWS,
+	),
+});
+
+export const parseTerminalResize = (message: string): TerminalSize | null => {
+	try {
+		const value: unknown = JSON.parse(message);
+		if (
+			typeof value !== "object" ||
+			value === null ||
+			!("type" in value) ||
+			value.type !== "resize" ||
+			!("cols" in value) ||
+			!("rows" in value) ||
+			typeof value.cols !== "number" ||
+			typeof value.rows !== "number" ||
+			!Number.isInteger(value.cols) ||
+			!Number.isInteger(value.rows) ||
+			value.cols < 1 ||
+			value.cols > MAX_TERMINAL_COLS ||
+			value.rows < 1 ||
+			value.rows > MAX_TERMINAL_ROWS
+		) {
+			return null;
+		}
+
+		return { cols: value.cols, rows: value.rows };
+	} catch {
+		return null;
+	}
+};
+
 /**
  * Validates that the container ID matches Docker's expected format.
  * Docker container IDs are 64-character hex strings (or 12-char short form).
