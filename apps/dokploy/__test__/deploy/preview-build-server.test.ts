@@ -99,6 +99,11 @@ const createMockPreview = () => ({
 	branch: "feature/test-preview",
 	pullRequestNumber: "123",
 	pullRequestCommentId: "456",
+	deployments: [
+		{
+			buildServerId: "build-server-id",
+		},
+	],
 	domain: {
 		host: "preview.example.com",
 		https: true,
@@ -164,6 +169,7 @@ describe("preview deployment build server and registry", () => {
 
 		expect(builders.getBuildCommand).toHaveBeenCalledWith(
 			expect.objectContaining({
+				serverId: "build-server-id",
 				buildServerId: "build-server-id",
 				buildRegistry: expect.objectContaining({
 					registryId: "build-registry-id",
@@ -194,8 +200,11 @@ describe("preview deployment build server and registry", () => {
 			descriptionLog: "",
 		});
 
+		expect(githubProvider.cloneGithubRepository).not.toHaveBeenCalled();
+
 		expect(builders.getBuildCommand).toHaveBeenCalledWith(
 			expect.objectContaining({
+				serverId: "build-server-id",
 				buildServerId: "build-server-id",
 				buildRegistry: expect.objectContaining({
 					registryId: "build-registry-id",
@@ -212,6 +221,77 @@ describe("preview deployment build server and registry", () => {
 			expect.objectContaining({
 				serverId: "deployment-server-id",
 			}),
+		);
+	});
+
+	it("reclones a preview on the current build server when its build server changed", async () => {
+		vi.mocked(previewService.findPreviewDeploymentById).mockResolvedValue({
+			...createMockPreview(),
+			deployments: [
+				{
+					buildServerId: "previous-build-server-id",
+				},
+			],
+		} as any);
+
+		await rebuildPreviewApplication({
+			applicationId: "application-id",
+			previewDeploymentId: "preview-id",
+			titleLog: "Rebuild preview deployment",
+			descriptionLog: "",
+		});
+
+		expect(githubProvider.cloneGithubRepository).toHaveBeenCalledWith(
+			expect.objectContaining({
+				serverId: "build-server-id",
+				appName: "preview-test-application",
+				branch: "feature/test-preview",
+			}),
+		);
+
+		expect(builders.getBuildCommand).toHaveBeenCalledWith(
+			expect.objectContaining({
+				serverId: "build-server-id",
+				buildRegistry: expect.objectContaining({
+					registryId: "build-registry-id",
+				}),
+			}),
+		);
+
+		expect(execProcess.execAsyncRemote).toHaveBeenCalledWith(
+			"build-server-id",
+			expect.stringContaining("git clone command;"),
+		);
+	});
+
+	it("reclones a legacy preview on the configured build server", async () => {
+		vi.mocked(previewService.findPreviewDeploymentById).mockResolvedValue({
+			...createMockPreview(),
+			deployments: [
+				{
+					buildServerId: null,
+				},
+			],
+		} as any);
+
+		await rebuildPreviewApplication({
+			applicationId: "application-id",
+			previewDeploymentId: "preview-id",
+			titleLog: "Rebuild preview deployment",
+			descriptionLog: "",
+		});
+
+		expect(githubProvider.cloneGithubRepository).toHaveBeenCalledWith(
+			expect.objectContaining({
+				serverId: "build-server-id",
+				appName: "preview-test-application",
+				branch: "feature/test-preview",
+			}),
+		);
+
+		expect(execProcess.execAsyncRemote).toHaveBeenCalledWith(
+			"build-server-id",
+			expect.stringContaining("git clone command;"),
 		);
 	});
 });
