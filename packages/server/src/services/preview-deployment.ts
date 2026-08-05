@@ -28,6 +28,12 @@ export const findPreviewDeploymentById = async (
 	const application = await db.query.previewDeployments.findFirst({
 		where: eq(previewDeployments.previewDeploymentId, previewDeploymentId),
 		with: {
+			deployments: {
+				columns: {
+					buildServerId: true,
+				},
+				orderBy: desc(deployments.createdAt),
+			},
 			domain: true,
 			application: {
 				columns: {
@@ -57,7 +63,16 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 
 		application.appName = previewDeployment.appName;
 
-		const buildServerId = application.buildServerId || application.serverId;
+		const cleanupServerIds = [
+			null,
+			application.serverId,
+			application.buildServerId,
+			...previewDeployment.deployments.map(
+				(deployment) => deployment.buildServerId,
+			),
+		];
+
+		const uniqueCleanupServerIds = [...new Set(cleanupServerIds)];
 
 		const cleanupOperations = [
 			async () =>
@@ -65,9 +80,12 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 			async () =>
 				await removeDeploymentsByPreviewDeploymentId(
 					previewDeployment,
-					buildServerId,
+					uniqueCleanupServerIds,
 				),
-			async () => await removeDirectoryCode(application.appName, buildServerId),
+			...uniqueCleanupServerIds.map(
+				(serverId) => async () =>
+					await removeDirectoryCode(application.appName, serverId),
+			),
 			async () =>
 				await removeTraefikConfig(application.appName, application.serverId),
 			async () =>

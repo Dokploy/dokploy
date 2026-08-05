@@ -445,7 +445,7 @@ export const deployPreviewApplication = async ({
 				appName: previewDeployment.appName,
 				branch: previewDeployment.branch,
 			});
-			command += await getBuildCommand(application);
+			command += await getBuildCommand(buildApplication);
 
 			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 			if (buildServerId) {
@@ -498,6 +498,17 @@ export const rebuildPreviewApplication = async ({
 	const application = await findApplicationById(applicationId);
 	const previewDeployment =
 		await findPreviewDeploymentById(previewDeploymentId);
+
+	const previousDeployment = previewDeployment.deployments[0];
+
+	const previousBuildServerId = previousDeployment
+		? previousDeployment.buildServerId || application.serverId
+		: null;
+
+	const buildServerId = application.buildServerId || application.serverId;
+
+	const shouldCloneRepository =
+		!previousDeployment || previousBuildServerId !== buildServerId;
 
 	const deployment = await createDeploymentPreview({
 		title: titleLog,
@@ -555,10 +566,22 @@ export const rebuildPreviewApplication = async ({
 		application.rollbackActive = false;
 		application.rollbackRegistry = null;
 
-		const buildServerId = application.buildServerId || application.serverId;
+		const buildApplication = {
+			...application,
+			serverId: buildServerId,
+		};
+
 		let command = "set -e;";
-		// Only rebuild, don't clone repository
-		command += await getBuildCommand(application);
+
+		if (shouldCloneRepository && application.sourceType === "github") {
+			command += await cloneGithubRepository({
+				...buildApplication,
+				appName: previewDeployment.appName,
+				branch: previewDeployment.branch,
+			});
+		}
+
+		command += await getBuildCommand(buildApplication);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (buildServerId) {
 			await execAsyncRemote(buildServerId, commandWithLog);
@@ -591,9 +614,8 @@ export const rebuildPreviewApplication = async ({
 		}
 
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
-		const serverId = application.buildServerId || application.serverId;
-		if (serverId) {
-			await execAsyncRemote(serverId, command);
+		if (buildServerId) {
+			await execAsyncRemote(buildServerId, command);
 		} else {
 			await execAsync(command);
 		}

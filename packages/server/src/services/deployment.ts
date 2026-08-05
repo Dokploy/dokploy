@@ -252,8 +252,8 @@ export const createDeploymentPreview = async (
 				description: deployment.description || "",
 				previewDeploymentId: deployment.previewDeploymentId,
 				startedAt: new Date().toISOString(),
-				...(buildServerId && {
-					buildServerId,
+				...(serverId && {
+					buildServerId: serverId,
 				}),
 			})
 			.returning();
@@ -750,15 +750,27 @@ const removeLastTenDeployments = async (
 
 export const removeDeploymentsByPreviewDeploymentId = async (
 	previewDeployment: PreviewDeployment,
-	serverId: string | null,
+	serverIds: Array<string | null>,
 ) => {
 	const { appName } = previewDeployment;
-	const { LOGS_PATH } = paths(!!serverId);
-	const logsPath = path.join(LOGS_PATH, appName);
-	if (serverId) {
-		await execAsyncRemote(serverId, `rm -rf ${logsPath}`);
-	} else {
-		await removeDirectoryIfExistsContent(logsPath);
+	const uniqueServerIds = [...new Set(serverIds)];
+
+	for (const serverId of uniqueServerIds) {
+		try {
+			const { LOGS_PATH } = paths(!!serverId);
+			const logsPath = path.join(LOGS_PATH, appName);
+
+			if (serverId) {
+				await execAsyncRemote(serverId, `rm -rf ${logsPath}`);
+			} else {
+				await removeDirectoryIfExistsContent(logsPath);
+			}
+		} catch (error) {
+			console.error(
+				`Failed to remove preview deployment logs from ${serverId || "the local server"}:`,
+				error,
+			);
+		}
 	}
 
 	await db
