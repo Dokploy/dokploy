@@ -616,11 +616,9 @@ export const removeDeployment = async (
 	fallbackServerId?: string | null,
 ) => {
 	try {
-		const deployment = await db
-			.delete(deployments)
-			.where(eq(deployments.deploymentId, deploymentId))
-			.returning()
-			.then((result) => result[0]);
+		const deployment = await db.query.deployments.findFirst({
+			where: eq(deployments.deploymentId, deploymentId),
+		});
 
 		if (!deployment) {
 			return null;
@@ -638,6 +636,11 @@ export const removeDeployment = async (
 				await execAsync(command);
 			}
 		}
+
+		await db
+			.delete(deployments)
+			.where(eq(deployments.deploymentId, deploymentId))
+			.returning();
 
 		return deployment;
 	} catch (error) {
@@ -724,7 +727,33 @@ const removeLastTenDeployments = async (
 		deploymentsToDelete.map(getDeploymentServerId),
 	);
 
+	const failedServerIds = new Set<string | null>();
+
+	if (type === "previewDeployment" && previewAppName) {
+		for (const serverId of removedServerIds) {
+			if (retainedServerIds.has(serverId)) {
+				continue;
+			}
+
+			try {
+				await removeDirectoryCode(previewAppName, serverId);
+			} catch (error) {
+				failedServerIds.add(serverId);
+				console.error(
+					`Failed to remove preview source from ${serverId || "the local server"} during deployment cleanup:`,
+					error,
+				);
+			}
+		}
+	}
+
 	for (const oldDeployment of deploymentsToDelete) {
+		const deploymentServerId = getDeploymentServerId(oldDeployment);
+
+		if (failedServerIds.has(deploymentServerId)) {
+			continue;
+		}
+
 		try {
 			if (oldDeployment.rollbackId) {
 				await removeRollbackById(oldDeployment.rollbackId);
@@ -738,23 +767,6 @@ const removeLastTenDeployments = async (
 			);
 		}
 	}
-
-	if (type === "previewDeployment" && previewAppName) {
-		for (const serverId of removedServerIds) {
-			if (retainedServerIds.has(serverId)) {
-				continue;
-			}
-
-			try {
-				await removeDirectoryCode(previewAppName, serverId);
-			} catch (error) {
-				console.error(
-					`Failed to remove preview source from ${serverId || "the local server"} during deployment cleanup:`,
-					error,
-				);
-			}
-		}
-	}
 };
 
 export const removeDeploymentsByPreviewDeploymentId = async (
@@ -765,20 +777,13 @@ export const removeDeploymentsByPreviewDeploymentId = async (
 	const uniqueServerIds = [...new Set(serverIds)];
 
 	for (const serverId of uniqueServerIds) {
-		try {
-			const { LOGS_PATH } = paths(!!serverId);
-			const logsPath = path.join(LOGS_PATH, appName);
+		const { LOGS_PATH } = paths(!!serverId);
+		const logsPath = path.join(LOGS_PATH, appName);
 
-			if (serverId) {
-				await execAsyncRemote(serverId, `rm -rf ${logsPath}`);
-			} else {
-				await removeDirectoryIfExistsContent(logsPath);
-			}
-		} catch (error) {
-			console.error(
-				`Failed to remove preview deployment logs from ${serverId || "the local server"}:`,
-				error,
-			);
+		if (serverId) {
+			await execAsyncRemote(serverId, `rm -rf ${logsPath}`);
+		} else {
+			await removeDirectoryIfExistsContent(logsPath);
 		}
 	}
 

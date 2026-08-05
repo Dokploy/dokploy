@@ -508,7 +508,9 @@ export const rebuildPreviewApplication = async ({
 	const buildServerId = application.buildServerId || application.serverId;
 
 	const shouldCloneRepository =
-		!previousDeployment || previousBuildServerId !== buildServerId;
+		!previousDeployment ||
+		previousDeployment.status !== "done" ||
+		previousBuildServerId !== buildServerId;
 
 	const deployment = await createDeploymentPreview({
 		title: titleLog,
