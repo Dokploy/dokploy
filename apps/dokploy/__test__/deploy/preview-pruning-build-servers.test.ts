@@ -16,6 +16,7 @@ vi.mock("@dokploy/server/db", () => ({
 		query: {
 			deployments: {
 				findMany: vi.fn(),
+				findFirst: vi.fn(),
 			},
 		},
 		delete: vi.fn(() => ({
@@ -75,6 +76,10 @@ describe("preview deployment pruning", () => {
 			logPath: "/tmp/pruned-deployment.log",
 			rollbackId: null,
 		};
+
+		vi.mocked(db.query.deployments.findFirst).mockResolvedValue(
+			prunedDeployment as any,
+		);
 
 		vi.mocked(db.query.deployments.findMany).mockResolvedValue([
 			...retainedDeployments,
@@ -136,5 +141,25 @@ describe("preview deployment pruning", () => {
 			"build-server-id",
 			expect.stringContaining("Initializing deployment"),
 		);
+	});
+
+	it("keeps historical deployment records when source cleanup fails", async () => {
+		vi.mocked(directoryUtils.removeDirectoryCode).mockRejectedValueOnce(
+			new Error("Historical build server is unavailable"),
+		);
+
+		await createDeploymentPreview({
+			title: "Preview deployment",
+			description: "",
+			previewDeploymentId: "preview-id",
+		});
+
+		expect(directoryUtils.removeDirectoryCode).toHaveBeenCalledWith(
+			"preview-test-application",
+			"previous-build-server-id",
+		);
+
+		expect(db.query.deployments.findFirst).not.toHaveBeenCalled();
+		expect(db.delete).not.toHaveBeenCalled();
 	});
 });
