@@ -126,4 +126,25 @@ describe("preview deployment cleanup", () => {
 			"deployment-server-id",
 		);
 	});
+
+	it("keeps preview records when cleanup on a historical build server fails", async () => {
+		vi.mocked(directoryUtils.removeDirectoryCode).mockImplementation(
+			async (_appName, serverId) => {
+				if (serverId === "previous-build-server-id") {
+					throw new Error("Historical build server is unavailable");
+				}
+			},
+		);
+
+		await expect(removePreviewDeployment("preview-id")).rejects.toThrow(
+			"Historical build server is unavailable",
+		);
+
+		expect(directoryUtils.removeDirectoryCode).toHaveBeenCalledWith(
+			"preview-test-application",
+			"previous-build-server-id",
+		);
+
+		expect(db.delete).not.toHaveBeenCalled();
+	});
 });
