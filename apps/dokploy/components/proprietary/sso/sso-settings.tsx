@@ -1,6 +1,8 @@
 "use client";
 
 import {
+	CircleAlert,
+	CircleCheck,
 	Eye,
 	KeyRound,
 	Loader2,
@@ -36,12 +38,14 @@ import { useUrl } from "@/utils/hooks/use-url";
 import { RegisterOidcDialog } from "./register-oidc-dialog";
 import { RegisterSamlDialog } from "./register-saml-dialog";
 import { ScimDialog } from "./scim-dialog";
+import { VerifyDomainDialog } from "./verify-domain-dialog";
 
 type ProviderForDetails = {
 	id: string | null;
 	providerId: string;
 	issuer: string;
 	domain: string;
+	domainVerified: boolean;
 	oidcConfig: string | null;
 	samlConfig: string | null;
 	organizationId: string | null;
@@ -265,6 +269,7 @@ export const SSOSettings = () => {
 															providerId: provider.providerId,
 															issuer: provider.issuer,
 															domain: provider.domain,
+															domainVerified: provider.domainVerified,
 															oidcConfig: provider.oidcConfig,
 															samlConfig: provider.samlConfig,
 															organizationId: provider.organizationId,
@@ -274,6 +279,21 @@ export const SSOSettings = () => {
 													<Eye className="mr-1 size-3" />
 													View details
 												</Button>
+												<VerifyDomainDialog
+													domainVerified={provider.domainVerified}
+													providerId={provider.providerId}
+												>
+													<Button variant="ghost" size="sm">
+														{provider.domainVerified ? (
+															<CircleCheck className="mr-1 size-3 text-green-600" />
+														) : (
+															<CircleAlert className="mr-1 size-3 text-amber-600" />
+														)}
+														{provider.domainVerified
+															? "Domain verified"
+															: "Verify domain"}
+													</Button>
+												</VerifyDomainDialog>
 												{isOidc && (
 													<RegisterOidcDialog providerId={provider.providerId}>
 														<Button variant="ghost" size="sm">
@@ -395,6 +415,16 @@ export const SSOSettings = () => {
 									</span>
 									<p className="rounded-md bg-muted px-2 py-1.5 text-sm">
 										{detailsProvider.domain}
+									</p>
+								</div>
+								<div className="grid gap-1">
+									<span className="text-xs font-medium text-muted-foreground">
+										Account linking
+									</span>
+									<p className="rounded-md bg-muted px-2 py-1.5 text-sm">
+										{detailsProvider.domainVerified
+											? "Domain verified"
+											: "Domain verification required"}
 									</p>
 								</div>
 								{detailsProvider.oidcConfig && (
