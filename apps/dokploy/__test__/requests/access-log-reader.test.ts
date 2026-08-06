@@ -4,18 +4,25 @@ import { join } from "node:path";
 import { readLastLogEntries } from "@dokploy/server";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-const makeEntry = (overrides: Record<string, unknown> = {}) =>
-	JSON.stringify({
+const makeEntry = (overrides: Record<string, unknown> = {}) => {
+	const startUTC =
+		(overrides.StartUTC as string) ?? "2024-08-25T04:34:37.306691884Z";
+
+	return JSON.stringify({
 		ClientAddr: "172.19.0.1:56732",
 		DownstreamStatus: 200,
 		RequestHost: "app.traefik.me",
 		RequestMethod: "GET",
 		RequestPath: "/",
 		ServiceName: "my-app-web@docker",
-		StartUTC: "2024-08-25T04:34:37.306691884Z",
-		time: "2024-08-25T04:34:37Z",
+		StartUTC: startUTC,
+		// Traefik writes the entry when the request completes, so `time` is the
+		// completion timestamp. For a fast request it matches the start; tests that
+		// need a slow request override it explicitly.
+		time: startUTC,
 		...overrides,
 	});
+};
 
 const pathsOf = (result: string) =>
 	result
@@ -99,6 +106,30 @@ describe("readLastLogEntries", () => {
 		});
 
 		expect(pathsOf(result)).toEqual(["/cutoff", "/newer"]);
+	});
+
+	it("keeps in-range entries logged after a slower, older request", async () => {
+		// Traefik appends an entry when the request completes, so a slow request can be
+		// logged after faster ones that started later. Cutting off on StartUTC would
+		// stop at /slow and silently drop /fast, which is still in range.
+		const filePath = await writeLog([
+			makeEntry({
+				RequestPath: "/fast",
+				StartUTC: "2024-08-25T02:01:00Z",
+				time: "2024-08-25T02:01:00Z",
+			}),
+			makeEntry({
+				RequestPath: "/slow",
+				StartUTC: "2024-08-25T01:59:00Z",
+				time: "2024-08-25T02:05:00Z",
+			}),
+		]);
+
+		const result = await readLastLogEntries(filePath, {
+			notBefore: new Date("2024-08-25T02:00:00Z"),
+		});
+
+		expect(pathsOf(result)).toEqual(["/fast", "/slow"]);
 	});
 
 	it("reads the last entry when the file has no trailing newline", async () => {

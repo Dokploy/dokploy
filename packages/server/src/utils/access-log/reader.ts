@@ -23,16 +23,18 @@ export interface ReadLastLogEntriesOptions {
 interface PartialLogEntry {
 	ServiceName?: string;
 	StartUTC?: string;
+	time?: string;
 }
 
 /**
  * Reads the most recent entries of a Traefik access log.
  *
  * The file is walked backwards in fixed-size chunks and the walk stops as soon as
- * `limit` entries have been collected or an entry older than `notBefore` is reached.
- * `access.log` is append-only and chronological, so reading backwards visits entries
- * newest-first: the first entry older than `notBefore` guarantees every remaining entry
- * is out of range too, and the rest of the file never has to be touched.
+ * `limit` entries have been collected or an entry logged before `notBefore` is reached.
+ * `access.log` is append-only and ordered by the `time` each request finished, so
+ * reading backwards visits entries newest-first and the first entry logged before
+ * `notBefore` guarantees every remaining entry is out of range too — the rest of the
+ * file never has to be touched.
  *
  * Memory is bounded by the entries actually returned rather than by the size of the
  * file, and the event loop is never blocked.
@@ -78,13 +80,20 @@ export const readLastLogEntries = async (
 			}
 
 			if (notBefore) {
-				const startedAt = new Date(entry.StartUTC ?? "").getTime();
+				// Traefik appends an entry when the request *completes*, so the file is
+				// ordered by `time`, not by `StartUTC`: a slow request can be logged
+				// after faster ones that started later. Cutting off on `time` is still
+				// sound because `time >= StartUTC`, so an entry logged before the cutoff
+				// also started before it — and so did everything earlier in the file.
+				// Cutting off on `StartUTC` instead would drop entries that are still in
+				// range but were logged after a slower, older request.
+				const loggedAt = new Date(entry.time ?? entry.StartUTC ?? "").getTime();
 				// An entry without a usable timestamp cannot prove we walked past the
 				// cutoff, so skip it instead of treating it as the boundary.
-				if (Number.isNaN(startedAt)) {
+				if (Number.isNaN(loggedAt)) {
 					return;
 				}
-				if (startedAt < notBefore.getTime()) {
+				if (loggedAt < notBefore.getTime()) {
 					reachedCutoff = true;
 					return;
 				}
