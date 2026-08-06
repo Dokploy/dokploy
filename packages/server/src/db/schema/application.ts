@@ -90,6 +90,7 @@ export const applications = pgTable("application", {
 	env: encryptedText("env"),
 	previewEnv: encryptedText("previewEnv"),
 	watchPaths: text("watchPaths").array(),
+	tagFilter: text("tagFilter"),
 	previewBuildArgs: encryptedText("previewBuildArgs"),
 	previewBuildSecrets: encryptedText("previewBuildSecrets"),
 	previewLabels: text("previewLabels").array(),
@@ -377,6 +378,7 @@ const createSchema = createInsertSchema(applications, {
 	previewCertificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 	previewRequireCollaboratorPermissions: z.boolean().optional(),
 	watchPaths: z.array(z.string()).optional().optional(),
+	tagFilter: z.string().optional(),
 	previewLabels: z.array(z.string()).optional(),
 	networkIds: z.array(z.string()).optional(),
 	detachDokployNetwork: z.boolean().optional(),
@@ -463,7 +465,13 @@ export const apiSaveGithubProvider = createSchema
 		triggerType: z.enum(["push", "tag"]).default("push"),
 	})
 	.required()
-	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
+	.merge(
+		createSchema.pick({
+			enableSubmodules: true,
+			watchPaths: true,
+			tagFilter: true,
+		}),
+	);
 
 export const apiSaveGitlabProvider = createSchema
 	.pick({

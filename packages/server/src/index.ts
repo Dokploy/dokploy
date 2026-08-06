@@ -127,6 +127,7 @@ export * from "./utils/schedules/index";
 export * from "./utils/schedules/utils";
 export * from "./utils/servers/remote-docker";
 export * from "./utils/startup/cancel-deployments";
+export * from "./utils/tag-filter/matches-tag";
 export * from "./utils/tracking/hubspot";
 export * from "./utils/traefik/application";
 export * from "./utils/traefik/domain";
