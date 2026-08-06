@@ -20,6 +20,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+          token: ${{ secrets.HOTFIX_PUSH_TOKEN }}
 
       - name: Cherry-pick fix to main
         run: |
@@ -31,4 +32,5 @@ jobs:
           else
             git cherry-pick -x "$SHA"
           fi
+          git commit --amend -m "$(git log -1 --format=%B)" -m "[skip ci]"
           git push origin main
