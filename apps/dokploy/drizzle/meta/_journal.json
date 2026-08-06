@@ -1422,6 +1422,13 @@
       "when": 1794894643529,
       "tag": "0202_melted_hobgoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 203,
+      "version": "7",
+      "when": 1794902827626,
+      "tag": "0203_romantic_rattler",
+      "breakpoints": true
     }
   ]
 }
