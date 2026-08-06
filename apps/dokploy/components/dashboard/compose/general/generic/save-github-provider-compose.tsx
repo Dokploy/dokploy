@@ -562,10 +562,8 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 											<FormLabel>Tag Filter</FormLabel>
 											<TooltipProvider>
 												<Tooltip>
-													<TooltipTrigger type="button">
-														<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
-															?
-														</div>
+													<TooltipTrigger asChild>
+														<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 													</TooltipTrigger>
 													<TooltipContent>
 														<p>
