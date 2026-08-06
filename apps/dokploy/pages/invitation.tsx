@@ -333,7 +333,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	// if (IS_CLOUD) {
 	// 	return {
 	// 		redirect: {
-	// 			permanent: true,
+	// 			permanent: false,
 	// 			destination: "/",
 	// 		},
 	// 	};
@@ -342,7 +342,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	if (typeof token !== "string") {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -365,7 +365,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 		if (invitation.isExpired) {
 			return {
 				redirect: {
-					permanent: true,
+					permanent: false,
 					destination: "/",
 				},
 			};
@@ -382,7 +382,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 		console.log("error", error);
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};

@@ -185,7 +185,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 					<div className="flex flex-col gap-4  w-full overflow-auto">
 						<div className="flex items-center gap-2 max-sm:flex-wrap">
 							<Input
-								placeholder="Filter by name..."
+								placeholder="Filter by hostname..."
 								value={search}
 								onChange={(event) => setSearch(event.target.value)}
 								className="md:max-w-sm"
@@ -328,21 +328,21 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 				open={!!selectedRow}
 				onOpenChange={(_open) => setSelectedRow(undefined)}
 			>
-				<SheetContent className="sm:max-w-[740px]  flex flex-col">
+				<SheetContent className="w-full sm:max-w-[740px]! flex flex-col">
 					<SheetHeader>
 						<SheetTitle>Request log</SheetTitle>
 						<SheetDescription>
 							Details of the request log entry.
 						</SheetDescription>
 					</SheetHeader>
-					<ScrollArea className="flex-grow mt-4 pr-4">
+					<ScrollArea className="grow mt-4 pr-4">
 						<div className="border rounded-md">
 							<Table>
 								<TableBody>
 									{Object.entries(selectedRow || {}).map(([key, value]) => (
 										<TableRow key={key}>
 											<TableCell className="font-medium">{key}</TableCell>
-											<TableCell className="truncate break-words break-before-all whitespace-pre-wrap">
+											<TableCell className="truncate wrap-break-word break-before-all whitespace-pre-wrap">
 												{key === "RequestAddr" ? (
 													<div className="flex items-center gap-2 bg-muted p-1 rounded">
 														<span>{value}</span>

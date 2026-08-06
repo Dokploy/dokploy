@@ -86,7 +86,7 @@ export function TagSelector({
 										<button
 											type="button"
 											onClick={(e) => handleTagRemove(tag.id, e)}
-											className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+											className="ml-1 ring-offset-background rounded-full outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
 											disabled={disabled}
 										>
 											<X className="h-3 w-3 hover:opacity-70" />
@@ -111,19 +111,12 @@ export function TagSelector({
 							<CommandEmpty>
 								<div className="flex flex-col items-center gap-2 py-1">
 									<span className="text-sm text-muted-foreground">
-										No tags found.
+										{tags.length === 0
+											? "No tags created yet."
+											: "No tags found."}
 									</span>
-									<HandleTag />
 								</div>
 							</CommandEmpty>
-							{tags.length === 0 && (
-								<div className="flex flex-col items-center gap-2 py-4">
-									<span className="text-sm text-muted-foreground">
-										No tags created yet.
-									</span>
-									<HandleTag />
-								</div>
-							)}
 							<CommandGroup>
 								{tags.map((tag) => {
 									const isSelected = selectedTags.includes(tag.id);
@@ -153,6 +146,9 @@ export function TagSelector({
 									);
 								})}
 							</CommandGroup>
+							<div className="flex items-center justify-center p-2 border-t">
+								<HandleTag />
+							</div>
 						</CommandList>
 					</Command>
 				</PopoverContent>

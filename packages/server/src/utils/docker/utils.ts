@@ -465,6 +465,27 @@ export const prepareEnvironmentVariablesForShell = (
 	return envVars.map((env) => quote([env]));
 };
 
+export const prepareEnvironmentVariablesForFile = (
+	serviceEnv: string | null,
+	projectEnv?: string | null,
+	environmentEnv?: string | null,
+): string[] => {
+	const envVars = prepareEnvironmentVariables(
+		serviceEnv,
+		projectEnv,
+		environmentEnv,
+	);
+
+	return envVars.map((pair) => {
+		const [key, value] = parseEnvironmentKeyValuePair(pair);
+		const escapedValue = value
+			.replace(/\\/g, "\\\\")
+			.replace(/"/g, '\\"')
+			.replace(/\$/g, "\\$");
+		return `${key}="${escapedValue}"`;
+	});
+};
+
 export const parseEnvironmentKeyValuePair = (
 	pair: string,
 ): [string, string] => {
@@ -548,7 +569,6 @@ export const generateConfigContainer = (
 		labelsSwarm,
 		replicas,
 		mounts,
-		networkSwarm,
 		stopGracePeriodSwarm,
 		endpointSpecSwarm,
 		ulimitsSwarm,
@@ -611,13 +631,6 @@ export const generateConfigContainer = (
 			stopGracePeriodSwarm !== undefined && {
 				StopGracePeriod: stopGracePeriodSwarm,
 			}),
-		...(networkSwarm
-			? {
-					Networks: networkSwarm,
-				}
-			: {
-					Networks: [{ Target: "dokploy-network" }],
-				}),
 		...(endpointSpecSwarm && {
 			EndpointSpec: {
 				...(endpointSpecSwarm.Mode && { Mode: endpointSpecSwarm.Mode }),
@@ -712,14 +725,14 @@ export const getCreateFileCommand = (
 ) => {
 	const fullPath = path.join(outputPath, filePath);
 	if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
-		return `mkdir -p ${fullPath};`;
+		return `mkdir -p ${quote([fullPath])};`;
 	}
 
 	const directory = path.dirname(fullPath);
 	const encodedContent = encodeBase64(content);
 	return `
-		mkdir -p ${directory};
-		echo "${encodedContent}" | base64 -d > "${fullPath}";
+		mkdir -p ${quote([directory])};
+		echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
 	`;
 };
 
@@ -896,50 +909,6 @@ export const checkPostgresHealth = async (): Promise<ServiceHealthStatus> => {
 			status: "unhealthy",
 			message:
 				error instanceof Error ? error.message : "Failed to check PostgreSQL",
-		};
-	}
-};
-
-export const checkRedisHealth = async (): Promise<ServiceHealthStatus> => {
-	const serviceCheck = await checkSwarmServiceRunning("dokploy-redis");
-	if (serviceCheck.status === "unhealthy") {
-		return serviceCheck;
-	}
-
-	// Verify Redis actually responds to PING
-	const containerId = await getSwarmServiceContainerId("dokploy-redis");
-	if (!containerId) {
-		return { status: "unhealthy", message: "Could not find running container" };
-	}
-
-	try {
-		const exec = await docker.getContainer(containerId).exec({
-			Cmd: ["redis-cli", "ping"],
-			AttachStdout: true,
-			AttachStderr: true,
-		});
-		const stream = await exec.start({});
-
-		const output = await new Promise<string>((resolve) => {
-			let data = "";
-			stream.on("data", (chunk: Buffer) => {
-				data += chunk.toString();
-			});
-			stream.on("end", () => resolve(data));
-		});
-
-		if (!output.includes("PONG")) {
-			return {
-				status: "unhealthy",
-				message: `Redis did not respond with PONG: ${output.trim()}`,
-			};
-		}
-
-		return { status: "healthy" };
-	} catch (error) {
-		return {
-			status: "unhealthy",
-			message: error instanceof Error ? error.message : "Failed to check Redis",
 		};
 	}
 };

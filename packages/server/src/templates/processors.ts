@@ -45,6 +45,7 @@ export interface CompleteTemplate {
 	};
 	variables: Record<string, string>;
 	config: {
+		isolated?: boolean;
 		domains: DomainConfig[];
 		env:
 			| Record<string, string | boolean | number>

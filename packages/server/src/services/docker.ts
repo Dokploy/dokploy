@@ -2,6 +2,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { quote } from "shell-quote";
 
 export const getContainers = async (serverId?: string | null) => {
 	try {
@@ -519,7 +520,7 @@ export const getSwarmNodes = async (serverId?: string) => {
 
 export const getNodeInfo = async (nodeId: string, serverId?: string) => {
 	try {
-		const command = `docker node inspect ${nodeId} --format '{{json .}}'`;
+		const command = `docker node inspect ${quote([nodeId])} --format '{{json .}}'`;
 		let stdout = "";
 		let stderr = "";
 		if (serverId) {
@@ -655,6 +656,8 @@ export const getAllContainerStats = async (serverId?: string) => {
 	}
 };
 
+const destinationPathRegex = /^[a-zA-Z0-9.\-_/]+$/;
+
 export const uploadFileToContainer = async (
 	containerId: string,
 	fileBuffer: Buffer,
@@ -667,7 +670,12 @@ export const uploadFileToContainer = async (
 		throw new Error("Invalid container ID");
 	}
 
-	// Ensure destination path starts with /
+	if (!destinationPathRegex.test(destinationPath)) {
+		throw new Error(
+			"Invalid destination path: shell metacharacters are not allowed",
+		);
+	}
+
 	const normalizedPath = destinationPath.startsWith("/")
 		? destinationPath
 		: `/${destinationPath}`;

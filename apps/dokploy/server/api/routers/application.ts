@@ -4,11 +4,12 @@ import {
 	deleteAllMiddlewares,
 	findApplicationById,
 	findEnvironmentById,
-	findGitProviderById,
+	findPreviewDeploymentsByApplicationId,
 	findProjectById,
 	getAccessibleServerIds,
 	getApplicationStats,
 	getContainerLogs,
+	getWebServerSettings,
 	IS_CLOUD,
 	mechanizeDockerContainer,
 	readConfig,
@@ -16,6 +17,7 @@ import {
 	removeDeployments,
 	removeDirectoryCode,
 	removeMonitoringDirectory,
+	removePreviewDeployment,
 	removeService,
 	removeTraefikConfig,
 	startService,
@@ -30,6 +32,7 @@ import {
 	writeConfigRemote,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
 	checkServiceAccess,
@@ -67,11 +70,9 @@ import {
 	environments,
 	projects,
 } from "@/server/db/schema";
-import { deploymentWorker } from "@/server/queues/deployments-queue";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByApplication,
-	getJobsByApplicationId,
 	killDockerBuild,
 	myQueue,
 } from "@/server/queues/queueSetup";
@@ -87,7 +88,11 @@ export const applicationRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create an application",
@@ -169,13 +174,11 @@ export const applicationRouter = createTRPCRouter({
 			const gitProviderId = getGitProviderId();
 
 			if (gitProviderId) {
-				try {
-					const gitProvider = await findGitProviderById(gitProviderId);
-					if (gitProvider.userId !== ctx.session.userId) {
-						hasGitProviderAccess = false;
-						unauthorizedProvider = application.sourceType;
-					}
-				} catch {
+				const canEdit = await canEditDeployGitSource(
+					gitProviderId,
+					ctx.session,
+				);
+				if (!canEdit) {
 					hasGitProviderAccess = false;
 					unauthorizedProvider = application.sourceType;
 				}
@@ -233,18 +236,22 @@ export const applicationRouter = createTRPCRouter({
 				});
 			}
 
+			const previewDeploymentsList =
+				await findPreviewDeploymentsByApplicationId(input.applicationId);
+
+			for (const previewDeployment of previewDeploymentsList) {
+				try {
+					await removePreviewDeployment(previewDeployment.previewDeploymentId);
+				} catch (_) {}
+			}
+
 			const result = await db
 				.delete(applications)
 				.where(eq(applications.applicationId, input.applicationId))
 				.returning();
 
 			if (!IS_CLOUD) {
-				const queueJobs = await getJobsByApplicationId(input.applicationId);
-				for (const job of queueJobs) {
-					if (job.id) {
-						deploymentWorker.cancelJob(job.id, "User requested cancellation");
-					}
-				}
+				await cleanQueuesByApplication(input.applicationId);
 			}
 
 			const cleanupOperations = [
@@ -336,10 +343,10 @@ export const applicationRouter = createTRPCRouter({
 				type: "redeploy",
 				applicationType: "application",
 				server: !!application.serverId,
+				serverId: application.serverId ?? undefined,
 			};
 
 			if (IS_CLOUD && application.serverId) {
-				jobData.serverId = application.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
@@ -704,9 +711,9 @@ export const applicationRouter = createTRPCRouter({
 				type: "deploy",
 				applicationType: "application",
 				server: !!application.serverId,
+				serverId: application.serverId ?? undefined,
 			};
 			if (IS_CLOUD && application.serverId) {
-				jobData.serverId = application.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
@@ -823,9 +830,9 @@ export const applicationRouter = createTRPCRouter({
 				type: "deploy",
 				applicationType: "application",
 				server: !!app.serverId,
+				serverId: app.serverId ?? undefined,
 			};
 			if (IS_CLOUD && app.serverId) {
-				jobData.serverId = app.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});

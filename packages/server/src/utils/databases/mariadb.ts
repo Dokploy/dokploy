@@ -1,5 +1,6 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
+import { resolveServiceNetworks } from "../../services/network";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -37,6 +38,8 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		env ? `\n${env}` : ""
 	}`;
 
+	const resolvedNetworks = await resolveServiceNetworks(mariadb);
+
 	const {
 		HealthCheck,
 		RestartPolicy,
@@ -45,7 +48,6 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		Mode,
 		RollbackConfig,
 		UpdateConfig,
-		Networks,
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
@@ -87,7 +89,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 				...(Ulimits && { Ulimits }),
 				Labels,
 			},
-			Networks,
+			Networks: resolvedNetworks,
 			RestartPolicy,
 			Placement,
 			Resources: {
@@ -111,7 +113,11 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 							]
 						: [],
 				},
-		UpdateConfig,
+		UpdateConfig: mariadb.updateConfigSwarm ?? {
+			Parallelism: 1,
+			Order: "stop-first" as const,
+			FailureAction: "rollback" as const,
+		},
 	};
 	try {
 		const service = docker.getService(appName);

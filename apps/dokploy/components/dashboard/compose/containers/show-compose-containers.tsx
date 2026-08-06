@@ -2,6 +2,10 @@ import { Loader2, MoreHorizontal, RefreshCw } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ShowContainerConfig } from "@/components/dashboard/docker/config/show-container-config";
+import { ShowContainerMounts } from "@/components/dashboard/docker/mounts/show-container-mounts";
+import { ShowContainerNetworks } from "@/components/dashboard/docker/networks/show-container-networks";
+import { DockerTerminalModal } from "@/components/dashboard/docker/terminal/docker-terminal-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,10 +40,6 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api } from "@/utils/api";
-import { ShowContainerConfig } from "@/components/dashboard/docker/config/show-container-config";
-import { ShowContainerMounts } from "@/components/dashboard/docker/mounts/show-container-mounts";
-import { ShowContainerNetworks } from "@/components/dashboard/docker/networks/show-container-networks";
-import { DockerTerminalModal } from "@/components/dashboard/docker/terminal/docker-terminal-modal";
 
 const DockerLogsId = dynamic(
 	() =>
@@ -55,12 +55,14 @@ interface Props {
 	appName: string;
 	serverId?: string;
 	appType: "stack" | "docker-compose";
+	serviceId?: string;
 }
 
 export const ShowComposeContainers = ({
 	appName,
 	appType,
 	serverId,
+	serviceId,
 }: Props) => {
 	const { data, isPending, refetch } =
 		api.docker.getContainersByAppNameMatch.useQuery(
@@ -122,6 +124,7 @@ export const ShowComposeContainers = ({
 										key={container.containerId}
 										container={container}
 										serverId={serverId}
+										serviceId={serviceId}
 										onActionComplete={() => refetch()}
 									/>
 								))}
@@ -142,12 +145,14 @@ interface ContainerRowProps {
 		status: string;
 	};
 	serverId?: string;
+	serviceId?: string;
 	onActionComplete: () => void;
 }
 
 const ContainerRow = ({
 	container,
 	serverId,
+	serviceId,
 	onActionComplete,
 }: ContainerRowProps) => {
 	const [logsOpen, setLogsOpen] = useState(false);
@@ -236,6 +241,7 @@ const ContainerRow = ({
 							<DockerTerminalModal
 								containerId={container.containerId}
 								serverId={serverId || ""}
+								serviceId={serviceId}
 							>
 								Terminal
 							</DockerTerminalModal>
@@ -280,6 +286,7 @@ const ContainerRow = ({
 								containerId={container.containerId}
 								serverId={serverId}
 								runType="native"
+								serviceId={serviceId}
 							/>
 						</div>
 					</DialogContent>

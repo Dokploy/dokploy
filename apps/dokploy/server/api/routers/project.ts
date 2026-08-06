@@ -856,8 +856,6 @@ export const projectRouter = createTRPCRouter({
 							ctx.session.activeOrganizationId,
 						).then((value) => value.environment);
 
-				console.log("targetProject", targetProject);
-
 				if (input.includeServices) {
 					const servicesToDuplicate = input.selectedServices || [];
 

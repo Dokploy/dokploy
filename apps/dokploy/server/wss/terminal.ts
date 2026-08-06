@@ -9,6 +9,7 @@ import { publicIpv4, publicIpv6 } from "public-ip";
 import { Client, type ConnectConfig } from "ssh2";
 import { WebSocketServer } from "ws";
 import { getDockerHost } from "../utils/docker";
+import { canAccessTerminalOverWss } from "./authorize";
 import { setupLocalServerSSHKey } from "./utils";
 
 const COMMAND_TO_ALLOW_LOCAL_ACCESS = `
@@ -93,6 +94,11 @@ export const setupTerminalWebSocketServer = (
 			return;
 		}
 
+		if (!(await canAccessTerminalOverWss(user, session, serverId))) {
+			ws.close(4003, "Not authorized");
+			return;
+		}
+
 		let connectionDetails: ConnectConfig = {};
 
 		const isLocalServer = serverId === "local";
@@ -150,6 +156,11 @@ export const setupTerminalWebSocketServer = (
 			const server = await findServerById(serverId);
 
 			if (!server) {
+				ws.close();
+				return;
+			}
+
+			if (server.organizationId !== session.activeOrganizationId) {
 				ws.close();
 				return;
 			}

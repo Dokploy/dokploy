@@ -1,10 +1,14 @@
 import { db } from "@dokploy/server/db";
-import { IS_CLOUD } from "@dokploy/server/index";
+import { IS_CLOUD, sendInvitationEmail } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
+import {
+	assertMemberLimit,
+	assertOrganizationLimit,
+} from "@/server/api/utils/plan-limits";
 import {
 	invitation,
 	member,
@@ -28,6 +32,11 @@ export const organizationRouter = createTRPCRouter({
 					message: "Only the organization owner can create an organization",
 				});
 			}
+
+			if (IS_CLOUD) {
+				await assertOrganizationLimit(ctx.user.id);
+			}
+
 			const result = await db
 				.insert(organization)
 				.values({
@@ -258,6 +267,10 @@ export const organizationRouter = createTRPCRouter({
 			const orgId = ctx.session.activeOrganizationId;
 			const email = input.email.toLowerCase();
 
+			if (IS_CLOUD) {
+				await assertMemberLimit(orgId);
+			}
+
 			// Check if user is already a member
 			const existingUser = await db.query.user.findFirst({
 				where: eq(user.email, email),
@@ -295,6 +308,14 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
+			// Owner role is non-delegable — no one can invite as owner
+			if (input.role === "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Cannot invite a user with the owner role",
+				});
+			}
+
 			// If assigning a custom role, verify it exists
 			if (!["owner", "admin", "member"].includes(input.role)) {
 				const customRole = await db.query.organizationRole.findFirst({
@@ -324,6 +345,24 @@ export const organizationRouter = createTRPCRouter({
 					inviterId: ctx.user.id,
 				})
 				.returning();
+
+			if (IS_CLOUD && created) {
+				const host =
+					process.env.NODE_ENV === "development"
+						? "http://localhost:3000"
+						: "https://app.dokploy.com";
+				const inviteLink = `${host}/invitation?token=${created.id}`;
+
+				const org = await db.query.organization.findFirst({
+					where: eq(organization.id, orgId),
+				});
+
+				await sendInvitationEmail({
+					email,
+					inviteLink,
+					organizationName: org?.name || "organization",
+				});
+			}
 
 			await audit(ctx, {
 				action: "create",
