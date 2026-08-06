@@ -47,8 +47,6 @@ const reconcileDomainTls = async () => {
 	const domains = await findDomainsNeedingTlsReconciliation();
 	if (domains.length === 0) return;
 
-	const reloadTargets = new Set<string>();
-
 	const byApplication = new Map<string, typeof domains>();
 	for (const domain of domains) {
 		if (!domain.applicationId) continue;
@@ -57,9 +55,31 @@ const reconcileDomainTls = async () => {
 		byApplication.set(domain.applicationId, bucket);
 	}
 
-	for (const [applicationId, appDomains] of byApplication) {
+	// Resolved once, up front, since both phases below need it: phase 1 to
+	// regenerate routers, phase 2 to know which server each domain's
+	// application lives on. An application that fails to resolve here is
+	// excluded from both phases.
+	const applications = new Map<
+		string,
+		Awaited<ReturnType<typeof findApplicationById>>
+	>();
+	for (const applicationId of byApplication.keys()) {
 		try {
-			const application = await findApplicationById(applicationId);
+			applications.set(applicationId, await findApplicationById(applicationId));
+		} catch (error) {
+			console.error(
+				`TLS reconciliation could not resolve application ${applicationId}:`,
+				error,
+			);
+		}
+	}
+
+	// Phase 1: regenerate router configs written before the TLS override fix.
+	for (const [applicationId, appDomains] of byApplication) {
+		const application = applications.get(applicationId);
+		if (!application) continue;
+
+		try {
 			const config = application.serverId
 				? await loadOrCreateConfigRemote(
 						application.serverId,
@@ -71,28 +91,6 @@ const reconcileDomainTls = async () => {
 				routerNeedsTlsFix(config, application.appName, domain.uniqueConfigKey),
 			);
 			if (stale.length === 0) continue;
-
-			// A host still served by another Let's Encrypt domain keeps its
-			// certificate, exactly as the mutation path does.
-			const purgeableHosts: string[] = [];
-			for (const domain of stale) {
-				const stillInUse = await hasOtherLetsencryptDomainForHost(
-					domain.host,
-					domain.domainId,
-				);
-				if (!stillInUse) purgeableHosts.push(domain.host);
-			}
-
-			// Purge before regenerating: once the router carries its `tls` key
-			// `routerNeedsTlsFix` is false, so a purge that failed afterwards
-			// would never be retried on a later boot.
-			const removed =
-				purgeableHosts.length > 0
-					? await purgeAcmeCertificates(purgeableHosts, application.serverId)
-					: [];
-			if (removed.length > 0) {
-				reloadTargets.add(application.serverId ?? "");
-			}
 
 			for (const domain of stale) {
 				await manageDomain(application, domain);
@@ -110,11 +108,58 @@ const reconcileDomainTls = async () => {
 		}
 	}
 
-	for (const serverId of reloadTargets) {
+	// Phase 2: purge stale acme.json entries, independent of whether the
+	// router for that domain still needed regeneration. A router already
+	// carrying `tls: {}` is exactly the state `routerNeedsTlsFix` treats as
+	// "nothing to do" in phase 1, so it is the only place left where a
+	// certificate purge that was skipped or lost a race against Traefik on an
+	// earlier boot gets retried. Grouped per server, not per application,
+	// because acme.json is one file per server: this keeps the read/rewrite
+	// and any remote SSH round trip to once per server for the whole pass.
+	const byServer = new Map<string, typeof domains>();
+	for (const domain of domains) {
+		if (!domain.applicationId) continue;
+		const application = applications.get(domain.applicationId);
+		if (!application) continue;
+		const serverKey = application.serverId ?? "";
+		const bucket = byServer.get(serverKey) ?? [];
+		bucket.push(domain);
+		byServer.set(serverKey, bucket);
+	}
+
+	for (const [serverKey, serverDomains] of byServer) {
+		const serverId = serverKey || undefined;
 		try {
-			await reloadDockerResource("dokploy-traefik", serverId || undefined);
+			// A host still served by another Let's Encrypt domain keeps its
+			// certificate, exactly as the mutation path does.
+			const hostToDomainId = new Map<string, string>();
+			for (const domain of serverDomains) {
+				if (!hostToDomainId.has(domain.host)) {
+					hostToDomainId.set(domain.host, domain.domainId);
+				}
+			}
+
+			const purgeableHosts: string[] = [];
+			for (const [host, domainId] of hostToDomainId) {
+				const stillInUse = await hasOtherLetsencryptDomainForHost(
+					host,
+					domainId,
+				);
+				if (!stillInUse) purgeableHosts.push(host);
+			}
+
+			if (purgeableHosts.length === 0) continue;
+
+			const removed = await purgeAcmeCertificates(purgeableHosts, serverId);
+			if (removed.length > 0) {
+				await reloadDockerResource("dokploy-traefik", serverId);
+			}
 		} catch (error) {
-			console.error("TLS reconciliation could not reload Traefik:", error);
+			// One unreachable remote server must not stop the rest.
+			console.error(
+				`TLS reconciliation could not purge certificates for server ${serverKey || "local"}:`,
+				error,
+			);
 		}
 	}
 };

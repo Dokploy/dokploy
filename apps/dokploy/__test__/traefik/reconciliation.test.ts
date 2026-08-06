@@ -178,7 +178,8 @@ const routerConfigFor = (
 describe("initDomainTlsReconciliation", () => {
 	// Shared fixture:
 	//   app-1: local, two stale domains sharing one router config load.
-	//   app-2: local, router already carries `tls: {}` -> nothing to do.
+	//   app-2: local, router already carries `tls: {}` -> not regenerated,
+	//          but its host must still be purged (the defect being fixed).
 	//   app-3: remote, config load throws -> must not block the others.
 	//   app-4: remote, one stale domain but no certificate actually removed.
 	const appOneDomainA = buildDomain({
@@ -309,12 +310,19 @@ describe("initDomainTlsReconciliation", () => {
 	it("requests a reload at most once per server and only when a certificate was removed", async () => {
 		await initDomainTlsReconciliation();
 
-		// app-1 (local, serverId undefined) had removals -> exactly one
-		// reload. app-4's server reported no removals -> no reload at all.
-		expect(reloadDockerResourceMock).toHaveBeenCalledTimes(1);
+		// The local server (serverId undefined) batches app-1's and app-2's
+		// hosts into a single purge call and reloads once. server-x (app-3)
+		// also has removals and reloads once, independently of phase 1 having
+		// failed for that application. server-y (app-4) reported no removals,
+		// so it never reloads.
+		expect(reloadDockerResourceMock).toHaveBeenCalledTimes(2);
 		expect(reloadDockerResourceMock).toHaveBeenCalledWith(
 			"dokploy-traefik",
 			undefined,
+		);
+		expect(reloadDockerResourceMock).toHaveBeenCalledWith(
+			"dokploy-traefik",
+			"server-x",
 		);
 		expect(reloadDockerResourceMock).not.toHaveBeenCalledWith(
 			"dokploy-traefik",
@@ -348,14 +356,18 @@ describe("initDomainTlsReconciliation", () => {
 		expect(managedHosts()).toContain("a1.example.com");
 	});
 
-	it("purges the stale certificate before regenerating the router", async () => {
+	// This is the defect being fixed: once a router carries `tls: {}`,
+	// `routerNeedsTlsFix` is false and the application is never regenerated,
+	// but a lingering acme.json entry for its host must still be cleaned up
+	// on every boot, not just the one where the router itself was fixed.
+	it("purges a stale host even when the application's routers are already correct", async () => {
 		await initDomainTlsReconciliation();
 
-		const firstPurge =
-			purgeAcmeCertificatesMock.mock.invocationCallOrder[0] ?? Number.NaN;
-		const firstManage =
-			manageDomainMock.mock.invocationCallOrder[0] ?? Number.NaN;
-		expect(firstPurge).toBeLessThan(firstManage);
+		const purgedHosts = purgeAcmeCertificatesMock.mock.calls.flatMap(
+			(call) => call[0] as string[],
+		);
+		expect(purgedHosts).toContain("b1.example.com");
+		expect(managedHosts()).not.toContain("b1.example.com");
 	});
 
 	// It runs in the startup sequence ahead of the backup cron jobs, the restart
