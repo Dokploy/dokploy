@@ -572,7 +572,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 													<TooltipContent>
 														<p>
 															Only deploy on tags matching this glob (e.g.
-															`web-*`). Leave empty to deploy on any tag.
+															web-*). Leave empty to deploy on any tag.
 														</p>
 													</TooltipContent>
 												</Tooltip>
