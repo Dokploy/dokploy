@@ -118,7 +118,8 @@ export const runCommand = async (scheduleId: string) => {
 							"This feature is not available in the cloud version.",
 						);
 						writeStream.end();
-						return { ...deployment, status: "running" as const };
+						await updateDeploymentStatus(deployment.deploymentId, "error");
+						return { ...deployment, status: "error" as const };
 					}
 					writeStream.write(
 						`docker exec ${containerId} ${shellType} -c ${command}\n`,
