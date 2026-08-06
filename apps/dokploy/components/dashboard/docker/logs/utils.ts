@@ -72,8 +72,68 @@ export function parseLogs(logString: string): LogLine[] {
 		.filter((log) => log !== null);
 }
 
+const LEVEL_NAME_TO_TYPE: Record<string, LogType> = {
+	trace: "debug",
+	debug: "debug",
+	info: "info",
+	information: "info",
+	notice: "info",
+	warn: "warning",
+	warning: "warning",
+	error: "error",
+	err: "error",
+	fatal: "error",
+	critical: "error",
+	panic: "error",
+	alert: "error",
+	emergency: "error",
+};
+
+const numericLevelToType = (level: number): LogType => {
+	// pino/bunyan scale: 10=trace 20=debug 30=info 40=warn 50=error 60=fatal
+	if (level >= 50) return "error";
+	if (level >= 40) return "warning";
+	if (level >= 30) return "info";
+	if (level >= 10) return "debug";
+	// syslog/GELF scale: 0=emergency ... 7=debug
+	if (level <= 3) return "error";
+	if (level === 4) return "warning";
+	if (level <= 6) return "info";
+	return "debug";
+};
+
+// Extract the log level explicitly declared by structured loggers
+// (pino, bunyan, winston, zap, slog, logfmt, GCP severity)
+const getExplicitLevelType = (message: string): LogType | null => {
+	// JSON string levels: {"level":"error"} / {"severity":"ERROR"} / {"log.level":"warn"}
+	const jsonStringMatch = message.match(
+		/"(?:level|severity|log\.level|loglevel)"\s*:\s*"([a-z]+)"/i,
+	);
+	if (jsonStringMatch?.[1]) {
+		return LEVEL_NAME_TO_TYPE[jsonStringMatch[1].toLowerCase()] ?? null;
+	}
+
+	// JSON numeric levels: {"level":50}
+	const jsonNumericMatch = message.match(/"level"\s*:\s*(\d{1,2})\b/);
+	if (jsonNumericMatch?.[1]) {
+		return numericLevelToType(Number(jsonNumericMatch[1]));
+	}
+
+	// logfmt: level=error
+	const logfmtMatch = message.match(/(?:^|\s)(?:level|severity)=([a-z]+)\b/i);
+	if (logfmtMatch?.[1]) {
+		return LEVEL_NAME_TO_TYPE[logfmtMatch[1].toLowerCase()] ?? null;
+	}
+
+	return null;
+};
+
 // Detect log type based on message content
 export const getLogType = (message: string): LogStyle => {
+	// A level explicitly declared by the logger wins over any inference
+	const explicitType = getExplicitLevelType(message);
+	if (explicitType) return LOG_STYLES[explicitType];
+
 	// Detect HTTP statusCode
 	const statusMatch = message.match(/"statusCode"\s*:\s*"?(\d{3})"?/);
 
