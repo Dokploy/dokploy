@@ -63,6 +63,7 @@ const GithubProviderSchema = z.object({
 		.regex(VALID_BRANCH_REGEX, "Invalid branch name"),
 	githubId: z.string().min(1, "Github Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
+	tagFilter: z.string().optional(),
 	triggerType: z.enum(["push", "tag"]).default("push"),
 	enableSubmodules: z.boolean().default(false),
 });
@@ -89,6 +90,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			},
 			githubId: "",
 			branch: "",
+			tagFilter: "",
 			triggerType: "push",
 			enableSubmodules: false,
 		},
@@ -140,6 +142,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 				buildPath: data.buildPath || "/",
 				githubId: data.githubId || "",
 				watchPaths: data.watchPaths || [],
+				tagFilter: data.tagFilter || "",
 				triggerType: data.triggerType || "push",
 				enableSubmodules: data.enableSubmodules ?? false,
 			});
@@ -155,6 +158,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			buildPath: data.buildPath,
 			githubId: data.githubId,
 			watchPaths: data.watchPaths || [],
+			tagFilter: data.tagFilter,
 			triggerType: data.triggerType,
 			enableSubmodules: data.enableSubmodules,
 		})
@@ -547,6 +551,36 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 												<Plus className="size-4" />
 											</Button>
 										</div>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+						{triggerType === "tag" && (
+							<FormField
+								control={form.control}
+								name="tagFilter"
+								render={({ field }) => (
+									<FormItem className="md:col-span-2">
+										<div className="flex items-center gap-2">
+											<FormLabel>Tag Filter</FormLabel>
+											<TooltipProvider>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+													</TooltipTrigger>
+													<TooltipContent>
+														<p>
+															Only deploy on tags matching this glob (e.g.
+															`web-*`). Leave empty to deploy on any tag.
+														</p>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										</div>
+										<FormControl>
+											<Input placeholder="e.g. web-*" {...field} />
+										</FormControl>
 										<FormMessage />
 									</FormItem>
 								)}

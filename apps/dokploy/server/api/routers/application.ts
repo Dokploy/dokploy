@@ -561,6 +561,7 @@ export const applicationRouter = createTRPCRouter({
 				buildPath: input.buildPath,
 				githubId: input.githubId,
 				watchPaths: input.watchPaths,
+				tagFilter: input.tagFilter,
 				triggerType: input.triggerType,
 				enableSubmodules: input.enableSubmodules,
 			});
