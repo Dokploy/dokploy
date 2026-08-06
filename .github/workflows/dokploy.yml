@@ -140,6 +140,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
+      npm_version: ${{ steps.get_version.outputs.npm_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -151,6 +152,7 @@ jobs:
         run: |
           VERSION=$(node -p "require('./apps/dokploy/package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "npm_version=${VERSION#v}" >> $GITHUB_OUTPUT
 
       - name: Fetch install.sh
         run: |
@@ -181,15 +183,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.22.0
+
       - name: Sync version to MCP repository
         run: |
           git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/mcp.git /tmp/mcp-repo
           cd /tmp/mcp-repo
 
-          jq --arg v "${{ needs.generate-release.outputs.version }}" '.version = $v' package.json > package.json.tmp
+          jq --arg v "${{ needs.generate-release.outputs.npm_version }}" '.version = $v' package.json > package.json.tmp
           mv package.json.tmp package.json
 
-          npm install -g pnpm
           pnpm install
           pnpm run fetch-openapi
           pnpm run generate
@@ -197,55 +202,53 @@ jobs:
           git config user.name "Dokploy Bot"
           git config user.email "bot@dokploy.com"
           git add -A
-          git commit -m "chore: bump version to ${{ needs.generate-release.outputs.version }}" \
+          git commit -m "chore: bump version to ${{ needs.generate-release.outputs.npm_version }}" \
             -m "Source: ${{ github.repository }}@${{ github.sha }}" \
             --allow-empty
           git push
 
-          echo "✅ MCP repo synced to version ${{ needs.generate-release.outputs.version }}"
+          echo "✅ MCP repo synced to version ${{ needs.generate-release.outputs.npm_version }}"
 
       - name: Sync version to CLI repository
         run: |
           git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/cli.git /tmp/cli-repo
           cd /tmp/cli-repo
 
-          jq --arg v "${{ needs.generate-release.outputs.version }}" '.version = $v' package.json > package.json.tmp
+          jq --arg v "${{ needs.generate-release.outputs.npm_version }}" '.version = $v' package.json > package.json.tmp
           mv package.json.tmp package.json
 
           cp ${{ github.workspace }}/openapi.json ./openapi.json
-          npm install -g pnpm
           pnpm install
           pnpm run generate
 
           git config user.name "Dokploy Bot"
           git config user.email "bot@dokploy.com"
           git add -A
-          git commit -m "chore: bump version to ${{ needs.generate-release.outputs.version }}" \
+          git commit -m "chore: bump version to ${{ needs.generate-release.outputs.npm_version }}" \
             -m "Source: ${{ github.repository }}@${{ github.sha }}" \
             --allow-empty
           git push
 
-          echo "✅ CLI repo synced to version ${{ needs.generate-release.outputs.version }}"
+          echo "✅ CLI repo synced to version ${{ needs.generate-release.outputs.npm_version }}"
 
       - name: Sync version to SDK repository
         run: |
           git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/sdk.git /tmp/sdk-repo
           cd /tmp/sdk-repo
 
-          jq --arg v "${{ needs.generate-release.outputs.version }}" '.version = $v' package.json > package.json.tmp
+          jq --arg v "${{ needs.generate-release.outputs.npm_version }}" '.version = $v' package.json > package.json.tmp
           mv package.json.tmp package.json
 
           cp ${{ github.workspace }}/openapi.json ./openapi.json
-          npm install -g pnpm
           pnpm install
           pnpm run generate
 
           git config user.name "Dokploy Bot"
           git config user.email "bot@dokploy.com"
           git add -A
-          git commit -m "chore: bump version to ${{ needs.generate-release.outputs.version }}" \
+          git commit -m "chore: bump version to ${{ needs.generate-release.outputs.npm_version }}" \
             -m "Source: ${{ github.repository }}@${{ github.sha }}" \
             --allow-empty
           git push
 
-          echo "✅ SDK repo synced to version ${{ needs.generate-release.outputs.version }}"
+          echo "✅ SDK repo synced to version ${{ needs.generate-release.outputs.npm_version }}"
