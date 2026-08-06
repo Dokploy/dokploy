@@ -19,6 +19,7 @@ import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import { type Application, findApplicationById } from "./application";
 import { findDeploymentById } from "./deployment";
+import type { Environment } from "./environment";
 import type { Mount } from "./mount";
 import type { Port } from "./port";
 import type { Project } from "./project";
@@ -105,19 +106,7 @@ export const findRollbackById = async (rollbackId: string) => {
 	const result = await db.query.rollbacks.findFirst({
 		where: eq(rollbacks.rollbackId, rollbackId),
 		with: {
-			deployment: {
-				with: {
-					application: {
-						with: {
-							environment: {
-								with: {
-									project: true,
-								},
-							},
-						},
-					},
-				},
-			},
+			deployment: true,
 		},
 	});
 
@@ -213,7 +202,7 @@ const rollbackApplication = async (
 	image: string,
 	serverId?: string | null,
 	fullContext?: Application & {
-		environment: {
+		environment: Environment & {
 			project: Project;
 		};
 		mounts: Mount[];
@@ -275,6 +264,7 @@ const rollbackApplication = async (
 	const envVariables = prepareEnvironmentVariables(
 		env,
 		fullContext.environment.project.env,
+		fullContext.environment.env,
 	);
 
 	let rollbackImage = image;

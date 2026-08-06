@@ -53,14 +53,9 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 		"build",
 		"--builder",
 		builderName,
-		...(cacheKey
-			? [
-					"--build-arg",
-					`secrets-hash=${secretsHash}`,
-					"--build-arg",
-					`cache-key=${cacheKey}`,
-				]
-			: []),
+		"--build-arg",
+		`secrets-hash=${secretsHash}`,
+		...(cacheKey ? ["--build-arg", `cache-key=${cacheKey}`] : []),
 		"--build-arg",
 		`BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v${application.railpackVersion}`,
 		"-f",
