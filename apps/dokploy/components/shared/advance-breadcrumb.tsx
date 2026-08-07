@@ -45,10 +45,12 @@ type ServiceItem = {
 	id: string;
 	name: string;
 	type: ServiceType;
+	createdAt: string;
 };
 
 type NamedService = {
 	name: string;
+	createdAt: string;
 };
 
 type EnvironmentServiceCollections = {
@@ -127,7 +129,7 @@ const countEnvironmentServices = (environment: ServiceCollections): number =>
 		0,
 	);
 
-const mapServices = <T extends { name: string }>(
+const mapServices = <T extends { name: string; createdAt: string }>(
 	items: readonly T[],
 	getId: (item: T) => string,
 	type: ServiceType,
@@ -136,7 +138,46 @@ const mapServices = <T extends { name: string }>(
 		id: getId(item),
 		name: item.name,
 		type,
+		createdAt: item.createdAt,
 	}));
+
+const SERVICES_SORT_KEY = "servicesSort";
+const DEFAULT_SORT = "lastDeploy-desc";
+
+const parseSortBy = (sortBy: string): { field: string; direction: string } => {
+	const idx = sortBy.lastIndexOf("-");
+	if (idx === -1) return { field: sortBy, direction: "desc" };
+	return { field: sortBy.slice(0, idx), direction: sortBy.slice(idx + 1) };
+};
+
+const sortServices = (services: ServiceItem[], sortBy: string): ServiceItem[] => {
+	const { field, direction } = parseSortBy(sortBy);
+
+	if (field === "createdAt" || field === "lastDeploy") {
+		const timestamps = new Map(
+			services.map((s) => [s.id, new Date(s.createdAt).getTime()]),
+		);
+		return [...services].sort((a, b) => {
+			const diff = (timestamps.get(a.id) ?? 0) - (timestamps.get(b.id) ?? 0);
+			return direction === "asc" ? diff : -diff;
+		});
+	}
+
+	return [...services].sort((a, b) => {
+		let comparison = 0;
+		switch (field) {
+			case "name":
+				comparison = a.name.localeCompare(b.name);
+				break;
+			case "type":
+				comparison = a.type.localeCompare(b.type);
+				break;
+			default:
+				comparison = 0;
+		}
+		return direction === "asc" ? comparison : -comparison;
+	});
+};
 
 const extractServicesFromEnvironment = (
 	environment: EnvironmentDetails | null | undefined,
@@ -203,6 +244,22 @@ export const AdvanceBreadcrumb = () => {
 	const [expandedProjectId, setExpandedProjectId] = useState<string | null>(
 		null,
 	);
+	const [servicesSort, setServicesSort] = useState(() => {
+		if (typeof window !== "undefined") {
+			return localStorage.getItem(SERVICES_SORT_KEY) || DEFAULT_SORT;
+		}
+		return DEFAULT_SORT;
+	});
+
+	useEffect(() => {
+		const onStorage = (e: StorageEvent) => {
+			if (e.key === SERVICES_SORT_KEY) {
+				setServicesSort(e.newValue || DEFAULT_SORT);
+			}
+		};
+		window.addEventListener("storage", onStorage);
+		return () => window.removeEventListener("storage", onStorage);
+	}, []);
 
 	// Fetch all projects
 	const { data: allProjects } = api.project.all.useQuery();
@@ -296,11 +353,12 @@ export const AdvanceBreadcrumb = () => {
 		[allProjects, projectSearch],
 	);
 
-	const filteredServices = useMemo(
-		() =>
-			services.filter((service) => includesSearch(service.name, serviceSearch)),
-		[serviceSearch, services],
-	);
+	const filteredServices = useMemo(() => {
+		const filtered = services.filter((service) =>
+			includesSearch(service.name, serviceSearch),
+		);
+		return sortServices(filtered, servicesSort);
+	}, [serviceSearch, services, servicesSort]);
 
 	const filteredEnvironments = useMemo(
 		() =>
