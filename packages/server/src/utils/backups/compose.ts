@@ -38,11 +38,13 @@ export const runComposeBackup = async (
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
 		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		const rcloneCleanupCommand = `rclone delete ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 
 		const backupCommand = getBackupCommand(
 			backup,
 			rcloneCommand,
 			deployment.logPath,
+			rcloneCleanupCommand,
 		);
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, backupCommand);

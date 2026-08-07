@@ -261,6 +261,10 @@ export const getBackupCommand = (
 	backup: BackupSchedule,
 	rcloneCommand: string,
 	logPath: string,
+	// Optional. Removes the object that `rcloneCommand` created when the dump
+	// fails halfway through: the stream is uploaded as it is produced, so a dump
+	// that dies mid-way leaves a truncated file behind.
+	cleanupCommand?: string,
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
@@ -288,23 +292,41 @@ export const getBackupCommand = (
 
 	echo "[$(date)] Container Up: $CONTAINER_ID" >> ${logPath};
 
-	# Run the backup command and capture the exit status
-	BACKUP_OUTPUT=$(${backupCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
-		echo "Error: $BACKUP_OUTPUT" >> ${logPath};
+	# Dump straight into rclone: the database is read and compressed ONCE and the
+	# stream is uploaded as it is produced. Each side keeps its own stderr file so
+	# the log can still tell a failed dump apart from a failed upload — note that
+	# PIPESTATUS only survives if the pipeline is not wrapped in $(...).
+	DUMP_STDERR=$(mktemp);
+	UPLOAD_STDERR=$(mktemp);
+	set +e;
+	${backupCommand} 2>"$DUMP_STDERR" | ${rcloneCommand} >/dev/null 2>"$UPLOAD_STDERR";
+	BACKUP_STATUS=("\${PIPESTATUS[@]}");
+	set -e;
+
+	# rclone is checked first: when the upload dies early the dump is killed by
+	# SIGPIPE, so a non-zero dump status is a consequence and not the cause.
+	if [ "\${BACKUP_STATUS[1]}" -ne 0 ]; then
+		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
+		echo "Error: $(cat "$UPLOAD_STDERR")" >> ${logPath};
+		rm -f "$DUMP_STDERR" "$UPLOAD_STDERR";
 		exit 1;
-	}
+	fi
+
+	if [ "\${BACKUP_STATUS[0]}" -ne 0 ]; then
+		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
+		echo "Error: $(cat "$DUMP_STDERR")" >> ${logPath};${
+			cleanupCommand
+				? `
+		${cleanupCommand} >/dev/null 2>&1 || true;`
+				: ""
+		}
+		rm -f "$DUMP_STDERR" "$UPLOAD_STDERR";
+		exit 1;
+	fi
+
+	rm -f "$DUMP_STDERR" "$UPLOAD_STDERR";
 
 	echo "[$(date)] ✅ backup completed successfully" >> ${logPath};
-	echo "[$(date)] Starting upload to S3..." >> ${logPath};
-
-	# Run the upload command and capture the exit status
-	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
-		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
-		exit 1;
-	}
-
 	echo "[$(date)] ✅ Upload to S3 completed successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
