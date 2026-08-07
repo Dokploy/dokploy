@@ -5,6 +5,7 @@ import {
 } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { createServerSideHelpers } from "@trpc/react-query/server";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { Fingerprint } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
@@ -13,6 +14,7 @@ import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import superjson from "superjson";
 import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { SignInWithGithub } from "@/components/proprietary/auth/sign-in-with-github";
@@ -46,6 +48,7 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
@@ -109,8 +112,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 				return;
 			}
 
-			// @ts-ignore
-			if (data?.twoFactorRedirect as boolean) {
+			if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
 				setTwoFactorCode("");
 				setIsTwoFactor(true);
 				toast.info("Please enter your 2FA code");
@@ -470,6 +472,21 @@ Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
 export async function getServerSideProps(context: GetServerSidePropsContext) {
+	const helpers = createServerSideHelpers({
+		router: appRouter,
+		ctx: {
+			req: context.req as any,
+			res: context.res as any,
+			db: null as any,
+			session: null as any,
+			user: null as any,
+		},
+		transformer: superjson,
+	});
+	// Prefetch the public branding so the login/onboarding logo and app name
+	// render correctly on the server (no flash of default branding).
+	await helpers.whitelabeling.getPublic.prefetch();
+
 	if (IS_CLOUD) {
 		try {
 			const { user } = await validateRequest(context.req);
@@ -485,6 +502,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
 		return {
 			props: {
+				trpcState: helpers.dehydrate(),
 				IS_CLOUD: IS_CLOUD,
 				enforceSSO: false,
 			},
@@ -516,6 +534,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
 	return {
 		props: {
+			trpcState: helpers.dehydrate(),
 			hasAdmin,
 			enforceSSO: webServerSettings?.enforceSSO ?? false,
 		},

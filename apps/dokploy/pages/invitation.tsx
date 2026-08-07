@@ -1,11 +1,13 @@
 import { getUserByToken, IS_CLOUD } from "@dokploy/server";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import superjson from "superjson";
 import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -22,6 +24,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
@@ -326,6 +329,21 @@ Invitation.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+	const helpers = createServerSideHelpers({
+		router: appRouter,
+		ctx: {
+			req: ctx.req as any,
+			res: ctx.res as any,
+			db: null as any,
+			session: null as any,
+			user: null as any,
+		},
+		transformer: superjson,
+	});
+	// Prefetch the public branding so the invitation logo and app name render
+	// correctly on the server (no flash of default branding).
+	await helpers.whitelabeling.getPublic.prefetch();
+
 	const { query } = ctx;
 
 	const token = query.token;
@@ -354,6 +372,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 		if (invitation.userAlreadyExists) {
 			return {
 				props: {
+					trpcState: helpers.dehydrate(),
 					isCloud: IS_CLOUD,
 					token: token,
 					invitation: invitation,
@@ -373,6 +392,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 
 		return {
 			props: {
+				trpcState: helpers.dehydrate(),
 				isCloud: IS_CLOUD,
 				token: token,
 				invitation: invitation,
