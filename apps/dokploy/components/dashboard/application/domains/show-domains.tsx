@@ -297,6 +297,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 		data,
 		isIpFetched,
 		isApplicationFetched,
+		application,
 		application?.serverId,
 		application?.server?.ipAddress,
 		resolveServerIp,
