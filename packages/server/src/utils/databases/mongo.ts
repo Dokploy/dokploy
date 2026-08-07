@@ -26,6 +26,7 @@ export const buildMongo = async (mongo: MongoNested) => {
 		memoryReservation,
 		cpuLimit,
 		cpuReservation,
+		pidsLimit,
 		databaseUser,
 		databasePassword,
 		command,
@@ -104,6 +105,7 @@ ${command ?? "wait $MONGOD_PID"}`;
 		memoryReservation,
 		cpuLimit,
 		cpuReservation,
+		pidsLimit,
 	});
 
 	const envVariables = prepareEnvironmentVariables(

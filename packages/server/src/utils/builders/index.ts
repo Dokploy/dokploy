@@ -87,6 +87,7 @@ export const mechanizeDockerContainer = async (
 		memoryLimit,
 		memoryReservation,
 		cpuReservation,
+		pidsLimit,
 		command,
 		args,
 		ports,
@@ -97,6 +98,7 @@ export const mechanizeDockerContainer = async (
 		memoryReservation,
 		cpuLimit,
 		cpuReservation,
+		pidsLimit,
 	});
 
 	const volumesMount = generateVolumeMounts(mounts);

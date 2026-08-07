@@ -65,6 +65,7 @@ export const libsql = pgTable("libsql", {
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
 	cpuLimit: text("cpuLimit"),
+	pidsLimit: text("pidsLimit"),
 	//
 	externalPort: integer("externalPort"),
 	externalGRPCPort: integer("externalGRPCPort"),
@@ -133,6 +134,7 @@ const createSchema = createInsertSchema(libsql, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
+	pidsLimit: z.string().optional(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),

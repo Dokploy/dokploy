@@ -535,17 +535,22 @@ type Resources = {
 	memoryReservation: string | null;
 	cpuLimit: string | null;
 	cpuReservation: string | null;
+	// Swarm exposes a pids limit but no pids reservation, so this has no
+	// counterpart under Reservations.
+	pidsLimit?: string | null;
 };
 export const calculateResources = ({
 	memoryLimit,
 	memoryReservation,
 	cpuLimit,
 	cpuReservation,
+	pidsLimit,
 }: Resources): ResourceRequirements => {
 	return {
 		Limits: {
 			MemoryBytes: memoryLimit ? Number.parseInt(memoryLimit) : undefined,
 			NanoCPUs: cpuLimit ? Number.parseInt(cpuLimit) : undefined,
+			Pids: pidsLimit ? Number.parseInt(pidsLimit) : undefined,
 		},
 		Reservations: {
 			MemoryBytes: memoryReservation

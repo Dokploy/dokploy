@@ -30,6 +30,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 		databaseRootPassword,
 		cpuLimit,
 		cpuReservation,
+		pidsLimit,
 		command,
 		args,
 		mounts,
@@ -63,6 +64,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 		memoryReservation,
 		cpuLimit,
 		cpuReservation,
+		pidsLimit,
 	});
 	const envVariables = prepareEnvironmentVariables(
 		defaultMysqlEnv,

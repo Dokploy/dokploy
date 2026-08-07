@@ -234,6 +234,7 @@ const rollbackApplication = async (
 		memoryLimit,
 		memoryReservation,
 		cpuReservation,
+		pidsLimit,
 		command,
 		ports,
 	} = fullContext;
@@ -243,6 +244,7 @@ const rollbackApplication = async (
 		memoryReservation,
 		cpuLimit,
 		cpuReservation,
+		pidsLimit,
 	});
 
 	const volumesMount = generateVolumeMounts(mounts);

@@ -26,6 +26,7 @@ export const buildRedis = async (redis: RedisNested) => {
 		databasePassword,
 		cpuLimit,
 		cpuReservation,
+		pidsLimit,
 		command,
 		args,
 		mounts,
@@ -54,6 +55,7 @@ export const buildRedis = async (redis: RedisNested) => {
 		memoryReservation,
 		cpuLimit,
 		cpuReservation,
+		pidsLimit,
 	});
 	const envVariables = prepareEnvironmentVariables(
 		defaultRedisEnv,

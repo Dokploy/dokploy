@@ -33,6 +33,7 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		sqldPrimaryUrl,
 		cpuLimit,
 		cpuReservation,
+		pidsLimit,
 		command,
 		mounts,
 		enableNamespaces,
@@ -63,6 +64,7 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		memoryReservation,
 		cpuLimit,
 		cpuReservation,
+		pidsLimit,
 	});
 	const envVariables = prepareEnvironmentVariables(
 		defaultLibsqlEnv,
