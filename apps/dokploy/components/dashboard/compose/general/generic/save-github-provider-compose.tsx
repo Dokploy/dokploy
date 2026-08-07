@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { DEFAULT_GITHUB_URL } from "@/utils/github-utils";
 
 const GithubProviderSchema = z.object({
 	composePath: z.string().min(1),
@@ -98,6 +99,11 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 	const repository = form.watch("repository");
 	const githubId = form.watch("githubId");
 	const triggerType = form.watch("triggerType");
+
+	// Enterprise repositories do not live on github.com.
+	const providerUrl =
+		githubProviders?.find((provider) => provider.githubId === githubId)
+			?.githubUrl ?? DEFAULT_GITHUB_URL;
 	const { data: repositories, isPending: isLoadingRepositories } =
 		api.github.getGithubRepositories.useQuery(
 			{
@@ -220,7 +226,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 										<FormLabel>Repository</FormLabel>
 										{field.value.owner && field.value.repo && (
 											<Link
-												href={`https://github.com/${field.value.owner}/${field.value.repo}`}
+												href={`${providerUrl}/${field.value.owner}/${field.value.repo}`}
 												target="_blank"
 												rel="noopener noreferrer"
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"

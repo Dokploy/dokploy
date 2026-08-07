@@ -185,7 +185,7 @@ export const ShowImport = ({ composeId }: Props) => {
 								</Button>
 							</div>
 							<Dialog open={showModal} onOpenChange={setShowModal}>
-								<DialogContent className="max-w-[50vw]">
+								<DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col">
 									<DialogHeader>
 										<DialogTitle className="text-2xl font-bold">
 											Template Information
@@ -199,7 +199,7 @@ export const ShowImport = ({ composeId }: Props) => {
 										</DialogDescription>
 									</DialogHeader>
 
-									<div className="flex flex-col gap-6">
+									<div className="flex flex-col gap-6 flex-1 min-h-0 overflow-y-auto pr-1">
 										<div className="space-y-4">
 											<div className="flex items-center gap-2">
 												<Code2 className="h-5 w-5 text-primary" />
@@ -207,12 +207,14 @@ export const ShowImport = ({ composeId }: Props) => {
 													Docker Compose
 												</h3>
 											</div>
-											<CodeEditor
-												language="yaml"
-												value={templateInfo?.compose || ""}
-												className="font-mono"
-												readOnly
-											/>
+											<div className="max-h-[45vh] overflow-auto rounded-md border">
+												<CodeEditor
+													language="yaml"
+													value={templateInfo?.compose || ""}
+													className="font-mono"
+													readOnly
+												/>
+											</div>
 										</div>
 
 										<Separator />

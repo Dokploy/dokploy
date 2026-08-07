@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	jsonb,
+	pgEnum,
+	pgTable,
+	text,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -91,6 +98,7 @@ export const compose = pgTable("compose", {
 		.default(false),
 	triggerType: triggerType("triggerType").default("push"),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
+	icon: text("icon"),
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
@@ -113,6 +121,15 @@ export const compose = pgTable("compose", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	serviceNetworks: jsonb("serviceNetworks")
+		.$type<
+			Array<{
+				serviceName: string;
+				networkIds: string[];
+				detachDokployNetwork: boolean;
+			}>
+		>()
+		.default([]),
 });
 
 export const composeRelations = relations(compose, ({ one, many }) => ({
@@ -174,6 +191,20 @@ const createSchema = createInsertSchema(compose, {
 		.optional(),
 	triggerType: z.enum(["push", "tag"]).optional(),
 	composeStatus: z.enum(["idle", "running", "done", "error"]).optional(),
+	icon: z
+		.string()
+		.max(2 * 1024 * 1024, "Icon must be less than 2MB")
+		.nullable()
+		.optional(),
+	serviceNetworks: z
+		.array(
+			z.object({
+				serviceName: z.string(),
+				networkIds: z.array(z.string()),
+				detachDokployNetwork: z.boolean(),
+			}),
+		)
+		.optional(),
 });
 
 export const apiCreateCompose = createSchema.pick({

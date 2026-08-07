@@ -11,10 +11,24 @@ export const isWSL = async () => {
 	}
 };
 
+/** Returns if running in Docker Desktop. */
+export const isDockerDesktop = async () => {
+	try {
+		const { stdout } = await execAsync("getent hosts host.docker.internal");
+		return !!stdout.trim();
+	} catch {
+		return false;
+	}
+};
+
 /** Returns the Docker host IP address. */
 export const getDockerHost = async (): Promise<string> => {
 	if (process.env.NODE_ENV === "production") {
-		if (process.platform === "linux" && !(await isWSL())) {
+		const isLinux = process.platform === "linux"
+			? (await Promise.all([isWSL(), isDockerDesktop()])).every((v) => !v)
+			: false;
+
+		if (isLinux) {
 			try {
 				// Try to get the Docker bridge IP first
 				const { stdout } = await execAsync(

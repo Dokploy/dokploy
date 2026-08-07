@@ -362,7 +362,6 @@ ${input.logs}`,
 				name: input.name,
 				sourceType: "raw",
 				appName: `${projectName}-${generatePassword(6)}`,
-				isolatedDeployment: true,
 				environmentId: input.environmentId,
 			});
 
