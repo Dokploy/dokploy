@@ -36,7 +36,10 @@ import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { and, asc, eq, gt, ne } from "drizzle-orm";
 import { z } from "zod";
-import { apiKeyNameSchema } from "@/lib/api-keys";
+import {
+	apiKeyNameSchema,
+	canCreateApiKeyForAnotherUser,
+} from "@/lib/api-keys";
 import { audit } from "@/server/api/utils/audit";
 import {
 	adminProcedure,
@@ -50,6 +53,12 @@ const apiCreateApiKey = z.object({
 	name: apiKeyNameSchema,
 	prefix: z.string().optional(),
 	expiresIn: z.number().optional(),
+	/**
+	 * Mint the key for another member of the organization instead of the
+	 * caller. Restricted to organization owners and admins; the target must be
+	 * a member of the same organization. Omit it to mint for yourself.
+	 */
+	userId: z.string().optional(),
 	metadata: z.object({
 		organizationId: z.string(),
 	}),
@@ -557,12 +566,49 @@ export const userRouter = createTRPCRouter({
 				}
 			}
 
-			const apiKey = await createApiKey(ctx.user.id, input);
+			const targetUserId = input.userId ?? ctx.user.id;
+
+			if (targetUserId !== ctx.user.id) {
+				if (!canCreateApiKeyForAnotherUser(ctx.user.role)) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message:
+							"Only organization owners and admins can create an API key for another user",
+					});
+				}
+
+				if (!input.metadata?.organizationId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"metadata.organizationId is required when creating an API key for another user",
+					});
+				}
+
+				const targetMember = await db.query.member.findFirst({
+					where: and(
+						eq(member.organizationId, input.metadata.organizationId),
+						eq(member.userId, targetUserId),
+					),
+				});
+
+				if (!targetMember) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "The target user is not a member of this organization",
+					});
+				}
+			}
+
+			const apiKey = await createApiKey(targetUserId, input);
 			await audit(ctx, {
 				action: "create",
 				resourceType: "user",
 				resourceId: apiKey.id,
-				resourceName: input.name,
+				resourceName:
+					targetUserId === ctx.user.id
+						? input.name
+						: `${input.name} (on behalf of ${targetUserId})`,
 			});
 			return apiKey;
 		}),
