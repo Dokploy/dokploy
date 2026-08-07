@@ -171,6 +171,22 @@ export const SearchCommand = () => {
 								setOpen(false);
 							}}
 						>
+							Home
+						</CommandItem>
+						<CommandItem
+							onSelect={() => {
+								router.push("/dashboard/services");
+								setOpen(false);
+							}}
+						>
+							Services
+						</CommandItem>
+						<CommandItem
+							onSelect={() => {
+								router.push("/dashboard/projects");
+								setOpen(false);
+							}}
+						>
 							Projects
 						</CommandItem>
 						<CommandItem
