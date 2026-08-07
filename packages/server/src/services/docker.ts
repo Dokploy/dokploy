@@ -4,6 +4,25 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { quote } from "shell-quote";
 
+export const swarmServiceIdRegex = /^[a-z0-9]{25}$/;
+
+export const removeSwarmService = async (
+	serviceId: string,
+	serverId?: string | null,
+) => {
+	if (!swarmServiceIdRegex.test(serviceId)) {
+		throw new Error(
+			"Invalid Docker Swarm service ID: expected 25 lowercase alphanumeric characters.",
+		);
+	}
+
+	const command = `docker service rm ${serviceId}`;
+	if (serverId) {
+		return await execAsyncRemote(serverId, command);
+	}
+	return await execAsync(command);
+};
+
 export const getContainers = async (serverId?: string | null) => {
 	try {
 		const command =
