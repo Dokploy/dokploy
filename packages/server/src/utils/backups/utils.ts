@@ -61,6 +61,32 @@ export const removeScheduleBackup = (backupId: string) => {
 export const getBackupTimestamp = () =>
 	new Date().toISOString().replace(/[:.]/g, "-");
 
+const UNSAFE_CUSTOM_NAME_CHARS = /[^a-zA-Z0-9._-]+/g;
+
+export const sanitizeBackupCustomName = (
+	customName?: string | null,
+): string => {
+	if (!customName) return "";
+	return customName
+		.trim()
+		.replace(UNSAFE_CUSTOM_NAME_CHARS, "-")
+		.replace(/^-+|-+$/g, "");
+};
+
+export const getBackupFileName = (
+	customName: string | null | undefined,
+	extension: string,
+	fixedPrefix?: string,
+): string => {
+	const timestamp = getBackupTimestamp();
+	const parts = [fixedPrefix, sanitizeBackupCustomName(customName)].filter(
+		Boolean,
+	);
+	return parts.length
+		? `${parts.join("-")}-${timestamp}.${extension}`
+		: `${timestamp}.${extension}`;
+};
+
 export const normalizeS3Path = (prefix: string) => {
 	// Trim whitespace and remove leading/trailing slashes
 	const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");

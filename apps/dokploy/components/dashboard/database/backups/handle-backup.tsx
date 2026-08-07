@@ -78,6 +78,15 @@ const Schema = z
 		destinationId: z.string().min(1, "Destination required"),
 		schedule: z.string().min(1, "Schedule (Cron) required"),
 		prefix: z.string().min(1, "Prefix required"),
+		customName: z
+			.string()
+			.trim()
+			.max(100, "Custom name must be 100 characters or less")
+			.regex(
+				/^[a-zA-Z0-9._-]*$/,
+				"Only letters, numbers, dots, hyphens and underscores are allowed",
+			)
+			.optional(),
 		enabled: z.boolean(),
 		includeEncryptionKey: z.boolean(),
 		database: z.string().min(1, "Database required"),
@@ -226,6 +235,7 @@ export const HandleBackup = ({
 			enabled: true,
 			includeEncryptionKey: true,
 			prefix: "/",
+			customName: "",
 			schedule: "",
 			keepLatestCount: undefined,
 			serviceName: null,
@@ -266,6 +276,7 @@ export const HandleBackup = ({
 			enabled: backup?.enabled ?? true,
 			includeEncryptionKey: backup?.includeEncryptionKey ?? true,
 			prefix: backup?.prefix ?? "/",
+			customName: backup?.customName ?? "",
 			schedule: backup?.schedule ?? "",
 			keepLatestCount: backup?.keepLatestCount ?? undefined,
 			serviceName: backup?.serviceName ?? null,
@@ -310,6 +321,7 @@ export const HandleBackup = ({
 		await createBackup({
 			destinationId: data.destinationId,
 			prefix: data.prefix,
+			customName: data.customName ?? "",
 			schedule: data.schedule,
 			enabled: data.enabled,
 			includeEncryptionKey: data.includeEncryptionKey,
@@ -620,6 +632,28 @@ export const HandleBackup = ({
 												destination/bucket
 											</FormDescription>
 
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+							<FormField
+								control={form.control}
+								name="customName"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<FormLabel>Custom File Name</FormLabel>
+											<FormControl>
+												<Input placeholder={"my-backup"} {...field} />
+											</FormControl>
+											<FormDescription>
+												Optional. Prepended to the automatically generated
+												timestamp, e.g.
+												"my-backup-2026-08-03T20-58-22-123Z.sql.gz". Only
+												letters, numbers, dots, hyphens and underscores are
+												allowed.
+											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									);
