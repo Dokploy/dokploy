@@ -1,4 +1,5 @@
 import {
+	countDeploymentsCentralized,
 	execAsync,
 	execAsyncRemote,
 	findAllDeploymentsByApplicationId,
@@ -64,8 +65,16 @@ export const deploymentRouter = createTRPCRouter({
 			}
 			return await findAllDeploymentsByServerId(input.serverId);
 		}),
-	allCentralized: withPermission("deployment", "read").query(
-		async ({ ctx }) => {
+	allCentralized: withPermission("deployment", "read")
+		.input(
+			z
+				.object({
+					limit: z.number().min(1).max(500).optional(),
+					status: z.enum(["running", "done", "error", "cancelled"]).optional(),
+				})
+				.optional(),
+		)
+		.query(async ({ ctx, input }) => {
 			const orgId = ctx.session.activeOrganizationId;
 			const accessedServices =
 				ctx.user.role !== "owner" && ctx.user.role !== "admin"
@@ -74,9 +83,59 @@ export const deploymentRouter = createTRPCRouter({
 			if (accessedServices !== null && accessedServices.length === 0) {
 				return [];
 			}
-			return findAllDeploymentsCentralized(orgId, accessedServices);
-		},
-	),
+			return findAllDeploymentsCentralized(orgId, accessedServices, {
+				limit: input?.limit,
+				status: input?.status,
+			});
+		}),
+
+	homeSummary: withPermission("deployment", "read").query(async ({ ctx }) => {
+		const orgId = ctx.session.activeOrganizationId;
+		const accessedServices =
+			ctx.user.role !== "owner" && ctx.user.role !== "admin"
+				? (await findMemberByUserId(ctx.user.id, orgId)).accessedServices
+				: null;
+
+		const now = Date.now();
+		const weekMs = 7 * 24 * 60 * 60 * 1000;
+		const last7dStart = new Date(now - weekMs);
+		const prev7dStart = new Date(now - 2 * weekMs);
+
+		const [recent, failed, last7d, prev7d, failed7d, runningCount] =
+			await Promise.all([
+				findAllDeploymentsCentralized(orgId, accessedServices, { limit: 10 }),
+				findAllDeploymentsCentralized(orgId, accessedServices, {
+					limit: 5,
+					status: "error",
+					since: last7dStart,
+				}),
+				countDeploymentsCentralized(orgId, accessedServices, {
+					since: last7dStart,
+				}),
+				countDeploymentsCentralized(orgId, accessedServices, {
+					since: prev7dStart,
+					until: last7dStart,
+				}),
+				countDeploymentsCentralized(orgId, accessedServices, {
+					status: "error",
+					since: last7dStart,
+				}),
+				countDeploymentsCentralized(orgId, accessedServices, {
+					status: "running",
+				}),
+			]);
+
+		return {
+			recent,
+			failed,
+			stats: {
+				last7d,
+				prev7d,
+				failed7d,
+				running: runningCount,
+			},
+		};
+	}),
 
 	queueList: withPermission("deployment", "read").query(async ({ ctx }) => {
 		const orgId = ctx.session.activeOrganizationId;

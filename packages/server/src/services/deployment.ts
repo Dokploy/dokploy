@@ -23,7 +23,17 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
-import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import {
+	and,
+	desc,
+	eq,
+	gte,
+	inArray,
+	lt,
+	or,
+	type SQL,
+	sql,
+} from "drizzle-orm";
 import type { z } from "zod";
 import {
 	type Application,
@@ -890,16 +900,19 @@ async function getComposeIdsInOrg(
 	return rows.map((r) => r.composeId);
 }
 
-/**
- * All deployments for applications and compose in the org.
- * Pass accessedServices for members (only those services), null for owner/admin.
- */
-export const findAllDeploymentsCentralized = async (
+export type CentralizedDeploymentOptions = {
+	limit?: number;
+	status?: "running" | "done" | "error" | "cancelled";
+	since?: Date;
+	until?: Date;
+};
+
+async function getCentralizedDeploymentScope(
 	orgId: string,
 	accessedServices: string[] | null,
-) => {
+): Promise<{ whereClause: SQL; empty: boolean }> {
 	if (accessedServices !== null && accessedServices.length === 0) {
-		return [];
+		return { whereClause: sql`1 = 0`, empty: true };
 	}
 
 	const [appIds, compIds] = await Promise.all([
@@ -908,25 +921,85 @@ export const findAllDeploymentsCentralized = async (
 	]);
 
 	if (appIds.length === 0 && compIds.length === 0) {
-		return [];
+		return { whereClause: sql`1 = 0`, empty: true };
 	}
 
-	const conditions = [
+	const conditions: SQL[] = [
 		...(appIds.length > 0 ? [inArray(deployments.applicationId, appIds)] : []),
 		...(compIds.length > 0 ? [inArray(deployments.composeId, compIds)] : []),
 	];
+
 	const whereClause =
-		conditions.length === 0
-			? sql`1 = 0`
-			: conditions.length === 1
-				? conditions[0]
-				: or(...conditions);
+		conditions.length === 1 ? conditions[0]! : or(...conditions)!;
+
+	return { whereClause, empty: false };
+}
+
+function withDeploymentFilters(
+	baseWhere: SQL,
+	options?: CentralizedDeploymentOptions,
+): SQL {
+	const filters: SQL[] = [baseWhere];
+	if (options?.status) {
+		filters.push(eq(deployments.status, options.status));
+	}
+	if (options?.since) {
+		filters.push(gte(deployments.createdAt, options.since.toISOString()));
+	}
+	if (options?.until) {
+		filters.push(lt(deployments.createdAt, options.until.toISOString()));
+	}
+	return filters.length === 1 ? filters[0]! : and(...filters)!;
+}
+
+/**
+ * Deployments for applications and compose in the org.
+ * Pass accessedServices for members (only those services), null for owner/admin.
+ * Optional limit/status/since/until avoid loading the full history on home.
+ */
+export const findAllDeploymentsCentralized = async (
+	orgId: string,
+	accessedServices: string[] | null,
+	options?: CentralizedDeploymentOptions,
+) => {
+	const { whereClause, empty } = await getCentralizedDeploymentScope(
+		orgId,
+		accessedServices,
+	);
+	if (empty) {
+		return [];
+	}
 
 	return db.query.deployments.findMany({
-		where: whereClause,
+		where: withDeploymentFilters(whereClause, options),
 		orderBy: desc(deployments.createdAt),
+		limit: options?.limit,
 		with: centralizedDeploymentsWith,
 	});
+};
+
+/**
+ * Lightweight deployment counts for the home dashboard KPIs.
+ */
+export const countDeploymentsCentralized = async (
+	orgId: string,
+	accessedServices: string[] | null,
+	options?: Omit<CentralizedDeploymentOptions, "limit">,
+) => {
+	const { whereClause, empty } = await getCentralizedDeploymentScope(
+		orgId,
+		accessedServices,
+	);
+	if (empty) {
+		return 0;
+	}
+
+	const [row] = await db
+		.select({ count: sql<number>`cast(count(*) as integer)` })
+		.from(deployments)
+		.where(withDeploymentFilters(whereClause, options));
+
+	return row?.count ?? 0;
 };
 
 export const updateDeployment = async (
