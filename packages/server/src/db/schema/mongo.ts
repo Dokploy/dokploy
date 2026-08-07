@@ -65,6 +65,7 @@ export const mongo = pgTable("mongo", {
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
 	cpuLimit: text("cpuLimit"),
+	pidsLimit: text("pidsLimit"),
 	externalPort: integer("externalPort"),
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
@@ -133,6 +134,7 @@ const createSchema = createInsertSchema(mongo, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
+	pidsLimit: z.string().optional(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),

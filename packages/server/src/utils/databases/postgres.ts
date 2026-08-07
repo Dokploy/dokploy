@@ -25,6 +25,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		memoryReservation,
 		cpuLimit,
 		cpuReservation,
+		pidsLimit,
 		databaseName,
 		databaseUser,
 		databasePassword,
@@ -56,6 +57,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		memoryReservation,
 		cpuLimit,
 		cpuReservation,
+		pidsLimit,
 	});
 	const envVariables = prepareEnvironmentVariables(
 		defaultPostgresEnv,

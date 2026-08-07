@@ -69,6 +69,7 @@ const addResourcesSchema = z.object({
 	cpuLimit: z.string().optional(),
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
+	pidsLimit: z.string().optional(),
 	ulimitsSwarm: z.array(ulimitSchema).optional(),
 });
 
@@ -141,6 +142,7 @@ export const ShowResources = ({ id, type }: Props) => {
 			cpuReservation: "",
 			memoryLimit: "",
 			memoryReservation: "",
+			pidsLimit: "",
 			ulimitsSwarm: [],
 		},
 		resolver: zodResolver(addResourcesSchema),
@@ -158,6 +160,7 @@ export const ShowResources = ({ id, type }: Props) => {
 				cpuReservation: data?.cpuReservation || undefined,
 				memoryLimit: data?.memoryLimit || undefined,
 				memoryReservation: data?.memoryReservation || undefined,
+				pidsLimit: (data as any)?.pidsLimit || undefined,
 				ulimitsSwarm: (data as any)?.ulimitsSwarm || [],
 			});
 		}
@@ -176,6 +179,7 @@ export const ShowResources = ({ id, type }: Props) => {
 			cpuReservation: formData.cpuReservation || null,
 			memoryLimit: formData.memoryLimit || null,
 			memoryReservation: formData.memoryReservation || null,
+			pidsLimit: formData.pidsLimit || null,
 			ulimitsSwarm:
 				formData.ulimitsSwarm && formData.ulimitsSwarm.length > 0
 					? formData.ulimitsSwarm
@@ -363,6 +367,48 @@ export const ShowResources = ({ id, type }: Props) => {
 													placeholder="1000000000 (1 CPU)"
 													step={CPU_STEP}
 													converter={cpuConverter}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+							<FormField
+								control={form.control}
+								name="pidsLimit"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<div
+												className="flex items-center gap-2"
+												onClick={(e) => e.preventDefault()}
+											>
+												<FormLabel>PIDs Limit</FormLabel>
+												<TooltipProvider>
+													<Tooltip delayDuration={0}>
+														<TooltipTrigger type="button">
+															<InfoIcon className="h-4 w-4 text-muted-foreground" />
+														</TooltipTrigger>
+														<TooltipContent>
+															<p>
+																Maximum number of processes and threads the
+																service may create. Bounds a runaway or
+																fork-bombing container so it cannot exhaust the
+																host's PID space and affect other services.
+																Leave empty for no limit.
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
+											<FormControl>
+												<Input
+													type="number"
+													min="1"
+													placeholder="512"
+													{...field}
+													value={field.value ?? ""}
 												/>
 											</FormControl>
 											<FormMessage />

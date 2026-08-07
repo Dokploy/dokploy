@@ -29,6 +29,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		databaseRootPassword,
 		cpuLimit,
 		cpuReservation,
+		pidsLimit,
 		command,
 		args,
 		mounts,
@@ -57,6 +58,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		memoryReservation,
 		cpuLimit,
 		cpuReservation,
+		pidsLimit,
 	});
 	const envVariables = prepareEnvironmentVariables(
 		defaultMariadbEnv,
