@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { integer, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { gitProvider } from "./git-provider";
@@ -18,6 +18,7 @@ export const gitlab = pgTable("gitlab", {
 	refreshToken: text("refresh_token"),
 	groupName: text("group_name"),
 	expiresAt: integer("expires_at"),
+	enableAutoDeploy: boolean("enableAutoDeploy").notNull().default(true),
 	gitProviderId: text("gitProviderId")
 		.notNull()
 		.references(() => gitProvider.gitProviderId, { onDelete: "cascade" }),
@@ -40,6 +41,7 @@ export const apiCreateGitlab = z.object({
 	name: z.string().min(1),
 	gitlabUrl: z.string().min(1),
 	gitlabInternalUrl: z.string().optional().nullable(),
+	enableAutoDeploy: z.boolean().optional(),
 });
 
 export const apiFindOneGitlab = z.object({
@@ -68,4 +70,5 @@ export const apiUpdateGitlab = z.object({
 	gitlabUrl: z.string().min(1),
 	gitProviderId: z.string().min(1),
 	gitlabInternalUrl: z.string().optional().nullable(),
+	enableAutoDeploy: z.boolean().optional(),
 });

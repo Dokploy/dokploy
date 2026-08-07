@@ -26,6 +26,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { useUrl } from "@/utils/hooks/use-url";
 
@@ -51,6 +52,7 @@ const Schema = z.object({
 		message: "Redirect URI is required",
 	}),
 	groupName: z.string().optional(),
+	enableAutoDeploy: z.boolean().default(true),
 });
 
 type Schema = z.infer<typeof Schema>;
@@ -72,6 +74,7 @@ export const AddGitlabProvider = () => {
 			name: "",
 			gitlabUrl: "https://gitlab.com",
 			gitlabInternalUrl: "",
+			enableAutoDeploy: true,
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -87,6 +90,7 @@ export const AddGitlabProvider = () => {
 			name: "",
 			gitlabUrl: "https://gitlab.com",
 			gitlabInternalUrl: "",
+			enableAutoDeploy: true,
 		});
 	}, [form, isOpen]);
 
@@ -100,6 +104,7 @@ export const AddGitlabProvider = () => {
 			redirectUri: data.redirectUri || "",
 			gitlabUrl: data.gitlabUrl || "https://gitlab.com",
 			gitlabInternalUrl: data.gitlabInternalUrl || undefined,
+			enableAutoDeploy: data.enableAutoDeploy,
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
@@ -288,6 +293,29 @@ export const AddGitlabProvider = () => {
 												/>
 											</FormControl>
 											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="enableAutoDeploy"
+									render={({ field }) => (
+										<FormItem className="flex items-center justify-between gap-4 rounded-lg border p-4">
+											<div className="space-y-0.5">
+												<FormLabel>Enable Automatic Deployments</FormLabel>
+												<FormDescription>
+													Automatically configure deploy webhooks when this
+													GitLab provider is used by an application or compose
+													service.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
 										</FormItem>
 									)}
 								/>
