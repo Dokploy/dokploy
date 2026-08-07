@@ -82,20 +82,29 @@ const sanitizeCommand = (command: string) => {
 		);
 	}
 
-		if (sanitizedCommand.includes("&")) {
+	if (sanitizedCommand.includes("&")) {
 		// Block single '&' (e.g., backgrounding tasks) or malformed chains like '&&&'
-		if (/(?<!&)&(?!&)/.test(sanitizedCommand) || sanitizedCommand.includes("&&&")) {
+		if (
+			/(?<!&)&(?!&)/.test(sanitizedCommand) ||
+			sanitizedCommand.includes("&&&")
+		) {
 			throw new Error("Single '&' is not allowed. Use '&&' for chaining.");
 		}
 
 		// Split by '&&' and check that every chained command (skipping the first one) is safe
 		const chains = sanitizedCommand.split("&&").map((cmd) => cmd.trim());
-		const isSafeChain = chains.slice(1).every((cmd) => 
-			cmd.startsWith("docker compose ") || cmd.startsWith("docker-compose ")
-		);
+		const isSafeChain = chains
+			.slice(1)
+			.every(
+				(cmd) =>
+					cmd.startsWith("docker compose ") ||
+					cmd.startsWith("docker-compose "),
+			);
 
 		if (!isSafeChain) {
-			throw new Error("Chained commands must strictly start with 'docker compose '");
+			throw new Error(
+				"Chained commands must strictly start with 'docker compose '",
+			);
 		}
 	}
 
