@@ -17,6 +17,7 @@ import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
+import { partitionPreviewApps } from "@/utils/preview-deployment";
 import {
 	extractCommitMessage,
 	extractHash,
@@ -380,6 +381,11 @@ export default async function handler(
 			const owner = getGithubRepositoryOwner(githubBody);
 			const prAuthor = githubBody?.pull_request?.user?.login;
 
+			const prNumber = githubBody?.pull_request?.number;
+			const prTitle = githubBody?.pull_request?.title;
+			const prURL = githubBody?.pull_request?.html_url;
+			const prBranch = githubBody?.pull_request?.head?.ref;
+
 			// Validate PR author information is present
 			if (!prAuthor) {
 				console.warn(
@@ -405,87 +411,47 @@ export default async function handler(
 				},
 			});
 
-			// SECURITY: Check collaborator permissions per application setting
-			const secureApps: typeof apps = [];
-			const blockedApps: string[] = [];
-			let userPermission: string | null = null;
-
-			for (const app of apps) {
-				// If the app requires collaborator permissions, verify them
-				if (app.previewRequireCollaboratorPermissions !== false) {
-					try {
+			// Labels are filtered before permissions, so a PR that would be
+			// skipped anyway never triggers a security block (issue #4902).
+			// Every decision is logged with the PR context for traceability.
+			const { authorizedApps, blockedAppNames, authorPermission } =
+				await partitionPreviewApps({
+					apps,
+					pullRequestLabels: githubBody?.pull_request?.labels,
+					owner,
+					repository,
+					prAuthor,
+					prNumber,
+					action,
+					resolveAuthorPermission: async () => {
 						const githubProvider = await findGithubById(githubResult.githubId);
-						const { hasWriteAccess, permission } =
-							await checkUserRepositoryPermissions(
-								githubProvider,
-								owner,
-								repository,
-								prAuthor,
-							);
-
-						userPermission = permission; // Store permission for comment
-
-						if (!hasWriteAccess) {
-							console.warn(
-								`🚨 SECURITY: Blocked preview deployment for ${app.name} from unauthorized user ${prAuthor} on ${owner}/${repository}. Permission: ${permission || "none"}`,
-							);
-							blockedApps.push(app.name);
-							continue;
-						}
-
-						console.log(
-							`✅ SECURITY: Preview deployment authorized for ${app.name} from user ${prAuthor} on ${owner}/${repository}. Permission: ${permission}`,
+						return checkUserRepositoryPermissions(
+							githubProvider,
+							owner,
+							repository,
+							prAuthor,
 						);
-					} catch (error) {
-						console.error(
-							`Error validating PR author permissions for ${app.name}:`,
-							error,
-						);
-						blockedApps.push(app.name);
-						continue; // Skip this app on error
-					}
-				} else {
-					console.warn(
-						`⚠️  SECURITY: Preview deployment for ${app.name} allows deployment from any PR author (security check disabled)`,
-					);
-				}
-				secureApps.push(app);
-			}
-
-			const prBranch = githubBody?.pull_request?.head?.ref;
-
-			const prNumber = githubBody?.pull_request?.number;
-			const prTitle = githubBody?.pull_request?.title;
-			const prURL = githubBody?.pull_request?.html_url;
+					},
+				});
 
 			// Create security notification comment if any apps were blocked
-			if (blockedApps.length > 0) {
+			if (blockedAppNames.length > 0) {
 				await createSecurityBlockedComment({
 					owner,
 					repository,
 					prNumber: Number.parseInt(prNumber),
 					prAuthor,
-					permission: userPermission,
+					permission: authorPermission,
 					githubId: githubResult.githubId,
 				});
 			}
 
-			for (const app of secureApps) {
-				// check for labels
-				if (app?.previewLabels && app?.previewLabels?.length > 0) {
-					let hasLabel = false;
-					const labels = githubBody?.pull_request?.labels;
-					for (const label of labels) {
-						if (app?.previewLabels?.includes(label.name)) {
-							hasLabel = true;
-							break;
-						}
-					}
-					if (!hasLabel) continue;
-				}
-
+			for (const app of authorizedApps) {
 				const previewLimit = app?.previewLimit || 0;
 				if (app?.previewDeployments?.length > previewLimit) {
+					console.log(
+						`⏭️  Preview SKIPPED for "${app.name}" — PR #${prNumber} (${action}): preview limit reached (${app.previewDeployments.length}/${previewLimit})`,
+					);
 					continue;
 				}
 				const previewDeploymentResult =
