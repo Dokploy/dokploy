@@ -106,6 +106,7 @@ export const compose = pgTable("compose", {
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
 	watchPaths: text("watchPaths").array(),
+	tagFilter: text("tagFilter"),
 	githubId: text("githubId").references(() => github.githubId, {
 		onDelete: "set null",
 	}),
@@ -186,6 +187,7 @@ const createSchema = createInsertSchema(compose, {
 	composePath: z.string().min(1),
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
 	watchPaths: z.array(z.string()).optional(),
+	tagFilter: z.string().optional(),
 	sourceType: z
 		.enum(["git", "github", "gitlab", "bitbucket", "gitea", "raw"])
 		.optional(),

@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 	queueAdd: vi.fn(),
 	verify: vi.fn(),
 	shouldDeploy: vi.fn(),
+	matchesTag: vi.fn(),
 }));
 
 vi.mock("drizzle-orm", () => ({
@@ -63,6 +64,7 @@ vi.mock("@dokploy/server/db", () => ({
 vi.mock("@dokploy/server", () => ({
 	IS_CLOUD: false,
 	shouldDeploy: mocks.shouldDeploy,
+	matchesTag: mocks.matchesTag,
 	checkUserRepositoryPermissions: vi.fn(),
 	createPreviewDeployment: vi.fn(),
 	createSecurityBlockedComment: vi.fn(),
@@ -167,6 +169,7 @@ describe("GitHub app webhook auto-deploy", () => {
 		});
 		mocks.verify.mockResolvedValue(true);
 		mocks.shouldDeploy.mockReturnValue(true);
+		mocks.matchesTag.mockReturnValue(true);
 		mocks.composeFindMany.mockResolvedValue([]);
 		mocks.queueAdd.mockResolvedValue({ id: "job-id" });
 
