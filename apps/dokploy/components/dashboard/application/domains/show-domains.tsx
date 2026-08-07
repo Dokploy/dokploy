@@ -110,6 +110,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 	);
 	const autoValidatedHostsRef = useRef<Set<string>>(new Set());
 	const validationRequestIdRef = useRef(0);
+	const hostValidationRequestIdsRef = useRef<Map<string, number>>(new Map());
 	const [viewMode, setViewMode] = useState<"grid" | "table">(() => {
 		if (typeof window !== "undefined") {
 			return (
@@ -195,12 +196,20 @@ export const ShowDomains = ({ id, type }: Props) => {
 
 	const handleValidateDomain = useCallback(
 		async (host: string, serverIpOverride?: string) => {
-			const requestId = validationRequestIdRef.current;
+			const serviceRequestId = validationRequestIdRef.current;
+			const hostRequestId =
+				(hostValidationRequestIdsRef.current.get(host) ?? 0) + 1;
+			hostValidationRequestIdsRef.current.set(host, hostRequestId);
+
 			const serverIp =
 				serverIpOverride ??
 				(application?.server?.ipAddress?.toString() || ip?.toString() || "");
 
-			if (validationRequestIdRef.current !== requestId) {
+			const isCurrentRequest = () =>
+				validationRequestIdRef.current === serviceRequestId &&
+				hostValidationRequestIdsRef.current.get(host) === hostRequestId;
+
+			if (!isCurrentRequest()) {
 				return;
 			}
 
@@ -215,7 +224,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 					serverIp,
 				});
 
-				if (validationRequestIdRef.current !== requestId) {
+				if (!isCurrentRequest()) {
 					return;
 				}
 
@@ -231,7 +240,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 					},
 				}));
 			} catch (err) {
-				if (validationRequestIdRef.current !== requestId) {
+				if (!isCurrentRequest()) {
 					return;
 				}
 
@@ -252,6 +261,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 	useEffect(() => {
 		validationRequestIdRef.current += 1;
 		autoValidatedHostsRef.current = new Set();
+		hostValidationRequestIdsRef.current = new Map();
 		setValidationStates({});
 	}, [id]);
 
