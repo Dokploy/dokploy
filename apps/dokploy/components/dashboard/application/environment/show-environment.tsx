@@ -16,16 +16,20 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
+	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
 import { Toggle } from "@/components/ui/toggle";
 import { api } from "@/utils/api";
 import type { ServiceType } from "../advanced/show-resources";
 
 const addEnvironmentSchema = z.object({
 	environment: z.string(),
+	createEnvFile: z.boolean(),
 });
 
 type EnvironmentSchema = z.infer<typeof addEnvironmentSchema>;
@@ -71,18 +75,32 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 	const form = useForm<EnvironmentSchema>({
 		defaultValues: {
 			environment: "",
+			createEnvFile: true,
 		},
 		resolver: zodResolver(addEnvironmentSchema),
 	});
 
 	// Watch form value
 	const currentEnvironment = form.watch("environment");
-	const hasChanges = currentEnvironment !== (data?.env || "");
+	const currentCreateEnvFile = form.watch("createEnvFile");
+	const composeData =
+		type === "compose"
+			? (data as { createEnvFile?: boolean; sourceType?: string } | undefined)
+			: undefined;
+
+	const showCreateEnvFileToggle =
+		type === "compose" &&
+		(composeData?.sourceType !== "raw" || composeData?.createEnvFile === false);
+	const hasChanges =
+		currentEnvironment !== (data?.env || "") ||
+		(showCreateEnvFileToggle &&
+			currentCreateEnvFile !== (composeData?.createEnvFile ?? true));
 
 	useEffect(() => {
 		if (data) {
 			form.reset({
 				environment: data.env || "",
+				createEnvFile: composeData?.createEnvFile ?? true,
 			});
 		}
 	}, [data, form]);
@@ -97,6 +115,9 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 			postgresId: id || "",
 			redisId: id || "",
 			env: formData.environment,
+			...(type === "compose" && {
+				createEnvFile: formData.createEnvFile,
+			}),
 		})
 			.then(async () => {
 				toast.success("Environments Added");
@@ -110,6 +131,7 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 	const handleCancel = () => {
 		form.reset({
 			environment: data?.env || "",
+			createEnvFile: composeData?.createEnvFile ?? true,
 		});
 	};
 
@@ -189,6 +211,33 @@ PORT=3000
 									</FormItem>
 								)}
 							/>
+
+							{showCreateEnvFileToggle && (
+								<FormField
+									control={form.control}
+									name="createEnvFile"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-xs">
+											<div className="space-y-0.5">
+												<FormLabel>Create Environment File</FormLabel>
+												<FormDescription>
+													When enabled, an .env file will be created in the same
+													directory as your compose file on every deploy.
+													Disable this if you don't want to generate an
+													environment file.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+													disabled={!canWrite}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							)}
 
 							{canWrite && (
 								<div className="flex flex-row justify-end gap-2">

@@ -19,7 +19,9 @@ export const getBuildComposeCommand = async (compose: ComposeNested) => {
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { sourceType, appName, mounts, composeType, domains } = compose;
 	const command = createCommand(compose);
-	const envCommand = getCreateEnvFileCommand(compose);
+	const envCommand = compose.createEnvFile
+		? getCreateEnvFileCommand(compose)
+		: "";
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 	const exportEnvCommand = getExportEnvCommand(compose);
 
