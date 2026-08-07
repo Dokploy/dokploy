@@ -1,6 +1,7 @@
 import { CLEANUP_CRON_JOB } from "@dokploy/server/constants";
 import { member } from "@dokploy/server/db/schema";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
+import type { Destination } from "@dokploy/server/services/destination";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { getAllServers } from "@dokploy/server/services/server";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
@@ -12,7 +13,12 @@ import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { redactRcloneCredentials } from "./redact";
-import { getS3Credentials, normalizeS3Path, scheduleBackup } from "./utils";
+import {
+	getBackupFilePrefix,
+	getS3Credentials,
+	normalizeS3Path,
+	scheduleBackup,
+} from "./utils";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
@@ -124,6 +130,34 @@ const getServiceAppName = (backup: BackupSchedule): string => {
 	return serviceAppName || backup.appName;
 };
 
+export const getKeepLatestNBackupsCommand = (
+	backup: BackupSchedule,
+	destination: Destination,
+) => {
+	const rcloneFlags = getS3Credentials(destination);
+	const appName = getServiceAppName(backup);
+	const backupFilesPath = `:s3:${destination.bucket}/${appName}/${normalizeS3Path(backup.prefix)}`;
+
+	// The include pattern makes sure nothing other than this backup's own files
+	// is touched by rclone: the extension keeps foreign files out, and the
+	// database prefix keeps out the backups of the other databases hosted by the
+	// same service, which share this folder. Web server backups get a folder of
+	// their own (keyed by the backup's appName), so they cannot collide.
+	const includePattern =
+		backup.databaseType === "web-server"
+			? "*.zip"
+			: `${getBackupFilePrefix(backup.database)}*.{sql.gz,bson.gz}`;
+
+	const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "${includePattern}" ${backupFilesPath}`;
+	// when we pipe the above command with this one, we only get the list of files we want to delete
+	const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
+	// this command deletes the files
+	// to test the deletion before actually deleting we can add --dry-run before ${backupFilesPath}{}
+	const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
+
+	return `${rcloneList} | ${sortAndPickUnwantedBackups} ${rcloneDelete}`;
+};
+
 export const keepLatestNBackups = async (
 	backup: BackupSchedule,
 	serverId?: string | null,
@@ -134,19 +168,7 @@ export const keepLatestNBackups = async (
 
 	try {
 		const destination = await findDestinationById(backup.destinationId);
-		const rcloneFlags = getS3Credentials(destination);
-		const appName = getServiceAppName(backup);
-		const backupFilesPath = `:s3:${destination.bucket}/${appName}/${normalizeS3Path(backup.prefix)}`;
-
-		// --include "*.bson.gz" or "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
-		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" ${backupFilesPath}`;
-		// when we pipe the above command with this one, we only get the list of files we want to delete
-		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
-		// this command deletes the files
-		// to test the deletion before actually deleting we can add --dry-run before ${backupFilesPath}{}
-		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
-
-		const rcloneCommand = `${rcloneList} | ${sortAndPickUnwantedBackups} ${rcloneDelete}`;
+		const rcloneCommand = getKeepLatestNBackupsCommand(backup, destination);
 
 		if (serverId) {
 			await execAsyncRemote(serverId, rcloneCommand);
