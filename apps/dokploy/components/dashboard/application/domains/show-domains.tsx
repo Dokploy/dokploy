@@ -109,6 +109,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 		{},
 	);
 	const autoValidatedHostsRef = useRef<Set<string>>(new Set());
+	const validationRequestIdRef = useRef(0);
 	const [viewMode, setViewMode] = useState<"grid" | "table">(() => {
 		if (typeof window !== "undefined") {
 			return (
@@ -183,8 +184,26 @@ export const ShowDomains = ({ id, type }: Props) => {
 		}
 	};
 
+	const resolveServerIp = useCallback(() => {
+		const remoteIp = application?.server?.ipAddress?.toString();
+		if (application?.serverId) {
+			return remoteIp || undefined;
+		}
+
+		return ip?.toString() || undefined;
+	}, [application?.server?.ipAddress, application?.serverId, ip]);
+
 	const handleValidateDomain = useCallback(
-		async (host: string) => {
+		async (host: string, serverIpOverride?: string) => {
+			const requestId = validationRequestIdRef.current;
+			const serverIp =
+				serverIpOverride ??
+				(application?.server?.ipAddress?.toString() || ip?.toString() || "");
+
+			if (validationRequestIdRef.current !== requestId) {
+				return;
+			}
+
 			setValidationStates((prev) => ({
 				...prev,
 				[host]: { isLoading: true },
@@ -193,9 +212,12 @@ export const ShowDomains = ({ id, type }: Props) => {
 			try {
 				const result = await validateDomain({
 					domain: host,
-					serverIp:
-						application?.server?.ipAddress?.toString() || ip?.toString() || "",
+					serverIp,
 				});
+
+				if (validationRequestIdRef.current !== requestId) {
+					return;
+				}
 
 				setValidationStates((prev) => ({
 					...prev,
@@ -209,6 +231,10 @@ export const ShowDomains = ({ id, type }: Props) => {
 					},
 				}));
 			} catch (err) {
+				if (validationRequestIdRef.current !== requestId) {
+					return;
+				}
+
 				const error = err as Error;
 				setValidationStates((prev) => ({
 					...prev,
@@ -224,24 +250,73 @@ export const ShowDomains = ({ id, type }: Props) => {
 	);
 
 	useEffect(() => {
+		validationRequestIdRef.current += 1;
 		autoValidatedHostsRef.current = new Set();
 		setValidationStates({});
 	}, [id]);
 
 	useEffect(() => {
-		if (!data?.length || !isIpFetched || !isApplicationFetched) {
+		if (!data?.length || !isApplicationFetched) {
 			return;
 		}
 
-		for (const item of data) {
-			if (autoValidatedHostsRef.current.has(item.host)) {
-				continue;
+		if (application?.serverId) {
+			if (!application.server?.ipAddress) {
+				return;
 			}
-
-			autoValidatedHostsRef.current.add(item.host);
-			void handleValidateDomain(item.host);
+		} else if (!isIpFetched) {
+			return;
 		}
-	}, [data, isIpFetched, isApplicationFetched, handleValidateDomain]);
+
+		const serverIp = resolveServerIp();
+		if (!serverIp) {
+			return;
+		}
+
+		const hostsToValidate = data
+			.map((item) => item.host)
+			.filter((host) => {
+				if (autoValidatedHostsRef.current.has(host)) {
+					return false;
+				}
+
+				autoValidatedHostsRef.current.add(host);
+				return true;
+			});
+
+		if (hostsToValidate.length === 0) {
+			return;
+		}
+
+		const maxConcurrent = 5;
+		let nextIndex = 0;
+
+		const runNext = async () => {
+			while (nextIndex < hostsToValidate.length) {
+				const host = hostsToValidate[nextIndex];
+				nextIndex += 1;
+				if (!host) {
+					continue;
+				}
+				await handleValidateDomain(host, serverIp);
+			}
+		};
+
+		void Promise.all(
+			Array.from(
+				{ length: Math.min(maxConcurrent, hostsToValidate.length) },
+				() => runNext(),
+			),
+		);
+	}, [
+		data,
+		isIpFetched,
+		isApplicationFetched,
+		application?.serverId,
+		application?.server?.ipAddress,
+		resolveServerIp,
+		handleValidateDomain,
+	]);
 
 	const columns = createColumns({
 		id,
