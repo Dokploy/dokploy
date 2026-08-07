@@ -494,6 +494,44 @@ export const projectRouter = createTRPCRouter({
 		let accessedEnvironments: string[] = [];
 		let accessedServices: string[] = [];
 
+		const empty = {
+			projects: 0,
+			environments: 0,
+			applications: 0,
+			compose: 0,
+			databases: 0,
+			services: 0,
+			status: { running: 0, error: 0, idle: 0 },
+			dokployHostServices: 0,
+			servicesByServerId: {} as Record<string, number>,
+			recentProjects: [] as {
+				projectId: string;
+				name: string;
+				description: string | null;
+				createdAt: string;
+				environments: number;
+				services: number;
+				defaultEnvironmentId: string | null;
+			}[],
+			erroredServices: [] as {
+				id: string;
+				name: string;
+				type:
+					| "application"
+					| "compose"
+					| "libsql"
+					| "mariadb"
+					| "mongo"
+					| "mysql"
+					| "postgres"
+					| "redis";
+				projectId: string;
+				projectName: string;
+				environmentId: string;
+				environmentName: string;
+			}[],
+		};
+
 		if (!isPrivileged) {
 			const member = await findMemberByUserId(
 				ctx.user.id,
@@ -504,15 +542,7 @@ export const projectRouter = createTRPCRouter({
 			accessedServices = member.accessedServices;
 
 			if (accessedProjects.length === 0) {
-				return {
-					projects: 0,
-					environments: 0,
-					applications: 0,
-					compose: 0,
-					databases: 0,
-					services: 0,
-					status: { running: 0, error: 0, idle: 0 },
-				};
+				return empty;
 			}
 		}
 
@@ -540,43 +570,89 @@ export const projectRouter = createTRPCRouter({
 
 		const rows = await db.query.projects.findMany({
 			where: projectIdFilter,
-			columns: { projectId: true },
+			orderBy: desc(projects.createdAt),
+			columns: {
+				projectId: true,
+				name: true,
+				description: true,
+				createdAt: true,
+			},
 			with: {
 				environments: {
 					where: environmentFilter,
-					columns: { environmentId: true },
+					columns: { environmentId: true, name: true },
 					with: {
 						applications: {
 							where: applyFilter(applications.applicationId),
-							columns: { applicationStatus: true },
+							columns: {
+								applicationId: true,
+								name: true,
+								applicationStatus: true,
+								serverId: true,
+							},
 						},
 						compose: {
 							where: applyFilter(compose.composeId),
-							columns: { composeStatus: true },
+							columns: {
+								composeId: true,
+								name: true,
+								composeStatus: true,
+								serverId: true,
+							},
 						},
 						libsql: {
 							where: applyFilter(libsql.libsqlId),
-							columns: { applicationStatus: true },
+							columns: {
+								libsqlId: true,
+								name: true,
+								applicationStatus: true,
+								serverId: true,
+							},
 						},
 						mariadb: {
 							where: applyFilter(mariadb.mariadbId),
-							columns: { applicationStatus: true },
+							columns: {
+								mariadbId: true,
+								name: true,
+								applicationStatus: true,
+								serverId: true,
+							},
 						},
 						mongo: {
 							where: applyFilter(mongo.mongoId),
-							columns: { applicationStatus: true },
+							columns: {
+								mongoId: true,
+								name: true,
+								applicationStatus: true,
+								serverId: true,
+							},
 						},
 						mysql: {
 							where: applyFilter(mysql.mysqlId),
-							columns: { applicationStatus: true },
+							columns: {
+								mysqlId: true,
+								name: true,
+								applicationStatus: true,
+								serverId: true,
+							},
 						},
 						postgres: {
 							where: applyFilter(postgres.postgresId),
-							columns: { applicationStatus: true },
+							columns: {
+								postgresId: true,
+								name: true,
+								applicationStatus: true,
+								serverId: true,
+							},
 						},
 						redis: {
 							where: applyFilter(redis.redisId),
-							columns: { applicationStatus: true },
+							columns: {
+								redisId: true,
+								name: true,
+								applicationStatus: true,
+								serverId: true,
+							},
 						},
 					},
 				},
@@ -587,34 +663,191 @@ export const projectRouter = createTRPCRouter({
 		let composeCount = 0;
 		let databasesCount = 0;
 		let environmentsCount = 0;
+		let dokployHostServices = 0;
+		const servicesByServerId: Record<string, number> = {};
 		const status = { running: 0, error: 0, idle: 0 };
+		const erroredServices: (typeof empty)["erroredServices"] = [];
+
 		const bump = (s?: string | null) => {
 			if (s === "done") status.running++;
 			else if (s === "error") status.error++;
 			else status.idle++;
 		};
 
+		const bumpServer = (serverId?: string | null) => {
+			if (!serverId) {
+				dokployHostServices++;
+				return;
+			}
+			servicesByServerId[serverId] = (servicesByServerId[serverId] ?? 0) + 1;
+		};
+
+		const pushError = (
+			service: {
+				id: string;
+				name: string;
+				type: (typeof empty)["erroredServices"][number]["type"];
+				status?: string | null;
+			},
+			project: { projectId: string; name: string },
+			env: { environmentId: string; name: string },
+		) => {
+			if (service.status !== "error") return;
+			if (erroredServices.length >= 8) return;
+			erroredServices.push({
+				id: service.id,
+				name: service.name,
+				type: service.type,
+				projectId: project.projectId,
+				projectName: project.name,
+				environmentId: env.environmentId,
+				environmentName: env.name,
+			});
+		};
+
+		const recentProjects: (typeof empty)["recentProjects"] = [];
+
 		for (const project of rows) {
+			let projectServices = 0;
 			for (const env of project.environments) {
 				environmentsCount++;
 				applicationsCount += env.applications.length;
 				composeCount += env.compose.length;
-				databasesCount +=
+				const dbCount =
 					env.libsql.length +
 					env.mariadb.length +
 					env.mongo.length +
 					env.mysql.length +
 					env.postgres.length +
 					env.redis.length;
+				databasesCount += dbCount;
+				projectServices +=
+					env.applications.length + env.compose.length + dbCount;
 
-				for (const a of env.applications) bump(a.applicationStatus);
-				for (const c of env.compose) bump(c.composeStatus);
-				for (const s of env.libsql) bump(s.applicationStatus);
-				for (const s of env.mariadb) bump(s.applicationStatus);
-				for (const s of env.mongo) bump(s.applicationStatus);
-				for (const s of env.mysql) bump(s.applicationStatus);
-				for (const s of env.postgres) bump(s.applicationStatus);
-				for (const s of env.redis) bump(s.applicationStatus);
+				for (const a of env.applications) {
+					bump(a.applicationStatus);
+					bumpServer(a.serverId);
+					pushError(
+						{
+							id: a.applicationId,
+							name: a.name,
+							type: "application",
+							status: a.applicationStatus,
+						},
+						project,
+						env,
+					);
+				}
+				for (const c of env.compose) {
+					bump(c.composeStatus);
+					bumpServer(c.serverId);
+					pushError(
+						{
+							id: c.composeId,
+							name: c.name,
+							type: "compose",
+							status: c.composeStatus,
+						},
+						project,
+						env,
+					);
+				}
+				for (const s of env.libsql) {
+					bump(s.applicationStatus);
+					bumpServer(s.serverId);
+					pushError(
+						{
+							id: s.libsqlId,
+							name: s.name,
+							type: "libsql",
+							status: s.applicationStatus,
+						},
+						project,
+						env,
+					);
+				}
+				for (const s of env.mariadb) {
+					bump(s.applicationStatus);
+					bumpServer(s.serverId);
+					pushError(
+						{
+							id: s.mariadbId,
+							name: s.name,
+							type: "mariadb",
+							status: s.applicationStatus,
+						},
+						project,
+						env,
+					);
+				}
+				for (const s of env.mongo) {
+					bump(s.applicationStatus);
+					bumpServer(s.serverId);
+					pushError(
+						{
+							id: s.mongoId,
+							name: s.name,
+							type: "mongo",
+							status: s.applicationStatus,
+						},
+						project,
+						env,
+					);
+				}
+				for (const s of env.mysql) {
+					bump(s.applicationStatus);
+					bumpServer(s.serverId);
+					pushError(
+						{
+							id: s.mysqlId,
+							name: s.name,
+							type: "mysql",
+							status: s.applicationStatus,
+						},
+						project,
+						env,
+					);
+				}
+				for (const s of env.postgres) {
+					bump(s.applicationStatus);
+					bumpServer(s.serverId);
+					pushError(
+						{
+							id: s.postgresId,
+							name: s.name,
+							type: "postgres",
+							status: s.applicationStatus,
+						},
+						project,
+						env,
+					);
+				}
+				for (const s of env.redis) {
+					bump(s.applicationStatus);
+					bumpServer(s.serverId);
+					pushError(
+						{
+							id: s.redisId,
+							name: s.name,
+							type: "redis",
+							status: s.applicationStatus,
+						},
+						project,
+						env,
+					);
+				}
+			}
+
+			if (recentProjects.length < 6) {
+				recentProjects.push({
+					projectId: project.projectId,
+					name: project.name,
+					description: project.description,
+					createdAt: project.createdAt,
+					environments: project.environments.length,
+					services: projectServices,
+					defaultEnvironmentId: project.environments[0]?.environmentId ?? null,
+				});
 			}
 		}
 
@@ -626,6 +859,10 @@ export const projectRouter = createTRPCRouter({
 			databases: databasesCount,
 			services: applicationsCount + composeCount + databasesCount,
 			status,
+			dokployHostServices,
+			servicesByServerId,
+			recentProjects,
+			erroredServices,
 		};
 	}),
 

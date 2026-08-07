@@ -1,4 +1,5 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
+import { hasPermission } from "@dokploy/server/services/permission";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
@@ -42,8 +43,26 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 		transformer: superjson,
 	});
 
-	await helpers.settings.isCloud.prefetch();
-	await helpers.user.get.prefetch();
+	const permissionCtx = {
+		user: { id: user.id },
+		session: { activeOrganizationId: session?.activeOrganizationId || "" },
+	};
+
+	const [canReadDeployments, canReadServers] = await Promise.all([
+		hasPermission(permissionCtx, { deployment: ["read"] }),
+		hasPermission(permissionCtx, { server: ["read"] }),
+	]);
+
+	await Promise.all([
+		helpers.settings.isCloud.prefetch(),
+		helpers.user.get.prefetch(),
+		helpers.user.getPermissions.prefetch(),
+		helpers.project.homeStats.prefetch(),
+		canReadDeployments
+			? helpers.deployment.homeSummary.prefetch()
+			: Promise.resolve(),
+		canReadServers ? helpers.server.all.prefetch() : Promise.resolve(),
+	]);
 
 	return {
 		props: {
