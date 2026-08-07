@@ -43,26 +43,40 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 		transformer: superjson,
 	});
 
-	const permissionCtx = {
-		user: { id: user.id },
-		session: { activeOrganizationId: session?.activeOrganizationId || "" },
-	};
+	const activeOrganizationId = session?.activeOrganizationId;
 
-	const [canReadDeployments, canReadServers] = await Promise.all([
-		hasPermission(permissionCtx, { deployment: ["read"] }),
-		hasPermission(permissionCtx, { server: ["read"] }),
-	]);
-
-	await Promise.all([
+	const prefetchTasks: Promise<unknown>[] = [
 		helpers.settings.isCloud.prefetch(),
 		helpers.user.get.prefetch(),
-		helpers.user.getPermissions.prefetch(),
-		helpers.project.homeStats.prefetch(),
-		canReadDeployments
-			? helpers.deployment.homeSummary.prefetch()
-			: Promise.resolve(),
-		canReadServers ? helpers.server.all.prefetch() : Promise.resolve(),
-	]);
+	];
+
+	// Org-scoped queries require an active membership; skipping them avoids
+	// UNAUTHORIZED during SSR when the user has no organization selected.
+	if (activeOrganizationId) {
+		const permissionCtx = {
+			user: { id: user.id },
+			session: { activeOrganizationId },
+		};
+
+		const [canReadDeployments, canReadServers] = await Promise.all([
+			hasPermission(permissionCtx, { deployment: ["read"] }),
+			hasPermission(permissionCtx, { server: ["read"] }),
+		]);
+
+		prefetchTasks.push(
+			helpers.user.getPermissions.prefetch(),
+			helpers.project.homeStats.prefetch(),
+		);
+
+		if (canReadDeployments) {
+			prefetchTasks.push(helpers.deployment.homeSummary.prefetch());
+		}
+		if (canReadServers) {
+			prefetchTasks.push(helpers.server.all.prefetch());
+		}
+	}
+
+	await Promise.all(prefetchTasks);
 
 	return {
 		props: {
