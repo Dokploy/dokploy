@@ -346,6 +346,32 @@ test("Web entrypoint with empty middlewares array", async () => {
 
 /** Certificates */
 
+test("CertificateType none on websecure sets an empty tls block", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, certificateType: "none" },
+		"websecure",
+	);
+
+	// Must be defined, otherwise Traefik applies the websecure entrypoint's
+	// certResolver default and requests a Let's Encrypt certificate anyway.
+	expect(router.tls).toEqual({});
+});
+
+test("CertificateType custom without a resolver sets an empty tls block", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{
+			...baseDomain,
+			certificateType: "custom",
+			customCertResolver: null,
+		},
+		"websecure",
+	);
+
+	expect(router.tls).toEqual({});
+});
+
 test("CertificateType on websecure entrypoint", async () => {
 	const router = await createRouterConfig(
 		baseApp,

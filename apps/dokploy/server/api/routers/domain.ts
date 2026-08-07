@@ -9,6 +9,7 @@ import {
 	generateTraefikMeDomain,
 	getWebServerSettings,
 	manageDomain,
+	purgeStaleCertificate,
 	removeDomain,
 	removeDomainById,
 	updateDomainById,
@@ -126,9 +127,15 @@ export const domainRouter = createTRPCRouter({
 				resourceId: domain.domainId,
 				resourceName: domain.host,
 			});
+			let traefikReloadRequired = false;
+
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
 				await manageDomain(application, domain);
+				traefikReloadRequired = await purgeStaleCertificate(
+					domain,
+					application.serverId,
+				);
 			} else if (domain.previewDeploymentId) {
 				const previewDeployment = await findPreviewDeploymentById(
 					domain.previewDeploymentId,
@@ -139,7 +146,8 @@ export const domainRouter = createTRPCRouter({
 				application.appName = previewDeployment.appName;
 				await manageDomain(application, domain);
 			}
-			return result;
+
+			return { ...result, traefikReloadRequired };
 		}),
 	one: protectedProcedure.input(apiFindDomain).query(async ({ input, ctx }) => {
 		const domain = await findDomainById(input.domainId);
