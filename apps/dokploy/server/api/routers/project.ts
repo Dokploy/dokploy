@@ -27,6 +27,7 @@ import {
 	findProjectById,
 	findRedisById,
 	findUserById,
+	getProjectResourceStats,
 	IS_CLOUD,
 	updateProjectById,
 } from "@dokploy/server";
@@ -628,6 +629,49 @@ export const projectRouter = createTRPCRouter({
 			status,
 		};
 	}),
+
+	resourceStats: withPermission("monitoring", "read")
+		.input(apiFindOneProject)
+		.query(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Functionality not available in cloud version",
+				});
+			}
+
+			const project = await findProjectById(input.projectId);
+			if (project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You don't have access to this project",
+				});
+			}
+
+			const isPrivileged =
+				ctx.user.role === "owner" || ctx.user.role === "admin";
+
+			if (!isPrivileged) {
+				const { accessedProjects, accessedServices } =
+					await findMemberByUserId(
+						ctx.user.id,
+						ctx.session.activeOrganizationId,
+					);
+
+				if (!accessedProjects.includes(input.projectId)) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this project",
+					});
+				}
+
+				return await getProjectResourceStats(input.projectId, {
+					accessedServices,
+				});
+			}
+
+			return await getProjectResourceStats(input.projectId);
+		}),
 
 	search: protectedProcedure
 		.input(
