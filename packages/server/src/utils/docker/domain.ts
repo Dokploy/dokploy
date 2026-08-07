@@ -217,6 +217,17 @@ export const addDomainToCompose = async (
 						labels.unshift("traefik.swarm.network=dokploy-network");
 					}
 				}
+			} else {
+				const isolatedNetwork = compose.suffix || compose.appName;
+				if (compose.composeType === "docker-compose") {
+					if (!labels.includes(`traefik.docker.network=${isolatedNetwork}`)) {
+						labels.unshift(`traefik.docker.network=${isolatedNetwork}`);
+					}
+				} else {
+					if (!labels.includes(`traefik.swarm.network=${isolatedNetwork}`)) {
+						labels.unshift(`traefik.swarm.network=${isolatedNetwork}`);
+					}
+				}
 			}
 		}
 
