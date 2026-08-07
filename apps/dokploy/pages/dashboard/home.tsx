@@ -48,6 +48,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	const prefetchTasks: Promise<unknown>[] = [
 		helpers.settings.isCloud.prefetch(),
 		helpers.user.get.prefetch(),
+		helpers.organization.active.prefetch(),
 	];
 
 	// Org-scoped queries require an active membership; skipping them avoids
