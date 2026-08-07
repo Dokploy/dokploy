@@ -17,6 +17,7 @@ export interface ProjectServiceRef {
 	name: string;
 	appName: string;
 	type: ProjectServiceType;
+	serverId: string | null;
 }
 
 export interface ProjectServiceStats extends ProjectServiceRef {
@@ -52,6 +53,10 @@ export interface ProjectResourceStats {
 	};
 	services: ProjectServiceStats[];
 }
+
+type ContainerWithServer = Container & {
+	serverId: string | null;
+};
 
 const UNIT_TO_BYTES: Record<string, number> = {
 	b: 1,
@@ -118,6 +123,15 @@ const parseMemUsage = (
 	};
 };
 
+const pushService = (
+	services: ProjectServiceRef[],
+	service: ProjectServiceRef,
+	allow: (id: string) => boolean,
+) => {
+	if (!allow(service.id)) return;
+	services.push(service);
+};
+
 export const collectProjectServices = (
 	project: Awaited<ReturnType<typeof findProjectById>>,
 	accessedServices?: string[],
@@ -129,105 +143,169 @@ export const collectProjectServices = (
 
 	for (const environment of project.environments) {
 		for (const item of environment.applications) {
-			if (!allow(item.applicationId)) continue;
-			services.push({
-				id: item.applicationId,
-				name: item.name,
-				appName: item.appName,
-				type: "application",
-			});
+			pushService(
+				services,
+				{
+					id: item.applicationId,
+					name: item.name,
+					appName: item.appName,
+					type: "application",
+					serverId: item.serverId ?? null,
+				},
+				allow,
+			);
 		}
 		for (const item of environment.compose) {
-			if (!allow(item.composeId)) continue;
-			services.push({
-				id: item.composeId,
-				name: item.name,
-				appName: item.appName,
-				type: "compose",
-			});
+			pushService(
+				services,
+				{
+					id: item.composeId,
+					name: item.name,
+					appName: item.appName,
+					type: "compose",
+					serverId: item.serverId ?? null,
+				},
+				allow,
+			);
 		}
 		for (const item of environment.mariadb) {
-			if (!allow(item.mariadbId)) continue;
-			services.push({
-				id: item.mariadbId,
-				name: item.name,
-				appName: item.appName,
-				type: "mariadb",
-			});
+			pushService(
+				services,
+				{
+					id: item.mariadbId,
+					name: item.name,
+					appName: item.appName,
+					type: "mariadb",
+					serverId: item.serverId ?? null,
+				},
+				allow,
+			);
 		}
 		for (const item of environment.postgres) {
-			if (!allow(item.postgresId)) continue;
-			services.push({
-				id: item.postgresId,
-				name: item.name,
-				appName: item.appName,
-				type: "postgres",
-			});
+			pushService(
+				services,
+				{
+					id: item.postgresId,
+					name: item.name,
+					appName: item.appName,
+					type: "postgres",
+					serverId: item.serverId ?? null,
+				},
+				allow,
+			);
 		}
 		for (const item of environment.mysql) {
-			if (!allow(item.mysqlId)) continue;
-			services.push({
-				id: item.mysqlId,
-				name: item.name,
-				appName: item.appName,
-				type: "mysql",
-			});
+			pushService(
+				services,
+				{
+					id: item.mysqlId,
+					name: item.name,
+					appName: item.appName,
+					type: "mysql",
+					serverId: item.serverId ?? null,
+				},
+				allow,
+			);
 		}
 		for (const item of environment.mongo) {
-			if (!allow(item.mongoId)) continue;
-			services.push({
-				id: item.mongoId,
-				name: item.name,
-				appName: item.appName,
-				type: "mongo",
-			});
+			pushService(
+				services,
+				{
+					id: item.mongoId,
+					name: item.name,
+					appName: item.appName,
+					type: "mongo",
+					serverId: item.serverId ?? null,
+				},
+				allow,
+			);
 		}
 		for (const item of environment.redis) {
-			if (!allow(item.redisId)) continue;
-			services.push({
-				id: item.redisId,
-				name: item.name,
-				appName: item.appName,
-				type: "redis",
-			});
+			pushService(
+				services,
+				{
+					id: item.redisId,
+					name: item.name,
+					appName: item.appName,
+					type: "redis",
+					serverId: item.serverId ?? null,
+				},
+				allow,
+			);
 		}
 		for (const item of environment.libsql) {
-			if (!allow(item.libsqlId)) continue;
-			services.push({
-				id: item.libsqlId,
-				name: item.name,
-				appName: item.appName,
-				type: "libsql",
-			});
+			pushService(
+				services,
+				{
+					id: item.libsqlId,
+					name: item.name,
+					appName: item.appName,
+					type: "libsql",
+					serverId: item.serverId ?? null,
+				},
+				allow,
+			);
 		}
 	}
 
 	return services;
 };
 
-const containerMatchesService = (
+/**
+ * Score how specifically a container belongs to a service.
+ * Longer appName matches win so `myapp-api` is not attributed to `myapp`.
+ * Hyphen prefixes are intentionally excluded because Dokploy app names themselves
+ * commonly contain hyphens (`myapp-api`), which would create false ownership.
+ * Returns -1 when there is no valid ownership match.
+ */
+export const getContainerServiceMatchScore = (
 	containerName: string,
-	service: ProjectServiceRef,
-): boolean => {
+	appName: string,
+): number => {
 	const name = containerName.toLowerCase();
-	const appName = service.appName.toLowerCase();
-	if (!appName) return false;
+	const normalizedAppName = appName.toLowerCase();
+	if (!normalizedAppName || !name) return -1;
 
-	// Swarm service / task names and compose project prefixes include appName
-	return (
-		name === appName ||
-		name.startsWith(`${appName}.`) ||
-		name.startsWith(`${appName}_`) ||
-		name.startsWith(`${appName}-`) ||
-		name.includes(`/${appName}`) ||
-		name.includes(`_${appName}_`) ||
-		name.includes(`.${appName}.`)
-	);
+	if (name === normalizedAppName) {
+		return normalizedAppName.length * 1000;
+	}
+
+	// Swarm task names: appName.1.hash
+	if (name.startsWith(`${normalizedAppName}.`)) {
+		return normalizedAppName.length;
+	}
+
+	// Compose project containers: appName_service_1
+	if (name.startsWith(`${normalizedAppName}_`)) {
+		return normalizedAppName.length;
+	}
+
+	return -1;
+};
+
+export const findBestMatchingService = <T extends ProjectServiceRef>(
+	containerName: string,
+	services: T[],
+	serverId: string | null,
+): T | undefined => {
+	let best: T | undefined;
+	let bestScore = -1;
+
+	for (const service of services) {
+		if ((service.serverId ?? null) !== serverId) continue;
+		const score = getContainerServiceMatchScore(containerName, service.appName);
+		if (score > bestScore) {
+			bestScore = score;
+			best = service;
+		}
+	}
+
+	return best;
 };
 
 export const aggregateProjectContainerStats = (
 	services: ProjectServiceRef[],
-	containers: Container[],
+	containers: ContainerWithServer[],
 	now = new Date().toISOString(),
 ): Pick<ProjectResourceStats, "aggregated" | "services"> => {
 	const serviceStats: ProjectServiceStats[] = services.map((service) => ({
@@ -253,8 +331,10 @@ export const aggregateProjectContainerStats = (
 	let totalNetOut = 0;
 
 	for (const container of containers) {
-		const matched = serviceStats.find((service) =>
-			containerMatchesService(container.Name || "", service),
+		const matched = findBestMatchingService(
+			container.Name || "",
+			serviceStats,
+			container.serverId,
 		);
 		if (!matched) continue;
 
@@ -327,13 +407,34 @@ export const aggregateProjectContainerStats = (
 	};
 };
 
+const collectContainersForServers = async (
+	serverIds: Array<string | null>,
+): Promise<ContainerWithServer[]> => {
+	if (serverIds.length === 0) return [];
+
+	const batches = await Promise.all(
+		serverIds.map(async (serverId) => {
+			const stats = (await getAllContainerStats(
+				serverId ?? undefined,
+			)) as Container[];
+			return stats.map((stat) => ({
+				...stat,
+				serverId,
+			}));
+		}),
+	);
+
+	return batches.flat();
+};
+
 export const getProjectResourceStats = async (
 	projectId: string,
 	options?: { accessedServices?: string[] },
 ): Promise<ProjectResourceStats> => {
 	const project = await findProjectById(projectId);
 	const services = collectProjectServices(project, options?.accessedServices);
-	const containers = (await getAllContainerStats()) as Container[];
+	const serverIds = [...new Set(services.map((service) => service.serverId))];
+	const containers = await collectContainersForServers(serverIds);
 	const { aggregated, services: serviceStats } = aggregateProjectContainerStats(
 		services,
 		containers,
