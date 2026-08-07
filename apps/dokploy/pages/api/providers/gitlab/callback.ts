@@ -11,7 +11,7 @@ export default async function handler(
 		return res.status(400).json({ error: "Missing or invalid code" });
 	}
 
-	const gitlab = await findGitlabById(gitlabId as string);
+	const gitlab = await findGitlabById(gitlabId);
 	// Use internal URL for token exchange when GitLab is on same instance as Dokploy
 	const baseUrl = gitlab.gitlabInternalUrl || gitlab.gitlabUrl;
 	const gitlabUrl = new URL(baseUrl);
@@ -39,9 +39,9 @@ export default async function handler(
 		method: "POST",
 		headers,
 		body: new URLSearchParams({
-			client_id: gitlab.applicationId as string,
-			client_secret: gitlab.secret as string,
-			code: code as string,
+			client_id: gitlab.applicationId,
+			client_secret: gitlab.secret,
+			code: code,
 			grant_type: "authorization_code",
 			redirect_uri: `${gitlab.redirectUri}?gitlabId=${gitlabId}`,
 		}),
@@ -53,7 +53,7 @@ export default async function handler(
 		return res.status(400).json({ error: "Missing or invalid code" });
 	}
 
-	const expiresAt = Math.floor(Date.now() / 1000) + result.expires_in;
+	const expiresAt = result.expires_in ? Math.floor(Date.now() / 1000) + result.expires_in : `Error receiving expires_in, expected type: number, but currently received: ${result.expires_in}`;
 	await updateGitlab(gitlab.gitlabId, {
 		accessToken: result.access_token,
 		refreshToken: result.refresh_token,
