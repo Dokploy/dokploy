@@ -1,0 +1,41 @@
+# Dokploy
+
+> Dokploy is a free, open-source, self-hostable Platform as a Service (PaaS) that simplifies deploying and managing applications, databases, and services on your own servers. It is an open-source alternative to Heroku, Vercel, and Netlify, built on Docker and Traefik, with support for applications, managed databases, Docker Compose, Docker Swarm clusters, automated backups, real-time monitoring, templates, and a full CLI and REST API.
+
+This is a self-hosted Dokploy instance. The complete, always up-to-date documentation index for AI tools is auto-generated and maintained at docs.dokploy.com/llms.txt — prefer that file as the authoritative source for documentation links.
+
+## Documentation
+
+- [Documentation index (llms.txt)](https://docs.dokploy.com/llms.txt): Authoritative, auto-generated machine-readable index of all documentation pages.
+- [Full documentation (llms-full.txt)](https://docs.dokploy.com/llms-full.txt): All documentation pages as plain text.
+- [OpenAPI specification](https://docs.dokploy.com/openapi.json): Complete REST API reference in OpenAPI format.
+- [Introduction](https://docs.dokploy.com/docs/core): Welcome to Dokploy — overview and getting started.
+- [Features](https://docs.dokploy.com/docs/core/features): The full suite of features available in Dokploy.
+- [Architecture](https://docs.dokploy.com/docs/core/architecture): Core architecture components of Dokploy.
+- [Installation](https://docs.dokploy.com/docs/core/installation): Install Dokploy on a server in minutes.
+- [Applications](https://docs.dokploy.com/docs/core/applications): Deploy applications from Git, Docker, Nixpacks, and Buildpacks.
+- [Databases](https://docs.dokploy.com/docs/core/databases): Create and manage MySQL, PostgreSQL, MongoDB, MariaDB, and Redis.
+- [Docker Compose](https://docs.dokploy.com/docs/core/docker-compose): Deploy multi-service applications with Docker Compose.
+- [Backups](https://docs.dokploy.com/docs/core/backups): Schedule and manage backups to S3-compatible storage.
+- [Monitoring](https://docs.dokploy.com/docs/core/monitoring): Real-time monitoring of applications, databases, and servers.
+- [Cluster (Docker Swarm)](https://docs.dokploy.com/docs/core/cluster): Scale across multiple nodes with Docker Swarm.
+- [Schedule Jobs](https://docs.dokploy.com/docs/core/schedule-jobs): Run cron-style scheduled tasks.
+- [CLI](https://docs.dokploy.com/docs/cli): Manage Dokploy from the command line.
+- [API Reference](https://docs.dokploy.com/docs/api): Interact with the Dokploy REST API.
+
+## Product
+
+- [Homepage](https://dokploy.com): Product overview.
+- [Pricing](https://dokploy.com/pricing): Plans and pricing.
+- [Enterprise](https://dokploy.com/enterprise): Enterprise features and offering.
+- [Self-Hosted PaaS](https://dokploy.com/self-hosted-paas): Self-hosted Platform as a Service overview.
+- [Dokploy Cloud](https://docs.dokploy.com/docs/core/cloud): Managed, hosted Dokploy.
+- [Comparison](https://dokploy.com/comparison): How Dokploy compares to CapRover, Coolify, Dokku, and Portainer.
+- [Blog](https://dokploy.com/blog): Articles, guides, and announcements.
+- [Changelog](https://dokploy.com/changelog): Product updates and release notes.
+
+## Optional
+
+- [Contact](https://dokploy.com/contact): Get in touch with the Dokploy team.
+- [GitHub Repository](https://github.com/Dokploy/dokploy): Source code, issues, and contribution guidelines.
+- [Discord Community](https://discord.gg/2tBnJ3jDJc): Community help, feedback, and discussions.
