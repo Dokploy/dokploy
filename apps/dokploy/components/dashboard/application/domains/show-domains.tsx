@@ -108,6 +108,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 	const autoValidatedHostsRef = useRef<Set<string>>(new Set());
 	const validationRequestIdRef = useRef(0);
 	const hostValidationRequestIdsRef = useRef<Map<string, number>>(new Map());
+	const lastAutoValidatedServerIpRef = useRef<string | undefined>(undefined);
 	const [viewMode, setViewMode] = useState<"grid" | "table">(() => {
 		if (typeof window !== "undefined") {
 			return (
@@ -237,6 +238,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 		validationRequestIdRef.current += 1;
 		autoValidatedHostsRef.current = new Set();
 		hostValidationRequestIdsRef.current = new Map();
+		lastAutoValidatedServerIpRef.current = undefined;
 		setValidationStates({});
 	}, [id]);
 
@@ -256,6 +258,11 @@ export const ShowDomains = ({ id, type }: Props) => {
 		const serverIp = resolveServerIp();
 		if (!serverIp) {
 			return;
+		}
+
+		if (lastAutoValidatedServerIpRef.current !== serverIp) {
+			lastAutoValidatedServerIpRef.current = serverIp;
+			autoValidatedHostsRef.current = new Set();
 		}
 
 		const hostsToValidate = data
