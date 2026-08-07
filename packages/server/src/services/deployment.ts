@@ -16,7 +16,10 @@ import {
 	environments,
 	projects,
 } from "@dokploy/server/db/schema";
-import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
+import {
+	removeDirectoryCode,
+	removeDirectoryIfExistsContent,
+} from "@dokploy/server/utils/filesystem/directory";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -210,26 +213,30 @@ export const createDeploymentPreview = async (
 	const previewDeployment = await findPreviewDeploymentById(
 		deployment.previewDeploymentId,
 	);
+
+	const buildServerId = previewDeployment.application?.buildServerId;
+
+	const serverId = buildServerId || previewDeployment.application?.serverId;
+
 	await removeLastTenDeployments(
 		deployment.previewDeploymentId,
 		"previewDeployment",
-		previewDeployment?.application?.serverId,
+		previewDeployment.application?.serverId,
+		previewDeployment.appName,
 	);
 	try {
 		const appName = `${previewDeployment.appName}`;
-		const { LOGS_PATH } = paths(!!previewDeployment?.application?.serverId);
+		const { LOGS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, appName, fileName);
 
-		if (previewDeployment?.application?.serverId) {
-			const server = await findServerById(
-				previewDeployment?.application?.serverId,
-			);
+		if (serverId) {
+			const server = await findServerById(serverId);
 
 			const command = `
 				mkdir -p ${LOGS_PATH}/${appName};
-            	echo "Initializing deployment" >> ${logFilePath};
+				echo "Initializing deployment" >> ${logFilePath};
 			`;
 
 			await execAsyncRemote(server.serverId, command);
@@ -249,6 +256,9 @@ export const createDeploymentPreview = async (
 				description: deployment.description || "",
 				previewDeploymentId: deployment.previewDeploymentId,
 				startedAt: new Date().toISOString(),
+				...(serverId && {
+					buildServerId: serverId,
+				}),
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
@@ -601,13 +611,14 @@ export const createDeploymentVolumeBackup = async (
 	}
 };
 
-export const removeDeployment = async (deploymentId: string) => {
+export const removeDeployment = async (
+	deploymentId: string,
+	fallbackServerId?: string | null,
+) => {
 	try {
-		const deployment = await db
-			.delete(deployments)
-			.where(eq(deployments.deploymentId, deploymentId))
-			.returning()
-			.then((result) => result[0]);
+		const deployment = await db.query.deployments.findFirst({
+			where: eq(deployments.deploymentId, deploymentId),
+		});
 
 		if (!deployment) {
 			return null;
@@ -616,12 +627,20 @@ export const removeDeployment = async (deploymentId: string) => {
 		const logPath = path.join(deployment.logPath);
 		if (logPath && logPath !== ".") {
 			const command = `rm -f ${logPath};`;
-			if (deployment.serverId) {
-				await execAsyncRemote(deployment.serverId, command);
+			const deploymentServerId =
+				deployment.buildServerId || deployment.serverId || fallbackServerId;
+
+			if (deploymentServerId) {
+				await execAsyncRemote(deploymentServerId, command);
 			} else {
 				await execAsync(command);
 			}
 		}
+
+		await db
+			.delete(deployments)
+			.where(eq(deployments.deploymentId, deploymentId))
+			.returning();
 
 		return deployment;
 	} catch (error) {
@@ -686,73 +705,86 @@ const removeLastTenDeployments = async (
 		| "previewDeployment"
 		| "backup"
 		| "volumeBackup",
-	serverId?: string | null,
+	fallbackServerId?: string | null,
+	previewAppName?: string,
 ) => {
 	const deploymentList = await getDeploymentsByType(id, type);
-	if (deploymentList.length > 10) {
-		const deploymentsToDelete = deploymentList.slice(10);
-		if (serverId) {
-			let command = "";
-			for (const oldDeployment of deploymentsToDelete) {
-				try {
-					const logPath = path.join(oldDeployment.logPath);
-					if (oldDeployment.rollbackId) {
-						await removeRollbackById(oldDeployment.rollbackId);
-					}
 
-					if (logPath && logPath !== ".") {
-						command += `rm -rf ${logPath};`;
-					}
-					await removeDeployment(oldDeployment.deploymentId);
-				} catch (err) {
-					console.error(
-						`Failed to remove deployment ${oldDeployment.deploymentId} during cleanup:`,
-						err,
-					);
-				}
+	if (deploymentList.length <= 10) {
+		return;
+	}
+
+	const retainedDeployments = deploymentList.slice(0, 10);
+	const deploymentsToDelete = deploymentList.slice(10);
+
+	const getDeploymentServerId = (deployment: (typeof deploymentList)[number]) =>
+		deployment.buildServerId || deployment.serverId || fallbackServerId || null;
+
+	const retainedServerIds = new Set(
+		retainedDeployments.map(getDeploymentServerId),
+	);
+	const removedServerIds = new Set(
+		deploymentsToDelete.map(getDeploymentServerId),
+	);
+
+	const failedServerIds = new Set<string | null>();
+
+	if (type === "previewDeployment" && previewAppName) {
+		for (const serverId of removedServerIds) {
+			if (retainedServerIds.has(serverId)) {
+				continue;
 			}
 
-			if (command) {
-				await execAsyncRemote(serverId, command);
+			try {
+				await removeDirectoryCode(previewAppName, serverId);
+			} catch (error) {
+				failedServerIds.add(serverId);
+				console.error(
+					`Failed to remove preview source from ${serverId || "the local server"} during deployment cleanup:`,
+					error,
+				);
 			}
-		} else {
-			for (const oldDeployment of deploymentsToDelete) {
-				try {
-					if (oldDeployment.rollbackId) {
-						await removeRollbackById(oldDeployment.rollbackId);
-					}
-					const logPath = path.join(oldDeployment.logPath);
-					if (
-						logPath &&
-						logPath !== "." &&
-						existsSync(logPath) &&
-						!oldDeployment.errorMessage
-					) {
-						await fsPromises.unlink(logPath);
-					}
-					await removeDeployment(oldDeployment.deploymentId);
-				} catch (err) {
-					console.error(
-						`Failed to remove deployment ${oldDeployment.deploymentId} during cleanup:`,
-						err,
-					);
-				}
+		}
+	}
+
+	for (const oldDeployment of deploymentsToDelete) {
+		const deploymentServerId = getDeploymentServerId(oldDeployment);
+
+		if (failedServerIds.has(deploymentServerId)) {
+			continue;
+		}
+
+		try {
+			if (oldDeployment.rollbackId) {
+				await removeRollbackById(oldDeployment.rollbackId);
 			}
+
+			await removeDeployment(oldDeployment.deploymentId, fallbackServerId);
+		} catch (error) {
+			console.error(
+				`Failed to remove deployment ${oldDeployment.deploymentId} during cleanup:`,
+				error,
+			);
 		}
 	}
 };
 
 export const removeDeploymentsByPreviewDeploymentId = async (
 	previewDeployment: PreviewDeployment,
-	serverId: string | null,
+	serverIds: Array<string | null>,
 ) => {
 	const { appName } = previewDeployment;
-	const { LOGS_PATH } = paths(!!serverId);
-	const logsPath = path.join(LOGS_PATH, appName);
-	if (serverId) {
-		await execAsyncRemote(serverId, `rm -rf ${logsPath}`);
-	} else {
-		await removeDirectoryIfExistsContent(logsPath);
+	const uniqueServerIds = [...new Set(serverIds)];
+
+	for (const serverId of uniqueServerIds) {
+		const { LOGS_PATH } = paths(!!serverId);
+		const logsPath = path.join(LOGS_PATH, appName);
+
+		if (serverId) {
+			await execAsyncRemote(serverId, `rm -rf ${logsPath}`);
+		} else {
+			await removeDirectoryIfExistsContent(logsPath);
+		}
 	}
 
 	await db
