@@ -1,4 +1,6 @@
 import {
+	aggregateResourceMetricSnapshots,
+	collectResourceMetricsForServices,
 	createApplication,
 	createBackup,
 	createCompose,
@@ -28,6 +30,10 @@ import {
 	findRedisById,
 	findUserById,
 	IS_CLOUD,
+	type ResourceMetricService,
+	type ResourceMetricSnapshot,
+	readResourceMetricHistory,
+	recordResourceMetricSnapshot,
 	updateProjectById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
@@ -66,6 +72,289 @@ import {
 } from "@/server/db/schema";
 
 export const projectRouter = createTRPCRouter({
+	resourceMetrics: withPermission("monitoring", "read")
+		.input(
+			z.object({
+				projectIds: z.array(z.string()).max(100).optional(),
+				environmentId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Functionality not available in cloud version",
+				});
+			}
+
+			if (input.projectIds?.length === 0) {
+				return { projects: {}, services: {} };
+			}
+
+			const isPrivileged =
+				ctx.user.role === "owner" || ctx.user.role === "admin";
+			let accessedProjects: string[] = [];
+			let accessedEnvironments: string[] = [];
+			let accessedServices: string[] = [];
+
+			if (!isPrivileged) {
+				const member = await findMemberByUserId(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				accessedProjects = member.accessedProjects;
+				accessedEnvironments = member.accessedEnvironments;
+				accessedServices = member.accessedServices;
+
+				if (accessedProjects.length === 0) {
+					return { projects: {}, services: {} };
+				}
+			}
+
+			const projectFilters = [
+				eq(projects.organizationId, ctx.session.activeOrganizationId),
+			];
+			if (input.projectIds?.length) {
+				projectFilters.push(
+					sql`${projects.projectId} IN (${sql.join(
+						input.projectIds.map((projectId) => sql`${projectId}`),
+						sql`, `,
+					)})`,
+				);
+			}
+			if (!isPrivileged) {
+				projectFilters.push(
+					sql`${projects.projectId} IN (${sql.join(
+						accessedProjects.map((projectId) => sql`${projectId}`),
+						sql`, `,
+					)})`,
+				);
+			}
+
+			const environmentFilters = [];
+			if (input.environmentId) {
+				environmentFilters.push(
+					eq(environments.environmentId, input.environmentId),
+				);
+			}
+			if (!isPrivileged) {
+				environmentFilters.push(
+					accessedEnvironments.length === 0
+						? sql`false`
+						: sql`${environments.environmentId} IN (${sql.join(
+								accessedEnvironments.map((envId) => sql`${envId}`),
+								sql`, `,
+							)})`,
+				);
+			}
+
+			const serviceFilter = (col: AnyPgColumn) =>
+				isPrivileged ? undefined : buildServiceFilter(col, accessedServices);
+
+			const rows = await db.query.projects.findMany({
+				where: and(...projectFilters),
+				columns: { projectId: true },
+				with: {
+					environments: {
+						where:
+							environmentFilters.length > 0
+								? and(...environmentFilters)
+								: undefined,
+						columns: { environmentId: true },
+						with: {
+							applications: {
+								where: serviceFilter(applications.applicationId),
+								columns: {
+									applicationId: true,
+									appName: true,
+									serverId: true,
+								},
+							},
+							compose: {
+								where: serviceFilter(compose.composeId),
+								columns: {
+									composeId: true,
+									appName: true,
+									serverId: true,
+								},
+							},
+							libsql: {
+								where: serviceFilter(libsql.libsqlId),
+								columns: {
+									libsqlId: true,
+									appName: true,
+									serverId: true,
+								},
+							},
+							mariadb: {
+								where: serviceFilter(mariadb.mariadbId),
+								columns: {
+									mariadbId: true,
+									appName: true,
+									serverId: true,
+								},
+							},
+							mongo: {
+								where: serviceFilter(mongo.mongoId),
+								columns: {
+									mongoId: true,
+									appName: true,
+									serverId: true,
+								},
+							},
+							mysql: {
+								where: serviceFilter(mysql.mysqlId),
+								columns: {
+									mysqlId: true,
+									appName: true,
+									serverId: true,
+								},
+							},
+							postgres: {
+								where: serviceFilter(postgres.postgresId),
+								columns: {
+									postgresId: true,
+									appName: true,
+									serverId: true,
+								},
+							},
+							redis: {
+								where: serviceFilter(redis.redisId),
+								columns: {
+									redisId: true,
+									appName: true,
+									serverId: true,
+								},
+							},
+						},
+					},
+				},
+			});
+
+			const services: ResourceMetricService[] = [];
+			const servicesByProject = new Map<string, string[]>();
+			const addService = (
+				projectId: string,
+				service: ResourceMetricService,
+			) => {
+				if (!service.appName) return;
+				services.push(service);
+				servicesByProject.set(projectId, [
+					...(servicesByProject.get(projectId) ?? []),
+					service.serviceId,
+				]);
+			};
+
+			for (const project of rows) {
+				servicesByProject.set(project.projectId, []);
+				for (const environment of project.environments) {
+					for (const item of environment.applications) {
+						addService(project.projectId, {
+							serviceId: item.applicationId,
+							type: "application",
+							appName: item.appName,
+							serverId: item.serverId,
+						});
+					}
+					for (const item of environment.compose) {
+						addService(project.projectId, {
+							serviceId: item.composeId,
+							type: "compose",
+							appName: item.appName,
+							serverId: item.serverId,
+						});
+					}
+					for (const item of environment.libsql) {
+						addService(project.projectId, {
+							serviceId: item.libsqlId,
+							type: "libsql",
+							appName: item.appName,
+							serverId: item.serverId,
+						});
+					}
+					for (const item of environment.mariadb) {
+						addService(project.projectId, {
+							serviceId: item.mariadbId,
+							type: "mariadb",
+							appName: item.appName,
+							serverId: item.serverId,
+						});
+					}
+					for (const item of environment.mongo) {
+						addService(project.projectId, {
+							serviceId: item.mongoId,
+							type: "mongo",
+							appName: item.appName,
+							serverId: item.serverId,
+						});
+					}
+					for (const item of environment.mysql) {
+						addService(project.projectId, {
+							serviceId: item.mysqlId,
+							type: "mysql",
+							appName: item.appName,
+							serverId: item.serverId,
+						});
+					}
+					for (const item of environment.postgres) {
+						addService(project.projectId, {
+							serviceId: item.postgresId,
+							type: "postgres",
+							appName: item.appName,
+							serverId: item.serverId,
+						});
+					}
+					for (const item of environment.redis) {
+						addService(project.projectId, {
+							serviceId: item.redisId,
+							type: "redis",
+							appName: item.appName,
+							serverId: item.serverId,
+						});
+					}
+				}
+			}
+
+			const serviceMetrics = await collectResourceMetricsForServices(services);
+			const projectMetrics: Record<string, (typeof serviceMetrics)[string]> =
+				{};
+
+			for (const [projectId, serviceIds] of servicesByProject) {
+				const serviceSummaries = serviceIds
+					.map((serviceId) => serviceMetrics[serviceId])
+					.filter((summary): summary is (typeof serviceMetrics)[string] =>
+						Boolean(summary),
+					);
+				const hasUnavailableService = serviceSummaries.some(
+					(summary) => summary.unavailable,
+				);
+				const snapshots = serviceSummaries
+					.map((summary) => summary.current)
+					.filter((snapshot): snapshot is ResourceMetricSnapshot =>
+						Boolean(snapshot),
+					);
+
+				const current =
+					snapshots.length > 0
+						? aggregateResourceMetricSnapshots(snapshots)
+						: null;
+				const history = current
+					? await recordResourceMetricSnapshot("project", projectId, current)
+					: await readResourceMetricHistory("project", projectId);
+
+				projectMetrics[projectId] = {
+					current: current ?? history.at(-1) ?? null,
+					history,
+					unavailable: hasUnavailableService,
+				};
+			}
+
+			return {
+				projects: projectMetrics,
+				services: serviceMetrics,
+			};
+		}),
+
 	create: protectedProcedure
 		.input(apiCreateProject)
 		.mutation(async ({ ctx, input }) => {
