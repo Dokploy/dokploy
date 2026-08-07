@@ -280,12 +280,25 @@ function deployDelta(last7d: number, prev7d: number) {
 }
 
 export const ShowHome = () => {
-	const { data: auth, isLoading: authLoading } = api.user.get.useQuery();
-	const { data: homeStats, isLoading: statsLoading } =
-		api.project.homeStats.useQuery();
-	const { data: permissions, isLoading: permissionsLoading } =
-		api.user.getPermissions.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: activeOrganization, isLoading: orgLoading } =
+		api.organization.active.useQuery();
+	const hasOrg = !!activeOrganization;
+
+	const { data: auth, isLoading: authLoading } = api.user.get.useQuery(
+		undefined,
+		{
+			enabled: hasOrg,
+		},
+	);
+	const { data: homeStats, isLoading: statsLoading } =
+		api.project.homeStats.useQuery(undefined, {
+			enabled: hasOrg,
+		});
+	const { data: permissions, isLoading: permissionsLoading } =
+		api.user.getPermissions.useQuery(undefined, {
+			enabled: hasOrg,
+		});
 
 	const canReadDeployments = !!permissions?.deployment.read;
 	const canReadServers = !!permissions?.server.read;
@@ -295,32 +308,34 @@ export const ShowHome = () => {
 
 	const { data: deploySummary, isLoading: deployLoading } =
 		api.deployment.homeSummary.useQuery(undefined, {
-			enabled: canReadDeployments,
+			enabled: hasOrg && canReadDeployments,
 			refetchInterval: 10000,
 		});
 
 	const { data: servers, isLoading: serversLoading } = api.server.all.useQuery(
 		undefined,
 		{
-			enabled: canReadServers,
+			enabled: hasOrg && canReadServers,
 		},
 	);
 
 	const { data: queue, isLoading: queueLoading } =
 		api.deployment.queueList.useQuery(undefined, {
-			enabled: canReadDeployments,
+			enabled: hasOrg && canReadDeployments,
 			refetchInterval: 10000,
 		});
 
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 	const { data: infraHealth, isLoading: healthLoading } =
 		api.settings.checkInfrastructureHealth.useQuery(undefined, {
-			enabled: !!isAdmin && isCloud === false,
+			enabled: hasOrg && !!isAdmin && isCloud === false,
 			retry: false,
 		});
 
 	const firstName = auth?.user?.firstName?.trim();
-	const loadingStats = statsLoading || authLoading || permissionsLoading;
+	const loadingStats =
+		orgLoading ||
+		(hasOrg && (statsLoading || authLoading || permissionsLoading));
 
 	const totals = homeStats ?? {
 		projects: 0,
@@ -361,6 +376,24 @@ export const ShowHome = () => {
 		erroredServices.length + (canReadDeployments ? failedDeploys.length : 0);
 	const showAttention = !loadingStats && attentionCount > 0;
 	const showServerSummary = !isCloud || canReadServers;
+
+	if (!orgLoading && !hasOrg) {
+		return (
+			<div className="w-full">
+				<Card className="h-full bg-sidebar p-2.5 rounded-xl min-h-[85vh]">
+					<div className="rounded-xl bg-background shadow-md p-6 flex flex-col items-center justify-center gap-3 min-h-[70vh] text-center">
+						<Server className="size-8 text-muted-foreground opacity-40" />
+						<h1 className="text-xl font-semibold tracking-tight">
+							No organization selected
+						</h1>
+						<p className="text-sm text-muted-foreground max-w-md">
+							Select or create an organization to view your dashboard overview.
+						</p>
+					</div>
+				</Card>
+			</div>
+		);
+	}
 
 	return (
 		<div className="w-full">
