@@ -223,8 +223,9 @@ PORT=3000
 												<FormDescription>
 													When enabled, an .env file will be created in the same
 													directory as your compose file on every deploy.
-													Disable this if you don't want to generate an
-													environment file.
+													Disable this to keep a repository-provided .env; the
+													variables above will then be ignored. Takes effect on
+													the next deploy.
 												</FormDescription>
 											</div>
 											<FormControl>
