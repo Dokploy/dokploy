@@ -241,11 +241,11 @@ export const ShowDomains = ({ id, type }: Props) => {
 	}, [id]);
 
 	useEffect(() => {
-		if (!data?.length || !isApplicationFetched) {
+		if (!data?.length || !isApplicationFetched || !application) {
 			return;
 		}
 
-		if (application?.serverId) {
+		if (application.serverId) {
 			if (!application.server?.ipAddress) {
 				return;
 			}
