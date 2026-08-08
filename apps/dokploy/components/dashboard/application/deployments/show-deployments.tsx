@@ -6,8 +6,8 @@ import {
 	Copy,
 	Loader2,
 	RefreshCcw,
-	RocketIcon,
 	Settings,
+	SquareStackIcon,
 	Trash2,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
@@ -272,7 +272,7 @@ export const ShowDeployments = ({
 					</div>
 				) : deployments?.length === 0 ? (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10 min-h-[25vh]">
-						<RocketIcon className="size-8 text-muted-foreground" />
+						<SquareStackIcon className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground">
 							No deployments found
 						</span>

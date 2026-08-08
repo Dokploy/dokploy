@@ -5,7 +5,7 @@ import {
 	Hammer,
 	Loader2,
 	PenSquare,
-	RocketIcon,
+	SquareStackIcon,
 	Trash2,
 } from "lucide-react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
@@ -104,7 +104,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 							</div>
 						) : !previewDeployments?.length ? (
 							<div className="flex w-full flex-col items-center justify-center gap-3 min-h-[35vh]">
-								<RocketIcon className="size-8 text-muted-foreground" />
+								<SquareStackIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
 									No preview deployments found
 								</span>
@@ -200,7 +200,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 																size="sm"
 																className="gap-2"
 															>
-																<RocketIcon className="size-4" />
+																<SquareStackIcon className="size-4" />
 																Deployments
 															</Button>
 														</ShowDeploymentsModal>
@@ -298,7 +298,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 					</>
 				) : (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
-						<RocketIcon className="size-8 text-muted-foreground" />
+						<SquareStackIcon className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground">
 							Preview deployments are disabled for this application, please
 							enable it

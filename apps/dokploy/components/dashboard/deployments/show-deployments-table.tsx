@@ -19,8 +19,8 @@ import {
 	ChevronRight,
 	ExternalLink,
 	Loader2,
-	Rocket,
 	Server,
+	SquareStack,
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -176,7 +176,7 @@ export function ShowDeploymentsTable() {
 					return (
 						<div className="flex items-center gap-2">
 							{info.type === "Application" ? (
-								<Rocket className="size-4 text-muted-foreground shrink-0" />
+								<SquareStack className="size-4 text-muted-foreground shrink-0" />
 							) : (
 								<Boxes className="size-4 text-muted-foreground shrink-0" />
 							)}
@@ -530,7 +530,7 @@ export function ShowDeploymentsTable() {
 												className=" text-center"
 											>
 												<div className="flex flex-col min-h-[45vh] items-center justify-center gap-2 text-muted-foreground">
-													<Rocket className="size-8" />
+													<SquareStack className="size-8" />
 													<p className="font-medium">No deployments found</p>
 													<p className="text-sm">
 														Deployments from applications and compose will
