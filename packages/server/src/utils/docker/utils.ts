@@ -266,6 +266,26 @@ export interface DockerDiskUsageItem {
 	size: string;
 	reclaimable: string;
 	sizeBytes: number;
+	details?: DockerDiskUsageDetailItem[];
+}
+
+export interface DockerDiskUsageDetailItem {
+	id: string;
+	name: string;
+	size: string;
+	sizeBytes: number;
+	subtitle?: string;
+	meta: {
+		label: string;
+		value: string;
+	}[];
+}
+
+export interface DockerDiskUsageVerboseDetails {
+	images: DockerDiskUsageDetailItem[];
+	containers: DockerDiskUsageDetailItem[];
+	volumes: DockerDiskUsageDetailItem[];
+	buildCache: DockerDiskUsageDetailItem[];
 }
 
 const parseSizeToBytes = (size: string): number => {
@@ -283,10 +303,28 @@ const parseSizeToBytes = (size: string): number => {
 	return value * (multipliers[unit] || 0);
 };
 
-export const getDockerDiskUsage = async (): Promise<DockerDiskUsageItem[]> => {
-	const command = "docker system df --format '{{json .}}'";
-	const { stdout } = await execAsync(command);
+const dockerDiskUsageTypeToDetailsKey: Record<
+	string,
+	keyof DockerDiskUsageVerboseDetails
+> = {
+	"Build Cache": "buildCache",
+	Containers: "containers",
+	Images: "images",
+	"Local Volumes": "volumes",
+};
 
+const splitDockerTableRow = (line: string) =>
+	line
+		.trim()
+		.split(/\s{2,}/)
+		.map((item) => item.trim());
+
+const sortDiskUsageDetails = (items: DockerDiskUsageDetailItem[]) =>
+	items.sort((a, b) => b.sizeBytes - a.sizeBytes);
+
+export const parseDockerDiskUsageSummary = (
+	stdout: string,
+): DockerDiskUsageItem[] => {
 	const lines = stdout.trim().split("\n").filter(Boolean);
 	return lines.map((line) => {
 		const data = JSON.parse(line);
@@ -297,6 +335,170 @@ export const getDockerDiskUsage = async (): Promise<DockerDiskUsageItem[]> => {
 			size: data.Size,
 			reclaimable: data.Reclaimable,
 			sizeBytes: parseSizeToBytes(data.Size),
+		};
+	});
+};
+
+export const parseDockerDiskUsageVerbose = (
+	stdout: string,
+): DockerDiskUsageVerboseDetails => {
+	const rows: Record<keyof DockerDiskUsageVerboseDetails, string[]> = {
+		buildCache: [],
+		containers: [],
+		images: [],
+		volumes: [],
+	};
+	let currentSection: keyof DockerDiskUsageVerboseDetails | null = null;
+	let hasHeader = false;
+
+	for (const line of stdout.split("\n")) {
+		const trimmedLine = line.trim();
+		if (!trimmedLine) {
+			continue;
+		}
+
+		if (trimmedLine === "Images space usage:") {
+			currentSection = "images";
+			hasHeader = false;
+			continue;
+		}
+		if (trimmedLine === "Containers space usage:") {
+			currentSection = "containers";
+			hasHeader = false;
+			continue;
+		}
+		if (trimmedLine === "Local Volumes space usage:") {
+			currentSection = "volumes";
+			hasHeader = false;
+			continue;
+		}
+		if (trimmedLine.startsWith("Build cache usage:")) {
+			currentSection = "buildCache";
+			hasHeader = false;
+			continue;
+		}
+
+		if (!currentSection) {
+			continue;
+		}
+
+		if (!hasHeader) {
+			hasHeader = true;
+			continue;
+		}
+
+		rows[currentSection].push(trimmedLine);
+	}
+
+	return {
+		buildCache: sortDiskUsageDetails(
+			rows.buildCache.flatMap((row) => {
+				const [id, cacheType, size, created, lastUsed, usage, shared] =
+					splitDockerTableRow(row);
+				if (!id || !cacheType || !size) {
+					return [];
+				}
+
+				return {
+					id,
+					meta: [
+						{ label: "Created", value: created ?? "--" },
+						{ label: "Last used", value: lastUsed ?? "--" },
+						{ label: "Usage", value: usage ?? "--" },
+						{ label: "Shared", value: shared ?? "--" },
+					],
+					name: cacheType,
+					size,
+					sizeBytes: parseSizeToBytes(size),
+				};
+			}),
+		),
+		containers: sortDiskUsageDetails(
+			rows.containers.flatMap((row) => {
+				const [id, image, command, localVolumes, size, created, status, name] =
+					splitDockerTableRow(row);
+				if (!id || !image || !size || !name) {
+					return [];
+				}
+
+				return {
+					id,
+					meta: [
+						{ label: "Image", value: image },
+						{ label: "Command", value: command ?? "--" },
+						{ label: "Volumes", value: localVolumes ?? "0" },
+						{ label: "Created", value: created ?? "--" },
+						{ label: "Status", value: status ?? "--" },
+					],
+					name,
+					size,
+					sizeBytes: parseSizeToBytes(size),
+				};
+			}),
+		),
+		images: sortDiskUsageDetails(
+			rows.images.flatMap((row) => {
+				const [
+					repository,
+					tag,
+					id,
+					created,
+					size,
+					sharedSize,
+					uniqueSize,
+					containers,
+				] = splitDockerTableRow(row);
+				if (!repository || !tag || !id || !size) {
+					return [];
+				}
+
+				return {
+					id,
+					meta: [
+						{ label: "Created", value: created ?? "--" },
+						{ label: "Shared", value: sharedSize ?? "--" },
+						{ label: "Unique", value: uniqueSize ?? "--" },
+						{ label: "Containers", value: containers ?? "0" },
+					],
+					name: `${repository}:${tag}`,
+					size,
+					sizeBytes: parseSizeToBytes(size),
+				};
+			}),
+		),
+		volumes: sortDiskUsageDetails(
+			rows.volumes.flatMap((row) => {
+				const [name, links, size] = splitDockerTableRow(row);
+				if (!name || !size) {
+					return [];
+				}
+
+				return {
+					id: name,
+					meta: [{ label: "Links", value: links ?? "0" }],
+					name,
+					size,
+					sizeBytes: parseSizeToBytes(size),
+				};
+			}),
+		),
+	};
+};
+
+export const getDockerDiskUsage = async (): Promise<DockerDiskUsageItem[]> => {
+	const summaryCommand = "docker system df --format '{{json .}}'";
+	const verboseCommand = "docker system df -v";
+	const [summaryResult, verboseResult] = await Promise.all([
+		execAsync(summaryCommand),
+		execAsync(verboseCommand).catch(() => ({ stdout: "" })),
+	]);
+
+	const details = parseDockerDiskUsageVerbose(verboseResult.stdout);
+	return parseDockerDiskUsageSummary(summaryResult.stdout).map((item) => {
+		const detailsKey = dockerDiskUsageTypeToDetailsKey[item.type];
+		return {
+			...item,
+			details: detailsKey ? details[detailsKey].slice(0, 10) : [],
 		};
 	});
 };
