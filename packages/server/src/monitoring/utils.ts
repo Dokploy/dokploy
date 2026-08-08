@@ -3,6 +3,11 @@ import { OSUtils } from "node-os-utils";
 import { paths } from "../constants";
 import { parseIoToMb } from "./units";
 
+export interface StatsEntry {
+	value: unknown;
+	time: Date;
+}
+
 export interface Container {
 	BlockIO: string;
 	CPUPerc: string;
@@ -22,34 +27,36 @@ export const recordAdvancedStats = async (
 
 	await promises.mkdir(path, { recursive: true });
 
-	await updateStatsFile(appName, "cpu", stats.CPUPerc);
-	await updateStatsFile(appName, "memory", {
+	const cpu = await updateStatsFile(appName, "cpu", stats.CPUPerc);
+	const memory = await updateStatsFile(appName, "memory", {
 		used: stats.MemUsage.split(" ")[0],
 		total: stats.MemUsage.split(" ")[2],
 	});
 
-	await updateStatsFile(appName, "block", {
+	const block = await updateStatsFile(appName, "block", {
 		readMb: parseIoToMb(stats.BlockIO.split(" ")[0]),
 		writeMb: parseIoToMb(stats.BlockIO.split(" ")[2]),
 	});
 
-	await updateStatsFile(appName, "network", {
+	const network = await updateStatsFile(appName, "network", {
 		inputMb: parseIoToMb(stats.NetIO.split(" ")[0]),
 		outputMb: parseIoToMb(stats.NetIO.split(" ")[2]),
 	});
+
+	let disk: StatsEntry | null = null;
 
 	if (appName === "dokploy") {
 		const osutils = new OSUtils();
 		const diskResult = await osutils.disk.usageByMountPoint("/");
 
 		if (diskResult.success && diskResult.data) {
-			const disk = diskResult.data;
-			const diskUsage = disk.used.toGB().toFixed(2);
-			const diskTotal = disk.total.toGB().toFixed(2);
-			const diskUsedPercentage = disk.usagePercentage;
-			const diskFree = disk.available.toGB().toFixed(2);
+			const diskData = diskResult.data;
+			const diskUsage = diskData.used.toGB().toFixed(2);
+			const diskTotal = diskData.total.toGB().toFixed(2);
+			const diskUsedPercentage = diskData.usagePercentage;
+			const diskFree = diskData.available.toGB().toFixed(2);
 
-			await updateStatsFile(appName, "disk", {
+			disk = await updateStatsFile(appName, "disk", {
 				diskTotal: +diskTotal,
 				diskUsedPercentage: +diskUsedPercentage,
 				diskUsage: +diskUsage,
@@ -57,6 +64,10 @@ export const recordAdvancedStats = async (
 			});
 		}
 	}
+
+	// Returned so callers polling on a timer do not have to read every stats
+	// file back off disk right after writing it.
+	return { cpu, memory, disk, network, block };
 };
 
 /**
@@ -183,10 +194,11 @@ export const updateStatsFile = async (
 	appName: string,
 	statType: "cpu" | "memory" | "disk" | "network" | "block",
 	value: number | string | unknown,
-) => {
+): Promise<StatsEntry> => {
 	const { MONITORING_PATH } = paths();
 	const stats = await readStatsFile(appName, statType);
-	stats.push({ value, time: new Date() });
+	const entry: StatsEntry = { value, time: new Date() };
+	stats.push(entry);
 
 	if (stats.length > 288) {
 		stats.shift();
@@ -197,6 +209,8 @@ export const updateStatsFile = async (
 		`${MONITORING_PATH}/${appName}/${statType}.json`,
 		content,
 	);
+
+	return entry;
 };
 
 export const readLastValueStatsFile = async (
