@@ -7,7 +7,6 @@
 		"isolatedModules": false,
 		"noEmit": false,
 		"moduleResolution": "Node",
-		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./*"],
 			"@dokploy/server/*": ["../../packages/server/src/*"]
