@@ -1,6 +1,7 @@
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	CUSTOM_RCLONE_PROVIDER,
 } from "@dokploy/server/db/validations/destination";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon, PlusIcon, Trash2 } from "lucide-react";
@@ -41,26 +42,55 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { S3_PROVIDERS } from "./constants";
 
-const addDestination = z.object({
-	name: z.string().min(1, "Name is required"),
-	provider: z.string().min(1, "Provider is required"),
-	accessKeyId: z.string().min(1, "Access Key Id is required"),
-	secretAccessKey: z.string().min(1, "Secret Access Key is required"),
-	bucket: z.string().min(1, "Bucket is required"),
-	region: z.string(),
-	endpoint: z.string().min(1, "Endpoint is required"),
-	serverId: z.string().optional(),
-	additionalFlags: z
-		.array(
-			z.object({
-				value: z
-					.string()
-					.min(1, "Flag cannot be empty")
-					.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR),
-			}),
-		)
-		.optional(),
-});
+const addDestination = z
+	.object({
+		name: z.string().min(1, "Name is required"),
+		provider: z.string().min(1, "Provider is required"),
+		accessKeyId: z.string(),
+		secretAccessKey: z.string(),
+		bucket: z.string(),
+		region: z.string(),
+		endpoint: z.string(),
+		serverId: z.string().optional(),
+		additionalFlags: z
+			.array(
+				z.object({
+					value: z
+						.string()
+						.min(1, "Flag cannot be empty")
+						.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR),
+				}),
+			)
+			.optional(),
+	})
+	.superRefine((data, ctx) => {
+		if (data.provider === CUSTOM_RCLONE_PROVIDER) {
+			if (!data.endpoint.trim() || !data.endpoint.includes(":")) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["endpoint"],
+					message:
+						"Enter a named remote or connection string, such as gdrive: or :sftp,host=example.com:",
+				});
+			}
+			return;
+		}
+
+		for (const [field, label] of [
+			["accessKeyId", "Access Key Id"],
+			["secretAccessKey", "Secret Access Key"],
+			["bucket", "Bucket"],
+			["endpoint", "Endpoint"],
+		] as const) {
+			if (!data[field].trim()) {
+				ctx.addIssue({
+					code: "custom",
+					path: [field],
+					message: `${label} is required for S3 destinations`,
+				});
+			}
+		}
+	});
 
 type AddDestination = z.infer<typeof addDestination>;
 
@@ -107,6 +137,8 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		},
 		resolver: zodResolver(addDestination),
 	});
+
+	const isCustomRclone = form.watch("provider") === CUSTOM_RCLONE_PROVIDER;
 
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
@@ -196,7 +228,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		const endpoint = form.getValues("endpoint");
 		const region = form.getValues("region");
 
-		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
+		const connectionString = isCustomRclone
+			? `${endpoint}${bucket ? `${endpoint.endsWith(":") || endpoint.endsWith("/") ? "" : "/"}${bucket.replace(/^\/+/, "")}` : ""}`
+			: `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
 
 		await testConnection({
 			provider,
@@ -318,7 +352,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
+										<FormLabel>
+											{isCustomRclone
+												? "Access Key Id (unused)"
+												: "Access Key Id"}
+										</FormLabel>
 										<FormControl>
 											<Input placeholder={"xcas41dasde"} {...field} />
 										</FormControl>
@@ -333,7 +371,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
+										<FormLabel>
+											{isCustomRclone
+												? "Secret Access Key (unused)"
+												: "Secret Access Key"}
+										</FormLabel>
 									</div>
 									<FormControl>
 										<Input placeholder={"asd123asdasw"} {...field} />
@@ -348,7 +390,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
+										<FormLabel>
+											{isCustomRclone
+												? "Remote Base Path (optional)"
+												: "Bucket"}
+										</FormLabel>
 									</div>
 									<FormControl>
 										<Input placeholder={"dokploy-bucket"} {...field} />
@@ -363,7 +409,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
+										<FormLabel>
+											{isCustomRclone ? "Region (unused)" : "Region"}
+										</FormLabel>
 									</div>
 									<FormControl>
 										<Input placeholder={"us-east-1"} {...field} />
@@ -377,10 +425,18 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							name="endpoint"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
+									<FormLabel>
+										{isCustomRclone
+											? "Rclone Remote / Connection String"
+											: "Endpoint"}
+									</FormLabel>
 									<FormControl>
 										<Input
-											placeholder={"https://us.bucket.aws/s3"}
+											placeholder={
+												isCustomRclone
+													? "gdrive: or :sftp,host=example.com:"
+													: "https://us.bucket.aws/s3"
+											}
 											{...field}
 										/>
 									</FormControl>
