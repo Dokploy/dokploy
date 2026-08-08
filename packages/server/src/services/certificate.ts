@@ -60,13 +60,25 @@ export const createCertificate = async (
 
 export const removeCertificateById = async (certificateId: string) => {
 	const certificate = await findCertificateById(certificateId);
-	const { CERTIFICATES_PATH } = paths(!!certificate.serverId);
+	const { CERTIFICATES_PATH, DYNAMIC_TRAEFIK_PATH } = paths(
+		!!certificate.serverId,
+	);
 	const certDir = path.join(CERTIFICATES_PATH, certificate.certificatePath);
+	const configFile = path.join(
+		DYNAMIC_TRAEFIK_PATH,
+		`${certificate.certificatePath}.yml`,
+	);
 
 	if (certificate.serverId) {
-		await execAsyncRemote(certificate.serverId, `rm -rf ${quote([certDir])}`);
+		await execAsyncRemote(
+			certificate.serverId,
+			`rm -rf ${quote([certDir])}; rm -f ${quote([configFile])}`,
+		);
 	} else {
 		await removeDirectoryIfExistsContent(certDir);
+		if (fs.existsSync(configFile)) {
+			fs.rmSync(configFile);
+		}
 	}
 
 	const result = await db
@@ -84,26 +96,33 @@ export const removeCertificateById = async (certificateId: string) => {
 	return result;
 };
 
+// The traefik file provider does not read subdirectories of `dynamic`, so the
+// registration yml must live at the top level of the watched directory; only
+// the PEM files (referenced by absolute path) stay in the certificates subdir.
 const createCertificateFiles = async (certificate: Certificate) => {
-	const { CERTIFICATES_PATH } = paths(!!certificate.serverId);
+	const { CERTIFICATES_PATH, DYNAMIC_TRAEFIK_PATH } = paths(
+		!!certificate.serverId,
+	);
 	const certDir = path.join(CERTIFICATES_PATH, certificate.certificatePath);
 	const crtPath = path.join(certDir, "chain.crt");
 	const keyPath = path.join(certDir, "privkey.key");
 
-	const chainPath = path.join(certDir, "chain.crt");
-	const keyPathDocker = path.join(certDir, "privkey.key");
 	const traefikConfig = {
 		tls: {
 			certificates: [
 				{
-					certFile: chainPath,
-					keyFile: keyPathDocker,
+					certFile: crtPath,
+					keyFile: keyPath,
 				},
 			],
 		},
 	};
 	const yamlConfig = stringify(traefikConfig);
-	const configFile = path.join(certDir, "certificate.yml");
+	const configFile = path.join(
+		DYNAMIC_TRAEFIK_PATH,
+		`${certificate.certificatePath}.yml`,
+	);
+	const legacyConfigFile = path.join(certDir, "certificate.yml");
 
 	if (certificate.serverId) {
 		const certificateData = encodeBase64(certificate.certificateData);
@@ -113,6 +132,7 @@ const createCertificateFiles = async (certificate: Certificate) => {
 			echo "${certificateData}" | base64 -d > ${quote([crtPath])};
 			echo "${privateKey}" | base64 -d > ${quote([keyPath])};
 			echo "${yamlConfig}" > ${quote([configFile])};
+			rm -f ${quote([legacyConfigFile])};
 		`;
 
 		await execAsyncRemote(certificate.serverId, command);
@@ -125,6 +145,24 @@ const createCertificateFiles = async (certificate: Certificate) => {
 		fs.writeFileSync(keyPath, certificate.privateKey);
 
 		fs.writeFileSync(configFile, yamlConfig);
+
+		if (fs.existsSync(legacyConfigFile)) {
+			fs.rmSync(legacyConfigFile);
+		}
+	}
+};
+
+export const migrateCertificatesToWatchedConfig = async () => {
+	const allCertificates = await db.query.certificates.findMany();
+	for (const certificate of allCertificates) {
+		try {
+			await createCertificateFiles(certificate);
+		} catch (error) {
+			console.error(
+				`Error migrating certificate ${certificate.certificateId}:`,
+				error,
+			);
+		}
 	}
 };
 
