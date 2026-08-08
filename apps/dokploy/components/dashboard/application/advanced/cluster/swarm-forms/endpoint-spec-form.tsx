@@ -74,7 +74,7 @@ export const EndpointSpecForm = ({ id, type }: EndpointSpecFormProps) => {
 	const form = useForm<any>({
 		resolver: zodResolver(endpointSpecFormSchema),
 		defaultValues: {
-			Mode: undefined,
+			Mode: "dnsrr",
 		},
 	});
 
@@ -125,11 +125,11 @@ export const EndpointSpecForm = ({ id, type }: EndpointSpecFormProps) => {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Mode</FormLabel>
-							<FormDescription>Endpoint mode (vip or dnsrr)</FormDescription>
+							<FormDescription>Default: dnsrr. Switch to vip if multi-node Swarm requires it.</FormDescription>
 							<Select onValueChange={field.onChange} value={field.value}>
 								<FormControl>
 									<SelectTrigger>
-										<SelectValue placeholder="Select endpoint mode" />
+										<SelectValue placeholder="DNS Round Robin (default)" />
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
@@ -148,7 +148,7 @@ export const EndpointSpecForm = ({ id, type }: EndpointSpecFormProps) => {
 						variant="outline"
 						onClick={() => {
 							form.reset({
-								Mode: undefined,
+								Mode: "dnsrr",
 							});
 						}}
 					>
