@@ -628,30 +628,118 @@ export const getApplicationInfo = async (
 
 export const getAllContainerStats = async (serverId?: string) => {
 	try {
-		let stdout = "";
-		const command =
+		const statsCommand =
 			'docker stats --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'';
+		const sizeCommand =
+			'docker ps --size --format \'{"ID":"{{.ID}}","Name":"{{.Names}}","Size":"{{.Size}}"}\'';
 
+		let statsStdout = "";
+		let sizeStdout = "";
 		if (serverId) {
-			const result = await execAsyncRemote(serverId, command);
-			stdout = result.stdout;
+			const statsResult = await execAsyncRemote(serverId, statsCommand);
+			const sizeResult = await execAsyncRemote(serverId, sizeCommand);
+			statsStdout = statsResult.stdout;
+			sizeStdout = sizeResult.stdout;
 		} else {
-			const result = await execAsync(command);
-			stdout = result.stdout;
+			const statsResult = await execAsync(statsCommand);
+			const sizeResult = await execAsync(sizeCommand);
+			statsStdout = statsResult.stdout;
+			sizeStdout = sizeResult.stdout;
 		}
 
-		if (!stdout.trim()) {
+		if (!statsStdout.trim()) {
 			return [];
 		}
 
-		const stats = stdout
+		const sizeByContainerId = new Map<string, string>();
+		if (sizeStdout.trim()) {
+			const sizes = sizeStdout
+				.trim()
+				.split("\n")
+				.map((line) => JSON.parse(line));
+
+			for (const size of sizes) {
+				sizeByContainerId.set(size.ID, size.Size);
+			}
+		}
+
+		const stats = statsStdout
 			.trim()
 			.split("\n")
-			.map((line) => JSON.parse(line));
+			.map((line) => {
+				const stat = JSON.parse(line);
+				return {
+					...stat,
+					Size: sizeByContainerId.get(stat.ID) ?? "",
+				};
+			});
 
 		return stats;
 	} catch (error) {
 		console.error("getAllContainerStats error:", error);
+		return [];
+	}
+};
+
+export interface DockerContainerProcess {
+	command: string;
+	cpuPercent: number;
+	memoryPercent: number;
+	pid: string;
+	rssBytes: number;
+}
+
+export const parseDockerTopProcesses = (
+	output: string,
+): DockerContainerProcess[] => {
+	const [, ...lines] = output.trim().split("\n");
+
+	return lines
+		.map((line) => {
+			const match = line.trim().match(/^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.+)$/);
+			if (!match?.[1] || !match[2] || !match[3] || !match[4] || !match[5]) {
+				return null;
+			}
+
+			const cpuPercent = Number.parseFloat(match[2]);
+			const memoryPercent = Number.parseFloat(match[3]);
+			const rssKb = Number.parseFloat(match[4]);
+
+			return {
+				command: match[5],
+				cpuPercent: Number.isFinite(cpuPercent) ? cpuPercent : 0,
+				memoryPercent: Number.isFinite(memoryPercent) ? memoryPercent : 0,
+				pid: match[1],
+				rssBytes: Number.isFinite(rssKb) ? rssKb * 1024 : 0,
+			};
+		})
+		.filter((process): process is DockerContainerProcess => process !== null)
+		.sort((a, b) => {
+			if (b.cpuPercent !== a.cpuPercent) {
+				return b.cpuPercent - a.cpuPercent;
+			}
+			return b.memoryPercent - a.memoryPercent;
+		});
+};
+
+export const getContainerProcesses = async (
+	containerId: string,
+	serverId?: string,
+) => {
+	const containerIdRegex = /^[a-zA-Z0-9.\-_]+$/;
+	if (!containerIdRegex.test(containerId)) {
+		throw new Error("Invalid container ID");
+	}
+
+	try {
+		const command = `docker top ${containerId} -eo pid,pcpu,pmem,rss,args`;
+		const result = serverId
+			? await execAsyncRemote(serverId, command)
+			: await execAsync(command);
+
+		return parseDockerTopProcesses(result.stdout).slice(0, 20);
+	} catch (error) {
+		console.error("getContainerProcesses error:", error);
 		return [];
 	}
 };
