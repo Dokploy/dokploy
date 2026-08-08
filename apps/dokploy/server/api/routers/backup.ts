@@ -31,6 +31,7 @@ import {
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
+import { redactRcloneCredentials } from "@dokploy/server/utils/backups/redact";
 import {
 	getS3Credentials,
 	normalizeS3Path,
@@ -551,13 +552,17 @@ export const backupRouter = createTRPCRouter({
 
 				return results.slice(0, 100);
 			} catch (error) {
-				console.error("Error in listBackupFiles:", error);
+				console.error(
+					"Error in listBackupFiles:",
+					redactRcloneCredentials(String(error)),
+				);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message:
+					message: redactRcloneCredentials(
 						error instanceof Error
 							? error.message
 							: "Error listing backup files",
+					),
 					cause: error,
 				});
 			}
@@ -611,7 +616,7 @@ export const backupRouter = createTRPCRouter({
 			runRestore()
 				.catch((error) => {
 					onLog(
-						`Error: ${error instanceof Error ? error.message : String(error)}`,
+						`Error: ${redactRcloneCredentials(error instanceof Error ? error.message : String(error))}`,
 					);
 				})
 				.finally(() => {

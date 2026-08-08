@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Destination } from "@dokploy/server/services/destination";
 import { quote } from "shell-quote";
+import { redactRcloneCredentials } from "../backups/redact";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync } from "../process/execAsync";
 
@@ -143,14 +144,13 @@ export const restoreWebServerBackup = async (
 			await execAsync(`rm -rf ${tempDir}`);
 		}
 	} catch (error) {
-		console.error(error);
-		emit(
-			`Error: ${
-				error instanceof Error
-					? error.message
-					: "Error restoring web server backup"
-			}`,
+		const safeMessage = redactRcloneCredentials(
+			error instanceof Error
+				? error.message
+				: "Error restoring web server backup",
 		);
+		console.error(safeMessage);
+		emit(`Error: ${safeMessage}`);
 		throw error;
 	}
 };
