@@ -2,7 +2,6 @@ import type { IncomingMessage } from "node:http";
 import { apiKey } from "@better-auth/api-key";
 import { passkey } from "@better-auth/passkey";
 import { scim } from "@better-auth/scim";
-import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -30,6 +29,10 @@ import {
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 import { betterAuthSecret } from "./auth-secret";
+import {
+	createDokploySSOPlugin,
+	markSCIMProvisionedUserEmailVerified,
+} from "./sso-account-linking";
 
 const resolveTrustedOrigins = async () => {
 	try {
@@ -164,6 +167,14 @@ const createBetterAuth = () =>
 			user: {
 				create: {
 					before: async (_user, context) => {
+						const scimUser = markSCIMProvisionedUserEmailVerified(
+							_user,
+							context?.path,
+						);
+						if (scimUser) {
+							return scimUser;
+						}
+
 						if (!IS_CLOUD) {
 							const xDokployToken =
 								context?.request?.headers?.get("x-dokploy-token");
@@ -196,8 +207,7 @@ const createBetterAuth = () =>
 								}
 							} else {
 								const isSSORequest = context?.path.includes("/sso");
-								const isSCIMRequest = context?.path.includes("/scim");
-								if (isSSORequest || isSCIMRequest) {
+								if (isSSORequest) {
 									return;
 								}
 								const isAdminPresent = await db.query.member.findFirst({
@@ -420,7 +430,7 @@ const createBetterAuth = () =>
 				enableMetadata: true,
 				references: "user",
 			}),
-			sso({ trustEmailVerified: true }),
+			createDokploySSOPlugin(),
 			scim({
 				beforeSCIMTokenGenerated: async ({ user }) => {
 					const dbUser = await db.query.user.findFirst({
@@ -477,6 +487,8 @@ const _auth = {
 	createApiKey: api.createApiKey,
 	registerSSOProvider: api.registerSSOProvider,
 	updateSSOProvider: api.updateSSOProvider,
+	requestDomainVerification: api.requestDomainVerification,
+	verifyDomain: api.verifyDomain,
 	generateSCIMToken: api.generateSCIMToken,
 	listSCIMProviderConnections: api.listSCIMProviderConnections,
 	deleteSCIMProviderConnection: api.deleteSCIMProviderConnection,

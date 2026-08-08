@@ -8,6 +8,7 @@ import {
 	requestToHeaders,
 } from "@dokploy/server/index";
 import { auth } from "@dokploy/server/lib/auth";
+import { getSSODomainVerificationRecordName } from "@dokploy/server/lib/sso-account-linking";
 import { invalidateTrustedOriginsCache } from "@dokploy/server/services/admin";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { TRPCError } from "@trpc/server";
@@ -60,6 +61,7 @@ export const ssoRouter = createTRPCRouter({
 				providerId: true,
 				issuer: true,
 				domain: true,
+				domainVerified: true,
 				oidcConfig: true,
 				samlConfig: true,
 				organizationId: true,
@@ -92,6 +94,7 @@ export const ssoRouter = createTRPCRouter({
 					providerId: true,
 					issuer: true,
 					domain: true,
+					domainVerified: true,
 					oidcConfig: true,
 					samlConfig: true,
 					organizationId: true,
@@ -105,6 +108,65 @@ export const ssoRouter = createTRPCRouter({
 				});
 			}
 			return provider;
+		}),
+	requestDomainVerification: enterpriseProcedure
+		.input(z.object({ providerId: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const provider = await db.query.ssoProvider.findFirst({
+				where: and(
+					eq(ssoProvider.providerId, input.providerId),
+					eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
+				),
+				columns: { domain: true },
+			});
+
+			if (!provider) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message:
+						"SSO provider not found or you do not have permission to verify it",
+				});
+			}
+
+			const result = await auth.requestDomainVerification({
+				body: { providerId: input.providerId },
+				headers: requestToHeaders(ctx.req),
+			});
+
+			return {
+				domains: provider.domain
+					.split(",")
+					.map((domain) => domain.trim().toLowerCase())
+					.filter(Boolean),
+				recordName: getSSODomainVerificationRecordName(input.providerId),
+				recordValue: result.domainVerificationToken,
+			};
+		}),
+	verifyDomain: enterpriseProcedure
+		.input(z.object({ providerId: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const provider = await db.query.ssoProvider.findFirst({
+				where: and(
+					eq(ssoProvider.providerId, input.providerId),
+					eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
+				),
+				columns: { id: true },
+			});
+
+			if (!provider) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message:
+						"SSO provider not found or you do not have permission to verify it",
+				});
+			}
+
+			await auth.verifyDomain({
+				body: { providerId: input.providerId },
+				headers: requestToHeaders(ctx.req),
+			});
+
+			return { success: true };
 		}),
 	update: enterpriseProcedure
 		.input(ssoProviderBodySchema)
