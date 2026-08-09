@@ -2,10 +2,10 @@ import fs, { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
-import { network } from "@dokploy/server/db/schema";
+import { network, patch } from "@dokploy/server/db/schema";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Domain } from "@dokploy/server/services/domain";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { parse, stringify } from "yaml";
 import { execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
@@ -134,6 +134,38 @@ exit 1;
 		`;
 	}
 };
+export const applyComposeFilePatch = async (
+	compose: Compose,
+): Promise<ComposeSpecification | null> => {
+	if (compose.sourceType === "raw") {
+		return null;
+	}
+
+	const composePatches = await db.query.patch.findMany({
+		where: eq(patch.composeId, compose.composeId),
+	});
+
+	const composeFilePatch = composePatches.find(
+		(p) =>
+			p.enabled &&
+			p.type !== "delete" &&
+			join(p.filePath) === join(compose.composePath),
+	);
+
+	if (!composeFilePatch?.content) {
+		return null;
+	}
+
+	try {
+		const parsed = parse(composeFilePatch.content, {
+			maxAliasCount: 10000,
+		}) as ComposeSpecification;
+		return parsed ?? null;
+	} catch {
+		return null;
+	}
+};
+
 export const addDomainToCompose = async (
 	compose: Compose,
 	domains: Domain[],
@@ -151,6 +183,8 @@ export const addDomainToCompose = async (
 	if (!result) {
 		return null;
 	}
+
+	result = (await applyComposeFilePatch(compose)) ?? result;
 
 	if (compose.isolatedDeployment) {
 		const randomized = randomizeDeployableSpecificationFile(
