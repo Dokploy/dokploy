@@ -88,6 +88,18 @@ pnpm run dokploy:dev
 
 Go to http://localhost:3000 to see the development server
 
+When you are done with local development, stop the development server with
+`Ctrl-C`, then remove the Docker resources created by the setup step:
+
+```bash
+pnpm run dokploy:dev:down
+```
+
+> [!WARNING]
+> This command removes the local Dokploy Traefik container, Postgres service and
+> its data volume, the `dokploy-network` network, and leaves the local Docker
+> Swarm. Run it only for a disposable local development environment.
+
 > [!NOTE]
 > This project uses Biome. If your editor is configured to use another formatter such as Prettier, it's recommended to either change it to use Biome or turn it off.
 
