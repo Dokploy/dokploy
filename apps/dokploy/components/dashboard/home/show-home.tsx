@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
-import { ArrowRight, Rocket, Server } from "lucide-react";
+import { ArrowRight, Server, SquareStack } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -218,7 +218,7 @@ export const ShowHome = () => {
 					<div className="rounded-xl border bg-background">
 						<div className="flex items-center justify-between px-5 py-4 border-b">
 							<div className="flex items-center gap-2">
-								<Rocket className="size-4 text-muted-foreground" />
+								<SquareStack className="size-4 text-muted-foreground" />
 								<h2 className="text-sm font-semibold">Recent deployments</h2>
 							</div>
 							{canReadDeployments && (
@@ -232,12 +232,12 @@ export const ShowHome = () => {
 						</div>
 						{!canReadDeployments ? (
 							<div className="min-h-[400px] flex flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground p-10">
-								<Rocket className="size-8 opacity-40" />
+								<SquareStack className="size-8 opacity-40" />
 								<span>You do not have permission to view deployments.</span>
 							</div>
 						) : recentDeployments.length === 0 ? (
 							<div className="min-h-[400px] flex flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground p-10">
-								<Rocket className="size-8 opacity-40" />
+								<SquareStack className="size-8 opacity-40" />
 								<span>No deployments yet.</span>
 							</div>
 						) : (

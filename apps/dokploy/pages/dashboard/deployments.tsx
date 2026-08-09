@@ -1,6 +1,6 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { hasPermission } from "@dokploy/server/services/permission";
-import { Rocket } from "lucide-react";
+import { SquareStack } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
 import type { ReactElement } from "react";
@@ -46,7 +46,7 @@ function DeploymentsPage() {
 						<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 							<div>
 								<CardTitle className="text-xl font-bold flex items-center gap-2">
-									<Rocket className="size-5" />
+									<SquareStack className="size-5" />
 									Deployments
 								</CardTitle>
 								<CardDescription>
