@@ -4,6 +4,7 @@ import {
 	containerRestart,
 	containerStart,
 	containerStop,
+	deleteContainerFile,
 	findServerById,
 	getConfig,
 	getContainers,
@@ -11,7 +12,10 @@ import {
 	getContainersByAppNameMatch,
 	getServiceContainersByAppName,
 	getStackContainersByAppName,
+	listContainerFiles,
+	readContainerFile,
 	uploadFileToContainer,
+	writeContainerFile,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -20,6 +24,15 @@ import { uploadFileToContainerSchema } from "@/utils/schema";
 import { createTRPCRouter, withPermission } from "../trpc";
 
 export const containerIdRegex = /^[a-zA-Z0-9.\-_]+$/;
+
+const containerPathSchema = z
+	.string()
+	.min(1)
+	.max(4096)
+	.refine(
+		(path) => path.startsWith("/") && !path.includes("\0"),
+		"Path must be absolute.",
+	);
 
 export const dockerRouter = createTRPCRouter({
 	getContainers: withPermission("docker", "read")
@@ -297,5 +310,118 @@ export const dockerRouter = createTRPCRouter({
 			);
 
 			return { success: true, message: "File uploaded successfully" };
+		}),
+
+	listContainerFiles: withPermission("docker", "read")
+		.input(
+			z.object({
+				containerId: z
+					.string()
+					.min(1)
+					.regex(containerIdRegex, "Invalid container id."),
+				path: containerPathSchema,
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			return await listContainerFiles(
+				input.containerId,
+				input.path,
+				input.serverId,
+			);
+		}),
+
+	readContainerFile: withPermission("docker", "read")
+		.input(
+			z.object({
+				containerId: z
+					.string()
+					.min(1)
+					.regex(containerIdRegex, "Invalid container id."),
+				path: containerPathSchema,
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			return await readContainerFile(
+				input.containerId,
+				input.path,
+				input.serverId,
+			);
+		}),
+
+	writeContainerFile: withPermission("docker", "read")
+		.input(
+			z.object({
+				containerId: z
+					.string()
+					.min(1)
+					.regex(containerIdRegex, "Invalid container id."),
+				path: containerPathSchema,
+				content: z.string(),
+				serverId: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			await writeContainerFile(
+				input.containerId,
+				input.path,
+				input.content,
+				input.serverId,
+			);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "docker",
+				resourceId: input.containerId,
+				resourceName: `${input.containerId}:${input.path}`,
+			});
+		}),
+
+	deleteContainerFile: withPermission("docker", "read")
+		.input(
+			z.object({
+				containerId: z
+					.string()
+					.min(1)
+					.regex(containerIdRegex, "Invalid container id."),
+				path: containerPathSchema.refine(
+					(path) => path !== "/",
+					"Cannot delete the container root.",
+				),
+				serverId: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			await deleteContainerFile(input.containerId, input.path, input.serverId);
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "docker",
+				resourceId: input.containerId,
+				resourceName: `${input.containerId}:${input.path}`,
+			});
 		}),
 });

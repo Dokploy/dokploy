@@ -17,6 +17,7 @@ export * from "./services/compose";
 export * from "./services/deployment";
 export * from "./services/destination";
 export * from "./services/docker";
+export * from "./services/docker-volume";
 export * from "./services/domain";
 export * from "./services/environment";
 export * from "./services/git-provider";

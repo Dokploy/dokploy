@@ -1,4 +1,5 @@
 import {
+	ExecError,
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
@@ -758,5 +759,115 @@ export const uploadFileToContainer = async (
 		throw new Error(
 			`Failed to upload file to container: ${error instanceof Error ? error.message : String(error)}`,
 		);
+	}
+};
+
+export const CONTAINER_FILE_SIZE_LIMIT = 512 * 1024;
+
+const NO_SHELL_UTILITIES_ERROR =
+	"This container image has no shell utilities and its filesystem is not accessible from the Dokploy host.";
+
+const isMissingBinaryError = (error: unknown) =>
+	error instanceof ExecError &&
+	(error.exitCode === 126 ||
+		error.exitCode === 127 ||
+		!!error.stderr?.includes("executable file not found"));
+
+export const listContainerFiles = async (
+	containerId: string,
+	path: string,
+	serverId?: string,
+) => {
+	const command = `docker exec ${quote([containerId])} ls -1Ap ${quote([path])}`;
+	let stdout: string;
+	try {
+		({ stdout } = serverId
+			? await execAsyncRemote(serverId, command)
+			: await execAsync(command));
+	} catch (error) {
+		if (isMissingBinaryError(error)) {
+			throw new Error(NO_SHELL_UTILITIES_ERROR);
+		}
+		throw error;
+	}
+
+	return stdout
+		.split("\n")
+		.filter(Boolean)
+		.map((entry) => ({
+			name: entry.endsWith("/") ? entry.slice(0, -1) : entry,
+			isDirectory: entry.endsWith("/"),
+		}))
+		.sort((a, b) => {
+			if (a.isDirectory !== b.isDirectory) {
+				return a.isDirectory ? -1 : 1;
+			}
+			return a.name.localeCompare(b.name);
+		});
+};
+
+export const readContainerFile = async (
+	containerId: string,
+	filePath: string,
+	serverId?: string,
+) => {
+	const command = `docker exec ${quote([containerId])} cat ${quote([filePath])} | head -c ${CONTAINER_FILE_SIZE_LIMIT + 1} | base64 | tr -d '\\n'`;
+	const { stdout, stderr } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (stderr && !stdout) {
+		if (stderr.includes("executable file not found")) {
+			throw new Error(NO_SHELL_UTILITIES_ERROR);
+		}
+		throw new Error(stderr);
+	}
+
+	const buffer = Buffer.from(stdout.trim(), "base64");
+	return {
+		content: buffer.subarray(0, CONTAINER_FILE_SIZE_LIMIT).toString("base64"),
+		truncated: buffer.byteLength > CONTAINER_FILE_SIZE_LIMIT,
+	};
+};
+
+export const writeContainerFile = async (
+	containerId: string,
+	filePath: string,
+	content: string,
+	serverId?: string,
+) => {
+	const base64Content = Buffer.from(content, "utf8").toString("base64");
+	if (base64Content.length > CONTAINER_FILE_SIZE_LIMIT * 2) {
+		throw new Error("File is too large to save from the editor (max 512KB)");
+	}
+
+	const tempPath = `/tmp/dokploy-edit-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+	const command = `printf '%s' ${quote([base64Content])} | base64 -d > ${quote([tempPath])} && docker cp ${quote([tempPath])} ${quote([`${containerId}:${filePath}`])}; status=$?; rm -f ${quote([tempPath])}; exit $status`;
+
+	if (serverId) {
+		await execAsyncRemote(serverId, command);
+	} else {
+		await execAsync(command);
+	}
+};
+
+export const deleteContainerFile = async (
+	containerId: string,
+	path: string,
+	serverId?: string,
+) => {
+	const command = `docker exec ${quote([containerId])} rm -rf ${quote([path])}`;
+
+	try {
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} catch (error) {
+		if (isMissingBinaryError(error)) {
+			throw new Error(NO_SHELL_UTILITIES_ERROR);
+		}
+		throw error;
 	}
 };

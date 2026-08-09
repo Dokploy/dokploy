@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import { ShowContainers } from "@/components/dashboard/docker/show/show-containers";
+import { ShowVolumes } from "@/components/dashboard/docker/volumes/show-volumes";
 import { ShowNetworks } from "@/components/dashboard/networks/show-networks";
 import { ShowSwarmContainers } from "@/components/dashboard/swarm/containers/show-swarm-containers";
 import SwarmMonitorCard from "@/components/dashboard/swarm/monitoring-card";
@@ -44,6 +45,7 @@ const Dashboard = () => {
 					<TabsList>
 						<TabsTrigger value="containers">Containers</TabsTrigger>
 						<TabsTrigger value="swarm">Swarm</TabsTrigger>
+						<TabsTrigger value="volumes">Volumes</TabsTrigger>
 						{!isCloud && <TabsTrigger value="networks">Networks</TabsTrigger>}
 					</TabsList>
 					<TabsContent value="containers">
@@ -66,6 +68,9 @@ const Dashboard = () => {
 								</Card>
 							</TabsContent>
 						</Tabs>
+					</TabsContent>
+					<TabsContent value="volumes">
+						<ShowVolumes serverId={serverId} />
 					</TabsContent>
 					{!isCloud && (
 						<TabsContent value="networks">
