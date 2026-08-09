@@ -41,6 +41,38 @@ describe("PostgreSQL backup port validation", () => {
 		expect(result.success).toBe(false);
 	});
 
+	it("accepts null metadata on create", () => {
+		const result = apiCreateBackup.safeParse({
+			schedule: "0 0 * * *",
+			prefix: "/",
+			destinationId: "destination-id",
+			database: "app",
+			databaseType: "postgres",
+			backupType: "database",
+			postgresId: "postgres-id",
+			metadata: null,
+		});
+
+		expect(result.success).toBe(true);
+	});
+
+	it("accepts a valid port on update", () => {
+		const result = apiUpdateBackup.safeParse({
+			backupId: "backup-id",
+			schedule: "0 0 * * *",
+			enabled: true,
+			prefix: "/",
+			destinationId: "destination-id",
+			database: "app",
+			keepLatestCount: 5,
+			serviceName: "postgres",
+			databaseType: "postgres",
+			metadata: metadata(5432),
+		});
+
+		expect(result.success).toBe(true);
+	});
+
 	it("rejects an invalid port on update", () => {
 		const result = apiUpdateBackup.safeParse({
 			backupId: "backup-id",
@@ -56,5 +88,22 @@ describe("PostgreSQL backup port validation", () => {
 		});
 
 		expect(result.success).toBe(false);
+	});
+
+	it("accepts null metadata on update", () => {
+		const result = apiUpdateBackup.safeParse({
+			backupId: "backup-id",
+			schedule: "0 0 * * *",
+			enabled: true,
+			prefix: "/",
+			destinationId: "destination-id",
+			database: "app",
+			keepLatestCount: 5,
+			serviceName: "postgres",
+			databaseType: "postgres",
+			metadata: null,
+		});
+
+		expect(result.success).toBe(true);
 	});
 });

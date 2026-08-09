@@ -166,7 +166,7 @@ const backupMetadataSchema = z
 			})
 			.optional(),
 	})
-	.optional();
+	.nullish();
 
 const createSchema = createInsertSchema(backups, {
 	backupId: z.string(),
