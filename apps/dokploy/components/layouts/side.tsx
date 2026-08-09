@@ -25,10 +25,8 @@ import {
 	Loader2,
 	LogIn,
 	type LucideIcon,
-	Network,
 	Package,
 	Palette,
-	PieChart,
 	Rocket,
 	Server,
 	ShieldCheck,
@@ -201,28 +199,6 @@ const MENU: Menu = {
 			icon: BlocksIcon,
 			// Only enabled for users with access to Docker
 			isEnabled: ({ permissions }) => !!permissions?.docker.read,
-		},
-		{
-			isSingle: true,
-			title: "Swarm",
-			url: "/dashboard/swarm",
-			icon: PieChart,
-			// Only enabled for users with access to Docker
-			isEnabled: ({ permissions }) => !!permissions?.docker.read,
-		},
-		{
-			isSingle: true,
-			title: "Networks",
-			url: "/dashboard/networks",
-			icon: Network,
-			// Only enabled for admins and users with access to Docker in non-cloud environments
-			isEnabled: ({ auth, isCloud }) =>
-				!!(
-					(auth?.role === "owner" ||
-						auth?.role === "admin" ||
-						auth?.canAccessToDocker) &&
-					!isCloud
-				),
 		},
 		{
 			isSingle: true,
