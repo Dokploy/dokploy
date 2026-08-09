@@ -109,16 +109,21 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 
 	const mountPathWarning = (() => {
 		if (type !== "postgres" || !dockerImage) return null;
-		const mounts = (data as any)?.mounts ?? [];
-		const dataMount = mounts.find(
-			(mount: { type: string; mountPath: string }) =>
+		const mounts = data && "mounts" in data ? data.mounts : [];
+		const dataMounts = mounts.filter(
+			(mount) =>
 				mount.type === "volume" &&
 				POSTGRES_DATA_PATH_REGEX.test(mount.mountPath),
 		);
-		if (!dataMount) return null;
+		if (dataMounts.length === 0) return null;
 		const expectedPath = getPostgresMountPath(dockerImage);
-		if (expectedPath === dataMount.mountPath) return null;
-		return { expectedPath, currentPath: dataMount.mountPath };
+		if (dataMounts.some((mount) => mount.mountPath === expectedPath)) {
+			return null;
+		}
+		return {
+			expectedPath,
+			currentPath: dataMounts.map((mount) => mount.mountPath).join(", "),
+		};
 	})();
 
 	const onSubmit = async (formData: AddDockerImage) => {
