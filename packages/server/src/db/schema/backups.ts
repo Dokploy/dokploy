@@ -140,6 +140,34 @@ export const backupsRelations = relations(backups, ({ one, many }) => ({
 	deployments: many(deployments),
 }));
 
+const backupMetadataSchema = z
+	.object({
+		postgres: z
+			.object({
+				databaseUser: z.string(),
+				databasePort: z.number().int().min(1).max(65535).optional(),
+			})
+			.optional(),
+		mariadb: z
+			.object({
+				databaseUser: z.string(),
+				databasePassword: z.string(),
+			})
+			.optional(),
+		mongo: z
+			.object({
+				databaseUser: z.string(),
+				databasePassword: z.string(),
+			})
+			.optional(),
+		mysql: z
+			.object({
+				databaseRootPassword: z.string(),
+			})
+			.optional(),
+	})
+	.optional();
+
 const createSchema = createInsertSchema(backups, {
 	backupId: z.string(),
 	destinationId: z.string(),
@@ -163,7 +191,7 @@ const createSchema = createInsertSchema(backups, {
 	libsqlId: z.string().optional(),
 	userId: z.string().optional(),
 	includeEncryptionKey: z.boolean().optional(),
-	metadata: z.any().optional(),
+	metadata: backupMetadataSchema,
 });
 
 export const apiCreateBackup = createSchema.pick({

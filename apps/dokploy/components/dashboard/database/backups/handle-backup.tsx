@@ -336,7 +336,7 @@ export const HandleBackup = ({
 			...getDatabaseId,
 			backupId: backupId ?? "",
 			backupType,
-			metadata: data.metadata,
+			metadata: data.metadata ?? null,
 		})
 			.then(async () => {
 				toast.success(`Backup ${backupId ? "Updated" : "Created"}`);
