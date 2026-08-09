@@ -6,6 +6,7 @@ import { z } from "zod";
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	CUSTOM_RCLONE_PROVIDER,
 } from "../validations/destination";
 import { organization } from "./account";
 import { backups } from "./backups";
@@ -54,6 +55,44 @@ const createSchema = createInsertSchema(destinations, {
 		.default([]),
 });
 
+const validateDestination = (
+	data: {
+		provider?: string | null;
+		accessKey?: string;
+		secretAccessKey?: string;
+		bucket?: string;
+		endpoint?: string;
+	},
+	ctx: z.RefinementCtx,
+) => {
+	if (data.provider === CUSTOM_RCLONE_PROVIDER) {
+		if (!data.endpoint?.trim() || !data.endpoint.includes(":")) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["endpoint"],
+				message:
+					"Enter a named rclone remote or connection string, such as gdrive: or :sftp,host=example.com:",
+			});
+		}
+		return;
+	}
+
+	for (const [field, label] of [
+		["accessKey", "Access key"],
+		["secretAccessKey", "Secret access key"],
+		["bucket", "Bucket"],
+		["endpoint", "Endpoint"],
+	] as const) {
+		if (!data[field]?.trim()) {
+			ctx.addIssue({
+				code: "custom",
+				path: [field],
+				message: `${label} is required for S3 destinations`,
+			});
+		}
+	}
+};
+
 export const apiCreateDestination = createSchema
 	.pick({
 		name: true,
@@ -68,7 +107,8 @@ export const apiCreateDestination = createSchema
 	.required()
 	.extend({
 		serverId: z.string().optional(),
-	});
+	})
+	.superRefine(validateDestination);
 
 export const apiFindOneDestination = z.object({
 	destinationId: z.string().min(1),
@@ -95,4 +135,5 @@ export const apiUpdateDestination = createSchema
 	.required()
 	.extend({
 		serverId: z.string().optional(),
-	});
+	})
+	.superRefine(validateDestination);

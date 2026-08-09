@@ -1,7 +1,13 @@
+import { CUSTOM_RCLONE_PROVIDER } from "@dokploy/server/db/validations/destination";
+
 export const S3_PROVIDERS: Array<{
 	key: string;
 	name: string;
 }> = [
+	{
+		key: CUSTOM_RCLONE_PROVIDER,
+		name: "Custom rclone remote (Google Drive, OneDrive, FTP, SFTP, etc.)",
+	},
 	{
 		key: "AWS",
 		name: "Amazon Web Services (AWS) S3",

@@ -1,3 +1,4 @@
+import { CUSTOM_RCLONE_PROVIDER } from "@dokploy/server/db/validations/destination";
 import { logger } from "@dokploy/server/lib/logger";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
@@ -68,7 +69,25 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
-export const getS3Credentials = (destination: Destination) => {
+export const isCustomRcloneDestination = (
+	destination: Pick<Destination, "provider">,
+) => destination.provider === CUSTOM_RCLONE_PROVIDER;
+
+export const getRcloneCredentials = (
+	destination: Pick<
+		Destination,
+		| "provider"
+		| "accessKey"
+		| "secretAccessKey"
+		| "region"
+		| "endpoint"
+		| "additionalFlags"
+	>,
+) => {
+	if (isCustomRcloneDestination(destination)) {
+		return destination.additionalFlags ?? [];
+	}
+
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [
@@ -90,6 +109,44 @@ export const getS3Credentials = (destination: Destination) => {
 
 	return rcloneFlags;
 };
+
+// Backward-compatible alias for downstream imports while the UI and backup
+// code migrate to the provider-neutral name.
+export const getS3Credentials = getRcloneCredentials;
+
+export const getRcloneDestination = (
+	destination: Pick<Destination, "provider" | "bucket" | "endpoint">,
+	path = "",
+) => {
+	const clean = (value: string) => value.trim().replace(/^\/+|\/+$/g, "");
+	const cleanPath = clean(path);
+
+	if (!isCustomRcloneDestination(destination)) {
+		return `:s3:${[clean(destination.bucket), cleanPath]
+			.filter(Boolean)
+			.join("/")}`;
+	}
+
+	const remote = destination.endpoint.trim();
+	if (!remote || !remote.includes(":")) {
+		throw new Error(
+			"Custom rclone destinations require a named remote or connection string (for example, gdrive: or :sftp,host=example.com:)",
+		);
+	}
+
+	const remotePath = [clean(destination.bucket), cleanPath]
+		.filter(Boolean)
+		.join("/");
+	if (!remotePath) return remote;
+
+	const separator = remote.endsWith(":") || remote.endsWith("/") ? "" : "/";
+	return `${remote}${separator}${remotePath}`;
+};
+
+export const getRcloneDestinationArgument = (
+	destination: Pick<Destination, "provider" | "bucket" | "endpoint">,
+	path = "",
+) => quote([getRcloneDestination(destination, path)]);
 
 // User-controlled values (database name, user, password) are passed to the
 // container as environment variables via `docker exec -e VAR=<escaped>` and
@@ -288,24 +345,17 @@ export const getBackupCommand = (
 
 	echo "[$(date)] Container Up: $CONTAINER_ID" >> ${logPath};
 
-	# Run the backup command and capture the exit status
-	BACKUP_OUTPUT=$(${backupCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
-		echo "Error: $BACKUP_OUTPUT" >> ${logPath};
-		exit 1;
-	}
+	echo "[$(date)] Starting backup upload..." >> ${logPath};
 
-	echo "[$(date)] ✅ backup completed successfully" >> ${logPath};
-	echo "[$(date)] Starting upload to S3..." >> ${logPath};
-
-	# Run the upload command and capture the exit status
+	# Stream the backup once directly into rclone. The previous implementation
+	# executed the database dump twice: once as a check and once for upload.
 	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
+		echo "[$(date)] ❌ Error: Backup upload failed" >> ${logPath};
 		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
 		exit 1;
 	}
 
-	echo "[$(date)] ✅ Upload to S3 completed successfully" >> ${logPath};
+	echo "[$(date)] ✅ Backup upload completed successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };

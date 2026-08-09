@@ -3,6 +3,8 @@ import {
 	execAsync,
 	execAsyncRemote,
 	findDestinationById,
+	getRcloneCredentials,
+	getRcloneDestination,
 	IS_CLOUD,
 	removeDestinationById,
 	updateDestinationById,
@@ -48,36 +50,16 @@ export const destinationRouter = createTRPCRouter({
 	testConnection: withPermission("destination", "create")
 		.input(apiCreateDestination)
 		.mutation(async ({ input }) => {
-			const {
-				secretAccessKey,
-				bucket,
-				region,
-				endpoint,
-				accessKey,
-				provider,
-				additionalFlags,
-			} = input;
 			try {
 				const rcloneFlags = [
-					`--s3-access-key-id=${quote([accessKey])}`,
-					`--s3-secret-access-key=${quote([secretAccessKey])}`,
-					`--s3-region=${quote([region])}`,
-					`--s3-endpoint=${quote([endpoint])}`,
-					"--s3-no-check-bucket",
-					"--s3-force-path-style",
+					...getRcloneCredentials(input),
 					"--retries 1",
 					"--low-level-retries 1",
 					"--timeout 10s",
 					"--contimeout 5s",
 				];
-				if (provider) {
-					rcloneFlags.unshift(`--s3-provider=${quote([provider])}`);
-				}
-				if (additionalFlags?.length) {
-					rcloneFlags.push(...additionalFlags);
-				}
-				const rcloneDestination = `:s3:${bucket}`;
-				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} ${quote([rcloneDestination])}`;
+				const rcloneDestination = getRcloneDestination(input);
+				const rcloneCommand = `rclone lsd ${rcloneFlags.join(" ")} ${quote([rcloneDestination])}`;
 
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
