@@ -1,5 +1,6 @@
 import path from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
+import { DEFAULT_METRICS_CLEANUP_CRON } from "@dokploy/server/db/schema/server";
 import { getDokployUrl } from "@dokploy/server/services/admin";
 import {
 	createServerDeployment,
@@ -84,6 +85,9 @@ export const serverSetup = async (
 				metricsConfig: {
 					server: {
 						...server.metricsConfig.server,
+						cronJob:
+							server.metricsConfig.server.cronJob.trim() ||
+							DEFAULT_METRICS_CLEANUP_CRON,
 						token: token,
 						urlCallback: urlCallback,
 					},

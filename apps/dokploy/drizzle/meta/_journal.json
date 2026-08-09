@@ -1268,6 +1268,13 @@
       "when": 1786132623336,
       "tag": "0180_slippery_norrin_radd",
       "breakpoints": true
+    },
+    {
+      "idx": 181,
+      "version": "7",
+      "when": 1786300846671,
+      "tag": "0181_broad_vulture",
+      "breakpoints": true
     }
   ]
 }
