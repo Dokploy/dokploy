@@ -108,6 +108,9 @@ export const getContainersByAppNameMatch = async (
 	serverId?: string,
 ) => {
 	try {
+		if (appType === "stack") {
+			return await getStackTaskContainers(appName, serverId);
+		}
 		let result: string[] = [];
 		const cmd =
 			"docker ps -a --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}} | Status: {{.Status}}'";
@@ -166,6 +169,66 @@ export const getContainersByAppNameMatch = async (
 	return [];
 };
 
+const getStackTaskContainers = async (appName: string, serverId?: string) => {
+	try {
+		const divider = "__DOKPLOY_DIVIDER__";
+		const tasksCommand = `docker stack ps ${appName} --no-trunc --filter "desired-state=running" --format 'TASK : {{.ID}} | Name: {{.Name}} | Node: {{.Node}} | CurrentState: {{.CurrentState}} | Error: {{.Error}}'`;
+		const inspectCommand = `docker stack ps ${appName} -q --no-trunc --filter "desired-state=running" | xargs -r docker inspect --format '{{if .Status.ContainerStatus}}TASK : {{.ID}} | ContainerId: {{.Status.ContainerStatus.ContainerID}}{{end}}' 2>/dev/null`;
+		const command = `${tasksCommand} && echo "${divider}" && (${inspectCommand} || true)`;
+
+		let stdout = "";
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+		}
+
+		if (!stdout) return [];
+
+		const [tasksSection = "", inspectSection = ""] = stdout.split(divider);
+
+		const containerIdByTask = new Map<string, string>();
+		for (const line of inspectSection.trim().split("\n")) {
+			const parts = line.split(" | ");
+			const taskId = parts[0]?.replace("TASK : ", "").trim();
+			const containerId = parts[1]?.replace("ContainerId: ", "").trim();
+			if (taskId && containerId) {
+				containerIdByTask.set(taskId, containerId);
+			}
+		}
+
+		const containers = [];
+
+		for (const line of tasksSection.trim().split("\n")) {
+			if (!line) continue;
+			const parts = line.split(" | ");
+			const taskId = parts[0]?.replace("TASK : ", "").trim() ?? "";
+			const name = parts[1]?.replace("Name: ", "").trim() ?? "";
+			const node = parts[2]?.replace("Node: ", "").trim() ?? "";
+			const currentState = parts[3]
+				? parts[3].replace("CurrentState: ", "").trim()
+				: "";
+			const error = parts[4] ? parts[4].replace("Error: ", "").trim() : "";
+			const containerId = containerIdByTask.get(taskId) ?? "";
+
+			containers.push({
+				containerId: containerId.slice(0, 12),
+				name: `${name}.${taskId}`,
+				node,
+				state: currentState.split(" ")[0]?.toLowerCase() ?? "No state",
+				status: error ? `${currentState} (${error})` : currentState,
+			});
+		}
+
+		return containers;
+	} catch {}
+
+	return [];
+};
+
 export const getStackContainersByAppName = async (
 	appName: string,
 	serverId?: string,
@@ -175,7 +238,6 @@ export const getStackContainersByAppName = async (
 
 		const command = `docker stack ps ${appName} --no-trunc --format 'CONTAINER ID : {{.ID}} | Name: {{.Name}} | State: {{.DesiredState}} | Node: {{.Node}} | CurrentState: {{.CurrentState}} | Error: {{.Error}}'`;
 
-		console.log("command	", command);
 		if (serverId) {
 			const { stdout, stderr } = await execAsyncRemote(serverId, command);
 
