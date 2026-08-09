@@ -86,6 +86,7 @@ export const backups = pgTable("backup", {
 		| {
 				postgres?: {
 					databaseUser: string;
+					databasePort?: number;
 				};
 				mariadb?: {
 					databaseUser: string;

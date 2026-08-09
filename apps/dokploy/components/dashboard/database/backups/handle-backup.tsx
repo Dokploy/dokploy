@@ -92,6 +92,7 @@ const Schema = z
 				postgres: z
 					.object({
 						databaseUser: z.string(),
+						databasePort: z.coerce.number().int().min(1).max(65535),
 					})
 					.optional(),
 				mariadb: z
@@ -231,7 +232,10 @@ export const HandleBackup = ({
 			serviceName: null,
 			databaseType: backupType === "compose" ? undefined : databaseType,
 			backupType: backupType,
-			metadata: {},
+			metadata:
+				backupType === "compose" && databaseType === "postgres"
+					? { postgres: { databaseUser: "", databasePort: 5432 } }
+					: {},
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -271,7 +275,19 @@ export const HandleBackup = ({
 			serviceName: backup?.serviceName ?? null,
 			databaseType: backup?.databaseType ?? databaseType,
 			backupType: backup?.backupType ?? backupType,
-			metadata: backup?.metadata ?? {},
+			metadata: backup?.metadata
+				? {
+						...backup.metadata,
+						postgres: backup.metadata.postgres
+							? {
+									...backup.metadata.postgres,
+									databasePort: backup.metadata.postgres.databasePort ?? 5432,
+								}
+							: undefined,
+					}
+				: backupType === "compose" && databaseType === "postgres"
+					? { postgres: { databaseUser: "", databasePort: 5432 } }
+					: {},
 		});
 	}, [form, form.reset, backupId, backup]);
 
@@ -383,7 +399,17 @@ export const HandleBackup = ({
 												value={field.value}
 												onValueChange={(value) => {
 													field.onChange(value as DatabaseType);
-													form.setValue("metadata", {});
+													form.setValue(
+														"metadata",
+														value === "postgres"
+															? {
+																	postgres: {
+																		databaseUser: "",
+																		databasePort: 5432,
+																	},
+																}
+															: {},
+													);
 												}}
 											>
 												<SelectTrigger className="w-full">
@@ -697,19 +723,39 @@ export const HandleBackup = ({
 							{backupType === "compose" && (
 								<>
 									{form.watch("databaseType") === "postgres" && (
-										<FormField
-											control={form.control}
-											name="metadata.postgres.databaseUser"
-											render={({ field }) => (
-												<FormItem>
-													<FormLabel>Database User</FormLabel>
-													<FormControl>
-														<Input placeholder="postgres" {...field} />
-													</FormControl>
-													<FormMessage />
-												</FormItem>
-											)}
-										/>
+										<>
+											<FormField
+												control={form.control}
+												name="metadata.postgres.databaseUser"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Database User</FormLabel>
+														<FormControl>
+															<Input placeholder="postgres" {...field} />
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name="metadata.postgres.databasePort"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Database Port</FormLabel>
+														<FormControl>
+															<Input
+																type="number"
+																placeholder="5432"
+																{...field}
+																value={field.value as number}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+										</>
 									)}
 
 									{form.watch("databaseType") === "mariadb" && (
