@@ -1,9 +1,12 @@
 import { exec } from "node:child_process";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { exit } from "node:process";
 import { promisify } from "node:util";
 
 const execAsync = promisify(exec);
 
+import { docker, paths } from "@dokploy/server/constants";
 import { setupDirectories } from "@dokploy/server/setup/config-paths";
 import { initializePostgres } from "@dokploy/server/setup/postgres-setup";
 import {
@@ -22,7 +25,11 @@ import {
 	try {
 		setupDirectories();
 		createDefaultMiddlewares();
-		await initializeSwarm();
+		const swarmWasInitialized = await initializeSwarm();
+		if (swarmWasInitialized) {
+			const swarm = await docker.swarmInspect();
+			writeFileSync(join(paths().BASE_PATH, ".dokploy-dev-swarm"), swarm.ID);
+		}
 		await initializeNetwork();
 		createDefaultTraefikConfig();
 		createDefaultServerTraefikConfig();
