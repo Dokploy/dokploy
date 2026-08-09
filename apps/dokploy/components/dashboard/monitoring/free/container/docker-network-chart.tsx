@@ -81,6 +81,7 @@ export const DockerNetworkChart = ({ accumulativeData }: Props) => {
 				/>
 				<Area
 					type="monotone"
+					isAnimationActive={false}
 					dataKey="inMB"
 					stroke="var(--color-inMB)"
 					fill="url(#fillNetIn)"
@@ -88,6 +89,7 @@ export const DockerNetworkChart = ({ accumulativeData }: Props) => {
 				/>
 				<Area
 					type="monotone"
+					isAnimationActive={false}
 					dataKey="outMB"
 					stroke="var(--color-outMB)"
 					fill="url(#fillNetOut)"
