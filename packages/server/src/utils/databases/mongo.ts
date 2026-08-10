@@ -10,13 +10,15 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
+import { withResolvedVaultRefs } from "../vault";
 
 export type MongoNested = InferResultType<
 	"mongo",
 	{ mounts: true; environment: { with: { project: true } } }
 >;
 
-export const buildMongo = async (mongo: MongoNested) => {
+export const buildMongo = async (rawMongo: MongoNested) => {
+	const mongo = await withResolvedVaultRefs(rawMongo);
 	const {
 		appName,
 		env,

@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { CodeEditor } from "@/components/shared/code-editor";
+import { useEnvCompletionSource } from "@/components/shared/env-autocomplete";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -58,6 +59,12 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 		? queryMap[type]()
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 	const [isEnvVisible, setIsEnvVisible] = useState(true);
+	const completionSource = useEnvCompletionSource({
+		projectEnv: data?.environment?.project?.env,
+		environmentEnv: data?.environment?.env,
+		projectId: data?.environment?.projectId,
+		environmentId: data?.environment?.environmentId,
+	});
 
 	const mutationMap = {
 		compose: () => api.compose.saveEnvironment.useMutation(),
@@ -198,6 +205,7 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 													} as CSSProperties
 												}
 												language="properties"
+												completionSource={completionSource}
 												disabled={isEnvVisible}
 												className="font-mono"
 												wrapperClassName="compose-file-editor"

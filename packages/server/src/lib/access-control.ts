@@ -48,6 +48,7 @@ export const statements = {
 	logs: ["read"],
 	monitoring: ["read"],
 	auditLog: ["read"],
+	vaultProvider: ["read", "create", "update", "delete"],
 } as const;
 
 /**
@@ -74,6 +75,7 @@ export const enterpriseOnlyResources = new Set<string>([
 	"logs",
 	"monitoring",
 	"auditLog",
+	"vaultProvider",
 ]);
 
 export const ac = createAccessControl(statements);
@@ -113,6 +115,7 @@ export const ownerRole = ac.newRole({
 	logs: ["read"],
 	monitoring: ["read"],
 	auditLog: ["read"],
+	vaultProvider: ["read", "create", "update", "delete"],
 });
 
 /**
@@ -150,6 +153,7 @@ export const adminRole = ac.newRole({
 	logs: ["read"],
 	monitoring: ["read"],
 	auditLog: ["read"],
+	vaultProvider: ["read", "create", "update", "delete"],
 });
 
 /**
@@ -192,4 +196,6 @@ export const memberRole = ac.newRole({
 	notification: [],
 	tag: ["read"],
 	auditLog: [],
+	// Members need provider/secret names for env editor autocomplete; values are never exposed
+	vaultProvider: ["read"],
 });

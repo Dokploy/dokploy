@@ -50,6 +50,7 @@ import { stripeRouter } from "./routers/stripe";
 import { swarmRouter } from "./routers/swarm";
 import { tagRouter } from "./routers/tag";
 import { userRouter } from "./routers/user";
+import { vaultProviderRouter } from "./routers/vault-provider";
 import { volumeBackupsRouter } from "./routers/volume-backups";
 /**
  * This is the primary router for your server.
@@ -95,6 +96,7 @@ export const appRouter = createTRPCRouter({
 	stripe: stripeRouter,
 	swarm: swarmRouter,
 	user: userRouter,
+	vaultProvider: vaultProviderRouter,
 	ai: aiRouter,
 	organization: organizationRouter,
 	licenseKey: licenseKeyRouter,
