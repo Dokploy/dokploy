@@ -71,4 +71,36 @@ describe("clearOldDeployments", () => {
 
 		expect(db.delete).not.toHaveBeenCalled();
 	});
+
+	it("never deletes the currently-running deployment, even if newer than the last success", async () => {
+		const deploymentList = [
+			makeDeployment({ deploymentId: "running-1", status: "running" }),
+			makeDeployment({ deploymentId: "success-1", status: "done" }),
+		];
+		vi.mocked(db.query.deployments.findMany).mockResolvedValue(
+			deploymentList as any,
+		);
+
+		await clearOldDeployments("app-1", "application");
+
+		// running-1 is excluded from deletion candidates entirely, and
+		// success-1 is kept as the most recent successful deployment.
+		expect(db.delete).not.toHaveBeenCalled();
+	});
+
+	it("deletes older non-running deployments while a build is in progress", async () => {
+		const deploymentList = [
+			makeDeployment({ deploymentId: "running-1", status: "running" }),
+			makeDeployment({ deploymentId: "success-1", status: "done" }),
+			makeDeployment({ deploymentId: "failed-1", status: "error" }),
+		];
+		vi.mocked(db.query.deployments.findMany).mockResolvedValue(
+			deploymentList as any,
+		);
+
+		await clearOldDeployments("app-1", "application");
+
+		// running-1 is protected; only failed-1 (older than the kept success) is removed.
+		expect(db.delete).toHaveBeenCalledTimes(1);
+	});
 });

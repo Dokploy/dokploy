@@ -1049,12 +1049,15 @@ export const clearOldDeployments = async (
 	type: "application" | "compose",
 ) => {
 	const deploymentList = await getDeploymentsByType(id, type);
-	const mostRecentSuccessful = deploymentList.find(
+	const deletable = deploymentList.filter(
+		(deployment) => deployment.status !== "running",
+	);
+	const mostRecentSuccessful = deletable.find(
 		(deployment) => deployment.status === "done",
 	);
-	const deploymentToKeep = mostRecentSuccessful ?? deploymentList[0];
+	const deploymentToKeep = mostRecentSuccessful ?? deletable[0];
 
-	for (const deployment of deploymentList) {
+	for (const deployment of deletable) {
 		if (deployment.deploymentId === deploymentToKeep?.deploymentId) {
 			continue;
 		}
