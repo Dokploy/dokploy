@@ -85,9 +85,13 @@ export const useEnvCompletionSource = ({
 			const vaultSecret = /^vault\.([a-zA-Z0-9_-]+)\.([^}\n]*)$/.exec(inner);
 			if (vaultSecret) {
 				const provider = providers?.find((p) => p.name === vaultSecret[1]);
-				if (!provider) return null;
+				if (!provider || !projectId) return null;
 				const names = await utils.vaultProvider.listSecretNames
-					.fetch({ vaultProviderId: provider.vaultProviderId })
+					.fetch({
+						vaultProviderId: provider.vaultProviderId,
+						projectId,
+						environmentId,
+					})
 					.catch(() => [] as string[]);
 				return {
 					from: innerFrom + `vault.${vaultSecret[1]}.`.length,
@@ -176,6 +180,14 @@ export const useEnvCompletionSource = ({
 
 			return null;
 		},
-		[providers, projectEnv, environmentEnv, includeShared, utils],
+		[
+			providers,
+			projectEnv,
+			environmentEnv,
+			includeShared,
+			projectId,
+			environmentId,
+			utils,
+		],
 	);
 };

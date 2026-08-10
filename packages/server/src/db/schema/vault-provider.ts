@@ -140,4 +140,6 @@ export const apiTestVaultProvider = z.object({
 
 export const apiListVaultSecretNames = z.object({
 	vaultProviderId: z.string().min(1),
+	projectId: z.string().min(1),
+	environmentId: z.string().optional(),
 });

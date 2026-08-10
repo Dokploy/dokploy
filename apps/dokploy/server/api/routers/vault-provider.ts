@@ -2,6 +2,7 @@ import {
 	createVaultProvider,
 	findVaultProviderInOrganization,
 	findVaultProvidersByOrganizationId,
+	isVaultProviderAssigned,
 	listVaultProviderSecretNames,
 	maskVaultProviderConfig,
 	mergeVaultProviderConfig,
@@ -9,6 +10,7 @@ import {
 	testVaultProviderConnection,
 	updateVaultProvider,
 } from "@dokploy/server";
+import { findMemberByUserId } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { audit } from "@/server/api/utils/audit";
 import {
@@ -129,6 +131,34 @@ export const vaultProviderRouter = createTRPCRouter({
 				input.vaultProviderId,
 				ctx.session.activeOrganizationId,
 			);
+
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+				const { accessedProjects } = await findMemberByUserId(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				if (!accessedProjects.includes(input.projectId)) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this project",
+					});
+				}
+			}
+
+			if (
+				!isVaultProviderAssigned(
+					provider.assignments,
+					input.projectId,
+					input.environmentId,
+				)
+			) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"This vault provider is not enabled for the given project/environment",
+				});
+			}
+
 			return await listVaultProviderSecretNames(provider.config);
 		}),
 });
