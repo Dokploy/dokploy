@@ -1,11 +1,28 @@
 import { clearOldDeployments } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@dokploy/server/utils/process/execAsync", () => ({
 	execAsync: vi.fn().mockResolvedValue({ stdout: "", stderr: "" }),
 	execAsyncRemote: vi.fn().mockResolvedValue({ stdout: "", stderr: "" }),
 }));
+
+vi.mock("@dokploy/server/services/application", () => ({
+	findApplicationById: vi.fn(),
+}));
+
+vi.mock("@dokploy/server/services/compose", () => ({
+	findComposeById: vi.fn(),
+}));
+
+vi.mock("@dokploy/server/services/rollbacks", () => ({
+	removeRollbackById: vi.fn().mockResolvedValue(undefined),
+}));
+
+import { findApplicationById } from "@dokploy/server/services/application";
+import { findComposeById } from "@dokploy/server/services/compose";
+import { removeRollbackById } from "@dokploy/server/services/rollbacks";
 
 const makeDeployment = (overrides: Record<string, unknown>) => ({
 	deploymentId: "",
@@ -24,6 +41,12 @@ describe("clearOldDeployments", () => {
 			where: () => ({
 				returning: () => Promise.resolve([]),
 			}),
+		} as any);
+		vi.mocked(findApplicationById).mockResolvedValue({
+			serverId: null,
+		} as any);
+		vi.mocked(findComposeById).mockResolvedValue({
+			serverId: null,
 		} as any);
 	});
 
@@ -129,5 +152,51 @@ describe("clearOldDeployments", () => {
 
 		// failed-1's removal throws but doesn't stop failed-2 from being attempted.
 		expect(db.delete).toHaveBeenCalledTimes(2);
+	});
+
+	it("removes the rollback (and its image) before deleting a deployment that has one", async () => {
+		const deploymentList = [
+			makeDeployment({ deploymentId: "success-1", status: "done" }),
+			makeDeployment({
+				deploymentId: "failed-1",
+				status: "error",
+				rollbackId: "rollback-1",
+			}),
+		];
+		vi.mocked(db.query.deployments.findMany).mockResolvedValue(
+			deploymentList as any,
+		);
+
+		await clearOldDeployments("app-1", "application");
+
+		expect(removeRollbackById).toHaveBeenCalledWith("rollback-1");
+		expect(db.delete).toHaveBeenCalledTimes(1);
+	});
+
+	it("removes remote logs via execAsyncRemote using the application's server, not local execAsync", async () => {
+		vi.mocked(findApplicationById).mockResolvedValue({
+			serverId: "server-1",
+		} as any);
+		const deploymentList = [
+			makeDeployment({ deploymentId: "success-1", status: "done" }),
+			makeDeployment({
+				deploymentId: "failed-1",
+				status: "error",
+				logPath: "/logs/failed-1.log",
+				serverId: null,
+			}),
+		];
+		vi.mocked(db.query.deployments.findMany).mockResolvedValue(
+			deploymentList as any,
+		);
+
+		await clearOldDeployments("app-1", "application");
+
+		// the batched remote cleanup uses the application's server, independent
+		// of the (often-unset) per-deployment serverId column.
+		expect(execAsyncRemote).toHaveBeenCalledWith(
+			"server-1",
+			expect.stringContaining("rm -rf /logs/failed-1.log;"),
+		);
 	});
 });

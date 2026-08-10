@@ -1048,6 +1048,11 @@ export const clearOldDeployments = async (
 	id: string,
 	type: "application" | "compose",
 ) => {
+	const serverId =
+		type === "application"
+			? (await findApplicationById(id)).serverId
+			: (await findComposeById(id)).serverId;
+
 	const deploymentList = await db.query.deployments.findMany({
 		where: eq(deployments[`${type}Id`], id),
 		orderBy: desc(deployments.createdAt),
@@ -1060,17 +1065,49 @@ export const clearOldDeployments = async (
 	);
 	const deploymentToKeep = mostRecentSuccessful ?? deletable[0];
 
-	for (const deployment of deletable) {
-		if (deployment.deploymentId === deploymentToKeep?.deploymentId) {
-			continue;
+	const toRemove = deletable.filter(
+		(deployment) => deployment.deploymentId !== deploymentToKeep?.deploymentId,
+	);
+
+	if (serverId) {
+		let command = "";
+		for (const deployment of toRemove) {
+			try {
+				if (deployment.rollbackId) {
+					await removeRollbackById(deployment.rollbackId);
+				}
+				const logPath = path.join(deployment.logPath);
+				if (logPath && logPath !== ".") {
+					command += `rm -rf ${logPath};`;
+				}
+				await removeDeployment(deployment.deploymentId);
+			} catch (err) {
+				console.error(
+					`Failed to remove deployment ${deployment.deploymentId} during cleanup:`,
+					err,
+				);
+			}
 		}
-		try {
-			await removeDeployment(deployment.deploymentId);
-		} catch (err) {
-			console.error(
-				`Failed to remove deployment ${deployment.deploymentId} during cleanup:`,
-				err,
-			);
+		if (command) {
+			await execAsyncRemote(serverId, command);
+		}
+	} else {
+		for (const deployment of toRemove) {
+			try {
+				if (deployment.rollbackId) {
+					await removeRollbackById(deployment.rollbackId);
+				}
+				const logPath = path.join(deployment.logPath);
+				if (logPath && logPath !== "." && existsSync(logPath)) {
+					await fsPromises.unlink(logPath);
+				}
+				await removeDeployment(deployment.deploymentId);
+			} catch (err) {
+				console.error(
+					`Failed to remove deployment ${deployment.deploymentId} during cleanup:`,
+					err,
+				);
+			}
 		}
 	}
 };
