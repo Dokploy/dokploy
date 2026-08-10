@@ -18,6 +18,7 @@ import {
 	getUserByToken,
 } from "../services/admin";
 import { createAuditLog } from "../services/proprietary/audit-log";
+import { hasValidLicense } from "../services/proprietary/license-key";
 import {
 	getWebServerSettings,
 	updateWebServerSettings,
@@ -30,6 +31,10 @@ import {
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 import { betterAuthSecret } from "./auth-secret";
+import {
+	canGenerateLicensedOrganizationScopedSCIMToken,
+	DISABLED_PERSONAL_SCIM_MANAGEMENT_PATHS,
+} from "./scim-security";
 
 const resolveTrustedOrigins = async () => {
 	try {
@@ -73,6 +78,7 @@ const createBetterAuth = () =>
 			"/organization/create",
 			"/organization/update",
 			"/organization/delete",
+			...DISABLED_PERSONAL_SCIM_MANAGEMENT_PATHS,
 			...(!IS_CLOUD ? ["/verify-email"] : []),
 		],
 		secret: betterAuthSecret,
@@ -422,6 +428,11 @@ const createBetterAuth = () =>
 			}),
 			sso({ trustEmailVerified: true }),
 			scim({
+				canGenerateToken: (input) =>
+					canGenerateLicensedOrganizationScopedSCIMToken(
+						input,
+						hasValidLicense,
+					),
 				beforeSCIMTokenGenerated: async ({ user }) => {
 					const dbUser = await db.query.user.findFirst({
 						where: eq(schema.user.id, user.id),
