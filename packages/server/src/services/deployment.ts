@@ -1045,17 +1045,19 @@ export const findAllDeploymentsByServerId = async (serverId: string) => {
 };
 
 export const clearOldDeployments = async (
-	appName: string,
-	serverId: string | null,
+	id: string,
+	type: "application" | "compose",
 ) => {
-	const { LOGS_PATH } = paths(!!serverId);
-	const folder = path.join(LOGS_PATH, appName);
-	const command = `
-		rm -rf ${folder};
-	`;
-	if (serverId) {
-		await execAsyncRemote(serverId, command);
-	} else {
-		await execAsync(command);
+	const deploymentList = await getDeploymentsByType(id, type);
+	const mostRecentSuccessful = deploymentList.find(
+		(deployment) => deployment.status === "done",
+	);
+	const deploymentToKeep = mostRecentSuccessful ?? deploymentList[0];
+
+	for (const deployment of deploymentList) {
+		if (deployment.deploymentId === deploymentToKeep?.deploymentId) {
+			continue;
+		}
+		await removeDeployment(deployment.deploymentId);
 	}
 };
