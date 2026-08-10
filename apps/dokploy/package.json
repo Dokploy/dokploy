@@ -40,6 +40,7 @@
 		"generate:openapi": "tsx -r dotenv/config scripts/generate-openapi.ts"
 	},
 	"dependencies": {
+		"@aws-sdk/client-secrets-manager": "^3.1097.0",
 		"@ai-sdk/anthropic": "^3.0.44",
 		"@ai-sdk/azure": "^3.0.30",
 		"@ai-sdk/cohere": "^3.0.21",
