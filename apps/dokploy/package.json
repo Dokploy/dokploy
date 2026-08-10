@@ -104,7 +104,7 @@
 		"lucide-react": "^0.469.0",
 		"micromatch": "4.0.8",
 		"nanoid": "3.3.11",
-		"next": "16.2.6",
+		"next": "16.2.11",
 		"next-themes": "^0.2.1",
 		"nextjs-toploader": "^3.9.17",
 		"node-os-utils": "2.0.1",
@@ -128,7 +128,7 @@
 		"resend": "^6.0.2",
 		"semver": "7.7.3",
 		"shadcn": "^4.11.0",
-		"shell-quote": "1.8.4",
+		"shell-quote": "1.10.0",
 		"slugify": "^1.6.6",
 		"sonner": "^1.7.4",
 		"ssh2": "~1.16.0",
@@ -167,7 +167,7 @@
 		"@types/swagger-ui-react": "^4.19.0",
 		"@types/ws": "8.5.10",
 		"drizzle-kit": "^0.31.4",
-		"esbuild": "0.20.2",
+		"esbuild": "0.28.2",
 		"lint-staged": "^15.5.2",
 		"memfs": "^4.17.2",
 		"simple-icons": "^16.14.0",
@@ -175,7 +175,7 @@
 		"tsx": "^4.22.4",
 		"typescript": "^5.8.3",
 		"vite-tsconfig-paths": "4.3.2",
-		"vitest": "^4.0.18"
+		"vitest": "4.1.10"
 	},
 	"ct3aMetadata": {
 		"initVersion": "7.25.2"

@@ -26,7 +26,7 @@
 		"@biomejs/biome": "2.1.1",
 		"@types/node": "^24.4.0",
 		"dotenv": "16.4.5",
-		"esbuild": "0.20.2",
+		"esbuild": "0.28.2",
 		"lint-staged": "^15.5.2",
 		"tsx": "4.22.4"
 	},
@@ -46,7 +46,9 @@
 	},
 	"pnpm": {
 		"overrides": {
-			"esbuild": "0.20.2",
+			"esbuild": "0.28.2",
+			"tar": "7.5.22",
+			"vitest": "4.1.10",
 			"better-call": "1.3.7",
 			"@better-fetch/fetch": "1.3.1"
 		},

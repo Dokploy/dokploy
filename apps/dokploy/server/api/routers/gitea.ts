@@ -1,5 +1,6 @@
 import {
 	assertGitProviderAccess,
+	assertGitProviderManageAccess,
 	createGitea,
 	findGiteaById,
 	getAccessibleGitProviderIds,
@@ -176,25 +177,25 @@ export const giteaRouter = createTRPCRouter({
 	update: withPermission("gitProviders", "create")
 		.input(apiUpdateGitea)
 		.mutation(async ({ input, ctx }) => {
+			const gitea = await findGiteaById(input.giteaId);
+			await assertGitProviderManageAccess(ctx.session, gitea.gitProvider);
 			if (input.name) {
-				await updateGitProvider(input.gitProviderId, {
+				await updateGitProvider(gitea.gitProviderId, {
 					name: input.name,
-					organizationId: ctx.session.activeOrganizationId,
-				});
-
-				await updateGitea(input.giteaId, {
-					...input,
-				});
-			} else {
-				await updateGitea(input.giteaId, {
-					...input,
 				});
 			}
+
+			const {
+				giteaId: _giteaId,
+				gitProviderId: _gitProviderId,
+				...update
+			} = input;
+			await updateGitea(input.giteaId, update);
 
 			await audit(ctx, {
 				action: "update",
 				resourceType: "gitProvider",
-				resourceId: input.giteaId,
+				resourceId: gitea.gitProviderId,
 				resourceName: input.name,
 			});
 

@@ -1,6 +1,9 @@
 import {
+	assertDeployGitSourceWriteAccess,
+	assertGitProviderManageAccess,
 	canEditDeployGitSource,
 	getAccessibleGitProviderIds,
+	hasGitSourceMutation,
 } from "@dokploy/server/services/git-provider";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -243,6 +246,77 @@ describe("getAccessibleGitProviderIds", () => {
 	});
 });
 
+describe("assertGitProviderManageAccess", () => {
+	const provider = {
+		gitProviderId: "gp-private",
+		organizationId: ORG_ID,
+		userId: USER_OWNER,
+	};
+
+	it("allows organization owners and admins", async () => {
+		for (const role of ["owner", "admin"]) {
+			mockDb.query.member.findFirst.mockResolvedValueOnce({ role });
+			await expect(
+				assertGitProviderManageAccess(session(USER_ADMIN), provider),
+			).resolves.toBeUndefined();
+		}
+	});
+
+	it("allows the provider owner", async () => {
+		mockDb.query.member.findFirst.mockResolvedValue({ role: "member" });
+		await expect(
+			assertGitProviderManageAccess(session(USER_OWNER), provider),
+		).resolves.toBeUndefined();
+	});
+
+	it("rejects members who can only use a shared or assigned provider", async () => {
+		mockDb.query.member.findFirst.mockResolvedValue({ role: "member" });
+		await expect(
+			assertGitProviderManageAccess(session(USER_MEMBER), provider),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+	});
+
+	it("hides cross-organization providers", async () => {
+		await expect(
+			assertGitProviderManageAccess(session(USER_OWNER), {
+				...provider,
+				organizationId: "org-2",
+			}),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+	});
+});
+
+describe("deploy git source mutation guards", () => {
+	it("rejects edits to deploys connected to an unavailable private provider", async () => {
+		mockDb.query.member.findFirst.mockResolvedValue({ role: "member" });
+		mockDb.query.gitProvider.findFirst.mockResolvedValue({
+			organizationId: ORG_ID,
+			userId: USER_OWNER,
+			sharedWithOrganization: false,
+		});
+		await expect(
+			assertDeployGitSourceWriteAccess(session(USER_MEMBER), {
+				sourceType: "github",
+				github: { gitProviderId: providerPrivate.gitProviderId },
+			}),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+	});
+
+	it("allows edits to non-provider sources", async () => {
+		await expect(
+			assertDeployGitSourceWriteAccess(session(USER_MEMBER), {
+				sourceType: "docker",
+			}),
+		).resolves.toBeUndefined();
+	});
+
+	it("recognizes direct and branch-only git source mutations", () => {
+		expect(hasGitSourceMutation({ name: "renamed" })).toBe(false);
+		expect(hasGitSourceMutation({ branch: "release" })).toBe(true);
+		expect(hasGitSourceMutation({ githubId: null })).toBe(true);
+	});
+});
+
 describe("canEditDeployGitSource", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -250,13 +324,33 @@ describe("canEditDeployGitSource", () => {
 	});
 
 	describe("owner", () => {
-		it("can edit deploy using any provider", async () => {
+		it("can edit deploy using any same-organization provider", async () => {
 			mockDb.query.member.findFirst.mockResolvedValue({ role: "owner" });
+			mockDb.query.gitProvider.findFirst.mockResolvedValue({
+				organizationId: ORG_ID,
+				userId: USER_MEMBER,
+				sharedWithOrganization: false,
+			});
 			const result = await canEditDeployGitSource(
 				providerPrivate.gitProviderId,
 				session(USER_OWNER),
 			);
 			expect(result).toBe(true);
+		});
+
+		it("cannot edit a cross-organization provider", async () => {
+			mockDb.query.member.findFirst.mockResolvedValue({ role: "owner" });
+			mockDb.query.gitProvider.findFirst.mockResolvedValue({
+				organizationId: "org-2",
+				userId: USER_OWNER,
+				sharedWithOrganization: true,
+			});
+			await expect(
+				canEditDeployGitSource(
+					providerPrivate.gitProviderId,
+					session(USER_OWNER),
+				),
+			).resolves.toBe(false);
 		});
 	});
 
@@ -267,6 +361,7 @@ describe("canEditDeployGitSource", () => {
 
 		it("cannot edit deploy using owner's private provider (not shared)", async () => {
 			mockDb.query.gitProvider.findFirst.mockResolvedValue({
+				organizationId: ORG_ID,
 				userId: USER_OWNER,
 				sharedWithOrganization: false,
 			});
@@ -279,6 +374,7 @@ describe("canEditDeployGitSource", () => {
 
 		it("can edit deploy using a provider shared with the org", async () => {
 			mockDb.query.gitProvider.findFirst.mockResolvedValue({
+				organizationId: ORG_ID,
 				userId: USER_OWNER,
 				sharedWithOrganization: true,
 			});
@@ -291,6 +387,7 @@ describe("canEditDeployGitSource", () => {
 
 		it("can edit deploy using their own provider", async () => {
 			mockDb.query.gitProvider.findFirst.mockResolvedValue({
+				organizationId: ORG_ID,
 				userId: USER_ADMIN,
 				sharedWithOrganization: false,
 			});
@@ -309,6 +406,7 @@ describe("canEditDeployGitSource", () => {
 
 		it("can edit deploy using their own provider", async () => {
 			mockDb.query.gitProvider.findFirst.mockResolvedValue({
+				organizationId: ORG_ID,
 				userId: USER_MEMBER,
 				sharedWithOrganization: false,
 			});
@@ -321,6 +419,7 @@ describe("canEditDeployGitSource", () => {
 
 		it("can edit deploy using a provider shared with the org", async () => {
 			mockDb.query.gitProvider.findFirst.mockResolvedValue({
+				organizationId: ORG_ID,
 				userId: USER_OWNER,
 				sharedWithOrganization: true,
 			});
@@ -335,6 +434,7 @@ describe("canEditDeployGitSource", () => {
 			// This is the key case: enterprise, provider del owner, no compartido,
 			// member tiene accessedGitProviders asignado — pero NO puede cambiar la branch del deploy del owner
 			mockDb.query.gitProvider.findFirst.mockResolvedValue({
+				organizationId: ORG_ID,
 				userId: USER_OWNER,
 				sharedWithOrganization: false,
 			});
@@ -347,6 +447,7 @@ describe("canEditDeployGitSource", () => {
 
 		it("cannot edit deploy using another member's private provider", async () => {
 			mockDb.query.gitProvider.findFirst.mockResolvedValue({
+				organizationId: ORG_ID,
 				userId: USER_MEMBER_2,
 				sharedWithOrganization: false,
 			});

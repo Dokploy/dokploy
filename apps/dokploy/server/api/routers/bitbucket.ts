@@ -1,5 +1,6 @@
 import {
 	assertGitProviderAccess,
+	assertGitProviderManageAccess,
 	createBitbucket,
 	findBitbucketById,
 	getAccessibleGitProviderIds,
@@ -114,6 +115,8 @@ export const bitbucketRouter = createTRPCRouter({
 	update: withPermission("gitProviders", "create")
 		.input(apiUpdateBitbucket)
 		.mutation(async ({ input, ctx }) => {
+			const bitbucket = await findBitbucketById(input.bitbucketId);
+			await assertGitProviderManageAccess(ctx.session, bitbucket.gitProvider);
 			const result = await updateBitbucket(input.bitbucketId, {
 				...input,
 				organizationId: ctx.session.activeOrganizationId,

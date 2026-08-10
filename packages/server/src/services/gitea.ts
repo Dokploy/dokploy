@@ -80,7 +80,10 @@ export const findGiteaById = async (giteaId: string) => {
 	}
 };
 
-export const updateGitea = async (giteaId: string, input: Partial<Gitea>) => {
+export const updateGitea = async (
+	giteaId: string,
+	input: Omit<Partial<Gitea>, "giteaId" | "gitProviderId">,
+) => {
 	try {
 		const updateResult = await db
 			.update(gitea)

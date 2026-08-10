@@ -25,6 +25,23 @@ describe("CTD candidate metadata", () => {
 		);
 	});
 
+	it("pins patched runtime tooling without retaining a Docker daemon", () => {
+		const dockerfile = readRepoFile("Dockerfile");
+
+		expect(dockerfile).toContain("FROM node:24.14.1-slim AS base");
+		expect(dockerfile).toContain("FROM node:24.14.1-slim AS dokploy");
+		expect(dockerfile).toContain("apt-get upgrade -y");
+		expect(dockerfile).toContain("get-docker.sh --version 29.7.2");
+		expect(dockerfile).toContain(
+			"apt-get purge -y docker-ce docker-ce-rootless-extras containerd.io docker-model-plugin",
+		);
+		expect(dockerfile).toContain("ARG RAILPACK_VERSION=0.35.0");
+		expect(dockerfile).toContain("buildpacksio/pack:0.40.9");
+		expect(dockerfile).not.toContain("pnpm install -g tsx");
+		expect(dockerfile).toContain("/usr/local/lib/node_modules/npm");
+		expect(dockerfile).toContain("/root/.cache/node");
+	});
+
 	it("retains the GitHub Deployments permission in new app manifests", () => {
 		const manifest = readRepoFile(
 			"apps/dokploy/components/dashboard/settings/git/github/add-github-provider.tsx",

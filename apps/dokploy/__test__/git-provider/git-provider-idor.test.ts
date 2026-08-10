@@ -21,7 +21,29 @@ vi.mock("@dokploy/server/services/proprietary/license-key", () => ({
 	hasValidLicense: mockHasValidLicense,
 }));
 
-import { assertGitProviderAccess } from "@dokploy/server/services/git-provider";
+const providerLookups = vi.hoisted(() => ({
+	findGithubById: vi.fn(),
+	findGitlabById: vi.fn(),
+	findBitbucketById: vi.fn(),
+	findGiteaById: vi.fn(),
+}));
+vi.mock("@dokploy/server/services/github", () => ({
+	findGithubById: providerLookups.findGithubById,
+}));
+vi.mock("@dokploy/server/services/gitlab", () => ({
+	findGitlabById: providerLookups.findGitlabById,
+}));
+vi.mock("@dokploy/server/services/bitbucket", () => ({
+	findBitbucketById: providerLookups.findBitbucketById,
+}));
+vi.mock("@dokploy/server/services/gitea", () => ({
+	findGiteaById: providerLookups.findGiteaById,
+}));
+
+import {
+	assertGitProviderAccess,
+	assertGitProviderReferencesAccess,
+} from "@dokploy/server/services/git-provider";
 
 const ORG = "org-1";
 const USER = "user-member";
@@ -43,6 +65,14 @@ const providerOther = {
 beforeEach(() => {
 	vi.clearAllMocks();
 	mockHasValidLicense.mockResolvedValue(false);
+	for (const lookup of Object.values(providerLookups)) {
+		lookup.mockImplementation(async (id: string) => ({
+			gitProvider: {
+				gitProviderId: id === "blocked" ? "gp-other" : "gp-mine",
+				organizationId: id === "cross-org" ? "org-2" : ORG,
+			},
+		}));
+	}
 	mockDb.query.gitProvider.findMany.mockResolvedValue([
 		providerMine,
 		providerOther,
@@ -87,5 +117,46 @@ describe("assertGitProviderAccess (git provider IDOR guard)", () => {
 			organizationId: "org-2",
 		}).catch((e) => e);
 		expect(err).toBeInstanceOf(TRPCError);
+	});
+});
+
+describe("assertGitProviderReferencesAccess", () => {
+	it("authorizes every provider subtype referenced by a mutation", async () => {
+		await expect(
+			assertGitProviderReferencesAccess(session, {
+				githubId: "github",
+				gitlabId: "gitlab",
+				bitbucketId: "bitbucket",
+				giteaId: "gitea",
+			}),
+		).resolves.toBeUndefined();
+
+		expect(providerLookups.findGithubById).toHaveBeenCalledWith("github");
+		expect(providerLookups.findGitlabById).toHaveBeenCalledWith("gitlab");
+		expect(providerLookups.findBitbucketById).toHaveBeenCalledWith("bitbucket");
+		expect(providerLookups.findGiteaById).toHaveBeenCalledWith("gitea");
+	});
+
+	it("rejects cross-organization provider references", async () => {
+		await expect(
+			assertGitProviderReferencesAccess(session, { githubId: "cross-org" }),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+	});
+
+	it("rejects same-organization provider references unavailable to the caller", async () => {
+		await expect(
+			assertGitProviderReferencesAccess(session, { gitlabId: "blocked" }),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+	});
+
+	it("does not query providers for omitted or null references", async () => {
+		await expect(
+			assertGitProviderReferencesAccess(session, {
+				githubId: null,
+				gitlabId: undefined,
+			}),
+		).resolves.toBeUndefined();
+		expect(providerLookups.findGithubById).not.toHaveBeenCalled();
+		expect(providerLookups.findGitlabById).not.toHaveBeenCalled();
 	});
 });

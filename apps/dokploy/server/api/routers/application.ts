@@ -32,7 +32,12 @@ import {
 	writeConfigRemote,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
+import {
+	assertDeployGitSourceWriteAccess,
+	assertGitProviderReferencesAccess,
+	canEditDeployGitSource,
+	hasGitSourceMutation,
+} from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
 	checkServiceAccess,
@@ -427,6 +432,11 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			const application = await findApplicationById(input.applicationId);
+			await assertDeployGitSourceWriteAccess(ctx.session, application);
+			await assertGitProviderReferencesAccess(ctx.session, {
+				githubId: input.githubId,
+			});
 			await updateApplication(input.applicationId, {
 				repository: input.repository,
 				branch: input.branch,
@@ -439,7 +449,6 @@ export const applicationRouter = createTRPCRouter({
 				triggerType: input.triggerType,
 				enableSubmodules: input.enableSubmodules,
 			});
-			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
@@ -454,6 +463,11 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			const application = await findApplicationById(input.applicationId);
+			await assertDeployGitSourceWriteAccess(ctx.session, application);
+			await assertGitProviderReferencesAccess(ctx.session, {
+				gitlabId: input.gitlabId,
+			});
 			await updateApplication(input.applicationId, {
 				gitlabRepository: input.gitlabRepository,
 				gitlabOwner: input.gitlabOwner,
@@ -467,7 +481,6 @@ export const applicationRouter = createTRPCRouter({
 				watchPaths: input.watchPaths,
 				enableSubmodules: input.enableSubmodules,
 			});
-			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
@@ -482,6 +495,11 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			const application = await findApplicationById(input.applicationId);
+			await assertDeployGitSourceWriteAccess(ctx.session, application);
+			await assertGitProviderReferencesAccess(ctx.session, {
+				bitbucketId: input.bitbucketId,
+			});
 			await updateApplication(input.applicationId, {
 				bitbucketRepository: input.bitbucketRepository,
 				bitbucketRepositorySlug: input.bitbucketRepositorySlug,
@@ -494,7 +512,6 @@ export const applicationRouter = createTRPCRouter({
 				watchPaths: input.watchPaths,
 				enableSubmodules: input.enableSubmodules,
 			});
-			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
@@ -509,6 +526,11 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			const application = await findApplicationById(input.applicationId);
+			await assertDeployGitSourceWriteAccess(ctx.session, application);
+			await assertGitProviderReferencesAccess(ctx.session, {
+				giteaId: input.giteaId,
+			});
 			await updateApplication(input.applicationId, {
 				giteaRepository: input.giteaRepository,
 				giteaOwner: input.giteaOwner,
@@ -520,7 +542,6 @@ export const applicationRouter = createTRPCRouter({
 				watchPaths: input.watchPaths,
 				enableSubmodules: input.enableSubmodules,
 			});
-			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
@@ -535,6 +556,8 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			const application = await findApplicationById(input.applicationId);
+			await assertDeployGitSourceWriteAccess(ctx.session, application);
 			await updateApplication(input.applicationId, {
 				dockerImage: input.dockerImage,
 				username: input.username,
@@ -543,7 +566,6 @@ export const applicationRouter = createTRPCRouter({
 				applicationStatus: "idle",
 				registryUrl: input.registryUrl,
 			});
-			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
@@ -558,6 +580,8 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			const application = await findApplicationById(input.applicationId);
+			await assertDeployGitSourceWriteAccess(ctx.session, application);
 			await updateApplication(input.applicationId, {
 				customGitBranch: input.customGitBranch,
 				customGitBuildPath: input.customGitBuildPath,
@@ -568,7 +592,6 @@ export const applicationRouter = createTRPCRouter({
 				watchPaths: input.watchPaths,
 				enableSubmodules: input.enableSubmodules,
 			});
-			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
@@ -583,6 +606,8 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			const application = await findApplicationById(input.applicationId);
+			await assertDeployGitSourceWriteAccess(ctx.session, application);
 			await updateApplication(input.applicationId, {
 				repository: null,
 				branch: null,
@@ -621,7 +646,6 @@ export const applicationRouter = createTRPCRouter({
 				watchPaths: null,
 				enableSubmodules: false,
 			});
-			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
@@ -651,6 +675,12 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+
+			if (hasGitSourceMutation(input)) {
+				const application = await findApplicationById(input.applicationId);
+				await assertDeployGitSourceWriteAccess(ctx.session, application);
+			}
+			await assertGitProviderReferencesAccess(ctx.session, input);
 
 			if (input.buildServerId) {
 				const accessibleIds = await getAccessibleServerIds(ctx.session);
@@ -820,6 +850,7 @@ export const applicationRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const app = await findApplicationById(applicationId);
+			await assertDeployGitSourceWriteAccess(ctx.session, app);
 
 			await updateApplication(applicationId, {
 				sourceType: "drop",
