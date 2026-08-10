@@ -1,4 +1,5 @@
 import { dirname, join } from "node:path";
+import { quote } from "shell-quote";
 import { prepareEnvironmentVariables } from "../docker/utils";
 import { createSecretTempFile } from "../process/secrets";
 
@@ -17,5 +18,5 @@ export const createEnvFileCommand = (
 	const envFilePath = join(dirname(directory), ".env");
 	const secret = createSecretTempFile("dokploy-env-", "env", envFileContent);
 
-	return `install -m 600 ${secret.quotedPath} "${envFilePath}"; rm -rf ${secret.quotedDir};`;
+	return `install -m 600 ${secret.quotedPath} ${quote([envFilePath])}; rm -rf ${secret.quotedDir};`;
 };

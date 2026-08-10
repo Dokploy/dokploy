@@ -28,8 +28,16 @@ RUN cp -R /usr/src/app/apps/dokploy/dist /prod/dokploy/dist
 FROM base AS dokploy
 WORKDIR /app
 
-# Set production
-ENV NODE_ENV=production
+ARG RELEASE_TAG=latest
+ARG VCS_REF=unknown
+
+# Set production and expose candidate identity at runtime.
+ENV NODE_ENV=production \
+  RELEASE_TAG=${RELEASE_TAG}
+
+LABEL org.opencontainers.image.source="https://github.com/budivoogt/dokploy" \
+  org.opencontainers.image.version="${RELEASE_TAG}" \
+  org.opencontainers.image.revision="${VCS_REF}"
 
 RUN apt-get update && apt-get install -y curl unzip zip apache2-utils iproute2 rsync git-lfs && git lfs install && rm -rf /var/lib/apt/lists/*
 
@@ -40,7 +48,6 @@ COPY --from=build /prod/dokploy/next.config.mjs ./next.config.mjs
 COPY --from=build /prod/dokploy/public ./public
 COPY --from=build /prod/dokploy/package.json ./package.json
 COPY --from=build /prod/dokploy/drizzle ./drizzle
-COPY .env.production ./.env
 COPY --from=build /prod/dokploy/components.json ./components.json
 COPY --from=build /prod/dokploy/node_modules ./node_modules
 

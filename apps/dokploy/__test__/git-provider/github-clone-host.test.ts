@@ -1,7 +1,11 @@
+import {
+	cleanupSecretTempFiles,
+	takeSecretTempFilesForCommand,
+} from "@dokploy/server/utils/process/secrets";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// cloneGithubRepository builds a shell command; the only thing under test here
-// is which host ends up in the clone URL, so the app auth is stubbed out.
+// cloneGithubRepository builds a shell command; app authentication is stubbed so
+// host selection and credential-safe command generation can be tested directly.
 const mockFindGithubById = vi.hoisted(() => vi.fn());
 
 vi.mock("@dokploy/server/services/github", () => ({
@@ -40,7 +44,16 @@ const clone = async () => {
 		enableSubmodules: false,
 		serverId: null,
 	});
+	cleanupSecretTempFiles(takeSecretTempFilesForCommand(command));
 	return command.replace(/\\/g, "");
+};
+
+const expectCredentialSafeClone = (command: string, cloneUrl: string) => {
+	expect(command).toContain(cloneUrl);
+	expect(command).not.toContain("gh-token");
+	expect(command).not.toContain("oauth2:");
+	expect(command).toContain("GIT_ASKPASS=");
+	expect(command).toContain("GIT_TERMINAL_PROMPT=0");
 };
 
 describe("cloneGithubRepository host", () => {
@@ -53,9 +66,7 @@ describe("cloneGithubRepository host", () => {
 
 		const command = await clone();
 
-		expect(command).toContain(
-			"https://oauth2:gh-token@github.com/acme/web.git",
-		);
+		expectCredentialSafeClone(command, "https://github.com/acme/web.git");
 		expect(command).not.toContain("ghe.com");
 	});
 
@@ -64,9 +75,7 @@ describe("cloneGithubRepository host", () => {
 
 		const command = await clone();
 
-		expect(command).toContain(
-			"https://oauth2:gh-token@acme.ghe.com/acme/web.git",
-		);
+		expectCredentialSafeClone(command, "https://acme.ghe.com/acme/web.git");
 		expect(command).not.toContain("github.com");
 	});
 
@@ -77,8 +86,9 @@ describe("cloneGithubRepository host", () => {
 
 		const command = await clone();
 
-		expect(command).toContain(
-			"https://oauth2:gh-token@github.corp.acme.com/acme/web.git",
+		expectCredentialSafeClone(
+			command,
+			"https://github.corp.acme.com/acme/web.git",
 		);
 	});
 
@@ -89,8 +99,9 @@ describe("cloneGithubRepository host", () => {
 
 		const command = await clone();
 
-		expect(command).toContain(
-			"https://oauth2:gh-token@github.acme.com:8443/acme/web.git",
+		expectCredentialSafeClone(
+			command,
+			"https://github.acme.com:8443/acme/web.git",
 		);
 	});
 
@@ -99,8 +110,6 @@ describe("cloneGithubRepository host", () => {
 
 		const command = await clone();
 
-		expect(command).toContain(
-			"https://oauth2:gh-token@github.com/acme/web.git",
-		);
+		expectCredentialSafeClone(command, "https://github.com/acme/web.git");
 	});
 });

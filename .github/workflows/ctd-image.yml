@@ -1,11 +1,8 @@
 name: Build CTD image
 
 on:
-  push:
-    branches:
-      - "feat/**"
-      - "fix/**"
-      - "canary-ctd"
+  # Registry publication is intentionally manual. Ordinary pushes and PRs must
+  # never publish a candidate without a fresh rollout decision.
   workflow_dispatch:
 
 env:
@@ -38,24 +35,23 @@ jobs:
         id: tags
         run: |
           RAW_VERSION=$(jq -r .version apps/dokploy/package.json)
-          VERSION="${RAW_VERSION#v}"
+          if [[ ! "${RAW_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid Dokploy package version: ${RAW_VERSION}" >&2
+            exit 1
+          fi
           SHA_SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
           BRANCH_SLUG=$(echo "${{ github.ref_name }}" | tr '/' '-' | tr -cd 'A-Za-z0-9-_.')
-          VERSION_TAG="${{ env.IMAGE }}:v${VERSION}-ctd${SHA_SHORT}"
+          CANDIDATE_TAG="${RAW_VERSION}-ctd${SHA_SHORT}"
+          VERSION_TAG="${{ env.IMAGE }}:${CANDIDATE_TAG}"
           BRANCH_TAG="${{ env.IMAGE }}:${BRANCH_SLUG}"
           {
             echo "version_tag=${VERSION_TAG}"
             echo "branch_tag=${BRANCH_TAG}"
-            echo "tag_label=v${VERSION}-ctd${SHA_SHORT}"
+            echo "tag_label=${CANDIDATE_TAG}"
           } >> "$GITHUB_OUTPUT"
           echo "Building:"
           echo "  - ${VERSION_TAG}"
           echo "  - ${BRANCH_TAG}"
-
-      - name: Prepare env file
-        run: |
-          cp apps/dokploy/.env.production.example .env.production
-          cp apps/dokploy/.env.production.example apps/dokploy/.env.production
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -64,6 +60,9 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64
           push: true
+          build-args: |
+            RELEASE_TAG=${{ steps.tags.outputs.tag_label }}
+            VCS_REF=${{ github.sha }}
           tags: |
             ${{ steps.tags.outputs.version_tag }}
             ${{ steps.tags.outputs.branch_tag }}

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+	BlockQueueGroupError,
 	getGroup,
 	getPartition,
 	InMemoryQueue,
@@ -333,5 +334,24 @@ describe("InMemoryQueue job management", () => {
 		await flush();
 
 		expect(started).toEqual(["a", "b"]);
+	});
+
+	it("frees a timed-out partition slot without overlapping the same service", async () => {
+		const started: string[] = [];
+		const queue = new InMemoryQueue({ resolveConcurrency: () => 1 });
+		queue.process(async (job) => {
+			const id = (job.data as any).applicationId;
+			started.push(id);
+			if (id === "a") throw new BlockQueueGroupError("timed out");
+		});
+		await queue.run();
+
+		await queue.add(appJob("a"));
+		await queue.add(appJob("a"));
+		await queue.add(appJob("b"));
+		await flush();
+
+		expect(started).toEqual(["a", "b"]);
+		expect(await queue.getJobs(["waiting"])).toHaveLength(1);
 	});
 });

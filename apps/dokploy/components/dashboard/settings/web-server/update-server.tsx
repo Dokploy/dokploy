@@ -136,8 +136,7 @@ export const UpdateServer = ({
 							<Server className="h-4 w-4 text-muted-foreground" />
 							<span className="text-sm text-muted-foreground">
 								{dokployVersion}{" "}
-								{(releaseTag === "canary" || releaseTag === "feature") &&
-									`(${releaseTag})`}
+								{releaseTag && releaseTag !== "latest" && `(${releaseTag})`}
 							</span>
 						</div>
 					)}

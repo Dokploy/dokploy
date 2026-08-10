@@ -373,11 +373,16 @@ export const rebuildApplication = async ({
 
 	try {
 		if (application.sourceType === "github" && application.githubId) {
+			const commitInfo = await getGitCommitInfo({
+				appName: application.appName,
+				type: "application",
+				serverId,
+			});
 			githubDeploymentId = await createGithubDeployment({
 				githubId: application.githubId,
 				owner: application.owner || "",
 				repository: application.repository || "",
-				ref: application.branch || "main",
+				ref: commitInfo?.hash || application.branch || "main",
 				environment: application.name,
 				description: `Dokploy redeploy of ${application.branch || "main"}`,
 				transient: false,
@@ -699,11 +704,16 @@ export const rebuildPreviewApplication = async ({
 		};
 
 		if (application.sourceType === "github" && application.githubId) {
+			const commitInfo = await getGitCommitInfo({
+				appName: previewDeployment.appName,
+				type: "application",
+				serverId: application.serverId,
+			});
 			githubDeploymentId = await createGithubDeployment({
 				githubId: application.githubId,
 				owner: issueParams.owner,
 				repository: issueParams.repository,
-				ref: previewDeployment.branch,
+				ref: commitInfo?.hash || previewDeployment.branch,
 				environment: `${application.name}-pr-${previewDeployment.pullRequestNumber}`,
 				description: `Dokploy preview rebuild for PR #${previewDeployment.pullRequestNumber}`,
 			});

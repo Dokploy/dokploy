@@ -2,6 +2,7 @@ import {
 	getEnvironmentVariablesObject,
 	prepareEnvironmentVariablesForShell,
 } from "@dokploy/server/utils/docker/utils";
+import { quote } from "shell-quote";
 import {
 	getBuildAppDirectory,
 	getDockerContextPath,
@@ -101,7 +102,7 @@ cd ${quote([dockerContextPath])} || {
   exit 1;
 }
 
-docker ${commandArgs.join(" ")} || {
+docker ${quote(commandArgs)} || {
   echo "❌ Docker build failed" ;
   exit 1;
 }

@@ -1,5 +1,10 @@
 import { execSync } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
+import { createEnvFileCommand } from "@dokploy/server/utils/builders/utils";
+import {
+	cleanupSecretTempFiles,
+	takeSecretTempFilesForCommand,
+} from "@dokploy/server/utils/process/secrets";
 import { parse, quote } from "shell-quote";
 import { describe, expect, it } from "vitest";
 
@@ -51,6 +56,18 @@ describe("docker build/pull command injection", () => {
 			const containerId = "buildabc";
 			const command = `: cp ${quote([`${containerId}:/app/${publishDirectory}/.`])} /dest`;
 			expect(runAndCheckSafe(command)).toBe(true);
+		}
+	});
+
+	it("generated environment-file destinations cannot escape the install command", () => {
+		const command = createEnvFileCommand(
+			`/tmp/code/\"; touch ${MARK}; #/Dockerfile`,
+			"SAFE=value",
+		);
+		try {
+			expect(runAndCheckSafe(command)).toBe(true);
+		} finally {
+			cleanupSecretTempFiles(takeSecretTempFilesForCommand(command));
 		}
 	});
 

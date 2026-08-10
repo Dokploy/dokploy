@@ -336,17 +336,19 @@ export const applicationRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const application = await findApplicationById(input.applicationId);
+			const executionServerId =
+				application.buildServerId || application.serverId || undefined;
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: input.title || "Rebuild deployment",
 				descriptionLog: input.description || "",
 				type: "redeploy",
 				applicationType: "application",
-				server: !!application.serverId,
-				serverId: application.serverId ?? undefined,
+				server: !!executionServerId,
+				serverId: executionServerId,
 			};
 
-			if (IS_CLOUD && application.serverId) {
+			if (IS_CLOUD && executionServerId) {
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
@@ -704,16 +706,18 @@ export const applicationRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const application = await findApplicationById(input.applicationId);
+			const executionServerId =
+				application.buildServerId || application.serverId || undefined;
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: input.title || "Manual deployment",
 				descriptionLog: input.description || "",
 				type: "deploy",
 				applicationType: "application",
-				server: !!application.serverId,
-				serverId: application.serverId ?? undefined,
+				server: !!executionServerId,
+				serverId: executionServerId,
 			};
-			if (IS_CLOUD && application.serverId) {
+			if (IS_CLOUD && executionServerId) {
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});

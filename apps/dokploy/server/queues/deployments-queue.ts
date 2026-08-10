@@ -10,7 +10,7 @@ import {
 	updateCompose,
 	updatePreviewDeployment,
 } from "@dokploy/server";
-import type { InMemoryJob } from "./in-memory-queue";
+import { BlockQueueGroupError, type InMemoryJob } from "./in-memory-queue";
 
 // CTD fork: upstream now supplies per-server concurrency through the in-memory
 // queue. Keep only the watchdog that prevents one hung operation from retaining
@@ -33,7 +33,11 @@ const withTimeout = async <T>(
 	const timeout = new Promise<never>((_, reject) => {
 		timer = setTimeout(
 			() =>
-				reject(new Error(`Deployment job timed out after ${ms}ms (${label})`)),
+				reject(
+					new BlockQueueGroupError(
+						`Deployment job timed out after ${ms}ms (${label})`,
+					),
+				),
 			ms,
 		);
 	});

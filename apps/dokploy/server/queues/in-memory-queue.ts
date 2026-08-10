@@ -40,6 +40,15 @@ export interface InMemoryJob {
 
 type Processor = (job: InMemoryJob) => Promise<void>;
 
+/**
+ * Signals that the processor gave up waiting while underlying work may still be
+ * alive. The queue frees the partition slot but keeps this service group fenced
+ * so a second deployment cannot overlap the timed-out operation.
+ */
+export class BlockQueueGroupError extends Error {
+	readonly blockQueueGroup = true;
+}
+
 /** Resolve the partition key (serverId) a job belongs to. */
 export const getPartition = (data: DeploymentJob): string =>
 	data.serverId ?? LOCAL_PARTITION;
@@ -243,19 +252,21 @@ export class InMemoryQueue {
 	}
 
 	private async runJob(job: InternalJob) {
+		let releaseGroup = true;
 		try {
 			await this.processor?.(this.toPublic(job));
 		} catch (error) {
 			job.failedReason = error instanceof Error ? error.message : String(error);
+			releaseGroup = !(error instanceof BlockQueueGroupError);
 			console.error("In-memory deployment job failed", error);
 		} finally {
 			job.finishedOn = this.now();
 			const partition = this.partitions.get(job.partition);
 			if (partition) {
 				partition.active = partition.active.filter((j) => j.id !== job.id);
-				partition.activeGroups.delete(job.group);
+				if (releaseGroup) partition.activeGroups.delete(job.group);
 			}
-			// A slot (and possibly the group) freed up — try to schedule more.
+			// The partition slot is free. A timed-out group stays fenced until restart.
 			void this.drainPartition(job.partition);
 		}
 	}

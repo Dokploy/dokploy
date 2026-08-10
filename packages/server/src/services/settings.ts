@@ -24,6 +24,11 @@ export const DEFAULT_UPDATE_DATA: IUpdateData = {
 	updateAvailable: false,
 };
 
+const CTD_RELEASE_TAG_PATTERN = /^v\d+\.\d+\.\d+-ctd[0-9a-f]{7}$/;
+
+export const isManagedForkReleaseTag = (tag: string) =>
+	CTD_RELEASE_TAG_PATTERN.test(tag);
+
 /** Returns current Dokploy docker image tag or `latest` by default. */
 export const getDokployImageTag = () => {
 	return process.env.RELEASE_TAG || "latest";
@@ -49,6 +54,11 @@ export const getUpdateData = async (
 	currentVersion: string,
 ): Promise<IUpdateData> => {
 	try {
+		const currentImageTag = getDokployImageTag();
+		if (isManagedForkReleaseTag(currentImageTag)) {
+			return DEFAULT_UPDATE_DATA;
+		}
+
 		const baseUrl =
 			"https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
 		let url: string | null = `${baseUrl}?page_size=100`;
@@ -69,8 +79,6 @@ export const getUpdateData = async (
 			allResults = allResults.concat(data.results);
 			url = data?.next;
 		}
-
-		const currentImageTag = getDokployImageTag();
 
 		// Special handling for canary and feature branches
 		// For development versions (canary/feature), don't perform update checks
@@ -290,12 +298,15 @@ export const reloadDockerResource = async (
 	if (resourceType === "service") {
 		if (resourceName === "dokploy") {
 			const currentImageTag = getDokployImageTag();
-			let imageTag = version;
-			if (currentImageTag === "canary" || currentImageTag === "feature") {
-				imageTag = currentImageTag;
+			if (isManagedForkReleaseTag(currentImageTag)) {
+				command = `docker service update --force ${resourceName}`;
+			} else {
+				let imageTag = version;
+				if (currentImageTag === "canary" || currentImageTag === "feature") {
+					imageTag = currentImageTag;
+				}
+				command = `docker service update --force --image dokploy/dokploy:${imageTag} ${resourceName}`;
 			}
-
-			command = `docker service update --force --image dokploy/dokploy:${imageTag} ${resourceName}`;
 		} else {
 			command = `docker service update --force ${resourceName}`;
 		}
