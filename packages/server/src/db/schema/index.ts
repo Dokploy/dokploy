@@ -42,5 +42,6 @@ export * from "./sso";
 export * from "./tag";
 export * from "./user";
 export * from "./utils";
+export * from "./vault-provider";
 export * from "./volume-backups";
 export * from "./web-server-settings";

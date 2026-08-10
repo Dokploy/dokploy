@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useEnvCompletionSource } from "@/components/shared/env-autocomplete";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -44,6 +45,11 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 			enabled: !!applicationId,
 		},
 	);
+
+	const completionSource = useEnvCompletionSource({
+		projectEnv: data?.environment?.project?.env,
+		environmentEnv: data?.environment?.env,
+	});
 
 	const form = useForm<EnvironmentSchema>({
 		defaultValues: {
@@ -142,6 +148,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 							</span>
 						}
 						placeholder={["NODE_ENV=production", "PORT=3000"].join("\n")}
+						completionSource={completionSource}
 					/>
 					{data?.buildType === "dockerfile" && (
 						<Secrets
@@ -163,6 +170,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 								</span>
 							}
 							placeholder="NPM_TOKEN=xyz"
+							completionSource={completionSource}
 						/>
 					)}
 					{data?.buildType === "dockerfile" && (
@@ -185,6 +193,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 								</span>
 							}
 							placeholder="NPM_TOKEN=xyz"
+							completionSource={completionSource}
 						/>
 					)}
 					{data?.buildType === "dockerfile" && (

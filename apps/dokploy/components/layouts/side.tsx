@@ -35,6 +35,7 @@ import {
 	Trash2,
 	User,
 	Users,
+	Vault,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -349,6 +350,13 @@ const MENU: Menu = {
 			url: "/dashboard/settings/registry",
 			icon: Package,
 			isEnabled: ({ permissions }) => !!permissions?.registry.read,
+		},
+		{
+			isSingle: true,
+			title: "Secrets",
+			url: "/dashboard/settings/secrets",
+			icon: Vault,
+			isEnabled: ({ permissions }) => !!permissions?.vaultProvider.create,
 		},
 		{
 			isSingle: true,
