@@ -80,6 +80,18 @@ export const ShowVaultProviders = () => {
 																		{provider.name}
 																	</span>
 																	<div className="flex flex-row gap-2 items-center">
+																		{provider.assignments.length === 0 ? (
+																			<Badge variant="destructive">
+																				Not assigned
+																			</Badge>
+																		) : (
+																			<Badge variant="secondary">
+																				{provider.assignments.length}{" "}
+																				{provider.assignments.length === 1
+																					? "project"
+																					: "projects"}
+																			</Badge>
+																		)}
 																		<Badge variant="outline">
 																			{providerLabels[provider.providerType] ??
 																				provider.providerType}

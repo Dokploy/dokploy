@@ -36,17 +36,25 @@ beforeEach(() => {
 	mockFetch.mockReset();
 });
 
+const scope = {
+	organizationId: "org-1",
+	projectId: "proj-1",
+	environmentId: "env-1",
+};
+
+const assignedEverywhere = [{ projectId: "proj-1", environmentIds: [] }];
+
 describe("resolveVaultReferences", () => {
 	it("returns input untouched and skips the db when no refs are present", async () => {
 		const env = "FOO=bar\nBAZ=${{project.QUX}}";
-		const result = await resolveVaultReferences(env, "org-1");
+		const result = await resolveVaultReferences(env, scope);
 		expect(result).toBe(env);
 		expect(findMany).not.toHaveBeenCalled();
 	});
 
 	it("returns null/empty inputs unchanged", async () => {
-		expect(await resolveVaultReferences(null, "org-1")).toBeNull();
-		expect(await resolveVaultReferences("", "org-1")).toBe("");
+		expect(await resolveVaultReferences(null, scope)).toBeNull();
+		expect(await resolveVaultReferences("", scope)).toBe("");
 	});
 
 	it("throws when refs exist but no organization context is given", async () => {
@@ -58,8 +66,55 @@ describe("resolveVaultReferences", () => {
 	it("throws for an unknown provider", async () => {
 		findMany.mockResolvedValue([]);
 		await expect(
-			resolveVaultReferences("FOO=${{vault.missing.SECRET}}", "org-1"),
+			resolveVaultReferences("FOO=${{vault.missing.SECRET}}", scope),
 		).rejects.toThrow('Vault provider "missing" not found');
+	});
+
+	it("throws when the provider is not assigned to the project", async () => {
+		findMany.mockResolvedValue([
+			{
+				name: "prod",
+				providerType: "doppler",
+				config: { providerType: "doppler", serviceToken: "dp.st.token" },
+				assignments: [{ projectId: "other-project", environmentIds: [] }],
+			},
+		]);
+		await expect(
+			resolveVaultReferences("FOO=${{vault.prod.SECRET}}", scope),
+		).rejects.toThrow("not enabled for this project/environment");
+	});
+
+	it("throws when the provider is restricted to another environment", async () => {
+		findMany.mockResolvedValue([
+			{
+				name: "prod",
+				providerType: "doppler",
+				config: { providerType: "doppler", serviceToken: "dp.st.token" },
+				assignments: [
+					{ projectId: "proj-1", environmentIds: ["production-env"] },
+				],
+			},
+		]);
+		await expect(
+			resolveVaultReferences("FOO=${{vault.prod.SECRET}}", scope),
+		).rejects.toThrow("not enabled for this project/environment");
+	});
+
+	it("allows a provider restricted to the matching environment", async () => {
+		findMany.mockResolvedValue([
+			{
+				name: "prod",
+				providerType: "doppler",
+				config: { providerType: "doppler", serviceToken: "dp.st.token" },
+				assignments: [{ projectId: "proj-1", environmentIds: ["env-1"] }],
+			},
+		]);
+		mockFetch.mockResolvedValue(jsonResponse({ SECRET: "value-1" }));
+		const result = await resolveVaultReferences(
+			"FOO=${{vault.prod.SECRET}}",
+			scope,
+		);
+		expect(result).toBe("FOO=value-1");
 	});
 
 	it("resolves refs through a doppler provider", async () => {
@@ -68,6 +123,7 @@ describe("resolveVaultReferences", () => {
 				name: "doppler-prod",
 				providerType: "doppler",
 				config: { providerType: "doppler", serviceToken: "dp.st.token" },
+				assignments: assignedEverywhere,
 			},
 		]);
 		mockFetch.mockResolvedValue(
@@ -76,7 +132,7 @@ describe("resolveVaultReferences", () => {
 
 		const result = await resolveVaultReferences(
 			"DB_URL=${{vault.doppler-prod.DB_URL}}\nAPI_KEY=${{vault.doppler-prod.API_KEY}}",
-			"org-1",
+			scope,
 		);
 
 		expect(result).toBe("DB_URL=postgres://real\nAPI_KEY=key-123");
@@ -89,12 +145,13 @@ describe("resolveVaultReferences", () => {
 				name: "doppler-prod",
 				providerType: "doppler",
 				config: { providerType: "doppler", serviceToken: "dp.st.token" },
+				assignments: assignedEverywhere,
 			},
 		]);
 		mockFetch.mockResolvedValue(jsonResponse({ OTHER: "x" }));
 
 		await expect(
-			resolveVaultReferences("FOO=${{vault.doppler-prod.MISSING}}", "org-1"),
+			resolveVaultReferences("FOO=${{vault.doppler-prod.MISSING}}", scope),
 		).rejects.toThrow('secret "MISSING" not found');
 	});
 });
@@ -106,6 +163,7 @@ describe("withResolvedVaultRefs + prepareEnvironmentVariables", () => {
 				name: "prod",
 				providerType: "doppler",
 				config: { providerType: "doppler", serviceToken: "dp.st.token" },
+				assignments: assignedEverywhere,
 			},
 		]);
 		mockFetch.mockResolvedValue(jsonResponse({ DB_PASSWORD: "s3cret" }));
@@ -113,8 +171,10 @@ describe("withResolvedVaultRefs + prepareEnvironmentVariables", () => {
 		const entity = {
 			env: "DATABASE_URL=postgres://user:${{project.DB_PASSWORD}}@db",
 			environment: {
+				environmentId: "env-1",
 				env: null,
 				project: {
+					projectId: "proj-1",
 					env: "DB_PASSWORD=${{vault.prod.DB_PASSWORD}}",
 					organizationId: "org-1",
 				},
@@ -137,6 +197,7 @@ describe("withResolvedVaultRefs + prepareEnvironmentVariables", () => {
 				name: "prod",
 				providerType: "doppler",
 				config: { providerType: "doppler", serviceToken: "dp.st.token" },
+				assignments: assignedEverywhere,
 			},
 		]);
 		mockFetch.mockResolvedValue(jsonResponse({ NPM_TOKEN: "npm-123" }));
@@ -146,14 +207,79 @@ describe("withResolvedVaultRefs + prepareEnvironmentVariables", () => {
 			buildArgs: "NPM_TOKEN=${{vault.prod.NPM_TOKEN}}",
 			buildSecrets: null,
 			environment: {
+				environmentId: "env-1",
 				env: null,
-				project: { env: null, organizationId: "org-1" },
+				project: { projectId: "proj-1", env: null, organizationId: "org-1" },
 			},
 		});
 
 		expect(resolved.buildArgs).toBe("NPM_TOKEN=npm-123");
 		expect(resolved.buildSecrets).toBeNull();
 		expect(resolved.env).toBe("FOO=bar");
+	});
+
+	it.each([
+		["service env", { env: "SECRET=${{vault.locked.X}}" }],
+		["environment env", { environmentEnv: "SECRET=${{vault.locked.X}}" }],
+		["project env", { projectEnv: "SECRET=${{vault.locked.X}}" }],
+		["build args", { buildArgs: "SECRET=${{vault.locked.X}}" }],
+	])(
+		"rejects a ref to an unassigned provider placed in the %s",
+		async (_source, overrides) => {
+			findMany.mockResolvedValue([
+				{
+					name: "locked",
+					providerType: "doppler",
+					config: { providerType: "doppler", serviceToken: "dp.st.token" },
+					assignments: [{ projectId: "other-project", environmentIds: [] }],
+				},
+			]);
+
+			const entity = {
+				env: (overrides as { env?: string }).env ?? "FOO=bar",
+				buildArgs: (overrides as { buildArgs?: string }).buildArgs ?? null,
+				environment: {
+					environmentId: "env-1",
+					env:
+						(overrides as { environmentEnv?: string }).environmentEnv ?? null,
+					project: {
+						projectId: "proj-1",
+						env: (overrides as { projectEnv?: string }).projectEnv ?? null,
+						organizationId: "org-1",
+					},
+				},
+			};
+
+			await expect(withResolvedVaultRefs(entity)).rejects.toThrow(
+				"not enabled for this project/environment",
+			);
+			expect(mockFetch).not.toHaveBeenCalled();
+		},
+	);
+
+	it("rejects a ref restricted to another environment from the environment env", async () => {
+		findMany.mockResolvedValue([
+			{
+				name: "prod-only",
+				providerType: "doppler",
+				config: { providerType: "doppler", serviceToken: "dp.st.token" },
+				assignments: [
+					{ projectId: "proj-1", environmentIds: ["production-env"] },
+				],
+			},
+		]);
+
+		await expect(
+			withResolvedVaultRefs({
+				env: null,
+				environment: {
+					environmentId: "dev-env",
+					env: "SECRET=${{vault.prod-only.X}}",
+					project: { projectId: "proj-1", env: null, organizationId: "org-1" },
+				},
+			}),
+		).rejects.toThrow("not enabled for this project/environment");
+		expect(mockFetch).not.toHaveBeenCalled();
 	});
 
 	it("prepareEnvironmentVariables throws on unresolved vault refs", () => {

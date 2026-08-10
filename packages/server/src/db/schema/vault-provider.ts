@@ -63,6 +63,15 @@ export const vaultProviderConfigSchema = z.discriminatedUnion("providerType", [
 
 export type VaultProviderConfig = z.infer<typeof vaultProviderConfigSchema>;
 
+export const vaultProviderAssignmentSchema = z.object({
+	projectId: z.string().min(1),
+	environmentIds: z.array(z.string().min(1)).default([]),
+});
+
+export type VaultProviderAssignment = z.infer<
+	typeof vaultProviderAssignmentSchema
+>;
+
 export const vaultProvider = pgTable(
 	"vault_provider",
 	{
@@ -73,6 +82,10 @@ export const vaultProvider = pgTable(
 		name: text("name").notNull(),
 		providerType: vaultProviderType("providerType").notNull(),
 		config: jsonb("config").$type<VaultProviderConfig>().notNull(),
+		assignments: jsonb("assignments")
+			.$type<VaultProviderAssignment[]>()
+			.notNull()
+			.default([]),
 		organizationId: text("organizationId")
 			.notNull()
 			.references(() => organization.id, { onDelete: "cascade" }),
@@ -102,12 +115,14 @@ const createSchema = createInsertSchema(vaultProvider);
 export const apiCreateVaultProvider = createSchema.pick({}).extend({
 	name: vaultProviderNameSchema,
 	config: vaultProviderConfigSchema,
+	assignments: z.array(vaultProviderAssignmentSchema),
 });
 
 export const apiUpdateVaultProvider = createSchema.pick({}).extend({
 	vaultProviderId: z.string().min(1),
 	name: vaultProviderNameSchema,
 	config: vaultProviderConfigSchema,
+	assignments: z.array(vaultProviderAssignmentSchema),
 });
 
 export const apiFindOneVaultProvider = z.object({

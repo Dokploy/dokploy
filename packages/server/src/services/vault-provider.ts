@@ -1,6 +1,8 @@
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateVaultProvider,
+	projects,
+	type VaultProviderAssignment,
 	type VaultProviderConfig,
 	vaultProvider,
 } from "@dokploy/server/db/schema";
@@ -58,10 +60,44 @@ const isUniqueNameViolation = (error: unknown) =>
 	error instanceof Error &&
 	error.message.includes("vault_provider_org_name_idx");
 
+const validateAssignments = async (
+	assignments: VaultProviderAssignment[],
+	organizationId: string,
+) => {
+	const orgProjects = await db.query.projects.findMany({
+		where: eq(projects.organizationId, organizationId),
+		with: { environments: true },
+	});
+	for (const assignment of assignments) {
+		const project = orgProjects.find(
+			(p) => p.projectId === assignment.projectId,
+		);
+		if (!project) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Assignment references a project outside this organization",
+			});
+		}
+		const environmentIds = new Set(
+			project.environments.map((e) => e.environmentId),
+		);
+		for (const environmentId of assignment.environmentIds) {
+			if (!environmentIds.has(environmentId)) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Assignment references an environment outside the selected project",
+				});
+			}
+		}
+	}
+};
+
 export const createVaultProvider = async (
 	input: z.infer<typeof apiCreateVaultProvider>,
 	organizationId: string,
 ) => {
+	await validateAssignments(input.assignments, organizationId);
 	try {
 		const newProvider = await db
 			.insert(vaultProvider)
@@ -69,6 +105,7 @@ export const createVaultProvider = async (
 				name: input.name,
 				providerType: input.config.providerType,
 				config: input.config,
+				assignments: input.assignments,
 				organizationId,
 			})
 			.returning()
@@ -105,6 +142,20 @@ export const findVaultProviderById = async (vaultProviderId: string) => {
 	return provider;
 };
 
+export const findVaultProviderInOrganization = async (
+	vaultProviderId: string,
+	organizationId: string,
+) => {
+	const provider = await findVaultProviderById(vaultProviderId);
+	if (provider.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not allowed to access this vault provider",
+		});
+	}
+	return provider;
+};
+
 export const findVaultProvidersByOrganizationId = async (
 	organizationId: string,
 ) => {
@@ -118,9 +169,11 @@ export const updateVaultProvider = async (
 	vaultProviderId: string,
 	name: string,
 	config: VaultProviderConfig,
+	assignments: VaultProviderAssignment[],
 ) => {
 	const existing = await findVaultProviderById(vaultProviderId);
 	const mergedConfig = mergeVaultProviderConfig(config, existing.config);
+	await validateAssignments(assignments, existing.organizationId);
 
 	try {
 		const updated = await db
@@ -129,6 +182,7 @@ export const updateVaultProvider = async (
 				name,
 				providerType: mergedConfig.providerType,
 				config: mergedConfig,
+				assignments,
 			})
 			.where(eq(vaultProvider.vaultProviderId, vaultProviderId))
 			.returning()

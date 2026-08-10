@@ -42,11 +42,7 @@ const getAccessToken = async (config: AzureConfig) => {
 	return data.access_token;
 };
 
-const readSecret = async (
-	config: AzureConfig,
-	token: string,
-	name: string,
-) => {
+const readSecret = async (config: AzureConfig, token: string, name: string) => {
 	const response = await vaultFetch(
 		`${baseUrl(config)}/secrets/${encodeURIComponent(name)}?api-version=${API_VERSION}`,
 		{ headers: { Authorization: `Bearer ${token}` } },

@@ -58,6 +58,7 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 
 	const completionSource = useEnvCompletionSource({
 		includeShared: false,
+		projectId,
 	});
 	const form = useForm<UpdateProject>({
 		defaultValues: {

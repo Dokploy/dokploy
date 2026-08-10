@@ -12,6 +12,8 @@ interface Options {
 	projectEnv?: string | null;
 	environmentEnv?: string | null;
 	includeShared?: boolean;
+	projectId?: string;
+	environmentId?: string;
 }
 
 const parseKeys = (env?: string | null) =>
@@ -55,9 +57,22 @@ export const useEnvCompletionSource = ({
 	projectEnv,
 	environmentEnv,
 	includeShared = true,
+	projectId,
+	environmentId,
 }: Options = {}) => {
-	const { data: providers } = api.vaultProvider.all.useQuery();
+	const { data: allProviders } = api.vaultProvider.all.useQuery();
 	const utils = api.useUtils();
+	const providers = projectId
+		? allProviders?.filter((provider) =>
+				provider.assignments?.some(
+					(assignment) =>
+						assignment.projectId === projectId &&
+						(assignment.environmentIds.length === 0 ||
+							!environmentId ||
+							assignment.environmentIds.includes(environmentId)),
+				),
+			)
+		: [];
 
 	return useCallback(
 		async (context: CompletionContext): Promise<CompletionResult | null> => {

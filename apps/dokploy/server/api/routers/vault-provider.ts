@@ -1,6 +1,6 @@
 import {
 	createVaultProvider,
-	findVaultProviderById,
+	findVaultProviderInOrganization,
 	findVaultProvidersByOrganizationId,
 	listVaultProviderSecretNames,
 	maskVaultProviderConfig,
@@ -20,20 +20,6 @@ import {
 	apiUpdateVaultProvider,
 } from "@/server/db/schema";
 import { createTRPCRouter, withPermission } from "../trpc";
-
-const findInOrganization = async (
-	vaultProviderId: string,
-	organizationId: string,
-) => {
-	const provider = await findVaultProviderById(vaultProviderId);
-	if (provider.organizationId !== organizationId) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "You are not allowed to access this vault provider",
-		});
-	}
-	return provider;
-};
 
 export const vaultProviderRouter = createTRPCRouter({
 	create: withPermission("vaultProvider", "create")
@@ -55,7 +41,7 @@ export const vaultProviderRouter = createTRPCRouter({
 	update: withPermission("vaultProvider", "update")
 		.input(apiUpdateVaultProvider)
 		.mutation(async ({ ctx, input }) => {
-			await findInOrganization(
+			await findVaultProviderInOrganization(
 				input.vaultProviderId,
 				ctx.session.activeOrganizationId,
 			);
@@ -63,6 +49,7 @@ export const vaultProviderRouter = createTRPCRouter({
 				input.vaultProviderId,
 				input.name,
 				input.config,
+				input.assignments,
 			);
 			await audit(ctx, {
 				action: "update",
@@ -76,7 +63,7 @@ export const vaultProviderRouter = createTRPCRouter({
 	remove: withPermission("vaultProvider", "delete")
 		.input(apiRemoveVaultProvider)
 		.mutation(async ({ ctx, input }) => {
-			const provider = await findInOrganization(
+			const provider = await findVaultProviderInOrganization(
 				input.vaultProviderId,
 				ctx.session.activeOrganizationId,
 			);
@@ -103,7 +90,7 @@ export const vaultProviderRouter = createTRPCRouter({
 	one: withPermission("vaultProvider", "read")
 		.input(apiFindOneVaultProvider)
 		.query(async ({ ctx, input }) => {
-			const provider = await findInOrganization(
+			const provider = await findVaultProviderInOrganization(
 				input.vaultProviderId,
 				ctx.session.activeOrganizationId,
 			);
@@ -122,7 +109,7 @@ export const vaultProviderRouter = createTRPCRouter({
 
 			let config = input.config;
 			if (input.vaultProviderId) {
-				const provider = await findInOrganization(
+				const provider = await findVaultProviderInOrganization(
 					input.vaultProviderId,
 					ctx.session.activeOrganizationId,
 				);
@@ -138,7 +125,7 @@ export const vaultProviderRouter = createTRPCRouter({
 	listSecretNames: withPermission("vaultProvider", "read")
 		.input(apiListVaultSecretNames)
 		.query(async ({ ctx, input }) => {
-			const provider = await findInOrganization(
+			const provider = await findVaultProviderInOrganization(
 				input.vaultProviderId,
 				ctx.session.activeOrganizationId,
 			);

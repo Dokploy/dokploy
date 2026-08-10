@@ -7,6 +7,7 @@ import { z } from "zod";
 import { vaultProviderIcons } from "@/components/icons/vault-provider-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -76,6 +77,12 @@ const VaultProviderSchema = z
 		azureClientSecret: z.string(),
 		dopplerProject: z.string(),
 		dopplerConfig: z.string(),
+		assignments: z.array(
+			z.object({
+				projectId: z.string(),
+				environmentIds: z.array(z.string()),
+			}),
+		),
 	})
 	.superRefine((data, ctx) => {
 		const isValidUrl = (value: string) => {
@@ -215,6 +222,7 @@ const defaultValues: VaultProviderForm = {
 	azureClientSecret: "",
 	dopplerProject: "",
 	dopplerConfig: "",
+	assignments: [],
 };
 
 const buildConfig = (data: VaultProviderForm) => {
@@ -303,6 +311,39 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 	});
 
 	const providerType = form.watch("providerType");
+	const assignments = form.watch("assignments");
+	const { data: orgProjects } = api.project.all.useQuery();
+
+	const setAssignments = (
+		next: { projectId: string; environmentIds: string[] }[],
+	) => form.setValue("assignments", next, { shouldValidate: true });
+
+	const toggleProject = (targetProjectId: string) => {
+		const exists = assignments.some((a) => a.projectId === targetProjectId);
+		setAssignments(
+			exists
+				? assignments.filter((a) => a.projectId !== targetProjectId)
+				: [...assignments, { projectId: targetProjectId, environmentIds: [] }],
+		);
+	};
+
+	const toggleEnvironment = (
+		targetProjectId: string,
+		environmentId: string,
+	) => {
+		setAssignments(
+			assignments.map((a) => {
+				if (a.projectId !== targetProjectId) return a;
+				const has = a.environmentIds.includes(environmentId);
+				return {
+					...a,
+					environmentIds: has
+						? a.environmentIds.filter((e) => e !== environmentId)
+						: [...a.environmentIds, environmentId],
+				};
+			}),
+		);
+	};
 
 	useEffect(() => {
 		if (provider) {
@@ -310,6 +351,7 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 				...defaultValues,
 				name: provider.name,
 				providerType: provider.config.providerType,
+				assignments: provider.assignments ?? [],
 				...(provider.config.providerType === "hashicorp" && {
 					url: provider.config.url,
 					token: provider.config.token,
@@ -351,6 +393,7 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 		const payload: any = {
 			name: data.name,
 			config: buildConfig(data),
+			assignments: data.assignments,
 			...(vaultProviderId && { vaultProviderId }),
 		};
 		await mutateAsync(payload)
@@ -751,8 +794,8 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 									/>
 								</div>
 								<FormDescription>
-									App Registration with the "Key Vault Secrets User" role on
-									the vault. Reference format:{" "}
+									App Registration with the "Key Vault Secrets User" role on the
+									vault. Reference format:{" "}
 									<code>{"${{vault.<name>.secret-name}}"}</code>
 								</FormDescription>
 							</>
@@ -815,6 +858,71 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 								</FormDescription>
 							</>
 						)}
+
+						<div className="flex flex-col gap-2 rounded-lg border p-3">
+							<FormLabel>Access</FormLabel>
+							<FormDescription>
+								This provider can only be referenced from the selected projects.
+								Pick environments to narrow it further — none selected means all
+								environments of that project.
+							</FormDescription>
+							<div className="flex flex-col gap-2">
+								{orgProjects?.map((project) => {
+									const assignment = assignments.find(
+										(a) => a.projectId === project.projectId,
+									);
+									return (
+										<div
+											key={project.projectId}
+											className="flex flex-col gap-1.5"
+										>
+											<label className="flex flex-row items-center gap-2 text-sm cursor-pointer">
+												<Checkbox
+													checked={!!assignment}
+													onCheckedChange={() =>
+														toggleProject(project.projectId)
+													}
+												/>
+												{project.name}
+											</label>
+											{assignment && (
+												<div className="flex flex-row flex-wrap gap-3 pl-6">
+													{project.environments?.map((environment) => (
+														<label
+															key={environment.environmentId}
+															className="flex flex-row items-center gap-1.5 text-xs text-muted-foreground cursor-pointer"
+														>
+															<Checkbox
+																checked={assignment.environmentIds.includes(
+																	environment.environmentId,
+																)}
+																onCheckedChange={() =>
+																	toggleEnvironment(
+																		project.projectId,
+																		environment.environmentId,
+																	)
+																}
+															/>
+															{environment.name}
+														</label>
+													))}
+													{assignment.environmentIds.length === 0 && (
+														<span className="text-xs text-muted-foreground italic self-center">
+															All environments
+														</span>
+													)}
+												</div>
+											)}
+										</div>
+									);
+								})}
+							</div>
+							{form.formState.errors.assignments && (
+								<p className="text-sm font-medium text-destructive">
+									{form.formState.errors.assignments.message}
+								</p>
+							)}
+						</div>
 
 						<DialogFooter className="flex w-full flex-row justify-between gap-2 sm:justify-between">
 							<Button

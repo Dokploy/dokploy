@@ -62,6 +62,8 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 	const completionSource = useEnvCompletionSource({
 		projectEnv: data?.environment?.project?.env,
 		environmentEnv: data?.environment?.env,
+		projectId: data?.environment?.projectId,
+		environmentId: data?.environment?.environmentId,
 	});
 
 	const mutationMap = {
