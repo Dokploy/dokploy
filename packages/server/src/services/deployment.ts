@@ -1048,7 +1048,10 @@ export const clearOldDeployments = async (
 	id: string,
 	type: "application" | "compose",
 ) => {
-	const deploymentList = await getDeploymentsByType(id, type);
+	const deploymentList = await db.query.deployments.findMany({
+		where: eq(deployments[`${type}Id`], id),
+		orderBy: desc(deployments.createdAt),
+	});
 	const deletable = deploymentList.filter(
 		(deployment) => deployment.status !== "running",
 	);
@@ -1061,6 +1064,13 @@ export const clearOldDeployments = async (
 		if (deployment.deploymentId === deploymentToKeep?.deploymentId) {
 			continue;
 		}
-		await removeDeployment(deployment.deploymentId);
+		try {
+			await removeDeployment(deployment.deploymentId);
+		} catch (err) {
+			console.error(
+				`Failed to remove deployment ${deployment.deploymentId} during cleanup:`,
+				err,
+			);
+		}
 	}
 };

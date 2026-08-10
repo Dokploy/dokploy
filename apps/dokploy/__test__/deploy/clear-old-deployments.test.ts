@@ -103,4 +103,31 @@ describe("clearOldDeployments", () => {
 		// running-1 is protected; only failed-1 (older than the kept success) is removed.
 		expect(db.delete).toHaveBeenCalledTimes(1);
 	});
+
+	it("continues cleaning up remaining deployments after one removal fails", async () => {
+		const deploymentList = [
+			makeDeployment({ deploymentId: "success-1", status: "done" }),
+			makeDeployment({ deploymentId: "failed-1", status: "error" }),
+			makeDeployment({ deploymentId: "failed-2", status: "error" }),
+		];
+		vi.mocked(db.query.deployments.findMany).mockResolvedValue(
+			deploymentList as any,
+		);
+		vi.mocked(db.delete)
+			.mockImplementationOnce(() => {
+				throw new Error("db unavailable");
+			})
+			.mockReturnValue({
+				where: () => ({
+					returning: () => Promise.resolve([]),
+				}),
+			} as any);
+
+		await expect(
+			clearOldDeployments("app-1", "application"),
+		).resolves.not.toThrow();
+
+		// failed-1's removal throws but doesn't stop failed-2 from being attempted.
+		expect(db.delete).toHaveBeenCalledTimes(2);
+	});
 });
