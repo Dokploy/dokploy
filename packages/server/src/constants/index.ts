@@ -17,8 +17,8 @@ export const CLEANUP_CRON_JOB = "50 23 * * *";
 const parseByteSize = (envVar: string, fallback: number): number => {
 	const raw = process.env[envVar];
 	if (!raw) return fallback;
-	const parsed = Number.parseInt(raw, 10);
-	if (!Number.isFinite(parsed) || parsed <= 0) {
+	const parsed = Number(raw);
+	if (!Number.isInteger(parsed) || parsed <= 0) {
 		console.warn(`Invalid ${envVar}="${raw}", using default ${fallback}`);
 		return fallback;
 	}
