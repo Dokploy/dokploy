@@ -14,10 +14,11 @@ import {
 import type { inferRouterOutputs } from "@trpc/server";
 import {
 	ArrowUpDown,
-	Boxes,
 	ChevronLeft,
 	ChevronRight,
+	CircuitBoard,
 	ExternalLink,
+	GlobeIcon,
 	Loader2,
 	Rocket,
 	Server,
@@ -71,6 +72,7 @@ function getServiceInfo(d: DeploymentRow) {
 		return {
 			type: "Application" as const,
 			name: app.name,
+			icon: app.icon,
 			projectId: app.environment.project.projectId,
 			environmentId: app.environment.environmentId,
 			projectName: app.environment.project.name,
@@ -83,6 +85,7 @@ function getServiceInfo(d: DeploymentRow) {
 		return {
 			type: "Compose" as const,
 			name: comp.name,
+			icon: comp.icon,
 			projectId: comp.environment.project.projectId,
 			environmentId: comp.environment.environmentId,
 			projectName: comp.environment.project.name,
@@ -175,10 +178,16 @@ export function ShowDeploymentsTable() {
 					if (!info) return <span className="text-muted-foreground">—</span>;
 					return (
 						<div className="flex items-center gap-2">
-							{info.type === "Application" ? (
-								<Rocket className="size-4 text-muted-foreground shrink-0" />
+							{info.icon ? (
+								<img
+									src={info.icon}
+									alt={info.name}
+									className="size-4 object-contain shrink-0"
+								/>
+							) : info.type === "Application" ? (
+								<GlobeIcon className="size-4 text-muted-foreground shrink-0" />
 							) : (
-								<Boxes className="size-4 text-muted-foreground shrink-0" />
+								<CircuitBoard className="size-4 text-muted-foreground shrink-0" />
 							)}
 							<div className="flex flex-col min-w-0">
 								<span className="font-medium truncate">{info.name}</span>
