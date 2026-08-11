@@ -375,14 +375,6 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Cluster",
-			url: "/dashboard/settings/cluster",
-			icon: Boxes,
-			// Only enabled for admins
-			isEnabled: ({ permissions }) => !!permissions?.organization.update,
-		},
-		{
-			isSingle: true,
 			title: "Notifications",
 			url: "/dashboard/settings/notifications",
 			icon: Bell,

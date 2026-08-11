@@ -7,6 +7,7 @@ import superjson from "superjson";
 import { ShowContainers } from "@/components/dashboard/docker/show/show-containers";
 import { ShowVolumes } from "@/components/dashboard/docker/volumes/show-volumes";
 import { ShowNetworks } from "@/components/dashboard/networks/show-networks";
+import { ShowNodes } from "@/components/dashboard/settings/cluster/nodes/show-nodes";
 import { ShowSwarmContainers } from "@/components/dashboard/swarm/containers/show-swarm-containers";
 import SwarmMonitorCard from "@/components/dashboard/swarm/monitoring-card";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -17,21 +18,47 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 
 const DEFAULT_TAB = "containers";
+const DEFAULT_SWARM_TAB = "overview";
 
 const Dashboard = () => {
 	const router = useRouter();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
+
+	const canManageCluster = !!permissions?.organization.update;
 
 	const queryTab =
 		typeof router.query.tab === "string" ? router.query.tab : DEFAULT_TAB;
 	const activeTab = isCloud && queryTab === "networks" ? DEFAULT_TAB : queryTab;
 
+	const querySwarmTab =
+		typeof router.query.subtab === "string"
+			? router.query.subtab
+			: DEFAULT_SWARM_TAB;
+	const activeSwarmTab =
+		!canManageCluster && querySwarmTab === "nodes"
+			? DEFAULT_SWARM_TAB
+			: querySwarmTab;
+
 	const setTab = (value: string) => {
-		const { tab: _current, ...query } = router.query;
+		const { tab: _current, subtab: _subtab, ...query } = router.query;
 		router.replace(
 			{
 				pathname: router.pathname,
 				query: value === DEFAULT_TAB ? query : { ...query, tab: value },
+			},
+			undefined,
+			{ shallow: true },
+		);
+	};
+
+	const setSwarmTab = (value: string) => {
+		const { subtab: _current, ...query } = router.query;
+		router.replace(
+			{
+				pathname: router.pathname,
+				query:
+					value === DEFAULT_SWARM_TAB ? query : { ...query, subtab: value },
 			},
 			undefined,
 			{ shallow: true },
@@ -52,10 +79,13 @@ const Dashboard = () => {
 						<ShowContainers serverId={serverId} />
 					</TabsContent>
 					<TabsContent value="swarm">
-						<Tabs defaultValue="overview">
+						<Tabs value={activeSwarmTab} onValueChange={setSwarmTab}>
 							<TabsList>
 								<TabsTrigger value="overview">Overview</TabsTrigger>
 								<TabsTrigger value="containers">Containers</TabsTrigger>
+								{canManageCluster && (
+									<TabsTrigger value="nodes">Nodes</TabsTrigger>
+								)}
 							</TabsList>
 							<TabsContent value="overview">
 								<SwarmMonitorCard serverId={serverId} />
@@ -67,6 +97,11 @@ const Dashboard = () => {
 									</div>
 								</Card>
 							</TabsContent>
+							{canManageCluster && (
+								<TabsContent value="nodes">
+									<ShowNodes serverId={serverId} />
+								</TabsContent>
+							)}
 						</Tabs>
 					</TabsContent>
 					<TabsContent value="volumes">
