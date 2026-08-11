@@ -139,6 +139,55 @@ describe("addDomainToCompose enabled filtering", () => {
 		},
 	);
 
+	it.each([
+		[
+			"docker-compose",
+			`services:
+  frigate:
+    image: frigate
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.test-app-1-web.rule: Host(\`frigate.example.com\`)
+      traefik.http.services.test-app-1-web.loadbalancer.server.port: 8971
+      traefik.http.middlewares.stripprefix-test-app-1.stripprefix.prefixes: /api
+      custom.label: preserved
+`,
+		],
+		[
+			"stack",
+			`services:
+  frigate:
+    image: frigate
+    deploy:
+      labels:
+        traefik.enable: "true"
+        traefik.http.routers.test-app-1-web.rule: Host(\`frigate.example.com\`)
+        traefik.http.services.test-app-1-web.loadbalancer.server.port: 8971
+        traefik.http.middlewares.stripprefix-test-app-1.stripprefix.prefixes: /api
+        custom.label: preserved
+`,
+		],
+	] as const)(
+		"removes stale mapping labels for a disabled domain from %s rebuilds",
+		async (composeType, staleComposeYaml) => {
+			composeYaml = staleComposeYaml;
+
+			const result = await addDomainToCompose({ ...baseCompose, composeType }, [
+				{ ...baseDomain, enabled: false },
+			]);
+
+			const service = result?.services?.frigate;
+			const labels =
+				composeType === "docker-compose"
+					? service?.labels
+					: service?.deploy?.labels;
+			expect(labels).toMatchObject({ "custom.label": "preserved" });
+			expect(
+				Object.keys(labels ?? {}).some((label) => label.includes("test-app-1")),
+			).toBe(false);
+		},
+	);
+
 	it("emits labels only for the enabled domain when both are present", async () => {
 		const result = await addDomainToCompose(baseCompose, [
 			{ ...baseDomain, host: "enabled.example.com", enabled: true },

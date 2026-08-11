@@ -171,18 +171,25 @@ const removeDomainLabels = (
 	appName: string,
 	uniqueConfigKey: number,
 ) => {
-	if (!Array.isArray(labels)) return labels;
-
 	const prefixes = [
 		`traefik.http.routers.${appName}-${uniqueConfigKey}-`,
 		`traefik.http.services.${appName}-${uniqueConfigKey}-`,
 		`traefik.http.middlewares.stripprefix-${appName}-${uniqueConfigKey}.`,
 		`traefik.http.middlewares.addprefix-${appName}-${uniqueConfigKey}.`,
 	];
+	const belongsToDomain = (label: string) =>
+		prefixes.some((prefix) => label.startsWith(prefix));
 
-	return labels.filter(
-		(label) => !prefixes.some((prefix) => label.startsWith(prefix)),
-	);
+	if (Array.isArray(labels)) {
+		return labels.filter((label) => !belongsToDomain(label));
+	}
+	if (labels) {
+		return Object.fromEntries(
+			Object.entries(labels).filter(([label]) => !belongsToDomain(label)),
+		);
+	}
+
+	return labels;
 };
 
 export const addDomainToCompose = async (
