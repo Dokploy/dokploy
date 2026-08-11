@@ -163,6 +163,11 @@ const RESOURCE_META: Record<string, { label: string; description: string }> = {
 		label: "Audit Logs",
 		description: "View the audit log of actions performed in the organization",
 	},
+	vaultProvider: {
+		label: "Secrets Providers",
+		description:
+			"Manage external secret managers (HashiCorp Vault, AWS, Azure, Infisical, Doppler) and where their secrets can be referenced",
+	},
 };
 
 /** Descriptions for each action within a resource */
@@ -418,6 +423,22 @@ const ACTION_META: Record<
 	},
 	auditLog: {
 		read: { label: "Read", description: "View the audit log history" },
+	},
+	vaultProvider: {
+		read: {
+			label: "Read",
+			description: "View providers and secret names for env autocomplete",
+		},
+		create: {
+			label: "Create",
+			description: "Connect new secret providers and test their connection",
+		},
+		update: {
+			label: "Update",
+			description:
+				"Edit provider credentials and project/environment assignments",
+		},
+		delete: { label: "Delete", description: "Remove secret providers" },
 	},
 };
 

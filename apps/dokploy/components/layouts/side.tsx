@@ -27,7 +27,6 @@ import {
 	type LucideIcon,
 	Package,
 	Palette,
-	PieChart,
 	Rocket,
 	Server,
 	ShieldCheck,
@@ -36,6 +35,7 @@ import {
 	Trash2,
 	User,
 	Users,
+	Vault,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -203,14 +203,6 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Swarm",
-			url: "/dashboard/swarm",
-			icon: PieChart,
-			// Only enabled for users with access to Docker
-			isEnabled: ({ permissions }) => !!permissions?.docker.read,
-		},
-		{
-			isSingle: true,
 			title: "Requests",
 			url: "/dashboard/requests",
 			icon: Forward,
@@ -358,6 +350,13 @@ const MENU: Menu = {
 			url: "/dashboard/settings/registry",
 			icon: Package,
 			isEnabled: ({ permissions }) => !!permissions?.registry.read,
+		},
+		{
+			isSingle: true,
+			title: "Secrets",
+			url: "/dashboard/settings/secrets",
+			icon: Vault,
+			isEnabled: ({ permissions }) => !!permissions?.vaultProvider.create,
 		},
 		{
 			isSingle: true,
@@ -648,7 +647,7 @@ function SidebarLogo() {
 								</SidebarMenuButton>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent
-								className="rounded-lg max-h-[min(70vh,28rem)] flex flex-col"
+								className="w-64 rounded-lg max-h-[min(70vh,28rem)] flex flex-col"
 								align="start"
 								side={isMobile ? "bottom" : "right"}
 								sideOffset={4}

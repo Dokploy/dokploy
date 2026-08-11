@@ -8,8 +8,8 @@ import {
 } from "@dokploy/server/services/gitlab";
 import type { InferResultType } from "@dokploy/server/types/with";
 import { TRPCError } from "@trpc/server";
+import { quote } from "shell-quote";
 import type { z } from "zod";
-import { shellWord } from "./utils";
 
 export const refreshGitlabToken = async (gitlabProviderId: string) => {
 	const gitlabProvider = await findGitlabById(gitlabProviderId);
@@ -152,8 +152,8 @@ export const cloneGitlabRepository = async ({
 	command += `mkdir -p ${outputPath};`;
 	const repoClone = getGitlabRepoClone(gitlab, gitlabPathNamespace);
 	const cloneUrl = getGitlabCloneUrl(gitlab, repoClone);
-	command += `echo ${shellWord(`Cloning Repo ${repoClone} to ${outputPath}: ✅`)};`;
-	command += `git clone --branch ${shellWord(gitlabBranch)} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${shellWord(cloneUrl)} ${shellWord(outputPath)} --progress;`;
+	command += `echo ${quote([`Cloning Repo ${repoClone} to ${outputPath}: ✅`])};`;
+	command += `git clone --branch ${quote([String(gitlabBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
 	return command;
 };
 

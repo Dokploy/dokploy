@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
+import { useEnvCompletionSource } from "@/components/shared/env-autocomplete";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -55,6 +56,11 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 		},
 	);
 
+	const completionSource = useEnvCompletionSource({
+		includeShared: false,
+		projectId: data?.projectId,
+		environmentId,
+	});
 	const form = useForm<UpdateEnvironment>({
 		defaultValues: {
 			env: data?.env ?? "",
@@ -134,7 +140,9 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 				<AlertBlock type="info">
 					Use this syntax to reference environment-level variables in your
 					service environments:{" "}
-					<code>API_URL=${"{{environment.API_URL}}"}</code>
+					<code>API_URL=${"{{environment.API_URL}}"}</code>. You can also
+					reference secrets from a configured vault provider:{" "}
+					<code>DB_URL=${"{{vault.<provider>.<secret>}}"}</code>
 				</AlertBlock>
 				<div className="grid gap-4">
 					<div className="grid items-center gap-4">
@@ -151,6 +159,7 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 											<FormLabel>Environment variables</FormLabel>
 											<FormControl>
 												<CodeEditor
+													completionSource={completionSource}
 													lineWrapping
 													language="properties"
 													readOnly={!canWrite}

@@ -67,6 +67,7 @@ export const githubRouter = createTRPCRouter({
 			.map((provider) => {
 				return {
 					githubId: provider.githubId,
+					githubUrl: provider.githubUrl,
 					gitProvider: {
 						...provider.gitProvider,
 					},

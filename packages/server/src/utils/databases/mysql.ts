@@ -1,5 +1,6 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
+import { resolveServiceNetworks } from "../../services/network";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -9,13 +10,15 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
+import { withResolvedVaultRefs } from "../vault";
 
 export type MysqlNested = InferResultType<
 	"mysql",
 	{ mounts: true; environment: { with: { project: true } } }
 >;
 
-export const buildMysql = async (mysql: MysqlNested) => {
+export const buildMysql = async (rawMysql: MysqlNested) => {
+	const mysql = await withResolvedVaultRefs(rawMysql);
 	const {
 		appName,
 		env,
@@ -43,6 +46,8 @@ export const buildMysql = async (mysql: MysqlNested) => {
 					env ? `\n${env}` : ""
 				}`;
 
+	const resolvedNetworks = await resolveServiceNetworks(mysql);
+
 	const {
 		HealthCheck,
 		RestartPolicy,
@@ -51,7 +56,6 @@ export const buildMysql = async (mysql: MysqlNested) => {
 		Mode,
 		RollbackConfig,
 		UpdateConfig,
-		Networks,
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
@@ -93,7 +97,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 				...(Ulimits && { Ulimits }),
 				Labels,
 			},
-			Networks,
+			Networks: resolvedNetworks,
 			RestartPolicy,
 			Placement,
 			Resources: {

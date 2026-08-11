@@ -5,6 +5,7 @@ import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
 import { useTheme } from "next-themes";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { fixMacOsAltKeys } from "@/lib/terminal-keyboard";
 
 interface Props {
 	id: string;
@@ -45,6 +46,7 @@ export const DockerTerminal: React.FC<Props> = ({
 		const ws = new WebSocket(wsUrl);
 
 		const addonAttach = new AttachAddon(ws);
+		fixMacOsAltKeys(term);
 		// @ts-ignore
 		term.open(termRef.current);
 		// @ts-ignore
