@@ -224,24 +224,21 @@ export const addDomainToCompose = async (
 		result = randomized;
 	}
 
-	for (const domain of domains.filter((d) => !d.enabled)) {
-		if (!domain.serviceName) continue;
-
-		const service = result.services?.[domain.serviceName];
-		if (!service) continue;
-
-		if (compose.composeType === "docker-compose") {
-			service.labels = removeDomainLabels(
-				service.labels,
-				appName,
-				domain.uniqueConfigKey,
-			);
-		} else if (service.deploy) {
-			service.deploy.labels = removeDomainLabels(
-				service.deploy.labels,
-				appName,
-				domain.uniqueConfigKey,
-			);
+	for (const domain of domains) {
+		for (const service of Object.values(result.services ?? {})) {
+			if (compose.composeType === "docker-compose") {
+				service.labels = removeDomainLabels(
+					service.labels,
+					appName,
+					domain.uniqueConfigKey,
+				);
+			} else if (service.deploy) {
+				service.deploy.labels = removeDomainLabels(
+					service.deploy.labels,
+					appName,
+					domain.uniqueConfigKey,
+				);
+			}
 		}
 	}
 

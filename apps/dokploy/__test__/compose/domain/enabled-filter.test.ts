@@ -143,6 +143,55 @@ describe("addDomainToCompose enabled filtering", () => {
 		[
 			"docker-compose",
 			`services:
+  legacy:
+    image: frigate
+    labels:
+      - traefik.http.routers.test-app-1-web.rule=Host(\`frigate.example.com\`)
+      - traefik.http.services.test-app-1-web.loadbalancer.server.port=8971
+      - custom.label=preserved
+  frigate:
+    image: frigate
+`,
+		],
+		[
+			"stack",
+			`services:
+  legacy:
+    image: frigate
+    deploy:
+      labels:
+        - traefik.http.routers.test-app-1-web.rule=Host(\`frigate.example.com\`)
+        - traefik.http.services.test-app-1-web.loadbalancer.server.port=8971
+        - custom.label=preserved
+  frigate:
+    image: frigate
+`,
+		],
+	] as const)(
+		"removes stale labels from the previous %s service after reassignment",
+		async (composeType, staleComposeYaml) => {
+			composeYaml = staleComposeYaml;
+
+			const result = await addDomainToCompose({ ...baseCompose, composeType }, [
+				{ ...baseDomain, serviceName: "frigate", enabled: false },
+			]);
+
+			const previousService = result?.services?.legacy;
+			const labels =
+				composeType === "docker-compose"
+					? previousService?.labels
+					: previousService?.deploy?.labels;
+			expect(labels).toContain("custom.label=preserved");
+			expect(
+				(labels as string[]).some((label) => label.includes("test-app-1")),
+			).toBe(false);
+		},
+	);
+
+	it.each([
+		[
+			"docker-compose",
+			`services:
   frigate:
     image: frigate
     labels:
