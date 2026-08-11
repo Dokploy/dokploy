@@ -1,0 +1,36 @@
+{
+	"compilerOptions": {
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"target": "es2022",
+		"allowJs": true,
+		"resolveJsonModule": true,
+		"moduleDetection": "force",
+		"isolatedModules": true,
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"lib": ["dom", "dom.iterable", "ES2022"],
+		"noEmit": true,
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"jsx": "react-jsx",
+		"types": ["vite/client", "node"],
+		"baseUrl": ".",
+		"paths": {
+			"~/*": ["./src/*"],
+			"@/utils/api": ["./src/utils/api.ts"],
+			"next/link": ["./src/shims/next-link.tsx"],
+			"next/router": ["./src/shims/next-router.ts"],
+			"next/navigation": ["./src/shims/next-navigation.ts"],
+			"next/head": ["./src/shims/next-head.tsx"],
+			"next/dynamic": ["./src/shims/next-dynamic.tsx"],
+			"next/script": ["./src/shims/next-script.tsx"],
+			"nextjs-toploader": ["./src/shims/toploader.tsx"],
+			"@/*": ["../dokploy/*"],
+			"@dokploy/server": ["../../packages/server/src/index.ts"],
+			"@dokploy/server/*": ["../../packages/server/src/*"]
+		}
+	},
+	"include": ["src", "server", "vite.config.ts"],
+	"exclude": ["node_modules", "dist"]
+}

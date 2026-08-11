@@ -13,6 +13,7 @@
 			"!**/.next/**",
 			"!**/dist",
 			"!**/drizzle/**",
+			"!**/routeTree.gen.ts",
 			"!node_modules/**",
 			"!packages/server/package.json"
 		],

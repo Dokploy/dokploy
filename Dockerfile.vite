@@ -1,0 +1,54 @@
+# syntax=docker/dockerfile:1
+FROM node:24.4.0-slim AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+RUN corepack prepare pnpm@10.22.0 --activate
+
+FROM base AS build
+COPY . /usr/src/app
+WORKDIR /usr/src/app
+
+RUN apt-get update && apt-get install -y python3 make g++ git pkg-config libsecret-1-dev && rm -rf /var/lib/apt/lists/*
+
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --no-frozen-lockfile
+
+ENV NODE_ENV=production
+RUN pnpm --filter=dokploy-vite build
+RUN pnpm --filter=dokploy-vite build:server
+
+RUN pnpm --filter=dokploy-vite --prod deploy --legacy /prod/vite
+
+# Drop auto-installed optional peers that are never used at runtime
+# (better-auth peers next/prisma adapters; drizzle peers pglite/sqlite; prisma pulls effect/sharp)
+RUN cd /prod/vite/node_modules && rm -rf \
+	.pnpm/next@* .pnpm/@next+swc* \
+	.pnpm/prisma@* .pnpm/@prisma+* \
+	.pnpm/effect@* .pnpm/@electric-sql+* \
+	.pnpm/better-sqlite3@* \
+	.pnpm/sharp@* .pnpm/@img+* \
+	.pnpm/typescript@* \
+	next prisma typescript better-sqlite3 sharp
+
+FROM base AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# For a full production replacement of the official image, add the same
+# tooling block as ./Dockerfile (docker cli, nixpacks, railpack, pack, rclone)
+# — required for builds/deployments, not for serving the panel.
+
+COPY --from=build /prod/vite/node_modules ./node_modules
+COPY --from=build /prod/vite/package.json ./package.json
+COPY --from=build /usr/src/app/apps/vite/dist ./dist
+COPY --from=build /usr/src/app/apps/vite/dist-server ./dist-server
+COPY --from=build /usr/src/app/apps/dokploy/drizzle ./drizzle
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
+	CMD curl -fs http://localhost:3000/api/health || exit 1
+
+CMD ["sh", "-c", "node dist-server/wait-for-postgres.mjs && node dist-server/migration.mjs && exec node dist-server/server.mjs"]

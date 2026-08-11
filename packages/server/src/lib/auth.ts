@@ -48,6 +48,7 @@ const resolveTrustedOrigins = async () => {
 				? [
 						"http://localhost:3000",
 						"https://absolutely-handy-falcon.ngrok-free.app",
+						"http://localhost:5173"
 					]
 				: [];
 		return [

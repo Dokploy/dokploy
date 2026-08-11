@@ -2,6 +2,7 @@ packages:
   - "apps/api"
   - "apps/dokploy"
   - "apps/schedules"
+  - "apps/vite"
   - "packages/server"
 
 

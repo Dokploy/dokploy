@@ -47,3 +47,7 @@ yarn-error.log*
 
 .playwright-*
 .credentials
+dist/
+dist-server/
+.tanstack
+.env.*
