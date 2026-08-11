@@ -323,7 +323,14 @@ export const cleanupAll = async (serverId?: string) => {
 			} else {
 				await execAsync(dockerSafeExec(command));
 			}
-		} catch {}
+		} catch (error) {
+			const target = serverId ? `server ${serverId}` : "local web server";
+
+			console.error(
+				`Docker cleanup failed for "${key}" on ${target}: ${command}`,
+				error,
+			);
+		}
 	}
 };
 
