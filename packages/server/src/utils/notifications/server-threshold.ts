@@ -1,12 +1,18 @@
+import { render } from "@react-email/components";
 import { and, eq } from "drizzle-orm";
 import { db } from "../../db";
 import { notifications } from "../../db/schema";
+import ServerThresholdEmail from "../../emails/emails/server-threshold";
 import {
 	sendCustomNotification,
 	sendDiscordNotification,
+	sendEmailNotification,
+	sendGotifyNotification,
 	sendLarkNotification,
 	sendMattermostNotification,
+	sendNtfyNotification,
 	sendPushoverNotification,
+	sendResendNotification,
 	sendSlackNotification,
 	sendTeamsNotification,
 	sendTelegramNotification,
@@ -39,6 +45,9 @@ export const sendServerThresholdNotifications = async (
 			discord: true,
 			telegram: true,
 			slack: true,
+			resend: true,
+			gotify: true,
+			ntfy: true,
 			mattermost: true,
 			custom: true,
 			lark: true,
@@ -52,9 +61,13 @@ export const sendServerThresholdNotifications = async (
 
 	for (const notification of notificationList) {
 		const {
+			email,
 			discord,
 			telegram,
 			slack,
+			resend,
+			gotify,
+			ntfy,
 			mattermost,
 			custom,
 			lark,
@@ -63,6 +76,64 @@ export const sendServerThresholdNotifications = async (
 		} = notification;
 
 		try {
+			if (email || resend) {
+				const template = await render(
+					ServerThresholdEmail({
+						serverName: payload.ServerName,
+						type: payload.Type,
+						value: payload.Value.toFixed(2),
+						threshold: payload.Threshold.toFixed(2),
+						message: payload.Message,
+						date: date.toLocaleString(),
+					}),
+				);
+
+				if (email) {
+					await sendEmailNotification(
+						email,
+						`Server ${payload.Type} alert for ${payload.ServerName}`,
+						template,
+					);
+				}
+
+				if (resend) {
+					await sendResendNotification(
+						resend,
+						`Server ${payload.Type} alert for ${payload.ServerName}`,
+						template,
+					);
+				}
+			}
+
+			if (gotify) {
+				const decorate = (decoration: string, text: string) =>
+					`${gotify.decoration ? decoration : ""} ${text}\n`;
+
+				await sendGotifyNotification(
+					gotify,
+					decorate("⚠️", `Server ${payload.Type} Alert`),
+					`${decorate("🏷️", `Server: ${payload.ServerName}`)}` +
+						`${decorate("📊", `Current Value: ${payload.Value.toFixed(2)}%`)}` +
+						`${decorate("⚠️", `Threshold: ${payload.Threshold.toFixed(2)}%`)}` +
+						`${decorate("📜", `Message: ${payload.Message}`)}` +
+						`${decorate("🕒", `Date: ${date.toLocaleString()}`)}`,
+				);
+			}
+
+			if (ntfy) {
+				await sendNtfyNotification(
+					ntfy,
+					`Server ${payload.Type} Alert`,
+					"warning",
+					"",
+					`🏷️Server: ${payload.ServerName}\n` +
+						`📊Current Value: ${payload.Value.toFixed(2)}%\n` +
+						`⚠️Threshold: ${payload.Threshold.toFixed(2)}%\n` +
+						`📜Message: ${payload.Message}\n` +
+						`🕒Date: ${date.toLocaleString()}`,
+				);
+			}
+
 			if (discord) {
 				const decorate = (decoration: string, text: string) =>
 					`${discord.decoration ? decoration : ""} ${text}`.trim();
