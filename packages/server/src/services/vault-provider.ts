@@ -22,6 +22,7 @@ const SENSITIVE_FIELDS: Record<VaultProviderConfig["providerType"], string[]> =
 		aws: ["secretAccessKey"],
 		doppler: ["serviceToken"],
 		azure: ["clientSecret"],
+		scaleway: ["secretKey"],
 	};
 
 export const maskVaultProviderConfig = (

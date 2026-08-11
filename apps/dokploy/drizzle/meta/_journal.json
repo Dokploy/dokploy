@@ -1282,6 +1282,13 @@
       "when": 1786435879438,
       "tag": "0182_skinny_wild_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 183,
+      "version": "7",
+      "when": 1786461265052,
+      "tag": "0183_legal_hydra",
+      "breakpoints": true
     }
   ]
 }
