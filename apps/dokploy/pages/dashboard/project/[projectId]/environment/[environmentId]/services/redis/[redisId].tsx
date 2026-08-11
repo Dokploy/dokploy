@@ -9,7 +9,7 @@ import type {
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { type ReactElement, useState } from "react";
+import { type ReactElement, useEffect, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";
@@ -58,6 +58,12 @@ const Redis = (
 	const router = useRouter();
 	const { projectId, environmentId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
+	useEffect(() => {
+		const tabFromUrl = router.query.tab as TabState;
+		if (tabFromUrl && tabFromUrl !== tab) {
+			setSab(tabFromUrl);
+		}
+	}, [router.query.tab]);
 	const { data } = api.redis.one.useQuery({ redisId });
 
 	const { data: auth } = api.user.get.useQuery();
