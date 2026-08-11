@@ -8,6 +8,7 @@ import {
 	findAllDeploymentsCentralized,
 	findDeploymentById,
 	findScheduleById,
+	getDeploymentWindowBounds,
 	IS_CLOUD,
 	removeDeployment,
 	resolveServicePath,
@@ -96,10 +97,7 @@ export const deploymentRouter = createTRPCRouter({
 				? (await findMemberByUserId(ctx.user.id, orgId)).accessedServices
 				: null;
 
-		const now = Date.now();
-		const weekMs = 7 * 24 * 60 * 60 * 1000;
-		const last7dStart = new Date(now - weekMs);
-		const prev7dStart = new Date(now - 2 * weekMs);
+		const { last7dStart, prev7dStart } = getDeploymentWindowBounds(Date.now());
 
 		const [recent, failed, last7d, prev7d, failed7d, runningCount] =
 			await Promise.all([

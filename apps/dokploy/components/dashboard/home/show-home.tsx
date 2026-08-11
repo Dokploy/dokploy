@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
+import { getScopedServerServiceCount } from "@/components/dashboard/home/home-logic";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -367,7 +368,7 @@ export const ShowHome = () => {
 		for (const s of servers) {
 			if (s.serverStatus === "inactive") inactive++;
 			else active++;
-			services += servicesByServerId[s.serverId] ?? s.totalSum ?? 0;
+			services += getScopedServerServiceCount(s.serverId, servicesByServerId);
 		}
 		return { total: servers.length, active, inactive, services };
 	}, [servers, servicesByServerId]);
@@ -634,7 +635,6 @@ export const ShowHome = () => {
 												(
 													[
 														["Postgres", infraHealth.postgres],
-														["Redis", infraHealth.redis],
 														["Traefik", infraHealth.traefik],
 													] as const
 												).map(([name, service]) => (
@@ -693,10 +693,10 @@ export const ShowHome = () => {
 										)}
 										{canReadServers &&
 											servers?.map((server) => {
-												const serviceCount =
-													servicesByServerId[server.serverId] ??
-													server.totalSum ??
-													0;
+												const serviceCount = getScopedServerServiceCount(
+													server.serverId,
+													servicesByServerId,
+												);
 												const inactive = server.serverStatus === "inactive";
 												return (
 													<li key={server.serverId}>
