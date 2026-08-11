@@ -27,6 +27,7 @@ import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
 export const serverType = pgEnum("serverType", ["deploy", "build"]);
+export const DEFAULT_METRICS_CLEANUP_CRON = "0 0 * * *";
 
 export const server = pgTable("server", {
 	serverId: text("serverId")
@@ -84,7 +85,7 @@ export const server = pgTable("server", {
 				port: 4500,
 				token: "",
 				urlCallback: "",
-				cronJob: "",
+				cronJob: DEFAULT_METRICS_CLEANUP_CRON,
 				retentionDays: 2,
 				thresholds: {
 					cpu: 0,

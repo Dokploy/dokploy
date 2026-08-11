@@ -3,10 +3,13 @@ package database
 import (
 	"database/sql"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/robfig/cron/v3"
 )
+
+const DefaultCleanupCron = "0 0 * * *"
 
 // CleanupMetrics deletes metrics older than the retention period
 func CleanupMetrics(db *sql.DB, retentionDays int) error {
@@ -32,6 +35,11 @@ func CleanupMetrics(db *sql.DB, retentionDays int) error {
 
 // StartMetricsCleanup starts a cron job to periodically clean up metrics
 func StartMetricsCleanup(db *sql.DB, retentionDays int, cronExpression string) (*cron.Cron, error) {
+	if strings.TrimSpace(cronExpression) == "" {
+		cronExpression = DefaultCleanupCron
+		log.Printf("Metrics cleanup cron was empty; using default schedule: %s", cronExpression)
+	}
+
 	c := cron.New()
 
 	_, err := c.AddFunc(cronExpression, func() {

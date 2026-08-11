@@ -1,6 +1,6 @@
 {
-  "id": "7ec5fb3d-d514-4e7c-be26-3ea4c58bbce1",
-  "prevId": "6ca6441e-7818-4252-a702-4b24fc80a239",
+  "id": "322a3678-beb3-487a-80c0-3eaa762ca089",
+  "prevId": "7ec5fb3d-d514-4e7c-be26-3ea4c58bbce1",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -7617,7 +7617,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
-          "default": "'{\"server\":{\"type\":\"Remote\",\"refreshRate\":60,\"port\":4500,\"token\":\"\",\"urlCallback\":\"\",\"cronJob\":\"\",\"retentionDays\":2,\"thresholds\":{\"cpu\":0,\"memory\":0}},\"containers\":{\"refreshRate\":60,\"services\":{\"include\":[],\"exclude\":[]}}}'::jsonb"
+          "default": "'{\"server\":{\"type\":\"Remote\",\"refreshRate\":60,\"port\":4500,\"token\":\"\",\"urlCallback\":\"\",\"cronJob\":\"0 0 * * *\",\"retentionDays\":2,\"thresholds\":{\"cpu\":0,\"memory\":0}},\"containers\":{\"refreshRate\":60,\"services\":{\"include\":[],\"exclude\":[]}}}'::jsonb"
         }
       },
       "indexes": {},
