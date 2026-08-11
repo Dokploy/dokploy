@@ -13,6 +13,14 @@ export interface TerminalSize {
 	rows: number;
 }
 
+export type TerminalMessage =
+	| { type: "resize"; size: TerminalSize }
+	| { type: "input"; data: string };
+
+interface ResizableTerminal {
+	resize: (cols: number, rows: number) => void;
+}
+
 const parseTerminalDimension = (
 	value: string | null,
 	fallback: number,
@@ -66,6 +74,23 @@ export const parseTerminalResize = (message: string): TerminalSize | null => {
 		return { cols: value.cols, rows: value.rows };
 	} catch {
 		return null;
+	}
+};
+
+export const parseTerminalMessage = (message: string): TerminalMessage => {
+	const size = parseTerminalResize(message);
+	return size ? { type: "resize", size } : { type: "input", data: message };
+};
+
+export const tryResizeTerminal = (
+	terminal: ResizableTerminal,
+	size: TerminalSize,
+): boolean => {
+	try {
+		terminal.resize(size.cols, size.rows);
+		return true;
+	} catch {
+		return false;
 	}
 };
 

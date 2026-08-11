@@ -4,11 +4,13 @@ import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss } from "./authorize";
+import { writeTerminalBinaryFrame } from "./terminal-transport";
 import {
 	getTerminalSize,
 	isValidContainerId,
 	isValidShell,
-	parseTerminalResize,
+	parseTerminalMessage,
+	tryResizeTerminal,
 } from "./utils";
 
 export const setupDockerContainerTerminalWebSocketServer = (
@@ -123,13 +125,18 @@ export const setupDockerContainerTerminalWebSocketServer = (
 								ws.on("message", (message, isBinary) => {
 									try {
 										if (!isBinary) {
-											const size = parseTerminalResize(message.toString());
-											if (size) {
-												stream.setWindow(size.rows, size.cols, 0, 0);
+											const terminalMessage = parseTerminalMessage(
+												message.toString(),
+											);
+											if (terminalMessage.type === "resize") {
+												const { cols, rows } = terminalMessage.size;
+												stream.setWindow(rows, cols, 0, 0);
+											} else {
+												stream.write(terminalMessage.data);
 											}
 											return;
 										}
-										stream.write(message);
+										writeTerminalBinaryFrame(stream, message);
 									} catch (error) {
 										// @ts-ignore
 										const errorMessage = error?.message as unknown as string;
@@ -178,23 +185,48 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				ptyProcess.onData((data) => {
 					ws.send(data);
 				});
+				let ptyExited = false;
+				const exitDisposable = ptyProcess.onExit(() => {
+					ptyExited = true;
+					if (ws.readyState === ws.OPEN) {
+						ws.close();
+					}
+				});
 				ws.on("close", () => {
-					ptyProcess.kill();
+					exitDisposable.dispose();
+					if (!ptyExited) {
+						try {
+							ptyProcess.kill();
+						} catch {
+							// The PTY may have exited before its exit callback ran.
+						}
+					}
 				});
 				ws.on("message", (message, isBinary) => {
 					try {
 						if (!isBinary) {
-							const size = parseTerminalResize(message.toString());
-							if (size) {
-								ptyProcess.resize(size.cols, size.rows);
+							const terminalMessage = parseTerminalMessage(message.toString());
+							if (terminalMessage.type === "resize") {
+								if (
+									!ptyExited &&
+									!tryResizeTerminal(ptyProcess, terminalMessage.size)
+								) {
+									ws.close();
+								}
+							} else if (!ptyExited) {
+								ptyProcess.write(terminalMessage.data);
 							}
 							return;
 						}
-						ptyProcess.write(message.toString());
+						if (!ptyExited) {
+							writeTerminalBinaryFrame(ptyProcess, message);
+						}
 					} catch (error) {
 						// @ts-ignore
 						const errorMessage = error?.message as unknown as string;
-						ws.send(errorMessage);
+						if (ws.readyState === ws.OPEN) {
+							ws.send(errorMessage);
+						}
 					}
 				});
 			}

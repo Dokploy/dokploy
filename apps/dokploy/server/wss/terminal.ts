@@ -10,9 +10,10 @@ import { Client, type ConnectConfig } from "ssh2";
 import { WebSocketServer } from "ws";
 import { getDockerHost } from "../utils/docker";
 import { canAccessTerminalOverWss } from "./authorize";
+import { writeTerminalBinaryFrame } from "./terminal-transport";
 import {
 	getTerminalSize,
-	parseTerminalResize,
+	parseTerminalMessage,
 	setupLocalServerSSHKey,
 } from "./utils";
 
@@ -211,13 +212,18 @@ export const setupTerminalWebSocketServer = (
 					ws.on("message", (message, isBinary) => {
 						try {
 							if (!isBinary) {
-								const size = parseTerminalResize(message.toString());
-								if (size) {
-									stream.setWindow(size.rows, size.cols, 0, 0);
+								const terminalMessage = parseTerminalMessage(
+									message.toString(),
+								);
+								if (terminalMessage.type === "resize") {
+									const { cols, rows } = terminalMessage.size;
+									stream.setWindow(rows, cols, 0, 0);
+								} else {
+									stream.write(terminalMessage.data);
 								}
 								return;
 							}
-							stream.write(message);
+							writeTerminalBinaryFrame(stream, message);
 						} catch (error) {
 							// @ts-ignore
 							const errorMessage = error?.message as unknown as string;

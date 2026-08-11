@@ -1,4 +1,3 @@
-import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
@@ -10,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fixMacOsAltKeys } from "@/lib/terminal-keyboard";
+import { decodeOsc52ClipboardWrite, encodeTerminalBinary } from "./transport";
 import "@xterm/xterm/css/xterm.css";
 
 const LIGHT_ANSI_THEME = {
@@ -125,7 +125,18 @@ export const XTerm = ({ path, query }: XTermProps) => {
 			terminal.loadAddon(searchAddon);
 			terminal.loadAddon(unicodeAddon);
 			terminal.loadAddon(new WebLinksAddon());
-			terminal.loadAddon(new ClipboardAddon());
+			const clipboardDisposable = terminal.parser.registerOscHandler(
+				52,
+				(data) => {
+					const clipboardText = decodeOsc52ClipboardWrite(data);
+					if (clipboardText !== null && navigator.clipboard) {
+						void navigator.clipboard
+							.writeText(clipboardText)
+							.catch(() => undefined);
+					}
+					return true;
+				},
+			);
 			terminal.unicode.activeVersion = "11";
 			terminal.open(mount);
 			fitAddon.fit();
@@ -145,6 +156,11 @@ export const XTerm = ({ path, query }: XTermProps) => {
 			const dataDisposable = terminal.onData((data) => {
 				if (socket.readyState === WebSocket.OPEN) {
 					socket.send(encoder.encode(data));
+				}
+			});
+			const binaryDisposable = terminal.onBinary((data) => {
+				if (socket.readyState === WebSocket.OPEN) {
+					socket.send(encodeTerminalBinary(data));
 				}
 			});
 			socket.onmessage = (event: MessageEvent<string | ArrayBuffer>) => {
@@ -202,23 +218,14 @@ export const XTerm = ({ path, query }: XTermProps) => {
 					void navigator.clipboard.writeText(selection).catch(() => undefined);
 				}
 			});
-			const handleContextMenu = (event: MouseEvent) => {
-				event.preventDefault();
-				if (navigator.clipboard) {
-					void navigator.clipboard
-						.readText()
-						.then((text) => terminal.paste(text))
-						.catch(() => undefined);
-				}
-			};
-			mount.addEventListener("contextmenu", handleContextMenu);
 
 			dispose = () => {
 				disposed = true;
 				resizeObserver.disconnect();
 				socket.removeEventListener("open", fitAndResize);
-				mount.removeEventListener("contextmenu", handleContextMenu);
 				dataDisposable.dispose();
+				binaryDisposable.dispose();
+				clipboardDisposable.dispose();
 				selectionDisposable.dispose();
 				if (resizeFrame !== undefined) {
 					window.cancelAnimationFrame(resizeFrame);

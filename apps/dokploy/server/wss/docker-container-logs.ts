@@ -12,6 +12,7 @@ import {
 	isValidSince,
 	isValidTail,
 	parseTerminalResize,
+	tryResizeTerminal,
 } from "./utils";
 
 export const setupDockerContainerLogsWebSocketServer = (
@@ -140,7 +141,11 @@ export const setupDockerContainerLogsWebSocketServer = (
 									if (isBinary) return;
 									const size = parseTerminalResize(message.toString());
 									if (size) {
-										stream.setWindow(size.rows, size.cols, 0, 0);
+										try {
+											stream.setWindow(size.rows, size.cols, 0, 0);
+										} catch {
+											ws.close();
+										}
 									}
 								});
 							},
@@ -190,15 +195,30 @@ export const setupDockerContainerLogsWebSocketServer = (
 				ptyProcess.onData((data) => {
 					ws.send(data);
 				});
+				let ptyExited = false;
+				const exitDisposable = ptyProcess.onExit(() => {
+					ptyExited = true;
+					clearInterval(pingInterval);
+					if (ws.readyState === ws.OPEN) {
+						ws.close();
+					}
+				});
 				ws.on("close", () => {
 					clearInterval(pingInterval);
-					ptyProcess.kill();
+					exitDisposable.dispose();
+					if (!ptyExited) {
+						try {
+							ptyProcess.kill();
+						} catch {
+							// The PTY may have exited before its exit callback ran.
+						}
+					}
 				});
 				ws.on("message", (message, isBinary) => {
 					if (isBinary) return;
 					const size = parseTerminalResize(message.toString());
-					if (size) {
-						ptyProcess.resize(size.cols, size.rows);
+					if (size && !ptyExited && !tryResizeTerminal(ptyProcess, size)) {
+						ws.close();
 					}
 				});
 			}

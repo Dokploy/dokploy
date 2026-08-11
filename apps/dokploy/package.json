@@ -78,7 +78,6 @@
 		"@trpc/server": "^11.10.0",
 		"@uiw/codemirror-theme-github": "^4.23.12",
 		"@uiw/react-codemirror": "^4.23.12",
-		"@xterm/addon-clipboard": "0.1.0",
 		"@xterm/addon-fit": "0.10.0",
 		"@xterm/addon-search": "0.15.0",
 		"@xterm/addon-unicode11": "0.8.0",

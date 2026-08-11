@@ -5,7 +5,9 @@ import {
 	isValidSearch,
 	isValidSince,
 	isValidTail,
+	parseTerminalMessage,
 	parseTerminalResize,
+	tryResizeTerminal,
 } from "../../server/wss/utils";
 
 describe("terminal dimensions", () => {
@@ -35,6 +37,39 @@ describe("terminal dimensions", () => {
 		expect(
 			parseTerminalResize('{"type":"resize","cols":160,"rows":50}'),
 		).toEqual({ cols: 160, rows: 50 });
+	});
+
+	it("preserves non-control text as terminal input", () => {
+		expect(parseTerminalMessage("ls -la\r")).toEqual({
+			type: "input",
+			data: "ls -la\r",
+		});
+		expect(
+			parseTerminalMessage('{"type":"resize","cols":160,"rows":50}'),
+		).toEqual({
+			type: "resize",
+			size: { cols: 160, rows: 50 },
+		});
+	});
+
+	it("handles resize failures without throwing", () => {
+		const successfulTerminal = {
+			resize: (cols: number, rows: number) => {
+				expect({ cols, rows }).toEqual({ cols: 120, rows: 40 });
+			},
+		};
+		const exitedTerminal = {
+			resize: () => {
+				throw new Error("ioctl(2) failed, EBADF");
+			},
+		};
+
+		expect(tryResizeTerminal(successfulTerminal, { cols: 120, rows: 40 })).toBe(
+			true,
+		);
+		expect(tryResizeTerminal(exitedTerminal, { cols: 120, rows: 40 })).toBe(
+			false,
+		);
 	});
 
 	it("rejects malformed and out-of-range resize messages", () => {
