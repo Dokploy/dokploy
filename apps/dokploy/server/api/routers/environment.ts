@@ -153,6 +153,7 @@ export const environmentRouter = createTRPCRouter({
 
 				return environments;
 			} catch (error) {
+				console.log(error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `Error fetching environments: ${error instanceof Error ? error.message : error}`,

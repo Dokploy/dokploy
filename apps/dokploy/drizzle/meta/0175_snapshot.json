@@ -1,5 +1,5 @@
 {
-  "id": "5163b940-1c36-4d3f-b85e-2809d5059fba",
+  "id": "7a9f40d5-02c9-4ac5-8b88-08bdbdd02aac",
   "prevId": "daaa9837-09f3-452c-b5ba-232c3d6eeca2",
   "version": "7",
   "dialect": "postgresql",
@@ -1583,6 +1583,20 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "networkIds": {
+          "name": "networkIds",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
+        },
+        "detachDokployNetwork": {
+          "name": "detachDokployNetwork",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},
@@ -2602,6 +2616,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "serviceNetworks": {
+          "name": "serviceNetworks",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'[]'::jsonb"
         }
       },
       "indexes": {},
@@ -3180,13 +3201,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "enabled": {
-          "name": "enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
         }
       },
       "indexes": {},
@@ -3970,6 +3984,20 @@
           "notNull": true,
           "default": 1
         },
+        "networkIds": {
+          "name": "networkIds",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
+        },
+        "detachDokployNetwork": {
+          "name": "detachDokployNetwork",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "text",
@@ -4236,6 +4264,20 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "networkIds": {
+          "name": "networkIds",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
+        },
+        "detachDokployNetwork": {
+          "name": "detachDokployNetwork",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},
@@ -4480,6 +4522,20 @@
           "type": "boolean",
           "primaryKey": false,
           "notNull": false,
+          "default": false
+        },
+        "networkIds": {
+          "name": "networkIds",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
+        },
+        "detachDokployNetwork": {
+          "name": "detachDokployNetwork",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
           "default": false
         }
       },
@@ -4947,6 +5003,20 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "networkIds": {
+          "name": "networkIds",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
+        },
+        "detachDokployNetwork": {
+          "name": "detachDokployNetwork",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},
@@ -4988,6 +5058,119 @@
           ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.network": {
+      "name": "network",
+      "schema": "",
+      "columns": {
+        "networkId": {
+          "name": "networkId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "driver": {
+          "name": "driver",
+          "type": "networkDriver",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'bridge'"
+        },
+        "internal": {
+          "name": "internal",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "attachable": {
+          "name": "attachable",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "enableIPv4": {
+          "name": "enableIPv4",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "enableIPv6": {
+          "name": "enableIPv6",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "ipam": {
+          "name": "ipam",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::jsonb"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organizationId": {
+          "name": "organizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "serverId": {
+          "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "network_organizationId_organization_id_fk": {
+          "name": "network_organizationId_organization_id_fk",
+          "tableFrom": "network",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organizationId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "network_serverId_server_serverId_fk": {
+          "name": "network_serverId_server_serverId_fk",
+          "tableFrom": "network",
+          "tableTo": "server",
+          "columnsFrom": [
+            "serverId"
+          ],
+          "columnsTo": [
+            "serverId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -6159,6 +6342,20 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "networkIds": {
+          "name": "networkIds",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
+        },
+        "detachDokployNetwork": {
+          "name": "detachDokployNetwork",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},
@@ -6652,6 +6849,20 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "networkIds": {
+          "name": "networkIds",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
+        },
+        "detachDokployNetwork": {
+          "name": "detachDokployNetwork",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},
@@ -8422,6 +8633,14 @@
         "redis",
         "compose",
         "libsql"
+      ]
+    },
+    "public.networkDriver": {
+      "name": "networkDriver",
+      "schema": "public",
+      "values": [
+        "bridge",
+        "overlay"
       ]
     },
     "public.notificationType": {

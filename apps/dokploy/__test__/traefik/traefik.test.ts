@@ -7,6 +7,8 @@ const baseApp: ApplicationNested = {
 	rollbackActive: false,
 	applicationId: "",
 	previewLabels: [],
+	networkIds: [],
+	detachDokployNetwork: false,
 	createEnvFile: true,
 	bitbucketRepositorySlug: "",
 	herokuVersion: "",

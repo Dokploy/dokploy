@@ -100,7 +100,7 @@ export const Enable2FA = () => {
 			});
 
 			if (result.error) {
-				if (result.error.code === "INVALID_TWO_FACTOR_AUTHENTICATION") {
+				if (result.error.code === "INVALID_CODE") {
 					toast.error("Invalid verification code");
 					return;
 				}

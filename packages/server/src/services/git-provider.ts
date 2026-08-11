@@ -119,3 +119,30 @@ export const getAccessibleGitProviderIds = async (session: {
 	}
 	return result;
 };
+
+/**
+ * Authorizes read access to a specific git provider for the current session.
+ * Throws if the provider belongs to a different organization (cross-org IDOR)
+ * or if the caller is not entitled to it within the active organization.
+ * Must be called before returning any git-provider record that carries secrets
+ * (OAuth tokens, app private keys, webhook secrets).
+ */
+export const assertGitProviderAccess = async (
+	session: { userId: string; activeOrganizationId: string },
+	provider: { gitProviderId: string; organizationId: string },
+) => {
+	if (provider.organizationId !== session.activeOrganizationId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Git provider not found",
+		});
+	}
+
+	const accessibleIds = await getAccessibleGitProviderIds(session);
+	if (!accessibleIds.has(provider.gitProviderId)) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You don't have access to this git provider",
+		});
+	}
+};
