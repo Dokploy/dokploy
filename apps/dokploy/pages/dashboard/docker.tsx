@@ -23,22 +23,15 @@ const DEFAULT_SWARM_TAB = "overview";
 const Dashboard = () => {
 	const router = useRouter();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data: permissions } = api.user.getPermissions.useQuery();
-
-	const canManageCluster = !!permissions?.organization.update;
 
 	const queryTab =
 		typeof router.query.tab === "string" ? router.query.tab : DEFAULT_TAB;
 	const activeTab = isCloud && queryTab === "networks" ? DEFAULT_TAB : queryTab;
 
-	const querySwarmTab =
+	const activeSwarmTab =
 		typeof router.query.subtab === "string"
 			? router.query.subtab
 			: DEFAULT_SWARM_TAB;
-	const activeSwarmTab =
-		!canManageCluster && querySwarmTab === "nodes"
-			? DEFAULT_SWARM_TAB
-			: querySwarmTab;
 
 	const setTab = (value: string) => {
 		const { tab: _current, subtab: _subtab, ...query } = router.query;
@@ -83,9 +76,7 @@ const Dashboard = () => {
 							<TabsList>
 								<TabsTrigger value="overview">Overview</TabsTrigger>
 								<TabsTrigger value="containers">Containers</TabsTrigger>
-								{canManageCluster && (
-									<TabsTrigger value="nodes">Nodes</TabsTrigger>
-								)}
+								<TabsTrigger value="nodes">Nodes</TabsTrigger>
 							</TabsList>
 							<TabsContent value="overview">
 								<SwarmMonitorCard serverId={serverId} />
@@ -97,11 +88,9 @@ const Dashboard = () => {
 									</div>
 								</Card>
 							</TabsContent>
-							{canManageCluster && (
-								<TabsContent value="nodes">
-									<ShowNodes serverId={serverId} />
-								</TabsContent>
-							)}
+							<TabsContent value="nodes">
+								<ShowNodes serverId={serverId} />
+							</TabsContent>
 						</Tabs>
 					</TabsContent>
 					<TabsContent value="volumes">
