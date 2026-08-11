@@ -5,9 +5,7 @@ vi.mock("node:fs", () => ({
 	default: fs,
 }));
 
-import {
-	createDefaultServerTraefikConfig,
-} from "@dokploy/server/setup/traefik-setup";
+import { createDefaultServerTraefikConfig } from "@dokploy/server/setup/traefik-setup";
 import type { webServerSettings } from "@dokploy/server/db/schema";
 import type { FileConfig } from "@dokploy/server/utils/traefik/file-types";
 import { loadOrCreateConfig as loadTraefikConfig } from "@dokploy/server/utils/traefik/application";

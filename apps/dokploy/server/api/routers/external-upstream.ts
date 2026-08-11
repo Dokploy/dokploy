@@ -49,8 +49,7 @@ export const externalUpstreamRouter = createTRPCRouter({
 			if ((IS_CLOUD || settings.remoteServersOnly) && !input.serverId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message:
-						"You need to use a server to create an external upstream",
+					message: "You need to use a server to create an external upstream",
 				});
 			}
 
@@ -86,17 +85,14 @@ export const externalUpstreamRouter = createTRPCRouter({
 		.input(apiFindOneExternalUpstream)
 		.query(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.externalUpstreamId, "read");
-			const service = await findExternalUpstreamById(
-				input.externalUpstreamId,
-			);
+			const service = await findExternalUpstreamById(input.externalUpstreamId);
 			if (
 				service.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message:
-						"You are not authorized to access this external upstream",
+					message: "You are not authorized to access this external upstream",
 				});
 			}
 			return service;
@@ -108,9 +104,7 @@ export const externalUpstreamRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
-			const current = await findExternalUpstreamById(
-				input.externalUpstreamId,
-			);
+			const current = await findExternalUpstreamById(input.externalUpstreamId);
 			const updated = await updateExternalUpstreamById(
 				input.externalUpstreamId,
 				input,
@@ -142,9 +136,7 @@ export const externalUpstreamRouter = createTRPCRouter({
 		.input(apiFindOneExternalUpstream)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.externalUpstreamId, "delete");
-			const service = await findExternalUpstreamById(
-				input.externalUpstreamId,
-			);
+			const service = await findExternalUpstreamById(input.externalUpstreamId);
 
 			if (
 				service.environment.project.organizationId !==
@@ -152,8 +144,7 @@ export const externalUpstreamRouter = createTRPCRouter({
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message:
-						"You are not authorized to delete this external upstream",
+					message: "You are not authorized to delete this external upstream",
 				});
 			}
 
@@ -161,9 +152,7 @@ export const externalUpstreamRouter = createTRPCRouter({
 				await removeExternalUpstreamDomain(service, domain.uniqueConfigKey);
 			}
 
-			const result = await removeExternalUpstreamById(
-				input.externalUpstreamId,
-			);
+			const result = await removeExternalUpstreamById(input.externalUpstreamId);
 
 			await audit(ctx, {
 				action: "delete",
@@ -181,9 +170,7 @@ export const externalUpstreamRouter = createTRPCRouter({
 		.input(apiMoveExternalUpstream)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.externalUpstreamId, "read");
-			const service = await findExternalUpstreamById(
-				input.externalUpstreamId,
-			);
+			const service = await findExternalUpstreamById(input.externalUpstreamId);
 			const targetEnvironment = await findEnvironmentById(
 				input.targetEnvironmentId,
 			);
@@ -206,10 +193,7 @@ export const externalUpstreamRouter = createTRPCRouter({
 					environmentId: input.targetEnvironmentId,
 				})
 				.where(
-					eq(
-						externalUpstreams.externalUpstreamId,
-						input.externalUpstreamId,
-					),
+					eq(externalUpstreams.externalUpstreamId, input.externalUpstreamId),
 				)
 				.returning();
 

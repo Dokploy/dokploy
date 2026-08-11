@@ -21,7 +21,9 @@ const externalUpstreamSettingsSchema = z.object({
 	externalUpstreamBlockedCidrs: z.string(),
 });
 
-type ExternalUpstreamSettingsForm = z.infer<typeof externalUpstreamSettingsSchema>;
+type ExternalUpstreamSettingsForm = z.infer<
+	typeof externalUpstreamSettingsSchema
+>;
 
 export const ExternalUpstreamSettings = () => {
 	const utils = api.useUtils();

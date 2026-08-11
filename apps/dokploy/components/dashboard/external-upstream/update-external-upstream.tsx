@@ -34,9 +34,7 @@ const updateExternalUpstreamSchema = z.object({
 	passHostHeader: z.boolean(),
 });
 
-type UpdateExternalUpstreamForm = z.infer<
-	typeof updateExternalUpstreamSchema
->;
+type UpdateExternalUpstreamForm = z.infer<typeof updateExternalUpstreamSchema>;
 
 interface Props {
 	externalUpstreamId: string;

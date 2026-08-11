@@ -81,7 +81,7 @@ interface Props {
 }
 
 export const ShowDomains = ({ id, type }: Props) => {
-	const isExternalUpstream = type === "externalUpstream"
+	const isExternalUpstream = type === "externalUpstream";
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canCreateDomain = permissions?.domain.create ?? false;
 	const canDeleteDomain = permissions?.domain.delete ?? false;
@@ -532,10 +532,8 @@ export const ShowDomains = ({ id, type }: Props) => {
 															<TooltipTrigger asChild>
 																<Badge variant="secondary">
 																	<InfoIcon className="size-3 mr-1" />
-																	{isExternalUpstream
-																		? "Public Path"
-																		: "Path"}
-																	: {item.path || "/"}
+																	{isExternalUpstream ? "Public Path" : "Path"}:{" "}
+																	{item.path || "/"}
 																</Badge>
 															</TooltipTrigger>
 															<TooltipContent>

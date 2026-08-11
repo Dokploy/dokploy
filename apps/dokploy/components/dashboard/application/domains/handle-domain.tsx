@@ -371,8 +371,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				{isExternalUpstream && (
 					<AlertBlock type="info" className="mb-4">
 						Protocol, host, and port come from the upstream target URL. Domain
-						settings here only control the public host/path, TLS, and
-						middleware behavior.
+						settings here only control the public host/path, TLS, and middleware
+						behavior.
 					</AlertBlock>
 				)}
 
@@ -697,8 +697,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 													<FormLabel>Container Port</FormLabel>
 													<FormDescription>
 														The port where your application is running inside
-														the container (e.g., 3000 for Node.js, 80 for
-														Nginx, 8080 for Java)
+														the container (e.g., 3000 for Node.js, 80 for Nginx,
+														8080 for Java)
 													</FormDescription>
 													<FormControl>
 														<NumberInput placeholder={"3000"} {...field} />

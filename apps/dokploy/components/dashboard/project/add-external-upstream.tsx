@@ -65,10 +65,7 @@ interface Props {
 	projectName?: string;
 }
 
-export const AddExternalUpstream = ({
-	environmentId,
-	projectName,
-}: Props) => {
+export const AddExternalUpstream = ({ environmentId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);

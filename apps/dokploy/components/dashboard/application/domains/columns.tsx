@@ -59,22 +59,22 @@ export const createColumns = ({
 					accessorKey: "internalPath",
 					header: "Upstream Prefix",
 					cell: ({ row }) => {
-						const internalPath = row.getValue("internalPath") as string | null
+						const internalPath = row.getValue("internalPath") as string | null;
 						if (!internalPath) {
-							return <span className="text-muted-foreground">-</span>
+							return <span className="text-muted-foreground">-</span>;
 						}
-						return <div className="font-mono text-sm">{internalPath}</div>
+						return <div className="font-mono text-sm">{internalPath}</div>;
 					},
 				} satisfies ColumnDef<Domain>,
 				{
 					accessorKey: "stripPath",
 					header: "Strip Public Path",
 					cell: ({ row }) => {
-						const stripPath = row.getValue("stripPath") as boolean | null
+						const stripPath = row.getValue("stripPath") as boolean | null;
 						if (!stripPath) {
-							return <span className="text-muted-foreground">No</span>
+							return <span className="text-muted-foreground">No</span>;
 						}
-						return <Badge variant="secondary">Yes</Badge>
+						return <Badge variant="secondary">Yes</Badge>;
 					},
 				} satisfies ColumnDef<Domain>,
 			]
@@ -92,11 +92,11 @@ export const createColumns = ({
 								Port
 								<ArrowUpDown className="ml-2 h-4 w-4" />
 							</Button>
-						)
+						);
 					},
 					cell: ({ row }) => {
-						const port = row.getValue("port") as number
-						return <Badge variant="secondary">{port}</Badge>
+						const port = row.getValue("port") as number;
+						return <Badge variant="secondary">{port}</Badge>;
 					},
 				} satisfies ColumnDef<Domain>,
 			]),
