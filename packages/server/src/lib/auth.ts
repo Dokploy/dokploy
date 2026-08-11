@@ -18,6 +18,7 @@ import {
 	getUserByToken,
 } from "../services/admin";
 import { createAuditLog } from "../services/proprietary/audit-log";
+import { resolveOrganizationDefaultRole } from "../services/proprietary/license-key";
 import {
 	getWebServerSettings,
 	updateWebServerSettings,
@@ -289,10 +290,13 @@ const createBetterAuth = () =>
 									message: "Provider not found",
 								});
 							}
+							const defaultRole = provider.organizationId
+								? await resolveOrganizationDefaultRole(provider.organizationId)
+								: "member";
 							await db.insert(schema.member).values({
 								userId: user.id,
 								organizationId: provider?.organizationId || "",
-								role: "member",
+								role: defaultRole,
 								createdAt: new Date(),
 								isDefault: true,
 							});
