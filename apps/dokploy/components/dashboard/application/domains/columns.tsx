@@ -267,13 +267,26 @@ export const createColumns = ({
 				);
 			}
 			return (
-				<div className="flex items-center">
-					<Switch
-						checked={domain.enabled}
-						onCheckedChange={() => handleToggleEnable(domain.domainId)}
-						disabled={isToggling}
-					/>
-				</div>
+				<TooltipProvider>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<div className="flex items-center">
+								<Switch
+									checked={domain.enabled}
+									onCheckedChange={() => handleToggleEnable(domain.domainId)}
+									disabled={isToggling}
+								/>
+							</div>
+						</TooltipTrigger>
+						<TooltipContent>
+							<p>
+								{domain.enabled
+									? "Domain is active. Toggle to disable routing without deleting it."
+									: "Domain is disabled and not routed. Toggle to enable it again."}
+							</p>
+						</TooltipContent>
+					</Tooltip>
+				</TooltipProvider>
 			);
 		},
 	},
