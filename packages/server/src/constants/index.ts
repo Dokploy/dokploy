@@ -13,6 +13,18 @@ export const DOKPLOY_DOCKER_PORT = process.env.DOKPLOY_DOCKER_PORT
 
 export const CLEANUP_CRON_JOB = "50 23 * * *";
 
+// Body size limits for the OpenAPI catch-all route (pages/api/[...trpc].ts).
+// JSON/urlencoded bodies are capped by trpc-openapi's own default (100kb) unless
+// we pass an explicit limit; multipart uploads (e.g. drop-deployment zips) have
+// no built-in cap at all, so we enforce one manually via content-length.
+export const OPENAPI_MAX_JSON_BODY_SIZE = process.env.OPENAPI_MAX_JSON_BODY_SIZE
+	? Number.parseInt(process.env.OPENAPI_MAX_JSON_BODY_SIZE, 10)
+	: 10 * 1024 * 1024; // 10mb
+
+export const OPENAPI_MAX_UPLOAD_SIZE = process.env.OPENAPI_MAX_UPLOAD_SIZE
+	? Number.parseInt(process.env.OPENAPI_MAX_UPLOAD_SIZE, 10)
+	: 1024 * 1024 * 1024; // 1gb
+
 type DockerSocketCandidate = {
 	label: string;
 	path: string;
