@@ -90,7 +90,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 								if (active && payload && payload.length) {
 									const data = payload?.[0]?.payload;
 									return (
-										<div className="rounded-lg border bg-background p-2 shadow-sm">
+										<div className="rounded-lg border bg-background p-2 shadow-xs">
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
@@ -120,6 +120,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 							name="Network In"
 							dataKey="networkIn"
 							type="monotone"
+							isAnimationActive={false}
 							fill="url(#fillNetworkIn)"
 							stroke="hsl(var(--chart-3))"
 							strokeWidth={2}
@@ -128,6 +129,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 							name="Network Out"
 							dataKey="networkOut"
 							type="monotone"
+							isAnimationActive={false}
 							fill="url(#fillNetworkOut)"
 							stroke="hsl(var(--chart-4))"
 							strokeWidth={2}

@@ -9,8 +9,12 @@ export const initSchedules = async () => {
 			where: eq(schedules.enabled, true),
 			with: {
 				server: true,
-				application: true,
-				compose: true,
+				application: {
+					columns: { applicationId: true, appName: true, serverId: true },
+				},
+				compose: {
+					columns: { composeId: true, appName: true, serverId: true },
+				},
 				organization: true,
 			},
 		});

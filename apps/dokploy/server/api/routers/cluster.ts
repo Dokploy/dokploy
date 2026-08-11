@@ -6,6 +6,7 @@ import {
 	getRemoteDocker,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
+import { quote } from "shell-quote";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { getLocalServerIp } from "@/server/wss/terminal";
@@ -51,8 +52,8 @@ export const clusterRouter = createTRPCRouter({
 				}
 			}
 			try {
-				const drainCommand = `docker node update --availability drain ${input.nodeId}`;
-				const removeCommand = `docker node rm ${input.nodeId} --force`;
+				const drainCommand = `docker node update --availability drain ${quote([input.nodeId])}`;
+				const removeCommand = `docker node rm ${quote([input.nodeId])} --force`;
 
 				if (input.serverId) {
 					await execAsyncRemote(input.serverId, drainCommand);

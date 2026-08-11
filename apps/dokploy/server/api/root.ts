@@ -10,6 +10,7 @@ import { composeRouter } from "./routers/compose";
 import { deploymentRouter } from "./routers/deployment";
 import { destinationRouter } from "./routers/destination";
 import { dockerRouter } from "./routers/docker";
+import { dockerVolumeRouter } from "./routers/docker-volume";
 import { domainRouter } from "./routers/domain";
 import { environmentRouter } from "./routers/environment";
 import { gitProviderRouter } from "./routers/git-provider";
@@ -21,6 +22,7 @@ import { mariadbRouter } from "./routers/mariadb";
 import { mongoRouter } from "./routers/mongo";
 import { mountRouter } from "./routers/mount";
 import { mysqlRouter } from "./routers/mysql";
+import { networkRouter } from "./routers/network";
 import { notificationRouter } from "./routers/notification";
 import { organizationRouter } from "./routers/organization";
 import { patchRouter } from "./routers/patch";
@@ -32,6 +34,7 @@ import { auditLogRouter } from "./routers/proprietary/audit-log";
 import { customRoleRouter } from "./routers/proprietary/custom-role";
 import { forwardAuthRouter } from "./routers/proprietary/forward-auth";
 import { licenseKeyRouter } from "./routers/proprietary/license-key";
+import { scimRouter } from "./routers/proprietary/scim";
 import { ssoRouter } from "./routers/proprietary/sso";
 import { whitelabelingRouter } from "./routers/proprietary/whitelabeling";
 import { redirectsRouter } from "./routers/redirects";
@@ -47,6 +50,7 @@ import { stripeRouter } from "./routers/stripe";
 import { swarmRouter } from "./routers/swarm";
 import { tagRouter } from "./routers/tag";
 import { userRouter } from "./routers/user";
+import { vaultProviderRouter } from "./routers/vault-provider";
 import { volumeBackupsRouter } from "./routers/volume-backups";
 /**
  * This is the primary router for your server.
@@ -59,12 +63,14 @@ export const appRouter = createTRPCRouter({
 	application: applicationRouter,
 	backup: backupRouter,
 	bitbucket: bitbucketRouter,
+	network: networkRouter,
 	certificates: certificateRouter,
 	cluster: clusterRouter,
 	compose: composeRouter,
 	deployment: deploymentRouter,
 	destination: destinationRouter,
 	docker: dockerRouter,
+	dockerVolume: dockerVolumeRouter,
 	domain: domainRouter,
 	gitea: giteaRouter,
 	gitProvider: gitProviderRouter,
@@ -90,10 +96,12 @@ export const appRouter = createTRPCRouter({
 	stripe: stripeRouter,
 	swarm: swarmRouter,
 	user: userRouter,
+	vaultProvider: vaultProviderRouter,
 	ai: aiRouter,
 	organization: organizationRouter,
 	licenseKey: licenseKeyRouter,
 	sso: ssoRouter,
+	scim: scimRouter,
 	forwardAuth: forwardAuthRouter,
 	whitelabeling: whitelabelingRouter,
 	customRole: customRoleRouter,

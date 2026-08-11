@@ -19,6 +19,7 @@ import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
+import { network } from "./network";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { schedules } from "./schedule";
@@ -41,6 +42,7 @@ export const server = pgTable("server", {
 		.notNull()
 		.$defaultFn(() => generateAppName("server")),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
+	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	createdAt: text("createdAt").notNull(),
 	organizationId: text("organizationId")
 		.notNull()
@@ -124,6 +126,7 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 	mysql: many(mysql),
 	postgres: many(postgres),
 	certificates: many(certificates),
+	networks: many(network),
 	organization: one(organization, {
 		fields: [server.organizationId],
 		references: [organization.id],
@@ -181,6 +184,11 @@ export const apiUpdateServer = createSchema
 		command: z.string().optional(),
 		enableDockerCleanup: z.boolean().default(true),
 	});
+
+export const apiUpdateServerBuildsConcurrency = z.object({
+	serverId: z.string().min(1),
+	buildsConcurrency: z.number().int().min(1).max(100),
+});
 
 export const apiUpdateServerMonitoring = createSchema
 	.pick({

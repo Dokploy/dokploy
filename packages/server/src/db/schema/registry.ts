@@ -44,12 +44,11 @@ export const registryRelations = relations(registry, ({ many }) => ({
 	}),
 }));
 
-// Image references require a lowercase namespace (e.g. Docker Hub username).
-const registryUsernameSchema = z
-	.string()
-	.trim()
-	.min(1)
-	.transform((s) => s.toLowerCase());
+// Registry usernames should NOT be lowercased.
+// Some registries (e.g. AWS ECR) require a specific case: the username must be
+// exactly "AWS" (uppercase) for ECR authentication. Docker Hub usernames are
+// case-insensitive for login, so preserving case is safe for all providers.
+const registryUsernameSchema = z.string().trim().min(1);
 
 // Registry URLs must be hostname[:port] only — no shell metacharacters
 // Empty string is allowed (means default/Docker Hub registry)

@@ -4,6 +4,7 @@ import {
 	deleteAllMiddlewares,
 	findApplicationById,
 	findEnvironmentById,
+	findPreviewDeploymentsByApplicationId,
 	findProjectById,
 	getAccessibleServerIds,
 	getApplicationStats,
@@ -16,6 +17,7 @@ import {
 	removeDeployments,
 	removeDirectoryCode,
 	removeMonitoringDirectory,
+	removePreviewDeployment,
 	removeService,
 	removeTraefikConfig,
 	startService,
@@ -68,11 +70,9 @@ import {
 	environments,
 	projects,
 } from "@/server/db/schema";
-import { deploymentWorker } from "@/server/queues/deployments-queue";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByApplication,
-	getJobsByApplicationId,
 	killDockerBuild,
 	myQueue,
 } from "@/server/queues/queueSetup";
@@ -236,18 +236,22 @@ export const applicationRouter = createTRPCRouter({
 				});
 			}
 
+			const previewDeploymentsList =
+				await findPreviewDeploymentsByApplicationId(input.applicationId);
+
+			for (const previewDeployment of previewDeploymentsList) {
+				try {
+					await removePreviewDeployment(previewDeployment.previewDeploymentId);
+				} catch (_) {}
+			}
+
 			const result = await db
 				.delete(applications)
 				.where(eq(applications.applicationId, input.applicationId))
 				.returning();
 
 			if (!IS_CLOUD) {
-				const queueJobs = await getJobsByApplicationId(input.applicationId);
-				for (const job of queueJobs) {
-					if (job.id) {
-						deploymentWorker.cancelJob(job.id, "User requested cancellation");
-					}
-				}
+				await cleanQueuesByApplication(input.applicationId);
 			}
 
 			const cleanupOperations = [
@@ -339,10 +343,10 @@ export const applicationRouter = createTRPCRouter({
 				type: "redeploy",
 				applicationType: "application",
 				server: !!application.serverId,
+				serverId: application.serverId ?? undefined,
 			};
 
 			if (IS_CLOUD && application.serverId) {
-				jobData.serverId = application.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
@@ -707,9 +711,9 @@ export const applicationRouter = createTRPCRouter({
 				type: "deploy",
 				applicationType: "application",
 				server: !!application.serverId,
+				serverId: application.serverId ?? undefined,
 			};
 			if (IS_CLOUD && application.serverId) {
-				jobData.serverId = application.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
@@ -826,9 +830,9 @@ export const applicationRouter = createTRPCRouter({
 				type: "deploy",
 				applicationType: "application",
 				server: !!app.serverId,
+				serverId: app.serverId ?? undefined,
 			};
 			if (IS_CLOUD && app.serverId) {
-				jobData.serverId = app.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});

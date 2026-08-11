@@ -48,19 +48,60 @@ export const createProject = async (
 };
 
 export const findProjectById = async (projectId: string) => {
+	const serviceColumns = {
+		name: true,
+		description: true,
+		appName: true,
+		createdAt: true,
+		serverId: true,
+		applicationStatus: true,
+	} as const;
+
 	const project = await db.query.projects.findFirst({
 		where: eq(projects.projectId, projectId),
 		with: {
 			environments: {
 				with: {
-					applications: true,
-					compose: true,
-					libsql: true,
-					mariadb: true,
-					mongo: true,
-					mysql: true,
-					postgres: true,
-					redis: true,
+					applications: {
+						columns: {
+							...serviceColumns,
+							applicationId: true,
+							icon: true,
+						},
+						with: { server: { columns: { name: true } } },
+					},
+					compose: {
+						columns: {
+							...serviceColumns,
+							composeId: true,
+							composeStatus: true,
+						},
+						with: { server: { columns: { name: true } } },
+					},
+					libsql: {
+						columns: { ...serviceColumns, libsqlId: true },
+						with: { server: { columns: { name: true } } },
+					},
+					mariadb: {
+						columns: { ...serviceColumns, mariadbId: true },
+						with: { server: { columns: { name: true } } },
+					},
+					mongo: {
+						columns: { ...serviceColumns, mongoId: true },
+						with: { server: { columns: { name: true } } },
+					},
+					mysql: {
+						columns: { ...serviceColumns, mysqlId: true },
+						with: { server: { columns: { name: true } } },
+					},
+					postgres: {
+						columns: { ...serviceColumns, postgresId: true },
+						with: { server: { columns: { name: true } } },
+					},
+					redis: {
+						columns: { ...serviceColumns, redisId: true },
+						with: { server: { columns: { name: true } } },
+					},
 				},
 			},
 			projectTags: {
@@ -107,27 +148,49 @@ export const updateProjectById = async (
 
 export const validUniqueServerAppName = async (appName: string) => {
 	const query = await db.query.environments.findMany({
+		columns: { environmentId: true },
 		with: {
 			applications: {
 				where: eq(applications.appName, appName),
+				columns: {
+					appName: true,
+				},
 			},
 			libsql: {
 				where: eq(libsql.appName, appName),
+				columns: {
+					appName: true,
+				},
 			},
 			mariadb: {
 				where: eq(mariadb.appName, appName),
+				columns: {
+					appName: true,
+				},
 			},
 			mongo: {
 				where: eq(mongo.appName, appName),
+				columns: {
+					appName: true,
+				},
 			},
 			mysql: {
 				where: eq(mysql.appName, appName),
+				columns: {
+					appName: true,
+				},
 			},
 			postgres: {
 				where: eq(postgres.appName, appName),
+				columns: {
+					appName: true,
+				},
 			},
 			redis: {
 				where: eq(redis.appName, appName),
+				columns: {
+					appName: true,
+				},
 			},
 		},
 	});

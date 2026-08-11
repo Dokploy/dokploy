@@ -1,8 +1,12 @@
 import fs, { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
+import { db } from "@dokploy/server/db";
+import { network, patch } from "@dokploy/server/db/schema";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Domain } from "@dokploy/server/services/domain";
+import { eq, inArray } from "drizzle-orm";
+import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
 import { execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
@@ -125,12 +129,47 @@ exit 1;
 		const encodedContent = encodeBase64(composeString);
 		return `echo "${encodedContent}" | base64 -d > "${path}";`;
 	} catch (error) {
-		// @ts-ignore
-		return `echo "❌ Has occurred an error: ${error?.message || error}";
+		const message =
+			error instanceof Error ? error.message : String(error ?? "");
+		// The error message embeds user-controlled fields (e.g. serviceName) and is
+		// executed as part of the compose build shell script, so it must be escaped.
+		return `echo ${quote([`❌ Has occurred an error: ${message}`])};
 exit 1;
 		`;
 	}
 };
+export const applyComposeFilePatch = async (
+	compose: Compose,
+): Promise<ComposeSpecification | null> => {
+	if (compose.sourceType === "raw") {
+		return null;
+	}
+
+	const composePatches = await db.query.patch.findMany({
+		where: eq(patch.composeId, compose.composeId),
+	});
+
+	const composeFilePatch = composePatches.find(
+		(p) =>
+			p.enabled &&
+			p.type !== "delete" &&
+			join(p.filePath) === join(compose.composePath),
+	);
+
+	if (!composeFilePatch?.content) {
+		return null;
+	}
+
+	try {
+		const parsed = parse(composeFilePatch.content, {
+			maxAliasCount: 10000,
+		}) as ComposeSpecification;
+		return parsed ?? null;
+	} catch {
+		return null;
+	}
+};
+
 export const addDomainToCompose = async (
 	compose: Compose,
 	domains: Domain[],
@@ -148,6 +187,8 @@ export const addDomainToCompose = async (
 	if (!result) {
 		return null;
 	}
+
+	result = (await applyComposeFilePatch(compose)) ?? result;
 
 	if (compose.isolatedDeployment) {
 		const randomized = randomizeDeployableSpecificationFile(
@@ -217,6 +258,17 @@ export const addDomainToCompose = async (
 						labels.unshift("traefik.swarm.network=dokploy-network");
 					}
 				}
+			} else {
+				const isolatedNetwork = compose.suffix || compose.appName;
+				if (compose.composeType === "docker-compose") {
+					if (!labels.includes(`traefik.docker.network=${isolatedNetwork}`)) {
+						labels.unshift(`traefik.docker.network=${isolatedNetwork}`);
+					}
+				} else {
+					if (!labels.includes(`traefik.swarm.network=${isolatedNetwork}`)) {
+						labels.unshift(`traefik.swarm.network=${isolatedNetwork}`);
+					}
+				}
 			}
 		}
 
@@ -228,12 +280,77 @@ export const addDomainToCompose = async (
 		}
 	}
 
-	// Add dokploy-network to the root of the compose file
+	const injectedNetworkNames = await applyServiceNetworks(result, compose);
+
 	if (!compose.isolatedDeployment) {
-		result.networks = addDokployNetworkToRoot(result.networks);
+		declareUsedNetworksInRoot(result, injectedNetworkNames);
 	}
 
 	return result;
+};
+
+export const applyServiceNetworks = async (
+	result: ComposeSpecification,
+	compose: Compose,
+) => {
+	const injectedNetworkNames = new Set<string>();
+	const serviceNetworks = compose.serviceNetworks ?? [];
+	if (serviceNetworks.length === 0) return injectedNetworkNames;
+
+	const allNetworkIds = [
+		...new Set(serviceNetworks.flatMap((s) => s.networkIds)),
+	];
+	const networks =
+		allNetworkIds.length > 0
+			? await db.query.network.findMany({
+					where: inArray(network.networkId, allNetworkIds),
+				})
+			: [];
+
+	for (const config of serviceNetworks) {
+		const service = result.services?.[config.serviceName];
+		if (!service) continue;
+
+		for (const networkId of config.networkIds) {
+			const match = networks.find((n) => n.networkId === networkId);
+			if (!match) continue;
+			service.networks = addDokployNetworkToService(
+				service.networks,
+				match.name,
+			);
+			injectedNetworkNames.add(match.name);
+		}
+
+		if (config.detachDokployNetwork) {
+			removeNetworkFromService(service, "dokploy-network");
+			removeNetworkFromService(service, "default");
+			removeDokployNetworkLabel(service);
+		}
+	}
+
+	return injectedNetworkNames;
+};
+
+export const declareUsedNetworksInRoot = (
+	result: ComposeSpecification,
+	injectedNetworkNames: Set<string>,
+) => {
+	const isUsed = (name: string) =>
+		Object.values(result.services ?? {}).some((service) => {
+			const nets = service?.networks;
+			if (Array.isArray(nets)) return nets.includes(name);
+			if (nets && typeof nets === "object") return name in nets;
+			return false;
+		});
+
+	if (isUsed("dokploy-network")) {
+		result.networks = addDokployNetworkToRoot(result.networks);
+	}
+	for (const name of injectedNetworkNames) {
+		if (isUsed(name)) {
+			result.networks = addDokployNetworkToRoot(result.networks, name);
+		}
+	}
 };
 
 export const writeComposeFile = async (
@@ -349,9 +466,10 @@ export const createDomainLabels = (
 
 export const addDokployNetworkToService = (
 	networkService: DefinitionsService["networks"],
+	networkName = "dokploy-network",
 ) => {
 	let networks = networkService;
-	const network = "dokploy-network";
+	const network = networkName;
 	const defaultNetwork = "default";
 	if (!networks) {
 		networks = [];
@@ -376,11 +494,40 @@ export const addDokployNetworkToService = (
 	return networks;
 };
 
+export const removeNetworkFromService = (
+	service: DefinitionsService,
+	networkName: string,
+) => {
+	const networks = service.networks;
+	if (Array.isArray(networks)) {
+		service.networks = networks.filter((n) => n !== networkName);
+	} else if (networks && typeof networks === "object") {
+		delete networks[networkName];
+	}
+};
+
+const removeDokployNetworkLabel = (service: DefinitionsService) => {
+	const stripped = (labels: DefinitionsService["labels"]) => {
+		if (Array.isArray(labels)) {
+			return labels.filter(
+				(l) =>
+					l !== "traefik.docker.network=dokploy-network" &&
+					l !== "traefik.swarm.network=dokploy-network",
+			);
+		}
+		return labels;
+	};
+	if (service.labels) service.labels = stripped(service.labels);
+	if (service.deploy?.labels)
+		service.deploy.labels = stripped(service.deploy.labels);
+};
+
 export const addDokployNetworkToRoot = (
 	networkRoot: PropertiesNetworks | undefined,
+	networkName = "dokploy-network",
 ) => {
 	let networks = networkRoot;
-	const network = "dokploy-network";
+	const network = networkName;
 
 	if (!networks) {
 		networks = {};

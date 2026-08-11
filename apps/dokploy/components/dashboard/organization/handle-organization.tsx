@@ -93,7 +93,8 @@ export function AddOrganization({ organizationId }: Props) {
 			.catch((error) => {
 				console.error(error);
 				toast.error(
-					`Failed to ${organizationId ? "update" : "create"} organization`,
+					error?.message ??
+						`Failed to ${organizationId ? "update" : "create"} organization`,
 				);
 			});
 	};

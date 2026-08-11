@@ -106,6 +106,21 @@ export const serverSetup = async (
 	}
 };
 
+export const reportDockerVersion = () => `
+if command -v docker >/dev/null 2>&1; then
+	INSTALLED_DOCKER_VERSION=$(docker version --format '{{.Server.Version}}' 2>/dev/null || true)
+	if [ -z "$INSTALLED_DOCKER_VERSION" ]; then
+		INSTALLED_DOCKER_VERSION=$(docker --version 2>/dev/null | awk '{print $3}' | tr -d ',' || true)
+	fi
+	if [ -z "$INSTALLED_DOCKER_VERSION" ]; then
+		INSTALLED_DOCKER_VERSION="unknown"
+	fi
+	DOCKER_VERSION_REPORT="$INSTALLED_DOCKER_VERSION (already installed)"
+else
+	DOCKER_VERSION_REPORT="$DOCKER_VERSION (will be installed)"
+fi
+`;
+
 export const defaultCommand = (isBuildServer = false) => {
 	const bashCommand = `
 set -e;
@@ -174,10 +189,11 @@ arch | ubuntu | debian | raspbian | centos | fedora | rhel | ol | rocky | sles |
 	;;
 esac
 
+${reportDockerVersion()}
 echo -e "---------------------------------------------"
 echo "| CPU Architecture  | $SYS_ARCH"
 echo "| Operating System  | $OS_TYPE $OS_VERSION"
-echo "| Docker            | $DOCKER_VERSION"
+echo "| Docker            | $DOCKER_VERSION_REPORT"
 ${isBuildServer ? 'echo "| Server Type       | Build Server"' : ""}
 echo -e "---------------------------------------------\n"
 echo -e "1. Installing required packages (curl, wget, git, jq, openssl). "
@@ -466,7 +482,7 @@ const installUtilities = () => `
 
 	case "$OS_TYPE" in
 	arch)
-		$SUDO_CMD pacman -Sy --noconfirm --needed curl wget git git-lfs jq openssl >/dev/null || true
+		$SUDO_CMD pacman -Sy --noconfirm --needed unzip curl wget git git-lfs jq openssl >/dev/null || true
 		;;
 	alpine)
 		$SUDO_CMD sed -i '/^#.*\/community/s/^#//' /etc/apk/repositories

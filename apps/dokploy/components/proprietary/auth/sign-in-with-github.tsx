@@ -31,7 +31,7 @@ export function SignInWithGithub() {
 		<Button
 			variant="outline"
 			type="button"
-			className="w-full mb-4"
+			className="w-full"
 			onClick={handleClick}
 			isLoading={isLoading}
 		>
