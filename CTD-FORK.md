@@ -73,6 +73,10 @@ Then rebuild and redeploy via the steps above.
 | Fork CI and release identity | `.github/workflows/ctd-image.yml`, `Dockerfile`, `bin/deploy-ctd.sh` | Keeps GHCR publication manual and aligns image, package, API, OCI, and runtime release metadata |
 | Host Traefik config | `ctd-host/` | Versioned backup of hand-managed `/etc/dokploy/traefik/dynamic/` files on `contracko-01`, including the marketing-site `inFlightReq` overload cap; see `ctd-host/README.md` |
 
+## Local encryption and rollback rehearsal
+
+Before a candidate with encrypted database columns reaches a shared host, run the synthetic Docker-in-Docker harness in [`ctd-harness/encryption-rollback/`](ctd-harness/encryption-rollback/README.md). It keeps Dokploy on a nested Docker socket, exercises the current and candidate images against disposable Postgres and Redis, records only sanitized marker evidence, and requires explicit approval for synthetic rollback and teardown operations.
+
 ## When to remove this file
 
 When upstream merges equivalents of all the rows above, delete this file, delete `bin/deploy-ctd.sh`, delete `.github/workflows/ctd-image.yml`, and go back to upstream's image + update flow.
