@@ -237,6 +237,59 @@ describe("addDomainToCompose enabled filtering", () => {
 		},
 	);
 
+	it.each([
+		[
+			"docker-compose",
+			`services:
+  frigate:
+    image: frigate
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.test-app-1-web.rule: Host(\`old.example.com\`)
+      traefik.http.services.test-app-1-web.loadbalancer.server.port: 8971
+      custom.label: preserved
+`,
+			"traefik.docker.network",
+		],
+		[
+			"stack",
+			`services:
+  frigate:
+    image: frigate
+    deploy:
+      labels:
+        traefik.enable: "true"
+        traefik.http.routers.test-app-1-web.rule: Host(\`old.example.com\`)
+        traefik.http.services.test-app-1-web.loadbalancer.server.port: 8971
+        custom.label: preserved
+`,
+			"traefik.swarm.network",
+		],
+	] as const)(
+		"regenerates routing in mapping labels for an enabled domain in %s",
+		async (composeType, mappingComposeYaml, networkLabel) => {
+			composeYaml = mappingComposeYaml;
+
+			const result = await addDomainToCompose({ ...baseCompose, composeType }, [
+				{ ...baseDomain, enabled: true },
+			]);
+
+			const service = result?.services?.frigate;
+			const labels =
+				composeType === "docker-compose"
+					? service?.labels
+					: service?.deploy?.labels;
+			expect(labels).toMatchObject({
+				"custom.label": "preserved",
+				"traefik.enable": "true",
+				[networkLabel]: "dokploy-network",
+				"traefik.http.routers.test-app-1-web.rule":
+					"Host(`frigate.example.com`)",
+				"traefik.http.services.test-app-1-web.loadbalancer.server.port": "8971",
+			});
+		},
+	);
+
 	it("emits labels only for the enabled domain when both are present", async () => {
 		const result = await addDomainToCompose(baseCompose, [
 			{ ...baseDomain, host: "enabled.example.com", enabled: true },
