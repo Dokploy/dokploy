@@ -187,6 +187,16 @@ jobs:
         with:
           version: 10.22.0
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.4.0
+          cache: pnpm
+
+      - name: Generate OpenAPI specification
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm generate:openapi
+
       - name: Sync version to MCP repository
         run: |
           git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/mcp.git /tmp/mcp-repo
@@ -195,8 +205,8 @@ jobs:
           jq --arg v "${{ needs.generate-release.outputs.npm_version }}" '.version = $v' package.json > package.json.tmp
           mv package.json.tmp package.json
 
+          cp ${{ github.workspace }}/openapi.json src/generated/openapi.json
           pnpm install
-          pnpm run fetch-openapi
           pnpm run generate
 
           git config user.name "Dokploy Bot"

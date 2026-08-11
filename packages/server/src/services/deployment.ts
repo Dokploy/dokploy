@@ -802,7 +802,7 @@ export const findAllDeploymentsByComposeId = async (composeId: string) => {
 
 const centralizedDeploymentsWith = {
 	application: {
-		columns: { applicationId: true, name: true, appName: true },
+		columns: { applicationId: true, name: true, appName: true, icon: true },
 		with: {
 			environment: {
 				columns: { environmentId: true, name: true },
@@ -821,7 +821,7 @@ const centralizedDeploymentsWith = {
 		},
 	},
 	compose: {
-		columns: { composeId: true, name: true, appName: true },
+		columns: { composeId: true, name: true, appName: true, icon: true },
 		with: {
 			environment: {
 				columns: { environmentId: true, name: true },

@@ -35,7 +35,7 @@ export const DocLinks = () => (
 				<ExternalLink className="h-3 w-3" />
 			</a>
 			<Link
-				href="/dashboard/settings/cluster"
+				href="/dashboard/docker?tab=swarm&subtab=nodes"
 				className="text-xs text-primary underline underline-offset-4 inline-flex items-center gap-1"
 			>
 				Cluster Settings
@@ -85,7 +85,7 @@ export const SwarmNotAvailable = ({
 				<li>
 					Check the{" "}
 					<Link
-						href="/dashboard/settings/cluster"
+						href="/dashboard/docker?tab=swarm&subtab=nodes"
 						className="text-primary underline underline-offset-4"
 					>
 						Cluster Settings
@@ -130,7 +130,7 @@ export const ServicesError = ({
 				<li>
 					Network connectivity issues to a remote server &mdash; check{" "}
 					<Link
-						href="/dashboard/settings/cluster"
+						href="/dashboard/docker?tab=swarm&subtab=nodes"
 						className="text-primary underline underline-offset-4"
 					>
 						Cluster Settings
@@ -183,7 +183,7 @@ export const NoServices = ({ nodeCount, onRefresh }: NoServicesProps) => (
 					Worker nodes need to pull images from a shared registry. Configure one
 					in{" "}
 					<Link
-						href="/dashboard/settings/cluster"
+						href="/dashboard/docker?tab=swarm&subtab=nodes"
 						className="text-primary underline underline-offset-4"
 					>
 						Cluster Settings
@@ -255,7 +255,7 @@ export const NoRunningContainers = ({
 					<li>
 						Images can&apos;t be pulled on worker nodes &mdash; verify your{" "}
 						<Link
-							href="/dashboard/settings/cluster"
+							href="/dashboard/docker?tab=swarm&subtab=nodes"
 							className="text-primary underline underline-offset-4"
 						>
 							registry configuration
