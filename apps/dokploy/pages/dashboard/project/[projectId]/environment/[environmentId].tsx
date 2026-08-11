@@ -32,6 +32,7 @@ import { AddAiAssistant } from "@/components/dashboard/project/add-ai-assistant"
 import { AddApplication } from "@/components/dashboard/project/add-application";
 import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
+import { AddExternalUpstream } from "@/components/dashboard/project/add-external-upstream";
 import { AddImport } from "@/components/dashboard/project/add-import";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
 import { AdvancedEnvironmentSelector } from "@/components/dashboard/project/advanced-environment-selector";
@@ -118,6 +119,7 @@ export type Services = {
 	type:
 		| "mariadb"
 		| "application"
+		| "external-upstream"
 		| "postgres"
 		| "mysql"
 		| "mongo"
@@ -171,6 +173,18 @@ export const extractServicesFromEnvironment = (
 				icon: item.icon || null,
 			};
 		}) || [];
+
+	const externalUpstreams: Services[] =
+		environment.externalUpstreams?.map((item) => ({
+			name: item.name,
+			type: "external-upstream",
+			id: item.externalUpstreamId,
+			createdAt: item.createdAt,
+			status: item.applicationStatus,
+			description: item.description,
+			serverId: item.serverId,
+			serverName: item?.server?.name || null,
+		})) || [];
 
 	const mariadb: Services[] =
 		environment.mariadb?.map((item) => ({
@@ -277,6 +291,7 @@ export const extractServicesFromEnvironment = (
 
 	allServices.push(
 		...applications,
+		...externalUpstreams,
 		...compose,
 		...libsql,
 		...mysql,
@@ -411,6 +426,7 @@ const EnvironmentPage = (
 			(currentEnvironment.postgres?.length || 0) === 0 &&
 			(currentEnvironment.redis?.length || 0) === 0 &&
 			(currentEnvironment.applications?.length || 0) === 0 &&
+			(currentEnvironment.externalUpstreams?.length || 0) === 0 &&
 			(currentEnvironment.compose?.length || 0) === 0 &&
 			(currentEnvironment.libsql?.length || 0) === 0);
 
@@ -419,6 +435,7 @@ const EnvironmentPage = (
 	const [searchQuery, setSearchQuery] = useState("");
 	const serviceTypes = [
 		{ value: "application", label: "Application", icon: GlobeIcon },
+		{ value: "external-upstream", label: "External Upstream", icon: GlobeIcon },
 		{ value: "postgres", label: "PostgreSQL", icon: PostgresqlIcon },
 		{ value: "mariadb", label: "MariaDB", icon: MariadbIcon },
 		{ value: "mongo", label: "MongoDB", icon: MongodbIcon },
@@ -461,6 +478,14 @@ const EnvironmentPage = (
 		move: api.compose.move.useMutation(),
 		delete: api.compose.delete.useMutation(),
 		deploy: api.compose.deploy.useMutation(),
+	};
+
+	const externalUpstreamActions = {
+		start: { mutateAsync: async () => true },
+		stop: { mutateAsync: async () => true },
+		deploy: { mutateAsync: async () => true },
+		move: api.externalUpstream.move.useMutation(),
+		delete: api.externalUpstream.delete.useMutation(),
 	};
 
 	const applicationActions = {
@@ -528,6 +553,8 @@ const EnvironmentPage = (
 				if (!service) continue;
 
 				switch (service.type) {
+					case "external-upstream":
+						continue;
 					case "application":
 						await applicationActions.start.mutateAsync({
 							applicationId: serviceId,
@@ -578,6 +605,8 @@ const EnvironmentPage = (
 				if (!service) continue;
 
 				switch (service.type) {
+					case "external-upstream":
+						continue;
 					case "application":
 						await applicationActions.stop.mutateAsync({
 							applicationId: serviceId,
@@ -638,6 +667,12 @@ const EnvironmentPage = (
 
 				// TODO: Update move APIs to use targetEnvironmentId instead of targetProjectId
 				switch (service.type) {
+					case "external-upstream":
+						await externalUpstreamActions.move.mutateAsync({
+							externalUpstreamId: serviceId,
+							targetEnvironmentId: selectedTargetEnvironment,
+						});
+						break;
 					case "application":
 						await applicationActions.move.mutateAsync({
 							applicationId: serviceId,
@@ -719,6 +754,11 @@ const EnvironmentPage = (
 				if (!service) continue;
 
 				switch (service.type) {
+					case "external-upstream":
+						await externalUpstreamActions.delete.mutateAsync({
+							externalUpstreamId: serviceId,
+						});
+						break;
 					case "application":
 						await applicationActions.delete.mutateAsync({
 							applicationId: serviceId,
@@ -791,6 +831,8 @@ const EnvironmentPage = (
 				if (!service) continue;
 
 				switch (service.type) {
+					case "external-upstream":
+						continue;
 					case "application":
 						await applicationActions.deploy.mutateAsync({
 							applicationId: serviceId,
@@ -858,6 +900,8 @@ const EnvironmentPage = (
 
 	const getServiceActions = (service: Services) => {
 		switch (service.type) {
+			case "external-upstream":
+				return externalUpstreamActions;
 			case "application":
 				return applicationActions;
 			case "compose":
@@ -879,6 +923,8 @@ const EnvironmentPage = (
 
 	const getServiceIdKey = (service: Services) => {
 		switch (service.type) {
+			case "external-upstream":
+				return "externalUpstreamId";
 			case "application":
 				return "applicationId";
 			case "compose":
@@ -1087,6 +1133,10 @@ const EnvironmentPage = (
 													environmentId={environmentId}
 												/>
 												<AddCompose
+													projectName={projectData?.name}
+													environmentId={environmentId}
+												/>
+												<AddExternalUpstream
 													projectName={projectData?.name}
 													environmentId={environmentId}
 												/>
@@ -1702,6 +1752,10 @@ const EnvironmentPage = (
 																						) : (
 																							<GlobeIcon className="h-6 w-6" />
 																						))}
+																					{service.type ===
+																						"external-upstream" && (
+																						<GlobeIcon className="h-6 w-6" />
+																					)}
 																					{service.type === "compose" &&
 																						(service.icon ? (
 																							// biome-ignore lint/performance/noImgElement: compose icon is data URL
@@ -1738,49 +1792,50 @@ const EnvironmentPage = (
 																</Card>
 															</Link>
 														</ContextMenuTrigger>
-														{service.type !== "libsql" && (
-															<ContextMenuContent className="w-48">
-																<ContextMenuLabel className="truncate">
-																	{service.name}
-																</ContextMenuLabel>
-																<ContextMenuSeparator />
-																<ContextMenuItem
-																	className="flex items-center gap-2"
-																	onClick={() =>
-																		handleServiceAction(service, "start")
-																	}
-																>
-																	<Play className="size-4" />
-																	Start
-																</ContextMenuItem>
-																<ContextMenuItem
-																	className="flex items-center gap-2"
-																	onClick={() =>
-																		handleServiceAction(service, "deploy")
-																	}
-																>
-																	<RefreshCw className="size-4" />
-																	Deploy
-																</ContextMenuItem>
-																<ContextMenuItem
-																	className="flex items-center gap-2 text-orange-500 focus:text-orange-500"
-																	onClick={() =>
-																		handleServiceAction(service, "stop")
-																	}
-																>
-																	<Ban className="size-4" />
-																	Stop
-																</ContextMenuItem>
-																<ContextMenuSeparator />
-																<ContextMenuItem
-																	className="flex items-center gap-2 text-red-500 focus:text-red-500"
-																	onClick={() => setServiceToDelete(service)}
-																>
-																	<Trash2 className="size-4" />
-																	Delete
-																</ContextMenuItem>
-															</ContextMenuContent>
-														)}
+														{service.type !== "libsql" &&
+															service.type !== "external-upstream" && (
+																<ContextMenuContent className="w-48">
+																	<ContextMenuLabel className="truncate">
+																		{service.name}
+																	</ContextMenuLabel>
+																	<ContextMenuSeparator />
+																	<ContextMenuItem
+																		className="flex items-center gap-2"
+																		onClick={() =>
+																			handleServiceAction(service, "start")
+																		}
+																	>
+																		<Play className="size-4" />
+																		Start
+																	</ContextMenuItem>
+																	<ContextMenuItem
+																		className="flex items-center gap-2"
+																		onClick={() =>
+																			handleServiceAction(service, "deploy")
+																		}
+																	>
+																		<RefreshCw className="size-4" />
+																		Deploy
+																	</ContextMenuItem>
+																	<ContextMenuItem
+																		className="flex items-center gap-2 text-orange-500 focus:text-orange-500"
+																		onClick={() =>
+																			handleServiceAction(service, "stop")
+																		}
+																	>
+																		<Ban className="size-4" />
+																		Stop
+																	</ContextMenuItem>
+																	<ContextMenuSeparator />
+																	<ContextMenuItem
+																		className="flex items-center gap-2 text-red-500 focus:text-red-500"
+																		onClick={() => setServiceToDelete(service)}
+																	>
+																		<Trash2 className="size-4" />
+																		Delete
+																	</ContextMenuItem>
+																</ContextMenuContent>
+															)}
 													</ContextMenu>
 												))}
 											</div>

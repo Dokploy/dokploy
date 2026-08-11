@@ -62,6 +62,24 @@ export const findEnvironmentById = async (environmentId: string) => {
 					icon: true,
 				},
 			},
+			externalUpstreams: {
+				with: {
+					server: {
+						columns: {
+							name: true,
+							serverId: true,
+						},
+					},
+				},
+				columns: {
+					externalUpstreamId: true,
+					name: true,
+					createdAt: true,
+					applicationStatus: true,
+					description: true,
+					serverId: true,
+				},
+			},
 			mariadb: {
 				with: {
 					server: {
@@ -219,6 +237,10 @@ export const findEnvironmentsByProjectId = async (projectId: string) => {
 				columns: { ...serviceColumns, applicationId: true, icon: true },
 				with: { server: { columns: { name: true } } },
 			},
+			externalUpstreams: {
+				columns: { ...serviceColumns, externalUpstreamId: true },
+				with: { server: { columns: { name: true } } },
+			},
 			mariadb: {
 				columns: { ...serviceColumns, mariadbId: true },
 				with: { server: { columns: { name: true } } },
@@ -269,6 +291,7 @@ const environmentHasServices = (
 ) => {
 	return (
 		(env.applications?.length ?? 0) > 0 ||
+		(env.externalUpstreams?.length ?? 0) > 0 ||
 		(env.compose?.length ?? 0) > 0 ||
 		(env.libsql?.length ?? 0) > 0 ||
 		(env.mariadb?.length ?? 0) > 0 ||
@@ -349,6 +372,7 @@ export const duplicateEnvironment = async (
 
 interface EnvironmentWithServices {
 	applications: { applicationId: string }[];
+	externalUpstreams: { externalUpstreamId: string }[];
 	compose: { composeId: string }[];
 	libsql: { libsqlId: string }[];
 	mariadb: { mariadbId: string }[];
@@ -365,6 +389,9 @@ export const filterEnvironmentServices = <T extends EnvironmentWithServices>(
 	...environment,
 	applications: environment.applications.filter((app) =>
 		accessedServices.includes(app.applicationId),
+	),
+	externalUpstreams: environment.externalUpstreams.filter((service) =>
+		accessedServices.includes(service.externalUpstreamId),
 	),
 	compose: environment.compose.filter((comp) =>
 		accessedServices.includes(comp.composeId),

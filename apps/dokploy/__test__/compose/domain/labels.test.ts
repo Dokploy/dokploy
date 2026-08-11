@@ -1,5 +1,5 @@
-import type { Domain } from "@dokploy/server";
-import { createDomainLabels } from "@dokploy/server";
+import type { Domain } from "@dokploy/server/services/domain";
+import { createDomainLabels } from "@dokploy/server/utils/docker/domain";
 import { describe, expect, it } from "vitest";
 
 describe("createDomainLabels", () => {
@@ -24,6 +24,7 @@ describe("createDomainLabels", () => {
 		stripPath: false,
 		middlewares: null,
 		forwardAuthEnabled: false,
+		externalUpstreamId: null,
 	};
 
 	it("should create basic labels for web entrypoint", async () => {

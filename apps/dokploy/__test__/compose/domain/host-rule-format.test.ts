@@ -1,5 +1,5 @@
-import type { Domain } from "@dokploy/server";
-import { createDomainLabels } from "@dokploy/server";
+import type { Domain } from "@dokploy/server/services/domain";
+import { createDomainLabels } from "@dokploy/server/utils/docker/domain";
 import { describe, expect, it } from "vitest";
 import { parse, stringify } from "yaml";
 
@@ -35,6 +35,7 @@ describe("Host rule format regression tests", () => {
 		customEntrypoint: null,
 		middlewares: null,
 		forwardAuthEnabled: false,
+		externalUpstreamId: null,
 	};
 
 	describe("Host rule format validation", () => {

@@ -30,6 +30,7 @@ export type Services = {
 	type:
 		| "application"
 		| "compose"
+		| "external-upstream"
 		| "libsql"
 		| "mariadb"
 		| "mongo"
