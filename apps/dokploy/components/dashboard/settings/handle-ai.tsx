@@ -99,6 +99,11 @@ export const HandleAi = ({ aiId }: Props) => {
 			enabled: !!aiId,
 		},
 	);
+	const { data: customProviders } = api.ai.getCustomProviders.useQuery();
+	const hasCustomProviders = (customProviders?.length ?? 0) > 0;
+	const providerOptions: { name: string; apiUrl: string }[] = hasCustomProviders
+		? (customProviders ?? [])
+		: [...AI_PROVIDERS];
 	const { mutateAsync, isPending } = aiId
 		? api.ai.update.useMutation()
 		: api.ai.create.useMutation();
@@ -210,7 +215,9 @@ export const HandleAi = ({ aiId }: Props) => {
 							<FormLabel>Provider</FormLabel>
 							<Select
 								onValueChange={(value) => {
-									const provider = AI_PROVIDERS.find((p) => p.apiUrl === value);
+									const provider = providerOptions.find(
+										(p) => p.apiUrl === value,
+									);
 									if (provider) {
 										form.setValue("name", provider.name);
 										form.setValue("apiUrl", provider.apiUrl);
@@ -222,15 +229,20 @@ export const HandleAi = ({ aiId }: Props) => {
 									<SelectValue placeholder="Select a provider preset..." />
 								</SelectTrigger>
 								<SelectContent>
-									{AI_PROVIDERS.map((provider) => (
-										<SelectItem key={provider.apiUrl} value={provider.apiUrl}>
+									{providerOptions.map((provider) => (
+										<SelectItem
+											key={`${provider.name}-${provider.apiUrl}`}
+											value={provider.apiUrl}
+										>
 											{provider.name}
 										</SelectItem>
 									))}
 								</SelectContent>
 							</Select>
 							<p className="text-[0.8rem] text-muted-foreground">
-								Quick-fill provider name and URL, or configure manually below
+								{hasCustomProviders
+									? "Select one of the providers defined by your organization"
+									: "Quick-fill provider name and URL, or configure manually below"}
 							</p>
 						</div>
 
@@ -260,6 +272,7 @@ export const HandleAi = ({ aiId }: Props) => {
 									<FormControl>
 										<Input
 											placeholder="https://api.openai.com/v1"
+											disabled={hasCustomProviders}
 											{...field}
 											onChange={(e) => {
 												field.onChange(e);
@@ -271,7 +284,9 @@ export const HandleAi = ({ aiId }: Props) => {
 										/>
 									</FormControl>
 									<FormDescription>
-										The base URL for your AI provider's API
+										{hasCustomProviders
+											? "The API URL is defined by your organization's providers"
+											: "The base URL for your AI provider's API"}
 									</FormDescription>
 									<FormMessage />
 								</FormItem>

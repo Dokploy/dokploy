@@ -695,7 +695,10 @@ export const ShowDomains = ({ id, type }: Props) => {
 																</Badge>
 															</TooltipTrigger>
 															<TooltipContent className="max-w-xs">
-																{validationState?.error ? (
+																{validationState?.isValid &&
+																validationState?.message ? (
+																	<p>{validationState.message}</p>
+																) : validationState?.error ? (
 																	<div className="flex flex-col gap-1">
 																		<p className="font-medium text-red-500">
 																			Error:

@@ -5,17 +5,20 @@ import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
 import { useTheme } from "next-themes";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { fixMacOsAltKeys } from "@/lib/terminal-keyboard";
 
 interface Props {
 	id: string;
 	containerId?: string;
 	serverId?: string;
+	serviceId?: string;
 }
 
 export const DockerTerminal: React.FC<Props> = ({
 	id,
 	containerId,
 	serverId,
+	serviceId,
 }) => {
 	const termRef = useRef(null);
 	const [activeWay, setActiveWay] = React.useState<string | undefined>("bash");
@@ -38,11 +41,12 @@ export const DockerTerminal: React.FC<Props> = ({
 		const addonFit = new FitAddon();
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
-		const wsUrl = `${protocol}//${window.location.host}/docker-container-terminal?containerId=${containerId}&activeWay=${activeWay}${serverId ? `&serverId=${serverId}` : ""}`;
+		const wsUrl = `${protocol}//${window.location.host}/docker-container-terminal?containerId=${containerId}&activeWay=${activeWay}${serverId ? `&serverId=${serverId}` : ""}${serviceId ? `&serviceId=${serviceId}` : ""}`;
 
 		const ws = new WebSocket(wsUrl);
 
 		const addonAttach = new AttachAddon(ws);
+		fixMacOsAltKeys(term);
 		// @ts-ignore
 		term.open(termRef.current);
 		// @ts-ignore

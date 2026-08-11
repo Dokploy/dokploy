@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
+import { useEnvCompletionSource } from "@/components/shared/env-autocomplete";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -55,6 +56,10 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 		},
 	);
 
+	const completionSource = useEnvCompletionSource({
+		includeShared: false,
+		projectId,
+	});
 	const form = useForm<UpdateProject>({
 		defaultValues: {
 			env: data?.env ?? "",
@@ -77,6 +82,7 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 			.then(() => {
 				toast.success("Project env updated successfully");
 				utils.project.all.invalidate();
+				utils.project.one.invalidate({ projectId });
 			})
 			.catch(() => {
 				toast.error("Error updating the env");
@@ -149,6 +155,7 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 											<FormLabel>Environment variables</FormLabel>
 											<FormControl>
 												<CodeEditor
+													completionSource={completionSource}
 													lineWrapping
 													language="properties"
 													readOnly={!canWrite}
